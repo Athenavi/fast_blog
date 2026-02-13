@@ -1,0 +1,35 @@
+fastapi==0.128.0
+uvicorn[standard]
+python-dotenv
+sqlalchemy==2.0.46
+httpx-oauth
+asyncpg
+aiomysql
+aiosqlite
+passlib[bcrypt]
+fastapi-users[sqlalchemy]
+redis
+slowapi
+bcrypt
+python-multipart
+python-jose[cryptography]
+cachetools
+httpx
+# PostgreSQL 异步驱动
+psycopg2-binary
+# linux libmagic
+# windows python-magic-bin
+fastapi-cors==0.0.6
+tokenizer
+passlib==1.7.4
+fastscheduler[all]
+wtforms==3.2.1
+pydantic==2.12.5
+openapi-spec-validator
+fastapi-versioning
+alembic
+opencv-python
+
+# 更新系统依赖
+requests
+psutil

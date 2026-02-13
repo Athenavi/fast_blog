@@ -1,0 +1,237 @@
+/* admin.css - 管理后台专用样式 */
+
+.sidebar {
+  transition: all 0.3s ease;
+  height: 100vh;
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 50;
+  box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+}
+
+.card-hover {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+@media (max-width: 768px) {
+  .sidebar {
+    transform: translateX(-100%);
+    width: 280px;
+  }
+
+  .sidebar.active {
+    transform: translateX(0);
+  }
+  
+  .main-content {
+    margin-left: 0 !important;
+  }
+}
+
+.nav-group-title {
+  color: #64748b;
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 8px 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.dropdown-content {
+  display: block;
+  min-width: 16rem;
+  padding: 0.5rem 0;
+  margin: 0.5rem 0 0;
+  font-size: 1rem;
+  color: #212529;
+  text-align: left;
+  list-style: none;
+  background-clip: padding-box;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  border-radius: 0.375rem;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.175);
+  background-color: #fff;
+  z-index: 1000;
+}
+
+:root {
+  --primary: #3b82f6;
+  --secondary: #64748b;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --dark: #1e293b;
+  --light: #f8fafc;
+  --wp-blue: #007cba;
+  --wp-dark: #1d2327;
+  --wp-light: #f0f0f1;
+}
+
+/* WordPress-inspired styles */
+.wp-admin-body {
+  background-color: #f0f0f1;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+}
+
+.wp-header {
+  background: #1d2327;
+  color: white;
+  padding: 0;
+  height: 46px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.wp-sidebar {
+  background: #1d2327;
+  color: white;
+  width: 160px;
+  padding-top: 46px;
+}
+
+.wp-sidebar-nav {
+  padding: 10px 0;
+}
+
+.wp-sidebar-item {
+  color: #bbcfd3;
+  padding: 8px 12px;
+  margin: 0 4px;
+  border-radius: 4px;
+  text-decoration: none;
+  display: flex;
+  align-items: center;
+  transition: all 0.2s;
+}
+
+.wp-sidebar-item:hover,
+.wp-sidebar-item.active {
+  background: #007cba;
+  color: white;
+}
+
+.wp-content {
+  padding: 20px;
+  background: white;
+  border: 1px solid #ccd0d4;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.04);
+  margin-bottom: 20px;
+  border-radius: 4px;
+}
+
+.wp-button {
+  background: #007cba;
+  color: white;
+  border: none;
+  padding: 6px 12px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 20px;
+  text-decoration: none;
+  display: inline-block;
+  vertical-align: top;
+}
+
+.wp-button:hover {
+  background: #006ba1;
+}
+
+.wp-form-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.wp-form-table th {
+  text-align: left;
+  padding: 10px;
+  font-weight: 500;
+  color: #23282d;
+  background: #f9f9f9;
+  border: 1px solid #ccd0d4;
+}
+
+.wp-form-table td {
+  padding: 10px;
+  border: 1px solid #ccd0d4;
+}
+
+.wp-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.wp-table th,
+.wp-table td {
+  padding: 8px 10px;
+  text-align: left;
+  border-bottom: 1px solid #ccd0d4;
+}
+
+.wp-table th {
+  background: #f9f9f9;
+  font-weight: 500;
+}
+
+.wp-table tr:nth-child(even) {
+  background: #f9f9f9;
+}
+
+.wp-table tr:hover {
+  background: #f0f0f1;
+}
+
+/* Responsive adjustments */
+@media (max-width: 782px) {
+  .wp-sidebar {
+    width: 50px;
+  }
+  
+  .wp-sidebar-text {
+    display: none;
+  }
+  
+  .wp-content {
+    padding: 15px;
+  }
+}
+
+@media (max-width: 480px) {
+  .wp-header {
+    height: auto;
+    padding: 10px;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .wp-content {
+    padding: 10px;
+  }
+}
+
+/* Custom scrollbar */
+.sidebar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}

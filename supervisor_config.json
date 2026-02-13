@@ -1,0 +1,43 @@
+{
+    "processes": {
+        "ipc_server": {
+            "command": ["python", "-m", "ipc.server"],
+            "working_dir": ".",
+            "autostart": true,
+            "autorestart": true,
+            "restart_limit": 5,
+            "restart_delay": 3,
+            "stdout_logfile": "logs/ipc_server.log",
+            "stderr_logfile": "logs/ipc_server.err.log"
+        },
+        "update_server": {
+            "command": ["python", "-m", "update_server.server"],
+            "working_dir": ".",
+            "autostart": true,
+            "autorestart": true,
+            "restart_limit": 3,
+            "restart_delay": 5,
+            "environment": {
+                "UPDATE_CHECKER_PORT": "8001",
+                "UPDATE_CHECKER_HOST": "127.0.0.1"
+            },
+            "stdout_logfile": "logs/update_server.log",
+            "stderr_logfile": "logs/update_server.err.log"
+        },
+        "main_app": {
+            "command": ["python", "main.py"],
+            "working_dir": ".",
+            "autostart": true,
+            "autorestart": true,
+            "restart_limit": 3,
+            "restart_delay": 10,
+            "stdout_logfile": "logs/main_app.log",
+            "stderr_logfile": "logs/main_app.err.log"
+        }
+    },
+    "supervisor": {
+        "monitor_interval": 5,
+        "log_level": "INFO",
+        "log_file": "logs/supervisor.log"
+    }
+}

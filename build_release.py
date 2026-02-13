@@ -1,0 +1,456 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+FastBlog 发布构建脚本
+负责打包整个项目为可发布的发行版本
+"""
+
+import argparse
+import hashlib
+import json
+import logging
+import os
+import platform
+import shutil
+import subprocess
+import sys
+import tempfile
+import time
+import zipfile
+from datetime import datetime
+from pathlib import Path
+from typing import Dict, List
+
+# 配置日志
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
+class ReleaseBuilder:
+    """发布构建器"""
+    
+    def __init__(self, version: str, output_dir: str = "release"):
+        self.version = version
+        self.output_dir = Path(output_dir)
+        self.project_root = Path(__file__).resolve().parent
+        self.build_temp = Path(tempfile.mkdtemp(prefix="fastblog_build_"))
+        self.release_dir = self.output_dir / f"fastblog-v{version}"
+        
+        # 确保输出目录存在
+        self.output_dir.mkdir(exist_ok=True)
+        self.release_dir.mkdir(parents=True, exist_ok=True)
+        
+        logger.info(f"构建版本: {version}")
+        logger.info(f"项目根目录: {self.project_root}")
+        logger.info(f"发布目录: {self.release_dir}")
+    
+    def get_file_hash(self, file_path: Path) -> str:
+        """计算文件SHA256哈希值"""
+        hash_sha256 = hashlib.sha256()
+        with open(file_path, "rb") as f:
+            for chunk in iter(lambda: f.read(4096), b""):
+                hash_sha256.update(chunk)
+        return hash_sha256.hexdigest()
+    
+    def copy_backend_files(self) -> List[Path]:
+        """复制后端文件"""
+        logger.info("正在复制后端文件...")
+        
+        backend_files = []
+        backend_dirs = ['src', 'ipc', 'launcher', 'updater']
+        backend_files_list = ['main.py', 'start_fastblog.py', 'requirements.txt', 
+                             'version.txt', '.env_example']
+        
+        # 复制目录
+        for dir_name in backend_dirs:
+            src_dir = self.project_root / dir_name
+            if src_dir.exists():
+                dst_dir = self.release_dir / dir_name
+                shutil.copytree(src_dir, dst_dir, dirs_exist_ok=True)
+                # 收集所有文件
+                for root, dirs, files in os.walk(dst_dir):
+                    for file in files:
+                        backend_files.append(Path(root) / file)
+                logger.info(f"已复制目录: {dir_name}")
+        
+        # 复制单独文件
+        for file_name in backend_files_list:
+            src_file = self.project_root / file_name
+            if src_file.exists():
+                dst_file = self.release_dir / file_name
+                shutil.copy2(src_file, dst_file)
+                backend_files.append(dst_file)
+                logger.info(f"已复制文件: {file_name}")
+        
+        return backend_files
+    
+    def build_frontend(self) -> List[Path]:
+        """构建前端应用"""
+        logger.info("正在构建前端应用...")
+        
+        frontend_files = []
+        frontend_dir = self.project_root / "frontend-next"
+        
+        if not frontend_dir.exists():
+            logger.warning("前端目录不存在，跳过前端构建")
+            return frontend_files
+        
+        try:
+            # 构建Next.js应用
+            build_cmd = ["npm", "run", "build"]
+            result = subprocess.run(
+                build_cmd,
+                cwd=frontend_dir,
+                capture_output=True,
+                text=True,
+                timeout=300  # 5分钟超时
+            )
+            
+            if result.returncode != 0:
+                logger.error(f"前端构建失败: {result.stderr}")
+                raise Exception("前端构建失败")
+            
+            logger.info("前端构建完成")
+            
+            # 复制构建产物
+            next_dir = frontend_dir / ".next"
+            if next_dir.exists():
+                dst_next_dir = self.release_dir / "frontend-next" / ".next"
+                shutil.copytree(next_dir, dst_next_dir, dirs_exist_ok=True)
+                # 收集构建文件
+                for root, dirs, files in os.walk(dst_next_dir):
+                    for file in files:
+                        frontend_files.append(Path(root) / file)
+            
+            # 复制其他必要文件
+            frontend_files_needed = [
+                'package.json', 'next.config.ts', 'tsconfig.json',
+                '.env_example', '.gitignore'
+            ]
+            
+            for file_name in frontend_files_needed:
+                src_file = frontend_dir / file_name
+                if src_file.exists():
+                    dst_file = self.release_dir / "frontend-next" / file_name
+                    dst_file.parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(src_file, dst_file)
+                    frontend_files.append(dst_file)
+            
+            logger.info(f"已复制 {len(frontend_files)} 个前端文件")
+            
+        except subprocess.TimeoutExpired:
+            logger.error("前端构建超时")
+            raise Exception("前端构建超时")
+        except Exception as e:
+            logger.error(f"前端构建异常: {e}")
+            raise
+        
+        return frontend_files
+    
+    def copy_static_assets(self) -> List[Path]:
+        """复制静态资源"""
+        logger.info("正在复制静态资源...")
+        
+        static_files = []
+        static_dir = self.project_root / "static"
+        
+        if static_dir.exists():
+            dst_static_dir = self.release_dir / "static"
+            shutil.copytree(static_dir, dst_static_dir, dirs_exist_ok=True)
+            
+            # 收集静态文件
+            for root, dirs, files in os.walk(dst_static_dir):
+                for file in files:
+                    static_files.append(Path(root) / file)
+            
+            logger.info(f"已复制 {len(static_files)} 个静态文件")
+        
+        return static_files
+    
+    def create_startup_scripts(self) -> List[Path]:
+        """创建启动脚本"""
+        logger.info("正在创建启动脚本...")
+        
+        scripts = []
+        
+        # Windows批处理脚本
+        win_script = self.release_dir / "start_fastblog.bat"
+        win_script_content = f"""@echo off
+REM FastBlog {self.version} 启动脚本 (Windows)
+cd /d "%~dp0"
+python start_fastblog.py
+pause
+"""
+        with open(win_script, 'w', encoding='utf-8') as f:
+            f.write(win_script_content)
+        scripts.append(win_script)
+        
+        # Linux/Mac Shell脚本
+        unix_script = self.release_dir / "start_fastblog.sh"
+        unix_script_content = f"""#!/bin/bash
+# FastBlog {self.version} 启动脚本 (Linux/macOS)
+cd "$(dirname "$0")"
+python3 start_fastblog.py
+"""
+        with open(unix_script, 'w', encoding='utf-8') as f:
+            f.write(unix_script_content)
+        os.chmod(unix_script, 0o755)  # 设置执行权限
+        scripts.append(unix_script)
+        
+        # README文件
+        readme_file = self.release_dir / "README.md"
+        readme_content = f"""# FastBlog v{self.version}
+
+## 简介
+FastBlog 是一个现代化的博客系统，基于FastAPI和Next.js构建。
+
+## 系统要求
+- Python 3.8+
+- Node.js 18+ (如果需要重新构建前端)
+- 数据库支持: PostgreSQL, MySQL, SQLite
+
+## 安装步骤
+
+### 1. 安装Python依赖
+```bash
+pip install -r requirements.txt
+```
+
+### 2. 配置环境
+复制 `.env_example` 为 `.env` 并根据需要修改配置：
+```bash
+cp .env_example .env
+```
+
+### 3. 启动应用
+Windows:
+```cmd
+start_fastblog.bat
+```
+
+Linux/macOS:
+```bash
+./start_fastblog.sh
+```
+
+或者直接运行：
+```bash
+python start_fastblog.py
+```
+
+## 目录结构
+- `src/` - 后端源代码
+- `frontend-next/` - 前端源代码
+- `launcher/` - 应用启动器
+- `updater/` - 自动更新系统
+- `static/` - 静态资源文件
+
+## 访问地址
+默认情况下，应用将在以下地址运行：
+- 前端界面: http://localhost:3000
+- API文档: http://localhost:8000/docs
+
+## 更多信息
+请访问项目文档获取详细信息。
+"""
+        with open(readme_file, 'w', encoding='utf-8') as f:
+            f.write(readme_content)
+        scripts.append(readme_file)
+        
+        logger.info(f"已创建 {len(scripts)} 个启动脚本和文档")
+        return scripts
+    
+    def create_checksums(self, all_files: List[Path]) -> Path:
+        """创建校验和文件"""
+        logger.info("正在创建校验和文件...")
+        
+        checksums = {}
+        for file_path in all_files:
+            try:
+                rel_path = file_path.relative_to(self.release_dir)
+                file_hash = self.get_file_hash(file_path)
+                checksums[str(rel_path).replace('\\', '/')] = file_hash
+            except Exception as e:
+                logger.warning(f"计算文件哈希失败 {file_path}: {e}")
+        
+        # 写入JSON格式的校验和文件
+        checksum_file = self.release_dir / "CHECKSUMS.json"
+        with open(checksum_file, 'w', encoding='utf-8') as f:
+            json.dump(checksums, f, indent=2, ensure_ascii=False)
+        
+        # 写入传统格式的校验和文件
+        checksum_txt = self.release_dir / "CHECKSUMS.txt"
+        with open(checksum_txt, 'w', encoding='utf-8') as f:
+            for file_path, file_hash in checksums.items():
+                f.write(f"{file_hash}  {file_path}\n")
+        
+        logger.info(f"校验和文件已创建: {checksum_file}")
+        return checksum_file
+    
+    def create_zip_package(self) -> Path:
+        """创建ZIP压缩包"""
+        logger.info("正在创建ZIP压缩包...")
+        
+        zip_filename = self.output_dir / f"fastblog-v{self.version}.zip"
+        
+        with zipfile.ZipFile(zip_filename, 'w', zipfile.ZIP_DEFLATED) as zipf:
+            for root, dirs, files in os.walk(self.release_dir):
+                for file in files:
+                    file_path = Path(root) / file
+                    arc_name = file_path.relative_to(self.output_dir)
+                    zipf.write(file_path, arc_name)
+        
+        logger.info(f"ZIP包已创建: {zip_filename}")
+        return zip_filename
+    
+    def create_release_notes(self) -> Path:
+        """创建发布说明"""
+        logger.info("正在创建发布说明...")
+        
+        release_notes = self.release_dir / "RELEASE_NOTES.md"
+        notes_content = f"""# FastBlog v{self.version} 发布说明
+
+## 🎉 新特性
+
+### 核心功能
+- [在此处添加新功能描述]
+
+### 性能优化
+- [在此处添加性能改进]
+
+### 用户体验
+- [在此处添加用户体验改进]
+
+## 🐛 问题修复
+
+- [在此处添加修复的问题]
+
+## ⚠️ 破坏性变更
+
+- [如果有破坏性变更，在此处说明]
+
+## 🔧 技术更新
+
+### 后端更新
+- Python版本: {platform.python_version()}
+- FastAPI版本: 0.128.0
+
+### 前端更新
+- Next.js版本: 16.1.6
+- React版本: 19.2.3
+
+## 📦 安装说明
+
+请参考 README.md 文件获取详细的安装和配置说明。
+
+## 🙏 致谢
+
+感谢所有为此版本做出贡献的开发者！
+
+---
+发布日期: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
+"""
+        
+        with open(release_notes, 'w', encoding='utf-8') as f:
+            f.write(notes_content)
+        
+        logger.info(f"发布说明已创建: {release_notes}")
+        return release_notes
+    
+    def build(self) -> Dict[str, any]:
+        """执行完整构建流程"""
+        logger.info("=== 开始构建发布版本 ===")
+        start_time = time.time()
+        
+        try:
+            # 1. 复制后端文件
+            backend_files = self.copy_backend_files()
+            
+            # 2. 构建前端
+            frontend_files = self.build_frontend()
+            
+            # 3. 复制静态资源
+            static_files = self.copy_static_assets()
+            
+            # 4. 创建启动脚本
+            script_files = self.create_startup_scripts()
+            
+            # 5. 收集所有文件
+            all_files = backend_files + frontend_files + static_files + script_files
+            
+            # 6. 创建校验和
+            checksum_file = self.create_checksums(all_files)
+            all_files.append(checksum_file)
+            
+            # 7. 创建发布说明
+            release_notes = self.create_release_notes()
+            all_files.append(release_notes)
+            
+            # 8. 创建ZIP包
+            zip_file = self.create_zip_package()
+            
+            # 9. 创建额外的校验和文件（针对ZIP包）
+            zip_checksum_file = self.output_dir / f"fastblog-v{self.version}-checksums.txt"
+            zip_hash = self.get_file_hash(zip_file)
+            with open(zip_checksum_file, 'w', encoding='utf-8') as f:
+                f.write(f"{zip_hash}  fastblog-v{self.version}.zip\n")
+            
+            build_time = time.time() - start_time
+            
+            result = {
+                'success': True,
+                'version': self.version,
+                'files_count': len(all_files),
+                'zip_file': str(zip_file),
+                'zip_size_mb': round(zip_file.stat().st_size / (1024 * 1024), 2),
+                'build_time_seconds': round(build_time, 2),
+                'release_dir': str(self.release_dir)
+            }
+            
+            logger.info("=== 构建完成 ===")
+            logger.info(f"版本: {result['version']}")
+            logger.info(f"文件数量: {result['files_count']}")
+            logger.info(f"ZIP包大小: {result['zip_size_mb']} MB")
+            logger.info(f"构建耗时: {result['build_time_seconds']} 秒")
+            
+            return result
+            
+        except Exception as e:
+            logger.error(f"构建失败: {e}")
+            return {
+                'success': False,
+                'error': str(e)
+            }
+        finally:
+            # 清理临时目录
+            try:
+                shutil.rmtree(self.build_temp, ignore_errors=True)
+            except Exception as e:
+                logger.warning(f"清理临时目录失败: {e}")
+
+def main():
+    """主函数"""
+    parser = argparse.ArgumentParser(description='FastBlog 发布构建工具')
+    parser.add_argument('--version', '-v', required=True, help='版本号')
+    parser.add_argument('--output', '-o', default='release', help='输出目录')
+    parser.add_argument('--verbose', action='store_true', help='详细输出')
+    
+    args = parser.parse_args()
+    
+    if args.verbose:
+        logging.getLogger().setLevel(logging.DEBUG)
+    
+    builder = ReleaseBuilder(args.version, args.output)
+    result = builder.build()
+    
+    if result['success']:
+        print(json.dumps(result, indent=2, ensure_ascii=False))
+        sys.exit(0)
+    else:
+        print(f"构建失败: {result['error']}", file=sys.stderr)
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
