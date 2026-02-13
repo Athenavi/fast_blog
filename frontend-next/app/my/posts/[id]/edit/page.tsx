@@ -150,12 +150,12 @@ const EditArticlePage = () => {
     return (
       <AuthErrorBoundary 
         error={error}
-        onRetry={() => window.location.reload()}
+        retryAction={() => window.location.reload()}
         redirectPath={`/my/posts/${articleId}/edit`}
       >
         <ErrorState
           error={error}
-          onRetry={() => window.location.reload()}
+          retryAction={() => window.location.reload()}
           secondaryAction={{
             label: '返回文章',
             onClick: () => router.push(`/blog/${initialData?.slug || articleId}`)

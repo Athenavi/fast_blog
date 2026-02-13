@@ -104,7 +104,7 @@ const VipPaymentPage = () => {
         <div className="container mx-auto px-4 max-w-2xl">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 text-center">
             <p className="text-red-500">{error}</p>
-            <Link href="/vip/plans" className="mt-4 inline-block text-blue-600 hover:text-blue-800">
+            <Link href={{ pathname: '/vip/plans' }} className="mt-4 inline-block text-blue-600 hover:text-blue-800">
               返回套餐选择
             </Link>
           </div>
@@ -119,7 +119,7 @@ const VipPaymentPage = () => {
         <div className="container mx-auto px-4 max-w-2xl">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 text-center">
             <p className="text-red-500">未找到套餐信息</p>
-            <Link href="/vip/plans" className="mt-4 inline-block text-blue-600 hover:text-blue-800">
+            <Link href={{ pathname: '/vip/plans' }} className="mt-4 inline-block text-blue-600 hover:text-blue-800">
               返回套餐选择
             </Link>
           </div>

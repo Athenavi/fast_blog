@@ -75,7 +75,7 @@ const CreateArticlePage = () => {
     }
 
     if (error) {
-        return <ErrorState error={error} onRetry={() => window.location.reload()}/>;
+        return <ErrorState error={error} retryAction={() => window.location.reload()}/>;
     }
 
     return (

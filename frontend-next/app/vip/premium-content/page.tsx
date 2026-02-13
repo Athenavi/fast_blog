@@ -177,7 +177,7 @@ const VipPremiumContentPage = () => {
                         </div>
 
                         <Link 
-                          href={`/blog/${article.slug}`}
+                          href={{ pathname: '/blog', query: { slug: article.slug } }}
                           className="text-purple-600 hover:text-purple-700 dark:text-purple-400 dark:hover:text-purple-300 font-semibold"
                         >
                           阅读全文 <i className="fas fa-arrow-right ml-1"></i>

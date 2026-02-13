@@ -419,63 +419,7 @@ const UpdatePage = () => {
                   </button>
                 </div>
                 
-                {showUpdateButton && (
-                  <>
-                    <div className="mb-4">
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        更新类型
-                      </label>
-                      <div className="grid grid-cols-3 gap-2">
-                        <button
-                          onClick={() => setUpdateType('full')}
-                          className={`py-2 px-3 rounded-lg font-medium transition-colors duration-200 text-center ${
-                            updateType === 'full'
-                              ? 'bg-blue-500 text-white'
-                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
-                          }`}
-                        >
-                          <i className="fas fa-sync mr-1"></i>
-                          完整更新
-                        </button>
-                        <button
-                          onClick={() => setUpdateType('frontend')}
-                          className={`py-2 px-3 rounded-lg font-medium transition-colors duration-200 text-center ${
-                            updateType === 'frontend'
-                              ? 'bg-purple-500 text-white'
-                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
-                          }`}
-                        >
-                          <i className="fas fa-desktop mr-1"></i>
-                          仅前端
-                        </button>
-                        <button
-                          onClick={() => setUpdateType('backend')}
-                          className={`py-2 px-3 rounded-lg font-medium transition-colors duration-200 text-center ${
-                            updateType === 'backend'
-                              ? 'bg-orange-500 text-white'
-                              : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'
-                          }`}
-                        >
-                          <i className="fas fa-server mr-1"></i>
-                          仅后端
-                        </button>
-                      </div>
-                      <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-                        {updateType === 'full' && '更新整个系统（前后端）'}
-                        {updateType === 'frontend' && '仅更新前端界面和组件'}
-                        {updateType === 'backend' && '仅更新后端服务和API'}
-                      </div>
-                    </div>
-                    <button 
-                      onClick={performUpdate}
-                      className="w-full py-2 px-4 bg-green-500 text-white rounded-lg font-medium hover:bg-green-600 transition-colors duration-200 flex items-center justify-center shadow-md hover:shadow-lg"
-                    >
-                      <i className="fas fa-download mr-2"></i>
-                      {updateType === 'full' ? '立即更新' : 
-                       updateType === 'frontend' ? '更新前端' : '更新后端'}
-                    </button>
-                  </>
-                )}
+                {/* 更新按钮已移除，根据注释说明 */}
                 
                 {lastCheckTime && (
                   <div className="text-xs text-gray-500 dark:text-gray-400 text-center pt-2">

@@ -35,6 +35,7 @@ const ArticleDetailClient: React.FC<ArticleDetailClientProps> = ({articleData}) 
     const synthRef = useRef<SpeechSynthesis | null>(null);
     const utteranceRef = useRef<SpeechSynthesisUtterance | null>(null);
     const contentRef = useRef<HTMLDivElement>(null);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const tocbotRef = useRef<any | null>(null);
 
     // 使用更可靠的目录生成方案
@@ -981,7 +982,7 @@ const ArticleDetailClient: React.FC<ArticleDetailClientProps> = ({articleData}) 
                                 </div>
                                 <div className="flex">
                                     <Link
-                                        href={`/user/${String(author.id)}`}
+                                        href={{ pathname: '/user/[id]', query: { id: author.id } }}
                                         className="flex-grow text-center py-2 text-gray-700 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700"
                                     >
                                         更多文章

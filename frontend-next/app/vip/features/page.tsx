@@ -206,7 +206,7 @@ const VIPFeaturesPage = () => {
           
           <div className="mt-6 text-center">
             <Link 
-              href="/vip/plans" 
+              href="/vip/plans"
               className="bg-purple-600 text-white px-8 py-3 rounded-lg font-semibold hover:bg-purple-700 transition inline-block"
             >
               立即选择套餐

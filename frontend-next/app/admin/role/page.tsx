@@ -90,7 +90,7 @@ export default function RoleManagementPage() {
           toast.success(`角色 "${roleName}" 已删除`);
           loadData(); // Refresh data
         } else {
-          toast.error(response.message || '删除角色失败');
+          toast.error((response as any).message || '删除角色失败');
         }
       } catch (error) {
         console.error('Error deleting role:', error);
@@ -122,7 +122,7 @@ export default function RoleManagementPage() {
           toast.success(`权限 "${permissionCode}" 已删除`);
           loadData(); // Refresh data
         } else {
-          toast.error(response.message || '删除权限失败');
+          toast.error((response as any).message || '删除权限失败');
         }
       } catch (error) {
         console.error('Error deleting permission:', error);
@@ -169,7 +169,7 @@ export default function RoleManagementPage() {
         setIsModalOpen(false);
         loadData(); // Refresh data
       } else {
-        toast.error(response.message || (isEditing ? '更新角色失败' : '添加角色失败'));
+        toast.error((response as any).message || (isEditing ? '更新角色失败' : '添加角色失败'));
       }
     } catch (error) {
       console.error('Error saving role:', error);
@@ -213,7 +213,7 @@ export default function RoleManagementPage() {
         setIsModalOpen(false);
         loadData(); // Refresh data
       } else {
-        toast.error(response.message || (isEditing ? '更新权限失败' : '添加权限失败'));
+        toast.error((response as any).message || (isEditing ? '更新权限失败' : '添加权限失败'));
       }
     } catch (error) {
       console.error('Error saving permission:', error);

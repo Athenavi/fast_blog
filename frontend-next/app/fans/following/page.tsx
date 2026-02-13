@@ -190,7 +190,7 @@ const FollowingPage = () => {
                 <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">还没有关注任何人</h3>
                 <p className="text-gray-600 dark:text-gray-400 mb-6">发现有趣的用户，开始你的关注之旅吧！</p>
                 <Link 
-                  href="/fans/discover"
+                  href={{ pathname: '/fans/discover' }}
                   className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
                 >
                   <i className="fas fa-search mr-2"></i>

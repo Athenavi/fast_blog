@@ -27,7 +27,7 @@ export const LoadingState = ({ type = 'articles' }: { type?: 'config' | 'article
 );
 
 // 错误状态组件
-export const ErrorState = ({ message, onRetry }: { message: string; onRetry: () => void }) => (
+export const ErrorState = ({ message, retryAction }: { message: string; retryAction: () => void }) => (
   <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
     <div className="max-w-md text-center px-4">
       <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
@@ -40,7 +40,7 @@ export const ErrorState = ({ message, onRetry }: { message: string; onRetry: () 
         {message || '无法加载页面内容'}
       </p>
       <button
-        onClick={onRetry}
+        onClick={retryAction}
         className="inline-flex items-center justify-center px-6 py-3 bg-gradient-to-r from-blue-500 to-blue-600 text-white font-medium rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-300 shadow-lg hover:shadow-xl"
       >
         <span>重新加载</span>

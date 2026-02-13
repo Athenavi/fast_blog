@@ -2,7 +2,7 @@
 
 interface ErrorStateProps {
   error: string;
-  onRetry?: () => void;
+  retryAction?: () => void;
   secondaryAction?: {
     label: string;
     onClick: () => void;
@@ -12,16 +12,19 @@ interface ErrorStateProps {
 
 const ErrorState: React.FC<ErrorStateProps> = ({
   error,
-  onRetry,
+  retryAction,
   secondaryAction,
   type = 'error'
 }) => {
+  // 安全访问错误信息
+  const safeError = typeof error === 'string' ? error : String(error);
+  
   // 判断是否为认证相关错误
-  const isAuthError = error.includes('401') || 
-                     error.toLowerCase().includes('unauthorized') || 
-                     error.includes('requires_auth') ||
-                     error.includes('登录') ||
-                     error.includes('认证');
+  const isAuthError = safeError.includes('401') || 
+                     safeError.toLowerCase().includes('unauthorized') || 
+                     safeError.includes('requires_auth') ||
+                     safeError.includes('登录') ||
+                     safeError.includes('认证');
   
   // 根据错误类型选择图标和样式
   const getErrorConfig = () => {
@@ -35,7 +38,7 @@ const ErrorState: React.FC<ErrorStateProps> = ({
         borderColor: 'border-yellow-200 dark:border-yellow-800',
         textColor: 'text-yellow-500',
         title: '需要登录',
-        message: error || '您需要登录才能访问此内容'
+        message: safeError || '您需要登录才能访问此内容'
       };
     }
     
@@ -50,7 +53,7 @@ const ErrorState: React.FC<ErrorStateProps> = ({
           borderColor: 'border-yellow-200 dark:border-yellow-800',
           textColor: 'text-yellow-500',
           title: '警告',
-          message: error
+          message: safeError
         };
       case 'info':
         return {
@@ -62,7 +65,7 @@ const ErrorState: React.FC<ErrorStateProps> = ({
           borderColor: 'border-blue-200 dark:border-blue-800',
           textColor: 'text-blue-500',
           title: '提示',
-          message: error
+          message: safeError
         };
       case 'error':
       default:
@@ -75,7 +78,7 @@ const ErrorState: React.FC<ErrorStateProps> = ({
           borderColor: 'border-red-200 dark:border-red-800',
           textColor: 'text-red-500',
           title: '加载失败',
-          message: error
+          message: safeError
         };
     }
   };
@@ -92,9 +95,9 @@ const ErrorState: React.FC<ErrorStateProps> = ({
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2 text-center">{config.title}</h2>
           <p className="text-gray-600 dark:text-gray-300 mb-6 text-center">{config.message}</p>
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            {onRetry && (
+            {retryAction && (
               <button
-                onClick={onRetry}
+                onClick={retryAction}
                 className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-center"
               >
                 重试

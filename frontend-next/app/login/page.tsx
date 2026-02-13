@@ -75,9 +75,9 @@ const LoginPage = () => {
         if (isMounted) {
           setCheckingAuth(false);
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         // 如果请求失败，说明用户未登录，继续显示登录页面
-        console.log('Authentication check failed:', error?.message || error);
+        console.log('Authentication check failed:', (error as Error)?.message || String(error));
         if (isMounted) {
           setCheckingAuth(false);
         }
@@ -325,19 +325,20 @@ const LoginPage = () => {
         // 登录失败，显示错误消息
         setErrorMessage(response.error || '登录失败，请检查邮箱和密码');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Login error:', error);
       
       // 检查错误类型并提供更精确的错误信息
-      if (error.status === 401) {
+      const errorObj = error as any;
+      if (errorObj.status === 401) {
         setErrorMessage('邮箱或密码错误，请重新输入');
-      } else if (error.status === 400) {
+      } else if (errorObj.status === 400) {
         setErrorMessage('请求参数错误，请检查输入');
-      } else if (error.message && error.message.includes('NetworkError')) {
+      } else if (errorObj.message && errorObj.message.includes('NetworkError')) {
         setErrorMessage('网络连接错误，请检查网络连接');
       } else {
         // 对于其他错误，提供通用错误信息
-        setErrorMessage(error.message || '登录过程中发生错误，请稍后重试');
+        setErrorMessage(errorObj.message || '登录过程中发生错误，请稍后重试');
       }
     } finally {
       setLoginLoading(false);
