@@ -94,7 +94,7 @@ const MediaManagement = () => {
                 setTotalPages(pagination.pages || 1);
                 setTotalItems(pagination.total || 0);
             } else {
-                console.error('Failed to load media data:', response.error || response.message || 'Unknown error');
+                console.error('Failed to load media data:', response.error || (response as any).message || 'Unknown error');
                 setMediaItems([]);
                 setUsers([]);
                 setTotalPages(1);
@@ -268,7 +268,7 @@ const MediaManagement = () => {
                     loadMediaData();
                     setShowDeleteModal(false);
                 } else {
-                    console.error('Failed to delete media:', response.error || response.message || 'Unknown error');
+                    console.error('Failed to delete media:', response.error || (response as any).message || 'Unknown error');
                 }
             } catch (error) {
                 console.error('Failed to delete media:', error);

@@ -265,7 +265,7 @@ const CategoryDetailPage = () => {
               <p className="text-gray-600 dark:text-gray-400 mb-6">{error || '未找到该分类'}</p>
               <div className="flex justify-center gap-4">
                 <Link
-                  href="/categories"
+                  href={{ pathname: '/categories' }}
                   className="inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium rounded-xl transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0"
                 >
                   <ArrowLeft className="w-4 h-4" />
@@ -312,7 +312,7 @@ const CategoryDetailPage = () => {
         {/* 返回按钮 */}
         <div className="mb-6">
           <Link
-            href="/categories"
+            href={{ pathname: '/categories' }}
             className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white transition-colors group"
           >
             <ChevronLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
@@ -424,7 +424,7 @@ const CategoryDetailPage = () => {
                   <div
                     key={`${article.id}-${article.slug}`}
                     className="group p-6 hover:bg-gradient-to-r hover:from-gray-50 hover:to-gray-100 dark:hover:from-gray-800 dark:hover:to-gray-900 transition-all duration-300 cursor-pointer"
-                    onClick={() => router.push(`/blog/${article.slug}`)}
+                    onClick={() => router.push({ pathname: '/blog', query: { slug: article.slug } } as any)}
                   >
                     <div className="flex flex-col lg:flex-row gap-6">
                       {/* 封面图片 */}
@@ -508,11 +508,11 @@ const CategoryDetailPage = () => {
               </div>
 
               {/* 分页 */}
-              {(pagination.total_pages && pagination.total_pages > 1) && (
+              {(pagination.total_pages && (pagination.total_pages as number) > 1) && (
                 <div className="border-t border-gray-100 dark:border-gray-700 p-6">
                   <div className="flex items-center justify-between">
                     <div className="text-sm text-gray-600 dark:text-gray-400">
-                      第 {currentPage} 页，共 {pagination.total_pages} 页
+                      第 {currentPage} 页，共 {pagination.total_pages as number} 页
                     </div>
 
                     <nav className="flex items-center gap-1">

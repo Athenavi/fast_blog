@@ -6,7 +6,7 @@ import {useRouter} from 'next/navigation';
 interface AuthErrorBoundaryProps {
   error: string;
   children: React.ReactNode;
-  onRetry?: () => void;
+  retryAction?: () => void;
   showLoginButton?: boolean;
   redirectPath?: string;
 }
@@ -18,12 +18,14 @@ interface AuthErrorBoundaryProps {
 const AuthErrorBoundary: React.FC<AuthErrorBoundaryProps> = ({
   error,
   children,
-  onRetry,
+  retryAction,
   showLoginButton = true,
   redirectPath
 }) => {
   const router = useRouter();
-  const isUnauthorized = error.includes('401') || error.toLowerCase().includes('unauthorized') || error.includes('requires_auth');
+  // 安全访问错误信息
+  const safeError = typeof error === 'string' ? error : String(error);
+  const isUnauthorized = safeError.includes('401') || safeError.toLowerCase().includes('unauthorized') || safeError.includes('requires_auth');
 
   useEffect(() => {
     // 如果是401错误且需要自动重定向
@@ -38,7 +40,7 @@ const AuthErrorBoundary: React.FC<AuthErrorBoundaryProps> = ({
       
       // 延迟重定向，给用户一点时间看到错误信息
       const timer = setTimeout(() => {
-        router.push(loginUrl as any);
+        router.push({ pathname: '/login', query: { next: nextParam } } as any);
       }, 3200);
       
       return () => clearTimeout(timer);
@@ -61,7 +63,7 @@ const AuthErrorBoundary: React.FC<AuthErrorBoundaryProps> = ({
           </div>
           <h2 className="text-xl font-semibold text-gray-900 dark:text-white mb-2 text-center">需要登录</h2>
           <p className="text-gray-600 dark:text-gray-300 mb-6 text-center">
-            {error || '您需要登录才能访问此页面'}
+            {safeError || '您需要登录才能访问此页面'}
           </p>
           
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -70,7 +72,7 @@ const AuthErrorBoundary: React.FC<AuthErrorBoundaryProps> = ({
                 onClick={() => {
                   const currentPath = redirectPath || window.location.pathname + window.location.search;
                   const nextParam = encodeURIComponent(currentPath);
-                  router.push(`/login?next=${nextParam}` as any);
+                  router.push({ pathname: '/login', query: { next: nextParam } } as any);
                 }}
                 className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors text-center"
               >
@@ -78,9 +80,9 @@ const AuthErrorBoundary: React.FC<AuthErrorBoundaryProps> = ({
               </button>
             )}
             
-            {onRetry && (
+            {retryAction && (
               <button
-                onClick={onRetry}
+                onClick={retryAction}
                 className="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:text-gray-300 dark:hover:bg-gray-800 transition-colors text-center"
               >
                 重试

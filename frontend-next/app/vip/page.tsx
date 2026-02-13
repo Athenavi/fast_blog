@@ -15,7 +15,7 @@ const VipPage = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-          <Link href="/vip/features" className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow duration-300 flex flex-col items-center text-center group">
+          <Link href={{ pathname: '/vip/features' }} className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow duration-300 flex flex-col items-center text-center group">
             <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
               <i className="fas fa-star text-white text-2xl"></i>
             </div>
@@ -23,7 +23,7 @@ const VipPage = () => {
             <p className="text-gray-600 dark:text-gray-400">查看不同VIP等级的专属特权</p>
           </Link>
 
-          <Link href="/vip/plans" className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow duration-300 flex flex-col items-center text-center group">
+          <Link href={{ pathname: '/vip/plans' }} className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow duration-300 flex flex-col items-center text-center group">
             <div className="w-16 h-16 bg-gradient-to-r from-green-500 to-teal-600 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
               <i className="fas fa-shopping-cart text-white text-2xl"></i>
             </div>
@@ -31,7 +31,7 @@ const VipPage = () => {
             <p className="text-gray-600 dark:text-gray-400">选择适合您的VIP套餐</p>
           </Link>
 
-          <Link href="/vip/my-subscription" className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow duration-300 flex flex-col items-center text-center group">
+          <Link href={{ pathname: '/vip/my-subscription' }} className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow duration-300 flex flex-col items-center text-center group">
             <div className="w-16 h-16 bg-gradient-to-r from-yellow-500 to-orange-600 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
               <i className="fas fa-id-card text-white text-2xl"></i>
             </div>
@@ -39,7 +39,7 @@ const VipPage = () => {
             <p className="text-gray-600 dark:text-gray-400">管理您的VIP订阅信息</p>
           </Link>
 
-          <Link href="/vip/premium-content" className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow duration-300 flex flex-col items-center text-center group">
+          <Link href={{ pathname: '/vip/premium-content' }} className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow duration-300 flex flex-col items-center text-center group">
             <div className="w-16 h-16 bg-gradient-to-r from-red-500 to-pink-600 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
               <i className="fas fa-book text-white text-2xl"></i>
             </div>
@@ -47,7 +47,7 @@ const VipPage = () => {
             <p className="text-gray-600 dark:text-gray-400">浏览VIP专享的高质量内容</p>
           </Link>
 
-          <Link href="/vip/payment" className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow duration-300 flex flex-col items-center text-center group">
+          <Link href={{ pathname: '/vip/payment' }} className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow duration-300 flex flex-col items-center text-center group">
             <div className="w-16 h-16 bg-gradient-to-r from-indigo-500 to-purple-600 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
               <i className="fas fa-credit-card text-white text-2xl"></i>
             </div>
@@ -55,7 +55,7 @@ const VipPage = () => {
             <p className="text-gray-600 dark:text-gray-400">管理您的支付方式和订单</p>
           </Link>
 
-          <Link href="/vip/payment-methods" className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow duration-300 flex flex-col items-center text-center group">
+          <Link href={{ pathname: '/vip/payment-methods' }} className="bg-white dark:bg-gray-800 rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow duration-300 flex flex-col items-center text-center group">
             <div className="w-16 h-16 bg-gradient-to-r from-teal-500 to-green-600 rounded-full flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300">
               <i className="fas fa-wallet text-white text-2xl"></i>
             </div>

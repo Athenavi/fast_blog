@@ -69,7 +69,7 @@ const CategoryManagement = () => {
                     setTotalCategories(0);
                 }
             } else {
-                console.error('Failed to load categories:', response.error || response.message || 'Unknown error');
+                console.error('Failed to load categories:', response.error || (response as any).message || 'Unknown error');
                 setCategories([]);
                 setTotalPages(1);
                 setTotalCategories(0);
@@ -181,8 +181,8 @@ const CategoryManagement = () => {
                     setErrorMessage(null); // 清除错误信息
                     loadCategories();
                 } else {
-                    setErrorMessage(response.error || response.message || '创建分类失败');
-                    console.error('Failed to create category:', response.error || response.message || 'Unknown error');
+                    setErrorMessage(response.error || (response as any).message || '创建分类失败');
+                    console.error('Failed to create category:', response.error || (response as any).message || 'Unknown error');
                 }
             }
         } catch (error) {

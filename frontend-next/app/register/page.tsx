@@ -45,7 +45,7 @@ const RegisterPage = () => {
 
   const progressPercentage = (currentStep / totalSteps) * 100;
 
-  const handleInputChange = (field: string, value: any) => {
+  const handleInputChange = (field: string, value: string | boolean) => {
     setRegisterForm(prev => ({
       ...prev,
       [field]: value
@@ -228,7 +228,7 @@ const RegisterPage = () => {
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white">创建新账户</h2>
             <p className="mt-2 text-sm text-gray-600 dark:text-gray-300">
               已有账户?
-              <Link href="/login" className="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300">
+              <Link href={{ pathname: '/login' }} className="font-medium text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300">
                 {' '}立即登录
               </Link>
             </p>

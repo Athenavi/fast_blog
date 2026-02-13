@@ -51,12 +51,12 @@ const BackupManagement = () => {
         }));
         setBackupFiles(transformedData);
       } else {
-        console.error('Failed to load backup files:', response.error || response.message);
+        console.error('Failed to load backup files:', response.error || (response as any).message);
         setBackupFiles([]);
       }
     } catch (error: any) {
       console.error('Failed to load backup files:', error);
-      alert(error.message || '加载备份文件失败');
+      alert((error as Error).message || '加载备份文件失败');
       setBackupFiles([]);
     } finally {
       setLoading(false);
@@ -171,17 +171,17 @@ const BackupManagement = () => {
         
         setTimeout(() => {
           setShowBackupModal(false);
-          alert(response.message || '备份成功！');
+          alert((response as any).message || '备份成功！');
         }, 500);
       } else {
         setShowBackupModal(false);
-        console.error('Backup failed:', response.error || response.message);
-        alert(response.message || response.error || '备份失败');
+        console.error('Backup failed:', response.error || (response as any).message);
+        alert((response as any).message || response.error || '备份失败');
       }
     } catch (error: any) {
       setShowBackupModal(false);
       console.error('Backup failed:', error);
-      alert(error.message || '备份失败，请检查网络连接和服务器状态');
+      alert((error as Error).message || '备份失败，请检查网络连接和服务器状态');
     }
   };
 
@@ -202,18 +202,18 @@ const BackupManagement = () => {
         
         setShowDeleteModal(false);
         setIsDeleting(false);
-        alert(response.message || '删除成功！');
+        alert((response as any).message || '删除成功！');
       } else {
         setShowDeleteModal(false);
         setIsDeleting(false);
-        console.error('Delete failed:', response.error || response.message);
-        alert(response.message || response.error || '删除失败');
+        console.error('Delete failed:', response.error || (response as any).message);
+        alert((response as any).message || response.error || '删除失败');
       }
     } catch (error: any) {
       setIsDeleting(false);
       setShowDeleteModal(false);
       console.error('Delete failed:', error);
-      alert(error.message || '删除失败，请检查网络连接');
+      alert((error as Error).message || '删除失败，请检查网络连接');
     }
   };
 

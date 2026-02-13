@@ -4,12 +4,12 @@ import React from 'react';
 import Link from 'next/link';
 import {useAuth} from '@/hooks/useAuth';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {Crown, FileText, LogOut, Settings, User} from 'lucide-react';
 

@@ -220,7 +220,7 @@ export default function UserPage() {
                             {recentArticles.length > 0 ? (
                                 <div className="divide-y divide-gray-100">
                                     {recentArticles.map((article) => (
-                                        <Link href={`/blog/${article.slug}`} key={article.id} className="block hover:bg-gray-50 transition-colors">
+                                        <Link href={{ pathname: '/blog', query: { slug: article.slug } }} key={article.id} className="block hover:bg-gray-50 transition-colors">
                                             <article className="p-6">
                                                 <div className="flex flex-col md:flex-row gap-6">
                                                     {article.cover_image && (

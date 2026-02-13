@@ -58,7 +58,7 @@ const MySubscriptionPage = () => {
         <div className="container mx-auto px-4 max-w-4xl">
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 text-center">
             <p className="text-red-500">{error}</p>
-            <Link href="/" className="mt-4 inline-block text-blue-600 hover:text-blue-800">
+            <Link href={{ pathname: '/' }} className="mt-4 inline-block text-blue-600 hover:text-blue-800">
               返回首页
             </Link>
           </div>
@@ -117,7 +117,7 @@ const MySubscriptionPage = () => {
                 <h3 className="text-xl font-semibold text-yellow-800 dark:text-yellow-300 mb-2">您还没有激活的VIP订阅</h3>
                 <p className="text-yellow-600 dark:text-yellow-400 mb-4">立即订阅享受专属特权</p>
                 <Link 
-                  href="/vip/plans" 
+                  href={{ pathname: '/vip/plans' }} 
                   className="bg-yellow-500 text-white px-6 py-2 rounded-lg hover:bg-yellow-600 transition"
                 >
                   选择套餐

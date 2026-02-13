@@ -53,14 +53,14 @@ const LoadingSkeleton = () => (
 );
 
 // 错误状态组件
-const ErrorDisplay = ({ message, onRetry }: { message: string; onRetry: () => void }) => (
+const ErrorDisplay = ({ message, retryAction }: { message: string; retryAction: () => void }) => (
   <div className="min-h-screen flex items-center justify-center">
     <div className="text-center">
       <div className="text-6xl mb-4">⚠️</div>
       <h2 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2">加载失败</h2>
       <p className="text-gray-600 dark:text-gray-400 mb-6">{message}</p>
       <button
-        onClick={onRetry}
+        onClick={retryAction}
         className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
       >
         重新加载
@@ -194,7 +194,7 @@ const FeaturedArticlesSection = ({
               </p>
 
               <a
-                href={`/article/${article.id}`}
+                href={`/article?id=${article.id}`}
                 className="inline-flex items-center text-sm font-medium hover:text-yellow-300 transition-colors"
               >
                 阅读全文
@@ -216,7 +216,7 @@ const RecentArticlesSection = ({
 }: { 
   articles: Article[]; 
   title: string;
-  pagination: any;
+  pagination: Record<string, unknown>;
 }) => (
   <section className="py-20">
     <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -258,13 +258,13 @@ const RecentArticlesSection = ({
         ))}
       </div>
 
-      {pagination && pagination.total_pages > 1 && (
+      {pagination && (pagination.total_pages as number) > 1 && (
         <div className="flex justify-center">
           <Pagination
-            currentPage={pagination.current_page}
-            totalPages={pagination.total_pages}
-            hasNext={pagination.has_next}
-            hasPrev={pagination.has_prev}
+            currentPage={pagination.current_page as number}
+            totalPages={pagination.total_pages as number}
+            hasNext={pagination.has_next as boolean}
+            hasPrev={pagination.has_prev as boolean}
             onPageChange={(page) => console.log('切换到页面:', page)}
             variant="modern"
           />
@@ -500,19 +500,19 @@ export const ModernHomePage = () => {
         if (dataResult.success && configResult.success) {
           // 转换API数据格式，确保字段名匹配
           const apiData: HomePageData = {
-            featuredArticles: (dataResult.data.featuredArticles || []).map((article: any) => ({
+            featuredArticles: (dataResult.data.featuredArticles || []).map((article: Record<string, unknown>) => ({
               ...article,
               cover_image: article.cover_image || article.coverImage || '',
               category_name: article.category_name || article.categoryName || '未分类',
               created_at: article.created_at || article.createdAt || new Date().toISOString()
             })),
-            recentArticles: (dataResult.data.recentArticles || []).map((article: any) => ({
+            recentArticles: (dataResult.data.recentArticles || []).map((article: Record<string, unknown>) => ({
               ...article,
               cover_image: article.cover_image || article.coverImage || '',
               category_name: article.category_name || article.categoryName || '未分类',
               created_at: article.created_at || article.createdAt || new Date().toISOString()
             })),
-            popularArticles: (dataResult.data.popularArticles || []).map((article: any) => ({
+            popularArticles: (dataResult.data.popularArticles || []).map((article: Record<string, unknown>) => ({
               ...article,
               cover_image: article.cover_image || article.coverImage || '',
               category_name: article.category_name || article.categoryName || '未分类',
@@ -574,7 +574,7 @@ export const ModernHomePage = () => {
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
         <ErrorDisplay 
           message={error || '数据加载失败'} 
-          onRetry={() => window.location.reload()} 
+          retryAction={() => window.location.reload()} 
         />
       </div>
     );
@@ -595,7 +595,7 @@ export const ModernHomePage = () => {
       <RecentArticlesSection 
         articles={data.recentArticles} 
         title={config.sections.recentTitle}
-        pagination={null}
+        pagination={{}}
       />
       
       {/* 热门文章 */}
