@@ -1,4 +1,4 @@
-# FastBlog 快速开始指南
+# FastBlog 快速入门指南
 
 本指南将帮助您在5分钟内快速部署和运行FastBlog系统。
 
@@ -78,15 +78,11 @@ curl http://localhost:3000/api/health
 
 ## 🚀 下一步
 
-- [开发指南](./DEVELOPMENT.md) - 深入了解系统架构
-- [部署指南](./DEPLOYMENT.md) - 生产环境部署
-- [系统架构](./ARCHITECTURE.md) - 技术架构详解
+- [技术架构](./TECHNICAL.md) - 了解系统技术细节
+- [贡献指南](./CONTRIBUTING.md) - 参与项目开发
 
 ## 🆘 获取帮助
 
 - [GitHub Issues](https://github.com/Athenavi/fast_blog/issues)
 - [社区讨论](https://github.com/Athenavi/fast_blog/discussions)
 - 技术支持: support@fastblog.example.com
-
----
-*文档版本：v2.1.0 | 更新时间：2026年2月*

@@ -317,46 +317,6 @@ python3 start_fastblog.py
 ## 简介
 FastBlog 是一个现代化的博客系统，基于FastAPI和Next.js构建。
 
-## 系统要求
-- Python 3.8+
-- Node.js 18+ (如果需要重新构建前端)
-- 数据库支持: PostgreSQL, MySQL, SQLite
-
-## 安装步骤
-
-### 1. 安装Python依赖
-```bash
-pip install -r requirements.txt
-```
-
-### 2. 配置环境
-复制 `.env_example` 为 `.env` 并根据需要修改配置：
-```bash
-cp .env_example .env
-```
-
-### 3. 启动应用
-Windows:
-```cmd
-start_fastblog.bat
-```
-
-Linux/macOS:
-```bash
-./start_fastblog.sh
-```
-
-或者直接运行：
-```bash
-python start_fastblog.py
-```
-
-## 目录结构
-- `src/` - 后端源代码
-- `frontend-next/` - 前端源代码
-- `launcher/` - 应用启动器
-- `updater/` - 自动更新系统
-- `static/` - 静态资源文件
 
 ## 访问地址
 默认情况下，应用将在以下地址运行：
@@ -364,7 +324,7 @@ python start_fastblog.py
 - API文档: http://localhost:8000/docs
 
 ## 更多信息
-请访问项目文档获取详细信息。
+请访问项目文档()获取详细信息。
 """
         with open(readme_file, 'w', encoding='utf-8') as f:
             f.write(readme_content)
