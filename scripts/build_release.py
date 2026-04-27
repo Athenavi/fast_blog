@@ -315,11 +315,11 @@ class ReleaseBuilder:
         scripts = []
 
         # Windows批处理脚本
-        win_script = self.release_dir / "start_fastblog.bat"
+        win_script = self.release_dir / "start.bat"
         win_script_content = f"""@echo off
 REM FastBlog {self.version} 启动脚本 (Windows)
 cd /d "%~dp0"
-python start_fastblog.py
+python main.py
 pause
 """
         with open(win_script, 'w', encoding='utf-8') as f:
@@ -327,37 +327,16 @@ pause
         scripts.append(win_script)
 
         # Linux/Mac Shell脚本
-        unix_script = self.release_dir / "start_fastblog.sh"
+        unix_script = self.release_dir / "start.sh"
         unix_script_content = f"""#!/bin/bash
 # FastBlog {self.version} 启动脚本 (Linux/macOS)
 cd "$(dirname "$0")"
-python3 start_fastblog.py
+python3 main.py
 """
         with open(unix_script, 'w', encoding='utf-8') as f:
             f.write(unix_script_content)
         os.chmod(unix_script, 0o755)  # 设置执行权限
         scripts.append(unix_script)
-
-        # README文件
-        readme_file = self.release_dir / "README.md"
-        readme_content = f"""# FastBlog v{self.version}
-
-## 简介
-FastBlog 是一个现代化的博客系统，基于FastAPI和Next.js构建。
-
-
-## 访问地址
-默认情况下，应用将在以下地址运行：
-- 前端界面: http://localhost:3000
-- API文档: http://localhost:8000/docs
-
-## 更多信息
-请访问项目文档()获取详细信息。
-"""
-        with open(readme_file, 'w', encoding='utf-8') as f:
-            f.write(readme_content)
-        scripts.append(readme_file)
-
         logger.info(f"已创建 {len(scripts)} 个启动脚本和文档")
         return scripts
 
@@ -702,20 +681,20 @@ if __name__ == "__main__":
 
 class UpdatePackageBuilder:
     """增量更新包构建器"""
-    
+
     def __init__(self, version: str, output_dir: str = "releases"):
         self.version = version
         self.output_dir = Path(output_dir)
         self.project_root = Path(__file__).resolve().parent.parent
         self.build_temp = Path(tempfile.mkdtemp(prefix="fastblog_update_"))
-        
+
         # 确保输出目录存在
         self.output_dir.mkdir(parents=True, exist_ok=True)
-        
+
         logger.info(f"构建增量更新包：{version}")
         logger.info(f"项目根目录：{self.project_root}")
         logger.info(f"输出目录：{output_dir}")
-    
+
     def get_changed_files(self, base_version: str) -> List[str]:
         """获取两个版本之间的变更文件列表（使用 git diff）"""
         try:
@@ -727,7 +706,7 @@ class UpdatePackageBuilder:
                 text=True,
                 timeout=30
             )
-            
+
             if result.returncode == 0:
                 changed_files = [f.strip() for f in result.stdout.split('\n') if f.strip()]
                 logger.info(f"找到 {len(changed_files)} 个变更文件")
@@ -738,46 +717,46 @@ class UpdatePackageBuilder:
         except Exception as e:
             logger.error(f"获取变更文件失败：{e}")
             return []
-    
+
     def collect_update_files(self, changed_files: List[str]) -> List[Path]:
         """收集需要更新的文件"""
         update_files = []
-        
+
         # 定义需要包含的目录
         include_dirs = [
             'src', 'apps', 'django_blog', 'shared', 'config',
             'process_supervisor', 'updater', 'update_server', 'scripts'
         ]
-        
+
         # 定义需要包含的根目录文件
         include_root_files = [
             'main.py', 'requirements.txt', 'version.txt',
             '.env_example', 'README.md'
         ]
-        
+
         for file_path in changed_files:
             src_path = self.project_root / file_path
-            
+
             # 检查是否在包含的目录中
             if any(file_path.startswith(dir_name) for dir_name in include_dirs):
                 if src_path.exists():
                     update_files.append(src_path)
                     logger.debug(f"添加更新文件：{file_path}")
-            
+
             # 检查是否是根目录文件
             elif file_path in include_root_files:
                 if src_path.exists():
                     update_files.append(src_path)
                     logger.debug(f"添加根目录文件：{file_path}")
-        
+
         logger.info(f"共收集 {len(update_files)} 个更新文件")
         return update_files
-    
+
     def create_update_package(self, base_version: str = None) -> Optional[Path]:
         """创建增量更新包"""
         try:
             logger.info("开始创建增量更新包...")
-            
+
             # 如果没有指定基础版本，尝试从 version.txt 读取
             if not base_version:
                 version_file = self.project_root / 'version.txt'
@@ -789,14 +768,14 @@ class UpdatePackageBuilder:
                             if line.strip().startswith('version='):
                                 base_version = line.split('=')[1].strip()
                                 break
-            
+
             if base_version:
                 logger.info(f"基础版本：{base_version}")
                 changed_files = self.get_changed_files(base_version)
             else:
                 logger.warning("未指定基础版本，将打包所有文件")
                 changed_files = []
-            
+
             # 收集更新文件
             if changed_files:
                 update_files = self.collect_update_files(changed_files)
@@ -808,18 +787,18 @@ class UpdatePackageBuilder:
                     dir_path = self.project_root / dir_name
                     if dir_path.exists():
                         update_files.extend(dir_path.rglob('*'))
-            
+
             # 复制到临时目录
             temp_update_dir = self.build_temp / f"update_{self.version}"
             temp_update_dir.mkdir(parents=True, exist_ok=True)
-            
+
             for src_file in update_files:
                 if src_file.is_file():
                     rel_path = src_file.relative_to(self.project_root)
                     dest_file = temp_update_dir / rel_path
                     dest_file.parent.mkdir(parents=True, exist_ok=True)
                     shutil.copy2(src_file, dest_file)
-            
+
             # 生成元数据文件
             metadata = {
                 'version': self.version,
@@ -829,13 +808,13 @@ class UpdatePackageBuilder:
                 'files_count': len(update_files),
                 'description': f'FastBlog 增量更新包 v{self.version}'
             }
-            
+
             metadata_file = temp_update_dir / 'update_metadata.json'
             with open(metadata_file, 'w', encoding='utf-8') as f:
                 json.dump(metadata, f, indent=2, ensure_ascii=False)
-            
+
             logger.info(f"已复制 {len(update_files)} 个文件到临时目录")
-            
+
             # 创建 ZIP 包
             zip_filename = self.output_dir / f"update_{self.version}.zip"
             with zipfile.ZipFile(zip_filename, 'w', zipfile.ZIP_DEFLATED) as zipf:
@@ -844,29 +823,29 @@ class UpdatePackageBuilder:
                         file_path = Path(root) / file
                         arc_name = file_path.relative_to(temp_update_dir)
                         zipf.write(file_path, f"update/{arc_name}")
-            
+
             logger.info(f"增量更新包已创建：{zip_filename}")
-            
+
             # 计算哈希值
             hash_sha256 = hashlib.sha256()
             with open(zip_filename, 'rb') as f:
                 for chunk in iter(lambda: f.read(4096), b""):
                     hash_sha256.update(chunk)
-            
+
             checksum_file = self.output_dir / f"update_{self.version}.sha256"
             with open(checksum_file, 'w', encoding='utf-8') as f:
                 f.write(f"{hash_sha256.hexdigest()}  update_{self.version}.zip\n")
-            
+
             logger.info(f"SHA256 校验和：{hash_sha256.hexdigest()}")
-            
+
             return zip_filename
-            
+
         except Exception as e:
             logger.error(f"创建增量更新包失败：{e}")
             import traceback
             logger.error(traceback.format_exc())
             return None
-    
+
     def cleanup(self):
         """清理临时文件"""
         try:
