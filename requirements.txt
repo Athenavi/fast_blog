@@ -21,8 +21,7 @@ psycopg2-binary
 # windows python-magic-bin
 fastapi-cors
 tokenizer
-# passlib==1.7.4  # 已移除，使用纯 bcrypt 替代
-fastscheduler[all]
+apscheduler
 wtforms
 pydantic
 openapi-spec-validator
