@@ -12,6 +12,7 @@ slowapi
 bcrypt
 python-multipart
 python-jose[cryptography]
+fastapi-jwt
 cachetools
 httpx
 # PostgreSQL 异步驱动
@@ -36,6 +37,7 @@ mutagen  # 音频文件元数据读取（ID3标签、封面提取）
 requests
 psutil
 
+django-rest-framework
 # Django SimpleUI 主题
 django-simpleui
 
