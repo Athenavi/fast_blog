@@ -8,7 +8,7 @@ node_version = 25.2.1
 version = V0.0.4.0
 build_time = 2026-04-27T16:00:00Z
 framework = FastAPI 0.128.0
-python_version = 3.14.2+
+python_version = 3.14.4+
 
 [DATABASE]
 version = 1.0.0

@@ -1,8 +1,8 @@
 # FastBlog - 现代化 Python 博客系统
 
-[![Python Version](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
-[![FastAPI Version](https://img.shields.io/badge/fastapi-0.100%2B-green.svg)](https://fastapi.tiangolo.com/)
-[![Django Version](https://img.shields.io/badge/django-4.2%2B-red.svg)](https://www.djangoproject.com/)
+[![Python Version](https://img.shields.io/badge/python-3.14.4%2B-blue.svg)](https://www.python.org/)
+[![FastAPI Version](https://img.shields.io/badge/fastapi-0.136.1%2B-green.svg)](https://fastapi.tiangolo.com/)
+[![Django Version](https://img.shields.io/badge/django-6.0.4%2B-red.svg)](https://www.djangoproject.com/)
 [![License](https://img.shields.io/badge/license-Apache%202.0-orange.svg)](./LICENSE)
 
 功能丰富、易于部署的现代化博客系统，采用前后端分离架构和 **FastAPI + Django 双后端设计**。
