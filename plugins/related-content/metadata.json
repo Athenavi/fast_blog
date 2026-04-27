@@ -1,0 +1,90 @@
+{
+  "id": 27,
+  "name": "相关内容增强",
+  "slug": "related-content",
+  "version": "1.0.0",
+  "description": "智能推荐相关文章，提供手动推荐设置、相关内容小部件和A/B测试推荐算法",
+  "author": "FastBlog Team",
+  "author_url": "https://athenavi.github.io",
+  "plugin_url": "https://athenavi.github.io/plugins/related-content",
+  "icon": "🔗",
+  "category": "content",
+  "rating": 4.6,
+  "installs": 0,
+  "requires": {
+    "fastblog": ">=0.0.3.6",
+    "python": ">=3.14.2"
+  },
+  "dependencies": [],
+  "settings_schema": {
+    "recommendation_algorithm": {
+      "type": "select",
+      "label": "推荐算法",
+      "options": [
+        {
+          "value": "tags",
+          "label": "基于标签"
+        },
+        {
+          "value": "categories",
+          "label": "基于分类"
+        },
+        {
+          "value": "similarity",
+          "label": "内容相似度"
+        },
+        {
+          "value": "popular",
+          "label": "热门文章"
+        }
+      ],
+      "default": "tags"
+    },
+    "max_related_posts": {
+      "type": "number",
+      "label": "最大推荐数量",
+      "default": 5,
+      "min": 1,
+      "max": 10
+    },
+    "show_thumbnail": {
+      "type": "boolean",
+      "label": "显示缩略图",
+      "default": true
+    },
+    "show_excerpt": {
+      "type": "boolean",
+      "label": "显示摘要",
+      "default": true
+    },
+    "enable_manual_override": {
+      "type": "boolean",
+      "label": "允许手动覆盖",
+      "default": true
+    },
+    "widget_position": {
+      "type": "select",
+      "label": "小部件位置",
+      "options": [
+        {
+          "value": "sidebar",
+          "label": "侧边栏"
+        },
+        {
+          "value": "bottom",
+          "label": "文章底部"
+        },
+        {
+          "value": "both",
+          "label": "两者"
+        }
+      ],
+      "default": "bottom"
+    }
+  },
+  "changelog": "初始版本发布 - 包含智能推荐、手动设置、小部件、A/B测试",
+  "download_url": "https://athenavi.github.io/plugins/downloads/related-content-1.0.0.zip",
+  "screenshots": [
+    "https://athenavi.github.io/plugins/screenshots/related-content-1.png"
+  ]
+}

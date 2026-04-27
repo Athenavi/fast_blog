@@ -1,0 +1,76 @@
+{
+  "id": 5,
+  "name": "SEO优化",
+  "slug": "seo-optimizer",
+  "version": "1.0.0",
+  "description": "全面的SEO优化工具，包括元标签管理、自动sitemap生成、robots.txt配置和SEO分析",
+  "author": "FastBlog Team",
+  "author_url": "https://athenavi.github.io",
+  "author_email": "support@fastblog.com",
+  "plugin_url": "https://athenavi.github.io/plugins/seo-optimizer",
+  "documentation_url": "https://athenavi.github.io/docs/plugins/seo-optimizer",
+  "icon": "🔍",
+  "category": "seo",
+  "license": "MIT",
+  "rating": 4.9,
+  "installs": 18234,
+  "requires": {
+    "fastblog": ">=0.0.3.6",
+    "python": ">=3.14.2"
+  },
+  "dependencies": [],
+  "plugin_dependencies": [],
+  "capabilities": [
+    "read:articles",
+    "write:settings",
+    "read:settings"
+  ],
+  "hooks": [
+    "article_published",
+    "article_updated",
+    "site_settings_changed"
+  ],
+  
+  "settings_schema": {
+    "auto_generate_meta": {
+      "type": "boolean",
+      "label": "自动生成元标签",
+      "default": true,
+      "help": "文章发布时自动生成 title, description, keywords"
+    },
+    "include_images_in_sitemap": {
+      "type": "boolean",
+      "label": "Sitemap包含图片",
+      "default": true
+    },
+    "sitemap_update_frequency": {
+      "type": "select",
+      "label": "Sitemap更新频率",
+      "options": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "default": "daily"
+    },
+    "canonical_url_base": {
+      "type": "text",
+      "label": "规范URL基础",
+      "default": "",
+      "help": "例如: https://example.com"
+    }
+  },
+  "tags": [
+    "seo",
+    "sitemap",
+    "meta-tags",
+    "optimization"
+  ],
+  "changelog": "初始版本发布",
+  "download_url": "https://athenavi.github.io/plugins/downloads/seo-optimizer-1.0.0.zip",
+  "screenshots": [
+    "https://athenavi.github.io/plugins/screenshots/seo-optimizer-1.png"
+  ],
+  "main_file": "plugin.py",
+  "readme_file": "README.md"
+}

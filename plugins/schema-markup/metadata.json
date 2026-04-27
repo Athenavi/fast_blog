@@ -1,0 +1,13 @@
+{
+  "name": "Schema Markup",
+  "slug": "schema-markup",
+  "version": "1.0.0",
+  "description": "自动生成 Schema.org 结构化数据，提升搜索引擎理解能力",
+  "author": "FastBlog Team",
+  "category": "seo",
+  "tags": ["schema", "structured-data", "seo"],
+  "requires": ">=0.0.2.0",
+  "tested_up_to": "0.0.2.0",
+  "icon": "📋",
+  "price": "free"
+}

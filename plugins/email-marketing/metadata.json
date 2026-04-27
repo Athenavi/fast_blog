@@ -1,0 +1,56 @@
+{
+  "id": 2,
+  "name": "邮件营销",
+  "slug": "email-marketing",
+  "version": "1.0.0",
+  "description": "完整的邮件订阅和群发系统，支持SMTP服务、邮件模板、批量发送和统计分析",
+  "author": "FastBlog Team",
+  "author_url": "https://athenavi.github.io",
+  "plugin_url": "https://athenavi.github.io/plugins/email-marketing",
+  "icon": "📧",
+  "category": "marketing",
+  "rating": 4.6,
+  "installs": 12456,
+  "requires": {
+    "fastblog": ">=0.0.3.6",
+    "python": ">=3.14.2"
+  },
+  "dependencies": [],
+  "settings_schema": {
+    "smtp_host": {
+      "type": "text",
+      "label": "SMTP服务器",
+      "default": "smtp.example.com"
+    },
+    "smtp_port": {
+      "type": "number",
+      "label": "SMTP端口",
+      "default": 587
+    },
+    "smtp_user": {
+      "type": "text",
+      "label": "SMTP用户名",
+      "default": ""
+    },
+    "smtp_password": {
+      "type": "password",
+      "label": "SMTP密码",
+      "default": ""
+    },
+    "from_email": {
+      "type": "email",
+      "label": "发件人邮箱",
+      "default": "noreply@example.com"
+    },
+    "from_name": {
+      "type": "text",
+      "label": "发件人名称",
+      "default": "FastBlog"
+    }
+  },
+  "changelog": "初始版本发布",
+  "download_url": "https://athenavi.github.io/plugins/downloads/email-marketing-1.0.0.zip",
+  "screenshots": [
+    "https://athenavi.github.io/plugins/screenshots/email-marketing-1.png"
+  ]
+}

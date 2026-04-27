@@ -1,0 +1,58 @@
+{
+  "id": 21,
+  "name": "数据分析增强版",
+  "slug": "analytics-pro",
+  "version": "1.0.0",
+  "description": "高级数据分析工具，提供访客统计仪表盘、热门文章排行、来源分析和转化漏斗",
+  "author": "FastBlog Team",
+  "author_url": "https://athenavi.github.io",
+  "plugin_url": "https://athenavi.github.io/plugins/analytics-pro",
+  "icon": "📈",
+  "category": "analytics",
+  "rating": 4.9,
+  "installs": 0,
+  "requires": {
+    "fastblog": ">=0.0.3.6",
+    "python": ">=3.14.2"
+  },
+  "dependencies": [],
+  "settings_schema": {
+    "enable_tracking": {
+      "type": "boolean",
+      "label": "启用跟踪",
+      "default": true
+    },
+    "track_anonymous_users": {
+      "type": "boolean",
+      "label": "跟踪匿名用户",
+      "default": true
+    },
+    "data_retention_days": {
+      "type": "number",
+      "label": "数据保留天数",
+      "default": 90
+    },
+    "enable_real_time": {
+      "type": "boolean",
+      "label": "启用实时统计",
+      "default": true
+    },
+    "enable_conversion_tracking": {
+      "type": "boolean",
+      "label": "启用转化跟踪",
+      "default": true
+    },
+    "dashboard_refresh_interval": {
+      "type": "number",
+      "label": "仪表盘刷新间隔(秒)",
+      "default": 30,
+      "min": 10,
+      "max": 300
+    }
+  },
+  "changelog": "初始版本发布 - 包含访客统计、热门排行、来源分析、转化漏斗功能",
+  "download_url": "https://athenavi.github.io/plugins/downloads/analytics-pro-1.0.0.zip",
+  "screenshots": [
+    "https://athenavi.github.io/plugins/screenshots/analytics-pro-1.png"
+  ]
+}

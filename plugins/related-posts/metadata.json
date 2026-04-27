@@ -1,0 +1,31 @@
+{
+  "name": "相关文章推荐",
+  "slug": "related-posts",
+  "version": "1.0.0",
+  "description": "智能推荐与当前文章相关的其他文章，支持基于分类和标签的相关性算法",
+  "author": "FastBlog Team",
+  "author_url": "https://athenavi.github.io",
+  "homepage": "https://athenavi.github.io/plugins/related-posts",
+  "category": "content",
+  "tags": ["related", "recommendation", "engagement"],
+  "requires": ">=0.0.2.0",
+  "tested_up_to": "0.0.2.0",
+  "icon": "🔗",
+  "screenshots": [],
+  "price": "free",
+  "settings_schema": {
+    "limit": {
+      "type": "number",
+      "default": 5,
+      "min": 3,
+      "max": 10,
+      "label": "推荐数量"
+    },
+    "method": {
+      "type": "select",
+      "default": "mixed",
+      "options": ["category", "tags", "mixed"],
+      "label": "推荐方式"
+    }
+  }
+}

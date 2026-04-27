@@ -1,0 +1,44 @@
+fastapi==0.128.0
+uvicorn[standard]
+python-dotenv
+sqlalchemy==2.0.46
+httpx-oauth
+asyncpg
+aiomysql
+aiosqlite
+# passlib[bcrypt]  # 已移除，使用纯 bcrypt 替代
+fastapi-users[sqlalchemy]
+redis
+slowapi
+bcrypt
+python-multipart
+python-jose[cryptography]
+cachetools
+httpx
+# PostgreSQL 异步驱动
+psycopg2-binary
+# linux libmagic
+# windows python-magic-bin
+fastapi-cors==0.0.6
+tokenizer
+# passlib==1.7.4  # 已移除，使用纯 bcrypt 替代
+fastscheduler[all]
+wtforms==3.2.1
+pydantic==2.12.5
+openapi-spec-validator
+fastapi-versioning
+alembic
+opencv-python
+pyotp  # TOTP双因素认证
+qrcode[pil]  # QR码生成
+mutagen  # 音频文件元数据读取（ID3标签、封面提取）
+
+# 更新系统依赖
+requests
+psutil
+
+# Django SimpleUI 主题
+django-simpleui
+
+# API测试依赖
+aiohttp

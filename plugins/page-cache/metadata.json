@@ -1,0 +1,13 @@
+{
+  "name": "Page Cache",
+  "slug": "page-cache",
+  "version": "1.0.0",
+  "description": "页面缓存插件，自动缓存静态页面，显著提升访问速度",
+  "author": "FastBlog Team",
+  "category": "performance",
+  "tags": ["cache", "performance", "speed"],
+  "requires": ">=0.0.2.0",
+  "tested_up_to": "0.0.2.0",
+  "icon": "⚡",
+  "price": "free"
+}

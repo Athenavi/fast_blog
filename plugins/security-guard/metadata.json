@@ -1,0 +1,56 @@
+{
+  "id": 6,
+  "name": "安全防护",
+  "slug": "security-guard",
+  "version": "1.0.0",
+  "description": "全面的安全防护解决方案，包括XSS防护、CSRF保护、速率限制、IP黑名单和登录安全",
+  "author": "FastBlog Team",
+  "author_url": "https://athenavi.github.io",
+  "plugin_url": "https://athenavi.github.io/plugins/security-guard",
+  "icon": "🛡️",
+  "category": "security",
+  "rating": 4.8,
+  "installs": 16543,
+  "requires": {
+    "fastblog": ">=0.0.3.6",
+    "python": ">=3.14.2"
+  },
+  "dependencies": [],
+  "settings_schema": {
+    "enable_xss_protection": {
+      "type": "boolean",
+      "label": "启用XSS防护",
+      "default": true
+    },
+    "enable_rate_limiting": {
+      "type": "boolean",
+      "label": "启用速率限制",
+      "default": true
+    },
+    "rate_limit_requests": {
+      "type": "number",
+      "label": "每分钟请求数限制",
+      "default": 60
+    },
+    "enable_ip_blacklist": {
+      "type": "boolean",
+      "label": "启用IP黑名单",
+      "default": true
+    },
+    "max_login_attempts": {
+      "type": "number",
+      "label": "最大登录尝试次数",
+      "default": 5
+    },
+    "login_lockout_duration": {
+      "type": "number",
+      "label": "登录锁定时间(分钟)",
+      "default": 15
+    }
+  },
+  "changelog": "初始版本发布",
+  "download_url": "https://athenavi.github.io/plugins/downloads/security-guard-1.0.0.zip",
+  "screenshots": [
+    "https://athenavi.github.io/plugins/screenshots/security-guard-1.png"
+  ]
+}

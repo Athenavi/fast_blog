@@ -1,0 +1,22 @@
+Django
+djangorestframework
+djangorestframework-simplejwt
+pydantic
+django-cors-headers
+Pillow
+python-dotenv
+bcrypt
+redis
+django-redis
+psycopg2-binary
+mysqlclient
+django-filter
+drf-spectacular
+python-magic-bin; sys_platform == 'win32'
+requests
+psutil
+cachetools
+WTForms
+whitenoise
+psycopg2-binary
+django-simpleui

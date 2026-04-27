@@ -1,0 +1,13 @@
+{
+  "enable_monitoring": true,
+  "log_404_details": true,
+  "alert_threshold": 50,
+  "enable_alerts": true,
+  "retention_days": 30,
+  "auto_suggest_redirects": true,
+  "track_referrers": true,
+  "exclude_patterns": [
+    "/favicon.ico",
+    "/robots.txt"
+  ]
+}

@@ -1,0 +1,61 @@
+{
+  "id": 22,
+  "name": "高级SEO",
+  "slug": "advanced-seo",
+  "version": "1.0.0",
+  "description": "高级SEO工具，提供XML Sitemap增强、Robots.txt管理、重定向管理和404监控修复",
+  "author": "FastBlog Team",
+  "author_url": "https://athenavi.github.io",
+  "plugin_url": "https://athenavi.github.io/plugins/advanced-seo",
+  "icon": "🚀",
+  "category": "seo",
+  "rating": 4.8,
+  "installs": 0,
+  "requires": {
+    "fastblog": ">=0.0.3.6",
+    "python": ">=3.14.2"
+  },
+  "dependencies": [],
+  "settings_schema": {
+    "auto_generate_meta": {
+      "type": "boolean",
+      "label": "自动生成元标签",
+      "default": true
+    },
+    "include_images_in_sitemap": {
+      "type": "boolean",
+      "label": "Sitemap包含图片",
+      "default": true
+    },
+    "sitemap_update_frequency": {
+      "type": "select",
+      "label": "Sitemap更新频率",
+      "options": [
+        "daily",
+        "weekly",
+        "monthly"
+      ],
+      "default": "daily"
+    },
+    "enable_redirects": {
+      "type": "boolean",
+      "label": "启用重定向管理",
+      "default": true
+    },
+    "monitor_404": {
+      "type": "boolean",
+      "label": "监控404错误",
+      "default": true
+    },
+    "canonical_url_base": {
+      "type": "text",
+      "label": "规范URL基础",
+      "default": ""
+    }
+  },
+  "changelog": "初始版本发布 - 包含Sitemap增强、Robots.txt管理、重定向、404监控",
+  "download_url": "https://athenavi.github.io/plugins/downloads/advanced-seo-1.0.0.zip",
+  "screenshots": [
+    "https://athenavi.github.io/plugins/screenshots/advanced-seo-1.png"
+  ]
+}

@@ -1,0 +1,101 @@
+{
+  "name": "备份管理器",
+  "slug": "backup-manager",
+  "version": "1.0.0",
+  "description": "系统备份管理插件,提供备份记录持久化、自动备份、备份恢复等功能,使用独立的SQLite数据库存储备份历史",
+  "author": "FastBlog Team",
+  "author_url": "https://athenavi.github.io",
+  "homepage": "https://athenavi.github.io/plugins/backup-manager",
+  "category": "system",
+  "tags": ["backup", "restore", "database", "file"],
+  "requires": ">=0.0.2.0",
+  "tested_up_to": "0.0.2.0",
+  "icon": "💾",
+  "screenshots": [],
+  "price": "free",
+  "settings_schema": {
+    "auto_backup_enabled": {
+      "type": "boolean",
+      "default": true,
+      "label": "启用自动备份"
+    },
+    "auto_backup_interval": {
+      "type": "number",
+      "default": 24,
+      "min": 1,
+      "max": 168,
+      "label": "自动备份间隔(小时)"
+    },
+    "max_backups": {
+      "type": "number",
+      "default": 10,
+      "min": 3,
+      "max": 50,
+      "label": "最大备份数量"
+    },
+    "include_files": {
+      "type": "boolean",
+      "default": true,
+      "label": "包含媒体文件"
+    },
+    "enable_encryption": {
+      "type": "boolean",
+      "default": false,
+      "label": "启用备份加密"
+    },
+    "encryption_password": {
+      "type": "password",
+      "default": "",
+      "label": "加密密码"
+    },
+    "cloud_storage_enabled": {
+      "type": "boolean",
+      "default": false,
+      "label": "启用云存储同步"
+    },
+    "cloud_provider": {
+      "type": "select",
+      "default": "s3",
+      "label": "云存储提供商",
+      "options": [
+        {
+          "value": "s3",
+          "label": "Amazon S3"
+        },
+        {
+          "value": "oss",
+          "label": "阿里云OSS"
+        },
+        {
+          "value": "cos",
+          "label": "腾讯云COS"
+        }
+      ]
+    },
+    "s3_bucket": {
+      "type": "text",
+      "default": "",
+      "label": "S3 Bucket名称"
+    },
+    "s3_access_key": {
+      "type": "text",
+      "default": "",
+      "label": "S3 Access Key"
+    },
+    "s3_secret_key": {
+      "type": "password",
+      "default": "",
+      "label": "S3 Secret Key"
+    },
+    "s3_region": {
+      "type": "text",
+      "default": "us-east-1",
+      "label": "S3区域"
+    },
+    "auto_sync_to_cloud": {
+      "type": "boolean",
+      "default": true,
+      "label": "自动同步到云存储"
+    }
+  }
+}

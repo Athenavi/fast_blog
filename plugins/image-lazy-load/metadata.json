@@ -1,0 +1,13 @@
+{
+  "name": "Image Lazy Load",
+  "slug": "image-lazy-load",
+  "version": "1.0.0",
+  "description": "图片懒加载插件，延迟加载视口外的图片，提升页面加载速度",
+  "author": "FastBlog Team",
+  "category": "performance",
+  "tags": ["lazy-load", "images", "performance"],
+  "requires": ">=0.0.2.0",
+  "tested_up_to": "0.0.2.0",
+  "icon": "🖼️",
+  "price": "free"
+}

@@ -1,0 +1,74 @@
+{
+  "id": 29,
+  "name": "性能监控",
+  "slug": "performance-monitor",
+  "version": "1.0.0",
+  "description": "全面的性能监控工具，提供页面加载时间监控、数据库查询监控、性能告警和优化建议功能",
+  "author": "FastBlog Team",
+  "author_url": "https://athenavi.github.io",
+  "plugin_url": "https://athenavi.github.io/plugins/performance-monitor",
+  "icon": "⚡",
+  "category": "performance",
+  "rating": 4.8,
+  "installs": 0,
+  "requires": {
+    "fastblog": ">=0.0.3.6",
+    "python": ">=3.14.2"
+  },
+  "dependencies": [],
+  "settings_schema": {
+    "enable_page_monitoring": {
+      "type": "boolean",
+      "label": "启用页面加载监控",
+      "default": true
+    },
+    "enable_db_monitoring": {
+      "type": "boolean",
+      "label": "启用数据库查询监控",
+      "default": true
+    },
+    "slow_query_threshold": {
+      "type": "number",
+      "label": "慢查询阈值(毫秒)",
+      "default": 100,
+      "min": 10,
+      "max": 5000
+    },
+    "page_load_threshold": {
+      "type": "number",
+      "label": "页面加载阈值(秒)",
+      "default": 2,
+      "min": 0.5,
+      "max": 10
+    },
+    "enable_alerts": {
+      "type": "boolean",
+      "label": "启用性能告警",
+      "default": true
+    },
+    "alert_email": {
+      "type": "text",
+      "label": "告警邮箱",
+      "default": ""
+    },
+    "data_retention_days": {
+      "type": "number",
+      "label": "数据保留天数",
+      "default": 30,
+      "min": 7,
+      "max": 90
+    },
+    "sampling_rate": {
+      "type": "number",
+      "label": "采样率(%)",
+      "default": 100,
+      "min": 1,
+      "max": 100
+    }
+  },
+  "changelog": "初始版本发布 - 包含页面监控、数据库监控、性能告警、优化建议",
+  "download_url": "https://athenavi.github.io/plugins/downloads/performance-monitor-1.0.0.zip",
+  "screenshots": [
+    "https://athenavi.github.io/plugins/screenshots/performance-monitor-1.png"
+  ]
+}

@@ -1,0 +1,59 @@
+{
+  "id": 3,
+  "name": "CDN管理",
+  "slug": "cdn-manager",
+  "version": "1.0.0",
+  "description": "一键配置和管理CDN加速，支持Cloudflare、KeyCDN等主流CDN服务商，提供缓存刷新和性能分析",
+  "author": "FastBlog Team",
+  "author_url": "https://athenavi.github.io",
+  "plugin_url": "https://athenavi.github.io/plugins/cdn-manager",
+  "icon": "⚡",
+  "category": "performance",
+  "rating": 4.7,
+  "installs": 9876,
+  "requires": {
+    "fastblog": ">=0.0.3.6",
+    "python": ">=3.14.2"
+  },
+  "dependencies": [],
+  "settings_schema": {
+    "provider": {
+      "type": "select",
+      "label": "CDN服务商",
+      "options": [
+        "cloudflare",
+        "keycdn",
+        "custom"
+      ],
+      "default": "cloudflare"
+    },
+    "api_key": {
+      "type": "password",
+      "label": "API密钥",
+      "default": ""
+    },
+    "zone_id": {
+      "type": "text",
+      "label": "Zone ID",
+      "default": "",
+      "help": "Cloudflare Zone ID"
+    },
+    "cdn_domain": {
+      "type": "text",
+      "label": "CDN域名",
+      "default": "",
+      "help": "例如: cdn.example.com"
+    },
+    "auto_purge": {
+      "type": "boolean",
+      "label": "自动刷新缓存",
+      "default": true,
+      "help": "文章更新时自动刷新CDN缓存"
+    }
+  },
+  "changelog": "初始版本发布",
+  "download_url": "https://athenavi.github.io/plugins/downloads/cdn-manager-1.0.0.zip",
+  "screenshots": [
+    "https://athenavi.github.io/plugins/screenshots/cdn-manager-1.png"
+  ]
+}

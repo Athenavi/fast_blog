@@ -1,0 +1,69 @@
+{
+  "id": 23,
+  "name": "社交媒体套件",
+  "slug": "social-media-kit",
+  "version": "1.0.0",
+  "description": "完整社交媒体解决方案，提供自动分享、社交登录增强、社交证明小部件和Instagram feed展示",
+  "author": "FastBlog Team",
+  "author_url": "https://athenavi.github.io",
+  "plugin_url": "https://athenavi.github.io/plugins/social-media-kit",
+  "icon": "🌐",
+  "category": "social",
+  "rating": 4.7,
+  "installs": 0,
+  "requires": {
+    "fastblog": ">=0.0.3.6",
+    "python": ">=3.14.2"
+  },
+  "dependencies": [],
+  "settings_schema": {
+    "enable_auto_share": {
+      "type": "boolean",
+      "label": "启用自动分享",
+      "default": true
+    },
+    "auto_share_platforms": {
+      "type": "multiselect",
+      "label": "自动分享平台",
+      "options": [
+        "twitter",
+        "facebook",
+        "linkedin"
+      ],
+      "default": [
+        "twitter"
+      ]
+    },
+    "enable_social_login": {
+      "type": "boolean",
+      "label": "启用社交登录",
+      "default": true
+    },
+    "show_social_proof": {
+      "type": "boolean",
+      "label": "显示社交证明",
+      "default": true
+    },
+    "instagram_username": {
+      "type": "text",
+      "label": "Instagram用户名",
+      "default": ""
+    },
+    "share_button_style": {
+      "type": "select",
+      "label": "分享按钮样式",
+      "options": [
+        "default",
+        "rounded",
+        "icon-only",
+        "text"
+      ],
+      "default": "default"
+    }
+  },
+  "changelog": "初始版本发布 - 包含自动分享、社交登录、社交证明、Instagram feed",
+  "download_url": "https://athenavi.github.io/plugins/downloads/social-media-kit-1.0.0.zip",
+  "screenshots": [
+    "https://athenavi.github.io/plugins/screenshots/social-media-kit-1.png"
+  ]
+}

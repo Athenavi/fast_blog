@@ -1,0 +1,68 @@
+{
+  "id": 25,
+  "name": "图片优化",
+  "slug": "image-optimizer",
+  "version": "1.0.0",
+  "description": "自动优化上传的图片，提供压缩、WebP格式转换、懒加载和CDN集成功能",
+  "author": "FastBlog Team",
+  "author_url": "https://athenavi.github.io",
+  "plugin_url": "https://athenavi.github.io/plugins/image-optimizer",
+  "icon": "🖼️",
+  "category": "media",
+  "rating": 4.8,
+  "installs": 0,
+  "requires": {
+    "fastblog": ">=0.0.3.6",
+    "python": ">=3.14.2"
+  },
+  "dependencies": [],
+  "settings_schema": {
+    "auto_compress": {
+      "type": "boolean",
+      "label": "自动压缩图片",
+      "default": true
+    },
+    "compression_quality": {
+      "type": "number",
+      "label": "压缩质量(1-100)",
+      "default": 80,
+      "min": 1,
+      "max": 100
+    },
+    "convert_to_webp": {
+      "type": "boolean",
+      "label": "转换为WebP格式",
+      "default": true
+    },
+    "enable_lazy_load": {
+      "type": "boolean",
+      "label": "启用懒加载",
+      "default": true
+    },
+    "max_width": {
+      "type": "number",
+      "label": "最大宽度(px)",
+      "default": 1920
+    },
+    "max_height": {
+      "type": "number",
+      "label": "最大高度(px)",
+      "default": 1080
+    },
+    "cdn_enabled": {
+      "type": "boolean",
+      "label": "启用CDN",
+      "default": false
+    },
+    "cdn_url": {
+      "type": "text",
+      "label": "CDN URL",
+      "default": ""
+    }
+  },
+  "changelog": "初始版本发布 - 包含图片压缩、WebP转换、懒加载、CDN集成",
+  "download_url": "https://athenavi.github.io/plugins/downloads/image-optimizer-1.0.0.zip",
+  "screenshots": [
+    "https://athenavi.github.io/plugins/screenshots/image-optimizer-1.png"
+  ]
+}

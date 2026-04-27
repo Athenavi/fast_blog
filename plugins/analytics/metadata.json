@@ -1,0 +1,46 @@
+{
+  "id": 7,
+  "name": "数据分析",
+  "slug": "analytics",
+  "version": "1.0.0",
+  "description": "强大的网站数据分析工具，提供访问统计、用户行为分析、流量来源追踪和可视化报表",
+  "author": "FastBlog Team",
+  "author_url": "https://athenavi.github.io",
+  "plugin_url": "https://athenavi.github.io/plugins/analytics",
+  "icon": "📊",
+  "category": "analytics",
+  "rating": 4.7,
+  "installs": 14321,
+  "requires": {
+    "fastblog": ">=0.0.3.6",
+    "python": ">=3.14.2"
+  },
+  "dependencies": [],
+  "settings_schema": {
+    "enable_tracking": {
+      "type": "boolean",
+      "label": "启用跟踪",
+      "default": true
+    },
+    "track_anonymous_users": {
+      "type": "boolean",
+      "label": "跟踪匿名用户",
+      "default": true
+    },
+    "data_retention_days": {
+      "type": "number",
+      "label": "数据保留天数",
+      "default": 90
+    },
+    "enable_real_time": {
+      "type": "boolean",
+      "label": "启用实时统计",
+      "default": true
+    }
+  },
+  "changelog": "初始版本发布",
+  "download_url": "https://athenavi.github.io/plugins/downloads/analytics-1.0.0.zip",
+  "screenshots": [
+    "https://athenavi.github.io/plugins/screenshots/analytics-1.png"
+  ]
+}

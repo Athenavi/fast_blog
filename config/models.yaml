@@ -1,0 +1,2690 @@
+# ============================================================================
+# FastBlog 模型定义配置文件
+# ============================================================================
+#
+# 本文件用于定义项目中所有的 SQLAlchemy 数据模型和 Pydantic 请求/响应模型。
+# 代码生成器会根据此配置文件自动生成：
+#   - SQLAlchemy ORM 模型 (shared/models/*.py)
+#   - FastAPI 路由 (src/api/v1/generated/generated_router.py)
+#   - TypeScript 类型定义 (frontend-next/types/generated/api-types.ts)
+#   - TypeScript API 客户端 (frontend-next/types/generated/api-client.ts)
+#
+# 使用方法：
+#   1. 在此文件中添加或修改模型定义
+#   2. 运行命令: python scripts/generate_routes.py generate-all
+#   3. 生成的代码会自动保存到对应目录
+#
+# 模型配置说明：
+#   - orm: true          # 标记为 ORM 模型，会生成 SQLAlchemy 模型文件
+#   - table: xxx         # 指定数据库表名
+#   - def_list: [...]    # 自定义方法列表（在 shared/defs/<model>_defs.py 中定义）
+#   - defs_target: xxx   # 自定义方法文件名（相对于 shared/defs/）
+#   - properties:        # 模型属性定义
+#       field_name:
+#         type: string   # 数据类型 (string, integer, boolean, text, datetime等)
+#         description:   # 字段描述
+#         maxLength:     # 最大长度（字符串类型）
+#         nullable:      # 是否可为空
+#         default:       # 默认值
+#         unique:        # 是否唯一
+#         foreignKey:    # 外键引用（引用其他模型的名称）
+#         enum: []       # 枚举值列表
+#         format:        # 格式（如 email, date-time）
+#         index: true    # 是否创建索引
+#
+# 注意事项：
+#   - 请勿手动修改自动生成的模型文件（文件头部有注释标识）
+#   - 自定义方法应放在 shared/defs/ 目录下的对应文件中
+#   - 修改配置后需要重新运行代码生成器
+#   - 数据库迁移需要单独执行（使用 Alembic 或 Django migrations）
+#
+# ============================================================================
+
+models:
+  User:
+    description: 用户模型
+    properties:
+      id:
+        type: bigint
+        description: 用户 ID
+      username:
+        type: string
+        description: 用户名
+        unique: true
+        maxLength: 255
+      email:
+        type: string
+        format: email
+        description: 邮箱
+      password:
+        type: string
+        maxLength: 255
+        description: 密码（哈希后存储）
+      profile_picture:
+        type: string
+        nullable: true
+        description: 个人资料图片
+      bio:
+        type: string
+        nullable: true
+        description: 个人简介
+      profile_private:
+        type: boolean
+        default: false
+        description: 是否私密资料
+      vip_level:
+        type: bigint
+        default: 0
+        description: VIP 等级
+      vip_expires_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: VIP 过期时间
+      is_active:
+        type: boolean
+        default: true
+        description: 是否激活
+      is_superuser:
+        type: boolean
+        default: false
+        description: 是否为超级管理员
+      date_joined:
+        type: string
+        format: date-time
+        description: 注册时间
+      last_login_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: 上次登录时间
+      locale:
+        type: string
+        default: zh_CN
+        description: 语言设置
+      is_staff:
+        type: boolean
+        default: false
+        description: 是否为工作人员
+      last_login_ip:
+        type: string
+        nullable: true
+        description: 上次登录 IP
+      register_ip:
+        type: string
+        nullable: true
+        description: 注册 IP
+      is_2fa_enabled:
+        type: boolean
+        default: false
+        description: 是否启用双因素认证
+      totp_secret:
+        type: string
+        nullable: true
+        description: TOTP 密钥
+      backup_codes:
+        type: string
+        nullable: true
+        description: 备用码
+    orm: true
+    table: users
+    # 自定义方法列表（函数名定义在 shared/defs/<model_name>_defs.py 中）
+    # 提示：自定义方法中请使用内部导入（如 from datetime import datetime），避免外部依赖
+    def_list:
+      - is_vip
+      - get_display_name
+    # 自定义方法定义文件路径（相对于 shared/defs/），默认：<model_name>_defs.py
+    defs_target: mydef.py
+  UserCreate:
+    description: 用户创建请求模型
+    properties:
+      username:
+        type: string
+        minLength: 3
+        maxLength: 150
+        description: 用户名
+      email:
+        type: string
+        format: email
+        description: 邮箱
+      password:
+        type: string
+        minLength: 6
+        writeOnly: true
+        description: 密码
+      password_confirm:
+        type: string
+        minLength: 6
+        writeOnly: true
+        description: 确认密码
+    required:
+      - username
+      - password
+      - password_confirm
+  UserUpdate:
+    description: 用户更新请求模型
+    properties:
+      username:
+        type: string
+        minLength: 3
+        maxLength: 150
+        description: 用户名
+      email:
+        type: string
+        format: email
+        description: 邮箱
+      profile_picture:
+        type: string
+        nullable: true
+        description: 个人资料图片
+      bio:
+        type: string
+        nullable: true
+        description: 个人简介
+      locale:
+        type: string
+        default: zh_CN
+        description: 语言设置
+      profile_private:
+        type: boolean
+        default: false
+        description: 是否私密资料
+  ProfileUpdateRequest:
+    description: 用户资料更新请求
+    properties:
+      username:
+        type: string
+        nullable: true
+        description: 用户名
+      email:
+        type: string
+        nullable: true
+        format: email
+        description: 邮箱
+      bio:
+        type: string
+        nullable: true
+        description: 个人简介
+      profile_private:
+        type: boolean
+        nullable: true
+        description: 是否私密资料
+      locale:
+        type: string
+        nullable: true
+        description: 语言设置
+  PasswordChange:
+    description: 密码修改请求模型
+    properties:
+      old_password:
+        type: string
+        writeOnly: true
+        description: 当前密码
+      new_password:
+        type: string
+        minLength: 6
+        writeOnly: true
+        description: 新密码
+      new_password_confirm:
+        type: string
+        minLength: 6
+        writeOnly: true
+        description: 确认新密码
+    required:
+      - old_password
+      - new_password
+      - new_password_confirm
+  Article:
+    description: 文章模型
+    properties:
+      id:
+        type: bigint
+        description: 文章 ID
+      title:
+        type: string
+        maxLength: 255
+        description: 标题
+      slug:
+        type: string
+        maxLength: 255
+        description: 文章 slug
+      excerpt:
+        type: string
+        nullable: true
+        description: 摘要
+      cover_image:
+        type: string
+        nullable: true
+        description: 封面图 URL
+      category:
+        type: bigint
+        nullable: true
+        description: 分类
+        foreignKey: Category
+      tags_list:
+        type: array
+        items:
+          type: string
+        description: 标签列表
+      views:
+        type: bigint
+        default: 0
+        description: 浏览量
+      user:
+        type: bigint
+        description: 用户
+        foreignKey: User
+      likes:
+        type: bigint
+        default: 0
+        description: 点赞数
+      status:
+        type: integer
+        enum:
+          - -1
+          - 0
+          - 1
+        description: 状态 (-1:已删除，0:草稿，1:已发布)
+      hidden:
+        type: boolean
+        default: false
+        description: 是否隐藏
+      is_featured:
+        type: boolean
+        default: false
+        description: 是否推荐
+      is_vip_only:
+        type: boolean
+        default: false
+        description: 是否仅 VIP 可见
+      required_vip_level:
+        type: integer
+        default: 0
+        description: 所需 VIP 等级
+      article_ad:
+        type: string
+        nullable: true
+        description: 广告内容
+      scheduled_publish_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: 定时发布时间（设置为未来时间后自动发布）
+      post_type:
+        type: string
+        maxLength: 50
+        default: article
+        description: 内容类型(article/book/product等)
+        index: true
+      is_sticky:
+        type: boolean
+        default: false
+        description: 是否置顶（粘性文章）
+        index: true
+      sticky_until:
+        type: string
+        format: date-time
+        nullable: true
+        description: 置顶过期时间（可选，过期后自动取消置顶）
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    table: articles
+    indexes:
+      - name: idx_articles_status
+        columns: [ status ]
+      - name: idx_articles_category
+        columns: [ category ]
+      - name: idx_articles_user_id
+        columns: [ user ]
+      - name: idx_articles_created_at
+        columns: [ created_at ]
+        order: DESC
+      - name: idx_articles_scheduled_publish
+        columns: [ scheduled_publish_at ]
+      - name: idx_articles_status_created
+        columns: [ status, created_at ]
+        order: DESC
+      - name: idx_articles_is_sticky
+        columns: [ is_sticky ]
+      - name: idx_articles_sticky_until
+        columns: [ sticky_until ]
+    orm: true
+    relationships:
+      revisions:
+        target: ArticleRevision
+        back_populates: article
+        primaryjoin: "Article.id == ArticleRevision.article_id"
+      seo_data:
+        target: ArticleSEO
+        back_populates: article
+        primaryjoin: "Article.id == ArticleSEO.article_id"
+        uselist: false
+  ArticleList:
+    description: 文章列表模型
+    properties:
+      id:
+        type: bigint
+        description: 文章 ID
+      title:
+        type: string
+        maxLength: 255
+        description: 标题
+      slug:
+        type: string
+        maxLength: 255
+        description: 文章 slug
+      excerpt:
+        type: string
+        nullable: true
+        description: 摘要
+      cover_image:
+        type: string
+        nullable: true
+        description: 封面图 URL
+      category_id:
+        type: bigint
+        nullable: true
+        description: 分类 ID
+      tags_list:
+        type: array
+        items:
+          type: string
+        description: 标签列表
+      views:
+        type: bigint
+        default: 0
+        description: 浏览量
+      likes:
+        type: bigint
+        default: 0
+        description: 点赞数
+      status:
+        type: integer
+        description: 状态
+      is_featured:
+        type: boolean
+        default: false
+        description: 是否推荐
+      is_vip_only:
+        type: boolean
+        default: false
+        description: 是否仅 VIP 可见
+      required_vip_level:
+        type: integer
+        default: 0
+        description: 所需 VIP 等级
+      is_sticky:
+        type: boolean
+        default: false
+        description: 是否置顶
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+  AuthorSimple:
+    description: 作者简化信息
+    properties:
+      id:
+        type: bigint
+        description: 用户 ID
+      username:
+        type: string
+        description: 用户名
+  ArticleCreateUpdate:
+    description: 文章创建/更新请求模型
+    properties:
+      title:
+        type: string
+        minLength: 1
+        maxLength: 255
+        description: 标题
+      slug:
+        type: string
+        maxLength: 255
+        description: 文章 slug
+      excerpt:
+        type: string
+        nullable: true
+        description: 摘要
+      cover_image:
+        type: string
+        nullable: true
+        description: 封面图 URL
+      category_id:
+        type: bigint
+        nullable: true
+        description: 分类 ID
+      tags:
+        type: string
+        nullable: true
+        description: 标签 (逗号分隔)
+      status:
+        type: bigint
+        enum:
+          - -1
+          - 0
+          - 1
+        default: 1
+        description: 状态
+      hidden:
+        type: boolean
+        default: false
+        description: 是否隐藏
+      is_featured:
+        type: boolean
+        default: false
+        description: 是否推荐
+      is_vip_only:
+        type: boolean
+        default: false
+        description: 是否仅 VIP 可见
+      required_vip_level:
+        type: bigint
+        default: 0
+        description: 所需 VIP 等级
+      article_ad:
+        type: string
+        nullable: true
+        description: 广告内容
+      scheduled_publish_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: 定时发布时间
+      is_sticky:
+        type: boolean
+        default: false
+        description: 是否置顶
+      sticky_until:
+        type: string
+        format: date-time
+        nullable: true
+        description: 置顶过期时间
+    required:
+      - title
+  Category:
+    description: 分类模型
+    properties:
+      id:
+        type: bigint
+        description: 分类 ID
+      name:
+        type: string
+        maxLength: 100
+        description: 分类名
+      slug:
+        type: string
+        nullable: true
+        description: 分类 slug
+      description:
+        type: string
+        nullable: true
+        description: 分类描述
+      parent_id:
+        type: bigint
+        nullable: true
+        description: 父分类 ID
+      sort_order:
+        type: bigint
+        default: 0
+        description: 排序
+      icon:
+        type: string
+        nullable: true
+        description: 图标
+      color:
+        type: string
+        nullable: true
+        description: 颜色
+      is_visible:
+        type: boolean
+        default: true
+        description: 是否可见
+      articles_count:
+        type: bigint
+        readOnly: true
+        description: 分类下的文章数量
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    orm: true
+    table: categories
+  CategoryCreateUpdate:
+    description: 分类创建/更新请求模型
+    properties:
+      name:
+        type: string
+        minLength: 1
+        maxLength: 100
+        description: 分类名
+      slug:
+        type: string
+        nullable: true
+        description: 分类 slug
+      description:
+        type: string
+        nullable: true
+        description: 分类描述
+      parent_id:
+        type: bigint
+        nullable: true
+        description: 父分类 ID
+      sort_order:
+        type: bigint
+        default: 0
+        description: 排序
+      icon:
+        type: string
+        nullable: true
+        description: 图标
+      color:
+        type: string
+        nullable: true
+        description: 颜色
+      is_visible:
+        type: boolean
+        default: true
+        description: 是否可见
+    required:
+      - name
+  CategorySubscription:
+    description: 分类订阅模型
+    properties:
+      id:
+        type: bigint
+        description: 订阅 ID
+      category:
+        type: bigint
+        description: 分类
+        foreignKey: Category
+      subscriber:
+        type: bigint
+        description: 订阅用户
+        foreignKey: User
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+    orm: true
+    table: category_subscriptions
+  Media:
+    description: 媒体文件模型
+    properties:
+      id:
+        type: bigint
+        description: 媒体 ID
+      user:
+        type: bigint
+        description: 上传用户
+        foreignKey: User
+      hash:
+        type: string
+        maxLength: 64
+        description: 文件哈希
+      filename:
+        type: string
+        maxLength: 255
+        description: 文件名
+      original_filename:
+        type: string
+        nullable: true
+        description: 原始文件名
+      file_path:
+        type: string
+        maxLength: 500
+        description: 文件路径
+      file_url:
+        type: string
+        maxLength: 500
+        description: 文件 URL
+      file_size:
+        type: bigint
+        default: 0
+        description: 文件大小 (字节)
+      file_type:
+        type: string
+        enum:
+          - image
+          - video
+          - audio
+          - document
+          - other
+        default: other
+        description: 文件类型
+      mime_type:
+        type: string
+        nullable: true
+        description: MIME 类型
+      width:
+        type: bigint
+        nullable: true
+        description: 宽度
+      height:
+        type: bigint
+        nullable: true
+        description: 高度
+      duration:
+        type: bigint
+        nullable: true
+        description: 时长 (秒)
+      thumbnail_path:
+        type: string
+        nullable: true
+        description: 缩略图路径
+      thumbnail_url:
+        type: string
+        nullable: true
+        description: 缩略图 URL
+      description:
+        type: string
+        nullable: true
+        description: 描述
+      alt_text:
+        type: string
+        nullable: true
+        description: 替代文本
+      is_public:
+        type: boolean
+        default: true
+        description: 是否公开
+      download_count:
+        type: bigint
+        default: 0
+        description: 下载次数
+      category:
+        type: string
+        nullable: true
+        maxLength: 100
+        description: 媒体分类
+      tags:
+        type: string
+        nullable: true
+        maxLength: 500
+        description: 标签(逗号分隔)
+      folder_id:
+        type: bigint
+        nullable: true
+        description: 所属文件夹 ID
+        foreignKey: MediaFolder
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    orm: true
+    table: media
+  MediaFolder:
+    description: 媒体文件夹模型
+    properties:
+      id:
+        type: bigint
+        description: 文件夹 ID
+      name:
+        type: string
+        maxLength: 255
+        description: 文件夹名称
+      parent_id:
+        type: bigint
+        nullable: true
+        description: 父文件夹 ID
+        foreignKey: MediaFolder
+      user:
+        type: bigint
+        description: 所属用户
+        foreignKey: User
+      description:
+        type: string
+        nullable: true
+        description: 文件夹描述
+      sort_order:
+        type: bigint
+        default: 0
+        description: 排序顺序
+      is_public:
+        type: boolean
+        default: true
+        description: 是否公开
+      media_count:
+        type: bigint
+        default: 0
+        readOnly: true
+        description: 文件夹内媒体数量
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    orm: true
+    table: media_folders
+    indexes:
+      - name: idx_media_folders_user_id
+        columns: [ user ]
+      - name: idx_media_folders_parent_id
+        columns: [ parent_id ]
+      - name: idx_media_folders_unique_name
+        columns: [ user, parent_id, name ]
+        unique: true
+  SystemSettings:
+    description: 系统设置模型
+    properties:
+      id:
+        type: integer
+        description: 设置 ID
+      setting_key:
+        type: string
+        maxLength: 100
+        description: 设置键
+      setting_value:
+        type: string
+        description: 设置值
+      setting_type:
+        type: string
+        enum:
+          - string
+          - number
+          - boolean
+          - json
+          - text
+        default: string
+        description: 设置类型
+      description:
+        type: string
+        nullable: true
+        description: 描述
+      is_public:
+        type: boolean
+        default: false
+        description: 是否公开
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    orm: true
+    table: system_settings
+  AdminSettings:
+    description: 管理员设置模型
+    properties:
+      id:
+        type: bigint
+        description: 设置 ID
+      user:
+        type: bigint
+        description: 用户
+        foreignKey: User
+      settings_data:
+        type: object
+        additionalProperties: true
+        description: 设置数据
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+  ArticleContent:
+    description: 文章内容模型
+    properties:
+      id:
+        type: bigint
+        description: ID
+      article:
+        type: bigint
+        description: 文章
+        foreignKey: Article
+      passwd:
+        type: string
+        nullable: true
+        description: 访问密码
+      content:
+        type: text
+        description: 文章内容
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+      language_code:
+        type: string
+        default: zh-CN
+        description: 语言代码
+    orm: true
+    table: article_content
+  ArticleI18n:
+    description: 文章国际化模型
+    properties:
+      i18n_id:
+        type: bigint
+        description: 国际化 ID
+        primaryKey: true
+        autoIncrement: true
+      article:
+        type: bigint
+        description: 文章
+        foreignKey: Article
+      language_id:
+        type: string
+        maxLength: 10
+        description: 语言 ID
+      title:
+        type: string
+        maxLength: 255
+        description: 标题
+      slug:
+        type: string
+        maxLength: 255
+        description: 文章 slug
+      content:
+        type: text
+        description: 文章内容
+      excerpt:
+        type: string
+        nullable: true
+        description: 摘要
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    orm: true
+    table: article_i18n
+  ArticleLike:
+    description: 文章点赞模型
+    properties:
+      id:
+        type: bigint
+        description: 点赞 ID
+      user:
+        type: bigint
+        description: 用户
+        foreignKey: User
+      article:
+        type: bigint
+        description: 文章
+        foreignKey: Article
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+    orm: true
+    table: article_likes
+  FileHash:
+    description: 文件哈希模型
+    properties:
+      id:
+        type: bigint
+        description: 哈希 ID
+      hash:
+        type: string
+        maxLength: 64
+        description: 文件哈希
+      filename:
+        type: string
+        maxLength: 255
+        description: 文件名
+      created_at:
+        type: datetime
+        description: 创建时间
+      updated_at:
+        type: datetime
+        description: 更新时间
+      reference_count:
+        type: bigint
+        default: 1
+        description: 引用计数
+      file_size:
+        type: bigint
+        description: 文件大小
+      mime_type:
+        type: string
+        maxLength: 100
+        description: MIME 类型
+      storage_path:
+        type: string
+        maxLength: 512
+        description: 存储路径
+    orm: true
+    table: file_hashs
+  Menus:
+    description: 菜单模型
+    properties:
+      id:
+        type: integer
+        description: 菜单 ID
+      name:
+        type: string
+        maxLength: 100
+        description: 菜单名
+      slug:
+        type: string
+        maxLength: 100
+        description: 菜单 slug
+      description:
+        type: string
+        nullable: true
+        description: 菜单描述
+      is_active:
+        type: boolean
+        default: true
+        description: 是否激活
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    orm: true
+    indexes:
+      - name: idx_menus_slug
+        columns: [ slug ]
+        unique: true
+      - name: idx_menus_is_active
+        columns: [ is_active ]
+    table: menus
+  MenuItems:
+    description: 菜单项模型
+    properties:
+      id:
+        type: integer
+        description: 菜单项 ID
+      menu_id:
+        type: integer
+        description: 菜单 ID
+      parent_id:
+        type: integer
+        nullable: true
+        description: 父菜单项 ID
+      title:
+        type: string
+        maxLength: 255
+        description: 标题
+      url:
+        type: string
+        maxLength: 500
+        description: URL
+      target:
+        type: string
+        default: _self
+        description: 打开方式
+      order_index:
+        type: integer
+        default: 0
+        description: 排序索引
+      is_active:
+        type: boolean
+        default: true
+        description: 是否激活
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+    orm: true
+    indexes:
+      - name: idx_menu_items_menu_id
+        columns: [ menu_id ]
+      - name: idx_menu_items_parent_id
+        columns: [ parent_id ]
+      - name: idx_menu_items_order
+        columns: [ order_index ]
+    table: menu_items
+  MenuLocation:
+    description: 菜单位置模型（主菜单、页脚菜单等）
+    properties:
+      id:
+        type: integer
+        description: 位置 ID
+      name:
+        type: string
+        maxLength: 100
+        description: 位置显示名称
+      slug:
+        type: string
+        maxLength: 100
+        unique: true
+        description: 位置标识（primary-menu, footer-menu等）
+      description:
+        type: string
+        nullable: true
+        description: 位置描述
+      theme_supports:
+        type: string
+        nullable: true
+        description: 支持的主题列表（JSON格式）
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    orm: true
+    table: menu_locations
+    indexes:
+      - name: idx_menu_locations_slug
+        columns: [ slug ]
+        unique: true
+  MenuLocationAssignment:
+    description: 菜单-位置关联表
+    properties:
+      id:
+        type: bigint
+        description: 关联 ID
+      menu_id:
+        type: bigint
+        description: 菜单 ID
+        foreignKey: Menus
+      location_id:
+        type: bigint
+        description: 位置 ID
+        foreignKey: MenuLocation
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+    orm: true
+    table: menu_location_assignments
+    indexes:
+      - name: idx_menu_location_menu_id
+        columns: [ menu_id ]
+      - name: idx_menu_location_location_id
+        columns: [ location_id ]
+      - name: idx_menu_location_unique
+        columns: [ menu_id, location_id ]
+        unique: true
+  Pages:
+    description: 页面模型
+    properties:
+      id:
+        type: bigint
+        description: 页面 ID
+      title:
+        type: string
+        maxLength: 255
+        description: 标题
+      slug:
+        type: string
+        maxLength: 255
+        description: 页面 slug
+      content:
+        type: string
+        description: 页面内容
+      excerpt:
+        type: string
+        nullable: true
+        description: 摘要
+      template:
+        type: string
+        nullable: true
+        description: 模板
+      status:
+        type: bigint
+        default: 0
+        description: 状态
+      author_id:
+        type: bigint
+        nullable: true
+        description: 作者 ID
+      parent_id:
+        type: bigint
+        nullable: true
+        description: 父页面 ID
+      order_index:
+        type: integer
+        default: 0
+        description: 排序索引
+      meta_title:
+        type: string
+        nullable: true
+        description: 元标题
+      meta_description:
+        type: string
+        nullable: true
+        description: 元描述
+      meta_keywords:
+        type: string
+        nullable: true
+        description: 元关键词
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+      published_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: 发布时间
+    orm: true
+    indexes:
+      - name: idx_pages_slug
+        columns: [ slug ]
+        unique: true
+      - name: idx_pages_status
+        columns: [ status ]
+      - name: idx_pages_author_id
+        columns: [ author_id ]
+      - name: idx_pages_parent_id
+        columns: [ parent_id ]
+      - name: idx_pages_order
+        columns: [ order_index ]
+  UploadTask:
+    description: 上传任务模型
+    properties:
+      id:
+        type: string
+        maxLength: 36
+        description: 任务 ID (UUID)
+      user_id:
+        type: bigint
+        description: 用户 ID
+      filename:
+        type: string
+        maxLength: 255
+        description: 文件名
+      total_size:
+        type: bigint
+        description: 文件总大小
+      total_chunks:
+        type: bigint
+        description: 总分块数
+      uploaded_chunks:
+        type: bigint
+        default: 0
+        description: 已上传分块数
+      file_hash:
+        type: string
+        nullable: true
+        maxLength: 64
+        description: 文件哈希
+      status:
+        type: string
+        default: initialized
+        enum:
+          - initialized
+          - uploading
+          - completed
+          - canceled
+        description: 状态
+      created_at:
+        type: string
+        format: date-time
+        default: "datetime.utcnow"
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        default: "datetime.utcnow"
+        description: 更新时间
+    orm: true
+    table: upload_tasks
+  UploadChunk:
+    description: 上传分块模型
+    properties:
+      id:
+        type: bigint
+        description: 分块 ID
+      upload_id:
+        type: string
+        maxLength: 36
+        description: 上传任务 ID
+      chunk_index:
+        type: bigint
+        description: 分块索引
+      chunk_hash:
+        type: string
+        maxLength: 64
+        description: 分块哈希
+      chunk_size:
+        type: bigint
+        description: 分块大小
+      chunk_path:
+        type: string
+        maxLength: 500
+        description: 分块路径
+      created_at:
+        type: string
+        format: date-time
+        default: "datetime.utcnow"
+        description: 创建时间
+    orm: true
+    table: upload_chunks
+  Notification:
+    description: 通知模型
+    properties:
+      id:
+        type: bigint
+        description: 通知 ID
+      recipient:
+        type: bigint
+        description: 接收者
+        foreignKey: User
+      type:
+        type: string
+        maxLength: 100
+        description: 通知类型
+      title:
+        type: string
+        maxLength: 200
+        description: 标题
+      message:
+        type: string
+        description: 消息内容
+      is_read:
+        type: boolean
+        default: false
+        description: 是否已读
+      read_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: 阅读时间
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    orm: true
+    table: notifications
+  SearchHistory:
+    description: 搜索历史模型
+    properties:
+      id:
+        type: bigint
+        description: 搜索历史 ID
+      user:
+        type: bigint
+        description: 用户
+        foreignKey: User
+      keyword:
+        type: string
+        maxLength: 255
+        description: 搜索关键词
+      results_count:
+        type: bigint
+        description: 结果数量
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+    orm: true
+    table: search_history
+  PageView:
+    description: 页面浏览模型
+    properties:
+      id:
+        type: bigint
+        description: 浏览 ID
+      user:
+        type: bigint
+        nullable: true
+        description: 用户
+        foreignKey: User
+      session_id:
+        type: string
+        nullable: true
+        maxLength: 255
+        description: 会话 ID
+      page_url:
+        type: string
+        maxLength: 500
+        description: 页面 URL
+      page_title:
+        type: string
+        nullable: true
+        maxLength: 500
+        description: 页面标题
+      referrer:
+        type: string
+        nullable: true
+        maxLength: 500
+        description: 来源页面
+      user_agent:
+        type: string
+        nullable: true
+        maxLength: 500
+        description: 用户代理
+      ip_address:
+        type: string
+        nullable: true
+        maxLength: 45
+        description: IP 地址
+      device_type:
+        type: string
+        nullable: true
+        maxLength: 50
+        description: 设备类型
+      browser:
+        type: string
+        nullable: true
+        maxLength: 100
+        description: 浏览器类型
+      platform:
+        type: string
+        nullable: true
+        maxLength: 100
+        description: 操作系统平台
+      country:
+        type: string
+        nullable: true
+        maxLength: 100
+        description: 国家
+      city:
+        type: string
+        nullable: true
+        maxLength: 100
+        description: 城市
+      created_at:
+        type: string
+        format: date-time
+        description: 访问时间
+    orm: true
+    table: page_views
+  UserActivity:
+    description: 用户活动模型
+    properties:
+      id:
+        type: bigint
+        description: 活动 ID
+      user:
+        type: bigint
+        description: 用户
+        foreignKey: User
+      activity_type:
+        type: string
+        maxLength: 100
+        description: 活动类型
+      target_type:
+        type: string
+        maxLength: 50
+        description: 目标类型
+      target_id:
+        type: bigint
+        description: 目标 ID
+      details:
+        type: string
+        nullable: true
+        description: 活动详情
+      ip_address:
+        type: string
+        nullable: true
+        maxLength: 45
+        description: IP 地址
+      user_agent:
+        type: string
+        nullable: true
+        maxLength: 500
+        description: 用户代理
+      created_at:
+        type: string
+        format: date-time
+        description: 活动时间
+    orm: true
+    table: user_activities
+  VIPPlan:
+    description: VIP 套餐模型
+    properties:
+      id:
+        type: bigint
+        description: 套餐 ID
+      name:
+        type: string
+        maxLength: 100
+        description: 套餐名称
+      description:
+        type: string
+        nullable: true
+        description: 套餐描述
+      price:
+        type: number
+        description: 价格
+      original_price:
+        type: number
+        nullable: true
+        description: 原价
+      duration_days:
+        type: integer
+        description: 有效期天数
+      level:
+        type: bigint
+        default: 1
+        description: VIP 等级
+      features:
+        type: string
+        nullable: true
+        description: 特权功能 JSON
+      is_active:
+        type: boolean
+        default: true
+        description: 是否激活
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    orm: true
+    table: vip_plans
+  VIPSubscription:
+    description: VIP 订阅模型
+    properties:
+      id:
+        type: bigint
+        description: 订阅 ID
+      user:
+        type: bigint
+        description: 用户
+        foreignKey: User
+      plan:
+        type: integer
+        description: 套餐
+        foreignKey: VIPPlan
+      starts_at:
+        type: string
+        format: date-time
+        description: 开始时间
+      expires_at:
+        type: string
+        format: date-time
+        description: 过期时间
+      status:
+        type: bigint
+        default: 0
+        description: 状态
+      payment_amount:
+        type: number
+        nullable: true
+        description: 实际支付金额
+      transaction_id:
+        type: string
+        nullable: true
+        maxLength: 255
+        description: 支付交易 ID
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+    orm: true
+    table: vip_subscriptions
+  VIPFeature:
+    description: VIP 功能特权模型
+    properties:
+      id:
+        type: bigint
+        description: 功能 ID
+      code:
+        type: string
+        maxLength: 50
+        description: 功能代码
+      name:
+        type: string
+        maxLength: 100
+        description: 功能名称
+      description:
+        type: string
+        nullable: true
+        description: 功能描述
+      required_level:
+        type: integer
+        default: 1
+        description: 所需 VIP 等级
+      is_active:
+        type: boolean
+        default: true
+        description: 是否激活
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+    orm: true
+    table: vip_features
+  CustomField:
+    description: 自定义字段模型
+    properties:
+      id:
+        type: bigint
+        description: 字段 ID
+      user:
+        type: bigint
+        description: 用户
+        foreignKey: User
+      field_name:
+        type: string
+        maxLength: 100
+        description: 字段名称
+      field_value:
+        type: string
+        description: 字段值
+    orm: true
+    table: custom_fields
+  EmailSubscription:
+    description: 邮件订阅模型
+    properties:
+      id:
+        type: bigint
+        description: 订阅 ID
+      user:
+        type: bigint
+        description: 用户
+        foreignKey: User
+      subscribed:
+        type: boolean
+        default: true
+        description: 是否订阅邮件
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+    orm: true
+    table: email_subscriptions
+  ArticleRevision:
+    description: 文章修订历史模型
+    properties:
+      id:
+        type: bigint
+        description: 修订ID
+      article_id:
+        type: bigint
+        description: 关联的文章ID
+        foreignKey: Article
+      revision_number:
+        type: bigint
+        description: 修订版本号
+      title:
+        type: string
+        maxLength: 255
+        description: 修订时的标题
+      excerpt:
+        type: string
+        nullable: true
+        description: 修订时的摘要
+      content:
+        type: text
+        description: 修订时的文章内容
+      cover_image:
+        type: string
+        nullable: true
+        maxLength: 255
+        description: 修订时的封面图
+      tags_list:
+        type: string
+        nullable: true
+        maxLength: 255
+        description: 修订时的标签
+      category_id:
+        type: bigint
+        nullable: true
+        description: 修订时的分类ID
+      status:
+        type: bigint
+        default: 0
+        description: 修订时的文章状态
+      hidden:
+        type: boolean
+        default: false
+        description: 修订时的隐藏状态
+      is_featured:
+        type: boolean
+        default: false
+        description: 修订时的精选状态
+      is_vip_only:
+        type: boolean
+        default: false
+        description: 修订时的VIP限制
+      required_vip_level:
+        type: bigint
+        default: 0
+        description: 修订时的VIP等级要求
+      author_id:
+        type: bigint
+        nullable: true
+        description: 执行修订的用户ID
+        foreignKey: User
+      change_summary:
+        type: string
+        nullable: true
+        maxLength: 500
+        description: 修订说明/变更摘要
+      created_at:
+        type: string
+        format: date-time
+        description: 修订创建时间
+    orm: true
+    table: article_revisions
+    relationships:
+      article:
+        target: Article
+        back_populates: revisions
+        primaryjoin: "ArticleRevision.article_id == Article.id"
+    indexes:
+      - name: idx_article_revisions_article_id
+        columns: [ article_id ]
+      - name: idx_article_revisions_number
+        columns: [ revision_number ]
+      - name: idx_article_revisions_created
+        columns: [ created_at ]
+        order: DESC
+  Plugin:
+    description: 插件模型
+    properties:
+      id:
+        type: bigint
+        description: 插件ID
+      name:
+        type: string
+        maxLength: 100
+        description: 插件名称
+      slug:
+        type: string
+        maxLength: 100
+        unique: true
+        description: 插件唯一标识
+      version:
+        type: string
+        maxLength: 20
+        description: 插件版本
+      description:
+        type: string
+        nullable: true
+        description: 插件描述
+      author:
+        type: string
+        nullable: true
+        maxLength: 100
+        description: 插件作者
+      author_url:
+        type: string
+        nullable: true
+        maxLength: 255
+        description: 作者网站
+      plugin_url:
+        type: string
+        nullable: true
+        maxLength: 255
+        description: 插件官网
+      is_active:
+        type: boolean
+        default: false
+        description: 是否激活
+      is_installed:
+        type: boolean
+        default: true
+        description: 是否已安装
+      settings:
+        type: text
+        nullable: true
+        description: 插件配置（JSON格式）
+      priority:
+        type: integer
+        default: 0
+        description: 执行优先级
+      created_at:
+        type: string
+        format: date-time
+        description: 安装时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    orm: true
+    table: plugins
+    indexes:
+      - name: idx_plugins_slug
+        columns: [ slug ]
+        unique: true
+      - name: idx_plugins_is_active
+        columns: [ is_active ]
+  Theme:
+    description: 主题模型
+    properties:
+      id:
+        type: bigint
+        description: 主题ID
+      name:
+        type: string
+        maxLength: 100
+        description: 主题名称
+      slug:
+        type: string
+        maxLength: 100
+        unique: true
+        description: 主题唯一标识
+      version:
+        type: string
+        maxLength: 20
+        description: 主题版本
+      description:
+        type: string
+        nullable: true
+        description: 主题描述
+      author:
+        type: string
+        nullable: true
+        maxLength: 100
+        description: 主题作者
+      author_url:
+        type: string
+        nullable: true
+        maxLength: 255
+        description: 作者网站
+      theme_url:
+        type: string
+        nullable: true
+        maxLength: 255
+        description: 主题官网
+      screenshot:
+        type: string
+        nullable: true
+        maxLength: 500
+        description: 主题截图路径
+      tags:
+        type: string
+        nullable: true
+        description: 标签列表（JSON格式）
+      requires:
+        type: string
+        nullable: true
+        description: 依赖要求（JSON格式）
+      settings_schema:
+        type: string
+        nullable: true
+        description: 设置架构（JSON格式）
+      theme_path:
+        type: string
+        nullable: true
+        maxLength: 500
+        description: 主题文件路径
+      is_active:
+        type: boolean
+        default: false
+        description: 是否为当前激活主题
+      is_installed:
+        type: boolean
+        default: true
+        description: 是否已安装
+      settings:
+        type: string
+        nullable: true
+        description: 主题配置（JSON格式）
+      supports:
+        type: string
+        nullable: true
+        description: 支持的功能（JSON数组）
+      created_at:
+        type: string
+        format: date-time
+        description: 安装时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    orm: true
+    table: themes
+    indexes:
+      - name: idx_themes_slug
+        columns: [ slug ]
+        unique: true
+      - name: idx_themes_is_active
+        columns: [ is_active ]
+  Form:
+    description: 表单模型
+    properties:
+      id:
+        type: bigint
+        description: 表单 ID
+      title:
+        type: string
+        maxLength: 255
+        description: 表单标题
+      slug:
+        type: string
+        maxLength: 255
+        unique: true
+        description: 表单标识
+      description:
+        type: string
+        nullable: true
+        description: 表单描述
+      status:
+        type: string
+        default: draft
+        description: 表单状态（draft, published, archived）
+      submit_message:
+        type: string
+        nullable: true
+        description: 提交成功消息
+      email_notification:
+        type: boolean
+        default: false
+        description: 是否启用邮件通知
+      notification_email:
+        type: string
+        nullable: true
+        description: 通知邮箱地址
+      store_submissions:
+        type: boolean
+        default: true
+        description: 是否存储提交数据
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+      published_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: 发布时间
+    orm: true
+    table: forms
+    indexes:
+      - name: idx_forms_slug
+        columns: [ slug ]
+        unique: true
+      - name: idx_forms_status
+        columns: [ status ]
+  FormField:
+    description: 表单字段模型
+    properties:
+      id:
+        type: bigint
+        description: 字段 ID
+      form_id:
+        type: bigint
+        description: 所属表单 ID
+        foreignKey: Form
+      label:
+        type: string
+        maxLength: 255
+        description: 字段标签
+      field_type:
+        type: string
+        maxLength: 50
+        description: 字段类型（text, email, textarea, select, checkbox, radio, number, date, file）
+      placeholder:
+        type: string
+        nullable: true
+        description: 占位符文本
+      help_text:
+        type: string
+        nullable: true
+        description: 帮助文本
+      required:
+        type: boolean
+        default: false
+        description: 是否必填
+      options:
+        type: string
+        nullable: true
+        description: 选项列表（JSON格式，用于select/radio/checkbox）
+      validation_rules:
+        type: string
+        nullable: true
+        description: 验证规则（JSON格式）
+      default_value:
+        type: string
+        nullable: true
+        description: 默认值
+      order_index:
+        type: bigint
+        default: 0
+        description: 显示顺序
+      is_active:
+        type: boolean
+        default: true
+        description: 是否启用
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    orm: true
+    table: form_fields
+    indexes:
+      - name: idx_form_fields_form_id
+        columns: [ form_id ]
+      - name: idx_form_fields_order
+        columns: [ order_index ]
+  FormSubmission:
+    description: 表单提交记录模型
+    properties:
+      id:
+        type: bigint
+        description: 提交 ID
+      form_id:
+        type: bigint
+        description: 所属表单 ID
+        foreignKey: Form
+      data:
+        type: string
+        description: 提交数据（JSON格式）
+      ip_address:
+        type: string
+        nullable: true
+        maxLength: 45
+        description: 提交者 IP
+      user_agent:
+        type: string
+        nullable: true
+        description: 浏览器信息
+      user_id:
+        type: bigint
+        nullable: true
+        description: 用户 ID（如果已登录）
+        foreignKey: User
+      status:
+        type: string
+        default: new
+        description: 提交状态（new, read, replied, spam）
+      created_at:
+        type: string
+        format: date-time
+        description: 提交时间
+    orm: true
+    table: form_submissions
+    indexes:
+      - name: idx_form_submissions_form_id
+        columns: [ form_id ]
+      - name: idx_form_submissions_status
+        columns: [ status ]
+      - name: idx_form_submissions_created
+        columns: [ created_at ]
+  WidgetInstance:
+    description: Widget实例模型（持久化存储）
+    properties:
+      id:
+        type: bigint
+        description: Widget实例 ID
+      widget_type:
+        type: string
+        maxLength: 50
+        description: Widget类型（search, recent_posts, categories等）
+      area:
+        type: string
+        maxLength: 50
+        description: 显示区域（sidebar_primary, footer_1等）
+      title:
+        type: string
+        nullable: true
+        maxLength: 255
+        description: Widget标题
+      config:
+        type: string
+        description: Widget配置（JSON格式）
+      order_index:
+        type: bigint
+        default: 0
+        description: 显示顺序
+      is_active:
+        type: boolean
+        default: true
+        description: 是否启用
+      conditions:
+        type: string
+        nullable: true
+        description: 显示条件（JSON格式）
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    orm: true
+    table: widget_instances
+    indexes:
+      - name: idx_widget_instances_area
+        columns: [ area ]
+      - name: idx_widget_instances_order
+        columns: [ order_index ]
+      - name: idx_widget_instances_type
+        columns: [ widget_type ]
+  BlockPattern:
+    description: 自定义块模式模型
+    properties:
+      id:
+        type: bigint
+        description: 模式ID
+      name:
+        type: string
+        maxLength: 100
+        unique: true
+        description: 模式名称（唯一标识）
+      title:
+        type: string
+        maxLength: 255
+        description: 模式标题（显示名称）
+      description:
+        type: text
+        nullable: true
+        description: 模式描述
+      category:
+        type: string
+        maxLength: 50
+        default: custom
+        description: 分类（custom, hero, features等）
+      blocks:
+        type: text
+        description: 块数据（JSON格式）
+      keywords:
+        type: text
+        nullable: true
+        description: 关键词（逗号分隔）
+      thumbnail:
+        type: string
+        maxLength: 500
+        nullable: true
+        description: 缩略图URL
+      is_public:
+        type: boolean
+        default: false
+        description: 是否公开（false=私有，true=公开）
+      user_id:
+        type: bigint
+        nullable: true
+        description: 创建者用户ID
+        foreignKey: User
+      viewport_width:
+        type: bigint
+        default: 800
+        description: 预览宽度
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    orm: true
+    table: block_patterns
+    indexes:
+      - name: idx_block_patterns_name
+        columns: [ name ]
+        unique: true
+      - name: idx_block_patterns_category
+        columns: [ category ]
+      - name: idx_block_patterns_user_id
+        columns: [ user_id ]
+    # 自定义方法列表
+    def_list:
+      - get_blocks_data
+      - set_blocks_data
+      - get_keywords_list
+      - set_keywords_list
+      - is_custom_pattern
+      - to_pattern_dict
+    # 自定义方法定义文件路径
+    defs_target: block_pattern_defs.py
+  CustomPostType:
+    description: 自定义内容类型模型
+    properties:
+      id:
+        type: bigint
+        description: 内容类型ID
+      name:
+        type: string
+        maxLength: 100
+        description: 内容类型名称
+      slug:
+        type: string
+        maxLength: 100
+        unique: true
+        description: 内容类型标识
+      description:
+        type: string
+        nullable: true
+        description: 描述
+      supports:
+        type: string
+        nullable: true
+        description: 支持的功能(JSON数组)
+      has_archive:
+        type: boolean
+        default: false
+        description: 是否有归档页
+      menu_icon:
+        type: string
+        nullable: true
+        description: 菜单图标
+      menu_position:
+        type: integer
+        default: 5
+        description: 菜单位置
+      is_active:
+        type: boolean
+        default: true
+        description: 是否激活
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    orm: true
+    table: custom_post_types
+    indexes:
+      - name: idx_cpt_slug
+        columns: [ slug ]
+        unique: true
+      - name: idx_cpt_is_active
+        columns: [ is_active ]
+  CommentVote:
+    description: 评论投票模型
+    properties:
+      id:
+        type: bigint
+        description: 投票 ID
+      comment_id:
+        type: bigint
+        description: 评论 ID
+        index: true
+      user:
+        type: bigint
+        nullable: true
+        description: 用户 ID（匿名投票可为空）
+        foreignKey: User
+      vote_type:
+        type: integer
+        enum:
+          - 1
+          - -1
+        description: '投票类型 (1: 赞, -1: 踩)'
+      ip_address:
+        type: string
+        nullable: true
+        maxLength: 45
+        description: IP 地址（用于防刷）
+      created_at:
+        type: string
+        format: date-time
+        description: 投票时间
+    orm: true
+    table: comment_votes
+    indexes:
+      - name: idx_comment_votes_comment_user
+        columns: [ comment_id, user ]
+        unique: true
+  CommentSubscription:
+    description: 评论订阅模型
+    properties:
+      id:
+        type: bigint
+        description: 订阅 ID
+      article_id:
+        type: bigint
+        description: 文章 ID
+        index: true
+      user_id:
+        type: bigint
+        nullable: true
+        description: 用户 ID（访客订阅可为空）
+        foreignKey: User
+      email:
+        type: string
+        maxLength: 255
+        description: 订阅邮箱
+      notify_type:
+        type: string
+        default: new_comment
+        enum:
+          - new_comment
+          - reply_to_me
+          - all_replies
+        description: '通知类型 (new_comment: 新评论, reply_to_me: 回复我, all_replies: 所有回复)'
+      is_active:
+        type: boolean
+        default: true
+        description: 是否激活
+      confirm_token:
+        type: string
+        nullable: true
+        maxLength: 64
+        description: 确认token（用于访客验证）
+      confirmed_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: 确认时间
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    orm: true
+    table: comment_subscriptions
+    indexes:
+      - name: idx_comment_subscriptions_article
+        columns: [ article_id ]
+      - name: idx_comment_subscriptions_email
+        columns: [ email ]
+      - name: idx_comment_subscriptions_user
+        columns: [ user_id ]
+      - name: idx_comment_subscriptions_unique
+        columns: [ article_id, email ]
+        unique: true
+  Comment:
+    description: 评论模型
+    properties:
+      id:
+        type: bigint
+        description: 评论 ID
+      article_id:
+        type: bigint
+        description: 文章 ID
+        foreignKey: Article
+        index: true
+      user_id:
+        type: bigint
+        nullable: true
+        description: 用户 ID（访客评论可为空）
+        foreignKey: User
+        index: true
+      parent_id:
+        type: bigint
+        nullable: true
+        description: 父评论 ID（用于回复）
+        foreignKey: Comment
+        index: true
+      content:
+        type: text
+        description: 评论内容
+      author_name:
+        type: string
+        nullable: true
+        maxLength: 100
+        description: 作者姓名（访客填写）
+      author_email:
+        type: string
+        nullable: true
+        maxLength: 255
+        description: 作者邮箱（访客填写）
+      author_url:
+        type: string
+        nullable: true
+        maxLength: 500
+        description: 作者网站（访客填写）
+      author_ip:
+        type: string
+        nullable: true
+        maxLength: 45
+        description: 作者 IP 地址
+      user_agent:
+        type: string
+        nullable: true
+        maxLength: 500
+        description: 用户代理
+      is_approved:
+        type: boolean
+        default: true
+        description: 是否已审核通过
+      likes:
+        type: bigint
+        default: 0
+        description: 点赞数
+      spam_score:
+        type: float
+        nullable: true
+        description: 垃圾评分
+      spam_reasons:
+        type: string
+        nullable: true
+        description: 垃圾检测原因（JSON格式）
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    orm: true
+    table: comments
+    indexes:
+      - name: idx_comments_article_id
+        columns: [ article_id ]
+      - name: idx_comments_user_id
+        columns: [ user_id ]
+      - name: idx_comments_parent_id
+        columns: [ parent_id ]
+      - name: idx_comments_is_approved
+        columns: [ is_approved ]
+      - name: idx_comments_created_at
+        columns: [ created_at ]
+        order: DESC
+  Role:
+    description: 角色模型
+    properties:
+      id:
+        type: bigint
+        description: 角色 ID
+      name:
+        type: string
+        maxLength: 100
+        description: 角色名称
+      slug:
+        type: string
+        maxLength: 100
+        unique: true
+        description: 角色标识（唯一）
+      description:
+        type: string
+        nullable: true
+        description: 角色描述
+      permissions:
+        type: string
+        nullable: true
+        description: 权限列表（JSON格式）
+      is_system:
+        type: boolean
+        default: false
+        description: 是否为系统角色（系统角色不可删除）
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    orm: true
+    table: roles
+    indexes:
+      - name: idx_roles_slug
+        columns: [ slug ]
+        unique: true
+      - name: idx_roles_is_system
+        columns: [ is_system ]
+  Capability:
+    description: 权限能力模型
+    properties:
+      id:
+        type: bigint
+        description: 权限 ID
+      code:
+        type: string
+        maxLength: 100
+        unique: true
+        description: 权限代码（唯一标识）
+      name:
+        type: string
+        maxLength: 255
+        description: 权限名称
+      description:
+        type: string
+        nullable: true
+        description: 权限描述
+      resource_type:
+        type: string
+        nullable: true
+        maxLength: 100
+        description: 资源类型（article, user, category等）
+      action:
+        type: string
+        nullable: true
+        maxLength: 50
+        description: 操作类型（create, read, update, delete）
+      is_active:
+        type: boolean
+        default: true
+        description: 是否激活
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    orm: true
+    table: capabilities
+    indexes:
+      - name: idx_capabilities_code
+        columns: [ code ]
+        unique: true
+      - name: idx_capabilities_resource
+        columns: [ resource_type, action ]
+  UserRole:
+    description: 用户角色关联模型
+    properties:
+      id:
+        type: bigint
+        description: 关联 ID
+      user_id:
+        type: bigint
+        description: 用户 ID
+        foreignKey: User
+      role_id:
+        type: bigint
+        description: 角色 ID
+        foreignKey: Role
+      assigned_by:
+        type: bigint
+        nullable: true
+        description: 分配者用户 ID
+        foreignKey: User
+      created_at:
+        type: string
+        format: date-time
+        description: 分配时间
+    orm: true
+    table: user_role_assignments
+    indexes:
+      - name: idx_user_roles_user_id
+        columns: [ user_id ]
+      - name: idx_user_roles_role_id
+        columns: [ role_id ]
+      - name: idx_user_roles_unique
+        columns: [ user_id, role_id ]
+        unique: true
+  OAuthAccount:
+    description: OAuth 第三方登录账号关联模型
+    properties:
+      id:
+        type: bigint
+        description: 主键ID
+      user_id:
+        type: bigint
+        description: 关联的用户ID
+        foreignKey: User
+        index: true
+      provider:
+        type: string
+        maxLength: 50
+        description: OAuth提供商(github/google/wechat/qq/weibo)
+        index: true
+      provider_user_id:
+        type: string
+        maxLength: 255
+        description: 第三方平台的用户ID
+        index: true
+      access_token:
+        type: string
+        nullable: true
+        description: 访问令牌（加密存储）
+      refresh_token:
+        type: string
+        nullable: true
+        description: 刷新令牌（加密存储）
+      token_expires_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: Token过期时间
+      extra_data:
+        type: string
+        nullable: true
+        description: 额外数据（JSON格式，存储头像、昵称等）
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    orm: true
+    table: oauth_accounts
+    indexes:
+      - name: idx_oauth_accounts_provider_user
+        columns: [ provider, provider_user_id ]
+        unique: true
+      - name: idx_oauth_accounts_user_provider
+        columns: [ user_id, provider ]
+        unique: true
+  ArticleSEO:
+    description: 文章SEO元数据模型
+    properties:
+      id:
+        type: bigint
+        description: SEO记录ID
+      article_id:
+        type: bigint
+        description: 关联的文章ID
+        foreignKey: Article
+        unique: true
+        index: true
+      seo_title:
+        type: string
+        nullable: true
+        maxLength: 255
+        description: SEO标题
+      seo_description:
+        type: text
+        nullable: true
+        description: SEO描述
+      seo_keywords:
+        type: string
+        nullable: true
+        maxLength: 500
+        description: SEO关键词
+      og_title:
+        type: string
+        nullable: true
+        maxLength: 255
+        description: Open Graph标题
+      og_description:
+        type: text
+        nullable: true
+        description: Open Graph描述
+      og_image:
+        type: string
+        nullable: true
+        maxLength: 500
+        description: Open Graph图片
+      og_type:
+        type: string
+        default: article
+        maxLength: 50
+        description: Open Graph类型
+      twitter_title:
+        type: string
+        nullable: true
+        maxLength: 255
+        description: Twitter Card标题
+      twitter_description:
+        type: text
+        nullable: true
+        description: Twitter Card描述
+      twitter_image:
+        type: string
+        nullable: true
+        maxLength: 500
+        description: Twitter Card图片
+      twitter_card:
+        type: string
+        default: summary_large_image
+        maxLength: 50
+        description: Twitter Card类型
+      canonical_url:
+        type: string
+        nullable: true
+        maxLength: 500
+        description: 规范URL
+      robots_meta:
+        type: string
+        default: 'index,follow'
+        maxLength: 100
+        description: Robots元标签
+      schema_org_enabled:
+        type: boolean
+        default: true
+        description: 是否启用Schema.org
+      schema_org_type:
+        type: string
+        default: BlogPosting
+        maxLength: 50
+        description: Schema.org类型
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    orm: true
+    table: article_seo
+    relationships:
+      article:
+        target: Article
+        back_populates: seo_data
+        primaryjoin: "ArticleSEO.article_id == Article.id"
+    indexes:
+      - name: idx_article_seo_article_id
+        columns: [ article_id ]
+        unique: true

@@ -1,0 +1,70 @@
+{
+  "id": 8,
+  "name": "社交分享",
+  "slug": "social-share",
+  "version": "1.0.0",
+  "description": "社交媒体集成插件，提供一键分享按钮、社交登录、自动发布到社交平台等功能",
+  "author": "FastBlog Team",
+  "author_url": "https://athenavi.github.io",
+  "plugin_url": "https://athenavi.github.io/plugins/social-share",
+  "icon": "🔗",
+  "category": "social",
+  "rating": 4.6,
+  "installs": 13245,
+  "requires": {
+    "fastblog": ">=0.0.3.6",
+    "python": ">=3.14.2"
+  },
+  "dependencies": [],
+  "settings_schema": {
+    "enable_share_buttons": {
+      "type": "boolean",
+      "label": "启用分享按钮",
+      "default": true
+    },
+    "share_platforms": {
+      "type": "multiselect",
+      "label": "分享平台",
+      "options": [
+        "wechat",
+        "weibo",
+        "qq",
+        "twitter",
+        "facebook",
+        "linkedin"
+      ],
+      "default": [
+        "wechat",
+        "weibo",
+        "twitter"
+      ]
+    },
+    "button_style": {
+      "type": "select",
+      "label": "按钮样式",
+      "options": [
+        "default",
+        "rounded",
+        "icon-only",
+        "text"
+      ],
+      "default": "default"
+    },
+    "button_position": {
+      "type": "select",
+      "label": "按钮位置",
+      "options": [
+        "top",
+        "bottom",
+        "floating",
+        "sidebar"
+      ],
+      "default": "bottom"
+    }
+  },
+  "changelog": "初始版本发布",
+  "download_url": "https://athenavi.github.io/plugins/downloads/social-share-1.0.0.zip",
+  "screenshots": [
+    "https://athenavi.github.io/plugins/screenshots/social-share-1.png"
+  ]
+}

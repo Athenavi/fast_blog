@@ -1,0 +1,66 @@
+{
+  "id": 26,
+  "name": "邮件通讯",
+  "slug": "newsletter",
+  "version": "1.0.0",
+  "description": "邮件营销工具，提供订阅者管理、邮件模板编辑器、定时发送和打开率统计功能",
+  "author": "FastBlog Team",
+  "author_url": "https://athenavi.github.io",
+  "plugin_url": "https://athenavi.github.io/plugins/newsletter",
+  "icon": "📬",
+  "category": "marketing",
+  "rating": 4.7,
+  "installs": 0,
+  "requires": {
+    "fastblog": ">=0.0.3.6",
+    "python": ">=3.14.2"
+  },
+  "dependencies": [],
+  "settings_schema": {
+    "smtp_host": {
+      "type": "text",
+      "label": "SMTP服务器",
+      "default": ""
+    },
+    "smtp_port": {
+      "type": "number",
+      "label": "SMTP端口",
+      "default": 587
+    },
+    "smtp_username": {
+      "type": "text",
+      "label": "SMTP用户名",
+      "default": ""
+    },
+    "smtp_password": {
+      "type": "password",
+      "label": "SMTP密码",
+      "default": ""
+    },
+    "from_email": {
+      "type": "text",
+      "label": "发件人邮箱",
+      "default": ""
+    },
+    "from_name": {
+      "type": "text",
+      "label": "发件人名称",
+      "default": "FastBlog"
+    },
+    "enable_double_optin": {
+      "type": "boolean",
+      "label": "启用双重确认",
+      "default": true
+    },
+    "welcome_email": {
+      "type": "boolean",
+      "label": "发送欢迎邮件",
+      "default": true
+    }
+  },
+  "changelog": "初始版本发布 - 包含订阅者管理、邮件模板、定时发送、打开率统计",
+  "download_url": "https://athenavi.github.io/plugins/downloads/newsletter-1.0.0.zip",
+  "screenshots": [
+    "https://athenavi.github.io/plugins/screenshots/newsletter-1.png"
+  ]
+}

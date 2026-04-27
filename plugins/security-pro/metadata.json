@@ -1,0 +1,89 @@
+{
+  "id": 28,
+  "name": "安全增强",
+  "slug": "security-pro",
+  "version": "1.0.0",
+  "description": "全面的安全防护工具，提供登录失败锁定、IP白名单/黑名单、安全日志审计和定期安全扫描功能",
+  "author": "FastBlog Team",
+  "author_url": "https://athenavi.github.io",
+  "plugin_url": "https://athenavi.github.io/plugins/security-pro",
+  "icon": "🛡️",
+  "category": "security",
+  "rating": 4.9,
+  "installs": 0,
+  "requires": {
+    "fastblog": ">=0.0.3.6",
+    "python": ">=3.14.2"
+  },
+  "dependencies": [],
+  "settings_schema": {
+    "enable_login_lockout": {
+      "type": "boolean",
+      "label": "启用登录失败锁定",
+      "default": true
+    },
+    "max_login_attempts": {
+      "type": "number",
+      "label": "最大登录尝试次数",
+      "default": 5,
+      "min": 1,
+      "max": 10
+    },
+    "lockout_duration": {
+      "type": "number",
+      "label": "锁定时长(分钟)",
+      "default": 30,
+      "min": 5,
+      "max": 1440
+    },
+    "enable_ip_whitelist": {
+      "type": "boolean",
+      "label": "启用IP白名单",
+      "default": false
+    },
+    "ip_whitelist": {
+      "type": "textarea",
+      "label": "IP白名单(每行一个)",
+      "default": ""
+    },
+    "ip_blacklist": {
+      "type": "textarea",
+      "label": "IP黑名单(每行一个)",
+      "default": ""
+    },
+    "enable_security_scan": {
+      "type": "boolean",
+      "label": "启用定期安全扫描",
+      "default": true
+    },
+    "scan_frequency": {
+      "type": "select",
+      "label": "扫描频率",
+      "options": [
+        {
+          "value": "daily",
+          "label": "每天"
+        },
+        {
+          "value": "weekly",
+          "label": "每周"
+        },
+        {
+          "value": "monthly",
+          "label": "每月"
+        }
+      ],
+      "default": "weekly"
+    },
+    "enable_audit_log": {
+      "type": "boolean",
+      "label": "启用审计日志",
+      "default": true
+    }
+  },
+  "changelog": "初始版本发布 - 包含登录锁定、IP管理、安全扫描、审计日志",
+  "download_url": "https://athenavi.github.io/plugins/downloads/security-pro-1.0.0.zip",
+  "screenshots": [
+    "https://athenavi.github.io/plugins/screenshots/security-pro-1.png"
+  ]
+}
