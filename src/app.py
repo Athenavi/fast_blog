@@ -27,15 +27,11 @@ if not hasattr(django, '_setup_complete') or not django.apps.apps.ready:
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import RedirectResponse, HTMLResponse
-from fastapi_users import FastAPIUsers
-from fastapi_users.authentication import JWTStrategy, AuthenticationBackend, BearerTransport
 from starlette.staticfiles import StaticFiles
 
-from src.auth.user_manager import get_user_manager
+from src.auth.fastapi_users_auth import fastapi_users, auth_backend, get_jwt_strategy
 # 使用生成的模型而不是不存在的 src.models
-from shared.models.user import User as UserModel
 from shared.models.schemas.user import UserRead  # FastAPI-Users 需要的 Pydantic 模型
-from src.setting import settings
 
 
 @asynccontextmanager
@@ -468,24 +464,9 @@ curl -X POST "http://localhost:9421/api/v1/media/upload" \
     except ImportError as e:
         print(f"Warning: Security middleware could not be loaded: {e}")
 
-    # JWT认证配置
-    def get_jwt_strategy() -> JWTStrategy:
-        return JWTStrategy(secret=settings.SECRET_KEY, lifetime_seconds=3600)
-
+    # JWT认证配置 - 已在 src.auth.fastapi_users_auth 中定义
     # 导出get_jwt_strategy函数，以便在其他地方使用
     globals()['get_jwt_strategy'] = get_jwt_strategy
-
-    # 认证后端
-    auth_backend = AuthenticationBackend(
-        name="jwt",
-        transport=BearerTransport(tokenUrl="auth/jwt/login"),
-        get_strategy=get_jwt_strategy,
-    )
-
-    fastapi_users = FastAPIUsers[UserModel, int](
-        get_user_manager,
-        [auth_backend],
-    )
 
     app.include_router(
         fastapi_users.get_auth_router(auth_backend),

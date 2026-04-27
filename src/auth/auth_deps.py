@@ -1,99 +1,41 @@
 """
-认证依赖项定义（完全使用 fastapi-jwt-auth，不依赖 Django）
+认证依赖项定义（使用 fastapi_users，不依赖 fastapi_jwt_auth）
 """
 from typing import Optional
 
 from fastapi import Depends, HTTPException, status, Request
 from fastapi.responses import RedirectResponse
-from fastapi_jwt_auth import AuthJWT
-from fastapi_jwt_auth.exceptions import AuthJWTException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.user import User as UserModel
-from src.utils.database.main import get_async_session
-from src.utils.token_blacklist import token_blacklist
 
+
+# 从 fastapi_users 获取当前用户的依赖项
+from src.auth.fastapi_users_auth import fastapi_users
 
 async def get_current_user(
-    request: Request,
-    db: AsyncSession = Depends(get_async_session),
-    Authorize: AuthJWT = Depends(),
+    user: UserModel = Depends(fastapi_users.current_user(active=True)),
 ) -> UserModel:
     """
     核心依赖：获取当前已验证的活跃用户。
-    1. 验证 JWT token（从 cookie 或 header 获取）
-    2. 检查 token 是否在黑名单中
-    3. 从数据库加载用户，确保存在且激活
+    由 fastapi_users 自动处理 JWT 验证和用户加载。
     """
-    # 验证 JWT
-    try:
-        Authorize.jwt_required()
-    except AuthJWTException:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Not authenticated",
-            headers={"WWW-Authenticate": "Bearer"},
-        )
-
-    # 提取用户 ID
-    user_id_str = Authorize.get_jwt_subject()
-    if not user_id_str:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token: missing user_id",
-        )
-    try:
-        user_id = int(user_id_str)
-    except (ValueError, TypeError):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid user ID format",
-        )
-
-    # 黑名单检查（如已启用）
-    raw_jwt = Authorize.get_raw_jwt()
-    if raw_jwt and token_blacklist.is_available:
-        jti = raw_jwt.get("jti")
-        if jti and token_blacklist.is_blacklisted(jti):
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Token has been revoked",
-            )
-
-    # 从数据库加载用户
-    result = await db.execute(select(UserModel).where(UserModel.id == user_id))
-    user = result.scalar_one_or_none()
-
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="User not found",
-        )
-    if not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Inactive user",
-        )
-
     return user
 
 
 async def get_current_user_or_redirect(
     request: Request,
-    db: AsyncSession = Depends(get_async_session),
-    Authorize: AuthJWT = Depends(),
+    user: Optional[UserModel] = Depends(fastapi_users.current_user(active=True, optional=True)),
 ):
     """
     页面路由版本：获取当前用户，未认证时返回重定向响应。
     """
-    try:
-        user = await get_current_user(request, db, Authorize)
-        return user
-    except HTTPException:
+    if user is None:
         # 任何认证失败都重定向到登录页
         next_url = str(request.url)
         return RedirectResponse(url=f"/login?next={next_url}")
+    return user
 
 
 # ---------- 管理员权限依赖 ----------
@@ -183,15 +125,10 @@ async def jwt_required_page(
 
 
 async def jwt_optional(
-    request: Request,
-    db: AsyncSession = Depends(get_async_session),
-    Authorize: AuthJWT = Depends(),
+    user: Optional[UserModel] = Depends(fastapi_users.current_user(active=True, optional=True)),
 ) -> Optional[UserModel]:
     """可选的 JWT 认证，如果未提供有效 token 则返回 None"""
-    try:
-        return await get_current_user(request, db, Authorize)
-    except HTTPException:
-        return None
+    return user
 
 
 # ---------- VIP 依赖 ----------
@@ -204,7 +141,15 @@ def require_vip():
     return checker
 
 
-# ---------- 用户认证函数（保留，用于登录流程） ----------
+# ---------- 导出别名（兼容旧代码） ----------
+# API 版本
+jwt_required_dependency = jwt_required
+jwt_optional_dependency = jwt_optional
+admin_required_api = admin_required
+
+# 页面版本
+jwt_required_page_dependency = jwt_required_page
+_get_current_active_user = get_current_user_or_redirect
 async def authenticate_user_with_session(
     identifier: str,
     password: str,

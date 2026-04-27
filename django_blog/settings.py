@@ -3,7 +3,7 @@ Django 6 博客项目配置
 
 架构说明：
 - 本项目采用 Django ORM + SQLAlchemy 双 ORM 架构
-- Django ORM：负责用户认证、权限管理（与 Django SimpleJWT 集成）
+- Django ORM：负责用户认证、权限管理（与 Django SimpleJWT 集成）一
 - SQLAlchemy：负责业务逻辑（文章、分类等），支持异步操作
 - 两个 ORM 共享同一个数据库连接配置
 """
