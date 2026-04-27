@@ -4,9 +4,10 @@ Media App Models
 生成时间：2026-03-31 17:55:17
 """
 
+from django.db import models
+
 # 引入自动生成的 Mixin
 from apps.generated.auto_orm import *
-from django.db import models
 
 
 class FileHash(FileHashMixin, TimestampMixin):

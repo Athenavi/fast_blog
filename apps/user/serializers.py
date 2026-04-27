@@ -3,7 +3,6 @@
 """
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 User = get_user_model()
 
@@ -77,24 +76,6 @@ class UserCreateSerializer(serializers.ModelSerializer):
             password=validated_data['password']
         )
         return user
-
-
-class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
-    """自定义 Token 获取序列化器"""
-    username_field = 'username'
-
-    def validate(self, attrs):
-        """验证并返回 token"""
-        data = super().validate(attrs)
-
-        # 添加用户信息到响应
-        data['user'] = {
-            'id': self.user.id,
-            'username': self.user.username,
-            'email': self.user.email,
-        }
-
-        return data
 
 
 class PasswordChangeSerializer(serializers.Serializer):

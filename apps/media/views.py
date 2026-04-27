@@ -4,8 +4,6 @@
 import os
 
 from django.conf import settings
-from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import filters
 from rest_framework import viewsets, permissions, status
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.response import Response
@@ -14,16 +12,15 @@ from rest_framework.views import APIView
 from apps.media.models import Media
 from apps.media.serializers import MediaSerializer
 from django_blog.exceptions import api_response
-from shared.services.svg_service import SVGService
 from shared.services.image_tool import ExifService
-from shared.services.pdf_service import PDFService
+from shared.services.media_manager import PDFService
+from shared.services.media_manager import SVGService
 
 
 class MediaViewSet(viewsets.ModelViewSet):
     """媒体文件视图集"""
     queryset = Media.objects.select_related('user').all()
     serializer_class = MediaSerializer
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['file_type', 'is_public', 'user_id']
     search_fields = ['filename', 'original_filename', 'description']
     ordering_fields = ['created_at', 'file_size', 'download_count']
@@ -114,7 +111,7 @@ class MediaUploadView(APIView):
         # 检查是否为 SVG 文件
         is_svg = file_obj.content_type == 'image/svg+xml' or file_obj.name.lower().endswith('.svg')
         is_pdf = file_obj.content_type == 'application/pdf' or file_obj.name.lower().endswith('.pdf')
-        
+
         if is_svg:
             # 使用 SVG 服务处理
             is_valid, error_msg = SVGService.validate_upload(file_obj)
@@ -126,19 +123,19 @@ class MediaUploadView(APIView):
                     ),
                     status=status.HTTP_400_BAD_REQUEST
                 )
-            
+
             # 生成保存路径
             from django.utils import timezone
             upload_dir = os.path.join(settings.MEDIA_ROOT, 'uploads', 'svg')
             timestamp = timezone.now().strftime('%Y%m%d_%H%M%S')
             filename = f"{timestamp}_{file_obj.name}"
             save_path = os.path.join(upload_dir, filename)
-            
+
             # 处理并保存 SVG
             try:
                 result = SVGService.process_svg(file_obj, save_path)
                 file_url = f"/media/uploads/svg/{filename}"
-                
+
                 # 创建媒体记录
                 media = Media.objects.create(
                     user=request.user,
@@ -153,9 +150,9 @@ class MediaUploadView(APIView):
                     height=result['metadata'].get('height'),
                     description=f"SVG 图像 ({result['metadata'].get('total_elements', 0)} 个元素)"
                 )
-                
+
                 serializer = MediaSerializer(media, context={'request': request})
-                
+
                 return Response(
                     api_response(
                         success=True,
@@ -172,7 +169,7 @@ class MediaUploadView(APIView):
                     ),
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
-        
+
         # 处理 PDF 文件
         if is_pdf:
             # 验证 PDF
@@ -185,22 +182,22 @@ class MediaUploadView(APIView):
                     ),
                     status=status.HTTP_400_BAD_REQUEST
                 )
-            
+
             # 生成保存路径
             from django.utils import timezone
             upload_dir = os.path.join(settings.MEDIA_ROOT, 'uploads', 'pdf')
             timestamp = timezone.now().strftime('%Y%m%d_%H%M%S')
             filename = f"{timestamp}_{file_obj.name}"
             save_path = os.path.join(upload_dir, filename)
-            
+
             # 确保目录存在
             os.makedirs(upload_dir, exist_ok=True)
-            
+
             # 保存文件
             with open(save_path, 'wb+') as destination:
                 for chunk in file_obj.chunks():
                     destination.write(chunk)
-            
+
             # 提取 PDF 元数据
             try:
                 metadata = PDFService.extract_metadata(save_path)
@@ -211,11 +208,11 @@ class MediaUploadView(APIView):
                     description_parts.append(f"{metadata['page_count']} 页")
                 if metadata.get('author'):
                     description_parts.append(f"作者: {metadata['author']}")
-                
+
                 description = ' | '.join(description_parts) if description_parts else 'PDF 文档'
             except Exception:
                 description = 'PDF 文档'
-            
+
             # 尝试生成缩略图
             thumbnail_path = None
             thumbnail_url = None
@@ -224,15 +221,15 @@ class MediaUploadView(APIView):
                 os.makedirs(thumb_dir, exist_ok=True)
                 thumb_filename = f"{os.path.splitext(filename)[0]}.jpg"
                 thumb_save_path = os.path.join(thumb_dir, thumb_filename)
-                
+
                 if PDFService.generate_thumbnail(save_path, thumb_save_path):
                     thumbnail_path = thumb_save_path
                     thumbnail_url = f"/media/thumbnails/pdf/{thumb_filename}"
             except Exception:
                 pass
-            
+
             file_url = f"/media/uploads/pdf/{filename}"
-            
+
             # 创建媒体记录
             media = Media.objects.create(
                 user=request.user,
@@ -247,9 +244,9 @@ class MediaUploadView(APIView):
                 thumbnail_path=thumbnail_path,
                 thumbnail_url=thumbnail_url
             )
-            
+
             serializer = MediaSerializer(media, context={'request': request})
-            
+
             return Response(
                 api_response(
                     success=True,
@@ -281,7 +278,7 @@ class MediaUploadView(APIView):
             file_type=self.get_file_type(file_obj.content_type),
             mime_type=file_obj.content_type
         )
-        
+
         # 如果是图片，尝试提取 EXIF 数据
         if self.get_file_type(file_obj.content_type) == 'image':
             try:
@@ -299,7 +296,7 @@ class MediaUploadView(APIView):
                             camera_info.append(exif_data['settings']['shutter_speed'])
                         if exif_data.get('settings', {}).get('iso'):
                             camera_info.append(f"ISO {exif_data['settings']['iso']}")
-                        
+
                         if camera_info:
                             media.description = ' | '.join(camera_info)
                             media.save(update_fields=['description'])

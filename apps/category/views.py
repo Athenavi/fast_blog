@@ -1,8 +1,6 @@
 """
 分类视图
 """
-from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import filters
 from rest_framework import viewsets, permissions, status
 from rest_framework.response import Response
 
@@ -15,7 +13,6 @@ class CategoryViewSet(viewsets.ModelViewSet):
     """分类视图集"""
     queryset = Category.objects.all()
     serializer_class = CategorySerializer
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['is_visible', 'parent_id']
     search_fields = ['name', 'slug', 'description']
     ordering_fields = ['sort_order', 'name', 'created_at']

@@ -4,8 +4,7 @@
 import logging
 
 from django.shortcuts import get_object_or_404
-from django_filters.rest_framework import DjangoFilterBackend
-from rest_framework import generics, permissions, filters, status, viewsets
+from rest_framework import generics, permissions, status, viewsets
 from rest_framework.response import Response
 
 from apps.blog.models import Article
@@ -21,7 +20,6 @@ logger = logging.getLogger(__name__)
 class ArticleViewSet(viewsets.ModelViewSet):
     """文章视图集"""
     queryset = Article.objects.select_related('user', 'category').all()
-    filter_backends = [DjangoFilterBackend, filters.SearchFilter, filters.OrderingFilter]
     filterset_fields = ['status', 'category_id', 'is_featured', 'is_vip_only']
     search_fields = ['title', 'excerpt', 'tags']
     ordering_fields = ['created_at', 'updated_at', 'views', 'likes']

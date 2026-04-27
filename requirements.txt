@@ -38,6 +38,7 @@ requests
 psutil
 
 django-rest-framework
+django-cors-headers
 # Django SimpleUI 主题
 django-simpleui
 
