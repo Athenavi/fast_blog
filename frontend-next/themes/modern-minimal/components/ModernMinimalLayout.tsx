@@ -16,23 +16,20 @@ const ModernMinimalLayout: React.FC<ModernMinimalLayoutProps> = ({children}) => 
     const {config} = useTheme();
     const [isMounted, setIsMounted] = useState(false);
 
-    // 应用暗色模式 - 移到顶部，确保在所有条件下都调用
-    const [darkMode, setDarkMode] = useState(false);
-
-    // 初始化主题样式
-    useEffect(() => {
-        setIsMounted(true);
-    }, []);
-
-    if (!isMounted) {
-        return <div className="min-h-screen">{children}</div>;
-    }
-
-    // 获取主题配置
+    // 获取主题配置 - 移到顶部，确保始终调用
     const themeConfig = config?.config || {};
     const colors = (themeConfig as any).colors || {};
     const features = (themeConfig as any).features || {};
 
+    // 应用暗色模式 - 移到顶部，确保在所有条件下都调用
+    const [darkMode, setDarkMode] = useState(false);
+
+    // 初始化主题样式 - 第一个 useEffect
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
+
+    // 暗色模式逻辑 - 第二个 useEffect，始终调用，不放在条件返回之后
     useEffect(() => {
         const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
         const autoDarkMode = features.autoDarkMode ?? true;
@@ -47,6 +44,10 @@ const ModernMinimalLayout: React.FC<ModernMinimalLayoutProps> = ({children}) => 
             return () => mediaQuery.removeEventListener('change', handleChange);
         }
     }, [features]);
+
+    if (!isMounted) {
+        return <div className="min-h-screen">{children}</div>;
+    }
 
     return (
         <div
