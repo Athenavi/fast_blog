@@ -15,19 +15,30 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 # 全局 FastAPI 应用实例（供外部工具使用）
 try:
+    # 确保 Django 设置在导入任何应用代码之前就已经设置
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'django_blog.settings')
     import django
+
     if not hasattr(django, '_setup_complete') or not django.apps.apps.ready:
         try:
             django.setup()
             django._setup_complete = True
+            print("[Main] Django setup completed successfully")
         except RuntimeError as e:
             if "populate() isn't reentrant" not in str(e):
                 raise
+            else:
+                print("[Main] Django already initialized")
+    
     from src.app import create_app
     from src.setting import ProductionConfig
+
     app = create_app(ProductionConfig())
-except Exception:
+    print("[Main] FastAPI app created successfully")
+except Exception as e:
+    import traceback
+    print(f"[Main] Error creating app: {e}")
+    traceback.print_exc()
     app = None
 
 from src.logger_config import init_optimized_logger
@@ -48,6 +59,7 @@ def setup_signal_handlers():
     def handler(signum, frame):
         logging.info(f"收到信号 {signum}，正在退出...")
         sys.exit(0)
+
     signal.signal(signal.SIGINT, handler)
     signal.signal(signal.SIGTERM, handler)
 
@@ -90,13 +102,22 @@ def main():
     if args.backend == 'fastapi':
         try:
             import uvicorn
+            # 使用应用实例而不是工厂函数
+            from src.app import app as fastapi_app
+            if fastapi_app is None:
+                logging.error("FastAPI 应用实例创建失败")
+                sys.exit(1)
+            
+            logging.info(f"FastAPI 应用已加载，准备启动服务器...")
+            logging.info(f"服务器地址: http://{args.host}:{args.port}")
+            
             uvicorn.run(
-                "src.app:create_app",
+                fastapi_app,
                 host=args.host,
                 port=args.port,
-                log_level="info" if args.env == 'dev' else "error",
-                reload=args.env == 'dev',
-                workers=1 if args.env == 'dev' else 4,
+                log_level="info",  # 始终使用 info 级别以便看到启动信息
+                reload=False,  # 禁用 reload 以避免多进程问题
+                workers=1,  # 使用单 worker 避免多进程问题
             )
         except KeyboardInterrupt:
             logging.info("服务器已关闭")

@@ -6,8 +6,8 @@ from typing import Dict, Any, Optional
 
 from fastapi import APIRouter, Depends, UploadFile, File, Body, HTTPException
 from fastapi.responses import Response
-from shared.services.image_tool import image_processor
 
+from shared.services.image_tool import image_processor
 from src.auth import jwt_required_dependency as jwt_required
 
 router = APIRouter(prefix="/edit", tags=["media-edit-tools"])

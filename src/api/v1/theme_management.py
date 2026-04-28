@@ -661,7 +661,7 @@ async def get_active_theme_config():
     公开接口,无需认证
     """
     try:
-        config = theme_loader.get_active_theme_config()
+        config = await theme_loader.get_active_theme_config()
 
         if not config:
             return ApiResponse(

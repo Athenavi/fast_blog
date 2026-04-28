@@ -28,9 +28,6 @@ if not hasattr(django, '_setup_complete') or not django.apps.apps.ready:
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import RedirectResponse, HTMLResponse
 from starlette.staticfiles import StaticFiles
-
-from src.auth.fastapi_users_auth import fastapi_users, auth_backend, get_jwt_strategy
-# 使用生成的模型而不是不存在的 src.models
 from shared.models.schemas.user import UserRead  # FastAPI-Users 需要的 Pydantic 模型
 
 
@@ -463,28 +460,6 @@ curl -X POST "http://localhost:9421/api/v1/media/upload" \
         print("[Security] Security middleware stack initialized")
     except ImportError as e:
         print(f"Warning: Security middleware could not be loaded: {e}")
-
-    # JWT认证配置 - 已在 src.auth.fastapi_users_auth 中定义
-    # 导出get_jwt_strategy函数，以便在其他地方使用
-    globals()['get_jwt_strategy'] = get_jwt_strategy
-
-    app.include_router(
-        fastapi_users.get_auth_router(auth_backend),
-        prefix="/auth/jwt",
-        tags=["auth-jwt"]
-    )
-
-    app.include_router(
-        fastapi_users.get_reset_password_router(),
-        prefix="/auth",
-        tags=["auth-password-reset"]
-    )
-
-    app.include_router(
-        fastapi_users.get_verify_router(UserRead),  # 使用 Pydantic 模型 UserRead
-        prefix="/auth",
-        tags=["auth-verify"]
-    )
 
     @app.get("/health",
              summary="健康检查",

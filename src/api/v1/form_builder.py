@@ -15,7 +15,7 @@ from shared.models.form_field import FormField
 from shared.models.form_submission import FormSubmission
 from shared.services.form_builder import form_builder
 from src.api.v1.responses import ApiResponse
-from src.auth.auth_deps import admin_required_api
+from src.auth.auth_deps import admin_required as admin_required_api
 from src.extensions import get_async_db_session as get_async_db
 
 router = APIRouter(tags=["form-builder"])

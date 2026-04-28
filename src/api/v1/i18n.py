@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, Query, Body, Request
 
 from shared.services.translation_manager import i18n_service
 from src.api.v1.responses import ApiResponse
-from src.auth.auth_deps import admin_required_api
+from src.auth.auth_deps import admin_required as admin_required_api
 
 router = APIRouter(tags=["i18n"])
 

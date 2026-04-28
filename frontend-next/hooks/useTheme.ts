@@ -94,10 +94,17 @@ export function useTheme() {
             console.log('[useTheme] API响应:', result);
 
             if (result.success && result.data.config) {
+                // 将相对路径的 stylesheet_url 转换为完整的 API URL
+                let stylesheetUrl = result.data.stylesheet_url || '';
+                if (stylesheetUrl && stylesheetUrl.startsWith('/')) {
+                    // 如果是相对路径，添加 API_BASE_URL 前缀
+                    stylesheetUrl = `${apiConfig.API_BASE_URL}${stylesheetUrl}`;
+                }
+
                 setThemeData({
                     config: result.data.config,
                     cssVariables: result.data.css_variables || '',
-                    stylesheetUrl: result.data.stylesheet_url || '',
+                    stylesheetUrl: stylesheetUrl,
                     isLoading: false,
                     error: null,
                 });

@@ -22,8 +22,8 @@ from shared.models.vip_subscription import VIPSubscription
 # 注意：避免在此处直接导入 article_service，防止循环依赖
 # article_service 的导入已移至使用位置
 from src.api.v1.responses import ApiResponse
-from src.auth.auth_deps import _get_current_active_user
-from src.auth.auth_deps import admin_required_api, jwt_required_dependency as jwt_required
+from src.auth.auth_deps import admin_required as admin_required_api, jwt_required_dependency as jwt_required, \
+    get_current_active_user
 from src.extensions import get_async_db_session as get_async_db
 
 router = APIRouter()
@@ -554,7 +554,7 @@ async def get_media_management_files(
 @router.get("/user-management/users")
 async def get_users(
         request: Request,
-        current_user: UserModel = Depends(_get_current_active_user),
+        current_user: UserModel = Depends(get_current_active_user),
         page: int = Query(1, ge=1),
         per_page: int = Query(10, ge=1, le=100),
         search: Optional[str] = Query(None),

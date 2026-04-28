@@ -10,9 +10,9 @@ from fastapi import APIRouter, Body, Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from auth import get_current_super_user
 from shared.models.block_pattern import BlockPattern
 from shared.services.editor.block_editor import block_registry
-from src.auth.dependencies import get_current_super_user
 from src.utils.database.main import get_async_session
 
 router = APIRouter(prefix="/blocks", tags=["block-editor"])

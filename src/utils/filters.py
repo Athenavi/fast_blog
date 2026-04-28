@@ -4,21 +4,20 @@ from functools import lru_cache
 from typing import Any
 
 from markdown_it import MarkdownIt
-from markdown_it.renderer import RendererHTML
+from mdit_py_emoji import emoji_plugin
 from mdit_py_plugins import (
     footnote,
     tasklists,
     front_matter,
-    admon,           # 注意：提示框插件名是 admon
+    admon,  # 注意：提示框插件名是 admon
 )
 # 目录和表情来自独立的第三方包，需手动安装
 # pip install mdit-py-toc mdit-py-emoji
 from mdit_py_toc import toc_plugin
-from mdit_py_emoji import emoji_plugin
-
 from pygments import highlight
-from pygments.lexers import get_lexer_by_name
 from pygments.formatters import HtmlFormatter
+from pygments.lexers import get_lexer_by_name
+
 
 # ────────────── 工具函数（保留原样） ──────────────
 

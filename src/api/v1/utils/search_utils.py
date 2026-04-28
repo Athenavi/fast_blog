@@ -66,7 +66,6 @@ async def search_handler(request: Request, user_id, domain, global_encoding, max
                     match_data = cache_file.read()
             else:
                 # 查询公开的文章（只索引已发布、非隐藏的文章）
-                from sqlalchemy.orm import joinedload
                 result = await db_session.execute(
                     select(Article, ArticleContent)
                     .join(ArticleContent, Article.id == ArticleContent.aid)

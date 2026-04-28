@@ -120,20 +120,36 @@ class ThemeLoader:
 
             if start != -1 and end != -1:
                 json_str = content[start:end + 1]
-                # 移除单行注释
-                json_str = re.sub(r'//.*$', '', json_str, flags=re.MULTILINE)
-                # 移除多行注释
+                
+                # 1. 移除单行注释 (// ...)
+                json_str = re.sub(r'//.*?$', '', json_str, flags=re.MULTILINE)
+                
+                # 2. 移除多行注释 (/* ... */)
                 json_str = re.sub(r'/\*.*?\*/', '', json_str, flags=re.DOTALL)
-                # 替换单引号为双引号
-                json_str = json_str.replace("'", '"')
-                # 移除尾随逗号 (在 } 或 ] 之前的逗号)
+                
+                # 3. 处理单引号：将键和字符串值的单引号替换为双引号
+                json_str = re.sub(r"'([^']*)'", r'"\1"', json_str)
+                
+                # 4. 给没有引号的键添加双引号（匹配 pattern: key: value）
+                #    这会匹配像 colors: { 这样的模式并转换为 "colors": {
+                json_str = re.sub(r'(\w+)\s*:', r'"\1":', json_str)
+                
+                # 5. 移除尾随逗号 (在 } 或 ] 之前的逗号)
                 json_str = re.sub(r',\s*([}\]])', r'\1', json_str)
+                
+                # 调试：打印处理后的 JSON 字符串
+                import sys
+                print(f"[DEBUG] 处理后的 JSON 前300字符:\n{json_str[:300]}", file=sys.stderr)
+                
                 return json.loads(json_str)
 
             return {}
 
         except Exception as e:
+            import traceback
             print(f"解析JS配置失败: {e}")
+            print(f"文件路径: {config_file}")
+            print(f"错误详情: {traceback.format_exc()}")
             return {}
 
     def generate_css_variables(self, theme_slug: str) -> str:
@@ -195,18 +211,41 @@ class ThemeLoader:
 
         return f"/themes/{theme_slug}/{STYLES_FILE}" if styles_file.exists() else ""
 
-    def get_active_theme_config(self) -> Optional[Dict[str, Any]]:
+    async def get_active_theme_config(self) -> Optional[Dict[str, Any]]:
         """
         获取当前激活主题的完整配置
         
         Returns:
             主题配置
         """
-        active_slug = theme_manager.get_active_theme()
+        active_slug = await self._get_active_theme_async()
         if not active_slug:
             return None
 
         return self.load_theme_config(active_slug)
+    
+    async def _get_active_theme_async(self) -> str:
+        """
+        异步获取当前激活的主题slug
+        
+        Returns:
+            激活的主题slug，默认返回'default'
+        """
+        from shared.models.theme import Theme
+        from sqlalchemy import select
+        from src.utils.database.unified_manager import db_manager
+        
+        try:
+            async with db_manager.get_session() as db:
+                query = select(Theme).where(Theme.is_active == True)
+                result = await db.execute(query)
+                theme = result.scalar_one_or_none()
+                return theme.slug if theme else 'default'
+        except Exception as e:
+            print(f"[ThemeLoader] 获取激活主题失败: {e}")
+            import traceback
+            traceback.print_exc()
+            return 'default'
 
     def clear_cache(self, theme_slug: Optional[str] = None):
         """

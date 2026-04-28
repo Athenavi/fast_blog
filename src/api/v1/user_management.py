@@ -13,13 +13,12 @@ from jwt.exceptions import InvalidTokenError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.api.v1.user_settings import change_profiles_back
 # SQLAlchemy 模型与服务（保持不变）
 from shared.models.user import User as UserModel
 from shared.services import create_user_account
 from src.api.v1.responses import ApiResponse
+from src.api.v1.user_settings import change_profiles_back
 from src.api.v1.user_utils.password_utils import update_password, validate_password_async
-from src.auth.auth_deps import authenticate_user_with_session
 from src.extensions import get_async_db_session as get_async_db
 from src.setting import app_config, settings
 from src.utils.security.ip_utils import get_client_ip
@@ -32,6 +31,42 @@ router = APIRouter(prefix="/management", tags=["user-management"])
 # JWT 工具函数
 # ---------------------------------------------------------------------------
 
+async def authenticate_user_with_session(
+    username_or_email: str,
+    password: str,
+    db: AsyncSession,
+) -> Optional[UserModel]:
+    """
+    验证用户凭据（用户名/邮箱 + 密码）
+    
+    Args:
+        username_or_email: 用户名或邮箱
+        password: 明文密码
+        db: 数据库会话
+        
+    Returns:
+        验证成功返回用户对象，否则返回 None
+    """
+    from django.contrib.auth.hashers import check_password as django_check_password
+    
+    # 尝试通过用户名或邮箱查找用户
+    result = await db.execute(
+        select(UserModel).where(
+            (UserModel.username == username_or_email) | (UserModel.email == username_or_email)
+        )
+    )
+    user = result.scalar_one_or_none()
+    
+    if not user or not user.password:
+        return None
+    
+    # 使用 Django 的密码验证函数
+    if django_check_password(password, user.password):
+        return user
+    
+    return None
+
+
 def create_jwt_token(
         subject: str,
         token_type: str = "access",
@@ -41,9 +76,9 @@ def create_jwt_token(
     now = datetime.now(timezone.utc)
     if expires_delta is None:
         if token_type == "access":
-            expires_delta = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+            expires_delta = timedelta(seconds=settings.JWT_EXPIRATION_DELTA)
         else:
-            expires_delta = timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+            expires_delta = timedelta(seconds=settings.REFRESH_TOKEN_EXPIRATION_DELTA)
     expire = now + expires_delta
 
     payload = {
@@ -640,3 +675,20 @@ async def assign_roles_to_user(
         db.add(UserRole(user_id=user_id, role_id=rid, assigned_by=current_user.id, created_at=datetime.now()))
     await db.commit()
     return ApiResponse(success=True, message="角色分配成功")
+
+
+# ---------------------------------------------------------------------------
+# 兼容路由（不带 /management 前缀）
+# ---------------------------------------------------------------------------
+
+# 创建一个不带 prefix 的路由器用于兼容旧路径
+compat_router = APIRouter(tags=["user-management-compat"])
+
+
+@compat_router.post("/auth/token/refresh", summary="刷新访问令牌（兼容路径）")
+async def refresh_token_compat_api(request: Request):
+    """
+    兼容路径：/api/v1/auth/token/refresh
+    实际路径：/api/v1/management/auth/token/refresh
+    """
+    return await refresh_token_api(request)

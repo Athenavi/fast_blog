@@ -55,31 +55,32 @@ class UnifiedDatabaseManager:
         获取连接池配置
         
         Windows + asyncpg 特殊处理：
-        - 使用较小的 SQLAlchemy 连接池
-        - 让 asyncpg 自己管理底层连接
-        - 避免双重连接池导致的并发问题
+        - 使用适中的连接池大小支持并发
+        - 设置合理的超时时间避免长时间阻塞
+        - 禁用 pre-ping 避免 Proactor 事件循环问题
         """
         from src.setting import settings
 
         if sys.platform == 'win32':
-            # Windows: 使用小连接池 + asyncpg 内置池
-            # 关键：pool_size=1, max_overflow=0 确保同一时间只有一个连接在使用
+            # Windows: 优化配置以平衡性能和稳定性
+            # 参考最佳实践：pool_size=5-10, timeout=5-10s
             return {
-                'pool_size': 1,  # 限制为 1，避免并发问题
-                'max_overflow': 0,  # 不允许溢出
-                'pool_timeout': 30,  # 缩短超时
-                'pool_recycle': 180,  # 缩短回收时间
+                'pool_size': 10,  # 增加到 10，支持更高并发
+                'max_overflow': 20,  # 允许最多 20 个溢出连接
+                'pool_timeout': 10,  # 降低到 10 秒，避免长时间阻塞
+                'pool_recycle': 180,  # 3 分钟回收，防止连接过期
                 'pool_pre_ping': False,  # Windows 上禁用 pre-ping
-                'pool_use_lifo': True,  # 使用 LIFO 策略，提高连接复用率
+                'pool_use_lifo': False,  # 使用 FIFO，避免连接复用问题
             }
         else:
-            # Linux/Mac: 正常配置
+            # Linux/Mac: 生产环境优化配置
+            # 参考最佳实践：pool_timeout=10-30s, pool_recycle=1800-3600s
             return {
-                'pool_size': getattr(settings, 'database_pool_size', 50),
-                'max_overflow': getattr(settings, 'database_pool_overflow', 100),
-                'pool_timeout': getattr(settings, 'database_pool_timeout', 60),
-                'pool_recycle': 300,
-                'pool_pre_ping': True,
+                'pool_size': getattr(settings, 'database_pool_size', 20),  # 降低到 20，避免资源浪费
+                'max_overflow': getattr(settings, 'database_pool_overflow', 40),  # 降低到 40
+                'pool_timeout': getattr(settings, 'database_pool_timeout', 30),  # 增加到 30 秒，更宽松
+                'pool_recycle': 1800,  # 增加到 30 分钟，防止频繁重建连接
+                'pool_pre_ping': True,  # Linux 上启用健康检查
             }
 
     def _build_async_url(self, original_url: str) -> str:
@@ -153,12 +154,15 @@ class UnifiedDatabaseManager:
                 engine_kwargs['connect_args'] = {
                     'statement_cache_size': 0,  # 禁用语句缓存，避免 prepared statement 问题
                     'command_timeout': 60,  # 命令超时
+                    'server_settings': {
+                        'jit': 'off',  # 禁用 JIT 编译，提高性能
+                    },
                 }
                 logger.info(
                     f"Windows + asyncpg detected. Using optimized settings: "
                     f"pool_size={pool_config['pool_size']}, "
                     f"max_overflow={pool_config['max_overflow']}, "
-                    f"statement_cache_size=0"
+                    f"statement_cache_size=0, jit=off"
                 )
 
             self._async_engine = create_async_engine(async_url, **engine_kwargs)
@@ -225,16 +229,18 @@ class UnifiedDatabaseManager:
                     logger.warning(
                         f"⚠️ Concurrent operation detected on session {id(session)}. "
                         f"This is a known Windows + asyncpg compatibility issue. "
-                        f"The connection pool has been configured to minimize this. "
-                        f"Attempting rollback..."
+                        f"Attempting rollback and retry..."
                     )
                     # 在 Windows 上，如果遇到并发错误，等待一小段时间再重试
                     if sys.platform == 'win32':
                         import asyncio
-                        await asyncio.sleep(0.1)  # 等待 100ms
+                        await asyncio.sleep(0.2)  # 等待 200ms
                         try:
                             await session.rollback()
                             logger.debug(f"Session rolled back after retry: {id(session)}")
+                            # 重新提交
+                            await session.commit()
+                            logger.debug(f"Session re-committed successfully: {id(session)}")
                         except Exception:
                             pass
                 else:
@@ -255,7 +261,7 @@ class UnifiedDatabaseManager:
                 # 在 Windows 上，如果遇到并发错误，等待一小段时间
                 if sys.platform == 'win32':
                     import asyncio
-                    await asyncio.sleep(0.1)
+                    await asyncio.sleep(0.2)
             else:
                 logger.debug(f"Exception occurred, rolling back session: {id(session)}")
 

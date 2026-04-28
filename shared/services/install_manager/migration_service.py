@@ -95,7 +95,36 @@ class DatabaseMigrationService:
                     timeout=60
                 )
 
-                if result.returncode != 0:
+                # Alembic autogenerate 可能返回非零退出码但仍然成功生成迁移
+                # 检查是否实际生成了迁移文件
+                migration_files_after = list(versions_dir.glob("*.py")) if versions_dir.exists() else []
+                migration_files_after = [f for f in migration_files_after if f.name != "__init__.py"]
+                
+                # 如果有新的迁移文件生成，认为成功
+                if len(migration_files_after) > len(migration_files):
+                    yield {
+                        'type': 'info',
+                        'message': '初始迁移脚本生成中...',
+                        'timestamp': time.time()
+                    }
+                    
+                    # 输出日志
+                    if result.stdout:
+                        for line in result.stdout.split('\n'):
+                            if line.strip():
+                                yield {
+                                    'type': 'info',
+                                    'message': line,
+                                    'timestamp': time.time()
+                                }
+                    
+                    yield {
+                        'type': 'success',
+                        'message': '✓ 初始迁移脚本生成成功',
+                        'timestamp': time.time()
+                    }
+                else:
+                    # 没有生成新文件，才是真正的失败
                     error_msg = f'生成迁移脚本失败:\n{result.stderr}'
                     yield {
                         'type': 'error',
@@ -103,12 +132,6 @@ class DatabaseMigrationService:
                         'timestamp': time.time()
                     }
                     return
-
-                yield {
-                    'type': 'success',
-                    'message': '✓ 初始迁移脚本生成成功',
-                    'timestamp': time.time()
-                }
 
                 # 重新检查迁移文件
                 migration_files = list(versions_dir.glob("*.py")) if versions_dir.exists() else []

@@ -8,7 +8,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends
 
 from src.api.v1.responses import ApiResponse
-from src.auth.auth_deps import admin_required_api as admin_required
+from src.auth.auth_deps import  admin_required as admin_required_api as admin_required
 from .security_service import (
     waf,
     login_protection,

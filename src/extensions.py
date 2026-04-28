@@ -7,10 +7,7 @@ from typing import Generator, AsyncGenerator
 import redis
 from slowapi import _rate_limit_exceeded_handler, Limiter
 from slowapi.util import get_remote_address
-from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import QueuePool
 
 # 创建SQLAlchemy基类
 Base = declarative_base()

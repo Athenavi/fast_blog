@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.models.user import User
 from shared.services.migration_manager import migration_manager
 from src.api.v1.responses import ApiResponse
-from src.auth.auth_deps import admin_required_api
+from src.auth.auth_deps import admin_required as admin_required_api
 from src.extensions import get_async_db_session as get_async_db
 
 router = APIRouter()

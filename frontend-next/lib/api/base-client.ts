@@ -58,6 +58,9 @@ const getDefaultHeaders = (isFormData: boolean = false): Record<string, string> 
 
     if (token) {
         headers.Authorization = `Bearer ${token}`;
+        console.log('[API Client] Using token from cookie:', token.substring(0, 20) + '...');
+    } else {
+        console.log('[API Client] No token found in cookie');
     }
 
     return headers;

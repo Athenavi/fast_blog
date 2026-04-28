@@ -2,19 +2,19 @@
 批量 SEO 管理 API
 提供批量更新文章SEO元数据的功能
 """
+from datetime import datetime
 from typing import List, Optional
-from pydantic import BaseModel
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy import select, update
+from pydantic import BaseModel
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from apps.user.models import User
 from shared.models.article import Article
 from shared.models.article_seo import ArticleSEO
-from apps.user.models import User
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
-from datetime import datetime
 
 router = APIRouter(prefix="/batch", tags=["batch-seo"])
 

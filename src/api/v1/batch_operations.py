@@ -7,14 +7,14 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Body, Depends
 from pydantic import BaseModel
+from sqlalchemy import delete, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, delete, update
 
-from src.utils.database.unified_manager import get_db_session
 from shared.models.article import Article
 from shared.models.media import Media
 from shared.models.user import User
 from src.api.v1.responses import ApiResponse
+from src.utils.database.unified_manager import get_db_session
 
 router = APIRouter(tags=["batch-operations"])
 

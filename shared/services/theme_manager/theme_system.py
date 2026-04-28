@@ -93,10 +93,8 @@ class ThemeManager:
             # 尝试获取当前事件循环
             loop = asyncio.get_running_loop()
             # 如果已经有运行中的循环，创建新任务
-            import concurrent.futures
-            with concurrent.futures.ThreadPoolExecutor() as executor:
-                future = executor.submit(asyncio.run, _get_active())
-                return future.result(timeout=5)
+            future = asyncio.run_coroutine_threadsafe(_get_active(), loop)
+            return future.result(timeout=5)
         except RuntimeError:
             # 没有运行中的循环，直接运行
             return asyncio.run(_get_active())

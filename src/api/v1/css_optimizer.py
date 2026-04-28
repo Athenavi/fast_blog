@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, Request, Body
 from shared.models.user import User
 from shared.services.css_optimizer import css_optimizer_service
 from src.api.v1.responses import ApiResponse
-from src.auth.auth_deps import admin_required_api
+from src.auth.auth_deps import admin_required as admin_required_api
 
 router = APIRouter()
 

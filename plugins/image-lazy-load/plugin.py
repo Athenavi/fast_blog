@@ -3,8 +3,8 @@
 优化图片加载性能，实现懒加载和占位符显示
 """
 
-import re
-from typing import Dict, List, Any, Optional
+from typing import Dict, Any
+
 from bs4 import BeautifulSoup
 
 from shared.services.plugin_manager import BasePlugin, plugin_hooks
@@ -317,8 +317,7 @@ class ImageLazyLoadPlugin(BasePlugin):
             data URI
         """
         # 创建一个1x1的彩色PNG
-        from base64 import b64encode
-        
+
         # 简化的1x1 PNG生成
         # 实际项目中可以使用PIL库生成真正的彩色图片
         return f'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"%3E%3Crect fill="{color}" width="1" height="1"/%3E%3C/svg%3E'

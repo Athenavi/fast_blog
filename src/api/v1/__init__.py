@@ -7,9 +7,9 @@ from fastapi.responses import FileResponse, JSONResponse
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.auth import get_current_user
 from shared.models.user import User
 from src.api.v1.misc import logger
-from src.auth.auth_deps import _get_current_active_user
 from src.extensions import cache, get_async_db_session as get_async_db
 from src.setting import app_config
 from src.utils.image.processing import generate_thumbnail, get_file_mime_type
@@ -129,6 +129,13 @@ def _include_routers():
         elif required:
             print(f"Warning: {name} module could not be imported, skipping router inclusion")
 
+    # 注册 user_management 的兼容路由器（不带 /management 前缀）
+    try:
+        from src.api.v1.user_management import compat_router
+        api_v1_router.include_router(compat_router, prefix="")
+    except ImportError as e:
+        print(f"Warning: user_management compat_router could not be imported: {e}")
+
     # 特殊处理的 home 模块（尝试新版，失败回退旧版）
     try:
         import src.api.v1.home as home_module
@@ -200,7 +207,7 @@ async def api_check_qr_status(request: Request):
 async def api_phone_scan(request: Request):
     from src.api.v1.user_utils.qrlogin_utils import phone_scan_back
     try:
-        current_user = await _get_current_active_user(request)
+        current_user = await get_current_user(request)
     except HTTPException as e:
         if e.status_code == 401:
             return {

@@ -5,6 +5,7 @@ OAuth 第三方登录 API 端点
 from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.auth import create_access_token
 from shared.services.oauth_service import oauth_service
 from src.api.v1.responses import ApiResponse
 from src.auth import jwt_required_dependency as jwt_required
@@ -213,7 +214,6 @@ async def oauth_callback(
         await db.commit()
         
         # 4. 生成JWT令牌
-        from src.auth.jwt_handler import create_access_token
         jwt_token = create_access_token(data={"sub": str(user.id)})
         
         # 临时返回用户信息
