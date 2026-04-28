@@ -12,7 +12,7 @@ slowapi
 bcrypt
 python-multipart
 python-jose[cryptography]
-fastapi-jwt
+pyJWT
 cachetools
 httpx
 # PostgreSQL 异步驱动
@@ -43,5 +43,7 @@ django-simpleui
 
 # API测试依赖
 aiohttp
+aioboto3
+
 mdit-py-toc
 mdit-py-emoji

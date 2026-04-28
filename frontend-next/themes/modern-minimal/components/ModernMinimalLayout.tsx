@@ -16,6 +16,9 @@ const ModernMinimalLayout: React.FC<ModernMinimalLayoutProps> = ({children}) => 
     const {config} = useTheme();
     const [isMounted, setIsMounted] = useState(false);
 
+    // 应用暗色模式 - 移到顶部，确保在所有条件下都调用
+    const [darkMode, setDarkMode] = useState(false);
+
     // 初始化主题样式
     useEffect(() => {
         setIsMounted(true);
@@ -29,9 +32,6 @@ const ModernMinimalLayout: React.FC<ModernMinimalLayoutProps> = ({children}) => 
     const themeConfig = config?.config || {};
     const colors = (themeConfig as any).colors || {};
     const features = (themeConfig as any).features || {};
-
-    // 应用暗色模式
-    const [darkMode, setDarkMode] = useState(false);
 
     useEffect(() => {
         const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;

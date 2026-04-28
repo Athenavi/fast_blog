@@ -1,35 +1,174 @@
 """
-用户管理 API（完全基于 fastapi-jwt-auth + SQLAlchemy，无 Django 依赖）
+用户管理 API（基于 PyJWT + SQLAlchemy，无 fastapi-jwt-auth 依赖）
 """
 import json
 import re
-from datetime import datetime, timezone
+import uuid
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 
-import jwt  # fastapi-jwt-auth 内部使用的 PyJWT
-from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request
-from fastapi_jwt_auth import AuthJWT
+import jwt
+from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request, status
+from jwt.exceptions import InvalidTokenError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-# SQLAlchemy 模型与服务
+from src.api.v1.user_settings import change_profiles_back
+# SQLAlchemy 模型与服务（保持不变）
 from shared.models.user import User as UserModel
 from shared.services import create_user_account
 from src.api.v1.responses import ApiResponse
-from src.api.v1.user_settings import change_profiles_back
 from src.api.v1.user_utils.password_utils import update_password, validate_password_async
-from src.auth.auth_deps import (
-    authenticate_user_with_session,
-    get_current_user,
-    jwt_optional,
-    jwt_required,
-)
+from src.auth.auth_deps import authenticate_user_with_session
 from src.extensions import get_async_db_session as get_async_db
-from src.setting import app_config
+from src.setting import app_config, settings
 from src.utils.security.ip_utils import get_client_ip
 from src.utils.token_blacklist import token_blacklist
 
 router = APIRouter(prefix="/management", tags=["user-management"])
+
+
+# ---------------------------------------------------------------------------
+# JWT 工具函数
+# ---------------------------------------------------------------------------
+
+def create_jwt_token(
+        subject: str,
+        token_type: str = "access",
+        expires_delta: Optional[timedelta] = None
+) -> str:
+    """生成 JWT（包含标准声明 sub, exp, jti, type）"""
+    now = datetime.now(timezone.utc)
+    if expires_delta is None:
+        if token_type == "access":
+            expires_delta = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+        else:
+            expires_delta = timedelta(days=settings.REFRESH_TOKEN_EXPIRE_DAYS)
+    expire = now + expires_delta
+
+    payload = {
+        "sub": subject,
+        "iat": now,
+        "exp": expire,
+        "jti": str(uuid.uuid4()),
+        "type": token_type,
+    }
+    return jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+
+
+def decode_jwt_token(token: str) -> dict:
+    """解码并验证 JWT，返回 payload。若无效抛出 HTTPException"""
+    try:
+        payload = jwt.decode(
+            token,
+            settings.JWT_SECRET_KEY,
+            algorithms=[settings.JWT_ALGORITHM],
+            options={"verify_exp": True},
+        )
+        return payload
+    except InvalidTokenError as e:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=f"Invalid token: {str(e)}",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+
+def extract_token_from_request(request: Request) -> Optional[str]:
+    """从 Authorization header 或 cookie 中提取 JWT"""
+    auth_header = request.headers.get("Authorization")
+    if auth_header and auth_header.startswith("Bearer "):
+        return auth_header[len("Bearer "):]
+    # 兼容 cookie，名称根据你的需求调整
+    return request.cookies.get("access_token") or request.cookies.get("access_token_cookie")
+
+
+# ---------------------------------------------------------------------------
+# FastAPI 依赖：获取当前用户
+# ---------------------------------------------------------------------------
+
+async def get_current_active_user(
+        request: Request,
+        db: AsyncSession = Depends(get_async_db),
+) -> UserModel:
+    """获取当前活跃用户（强制验证）"""
+    token = extract_token_from_request(request)
+    if not token:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Not authenticated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    payload = decode_jwt_token(token)
+
+    # 提取用户 ID
+    user_id_str = payload.get("sub")
+    if not user_id_str:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token: missing subject",
+        )
+    try:
+        user_id = int(user_id_str)
+    except (ValueError, TypeError):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid user ID format",
+        )
+
+    # 黑名单检查
+    jti = payload.get("jti")
+    if jti and token_blacklist.is_available and token_blacklist.is_blacklisted(jti):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Token has been revoked",
+        )
+
+    # 加载用户
+    result = await db.execute(select(UserModel).where(UserModel.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+    if not user.is_active:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Inactive user")
+    return user
+
+
+async def get_current_user_optional(
+        request: Request,
+        db: AsyncSession = Depends(get_async_db),
+) -> Optional[UserModel]:
+    """可选获取当前用户（未登录时返回 None）"""
+    token = extract_token_from_request(request)
+    if not token:
+        return None
+    try:
+        payload = decode_jwt_token(token)
+    except HTTPException:
+        return None
+
+    user_id_str = payload.get("sub")
+    if not user_id_str:
+        return None
+    try:
+        user_id = int(user_id_str)
+    except (ValueError, TypeError):
+        return None
+
+    # 黑名单检查
+    jti = payload.get("jti")
+    if jti and token_blacklist.is_available and token_blacklist.is_blacklisted(jti):
+        return None
+
+    result = await db.execute(select(UserModel).where(UserModel.id == user_id))
+    return result.scalar_one_or_none()
+
+
+# 向后兼容的别名
+get_current_user = get_current_active_user
+jwt_required = get_current_active_user  # 相当于原 jwt_required 依赖
+jwt_optional = get_current_user_optional  # 相当于原 jwt_optional 函数
 
 
 # ---------------------------------------------------------------------------
@@ -47,8 +186,10 @@ def _create_article_response(article):
         "tags": [],
         "views": article.views or 0,
         "likes": article.likes or 0,
-        "created_at": article.created_at.isoformat() if hasattr(article.created_at, "isoformat") else article.created_at,
-        "updated_at": article.updated_at.isoformat() if hasattr(article.updated_at, "isoformat") else article.updated_at,
+        "created_at": article.created_at.isoformat() if hasattr(article.created_at,
+                                                                "isoformat") else article.created_at,
+        "updated_at": article.updated_at.isoformat() if hasattr(article.updated_at,
+                                                                "isoformat") else article.updated_at,
     }
 
 
@@ -84,14 +225,13 @@ def _get_user_stats(articles_count: int = 0):
 
 @router.post("/auth/login", summary="用户登录")
 async def login_api(
-    request: Request,
-    username: str = Form(...),
-    password: str = Form(...),
-    remember_me: bool = Form(False),
-    db: AsyncSession = Depends(get_async_db),
-    Authorize: AuthJWT = Depends(),
+        request: Request,
+        username: str = Form(...),
+        password: str = Form(...),
+        remember_me: bool = Form(False),
+        db: AsyncSession = Depends(get_async_db),
 ):
-    """使用用户名或邮箱登录，返回 access / refresh token（fastapi-jwt-auth）"""
+    """使用用户名或邮箱登录，返回 access / refresh token（PyJWT）"""
     # 1. 验证凭证
     user = await authenticate_user_with_session(username, password, db)
     if not user:
@@ -99,9 +239,9 @@ async def login_api(
     if not user.is_active:
         return ApiResponse(success=False, error="账户已被禁用")
 
-    # 2. 生成 JWT（主题为 user.id 字符串）
-    access_token = Authorize.create_access_token(subject=str(user.id))
-    refresh_token = Authorize.create_refresh_token(subject=str(user.id))
+    # 2. 生成 JWT
+    access_token = create_jwt_token(subject=str(user.id), token_type="access")
+    refresh_token = create_jwt_token(subject=str(user.id), token_type="refresh")
 
     # 3. 更新最后登录时间
     user.last_login = datetime.now(timezone.utc)
@@ -128,12 +268,11 @@ async def login_api(
 
 @router.post("/auth/register", summary="用户注册")
 async def register_api(
-    request: Request,
-    username: str = Form(...),
-    email: str = Form(...),
-    password: str = Form(...),
-    db: AsyncSession = Depends(get_async_db),
-    Authorize: AuthJWT = Depends(),
+        request: Request,
+        username: str = Form(...),
+        email: str = Form(...),
+        password: str = Form(...),
+        db: AsyncSession = Depends(get_async_db),
 ):
     """用户注册并返回 token"""
     # 基础校验
@@ -165,8 +304,8 @@ async def register_api(
         return ApiResponse(success=False, error=str(e))
 
     # 生成 token
-    access_token = Authorize.create_access_token(subject=str(user.id))
-    refresh_token = Authorize.create_refresh_token(subject=str(user.id))
+    access_token = create_jwt_token(subject=str(user.id), token_type="access")
+    refresh_token = create_jwt_token(subject=str(user.id), token_type="refresh")
 
     return ApiResponse(
         success=True,
@@ -188,38 +327,22 @@ async def register_api(
 
 
 @router.post("/auth/logout", summary="用户登出")
-async def logout_api(
-    request: Request,
-    Authorize: AuthJWT = Depends(),
-):
+async def logout_api(request: Request):
     """将当前 access_token 及可选的 refresh_token 加入黑名单"""
     try:
         body = await request.body()
         data = json.loads(body) if body else {}
-        access_token = data.get("access_token")
+        access_token_str = data.get("access_token")
         refresh_token_str = data.get("refresh_token")
 
-        # 将 access token 加入黑名单
-        if access_token:
+        # 辅助函数：将 token 加入黑名单
+        def _blacklist_token(token: str):
             try:
-                Authorize.jwt_required()  # 确保会解析当前 token
-                raw = Authorize.get_raw_jwt()
-                jti = raw.get("jti")
-                exp = raw.get("exp")
-                if jti and exp:
-                    expires_at = datetime.fromtimestamp(exp, tz=timezone.utc)
-                    token_blacklist.add_to_blacklist(jti, expires_at)
-            except Exception:
-                pass
-
-        # 将 refresh token 加入黑名单（如果提供）
-        if refresh_token_str:
-            try:
-                # 使用 fastapi-jwt-auth 的配置密钥解码 refresh token
                 payload = jwt.decode(
-                    refresh_token_str,
-                    Authorize._config.authjwt_secret_key,
-                    algorithms=[Authorize._config.authjwt_algorithm],
+                    token,
+                    settings.JWT_SECRET_KEY,
+                    algorithms=[settings.JWT_ALGORITHM],
+                    options={"verify_exp": False},  # 允许已过期的 token 也能被撤销
                 )
                 jti = payload.get("jti")
                 exp = payload.get("exp")
@@ -229,17 +352,19 @@ async def logout_api(
             except Exception:
                 pass
 
+        if access_token_str:
+            _blacklist_token(access_token_str)
+        if refresh_token_str:
+            _blacklist_token(refresh_token_str)
+
         return ApiResponse(success=True, message="登出成功")
     except Exception as e:
         return ApiResponse(success=False, error="登出失败，请稍后重试")
 
 
 @router.post("/auth/token/refresh", summary="刷新访问令牌")
-async def refresh_token_api(
-    request: Request,
-    Authorize: AuthJWT = Depends(),
-):
-    """使用 refresh_token 获取新的 access_token（和可选的 refresh token 轮换）"""
+async def refresh_token_api(request: Request):
+    """使用 refresh_token 获取新的 access_token（支持可选的 refresh token 轮换）"""
     try:
         body = await request.body()
         data = json.loads(body)
@@ -247,40 +372,41 @@ async def refresh_token_api(
         if not refresh_token_str:
             return ApiResponse(success=False, error="缺少 refresh token")
 
-        # 手动解码 refresh token（使用与 fastapi-jwt-auth 相同的密钥和算法）
-        payload = jwt.decode(
-            refresh_token_str,
-            Authorize._config.authjwt_secret_key,
-            algorithms=[Authorize._config.authjwt_algorithm],
-        )
+        # 解码并验证 refresh token
+        payload = decode_jwt_token(refresh_token_str)
+        if payload.get("type") != "refresh":
+            return ApiResponse(success=False, error="不是有效的 refresh token")
+
         user_id = payload.get("sub")
         if not user_id:
             return ApiResponse(success=False, error="无效的 refresh token")
 
-        # 生成新的 access token（以及按配置决定是否轮换 refresh token）
-        new_access_token = Authorize.create_access_token(subject=user_id)
-        new_refresh_token = None
-        # 如果配置允许 refresh token 轮换，则创建新 refresh token
-        if getattr(Authorize._config, "authjwt_refresh_token_expires", None):
-            # fastapi-jwt-auth 默认没有直接接口判断是否轮换，简单起见总是返回相同的 refresh token
-            # 若需要轮换可启用：
-            # new_refresh_token = Authorize.create_refresh_token(subject=user_id)
-            # 同时将旧 refresh token 加入黑名单
-            pass
+        # 生成新的 access token（以及可选的 refresh token 轮换）
+        new_access_token = create_jwt_token(subject=user_id, token_type="access")
+        new_refresh_token = refresh_token_str  # 默认不轮换
+        # 如果需要轮换，取消注释以下代码块：
+        # new_refresh_token = create_jwt_token(subject=user_id, token_type="refresh")
+        # # 将旧的 refresh token 加入黑名单
+        # old_jti = payload.get("jti")
+        # old_exp = payload.get("exp")
+        # if old_jti and old_exp:
+        #     token_blacklist.add_to_blacklist(
+        #         old_jti,
+        #         datetime.fromtimestamp(old_exp, tz=timezone.utc)
+        #     )
 
         return ApiResponse(
             success=True,
             data={
                 "access_token": new_access_token,
-                "refresh_token": new_refresh_token or refresh_token_str,
+                "refresh_token": new_refresh_token,
             },
             message="Token refreshed successfully",
         )
-    except jwt.ExpiredSignatureError:
-        return ApiResponse(success=False, error="Refresh token 已过期")
-    except jwt.InvalidTokenError:
-        return ApiResponse(success=False, error="Refresh token 无效")
-    except Exception as e:
+    except HTTPException as e:
+        # decode_jwt_token 会抛出 401，但这里我们想返回 ApiResponse 格式
+        return ApiResponse(success=False, error=e.detail)
+    except Exception:
         return ApiResponse(success=False, error="Token 刷新失败，请稍后重试")
 
 
@@ -290,9 +416,9 @@ async def refresh_token_api(
 
 @router.get("/me/profile")
 async def get_my_profile_api(
-    request: Request,
-    current_user: UserModel = Depends(get_current_user),
-    db: AsyncSession = Depends(get_async_db),
+        request: Request,
+        current_user: UserModel = Depends(get_current_active_user),
+        db: AsyncSession = Depends(get_async_db),
 ):
     """获取当前登录用户资料"""
     # 头像处理
@@ -308,7 +434,7 @@ async def get_my_profile_api(
         if not avatar_url:
             avatar_url = f"{app_config.domain}static/avatar/{current_user.profile_picture}.webp"
 
-    # 文章与统计（串行查询，避免同一会话并发）
+    # 文章与统计
     from shared.services.article_manager import get_articles_by_user_id, get_article_count_by_user
 
     articles = await get_articles_by_user_id(db, current_user.id, 10)
@@ -326,11 +452,12 @@ async def get_my_profile_api(
 
 @router.get("/{user_id}/profile")
 async def get_user_profile_api(
-    request: Request,
-    user_id: int,
-    page: int = Query(1, ge=1),
-    per_page: int = Query(10, ge=1, le=100),
-    db: AsyncSession = Depends(get_async_db),
+        request: Request,
+        user_id: int,
+        page: int = Query(1, ge=1),
+        per_page: int = Query(10, ge=1, le=100),
+        db: AsyncSession = Depends(get_async_db),
+        current_user: Optional[UserModel] = Depends(get_current_user_optional),
 ):
     """查看指定用户的公开资料"""
     result = await db.execute(select(UserModel).where(UserModel.id == user_id))
@@ -338,8 +465,6 @@ async def get_user_profile_api(
     if not target:
         return ApiResponse(success=False, error="用户未找到")
 
-    # 可选的当前用户
-    current_user = await jwt_optional(request, db, AuthJWT=Depends)
     current_user_id = current_user.id if current_user else None
 
     if target.profile_private and current_user_id != target.id:
@@ -378,9 +503,9 @@ async def get_user_profile_api(
 
 @router.put("/me/profile")
 async def update_my_profile_api(
-    request: Request,
-    current_user: UserModel = Depends(get_current_user),
-    db: AsyncSession = Depends(get_async_db),
+        request: Request,
+        current_user: UserModel = Depends(get_current_user),
+        db: AsyncSession = Depends(get_async_db),
 ):
     """更新当前用户资料"""
     try:
@@ -409,9 +534,9 @@ async def update_my_profile_api(
 
 @router.post("/me/security/confirm-password")
 async def confirm_password_api(
-    request: Request,
-    current_user: UserModel = Depends(get_current_user),
-    db: AsyncSession = Depends(get_async_db),
+        request: Request,
+        current_user: UserModel = Depends(get_current_user),
+        db: AsyncSession = Depends(get_async_db),
 ):
     """验证当前密码，通过后设置允许修改密码的临时标记"""
     from utils.security.forms import ConfirmPasswordForm
@@ -434,9 +559,9 @@ async def confirm_password_api(
 
 @router.put("/me/security/change-password")
 async def change_password_api(
-    request: Request,
-    current_user: UserModel = Depends(get_current_user),
-    db: AsyncSession = Depends(get_async_db),
+        request: Request,
+        current_user: UserModel = Depends(get_current_user),
+        db: AsyncSession = Depends(get_async_db),
 ):
     """修改密码"""
     from utils.security.forms import ChangePasswordForm
@@ -473,9 +598,9 @@ async def change_password_api(
 
 @router.put("/setting/profiles")
 async def update_setting_profiles(
-    request: Request,
-    current_user: UserModel = Depends(get_current_user),
-    db: AsyncSession = Depends(get_async_db),
+        request: Request,
+        current_user: UserModel = Depends(get_current_user),
+        db: AsyncSession = Depends(get_async_db),
 ):
     """更新用户设置（头像等）"""
     from src.extensions import cache
@@ -491,10 +616,10 @@ async def update_setting_profiles(
 
 @router.put("/users/{user_id}/roles")
 async def assign_roles_to_user(
-    user_id: int,
-    request: Request,
-    current_user: UserModel = Depends(get_current_user),
-    db: AsyncSession = Depends(get_async_db),
+        user_id: int,
+        request: Request,
+        current_user: UserModel = Depends(get_current_user),
+        db: AsyncSession = Depends(get_async_db),
 ):
     """管理员为用户分配角色"""
     if not current_user.is_superuser:

@@ -8,7 +8,7 @@ import html
 import re
 from typing import Optional
 
-from pydantic import BaseModel, validator, Field
+from pydantic import BaseModel, field_validator, Field, ConfigDict
 
 
 class SecurityValidator:
@@ -260,16 +260,13 @@ class SecureBaseModel(BaseModel):
     自动进行常见的安全验证
     """
 
-    class Config:
-        # 禁止额外字段
-        extra = "forbid"
+    model_config = ConfigDict(
+        extra="forbid",
+        str_strip_whitespace=True,
+    )
 
-        # JSON 编码配置
-        json_encoders = {
-            # 自定义编码器
-        }
-
-    @validator('*', pre=True)
+    @field_validator('*', mode='before')
+    @classmethod
     def strip_strings(cls, v):
         """自动去除字符串前后空格"""
         if isinstance(v, str):
@@ -287,21 +284,24 @@ class ArticleCreateRequest(SecureBaseModel):
     category_id: Optional[int] = Field(None, gt=0, description="分类ID")
     tags: Optional[list[str]] = Field(None, description="标签列表")
 
-    @validator('title')
+    @field_validator('title')
+    @classmethod
     def validate_title(cls, v):
         """验证标题"""
         if SecurityValidator.detect_xss(v):
             raise ValueError("标题包含不安全的内容")
         return v.strip()
 
-    @validator('slug')
+    @field_validator('slug')
+    @classmethod
     def validate_slug(cls, v):
         """验证 slug"""
         if v and not SecurityValidator.validate_slug(v):
             raise ValueError("Slug 格式不正确，只允许小写字母、数字和连字符")
         return v
 
-    @validator('content')
+    @field_validator('content')
+    @classmethod
     def validate_content(cls, v):
         """验证内容"""
         if SecurityValidator.detect_xss(v):
@@ -315,7 +315,8 @@ class UserRegisterRequest(SecureBaseModel):
     email: str = Field(..., description="邮箱")
     password: str = Field(..., min_length=8, max_length=128, description="密码")
 
-    @validator('username')
+    @field_validator('username')
+    @classmethod
     def validate_username(cls, v):
         """验证用户名"""
         is_valid, message = SecurityValidator.validate_username(v)
@@ -323,14 +324,16 @@ class UserRegisterRequest(SecureBaseModel):
             raise ValueError(message)
         return v
 
-    @validator('email')
+    @field_validator('email')
+    @classmethod
     def validate_email(cls, v):
         """验证邮箱"""
         if not SecurityValidator.validate_email(v):
             raise ValueError("邮箱格式不正确")
         return v.lower()
 
-    @validator('password')
+    @field_validator('password')
+    @classmethod
     def validate_password(cls, v):
         """验证密码强度"""
         if len(v) < 8:

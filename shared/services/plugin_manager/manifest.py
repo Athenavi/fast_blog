@@ -8,7 +8,7 @@ import json
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 
 from shared.services.plugin_manager.version_utils import check_version_match
 
@@ -33,7 +33,8 @@ class PluginCapability(BaseModel):
     action: str = Field(..., description="操作类型")
     description: Optional[str] = Field(None, description="能力描述")
 
-    @validator('resource')
+    @field_validator('resource')
+    @classmethod
     def validate_resource(cls, v):
         allowed_resources = [
             'articles', 'users', 'categories', 'media',
@@ -44,7 +45,8 @@ class PluginCapability(BaseModel):
             raise ValueError(f"Invalid resource: {v}. Must be one of {allowed_resources} or start with 'custom:'")
         return v
 
-    @validator('action')
+    @field_validator('action')
+    @classmethod
     def validate_action(cls, v):
         allowed_actions = ['read', 'write', 'delete', 'execute', 'send', 'access']
         if v not in allowed_actions:
@@ -166,8 +168,8 @@ class PluginManifest(BaseModel):
     main_file: str = Field("plugin.py", description="主文件路径")
     readme_file: Optional[str] = Field(None, description="README文件路径")
 
-    class Config:
-        json_schema_extra = {
+    model_config = ConfigDict(
+        json_schema_extra={
             "example": {
                 "name": "SEO Optimizer",
                 "slug": "seo-optimizer",
@@ -190,6 +192,7 @@ class PluginManifest(BaseModel):
                 }
             }
         }
+    )
 
 
 class ManifestValidator:
@@ -280,7 +283,7 @@ class ManifestValidator:
 
         output_file = output_path / "metadata.json"
         with open(output_file, 'w', encoding='utf-8') as f:
-            json.dump(template.dict(exclude_none=True), f, indent=2, ensure_ascii=False)
+            json.dump(template.model_dump(exclude_none=True), f, indent=2, ensure_ascii=False)
 
         return output_file
 

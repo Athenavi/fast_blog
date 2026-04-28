@@ -6,7 +6,7 @@ from typing import Optional
 from fastapi import APIRouter, Body, Depends, Query, Request
 from fastapi.responses import Response
 
-from api.v1.misc import domain
+from src.api.v1.misc import domain
 from shared.services.seo_service import seo_service
 from src.api.v1.responses import ApiResponse
 from src.auth import jwt_required_dependency as jwt_required
