@@ -167,15 +167,12 @@ def md2html(markdown_text: str, **options: Any) -> str:
     opts = {**default_opts, **options}
 
     # 构建 MarkdownIt 实例，使用通用的 commonmark 预设并启用表格
-    md = MarkdownIt(
-        options={
-            "html": True,
-            "breaks": opts['enable_nl2br'],
-            "linkify": opts['enable_magiclink'],
-            "typographer": False,
-            "tab_length": opts['tab_length'],
-        }
-    )
+    md = MarkdownIt("commonmark", {
+        "html": True,
+        "breaks": opts['enable_nl2br'],
+        "linkify": opts['enable_magiclink'],
+        "typographer": False,
+    })
 
     # 表格是内置插件，直接启用
     if opts['enable_tables']:
@@ -195,14 +192,8 @@ def md2html(markdown_text: str, **options: Any) -> str:
     if opts['enable_emoji']:
         md.use(emoji_plugin)                     # 来自 mdit_py_emoji
     if opts['enable_toc']:
-        md.use(
-            toc_plugin,                          # 来自 mdit_py_toc
-            title=opts['toc_title'],
-            anchorlink=opts['toc_anchorlink'],
-            permalink=opts['toc_permalink'],
-            toc_depth=opts['toc_depth'],
-            container_class='toc',
-        )
+        # mdit_py_toc 插件不支持配置参数，使用默认配置
+        md.use(toc_plugin)
     # front_matter 始终启用，代价极小
     md.use(front_matter.front_matter_plugin)
 

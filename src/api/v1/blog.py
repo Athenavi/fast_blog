@@ -40,8 +40,11 @@ async def get_article_by_slug_api(
         
         # 根据slug获取文章
         from sqlalchemy import select
+        from sqlalchemy.orm import selectinload
         from shared.models.article_content import ArticleContent
-        article_query = select(Article).where(Article.slug == slug)
+        article_query = select(Article).where(Article.slug == slug).options(
+            selectinload(Article.seo_data)
+        )
         article_result = await db.execute(article_query)
         article = article_result.scalar_one_or_none()
 
@@ -152,7 +155,7 @@ async def get_article_by_slug_api(
         author_result = await db.execute(author_query)
         author = author_result.scalar_one_or_none()
 
-        # 获取SEO数据
+        # 获取SEO数据（已通过 selectinload 预加载）
         seo_data_dict = None
         if article.seo_data:
             seo_data_dict = article.seo_data.to_dict()
@@ -256,8 +259,11 @@ async def get_article_by_id_api(
     try:
         # 根据 ID 获取文章
         from sqlalchemy import select
+        from sqlalchemy.orm import selectinload
         from shared.models.article_content import ArticleContent
-        article_query = select(Article).where(Article.id == article_id)
+        article_query = select(Article).where(Article.id == article_id).options(
+            selectinload(Article.seo_data)
+        )
         article_result = await db.execute(article_query)
         article = article_result.scalar_one_or_none()
 
@@ -341,7 +347,7 @@ async def get_article_by_id_api(
         author_result = await db.execute(author_query)
         author = author_result.scalar_one_or_none()
 
-        # 获取SEO数据
+        # 获取SEO数据（已通过 selectinload 预加载）
         seo_data_dict = None
         if article.seo_data:
             seo_data_dict = article.seo_data.to_dict()
