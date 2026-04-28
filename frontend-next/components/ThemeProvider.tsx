@@ -1,6 +1,7 @@
 'use client';
 
 import React, {useEffect} from 'react';
+import {usePathname} from 'next/navigation';
 import useTheme from '@/hooks/useTheme';
 import {applyThemeAdaptation, observeThemeChanges} from '@/lib/theme-adapter';
 
@@ -11,8 +12,17 @@ interface ThemeProviderProps {
 /**
  * 主题提供者组件
  * 确保所有页面都能正确加载和应用主题样式
+ * 注意：/admin/* 路径下的页面会跳过主题加载
  */
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({children}) => {
+    const pathname = usePathname();
+    const isAdminPage = pathname?.startsWith('/admin');
+    
+    // 如果是管理后台页面，直接渲染子组件，不加载主题
+    if (isAdminPage) {
+        return <>{children}</>;
+    }
+    
     const {cssVariables, stylesheetUrl, isLoading, config} = useTheme();
 
     // 应用主题样式表
