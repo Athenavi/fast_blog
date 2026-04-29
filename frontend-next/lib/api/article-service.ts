@@ -20,11 +20,11 @@ export interface ContributionResponse {
 
 export class ContributionService {
     static async getContributionInfo(articleId: number | string): Promise<ApiResponse<{ aid: number }>> {
-        return apiClient.get(`/blog/contribute/${articleId}`);
+        return apiClient.get(`/articles/contribute/${articleId}`);
     }
 
     static async submitContribution(articleId: number | string, data: Omit<ContributionData, 'aid'>): Promise<ApiResponse<ContributionResponse>> {
-        return apiClient.post(`/blog/contribute/${articleId}`, data);
+        return apiClient.post(`/articles/contribute/${articleId}`, data);
     }
 }
 
@@ -227,7 +227,7 @@ export class ArticleService {
     static async getNewArticleData(): Promise<ApiResponse<{
         categories: Category[];
     }>> {
-        return apiClient.get('/blog/new');
+        return apiClient.get('/articles/new');
     }
 
     static async createArticle(formData: FormData): Promise<ApiResponse<{
@@ -278,7 +278,7 @@ export class ArticleService {
     }
 
     static async getArticleBySlug(slug: string): Promise<ApiResponse<ArticleDetailResponse>> {
-        const response = await apiClient.get(`/blog/p/${slug}`);
+        const response = await apiClient.get(`/articles/p/${slug}`);
 
         console.log('🔍 getArticleBySlug - API响应:', response);
         console.log('🔍 response.success:', response.success);

@@ -10,7 +10,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
 
 from shared.models.article import Article
-from shared.models.article_i18n import ArticleI18n
 from shared.models.article_like import ArticleLike
 from shared.models.search_history import SearchHistory
 from shared.models.user import User
@@ -23,8 +22,6 @@ from src.extensions import cache
 from src.extensions import get_async_db_session as get_async_db
 from src.setting import app_config
 from src.utils.filters import f2list
-from src.utils.http.generate_response import send_chunk_md
-from src.utils.security.safe import is_valid_iso_language_code
 from src.utils.upload.public_upload import FileProcessor, process_single_file
 
 router = APIRouter(tags=["misc"])
@@ -32,29 +29,6 @@ router = APIRouter(tags=["misc"])
 domain = app_config.domain
 
 logger = logging.getLogger(__name__)
-
-
-@router.get('/blog/{aid}/i18n/{iso}')
-async def api_blog_i18n_content(
-        aid: int,
-        iso: str,
-        db: AsyncSession = Depends(get_async_db)
-):
-    if not is_valid_iso_language_code(iso):
-        raise HTTPException(status_code=400, detail="Invalid language code")
-
-    from sqlalchemy import select
-    content_query = select(ArticleI18n.content).where(
-        ArticleI18n.article == aid, ArticleI18n.language_id == iso)
-    content_result = await db.execute(content_query)
-    content = content_result.scalar_one_or_none()
-
-    if content:
-        # content是一个元组，需要取出其中的实际内容
-        content_text = content[0] if isinstance(content, tuple) else content.content
-        return send_chunk_md(content_text, aid, iso)
-    else:
-        raise HTTPException(status_code=404, detail="Article not found")
 
 
 @router.get('/user/avatar')
