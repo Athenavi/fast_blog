@@ -210,7 +210,7 @@ export class ArticleService {
         }>;
         domain?: string;
     }>> {
-        return apiClient.get(`/blog/edit/${id}`);
+        return apiClient.get(`/articles/edit/${id}`);
     }
 
     static async updateArticle(id: number | string, formData: FormData): Promise<ApiResponse<{

@@ -9,7 +9,9 @@ from fastapi import APIRouter, Body, Depends
 from pydantic import BaseModel
 from sqlalchemy import delete, update
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import Session
 
+from extensions import get_async_db
 from shared.models.article import Article
 from shared.models.media import Media
 from shared.models.user import User
@@ -211,7 +213,7 @@ async def batch_delete_media(ids: List[int] = Body(...), db: AsyncSession = Depe
 async def batch_move_media_to_folder(
     ids: List[int] = Body(...),
     folder_id: Optional[int] = Body(None),
-    db: Session = Depends(get_db)
+        db: Session = Depends(get_async_db())
 ):
     """
     批量移动媒体到文件夹

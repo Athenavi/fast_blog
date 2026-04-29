@@ -466,7 +466,6 @@ class ImportChecker:
         self.init_file = project_root / 'src' / 'shared' / 'services' / '__init__.py'
         self.module_paths = {
             'src.api.v1.articles': 'src/api/v1/articles.py',
-            'src.api.v1.blog': 'src/api/v1/blog.py',
             'src.api.v1.dashboard': 'src/api/v1/dashboard.py',
             'src.api.v1.media': 'src/api/v1/media.py',
             'src.api.v1.notifications': 'src/api/v1/notifications.py',

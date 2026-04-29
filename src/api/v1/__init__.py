@@ -54,7 +54,7 @@ def _import_modules():
 
 # 对外暴露的模块符号（保持与原有 __all__ 一致）
 __all__ = [
-    "articles", "dashboard", "responses", "users", "blog", "category_ext",
+    "articles", "dashboard", "responses", "users", "category_ext",
     "category_management", "admin_settings", "user_settings", "media",
     "notifications", "misc", "comment_config", "comments", "cache_management",
     "two_factor_auth", "article_revisions", "scheduled_publish", "feed", "menu_management", "plugin_management",

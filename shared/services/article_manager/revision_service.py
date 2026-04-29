@@ -49,7 +49,7 @@ async def save_article_revision(
             return None
 
         article, content_obj = row
-        
+
         if not content_obj:
             return None
 
@@ -77,7 +77,7 @@ async def save_article_revision(
             required_vip_level=article.required_vip_level,
             author_id=author_id,
             change_summary=change_summary,
-            created_at=datetime.now(timezone.utc)
+            created_at=datetime.now()
         )
 
         db.add(revision)
