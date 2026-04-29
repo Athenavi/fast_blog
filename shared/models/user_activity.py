@@ -1,11 +1,10 @@
 """
 SQLAlchemy 模型定义 - UserActivity
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-04-26 19:54:29
+生成时间：2026-04-29 11:08:24
 """
 
-from sqlalchemy import (BigInteger, Boolean, Column, DateTime, ForeignKey,
-                        Integer, String, Text)
+from sqlalchemy import Column, BigInteger, String, DateTime, ForeignKey
 
 from . import Base  # 使用统一的 Base
 
@@ -23,9 +22,12 @@ class UserActivity(Base):
 
     activity_type = Column(String(100), nullable=True, doc='activity_type')
 
+
     target_type = Column(String(50), nullable=True, doc='target_type')
 
+
     target_id = Column(BigInteger, doc='target_id')
+
 
     details = Column(String(255), nullable=True, doc='details')
 

@@ -1,12 +1,10 @@
 """
 SQLAlchemy 模型定义 - ArticleRevision
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-04-26 19:54:29
+生成时间：2026-04-29 11:08:24
 """
 
-
-from sqlalchemy import (BigInteger, Boolean, Column, DateTime, ForeignKey,
-                        Index, Integer, String, Text)
+from sqlalchemy import Column, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
 from sqlalchemy.orm import relationship
 
 from . import Base  # 使用统一的 Base
@@ -28,17 +26,24 @@ class ArticleRevision(Base):
 
     title = Column(String(255), nullable=True, doc='title')
 
+
     excerpt = Column(String(255), nullable=True, doc='excerpt')
+
 
     content = Column(Text, nullable=False, doc='content')
 
+
     cover_image = Column(String(255), nullable=True, doc='cover_image')
+
 
     tags_list = Column(String(255), nullable=True, doc='tags_list')
 
+
     category_id = Column(BigInteger, nullable=True, doc='category_id')
 
+
     status = Column(BigInteger, default=0, doc='status')
+
 
     hidden = Column(Boolean, default=False, doc='hidden')
 
@@ -52,14 +57,18 @@ class ArticleRevision(Base):
 
     change_summary = Column(String(500), nullable=True, doc='change_summary')
 
+    hash_code = Column(String(64), index=True, nullable=True, doc='hash_code')
+
+
     created_at = Column(DateTime, doc='created_at')
 
 
     __table_args__ = (
 
-    Index('idx_article_revisions_article_id', 'article_id'),
+        Index('idx_article_revisions_article_id', 'article_id'),
         Index('idx_article_revisions_number', 'revision_number'),
         Index('idx_article_revisions_created', 'created_at'),
+        Index('idx_article_revisions_hash', 'hash_code'),
     )
 
     # 关系定义
@@ -89,14 +98,9 @@ class ArticleRevision(Base):
             'required_vip_level': self.required_vip_level,
             'author_id': self.author_id,
             'change_summary': self.change_summary,
+            'hash_code': self.hash_code,
             'created_at': self.created_at.isoformat() if self.created_at else None,
         }
-
-        # 只有当明确要求包含敏感字段时才添加
-        if not exclude_sensitive:
-            sensitive_data = {
-            }
-            data.update(sensitive_data)
 
         return data
 

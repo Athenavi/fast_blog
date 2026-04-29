@@ -1,11 +1,10 @@
 """
 SQLAlchemy 模型定义 - Menus
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-04-26 19:54:29
+生成时间：2026-04-29 11:08:24
 """
 
-from sqlalchemy import (BigInteger, Boolean, Column, DateTime, Float, Index,
-                        Integer, String, Text)
+from sqlalchemy import Column, Integer, String, Boolean, DateTime, Index
 
 from . import Base  # 使用统一的 Base
 
@@ -26,16 +25,19 @@ class Menus(Base):
 
     description = Column(String(255), nullable=True, doc='description')
 
+
     is_active = Column(Boolean, default=True, doc='is_active')
 
+
     created_at = Column(DateTime, doc='created_at')
+
 
     updated_at = Column(DateTime, doc='updated_at')
 
 
     __table_args__ = (
 
-    Index('idx_menus_slug', 'slug', unique=True),
+        Index('idx_menus_slug', 'slug', unique=True),
         Index('idx_menus_is_active', 'is_active'),
     )
 

@@ -2851,6 +2851,27 @@ endpoints:
         description: 文章ID
     django_ninja_auth: false
     fastapi_dependencies: [ ]
+  - path: /articles/{article_id}/revisions/{revision_id}
+    method: DELETE
+    summary: 删除修订版本
+    description: 删除指定的修订版本
+    handler: delete_article_revision
+    module: article_revisions
+    tags:
+      - api-v1
+    parameters:
+      - name: article_id
+        type: int
+        location: path
+        required: true
+        description: 文章ID
+      - name: revision_id
+        type: int
+        location: path
+        required: true
+        description: 修订ID
+    django_ninja_auth: false
+    fastapi_dependencies: [ ]
   # 定时发布 API
   - path: /articles/scheduled/check-and-publish
     method: POST

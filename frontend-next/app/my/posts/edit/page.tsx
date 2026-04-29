@@ -134,6 +134,12 @@ const EditArticlePageContent = () => {
         form.append('create_revision', createRevision !== false ? 'true' : 'false');
 
       const result = await ArticleService.updateArticle(Number(articleId), form);
+
+        // 如果是因为去重而跳过，也视为成功
+        if (result.success && result.data?.skipped) {
+            console.log('去重提示:', result.data.message);
+        }
+      
       return result;
     } catch (err) {
       console.error('更新文章失败:', err);

@@ -1,12 +1,10 @@
 """
 SQLAlchemy 模型定义 - Media
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-04-26 19:54:29
+生成时间：2026-04-29 11:08:24
 """
 
-
-from sqlalchemy import (BigInteger, Boolean, Column, DateTime, ForeignKey,
-                        Integer, String, Text)
+from sqlalchemy import Column, BigInteger, String, Boolean, DateTime, ForeignKey
 
 from . import Base  # 使用统一的 Base
 
@@ -21,9 +19,12 @@ class Media(Base):
 
     user = Column(BigInteger, ForeignKey('users.id'), nullable=False, doc='user')
 
+
     hash = Column(String(64), nullable=True, doc='hash')
 
+
     filename = Column(String(255), nullable=True, doc='filename')
+
 
     original_filename = Column(String(255), nullable=True, doc='original_filename')
 

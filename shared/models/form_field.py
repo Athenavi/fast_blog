@@ -1,12 +1,10 @@
 """
 SQLAlchemy 模型定义 - FormField
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-04-26 19:54:29
+生成时间：2026-04-29 11:08:24
 """
 
-
-from sqlalchemy import (BigInteger, Boolean, Column, DateTime, ForeignKey,
-                        Index, Integer, String, Text)
+from sqlalchemy import Column, BigInteger, String, Boolean, DateTime, ForeignKey, Index
 
 from . import Base  # 使用统一的 Base
 
@@ -24,11 +22,15 @@ class FormField(Base):
 
     label = Column(String(255), nullable=True, doc='label')
 
+
     field_type = Column(String(50), nullable=True, doc='field_type')
+
 
     placeholder = Column(String(255), nullable=True, doc='placeholder')
 
+
     help_text = Column(String(255), nullable=True, doc='help_text')
+
 
     required = Column(Boolean, default=False, doc='required')
 
@@ -49,7 +51,7 @@ class FormField(Base):
 
     __table_args__ = (
 
-    Index('idx_form_fields_form_id', 'form_id'),
+        Index('idx_form_fields_form_id', 'form_id'),
         Index('idx_form_fields_order', 'order_index'),
     )
 

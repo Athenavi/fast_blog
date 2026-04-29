@@ -1,14 +1,13 @@
 """
 SQLAlchemy 模型定义 - UploadChunk
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-04-26 19:54:29
+生成时间：2026-04-29 11:08:24
 """
 
 
 from datetime import datetime
 
-from sqlalchemy import (BigInteger, Boolean, Column, DateTime, Integer, String,
-                        Text)
+from sqlalchemy import Column, BigInteger, String, DateTime
 
 from . import Base  # 使用统一的 Base
 
@@ -26,9 +25,12 @@ class UploadChunk(Base):
 
     chunk_index = Column(BigInteger, doc='chunk_index')
 
+
     chunk_hash = Column(String(64), nullable=True, doc='chunk_hash')
 
+
     chunk_size = Column(BigInteger, doc='chunk_size')
+
 
     chunk_path = Column(String(500), nullable=True, doc='chunk_path')
 

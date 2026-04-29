@@ -1,11 +1,10 @@
 """
 SQLAlchemy 模型定义 - WidgetInstance
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-04-26 19:54:29
+生成时间：2026-04-29 11:08:24
 """
 
-from sqlalchemy import (BigInteger, Boolean, Column, DateTime, Index, Integer,
-                        String, Text)
+from sqlalchemy import Column, BigInteger, String, Boolean, DateTime, Index
 
 from . import Base  # 使用统一的 Base
 
@@ -26,11 +25,15 @@ class WidgetInstance(Base):
 
     title = Column(String(255), nullable=True, doc='title')
 
+
     config = Column(String(255), nullable=True, doc='config')
+
 
     order_index = Column(BigInteger, default=0, doc='order_index')
 
+
     is_active = Column(Boolean, default=True, doc='is_active')
+
 
     conditions = Column(String(255), nullable=True, doc='conditions')
 
@@ -41,7 +44,7 @@ class WidgetInstance(Base):
 
     __table_args__ = (
 
-    Index('idx_widget_instances_area', 'area'),
+        Index('idx_widget_instances_area', 'area'),
         Index('idx_widget_instances_order', 'order_index'),
         Index('idx_widget_instances_type', 'widget_type'),
     )

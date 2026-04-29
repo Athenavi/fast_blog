@@ -1,15 +1,14 @@
 """
 SQLAlchemy 模型定义 - UploadTask
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-04-26 19:54:29
+生成时间：2026-04-29 11:08:24
 """
 
 
 import uuid
 from datetime import datetime
 
-from sqlalchemy import (BigInteger, Boolean, Column, DateTime, Integer, String,
-                        Text)
+from sqlalchemy import Column, BigInteger, String, DateTime
 
 from . import Base  # 使用统一的 Base
 
@@ -30,11 +29,15 @@ class UploadTask(Base):
 
     total_size = Column(BigInteger, doc='total_size')
 
+
     total_chunks = Column(BigInteger, doc='total_chunks')
+
 
     uploaded_chunks = Column(BigInteger, default=0, doc='uploaded_chunks')
 
+
     file_hash = Column(String(64), nullable=True, doc='file_hash')
+
 
     status = Column(String(255), default='initialized', doc='status')
 

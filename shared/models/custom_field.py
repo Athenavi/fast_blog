@@ -1,11 +1,10 @@
 """
 SQLAlchemy 模型定义 - CustomField
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-04-26 19:54:29
+生成时间：2026-04-29 11:08:24
 """
 
-from sqlalchemy import (BigInteger, Boolean, Column, DateTime, ForeignKey,
-                        Integer, String, Text)
+from sqlalchemy import Column, BigInteger, String, ForeignKey
 
 from . import Base  # 使用统一的 Base
 

@@ -10,7 +10,7 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.services.article_manager import compare_revisions, get_article_revisions, get_revision_detail, \
-    rollback_to_revision, save_article_revision
+    rollback_to_revision, save_article_revision, delete_revision
 from src.api.v1.responses import ApiResponse
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
@@ -136,9 +136,14 @@ async def create_article_revision(
             )
 
         if not revision:
+            # 检查是否是因为去重而跳过
             return ApiResponse(
-                success=False,
-                error="创建修订失败，文章可能不存在"
+                success=True,
+                data={
+                    "message": "内容未发生变化，已跳过创建修订版本",
+                    "skipped": True,
+                    "reason": "deduplication"
+                }
             )
 
         return ApiResponse(
@@ -334,4 +339,40 @@ async def sync_article_revisions(
         import traceback
         print(f"Error syncing revisions: {str(e)}")
         print(traceback.format_exc())
+        return ApiResponse(success=False, error=str(e))
+
+
+@router.delete("/{article_id}/revisions/{revision_id}")
+async def delete_article_revision(
+        article_id: int,
+        revision_id: int,
+        current_user=Depends(jwt_required),
+        db: AsyncSession = Depends(get_async_db)
+):
+    """
+    删除指定的修订版本
+    
+    Args:
+        article_id: 文章ID
+        revision_id: 修订ID
+    """
+    try:
+        success = await delete_revision(
+            db=db,
+            revision_id=revision_id,
+            article_id=article_id
+        )
+
+        if not success:
+            return ApiResponse(
+                success=False,
+                error="删除失败，修订版本可能不存在或不属于该文章"
+            )
+
+        return ApiResponse(
+            success=True,
+            data={"message": "修订版本已成功删除"}
+        )
+
+    except Exception as e:
         return ApiResponse(success=False, error=str(e))

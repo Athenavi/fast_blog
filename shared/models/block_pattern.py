@@ -1,23 +1,19 @@
 """
 SQLAlchemy 模型定义 - BlockPattern
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-04-26 19:54:29
+生成时间：2026-04-29 11:08:24
 """
 
-
-from sqlalchemy import (BigInteger, Boolean, Column, DateTime, ForeignKey,
-                        Index, Integer, String, Text)
+from sqlalchemy import Column, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
 
 from . import Base  # 使用统一的 Base
+
 
 # ============================================================================
 # 自定义方法导入提示
 # 以下导入是自定义方法可能需要的，如果不需要可以删除：
 # - from datetime import datetime
 # ============================================================================
-
-
-
 
 class BlockPattern(Base):
     """自定义块模式模型模型"""
@@ -32,9 +28,12 @@ class BlockPattern(Base):
 
     title = Column(String(255), nullable=True, doc='title')
 
+
     description = Column(Text, nullable=True, doc='description')
 
+
     category = Column(String(50), default='custom', doc='category')
+
 
     blocks = Column(Text, nullable=False, doc='blocks')
 
@@ -55,7 +54,7 @@ class BlockPattern(Base):
 
     __table_args__ = (
 
-    Index('idx_block_patterns_name', 'name', unique=True),
+        Index('idx_block_patterns_name', 'name', unique=True),
         Index('idx_block_patterns_category', 'category'),
         Index('idx_block_patterns_user_id', 'user_id'),
     )

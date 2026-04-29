@@ -1,11 +1,10 @@
 """
 SQLAlchemy 模型定义 - Form
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-04-26 19:54:29
+生成时间：2026-04-29 11:08:24
 """
 
-from sqlalchemy import (BigInteger, Boolean, Column, DateTime, Index, Integer,
-                        String, Text)
+from sqlalchemy import Column, BigInteger, String, Boolean, DateTime, Index
 
 from . import Base  # 使用统一的 Base
 
@@ -26,11 +25,15 @@ class Form(Base):
 
     description = Column(String(255), nullable=True, doc='description')
 
+
     status = Column(String(255), default='draft', doc='status')
+
 
     submit_message = Column(String(255), nullable=True, doc='submit_message')
 
+
     email_notification = Column(Boolean, default=False, doc='email_notification')
+
 
     notification_email = Column(String(255), nullable=True, doc='notification_email')
 
@@ -45,7 +48,7 @@ class Form(Base):
 
     __table_args__ = (
 
-    Index('idx_forms_slug', 'slug', unique=True),
+        Index('idx_forms_slug', 'slug', unique=True),
         Index('idx_forms_status', 'status'),
     )
 

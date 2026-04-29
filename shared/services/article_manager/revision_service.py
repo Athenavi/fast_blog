@@ -3,6 +3,7 @@
 提供版本保存、查询、回滚等功能
 """
 
+import hashlib
 import logging
 from datetime import datetime, timezone
 from typing import Optional, Dict, Any
@@ -17,6 +18,36 @@ from shared.models.article_revision import ArticleRevision
 logger = logging.getLogger(__name__)
 
 
+def calculate_revision_hash(
+        title: str,
+        content: str,
+        cover_image: str = "",
+        tags_list: str = ""
+) -> str:
+    """
+    计算修订版本的哈希码（基于标题、内容、封面图、标签）
+    
+    Args:
+        title: 标题
+        content: 内容
+        cover_image: 封面图
+        tags_list: 标签列表
+        
+    Returns:
+        SHA256哈希字符串
+    """
+    # 确保所有字段都是字符串类型，避免None值
+    title = title or ""
+    content = content or ""
+    cover_image = cover_image or ""
+    tags_list = tags_list or ""
+
+    # 将四个字段组合成一个字符串，使用分隔符避免歧义
+    hash_input = f"title:{title}||content:{content}||cover:{cover_image}||tags:{tags_list}"
+    # 计算SHA256哈希
+    return hashlib.sha256(hash_input.encode('utf-8')).hexdigest()
+
+
 async def save_article_revision(
         db: AsyncSession,
         article_id: int,
@@ -24,7 +55,7 @@ async def save_article_revision(
         change_summary: Optional[str] = None
 ) -> Optional[ArticleRevision]:
     """
-    保存文章修订版本（优化：减少查询次数）
+    保存文章修订版本（优化：减少查询次数 + 去重）
     
     Args:
         db: 数据库会话
@@ -33,7 +64,7 @@ async def save_article_revision(
         change_summary: 变更说明
         
     Returns:
-        创建的修订对象，失败返回None
+        创建的修订对象，如果内容未变化则返回None
     """
     try:
         # 使用 JOIN 一次性获取文章和内容
@@ -51,6 +82,28 @@ async def save_article_revision(
         article, content_obj = row
 
         if not content_obj:
+            return None
+
+        # 计算当前内容的哈希码
+        current_hash = calculate_revision_hash(
+            title=article.title or "",
+            content=content_obj.content or "",
+            cover_image=article.cover_image or "",
+            tags_list=article.tags_list or ""
+        )
+
+        # 检查是否与最新的修订版本相同（去重）
+        latest_revision_query = (
+            select(ArticleRevision)
+            .where(ArticleRevision.article_id == article_id)
+            .order_by(ArticleRevision.revision_number.desc())
+            .limit(1)
+        )
+        latest_result = await db.execute(latest_revision_query)
+        latest_revision = latest_result.scalar_one_or_none()
+
+        if latest_revision and latest_revision.hash_code == current_hash:
+            logger.info(f"文章 {article_id} 内容未变化，跳过创建修订版本")
             return None
 
         # 计算下一个版本号
@@ -77,6 +130,7 @@ async def save_article_revision(
             required_vip_level=article.required_vip_level,
             author_id=author_id,
             change_summary=change_summary,
+            hash_code=current_hash,
             created_at=datetime.now()
         )
 
@@ -331,3 +385,43 @@ async def compare_revisions(
     except Exception as e:
         logger.error(f"比较修订失败: {e}", exc_info=True)
         return None
+
+
+async def delete_revision(
+        db: AsyncSession,
+        revision_id: int,
+        article_id: int
+) -> bool:
+    """
+    删除指定的修订版本
+    
+    Args:
+        db: 数据库会话
+        revision_id: 修订ID
+        article_id: 文章ID（用于验证权限）
+        
+    Returns:
+        是否成功删除
+    """
+    try:
+        # 获取修订记录并验证属于指定文章
+        revision_query = select(ArticleRevision).where(
+            ArticleRevision.id == revision_id,
+            ArticleRevision.article_id == article_id
+        )
+        revision_result = await db.execute(revision_query)
+        revision = revision_result.scalar_one_or_none()
+
+        if not revision:
+            return False
+
+        # 删除修订记录
+        await db.delete(revision)
+        await db.commit()
+
+        return True
+
+    except Exception as e:
+        await db.rollback()
+        logger.error(f"删除修订失败: {e}", exc_info=True)
+        return False

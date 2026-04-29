@@ -1687,6 +1687,12 @@ models:
         nullable: true
         maxLength: 500
         description: 修订说明/变更摘要
+      hash_code:
+        type: string
+        nullable: true
+        maxLength: 64
+        description: 内容哈希码（用于去重）
+        index: true
       created_at:
         type: string
         format: date-time
@@ -1706,6 +1712,8 @@ models:
       - name: idx_article_revisions_created
         columns: [ created_at ]
         order: DESC
+      - name: idx_article_revisions_hash
+        columns: [ hash_code ]
   Plugin:
     description: 插件模型
     properties:

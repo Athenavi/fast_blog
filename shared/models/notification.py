@@ -1,12 +1,10 @@
 """
 SQLAlchemy 模型定义 - Notification
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-04-26 19:54:29
+生成时间：2026-04-29 11:08:24
 """
 
-
-from sqlalchemy import (BigInteger, Boolean, Column, DateTime, ForeignKey,
-                        Integer, String, Text)
+from sqlalchemy import Column, BigInteger, String, Boolean, DateTime, ForeignKey
 
 from . import Base  # 使用统一的 Base
 
@@ -21,9 +19,12 @@ class Notification(Base):
 
     recipient = Column(BigInteger, ForeignKey('users.id'), nullable=False, doc='recipient')
 
+
     type = Column(String(100), nullable=True, doc='type')
 
+
     title = Column(String(200), nullable=True, doc='title')
+
 
     message = Column(String(255), nullable=True, doc='message')
 

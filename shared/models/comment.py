@@ -1,12 +1,10 @@
 """
 SQLAlchemy 模型定义 - Comment
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-04-26 19:54:29
+生成时间：2026-04-29 11:08:24
 """
 
-
-from sqlalchemy import (BigInteger, Boolean, Column, DateTime, ForeignKey,
-                        Index, Integer, Numeric, String, Text)
+from sqlalchemy import Column, BigInteger, String, Text, Boolean, DateTime, Numeric, ForeignKey, Index
 
 from . import Base  # 使用统一的 Base
 
@@ -24,11 +22,15 @@ class Comment(Base):
 
     user_id = Column(BigInteger, ForeignKey('users.id'), nullable=True, doc='user_id')
 
+
     parent_id = Column('parent_id', BigInteger, ForeignKey('comments.id'), nullable=True, doc='parent_id')
+
 
     content = Column(Text, nullable=False, doc='content')
 
+
     author_name = Column(String(100), nullable=True, doc='author_name')
+
 
     author_email = Column(String(255), nullable=True, doc='author_email')
 
@@ -53,7 +55,7 @@ class Comment(Base):
 
     __table_args__ = (
 
-    Index('idx_comments_article_id', 'article_id'),
+        Index('idx_comments_article_id', 'article_id'),
         Index('idx_comments_user_id', 'user_id'),
         Index('idx_comments_parent_id', 'parent_id'),
         Index('idx_comments_is_approved', 'is_approved'),

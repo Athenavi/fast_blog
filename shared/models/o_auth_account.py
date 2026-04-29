@@ -1,11 +1,10 @@
 """
 SQLAlchemy 模型定义 - OAuthAccount
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-04-26 19:54:29
+生成时间：2026-04-29 11:08:24
 """
 
-from sqlalchemy import (BigInteger, Boolean, Column, DateTime, ForeignKey,
-                        Index, Integer, String, Text)
+from sqlalchemy import Column, BigInteger, String, DateTime, ForeignKey, Index
 
 from . import Base  # 使用统一的 Base
 
@@ -26,11 +25,15 @@ class OAuthAccount(Base):
 
     provider_user_id = Column(String(255), index=True, nullable=True, doc='provider_user_id')
 
+
     access_token = Column(String(255), nullable=True, doc='access_token')
+
 
     refresh_token = Column(String(255), nullable=True, doc='refresh_token')
 
+
     token_expires_at = Column(DateTime, nullable=True, doc='token_expires_at')
+
 
     extra_data = Column(String(255), nullable=True, doc='extra_data')
 
@@ -41,7 +44,7 @@ class OAuthAccount(Base):
 
     __table_args__ = (
 
-    Index('idx_oauth_accounts_provider_user', 'provider', 'provider_user_id', unique=True),
+        Index('idx_oauth_accounts_provider_user', 'provider', 'provider_user_id', unique=True),
         Index('idx_oauth_accounts_user_provider', 'user_id', 'provider', unique=True),
     )
 

@@ -1,11 +1,10 @@
 """
 SQLAlchemy 模型定义 - CustomPostType
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-04-26 19:54:29
+生成时间：2026-04-29 11:08:24
 """
 
-from sqlalchemy import (BigInteger, Boolean, Column, DateTime, Float, Index,
-                        Integer, String, Text)
+from sqlalchemy import Column, BigInteger, Integer, String, Boolean, DateTime, Index
 
 from . import Base  # 使用统一的 Base
 
@@ -26,11 +25,15 @@ class CustomPostType(Base):
 
     description = Column(String(255), nullable=True, doc='description')
 
+
     supports = Column(String(255), nullable=True, doc='supports')
+
 
     has_archive = Column(Boolean, default=False, doc='has_archive')
 
+
     menu_icon = Column(String(255), nullable=True, doc='menu_icon')
+
 
     menu_position = Column(Integer, default=5, doc='menu_position')
 
@@ -43,7 +46,7 @@ class CustomPostType(Base):
 
     __table_args__ = (
 
-    Index('idx_cpt_slug', 'slug', unique=True),
+        Index('idx_cpt_slug', 'slug', unique=True),
         Index('idx_cpt_is_active', 'is_active'),
     )
 

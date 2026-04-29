@@ -1,11 +1,10 @@
 """
 SQLAlchemy 模型定义 - Role
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-04-26 19:54:29
+生成时间：2026-04-29 11:08:24
 """
 
-from sqlalchemy import (BigInteger, Boolean, Column, DateTime, Index, Integer,
-                        String, Text)
+from sqlalchemy import Column, BigInteger, String, Boolean, DateTime, Index
 
 from . import Base  # 使用统一的 Base
 
@@ -26,18 +25,22 @@ class Role(Base):
 
     description = Column(String(255), nullable=True, doc='description')
 
+
     permissions = Column(String(255), nullable=True, doc='permissions')
+
 
     is_system = Column(Boolean, default=False, doc='is_system')
 
+
     created_at = Column(DateTime, doc='created_at')
+
 
     updated_at = Column(DateTime, doc='updated_at')
 
 
     __table_args__ = (
 
-    Index('idx_roles_slug', 'slug', unique=True),
+        Index('idx_roles_slug', 'slug', unique=True),
         Index('idx_roles_is_system', 'is_system'),
     )
 

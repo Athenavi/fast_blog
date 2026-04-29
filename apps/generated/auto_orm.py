@@ -1,7 +1,7 @@
 """
 Django ORM 抽象基类定义
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-04-26 19:54:29
+生成时间：2026-04-29 11:08:24
 """
 
 from django.db import models
@@ -1387,6 +1387,9 @@ class ArticleRevisionMixin(models.Model):
     # change_summary
     change_summary = models.CharField(
         'change_summary', max_length=500, blank=True, null=True)
+    # hash_code
+    hash_code = models.CharField(
+        'hash_code', max_length=64, blank=True, null=True)
 
     class Meta:
         abstract = True
@@ -1955,6 +1958,7 @@ class UserRoleMixin(models.Model):
         # 注意：请在具体模型类中设置 db_table = get_table_name("user_role_assignments")
 
 
+
 class OAuthAccountMixin(models.Model):
     """OAuth 第三方登录账号关联模型 Mixin"""
 
@@ -1988,6 +1992,7 @@ class OAuthAccountMixin(models.Model):
         app_label = 'generated'
         verbose_name = 'OAuth 第三方登录账号关联模型'
         # 注意：请在具体模型类中设置 db_table = get_table_name("oauth_accounts")
+
 
 
 class ArticleSEOMixin(models.Model):

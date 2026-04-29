@@ -22,6 +22,8 @@ from .revision_service import (
     get_revision_detail,
     rollback_to_revision,
     compare_revisions,
+    delete_revision,
+    calculate_revision_hash,
 )
 from .service import (
     get_article_by_id,
@@ -61,6 +63,8 @@ __all__ = [
     'get_revision_detail',
     'rollback_to_revision',
     'compare_revisions',
+    'delete_revision',
+    'calculate_revision_hash',
 
     # Password protection
     'PasswordProtectionService',

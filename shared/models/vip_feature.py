@@ -1,11 +1,10 @@
 """
 SQLAlchemy 模型定义 - VIPFeature
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-04-26 19:54:29
+生成时间：2026-04-29 11:08:24
 """
 
-from sqlalchemy import (BigInteger, Boolean, Column, DateTime, Float, Integer,
-                        String, Text)
+from sqlalchemy import Column, BigInteger, Integer, String, Boolean, DateTime
 
 from . import Base  # 使用统一的 Base
 
@@ -23,9 +22,12 @@ class VIPFeature(Base):
 
     name = Column(String(100), nullable=True, doc='name')
 
+
     description = Column(String(255), nullable=True, doc='description')
 
+
     required_level = Column(Integer, default=1, doc='required_level')
+
 
     is_active = Column(Boolean, default=True, doc='is_active')
 

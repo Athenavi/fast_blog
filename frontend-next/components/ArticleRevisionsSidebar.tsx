@@ -91,6 +91,8 @@ export default function ArticleRevisionsSidebar({
     const [previewDialogOpen, setPreviewDialogOpen] = useState(false);
     const [rollbackDialogOpen, setRollbackDialogOpen] = useState(false);
     const [revisionToRollback, setRevisionToRollback] = useState<Revision | null>(null);
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+    const [revisionToDelete, setRevisionToDelete] = useState<Revision | null>(null);
 
     // 本地草稿状态
     const [localDraft, setLocalDraft] = useState<LocalDraft | null>(null);
@@ -234,6 +236,43 @@ export default function ArticleRevisionsSidebar({
             toast({
                 title: '网络错误',
                 description: '无法执行回滚',
+                variant: 'destructive'
+            });
+        }
+    };
+
+    // 打开删除确认对话框
+    const handleDeleteClick = (revision: Revision) => {
+        setRevisionToDelete(revision);
+        setDeleteDialogOpen(true);
+    };
+
+    // 执行删除
+    const handleConfirmDelete = async () => {
+        if (!revisionToDelete || !articleId) return;
+
+        try {
+            const result = await apiClient.delete(`/articles/${articleId}/revisions/${revisionToDelete.id}`);
+
+            if (result.success) {
+                toast({
+                    title: '删除成功',
+                    description: `版本 #${revisionToDelete.revision_number} 已删除`
+                });
+                setDeleteDialogOpen(false);
+                setRevisionToDelete(null);
+                fetchRevisions(); // 刷新列表
+            } else {
+                toast({
+                    title: '删除失败',
+                    description: result.error,
+                    variant: 'destructive'
+                });
+            }
+        } catch (error) {
+            toast({
+                title: '网络错误',
+                description: '无法删除修订版本',
                 variant: 'destructive'
             });
         }
@@ -568,6 +607,15 @@ export default function ArticleRevisionsSidebar({
                                                 <RotateCcw className="w-4 h-4 mr-2"/>
                                                 回滚
                                             </Button>
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={() => handleDeleteClick(revision)}
+                                                className="flex-1 border-red-600 text-red-700 hover:bg-red-100 dark:hover:bg-red-900"
+                                            >
+                                                <Trash2 className="w-4 h-4 mr-2"/>
+                                                删除
+                                            </Button>
                                         </div>
                                     </div>
                                 ))}
@@ -631,6 +679,39 @@ export default function ArticleRevisionsSidebar({
                             className="bg-orange-600 hover:bg-orange-700"
                         >
                             确认回滚
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* 删除确认对话框 */}
+            <Dialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2">
+                            <AlertCircle className="w-5 h-5 text-red-500"/>
+                            确认删除
+                        </DialogTitle>
+                        <DialogDescription>
+                            您确定要删除版本 #{revisionToDelete?.revision_number} 吗？
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div
+                        className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                        <p className="text-sm text-red-900 dark:text-red-100">
+                            <strong>警告：</strong>删除后无法恢复，请谨慎操作！
+                        </p>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setDeleteDialogOpen(false)}>
+                            取消
+                        </Button>
+                        <Button
+                            variant="default"
+                            onClick={handleConfirmDelete}
+                            className="bg-red-600 hover:bg-red-700"
+                        >
+                            确认删除
                         </Button>
                     </DialogFooter>
                 </DialogContent>

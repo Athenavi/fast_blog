@@ -1,11 +1,10 @@
 """
 SQLAlchemy 模型定义 - SystemSettings
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-04-26 19:54:29
+生成时间：2026-04-29 11:08:24
 """
 
-from sqlalchemy import (BigInteger, Boolean, Column, DateTime, Float, Integer,
-                        String, Text)
+from sqlalchemy import Column, Integer, String, Boolean, DateTime
 
 from . import Base  # 使用统一的 Base
 
@@ -23,9 +22,12 @@ class SystemSettings(Base):
 
     setting_value = Column(String(255), nullable=True, doc='setting_value')
 
+
     setting_type = Column(String(255), default='string', doc='setting_type')
 
+
     description = Column(String(255), nullable=True, doc='description')
+
 
     is_public = Column(Boolean, default=False, doc='is_public')
 

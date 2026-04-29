@@ -16,6 +16,7 @@ import {
   DialogTitle
 } from '@/components/ui/dialog';
 import {Button} from '@/components/ui/button';
+import {useToast} from '@/hooks/use-toast';
 
 // 动态导入优化后的组件
 const UniversalEditor = dynamic(
@@ -74,6 +75,7 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
                                                    isLoading = false
                                                  }) => {
   const router = useRouter();
+  const {toast} = useToast();
 
   // 使用useMemo初始化表单数据，避免不必要的重新计算
   const initialFormState = useMemo(() => ({
@@ -226,6 +228,16 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
       const result = await onSubmit(form, createRevision);
 
       if (result.success) {
+        // 检查是否因为去重而跳过
+        if (result.data?.skipped) {
+          // 显示提示信息
+          toast({
+            title: '✅ 已跳过',
+            description: result.data.message || '内容未发生变化，已跳过创建修订版本',
+            variant: 'default'
+          });
+        }
+        
         // 如果是创建模式，且返回了 article_id，则跳转到编辑页面
         if (mode === 'create' && result.data?.article_id) {
           router.push(`/my/posts/edit?id=${result.data.article_id}`);

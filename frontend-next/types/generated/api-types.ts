@@ -1,7 +1,7 @@
 /**
  * API 类型定义
  * 由 routes.yaml 自动生成 - 请勿手动修改
- * 生成时间：2026-04-26 19:54:29
+ * 生成时间：2026-04-29 11:08:24
  */
 
 export interface User {
@@ -454,6 +454,7 @@ export interface ArticleRevision {
     required_vip_level: any;
     author_id?: any;
     change_summary?: string;
+    hash_code?: string;
     created_at: string;
 }
 
@@ -792,6 +793,19 @@ export interface Rollback_articleParams {
 export interface Compare_article_revisionsParams {
     revision1_id: number;
     revision2_id: number;
+}
+
+export interface Save_article_draftParams {
+    article_id: number;
+}
+
+export interface Sync_article_revisionsParams {
+    article_id: number;
+}
+
+export interface Delete_article_revisionParams {
+    article_id: number;
+    revision_id: number;
 }
 export interface Get_articles_apiParams {
     page?: number;

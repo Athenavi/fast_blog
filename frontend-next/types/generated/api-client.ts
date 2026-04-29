@@ -1,7 +1,7 @@
 /**
  * API 客户端
  * 由 routes.yaml 自动生成 - 请勿手动修改
- * 生成时间：2026-04-26 19:54:29
+ * 生成时间：2026-04-29 11:08:24
  */
 
 import {ApiResponse} from './api-types';
@@ -788,6 +788,52 @@ export async function compare_article_revisions(
         "GET",
         params
 )
+
+}
+
+/**
+ * 保存文章草稿
+ * 保存文章草稿（不创建修订历史）
+ */
+export async function save_article_draft(
+    article_id: number,
+): Promise<ApiResponse<any>> {
+    return request(
+        "/articles/{article_id}/draft",
+        "POST",
+        undefined
+    )
+
+}
+
+/**
+ * 同步修订历史到云端
+ * 强制保存当前状态为修订版本并同步到云端
+ */
+export async function sync_article_revisions(
+    article_id: number,
+): Promise<ApiResponse<any>> {
+    return request(
+        "/articles/{article_id}/revisions/sync",
+        "POST",
+        undefined
+    )
+
+}
+
+/**
+ * 删除修订版本
+ * 删除指定的修订版本
+ */
+export async function delete_article_revision(
+    article_id: number,
+    revision_id: number,
+): Promise<ApiResponse<any>> {
+    return request(
+        "/articles/{article_id}/revisions/{revision_id}",
+        "DELETE",
+        undefined
+    )
 
 }
 
@@ -3571,6 +3617,9 @@ export default {
     get_revision,
     rollback_article,
     compare_article_revisions,
+    save_article_draft,
+    sync_article_revisions,
+    delete_article_revision,
     get_articles_api,
     get_article_detail_api,
     get_article_raw_content_api,
