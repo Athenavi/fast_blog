@@ -3,17 +3,53 @@
 import React, {useEffect, useState, useCallback} from 'react';
 import {useRouter} from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
+import {motion} from 'framer-motion';
+import {
+    MapPin,
+    Link as LinkIcon,
+    Calendar,
+    Mail,
+    Lock,
+    FileText,
+    Users,
+    UserPlus,
+    MessageSquare,
+    Settings,
+    Edit3,
+    Eye,
+    Heart,
+    TrendingUp,
+    Bookmark,
+    Share2
+} from 'lucide-react';
 import WithAuthProtection from '@/components/WithAuthProtection';
 import {apiClient, UserProfileResponse} from '@/lib/api';
 import {getConfig} from '@/lib/config';
 
-const UserProfilePage = () => {
+// 动画配置
+const fadeInUp = {
+    initial: {opacity: 0, y: 20},
+    animate: {opacity: 1, y: 0},
+    transition: {duration: 0.5}
+};
+
+const staggerContainer = {
+    animate: {
+        transition: {
+            staggerChildren: 0.1
+        }
+    }
+};
+
+const ProfilePage = () => {
     const router = useRouter();
     const [userData, setUserData] = useState<UserProfileResponse | null>(null);
     const [loading, setLoading] = useState(true);
     const [avatarUrl, setAvatarUrl] = useState<string>('');
+    const [activeTab, setActiveTab] = useState<'articles' | 'about'>('articles');
 
-    // 获取头像URL - 使用useCallback避免重复创建
+    // 获取头像URL
     const fetchAvatarUrl = useCallback(async (userId: number, username: string, avatar?: string) => {
         if (avatar) return avatar;
         
@@ -49,11 +85,9 @@ const UserProfilePage = () => {
                 }
 
                 const data = response.data;
-                // 兼容不同的数据结构
                 const userData = (data as any).user ? data : {user: data};
                 setUserData(userData as UserProfileResponse);
 
-                // 并行获取头像URL
                 const user = (userData as UserProfileResponse).user;
                 const avatar = await fetchAvatarUrl(user.id, user.username, (user as any).avatar_url);
                 setAvatarUrl(avatar);
@@ -67,16 +101,14 @@ const UserProfilePage = () => {
         fetchUserProfile();
     }, [router, fetchAvatarUrl]);
 
-
     if (loading || !userData) {
         return (
-            <div className="min-h-screen bg-gray-50 py-12">
-                <div className="container mx-auto px-4">
-                    <div className="text-center py-16">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto"></div>
-                        <p className="mt-4 text-gray-600">正在加载用户资料...</p>
-                    </div>
-                </div>
+            <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex items-center justify-center">
+                <motion.div
+                    animate={{rotate: 360}}
+                    transition={{duration: 1, repeat: Infinity, ease: "linear"}}
+                    className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full"
+                />
             </div>
         );
     }
@@ -86,264 +118,364 @@ const UserProfilePage = () => {
 
     return (
         <WithAuthProtection loadingMessage="正在加载用户资料...">
-            <div className="min-h-screen bg-gray-50">
-                {/* 顶部横幅 */}
-                <div className="bg-gradient-to-r from-blue-500 to-purple-600 py-12">
-                    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                        <div className="flex flex-col md:flex-row items-center justify-between">
-                            <div className="flex items-center space-x-6">
-                                <div
-                                    className="w-24 h-24 bg-white rounded-full overflow-hidden border-4 border-white shadow-lg">
-                                    <img
-                                        src={avatarUrl}
-                                        alt={user.username}
-                                        className="w-full h-full object-cover"
-                                        onError={(e) => {
-                                            e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.username)}&background=random`;
-                                        }}
-                                    />
-                                </div>
-                                <div>
-                                    <h1 className="text-3xl font-bold text-white">{user.display_name || user.username}</h1>
-                                    <p className="text-blue-100 mt-1">@{user.username}</p>
-                                    <p className="text-blue-100 mt-2">{user.bio || '暂无简介'}</p>
-                                </div>
-                            </div>
-                            <div className="mt-6 md:mt-0 flex space-x-3">
-                                <button
-                                    className="bg-white text-blue-600 px-6 py-2 rounded-full font-medium hover:bg-blue-50 transition-colors">
-                                    {userData.is_following ? '取消关注' : '关注'}
-                                </button>
-                                <button
-                                    className="bg-blue-700 text-white px-6 py-2 rounded-full font-medium hover:bg-blue-800 transition-colors flex items-center">
-                                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                                         xmlns="http://www.w3.org/2000/svg">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
-                                              d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
-                                    </svg>
-                                    消息
-                                    {userData.has_unread_message && (
-                                        <span className="ml-2 w-2 h-2 bg-red-500 rounded-full inline-block"></span>
-                                    )}
-                                </button>
-                            </div>
-                        </div>
+            <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+                {/* 封面区域 */}
+                <div
+                    className="relative h-64 bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 overflow-hidden">
+                    {/* 装饰性图案 */}
+                    <div className="absolute inset-0 opacity-20">
+                        <div
+                            className="absolute top-0 left-0 w-96 h-96 bg-white rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"/>
+                        <div
+                            className="absolute bottom-0 right-0 w-96 h-96 bg-white rounded-full blur-3xl translate-x-1/2 translate-y-1/2"/>
                     </div>
+
+                    {/* 网格背景 */}
+                    <div
+                        className="absolute inset-0 opacity-10"
+                        style={{
+                            backgroundImage: `radial-gradient(circle at 1px 1px, white 1px, transparent 0)`,
+                            backgroundSize: '40px 40px'
+                        }}
+                    />
                 </div>
 
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                    <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-                        {/* 侧边栏 */}
-                        <div className="lg:col-span-1">
-                            <div className="bg-white rounded-xl shadow-sm p-6 sticky top-8">
-                                <h2 className="text-lg font-semibold text-gray-900 mb-4">个人信息</h2>
-                                <div className="space-y-3">
-                                    <div>
-                                        <span className="text-sm text-gray-500">邮箱</span>
-                                        <p className="text-gray-900">{user.email}</p>
+                {/* 主要内容区 */}
+                <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 -mt-32 relative z-10">
+                    {/* 用户信息卡片 */}
+                    <motion.div
+                        variants={fadeInUp}
+                        initial="initial"
+                        animate="animate"
+                        className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800 p-8 mb-8"
+                    >
+                        <div className="flex flex-col lg:flex-row gap-8">
+                            {/* 头像 */}
+                            <div className="flex-shrink-0">
+                                <div className="relative">
+                                    <div
+                                        className="w-32 h-32 rounded-2xl overflow-hidden border-4 border-white dark:border-gray-900 shadow-lg">
+                                        <Image
+                                            src={avatarUrl}
+                                            alt={user.username}
+                                            width={128}
+                                            height={128}
+                                            className="w-full h-full object-cover"
+                                            onError={(e) => {
+                                                e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.username)}&background=random`;
+                                            }}
+                                        />
                                     </div>
-                                    <div>
-                                        <span className="text-sm text-gray-500">位置</span>
-                                        <p className="text-gray-900">{user.location || '未设置'}</p>
-                                    </div>
-                                    <div>
-                                        <span className="text-sm text-gray-500">网站</span>
-                                        <p className="text-gray-900 truncate">{user.website || '未设置'}</p>
-                                    </div>
-                                    <div>
-                                        <span className="text-sm text-gray-500">地区</span>
-                                        <p className="text-gray-900">{user.locale || '未设置'}</p>
-                                    </div>
-                                    <div>
-                                        <span className="text-sm text-gray-500">注册时间</span>
-                                        <p className="text-gray-900">{user.created_at ? new Date(user.created_at).toLocaleDateString() : '未知'}</p>
-                                    </div>
-                                    <div>
-                                        <span className="text-sm text-gray-500">隐私设置</span>
-                                        <p className="text-gray-900">{user.profile_private ? '私密' : '公开'}</p>
-                                    </div>
+                                    {/* 在线状态指示器 */}
+                                    <div
+                                        className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 border-4 border-white dark:border-gray-900 rounded-full"/>
                                 </div>
+                            </div>
 
-                                <div className="mt-6 pt-6 border-t border-gray-200">
-                                    <h3 className="text-lg font-semibold text-gray-900 mb-4">统计信息</h3>
-                                    <div className="grid grid-cols-3 gap-4">
-                                        <div className="bg-blue-50 p-3 rounded-lg text-center">
-                                            <div
-                                                className="text-2xl font-bold text-blue-600">{userData.stats.articles_count}</div>
-                                            <div className="text-xs text-gray-500">文章</div>
-                                        </div>
-                                        <div className="bg-green-50 p-3 rounded-lg text-center">
-                                            <div
-                                                className="text-2xl font-bold text-green-600">{userData.stats.followers_count}</div>
-                                            <div className="text-xs text-gray-500">粉丝</div>
-                                        </div>
-                                        <div className="bg-purple-50 p-3 rounded-lg text-center">
-                                            <div
-                                                className="text-2xl font-bold text-purple-600">{userData.stats.following_count}</div>
-                                            <div className="text-xs text-gray-500">关注</div>
+                            {/* 用户信息 */}
+                            <div className="flex-1">
+                                <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+                                    <div>
+                                        <h1 className="text-3xl font-black text-gray-900 dark:text-white mb-2">
+                                            {user.display_name || user.username}
+                                        </h1>
+                                        <p className="text-lg text-gray-500 dark:text-gray-400 mb-4">
+                                            @{user.username}
+                                        </p>
+
+                                        {user.bio && (
+                                            <p className="text-gray-700 dark:text-gray-300 mb-4 max-w-2xl">
+                                                {user.bio}
+                                            </p>
+                                        )}
+
+                                        {/* 元信息 */}
+                                        <div
+                                            className="flex flex-wrap items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
+                                            {user.location && (
+                                                <div className="flex items-center gap-1.5">
+                                                    <MapPin className="w-4 h-4"/>
+                                                    <span>{user.location}</span>
+                                                </div>
+                                            )}
+                                            {user.website && (
+                                                <div className="flex items-center gap-1.5">
+                                                    <LinkIcon className="w-4 h-4"/>
+                                                    <a href={user.website} target="_blank" rel="noopener noreferrer"
+                                                       className="text-blue-600 dark:text-blue-400 hover:underline">
+                                                        {user.website.replace(/^https?:\/\//, '')}
+                                                    </a>
+                                                </div>
+                                            )}
+                                            <div className="flex items-center gap-1.5">
+                                                <Calendar className="w-4 h-4"/>
+                                                <span>加入于 {user.created_at ? new Date(user.created_at).toLocaleDateString('zh-CN', {
+                                                    year: 'numeric',
+                                                    month: 'long'
+                                                }) : ''}</span>
+                                            </div>
                                         </div>
                                     </div>
-                                </div>
 
-                                <div className="mt-6 pt-6 border-t border-gray-200">
-                                    <h3 className="text-lg font-semibold text-gray-900 mb-4">操作</h3>
-                                    <div className="space-y-3">
-                                        <button
-                                            onClick={() => router.push('/my/posts')}
-                                            className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 py-2 px-4 rounded-lg font-medium transition-colors"
-                                        >
-                                            我的文章
-                                        </button>
-                                        <button
-                                            onClick={() => router.push('/media')}
-                                            className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 py-2 px-4 rounded-lg font-medium transition-colors"
-                                        >
-                                            媒体库
-                                        </button>
+                                    {/* 操作按钮 */}
+                                    <div className="flex gap-3">
                                         <button
                                             onClick={() => router.push('/settings')}
-                                            className="w-full bg-gray-100 hover:bg-gray-200 text-gray-800 py-2 px-4 rounded-lg font-medium transition-colors"
+                                            className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white font-medium rounded-xl transition-colors"
                                         >
-                                            设置
+                                            <Settings className="w-4 h-4"/>
+                                            <span className="hidden sm:inline">编辑资料</span>
+                                        </button>
+                                        <button
+                                            className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-colors">
+                                            <UserPlus className="w-4 h-4"/>
+                                            <span className="hidden sm:inline">关注</span>
                                         </button>
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* 主内容区 */}
-                        <div className="lg:col-span-3">
-                            <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-                                <div className="border-b border-gray-200 bg-white px-6 py-4">
-                                    <h2 className="text-xl font-semibold text-gray-900">最新文章</h2>
+                        {/* 统计数据 */}
+                        <div
+                            className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8 pt-8 border-t border-gray-200 dark:border-gray-800">
+                            <div className="text-center">
+                                <div className="text-3xl font-black text-gray-900 dark:text-white">
+                                    {userData.stats.articles_count}
                                 </div>
-
-                                {recentArticles.length > 0 ? (
-                                    <div className="divide-y divide-gray-100">
-                                        {recentArticles.map((article) => (
-                                            <Link href={{pathname: '/blog/detail', query: {slug: article.slug}}}
-                                                  key={article.id}
-                                                  className="block hover:bg-gray-50 transition-colors">
-                                                <article className="p-6">
-                                                    <div className="flex flex-col md:flex-row gap-6">
-                                                        {article.cover_image ? (
-                                                            <div className="md:w-32 h-20 flex-shrink-0">
-                                                                <img
-                                                                    src={article.cover_image}
-                                                                    alt={article.title}
-                                                                    className="w-full h-full object-cover rounded-lg"
-                                                                    onError={(e) => {
-                                                                        const target = e.target as HTMLImageElement;
-                                                                        target.style.display = 'none';
-                                                                        const placeholder = target.nextElementSibling as HTMLElement;
-                                                                        if (placeholder) {
-                                                                            placeholder.style.display = 'flex';
-                                                                        }
-                                                                    }}
-                                                                />
-                                                                <div
-                                                                    className="hidden w-full h-full bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-gray-700 dark:to-gray-800 rounded-lg items-center justify-center"
-                                                                    style={{display: 'none'}}
-                                                                >
-                                                                    <svg className="w-8 h-8 text-gray-400" fill="none"
-                                                                         stroke="currentColor"
-                                                                         viewBox="0 0 24 24"
-                                                                         xmlns="http://www.w3.org/2000/svg">
-                                                                        <path strokeLinecap="round"
-                                                                              strokeLinejoin="round" strokeWidth="2"
-                                                                              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                                                                    </svg>
-                                                                </div>
-                                                            </div>
-                                                        ) : (
-                                                            <div className="md:w-32 h-20 flex-shrink-0">
-                                                                <div
-                                                                    className="w-full h-full bg-gradient-to-br from-blue-100 to-indigo-100 dark:from-gray-700 dark:to-gray-800 rounded-lg flex items-center justify-center">
-                                                                    <svg className="w-8 h-8 text-gray-400" fill="none"
-                                                                         stroke="currentColor"
-                                                                         viewBox="0 0 24 24"
-                                                                         xmlns="http://www.w3.org/2000/svg">
-                                                                        <path strokeLinecap="round"
-                                                                              strokeLinejoin="round" strokeWidth="2"
-                                                                              d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                                                                    </svg>
-                                                                </div>
-                                                            </div>
-                                                        )}
-                                                        <div className="flex-1 min-w-0">
-                                                            <h3 className="text-lg font-semibold text-gray-900 line-clamp-2">
-                                                                {article.title}
-                                                            </h3>
-                                                            <p className="text-gray-600 mt-2 text-sm line-clamp-2">
-                                                                {article.excerpt}
-                                                            </p>
-                                                            <div className="flex items-center mt-4 space-x-4">
-                                                                <div
-                                                                    className="flex items-center text-xs text-gray-500">
-                                                                    <svg className="w-4 h-4 mr-1" fill="none"
-                                                                         stroke="currentColor" viewBox="0 0 24 24"
-                                                                         xmlns="http://www.w3.org/2000/svg">
-                                                                        <path strokeLinecap="round"
-                                                                              strokeLinejoin="round" strokeWidth="2"
-                                                                              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
-                                                                        <path strokeLinecap="round"
-                                                                              strokeLinejoin="round" strokeWidth="2"
-                                                                              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path>
-                                                                    </svg>
-                                                                    {article.views} 次浏览
-                                                                </div>
-                                                                <div
-                                                                    className="flex items-center text-xs text-gray-500">
-                                                                    <svg className="w-4 h-4 mr-1" fill="none"
-                                                                         stroke="currentColor" viewBox="0 0 24 24"
-                                                                         xmlns="http://www.w3.org/2000/svg">
-                                                                        <path strokeLinecap="round"
-                                                                              strokeLinejoin="round" strokeWidth="2"
-                                                                              d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path>
-                                                                    </svg>
-                                                                    {article.likes} 个赞
-                                                                </div>
-                                                                <div className="text-xs text-gray-500">
-                                                                    {new Date(article.created_at).toLocaleDateString()}
-                                                                </div>
-                                                            </div>
-                                                            {article.tags && article.tags.length > 0 && (
-                                                                <div className="flex flex-wrap gap-2 mt-3">
-                                                                    {article.tags.map((tag, index) => (
-                                                                        <span
-                                                                            key={index}
-                                                                            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
-                                                                        >
-                                    #{tag}
-                                  </span>
-                                                                    ))}
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                </article>
-                                            </Link>
-                                        ))}
-                                    </div>
-                                ) : (
-                                    <div className="p-12 text-center">
-                                        <svg className="mx-auto h-12 w-12 text-gray-400" fill="none"
-                                             stroke="currentColor" viewBox="0 0 24 24"
-                                             xmlns="http://www.w3.org/2000/svg">
-                                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2"
-                                                  d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
-                                        </svg>
-                                        <h3 className="mt-2 text-sm font-medium text-gray-900">暂无文章</h3>
-                                        <p className="mt-1 text-sm text-gray-500">您还没有发布任何文章。</p>
-                                    </div>
-                                )}
+                                <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">文章</div>
+                            </div>
+                            <div className="text-center">
+                                <div className="text-3xl font-black text-gray-900 dark:text-white">
+                                    {userData.stats.followers_count}
+                                </div>
+                                <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">粉丝</div>
+                            </div>
+                            <div className="text-center">
+                                <div className="text-3xl font-black text-gray-900 dark:text-white">
+                                    {userData.stats.following_count}
+                                </div>
+                                <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">关注</div>
+                            </div>
+                            <div className="text-center">
+                                <div className="text-3xl font-black text-gray-900 dark:text-white">
+                                    {recentArticles.reduce((sum, article) => sum + (article.views || 0), 0)}
+                                </div>
+                                <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">总浏览</div>
                             </div>
                         </div>
+                    </motion.div>
+
+                    {/* 标签页导航 */}
+                    <div
+                        className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 mb-8">
+                        <div className="flex border-b border-gray-200 dark:border-gray-800">
+                            <button
+                                onClick={() => setActiveTab('articles')}
+                                className={`flex-1 px-6 py-4 font-medium transition-colors ${
+                                    activeTab === 'articles'
+                                        ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
+                                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                                }`}
+                            >
+                                <div className="flex items-center justify-center gap-2">
+                                    <FileText className="w-5 h-5"/>
+                                    <span>文章</span>
+                                    <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-800 rounded-full text-xs">
+                                        {recentArticles.length}
+                                    </span>
+                                </div>
+                            </button>
+                            <button
+                                onClick={() => setActiveTab('about')}
+                                className={`flex-1 px-6 py-4 font-medium transition-colors ${
+                                    activeTab === 'about'
+                                        ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400'
+                                        : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                                }`}
+                            >
+                                <div className="flex items-center justify-center gap-2">
+                                    <Users className="w-5 h-5"/>
+                                    <span>关于</span>
+                                </div>
+                            </button>
+                        </div>
                     </div>
+
+                    {/* 文章内容 */}
+                    {activeTab === 'articles' && (
+                        <motion.div
+                            variants={staggerContainer}
+                            initial="initial"
+                            animate="animate"
+                            className="space-y-4"
+                        >
+                            {recentArticles.length > 0 ? (
+                                recentArticles.map((article, index) => (
+                                    <motion.article
+                                        key={article.id}
+                                        variants={fadeInUp}
+                                        className="group bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 transition-all hover:shadow-lg cursor-pointer"
+                                        onClick={() => router.push(`/blog/detail?slug=${article.slug}`)}
+                                    >
+                                        <div className="p-6">
+                                            <div className="flex gap-6">
+                                                {/* 封面图 */}
+                                                {article.cover_image && (
+                                                    <div
+                                                        className="hidden sm:block relative w-40 h-28 flex-shrink-0 rounded-xl overflow-hidden">
+                                                        <Image
+                                                            src={article.cover_image}
+                                                            alt={article.title}
+                                                            fill
+                                                            className="object-cover group-hover:scale-105 transition-transform duration-500"
+                                                            sizes="160px"
+                                                        />
+                                                    </div>
+                                                )}
+
+                                                {/* 内容 */}
+                                                <div className="flex-1 min-w-0">
+                                                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                                                        {article.title}
+                                                    </h3>
+
+                                                    <p className="text-gray-600 dark:text-gray-400 text-sm mb-4 line-clamp-2">
+                                                        {article.excerpt || article.summary || '暂无摘要'}
+                                                    </p>
+
+                                                    {/* 元数据 */}
+                                                    <div
+                                                        className="flex flex-wrap items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+                                                        <span className="flex items-center gap-1.5">
+                                                            <Calendar className="w-4 h-4"/>
+                                                            {article.created_at ? new Date(article.created_at).toLocaleDateString('zh-CN') : ''}
+                                                        </span>
+                                                        <span className="flex items-center gap-1.5">
+                                                            <Eye className="w-4 h-4"/>
+                                                            {article.views || 0}
+                                                        </span>
+                                                        <span className="flex items-center gap-1.5">
+                                                            <Heart className="w-4 h-4"/>
+                                                            {article.likes || 0}
+                                                        </span>
+                                                    </div>
+
+                                                    {/* 标签 */}
+                                                    {article.tags && article.tags.length > 0 && (
+                                                        <div className="flex flex-wrap gap-2 mt-4">
+                                                            {article.tags.slice(0, 3).map((tag, tagIndex) => (
+                                                                <span
+                                                                    key={tagIndex}
+                                                                    className="px-3 py-1 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs font-medium rounded-full"
+                                                                >
+                                                                    #{tag}
+                                                                </span>
+                                                            ))}
+                                                            {article.tags.length > 3 && (
+                                                                <span
+                                                                    className="text-xs text-gray-400">+{article.tags.length - 3}</span>
+                                                            )}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </motion.article>
+                                ))
+                            ) : (
+                                <motion.div
+                                    variants={fadeInUp}
+                                    className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 p-12 text-center"
+                                >
+                                    <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4"/>
+                                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">暂无文章</h3>
+                                    <p className="text-gray-600 dark:text-gray-400 mb-6">开始创作你的第一篇文章吧</p>
+                                    <button
+                                        onClick={() => router.push('/my/posts/create')}
+                                        className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-colors"
+                                    >
+                                        <Edit3 className="w-5 h-5"/>
+                                        创建文章
+                                    </button>
+                                </motion.div>
+                            )}
+                        </motion.div>
+                    )}
+
+                    {/* 关于内容 */}
+                    {activeTab === 'about' && (
+                        <motion.div
+                            variants={fadeInUp}
+                            initial="initial"
+                            animate="animate"
+                            className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 p-8"
+                        >
+                            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">个人信息</h2>
+
+                            <div className="space-y-6">
+                                <div className="flex items-start gap-4">
+                                    <div
+                                        className="w-10 h-10 bg-blue-50 dark:bg-blue-900/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                                        <Mail className="w-5 h-5 text-blue-600 dark:text-blue-400"/>
+                                    </div>
+                                    <div className="flex-1">
+                                        <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">邮箱</div>
+                                        <div className="text-gray-900 dark:text-white">{user.email}</div>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-start gap-4">
+                                    <div
+                                        className="w-10 h-10 bg-purple-50 dark:bg-purple-900/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                                        <MapPin className="w-5 h-5 text-purple-600 dark:text-purple-400"/>
+                                    </div>
+                                    <div className="flex-1">
+                                        <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">位置</div>
+                                        <div className="text-gray-900 dark:text-white">{user.location || '未设置'}</div>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-start gap-4">
+                                    <div
+                                        className="w-10 h-10 bg-green-50 dark:bg-green-900/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                                        <LinkIcon className="w-5 h-5 text-green-600 dark:text-green-400"/>
+                                    </div>
+                                    <div className="flex-1">
+                                        <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">网站</div>
+                                        {user.website ? (
+                                            <a href={user.website} target="_blank" rel="noopener noreferrer"
+                                               className="text-blue-600 dark:text-blue-400 hover:underline">
+                                                {user.website}
+                                            </a>
+                                        ) : (
+                                            <div className="text-gray-900 dark:text-white">未设置</div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="flex items-start gap-4">
+                                    <div
+                                        className="w-10 h-10 bg-orange-50 dark:bg-orange-900/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                                        <Lock className="w-5 h-5 text-orange-600 dark:text-orange-400"/>
+                                    </div>
+                                    <div className="flex-1">
+                                        <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">隐私设置</div>
+                                        <div className="text-gray-900 dark:text-white">
+                                            {user.profile_private ? '私密账户' : '公开账户'}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </motion.div>
+                    )}
                 </div>
+
+                {/* 底部间距 */}
+                <div className="h-20"/>
             </div>
         </WithAuthProtection>
     );
 };
 
-export default UserProfilePage;
+export default ProfilePage;

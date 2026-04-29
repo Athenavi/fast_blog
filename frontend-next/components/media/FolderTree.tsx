@@ -570,14 +570,9 @@ const FolderTree: React.FC<FolderTreeProps> = ({
 
       {/* 文件夹列表 */}
       <div className="p-2">
-        {/* 根目录选项 - 也作为放置区域 */}
+        {/* 根目录选项 - 作为放置区域 */}
         <Droppable droppableId="folder-root" type="MEDIA" isDropDisabled={!onDropMedia}>
-          {(provided, snapshot) => {
-            // 调试日志
-            if (snapshot.isDraggingOver) {
-              console.log('📂 根目录正在被拖拽覆盖', 'droppableId: folder-root');
-            }
-            return (
+          {(provided, snapshot) => (
             <div
               ref={provided.innerRef}
               {...provided.droppableProps}
@@ -594,9 +589,9 @@ const FolderTree: React.FC<FolderTreeProps> = ({
                   ← 放置到这里
                 </span>
               )}
+              {provided.placeholder}
             </div>
-            );
-          }}
+          )}
         </Droppable>
 
         {/* 文件夹树 */}

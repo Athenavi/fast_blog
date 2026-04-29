@@ -1,7 +1,7 @@
 'use client';
 
 import React, {useState} from 'react';
-import {DragDropContext, Draggable, Droppable, DropResult} from '@hello-pangea/dnd';
+import {Draggable, Droppable, DropResult} from '@hello-pangea/dnd';
 import {MediaFile} from '@/lib/api';
 import {Card, CardContent} from '@/components/ui/card';
 import {Button} from '@/components/ui/button';
@@ -401,8 +401,7 @@ const MediaGrid: React.FC<MediaGridProps> = ({
 
   // 统一返回一个 Fragment，包含视图和所有对话框/菜单
   return (
-      <DragDropContext onDragEnd={onDragEnd || (() => {
-      })}>
+      <>
       {(viewMode as 'grid' | 'list') === 'grid' ? (
         // 网格视图
         <div className="p-6">
@@ -1046,7 +1045,7 @@ const MediaGrid: React.FC<MediaGridProps> = ({
           </div>
         </div>
       )}
-      </DragDropContext>
+      </>
   );
 };
 

@@ -1,744 +1,522 @@
 'use client';
 
 import React, {useEffect, useState} from 'react';
-import {motion} from 'framer-motion';
-import {ArrowRight, BookOpen, Calendar, ChevronRight, Eye, Flame, Heart, Search, Star, Tag} from 'lucide-react';
-import {Article, Category} from '@/lib/api';
-import {loadRuntimeConfig} from '@/lib/config';
-import ArticleCard from '../ArticleCard';
-import {useThemeBgColor, useThemeGradient, useThemeStyles, useThemeTextColor} from '@/hooks/useThemeStyles';
+import Link from 'next/link';
+import Image from 'next/image';
+import {motion, useScroll, useTransform} from 'framer-motion';
+import {
+    ArrowRight,
+    BookOpen,
+    TrendingUp,
+    Clock,
+    Search,
+    ChevronRight,
+    Sparkles,
+    Zap,
+    Users,
+    FileText
+} from 'lucide-react';
+import {ArticleService} from '@/lib/api';
+import type {Article, Category} from '@/lib/api/base-types';
 
-// 类型定义
-interface HomePageData {
-    featuredArticles: Article[];
-    recentArticles: Article[];
-    popularArticles: Article[];
-    categories: Category[];
-    stats: {
-        totalArticles: number;
-        totalUsers: number;
-        totalViews: number;
-    };
-}
+// 动画配置
+const fadeInUp = {
+    initial: {opacity: 0, y: 20},
+    animate: {opacity: 1, y: 0},
+    transition: {duration: 0.5}
+};
 
-interface HomePageConfig {
-    hero: {
-        title: string;
-        subtitle: string;
-        backgroundImage: string;
-        ctaText: string;
-        ctaLink: string;
-    };
-    sections: {
-        featuredTitle: string;
-        recentTitle: string;
-        popularTitle: string;
-        categoriesTitle: string;
-    };
-}
+const staggerContainer = {
+    animate: {
+        transition: {
+            staggerChildren: 0.1
+        }
+    }
+};
 
-// 加载状态组件 - 更现代的骨架屏
-const LoadingSkeleton = () => (
-    <div className="animate-pulse">
-        {/* Hero 区域骨架 */}
-        <div
-            className="h-[85vh] bg-gradient-to-br from-gray-200 to-gray-300 dark:from-gray-700 dark:to-gray-800 relative overflow-hidden">
-            <div
-                className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer"/>
-        </div>
-
-        {/* 文章列表骨架 */}
-        <div className="py-20">
-            <div className="container mx-auto px-4">
-                <div className="h-10 w-64 bg-gray-200 dark:bg-gray-700 rounded-lg mx-auto mb-12"/>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {[1, 2, 3, 4, 5, 6].map(i => (
-                        <div key={i} className="bg-white dark:bg-gray-800 rounded-2xl overflow-hidden shadow-lg">
-                            <div className="h-56 bg-gray-200 dark:bg-gray-700"/>
-                            <div className="p-6">
-                                <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded mb-3"/>
-                                <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded mb-2"/>
-                                <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-3/4"/>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            </div>
-        </div>
-    </div>
-);
-
-// CSS for shimmer animation (需要在 globals.css 中添加)
-const shimmerStyles = `
-@keyframes shimmer {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(100%); }
-}
-.animate-shimmer {
-    animation: shimmer 2s infinite;
-}
-`;
-
-// 错误状态组件 - 更友好的设计
-const ErrorDisplay = ({message, retryAction}: { message: string; retryAction: () => void }) => (
-    <div
-        className="min-h-screen flex items-center justify-center bg-gradient-to-br from-red-50 to-orange-50 dark:from-gray-900 dark:to-gray-800">
-        <motion.div
-            initial={{opacity: 0, scale: 0.9}}
-            animate={{opacity: 1, scale: 1}}
-            className="text-center max-w-md mx-auto px-4"
-        >
-            <div
-                className="w-24 h-24 mx-auto mb-6 rounded-full bg-gradient-to-br from-red-500 to-orange-500 flex items-center justify-center shadow-2xl">
-                <span className="text-5xl">⚠️</span>
-            </div>
-            <h2 className="text-3xl font-black text-gray-900 dark:text-white mb-4">
-                加载失败
-            </h2>
-            <p className="text-gray-600 dark:text-gray-400 mb-8 text-lg">
-                {message}
-            </p>
-            <button
-                onClick={retryAction}
-                className="px-8 py-4 bg-gradient-to-r from-blue-600 to-purple-600 text-white font-bold rounded-xl hover:shadow-2xl transition-all hover:scale-105"
-            >
-                重新加载
-            </button>
-        </motion.div>
-    </div>
-);
-
-// 英雄区域组件 - 更现代的设计
-const HeroSection = ({config, stats}: { config: HomePageConfig['hero']; stats?: HomePageData['stats'] }) => {
+// Hero Section - 极简大气
+const HeroSection = () => {
     const [searchQuery, setSearchQuery] = useState('');
-
-    // 使用主题样式
-    const heroGradient = useThemeGradient('primary', 'accent');
-    const textColor = useThemeTextColor('primary');
-    const bgStyles = useThemeBgColor('background');
-    const themeStyles = useThemeStyles();
 
     return (
         <section
-            className="relative min-h-[85vh] flex items-center overflow-hidden"
-            style={heroGradient}
-        >
-            {/* 动态网格背景 */}
-            <div className="absolute inset-0 opacity-20">
-                <div className="absolute inset-0" style={{
-                    backgroundImage: `linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
-                                     linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)`,
-                    backgroundSize: '50px 50px'
-                }}/>
-            </div>
+            className="relative min-h-screen flex items-center justify-center overflow-hidden bg-white dark:bg-gray-950">
+            {/* 背景渐变 */}
+            <div
+                className="absolute inset-0 bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950"/>
 
-            {/* 浮动光斑 */}
-            <div className="absolute inset-0 overflow-hidden">
+            {/* 网格背景 */}
+            <div
+                className="absolute inset-0 opacity-[0.03] dark:opacity-[0.05]"
+                style={{
+                    backgroundImage: `radial-gradient(circle at 1px 1px, currentColor 1px, transparent 0)`,
+                    backgroundSize: '40px 40px'
+                }}
+            />
+
+            {/* 浮动光晕 */}
+            <motion.div
+                animate={{
+                    scale: [1, 1.2, 1],
+                    opacity: [0.3, 0.5, 0.3],
+                }}
+                transition={{duration: 8, repeat: Infinity}}
+                className="absolute top-1/4 left-1/4 w-96 h-96 bg-blue-400/20 rounded-full blur-3xl"
+            />
+            <motion.div
+                animate={{
+                    scale: [1, 1.3, 1],
+                    opacity: [0.2, 0.4, 0.2],
+                }}
+                transition={{duration: 10, repeat: Infinity, delay: 2}}
+                className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-purple-400/20 rounded-full blur-3xl"
+            />
+
+            {/* 内容 */}
+            <div className="relative z-10 max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
                 <motion.div
-                    animate={{
-                        x: [0, 100, 0],
-                        y: [0, -50, 0],
-                    }}
-                    transition={{duration: 20, repeat: Infinity, ease: "linear"}}
-                    className="absolute top-20 left-10 w-72 h-72 bg-white/10 rounded-full blur-3xl"
-                />
+                    initial={{opacity: 0, y: 30}}
+                    animate={{opacity: 1, y: 0}}
+                    transition={{duration: 0.8}}
+                    className="mb-8"
+                >
+                    <div
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-blue-50 dark:bg-blue-900/20 rounded-full mb-6">
+                        <Sparkles className="w-4 h-4 text-blue-600 dark:text-blue-400"/>
+                        <span className="text-sm font-medium text-blue-600 dark:text-blue-400">
+                            发现精彩内容
+                        </span>
+                    </div>
+
+                    <h1 className="text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black text-gray-900 dark:text-white tracking-tight leading-none mb-6">
+                        探索知识
+                        <br/>
+                        <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+                            分享智慧
+                        </span>
+                    </h1>
+
+                    <p className="text-lg sm:text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto mb-12">
+                        在这里，每一篇文章都是一次思想的碰撞，每一次阅读都是一场心灵的旅行
+                    </p>
+                </motion.div>
+
+                {/* 搜索框 */}
                 <motion.div
-                    animate={{
-                        x: [0, -100, 0],
-                        y: [0, 50, 0],
-                    }}
-                    transition={{duration: 25, repeat: Infinity, ease: "linear"}}
-                    className="absolute bottom-20 right-10 w-96 h-96 bg-yellow-500/10 rounded-full blur-3xl"
-                />
-            </div>
-
-            {/* 内容区域 */}
-            <div className="relative z-10 container mx-auto px-4 sm:px-6 lg:px-8 py-20">
-                <div className="max-w-5xl mx-auto text-center">
-                    {/* 主标题 */}
-                    <motion.div
-                        initial={{opacity: 0, y: 30}}
-                        animate={{opacity: 1, y: 0}}
-                        transition={{duration: 0.8}}
-                    >
-                        <h1 className="text-6xl md:text-8xl lg:text-9xl font-black mb-6 tracking-tight drop-shadow-2xl"
-                            style={{...textColor, color: 'white'}}>
-                            FastBlog
-                        </h1>
-                    </motion.div>
-
-                    {/* 副标题徽章 */}
-                    <motion.div
-                        initial={{scale: 0.9, opacity: 0}}
-                        animate={{scale: 1, opacity: 1}}
-                        transition={{delay: 0.3}}
-                        className="inline-block px-8 py-4 backdrop-blur-xl rounded-2xl mb-8 border shadow-2xl"
-                        style={{
-                            backgroundColor: 'rgba(255, 255, 255, 0.1)',
-                            borderColor: 'rgba(255, 255, 255, 0.2)',
-                        }}
-                    >
-                        <p className="text-xl md:text-2xl font-light" style={{color: 'rgba(255, 255, 255, 0.9)'}}>
-                            {config.subtitle}
-                        </p>
-                    </motion.div>
-
-                    {/* 搜索框 */}
-                    <motion.div
-                        initial={{opacity: 0, y: 20}}
-                        animate={{opacity: 1, y: 0}}
-                        transition={{delay: 0.6}}
-                        className="max-w-3xl mx-auto mb-12"
-                    >
-                        <div className="relative group">
-                            <input
-                                type="text"
-                                value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
-                                placeholder="搜索文章、话题或作者..."
-                                className="w-full px-8 py-5 pl-14 rounded-2xl bg-white/95 backdrop-blur-sm text-gray-800 placeholder-gray-500 shadow-2xl focus:outline-none focus:ring-4 focus:ring-white/30 transition-all text-lg"
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter' && searchQuery.trim()) {
-                                        window.location.href = `/search?q=${encodeURIComponent(searchQuery)}`;
-                                    }
-                                }}
-                            />
-                            <Search
-                                className="absolute left-6 top-1/2 transform -translate-y-1/2 w-6 h-6 text-gray-400 group-focus-within:text-blue-600 transition-colors"/>
-                            <button
-                                onClick={() => searchQuery.trim() && (window.location.href = `/search?q=${encodeURIComponent(searchQuery)}`)}
-                                className="absolute right-3 top-1/2 transform -translate-y-1/2 px-6 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl font-medium hover:shadow-lg transition-all"
-                            >
-                                搜索
-                            </button>
+                    initial={{opacity: 0, y: 20}}
+                    animate={{opacity: 1, y: 0}}
+                    transition={{delay: 0.3}}
+                    className="max-w-2xl mx-auto mb-12"
+                >
+                    <div className="relative group">
+                        <Search
+                            className="absolute left-5 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 group-focus-within:text-blue-600 transition-colors"/>
+                        <input
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            placeholder="搜索文章、话题或作者..."
+                            className="w-full pl-14 pr-6 py-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent shadow-lg hover:shadow-xl transition-all text-lg"
+                        />
+                        <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                            <kbd
+                                className="hidden sm:inline-block px-3 py-1.5 text-xs font-semibold text-gray-500 bg-gray-100 dark:bg-gray-800 dark:text-gray-400 rounded-lg border border-gray-200 dark:border-gray-700">
+                                ⌘K
+                            </kbd>
                         </div>
-                    </motion.div>
+                    </div>
+                </motion.div>
 
-                    {/* CTA 按钮组 */}
-                    <motion.div
-                        initial={{opacity: 0, y: 20}}
-                        animate={{opacity: 1, y: 0}}
-                        transition={{delay: 0.8}}
-                        className="flex flex-wrap gap-4 justify-center"
+                {/* CTA 按钮 */}
+                <motion.div
+                    initial={{opacity: 0}}
+                    animate={{opacity: 1}}
+                    transition={{delay: 0.5}}
+                    className="flex flex-col sm:flex-row items-center justify-center gap-4"
+                >
+                    <Link
+                        href="/blog"
+                        className="group inline-flex items-center gap-2 px-8 py-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-semibold rounded-xl hover:bg-gray-800 dark:hover:bg-gray-100 transition-all hover:scale-105"
                     >
-                        <a
-                            href="/articles"
-                            className="group inline-flex items-center gap-3 px-10 py-5 bg-white text-blue-600 font-bold rounded-2xl hover:bg-gray-50 transition-all shadow-2xl hover:shadow-white/50 hover:scale-105"
-                        >
-                            <BookOpen className="w-6 h-6"/>
-                            <span>{config.ctaText}</span>
-                            <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform"/>
-                        </a>
-                        <a
-                            href="/register"
-                            className="group inline-flex items-center gap-3 px-10 py-5 bg-white/10 backdrop-blur-sm text-white font-bold rounded-2xl border-2 border-white/50 hover:bg-white/20 transition-all hover:scale-105"
-                        >
-                            <Star className="w-6 h-6"/>
-                            <span>立即加入</span>
-                        </a>
-                    </motion.div>
+                        开始阅读
+                        <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform"/>
+                    </Link>
 
-                    {/* 统计信息 */}
-                    {stats && (
-                        <motion.div
-                            initial={{opacity: 0, y: 20}}
-                            animate={{opacity: 1, y: 0}}
-                            transition={{delay: 1}}
-                            className="grid grid-cols-3 gap-8 mt-16 max-w-3xl mx-auto"
-                        >
-                            <div className="text-center">
-                                <div className="text-4xl md:text-5xl font-black text-white mb-2">
-                                    {stats.totalArticles.toLocaleString()}
-                                </div>
-                                <div className="text-white/80 font-medium">篇文章</div>
-                            </div>
-                            <div className="text-center">
-                                <div className="text-4xl md:text-5xl font-black text-white mb-2">
-                                    {stats.totalUsers.toLocaleString()}
-                                </div>
-                                <div className="text-white/80 font-medium">位用户</div>
-                            </div>
-                            <div className="text-center">
-                                <div className="text-4xl md:text-5xl font-black text-white mb-2">
-                                    {stats.totalViews.toLocaleString()}
-                                </div>
-                                <div className="text-white/80 font-medium">次浏览</div>
-                            </div>
-                        </motion.div>
-                    )}
-                </div>
+                    <Link
+                        href="/categories"
+                        className="inline-flex items-center gap-2 px-8 py-4 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white font-semibold rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-all"
+                    >
+                        浏览分类
+                    </Link>
+                </motion.div>
             </div>
 
-            {/* 滚动指示器 */}
+            {/* 滚动提示 */}
             <motion.div
                 initial={{opacity: 0}}
                 animate={{opacity: 1}}
-                transition={{delay: 1.2}}
-                className="absolute bottom-8 left-1/2 transform -translate-x-1/2"
+                transition={{delay: 1}}
+                className="absolute bottom-8 left-1/2 -translate-x-1/2"
             >
                 <motion.div
                     animate={{y: [0, 10, 0]}}
                     transition={{duration: 2, repeat: Infinity}}
-                    className="w-8 h-12 border-2 border-white/50 rounded-full flex justify-center p-2"
+                    className="w-6 h-10 border-2 border-gray-400 dark:border-gray-600 rounded-full flex justify-center pt-2"
                 >
-                    <div className="w-1.5 h-3 bg-white/80 rounded-full"></div>
+                    <motion.div className="w-1 h-2 bg-gray-400 dark:bg-gray-600 rounded-full"/>
                 </motion.div>
             </motion.div>
         </section>
     );
 };
 
-// 最新文章区域 - 使用卡片网格布局
-const RecentArticlesSection = ({
-                                   articles,
-                                   title
-                               }: {
-    articles: Article[];
-    title: string;
-}) => (
-    <section className="py-20 bg-white dark:bg-gray-900">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <motion.div
-                initial={{opacity: 0, y: 20}}
-                whileInView={{opacity: 1, y: 0}}
-                viewport={{once: true}}
-                className="text-center mb-16"
-            >
-                <div className="inline-flex items-center gap-3 mb-4">
-                    <div className="p-3 rounded-xl bg-gradient-to-r from-blue-500 to-cyan-500">
-                        <BookOpen className="w-6 h-6 text-white"/>
-                    </div>
-                    <h2 className="text-4xl font-black text-gray-900 dark:text-white">
-                        {title}
-                    </h2>
-                </div>
-                <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-                    探索最新发布的优质内容
-                </p>
-            </motion.div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                {articles.slice(0, 6).map((article, index) => (
-                    <motion.div
-                        key={article.id}
-                        initial={{opacity: 0, y: 30}}
-                        whileInView={{opacity: 1, y: 0}}
-                        transition={{delay: index * 0.1}}
-                        viewport={{once: true}}
-                    >
-                        <ArticleCard
-                            article={article}
-                            categoryName={article.category_name && article.category_name !== '未分类' ? article.category_name : ''}
-                            authorName={article.author?.username || '匿名'}
-                            variant="modern"
+// 特色文章卡片
+const FeaturedArticleCard: React.FC<{ article: Article; index: number }> = ({article, index}) => {
+    return (
+        <motion.article
+            variants={fadeInUp}
+            className="group relative bg-white dark:bg-gray-900 rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 transition-all hover:shadow-xl"
+        >
+            <Link href={`/blog/detail?slug=${article.slug}`} className="block">
+                {/* 封面图 */}
+                {article.cover_image && (
+                    <div className="relative aspect-video overflow-hidden">
+                        <Image
+                            src={article.cover_image}
+                            alt={article.title}
+                            fill
+                            className="object-cover group-hover:scale-105 transition-transform duration-500"
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                         />
-                    </motion.div>
-                ))}
-            </div>
-
-            <motion.div
-                initial={{opacity: 0, y: 20}}
-                whileInView={{opacity: 1, y: 0}}
-                viewport={{once: true}}
-                className="text-center mt-16"
-            >
-                <a
-                    href="/articles"
-                    className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-blue-600 to-cyan-600 text-white font-bold rounded-xl hover:shadow-2xl transition-all duration-300 hover:scale-105"
-                >
-                    查看更多文章
-                    <ChevronRight className="w-5 h-5"/>
-                </a>
-            </motion.div>
-        </div>
-    </section>
-);
-// 热门文章区域 - 列表式布局
-const PopularArticlesSection = ({
-                                    articles,
-                                    title
-                                }: {
-    articles: Article[];
-    title: string;
-}) => (
-    <section className="py-20 bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-800 dark:to-gray-900">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <motion.div
-                initial={{opacity: 0, y: 20}}
-                whileInView={{opacity: 1, y: 0}}
-                viewport={{once: true}}
-                className="text-center mb-16"
-            >
-                <div className="inline-flex items-center gap-3 mb-4">
-                    <div className="p-3 rounded-xl bg-gradient-to-r from-orange-500 to-red-500">
-                        <Flame className="w-6 h-6 text-white"/>
-                    </div>
-                    <h2 className="text-4xl font-black text-gray-900 dark:text-white">
-                        {title}
-                    </h2>
-                </div>
-                <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-                    社区最受欢迎的精选内容
-                </p>
-            </motion.div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-6xl mx-auto">
-                {articles.slice(0, 6).map((article, index) => (
-                    <motion.a
-                        key={article.id}
-                        href={`/blog/detail?slug=${article.slug}`}
-                        initial={{opacity: 0, x: -20}}
-                        whileInView={{opacity: 1, x: 0}}
-                        transition={{delay: index * 0.1}}
-                        viewport={{once: true}}
-                        className="group flex gap-6 p-6 bg-white dark:bg-gray-800 rounded-2xl shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100 dark:border-gray-700 hover:border-orange-200 dark:hover:border-orange-800 overflow-hidden relative"
-                    >
-                        {/* 排名徽章 */}
-                        <div className="flex-shrink-0">
-                            <div
-                                className={`w-14 h-14 rounded-full flex items-center justify-center font-black text-xl ${
-                                    index === 0 ? 'bg-gradient-to-r from-yellow-400 to-yellow-500 text-white' :
-                                        index === 1 ? 'bg-gradient-to-r from-gray-300 to-gray-400 text-white' :
-                                            index === 2 ? 'bg-gradient-to-r from-amber-600 to-amber-700 text-white' :
-                                                'bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-600 text-gray-600 dark:text-gray-300'
-                                }`}>
-                                #{index + 1}
-                            </div>
-                        </div>
-
-                        {/* 内容 */}
-                        <div className="flex-grow min-w-0">
-                            <div className="flex items-center gap-3 mb-2 text-sm">
-                                {article.category_name && article.category_name !== '未分类' && (
-                                    <span
-                                        className="px-3 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full font-medium">
-                                        {article.category_name}
-                                    </span>
-                                )}
-                                <div className="flex items-center gap-1 text-gray-500 dark:text-gray-400">
-                                    <Eye className="w-4 h-4"/>
-                                    <span>{(article.views || 0).toLocaleString()} 次浏览</span>
-                                </div>
-                            </div>
-
-                            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-orange-600 dark:group-hover:text-orange-400 transition-colors line-clamp-2">
-                                {article.title}
-                            </h3>
-
-                            <p className="text-gray-600 dark:text-gray-400 mb-4 line-clamp-2">
-                                {article.excerpt || article.summary || '暂无摘要'}
-                            </p>
-
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                                    <Calendar className="w-4 h-4"/>
-                                    <span>{new Date(article.created_at || '').toLocaleDateString('zh-CN')}</span>
-                                </div>
-                                <div
-                                    className="flex items-center gap-1 text-orange-500 dark:text-orange-400 font-medium">
-                                    <span>阅读更多</span>
-                                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform"/>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* 悬停效果 */}
                         <div
-                            className="absolute inset-0 bg-gradient-to-r from-orange-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"/>
-                    </motion.a>
-                ))}
-            </div>
-        </div>
-    </section>
-);
-
-// 分类导航区域 - 现代化卡片设计
-const CategoriesSection = ({
-                               categories,
-                               title
-                           }: {
-    categories: Category[];
-    title: string;
-}) => (
-    <section className="py-20 bg-white dark:bg-gray-900">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <motion.div
-                initial={{opacity: 0, y: 20}}
-                whileInView={{opacity: 1, y: 0}}
-                viewport={{once: true}}
-                className="text-center mb-16"
-            >
-                <div className="inline-flex items-center gap-3 mb-4">
-                    <div className="p-3 rounded-xl bg-gradient-to-r from-purple-500 to-pink-500">
-                        <Tag className="w-6 h-6 text-white"/>
+                            className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"/>
                     </div>
-                    <h2 className="text-4xl font-black text-gray-900 dark:text-white">
-                        {title}
-                    </h2>
-                </div>
-                <p className="text-xl text-gray-600 dark:text-gray-400 max-w-2xl mx-auto">
-                    按主题探索精彩内容
-                </p>
-            </motion.div>
+                )}
 
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 max-w-6xl mx-auto">
-                {categories.slice(0, 8).map((category, index) => (
-                    <motion.a
-                        key={category.id}
-                        href={`/category/detail?name=${category.name}`}
-                        initial={{opacity: 0, scale: 0.9}}
-                        whileInView={{opacity: 1, scale: 1}}
-                        transition={{delay: index * 0.1}}
-                        viewport={{once: true}}
-                        className="group relative overflow-hidden bg-gradient-to-br from-white to-gray-50 dark:from-gray-800 dark:to-gray-700 rounded-2xl p-8 shadow-lg hover:shadow-2xl transition-all duration-300 border border-gray-100 dark:border-gray-700 hover:border-purple-300 dark:hover:border-purple-600"
-                    >
-                        {/* 背景装饰 */}
-                        <div
-                            className="absolute -right-4 -top-4 w-24 h-24 bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-full blur-2xl group-hover:from-purple-500/20 group-hover:to-pink-500/20 transition-all"/>
-
-                        <div className="relative">
-                            {/* 图标 */}
-                            <div
-                                className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center group-hover:scale-110 group-hover:rotate-6 transition-all duration-300 shadow-lg">
-                                <BookOpen className="w-8 h-8 text-white"/>
-                            </div>
-
-                            {/* 标题 */}
-                            <h3 className="text-lg font-bold text-gray-900 dark:text-white text-center mb-2 group-hover:text-purple-600 dark:group-hover:text-purple-400 transition-colors">
-                                {category.name}
-                            </h3>
-
-                            {/* 描述 */}
-                            <p className="text-sm text-gray-600 dark:text-gray-400 text-center line-clamp-2 mb-4">
-                                {category.description || '探索这个分类下的所有文章'}
-                            </p>
-
-                            {/* 查看链接 */}
-                            <div
-                                className="flex items-center justify-center gap-2 text-purple-600 dark:text-purple-400 font-medium opacity-0 group-hover:opacity-100 transition-opacity">
-                                <span>查看详情</span>
-                                <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform"/>
-                            </div>
+                {/* 内容 */}
+                <div className="p-6">
+                    {/* 标签 */}
+                    {article.tags && article.tags.length > 0 && (
+                        <div className="flex items-center gap-2 mb-3">
+                            <span
+                                className="px-3 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-xs font-medium rounded-full">
+                                {article.tags[0]}
+                            </span>
                         </div>
-                    </motion.a>
-                ))}
+                    )}
+
+                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-3 line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                        {article.title}
+                    </h3>
+
+                    <p className="text-gray-600 dark:text-gray-400 text-sm mb-4 line-clamp-2">
+                        {article.excerpt || article.summary || '暂无摘要'}
+                    </p>
+
+                    {/* 元数据 */}
+                    <div className="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
+                        <div className="flex items-center gap-4">
+                            <span className="flex items-center gap-1">
+                                <Clock className="w-4 h-4"/>
+                                {article.created_at ? new Date(article.created_at).toLocaleDateString('zh-CN') : ''}
+                            </span>
+                            <span className="flex items-center gap-1">
+                                <FileText className="w-4 h-4"/>
+                                {Math.ceil((article.content?.length || 0) / 300)} 分钟
+                            </span>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                            <span className="flex items-center gap-1">
+                                <TrendingUp className="w-4 h-4"/>
+                                {article.views || 0}
+                            </span>
+                            <span className="flex items-center gap-1">
+                                <Zap className="w-4 h-4"/>
+                                {article.likes || 0}
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </Link>
+        </motion.article>
+    );
+};
+
+// 最新文章列表项
+const RecentArticleItem: React.FC<{ article: Article; index: number }> = ({article, index}) => {
+    return (
+        <motion.div
+            variants={fadeInUp}
+            className="group flex gap-6 p-6 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 transition-all hover:shadow-lg cursor-pointer"
+            onClick={() => window.location.href = `/blog/detail?slug=${article.slug}`}
+        >
+            {/* 序号 */}
+            <div
+                className="hidden sm:flex items-center justify-center w-12 h-12 bg-gray-100 dark:bg-gray-800 rounded-xl font-bold text-gray-400 dark:text-gray-600">
+                {String(index + 1).padStart(2, '0')}
             </div>
 
-            <motion.div
-                initial={{opacity: 0, y: 20}}
-                whileInView={{opacity: 1, y: 0}}
-                viewport={{once: true}}
-                className="text-center mt-16"
-            >
-                <a
-                    href="/categories"
-                    className="inline-flex items-center gap-3 px-8 py-4 bg-gradient-to-r from-purple-600 to-pink-600 text-white font-bold rounded-xl hover:shadow-2xl transition-all duration-300 hover:scale-105"
-                >
-                    浏览所有分类
-                    <ChevronRight className="w-5 h-5"/>
-                </a>
-            </motion.div>
-        </div>
-    </section>
-);
+            {/* 封面图 */}
+            {article.cover_image && (
+                <div className="relative w-32 h-24 flex-shrink-0 rounded-xl overflow-hidden">
+                    <Image
+                        src={article.cover_image}
+                        alt={article.title}
+                        fill
+                        className="object-cover group-hover:scale-105 transition-transform duration-500"
+                        sizes="128px"
+                    />
+                </div>
+            )}
 
+            {/* 内容 */}
+            <div className="flex-1 min-w-0">
+                <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2 line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                    {article.title}
+                </h3>
 
-// 主组件
-export const ModernHomePage = () => {
-    const [data, setData] = useState<HomePageData | null>(null);
-    const [config, setConfig] = useState<HomePageConfig | null>(null);
+                <p className="text-gray-600 dark:text-gray-400 text-sm mb-3 line-clamp-1">
+                    {article.excerpt || article.summary || '暂无摘要'}
+                </p>
+
+                <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+                    <span>{article.created_at ? new Date(article.created_at).toLocaleDateString('zh-CN') : ''}</span>
+                    <span>·</span>
+                    <span className="flex items-center gap-1">
+                        <TrendingUp className="w-4 h-4"/>
+                        {article.views || 0}
+                    </span>
+                </div>
+            </div>
+
+            <ChevronRight
+                className="hidden sm:block w-5 h-5 text-gray-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all"/>
+        </motion.div>
+    );
+};
+
+// 分类卡片
+const CategoryCard: React.FC<{ category: Category; index: number }> = ({category, index}) => {
+    const colors = [
+        'from-blue-500 to-cyan-500',
+        'from-purple-500 to-pink-500',
+        'from-green-500 to-emerald-500',
+        'from-orange-500 to-red-500',
+        'from-indigo-500 to-purple-500',
+        'from-teal-500 to-blue-500',
+    ];
+    const color = colors[index % colors.length];
+
+    return (
+        <motion.div
+            variants={fadeInUp}
+            whileHover={{scale: 1.05}}
+            className="group relative overflow-hidden rounded-2xl cursor-pointer"
+        >
+            <Link href={`/category/detail?name=${encodeURIComponent(category.name)}`} className="block">
+                <div className={`aspect-square bg-gradient-to-br ${color} p-6 flex flex-col justify-between`}>
+                    <div>
+                        <h3 className="text-xl font-bold text-white mb-2">{category.name}</h3>
+                        <p className="text-white/80 text-sm line-clamp-2">
+                            {category.description || '探索更多精彩內容'}
+                        </p>
+                    </div>
+
+                    <div className="flex items-center justify-between">
+                        <span className="text-white/90 text-sm font-medium">
+                            {category.article_count || 0} 篇文章
+                        </span>
+                        <ArrowRight className="w-5 h-5 text-white group-hover:translate-x-1 transition-transform"/>
+                    </div>
+                </div>
+            </Link>
+        </motion.div>
+    );
+};
+
+// 主页面组件
+const ModernHomePage: React.FC = () => {
+    const [featuredArticles, setFeaturedArticles] = useState<Article[]>([]);
+    const [recentArticles, setRecentArticles] = useState<Article[]>([]);
+    const [categories, setCategories] = useState<Category[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
 
-    // 真实数据获取
     useEffect(() => {
-        const fetchData = async () => {
+        const loadData = async () => {
             try {
-                setLoading(true);
-                setError(null);
-
-                console.log('开始获取首页数据和配置...');
-
-                // 加载运行时配置
-                const config = await loadRuntimeConfig();
-                const baseUrl = config.API_BASE_URL;
-                const apiPrefix = config.API_PREFIX;
-
-                console.log('使用 API 配置:', {baseUrl, apiPrefix});
-
-                // 并行发起两个请求：数据和配置
-                const [dataResponse, configResponse] = await Promise.all([
-                    fetch(`${baseUrl}${apiPrefix}/home/data`),
-                    fetch(`${baseUrl}${apiPrefix}/home/config`)
-                ]);
-
-                const [dataResult, configResult] = await Promise.all([
-                    dataResponse.json(),
-                    configResponse.json()
-                ]);
-
-                console.log('数据API响应:', dataResult);
-                console.log('配置API响应:', configResult);
-
-                if (dataResult.success && configResult.success) {
-                    // 转换API数据格式，确保字段名匹配
-                    const apiData: HomePageData = {
-                        featuredArticles: (dataResult.data.featuredArticles || []).map((article: Record<string, unknown>) => ({
-                            ...article,
-                            cover_image: article.cover_image || article.coverImage || '',
-                            category_name: article.category_name || article.categoryName || undefined,
-                            created_at: article.created_at || article.createdAt || new Date().toISOString()
-                        })),
-                        recentArticles: (dataResult.data.recentArticles || []).map((article: Record<string, unknown>) => ({
-                            ...article,
-                            cover_image: article.cover_image || article.coverImage || '',
-                            category_name: article.category_name || article.categoryName || undefined,
-                            created_at: article.created_at || article.createdAt || new Date().toISOString()
-                        })),
-                        popularArticles: (dataResult.data.popularArticles || []).map((article: Record<string, unknown>) => ({
-                            ...article,
-                            cover_image: article.cover_image || article.coverImage || '',
-                            category_name: article.category_name || article.categoryName || undefined,
-                            created_at: article.created_at || article.createdAt || new Date().toISOString()
-                        })),
-                        categories: dataResult.data.categories || [],
-                        stats: dataResult.data.stats || {totalArticles: 0, totalUsers: 0, totalViews: 0}
-                    };
-
-                    // 使用后端返回的配置
-                    const apiConfig: HomePageConfig = {
-                        hero: {
-                            title: configResult.data.hero?.title || '欢迎来到 FastBlog',
-                            subtitle: configResult.data.hero?.subtitle || '发现精彩内容，连接智慧世界。这里有丰富的技术文章和生活分享，与您一同探索无限可能。',
-                            backgroundImage: configResult.data.hero?.backgroundImage || 'https://images.unsplash.com/photo-1499750310107-5fef28a66643?w=1920',
-                            ctaText: configResult.data.hero?.ctaText || '开始探索',
-                            ctaLink: configResult.data.hero?.ctaLink || '/articles'
-                        },
-                        sections: {
-                            featuredTitle: configResult.data.sections?.featuredTitle || '精选文章',
-                            recentTitle: configResult.data.sections?.recentTitle || '最新内容',
-                            popularTitle: configResult.data.sections?.popularTitle || '热门文章',
-                            categoriesTitle: configResult.data.sections?.categoriesTitle || '内容分类'
-                        }
-                    };
-
-                    console.log('处理后的配置数据:', apiConfig);
-
-                    setData(apiData);
-                    setConfig(apiConfig);
-
-                    console.log('数据和配置设置完成');
-                } else {
-                    const errorMessage = dataResult.error || configResult.error || '数据加载失败';
-                    console.error('API返回错误:', errorMessage);
-                    setError(errorMessage);
+                // 获取最新文章
+                const recentResponse = await ArticleService.getHomeArticles({page: 1, per_page: 6});
+                if (recentResponse.success && recentResponse.data) {
+                    setRecentArticles(recentResponse.data.data || []);
                 }
-            } catch (err) {
-                console.error('API调用失败:', err);
-                setError('网络错误，请稍后重试');
+
+                // 获取精选文章（前3篇）
+                const featuredResponse = await ArticleService.getHomeArticles({page: 1, per_page: 3});
+                if (featuredResponse.success && featuredResponse.data) {
+                    setFeaturedArticles(featuredResponse.data.data?.slice(0, 3) || []);
+                }
+
+                // 获取分类
+                // 这里假设有 CategoryService，实际需要根据你的 API 调整
+                // const categoryResponse = await CategoryService.getCategories({per_page: 6});
+                // if (categoryResponse.success && categoryResponse.data) {
+                //     setCategories(categoryResponse.data.categories || []);
+                // }
+            } catch (error) {
+                console.error('加载首页数据失败:', error);
             } finally {
                 setLoading(false);
             }
         };
 
-        fetchData();
+        loadData();
     }, []);
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
-                <LoadingSkeleton/>
-            </div>
-        );
-    }
-
-    if (error || !data || !config) {
-        return (
-            <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white dark:from-gray-900 dark:to-gray-800">
-                <ErrorDisplay
-                    message={error || '数据加载失败'}
-                    retryAction={() => window.location.reload()}
+            <div className="min-h-screen flex items-center justify-center bg-white dark:bg-gray-950">
+                <motion.div
+                    animate={{rotate: 360}}
+                    transition={{duration: 1, repeat: Infinity, ease: "linear"}}
+                    className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full"
                 />
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-            {/* 英雄区域 */}
-            <HeroSection config={config.hero} stats={data.stats}/>
+        <div className="bg-white dark:bg-gray-950">
+            {/* Hero Section */}
+            <HeroSection/>
 
-            {/* 最新文章 - 作为主要内容展示 */}
-            {data.recentArticles.length > 0 && (
-                <RecentArticlesSection
-                    articles={data.recentArticles}
-                    title={config.sections.recentTitle || '最新文章'}
-                />
-            )}
-
-            {/* 热门文章 */}
-            {data.popularArticles.length > 0 && (
-                <PopularArticlesSection
-                    articles={data.popularArticles}
-                    title={config.sections.popularTitle || '热门文章'}
-                />
-            )}
-
-            {/* 分类导航 */}
-            {data.categories.length > 0 && (
-                <CategoriesSection
-                    categories={data.categories}
-                    title={config.sections.categoriesTitle || '内容分类'}
-                />
-            )}
-
-            {/* CTA 区域 - 更现代的设计 */}
-            <section
-                className="py-24 bg-gradient-to-br from-indigo-600 via-purple-600 to-pink-500 relative overflow-hidden">
-                {/* 背景装饰 */}
-                <div className="absolute inset-0 opacity-20">
-                    <div className="absolute top-0 left-1/4 w-96 h-96 bg-white/10 rounded-full blur-3xl"/>
-                    <div className="absolute bottom-0 right-1/4 w-96 h-96 bg-yellow-500/10 rounded-full blur-3xl"/>
-                </div>
-
-                <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            {/* 精选文章 */}
+            {featuredArticles.length > 0 && (
+                <section className="py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
                     <motion.div
-                        initial={{opacity: 0, y: 30}}
+                        initial={{opacity: 0, y: 20}}
                         whileInView={{opacity: 1, y: 0}}
                         viewport={{once: true}}
-                        className="max-w-4xl mx-auto text-center"
+                        className="mb-12"
                     >
-                        <div
-                            className="w-20 h-20 mx-auto mb-8 rounded-2xl bg-white/20 backdrop-blur-xl flex items-center justify-center">
-                            <Heart className="w-10 h-10 text-white"/>
+                        <div className="flex items-center gap-2 mb-4">
+                            <Sparkles className="w-5 h-5 text-blue-600 dark:text-blue-400"/>
+                            <h2 className="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white">
+                                精选推荐
+                            </h2>
+                        </div>
+                        <p className="text-gray-600 dark:text-gray-400">编辑精心挑选的优质内容</p>
+                    </motion.div>
+
+                    <motion.div
+                        variants={staggerContainer}
+                        initial="initial"
+                        whileInView="animate"
+                        viewport={{once: true}}
+                        className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+                    >
+                        {featuredArticles.map((article, index) => (
+                            <FeaturedArticleCard key={article.id} article={article} index={index}/>
+                        ))}
+                    </motion.div>
+                </section>
+            )}
+
+            {/* 最新文章 */}
+            {recentArticles.length > 0 && (
+                <section className="py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+                    <motion.div
+                        initial={{opacity: 0, y: 20}}
+                        whileInView={{opacity: 1, y: 0}}
+                        viewport={{once: true}}
+                        className="mb-12"
+                    >
+                        <div className="flex items-center gap-2 mb-4">
+                            <Clock className="w-5 h-5 text-purple-600 dark:text-purple-400"/>
+                            <h2 className="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white">
+                                最新发布
+                            </h2>
+                        </div>
+                        <p className="text-gray-600 dark:text-gray-400">第一时间获取新鲜内容</p>
+                    </motion.div>
+
+                    <motion.div
+                        variants={staggerContainer}
+                        initial="initial"
+                        whileInView="animate"
+                        viewport={{once: true}}
+                        className="space-y-4"
+                    >
+                        {recentArticles.slice(0, 5).map((article, index) => (
+                            <RecentArticleItem key={article.id} article={article} index={index}/>
+                        ))}
+                    </motion.div>
+
+                    <motion.div
+                        initial={{opacity: 0}}
+                        whileInView={{opacity: 1}}
+                        viewport={{once: true}}
+                        className="mt-12 text-center"
+                    >
+                        <Link
+                            href="/blog"
+                            className="inline-flex items-center gap-2 px-8 py-4 bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-white font-semibold rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-all"
+                        >
+                            查看更多文章
+                            <ArrowRight className="w-5 h-5"/>
+                        </Link>
+                    </motion.div>
+                </section>
+            )}
+
+            {/* CTA Section */}
+            <section className="py-20 px-4 sm:px-6 lg:px-8">
+                <div className="max-w-5xl mx-auto">
+                    <motion.div
+                        initial={{opacity: 0, scale: 0.95}}
+                        whileInView={{opacity: 1, scale: 1}}
+                        viewport={{once: true}}
+                        className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-blue-600 to-purple-600 p-12 sm:p-16 text-center"
+                    >
+                        {/* 背景装饰 */}
+                        <div className="absolute inset-0 opacity-20">
+                            <div
+                                className="absolute top-0 left-0 w-64 h-64 bg-white rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"/>
+                            <div
+                                className="absolute bottom-0 right-0 w-64 h-64 bg-white rounded-full blur-3xl translate-x-1/2 translate-y-1/2"/>
                         </div>
 
-                        <h2 className="text-5xl md:text-6xl font-black text-white mb-6 leading-tight">
-                            准备好开始创作了吗？
-                        </h2>
-                        <p className="text-2xl text-white/90 mb-12 max-w-2xl mx-auto">
-                            加入 FastBlog 社区，与万千开发者分享你的技术见解和经验
-                        </p>
-                        <div className="flex flex-wrap gap-4 justify-center">
-                            <a
-                                href="/register"
-                                className="group inline-flex items-center gap-3 px-10 py-5 bg-white text-blue-600 font-bold rounded-2xl hover:bg-gray-50 transition-all shadow-2xl hover:shadow-white/50 hover:scale-105"
-                            >
-                                <Star className="w-6 h-6"/>
-                                <span>立即注册</span>
-                                <ArrowRight className="w-5 h-5 group-hover:translate-x-2 transition-transform"/>
-                            </a>
-                            <a
-                                href="/about"
-                                className="inline-flex items-center gap-3 px-10 py-5 bg-white/10 backdrop-blur-sm text-white font-bold rounded-2xl border-2 border-white/50 hover:bg-white/20 transition-all hover:scale-105"
-                            >
-                                <BookOpen className="w-6 h-6"/>
-                                <span>了解更多</span>
-                            </a>
+                        <div className="relative z-10">
+                            <h2 className="text-3xl sm:text-4xl md:text-5xl font-black text-white mb-6">
+                                准备好开始了吗？
+                            </h2>
+                            <p className="text-lg text-white/90 mb-8 max-w-2xl mx-auto">
+                                加入我们的社区，与志同道合的人一起分享知识、交流想法
+                            </p>
+
+                            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+                                <Link
+                                    href="/register"
+                                    className="px-8 py-4 bg-white text-blue-600 font-bold rounded-xl hover:bg-gray-100 transition-all hover:scale-105"
+                                >
+                                    立即注册
+                                </Link>
+                                <Link
+                                    href="/about"
+                                    className="px-8 py-4 bg-white/10 backdrop-blur-sm text-white font-semibold rounded-xl hover:bg-white/20 transition-all border border-white/20"
+                                >
+                                    了解更多
+                                </Link>
+                            </div>
                         </div>
                     </motion.div>
                 </div>
             </section>
+
+            {/* Footer Spacer */}
+            <div className="h-20"/>
         </div>
     );
 };
+
+export default ModernHomePage;

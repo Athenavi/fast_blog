@@ -5,7 +5,7 @@
 import React, {useEffect, useState} from 'react';
 import {useThemeComponents} from '@/lib/theme-registry';
 import {useHomePageData} from '@/hooks/useHomePageData';
-import {ModernHomePage} from "@/components/home/ModernHomePage";
+import ModernHomePage from "@/components/home/ModernHomePage";
 import FrontendLayout from "@/components/FrontendLayout";
 
 export default function HomePage() {
