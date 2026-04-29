@@ -48,7 +48,34 @@ const EditArticlePageContent = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
     const [showRevisionsSidebar, setShowRevisionsSidebar] = useState(false);
+    const [currentContent, setCurrentContent] = useState<string>('');
 
+    // 监听获取编辑器内容的事件
+    useEffect(() => {
+        const handleGetEditorContent = (e: CustomEvent) => {
+            console.log('收到getEditorContent事件，当前内容长度:', currentContent?.length);
+            if (e.detail?.callback && typeof e.detail.callback === 'function') {
+                console.log('调用回调函数...');
+                e.detail.callback(currentContent);
+            }
+        };
+
+        // 监听编辑器内容变化
+        const handleContentChanged = (e: CustomEvent) => {
+            console.log('收到editorContentChanged事件，新内容长度:', e.detail?.content?.length);
+            setCurrentContent(e.detail?.content || '');
+        };
+
+        window.addEventListener('getEditorContent', handleGetEditorContent as EventListener);
+        window.addEventListener('editorContentChanged', handleContentChanged as EventListener);
+        console.log('已注册getEditorContent和editorContentChanged监听器');
+        return () => {
+            window.removeEventListener('getEditorContent', handleGetEditorContent as EventListener);
+            window.removeEventListener('editorContentChanged', handleContentChanged as EventListener);
+            console.log('已移除监听器');
+        };
+    }, [currentContent]);
+      
   // 加载文章数据
   useEffect(() => {
     const fetchArticleData = async () => {
@@ -99,6 +126,10 @@ const EditArticlePageContent = () => {
           category_id: article.category_id ?? null
         });
 
+          // 初始化当前内容
+          setCurrentContent(content);
+          console.log('初始化currentContent，长度:', content?.length);
+
         setCategories(result.data.categories || []);
       } catch (err) {
         console.error('加载文章失败:', err);
@@ -113,6 +144,9 @@ const EditArticlePageContent = () => {
 
   // 处理表单提交
     const handleSubmit = async (formData: ArticleData, createRevision?: boolean) => {
+        // 更新当前内容
+        setCurrentContent(formData.content);
+        
     if (!articleId) {
       return { success: false, error: '文章 ID 未指定' };
     }
@@ -194,6 +228,10 @@ const EditArticlePageContent = () => {
                     is_featured: Boolean(article.is_featured),
                     category_id: article.category_id ?? null
                 });
+
+                // 更新当前内容
+                setCurrentContent(content);
+                console.log('回滚后更新currentContent，长度:', content?.length);
             }
         } catch (err) {
             console.error('刷新文章数据失败:', err);

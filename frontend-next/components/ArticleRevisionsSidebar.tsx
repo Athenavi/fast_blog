@@ -25,7 +25,8 @@ import {
     X,
     Save,
     Trash2,
-    Upload
+    Upload,
+    ChevronDown
 } from 'lucide-react';
 import {useToast} from '@/hooks/use-toast';
 import {apiClient} from '@/lib/api/base-client';
@@ -60,11 +61,59 @@ interface ComparisonResult {
     revision1: Revision;
     revision2: Revision;
     differences: {
-        field: string;
-        old_value: string;
-        new_value: string;
-    }[];
+        title_changed: boolean;
+        excerpt_changed: boolean;
+        content_changed: boolean;
+        cover_image_changed: boolean;
+        tags_changed: boolean;
+        category_changed: boolean;
+        status_changed: boolean;
+    };
 }
+
+// 差异对比组件
+interface DiffSectionProps {
+    label: string;
+    oldValue: string;
+    newValue: string;
+    isImage?: boolean;
+}
+
+const DiffSection: React.FC<DiffSectionProps> = ({label, oldValue, newValue, isImage = false}) => {
+    return (
+        <div className="border rounded-lg overflow-hidden">
+            <div className="bg-gray-100 dark:bg-gray-800 px-4 py-2 border-b">
+                <h4 className="font-semibold text-gray-900 dark:text-white">{label}</h4>
+            </div>
+            <div className="grid grid-cols-2 divide-x">
+                <div className="p-4 bg-red-50 dark:bg-red-950/20">
+                    <div className="text-xs font-semibold text-red-700 dark:text-red-400 mb-2">旧版本</div>
+                    {isImage ? (
+                        oldValue !== '无' ? (
+                            <img src={oldValue} alt="旧版本" className="max-w-full h-auto rounded"/>
+                        ) : (
+                            <p className="text-gray-400 text-sm">无</p>
+                        )
+                    ) : (
+                        <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{oldValue || '无'}</p>
+                    )}
+                </div>
+                <div className="p-4 bg-green-50 dark:bg-green-950/20">
+                    <div className="text-xs font-semibold text-green-700 dark:text-green-400 mb-2">新版本</div>
+                    {isImage ? (
+                        newValue !== '无' ? (
+                            <img src={newValue} alt="新版本" className="max-w-full h-auto rounded"/>
+                        ) : (
+                            <p className="text-gray-400 text-sm">无</p>
+                        )
+                    ) : (
+                        <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{newValue || '无'}</p>
+                    )}
+                </div>
+            </div>
+        </div>
+    );
+};
 
 interface ArticleRevisionsSidebarProps {
     articleId: number | null;
@@ -93,6 +142,9 @@ export default function ArticleRevisionsSidebar({
     const [revisionToRollback, setRevisionToRollback] = useState<Revision | null>(null);
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
     const [revisionToDelete, setRevisionToDelete] = useState<Revision | null>(null);
+
+    // 比较菜单状态
+    const [compareMenuOpen, setCompareMenuOpen] = useState<number | null>(null);
 
     // 本地草稿状态
     const [localDraft, setLocalDraft] = useState<LocalDraft | null>(null);
@@ -159,18 +211,160 @@ export default function ArticleRevisionsSidebar({
         }
     };
 
+    // 与当前编辑器内容比较
+    const handleCompareWithEditor = async (revision: Revision) => {
+        console.log('开始与编辑器比较...', revision.id);
+        try {
+            // 请求获取当前编辑器内容
+            const editorContent = await new Promise<string>((resolve) => {
+                const event = new CustomEvent('getEditorContent', {
+                    detail: {
+                        callback: (content: string) => {
+                            console.log('收到编辑器内容，长度:', content?.length);
+                            resolve(content);
+                        }
+                    }
+                });
+                window.dispatchEvent(event);
+                console.log('已发送getEditorContent事件');
+
+                // 超时处理
+                setTimeout(() => {
+                    console.log('获取编辑器内容超时');
+                    resolve('');
+                }, 1000);
+            });
+
+            if (!editorContent) {
+                toast({
+                    title: '无法获取编辑器内容',
+                    description: '请确保编辑器已加载',
+                    variant: 'destructive'
+                });
+                return;
+            }
+
+            console.log('设置比较结果...');
+
+            // 创建虚拟修订对象用于比较
+            const virtualRevision: Revision = {
+                ...revision,
+                id: -1,
+                revision_number: 0,
+                content: editorContent,
+                created_at: new Date().toISOString()
+            };
+
+            // 直接设置比较结果
+            setComparisonResult({
+                revision1: revision,
+                revision2: virtualRevision,
+                differences: {
+                    title_changed: false,
+                    excerpt_changed: false,
+                    content_changed: revision.content !== editorContent,
+                    cover_image_changed: false,
+                    tags_changed: false,
+                    category_changed: false,
+                    status_changed: false
+                }
+            });
+            setComparisonMode(true);
+            setCompareMenuOpen(null);
+            console.log('比较模式已开启');
+
+        } catch (error) {
+            console.error('比较失败:', error);
+            toast({
+                title: '比较失败',
+                description: '无法获取编辑器内容',
+                variant: 'destructive'
+            });
+        }
+    };
+
+    // 与指定版本比较
+    const handleCompareWithVersion = (revisionId: number) => {
+        console.log('🔵 与指定版本比较:', revisionId, '当前compareFrom:', compareFrom);
+
+        if (!compareFrom) {
+            // 第一次选择，设置为第一个版本
+            setCompareFrom(revisionId);
+            setCompareMenuOpen(null);
+            toast({
+                title: '✅ 已选择第一个版本',
+                description: `版本 #${revisions.find(r => r.id === revisionId)?.revision_number}，请选择第二个版本`,
+                duration: 3000
+            });
+        } else if (compareFrom === revisionId) {
+            // 选择了同一个版本，取消选择
+            setCompareFrom(null);
+            setCompareTo(null);
+            setCompareMenuOpen(null);
+            toast({
+                title: '已取消选择',
+                description: '请重新选择要比较的版本'
+            });
+        } else {
+            // 第二次选择，设置第二个版本并自动开始比较
+            setCompareTo(revisionId);
+            setCompareMenuOpen(null);
+            toast({
+                title: '✅ 已选择第二个版本',
+                description: '正在自动比较...',
+                duration: 2000
+            });
+            // 自动执行比较
+            setTimeout(() => {
+                performComparison(compareFrom, revisionId);
+            }, 500);
+        }
+    };
+
+    // 开始执行比较
+    const handleStartComparison = () => {
+        console.log('🔵 点击开始比较按钮', 'compareFrom:', compareFrom, 'compareTo:', compareTo);
+
+        if (!compareFrom || !compareTo) {
+            console.log('❌ 缺少版本选择');
+            toast({
+                title: '⚠️ 提示',
+                description: '请先选择两个版本',
+                variant: 'destructive'
+            });
+            return;
+        }
+
+        console.log('✅ 开始执行比较...', compareFrom, compareTo);
+        toast({
+            title: '🔄 正在比较...',
+            description: '正在加载比较结果'
+        });
+        performComparison(compareFrom, compareTo);
+    };
+
     // 执行版本比较
     const performComparison = async (rev1Id: number, rev2Id: number) => {
+        console.log('🔵 performComparison被调用', 'rev1Id:', rev1Id, 'rev2Id:', rev2Id);
         try {
+            console.log('📡 发送API请求到:', `/articles/revisions/compare?revision1_id=${rev1Id}&revision2_id=${rev2Id}`);
             const result = await apiClient.get(`/articles/revisions/compare`, {
                 revision1_id: rev1Id,
                 revision2_id: rev2Id
             });
 
+            console.log('📨 API响应:', result);
+
             if (result.success) {
+                console.log('✅ API成功，设置比较结果和模式');
+                console.log('   - revision1:', result.data.revision1?.revision_number);
+                console.log('   - revision2:', result.data.revision2?.revision_number);
+                console.log('   - differences:', result.data.differences);
                 setComparisonResult(result.data);
                 setComparisonMode(true);
+                console.log('✅ 状态已更新，对话框应该打开');
             } else {
+                console.log('❌ API返回失败:', result.error);
                 toast({
                     title: '比较失败',
                     description: result.error,
@@ -178,6 +372,7 @@ export default function ArticleRevisionsSidebar({
                 });
             }
         } catch (error) {
+            console.error('❌ 比较出错:', error);
             toast({
                 title: '网络错误',
                 description: '无法比较版本',
@@ -354,6 +549,20 @@ export default function ArticleRevisionsSidebar({
         }
     };
 
+    // 获取字段标签
+    const getFieldLabel = (field: string) => {
+        const labels: Record<string, string> = {
+            title_changed: '标题',
+            excerpt_changed: '摘要',
+            content_changed: '内容',
+            cover_image_changed: '封面图',
+            tags_changed: '标签',
+            category_changed: '分类',
+            status_changed: '状态'
+        };
+        return labels[field] || field;
+    };
+
     // 格式化日期
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);
@@ -432,23 +641,63 @@ export default function ArticleRevisionsSidebar({
                         ) : (
                             <div className="space-y-4">
                                 {/* 比较模式提示 */}
-                                {compareFrom && !comparisonMode && (
+                                {(compareFrom || compareTo) && !comparisonMode && (
                                     <div
-                                        className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                                        className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-950 dark:to-purple-950 border-2 border-blue-300 dark:border-blue-700 rounded-xl p-4 shadow-md">
                                         <div className="flex items-center justify-between">
-                                            <div className="flex items-center gap-2">
-                                                <GitCompare className="w-5 h-5 text-blue-600"/>
-                                                <span className="text-sm font-medium text-blue-900 dark:text-blue-100">
-                                                    比较模式：已选择版本 #{revisions.find(r => r.id === compareFrom)?.revision_number}
-                                                </span>
+                                            <div className="flex items-center gap-3">
+                                                <GitCompare className="w-6 h-6 text-blue-600 animate-pulse"/>
+                                                <div>
+                                                    <span
+                                                        className="text-sm font-bold text-blue-900 dark:text-blue-100">
+                                                        📊 比较模式
+                                                    </span>
+                                                    <div className="flex items-center gap-2 mt-1">
+                                                        {compareFrom && (
+                                                            <Badge variant="default" className="bg-blue-600">
+                                                                版本
+                                                                #{revisions.find(r => r.id === compareFrom)?.revision_number}
+                                                            </Badge>
+                                                        )}
+                                                        {compareTo && (
+                                                            <>
+                                                                <span className="text-gray-500 font-bold">VS</span>
+                                                                <Badge variant="default" className="bg-purple-600">
+                                                                    版本
+                                                                    #{revisions.find(r => r.id === compareTo)?.revision_number}
+                                                                </Badge>
+                                                            </>
+                                                        )}
+                                                        {!compareTo && compareFrom && (
+                                                            <span
+                                                                className="text-xs text-gray-600 dark:text-gray-400 ml-2">
+                                                                👈 请选择第二个版本
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                </div>
                                             </div>
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                onClick={() => setCompareFrom(null)}
-                                            >
-                                                取消
-                                            </Button>
+                                            <div className="flex items-center gap-2">
+                                                {compareTo && (
+                                                    <Button
+                                                        size="sm"
+                                                        onClick={handleStartComparison}
+                                                        className="bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold shadow-md"
+                                                    >
+                                                        <GitCompare className="w-4 h-4 mr-1"/>
+                                                        开始比较
+                                                    </Button>
+                                                )}
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={handleCancelCompare}
+                                                    className="border-red-300 text-red-600 hover:bg-red-50 dark:hover:bg-red-950"
+                                                >
+                                                    <X className="w-4 h-4 mr-1"/>
+                                                    取消
+                                                </Button>
+                                            </div>
                                         </div>
                                     </div>
                                 )}
@@ -529,10 +778,12 @@ export default function ArticleRevisionsSidebar({
                                 {revisions.map((revision, index) => (
                                     <div
                                         key={revision.id}
-                                        className={`border rounded-lg p-4 transition-all hover:shadow-md ${
-                                            compareFrom === revision.id || compareTo === revision.id
-                                                ? 'border-blue-500 bg-blue-50 dark:bg-blue-950'
-                                                : 'hover:border-gray-300 dark:hover:border-gray-600'
+                                        className={`border-2 rounded-xl p-5 transition-all hover:shadow-lg ${
+                                            compareFrom === revision.id
+                                                ? 'border-blue-500 bg-gradient-to-br from-blue-50 to-white dark:from-blue-950/30 dark:to-gray-900 shadow-md'
+                                                : compareTo === revision.id
+                                                    ? 'border-purple-500 bg-gradient-to-br from-purple-50 to-white dark:from-purple-950/30 dark:to-gray-900 shadow-md'
+                                                    : 'hover:border-gray-300 dark:hover:border-gray-600 border-gray-200 dark:border-gray-700'
                                         }`}
                                     >
                                         <div className="flex items-start justify-between mb-3">
@@ -540,6 +791,16 @@ export default function ArticleRevisionsSidebar({
                                                 <Badge variant="secondary" className="text-base">
                                                     v{revision.revision_number}
                                                 </Badge>
+                                                {compareFrom === revision.id && (
+                                                    <Badge variant="default" className="bg-blue-600 animate-pulse">
+                                                        第一个版本
+                                                    </Badge>
+                                                )}
+                                                {compareTo === revision.id && (
+                                                    <Badge variant="default" className="bg-purple-600 animate-pulse">
+                                                        第二个版本
+                                                    </Badge>
+                                                )}
                                                 <Badge
                                                     variant={revision.status === 1 ? 'default' : 'outline'}
                                                 >
@@ -589,15 +850,53 @@ export default function ArticleRevisionsSidebar({
                                                 <Eye className="w-4 h-4 mr-2"/>
                                                 预览
                                             </Button>
-                                            <Button
-                                                size="sm"
-                                                variant="outline"
-                                                onClick={() => handleStartCompare(revision.id)}
-                                                className="flex-1"
-                                            >
-                                                <GitCompare className="w-4 h-4 mr-2"/>
-                                                比较
-                                            </Button>
+
+                                            {/* 比较下拉菜单 */}
+                                            <div className="relative flex-1">
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={() => setCompareMenuOpen(compareMenuOpen === revision.id ? null : revision.id)}
+                                                    className="w-full"
+                                                >
+                                                    <GitCompare className="w-4 h-4 mr-2"/>
+                                                    比较
+                                                    <ChevronDown className="w-3 h-3 ml-1"/>
+                                                </Button>
+
+                                                {compareMenuOpen === revision.id && (
+                                                    <>
+                                                        <div
+                                                            className="fixed inset-0 z-10"
+                                                            onClick={() => setCompareMenuOpen(null)}
+                                                        />
+                                                        <div
+                                                            className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 z-20 overflow-hidden">
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleCompareWithEditor(revision);
+                                                                }}
+                                                                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 transition-colors"
+                                                            >
+                                                                <FileText className="w-4 h-4 text-blue-600"/>
+                                                                <span>与当前编辑器比较</span>
+                                                            </button>
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    handleCompareWithVersion(revision.id);
+                                                                }}
+                                                                className="w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 transition-colors border-t border-gray-200 dark:border-gray-700"
+                                                            >
+                                                                <GitCompare className="w-4 h-4 text-purple-600"/>
+                                                                <span>与指定版本比较</span>
+                                                            </button>
+                                                        </div>
+                                                    </>
+                                                )}
+                                            </div>
+                                            
                                             <Button
                                                 size="sm"
                                                 variant="default"
@@ -712,6 +1011,146 @@ export default function ArticleRevisionsSidebar({
                             className="bg-red-600 hover:bg-red-700"
                         >
                             确认删除
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* 比较结果对话框 */}
+            <Dialog open={comparisonMode && comparisonResult !== null} onOpenChange={(open) => {
+                if (!open) handleCancelCompare();
+            }}>
+                <DialogContent className="max-w-7xl max-h-[95vh] w-[95vw]">
+                    <DialogHeader>
+                        <DialogTitle className="flex items-center gap-2 text-xl">
+                            <GitCompare className="w-6 h-6 text-blue-600"/>
+                            版本比较
+                        </DialogTitle>
+                        <DialogDescription className="text-base">
+                            {comparisonResult && (
+                                <span className="font-medium">
+                                    比较版本 #{comparisonResult.revision1.revision_number} 和 #{comparisonResult.revision2.revision_number}
+                                </span>
+                            )}
+                        </DialogDescription>
+                    </DialogHeader>
+
+                    {comparisonResult && (
+                        <ScrollArea className="max-h-[75vh] pr-4">
+                            <div className="space-y-6">
+                                {/* 差异摘要 - 优化样式 */}
+                                <div
+                                    className="bg-gradient-to-r from-gray-50 to-gray-100 dark:from-gray-800 dark:to-gray-900 rounded-xl p-5 border border-gray-200 dark:border-gray-700 shadow-sm">
+                                    <h4 className="font-semibold mb-4 text-gray-900 dark:text-white flex items-center gap-2">
+                                        <FileText className="w-5 h-5"/>
+                                        变更摘要
+                                    </h4>
+                                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
+                                        {Object.entries(comparisonResult.differences).map(([field, changed]) => (
+                                            <div
+                                                key={field}
+                                                className={`flex items-center gap-2 px-3 py-2 rounded-lg transition-all ${
+                                                    changed
+                                                        ? 'bg-red-100 dark:bg-red-950/50 border border-red-300 dark:border-red-800'
+                                                        : 'bg-green-100 dark:bg-green-950/50 border border-green-300 dark:border-green-800'
+                                                }`}
+                                            >
+                                                <div
+                                                    className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${changed ? 'bg-red-500 animate-pulse' : 'bg-green-500'}`}/>
+                                                <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                                    {getFieldLabel(field)}
+                                                </span>
+                                                {changed && <Badge variant="destructive"
+                                                                   className="text-xs ml-auto">已修改</Badge>}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                {/* 标题对比 */}
+                                {comparisonResult.differences.title_changed && (
+                                    <DiffSection
+                                        label="标题"
+                                        oldValue={comparisonResult.revision1.title}
+                                        newValue={comparisonResult.revision2.title}
+                                    />
+                                )}
+
+                                {/* 摘要对比 */}
+                                {comparisonResult.differences.excerpt_changed && (
+                                    <DiffSection
+                                        label="摘要"
+                                        oldValue={comparisonResult.revision1.excerpt}
+                                        newValue={comparisonResult.revision2.excerpt}
+                                    />
+                                )}
+
+                                {/* 内容对比 - 优化样式 */}
+                                {comparisonResult.differences.content_changed && (
+                                    <div
+                                        className="border-2 border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden shadow-lg">
+                                        <div
+                                            className="bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-800 dark:to-gray-900 px-6 py-3 border-b-2 border-gray-200 dark:border-gray-700">
+                                            <h4 className="font-bold text-lg text-gray-900 dark:text-white flex items-center gap-2">
+                                                <FileText className="w-5 h-5"/>
+                                                文章内容对比
+                                            </h4>
+                                        </div>
+                                        <div
+                                            className="grid grid-cols-2 divide-x-2 divide-gray-200 dark:divide-gray-700">
+                                            <div
+                                                className="p-6 bg-gradient-to-b from-red-50 to-white dark:from-red-950/20 dark:to-gray-900">
+                                                <div
+                                                    className="text-sm font-bold text-red-700 dark:text-red-400 mb-3 flex items-center gap-2 pb-2 border-b-2 border-red-200 dark:border-red-800">
+                                                    <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                                                    旧版本 (v{comparisonResult.revision1.revision_number})
+                                                </div>
+                                                <div
+                                                    className="prose prose-sm md:prose-base dark:prose-invert max-w-none"
+                                                    dangerouslySetInnerHTML={{__html: comparisonResult.revision1.content || '<p class="text-gray-400 italic">无内容</p>'}}
+                                                />
+                                            </div>
+                                            <div
+                                                className="p-6 bg-gradient-to-b from-green-50 to-white dark:from-green-950/20 dark:to-gray-900">
+                                                <div
+                                                    className="text-sm font-bold text-green-700 dark:text-green-400 mb-3 flex items-center gap-2 pb-2 border-b-2 border-green-200 dark:border-green-800">
+                                                    <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                                                    {comparisonResult.revision2.revision_number === 0 ? '当前编辑器' : `新版本 (v${comparisonResult.revision2.revision_number})`}
+                                                </div>
+                                                <div
+                                                    className="prose prose-sm md:prose-base dark:prose-invert max-w-none"
+                                                    dangerouslySetInnerHTML={{__html: comparisonResult.revision2.content || '<p class="text-gray-400 italic">无内容</p>'}}
+                                                />
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* 封面图对比 */}
+                                {comparisonResult.differences.cover_image_changed && (
+                                    <DiffSection
+                                        label="封面图"
+                                        oldValue={comparisonResult.revision1.cover_image || '无'}
+                                        newValue={comparisonResult.revision2.cover_image || '无'}
+                                        isImage={true}
+                                    />
+                                )}
+
+                                {/* 标签对比 */}
+                                {comparisonResult.differences.tags_changed && (
+                                    <DiffSection
+                                        label="标签"
+                                        oldValue={comparisonResult.revision1.tags_list || '无'}
+                                        newValue={comparisonResult.revision2.tags_list || '无'}
+                                    />
+                                )}
+                            </div>
+                        </ScrollArea>
+                    )}
+
+                    <DialogFooter>
+                        <Button variant="outline" onClick={handleCancelCompare}>
+                            关闭
                         </Button>
                     </DialogFooter>
                 </DialogContent>

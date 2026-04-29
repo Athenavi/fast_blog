@@ -103,7 +103,7 @@ async def create_article_revision(
 
             # 更新内容
             if request_data.content is not None:
-                now = datetime.now(timezone.utc)
+                now = datetime.now(timezone.utc).replace(tzinfo=None)  # 移除时区信息以匹配数据库字段
                 if content_obj:
                     content_obj.content = request_data.content
                     content_obj.updated_at = now
@@ -116,7 +116,7 @@ async def create_article_revision(
                     )
                     db.add(new_content)
 
-            article.updated_at = datetime.now(timezone.utc)
+            article.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)  # 移除时区信息以匹配数据库字段
             await db.commit()
 
             # 创建修订版本
@@ -194,6 +194,42 @@ async def list_article_revisions(
         return ApiResponse(success=False, error=str(e))
 
 
+@router.get("/revisions/compare")
+async def compare_article_revisions(
+        revision1_id: int = Query(..., description="第一个修订ID"),
+        revision2_id: int = Query(..., description="第二个修订ID"),
+        current_user=Depends(jwt_required),
+        db: AsyncSession = Depends(get_async_db)
+):
+    """
+    比较两个修订版本的差异
+    
+    Args:
+        revision1_id: 第一个修订ID
+        revision2_id: 第二个修订ID
+    """
+    try:
+        result = await compare_revisions(
+            db=db,
+            revision1_id=revision1_id,
+            revision2_id=revision2_id
+        )
+
+        if not result:
+            return ApiResponse(
+                success=False,
+                error="无法比较，修订版本可能不存在"
+            )
+
+        return ApiResponse(
+            success=True,
+            data=result
+        )
+
+    except Exception as e:
+        return ApiResponse(success=False, error=str(e))
+
+
 @router.get("/revisions/{revision_id}")
 async def get_revision(
         revision_id: int,
@@ -258,42 +294,6 @@ async def rollback_article(
         return ApiResponse(
             success=True,
             data={"message": "文章已成功回滚到指定版本"}
-        )
-
-    except Exception as e:
-        return ApiResponse(success=False, error=str(e))
-
-
-@router.get("/revisions/compare")
-async def compare_article_revisions(
-        revision1_id: int = Query(..., description="第一个修订ID"),
-        revision2_id: int = Query(..., description="第二个修订ID"),
-        current_user=Depends(jwt_required),
-        db: AsyncSession = Depends(get_async_db)
-):
-    """
-    比较两个修订版本的差异
-    
-    Args:
-        revision1_id: 第一个修订ID
-        revision2_id: 第二个修订ID
-    """
-    try:
-        result = await compare_revisions(
-            db=db,
-            revision1_id=revision1_id,
-            revision2_id=revision2_id
-        )
-
-        if not result:
-            return ApiResponse(
-                success=False,
-                error="无法比较，修订版本可能不存在"
-            )
-
-        return ApiResponse(
-            success=True,
-            data=result
         )
 
     except Exception as e:

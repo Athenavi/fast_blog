@@ -3559,6 +3559,146 @@ endpoints:
     parameters: [ ]
     django_ninja_auth: false
     fastapi_dependencies: [ ]
+  # 文章修订历史路由
+  - path: /articles/{article_id}/revisions
+    method: POST
+    summary: 创建文章修订版本
+    description: 手动创建文章修订版本或同步本地草稿
+    handler: create_article_revision
+    module: article_revisions
+    tags:
+      - api-v1
+    parameters:
+      - name: article_id
+        type: int
+        location: path
+        required: true
+        description: 文章ID
+    django_ninja_auth: false
+    fastapi_dependencies: [ ]
+  - path: /articles/{article_id}/revisions
+    method: GET
+    summary: 获取文章修订历史列表
+    description: 获取文章的修订历史列表
+    handler: list_article_revisions
+    module: article_revisions
+    tags:
+      - api-v1
+    parameters:
+      - name: article_id
+        type: int
+        location: path
+        required: true
+        description: 文章ID
+      - name: page
+        type: int
+        location: query
+        required: false
+        description: 页码
+        default: 1
+      - name: per_page
+        type: int
+        location: query
+        required: false
+        description: 每页数量
+        default: 20
+    django_ninja_auth: false
+    fastapi_dependencies: [ ]
+  - path: /articles/revisions/{revision_id}
+    method: GET
+    summary: 获取特定修订版本
+    description: 获取特定修订版本的详细信息
+    handler: get_revision
+    module: article_revisions
+    tags:
+      - api-v1
+    parameters:
+      - name: revision_id
+        type: int
+        location: path
+        required: true
+        description: 修订ID
+    django_ninja_auth: false
+    fastapi_dependencies: [ ]
+  - path: /articles/{article_id}/revisions/{revision_id}/rollback
+    method: POST
+    summary: 回滚文章到指定修订版本
+    description: 回滚文章到指定修订版本
+    handler: rollback_article
+    module: article_revisions
+    tags:
+      - api-v1
+    parameters:
+      - name: article_id
+        type: int
+        location: path
+        required: true
+        description: 文章ID
+      - name: revision_id
+        type: int
+        location: path
+        required: true
+        description: 修订ID
+    django_ninja_auth: false
+    fastapi_dependencies: [ ]
+  - path: /articles/revisions/compare
+    method: GET
+    summary: 比较两个修订版本
+    description: 比较两个修订版本的差异
+    handler: compare_article_revisions
+    module: article_revisions
+    tags:
+      - api-v1
+    parameters:
+      - name: revision1_id
+        type: int
+        location: query
+        required: true
+        description: 第一个修订ID
+      - name: revision2_id
+        type: int
+        location: query
+        required: true
+        description: 第二个修订ID
+    django_ninja_auth: false
+    fastapi_dependencies: [ ]
+  - path: /articles/{article_id}/revisions/sync
+    method: POST
+    summary: 同步文章修订历史到云端
+    description: 同步文章修订历史到云端（强制保存当前状态为修订版本）
+    handler: sync_article_revisions
+    module: article_revisions
+    tags:
+      - api-v1
+    parameters:
+      - name: article_id
+        type: int
+        location: path
+        required: true
+        description: 文章ID
+    django_ninja_auth: false
+    fastapi_dependencies: [ ]
+  - path: /articles/{article_id}/revisions/{revision_id}
+    method: DELETE
+    summary: 删除修订版本
+    description: 删除指定的修订版本
+    handler: delete_article_revision
+    module: article_revisions
+    tags:
+      - api-v1
+    parameters:
+      - name: article_id
+        type: int
+        location: path
+        required: true
+        description: 文章ID
+      - name: revision_id
+        type: int
+        location: path
+        required: true
+        description: 修订ID
+    django_ninja_auth: false
+    fastapi_dependencies: [ ]
 generation:
   django_ninja:
     output_dir: apps/generated

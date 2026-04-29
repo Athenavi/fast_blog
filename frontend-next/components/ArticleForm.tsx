@@ -208,6 +208,12 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
   // 为内容字段单独优化的处理函数
   const handleContentChange = useCallback((value: string) => {
     setForm(prev => ({...prev, content: value}));
+
+    // 触发自定义事件，通知父组件内容已更新
+    const event = new CustomEvent('editorContentChanged', {
+      detail: {content: value}
+    });
+    window.dispatchEvent(event);
   }, []);
 
   // 优化表单提交 - 使用useCallback

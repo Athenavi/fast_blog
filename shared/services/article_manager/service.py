@@ -191,7 +191,7 @@ async def create_article(
     Returns:
         创建的文章对象
     """
-    now = datetime.now(timezone.utc)
+    now = datetime.now(timezone.utc).replace(tzinfo=None)  # 移除时区信息以匹配数据库字段
     
     # 创建文章
     article = Article(
@@ -272,7 +272,7 @@ async def update_article(
     }
     
     if update_data:
-        update_data['updated_at'] = datetime.now(timezone.utc)
+        update_data['updated_at'] = datetime.now(timezone.utc).replace(tzinfo=None)  # 移除时区信息以匹配数据库字段
         
         await db.execute(
             update(Article)
@@ -309,7 +309,7 @@ async def update_article_content(
     Returns:
         是否成功
     """
-    now = datetime.now(timezone.utc)
+    now = datetime.now(timezone.utc).replace(tzinfo=None)  # 移除时区信息以匹配数据库字段
 
     # 尝试更新现有内容
     result = await db.execute(
@@ -363,7 +363,7 @@ async def delete_article(db: AsyncSession, article_id: int) -> bool:
     _trigger_article_event('article_deleted', {
         'id': article_id,
         'title': article_title,
-        'deleted_at': datetime.now(timezone.utc).isoformat(),
+        'deleted_at': datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),  # 移除时区信息以匹配数据库字段
     })
     
     return True

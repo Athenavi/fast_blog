@@ -131,7 +131,7 @@ async def save_article_revision(
             author_id=author_id,
             change_summary=change_summary,
             hash_code=current_hash,
-            created_at=datetime.now()
+            created_at=datetime.now(timezone.utc).replace(tzinfo=None)  # 移除时区信息以匹配数据库字段
         )
 
         db.add(revision)
@@ -290,7 +290,7 @@ async def rollback_to_revision(
         article, content_obj = row
 
         # 更新文章内容
-        now = datetime.now(timezone.utc)
+        now = datetime.now(timezone.utc).replace(tzinfo=None)  # 移除时区信息以匹配数据库字段
         if content_obj:
             content_obj.content = revision.content
             content_obj.updated_at = now
@@ -365,7 +365,7 @@ async def compare_revisions(
         if not rev1 or not rev2:
             return None
 
-        # 简单比较（实际项目中可以使用difflib进行详细对比）
+        # 比较各个字段的差异
         differences = {
             "title_changed": rev1.title != rev2.title,
             "excerpt_changed": rev1.excerpt != rev2.excerpt,
