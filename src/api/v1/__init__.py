@@ -283,16 +283,34 @@ async def public_media_thumbnail(
         # 如果缩略图不存在，尝试生成
         if not thumb_path.exists():
             logger.info(f"  → 缩略图不存在，开始生成流程")
-            original_path = Path(f"storage/objects/{data[:2]}/{data}")
+
+            # 尝试查找原始文件（可能带扩展名或不带扩展名）
+            original_dir = Path(f"storage/objects/{data[:2]}")
+            original_path = None
+
+            # 首先尝试不带扩展名的路径
+            path_without_ext = original_dir / data
+            if path_without_ext.exists():
+                original_path = path_without_ext
+                logger.info(f"  找到原始文件（无扩展名）: {original_path.absolute()}")
+            else:
+                # 尝试查找带扩展名的文件
+                if original_dir.exists():
+                    for file in original_dir.iterdir():
+                        if file.name.startswith(data + '.'):
+                            original_path = file
+                            logger.info(f"  找到原始文件（带扩展名）: {original_path.absolute()}")
+                            break
+
+            if not original_path:
+                logger.error(f"  [ERROR] 原始文件不存在！")
+                logger.error(f"     检查目录是否存在: {original_dir.exists()}")
+                if original_dir.exists():
+                    logger.error(f"     目录内容: {list(original_dir.iterdir())}")
+                raise HTTPException(status_code=404, detail=f"文件不存在: {data}")
+
             logger.info(f"  原始文件路径: {original_path.absolute()}")
             logger.info(f"  原始文件存在: {original_path.exists()}")
-
-            if not original_path.exists():
-                logger.error(f"  [ERROR] 原始文件不存在！")
-                logger.error(f"     检查目录是否存在: {(original_path.parent).exists()}")
-                if original_path.parent.exists():
-                    logger.error(f"     目录内容: {list(original_path.parent.iterdir())}")
-                raise HTTPException(status_code=404, detail=f"文件不存在: {data}")
 
             logger.info(f"  → 创建缩略图目录: {thumb_path.parent}")
             thumb_path.parent.mkdir(parents=True, exist_ok=True)

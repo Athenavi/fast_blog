@@ -567,10 +567,10 @@ async def create_article_api(
             cover_image=form_data.get('cover_image', ''),
             tags_list=tags_str,
             status=int(form_data.get('status', 0)),
-            hidden='hidden' in form_data,
-            is_vip_only='is_vip_only' in form_data,
+            hidden=form_data.get('hidden', '0') in ('1', 'true', 'True', True),
+            is_vip_only=form_data.get('is_vip_only', '0') in ('1', 'true', 'True', True),
             required_vip_level=int(form_data.get('required_vip_level', 0)),
-            is_featured='is_featured' in form_data,
+            is_featured=form_data.get('is_featured', '0') in ('1', 'true', 'True', True),
             created_at=datetime.now(),
             updated_at=datetime.now()
         )
@@ -672,10 +672,17 @@ async def update_article_api(
             article.tags_list = str(tags)
 
         article.status = int(form_data.get('status', article.status))
-        article.hidden = 'hidden' in form_data
-        article.is_vip_only = 'is_vip_only' in form_data
+        # 修复：正确解析布尔值（支持 '1', '0', 'true', 'false', True, False）
+        hidden_value = form_data.get('hidden', '0')
+        article.hidden = hidden_value in ('1', 'true', 'True', True)
+
+        is_vip_only_value = form_data.get('is_vip_only', '0')
+        article.is_vip_only = is_vip_only_value in ('1', 'true', 'True', True)
+        
         article.required_vip_level = int(form_data.get('required_vip_level', article.required_vip_level))
-        article.is_featured = 'is_featured' in form_data
+
+        is_featured_value = form_data.get('is_featured', '0')
+        article.is_featured = is_featured_value in ('1', 'true', 'True', True)
 
         category_id = form_data.get('category_id')
         article.category = int(category_id) if category_id and category_id.isdigit() else None
@@ -739,6 +746,12 @@ async def delete_article_api(
             return ApiResponse(success=False, error="Article not found")
         if article.user != current_user.id and not getattr(current_user, 'is_superuser', False):
             raise HTTPException(status_code=403, detail="Permission denied")
+
+        # 级联删除修订历史
+        revisions_query = select(ArticleRevision).where(ArticleRevision.article_id == article_id)
+        revisions_result = await db.execute(revisions_query)
+        for revision in revisions_result.scalars().all():
+            await db.delete(revision)
 
         # 级联删除内容
         content_query = select(ArticleContent).where(ArticleContent.article == article_id)

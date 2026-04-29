@@ -249,17 +249,35 @@ class ImageProcessor:
         
         Args:
             img: PIL图片对象
-            resize_params: {'width': 800, 'height': 600, 'maintain_aspect': True}
+            resize_params: {
+                'width': 800, 'height': 600, 
+                'maintain_aspect': True,
+                'max_width': 1920, 'max_height': 1080  # 新增：最大宽高限制
+            }
             
         Returns:
             调整后的图片
         """
         width = resize_params.get('width')
         height = resize_params.get('height')
+        max_width = resize_params.get('max_width')
+        max_height = resize_params.get('max_height')
         maintain_aspect = resize_params.get('maintain_aspect', True)
 
+        # 如果指定了最大宽高，先进行缩放
+        if max_width or max_height:
+            if maintain_aspect:
+                # 保持宽高比缩放到最大尺寸内
+                img.thumbnail((max_width or 99999, max_height or 99999), Image.LANCZOS)
+            else:
+                # 强制缩放到最大尺寸
+                new_width = min(img.width, max_width) if max_width else img.width
+                new_height = min(img.height, max_height) if max_height else img.height
+                img = img.resize((new_width, new_height), Image.LANCZOS)
+
+        # 如果还指定了具体宽高，继续调整
         if not width and not height:
-            raise ValueError("调整大小需要提供宽度或高度")
+            return img
 
         if maintain_aspect:
             # 保持宽高比

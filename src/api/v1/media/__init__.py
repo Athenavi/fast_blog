@@ -3,6 +3,8 @@
 """
 from fastapi import APIRouter
 
+from .routes_cover import router as cover_router
+from .routes_cover_external import router as cover_external_router
 from .routes_edit import router as edit_router
 from .routes_edit_tools import router as edit_tools_router
 from .routes_enhancement import router as enhancement_router
@@ -22,6 +24,8 @@ router.include_router(upload_router, prefix="")  # /upload, /upload/chunked/*
 router.include_router(edit_router, prefix="")  # /detail/{media_id}, /batch-delete 等
 router.include_router(folders_router, prefix="")  # /folders/* - 文件夹相关路由
 router.include_router(tags_router, prefix="")  # /{media_id}/tags 等（虽然有动态参数，但有后缀）
+router.include_router(cover_router, prefix="")  # /generate-cover/{media_id}, /remove-cover/{media_id}
+router.include_router(cover_external_router, prefix="")  # /from-url - 外链图片转本地封面
 router.include_router(edit_tools_router, prefix="")  # /process, /crop 等
 router.include_router(enhancement_router, prefix="")  # /optimize/{file_id} 等（虽然有动态参数，但有前缀）
 

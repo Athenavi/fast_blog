@@ -2,7 +2,7 @@
 
 import React, {useCallback, useState} from 'react';
 import {useMediaUpload} from '@/hooks/useMediaUpload';
-import {MediaFile, MediaService} from '@/lib/api';
+import {MediaFile, MediaService, apiClient} from '@/lib/api';
 import {Button} from '@/components/ui/button';
 import {Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger} from '@/components/ui/dialog';
 import MediaGrid from '@/components/media/MediaGrid';
@@ -136,14 +136,65 @@ const CoverImageUploader: React.FC<CoverImageUploaderProps> = ({
     validateImageUrl(url);
   };
 
+  // 处理外链图片转换
+  const handleExternalUrlConvert = async (url: string) => {
+    if (!url || !url.startsWith('http')) {
+      setValidationStatus('invalid');
+      setValidationMessage('请输入有效的HTTP/HTTPS链接');
+      onValidationChange?.(false);
+      return;
+    }
+
+    setValidationStatus('loading');
+    setValidationMessage('正在下载并优化图片...');
+
+    try {
+      // 使用 apiClient 发送请求，确保正确的 API_BASE_URL
+      const result = await apiClient.post<{ cover_url: string; message: string }>('/media/cover/from-url', {url});
+
+      if (result.success && result.data?.cover_url) {
+        // 如果返回的是相对路径，拼接完整的 API 基础 URL
+        let fullCoverUrl = result.data.cover_url;
+        if (!fullCoverUrl.startsWith('http://') && !fullCoverUrl.startsWith('https://')) {
+          // 获取配置中的 API_BASE_URL
+          const {getConfig} = await import('@/lib/config');
+          const config = getConfig();
+          // 移除 API_PREFIX 部分，只保留基础 URL
+          const baseUrl = config.API_BASE_URL.replace(/\/api\/v1$/, '');
+          fullCoverUrl = `${baseUrl}${fullCoverUrl}`;
+        }
+
+        onChange(fullCoverUrl);
+        setValidationStatus('valid');
+        setValidationMessage('图片已成功转换为本地封面');
+        onValidationChange?.(true);
+      } else {
+        throw new Error(result.error || '转换失败');
+      }
+    } catch (error) {
+      console.error('外链图片转换失败:', error);
+      setValidationStatus('invalid');
+      setValidationMessage(error instanceof Error ? error.message : '转换失败，请重试');
+      onValidationChange?.(false);
+    }
+  };
+
   // 处理媒体文件选择
     const handleMediaSelect = async (media: MediaFile) => {
-        const imageUrl = await import('@/lib/media-url').then(m => m.getMediaUrlSync(media.id));
-    onChange(imageUrl);
-    setIsOpen(false);
-    setValidationStatus('valid');
-    setValidationMessage('已选择媒体库中的图片');
-    onValidationChange?.(true);
+      try {
+        // 调用后端API生成优化后的封面图片
+        const coverUrl = await import('@/lib/media-url').then(m => m.generateAndGetCoverUrl(media.id));
+        onChange(coverUrl);
+        setIsOpen(false);
+        setValidationStatus('valid');
+        setValidationMessage('已选择并优化封面图片');
+        onValidationChange?.(true);
+      } catch (error) {
+        console.error('生成封面失败:', error);
+        setValidationStatus('invalid');
+        setValidationMessage('生成封面失败，请重试');
+        onValidationChange?.(false);
+      }
   };
 
   // 当对话框打开时加载媒体文件
@@ -334,12 +385,15 @@ const CoverImageUploader: React.FC<CoverImageUploaderProps> = ({
                 placeholder="https://example.com/image.jpg"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
+              <p className="text-xs text-gray-500">
+                提示：输入外链图片地址后点击“确定”，系统将自动下载并优化为本地封面
+              </p>
               <div className="flex justify-end gap-2">
                 <DialogTrigger asChild>
                   <Button variant="outline">取消</Button>
                 </DialogTrigger>
                 <DialogTrigger asChild>
-                  <Button>确定</Button>
+                  <Button onClick={() => handleExternalUrlConvert(value)}>确定</Button>
                 </DialogTrigger>
               </div>
             </div>
