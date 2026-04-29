@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/dialog';
 import {Button} from '@/components/ui/button';
 import {useToast} from '@/hooks/use-toast';
+import {useHotkeys} from '@/hooks/useHotkeys';
 
 // 动态导入优化后的组件
 const UniversalEditor = dynamic(
@@ -109,6 +110,17 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
   const [lastSavedTime, setLastSavedTime] = useState<Date | null>(null);
   const autoSaveTimerRef = React.useRef<NodeJS.Timeout | null>(null);
   const lastContentRef = React.useRef<string>('');
+
+  // Ctrl+S 快捷键保存
+  useHotkeys({
+    'ctrl+s': (e) => {
+      e.preventDefault();
+      // 如果正在提交或显示确认对话框，不重复触发
+      if (!isSubmitting && !showSaveConfirm) {
+        setShowSaveConfirm(true);
+      }
+    }
+  });
 
   // 自动保存草稿函数 - 保存到本地
   const autoSaveDraft = useCallback(async () => {
