@@ -3,7 +3,7 @@
 import React, {useEffect, useState} from 'react';
 import {useRouter} from 'next/navigation';
 import dynamic from 'next/dynamic';
-import {ArticleService} from '@/lib/api';
+import {ArticleService, CategoryService} from '@/lib/api';
 import LoadingState from '@/components/LoadingState';
 import ErrorState from '@/components/ErrorState';
 
@@ -26,7 +26,7 @@ const CreateArticlePage = () => {
     useEffect(() => {
         const fetchCategories = async () => {
             try {
-                const result = await ArticleService.getNewArticleData();
+                const result = await CategoryService.getCategories({per_page: 100});
 
                 if (result.success && result.data) {
                     setCategories(result.data.categories || []);
