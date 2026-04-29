@@ -117,7 +117,8 @@ def f2list(input_value, delimiter=';'):
 
 def _create_highlighter(pygments_style: str):
     """返回一个符合 markdown-it-py highlight 签名的函数"""
-    def highlighter(code: str, lang: str) -> str:
+
+    def highlighter(code: str, lang: str, attrs: str = None) -> str:
         if not lang:
             return f'<pre><code>{code}</code></pre>'
 

@@ -7,7 +7,6 @@ import {ArticleService, Category} from '@/lib/api';
 import LoadingState from '@/components/LoadingState';
 import ErrorState from '@/components/ErrorState';
 import AuthErrorBoundary from '@/components/AuthErrorBoundary';
-import ArticleRevisionsSidebar from '@/components/ArticleRevisionsSidebar';
 
 // 动态导入表单组件
 const ArticleForm = dynamic(
@@ -47,7 +46,6 @@ const EditArticlePageContent = () => {
   const [initialData, setInitialData] = useState<ArticleData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-    const [showRevisionsSidebar, setShowRevisionsSidebar] = useState(false);
     const [currentContent, setCurrentContent] = useState<string>('');
 
     // 监听获取编辑器内容的事件
@@ -185,61 +183,6 @@ const EditArticlePageContent = () => {
     router.push(`/blog/detail?slug=${initialData?.slug || articleId}`);
   };
 
-    const handleViewRevisions = () => {
-        setShowRevisionsSidebar(true);
-    };
-
-    // 回滚完成后刷新文章数据
-    const handleRollbackComplete = async () => {
-        if (!articleId) return;
-
-        try {
-            setLoading(true);
-            const result = await ArticleService.getEditArticleData(Number(articleId));
-
-            if (result.success && result.data) {
-                const article = result.data.article;
-                const content = result.data.content || '';
-
-                if (!article) {
-                    console.error('文章数据不存在');
-                    return;
-                }
-
-                const tags = Array.isArray(article.tags)
-                    ? article.tags as string[]
-                    : typeof article.tags === 'string'
-                        ? (article.tags as string).split(',').filter(Boolean).map(t => t.trim())
-                        : [];
-
-                setInitialData({
-                    id: article.id,
-                    title: article.title || '',
-                    slug: article.slug || '',
-                    excerpt: article.excerpt || '',
-                    content: content,
-                    cover_image: article.cover_image || '',
-                    tags: tags,
-                    status: article.status ?? 0,
-                    hidden: Boolean(article.hidden),
-                    is_vip_only: Boolean(article.is_vip_only),
-                    required_vip_level: article.required_vip_level || 0,
-                    article_ad: article.article_ad || '',
-                    is_featured: Boolean(article.is_featured),
-                    category_id: article.category_id ?? null
-                });
-
-                // 更新当前内容
-                setCurrentContent(content);
-                console.log('回滚后更新currentContent，长度:', content?.length);
-            }
-        } catch (err) {
-            console.error('刷新文章数据失败:', err);
-        } finally {
-            setLoading(false);
-        }
-    };
-
   if (loading) {
     return <LoadingState message="加载文章数据中..." />;
   }
@@ -277,19 +220,9 @@ const EditArticlePageContent = () => {
               categories={categories}
               onSubmit={handleSubmit}
               onCancel={handleCancel}
-              onViewRevisions={handleViewRevisions}
+              articleId={articleId ? Number(articleId) : null}
               isLoading={loading}
           />
-
-          {/* 修订历史侧边栏 */}
-          {articleId && (
-              <ArticleRevisionsSidebar
-                  articleId={Number(articleId)}
-                  isOpen={showRevisionsSidebar}
-                  onClose={() => setShowRevisionsSidebar(false)}
-                  onRollbackComplete={handleRollbackComplete}
-              />
-          )}
       </>
   );
 };
