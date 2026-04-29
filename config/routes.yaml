@@ -2819,6 +2819,38 @@ endpoints:
         description: 第二个修订ID
     django_ninja_auth: false
     fastapi_dependencies: [ ]
+  - path: /articles/{article_id}/draft
+    method: POST
+    summary: 保存文章草稿
+    description: 保存文章草稿（不创建修订历史）
+    handler: save_article_draft
+    module: article_revisions
+    tags:
+      - api-v1
+    parameters:
+      - name: article_id
+        type: int
+        location: path
+        required: true
+        description: 文章ID
+    django_ninja_auth: false
+    fastapi_dependencies: [ ]
+  - path: /articles/{article_id}/revisions/sync
+    method: POST
+    summary: 同步修订历史到云端
+    description: 强制保存当前状态为修订版本并同步到云端
+    handler: sync_article_revisions
+    module: article_revisions
+    tags:
+      - api-v1
+    parameters:
+      - name: article_id
+        type: int
+        location: path
+        required: true
+        description: 文章ID
+    django_ninja_auth: false
+    fastapi_dependencies: [ ]
   # 定时发布 API
   - path: /articles/scheduled/check-and-publish
     method: POST

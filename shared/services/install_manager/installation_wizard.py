@@ -707,7 +707,8 @@ class InstallationWizardService:
                 'SITE_URL': site_url,
                 'SITE_DESCRIPTION': site_description,
                 'ADMIN_EMAIL': admin_email,
-                'DEFAULT_LANGUAGE': language
+                'DEFAULT_LANGUAGE': language,
+                'SECRET_KEY': os.urandom(32).hex()
             })
 
             return {

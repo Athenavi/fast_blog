@@ -2,7 +2,11 @@
 文章修订历史API端点
 """
 
-from fastapi import APIRouter, Depends, Query
+from datetime import datetime, timezone
+from typing import Optional
+
+from fastapi import APIRouter, Depends, Query, Body
+from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.services.article_manager import compare_revisions, get_article_revisions, get_revision_detail, \
@@ -14,27 +18,122 @@ from src.extensions import get_async_db_session as get_async_db
 router = APIRouter(prefix="/articles", tags=["article-revisions"])
 
 
+class DraftData(BaseModel):
+    """草稿数据模型"""
+    title: Optional[str] = None
+    excerpt: Optional[str] = None
+    content: Optional[str] = ""
+    cover_image: Optional[str] = None
+    tags: Optional[str] = None
+    category_id: Optional[int] = None
+
+    class Config:
+        extra = "ignore"  # 忽略额外字段
+
+
+class CreateRevisionRequest(BaseModel):
+    """创建修订请求模型"""
+    change_summary: Optional[str] = None
+    # 可选的草稿数据（如果提供，则使用这些数据创建修订）
+    title: Optional[str] = None
+    excerpt: Optional[str] = None
+    content: Optional[str] = None
+    cover_image: Optional[str] = None
+    tags: Optional[str] = None
+    category_id: Optional[int] = None
+
+
 @router.post("/{article_id}/revisions")
 async def create_article_revision(
         article_id: int,
-        change_summary: str = Query(None, description="变更说明"),
+        request_data: CreateRevisionRequest = Body(None),
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    手动创建文章修订版本
+    手动创建文章修订版本或同步本地草稿
     
     Args:
         article_id: 文章ID
-        change_summary: 变更说明（可选）
+        request_data: 请求数据，包含变更说明和可选的草稿数据
     """
     try:
-        revision = await save_article_revision(
-            db=db,
-            article_id=article_id,
-            author_id=current_user.id,
-            change_summary=change_summary
-        )
+        change_summary = request_data.change_summary if request_data else None
+
+        # 检查是否提供了草稿数据
+        has_draft_data = any([
+            request_data and request_data.title,
+            request_data and request_data.content,
+        ])
+
+        if has_draft_data and request_data:
+            # 如果有草稿数据，先更新文章，然后创建修订
+            from shared.models.article import Article
+            from shared.models.article_content import ArticleContent
+            from sqlalchemy import select
+
+            # 获取当前文章
+            article_query = (
+                select(Article, ArticleContent)
+                .outerjoin(ArticleContent, Article.id == ArticleContent.article)
+                .where(Article.id == article_id)
+            )
+            article_result = await db.execute(article_query)
+            row = article_result.first()
+
+            if not row:
+                return ApiResponse(
+                    success=False,
+                    error="文章不存在"
+                )
+
+            article, content_obj = row
+
+            # 智能合并：只更新提供的字段
+            if request_data.title is not None:
+                article.title = request_data.title
+            if request_data.excerpt is not None:
+                article.excerpt = request_data.excerpt
+            if request_data.cover_image is not None:
+                article.cover_image = request_data.cover_image
+            if request_data.tags is not None:
+                article.tags_list = request_data.tags
+            if request_data.category_id is not None:
+                article.category = request_data.category_id
+
+            # 更新内容
+            if request_data.content is not None:
+                now = datetime.now(timezone.utc)
+                if content_obj:
+                    content_obj.content = request_data.content
+                    content_obj.updated_at = now
+                else:
+                    new_content = ArticleContent(
+                        article=article_id,
+                        content=request_data.content,
+                        created_at=now,
+                        updated_at=now
+                    )
+                    db.add(new_content)
+
+            article.updated_at = datetime.now(timezone.utc)
+            await db.commit()
+
+            # 创建修订版本
+            revision = await save_article_revision(
+                db=db,
+                article_id=article_id,
+                author_id=current_user.id,
+                change_summary=change_summary or "从本地草稿同步"
+            )
+        else:
+            # 没有草稿数据，直接基于数据库当前状态创建修订
+            revision = await save_article_revision(
+                db=db,
+                article_id=article_id,
+                author_id=current_user.id,
+                change_summary=change_summary
+            )
 
         if not revision:
             return ApiResponse(
@@ -51,6 +150,9 @@ async def create_article_revision(
         )
 
     except Exception as e:
+        import traceback
+        print(f"Error creating revision: {str(e)}")
+        print(traceback.format_exc())
         return ApiResponse(success=False, error=str(e))
 
 
@@ -190,4 +292,46 @@ async def compare_article_revisions(
         )
 
     except Exception as e:
+        return ApiResponse(success=False, error=str(e))
+
+
+@router.post("/{article_id}/revisions/sync")
+async def sync_article_revisions(
+        article_id: int,
+        current_user=Depends(jwt_required),
+        db: AsyncSession = Depends(get_async_db)
+):
+    """
+    同步文章修订历史到云端（强制保存当前状态为修订版本）
+    
+    Args:
+        article_id: 文章ID
+    """
+    try:
+        # 保存当前状态为修订版本
+        revision = await save_article_revision(
+            db=db,
+            article_id=article_id,
+            author_id=current_user.id,
+            change_summary="手动同步到云端"
+        )
+
+        if not revision:
+            return ApiResponse(
+                success=False,
+                error="同步失败，文章可能不存在"
+            )
+
+        return ApiResponse(
+            success=True,
+            data={
+                "message": "修订历史已同步到云端",
+                "revision": revision.to_dict()
+            }
+        )
+
+    except Exception as e:
+        import traceback
+        print(f"Error syncing revisions: {str(e)}")
+        print(traceback.format_exc())
         return ApiResponse(success=False, error=str(e))

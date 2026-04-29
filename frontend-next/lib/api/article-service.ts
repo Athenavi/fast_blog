@@ -217,8 +217,9 @@ export class ArticleService {
         message: string;
         article_id: number;
     }>> {
-        return apiClient.request(`/blog/edit/${id}`, {
-            method: 'POST',
+        // 使用 FastAPI 的 PUT 端点
+        return apiClient.request(`/articles/${id}`, {
+            method: 'PUT',
             body: formData,
         });
     }

@@ -45,7 +45,7 @@ const CreateArticlePage = () => {
     }, []);
 
     // 处理表单提交
-    const handleSubmit = async (formData: any) => {
+    const handleSubmit = async (formData: any, createRevision?: boolean) => {
         try {
             const form = new FormData();
             Object.entries(formData).forEach(([key, value]) => {
@@ -57,6 +57,9 @@ const CreateArticlePage = () => {
                     form.append(key, String(value));
                 }
             });
+
+            // 添加是否创建修订的参数
+            form.append('create_revision', createRevision !== false ? 'true' : 'false');
 
             const result = await ArticleService.createArticle(form);
             return result;

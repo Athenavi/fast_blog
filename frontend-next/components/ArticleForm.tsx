@@ -6,6 +6,16 @@ import dynamic from 'next/dynamic';
 import {Category} from "@/lib/api";
 import {OptimizedInput, OptimizedTextarea} from '@/components/ui/optimized-input';
 import CoverImageUploader from '@/components/CoverImageUploader';
+import {DraftService, LocalDraft} from '@/lib/draft-service';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from '@/components/ui/dialog';
+import {Button} from '@/components/ui/button';
 
 // 动态导入优化后的组件
 const UniversalEditor = dynamic(
@@ -44,7 +54,11 @@ interface ArticleFormProps {
   mode: 'create' | 'edit';
   initialData?: Partial<ArticleFormData>;
   categories: Category[];
-  onSubmit: (data: ArticleFormData) => Promise<{ success: boolean; error?: string; data?: any }>;
+  onSubmit: (data: ArticleFormData, createRevision?: boolean) => Promise<{
+    success: boolean;
+    error?: string;
+    data?: any
+  }>;
   onCancel: () => void;
   onViewRevisions?: () => void; // 新增：查看修订历史的回调
   isLoading?: boolean;
@@ -84,11 +98,85 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [coverValid, setCoverValid] = useState<boolean>(true);
 
+  // 保存确认对话框状态
+  const [showSaveConfirm, setShowSaveConfirm] = useState(false);
+  const [createRevision, setCreateRevision] = useState(true); // 默认勾选创建修订
+
   // 自动保存状态
   const [autoSaveStatus, setAutoSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
   const [lastSavedTime, setLastSavedTime] = useState<Date | null>(null);
   const autoSaveTimerRef = React.useRef<NodeJS.Timeout | null>(null);
   const lastContentRef = React.useRef<string>('');
+
+  // 自动保存草稿函数 - 保存到本地
+  const autoSaveDraft = useCallback(async () => {
+    if (mode !== 'edit' || !form.id) return;
+
+    // 检查内容是否有变化
+    const currentContent = JSON.stringify({
+      title: form.title,
+      excerpt: form.excerpt,
+      content: form.content,
+      cover_image: form.cover_image,
+      tags: form.tags,
+      category_id: form.category_id
+    });
+
+    if (currentContent === lastContentRef.current) {
+      return; // 内容没有变化，不需要保存
+    }
+
+    try {
+      setAutoSaveStatus('saving');
+
+      // 保存草稿到本地
+      DraftService.saveDraft(form.id, {
+        title: form.title,
+        excerpt: form.excerpt,
+        content: form.content,
+        cover_image: form.cover_image,
+        tags: form.tags,
+        category_id: form.category_id,
+        status: form.status,
+        hidden: form.hidden,
+        is_vip_only: form.is_vip_only,
+        required_vip_level: form.required_vip_level,
+        is_featured: form.is_featured,
+        autoSave: true
+      });
+
+      setAutoSaveStatus('saved');
+      setLastSavedTime(new Date());
+      lastContentRef.current = currentContent;
+
+      // 3秒后恢复为idle状态
+      setTimeout(() => {
+        setAutoSaveStatus('idle');
+      }, 3000);
+
+      console.log('✅ 草稿已自动保存到本地');
+    } catch (error) {
+      setAutoSaveStatus('error');
+      console.error('❌ 自动保存出错:', error);
+    }
+  }, [form, mode]);
+
+  // 设置自动保存定时器
+  useEffect(() => {
+    if (mode === 'edit' && form.id) {
+      // 每30秒自动保存一次到本地
+      autoSaveTimerRef.current = setInterval(() => {
+        autoSaveDraft();
+      }, 30000);
+
+      // 清理定时器
+      return () => {
+        if (autoSaveTimerRef.current) {
+          clearInterval(autoSaveTimerRef.current);
+        }
+      };
+    }
+  }, [mode, form.id, autoSaveDraft]);
 
   // 预览模式状态
   const [showPreview, setShowPreview] = useState(false);
@@ -123,11 +211,19 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
   // 优化表单提交 - 使用useCallback
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // 显示确认对话框
+    setShowSaveConfirm(true);
+  }, []);
+
+  // 确认保存
+  const handleConfirmSave = useCallback(async () => {
     setError(null);
     setIsSubmitting(true);
+    setShowSaveConfirm(false);
 
     try {
-      const result = await onSubmit(form);
+      const result = await onSubmit(form, createRevision);
 
       if (result.success) {
         // 如果是创建模式，且返回了 article_id，则跳转到编辑页面
@@ -137,6 +233,11 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
           // 编辑模式或其他情况，刷新当前页面
           router.refresh();
         }
+
+        // 提交成功后删除本地草稿
+        if (form.id) {
+          DraftService.deleteDraft(form.id);
+        }
       } else {
         setError(result.error || '提交失败');
       }
@@ -145,7 +246,12 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
     } finally {
       setIsSubmitting(false);
     }
-  }, [form, onSubmit, router, mode]);
+  }, [form, onSubmit, router, mode, createRevision]);
+
+  // 取消保存
+  const handleCancelSave = useCallback(() => {
+    setShowSaveConfirm(false);
+  }, []);
 
   // 使用useMemo优化渲染函数
   const renderField = useMemo(() => (
@@ -162,6 +268,7 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
   ), []);
 
   return (
+      <>
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
           {/* 头部 */}
@@ -481,8 +588,61 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
               </div>
             </div>
           </form>
+
+          {/* 保存确认对话框 */}
+          <Dialog open={showSaveConfirm} onOpenChange={setShowSaveConfirm}>
+            <DialogContent className="sm:max-w-[500px]">
+              <DialogHeader>
+                <DialogTitle>确认保存文章</DialogTitle>
+                <DialogDescription>
+                  {mode === 'create' ? '您即将创建新文章' : '您即将保存对文章的修改'}
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="py-4">
+                <label
+                    className="flex items-start space-x-3 cursor-pointer p-3 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                  <input
+                      type="checkbox"
+                      checked={createRevision}
+                      onChange={(e) => setCreateRevision(e.target.checked)}
+                      className="mt-1 w-4 h-4 text-blue-600 rounded focus:ring-blue-500 border-gray-300"
+                  />
+                  <div className="flex-1">
+                    <div className="text-sm font-medium text-gray-900 dark:text-white">
+                      为本次修改创建历史修订
+                    </div>
+                    <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      勾选后，系统将保存当前版本到修订历史，方便日后查看和回滚
+                    </div>
+                  </div>
+                </label>
+              </div>
+
+              <DialogFooter>
+                <Button variant="outline" onClick={handleCancelSave}>
+                  取消
+                </Button>
+                <Button onClick={handleConfirmSave} disabled={isSubmitting}>
+                  {isSubmitting ? (
+                      <>
+                        <svg className="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
+                          <path className="opacity-75" fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                        </svg>
+                        保存中...
+                      </>
+                  ) : (
+                      '确认保存'
+                  )}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
+      </>
   );
 };
 

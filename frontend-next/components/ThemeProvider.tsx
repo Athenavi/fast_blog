@@ -1,6 +1,6 @@
 'use client';
 
-import React, {useEffect} from 'react';
+import React, {useEffect, useCallback} from 'react';
 import {usePathname} from 'next/navigation';
 import useTheme from '@/hooks/useTheme';
 import {applyThemeAdaptation, observeThemeChanges} from '@/lib/theme-adapter';
@@ -17,50 +17,16 @@ interface ThemeProviderProps {
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({children}) => {
     const pathname = usePathname();
     const isAdminPage = pathname?.startsWith('/admin');
-    
-    // 如果是管理后台页面，直接渲染子组件，不加载主题
-    if (isAdminPage) {
-        return <>{children}</>;
-    }
-    
-    const {cssVariables, stylesheetUrl, isLoading, config} = useTheme();
 
-    // 应用主题样式表
-    useEffect(() => {
-        if (stylesheetUrl) {
-            let linkElement = document.getElementById('theme-stylesheet') as HTMLLinkElement;
-
-            if (!linkElement) {
-                linkElement = document.createElement('link');
-                linkElement.id = 'theme-stylesheet';
-                linkElement.rel = 'stylesheet';
-                document.head.appendChild(linkElement);
-            }
-
-            // 只有当URL真正变化时才更新
-            if (linkElement.href !== stylesheetUrl) {
-                linkElement.href = stylesheetUrl;
-            }
-        }
-    }, [stylesheetUrl]);
-
-    // 应用主题适配（将硬编码颜色映射到主题变量）
-    useEffect(() => {
-        if (config && config.config) {
-            const colors = config.config.colors || {};
-            console.log('[ThemeProvider] 应用主题适配，颜色:', colors);
-            applyThemeAdaptation(colors);
-
-            // 启动 DOM 观察器，自动适配新添加的元素
-            observeThemeChanges();
-
-            // 注入高优先级的全局样式覆盖
-            injectGlobalStyleOverrides(colors);
-        }
-    }, [config]);
+    // 始终调用 Hook，但在 admin 页面不使用其返回值
+    const themeHook = useTheme();
+    const {cssVariables, stylesheetUrl, isLoading, config} = themeHook;
 
     // 注入全局样式覆盖（最高优先级）
-    const injectGlobalStyleOverrides = (colors: any) => {
+    const injectGlobalStyleOverrides = useCallback((colors: Record<string, string>) => {
+        // 只在客户端执行，避免服务端和客户端不一致
+        if (typeof window === 'undefined') return;
+        
         const styleId = 'theme-global-overrides';
         let styleElement = document.getElementById(styleId) as HTMLStyleElement;
 
@@ -101,7 +67,55 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({children}) => {
                 color: white !important;
             }
         `;
-    };
+    }, []);
+
+    // 应用主题样式表
+    useEffect(() => {
+        // 如果是管理后台页面，不加载主题
+        if (isAdminPage) return;
+
+        // 只在客户端执行
+        if (typeof window === 'undefined') return;
+
+        if (stylesheetUrl) {
+            let linkElement = document.getElementById('theme-stylesheet') as HTMLLinkElement;
+
+            if (!linkElement) {
+                linkElement = document.createElement('link');
+                linkElement.id = 'theme-stylesheet';
+                linkElement.rel = 'stylesheet';
+                document.head.appendChild(linkElement);
+            }
+
+            // 只有当URL真正变化时才更新
+            if (linkElement.href !== stylesheetUrl) {
+                linkElement.href = stylesheetUrl;
+            }
+        }
+    }, [stylesheetUrl, isAdminPage]);
+
+    // 应用主题适配（将硬编码颜色映射到主题变量）
+    useEffect(() => {
+        // 如果是管理后台页面，不加载主题
+        if (isAdminPage) return;
+
+        if (config && config.config) {
+            const colors = config.config.colors || {};
+            console.log('[ThemeProvider] 应用主题适配，颜色:', colors);
+            applyThemeAdaptation(colors);
+
+            // 启动 DOM 观察器，自动适配新添加的元素
+            observeThemeChanges();
+
+            // 注入高优先级的全局样式覆盖
+            injectGlobalStyleOverrides(colors);
+        }
+    }, [config, isAdminPage, injectGlobalStyleOverrides]);
+
+    // 如果是管理后台页面，直接渲染子组件，不加载主题
+    if (isAdminPage) {
+        return <>{children}</>;
+    }
 
     // 如果正在加载主题，显示简单的加载状态
     if (isLoading) {
@@ -118,7 +132,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({children}) => {
     return (
         <>
             {/* 注入主题CSS变量 */}
-            <style id="theme-variables" dangerouslySetInnerHTML={{__html: cssVariables}}/>
+            <style id="theme-variables" dangerouslySetInnerHTML={{__html: cssVariables}} suppressHydrationWarning/>
             {children}
         </>
     );

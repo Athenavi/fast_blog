@@ -89,7 +89,10 @@ function injectColorOverrides(colors: ThemeColors): void {
     }
 
     const rules = generateOverrideRules(colors);
-    styleElement.textContent = rules;
+    // 只在客户端执行，避免服务端和客户端不一致
+    if (typeof window !== 'undefined') {
+        styleElement.textContent = rules;
+    }
 }
 
 /**
@@ -143,6 +146,9 @@ function generateOverrideRules(colors: ThemeColors): string {
  * 替换内联样式中的颜色值
  */
 function replaceInlineStyles(): void {
+    // 只在客户端执行，避免服务端和客户端不一致
+    if (typeof window === 'undefined') return;
+    
     // 查找所有带有 style 属性的元素
     const elementsWithStyle = document.querySelectorAll('[style]');
 
@@ -178,6 +184,9 @@ function replaceInlineStyles(): void {
  * 监听DOM变化，自动适配新添加的元素
  */
 export function observeThemeChanges(): void {
+    // 只在客户端执行，避免服务端和客户端不一致
+    if (typeof window === 'undefined') return;
+    
     const observer = new MutationObserver((mutations) => {
         mutations.forEach((mutation) => {
             if (mutation.addedNodes.length > 0) {

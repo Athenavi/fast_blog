@@ -131,6 +131,9 @@ export function useTheme() {
     const applyCssVariables = (cssVariables: string) => {
         if (!cssVariables) return;
 
+        // 只在客户端执行，避免服务端和客户端不一致
+        if (typeof window === 'undefined') return;
+
         let styleElement = document.getElementById('theme-variables') as HTMLStyleElement;
 
         if (!styleElement) {
@@ -140,20 +143,6 @@ export function useTheme() {
         }
 
         styleElement.textContent = cssVariables;
-    };
-
-    // 动态加载样式表
-    const loadStylesheet = (url: string) => {
-        let linkElement = document.getElementById('theme-stylesheet') as HTMLLinkElement;
-
-        if (!linkElement) {
-            linkElement = document.createElement('link');
-            linkElement.id = 'theme-stylesheet';
-            linkElement.rel = 'stylesheet';
-            document.head.appendChild(linkElement);
-        }
-
-        linkElement.href = url;
     };
 
     // 初始化时加载主题

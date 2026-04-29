@@ -5,13 +5,13 @@
 
 from fastapi import APIRouter, Depends
 
-from src.auth import admin_required
 from shared.services.full_site_editor import (
     template_manager,
     global_styles_manager,
     navigation_menu_manager,
 )
 from src.api.v1.responses import ApiResponse
+from src.auth import admin_required
 
 router = APIRouter(tags=["full-site-editing"])
 

@@ -144,6 +144,10 @@ const request = async <T>(
     const fullPath = path.startsWith(config.API_PREFIX) ? path : `${config.API_PREFIX}${path}`;
     const fullUrl = `${config.API_BASE_URL}${fullPath}`;
 
+    console.log('[API Client] 请求URL:', fullUrl);
+    console.log('[API Client] 请求方法:', options.method || 'GET');
+    console.log('[API Client] 配置:', config);
+
     try {
         // 检测是否为 FormData 请求
         const isFormData = options.body instanceof FormData;
@@ -156,6 +160,8 @@ const request = async <T>(
             ...defaultHeaders,
             ...(options.headers || {})
         };
+
+        console.log('[API Client] 请求头:', mergedHeaders);
 
         const response = await fetch(fullUrl, {
             ...options,
@@ -245,6 +251,15 @@ const request = async <T>(
 
         return {...data, success: data.success ?? true} as ApiResponse<T>;
     } catch (error) {
+        console.error('[API Client] 请求失败:', fullUrl);
+        console.error('[API Client] 错误详情:', error);
+        if (error instanceof TypeError && error.message === 'Failed to fetch') {
+            console.error('[API Client] 可能的原因:');
+            console.error('  1. 后端服务未运行在', config.API_BASE_URL);
+            console.error('  2. CORS 跨域问题');
+            console.error('  3. 网络连接问题');
+            console.error('  4. URL 路径不正确:', fullUrl);
+        }
         return handleError(fullUrl, error);
     }
 };

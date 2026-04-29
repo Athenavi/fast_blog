@@ -112,7 +112,7 @@ const EditArticlePageContent = () => {
   }, [articleId]);
 
   // 处理表单提交
-  const handleSubmit = async (formData: ArticleData) => {
+    const handleSubmit = async (formData: ArticleData, createRevision?: boolean) => {
     if (!articleId) {
       return { success: false, error: '文章 ID 未指定' };
     }
@@ -129,6 +129,9 @@ const EditArticlePageContent = () => {
           form.append(key, String(value ?? ''));
         }
       });
+
+        // 添加是否创建修订的参数
+        form.append('create_revision', createRevision !== false ? 'true' : 'false');
 
       const result = await ArticleService.updateArticle(Number(articleId), form);
       return result;

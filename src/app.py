@@ -28,7 +28,6 @@ if not hasattr(django, '_setup_complete') or not django.apps.apps.ready:
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import RedirectResponse, HTMLResponse
 from starlette.staticfiles import StaticFiles
-from shared.models.schemas.user import UserRead  # FastAPI-Users 需要的 Pydantic 模型
 
 
 @asynccontextmanager

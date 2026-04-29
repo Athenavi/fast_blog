@@ -13,8 +13,23 @@ import {
 } from '@/components/ui/dialog';
 import {ScrollArea} from '@/components/ui/scroll-area';
 import {Separator} from '@/components/ui/separator';
-import {AlertCircle, Clock, Eye, FileText, GitCompare, History, RotateCcw, User, X} from 'lucide-react';
+import {
+    AlertCircle,
+    Clock,
+    Eye,
+    FileText,
+    GitCompare,
+    History,
+    RotateCcw,
+    User,
+    X,
+    Save,
+    Trash2,
+    Upload
+} from 'lucide-react';
 import {useToast} from '@/hooks/use-toast';
+import {apiClient} from '@/lib/api/base-client';
+import {DraftService, LocalDraft} from '@/lib/draft-service';
 
 interface Revision {
     id: number;
@@ -77,27 +92,37 @@ export default function ArticleRevisionsSidebar({
     const [rollbackDialogOpen, setRollbackDialogOpen] = useState(false);
     const [revisionToRollback, setRevisionToRollback] = useState<Revision | null>(null);
 
+    // 本地草稿状态
+    const [localDraft, setLocalDraft] = useState<LocalDraft | null>(null);
+
     // 加载修订历史
     useEffect(() => {
         if (isOpen && articleId) {
             fetchRevisions();
+            checkLocalDraft();
         }
     }, [isOpen, articleId]);
+
+    // 检查本地草稿
+    const checkLocalDraft = () => {
+        if (!articleId) return;
+        const draft = DraftService.loadDraft(articleId);
+        setLocalDraft(draft);
+    };
 
     const fetchRevisions = async () => {
         if (!articleId) return;
 
         try {
             setLoading(true);
-            const response = await fetch(`/api/v1/articles/${articleId}/revisions`);
-            const data = await response.json();
+            const result = await apiClient.get(`/articles/${articleId}/revisions`);
 
-            if (data.success) {
-                setRevisions(data.data.revisions || []);
+            if (result.success) {
+                setRevisions(result.data.revisions || []);
             } else {
                 toast({
                     title: '加载失败',
-                    description: data.error,
+                    description: result.error,
                     variant: 'destructive'
                 });
             }
@@ -135,18 +160,18 @@ export default function ArticleRevisionsSidebar({
     // 执行版本比较
     const performComparison = async (rev1Id: number, rev2Id: number) => {
         try {
-            const response = await fetch(
-                `/api/v1/articles/revisions/compare?revision1_id=${rev1Id}&revision2_id=${rev2Id}`
-            );
-            const data = await response.json();
+            const result = await apiClient.get(`/articles/revisions/compare`, {
+                revision1_id: rev1Id,
+                revision2_id: rev2Id
+            });
 
-            if (data.success) {
-                setComparisonResult(data.data);
+            if (result.success) {
+                setComparisonResult(result.data);
                 setComparisonMode(true);
             } else {
                 toast({
                     title: '比较失败',
-                    description: data.error,
+                    description: result.error,
                     variant: 'destructive'
                 });
             }
@@ -178,13 +203,9 @@ export default function ArticleRevisionsSidebar({
         if (!revisionToRollback || !articleId) return;
 
         try {
-            const response = await fetch(
-                `/api/v1/articles/${articleId}/revisions/${revisionToRollback.id}/rollback`,
-                {method: 'POST'}
-            );
-            const data = await response.json();
+            const result = await apiClient.post(`/articles/${articleId}/revisions/${revisionToRollback.id}/rollback`, {});
 
-            if (data.success) {
+            if (result.success) {
                 toast({
                     title: '回滚成功',
                     description: `已回滚到版本 #${revisionToRollback.revision_number}`
@@ -205,7 +226,7 @@ export default function ArticleRevisionsSidebar({
             } else {
                 toast({
                     title: '回滚失败',
-                    description: data.error,
+                    description: result.error,
                     variant: 'destructive'
                 });
             }
@@ -213,6 +234,82 @@ export default function ArticleRevisionsSidebar({
             toast({
                 title: '网络错误',
                 description: '无法执行回滚',
+                variant: 'destructive'
+            });
+        }
+    };
+
+    // 加载本地草稿到编辑器
+    const handleLoadLocalDraft = () => {
+        if (!localDraft || !articleId) return;
+
+        // 通过自定义事件通知父组件加载草稿
+        const event = new CustomEvent('loadLocalDraft', {
+            detail: {
+                articleId,
+                draft: localDraft
+            }
+        });
+        window.dispatchEvent(event);
+
+        toast({
+            title: '已加载本地草稿',
+            description: '草稿内容已填充到编辑器'
+        });
+
+        // 关闭侧边栏
+        onClose();
+    };
+
+    // 删除本地草稿
+    const handleDeleteLocalDraft = () => {
+        if (!articleId) return;
+
+        DraftService.deleteDraft(articleId);
+        setLocalDraft(null);
+
+        toast({
+            title: '已删除本地草稿',
+            description: '本地草稿已被清除'
+        });
+    };
+
+    // 同步本地草稿到云端
+    const handleSyncLocalDraft = async () => {
+        if (!localDraft || !articleId) return;
+
+        if (!confirm(`确定要将本地草稿同步到云端吗？\n\n保存时间：${new Date(localDraft.savedAt).toLocaleString()}\n\n这将在云端创建一个新的修订版本。`)) {
+            return;
+        }
+
+        try {
+            const result = await apiClient.post(`/articles/${articleId}/revisions`, {
+                change_summary: `从本地草稿同步 (${new Date(localDraft.savedAt).toLocaleString()})`
+            });
+
+            if (result.success) {
+                toast({
+                    title: '同步成功',
+                    description: '本地草稿已同步到云端并创建修订版本'
+                });
+
+                // 删除本地草稿
+                DraftService.deleteDraft(articleId);
+                setLocalDraft(null);
+
+                // 刷新修订历史
+                fetchRevisions();
+            } else {
+                toast({
+                    title: '同步失败',
+                    description: result.error,
+                    variant: 'destructive'
+                });
+            }
+        } catch (error) {
+            toast({
+                title: '网络错误',
+                description: '同步失败，请稍后重试',
                 variant: 'destructive'
             });
         }
@@ -312,6 +409,78 @@ export default function ArticleRevisionsSidebar({
                                                 onClick={() => setCompareFrom(null)}
                                             >
                                                 取消
+                                            </Button>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* 本地草稿条目 */}
+                                {localDraft && (
+                                    <div
+                                        className="border-2 border-yellow-400 dark:border-yellow-600 rounded-lg p-4 bg-yellow-50 dark:bg-yellow-950 transition-all hover:shadow-md">
+                                        <div className="flex items-start justify-between mb-3">
+                                            <div className="flex items-center gap-2">
+                                                <Badge variant="default" className="text-base bg-yellow-600">
+                                                    <Save className="w-3 h-3 mr-1"/>
+                                                    本地草稿
+                                                </Badge>
+                                                <Badge variant="outline"
+                                                       className="text-yellow-700 dark:text-yellow-400 border-yellow-600">
+                                                    未同步
+                                                </Badge>
+                                            </div>
+                                            <div
+                                                className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                                                <Clock className="w-3 h-3"/>
+                                                {formatDate(localDraft.savedAt)}
+                                            </div>
+                                        </div>
+
+                                        <h3 className="text-lg font-semibold mb-2 text-gray-900 dark:text-white line-clamp-1">
+                                            {localDraft.title}
+                                        </h3>
+
+                                        {localDraft.excerpt && (
+                                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-3 line-clamp-2">
+                                                {localDraft.excerpt}
+                                            </p>
+                                        )}
+
+                                        <div
+                                            className="text-xs text-yellow-700 dark:text-yellow-400 mb-3 flex items-start gap-1">
+                                            <FileText className="w-3 h-3 mt-0.5 flex-shrink-0"/>
+                                            <span>自动保存的本地草稿</span>
+                                        </div>
+
+                                        <Separator className="my-3 border-yellow-300 dark:border-yellow-700"/>
+
+                                        <div className="flex gap-2">
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={handleLoadLocalDraft}
+                                                className="flex-1 border-yellow-600 text-yellow-700 hover:bg-yellow-100 dark:hover:bg-yellow-900"
+                                            >
+                                                <Eye className="w-4 h-4 mr-2"/>
+                                                加载
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                onClick={handleDeleteLocalDraft}
+                                                className="flex-1 border-red-600 text-red-700 hover:bg-red-100 dark:hover:bg-red-900"
+                                            >
+                                                <Trash2 className="w-4 h-4 mr-2"/>
+                                                删除
+                                            </Button>
+                                            <Button
+                                                size="sm"
+                                                variant="default"
+                                                onClick={handleSyncLocalDraft}
+                                                className="flex-1 bg-purple-600 hover:bg-purple-700"
+                                            >
+                                                <Upload className="w-4 h-4 mr-2"/>
+                                                同步到云端
                                             </Button>
                                         </div>
                                     </div>

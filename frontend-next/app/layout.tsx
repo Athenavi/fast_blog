@@ -1,4 +1,5 @@
 import type {Metadata} from 'next';
+import Script from 'next/script';
 import '../globals.css';
 import '../styles/rtl.css';
 import {getDirection} from '@/i18n';
@@ -21,17 +22,19 @@ export default function RootLayout({
     const direction = getDirection(defaultLocale);
   
   return (
-      <html lang={defaultLocale} dir={direction}>
+      <html lang={defaultLocale} dir={direction} suppressHydrationWarning>
     <head>
         {/* Load runtime config */}
-        <script src="/config.js"/>
+        <Script src="/config.js" strategy="beforeInteractive"/>
     </head>
       <body className="antialiased">
       <ThemeProvider>
           {children}
       </ThemeProvider>
         {/* PWA Service Worker Registration */}
-        <script
+      <Script
+          id="sw-register"
+          strategy="afterInteractive"
           dangerouslySetInnerHTML={{
             __html: `
               if ('serviceWorker' in navigator) {

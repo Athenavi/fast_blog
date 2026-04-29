@@ -4,13 +4,13 @@
 from datetime import datetime
 from typing import Optional
 
-from django.contrib.auth.backends import UserModel
 from fastapi import APIRouter, Depends, Path, Query, Request
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.article import Article
 from shared.models.article_content import ArticleContent
+from shared.models.article_revision import ArticleRevision
 from shared.models.category import Category
 from shared.models.user import User
 from shared.services.article_manager import article_query_service
@@ -554,6 +554,25 @@ async def create_article_api(
 
         try:
             await db.commit()
+
+            # 如果用户选择创建修订版本，则为新文章创建初始修订
+            create_revision_param = form_data.get('create_revision', 'true')
+            should_create_revision = create_revision_param.lower() in ['true', '1', 'yes']
+
+            if should_create_revision:
+                try:
+                    from shared.services.article_manager import save_article_revision
+                    change_summary = form_data.get('change_summary', '创建文章')
+                    await save_article_revision(
+                        db=db,
+                        article_id=new_article.id,
+                        author_id=current_user.id,
+                        change_summary=change_summary
+                    )
+                except Exception as rev_error:
+                    # 修订保存失败不影响主流程
+                    print(f"保存修订版本失败: {rev_error}")
+            
             return ApiResponse(
                 success=True,
                 data={
@@ -730,23 +749,60 @@ async def update_article_api(
             )
             db.add(new_content)
 
+        # 如果用户选择创建修订版本且有变更，先准备修订数据
+        create_revision_param = form_data.get('create_revision', 'true')
+        should_create_revision = create_revision_param.lower() in ['true', '1', 'yes'] if isinstance(
+            create_revision_param, str) else bool(create_revision_param)
+
+        revision_to_add = None
+        if has_changes and should_create_revision:
+            try:
+                # 计算下一个版本号
+                max_rev_query = select(func.max(ArticleRevision.revision_number)).where(
+                    ArticleRevision.article_id == article_id
+                )
+                max_rev_result = await db.execute(max_rev_query)
+                next_revision = (max_rev_result.scalar() or 0) + 1
+
+                # 创建修订记录（但不commit）
+                revision_to_add = ArticleRevision(
+                    article_id=article_id,
+                    revision_number=next_revision,
+                    title=article.title,
+                    excerpt=article.excerpt,
+                    content=content_text,
+                    cover_image=article.cover_image,
+                    tags_list=article.tags_list,
+                    category_id=article.category,
+                    status=article.status,
+                    hidden=article.hidden,
+                    is_featured=article.is_featured,
+                    is_vip_only=article.is_vip_only,
+                    required_vip_level=article.required_vip_level,
+                    author_id=current_user.id,
+                    change_summary=form_data.get('change_summary', '手动保存'),
+                    created_at=datetime.now()
+                )
+                print(f"[DEBUG] Prepared revision #{next_revision}")
+            except Exception as prep_error:
+                print(f"[DEBUG] Failed to prepare revision: {prep_error}")
+                import traceback
+                print(traceback.format_exc())
+
         try:
+            # 如果有修订要添加，先添加到会话
+            if revision_to_add:
+                db.add(revision_to_add)
+                print(f"[DEBUG] Added revision to session")
+
+            # 一次性提交所有更改
             await db.commit()
 
-            # 如果有变更，自动保存修订版本
-            if has_changes:
-                try:
-                    from shared.services.article_manager import save_article_revision
-                    change_summary = form_data.get('change_summary', '自动保存')
-                    await save_article_revision(
-                        db=db,
-                        article_id=article_id,
-                        author_id=current_user.id,
-                        change_summary=change_summary
-                    )
-                except Exception as rev_error:
-                    # 修订保存失败不影响主流程
-                    print(f"保存修订版本失败: {rev_error}")
+            if revision_to_add:
+                print(f"[DEBUG] Revision committed successfully")
+            else:
+                print(
+                    f"[DEBUG] No revision to commit. has_changes={has_changes}, should_create_revision={should_create_revision}")
 
             return ApiResponse(
                 success=True,
