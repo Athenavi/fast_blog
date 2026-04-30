@@ -5,10 +5,9 @@ import {useSearchParams} from 'next/navigation';
 import BlogDetailContent from './BlogDetailContent';
 import LoadingState from '@/components/LoadingState';
 
-// 文章内容组件
 const BlogDetailContentWrapper = () => {
   const searchParams = useSearchParams();
-    const slug = searchParams?.get('slug');
+  const slug = searchParams?.get('slug');
 
   if (!slug) {
     return (
@@ -24,7 +23,6 @@ const BlogDetailContentWrapper = () => {
   return <BlogDetailContent slug={slug}/>;
 };
 
-// 主页面组件 - 使用 Suspense 包裹
 const BlogArticleDetailPage: React.FC = () => {
   return (
       <Suspense fallback={<LoadingState/>}>

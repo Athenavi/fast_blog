@@ -23,7 +23,7 @@ from src.api.v1.responses import ApiResponse
 from src.auth.auth_deps import jwt_optional_dependency, jwt_required_dependency as jwt_required
 from src.setting import app_config
 from src.utils.database.main import get_async_session
-from src.utils.filters import md2html
+from src.utils.filters import markdown_to_html
 
 router = APIRouter()
 
@@ -99,7 +99,10 @@ async def _get_article_detail(
 
     # 6. Markdown 转 HTML 并解析 Shortcode
     if raw_content:
-        html_content = md2html(raw_content, enable_toc=True)
+        theme = 'github'
+        if request.cookies.get("theme"):
+            theme = request.cookies.get("theme")
+        html_content = markdown_to_html(markdown_text=raw_content, theme=theme, enable_toc=True)
         html_content = shortcode_service.parse(html_content)
     else:
         html_content = ""

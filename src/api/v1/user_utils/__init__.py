@@ -7,7 +7,7 @@
 - password_utils: 密码管理相关功能
 - qrlogin_utils: 二维码登录相关功能
 """
-
+from src.utils.security.safe import validate_password_strength
 from .password_utils import *
 from .qrlogin_utils import *
 from .user_entities import *
