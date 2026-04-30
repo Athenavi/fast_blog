@@ -57,7 +57,7 @@ interface UniversalEditorProps {
 const UniversalEditor: React.FC<UniversalEditorProps> = ({
                                                              value,
                                                              onChange,
-                                                             defaultMode = 'block', // 默认使用块编辑器
+                                                             defaultMode = 'markdown', // 默认使用Markdown编辑器
                                                              allowSwitch = true,
                                                              minHeight,
                                                              maxHeight,
@@ -67,7 +67,42 @@ const UniversalEditor: React.FC<UniversalEditorProps> = ({
                                                              showPreview = false,
                                                              onTogglePreview
                                                          }) => {
-    const [editorMode, setEditorMode] = useState<'markdown' | 'wysiwyg' | 'block'>(defaultMode);
+    // 检测内容是否为 Markdown 格式
+    const isMarkdownContent = (content: string): boolean => {
+        if (!content) return false;
+        // 简单的 Markdown 检测：检查是否包含常见的 Markdown 语法
+        const markdownPatterns = [
+            /^#{1,6}\s+/m,           // 标题 # ## ###
+            /^[-*+]\s+/m,             // 无序列表
+            /^\d+\.\s+/m,             // 有序列表
+            /\[([^\]]+)\]\(([^)]+)\)/, // 链接 [text](url)
+            /!\[([^\]]*)\]\(([^)]+)\)/, // 图片 ![alt](url)
+            /^```/m,                   // 代码块
+            /^>\s+/m,                  // 引用
+            /\*\*([^*]+)\*\*/,         // 粗体 **text**
+            /\*([^*]+)\*/,             // 斜体 *text*
+            /`[^`]+`/,                 // 行内代码 `code`
+        ];
+        return markdownPatterns.some(pattern => pattern.test(content));
+    };
+
+    // 根据内容自动选择初始模式
+    const getInitialMode = (): 'markdown' | 'wysiwyg' | 'block' => {
+        // 如果用户明确指定了默认模式，优先使用
+        if (defaultMode !== 'markdown') {
+            return defaultMode;
+        }
+
+        // 否则根据内容智能判断
+        if (value && isMarkdownContent(value)) {
+            return 'markdown';
+        }
+
+        // 如果内容为空或不是 Markdown，使用默认的 markdown 模式
+        return 'markdown';
+    };
+
+    const [editorMode, setEditorMode] = useState<'markdown' | 'wysiwyg' | 'block'>(getInitialMode());
     const [markdownValue, setMarkdownValue] = useState(value);
     const [htmlValue, setHtmlValue] = useState(value);
 
@@ -130,8 +165,8 @@ const UniversalEditor: React.FC<UniversalEditorProps> = ({
                             onClick={handleModeSwitch}
                             className="px-3 py-1 text-sm rounded-md bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-gray-700 dark:text-gray-300"
                         >
-                            {editorMode === 'markdown' ? '切换到块编辑器' :
-                                editorMode === 'block' ? '切换到富文本' : '切换到Markdown'}
+                            {editorMode === 'markdown' ? '📝 切换到富文本' :
+                                editorMode === 'block' ? '📄 切换到Markdown' : '✍️ 切换到Markdown'}
                         </button>
                     )}
                 </div>
@@ -170,9 +205,14 @@ const UniversalEditor: React.FC<UniversalEditorProps> = ({
             )}
 
             {/* 提示信息 */}
+            {editorMode === 'markdown' && (
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                    💡 提示: 使用 Markdown 语法编写文章，支持实时预览
+                </p>
+            )}
             {editorMode === 'wysiwyg' && (
                 <p className="text-xs text-gray-500 dark:text-gray-400">
-                    💡 提示: 使用可视化工具栏格式化文本,或点击"切换到Markdown"使用Markdown语法
+                    💡 提示: 使用可视化工具栏格式化文本,或点击“切换到Markdown”使用Markdown语法
                 </p>
             )}
             {editorMode === 'block' && (

@@ -462,7 +462,7 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
                     <UniversalEditor
                         value={form.content}
                         onChange={handleContentChange}
-                        defaultMode="wysiwyg"
+                        defaultMode="markdown"
                         allowSwitch={true}
                         showPreview={showPreview}
                         onTogglePreview={() => setShowPreview(!showPreview)}

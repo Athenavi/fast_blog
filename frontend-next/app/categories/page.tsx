@@ -119,10 +119,11 @@ const CategoryCard: React.FC<{
 
                 {/* 统计信息 */}
                 <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400 mb-5">
-                    <div className="flex items-center gap-1.5">
+                    <Link href="/my/posts"
+                          className="flex items-center gap-1.5 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
                         <FileText className="w-4 h-4"/>
                         <span>{category.article_count || 0} 文章</span>
-                    </div>
+                    </Link>
                     <div className="flex items-center gap-1.5">
                         <Users className="w-4 h-4"/>
                         <span>{category.subscription_count || 0} 订阅</span>

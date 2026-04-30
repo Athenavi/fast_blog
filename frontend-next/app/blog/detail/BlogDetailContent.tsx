@@ -27,6 +27,42 @@ const estimateReadTime = (content: string) => {
   return Math.ceil(text.length / 300);
 };
 
+// 为标题元素添加 ID（如果还没有的话）
+const addHeadingIds = (contentElement: HTMLElement) => {
+  const headings = contentElement.querySelectorAll('h1, h2, h3, h4, h5, h6');
+  const idCounts: Record<string, number> = {};
+
+  headings.forEach((heading) => {
+    const h = heading as HTMLElement;
+    if (!h.id) {
+      // 从标题文本生成 ID
+      const text = h.textContent || '';
+      let baseId = text
+          .toLowerCase()
+          .replace(/[\s\u4e00-\u9fa5]+/g, '-') // 将空格和中文替换为连字符
+          .replace(/[^a-z0-9-]/g, '') // 移除特殊字符
+          .replace(/-+/g, '-') // 合并多个连字符
+          .replace(/^-|-$/g, ''); // 移除首尾连字符
+
+      // 如果生成的 ID 为空，使用默认值
+      if (!baseId) {
+        baseId = 'heading';
+      }
+
+      // 处理重复 ID
+      if (idCounts[baseId]) {
+        idCounts[baseId]++;
+        h.id = `${baseId}-${idCounts[baseId]}`;
+      } else {
+        idCounts[baseId] = 1;
+        h.id = baseId;
+      }
+    }
+  });
+
+  console.log(`✅ 已为 ${headings.length} 个标题添加 ID`);
+};
+
 interface PasswordArticleInfo {
   article_id: number;
   article_title: string;
@@ -106,6 +142,9 @@ const ArticleDetail: React.FC<{ articleData: ArticleDetailResponse }> = ({articl
       }
 
       try {
+        // 先为标题添加 ID（如果还没有）
+        addHeadingIds(contentElement);
+        
         // 先销毁之前的实例
         tocbot.destroy();
 
@@ -129,12 +168,18 @@ const ArticleDetail: React.FC<{ articleData: ArticleDetailResponse }> = ({articl
             if (target) {
               const element = document.getElementById(target);
               if (element) {
-                element.scrollIntoView({behavior: 'smooth', block: 'center'});
-                // 添加高亮效果
-                element.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
-                setTimeout(() => {
-                  element.style.backgroundColor = '';
-                }, 1000);
+                try {
+                  element.scrollIntoView({behavior: 'smooth', block: 'center'});
+                  // 添加高亮效果
+                  element.style.backgroundColor = 'rgba(59, 130, 246, 0.1)';
+                  setTimeout(() => {
+                    element.style.backgroundColor = '';
+                  }, 1000);
+                } catch (error) {
+                  console.error('滚动到目标元素失败:', error);
+                }
+              } else {
+                console.warn(`未找到ID为 "${target}" 的元素`);
               }
             }
           },
