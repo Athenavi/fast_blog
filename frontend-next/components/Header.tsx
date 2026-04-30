@@ -24,7 +24,7 @@ const Header = () => {
     if (url === '/') {
       return pathname === '/';
     }
-    return pathname.startsWith(url.replace(/\/$/, ''));
+      return pathname?.startsWith(url.replace(/\/$/, ''));
   };
 
     // 渲染菜单项及其子菜单（桌面端）

@@ -8,7 +8,7 @@ import LoadingState from '@/components/LoadingState';
 // 文章内容组件
 const BlogDetailContentWrapper = () => {
   const searchParams = useSearchParams();
-  const slug = searchParams.get('slug');
+    const slug = searchParams?.get('slug');
 
   if (!slug) {
     return (

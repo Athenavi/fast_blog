@@ -14,7 +14,7 @@ type DeviceType = 'desktop' | 'tablet' | 'mobile';
 
 function ThemePreviewContent() {
     const searchParams = useSearchParams();
-    const themeSlug = searchParams.get('theme');
+    const themeSlug = searchParams?.get('theme');
 
     const [device, setDevice] = useState<DeviceType>('desktop');
     const [loading, setLoading] = useState(true);

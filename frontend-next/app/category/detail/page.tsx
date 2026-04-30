@@ -147,7 +147,7 @@ ArticleCard.displayName = 'ArticleCard';
 const CategoryDetailContent: React.FC = () => {
     const searchParams = useSearchParams();
     const router = useRouter();
-    const categoryName = searchParams.get('name') || '';
+    const categoryName = searchParams?.get('name') || '';
 
     const [categoryDetail, setCategoryDetail] = useState<CategoryDetail | null>(null);
     const [loading, setLoading] = useState(true);

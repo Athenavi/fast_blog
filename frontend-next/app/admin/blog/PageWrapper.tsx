@@ -240,7 +240,7 @@ const ArticleManagementContent = () => {
     loadAuthors();
     
     // 检查URL参数是否要求自动执行某个功能
-    const autoRun = searchParams.get('autoRun');
+      const autoRun = searchParams?.get('autoRun');
     if (autoRun) {
       // 等待数据加载完成后执行相应功能
       setTimeout(() => {

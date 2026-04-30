@@ -70,7 +70,7 @@ export function ArticleRevisionsPage() {
     const searchParams = useSearchParams();
     const {toast} = useToast();
 
-    const articleId = searchParams.get('article_id');
+    const articleId = searchParams?.get('article_id');
 
     const [revisions, setRevisions] = useState<Revision[]>([]);
     const [loading, setLoading] = useState(false);
@@ -99,7 +99,8 @@ export function ArticleRevisionsPage() {
             const data = await response.json();
 
             if (data.success) {
-                setRevisions(data.data.revisions || []);
+                const revisionsData = data.data as { revisions?: Revision[] };
+                setRevisions(revisionsData?.revisions || []);
             } else {
                 toast({
                     title: '加载失败',
@@ -147,7 +148,7 @@ export function ArticleRevisionsPage() {
             const data = await response.json();
 
             if (data.success) {
-                setComparisonResult(data.data);
+                setComparisonResult(data.data as ComparisonResult);
                 setComparisonMode(true);
             } else {
                 toast({

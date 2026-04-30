@@ -7,7 +7,7 @@ import Link from 'next/link';
 
 const VipPaymentPage = () => {
   const searchParams = useSearchParams();
-  const planId = searchParams.get('planId');
+  const planId = searchParams?.get('planId');
   
   const [plan, setPlan] = useState<VIPPlan | null>(null);
   const [loading, setLoading] = useState<boolean>(true);

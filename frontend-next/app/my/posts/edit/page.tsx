@@ -40,7 +40,7 @@ const EditArticlePageContent = () => {
   const searchParams = useSearchParams();
 
   // 使用 searchParams 获取查询参数
-  const articleId = searchParams.get('id');
+    const articleId = searchParams?.get('id');
 
   const [categories, setCategories] = useState<Category[]>([]);
   const [initialData, setInitialData] = useState<ArticleData | null>(null);
@@ -168,8 +168,8 @@ const EditArticlePageContent = () => {
       const result = await ArticleService.updateArticle(Number(articleId), form);
 
         // 如果是因为去重而跳过，也视为成功
-        if (result.success && result.data?.skipped) {
-            console.log('去重提示:', result.data.message);
+        if (result.success && (result.data as any)?.skipped) {
+            console.log('去重提示:', (result.data as any).message);
         }
       
       return result;

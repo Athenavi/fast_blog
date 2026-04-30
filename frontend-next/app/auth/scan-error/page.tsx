@@ -9,7 +9,7 @@ const ScanErrorPage = () => {
   const [message, setMessage] = useState<string>('扫码失败，请重试');
 
   useEffect(() => {
-    const msg = searchParams.get('message');
+      const msg = searchParams?.get('message');
     if (msg) {
       setMessage(msg);
     }

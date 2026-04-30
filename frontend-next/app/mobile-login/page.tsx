@@ -8,10 +8,10 @@ const MobileLoginPageContent = () => {
   const searchParams = useSearchParams();
 
   // 获取 URL 参数 - 支持 login_token（扫码登录）和 code/state（OAuth 登录）
-  const loginToken = searchParams.get('login_token');
-  const code = searchParams.get('code');
-  const state = searchParams.get('state');
-  const error = searchParams.get('error');
+  const loginToken = searchParams?.get('login_token');
+  const code = searchParams?.get('code');
+  const state = searchParams?.get('state');
+  const error = searchParams?.get('error');
 
   React.useEffect(() => {
     // 处理错误情况

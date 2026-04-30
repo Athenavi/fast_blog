@@ -57,11 +57,12 @@ export function useToast() {
     const toast = useCallback((options: {
         title: string;
         description?: string;
-        variant?: 'default' | 'destructive'
+        variant?: 'default' | 'destructive';
+        duration?: number;
     }) => {
         const message = options.description ? `${options.title}: ${options.description}` : options.title;
         const type = options.variant === 'destructive' ? 'error' : 'success';
-        return addToast(message, type);
+        return addToast(message, type, options.duration);
     }, [addToast]);
 
     return {

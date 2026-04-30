@@ -14,6 +14,7 @@ interface SearchAndFilterProps {
     onToggleUploadArea: () => void;
     sidebarCollapsed?: boolean;
     onToggleSidebar?: () => void;
+    onUploadRequest?: (files: File[]) => Promise<void>;
 }
 
 const SearchAndFilter: React.FC<SearchAndFilterProps> = memo(({

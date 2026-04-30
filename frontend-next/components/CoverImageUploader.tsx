@@ -317,11 +317,13 @@ const CoverImageUploader: React.FC<CoverImageUploaderProps> = ({
               <div className="mb-4">
                 <SearchAndFilter
                   filterMediaType="image"
-                  setFilterMediaType={() => {}} // 在封面选择器中固定为图片类型
+                  setFilterMediaType={(type: string) => undefined}
                   searchQuery={searchTerm}
-                  handleSearchChange={setSearchTerm}
+                  handleSearchChange={(value: string) => setSearchTerm(value)}
                   totalItems={mediaFiles.length}
-                  setCurrentPage={setCurrentPage}
+                  setCurrentPage={(page: number) => setCurrentPage(page)}
+                  uploadAreaCollapsed={false}
+                  onToggleUploadArea={() => undefined}
                   onUploadRequest={handleUpload}
                 />
                 

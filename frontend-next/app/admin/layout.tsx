@@ -85,7 +85,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({children}) => {
         if (path === '/admin') {
             return pathname === '/admin';
         }
-        return pathname.startsWith(path);
+        return pathname?.startsWith(path);
     };
 
     // 显示删除确认对话框
@@ -161,7 +161,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({children}) => {
                             <Link
                                 href="/admin"
                                 className={`flex items-center px-4 py-3 rounded-lg ${
-                                    isActivePath('/admin') && !pathname.startsWith('/admin/analytics')
+                                    isActivePath('/admin') && !pathname?.startsWith('/admin/analytics')
                                         ? 'text-primary bg-blue-50 font-medium'
                                         : 'text-gray-600 hover:bg-gray-100'
                                 }`}

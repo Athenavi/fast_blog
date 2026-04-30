@@ -105,7 +105,6 @@ async function loadDefaultComponents(): Promise<ComponentMap> {
         {FrontendLayout},
         {default: Header},
         {default: Footer},
-        {ModernHomePage},
         {default: ArticleCard}
     ] = await Promise.all([
         import('@/components/FrontendLayout'),
@@ -119,7 +118,6 @@ async function loadDefaultComponents(): Promise<ComponentMap> {
         Layout: FrontendLayout,
         Header,
         Footer,
-        HomePage: ModernHomePage,
         ArticleCard,
     };
 }

@@ -57,10 +57,10 @@ function UserPageContent() {
 
     // 使用 useSearchParams 来获取查询参数
     const searchParams = useSearchParams();
-    const userIdParam = searchParams.get('id');
+    const userIdParam = searchParams?.get('id');
     const userId = userIdParam ? parseInt(userIdParam) : NaN;
-    const page = parseInt(searchParams.get('page') || '1');
-    const perPage = parseInt(searchParams.get('per_page') || '10');
+    const page = parseInt(searchParams?.get('page') || '1');
+    const perPage = parseInt(searchParams?.get('per_page') || '10');
 
     if (isNaN(userId)) {
         notFound();
@@ -90,7 +90,7 @@ function UserPageContent() {
 
     // 处理页码变化
     const handlePageChange = (newPage: number) => {
-        const params = new URLSearchParams(searchParams.toString());
+        const params = new URLSearchParams(searchParams?.toString());
         params.set('page', newPage.toString());
         router.push(`?${params.toString()}`);
     };

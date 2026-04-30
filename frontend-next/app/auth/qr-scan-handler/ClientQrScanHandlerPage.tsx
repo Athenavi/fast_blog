@@ -7,7 +7,7 @@ import {apiClient} from '@/lib/api';
 const QrScanHandlerPage = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const loginToken = searchParams.get('login_token');
+    const loginToken = searchParams?.get('login_token');
 
   useEffect(() => {
     const handleQrScan = async () => {

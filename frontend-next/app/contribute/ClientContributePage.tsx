@@ -12,7 +12,7 @@ interface LanguageOption {
 const ContributePage = () => {
     const router = useRouter();
     const searchParams = useSearchParams();
-    const aid = searchParams.get('aid'); // 文章ID
+    const aid = searchParams?.get('aid'); // 文章ID
 
     // 步骤状态
     const [currentStep, setCurrentStep] = useState<number>(1);

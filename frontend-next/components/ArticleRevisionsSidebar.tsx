@@ -172,7 +172,8 @@ export default function ArticleRevisionsSidebar({
             const result = await apiClient.get(`/articles/${articleId}/revisions`);
 
             if (result.success) {
-                setRevisions(result.data.revisions || []);
+                const revisionsData = result.data as { revisions?: Revision[] };
+                setRevisions(revisionsData?.revisions || []);
             } else {
                 toast({
                     title: '加载失败',
@@ -356,11 +357,7 @@ export default function ArticleRevisionsSidebar({
             console.log('📨 API响应:', result);
 
             if (result.success) {
-                console.log('✅ API成功，设置比较结果和模式');
-                console.log('   - revision1:', result.data.revision1?.revision_number);
-                console.log('   - revision2:', result.data.revision2?.revision_number);
-                console.log('   - differences:', result.data.differences);
-                setComparisonResult(result.data);
+                setComparisonResult(result.data as ComparisonResult);
                 setComparisonMode(true);
                 console.log('✅ 状态已更新，对话框应该打开');
             } else {

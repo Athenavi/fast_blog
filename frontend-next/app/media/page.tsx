@@ -243,7 +243,7 @@ const MediaPageContent = () => {
     // 删除媒体文件
     const handleDelete = async (mediaId: number) => {
         try {
-            const response = await MediaService.deleteMediaFile(mediaId);
+            const response = await MediaService.deleteMediaFile([mediaId]);
             if (response.success) {
                 setDeleteItem(null);
                 loadMediaFiles();
@@ -265,11 +265,14 @@ const MediaPageContent = () => {
         }
 
         try {
-            for (const id of selectedItems) {
-                await MediaService.deleteMediaFile(id);
+            const response = await MediaService.deleteMediaFile(selectedItems);
+            if (response.success) {
+                setSelectedItems([]);
+                loadMediaFiles();
+            } else {
+                console.error('批量删除失败:', response.error);
+                alert(`批量删除失败: ${response.error}`);
             }
-            setSelectedItems([]);
-            loadMediaFiles();
         } catch (error) {
             console.error('批量删除失败:', error);
             alert('批量删除失败，请稍后重试');
@@ -576,14 +579,14 @@ const MediaPageContent = () => {
                             {/* 搜索和筛选 */}
                             <SearchAndFilter
                                 filterMediaType={filterMediaType}
-                                setFilterMediaType={(type) => {
+                                setFilterMediaType={(type: string) => {
                                     setFilterMediaType(type);
                                     setCurrentPage(1);
                                 }}
                                 searchQuery={searchQuery}
-                                handleSearchChange={handleSearchChange}
+                                handleSearchChange={(value: string) => setSearchQuery(value)}
                                 totalItems={totalItems}
-                                setCurrentPage={setCurrentPage}
+                                setCurrentPage={(page: number) => setCurrentPage(page)}
                                 uploadAreaCollapsed={uploadAreaCollapsed}
                                 onToggleUploadArea={toggleUploadArea}
                                 sidebarCollapsed={sidebarCollapsed}
@@ -645,6 +648,7 @@ const MediaPageContent = () => {
                                 onUpdateCategory={handleUpdateCategory}
                                 onUpdateTags={handleUpdateTags}
                                 apiBaseUrl={apiBaseUrl}
+                                totalItems={totalItems}
                             />
 
                             {/* 分页 */}

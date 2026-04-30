@@ -22,7 +22,7 @@ const OAuthSuccessPage = () => {
   
   useEffect(() => {
     // 获取URL参数中的next参数
-    const nextParam = searchParams.get('next');
+      const nextParam = searchParams?.get('next');
     
     // 1秒后跳转到指定页面
     const timer = setTimeout(() => {

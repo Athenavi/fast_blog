@@ -31,11 +31,11 @@ const ArticlesContent = () => {
     const searchParams = useSearchParams();
 
     // 从 URL 参数获取分页和筛选信息
-    const page = parseInt(searchParams.get('page') || '1');
-    const perPage = parseInt(searchParams.get('per_page') || '12');
-    const searchQuery = searchParams.get('search') || '';
-    const categoryId = searchParams.get('category_id');
-    const viewModeParam = searchParams.get('view');
+    const page = parseInt(searchParams?.get('page') || '1');
+    const perPage = parseInt(searchParams?.get('per_page') || '12');
+    const searchQuery = searchParams?.get('search') || '';
+    const categoryId = searchParams?.get('category_id');
+    const viewModeParam = searchParams?.get('view');
     const viewMode: 'grid' | 'list' = (viewModeParam === 'list' ? 'list' : 'grid'); // grid or list
 
     const [data, setData] = useState<ArticlesPageData | null>(null);
@@ -119,7 +119,7 @@ const ArticlesContent = () => {
 
     // 更新 URL 参数
     const updateUrlParams = (newParams: Record<string, string | number | null>) => {
-        const params = new URLSearchParams(searchParams.toString());
+        const params = new URLSearchParams(searchParams?.toString());
 
         Object.entries(newParams).forEach(([key, value]) => {
             if (value === null || value === undefined) {

@@ -40,7 +40,7 @@ interface PluginInfo {
 const PluginSettingsContent = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
-  const pluginSlug = searchParams.get('slug') || '';
+    const pluginSlug = searchParams?.get('slug') || '';
 
   const [plugin, setPlugin] = useState<PluginInfo | null>(null);
   const [settingsUI, setSettingsUI] = useState<PluginSettingsUI | null>(null);

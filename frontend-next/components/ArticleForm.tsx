@@ -256,11 +256,11 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
 
       if (result.success) {
         // 检查是否因为去重而跳过
-        if (result.data?.skipped) {
+          if ((result.data as any)?.skipped) {
           // 显示提示信息
           toast({
             title: '✅ 已跳过',
-            description: result.data.message || '内容未发生变化，已跳过创建修订版本',
+              description: (result.data as any).message || '内容未发生变化，已跳过创建修订版本',
             variant: 'default'
           });
         }

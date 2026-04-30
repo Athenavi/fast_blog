@@ -8,7 +8,7 @@ const ScanSuccessPage = () => {
   const [message, setMessage] = useState<string>('扫码成功，请在手机端确认登录');
 
   useEffect(() => {
-      const msg = searchParams.get('message');
+      const msg = searchParams?.get('message');
       if (msg) {
           setMessage(msg);
     }

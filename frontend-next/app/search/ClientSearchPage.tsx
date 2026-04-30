@@ -25,7 +25,7 @@ const ClientSearchPage = () => {
 
   // 从URL参数获取关键词
   useEffect(() => {
-    const keyword = searchParams.get('keyword');
+      const keyword = searchParams?.get('keyword');
     if (keyword) {
       const decodedKeyword = decodeURIComponent(keyword);
       setSearchKeyword(decodedKeyword);

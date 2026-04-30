@@ -96,7 +96,7 @@ class DarkModeManager {
     /**
      * 监听系统主题变化
      */
-    public watchSystemTheme(): void {
+    public watchSystemTheme(): () => void {
         if (typeof window !== 'undefined') {
             const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
 
@@ -115,6 +115,10 @@ class DarkModeManager {
                 mediaQuery.removeEventListener('change', handleChange);
             };
         }
+
+        // 在非浏览器环境中返回空函数
+        return () => {
+        };
     }
 }
 
