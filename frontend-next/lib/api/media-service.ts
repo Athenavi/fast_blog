@@ -414,12 +414,43 @@ export class MediaService {
      * @param folderPath 目标文件夹路径（如 "Photos/2024"），null表示移动到根目录
      */
     static async moveMediaFiles(
-        mediaIds: number[],
+        mediaIds: number[], 
         folderPath: string | null
     ): Promise<ApiResponse<{ moved_count: number }>> {
         return apiClient.post('/media/folders/move-media', {
             media_ids: mediaIds,
             folder_path: folderPath
+        });
+    }
+
+    /**
+     * 更新媒体文件的分类
+     * @param mediaId 媒体文件ID
+     * @param category 分类名称
+     */
+    static async updateMediaCategory(
+        mediaId: number,
+        category: string
+    ): Promise<ApiResponse<{ message: string }>> {
+        return apiClient.put(`/media/detail/${mediaId}`, {
+            category: category
+        });
+    }
+
+    /**
+     * 更新媒体文件的标签
+     * @param mediaId 媒体文件ID
+     * @param tags 标签数组（最多5个）
+     * @param mode 模式：'replace' 替换全部，'add' 追加（默认）
+     */
+    static async updateMediaTags(
+        mediaId: number,
+        tags: string[],
+        mode: 'replace' | 'add' = 'replace'
+    ): Promise<ApiResponse<{ message: string; tags: string[] }>> {
+        return apiClient.post(`/media/${mediaId}/tags`, {
+            tags: tags,
+            mode: mode
         });
     }
 }

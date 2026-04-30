@@ -33,7 +33,9 @@ import {
     Copy,
     FolderOpen,
     HardDrive,
-    FolderInput
+    FolderInput,
+    ChevronLeft,
+    ChevronRight
 } from 'lucide-react';
 import dynamic from "next/dynamic";
 
@@ -117,6 +119,28 @@ const MediaPageContent = () => {
     // 图片编辑状态
     const [editorDialogOpen, setEditorDialogOpen] = useState(false);
     const [editingMedia, setEditingMedia] = useState<MediaFile | null>(null);
+
+    // 批量移动对话框状态
+    const [moveDialogOpen, setMoveDialogOpen] = useState(false);
+    const [folders, setFolders] = useState<Array<{ id: number; name: string; path: string }>>([]);
+
+    // 上传区块折叠状态 - 从 localStorage 读取初始值
+    const [uploadAreaCollapsed, setUploadAreaCollapsed] = useState<boolean>(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('media_upload_area_collapsed');
+            return saved === 'true';
+        }
+        return false;
+    });
+
+    // 侧边栏折叠状态 - 从 localStorage 读取初始值
+    const [sidebarCollapsed, setSidebarCollapsed] = useState<boolean>(() => {
+        if (typeof window !== 'undefined') {
+            const saved = localStorage.getItem('media_sidebar_collapsed');
+            return saved === 'true';
+        }
+        return false;
+    });
 
     // 文件夹选择状态
     const [selectedFolderName, setSelectedFolderName] = useState<string | null>(() => {
@@ -253,6 +277,7 @@ const MediaPageContent = () => {
             if (response.success) {
                 console.log('✅ 批量移动成功');
                 setSelectedItems([]);
+                setMoveDialogOpen(false);
                 loadMediaFiles();
             } else {
                 console.error('❌ 批量移动失败:', response.error);
@@ -261,6 +286,110 @@ const MediaPageContent = () => {
         } catch (error) {
             console.error('批量移动失败:', error);
             alert('批量移动失败，请稍后重试');
+        }
+    };
+
+    // 加载文件夹列表
+    const loadFolders = async () => {
+        try {
+            console.log('📂 开始加载文件夹列表...');
+
+            // 使用 apiClient 发送请求，它会自动处理认证
+            const {apiClient} = await import('@/lib/api');
+
+            const response = await apiClient.get('/media/folders/tree');
+
+            console.log('📂 API响应:', response);
+
+            if (response.success && response.data) {
+                // 将树形结构展平为列表
+                const flattenFolders = (
+                    nodes: Array<{ id: number; name: string; children?: Array<any> }>,
+                    parentPath: string = ''
+                ): Array<{ id: number; name: string; path: string }> => {
+                    const result: Array<{ id: number; name: string; path: string }> = [];
+                    for (const node of nodes) {
+                        const currentPath = parentPath ? `${parentPath}/${node.name}` : node.name;
+                        result.push({
+                            id: node.id,
+                            name: node.name,
+                            path: currentPath
+                        });
+                        if (node.children && node.children.length > 0) {
+                            result.push(...flattenFolders(node.children, currentPath));
+                        }
+                    }
+                    return result;
+                };
+
+                const flattenedFolders = flattenFolders(response.data.tree || []);
+                console.log('📂 展平后的文件夹列表:', flattenedFolders);
+                console.log('📂 文件夹数量:', flattenedFolders.length);
+                setFolders(flattenedFolders);
+            } else {
+                console.error('❌ 获取文件夹失败:', response.error);
+                alert(`获取文件夹失败: ${response.error || '未知错误'}`);
+            }
+        } catch (error) {
+            console.error('❌ 加载文件夹异常:', error);
+            alert('加载文件夹失败，请重试');
+        }
+    };
+
+    // 打开批量移动对话框
+    const openMoveDialog = () => {
+        if (selectedItems.length === 0) return;
+        loadFolders();
+        setMoveDialogOpen(true);
+    };
+
+    // 切换上传区块折叠状态
+    const toggleUploadArea = () => {
+        const newState = !uploadAreaCollapsed;
+        setUploadAreaCollapsed(newState);
+        // 保存到 localStorage
+        localStorage.setItem('media_upload_area_collapsed', String(newState));
+    };
+
+    // 切换侧边栏折叠状态
+    const toggleSidebar = () => {
+        const newState = !sidebarCollapsed;
+        setSidebarCollapsed(newState);
+        // 保存到 localStorage
+        localStorage.setItem('media_sidebar_collapsed', String(newState));
+    };
+
+    // 更新媒体分类
+    const handleUpdateCategory = async (mediaId: number, category: string) => {
+        try {
+            const response = await MediaService.updateMediaCategory(mediaId, category);
+            if (response.success) {
+                console.log('✅ 分类更新成功');
+                loadMediaFiles(); // 刷新列表
+            } else {
+                console.error('❌ 分类更新失败:', response.error);
+                alert(`更新分类失败: ${response.error}`);
+            }
+        } catch (error) {
+            console.error('更新分类异常:', error);
+            alert('更新分类失败，请重试');
+        }
+    };
+
+    // 更新媒体标签
+    const handleUpdateTags = async (mediaId: number, tags: string[]) => {
+        try {
+            const response = await MediaService.updateMediaTags(mediaId, tags, 'replace');
+            if (response.success) {
+                console.log('✅ 标签更新成功');
+                loadMediaFiles(); // 刷新列表
+            } else {
+                console.error('❌ 标签更新失败:', response.error);
+                alert(`更新标签失败: ${response.error}`);
+            }
+        } catch (error) {
+            console.error('更新标签异常:', error);
+            alert('更新标签失败，请重试');
         }
     };
 
@@ -344,8 +473,22 @@ const MediaPageContent = () => {
                             </p>
                         </div>
 
-                        {/* 视图切换 */}
+                        {/* 右侧工具栏 */}
                         <div className="flex items-center gap-2">
+                            {/* 侧边栏折叠按钮 */}
+                            <button
+                                onClick={toggleSidebar}
+                                className="p-2 rounded-lg transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+                                title={sidebarCollapsed ? '展开侧边栏' : '折叠侧边栏'}
+                            >
+                                {sidebarCollapsed ? (
+                                    <ChevronRight className="w-5 h-5"/>
+                                ) : (
+                                    <ChevronLeft className="w-5 h-5"/>
+                                )}
+                            </button>
+
+                            {/* 视图切换 */}
                             <button
                                 onClick={() => setViewMode('grid')}
                                 className={`p-2 rounded-lg transition-colors ${
@@ -377,7 +520,9 @@ const MediaPageContent = () => {
                     <DragDropContext onDragEnd={onDragEnd}>
                         <div className="flex flex-col lg:flex-row gap-8">
                         {/* 侧边栏 */}
-                        <aside className="lg:w-64 flex-shrink-0 space-y-6">
+                            <aside className={`transition-all duration-300 ease-in-out ${
+                                sidebarCollapsed ? 'lg:w-0 lg:opacity-0 lg:overflow-hidden' : 'lg:w-64'
+                            } flex-shrink-0 space-y-6`}>
                             {/* 存储统计 */}
                             <StorageStats stats={storageStats} loading={loading}/>
 
@@ -407,6 +552,7 @@ const MediaPageContent = () => {
                                 uploading={uploading}
                                 uploadProgress={uploadProgress}
                                 uploadStatus={uploadStatus}
+                                collapsed={uploadAreaCollapsed}
                             />
 
                             {/* 搜索和筛选 */}
@@ -420,7 +566,10 @@ const MediaPageContent = () => {
                                 handleSearchChange={handleSearchChange}
                                 totalItems={totalItems}
                                 setCurrentPage={setCurrentPage}
-                                onUploadRequest={uploadFiles}
+                                uploadAreaCollapsed={uploadAreaCollapsed}
+                                onToggleUploadArea={toggleUploadArea}
+                                sidebarCollapsed={sidebarCollapsed}
+                                onToggleSidebar={toggleSidebar}
                             />
 
                             {/* 批量操作工具栏 */}
@@ -437,12 +586,7 @@ const MediaPageContent = () => {
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <button
-                                            onClick={() => {
-                                                // 打开文件夹选择对话框（简化版：直接移动到根目录）
-                                                if (confirm(`确定要将选中的 ${selectedItems.length} 个文件移动到根目录吗？`)) {
-                                                    handleBatchMove(null);
-                                                }
-                                            }}
+                                            onClick={openMoveDialog}
                                             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
                                         >
                                             <FolderInput className="w-4 h-4"/>
@@ -471,10 +615,18 @@ const MediaPageContent = () => {
                                 loading={loading}
                                 viewMode={viewMode}
                                 selectedItems={selectedItems}
-                                setSelectedItems={setSelectedItems}
+                                onSelectItem={(id) => {
+                                    setSelectedItems(prev =>
+                                        prev.includes(id)
+                                            ? prev.filter(item => item !== id)
+                                            : [...prev, id]
+                                    );
+                                }}
                                 onPreview={setPreviewMedia}
                                 onDelete={setDeleteItem}
                                 onEdit={openImageEditor}
+                                onUpdateCategory={handleUpdateCategory}
+                                onUpdateTags={handleUpdateTags}
                                 apiBaseUrl={apiBaseUrl}
                             />
 
@@ -543,6 +695,53 @@ const MediaPageContent = () => {
                     </DialogContent>
                 </Dialog>
             )}
+
+            {/* 批量移动对话框 */}
+            <Dialog open={moveDialogOpen} onOpenChange={setMoveDialogOpen}>
+                <DialogContent className="max-w-md">
+                    <DialogTitle>移动文件到文件夹</DialogTitle>
+                    <div className="mt-4">
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                            将选中的 {selectedItems.length} 个文件移动到：
+                        </p>
+
+                        {/* 调试信息 */}
+
+                        <div className="space-y-2 max-h-64 overflow-y-auto">
+                            {/* 根目录选项 */}
+                            <button
+                                onClick={() => handleBatchMove(null)}
+                                className="w-full px-4 py-3 text-left rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-500 transition-colors"
+                            >
+                                <div className="flex items-center gap-3">
+                                    <FolderOpen className="w-5 h-5 text-gray-500"/>
+                                    <span className="font-medium">根目录</span>
+                                </div>
+                            </button>
+
+                            {/* 文件夹列表 */}
+                            {folders.map((folder) => (
+                                <button
+                                    key={folder.id}
+                                    onClick={() => handleBatchMove(folder.path)}
+                                    className="w-full px-4 py-3 text-left rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-500 transition-colors"
+                                >
+                                    <div className="flex items-center gap-3">
+                                        <FolderOpen className="w-5 h-5 text-blue-500"/>
+                                        <span className="font-medium">{folder.path}</span>
+                                    </div>
+                                </button>
+                            ))}
+
+                            {folders.length === 0 && (
+                                <div className="text-center py-8 text-gray-500">
+                                    暂无文件夹，请先创建文件夹
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
 
             {/* 底部间距 */}
             <div className="h-20"/>
