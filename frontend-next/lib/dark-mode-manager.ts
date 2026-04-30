@@ -71,6 +71,21 @@ class DarkModeManager {
             }
 
             localStorage.setItem('theme', theme);
+
+            // 同时设置 cookie，供后端使用
+            this.setThemeCookie(theme);
+        }
+    }
+
+    /**
+     * 设置主题 cookie
+     */
+    private setThemeCookie(theme: Theme): void {
+        if (typeof document !== 'undefined') {
+            // 设置 cookie，有效期 365 天
+            const expires = new Date();
+            expires.setFullYear(expires.getFullYear() + 1);
+            document.cookie = `theme=${theme};expires=${expires.toUTCString()};path=/;SameSite=Lax`;
         }
     }
 

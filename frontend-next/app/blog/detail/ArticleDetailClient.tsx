@@ -168,7 +168,7 @@ const ArticleDetailClient: React.FC<ArticleDetailClientProps> = ({articleData}) 
     };
 
     return (
-        <div className="min-h-screen bg-white dark:bg-gray-950">
+        <div className="min-h-screen bg-white dark:bg-gray-950 transition-colors duration-300">
             {/* 文章头部 - 带背景图 */}
             <header className="relative border-b border-gray-200 dark:border-gray-800 overflow-hidden">
                 {/* 背景图 */}
@@ -263,12 +263,14 @@ const ArticleDetailClient: React.FC<ArticleDetailClientProps> = ({articleData}) 
             </header>
 
             {/* 文章内容区域 */}
-            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+            <main
+                className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 bg-white dark:bg-gray-950 transition-colors duration-300">
 
                 {/* 文章内容 */}
                 <div className="lg:grid lg:grid-cols-12 lg:gap-12">
                     {/* 主内容区 */}
-                    <article className="lg:col-span-9 xl:col-span-10">
+                    <article
+                        className="lg:col-span-9 xl:col-span-10 bg-white dark:bg-gray-950 transition-colors duration-300">
 
                         {/* 文章内容 */}
                         <div
@@ -282,7 +284,8 @@ const ArticleDetailClient: React.FC<ArticleDetailClientProps> = ({articleData}) 
                                 prose-code:bg-gray-100 dark:prose-code:bg-gray-800 prose-code:px-2 prose-code:py-1 prose-code:rounded
                                 prose-pre:bg-gray-900 dark:prose-pre:bg-gray-800 prose-pre:text-gray-100
                                 prose-img:rounded-lg prose-img:shadow-lg
-                                prose-strong:font-semibold prose-strong:text-gray-900 dark:prose-strong:text-white"
+                                prose-strong:font-semibold prose-strong:text-gray-900 dark:prose-strong:text-white
+                                transition-colors duration-300"
                             dangerouslySetInnerHTML={{__html: article.content || ''}}
                         />
 
@@ -360,7 +363,7 @@ const ArticleDetailClient: React.FC<ArticleDetailClientProps> = ({articleData}) 
                         <div className="sticky top-8">
                             {/* 简单的目录容器 */}
                             <div
-                                className="bg-gray-50 dark:bg-gray-900 rounded-xl p-6 border border-gray-200 dark:border-gray-800">
+                                className="bg-gray-50 dark:bg-gray-900 rounded-xl p-6 border border-gray-200 dark:border-gray-800 transition-colors duration-300">
                                 <h3 className="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider mb-4">
                                     目录
                                 </h3>
