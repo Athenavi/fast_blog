@@ -26,8 +26,8 @@ export default function CSSOptimizerPage() {
 
       if (response.ok) {
         const result = await response.json();
-        if (result.success) {
-          setCacheStats(result.data);
+          if (result.success && result.data) {
+              setCacheStats(result.data as any);
         }
       }
     } catch (error) {
@@ -66,9 +66,9 @@ export default function CSSOptimizerPage() {
       }
 
       const result = await response.json();
-      
-      if (result.success) {
-        setResult(result.data);
+
+        if (result.success && result.data) {
+            setResult(result.data as any);
         toast.success('提取完成');
         // 刷新缓存统计
         loadCacheStats();

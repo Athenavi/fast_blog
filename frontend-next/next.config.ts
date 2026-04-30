@@ -4,6 +4,9 @@ import type {NextConfig} from "next";
 // const withNextIntl = createNextIntlPlugin('./i18n/request.ts');
 
 const nextConfig: NextConfig = {
+    // 禁用 React Strict Mode，避免 @hello-pangea/dnd 在开发环境报错
+    reactStrictMode: false,
+    
     // 启用静态导出（生成 out 目录）
     output: 'export',
     

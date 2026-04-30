@@ -35,6 +35,7 @@ export interface MediaFile {
     created_at: string;
     category?: string | null;  // 分类名称
     tags?: string | null;       // 标签(逗号分隔)
+    url?: string; // 文件 URL
     user?: {
         username: string;
     };
@@ -97,6 +98,7 @@ export interface Category {
     created_at: string;
     updated_at?: string;
     subscription_count?: number;
+    article_count?: number; // 文章数量
 }
 
 // 角色统计类型
@@ -143,6 +145,7 @@ export interface UserArticle {
     title: string;
     slug: string;
     excerpt?: string;
+    summary?: string; // 摘要
     cover_image?: string;
     views: number;
     likes: number;

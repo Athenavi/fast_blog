@@ -33,10 +33,10 @@ export default function TranslationServicePage() {
 
       if (response.ok) {
         const result = await response.json();
-        if (result.success) {
-          setProviders(result.data);
-          if (result.data.providers.length > 0) {
-            setSelectedProvider(result.data.default_provider || result.data.providers[0]);
+          if (result.success && result.data) {
+              setProviders(result.data as any);
+              if ((result.data as any).providers.length > 0) {
+                  setSelectedProvider((result.data as any).default_provider || (result.data as any).providers[0]);
           }
         }
       }
@@ -78,9 +78,9 @@ export default function TranslationServicePage() {
       });
 
       const result = await response.json();
-      
-      if (result.success) {
-        setTranslatedText(result.data.translated_text);
+
+        if (result.success && result.data) {
+            setTranslatedText((result.data as any).translated_text);
         toast.success('翻译完成');
       } else {
         toast.error(result.error || '翻译失败');
@@ -115,10 +115,10 @@ export default function TranslationServicePage() {
       });
 
       const result = await response.json();
-      
-      if (result.success) {
-        setSourceLang(result.data.language);
-        toast.success(`检测到语言: ${result.data.language} (置信度: ${Math.round(result.data.confidence * 100)}%)`);
+
+        if (result.success && result.data) {
+            setSourceLang((result.data as any).language);
+            toast.success(`检测到语言: ${(result.data as any).language} (置信度: ${Math.round((result.data as any).confidence * 100)}%)`);
       } else {
         toast.error(result.error || '检测失败');
       }

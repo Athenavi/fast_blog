@@ -46,8 +46,8 @@ export default function SiteHealthPage() {
       }
 
       const result = await response.json();
-      if (result.success) {
-        setHealthData(result.data);
+        if (result.success && result.data) {
+            setHealthData(result.data as any);
       } else {
         toast.error(result.error || '获取数据失败');
       }

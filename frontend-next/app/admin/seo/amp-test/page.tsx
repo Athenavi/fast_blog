@@ -29,8 +29,8 @@ export default function AMPTestPage() {
       const response = await fetch('/api/v1/amp/info');
       if (response.ok) {
         const result = await response.json();
-        if (result.success) {
-          setAmpInfo(result.data);
+          if (result.success && result.data) {
+              setAmpInfo(result.data as any);
         }
       }
     } catch (error) {
@@ -54,9 +54,9 @@ export default function AMPTestPage() {
       }
 
       const result = await response.json();
-      
-      if (result.success) {
-        setValidationResult(result.data.validation);
+
+        if (result.success && result.data) {
+            setValidationResult((result.data as any).validation);
         toast.success('验证完成');
       } else {
         toast.error(result.error || '验证失败');

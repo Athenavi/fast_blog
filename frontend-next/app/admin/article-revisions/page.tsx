@@ -1,6 +1,6 @@
 'use client';
 
-import {useEffect, useState} from 'react';
+import {useEffect, useState, Suspense} from 'react';
 import {useRouter, useSearchParams} from 'next/navigation';
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card';
 import {Badge} from '@/components/ui/badge';
@@ -65,7 +65,7 @@ interface ComparisonResult {
     }[];
 }
 
-export default function ArticleRevisionsPage() {
+export function ArticleRevisionsPage() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const {toast} = useToast();
@@ -588,3 +588,14 @@ export default function ArticleRevisionsPage() {
         </div>
     );
 }
+
+// 包装组件，提供 Suspense boundary
+function ArticleRevisionsPageWithSuspense() {
+    return (
+        <Suspense fallback={<div className="p-8 text-center">加载中...</div>}>
+            <ArticleRevisionsPage/>
+        </Suspense>
+    );
+}
+
+export default ArticleRevisionsPageWithSuspense;

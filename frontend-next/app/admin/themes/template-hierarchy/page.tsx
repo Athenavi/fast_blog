@@ -24,8 +24,8 @@ export default function TemplateHierarchyPage() {
       const response = await fetch('/api/v1/template-hierarchy/hierarchy');
       if (response.ok) {
         const result = await response.json();
-        if (result.success) {
-          setHierarchy(result.data.hierarchy);
+          if (result.success && result.data) {
+              setHierarchy((result.data as any).hierarchy);
         }
       }
     } catch (error) {
@@ -44,8 +44,8 @@ export default function TemplateHierarchyPage() {
 
       if (response.ok) {
         const result = await response.json();
-        if (result.success) {
-          setTemplates(result.data);
+          if (result.success && result.data) {
+              setTemplates(result.data as any);
         }
       }
     } catch (error) {
@@ -84,9 +84,9 @@ export default function TemplateHierarchyPage() {
       });
 
       const result = await response.json();
-      
-      if (result.success) {
-        setResolvedTemplate(result.data);
+
+        if (result.success && result.data) {
+            setResolvedTemplate(result.data as any);
         toast.success('模板解析成功');
       } else {
         toast.error(result.error || '解析失败');

@@ -13,7 +13,6 @@ import Pagination from "@/components/media/Pagination";
 import PreviewModal from "@/components/media/PreviewModal";
 import DeleteConfirm from "@/components/media/DeleteConfirm";
 import FolderTree from '@/components/media/FolderTree';
-import dynamic from 'next/dynamic';
 import {Dialog, DialogContent, DialogTitle} from '@/components/ui/dialog';
 import {useRouter, useSearchParams} from 'next/navigation';
 import {motion} from 'framer-motion';
@@ -33,8 +32,10 @@ import {
     Download,
     Copy,
     FolderOpen,
-    HardDrive
+    HardDrive,
+    FolderInput
 } from 'lucide-react';
+import dynamic from "next/dynamic";
 
 // 动态导入 ImageEditor，禁用 SSR
 const ImageEditor = dynamic(() => import('@/components/ImageEditor'), {
@@ -63,6 +64,12 @@ const useDebounce = <T, >(value: T, delay: number): T => {
 const MediaPageContent = () => {
     const router = useRouter();
     const searchParams = useSearchParams();
+    const [isMounted, setIsMounted] = useState(false);
+
+    // 确保组件只在客户端挂载后渲染
+    useEffect(() => {
+        setIsMounted(true);
+    }, []);
     
     const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
     const [loading, setLoading] = useState(true);
@@ -236,15 +243,80 @@ const MediaPageContent = () => {
         }
     };
 
+    // 批量移动
+    const handleBatchMove = async (folderPath: string | null) => {
+        if (selectedItems.length === 0) return;
+
+        try {
+            const response = await MediaService.moveMediaFiles(selectedItems, folderPath);
+
+            if (response.success) {
+                console.log('✅ 批量移动成功');
+                setSelectedItems([]);
+                loadMediaFiles();
+            } else {
+                console.error('❌ 批量移动失败:', response.error);
+                alert(`移动失败: ${response.error}`);
+            }
+        } catch (error) {
+            console.error('批量移动失败:', error);
+            alert('批量移动失败，请稍后重试');
+        }
+    };
+
     // 打开图片编辑器
     const openImageEditor = (media: MediaFile) => {
         setEditingMedia(media);
         setEditorDialogOpen(true);
     };
 
-    // 处理拖拽结束
+    // 处理拖拽结束 - 移动文件到文件夹
     const onDragEnd = (result: DropResult) => {
-        // 可以在这里实现拖拽排序逻辑
+        const {destination, draggableId} = result;
+
+        // 如果没有放置目标，直接返回
+        if (!destination) return;
+
+        // 解析 draggableId 获取媒体文件 ID
+        // draggableId 格式: "media-{id}"
+        const mediaId = parseInt(draggableId.replace('media-', ''));
+
+        // 解析 destination.droppableId 获取文件夹路径
+        // droppableId 格式: "folder-root" (根目录) 或 "folder-{path}" (子文件夹)
+        let folderPath: string | null = null;
+
+        if (destination.droppableId === 'folder-root') {
+            // 拖拽到根目录
+            folderPath = null;
+        } else if (destination.droppableId.startsWith('folder-')) {
+            // 拖拽到子文件夹
+            folderPath = destination.droppableId.replace('folder-', '');
+        }
+
+        console.log('📦 移动文件:', {mediaId, folderPath});
+
+        // 异步执行移动操作，但不阻塞拖拽完成
+        const moveFile = async () => {
+            try {
+                // 调用 API 移动文件 - 使用 MediaService
+                const response = await MediaService.moveMediaFiles([mediaId], folderPath);
+
+                if (response.success) {
+                    console.log('✅ 文件移动成功');
+                    // 刷新媒体列表
+                    loadMediaFiles();
+                } else {
+                    console.error('❌ 移动失败:', response.error);
+                    alert(`移动失败: ${response.error}`);
+                }
+            } catch (error) {
+                console.error('❌ 移动文件异常:', error);
+                alert('移动失败，请重试');
+            }
+        };
+
+        // 在后台执行移动操作
+        moveFile();
     };
 
     // 获取文件类型图标
@@ -300,9 +372,10 @@ const MediaPageContent = () => {
             </header>
 
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-                {/* 整个拖拽上下文 - 包含侧边栏和主内容 */}
-                <DragDropContext onDragEnd={onDragEnd}>
-                    <div className="flex flex-col lg:flex-row gap-8">
+                {/* 整个拖拽上下文 - 只在客户端挂载后渲染 */}
+                {isMounted ? (
+                    <DragDropContext onDragEnd={onDragEnd}>
+                        <div className="flex flex-col lg:flex-row gap-8">
                         {/* 侧边栏 */}
                         <aside className="lg:w-64 flex-shrink-0 space-y-6">
                             {/* 存储统计 */}
@@ -319,6 +392,10 @@ const MediaPageContent = () => {
                                     router.push(`/media${folderName ? `?folder=${folderName}` : ''}`);
                                 }}
                                 onRefresh={loadMediaFiles}
+                                onDropMedia={(folderPath) => {
+                                    // 这个函数在 FolderTree 内部使用，用于启用/禁用放置功能
+                                    console.log('📂 文件放置到文件夹:', folderPath);
+                                }}
                             />
                         </aside>
 
@@ -360,6 +437,18 @@ const MediaPageContent = () => {
                                     </div>
                                     <div className="flex items-center gap-2">
                                         <button
+                                            onClick={() => {
+                                                // 打开文件夹选择对话框（简化版：直接移动到根目录）
+                                                if (confirm(`确定要将选中的 ${selectedItems.length} 个文件移动到根目录吗？`)) {
+                                                    handleBatchMove(null);
+                                                }
+                                            }}
+                                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
+                                        >
+                                            <FolderInput className="w-4 h-4"/>
+                                            移动选中
+                                        </button>
+                                        <button
                                             onClick={handleBatchDelete}
                                             className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-lg transition-colors flex items-center gap-2"
                                         >
@@ -394,12 +483,32 @@ const MediaPageContent = () => {
                                 <Pagination
                                     currentPage={currentPage}
                                     totalPages={totalPages}
-                                    onPageChange={setCurrentPage}
+                                    totalItems={totalItems}
+                                    perPage={perPage}
+                                    goToPage={setCurrentPage}
+                                    startIndex={(currentPage - 1) * perPage + 1}
+                                    endIndex={currentPage * perPage}
                                 />
                             )}
                         </main>
                     </div>
                 </DragDropContext>
+                ) : (
+                    // 服务端渲染时的占位符
+                    <div className="flex flex-col lg:flex-row gap-8">
+                        <aside className="lg:w-64 flex-shrink-0 space-y-6">
+                            <StorageStats stats={storageStats} loading={loading}/>
+                        </aside>
+                        <main className="flex-1">
+                            {loading ? (
+                                <div className="p-12 text-center">
+                                    <div
+                                        className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
+                                </div>
+                            ) : null}
+                        </main>
+                    </div>
+                )}
             </div>
 
             {/* 预览模态框 */}
@@ -407,14 +516,13 @@ const MediaPageContent = () => {
                 <PreviewModal
                     media={previewMedia}
                     onClose={() => setPreviewMedia(null)}
-                    apiBaseUrl={apiBaseUrl}
                 />
             )}
 
             {/* 删除确认 */}
             {deleteItem && (
                 <DeleteConfirm
-                    media={deleteItem}
+                    item={deleteItem}
                     onCancel={() => setDeleteItem(null)}
                     onConfirm={() => handleDelete(deleteItem.id!)}
                 />

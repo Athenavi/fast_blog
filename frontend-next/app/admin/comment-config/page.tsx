@@ -65,10 +65,10 @@ export default function CommentConfigPage() {
                 if (response.ok) {
                     const result = await response.json();
 
-                    if (result.success) {
+                    if (result.success && result.data) {
                         setConfig(prev => ({
                             ...prev,
-                            ...result.data
+                            ...(result.data as any)
                         }));
                     }
                 }

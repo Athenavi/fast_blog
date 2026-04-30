@@ -27,8 +27,8 @@ export default function BackupPage() {
             const response = await fetch('/api/v1/system/backup/list');
             const result = await response.json();
 
-            if (result.success) {
-                setBackups(result.data.backups);
+            if (result.success && result.data) {
+                setBackups((result.data as any).backups);
             }
         } catch (error) {
             console.error('加载备份失败:', error);

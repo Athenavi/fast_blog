@@ -407,4 +407,19 @@ export class MediaService {
             throw new Error('浏览器不支持加密API，无法计算分块哈希');
         }
     }
+
+    /**
+     * 移动媒体文件到文件夹
+     * @param mediaIds 媒体文件ID列表（可以是单个ID的数组）
+     * @param folderPath 目标文件夹路径（如 "Photos/2024"），null表示移动到根目录
+     */
+    static async moveMediaFiles(
+        mediaIds: number[],
+        folderPath: string | null
+    ): Promise<ApiResponse<{ moved_count: number }>> {
+        return apiClient.post('/media/folders/move-media', {
+            media_ids: mediaIds,
+            folder_path: folderPath
+        });
+    }
 }

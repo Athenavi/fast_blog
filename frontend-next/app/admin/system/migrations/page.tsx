@@ -27,8 +27,8 @@ export default function MigrationsPage() {
 
       if (response.ok) {
         const result = await response.json();
-        if (result.success) {
-          setStatus(result.data);
+          if (result.success && result.data) {
+              setStatus(result.data as any);
         }
       }
     } catch (error) {

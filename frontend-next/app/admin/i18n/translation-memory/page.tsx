@@ -33,8 +33,8 @@ export default function TranslationMemoryPage() {
 
       if (response.ok) {
         const result = await response.json();
-        if (result.success) {
-          setStats(result.data);
+          if (result.success && result.data) {
+              setStats(result.data as any);
         }
       }
     } catch (error) {
@@ -112,10 +112,10 @@ export default function TranslationMemoryPage() {
       });
 
       const result = await response.json();
-      
-      if (result.success) {
-        setSuggestions(result.data.suggestions);
-        toast.success(`找到${result.data.count}条建议`);
+
+        if (result.success && result.data) {
+            setSuggestions((result.data as any).suggestions);
+            toast.success(`找到${(result.data as any).count}条建议`);
       } else {
         toast.error(result.error || '查询失败');
       }

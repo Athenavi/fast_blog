@@ -26,6 +26,7 @@ interface ThemeConfig {
         };
         typography?: {
             fontFamily?: string;
+            headingFont?: string; // 标题字体
             codeFont?: string;
             fontSize?: string;
             lineHeight?: number;

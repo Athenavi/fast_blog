@@ -37,9 +37,9 @@ export default function InternalLinksPage() {
       });
 
       const result = await response.json();
-      
-      if (result.success) {
-        setSuggestions(result.data);
+
+        if (result.success && result.data) {
+            setSuggestions(result.data as any);
         toast.success('获取建议成功');
       } else {
         toast.error(result.error || '获取失败');
@@ -63,10 +63,10 @@ export default function InternalLinksPage() {
       });
 
       const result = await response.json();
-      
-      if (result.success) {
-        setOrphanArticles(result.data);
-        toast.success(`发现${result.data.orphan_count}篇孤立文章`);
+
+        if (result.success && result.data) {
+            setOrphanArticles(result.data as any);
+            toast.success(`发现${(result.data as any).orphan_count}篇孤立文章`);
       } else {
         toast.error(result.error || '检测失败');
       }
@@ -89,9 +89,9 @@ export default function InternalLinksPage() {
       });
 
       const result = await response.json();
-      
-      if (result.success) {
-        setAnalysis(result.data);
+
+        if (result.success && result.data) {
+            setAnalysis(result.data as any);
         toast.success('分析完成');
       } else {
         toast.error(result.error || '分析失败');
