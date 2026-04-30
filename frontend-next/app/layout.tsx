@@ -4,6 +4,7 @@ import '../globals.css';
 import '../styles/rtl.css';
 import {getDirection} from '@/i18n';
 import {ThemeProvider} from '@/components/ThemeProvider';
+import Navbar from '@/components/Navbar';
 
 export const metadata: Metadata = {
   title: 'FastBlog',
@@ -29,6 +30,7 @@ export default function RootLayout({
     </head>
       <body className="antialiased">
       <ThemeProvider>
+          <Navbar/>
           {children}
       </ThemeProvider>
         {/* PWA Service Worker Registration */}
