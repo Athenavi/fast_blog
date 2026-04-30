@@ -6,6 +6,21 @@ import {useRouter} from 'next/navigation';
 import {apiClient} from '@/lib/api'; // 导入API客户端
 import type {QrCodeResponse} from '@/lib/api/base-types';
 
+// 定义二维码数据类型
+interface QrStatusData {
+  success?: boolean;
+  status?: string;
+  qr_code?: string;
+  token?: string;
+  expires_at?: string | number;
+  access_token?: string;
+  refresh_token?: string;
+  next_url?: string;
+  message?: string;
+  error?: string;
+  requires_auth?: boolean;
+}
+
 const LoginPage = () => {
   const router = useRouter();
   const [loginForm, setLoginForm] = useState({
@@ -138,31 +153,45 @@ const LoginPage = () => {
 
   // 生成二维码
   const generateQRCode = async () => {
+    console.log('[QR Login] Starting to generate QR code...');
     try {
-      const response = await apiClient.get<QrCodeResponse>('/qr/generate');
+      // 获取当前页面的域名，作为二维码的回调地址
+      const callbackDomain = typeof window !== 'undefined'
+          ? `${window.location.protocol}//${window.location.host}/`
+          : '';
+
+      console.log('[QR Login] Callback domain:', callbackDomain);
+
+      // 将回调域名作为参数传递给后端
+      const response = await apiClient.get<QrCodeResponse>(
+          `/qr/generate?callback_domain=${encodeURIComponent(callbackDomain)}`
+      );
+      console.log('[QR Login] QR generation response:', response);
 
         // 直接使用 response 作为数据，因为后端直接返回了完整的数据结构
         if (response.success) {
             // 后端直接返回数据在根级别，不在 response.data 中
-            const qrData = response as any;
-          
-        setQrCodeImage(qrData.qr_code);
-        setQrToken(qrData.token);
-        setQrExpiresAt(typeof qrData.expires_at === 'string' ? parseInt(qrData.expires_at) : qrData.expires_at as number);
-        const status = qrData.status;
+          const qrData = response as unknown as QrStatusData;
+
+          setQrCodeImage(qrData.qr_code || '');
+          setQrToken(qrData.token || '');
+          setQrExpiresAt(typeof qrData.expires_at === 'string' ? parseInt(qrData.expires_at) : (qrData.expires_at as number) || 0);
+          const status = qrData.status || 'pending';
         const validStatus: 'pending' | 'scanned' | 'confirmed' | 'expired' = 
           (status === 'pending' || status === 'scanned' || status === 'confirmed' || status === 'expired')
             ? status
             : 'pending';
         setQrStatus(validStatus);
             setCountdown(180); // 设置倒计时为 3 分钟（180 秒）
+          console.log('[QR Login] ✅ QR code generated successfully, token:', qrData.token?.substring(0, 8) + '...');
         return true;
       } else {
         setErrorMessage(response.error || response.message || '生成二维码失败');
+          console.error('[QR Login] ❌ QR generation failed:', response.error || response.message);
         return false;
       }
     } catch (error) {
-      console.error('Error generating QR code:', error);
+      console.error('[QR Login] ❌ Error generating QR code:', error);
       setErrorMessage('生成二维码时发生错误');
       return false;
     }
@@ -170,10 +199,15 @@ const LoginPage = () => {
 
   // 检查二维码状态 - 现在使用轮询机制
   const checkQRStatus = async () => {
-    if (!qrToken) return;
+    if (!qrToken) {
+      console.log('[QR Polling] No QR token available, skipping check');
+      return;
+    }
 
     try {
+      console.log('[QR Polling] Checking QR status for token:', qrToken.substring(0, 8) + '...');
       const response = await apiClient.get(`/qr/status?token=${qrToken}&next=/profile`);
+      console.log('[QR Polling] Raw response from backend:', JSON.stringify(response, null, 2));
       
       // 处理需要认证的情况
       if (response.requires_auth) {
@@ -190,45 +224,55 @@ const LoginPage = () => {
 
         if (response.success) {
             // 后端直接返回数据在根级别，不在 response.data 中
-            const statusData = response as any;
+          const statusData = response as unknown as QrStatusData;
         const status = statusData.status;
+
+          console.log('[QR Polling] Response success=true, status:', status);
+          console.log('[QR Polling] Full status data:', statusData);
+          console.log('[QR Polling] Has access_token?', !!statusData.access_token);
+          console.log('[QR Polling] Has refresh_token?', !!statusData.refresh_token);
+
+          // 检查是否过期（将 Date.now() 移到变量中）
+          // eslint-disable-next-line react-hooks/purity
+          const currentTime = Date.now() / 1000;
+          const isExpired = (status && String(status) === 'expired') || (typeof qrExpiresAt === 'number' && qrExpiresAt > 0 && currentTime > qrExpiresAt);
         
         if (status && String(status) === 'success') {
-          // 扫码成功，获取访问令牌并跳转
-          if (statusData.access_token) {
+          console.log('[QR Polling] ✅ Status is SUCCESS! Attempting login...');
+          // 扫码成功，获取 refresh_token 并保存
+          if (statusData.refresh_token) {
+            console.log('[QR Polling] ✅ Got refresh_token, saving to cookie...');
             // 只保存到 cookie，不再使用 localStorage
             if (typeof window !== 'undefined') {
-              const expirationDate = new Date();
-              expirationDate.setTime(expirationDate.getTime() + (60 * 60 * 1000)); // 1 小时后过期
-              document.cookie = `access_token=${statusData.access_token}; expires=${expirationDate.toUTCString()}; path=/; SameSite=Lax;`;
-                      
-              // 如果有 refresh_token，也保存到 cookie
-              if (statusData.refresh_token) {
-                const refreshExpirationDate = new Date();
-                refreshExpirationDate.setTime(refreshExpirationDate.getTime() + (7 * 24 * 60 * 60 * 1000)); // 7 天后过期
-                document.cookie = `refresh_token=${statusData.refresh_token}; expires=${refreshExpirationDate.toUTCString()}; path=/; SameSite=Lax;`;
-              } else {
-                console.warn('Warning: No refresh_token returned from QR login, this may affect session persistence');
-              }
+              const refreshExpirationDate = new Date();
+              refreshExpirationDate.setTime(refreshExpirationDate.getTime() + (7 * 24 * 60 * 60 * 1000)); // 7 天后过期
+              // eslint-disable-next-line react-hooks/immutability
+              document.cookie = `refresh_token=${statusData.refresh_token}; expires=${refreshExpirationDate.toUTCString()}; path=/; SameSite=Lax;`;
+              console.log('[QR Polling] ✅ refresh_token saved successfully');
             }
             setQrStatus('confirmed');
-            // 跳转到目标页面
-            const nextUrl = new URLSearchParams(window.location.search).get('next') || statusData.next_url || '/profile';
-            const validatedNextUrl = typeof nextUrl === 'string' && nextUrl ? nextUrl : '/profile';
-            // 延迟跳转以确保令牌已保存
+            console.log('[QR Polling] 🚀 Refreshing page to complete login...');
+            // 延迟刷新页面以确保令牌已保存
             setTimeout(() => {
-              window.location.href = validatedNextUrl;
+              window.location.reload();
             }, 300);
             return true;
+          } else {
+            console.error('[QR Polling] ❌ Status is success but NO refresh_token found in response!');
+            console.error('[QR Polling] Response data keys:', Object.keys(statusData));
           }
         } else if (status && String(status) === 'pending') {
+          console.log('[QR Polling] ⏳ Status: PENDING (waiting for scan)');
           setQrStatus('pending');
         } else if (status && String(status) === 'scanned') {
+          console.log('[QR Polling] 📱 Status: SCANNED (waiting for confirmation)');
           setQrStatus('scanned');
-        } else if ((status && String(status) === 'expired') || Date.now() / 1000 > qrExpiresAt) {
+        } else if (isExpired) {
+          console.log('[QR Polling] ⏰ Status: EXPIRED');
           setQrStatus('expired');
           stopQRPolling();
         } else {
+          console.log('[QR Polling] Unknown status:', status);
           // 其他状态，保持当前状态或设置为pending
           const validStatus = ['pending', 'scanned', 'confirmed', 'expired'].includes(String(status)) 
             ? String(status) as 'pending' | 'scanned' | 'confirmed' | 'expired'
@@ -237,10 +281,10 @@ const LoginPage = () => {
         }
       } else {
         // 请求失败，可能需要处理错误
-        console.log('QR status check failed:', response.message || response.error);
+          console.log('[QR Polling] ❌ Request failed:', response.message || response.error);
       }
     } catch (error) {
-      console.error('Error checking QR status:', error);
+      console.error('[QR Polling] ❌ Error checking QR status:', error);
       // 遇到错误时继续轮询
     }
     return false;
@@ -248,20 +292,27 @@ const LoginPage = () => {
 
   // 开始二维码状态轮询
   const startQRPolling = () => {
-    if (qrPolling) return;
+    if (qrPolling) {
+      console.log('[QR Polling] Already polling, skipping start');
+      return;
+    }
+    console.log('[QR Polling] 🔄 Starting QR status polling (every 3 seconds)...');
     setQrPolling(true);
     
     // 开始轮询二维码状态，每3秒检查一次
     const interval = setInterval(async () => {
       try {
+        console.log('[QR Polling] --- Polling cycle started ---');
         const success = await checkQRStatus();
+        console.log('[QR Polling] Check result - success:', success, ', current status:', qrStatusRef.current);
         // 使用 ref 获取最新状态值
         if (success || qrStatusRef.current === 'expired' || Date.now() / 1000 > qrExpiresAt) {
+          console.log('[QR Polling] Stopping polling - success:', success, ', status:', qrStatusRef.current);
           clearInterval(interval);
           setQrPolling(false);
         }
       } catch (error) {
-        console.error('Error in QR polling:', error);
+        console.error('[QR Polling] ❌ Error in QR polling:', error);
         // 继续轮询，不要因为单个错误而停止
       }
     }, 3000); // 每3秒检查一次状态
@@ -279,32 +330,50 @@ const LoginPage = () => {
 
   // 当切换到二维码登录时，生成二维码
   useEffect(() => {
-    if (activeMethod === 'qr' && !qrCodeImage) {
-      generateQRCode();
-    } else if (activeMethod === 'qr' && qrCodeImage) {
-      // 重新激活轮询
-      startQRPolling();
-    } else {
-      // 停止轮询
-      stopQRPolling();
-    }
+    console.log('[QR Login useEffect] activeMethod:', activeMethod, ', qrCodeImage:', !!qrCodeImage, ', qrPolling:', qrPolling);
+
+    let isMounted = true;
+
+    const handleQrMethodChange = async () => {
+      if (activeMethod === 'qr' && !qrCodeImage) {
+        console.log('[QR Login useEffect] Generating QR code...');
+        await generateQRCode();
+      } else if (isMounted && activeMethod === 'qr' && qrCodeImage && !qrPolling) {
+        // 重新激活轮询（只有在未轮询时才启动）
+        console.log('[QR Login useEffect] Starting QR polling...');
+        startQRPolling();
+      } else if (isMounted && activeMethod !== 'qr') {
+        // 停止轮询
+        console.log('[QR Login useEffect] Stopping QR polling...');
+        stopQRPolling();
+      }
+    };
+
+    void handleQrMethodChange();
 
     // 组件卸载时停止轮询
     return () => {
+      console.log('[QR Login useEffect] Cleanup - stopping polling');
+      isMounted = false;
       stopQRPolling();
     };
-  }, [activeMethod]);
+  }, [activeMethod, qrCodeImage]);
 
   // 二维码倒计时
   useEffect(() => {
     let timer: NodeJS.Timeout;
-    if (activeMethod === 'qr' && countdown > 0 && qrStatus !== 'confirmed') {
-      timer = setTimeout(() => {
-        setCountdown(countdown - 1);
-      }, 1000);
-    } else if (countdown === 0 && qrStatus !== 'confirmed' && activeMethod === 'qr') {
-      setQrStatus('expired');
-    }
+
+    const handleCountdown = () => {
+      if (activeMethod === 'qr' && countdown > 0 && qrStatus !== 'confirmed') {
+        timer = setTimeout(() => {
+          setCountdown(prev => prev - 1);
+        }, 1000);
+      } else if (countdown === 0 && qrStatus !== 'confirmed' && activeMethod === 'qr') {
+        setQrStatus('expired');
+      }
+    };
+
+    handleCountdown();
 
     return () => {
       if (timer) clearTimeout(timer);
@@ -334,7 +403,11 @@ const LoginPage = () => {
       });
 
       if (response.success && response.data) {
-        const loginData = response.data as { access_token?: string; refresh_token?: string; user?: any };
+        const loginData = response.data as {
+          access_token?: string;
+          refresh_token?: string;
+          user?: Record<string, unknown>
+        };
           
         // 登录成功，只保存到 cookie，不再使用 localStorage
         if (loginData.access_token) {
@@ -368,10 +441,12 @@ const LoginPage = () => {
       console.error('Login error:', error);
 
       // 检查错误类型并提供更精确的错误信息
-      const errorObj = error as any;
-      if (errorObj.status === 401) {
+      const errorObj = error instanceof Error ? error : new Error(String(error));
+      const errorWithStatus = error as { status?: number; message?: string };
+
+      if (errorWithStatus.status === 401) {
         setErrorMessage('用户名或密码错误，请重新输入');
-      } else if (errorObj.status === 400) {
+      } else if (errorWithStatus.status === 400) {
         setErrorMessage('请求参数错误，请检查输入');
       } else if (errorObj.message && errorObj.message.includes('NetworkError')) {
         setErrorMessage('网络连接错误，请检查网络连接');

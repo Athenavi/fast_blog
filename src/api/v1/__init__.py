@@ -181,12 +181,36 @@ _include_routers()
 async def api_generate_qr(request: Request):
     from src.api.v1.user_utils.qrlogin_utils import qr_login
     try:
+        # 优先使用前端传递的回调域名，否则使用请求的实际地址
+        callback_domain = request.query_params.get('callback_domain')
+
+        if callback_domain:
+            # 使用前端传递的回调域名
+            request_domain = callback_domain
+            # print(f"[QR Login] Using callback domain from frontend: {request_domain}")
+        else:
+            # 尝试多种方式获取真实请求地址
+            host = request.headers.get('host', 'localhost:9421')
+            scheme = request.url.scheme
+
+            # 检查是否有反向代理头
+            forwarded_proto = request.headers.get('x-forwarded-proto')
+            forwarded_host = request.headers.get('x-forwarded-host')
+
+            if forwarded_proto:
+                scheme = forwarded_proto
+            if forwarded_host:
+                host = forwarded_host
+
+            request_domain = f"{scheme}://{host}/"
+            # print(f"[QR Login] Using request domain: {request_domain}")
+
         return await qr_login(
             request,
-            sys_version="1.0",
-            global_encoding=app_config.global_encoding,
-            domain=app_config.domain,
-            cache_instance=cache,
+            "1.0",
+            app_config.global_encoding,
+            request_domain,
+            cache
         )
     except Exception as e:
         logger.error(f"QR generation failed: {e}", exc_info=True)
@@ -204,10 +228,13 @@ async def api_check_qr_status(request: Request):
 
 
 @api_v1_router.get("/phone/scan")
-async def api_phone_scan(request: Request):
+async def api_phone_scan(
+        request: Request,
+        db: AsyncSession = Depends(get_async_db)
+):
     from src.api.v1.user_utils.qrlogin_utils import phone_scan_back
     try:
-        current_user = await get_current_user(request)
+        current_user = await get_current_user(request, db)
     except HTTPException as e:
         if e.status_code == 401:
             return {
@@ -218,7 +245,7 @@ async def api_phone_scan(request: Request):
             }
         raise e
     try:
-        return await phone_scan_back(request, current_user=current_user, cache_instance=cache)
+        return await phone_scan_back(request, current_user=current_user, cache=cache)
     except Exception as e:
         logger.error(f"Phone scan failed: {e}")
         return {"success": False, "message": f"Failed to handle phone scan: {str(e)}"}
