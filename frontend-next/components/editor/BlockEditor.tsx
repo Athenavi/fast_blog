@@ -283,7 +283,7 @@ export default function BlockEditor({
                     duration: 100,
                     placement: 'top',
                 }}
-                className="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg p-2 flex gap-1"
+                className="dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg p-2 flex gap-1"
             >
                 <button
                     type="button"

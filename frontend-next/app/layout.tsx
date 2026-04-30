@@ -5,6 +5,7 @@ import '../styles/rtl.css';
 import {getDirection} from '@/i18n';
 import {ThemeProvider} from '@/components/ThemeProvider';
 import Navbar from '@/components/Navbar';
+import ThemeInitializer from '@/components/ThemeInitializer';
 
 export const metadata: Metadata = {
   title: 'FastBlog',
@@ -27,12 +28,27 @@ export default function RootLayout({
     <head>
         {/* Load runtime config */}
         <Script src="/config.js" strategy="beforeInteractive"/>
+        {/* 初始化主题，避免 hydration 不匹配 */}
+        <Script id="theme-init" strategy="beforeInteractive">
+            {`
+            (function() {
+              try {
+                var theme = localStorage.getItem('theme');
+                if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                  document.documentElement.classList.add('dark');
+                }
+              } catch (e) {}
+            })();
+          `}
+        </Script>
     </head>
       <body className="antialiased">
+      <ThemeInitializer>
       <ThemeProvider>
           <Navbar/>
           {children}
       </ThemeProvider>
+      </ThemeInitializer>
         {/* PWA Service Worker Registration */}
       <Script
           id="sw-register"

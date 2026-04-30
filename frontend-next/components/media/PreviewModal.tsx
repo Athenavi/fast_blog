@@ -77,7 +77,7 @@ const PreviewModal: React.FC<PreviewModalProps> = memo(({media, onClose, onEdit}
         >
             <div className="relative top-4 mx-auto p-4 w-full max-w-4xl"
                  onClick={(e) => e.stopPropagation()}>
-                <div className="bg-white rounded-lg shadow-lg">
+                <div className="rounded-lg shadow-lg">
                     <div className="flex justify-between items-center px-6 py-4 border-b">
                         <h3 className="text-lg font-medium text-gray-900">{media.original_filename}</h3>
                         <button className="text-gray-400 hover:text-gray-500" onClick={onClose}>

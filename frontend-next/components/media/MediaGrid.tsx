@@ -161,8 +161,16 @@ const MediaGrid: React.FC<MediaGridProps> = ({
         const data = await response.json();
         if (data.success) {
           // 将树形结构展平为列表，并构建完整路径
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          const flattenFolders = (nodes: Array<{ id: number; name: string; children?: Array<any> }>, parentPath: string = ''): Array<{ id: number; name: string; path: string }> => {
+          type FolderNode = {
+            id: number;
+            name: string;
+            children?: FolderNode[]
+          };
+          const flattenFolders = (nodes: FolderNode[], parentPath: string = ''): Array<{
+            id: number;
+            name: string;
+            path: string
+          }> => {
             const result: Array<{ id: number; name: string; path: string }> = [];
             for (const node of nodes) {
               const currentPath = parentPath ? `${parentPath}/${node.name}` : node.name;
@@ -177,8 +185,8 @@ const MediaGrid: React.FC<MediaGridProps> = ({
             }
             return result;
           };
-          
-          setFolders(flattenFolders(data.data.tree || []));
+
+          setFolders(flattenFolders((data.data as { tree?: FolderNode[] }).tree || []));
         }
       }
     } catch (error) {
@@ -317,7 +325,7 @@ const MediaGrid: React.FC<MediaGridProps> = ({
     if (!categoryDialog.media || !onUpdateCategory) return;
 
     try {
-      await onUpdateCategory(categoryDialog.media.id, newCategory.trim());
+      await onUpdateCategory(categoryDialog.media.id!, newCategory.trim());
       setCategoryDialog({ open: false, media: null });
       setNewCategory('');
     } catch (error) {
@@ -362,7 +370,7 @@ const MediaGrid: React.FC<MediaGridProps> = ({
     if (!tagDialog.media || !onUpdateTags) return;
 
     try {
-      await onUpdateTags(tagDialog.media.id, currentTags);
+      await onUpdateTags(tagDialog.media.id!, currentTags);
       setTagDialog({ open: false, media: null });
       setCurrentTags([]);
       setNewTag('');
@@ -704,7 +712,7 @@ const MediaGrid: React.FC<MediaGridProps> = ({
                   <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">操作</th>
                 </tr>
               </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                    <tbody className="divide-y divide-gray-200">
                     {mediaFiles.map((media, index) => {
                       const isSelected = selectedItems.includes(media.id);
                       return (
@@ -890,7 +898,7 @@ const MediaGrid: React.FC<MediaGridProps> = ({
       {/* 分类管理对话框 */}
       {categoryDialog.open && categoryDialog.media && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white rounded-lg shadow-xl p-6 w-96 max-w-[90vw]">
+          <div className="rounded-lg shadow-xl p-6 w-96 max-w-[90vw]">
             <h3 className="text-lg font-semibold mb-4">设置分类</h3>
             <p className="text-sm text-gray-600 mb-4 truncate">
               {categoryDialog.media.original_filename}
@@ -926,7 +934,7 @@ const MediaGrid: React.FC<MediaGridProps> = ({
       {/* 标签管理对话框 */}
       {tagDialog.open && tagDialog.media && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white rounded-lg shadow-xl p-6 w-[500px] max-w-[90vw] max-h-[80vh] overflow-y-auto">
+          <div className="rounded-lg shadow-xl p-6 w-[500px] max-w-[90vw] max-h-[80vh] overflow-y-auto">
             <h3 className="text-lg font-semibold mb-4">管理标签</h3>
             <p className="text-sm text-gray-600 mb-4 truncate">
               {tagDialog.media.original_filename}
@@ -1003,7 +1011,7 @@ const MediaGrid: React.FC<MediaGridProps> = ({
       {/* 批量移动对话框 */}
       {moveDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white rounded-lg shadow-xl p-6 w-96 max-w-[90vw]">
+          <div className="rounded-lg shadow-xl p-6 w-96 max-w-[90vw]">
             <h3 className="text-lg font-semibold mb-4">移动到文件夹</h3>
             <p className="text-sm text-gray-600 mb-4">
               已选择 {selectedItems.length} 个文件

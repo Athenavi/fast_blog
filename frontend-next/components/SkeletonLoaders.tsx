@@ -3,7 +3,7 @@
 import React from 'react';
 
 export const SkeletonCard = () => (
-  <div className="bg-white dark:bg-gray-800 rounded-xl shadow-md overflow-hidden animate-pulse">
+    <div className="dark:bg-gray-800 rounded-xl shadow-md overflow-hidden animate-pulse">
     <div className="h-48 bg-gray-200 dark:bg-gray-700 w-full"></div>
     <div className="p-5">
       <div className="h-5 bg-gray-200 dark:bg-gray-700 rounded w-4/5 mb-3"></div>

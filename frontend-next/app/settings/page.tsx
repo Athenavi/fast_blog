@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import WithAuthProtection from '@/components/WithAuthProtection';
 import {apiClient} from "@/lib/api";
+import {useDarkMode} from '@/lib/dark-mode-manager';
 
 // 动画配置
 const fadeInUp = {
@@ -51,6 +52,7 @@ type TabType = 'profile' | 'account' | 'appearance' | 'notifications';
 
 const SettingsPage = () => {
     const router = useRouter();
+    const {theme, setTheme} = useDarkMode(); // 使用深色模式管理器
     const [userProfile, setUserProfile] = useState<any>(null);
     const [activeTab, setActiveTab] = useState<TabType>('profile');
     const [avatarUrl, setAvatarUrl] = useState('');
@@ -91,8 +93,10 @@ const SettingsPage = () => {
                     });
 
                     // 获取头像 URL
-                    let avatarUrl = userData.avatar_url;
-                    if (!avatarUrl && userData.avatar) {
+                    let avatarUrl = userData.avatar_url || (userData as any).avatar_url;
+
+                    // 如果后端返回的是 UUID（没有 http/https 前缀），则拼接完整路径
+                    if (!avatarUrl && userData.id) {
                         try {
                             const config = await import('@/lib/config');
                             const apiConfig = config.getConfig();
@@ -102,14 +106,28 @@ const SettingsPage = () => {
                             );
                             if (avatarResponse.ok) {
                                 const text = await avatarResponse.text();
+                                // 后端返回的是纯文本 URL，需要去除可能的引号
                                 avatarUrl = text.replace(/^"|"$/g, '');
                             }
                         } catch (error) {
                             console.error('获取头像 URL 失败:', error);
                         }
+                    } else if (avatarUrl && !avatarUrl.startsWith('http')) {
+                        // 如果 avatarUrl 是 UUID 字符串或相对路径，拼接完整路径
+                        const config = await import('@/lib/config');
+                        const apiConfig = config.getConfig();
+                        // 尝试不同的文件扩展名
+                        avatarUrl = `${apiConfig.API_BASE_URL}static/avatar/${avatarUrl}.webp`;
                     }
 
-                    setAvatarUrl(avatarUrl || `https://ui-avatars.com/api/?name=${userData.username || 'User'}&background=random`);
+                    // 确保 avatarUrl 是完整的绝对路径
+                    if (avatarUrl && !avatarUrl.startsWith('http')) {
+                        const config = await import('@/lib/config');
+                        const apiConfig = config.getConfig();
+                        avatarUrl = `${apiConfig.API_BASE_URL}${avatarUrl.startsWith('/') ? '' : '/'}${avatarUrl}`;
+                    }
+
+                    setAvatarUrl(avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(userData.username || 'User')}&background=random`);
                 }
             } catch (error) {
                 console.error('获取用户资料时发生错误:', error);
@@ -411,11 +429,14 @@ const SettingsPage = () => {
                                                 <div
                                                     className="w-24 h-24 rounded-2xl overflow-hidden border-2 border-gray-200 dark:border-gray-700">
                                                     <Image
-                                                        src={avatarUrl}
+                                                        src={avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile?.username || 'User')}&background=random`}
                                                         alt="Avatar"
                                                         width={96}
                                                         height={96}
                                                         className="w-full h-full object-cover"
+                                                        onError={(e) => {
+                                                            e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(userProfile?.username || 'User')}&background=random`;
+                                                        }}
                                                     />
                                                 </div>
                                                 <button
@@ -690,17 +711,39 @@ const SettingsPage = () => {
                                     <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">主题设置</h2>
 
                                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                        <button className="p-6 border-2 border-blue-600 rounded-2xl bg-white">
+                                        <button
+                                            onClick={() => setTheme('light')}
+                                            className={`p-6 border-2 rounded-2xl transition-all ${
+                                                theme === 'light'
+                                                    ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20'
+                                                    : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800'
+                                            }`}
+                                        >
                                             <Sun className="w-8 h-8 text-yellow-500 mx-auto mb-3"/>
-                                            <div className="font-medium text-gray-900">浅色模式</div>
+                                            <div className="font-medium text-gray-900 dark:text-white">浅色模式</div>
                                         </button>
                                         <button
-                                            className="p-6 border-2 border-gray-200 dark:border-gray-700 rounded-2xl bg-gray-900">
+                                            onClick={() => setTheme('dark')}
+                                            className={`p-6 border-2 rounded-2xl transition-all ${
+                                                theme === 'dark'
+                                                    ? 'border-blue-600 bg-blue-50 dark:bg-blue-900/20'
+                                                    : 'border-gray-200 dark:border-gray-700 bg-gray-900'
+                                            }`}
+                                        >
                                             <Moon className="w-8 h-8 text-blue-400 mx-auto mb-3"/>
                                             <div className="font-medium text-white">深色模式</div>
                                         </button>
                                         <button
-                                            className="p-6 border-2 border-gray-200 dark:border-gray-700 rounded-2xl bg-gradient-to-br from-white to-gray-900">
+                                            onClick={() => {
+                                                // 跟随系统设置
+                                                if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                                                    setTheme('dark');
+                                                } else {
+                                                    setTheme('light');
+                                                }
+                                            }}
+                                            className="p-6 border-2 border-gray-200 dark:border-gray-700 rounded-2xl bg-gradient-to-br from-white to-gray-900"
+                                        >
                                             <Smartphone
                                                 className="w-8 h-8 text-gray-600 dark:text-gray-400 mx-auto mb-3"/>
                                             <div className="font-medium text-gray-900 dark:text-white">跟随系统</div>

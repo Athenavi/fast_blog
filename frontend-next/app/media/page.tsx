@@ -35,7 +35,8 @@ import {
     HardDrive,
     FolderInput,
     ChevronLeft,
-    ChevronRight
+    ChevronRight,
+    Menu as MenuIcon
 } from 'lucide-react';
 import dynamic from "next/dynamic";
 
@@ -70,7 +71,10 @@ const MediaPageContent = () => {
 
     // 确保组件只在客户端挂载后渲染
     useEffect(() => {
-        setIsMounted(true);
+        const timer = setTimeout(() => {
+            setIsMounted(true);
+        }, 0);
+        return () => clearTimeout(timer);
     }, []);
     
     const [mediaFiles, setMediaFiles] = useState<MediaFile[]>([]);
@@ -144,18 +148,17 @@ const MediaPageContent = () => {
 
     // 文件夹选择状态
     const [selectedFolderName, setSelectedFolderName] = useState<string | null>(() => {
-        const folderName = searchParams.get('folder');
-        return folderName || null;
+        if (typeof window !== 'undefined') {
+            const params = new URLSearchParams(window.location.search);
+            const folderName = params.get('folder');
+            return folderName || null;
+        }
+        return null;
     });
     const [hasRedirected, setHasRedirected] = useState(false);
 
     // 使用防抖处理搜索
     const debouncedSearchQuery = useDebounce(searchQuery, 500);
-
-    // 使用自定义上传Hook
-    const {uploading, uploadProgress, uploadStatus, uploadFiles} = useMediaUpload(() => {
-        loadMediaFiles();
-    });
 
     // 使用 ref 存储 AbortController
     const abortControllerRef = useRef<AbortController | null>(null);
@@ -213,7 +216,13 @@ const MediaPageContent = () => {
         }
     }, [currentPage, filterMediaType, debouncedSearchQuery, perPage, selectedFolderName]);
 
+    // 使用自定义上传Hook
+    const {uploading, uploadProgress, uploadStatus, uploadFiles} = useMediaUpload(() => {
+        loadMediaFiles();
+    });
+
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         loadMediaFiles();
 
         return () => {
@@ -302,9 +311,15 @@ const MediaPageContent = () => {
             console.log('📂 API响应:', response);
 
             if (response.success && response.data) {
+                type FolderNode = {
+                    id: number;
+                    name: string;
+                    children?: FolderNode[]
+                };
+                const data = response.data as { tree?: FolderNode[] };
                 // 将树形结构展平为列表
                 const flattenFolders = (
-                    nodes: Array<{ id: number; name: string; children?: Array<any> }>,
+                    nodes: FolderNode[],
                     parentPath: string = ''
                 ): Array<{ id: number; name: string; path: string }> => {
                     const result: Array<{ id: number; name: string; path: string }> = [];
@@ -322,7 +337,7 @@ const MediaPageContent = () => {
                     return result;
                 };
 
-                const flattenedFolders = flattenFolders(response.data.tree || []);
+                const flattenedFolders = flattenFolders(data.tree || []);
                 console.log('📂 展平后的文件夹列表:', flattenedFolders);
                 console.log('📂 文件夹数量:', flattenedFolders.length);
                 setFolders(flattenedFolders);
@@ -457,64 +472,67 @@ const MediaPageContent = () => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
-            {/* 头部 */}
-            <header
-                className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 sticky top-0 z-40">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-                    <div className="flex items-center justify-between">
-                        <div>
-                            <h1 className="text-2xl font-black text-gray-900 dark:text-white flex items-center gap-3">
-                                <ImageIcon className="w-8 h-8 text-blue-600"/>
-                                媒体库
-                            </h1>
-                            <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
-                                管理你的图片、视频和文档
-                            </p>
-                        </div>
+        <div className="min-h-screen bg-gray-50 dark:bg-gray-950 pt-20">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pb-8">
+                {/* 浮动工具栏 - 固定在右上角 */}
+                <div className="fixed top-20 right-4 z-50">
+                    <div className="relative group">
+                        {/* 汉堡菜单按钮 */}
+                        <button
+                            className="p-3 bg-white dark:bg-gray-800 rounded-full shadow-lg border border-gray-200 dark:border-gray-700 hover:shadow-xl transition-all duration-200"
+                            title="工具菜单"
+                        >
+                            <MenuIcon className="w-5 h-5 text-gray-700 dark:text-gray-300"/>
+                        </button>
 
-                        {/* 右侧工具栏 */}
-                        <div className="flex items-center gap-2">
-                            {/* 侧边栏折叠按钮 */}
-                            <button
-                                onClick={toggleSidebar}
-                                className="p-2 rounded-lg transition-colors text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
-                                title={sidebarCollapsed ? '展开侧边栏' : '折叠侧边栏'}
-                            >
-                                {sidebarCollapsed ? (
-                                    <ChevronRight className="w-5 h-5"/>
-                                ) : (
-                                    <ChevronLeft className="w-5 h-5"/>
-                                )}
-                            </button>
+                        {/* 浮动菜单 - 悬停时显示 */}
+                        <div
+                            className="absolute right-0 top-full mt-2 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 transform scale-95 group-hover:scale-100">
+                            <div
+                                className="bg-white dark:bg-gray-800 rounded-lg shadow-xl border border-gray-200 dark:border-gray-700 p-2 space-y-1 min-w-[160px]">
+                                {/* 侧边栏折叠按钮 */}
+                                <button
+                                    onClick={toggleSidebar}
+                                    className="w-full px-3 py-2 rounded-lg transition-colors text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2 text-sm"
+                                    title={sidebarCollapsed ? '展开侧边栏' : '折叠侧边栏'}
+                                >
+                                    {sidebarCollapsed ? (
+                                        <ChevronRight className="w-4 h-4"/>
+                                    ) : (
+                                        <ChevronLeft className="w-4 h-4"/>
+                                    )}
+                                    <span>{sidebarCollapsed ? '展开侧边栏' : '折叠侧边栏'}</span>
+                                </button>
 
-                            {/* 视图切换 */}
-                            <button
-                                onClick={() => setViewMode('grid')}
-                                className={`p-2 rounded-lg transition-colors ${
-                                    viewMode === 'grid'
-                                        ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
-                                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
-                                }`}
-                            >
-                                <Grid3X3 className="w-5 h-5"/>
-                            </button>
-                            <button
-                                onClick={() => setViewMode('list')}
-                                className={`p-2 rounded-lg transition-colors ${
-                                    viewMode === 'list'
-                                        ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
-                                        : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
-                                }`}
-                            >
-                                <List className="w-5 h-5"/>
-                            </button>
+                                {/* 网格视图按钮 */}
+                                <button
+                                    onClick={() => setViewMode('grid')}
+                                    className={`w-full px-3 py-2 rounded-lg transition-colors flex items-center gap-2 text-sm ${
+                                        viewMode === 'grid'
+                                            ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                                            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                    }`}
+                                >
+                                    <Grid3X3 className="w-4 h-4"/>
+                                    <span>网格视图</span>
+                                </button>
+
+                                {/* 列表视图按钮 */}
+                                <button
+                                    onClick={() => setViewMode('list')}
+                                    className={`w-full px-3 py-2 rounded-lg transition-colors flex items-center gap-2 text-sm ${
+                                        viewMode === 'list'
+                                            ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                                            : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700'
+                                    }`}
+                                >
+                                    <List className="w-4 h-4"/>
+                                    <span>列表视图</span>
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </header>
-
-            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
                 {/* 整个拖拽上下文 - 只在客户端挂载后渲染 */}
                 {isMounted ? (
                     <DragDropContext onDragEnd={onDragEnd}>
@@ -624,7 +642,6 @@ const MediaPageContent = () => {
                                 }}
                                 onPreview={setPreviewMedia}
                                 onDelete={setDeleteItem}
-                                onEdit={openImageEditor}
                                 onUpdateCategory={handleUpdateCategory}
                                 onUpdateTags={handleUpdateTags}
                                 apiBaseUrl={apiBaseUrl}

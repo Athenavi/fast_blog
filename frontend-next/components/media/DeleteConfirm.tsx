@@ -17,7 +17,7 @@ const DeleteConfirm: React.FC<DeleteConfirmProps> = memo(({ item, onConfirm, onC
       className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
       onClick={onCancel}
     >
-      <div className="bg-white rounded-lg shadow-lg p-6 w-96 mx-4"
+        <div className="rounded-lg shadow-lg p-6 w-96 mx-4"
            onClick={(e) => e.stopPropagation()}>
         <h3 className="text-lg font-medium text-gray-900 mb-2">确认删除</h3>
         <p className="text-gray-600 mb-6">

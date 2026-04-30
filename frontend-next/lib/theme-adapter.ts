@@ -5,6 +5,8 @@
  * 并将它们替换为主题变量的引用。
  */
 
+import {darkModeManager} from './dark-mode-manager';
+
 interface ThemeColors {
     primary?: string;
     secondary?: string;
@@ -14,6 +16,19 @@ interface ThemeColors {
     muted?: string;
     border?: string;
 }
+
+/**
+ * 深色模式颜色配置
+ */
+const DARK_MODE_COLORS: Record<string, string> = {
+    background: '#0f172a',    // slate-900
+    foreground: '#f1f5f9',    // slate-100
+    muted: '#1e293b',         // slate-800
+    border: '#334155',        // slate-700
+    primary: '#3b82f6',       // blue-500 (保持主色调)
+    secondary: '#94a3b8',     // slate-400
+    accent: '#f59e0b',        // amber-500 (保持强调色)
+};
 
 /**
  * 颜色映射表 - Tailwind 默认颜色到主题变量的映射
@@ -64,13 +79,14 @@ export function applyThemeAdaptation(colors: ThemeColors): void {
         return;
     }
 
-    console.log('[ThemeAdapter] 开始应用主题适配', colors);
+    const isDark = darkModeManager.getTheme() === 'dark';
+    console.log(`[ThemeAdapter] 开始应用主题适配 (${isDark ? '深色' : '浅色'}模式)`, colors);
 
     // 1. 注入CSS变量覆盖规则
-    injectColorOverrides(colors);
+    injectColorOverrides(colors, isDark);
 
     // 2. 扫描并替换内联样式
-    replaceInlineStyles();
+    replaceInlineStyles(isDark);
 
     console.log('[ThemeAdapter] 主题适配完成');
 }
@@ -78,7 +94,7 @@ export function applyThemeAdaptation(colors: ThemeColors): void {
 /**
  * 注入颜色覆盖规则
  */
-function injectColorOverrides(colors: ThemeColors): void {
+function injectColorOverrides(colors: ThemeColors, isDark: boolean): void {
     const styleId = 'theme-color-overrides';
     let styleElement = document.getElementById(styleId) as HTMLStyleElement;
 
@@ -88,7 +104,7 @@ function injectColorOverrides(colors: ThemeColors): void {
         document.head.appendChild(styleElement);
     }
 
-    const rules = generateOverrideRules(colors);
+    const rules = generateOverrideRules(colors, isDark);
     // 只在客户端执行，避免服务端和客户端不一致
     if (typeof window !== 'undefined') {
         styleElement.textContent = rules;
@@ -98,17 +114,22 @@ function injectColorOverrides(colors: ThemeColors): void {
 /**
  * 生成覆盖规则
  */
-function generateOverrideRules(colors: ThemeColors): string {
-    const primary = colors.primary || '#3b82f6';
-    const secondary = colors.secondary || '#64748b';
-    const accent = colors.accent || '#f59e0b';
-    const background = colors.background || '#ffffff';
-    const foreground = colors.foreground || '#1f2937';
-    const muted = colors.muted || '#f3f4f6';
-    const border = colors.border || '#e5e7eb';
+function generateOverrideRules(colors: ThemeColors, isDark: boolean): string {
+    // 根据深色模式调整颜色
+    const baseColors = isDark
+        ? {...colors, ...DARK_MODE_COLORS}
+        : colors;
+
+    const primary = baseColors.primary || '#3b82f6';
+    const secondary = baseColors.secondary || '#64748b';
+    const accent = baseColors.accent || '#f59e0b';
+    const background = baseColors.background || '#ffffff';
+    const foreground = baseColors.foreground || '#1f2937';
+    const muted = baseColors.muted || '#f3f4f6';
+    const border = baseColors.border || '#e5e7eb';
 
     return `
-        /* 动态生成的主题颜色覆盖 */
+        /* 动态生成的主题颜色覆盖 - ${isDark ? '深色' : '浅色'}模式 */
         
         /* 背景色 */
         .bg-gray-50, .bg-white { background-color: ${background} !important; }
@@ -119,7 +140,7 @@ function generateOverrideRules(colors: ThemeColors): string {
         /* 文字色 */
         .text-gray-900, .text-gray-800, .text-gray-700 { color: ${foreground} !important; }
         .text-gray-600, .text-gray-500, .text-gray-400 { color: ${secondary} !important; }
-        .text-white { color: ${background} !important; }
+        .text-white { color: ${isDark ? foreground : background} !important; }
         
         /* 主题色 */
         [class*="bg-blue-600"], [class*="bg-indigo-600"], [class*="bg-purple-600"] { 
@@ -139,13 +160,17 @@ function generateOverrideRules(colors: ThemeColors): string {
         [class*="from-blue-600"][class*="to-purple-600"] {
             background: linear-gradient(to right, ${primary}, ${secondary}) !important;
         }
+        
+        /* 卡片和容器背景 */
+        .bg-card, [class*="bg-white"] { background-color: ${background} !important; }
+        .dark .bg-card, .dark [class*="bg-white"] { background-color: ${isDark ? background : '#1f2937'} !important; }
     `;
 }
 
 /**
  * 替换内联样式中的颜色值
  */
-function replaceInlineStyles(): void {
+function replaceInlineStyles(isDark: boolean): void {
     // 只在客户端执行，避免服务端和客户端不一致
     if (typeof window === 'undefined') return;
     
@@ -160,8 +185,13 @@ function replaceInlineStyles(): void {
 
         let newStyle = inlineStyle;
 
+        // 根据深色模式选择颜色映射
+        const colorMapping = isDark
+            ? {...COLOR_MAPPING, ...createDarkModeMapping()}
+            : COLOR_MAPPING;
+
         // 替换背景色
-        Object.entries(COLOR_MAPPING).forEach(([hexColor, cssVar]) => {
+        Object.entries(colorMapping).forEach(([hexColor, cssVar]) => {
             const regex = new RegExp(hexColor, 'gi');
             newStyle = newStyle.replace(regex, cssVar);
         });
@@ -181,6 +211,23 @@ function replaceInlineStyles(): void {
 }
 
 /**
+ * 创建深色模式颜色映射
+ */
+function createDarkModeMapping(): Record<string, string> {
+    return {
+        // 深色模式下的背景色映射
+        '#ffffff': 'var(--color-background)',   // white -> dark background
+        '#f9fafb': 'var(--color-muted)',        // gray-50 -> dark muted
+        '#f3f4f6': 'var(--color-muted)',        // gray-100 -> dark muted
+
+        // 深色模式下的文字色映射
+        '#111827': 'var(--color-foreground)',   // gray-900 -> light text
+        '#1f2937': 'var(--color-foreground)',   // gray-800 -> light text
+        '#374151': 'var(--color-foreground)',   // gray-700 -> light text
+    };
+}
+
+/**
  * 监听DOM变化，自动适配新添加的元素
  */
 export function observeThemeChanges(): void {
@@ -191,7 +238,8 @@ export function observeThemeChanges(): void {
         mutations.forEach((mutation) => {
             if (mutation.addedNodes.length > 0) {
                 // 有新节点添加，重新应用适配
-                replaceInlineStyles();
+                const isDark = darkModeManager.getTheme() === 'dark';
+                replaceInlineStyles(isDark);
             }
         });
     });

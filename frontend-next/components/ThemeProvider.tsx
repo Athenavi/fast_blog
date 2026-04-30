@@ -4,6 +4,7 @@ import React, {useEffect, useCallback} from 'react';
 import {usePathname} from 'next/navigation';
 import useTheme from '@/hooks/useTheme';
 import {applyThemeAdaptation, observeThemeChanges} from '@/lib/theme-adapter';
+import {darkModeManager} from '@/lib/dark-mode-manager';
 
 interface ThemeProviderProps {
     children: React.ReactNode;
@@ -110,6 +111,23 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({children}) => {
             // 注入高优先级的全局样式覆盖
             injectGlobalStyleOverrides(colors);
         }
+    }, [config, isAdminPage, injectGlobalStyleOverrides]);
+
+    // 监听深色模式变化并重新应用主题
+    useEffect(() => {
+        // 如果是管理后台页面，不加载主题
+        if (isAdminPage) return;
+
+        const unsubscribe = darkModeManager.addListener(() => {
+            if (config && config.config) {
+                const colors = config.config.colors || {};
+                console.log('[ThemeProvider] 深色模式变化，重新应用主题');
+                applyThemeAdaptation(colors);
+                injectGlobalStyleOverrides(colors);
+            }
+        });
+
+        return unsubscribe;
     }, [config, isAdminPage, injectGlobalStyleOverrides]);
 
     // 如果是管理后台页面，直接渲染子组件，不加载主题

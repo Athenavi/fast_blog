@@ -386,7 +386,7 @@ const ModernHomePage: React.FC = () => {
     }
 
     return (
-        <div className="bg-white dark:bg-gray-950">
+        <div className="dark:bg-gray-950">
             {/* Hero Section */}
             <HeroSection/>
 

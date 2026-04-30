@@ -244,3 +244,42 @@ body {
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
 }
+
+/* 额外的深色模式样式覆盖 */
+.dark body {
+    background-color: var(--background);
+    color: var(--foreground);
+}
+
+.dark .bg-white {
+    background-color: var(--card) !important;
+}
+
+.dark .text-gray-900,
+.dark .text-gray-800,
+.dark .text-gray-700 {
+    color: var(--foreground) !important;
+}
+
+.dark .text-gray-600,
+.dark .text-gray-500,
+.dark .text-gray-400 {
+    color: var(--muted-foreground) !important;
+}
+
+.dark .border-gray-200,
+.dark .border-gray-300 {
+    border-color: var(--border) !important;
+}
+
+/* 确保所有卡片和容器在深色模式下有正确的背景 */
+.dark [class*="bg-gray-50"],
+.dark [class*="bg-gray-100"] {
+    background-color: var(--muted) !important;
+}
+
+/* 深色模式下的悬停效果 */
+.dark button:hover,
+.dark a:hover {
+    opacity: 0.9;
+}

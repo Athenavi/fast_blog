@@ -70,7 +70,7 @@ const StorageStats: React.FC<StorageStatsProps> = memo(({ stats, loading = false
   if (loading) {
     return (
         <div
-            className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 p-6 animate-pulse">
+            className="dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 p-6 animate-pulse">
           <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-1/4 mb-3"></div>
           <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full mb-3"></div>
           <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-1/2"></div>
@@ -79,7 +79,7 @@ const StorageStats: React.FC<StorageStatsProps> = memo(({ stats, loading = false
   }
 
   return (
-      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 p-6">
+      <div className="dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 p-6">
         {/* 标题 */}
         <div className="flex items-center gap-2 mb-4">
           <HardDrive className="w-5 h-5 text-blue-600 dark:text-blue-400"/>

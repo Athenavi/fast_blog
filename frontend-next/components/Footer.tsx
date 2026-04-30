@@ -1,11 +1,20 @@
+'use client';
+
 import React from 'react';
 import Link from 'next/link';
 import {Rss} from 'lucide-react';
 import LanguageSwitcher from './LanguageSwitcher';
+import {useDarkMode} from '@/lib/dark-mode-manager';
 
 const Footer = () => {
+    const {theme} = useDarkMode();
+  
   return (
-    <footer className="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 py-8">
+      <footer className="border-t border-gray-200 dark:border-gray-700 py-8"
+              style={{
+                  backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
+                  borderColor: theme === 'dark' ? '#374151' : '#e5e7eb'
+              }}>
       <div className="container mx-auto px-4">
         <div className="text-center text-gray-600 dark:text-gray-400">
           {/* RSS/Atom Feed 订阅链接 */}

@@ -203,7 +203,7 @@ export default function PWAProvider({children}: { children: React.ReactNode }) {
                     <span>新版本可用</span>
                     <button
                         onClick={updateApp}
-                        className="bg-white text-blue-500 px-3 py-1 rounded hover:bg-blue-50 transition"
+                        className="text-blue-500 px-3 py-1 rounded hover:bg-blue-50 transition"
                     >
                         立即更新
                     </button>
@@ -217,7 +217,7 @@ export default function PWAProvider({children}: { children: React.ReactNode }) {
                     <span>安装 FastBlog</span>
                     <button
                         onClick={installPWA}
-                        className="bg-white text-green-500 px-3 py-1 rounded hover:bg-green-50 transition"
+                        className="text-green-500 px-3 py-1 rounded hover:bg-green-50 transition"
                     >
                         安装
                     </button>

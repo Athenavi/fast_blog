@@ -179,7 +179,7 @@ export default function ThemeCustomizer({themeId, onSave}: ThemeCustomizerProps)
     }
 
     return (
-        <div className="bg-white rounded-lg shadow-lg overflow-hidden">
+        <div className="rounded-lg shadow-lg overflow-hidden">
             {/* 头部 */}
             <div className="bg-gradient-to-r from-blue-500 to-purple-600 px-6 py-4">
                 <h2 className="text-2xl font-bold text-white">主题自定义器</h2>

@@ -581,7 +581,7 @@ const ArticleDetailClient: React.FC<ArticleDetailClientProps> = ({articleData}) 
                 <div className="lg:grid lg:grid-cols-3 lg:gap-8">
                     {/* 文章主体 */}
                     <div className="lg:col-span-2">
-                        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
+                        <div className="dark:bg-gray-800 rounded-lg shadow-md overflow-hidden">
                             {article.cover_image && (
                                 <div className="h-64 overflow-hidden relative">
                                     <img
@@ -1011,7 +1011,7 @@ const ArticleDetailClient: React.FC<ArticleDetailClientProps> = ({articleData}) 
                     <div className="mt-8 lg:mt-0">
                         {/* 作者信息 */}
                         {author && (
-                            <div className="bg-white dark:bg-gray-800 shadow rounded-lg p-6 mb-6">
+                            <div className="dark:bg-gray-800 shadow rounded-lg p-6 mb-6">
                                 <div className="flex items-center mb-4">
                                     <img
                                         src={`/api/avatar/${author.id}`}

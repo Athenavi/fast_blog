@@ -18,6 +18,7 @@ import {
     Search
 } from 'lucide-react';
 import {useThemeToggle} from '@/hooks/useThemeToggle';
+import {useDarkMode} from '@/lib/dark-mode-manager';
 
 interface NavbarProps {
     title?: string;
@@ -33,9 +34,16 @@ const Navbar: React.FC<NavbarProps> = ({
                                            rightActions
                                        }) => {
     const pathname = usePathname();
-    const {theme, toggleTheme} = useThemeToggle();
+    const {theme, toggleTheme} = useDarkMode(); // 使用新的深色模式管理器
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
+
+    // 调试：记录主题变化
+    useEffect(() => {
+        console.log('[Navbar] 当前主题:', theme);
+        console.log('[Navbar] HTML 元素的类:', document.documentElement.classList.toString());
+        console.log('[Navbar] localStorage theme:', localStorage.getItem('theme'));
+    }, [theme]);
 
     // 检查用户是否登录
     useEffect(() => {
@@ -95,7 +103,12 @@ const Navbar: React.FC<NavbarProps> = ({
     return (
         <>
             <header
-                className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 shadow-sm fixed top-0 left-0 right-0 z-[9999] w-full">
+                className="border-b border-gray-200 dark:border-gray-800 shadow-sm fixed top-0 left-0 right-0 z-[9999] w-full"
+                style={{
+                    backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
+                    borderColor: theme === 'dark' ? '#1f2937' : '#e5e7eb'
+                }}
+                data-theme={theme}>
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex items-center justify-between h-16">
                         {/* 左侧：Logo 和标题 */}
@@ -206,8 +219,11 @@ const Navbar: React.FC<NavbarProps> = ({
                                         initial={{opacity: 0, y: -10}}
                                         animate={{opacity: 1, y: 0}}
                                         exit={{opacity: 0, y: -10}}
-                                        className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-900 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-50"
-                                    >
+                                        className="absolute right-0 mt-2 w-48 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-50"
+                                        style={{
+                                            backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
+                                            borderColor: theme === 'dark' ? '#374151' : '#e5e7eb'
+                                        }}>
                                         {userMenuItems.map((item) => {
                                             const Icon = item.icon;
 
@@ -250,7 +266,11 @@ const Navbar: React.FC<NavbarProps> = ({
 
             {/* 自定义右侧操作区域（如果提供） */}
             {rightActions && (
-                <div className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800">
+                <div className="border-b border-gray-200 dark:border-gray-800"
+                     style={{
+                         backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
+                         borderColor: theme === 'dark' ? '#1f2937' : '#e5e7eb'
+                     }}>
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
                         {rightActions}
                     </div>

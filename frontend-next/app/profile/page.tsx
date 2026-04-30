@@ -51,24 +51,62 @@ const ProfilePage = () => {
 
     // 获取头像URL
     const fetchAvatarUrl = useCallback(async (userId: number, username: string, avatar?: string) => {
-        if (avatar) return avatar;
-        
-        try {
-            const apiConfig = getConfig();
-            const response = await fetch(
-                `${apiConfig.API_BASE_URL}${apiConfig.API_PREFIX}/user/avatar?user_id=${userId}`,
-                {credentials: 'include'}
-            );
-            
-            if (response.ok) {
-                const text = await response.text();
-                return text.replace(/^"|"$/g, '');
+        let avatarUrl = avatar;
+
+        console.log('[fetchAvatarUrl] 初始 avatar:', avatar);
+
+        // 如果后端没有返回头像，则通过 API 获取
+        if (!avatarUrl && userId) {
+            try {
+                const apiConfig = getConfig();
+                const avatarResponse = await fetch(
+                    `${apiConfig.API_BASE_URL}${apiConfig.API_PREFIX}/user/avatar?user_id=${userId}`,
+                    {credentials: 'include'}
+                );
+                if (avatarResponse.ok) {
+                    const text = await avatarResponse.text();
+                    // 后端返回的是纯文本 URL，需要去除可能的引号
+                    avatarUrl = text.replace(/^"|"$/g, '').trim();
+                    console.log('[fetchAvatarUrl] 从 API 获取的 avatarUrl:', avatarUrl);
+                }
+            } catch (error) {
+                console.error('获取头像 URL 失败:', error);
             }
-        } catch (error) {
-            console.error('获取头像失败:', error);
         }
-        
-        return `https://ui-avatars.com/api/?name=${encodeURIComponent(username)}&background=random`;
+
+        // 如果 avatarUrl 是相对路径（以 / 开头但不包含 http），拼接完整路径
+        if (avatarUrl && !avatarUrl.startsWith('http')) {
+            const apiConfig = getConfig();
+            console.log('[fetchAvatarUrl] 处理相对路径:', avatarUrl);
+            // 如果已经是完整路径（如 /static/avatar/xxx.png），直接拼接 API_BASE_URL
+            if (avatarUrl.startsWith('/')) {
+                avatarUrl = `${apiConfig.API_BASE_URL}${avatarUrl}`;
+            } else {
+                // 如果是 UUID 或其他格式，尝试拼接 static/avatar 路径并添加 .png 扩展名
+                // 先尝试 .png，如果失败会在 onError 中处理
+                avatarUrl = `${apiConfig.API_BASE_URL}/static/avatar/${avatarUrl}.png`;
+            }
+            console.log('[fetchAvatarUrl] 拼接后的 avatarUrl:', avatarUrl);
+        }
+
+        // 最终检查：如果 avatarUrl 为空或无效，返回默认头像
+        const defaultAvatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(username || 'User')}&background=random`;
+
+        // 验证 URL 是否有效
+        if (avatarUrl && avatarUrl.trim()) {
+            try {
+                // 尝试构造 URL 对象来验证
+                new URL(avatarUrl);
+                console.log('[fetchAvatarUrl] 最终返回的 avatarUrl:', avatarUrl);
+                return avatarUrl;
+            } catch (e) {
+                console.warn('无效的头像 URL，使用默认头像:', avatarUrl);
+                return defaultAvatar;
+            }
+        }
+
+        console.log('[fetchAvatarUrl] avatarUrl 为空，使用默认头像');
+        return defaultAvatar;
     }, []);
 
     useEffect(() => {
@@ -89,7 +127,9 @@ const ProfilePage = () => {
                 setUserData(userData as UserProfileResponse);
 
                 const user = (userData as UserProfileResponse).user;
-                const avatar = await fetchAvatarUrl(user.id, user.username, (user as any).avatar_url);
+                // 确保传递完整的头像 URL
+                const userAvatar = (user as any).avatar_url || (user as any).avatar || (user as any).profile_picture;
+                const avatar = await fetchAvatarUrl(user.id, user.username, userAvatar);
                 setAvatarUrl(avatar);
             } catch (error) {
                 console.error('加载用户资料失败:', error);
@@ -156,13 +196,25 @@ const ProfilePage = () => {
                                     <div
                                         className="w-32 h-32 rounded-2xl overflow-hidden border-4 border-white dark:border-gray-900 shadow-lg">
                                         <Image
-                                            src={avatarUrl}
-                                            alt={user.username}
+                                            src={avatarUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(user.username || 'User')}&background=random`}
+                                            alt={user.username || 'User'}
                                             width={128}
                                             height={128}
                                             className="w-full h-full object-cover"
                                             onError={(e) => {
-                                                e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.username)}&background=random`;
+                                                const currentSrc = e.currentTarget.src;
+                                                // 如果当前是 .png 失败，尝试 .webp
+                                                if (currentSrc.endsWith('.png')) {
+                                                    e.currentTarget.src = currentSrc.replace('.png', '.webp');
+                                                }
+                                                // 如果当前是 .webp 失败，尝试 .jpg
+                                                else if (currentSrc.endsWith('.webp')) {
+                                                    e.currentTarget.src = currentSrc.replace('.webp', '.jpg');
+                                                }
+                                                // 如果都失败，使用默认头像
+                                                else {
+                                                    e.currentTarget.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(user.username || 'User')}&background=random`;
+                                                }
                                             }}
                                         />
                                     </div>

@@ -92,7 +92,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
     return (
         <div className={`${depth > 0 ? 'ml-8 mt-4' : ''}`}>
             <div
-                className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md transition-shadow">
+                className="dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md transition-shadow">
                 <div className="flex gap-3">
                     {/* 头像 */}
                     <Avatar className="w-10 h-10 flex-shrink-0">

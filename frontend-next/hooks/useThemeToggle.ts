@@ -4,18 +4,41 @@ import {useState, useEffect} from 'react';
 
 type Theme = 'light' | 'dark';
 
-export function useThemeToggle() {
-    const [theme, setTheme] = useState<Theme>('light');
+// 全局主题状态
+let globalTheme: Theme = 'light';
+let listeners: Array<(theme: Theme) => void> = [];
 
-    // 初始化主题
-    useEffect(() => {
-        // 检查 localStorage 或系统偏好
-        const savedTheme = localStorage.getItem('theme') as Theme;
-        if (savedTheme) {
-            setTheme(savedTheme);
-        } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-            setTheme('dark');
+function setGlobalTheme(theme: Theme) {
+    globalTheme = theme;
+    listeners.forEach(listener => listener(theme));
+}
+
+export function useThemeToggle() {
+    const [theme, setTheme] = useState<Theme>(() => {
+        // 初始化时从 localStorage 或系统偏好读取
+        if (typeof window !== 'undefined') {
+            const savedTheme = localStorage.getItem('theme') as Theme;
+            if (savedTheme) {
+                globalTheme = savedTheme;
+                return savedTheme;
+            } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                globalTheme = 'dark';
+                return 'dark';
+            }
         }
+        return globalTheme;
+    });
+
+    // 订阅全局主题变化
+    useEffect(() => {
+        const listener = (newTheme: Theme) => {
+            setTheme(newTheme);
+        };
+        listeners.push(listener);
+
+        return () => {
+            listeners = listeners.filter(l => l !== listener);
+        };
     }, []);
 
     // 应用主题
@@ -29,6 +52,7 @@ export function useThemeToggle() {
         }
 
         localStorage.setItem('theme', theme);
+        setGlobalTheme(theme);
     }, [theme]);
 
     // 切换主题

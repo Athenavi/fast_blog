@@ -242,7 +242,7 @@ const ImageEditor: React.FC<ImageEditorProps> = ({ imageUrl, onSave, onClose }) 
   const rotateRight = () => setRotation((r) => (r + 90) % 360);
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-lg shadow-xl">
+      <div className="dark:bg-gray-900 rounded-lg shadow-xl">
       {/* 头部 */}
       <div className="flex items-center justify-between p-4 border-b">
         <h3 className="text-lg font-semibold">图片编辑器</h3>
