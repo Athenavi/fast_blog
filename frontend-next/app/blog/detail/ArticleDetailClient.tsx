@@ -169,15 +169,37 @@ const ArticleDetailClient: React.FC<ArticleDetailClientProps> = ({articleData}) 
 
     return (
         <div className="min-h-screen bg-white dark:bg-gray-950">
-            {/* 文章头部 */}
-            <header className="border-b border-gray-200 dark:border-gray-800">
-                <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16">
+            {/* 文章头部 - 带背景图 */}
+            <header className="relative border-b border-gray-200 dark:border-gray-800 overflow-hidden">
+                {/* 背景图 */}
+                {article.cover_image && (
+                    <div className="absolute inset-0 z-0">
+                        <Image
+                            src={article.cover_image}
+                            alt={article.title}
+                            fill
+                            className="object-cover"
+                            priority
+                            sizes="100vw"
+                        />
+                        {/* 渐变遮罩 - 从半透明到完全不透明 */}
+                        <div
+                            className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/60 to-white dark:from-black/60 dark:via-black/70 dark:to-gray-950"/>
+                    </div>
+                )}
+
+                <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24">
+                    {/* 面包屑导航 */}
+                    <nav className="mb-6" aria-label="Breadcrumb">
+                        <Breadcrumbs items={breadcrumbs}/>
+                    </nav>
+
                     {/* 分类标签 */}
                     {article.category_name && (
                         <div className="mb-6">
                             <Link
                                 href={`/categories/${article.category_slug || article.category_id}`}
-                                className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-900/50 transition-colors"
+                                className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-white/90 backdrop-blur-sm text-blue-700 hover:bg-white dark:bg-gray-900/90 dark:text-blue-300 dark:hover:bg-gray-900 transition-colors shadow-lg"
                             >
                                 {article.category_name}
                             </Link>
@@ -185,13 +207,13 @@ const ArticleDetailClient: React.FC<ArticleDetailClientProps> = ({articleData}) 
                     )}
 
                     {/* 标题 */}
-                    <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 dark:text-white leading-tight mb-6">
+                    <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold text-white leading-tight mb-6 drop-shadow-lg">
                         {article.title}
                     </h1>
 
                     {/* 摘要 */}
                     {article.excerpt && (
-                        <p className="text-lg sm:text-xl text-gray-600 dark:text-gray-400 leading-relaxed mb-8">
+                        <p className="text-lg sm:text-xl text-white/90 leading-relaxed mb-8 drop-shadow-md">
                             {article.excerpt}
                         </p>
                     )}
@@ -201,24 +223,24 @@ const ArticleDetailClient: React.FC<ArticleDetailClientProps> = ({articleData}) 
                         {/* 作者 */}
                         <div className="flex items-center gap-3">
                             <div
-                                className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-semibold">
+                                className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-500 flex items-center justify-center text-white font-semibold ring-2 ring-white/50">
                                 {author?.username?.charAt(0).toUpperCase() || 'U'}
                             </div>
                             <div>
-                                <div className="text-sm font-medium text-gray-900 dark:text-white">
+                                <div className="text-sm font-medium text-white">
                                     {author?.username || '未知作者'}
                                 </div>
-                                <div className="text-xs text-gray-500 dark:text-gray-400">
+                                <div className="text-xs text-white/80">
                                     {formatDate(article.created_at)}
                                 </div>
                             </div>
                         </div>
 
                         {/* 分隔符 */}
-                        <div className="hidden sm:block w-px h-10 bg-gray-200 dark:bg-gray-700"/>
+                        <div className="hidden sm:block w-px h-10 bg-white/30"/>
 
                         {/* 阅读时间和浏览量 */}
-                        <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
+                        <div className="flex items-center gap-4 text-sm text-white/80">
                             <span className="flex items-center gap-1">
                                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
@@ -241,31 +263,12 @@ const ArticleDetailClient: React.FC<ArticleDetailClientProps> = ({articleData}) 
             </header>
 
             {/* 文章内容区域 */}
-            <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-                {/* 封面图 - 在内容顶部 */}
-                {article.cover_image && (
-                    <div className="mb-12">
-                        <div className="relative w-full aspect-video overflow-hidden rounded-2xl shadow-lg">
-                            <Image
-                                src={article.cover_image}
-                                alt={article.title}
-                                fill
-                                className="object-cover"
-                                priority
-                                sizes="(max-width: 768px) 100vw, (max-width: 1200px) 100vw, 100vw"
-                            />
-                        </div>
-                    </div>
-                )}
+            <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
 
                 {/* 文章内容 */}
                 <div className="lg:grid lg:grid-cols-12 lg:gap-12">
                     {/* 主内容区 */}
-                    <article className="lg:col-span-9">
-                        {/* 面包屑导航 */}
-                        <nav className="mb-8" aria-label="Breadcrumb">
-                            <Breadcrumbs items={breadcrumbs}/>
-                        </nav>
+                    <article className="lg:col-span-9 xl:col-span-10">
 
                         {/* 文章内容 */}
                         <div
@@ -353,7 +356,7 @@ const ArticleDetailClient: React.FC<ArticleDetailClientProps> = ({articleData}) 
                     </article>
 
                     {/* 侧边栏 - 目录 */}
-                    <aside className="hidden lg:block lg:col-span-3">
+                    <aside className="hidden lg:block lg:col-span-3 xl:col-span-2">
                         <div className="sticky top-8">
                             {/* 简单的目录容器 */}
                             <div
