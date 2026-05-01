@@ -672,6 +672,22 @@ curl -X POST "http://localhost:9421/api/v1/media/upload" \
         except ImportError as e:
             print(f"Warning: Localization API could not be loaded: {e}")
 
+        # 数据分析 API
+        try:
+            from src.api.v1.analytics import router as analytics_router
+            app.include_router(analytics_router, prefix='/api/v1', tags=['analytics'])
+            print(f"{worker_info} [OK] Analytics API 已加载")
+        except ImportError as e:
+            print(f"Warning: Analytics API could not be loaded: {e}")
+
+        # 批量操作 API
+        try:
+            from src.api.v1.batch_operations import router as batch_router
+            app.include_router(batch_router, prefix='/api/v1', tags=['batch'])
+            print(f"{worker_info} [OK] Batch Operations API 已加载")
+        except ImportError as e:
+            print(f"Warning: Batch Operations API could not be loaded: {e}")
+
         env_key = f"ROUTER_PRINTED_{os.getpid()}"
 
         if not os.environ.get(env_key):

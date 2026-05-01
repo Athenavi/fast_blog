@@ -1,24 +1,16 @@
 """
-批量操作API
-提供文章、用户、媒体等资源的批量操作功能
+批量操作 API
 """
-
 from typing import List, Optional
 
-from fastapi import APIRouter, Body, Depends
+from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from pydantic import BaseModel
-from sqlalchemy import delete, update
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.orm import Session
 
-from extensions import get_async_db
-from shared.models.article import Article
-from shared.models.media import Media
-from shared.models.user import User
-from src.api.v1.responses import ApiResponse
-from src.utils.database.unified_manager import get_db_session
+from src.utils.database import get_db
+from shared.services.batch_operations import create_batch_service
 
-router = APIRouter(tags=["batch-operations"])
+router = APIRouter(prefix="/batch", tags=["batch"])
 
 
 class BatchDeleteRequest(BaseModel):
@@ -29,213 +21,224 @@ class BatchDeleteRequest(BaseModel):
 class BatchUpdateStatusRequest(BaseModel):
     """批量更新状态请求"""
     ids: List[int]
-    status: str  # published/draft/hidden
+    status: str
 
 
-class BatchUpdateCategoryRequest(BaseModel):
-    """批量更新分类请求"""
+class BatchMoveCategoryRequest(BaseModel):
+    """批量移动分类请求"""
     ids: List[int]
     category_id: int
 
 
-@router.post("/articles/batch-delete")
-async def batch_delete_articles(request_data: BatchDeleteRequest, db: AsyncSession = Depends(get_db_session)):
+class BatchAddTagsRequest(BaseModel):
+    """批量添加标签请求"""
+    ids: List[int]
+    tags: List[str]
+
+
+@router.post("/articles/delete")
+async def batch_delete_articles(
+        request: BatchDeleteRequest,
+        operator_id: Optional[int] = Query(None, description="操作者ID"),
+        db: AsyncSession = Depends(get_db)
+):
     """
     批量删除文章
     
     Args:
-        request_data: 包含文章ID列表的请求体
+        request: 删除请求
+        operator_id: 操作者ID
+        db: 数据库会话
         
     Returns:
-        删除结果统计
+        操作结果
     """
     try:
-        # 实现批量删除逻辑
-        result = await db.execute(
-            delete(Article).where(Article.id.in_(request_data.ids))
+        service = create_batch_service(db)
+        result = await service.batch_delete_articles(
+            article_ids=request.ids,
+            operator_id=operator_id
         )
-        await db.commit()
-        deleted_count = result.rowcount
-        
-        return ApiResponse(
-            success=True,
-            message=f"成功删除 {deleted_count} 篇文章",
-            data={
-                'deleted_count': deleted_count,
-                'ids': request_data.ids
-            }
-        )
+
+        if not result['success']:
+            raise HTTPException(status_code=400, detail=result['message'])
+
+        return result
+    except HTTPException:
+        raise
     except Exception as e:
-        await db.rollback()
-        return ApiResponse(success=False, error=f"批量删除失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/articles/batch-update-status")
-async def batch_update_article_status(request_data: BatchUpdateStatusRequest,
-                                      db: AsyncSession = Depends(get_db_session)):
+@router.post("/articles/update-status")
+async def batch_update_article_status(
+        request: BatchUpdateStatusRequest,
+        operator_id: Optional[int] = Query(None, description="操作者ID"),
+        db: AsyncSession = Depends(get_db)
+):
     """
     批量更新文章状态
     
     Args:
-        request_data: 包含ID列表和新状态的请求体
+        request: 更新请求
+        operator_id: 操作者ID
+        db: 数据库会话
         
     Returns:
-        更新结果统计
+        操作结果
     """
     try:
-        # 实现批量更新状态逻辑
-        status_map = {'published': 1, 'draft': 0, 'hidden': 2}
-        status_value = status_map.get(request_data.status, 1)
+        service = create_batch_service(db)
+        result = await service.batch_update_article_status(
+            article_ids=request.ids,
+            status=request.status,
+            operator_id=operator_id
+        )
 
-        result = await db.execute(
-            update(Article)
-            .where(Article.id.in_(request_data.ids))
-            .values(status=status_value)
-        )
-        await db.commit()
-        updated_count = result.rowcount
-        
-        return ApiResponse(
-            success=True,
-            message=f"成功更新 {updated_count} 篇文章的状态为 '{request_data.status}'",
-            data={
-                'updated_count': updated_count,
-                'status': request_data.status,
-                'ids': request_data.ids
-            }
-        )
+        if not result['success']:
+            raise HTTPException(status_code=400, detail=result['message'])
+
+        return result
+    except HTTPException:
+        raise
     except Exception as e:
-        await db.rollback()
-        return ApiResponse(success=False, error=f"批量更新状态失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/articles/batch-update-category")
-async def batch_update_article_category(request_data: BatchUpdateCategoryRequest,
-                                        db: AsyncSession = Depends(get_db_session)):
-    """
-    批量更新文章分类
-    
-    Args:
-        request_data: 包含ID列表和新分类ID的请求体
-        
-    Returns:
-        更新结果统计
-    """
-    try:
-        # 实现批量更新分类逻辑
-        result = await db.execute(
-            update(Article)
-            .where(Article.id.in_(request_data.ids))
-            .values(category_id=request_data.category_id)
-        )
-        await db.commit()
-        updated_count = result.rowcount
-        
-        return ApiResponse(
-            success=True,
-            message=f"成功将 {updated_count} 篇文章分配到新分类",
-            data={
-                'updated_count': updated_count,
-                'category_id': request_data.category_id,
-                'ids': request_data.ids
-            }
-        )
-    except Exception as e:
-        await db.rollback()
-        return ApiResponse(success=False, error=f"批量更新分类失败: {str(e)}")
-
-
-@router.post("/users/batch-update-role")
-async def batch_update_user_role(
-    ids: List[int] = Body(...),
-    role: str = Body(...),
-        db: AsyncSession = Depends(get_db_session)
+@router.post("/articles/move-category")
+async def batch_move_to_category(
+        request: BatchMoveCategoryRequest,
+        operator_id: Optional[int] = Query(None, description="操作者ID"),
+        db: AsyncSession = Depends(get_db)
 ):
     """
-    批量更新用户角色
+    批量移动文章到指定分类
     
     Args:
-        ids: 用户ID列表
-        role: 新角色
+        request: 移动请求
+        operator_id: 操作者ID
+        db: 数据库会话
         
     Returns:
-        更新结果统计
+        操作结果
     """
     try:
-        # 实现批量更新用户角色逻辑 - 更新is_superuser字段
-        is_admin = role in ['admin', 'superuser']
-        result = await db.execute(
-            update(User)
-            .where(User.id.in_(ids))
-            .values(is_superuser=is_admin)
+        service = create_batch_service(db)
+        result = await service.batch_move_to_category(
+            article_ids=request.ids,
+            category_id=request.category_id,
+            operator_id=operator_id
         )
-        await db.commit()
-        updated_count = result.rowcount
-        
-        return ApiResponse(
-            success=True,
-            message=f"成功更新 {updated_count} 个用户的角色为 '{role}'"
-        )
+
+        if not result['success']:
+            raise HTTPException(status_code=400, detail=result['message'])
+
+        return result
+    except HTTPException:
+        raise
     except Exception as e:
-        await db.rollback()
-        return ApiResponse(success=False, error=f"批量更新角色失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/media/batch-delete")
-async def batch_delete_media(ids: List[int] = Body(...), db: AsyncSession = Depends(get_db_session)):
-    """
-    批量删除媒体文件
-    
-    Args:
-        ids: 媒体ID列表
-        
-    Returns:
-        删除结果统计
-    """
-    try:
-        # 实现批量删除媒体逻辑
-        result = await db.execute(
-            delete(Media).where(Media.id.in_(ids))
-        )
-        await db.commit()
-        deleted_count = result.rowcount
-        
-        return ApiResponse(
-            success=True,
-            message=f"成功删除 {deleted_count} 个媒体文件"
-        )
-    except Exception as e:
-        await db.rollback()
-        return ApiResponse(success=False, error=f"批量删除媒体失败: {str(e)}")
-
-
-@router.post("/media/batch-move-folder")
-async def batch_move_media_to_folder(
-    ids: List[int] = Body(...),
-    folder_id: Optional[int] = Body(None),
-        db: Session = Depends(get_async_db())
+@router.post("/articles/add-tags")
+async def batch_add_tags(
+        request: BatchAddTagsRequest,
+        operator_id: Optional[int] = Query(None, description="操作者ID"),
+        db: AsyncSession = Depends(get_db)
 ):
     """
-    批量移动媒体到文件夹
+    批量添加标签
     
     Args:
-        ids: 媒体ID列表
-        folder_id: 目标文件夹ID(None表示根目录)
+        request: 添加标签请求
+        operator_id: 操作者ID
+        db: 数据库会话
         
     Returns:
-        移动结果统计
+        操作结果
     """
     try:
-        # 实现批量移动媒体逻辑
-        updated_count = db.query(Media).filter(
-            Media.id.in_(ids)
-        ).update({Media.folder_id: folder_id}, synchronize_session=False)
-        db.commit()
-        
-        return ApiResponse(
-            success=True,
-            message=f"成功移动 {updated_count} 个媒体文件"
+        service = create_batch_service(db)
+        result = await service.batch_add_tags(
+            article_ids=request.ids,
+            tags=request.tags,
+            operator_id=operator_id
         )
+
+        if not result['success']:
+            raise HTTPException(status_code=400, detail=result['message'])
+
+        return result
+    except HTTPException:
+        raise
     except Exception as e:
-        db.rollback()
-        return ApiResponse(success=False, error=f"批量移动媒体失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/comments/delete")
+async def batch_delete_comments(
+        request: BatchDeleteRequest,
+        operator_id: Optional[int] = Query(None, description="操作者ID"),
+        db: AsyncSession = Depends(get_db)
+):
+    """
+    批量删除评论
+    
+    Args:
+        request: 删除请求
+        operator_id: 操作者ID
+        db: 数据库会话
+        
+    Returns:
+        操作结果
+    """
+    try:
+        service = create_batch_service(db)
+        result = await service.batch_delete_comments(
+            comment_ids=request.ids,
+            operator_id=operator_id
+        )
+
+        if not result['success']:
+            raise HTTPException(status_code=400, detail=result['message'])
+
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/comments/update-status")
+async def batch_update_comment_status(
+        request: BatchUpdateStatusRequest,
+        operator_id: Optional[int] = Query(None, description="操作者ID"),
+        db: AsyncSession = Depends(get_db)
+):
+    """
+    批量更新评论状态
+    
+    Args:
+        request: 更新请求
+        operator_id: 操作者ID
+        db: 数据库会话
+        
+    Returns:
+        操作结果
+    """
+    try:
+        service = create_batch_service(db)
+        result = await service.batch_update_comment_status(
+            comment_ids=request.ids,
+            status=request.status,
+            operator_id=operator_id
+        )
+
+        if not result['success']:
+            raise HTTPException(status_code=400, detail=result['message'])
+
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
