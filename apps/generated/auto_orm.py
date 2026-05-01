@@ -1,7 +1,7 @@
 """
 Django ORM 抽象基类定义
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-04-29 11:08:24
+生成时间：2026-05-01 20:50:13
 """
 
 from django.db import models
@@ -2055,3 +2055,59 @@ class ArticleSEOMixin(models.Model):
         app_label = 'generated'
         verbose_name = '文章SEO元数据模型'
         # 注意：请在具体模型类中设置 db_table = get_table_name("article_seo")
+
+
+class SiteMixin(models.Model):
+    """站点模型（多站点支持） Mixin"""
+
+    # id
+    id = models.BigAutoField(
+        'id', primary_key=True)
+    # name
+    name = models.CharField(
+        'name', max_length=200)
+    # slug
+    slug = models.CharField(
+        'slug', max_length=100, unique=True)
+    # domain
+    domain = models.CharField(
+        'domain', max_length=255, blank=True, null=True)
+    # path
+    path = models.CharField(
+        'path', max_length=255, blank=True, null=True, default='/')
+    # is_active
+    is_active = models.BooleanField(
+        'is_active', default=True)
+    # is_default
+    is_default = models.BooleanField(
+        'is_default', default=False)
+    # settings
+    settings = models.CharField(
+        'settings', max_length=255, blank=True, null=True)
+    # theme
+    theme = models.CharField(
+        'theme', max_length=100, default='default')
+    # language
+    language = models.CharField(
+        'language', max_length=10, default='zh-CN')
+    # timezone
+    timezone = models.CharField(
+        'timezone', max_length=50, default='Asia/Shanghai')
+    # title
+    title = models.CharField(
+        'title', max_length=200, blank=True, null=True)
+    # description
+    description = models.TextField(
+        'description', blank=True, null=True)
+    # keywords
+    keywords = models.CharField(
+        'keywords', max_length=500, blank=True, null=True)
+    # admin_user_id
+    admin_user_id = models.BigIntegerField(
+        'admin_user_id', blank=True, null=True)
+
+    class Meta:
+        abstract = True
+        app_label = 'generated'
+        verbose_name = '站点模型（多站点支持）'
+        # 注意：请在具体模型类中设置 db_table = get_table_name("sites")

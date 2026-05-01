@@ -1,8 +1,9 @@
 """
 SQLAlchemy 模型定义 - VIPSubscription
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-04-29 11:08:24
+生成时间：2026-05-01 20:50:13
 """
+
 
 from sqlalchemy import Column, BigInteger, Integer, String, DateTime, Numeric, ForeignKey
 
@@ -31,7 +32,9 @@ class VIPSubscription(Base):
 
     status = Column(BigInteger, default=0, doc='status')
 
+
     payment_amount = Column(Numeric(10, 2), nullable=True, doc='payment_amount')
+
 
     transaction_id = Column(String(255), nullable=True, doc='transaction_id')
 

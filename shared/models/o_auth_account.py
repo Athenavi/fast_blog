@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - OAuthAccount
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-04-29 11:08:24
+生成时间：2026-05-01 20:50:14
 """
 
 from sqlalchemy import Column, BigInteger, String, DateTime, ForeignKey, Index
@@ -37,14 +37,16 @@ class OAuthAccount(Base):
 
     extra_data = Column(String(255), nullable=True, doc='extra_data')
 
+
     created_at = Column(DateTime, doc='created_at')
+
 
     updated_at = Column(DateTime, doc='updated_at')
 
 
     __table_args__ = (
 
-        Index('idx_oauth_accounts_provider_user', 'provider', 'provider_user_id', unique=True),
+    Index('idx_oauth_accounts_provider_user', 'provider', 'provider_user_id', unique=True),
         Index('idx_oauth_accounts_user_provider', 'user_id', 'provider', unique=True),
     )
 

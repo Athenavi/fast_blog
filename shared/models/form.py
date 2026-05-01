@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - Form
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-04-29 11:08:24
+生成时间：2026-05-01 20:50:14
 """
 
 from sqlalchemy import Column, BigInteger, String, Boolean, DateTime, Index
@@ -37,18 +37,22 @@ class Form(Base):
 
     notification_email = Column(String(255), nullable=True, doc='notification_email')
 
+
     store_submissions = Column(Boolean, default=True, doc='store_submissions')
+
 
     created_at = Column(DateTime, doc='created_at')
 
+
     updated_at = Column(DateTime, doc='updated_at')
+
 
     published_at = Column(DateTime, nullable=True, doc='published_at')
 
 
     __table_args__ = (
 
-        Index('idx_forms_slug', 'slug', unique=True),
+    Index('idx_forms_slug', 'slug', unique=True),
         Index('idx_forms_status', 'status'),
     )
 

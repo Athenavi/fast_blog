@@ -46,6 +46,7 @@ from .capability import Capability
 from .user_role import UserRole
 from .o_auth_account import OAuthAccount
 from .article_seo import ArticleSEO
+from .site import Site
 
 # ==================== 自动生成的导入 - 由 routes.yaml 管理 ====================
 # 此部分由脚本自动生成 - 请勿手动修改
@@ -95,6 +96,7 @@ __all__ = [
     'Capability',
     'UserRole',
     'OAuthAccount',
-    'ArticleSEO'
+    'ArticleSEO',
+    'Site'
 ]
 # ============================================================================

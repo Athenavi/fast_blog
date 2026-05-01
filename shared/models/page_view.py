@@ -1,8 +1,9 @@
 """
 SQLAlchemy 模型定义 - PageView
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-04-29 11:08:24
+生成时间：2026-05-01 20:50:13
 """
+
 
 from sqlalchemy import Column, BigInteger, String, DateTime, ForeignKey
 
@@ -31,7 +32,9 @@ class PageView(Base):
 
     referrer = Column(String(500), nullable=True, doc='referrer')
 
+
     user_agent = Column(String(500), nullable=True, doc='user_agent')
+
 
     ip_address = Column(String(45), nullable=True, doc='ip_address')
 

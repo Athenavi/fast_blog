@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - UploadTask
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-04-29 11:08:24
+生成时间：2026-05-01 20:50:13
 """
 
 
@@ -41,7 +41,9 @@ class UploadTask(Base):
 
     status = Column(String(255), default='initialized', doc='status')
 
+
     created_at = Column(DateTime, default=datetime.utcnow, doc='created_at')
+
 
     updated_at = Column(DateTime, default=datetime.utcnow, doc='updated_at')
 

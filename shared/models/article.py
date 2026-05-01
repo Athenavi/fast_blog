@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - Article
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-04-29 11:08:24
+生成时间：2026-05-01 20:50:13
 """
 
 from sqlalchemy import Column, BigInteger, Integer, String, Boolean, DateTime, ForeignKey, Index
@@ -44,15 +44,21 @@ class Article(Base):
 
     likes = Column(BigInteger, default=0, doc='likes')
 
+
     status = Column(Integer, doc='status')
+
 
     hidden = Column(Boolean, default=False, doc='hidden')
 
+
     is_featured = Column(Boolean, default=False, doc='is_featured')
+
 
     is_vip_only = Column(Boolean, default=False, doc='is_vip_only')
 
+
     required_vip_level = Column(Integer, default=0, doc='required_vip_level')
+
 
     article_ad = Column(String(255), nullable=True, doc='article_ad')
 
@@ -79,6 +85,13 @@ class Article(Base):
         Index('idx_articles_status_created', 'status', 'created_at'),
         Index('idx_articles_is_sticky', 'is_sticky'),
         Index('idx_articles_sticky_until', 'sticky_until'),
+        Index('idx_articles_published_at', 'created_at'),
+        Index('idx_articles_status_featured', 'status', 'is_featured'),
+        Index('idx_articles_status_views', 'status', 'views'),
+        Index('idx_articles_slug', 'slug', unique=True),
+        Index('idx_articles_post_type_status', 'post_type', 'status'),
+        Index('idx_articles_category_status_created', 'category', 'status', 'created_at'),
+        Index('idx_articles_user_status_created', 'user', 'status', 'created_at'),
     )
 
     # 关系定义

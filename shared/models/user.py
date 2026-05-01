@@ -1,10 +1,10 @@
 """
 SQLAlchemy 模型定义 - User
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-04-29 11:08:24
+生成时间：2026-05-01 20:50:13
 """
 
-from sqlalchemy import Column, BigInteger, String, Boolean, DateTime
+from sqlalchemy import Column, BigInteger, String, Boolean, DateTime, Index
 
 from . import Base  # 使用统一的 Base
 
@@ -14,7 +14,6 @@ from . import Base  # 使用统一的 Base
 # 以下导入是自定义方法可能需要的，如果不需要可以删除：
 # - from datetime import datetime
 # ============================================================================
-
 
 class User(Base):
     """用户模型模型"""
@@ -35,11 +34,15 @@ class User(Base):
 
     profile_picture = Column(String(255), nullable=True, doc='profile_picture')
 
+
     bio = Column(String(255), nullable=True, doc='bio')
+
 
     profile_private = Column(Boolean, default=False, doc='profile_private')
 
+
     vip_level = Column(BigInteger, default=0, doc='vip_level')
+
 
     vip_expires_at = Column(DateTime, nullable=True, doc='vip_expires_at')
 
@@ -65,7 +68,16 @@ class User(Base):
 
     backup_codes = Column(String(255), nullable=True, doc='backup_codes')
 
+    __table_args__ = (
 
+        Index('idx_users_username', 'username', unique=True),
+        Index('idx_users_email', 'email', unique=True),
+        Index('idx_users_is_active', 'is_active'),
+        Index('idx_users_vip_level', 'vip_level'),
+        Index('idx_users_date_joined', 'date_joined'),
+        Index('idx_users_is_superuser', 'is_superuser'),
+        Index('idx_users_last_login', 'last_login_at'),
+    )
 
 
     def to_dict(self, exclude_sensitive=True):

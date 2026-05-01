@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - Theme
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-04-29 11:08:24
+生成时间：2026-05-01 20:50:14
 """
 
 from sqlalchemy import Column, BigInteger, String, Boolean, DateTime, Index
@@ -37,11 +37,15 @@ class Theme(Base):
 
     theme_url = Column(String(255), nullable=True, doc='theme_url')
 
+
     screenshot = Column(String(500), nullable=True, doc='screenshot')
+
 
     tags = Column(String(255), nullable=True, doc='tags')
 
+
     requires = Column(String(255), nullable=True, doc='requires')
+
 
     settings_schema = Column(String(255), nullable=True, doc='settings_schema')
 
@@ -62,7 +66,7 @@ class Theme(Base):
 
     __table_args__ = (
 
-        Index('idx_themes_slug', 'slug', unique=True),
+    Index('idx_themes_slug', 'slug', unique=True),
         Index('idx_themes_is_active', 'is_active'),
     )
 

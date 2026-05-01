@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - ArticleSEO
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-04-29 11:08:24
+生成时间：2026-05-01 20:50:14
 """
 
 from sqlalchemy import Column, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
@@ -26,11 +26,15 @@ class ArticleSEO(Base):
 
     seo_description = Column(Text, nullable=True, doc='seo_description')
 
+
     seo_keywords = Column(String(500), nullable=True, doc='seo_keywords')
+
 
     og_title = Column(String(255), nullable=True, doc='og_title')
 
+
     og_description = Column(Text, nullable=True, doc='og_description')
+
 
     og_image = Column(String(500), nullable=True, doc='og_image')
 
@@ -58,7 +62,7 @@ class ArticleSEO(Base):
 
     __table_args__ = (
 
-    Index('idx_article_seo_article_id', 'article_id', unique=True),
+        Index('idx_article_seo_article_id', 'article_id', unique=True),
     )
 
     # 关系定义

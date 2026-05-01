@@ -1,8 +1,9 @@
 """
 SQLAlchemy 模型定义 - VIPFeature
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-04-29 11:08:24
+生成时间：2026-05-01 20:50:13
 """
+
 
 from sqlalchemy import Column, BigInteger, Integer, String, Boolean, DateTime
 
@@ -30,6 +31,7 @@ class VIPFeature(Base):
 
 
     is_active = Column(Boolean, default=True, doc='is_active')
+
 
     created_at = Column(DateTime, doc='created_at')
 

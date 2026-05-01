@@ -1,8 +1,9 @@
 """
 SQLAlchemy 模型定义 - VIPPlan
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-04-29 11:08:24
+生成时间：2026-05-01 20:50:13
 """
+
 
 from sqlalchemy import Column, BigInteger, Integer, String, Boolean, DateTime, Numeric
 
@@ -31,7 +32,9 @@ class VIPPlan(Base):
 
     duration_days = Column(Integer, doc='duration_days')
 
+
     level = Column(BigInteger, default=1, doc='level')
+
 
     features = Column(String(255), nullable=True, doc='features')
 

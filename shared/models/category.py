@@ -1,10 +1,10 @@
 """
 SQLAlchemy 模型定义 - Category
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-04-29 11:08:24
+生成时间：2026-05-01 20:50:13
 """
 
-from sqlalchemy import Column, BigInteger, String, Boolean, DateTime
+from sqlalchemy import Column, BigInteger, String, Boolean, DateTime, Index
 
 from . import Base  # 使用统一的 Base
 
@@ -31,11 +31,15 @@ class Category(Base):
 
     sort_order = Column(BigInteger, default=0, doc='sort_order')
 
+
     icon = Column(String(255), nullable=True, doc='icon')
+
 
     color = Column(String(255), nullable=True, doc='color')
 
+
     is_visible = Column(Boolean, default=True, doc='is_visible')
+
 
     articles_count = Column(BigInteger, doc='articles_count')
 
@@ -43,7 +47,13 @@ class Category(Base):
 
     updated_at = Column(DateTime, doc='updated_at')
 
+    __table_args__ = (
 
+        Index('idx_categories_slug', 'slug', unique=True),
+        Index('idx_categories_parent', 'parent_id'),
+        Index('idx_categories_sort_order', 'sort_order'),
+        Index('idx_categories_is_visible', 'is_visible'),
+    )
 
 
     def to_dict(self, exclude_sensitive=True):

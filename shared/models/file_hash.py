@@ -1,8 +1,9 @@
 """
 SQLAlchemy 模型定义 - FileHash
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-04-29 11:08:24
+生成时间：2026-05-01 20:50:13
 """
+
 
 from sqlalchemy import Column, BigInteger, String, DateTime
 
@@ -31,7 +32,9 @@ class FileHash(Base):
 
     reference_count = Column(BigInteger, default=1, doc='reference_count')
 
+
     file_size = Column(BigInteger, doc='file_size')
+
 
     mime_type = Column(String(100), nullable=True, doc='mime_type')
 

@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - ArticleRevision
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-04-29 11:08:24
+生成时间：2026-05-01 20:50:14
 """
 
 from sqlalchemy import Column, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
@@ -47,11 +47,15 @@ class ArticleRevision(Base):
 
     hidden = Column(Boolean, default=False, doc='hidden')
 
+
     is_featured = Column(Boolean, default=False, doc='is_featured')
+
 
     is_vip_only = Column(Boolean, default=False, doc='is_vip_only')
 
+
     required_vip_level = Column(BigInteger, default=0, doc='required_vip_level')
+
 
     author_id = Column(BigInteger, ForeignKey('users.id'), nullable=True, doc='author_id')
 
@@ -65,7 +69,7 @@ class ArticleRevision(Base):
 
     __table_args__ = (
 
-        Index('idx_article_revisions_article_id', 'article_id'),
+    Index('idx_article_revisions_article_id', 'article_id'),
         Index('idx_article_revisions_number', 'revision_number'),
         Index('idx_article_revisions_created', 'created_at'),
         Index('idx_article_revisions_hash', 'hash_code'),
@@ -98,10 +102,16 @@ class ArticleRevision(Base):
             'required_vip_level': self.required_vip_level,
             'author_id': self.author_id,
             'change_summary': self.change_summary,
-            'hash_code': self.hash_code,
             'created_at': self.created_at.isoformat() if self.created_at else None,
         }
 
+        # 只有当明确要求包含敏感字段时才添加
+        if not exclude_sensitive:
+            sensitive_data = {
+                'hash_code': self.hash_code,
+            }
+            data.update(sensitive_data)
+        
         return data
 
     def __repr__(self):

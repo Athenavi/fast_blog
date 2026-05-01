@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - MediaFolder
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-04-29 11:08:24
+生成时间：2026-05-01 20:50:13
 """
 
 from sqlalchemy import Column, BigInteger, String, Boolean, DateTime, ForeignKey, Index
@@ -34,16 +34,19 @@ class MediaFolder(Base):
 
     is_public = Column(Boolean, default=True, doc='is_public')
 
+
     media_count = Column(BigInteger, default=0, doc='media_count')
 
+
     created_at = Column(DateTime, doc='created_at')
+
 
     updated_at = Column(DateTime, doc='updated_at')
 
 
     __table_args__ = (
 
-        Index('idx_media_folders_user_id', 'user'),
+    Index('idx_media_folders_user_id', 'user'),
         Index('idx_media_folders_parent_id', 'parent_id'),
         Index('idx_media_folders_unique_name', 'user', 'parent_id', 'name', unique=True),
     )

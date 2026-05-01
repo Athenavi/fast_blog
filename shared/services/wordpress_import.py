@@ -424,3 +424,125 @@ class WordPressImportService:
             'trash': 'deleted',
         }
         return status_map.get(wp_status, 'draft')
+
+    async def download_media_files(self, media_list: List[Dict[str, Any]], progress_callback=None) -> Dict[str, Any]:
+        """
+        下载媒体文件
+        
+        Args:
+            media_list: 媒体文件列表
+            progress_callback: 进度回调函数 (current, total)
+            
+        Returns:
+            下载结果统计
+        """
+        results = {
+            'downloaded': 0,
+            'failed': 0,
+            'skipped': 0,
+            'errors': [],
+            'media_mapping': {},  # {old_url: new_local_path}
+        }
+
+        media_dir = Path("media/wordpress_import")
+        media_dir.mkdir(parents=True, exist_ok=True)
+
+        total = len(media_list)
+
+        for idx, media_item in enumerate(media_list):
+            try:
+                if progress_callback:
+                    progress_callback(idx + 1, total)
+
+                url = media_item.get('url')
+                if not url:
+                    results['skipped'] += 1
+                    continue
+
+                # 解析文件名
+                parsed_url = urlparse(url)
+                filename = os.path.basename(parsed_url.path)
+
+                # 生成唯一文件名
+                timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                local_filename = f"{timestamp}_{filename}"
+                local_path = media_dir / local_filename
+
+                # 如果文件已存在，跳过
+                if local_path.exists():
+                    results['skipped'] += 1
+                    results['media_mapping'][url] = str(local_path)
+                    continue
+
+                # 下载文件
+                async with aiohttp.ClientSession() as session:
+                    async with session.get(url, timeout=aiohttp.ClientTimeout(total=60)) as response:
+                        if response.status == 200:
+                            content = await response.read()
+                            with open(local_path, 'wb') as f:
+                                f.write(content)
+
+                            results['downloaded'] += 1
+                            results['media_mapping'][url] = str(local_path)
+                        else:
+                            results['failed'] += 1
+                            results['errors'].append(f"下载失败: {url} - HTTP {response.status}")
+
+            except Exception as e:
+                results['failed'] += 1
+                results['errors'].append(f"下载错误: {media_item.get('url', 'Unknown')} - {str(e)}")
+
+        return results
+
+    def generate_import_report(self, import_results: Dict[str, Any]) -> str:
+        """
+        生成导入报告
+        
+        Args:
+            import_results: 导入结果数据
+            
+        Returns:
+            格式化的报告文本
+        """
+        report_lines = []
+        report_lines.append("=" * 60)
+        report_lines.append("WordPress 导入报告")
+        report_lines.append("=" * 60)
+        report_lines.append("")
+
+        results = import_results.get('results', {})
+
+        # 统计信息
+        report_lines.append("📊 导入统计:")
+        report_lines.append(f"  - 分类: {results.get('imported_categories', 0)}")
+        report_lines.append(f"  - 标签: {results.get('imported_tags', 0)}")
+        report_lines.append(f"  - 文章: {results.get('imported_articles', 0)}")
+        report_lines.append(f"  - 跳过: {results.get('skipped_articles', 0)}")
+        report_lines.append(f"  - 媒体: {results.get('imported_media', 0)}")
+        report_lines.append("")
+
+        # 重定向规则
+        redirects = results.get('redirects', [])
+        if redirects:
+            report_lines.append("🔗 URL 重定向规则:")
+            for redirect in redirects[:10]:  # 只显示前10条
+                report_lines.append(f"  {redirect['old_url']} → {redirect['new_url']} ({redirect['status_code']})")
+            if len(redirects) > 10:
+                report_lines.append(f"  ... 还有 {len(redirects) - 10} 条重定向规则")
+            report_lines.append("")
+
+        # 错误信息
+        errors = results.get('errors', [])
+        if errors:
+            report_lines.append("⚠️  错误信息:")
+            for error in errors[:20]:  # 只显示前20条
+                report_lines.append(f"  - {error}")
+            if len(errors) > 20:
+                report_lines.append(f"  ... 还有 {len(errors) - 20} 条错误")
+            report_lines.append("")
+
+        report_lines.append("=" * 60)
+        report_lines.append(f"导入完成时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        report_lines.append("=" * 60)
+
+        return "\n".join(report_lines)

@@ -1,10 +1,10 @@
 """
 SQLAlchemy 模型定义 - Media
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-04-29 11:08:24
+生成时间：2026-05-01 20:50:13
 """
 
-from sqlalchemy import Column, BigInteger, String, Boolean, DateTime, ForeignKey
+from sqlalchemy import Column, BigInteger, String, Boolean, DateTime, ForeignKey, Index
 
 from . import Base  # 使用统一的 Base
 
@@ -28,11 +28,15 @@ class Media(Base):
 
     original_filename = Column(String(255), nullable=True, doc='original_filename')
 
+
     file_path = Column(String(500), nullable=True, doc='file_path')
+
 
     file_url = Column(String(500), nullable=True, doc='file_url')
 
+
     file_size = Column(BigInteger, default=0, doc='file_size')
+
 
     file_type = Column(String(255), default='other', doc='file_type')
 
@@ -66,7 +70,15 @@ class Media(Base):
 
     updated_at = Column(DateTime, doc='updated_at')
 
+    __table_args__ = (
 
+        Index('idx_media_user', 'user'),
+        Index('idx_media_hash', 'hash', unique=True),
+        Index('idx_media_file_type', 'file_type'),
+        Index('idx_media_is_public', 'is_public'),
+        Index('idx_media_created_at', 'created_at'),
+        Index('idx_media_folder', 'folder_id'),
+    )
 
 
     def to_dict(self, exclude_sensitive=True):

@@ -1,7 +1,7 @@
 /**
  * API 客户端
  * 由 routes.yaml 自动生成 - 请勿手动修改
- * 生成时间：2026-04-29 11:08:24
+ * 生成时间：2026-05-01 20:50:13
  */
 
 import {ApiResponse} from './api-types';
@@ -809,6 +809,120 @@ export async function save_article_draft(
 /**
  * 同步修订历史到云端
  * 强制保存当前状态为修订版本并同步到云端
+ */
+export async function sync_article_revisions(
+    article_id: number,
+): Promise<ApiResponse<any>> {
+    return request(
+        "/articles/{article_id}/revisions/sync",
+        "POST",
+        undefined
+    )
+
+}
+
+/**
+ * 删除修订版本
+ * 删除指定的修订版本
+ */
+export async function delete_article_revision(
+    article_id: number,
+    revision_id: number,
+): Promise<ApiResponse<any>> {
+    return request(
+        "/articles/{article_id}/revisions/{revision_id}",
+        "DELETE",
+        undefined
+    )
+
+}
+
+/**
+ * 创建文章修订版本
+ * 手动创建文章修订版本或同步本地草稿
+ */
+export async function create_article_revision(
+    article_id: number,
+): Promise<ApiResponse<any>> {
+    return request(
+        "/articles/{article_id}/revisions",
+        "POST",
+        undefined
+    )
+
+}
+
+/**
+ * 获取文章修订历史列表
+ * 获取文章的修订历史列表
+ */
+export async function list_article_revisions(
+    article_id: number,
+    params: {
+        page?: number;
+        per_page?: number;
+    },
+): Promise<ApiResponse<any>> {
+    return request(
+        "/articles/{article_id}/revisions",
+        "GET",
+        params
+    )
+
+}
+
+/**
+ * 获取特定修订版本
+ * 获取特定修订版本的详细信息
+ */
+export async function get_revision(
+    revision_id: number,
+): Promise<ApiResponse<any>> {
+    return request(
+        "/articles/revisions/{revision_id}",
+        "GET",
+        undefined
+    )
+
+}
+
+/**
+ * 回滚文章到指定修订版本
+ * 回滚文章到指定修订版本
+ */
+export async function rollback_article(
+    article_id: number,
+    revision_id: number,
+): Promise<ApiResponse<any>> {
+    return request(
+        "/articles/{article_id}/revisions/{revision_id}/rollback",
+        "POST",
+        undefined
+    )
+
+}
+
+/**
+ * 比较两个修订版本
+ * 比较两个修订版本的差异
+ */
+export async function compare_article_revisions(
+    params: {
+        revision1_id: number;
+        revision2_id: number;
+    },
+): Promise<ApiResponse<any>> {
+    return request(
+        "/articles/revisions/compare",
+        "GET",
+        params
+    )
+
+}
+
+/**
+ * 同步文章修订历史到云端
+ * 同步文章修订历史到云端（强制保存当前状态为修订版本）
  */
 export async function sync_article_revisions(
     article_id: number,
@@ -3618,6 +3732,13 @@ export default {
     rollback_article,
     compare_article_revisions,
     save_article_draft,
+    sync_article_revisions,
+    delete_article_revision,
+    create_article_revision,
+    list_article_revisions,
+    get_revision,
+    rollback_article,
+    compare_article_revisions,
     sync_article_revisions,
     delete_article_revision,
     get_articles_api,

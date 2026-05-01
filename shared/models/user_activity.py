@@ -1,8 +1,9 @@
 """
 SQLAlchemy 模型定义 - UserActivity
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-04-29 11:08:24
+生成时间：2026-05-01 20:50:13
 """
+
 
 from sqlalchemy import Column, BigInteger, String, DateTime, ForeignKey
 
@@ -31,7 +32,9 @@ class UserActivity(Base):
 
     details = Column(String(255), nullable=True, doc='details')
 
+
     ip_address = Column(String(45), nullable=True, doc='ip_address')
+
 
     user_agent = Column(String(500), nullable=True, doc='user_agent')
 

@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - CustomPostType
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-04-29 11:08:24
+生成时间：2026-05-01 20:50:14
 """
 
 from sqlalchemy import Column, BigInteger, Integer, String, Boolean, DateTime, Index
@@ -37,16 +37,19 @@ class CustomPostType(Base):
 
     menu_position = Column(Integer, default=5, doc='menu_position')
 
+
     is_active = Column(Boolean, default=True, doc='is_active')
 
+
     created_at = Column(DateTime, doc='created_at')
+
 
     updated_at = Column(DateTime, doc='updated_at')
 
 
     __table_args__ = (
 
-        Index('idx_cpt_slug', 'slug', unique=True),
+    Index('idx_cpt_slug', 'slug', unique=True),
         Index('idx_cpt_is_active', 'is_active'),
     )
 

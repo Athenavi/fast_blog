@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - Plugin
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-04-29 11:08:24
+生成时间：2026-05-01 20:50:14
 """
 
 from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, Index
@@ -37,11 +37,15 @@ class Plugin(Base):
 
     plugin_url = Column(String(255), nullable=True, doc='plugin_url')
 
+
     is_active = Column(Boolean, default=False, doc='is_active')
+
 
     is_installed = Column(Boolean, default=True, doc='is_installed')
 
+
     settings = Column(Text, nullable=True, doc='settings')
+
 
     priority = Column(Integer, default=0, doc='priority')
 
@@ -52,7 +56,7 @@ class Plugin(Base):
 
     __table_args__ = (
 
-        Index('idx_plugins_slug', 'slug', unique=True),
+    Index('idx_plugins_slug', 'slug', unique=True),
         Index('idx_plugins_is_active', 'is_active'),
     )
 

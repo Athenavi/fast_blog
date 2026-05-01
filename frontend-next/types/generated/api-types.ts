@@ -1,7 +1,7 @@
 /**
  * API 类型定义
  * 由 routes.yaml 自动生成 - 请勿手动修改
- * 生成时间：2026-04-29 11:08:24
+ * 生成时间：2026-05-01 20:50:13
  */
 
 export interface User {
@@ -690,6 +690,26 @@ export interface ArticleSEO {
     updated_at: string;
 }
 
+export interface Site {
+    id: any;
+    name: string;
+    slug: string;
+    domain?: string;
+    path?: string;
+    is_active: boolean;
+    is_default: boolean;
+    settings?: any;
+    theme: string;
+    language: string;
+    timezone: string;
+    title?: string;
+    description?: any;
+    keywords?: string;
+    admin_user_id?: any;
+    created_at: string;
+    updated_at: string;
+}
+
 
 // 通用响应类型
 export interface ApiResponse<T = any> {
@@ -794,7 +814,6 @@ export interface Compare_article_revisionsParams {
     revision1_id: number;
     revision2_id: number;
 }
-
 export interface Save_article_draftParams {
     article_id: number;
 }
@@ -803,6 +822,37 @@ export interface Sync_article_revisionsParams {
     article_id: number;
 }
 
+export interface Delete_article_revisionParams {
+    article_id: number;
+    revision_id: number;
+}
+
+export interface Create_article_revisionParams {
+    article_id: number;
+}
+
+export interface List_article_revisionsParams {
+    article_id: number;
+    page?: number;
+    per_page?: number;
+}
+
+export interface Get_revisionParams {
+    revision_id: number;
+}
+
+export interface Rollback_articleParams {
+    article_id: number;
+    revision_id: number;
+}
+
+export interface Compare_article_revisionsParams {
+    revision1_id: number;
+    revision2_id: number;
+}
+export interface Sync_article_revisionsParams {
+    article_id: number;
+}
 export interface Delete_article_revisionParams {
     article_id: number;
     revision_id: number;

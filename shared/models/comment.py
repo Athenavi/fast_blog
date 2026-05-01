@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - Comment
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-04-29 11:08:24
+生成时间：2026-05-01 20:50:14
 """
 
 from sqlalchemy import Column, BigInteger, String, Text, Boolean, DateTime, Numeric, ForeignKey, Index
@@ -34,13 +34,18 @@ class Comment(Base):
 
     author_email = Column(String(255), nullable=True, doc='author_email')
 
+
     author_url = Column(String(500), nullable=True, doc='author_url')
+
 
     author_ip = Column(String(45), nullable=True, doc='author_ip')
 
+
     user_agent = Column(String(500), nullable=True, doc='user_agent')
 
+
     is_approved = Column(Boolean, default=True, doc='is_approved')
+
 
     likes = Column(BigInteger, default=0, doc='likes')
 
@@ -60,6 +65,10 @@ class Comment(Base):
         Index('idx_comments_parent_id', 'parent_id'),
         Index('idx_comments_is_approved', 'is_approved'),
         Index('idx_comments_created_at', 'created_at'),
+        Index('idx_comments_article_approved_created', 'article_id', 'is_approved', 'created_at'),
+        Index('idx_comments_user_created', 'user_id', 'created_at'),
+        Index('idx_comments_email', 'author_email'),
+        Index('idx_comments_spam_score', 'spam_score'),
     )
 
 

@@ -81,6 +81,7 @@ async def parse_wordpress_xml(
 async def import_wordpress_data(
         file: UploadFile = File(...),
         user_mapping: Optional[str] = Form(None),
+        download_media: bool = Form(False),
         current_user_id: int = Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
@@ -90,6 +91,7 @@ async def import_wordpress_data(
     Args:
         file: 上传的 WXR 文件
         user_mapping: 作者映射 JSON 字符串 {"wp_author_id": system_user_id}
+        download_media: 是否下载媒体文件
         
     Returns:
         导入结果
@@ -132,6 +134,17 @@ async def import_wordpress_data(
                 db_session=db,
                 user_mapping=mapping_dict
             )
+
+            # 如果需要，下载媒体文件
+            if download_media and import_result['success']:
+                media_list = parse_result['data'].get('media', [])
+                if media_list:
+                    media_result = await importer.download_media_files(media_list)
+                    import_result['media_download'] = media_result
+
+            # 生成导入报告
+            report = importer.generate_import_report(import_result)
+            import_result['report'] = report
 
             return import_result
 
