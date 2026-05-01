@@ -656,6 +656,22 @@ curl -X POST "http://localhost:9421/api/v1/media/upload" \
         except ImportError as e:
             print(f"Warning: AI Recommendations API could not be loaded: {e}")
 
+        # 翻译管理 API
+        try:
+            from src.api.v1.translations import router as translations_router
+            app.include_router(translations_router, prefix='/api/v1', tags=['translations'])
+            print(f"{worker_info} [OK] Translations API 已加载")
+        except ImportError as e:
+            print(f"Warning: Translations API could not be loaded: {e}")
+
+        # 区域化设置 API
+        try:
+            from src.api.v1.localization import router as localization_router
+            app.include_router(localization_router, prefix='/api/v1', tags=['localization'])
+            print(f"{worker_info} [OK] Localization API 已加载")
+        except ImportError as e:
+            print(f"Warning: Localization API could not be loaded: {e}")
+
         env_key = f"ROUTER_PRINTED_{os.getpid()}"
 
         if not os.environ.get(env_key):
