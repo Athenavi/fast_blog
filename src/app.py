@@ -688,6 +688,22 @@ curl -X POST "http://localhost:9421/api/v1/media/upload" \
         except ImportError as e:
             print(f"Warning: Batch Operations API could not be loaded: {e}")
 
+        # 会员订阅 API
+        try:
+            from src.api.v1.membership import router as membership_router
+            app.include_router(membership_router, prefix='/api/v1', tags=['membership'])
+            print(f"{worker_info} [OK] Membership API 已加载")
+        except ImportError as e:
+            print(f"Warning: Membership API could not be loaded: {e}")
+
+        # WebSocket 实时协作 API
+        try:
+            from src.api.v1.websocket import router as websocket_router
+            app.include_router(websocket_router)
+            print(f"{worker_info} [OK] WebSocket API 已加载")
+        except ImportError as e:
+            print(f"Warning: WebSocket API could not be loaded: {e}")
+
         env_key = f"ROUTER_PRINTED_{os.getpid()}"
 
         if not os.environ.get(env_key):

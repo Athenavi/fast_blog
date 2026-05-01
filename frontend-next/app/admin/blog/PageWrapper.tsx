@@ -12,7 +12,8 @@ import {
   FaSave,
   FaSearch,
   FaTimes,
-  FaTrash
+  FaTrash,
+  FaUsers
 } from 'react-icons/fa';
 import {
   type Article,
@@ -25,6 +26,13 @@ import {
 } from '@/lib/api/index';
 import {useHotkeys} from '@/hooks/useHotkeys';
 import {KeyboardShortcutsHelp} from '@/components/KeyboardShortcutsHelp';
+import dynamic from 'next/dynamic';
+
+// 动态导入协作编辑器（避免 SSR 问题）
+const CollaborativeEditor = dynamic(
+    () => import('@/components/CollaborativeEditor'),
+    {ssr: false}
+);
 
 interface Author {
   id: number;
@@ -80,6 +88,11 @@ const ArticleManagementContent = () => {
   const [showDeleteModal, setShowDeleteModal] = React.useState(false);
   const [deleteArticleId, setDeleteArticleId] = React.useState<number | null>(null);
   const [deleteArticleTitle, setDeleteArticleTitle] = React.useState('');
+
+  // 协作编辑状态
+  const [enableCollaboration, setEnableCollaboration] = React.useState(false);
+  const [currentUserId] = React.useState(1); // TODO: 从认证上下文获取
+  const [currentUserName] = React.useState('当前用户'); // TODO: 从认证上下文获取
 
   // 键盘快捷键
   useHotkeys({
@@ -895,18 +908,47 @@ const ArticleManagementContent = () => {
                 </div>
 
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    内容 *
-                  </label>
-                  <textarea
-                    name="content"
-                    value={formData.content}
-                    onChange={handleInputChange}
-                    rows={8}
-                    className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${formErrors.content ? 'border-red-500' : 'border-gray-300'}`}
-                    placeholder="请输入文章内容"
-                  />
-                  {formErrors.content && <p className="text-red-500 text-sm mt-1">{formErrors.content}</p>}
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="block text-sm font-medium text-gray-700">
+                      内容 *
+                    </label>
+                    <button
+                        type="button"
+                        onClick={() => setEnableCollaboration(!enableCollaboration)}
+                        className={`flex items-center px-3 py-1 text-xs rounded-lg border transition-colors ${
+                            enableCollaboration
+                                ? 'bg-blue-50 text-blue-600 border-blue-200'
+                                : 'bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100'
+                        }`}
+                    >
+                      <FaUsers className="mr-1.5"/>
+                      {enableCollaboration ? '协作编辑中' : '启用协作编辑'}
+                    </button>
+                  </div>
+
+                  {enableCollaboration && isEditing && currentArticle ? (
+                      // 协作编辑器模式
+                      <div className="border border-gray-300 rounded-lg overflow-hidden">
+                        <CollaborativeEditor
+                            documentId={`article-${currentArticle.id}`}
+                            userId={currentUserId}
+                            userName={currentUserName}
+                        />
+                      </div>
+                  ) : (
+                      // 普通文本框模式
+                      <>
+                      <textarea
+                          name="content"
+                          value={formData.content}
+                          onChange={handleInputChange}
+                          rows={8}
+                          className={`w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 ${formErrors.content ? 'border-red-500' : 'border-gray-300'}`}
+                          placeholder="请输入文章内容"
+                      />
+                        {formErrors.content && <p className="text-red-500 text-sm mt-1">{formErrors.content}</p>}
+                      </>
+                  )}
                 </div>
 
                 <div className="md:col-span-2">

@@ -17,8 +17,8 @@ const nextConfig: NextConfig = {
 
     // 图像优化配置
     images: {
-        // 启用图像优化
-        unoptimized: false,
+        // 静态导出模式下必须禁用图片优化
+        unoptimized: true,
         // 允许的远程图像域名
         remotePatterns: [
             {
@@ -32,7 +32,7 @@ const nextConfig: NextConfig = {
                 hostname: '**',
             },
         ],
-        // 图像格式优化
+        // 图像格式优化（静态导出时不生效）
         formats: ['image/webp', 'image/avif'],
         // 设备尺寸预设（响应式图像）
         deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
