@@ -47,3 +47,6 @@ aioboto3
 
 mdit-py-toc
 mdit-py-emoji
+
+# 错误追踪和监控
+sentry-sdk[fastapi]

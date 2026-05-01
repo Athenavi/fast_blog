@@ -97,8 +97,10 @@ def cmd_generate(args):
         generate_model(args)
     elif gen_type == "plugin":
         generate_plugin(args)
+    elif gen_type == "theme":
+        generate_theme(args)
     elif gen_type == "api":
-        generate_api(args)
+        generate_api_endpoint(args)
     else:
         print(f"❌ Unknown generation type: {gen_type}")
         sys.exit(1)
@@ -120,70 +122,42 @@ def generate_model(args):
 def generate_plugin(args):
     """生成插件"""
     plugin_name = args.name
-    output_dir = Path("plugins") / plugin_name.lower().replace(" ", "-")
+    description = getattr(args, 'description', '') or ''
+    author = getattr(args, 'author', '') or ''
 
-    print(f"🔌 Generating plugin: {plugin_name}")
-    print(f"   Output: {output_dir}")
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).parent.parent))
 
-    # 使用已有的 manifest 生成器
-    from scripts.create_plugin_manifest import main as create_manifest
-    sys.argv = [
-        'create_plugin_manifest.py',
-        '--name', plugin_name,
-        '--output', str(output_dir)
-    ]
-    create_manifest()
-
-    # 创建基本的 plugin.py
-    plugin_file = output_dir / "plugin.py"
-    if not plugin_file.exists():
-        slug = plugin_name.lower().replace(" ", "-").replace("_", "-")
-        plugin_code = f'''"""
-{plugin_name} Plugin
-"""
-
-from shared.services.plugin_manager import BasePlugin, plugin_hooks
+    from scripts.scaffold_generator import generate_plugin as gen_plugin
+    gen_plugin(plugin_name, description, author)
 
 
-class {plugin_name.replace(" ", "").replace("-", "")}Plugin(BasePlugin):
-    """{plugin_name} Plugin"""
-    
-    def __init__(self):
-        super().__init__(
-            plugin_id=0,
-            name="{plugin_name}",
-            slug="{slug}",
-            version="1.0.0"
-        )
-    
-    def register_hooks(self):
-        """Register plugin hooks"""
-        pass
-    
-    def activate(self):
-        """Activate plugin"""
-        super().activate()
-        print(f"[{plugin_name}] Plugin activated")
-    
-    def deactivate(self):
-        """Deactivate plugin"""
-        super().deactivate()
-        print(f"[{plugin_name}] Plugin deactivated")
+def generate_theme(args):
+    """生成主题"""
+    theme_name = args.name
+    description = getattr(args, 'description', '') or ''
+    author = getattr(args, 'author', '') or ''
+
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).parent.parent))
+
+    from scripts.scaffold_generator import generate_theme as gen_theme
+    gen_theme(theme_name, description, author)
 
 
-# Plugin instance
-plugin_instance = {plugin_name.replace(" ", "").replace("-", "")}Plugin()
-'''
-        plugin_file.write_text(plugin_code)
-        print(f"✅ Created plugin.py")
-
-
-def generate_api(args):
+def generate_api_endpoint(args):
     """生成 API 端点"""
     endpoint_name = args.name
+    description = getattr(args, 'description', '') or ''
 
-    print(f"🌐 Generating API endpoint: {endpoint_name}")
-    print(f"⚠️  API generation not fully implemented yet")
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).parent.parent))
+
+    from scripts.scaffold_generator import generate_api as gen_api
+    gen_api(endpoint_name, description)
 
 
 def cmd_dev(args):
@@ -336,9 +310,11 @@ Examples:
 
     # generate 命令
     gen_parser = subparsers.add_parser('generate', aliases=['gen'], help='Generate code')
-    gen_parser.add_argument('type', choices=['model', 'plugin', 'api'], help='Type to generate')
+    gen_parser.add_argument('type', choices=['model', 'plugin', 'theme', 'api'], help='Type to generate')
     gen_parser.add_argument('name', help='Name')
     gen_parser.add_argument('--app', '-a', help='App name (for models)')
+    gen_parser.add_argument('--description', '-d', default='', help='Description')
+    gen_parser.add_argument('--author', default='', help='Author name')
 
     # dev 命令
     dev_parser = subparsers.add_parser('dev', help='Start development server')

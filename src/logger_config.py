@@ -7,6 +7,25 @@ import sys
 from datetime import datetime, timezone
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
+from typing import Optional
+
+
+class AsyncLogQueue:
+    """异步日志队列（简化版）"""
+
+    def __init__(self, max_size: int = 1000):
+        self.queue = []
+        self.max_size = max_size
+
+    def put(self, record):
+        if len(self.queue) >= self.max_size:
+            self.queue.pop(0)  # 移除最旧的日志
+        self.queue.append(record)
+
+    def get_all(self):
+        records = self.queue.copy()
+        self.queue.clear()
+        return records
 
 
 class CompressedRotatingFileHandler(RotatingFileHandler):
@@ -69,6 +88,10 @@ class OptimizedStructuredFormatter(logging.Formatter):
                 'func': record.funcName,
                 'thread': record.threadName
             })
+
+        # 添加自定义字段（如果有）
+        if hasattr(record, 'extra_data'):
+            log_data['data'] = record.extra_data
 
         return json.dumps(log_data, ensure_ascii=False, separators=(',', ':'))
 
@@ -336,3 +359,225 @@ if __name__ == "__main__":
     logger.error("这是一个错误")
 
     logger.info("日志系统测试完成")
+
+
+# ==================== 日志工具函数 ====================
+
+def get_logger(name: str, level: int = logging.INFO) -> logging.Logger:
+    """
+    获取命名日志器
+    
+    Args:
+        name: 日志器名称（通常是模块名）
+        level: 日志级别
+        
+    Returns:
+        配置好的 Logger 对象
+    """
+    logger = logging.getLogger(name)
+    logger.setLevel(level)
+    return logger
+
+
+def log_performance(logger: logging.Logger, operation: str, duration: float, **kwargs):
+    """
+    记录性能日志
+    
+    Args:
+        logger: 日志器
+        operation: 操作名称
+        duration: 耗时（秒）
+        **kwargs: 额外信息
+    """
+    extra_data = {
+        'operation': operation,
+        'duration_ms': round(duration * 1000, 2),
+        **kwargs
+    }
+
+    record = logger.makeRecord(
+        logger.name,
+        logging.INFO,
+        '', 0, '', (), None
+    )
+    record.extra_data = extra_data
+    logger.handle(record)
+
+
+def log_request(logger: logging.Logger, method: str, path: str, status: int,
+                duration: float, user_id: Optional[int] = None, **kwargs):
+    """
+    记录 HTTP 请求日志
+    
+    Args:
+        logger: 日志器
+        method: HTTP 方法
+        path: 请求路径
+        status: 响应状态码
+        duration: 处理时间（秒）
+        user_id: 用户 ID（可选）
+        **kwargs: 额外信息
+    """
+    extra_data = {
+        'type': 'http_request',
+        'method': method,
+        'path': path,
+        'status': status,
+        'duration_ms': round(duration * 1000, 2),
+    }
+
+    if user_id:
+        extra_data['user_id'] = user_id
+
+    extra_data.update(kwargs)
+
+    # 根据状态码选择日志级别
+    level = logging.WARNING if status >= 400 else logging.INFO
+
+    record = logger.makeRecord(
+        logger.name,
+        level,
+        '', 0, f"{method} {path} {status}", (), None
+    )
+    record.extra_data = extra_data
+    logger.handle(record)
+
+
+def log_database_query(logger: logging.Logger, query_type: str, table: str,
+                       duration: float, rows_affected: int = 0, **kwargs):
+    """
+    记录数据库查询日志
+    
+    Args:
+        logger: 日志器
+        query_type: 查询类型 (SELECT, INSERT, UPDATE, DELETE)
+        table: 表名
+        duration: 查询耗时（秒）
+        rows_affected: 影响行数
+        **kwargs: 额外信息
+    """
+    extra_data = {
+        'type': 'db_query',
+        'query_type': query_type,
+        'table': table,
+        'duration_ms': round(duration * 1000, 2),
+        'rows_affected': rows_affected,
+    }
+
+    extra_data.update(kwargs)
+
+    # 慢查询警告（超过 100ms）
+    level = logging.WARNING if duration > 0.1 else logging.DEBUG
+
+    record = logger.makeRecord(
+        logger.name,
+        level,
+        '', 0, f"{query_type} {table} ({duration * 1000:.2f}ms)", (), None
+    )
+    record.extra_data = extra_data
+    logger.handle(record)
+
+
+def log_security_event(logger: logging.Logger, event_type: str, severity: str,
+                       source_ip: str, details: dict, **kwargs):
+    """
+    记录安全事件日志
+    
+    Args:
+        logger: 日志器
+        event_type: 事件类型 (login_failed, sql_injection, xss_attempt等)
+        severity: 严重程度 (low, medium, high, critical)
+        source_ip: 来源 IP
+        details: 详细信息
+        **kwargs: 额外信息
+    """
+    extra_data = {
+        'type': 'security_event',
+        'event_type': event_type,
+        'severity': severity,
+        'source_ip': source_ip,
+        'details': details,
+    }
+
+    extra_data.update(kwargs)
+
+    # 根据严重程度选择日志级别
+    severity_levels = {
+        'low': logging.INFO,
+        'medium': logging.WARNING,
+        'high': logging.ERROR,
+        'critical': logging.CRITICAL
+    }
+    level = severity_levels.get(severity, logging.WARNING)
+
+    record = logger.makeRecord(
+        logger.name,
+        level,
+        '', 0, f"Security Event: {event_type} [{severity}]", (), None
+    )
+    record.extra_data = extra_data
+    logger.handle(record)
+
+
+def analyze_log_file(log_path: str, top_n: int = 10) -> dict:
+    """
+    分析日志文件，提取统计信息
+    
+    Args:
+        log_path: 日志文件路径
+        top_n: 显示前 N 条记录
+        
+    Returns:
+        分析结果字典
+    """
+    from collections import Counter
+
+    stats = {
+        'total_lines': 0,
+        'level_counts': Counter(),
+        'error_messages': [],
+        'slow_operations': [],
+    }
+
+    try:
+        with open(log_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                stats['total_lines'] += 1
+
+                try:
+                    log_entry = json.loads(line.strip())
+                    level = log_entry.get('level', 'I')
+                    stats['level_counts'][level] += 1
+
+                    # 收集错误消息
+                    if level in ['E', 'C']:
+                        stats['error_messages'].append({
+                            'msg': log_entry.get('msg', ''),
+                            'loc': log_entry.get('loc', ''),
+                            'ts': log_entry.get('ts', '')
+                        })
+
+                    # 收集慢操作
+                    data = log_entry.get('data', {})
+                    if isinstance(data, dict):
+                        duration_ms = data.get('duration_ms', 0)
+                        if duration_ms > 100:  # 超过 100ms
+                            stats['slow_operations'].append({
+                                'operation': data.get('operation', 'unknown'),
+                                'duration_ms': duration_ms,
+                                'ts': log_entry.get('ts', '')
+                            })
+                except json.JSONDecodeError:
+                    continue
+    except FileNotFoundError:
+        return {'error': f'File not found: {log_path}'}
+
+    # 排序并截取
+    stats['error_messages'] = stats['error_messages'][-top_n:]
+    stats['slow_operations'] = sorted(
+        stats['slow_operations'],
+        key=lambda x: x['duration_ms'],
+        reverse=True
+    )[:top_n]
+
+    return stats

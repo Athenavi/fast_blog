@@ -5,6 +5,7 @@
 import logging
 import os
 from contextlib import asynccontextmanager
+from datetime import datetime
 from typing import AsyncGenerator
 
 from shared.services.plugin_manager import plugin_hooks
@@ -420,7 +421,7 @@ curl -X POST "http://localhost:9421/api/v1/media/upload" \
         terms_of_service="https://fastblog.example.com/terms",
     )
 
-    # 添加 CORS 中间件 - 从环境变量读取允许的域名
+    # 添加 CORS 中间件 - 从环境变量读取允许的域名（严格安全配置）
     cors_origins_env = os.environ.get('CORS_ORIGINS', '')
     if cors_origins_env:
         # 支持逗号或分号分隔的多个域名
@@ -434,17 +435,25 @@ curl -X POST "http://localhost:9421/api/v1/media/upload" \
             "http://127.0.0.1:9421",
         ]
 
+    # 安全检查：禁止使用 wildcard (*)
+    if "*" in allow_origins:
+        print("[CORS] WARNING: Wildcard (*) is not allowed in CORS origins for security reasons")
+        allow_origins = [origin for origin in allow_origins if origin != "*"]
+        if not allow_origins:
+            # 如果没有其他源，至少保留 localhost
+            allow_origins = ["http://localhost:3000"]
+
     print(f"[CORS] 允许的源: {allow_origins}")
     print(f"[CORS] Allow credentials: True")
 
-    # 添加 CORS 中间件
+    # 添加 CORS 中间件 - 严格限制
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=allow_origins,
+        allow_origins=allow_origins,  # 严格限制允许的源，不使用 wildcard
         allow_credentials=True,  # 允许携带 credentials (cookies)
-        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
-        allow_headers=["*", "Authorization", "Content-Type", "Cookie"],
-        expose_headers=["*"],
+        allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],  # 明确指定允许的方法
+        allow_headers=["Authorization", "Content-Type", "Cookie", "X-Requested-With"],  # 明确指定允许的头部，不使用 wildcard
+        expose_headers=["Content-Length", "X-Total-Count"],  # 明确指定暴露的头部
     )
 
     # 添加安全中间件（XSS过滤、CSRF保护、速率限制、SQL注入检测）
@@ -462,11 +471,87 @@ curl -X POST "http://localhost:9421/api/v1/media/upload" \
 
     @app.get("/health",
              summary="健康检查",
-             description="检查API服务的健康状态",
+             description="检查API服务的健康状态，包括数据库、Redis等依赖服务",
              response_description="返回服务状态信息",
              tags=["system"])
     async def health_check():
-        return {"status": "healthy"}
+        """
+        健康检查端点
+        检查核心服务的可用性：
+        - API服务状态
+        - 数据库连接
+        - Redis连接（如果配置）
+        - 插件系统状态
+        """
+        health_status = {
+            "status": "healthy",
+            "timestamp": datetime.now().isoformat(),
+            "services": {}
+        }
+
+        # 检查数据库连接
+        try:
+            from src.utils.database.main import get_async_session
+            from sqlalchemy import text
+
+            async with get_async_session() as session:
+                await session.execute(text("SELECT 1"))
+            health_status["services"]["database"] = {
+                "status": "healthy",
+                "message": "Database connection successful"
+            }
+        except Exception as e:
+            health_status["status"] = "unhealthy"
+            health_status["services"]["database"] = {
+                "status": "unhealthy",
+                "message": f"Database connection failed: {str(e)}"
+            }
+
+        # 检查Redis连接（如果配置）
+        try:
+            import os
+            redis_url = os.getenv("REDIS_URL")
+            if redis_url:
+                import aioredis
+                redis = aioredis.from_url(redis_url)
+                await redis.ping()
+                await redis.close()
+                health_status["services"]["redis"] = {
+                    "status": "healthy",
+                    "message": "Redis connection successful"
+                }
+            else:
+                health_status["services"]["redis"] = {
+                    "status": "not_configured",
+                    "message": "Redis not configured"
+                }
+        except ImportError:
+            health_status["services"]["redis"] = {
+                "status": "not_available",
+                "message": "aioredis not installed"
+            }
+        except Exception as e:
+            health_status["status"] = "degraded"
+            health_status["services"]["redis"] = {
+                "status": "unhealthy",
+                "message": f"Redis connection failed: {str(e)}"
+            }
+
+        # 检查插件系统
+        try:
+            from shared.services.plugin_manager import plugin_hooks
+            plugin_count = len(plugin_hooks.plugins) if hasattr(plugin_hooks, 'plugins') else 0
+            health_status["services"]["plugins"] = {
+                "status": "healthy",
+                "message": f"{plugin_count} plugins loaded"
+            }
+        except Exception as e:
+            health_status["services"]["plugins"] = {
+                "status": "warning",
+                "message": f"Plugin system error: {str(e)}"
+            }
+
+        return health_status
 
     # 添加 API v1 路由（FastAPI 原生实现）
     try:
