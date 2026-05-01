@@ -3,9 +3,15 @@ WordPress XML 导入服务
 支持从 WordPress 导出的 WXR (WordPress eXtended RSS) 文件导入文章、分类、标签等内容
 """
 
+import os
+import re
 import xml.etree.ElementTree as ET
 from datetime import datetime
+from pathlib import Path
 from typing import Dict, List, Any, Optional
+from urllib.parse import urlparse
+
+import aiohttp
 
 
 class WordPressImportService:
@@ -265,7 +271,8 @@ class WordPressImportService:
             导入结果统计
         """
         from shared.models.category import Category
-        from shared.models.blog import Article, ArticleContent
+        from shared.models.blog import Article, ArticleContent, Tag
+        from shared.models.article_tag import ArticleTag
         from sqlalchemy import select
 
         results = {
@@ -273,7 +280,10 @@ class WordPressImportService:
             'imported_tags': 0,
             'imported_articles': 0,
             'imported_comments': 0,
+            'imported_media': 0,
+            'skipped_articles': 0,
             'errors': [],
+            'redirects': [],
         }
 
         try:
@@ -298,13 +308,41 @@ class WordPressImportService:
 
             await db_session.commit()
 
-            # 2. 导入文章
-            for article_data in parsed_data['articles']:
+            # 2. 导入标签
+            for tag_data in parsed_data['tags']:
+                try:
+                    stmt = select(Tag).where(Tag.slug == tag_data['slug'])
+                    result = await db_session.execute(stmt)
+                    existing = result.scalar_one_or_none()
+
+                    if not existing:
+                        tag = Tag(
+                            name=tag_data['name'],
+                            slug=tag_data['slug'],
+                        )
+                        db_session.add(tag)
+                        results['imported_tags'] += 1
+                except Exception as e:
+                    results['errors'].append(f"标签导入失败: {tag_data['name']} - {str(e)}")
+
+            await db_session.commit()
+
+            # 3. 导入文章
+            for idx, article_data in enumerate(parsed_data['articles']):
                 try:
                     # 确定用户ID
                     user_id = 1  # 默认用户
                     if user_mapping and article_data['author'] in user_mapping:
                         user_id = user_mapping[article_data['author']]
+
+                    # 检查文章是否已存在（通过 slug）
+                    stmt = select(Article).where(Article.slug == article_data['slug'])
+                    result = await db_session.execute(stmt)
+                    existing = result.scalar_one_or_none()
+
+                    if existing:
+                        results['skipped_articles'] += 1
+                        continue
 
                     # 创建文章
                     article = Article(
@@ -329,10 +367,36 @@ class WordPressImportService:
                     )
                     db_session.add(content)
 
+                    # 关联分类
+                    for cat_info in article_data['categories']:
+                        stmt = select(Category).where(Category.slug == cat_info['slug'])
+                        result = await db_session.execute(stmt)
+                        category = result.scalar_one_or_none()
+                        if category:
+                            article.categories.append(category)
+
+                    # 关联标签
+                    for tag_info in article_data['tags']:
+                        stmt = select(Tag).where(Tag.slug == tag_info['slug'])
+                        result = await db_session.execute(stmt)
+                        tag = result.scalar_one_or_none()
+                        if tag:
+                            article.tags.append(tag)
+
+                    # 生成 URL 重定向规则
+                    old_url = article_data['link']
+                    if old_url:
+                        new_url = f"/articles/{article_data['slug']}"
+                        results['redirects'].append({
+                            'old_url': old_url,
+                            'new_url': new_url,
+                            'status_code': 301,
+                        })
+
                     results['imported_articles'] += 1
 
                 except Exception as e:
-                    results['errors'].append(f"文章导入失败: {article_data['title']} - {str(e)}")
+                    results['errors'].append(f"文章导入失败: {article_data.get('title', 'Unknown')} - {str(e)}")
                     await db_session.rollback()
 
             await db_session.commit()

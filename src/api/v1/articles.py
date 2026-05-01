@@ -19,6 +19,8 @@ from shared.models.user import User
 from shared.models.vip_plan import VIPPlan
 from shared.services.article_manager import article_query_service, password_protection_service
 from shared.services.shortcode_service import shortcode_service
+from src.api.v1.openapi_examples import ARTICLE_LIST_EXAMPLE, ARTICLE_DETAIL_EXAMPLE, ARTICLE_CREATE_EXAMPLE, \
+    ERROR_RESPONSE_EXAMPLE
 from src.api.v1.responses import ApiResponse
 from src.auth.auth_deps import jwt_optional_dependency, jwt_required_dependency as jwt_required
 from src.setting import app_config
@@ -165,16 +167,25 @@ async def _get_article_detail(
 
 # ---------- 文章列表 ----------
 @router.get("",
-            summary="获取文章列表",
-            description="获取分页的文章列表，支持筛选、搜索和粘性文章优先排序。")
+            summary=ARTICLE_LIST_EXAMPLE["summary"],
+            description=ARTICLE_LIST_EXAMPLE["description"],
+            responses=ERROR_RESPONSE_EXAMPLE)
 async def get_articles_api(
         request: Request,
-        page: int = Query(1, ge=1),
-        per_page: int = Query(10, ge=1, le=100),
-        search: str = Query(""),
-        category_id: Optional[int] = Query(None),
-        user_id: Optional[int] = Query(None),
-        status: Optional[str] = Query(None),
+        page: int = Query(1, ge=1, description=ARTICLE_LIST_EXAMPLE["parameters"]["page"]["description"],
+                          example=ARTICLE_LIST_EXAMPLE["parameters"]["page"]["example"]),
+        per_page: int = Query(10, ge=1, le=100,
+                              description=ARTICLE_LIST_EXAMPLE["parameters"]["per_page"]["description"],
+                              example=ARTICLE_LIST_EXAMPLE["parameters"]["per_page"]["example"]),
+        search: str = Query("", description=ARTICLE_LIST_EXAMPLE["parameters"]["search"]["description"],
+                            example=ARTICLE_LIST_EXAMPLE["parameters"]["search"]["example"]),
+        category_id: Optional[int] = Query(None,
+                                           description=ARTICLE_LIST_EXAMPLE["parameters"]["category_id"]["description"],
+                                           example=ARTICLE_LIST_EXAMPLE["parameters"]["category_id"]["example"]),
+        user_id: Optional[int] = Query(None, description=ARTICLE_LIST_EXAMPLE["parameters"]["user_id"]["description"],
+                                       example=ARTICLE_LIST_EXAMPLE["parameters"]["user_id"]["example"]),
+        status: Optional[str] = Query(None, description=ARTICLE_LIST_EXAMPLE["parameters"]["status"]["description"],
+                                      example=ARTICLE_LIST_EXAMPLE["parameters"]["status"]["example"]),
         db: AsyncSession = Depends(get_async_session)
 ):
     try:
@@ -409,7 +420,10 @@ async def get_user_articles_stats_api(
 
 
 # ---------- 通过 slug 获取文章 (来自 blog) ----------
-@router.get("/p/{slug}")
+@router.get("/p/{slug}",
+            summary=ARTICLE_DETAIL_EXAMPLE["summary"],
+            description=ARTICLE_DETAIL_EXAMPLE["description"],
+            responses=ERROR_RESPONSE_EXAMPLE)
 async def get_article_by_slug_api(
         request: Request,
         slug: str,
@@ -528,7 +542,10 @@ async def get_article_raw_content_api(
 
 
 # ---------- 创建文章 ----------
-@router.post("")
+@router.post("",
+             summary=ARTICLE_CREATE_EXAMPLE["summary"],
+             description=ARTICLE_CREATE_EXAMPLE["description"],
+             responses=ERROR_RESPONSE_EXAMPLE)
 async def create_article_api(
         request: Request,
         current_user=Depends(jwt_required),
