@@ -57,52 +57,45 @@ class SessionScheduler:
     def _init_scheduler(self):
         """初始化计划任务"""
 
-        # 同步文章浏览量，每 5 分钟执行一次
-        def sync_article_views():
-            """同步文章浏览量"""
+        # 同步文章浏览量到数据库，每 5 分钟执行一次
+        async def sync_article_views_to_db():
+            """使用新的 ArticleViewStatsService 同步文章浏览量"""
             try:
-                # 获取所有带缓存的文章浏览量
-                try:
-                    if hasattr(cache.cache, 'keys'):
-                        keys = cache.cache.keys()
-                    else:
-                        keys = []
+                from shared.services.article_view_stats import article_view_stats
+                from src.extensions import get_async_db_session
 
-                    article_keys = [key for key in keys if str(key).startswith('article_views_')]
-                except Exception:
-                    article_keys = []
+                # 获取数据库会话
+                db = get_async_db_session()
 
-                db_session = SessionLocal()
-                updated_count = 0
-                for key in article_keys:
-                    article_id = int(key.split('_')[-1])
-                    cached_views = cache.get(key)
+                # 批量同步所有文章
+                result = await article_view_stats.batch_sync_all(db)
 
-                    if cached_views is not None:
-                        article = db_session.query(Article).filter_by(article_id=article_id).first()
-                        if article:
-                            article.views = cached_views
-                            updated_count += 1
+                if result['synced'] > 0:
+                    logger.info(f"成功同步 {result['synced']} 篇文章的浏览量")
 
-                db_session.commit()
+                if result['errors']:
+                    logger.warning(f"同步错误: {result['errors'][:5]}")  # 只显示前5个错误
 
-                for key in article_keys:
-                    cache.delete(key)
-
-                if updated_count > 0:
-                    logger.info(f"成功同步 {updated_count} 篇文章的浏览量")
-
-                db_session.close()
-
+                await db.close()
+                
             except Exception as e:
-                if 'db_session' in locals():
-                    db_session.rollback()
-                    db_session.close()
                 logger.error(f"同步文章浏览量时出错：{e}")
+                import traceback
+                traceback.print_exc()
 
-        # 添加定时任务
+        # 添加定时任务（使用 APScheduler 的异步支持）
+        import asyncio
+
+        def sync_article_views_job():
+            """包装异步函数为同步函数"""
+            loop = asyncio.new_event_loop()
+            try:
+                loop.run_until_complete(sync_article_views_to_db())
+            finally:
+                loop.close()
+        
         self.scheduler.add_job(
-            sync_article_views,
+            sync_article_views_job,
             trigger=IntervalTrigger(minutes=5),
             id='sync_article_views',
             replace_existing=True

@@ -605,6 +605,14 @@ curl -X POST "http://localhost:9421/api/v1/media/upload" \
         except ImportError as e:
             print(f"Warning: Block Editor API could not be loaded: {e}")
 
+        # GraphQL API
+        try:
+            from src.api.v1.graphql import router as graphql_router
+            app.include_router(graphql_router)
+            print(f"{worker_info} [OK] GraphQL API 已加载")
+        except ImportError as e:
+            print(f"Warning: GraphQL API could not be loaded: {e}")
+
         env_key = f"ROUTER_PRINTED_{os.getpid()}"
 
         if not os.environ.get(env_key):

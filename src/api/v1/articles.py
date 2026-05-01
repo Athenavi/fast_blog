@@ -90,8 +90,8 @@ async def _get_article_detail(
         if not (is_author or is_admin):
             return None
 
-    # 4. 原子增加浏览量
-    await db.execute(update(Article).where(Article.id == article.id).values(views=Article.views + 1))
+    # 4. 原子增加浏览量（浏览量有专门接口实现）
+    # await db.execute(update(Article).where(Article.id == article.id).values(views=Article.views + 1))
 
     # 5. 获取相关内容
     content_query = select(ArticleContent).where(ArticleContent.article == article.id)
