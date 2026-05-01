@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 from shared.services.ai_tag_recommendation import ai_tag_service
 from shared.services.content_moderation import content_moderation_service
+from shared.services.ai_writing_assistant import ai_writing_assistant
 
 router = APIRouter(prefix="/ai", tags=["ai"])
 
@@ -156,6 +157,154 @@ async def moderate_content(
         return {
             'success': True,
             'data': result
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/writing/continue")
+async def smart_continue(
+        text: str,
+        max_length: int = Query(200, ge=50, le=500, description="最大续写长度")
+):
+    """
+    智能续写
+    
+    Args:
+        text: 已有文本
+        max_length: 最大续写长度
+        
+    Returns:
+        续写的内容
+    """
+    try:
+        continuation = ai_writing_assistant.smart_continue(
+            text=text,
+            max_length=max_length
+        )
+
+        return {
+            'success': True,
+            'data': {
+                'continuation': continuation,
+                'length': len(continuation),
+            }
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/writing/transform-style")
+async def transform_style(
+        text: str,
+        target_style: str = Query('formal', enum=['formal', 'casual', 'concise', 'detailed'], description="目标风格")
+):
+    """
+    风格转换
+    
+    Args:
+        text: 原文本
+        target_style: 目标风格
+        
+    Returns:
+        转换后的文本
+    """
+    try:
+        transformed = ai_writing_assistant.transform_style(
+            text=text,
+            target_style=target_style
+        )
+
+        return {
+            'success': True,
+            'data': {
+                'original': text,
+                'transformed': transformed,
+                'style': target_style,
+            }
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/writing/check-grammar")
+async def check_grammar(text: str):
+    """
+    语法检查
+    
+    Args:
+        text: 要检查的文本
+        
+    Returns:
+        发现的问题列表
+    """
+    try:
+        issues = ai_writing_assistant.check_grammar(text=text)
+
+        return {
+            'success': True,
+            'data': {
+                'issues': issues,
+                'count': len(issues),
+            }
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/writing/polish")
+async def polish_text(text: str):
+    """
+    文本润色
+    
+    Args:
+        text: 原文本
+        
+    Returns:
+        润色结果和建议
+    """
+    try:
+        result = ai_writing_assistant.polish_text(text=text)
+
+        return {
+            'success': True,
+            'data': result
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/writing/generate-titles")
+async def generate_titles(
+        content: str,
+        count: int = Query(5, ge=1, le=10, description="生成数量"),
+        style: str = Query('normal', enum=['normal', 'question', 'list', 'howto'], description="标题风格")
+):
+    """
+    生成标题建议
+    
+    Args:
+        content: 文章内容
+        count: 生成数量
+        style: 标题风格
+        
+    Returns:
+        标题列表
+    """
+    try:
+        titles = ai_writing_assistant.generate_titles(
+            content=content,
+            count=count,
+            style=style
+        )
+
+        return {
+            'success': True,
+            'data': {
+                'titles': titles,
+                'count': len(titles),
+                'style': style,
+            }
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
