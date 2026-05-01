@@ -1,7 +1,7 @@
 """
 Django ORM 抽象基类定义
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-01 20:50:13
+生成时间：2026-05-01 21:32:22
 """
 
 from django.db import models
@@ -2057,6 +2057,7 @@ class ArticleSEOMixin(models.Model):
         # 注意：请在具体模型类中设置 db_table = get_table_name("article_seo")
 
 
+
 class SiteMixin(models.Model):
     """站点模型（多站点支持） Mixin"""
 
@@ -2111,3 +2112,129 @@ class SiteMixin(models.Model):
         app_label = 'generated'
         verbose_name = '站点模型（多站点支持）'
         # 注意：请在具体模型类中设置 db_table = get_table_name("sites")
+
+
+class MembershipPlanMixin(models.Model):
+    """会员套餐模型 Mixin"""
+
+    # id
+    id = models.BigAutoField(
+        'id', primary_key=True)
+    # name
+    name = models.CharField(
+        'name', max_length=100)
+    # slug
+    slug = models.CharField(
+        'slug', max_length=50, unique=True)
+    # description
+    description = models.TextField(
+        'description', blank=True, null=True)
+    # price
+    price = models.CharField(
+        'price', max_length=255)
+    # currency
+    currency = models.CharField(
+        'currency', max_length=3, default='CNY')
+    # duration_days
+    duration_days = models.IntegerField(
+        'duration_days')
+    # features
+    features = models.CharField(
+        'features', max_length=255, blank=True, null=True)
+    # max_posts
+    max_posts = models.IntegerField(
+        'max_posts', blank=True, null=True)
+    # max_storage
+    max_storage = models.BigIntegerField(
+        'max_storage', blank=True, null=True)
+    # priority_support
+    priority_support = models.BooleanField(
+        'priority_support', default=False)
+    # is_active
+    is_active = models.BooleanField(
+        'is_active', default=True)
+    # sort_order
+    sort_order = models.IntegerField(
+        'sort_order', default=0)
+
+    class Meta:
+        abstract = True
+        app_label = 'generated'
+        verbose_name = '会员套餐模型'
+        # 注意：请在具体模型类中设置 db_table = get_table_name("membership_plans")
+
+
+class UserSubscriptionMixin(models.Model):
+    """用户订阅模型 Mixin"""
+
+    # id
+    id = models.BigAutoField(
+        'id', primary_key=True)
+    # user_id
+    user_id = models.IntegerField(
+        'user_id (暂为 IntegerField，等待 User.id 模型实现)', )
+    # plan_id
+    plan_id = models.IntegerField(
+        'plan_id (暂为 IntegerField，等待 MembershipPlan.id 模型实现)', )
+    # status
+    status = models.CharField(
+        'status', max_length=20, default='active')
+    # start_date
+    start_date = models.DateTimeField(
+        'start_date')
+    # end_date
+    end_date = models.DateTimeField(
+        'end_date')
+    # auto_renew
+    auto_renew = models.BooleanField(
+        'auto_renew', default=False)
+    # payment_method
+    payment_method = models.CharField(
+        'payment_method', max_length=50, blank=True, null=True)
+    # transaction_id
+    transaction_id = models.CharField(
+        'transaction_id', max_length=100, blank=True, null=True)
+    # amount_paid
+    amount_paid = models.CharField(
+        'amount_paid', max_length=255, blank=True, null=True)
+    # currency
+    currency = models.CharField(
+        'currency', max_length=3, default='CNY')
+    # cancelled_at
+    cancelled_at = models.DateTimeField(
+        'cancelled_at', blank=True, null=True)
+    # cancellation_reason
+    cancellation_reason = models.TextField(
+        'cancellation_reason', blank=True, null=True)
+
+    class Meta:
+        abstract = True
+        app_label = 'generated'
+        verbose_name = '用户订阅模型'
+        # 注意：请在具体模型类中设置 db_table = get_table_name("user_subscriptions")
+
+
+class ContentAccessMixin(models.Model):
+    """内容访问权限模型 Mixin"""
+
+    # id
+    id = models.BigAutoField(
+        'id', primary_key=True)
+    # article_id
+    article_id = models.IntegerField(
+        'article_id (暂为 IntegerField，等待 Article.id 模型实现)', )
+    # required_level
+    required_level = models.IntegerField(
+        'required_level', default=0)
+    # required_plan_ids
+    required_plan_ids = models.CharField(
+        'required_plan_ids', max_length=255, blank=True, null=True)
+    # preview_content
+    preview_content = models.TextField(
+        'preview_content', blank=True, null=True)
+
+    class Meta:
+        abstract = True
+        app_label = 'generated'
+        verbose_name = '内容访问权限模型'
+        # 注意：请在具体模型类中设置 db_table = get_table_name("content_access")

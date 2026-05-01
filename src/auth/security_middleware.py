@@ -65,10 +65,12 @@ class XSSFilterMiddleware(BaseHTTPMiddleware):
         r'on(error|load)\s*=.*?fetch\(',
     ]
 
-    # 排除的路径（如富文本编辑器）
+    # 排除的路径（如富文本编辑器、登录接口等）
     EXCLUDED_PATHS = [
         '/api/v1/articles/content',  # 文章内容可能包含 HTML
         '/api/v1/pages/content',  # 页面内容可能包含 HTML
+        '/api/v1/management/auth/login',  # 登录接口（避免消耗请求体）
+        '/api/v1/management/auth/register',  # 注册接口
     ]
 
     # 允许的 HTML 标签（白名单）

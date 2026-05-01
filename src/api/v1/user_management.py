@@ -9,6 +9,7 @@ from typing import Optional
 
 import jwt
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request, status
+from fastapi.responses import JSONResponse
 from jwt.exceptions import InvalidTokenError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -263,42 +264,58 @@ async def login_api(
         request: Request,
         username: str = Form(...),
         password: str = Form(...),
-        remember_me: bool = Form(False),
+        remember_me: Optional[str] = Form(None),  # 改为可选字符串
         db: AsyncSession = Depends(get_async_db),
 ):
     """使用用户名或邮箱登录，返回 access / refresh token（PyJWT）"""
-    # 1. 验证凭证
-    user = await authenticate_user_with_session(username, password, db)
-    if not user:
-        return ApiResponse(success=False, error="用户名或密码错误")
-    if not user.is_active:
-        return ApiResponse(success=False, error="账户已被禁用")
+    try:
+        # 调试日志：打印接收到的请求数据
+        print(f"[Login API] Received login request:")
+        print(f"  - username: {username}")
+        print(f"  - password: {'***' if password else '(empty)'}")
+        print(f"  - remember_me: {remember_me}")
+        print(f"  - content_type: {request.headers.get('content-type')}")
 
-    # 2. 生成 JWT
-    access_token = create_jwt_token(subject=str(user.id), token_type="access")
-    refresh_token = create_jwt_token(subject=str(user.id), token_type="refresh")
+        # 1. 验证凭证
+        user = await authenticate_user_with_session(username, password, db)
+        if not user:
+            print(f"[Login API] Authentication failed for user: {username}")
+            return ApiResponse(success=False, error="用户名或密码错误")
+        if not user.is_active:
+            print(f"[Login API] User account is disabled: {username}")
+            return ApiResponse(success=False, error="账户已被禁用")
 
-    # 3. 更新最后登录时间
-    user.last_login = datetime.now(timezone.utc)
-    await db.commit()
+        # 2. 生成 JWT
+        access_token = create_jwt_token(subject=str(user.id), token_type="access")
+        refresh_token = create_jwt_token(subject=str(user.id), token_type="refresh")
 
-    return ApiResponse(
-        success=True,
-        data={
-            "user": {
-                "id": user.id,
-                "username": user.username,
-                "email": user.email,
-                "profile_picture": user.profile_picture or None,
-                "is_active": user.is_active,
-                "is_superuser": user.is_superuser,
-                "is_staff": user.is_staff,
-                "vip_level": getattr(user, "vip_level", 0),
+        # 3. 更新最后登录时间
+        user.last_login = datetime.now(timezone.utc)
+        await db.commit()
+
+        print(f"[Login API] Login successful for user: {username}")
+        return ApiResponse(
+            success=True,
+            data={
+                "user": {
+                    "id": user.id,
+                    "username": user.username,
+                    "email": user.email,
+                    "profile_picture": user.profile_picture or None,
+                    "is_active": user.is_active,
+                    "is_superuser": user.is_superuser,
+                    "is_staff": user.is_staff,
+                    "vip_level": getattr(user, "vip_level", 0),
+                },
+                "access_token": access_token,
+                "refresh_token": refresh_token,
             },
-            "access_token": access_token,
-            "refresh_token": refresh_token,
-        },
-    )
+        )
+    except Exception as e:
+        print(f"[Login API] Error during login: {type(e).__name__}: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        raise
 
 
 @router.post("/auth/register", summary="用户注册")

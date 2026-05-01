@@ -296,10 +296,17 @@ export const apiClient = {
         if (data) {
             Object.entries(data).forEach(([key, value]) => {
                 if (value !== undefined && value !== null) {
-                    formData.append(key, String(value));
+                    // 处理布尔值等特殊类型
+                    if (typeof value === 'boolean') {
+                        formData.append(key, value ? 'true' : 'false');
+                    } else {
+                        formData.append(key, String(value));
+                    }
                 }
             });
         }
+
+        console.log('[API Client] postForm - Sending form data:', formData.toString());
 
         return request<T>(path, {
             method: 'POST',

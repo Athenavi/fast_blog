@@ -6,6 +6,7 @@ from contextlib import contextmanager
 from typing import Generator, AsyncGenerator
 
 import redis
+from fastapi import Request
 from slowapi import _rate_limit_exceeded_handler, Limiter
 from slowapi.util import get_remote_address
 from sqlalchemy.ext.declarative import declarative_base

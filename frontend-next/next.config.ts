@@ -36,8 +36,7 @@ const nextConfig: NextConfig = {
         formats: ['image/webp', 'image/avif'],
         // 设备尺寸预设（响应式图像）
         deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
-        // 图像质量（默认 75）
-        quality: 85,
+        // 注意：quality 配置在 Next.js 16 中已移除，使用默认值 75
     },
 
     // 在构建时忽略 TypeScript 错误（API 响应类型问题）

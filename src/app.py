@@ -456,6 +456,33 @@ curl -X POST "http://localhost:9421/api/v1/media/upload" \
         expose_headers=["Content-Length", "X-Total-Count"],  # 明确指定暴露的头部
     )
 
+    # 添加请求调试中间件（用于调试 422 错误）
+    from starlette.middleware.base import BaseHTTPMiddleware
+    
+    class DebugRequestMiddleware(BaseHTTPMiddleware):
+        async def dispatch(self, request, call_next):
+            if request.method == "POST" and "/management/auth/login" in str(request.url):
+                print(f"\n{'='*80}")
+                print(f"[DEBUG MIDDLEWARE] Login Request Received")
+                print(f"URL: {request.url}")
+                print(f"Method: {request.method}")
+                print(f"Content-Type: {request.headers.get('content-type')}")
+                print(f"Content-Length: {request.headers.get('content-length')}")
+                print(f"All Headers: {dict(request.headers)}")
+                # 注意：不要在这里读取 body，否则后续处理器无法读取
+                print(f"{'='*80}\n")
+            
+            response = await call_next(request)
+            
+            # 打印响应状态
+            if request.method == "POST" and "/management/auth/login" in str(request.url):
+                print(f"[DEBUG MIDDLEWARE] Response Status: {response.status_code}")
+            
+            return response
+    
+    app.add_middleware(DebugRequestMiddleware)
+    print("[Debug] Request debug middleware added")
+
     # 添加安全中间件（XSS过滤、CSRF保护、速率限制、SQL注入检测）
     try:
         from src.auth.security_middleware import create_security_middleware_stack
@@ -608,10 +635,26 @@ curl -X POST "http://localhost:9421/api/v1/media/upload" \
         # GraphQL API
         try:
             from src.api.v1.graphql import router as graphql_router
-            app.include_router(graphql_router)
+            app.include_router(graphql_router, prefix='/graphql', tags=['graphql'])
             print(f"{worker_info} [OK] GraphQL API 已加载")
         except ImportError as e:
             print(f"Warning: GraphQL API could not be loaded: {e}")
+
+        # 文章搜索 API
+        try:
+            from src.api.v1.article_search import router as search_router
+            app.include_router(search_router, prefix='/api/v1', tags=['search'])
+            print(f"{worker_info} [OK] Article Search API 已加载")
+        except ImportError as e:
+            print(f"Warning: Article Search API could not be loaded: {e}")
+
+        # AI 智能推荐 API
+        try:
+            from src.api.v1.ai_recommendations import router as ai_router
+            app.include_router(ai_router, prefix='/api/v1', tags=['ai'])
+            print(f"{worker_info} [OK] AI Recommendations API 已加载")
+        except ImportError as e:
+            print(f"Warning: AI Recommendations API could not be loaded: {e}")
 
         env_key = f"ROUTER_PRINTED_{os.getpid()}"
 
