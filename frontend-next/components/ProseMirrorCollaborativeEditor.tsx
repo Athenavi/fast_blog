@@ -83,7 +83,7 @@ export default function CollaborativeEditor({
     const editor = useEditor({
         extensions: [
             StarterKit.configure({
-                history: true, // 启用历史记录
+                // ✅ history 是 StarterKit 的默认扩展，不需要单独配置
             }),
         ],
         editable: !readOnly,
@@ -268,7 +268,9 @@ export default function CollaborativeEditor({
     }, [documentId, articleId, token, editor]);
 
     // 保存文档 - 带重试机制
-    const handleSave = async (retryCount: number = 0) => {
+    const handleSave = async (event?: React.MouseEvent, retryCount: number = 0) => {
+        event?.preventDefault(); // ✅ 防止默认行为
+        
         if (!editor) {
             setErrorMessage('编辑器未初始化');
             return;
@@ -310,7 +312,7 @@ export default function CollaborativeEditor({
                 console.log(`[Collab] Retrying save in ${retryDelay}ms... (Attempt ${retryCount + 1}/3)`);
 
                 setTimeout(async () => {
-                    await handleSave(retryCount + 1);
+                    await handleSave(undefined, retryCount + 1); // ✅ 重试时不传递 event
                 }, retryDelay);
             } else {
                 setSaveStatus('error');

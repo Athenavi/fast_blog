@@ -133,7 +133,7 @@ function CollaborationRoomContent() {
             <div className="container mx-auto py-8 px-4">
                 <ErrorState
                     error={error}
-                    onRetry={() => window.location.reload()}
+                    retryAction={() => window.location.reload()}
                 />
                 <div className="mt-4 text-center">
                     <Button onClick={() => router.push('/')} variant="outline">

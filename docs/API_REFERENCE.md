@@ -11,6 +11,7 @@
 - [评论系统](#评论系统)
 - [媒体管理](#媒体管理)
 - [错误码说明](#错误码说明)
+- [快速示例](#快速示例)
 
 ---
 
@@ -18,14 +19,20 @@
 
 ### 获取 Token
 
-```http
-POST /api/v1/auth/login
-Content-Type: application/json
+```bash
+curl -X POST "http://localhost:9421/api/v1/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{"username": "admin", "password": "admin123"}'
+```
 
-{
-  "username": "admin",
-  "password": "admin123"
-}
+**Python 示例:**
+
+```python
+import requests
+
+response = requests.post("http://localhost:9421/api/v1/auth/login",
+                         json={"username": "admin", "password": "admin123"})
+token = response.json()["access_token"]
 ```
 
 **响应:**
@@ -44,7 +51,6 @@ Content-Type: application/json
 ### 使用 Token
 
 在所有需要认证的请求中添加 Header：
-
 ```http
 Authorization: Bearer eyJhbGciOiJIUzI1NiIs...
 ```
@@ -345,6 +351,77 @@ Content-Type: application/json
 | `NOT_FOUND`               | 404      | 资源不存在        |
 | `DUPLICATE_ENTRY`         | 409      | 重复的数据        |
 | `INTERNAL_ERROR`          | 500      | 服务器内部错误      |
+
+---
+
+## 💡 快速示例
+
+### Python 完整示例
+
+```python
+import requests
+
+BASE_URL = "http://localhost:9421/api/v1"
+
+# 1. 登录获取token
+response = requests.post(f"{BASE_URL}/auth/login",
+                         json={"username": "admin", "password": "admin123"})
+token = response.json()["data"]["access_token"]
+headers = {"Authorization": f"Bearer {token}"}
+
+# 2. 获取文章列表
+response = requests.get(f"{BASE_URL}/articles",
+                        params={"page": 1, "per_page": 10}, headers=headers)
+articles = response.json()
+
+# 3. 创建文章
+response = requests.post(f"{BASE_URL}/articles",
+                         headers=headers,
+                         json={
+                             "title": "My Article",
+                             "content": "# Hello World",
+                             "status": 1
+                         })
+
+# 4. 获取文章详情
+article_id = 1
+response = requests.get(f"{BASE_URL}/articles/{article_id}")
+article = response.json()
+```
+
+### JavaScript 完整示例
+
+```javascript
+const BASE_URL = 'http://localhost:9421/api/v1';
+
+// 1. 登录获取token
+const loginResponse = await fetch(`${BASE_URL}/auth/login`, {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({username: 'admin', password: 'admin123'})
+});
+const {data: {access_token}} = await loginResponse.json();
+
+// 2. 获取文章列表
+const articlesResponse = await fetch(`${BASE_URL}/articles?page=1&per_page=10`, {
+    headers: {'Authorization': `Bearer ${access_token}`}
+});
+const articles = await articlesResponse.json();
+
+// 3. 创建文章
+const createResponse = await fetch(`${BASE_URL}/articles`, {
+    method: 'POST',
+    headers: {
+        'Authorization': `Bearer ${access_token}`,
+        'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+        title: 'My Article',
+        content: '# Hello World',
+        status: 1
+    })
+});
+```
 
 ---
 

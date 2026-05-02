@@ -62,7 +62,8 @@ export default function YjsCollaborativeEditor({
     const editor = useEditor({
         extensions: [
             StarterKit.configure({
-                history: false, // 禁用历史记录，使用 Yjs 的历史
+                // ✅ history 是 StarterKit 的默认扩展，不需要单独配置
+                // Yjs Collaboration 会处理协同编辑的历史记录
             }),
             Collaboration.configure({
                 document: ydoc,

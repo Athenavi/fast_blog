@@ -40,8 +40,8 @@ export function useHomePageData() {
 
                 // 并行获取所有数据，使用缓存
                 const [articlesRes, categoriesRes] = await Promise.all([
-                    cachedFetch(`${apiUrl}/articles?page=1&page_size=20`, undefined, 5 * 60 * 1000), // 5分钟缓存
-                    cachedFetch(`${apiUrl}/categories`, undefined, 10 * 60 * 1000) // 10分钟缓存
+                    cachedFetch<any>(`${apiUrl}/articles?page=1&page_size=20`, undefined, 5 * 60 * 1000), // 5分钟缓存
+                    cachedFetch<any>(`${apiUrl}/categories`, undefined, 10 * 60 * 1000) // 10分钟缓存
                 ]);
 
                 const articlesData = articlesRes;

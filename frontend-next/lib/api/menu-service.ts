@@ -17,12 +17,12 @@ export interface MenuData {
 
 // 获取菜单数据的服务
 export class MenuService {
-    // 从首页API获取动态菜单数据
+    // 从首页 API 获取动态菜单数据
     static async getMenuBySlug(slug: string = 'main'): Promise<ApiResponse<MenuData>> {
         try {
-            // 使用新的专用API端点获取指定菜单，添加缓存
-            const response = await cachedFetch(`/home/menu/${slug}`, undefined, 10 * 60 * 1000); // 10分钟缓存
-
+            // 使用新的专用 API 端点获取指定菜单，添加缓存
+            const response = await cachedFetch<any>(`/home/menu/${slug}`, undefined, 10 * 60 * 1000); // 10分钟缓存
+    
             if (response.success && response.data) {
                 const menuData = response.data as any;
                 return {
@@ -57,7 +57,7 @@ export class MenuService {
     // 获取所有菜单数据
     static async getAllMenus(): Promise<ApiResponse<any>> {
         try {
-            const response = await cachedFetch('/home/menus', undefined, 10 * 60 * 1000); // 10分钟缓存
+            const response = await cachedFetch<ApiResponse<any>>('/home/menus', undefined, 10 * 60 * 1000); // 10分钟缓存
             return response;
         } catch (error) {
             return {
@@ -73,7 +73,7 @@ export class MenuService {
     static async getMainMenu(): Promise<ApiResponse<MenuTreeItem[]>> {
         try {
             // 优先获取名为'main'的菜单，如果没有则获取第一个菜单
-            let response = await cachedFetch('/home/menus', undefined, 10 * 60 * 1000); // 10分钟缓存
+            let response = await cachedFetch<ApiResponse<any>>('/home/menus', undefined, 10 * 60 * 1000); // 10分钟缓存
 
             if (response.success && response.data && (response.data as any).menus) {
                 const menus = (response.data as any).menus;
