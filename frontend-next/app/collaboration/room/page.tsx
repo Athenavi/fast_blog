@@ -3,6 +3,7 @@
 import React, {useEffect, useState} from 'react';
 import {useRouter, useSearchParams} from 'next/navigation';
 import dynamic from 'next/dynamic';
+import {AuthProtected} from '@/components/AuthProtected';
 import LoadingState from '@/components/LoadingState';
 import ErrorState from '@/components/ErrorState';
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card';
@@ -29,8 +30,12 @@ interface InvitationInfo {
 }
 
 export default function CollaborationRoomPage() {
-    // 移除 AuthProtected，允许未登录用户通过邀请链接加入
-    return <CollaborationRoomContent/>;
+    // 添加 AuthProtected，强制要求登录
+    return (
+        <AuthProtected>
+            <CollaborationRoomContent/>
+        </AuthProtected>
+    );
 }
 
 function CollaborationRoomContent() {

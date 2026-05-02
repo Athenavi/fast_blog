@@ -85,6 +85,25 @@ const EditArticlePageContent = () => {
   useEffect(() => {
       let isMounted = true; // 跟踪组件是否已挂载
 
+      // 检查用户是否登录
+      const checkAuth = (): boolean => {
+          if (typeof document === 'undefined') return false;
+          const cookies = document.cookie.split(';');
+          for (const cookie of cookies) {
+              const [name, value] = cookie.trim().split('=');
+              if (name === 'access_token' && value) {
+                  return true;
+              }
+          }
+          return false;
+      };
+
+      if (!checkAuth()) {
+          console.log('[EditPage] User not authenticated, redirecting to login');
+          router.push(`/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+          return;
+      }
+
       // 在 effect 内部获取 articleId，避免依赖问题
       const currentArticleId = searchParams?.get('id');
       console.log('[EditPage] useEffect triggered, articleId:', currentArticleId);

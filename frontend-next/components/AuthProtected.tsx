@@ -13,9 +13,22 @@ export function AuthProtected({children}: AuthProtectedProps) {
     const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
     useEffect(() => {
-        // 检查用户是否已登录
+        // 检查用户是否已登录（仅从 cookie 读取）
         const checkAuth = () => {
-            const token = localStorage.getItem('access_token');
+            // 从 cookie 获取 token
+            const getTokenFromCookie = (): string | null => {
+                if (typeof document === 'undefined') return null;
+                const cookies = document.cookie.split(';');
+                for (const cookie of cookies) {
+                    const [name, value] = cookie.trim().split('=');
+                    if (name === 'access_token' && value) {
+                        return decodeURIComponent(value);
+                    }
+                }
+                return null;
+            };
+
+            const token = getTokenFromCookie();
 
             if (!token) {
                 // 未登录，重定向到登录页

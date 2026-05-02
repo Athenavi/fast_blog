@@ -84,9 +84,16 @@ export default function YjsCollaborativeEditor({
     // 保存 editor 引用（必须在 editor 声明之后）
     const editorRef = useRef(editor);
 
-    // 初始化 WebSocket 连接
+    // 初始化 WebSocket 连接 - 当 editor 就绪时执行
     useEffect(() => {
-        if (!editor) return;
+        console.log('[Yjs Editor] useEffect triggered, editor:', !!editor, 'documentId:', documentId);
+
+        if (!editor) {
+            console.log('[Yjs Editor] Editor not ready yet, skipping WebSocket connection');
+            return;
+        }
+
+        console.log('[Yjs Editor] Editor is ready, starting WebSocket connection...');
 
         const connectWebSocket = () => {
             const wsUrl = getYjsWebSocketUrl(documentId, articleId);
@@ -238,7 +245,7 @@ export default function YjsCollaborativeEditor({
                 clearTimeout(reconnectTimerRef.current);
             }
         };
-    }, [documentId, articleId, ydoc]); // 移除 editor 依赖
+    }, [documentId, articleId, ydoc, editor]); // 添加 editor 依赖，当 editor 就绪时重新执行
 
     // 保存文档
     const handleSave = async () => {
@@ -254,9 +261,31 @@ export default function YjsCollaborativeEditor({
         try {
             const url = getSaveDocumentUrl(documentId);
 
+            // 从 cookie 获取 token
+            const getTokenFromCookie = (): string | null => {
+                if (typeof document === 'undefined') return null;
+                const cookies = document.cookie.split(';');
+                for (const cookie of cookies) {
+                    const [name, value] = cookie.trim().split('=');
+                    if (name === 'access_token') {
+                        return decodeURIComponent(value);
+                    }
+                }
+                return null;
+            };
+
+            const token = getTokenFromCookie();
+            const headers: Record<string, string> = {
+                'Content-Type': 'application/json',
+            };
+
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+
             const response = await fetch(url, {
                 method: 'POST',
-                headers: {'Content-Type': 'application/json'},
+                headers,
                 credentials: 'include',
                 body: JSON.stringify({
                     content,
