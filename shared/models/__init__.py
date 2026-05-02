@@ -46,6 +46,11 @@ from .capability import Capability
 from .user_role import UserRole
 from .o_auth_account import OAuthAccount
 from .article_seo import ArticleSEO
+from .product import Product
+from .cart import Cart
+from .cart_item import CartItem
+from .order import Order
+from .order_item import OrderItem
 from .site import Site
 
 # ==================== 自动生成的导入 - 由 routes.yaml 管理 ====================
@@ -97,6 +102,11 @@ __all__ = [
     'UserRole',
     'OAuthAccount',
     'ArticleSEO',
+    'Product',
+    'Cart',
+    'CartItem',
+    'Order',
+    'OrderItem',
     'Site'
 ]
 # ============================================================================

@@ -1,14 +1,15 @@
 """
 SQLAlchemy 模型定义 - ArticleSEO
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-01 20:50:14
+生成时间：2026-05-02 09:13:51
 """
 
-from sqlalchemy import Column, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
+from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 
 from . import Base  # 使用统一的 Base
 
+from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, ForeignKey, Index
 
 class ArticleSEO(Base):
     """文章SEO元数据模型模型"""
@@ -38,11 +39,15 @@ class ArticleSEO(Base):
 
     og_image = Column(String(500), nullable=True, doc='og_image')
 
+
     og_type = Column(String(50), default='article', doc='og_type')
+
 
     twitter_title = Column(String(255), nullable=True, doc='twitter_title')
 
+
     twitter_description = Column(Text, nullable=True, doc='twitter_description')
+
 
     twitter_image = Column(String(500), nullable=True, doc='twitter_image')
 
@@ -62,7 +67,7 @@ class ArticleSEO(Base):
 
     __table_args__ = (
 
-        Index('idx_article_seo_article_id', 'article_id', unique=True),
+    Index('idx_article_seo_article_id', 'article_id', unique=True),
     )
 
     # 关系定义

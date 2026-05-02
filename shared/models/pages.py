@@ -1,13 +1,14 @@
 """
 SQLAlchemy 模型定义 - Pages
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-01 20:50:13
+生成时间：2026-05-02 09:13:51
 """
 
-from sqlalchemy import Column, BigInteger, Integer, String, DateTime, Index
+from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, Float
 
 from . import Base  # 使用统一的 Base
 
+from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, Float, Index
 
 class Pages(Base):
     """页面模型模型"""
@@ -49,18 +50,22 @@ class Pages(Base):
 
     meta_description = Column(String(255), nullable=True, doc='meta_description')
 
+
     meta_keywords = Column(String(255), nullable=True, doc='meta_keywords')
+
 
     created_at = Column(DateTime, doc='created_at')
 
+
     updated_at = Column(DateTime, doc='updated_at')
+
 
     published_at = Column(DateTime, nullable=True, doc='published_at')
 
 
     __table_args__ = (
 
-    Index('idx_pages_slug', 'slug', unique=True),
+        Index('idx_pages_slug', 'slug', unique=True),
         Index('idx_pages_status', 'status'),
         Index('idx_pages_author_id', 'author_id'),
         Index('idx_pages_parent_id', 'parent_id'),

@@ -1,13 +1,14 @@
 """
 SQLAlchemy 模型定义 - Media
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-01 20:50:13
+生成时间：2026-05-02 09:13:51
 """
 
-from sqlalchemy import Column, BigInteger, String, Boolean, DateTime, ForeignKey, Index
+from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, ForeignKey
 
 from . import Base  # 使用统一的 Base
 
+from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, ForeignKey, Index
 
 class Media(Base):
     """媒体文件模型模型"""
@@ -40,11 +41,15 @@ class Media(Base):
 
     file_type = Column(String(255), default='other', doc='file_type')
 
+
     mime_type = Column(String(255), nullable=True, doc='mime_type')
+
 
     width = Column(BigInteger, nullable=True, doc='width')
 
+
     height = Column(BigInteger, nullable=True, doc='height')
+
 
     duration = Column(BigInteger, nullable=True, doc='duration')
 
@@ -72,7 +77,7 @@ class Media(Base):
 
     __table_args__ = (
 
-        Index('idx_media_user', 'user'),
+    Index('idx_media_user', 'user'),
         Index('idx_media_hash', 'hash', unique=True),
         Index('idx_media_file_type', 'file_type'),
         Index('idx_media_is_public', 'is_public'),

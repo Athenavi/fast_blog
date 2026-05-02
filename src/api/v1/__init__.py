@@ -38,7 +38,7 @@ def _import_modules():
         "breadcrumbs", "maintenance", "article_password",
         "page_templates", "comment_subscriptions", "installation", "system", "screen_options", "query_monitor", "amp",
         "css_optimizer", "translation_memory", "translation_service", "internal_links", "migrations",
-        "template_hierarchy",
+        "template_hierarchy", "ecommerce", "ecommerce_cart",
     ]
 
     for name in module_names:
@@ -63,7 +63,7 @@ __all__ = [
     "webhook_management", "breadcrumbs",
     "maintenance", "article_password", "page_templates", "comment_subscriptions",
     "installation", "system", "screen_options", "query_monitor", "amp", "css_optimizer", "translation_memory",
-    "translation_service", "internal_links", "migrations", "template_hierarchy",
+    "translation_service", "internal_links", "migrations", "template_hierarchy", "ecommerce", "ecommerce_cart",
 ]
 
 api_v1_router = APIRouter(prefix="/api/v1", tags=["api-v1"])
@@ -121,6 +121,8 @@ def _include_routers():
         ("internal_links", True, "/internal-links"),
         ("migrations", True, "/migrations"),
         ("template_hierarchy", True, "/template-hierarchy"),
+        ("ecommerce", True, ""),  # 商品管理
+        ("ecommerce_cart", True, ""),  # 购物车和订单
     ]
 
     for name, required, prefix in router_configs:

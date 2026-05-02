@@ -1,19 +1,21 @@
 """
 SQLAlchemy 模型定义 - User
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-01 20:50:13
+生成时间：2026-05-02 09:13:51
 """
 
-from sqlalchemy import Column, BigInteger, String, Boolean, DateTime, Index
+from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime
 
 from . import Base  # 使用统一的 Base
-
 
 # ============================================================================
 # 自定义方法导入提示
 # 以下导入是自定义方法可能需要的，如果不需要可以删除：
 # - from datetime import datetime
 # ============================================================================
+
+
+from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, Index
 
 class User(Base):
     """用户模型模型"""
@@ -46,11 +48,15 @@ class User(Base):
 
     vip_expires_at = Column(DateTime, nullable=True, doc='vip_expires_at')
 
+
     is_active = Column(Boolean, default=True, doc='is_active')
+
 
     is_superuser = Column(Boolean, default=False, doc='is_superuser')
 
+
     date_joined = Column(DateTime, doc='date_joined')
+
 
     last_login_at = Column(DateTime, nullable=True, doc='last_login_at')
 
@@ -70,7 +76,7 @@ class User(Base):
 
     __table_args__ = (
 
-        Index('idx_users_username', 'username', unique=True),
+    Index('idx_users_username', 'username', unique=True),
         Index('idx_users_email', 'email', unique=True),
         Index('idx_users_is_active', 'is_active'),
         Index('idx_users_vip_level', 'vip_level'),

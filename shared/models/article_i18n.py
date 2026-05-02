@@ -1,11 +1,10 @@
 """
 SQLAlchemy 模型定义 - ArticleI18n
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-01 20:50:13
+生成时间：2026-05-02 09:13:51
 """
 
-
-from sqlalchemy import Column, BigInteger, String, Text, DateTime, ForeignKey
+from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, ForeignKey
 
 from . import Base  # 使用统一的 Base
 
@@ -37,6 +36,7 @@ class ArticleI18n(Base):
 
 
     created_at = Column(DateTime, doc='created_at')
+
 
     updated_at = Column(DateTime, doc='updated_at')
 

@@ -2803,6 +2803,336 @@ models:
   # ============================================================================
   # 多站点支持 - Site 模型
   # ============================================================================
+  # ============================================================================
+  # 电子商务基础模型
+  # ============================================================================
+  Product:
+    description: 商品模型
+    properties:
+      id:
+        type: bigint
+        description: 商品 ID
+      name:
+        type: string
+        maxLength: 255
+        description: 商品名称
+      slug:
+        type: string
+        maxLength: 255
+        unique: true
+        index: true
+        description: 商品标识
+      description:
+        type: text
+        nullable: true
+        description: 商品描述
+      price:
+        type: number
+        description: 价格
+      original_price:
+        type: number
+        nullable: true
+        description: 原价
+      stock:
+        type: integer
+        default: 0
+        description: 库存数量
+      sku:
+        type: string
+        maxLength: 100
+        nullable: true
+        index: true
+        description: SKU编码
+      images:
+        type: text
+        nullable: true
+        description: 商品图片(JSON数组)
+      category_id:
+        type: bigint
+        nullable: true
+        description: 分类ID
+        foreignKey: Category
+      is_active:
+        type: boolean
+        default: true
+        description: 是否上架
+      is_featured:
+        type: boolean
+        default: false
+        description: 是否推荐
+      weight:
+        type: number
+        nullable: true
+        description: 重量(kg)
+      dimensions:
+        type: text
+        nullable: true
+        description: 尺寸(长x宽x高,JSON格式)
+      attributes:
+        type: text
+        nullable: true
+        description: 商品属性(JSON格式)
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    orm: true
+    table: products
+    indexes:
+      - name: idx_products_slug
+        columns: [ slug ]
+        unique: true
+        comment: "商品slug唯一索引"
+      - name: idx_products_category
+        columns: [ category_id ]
+        comment: "分类索引"
+      - name: idx_products_is_active
+        columns: [ is_active ]
+        comment: "上架状态索引"
+      - name: idx_products_sku
+        columns: [ sku ]
+        comment: "SKU索引"
+  Cart:
+    description: 购物车模型
+    properties:
+      id:
+        type: bigint
+        description: 购物车 ID
+      user_id:
+        type: bigint
+        nullable: true
+        description: 用户ID(访客可为空)
+        foreignKey: User
+        index: true
+      session_id:
+        type: string
+        maxLength: 255
+        nullable: true
+        index: true
+        description: 会话ID(用于访客购物车)
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    orm: true
+    table: carts
+    indexes:
+      - name: idx_carts_user
+        columns: [ user_id ]
+        comment: "用户购物车索引"
+      - name: idx_carts_session
+        columns: [ session_id ]
+        comment: "会话购物车索引"
+  CartItem:
+    description: 购物车项模型
+    properties:
+      id:
+        type: bigint
+        description: 购物车项 ID
+      cart_id:
+        type: bigint
+        description: 购物车ID
+        foreignKey: Cart
+        index: true
+      product_id:
+        type: bigint
+        description: 商品ID
+        foreignKey: Product
+        index: true
+      quantity:
+        type: integer
+        default: 1
+        description: 数量
+      price:
+        type: number
+        description: 单价(加入购物车时的价格)
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    orm: true
+    table: cart_items
+    indexes:
+      - name: idx_cart_items_cart
+        columns: [ cart_id ]
+        comment: "购物车索引"
+      - name: idx_cart_items_product
+        columns: [ product_id ]
+        comment: "商品索引"
+      - name: idx_cart_items_unique
+        columns: [ cart_id, product_id ]
+        unique: true
+        comment: "唯一约束(同一商品在购物车中只能有一项)"
+  Order:
+    description: 订单模型
+    properties:
+      id:
+        type: bigint
+        description: 订单 ID
+      order_number:
+        type: string
+        maxLength: 50
+        unique: true
+        index: true
+        description: 订单号
+      user_id:
+        type: bigint
+        description: 用户ID
+        foreignKey: User
+        index: true
+      status:
+        type: string
+        maxLength: 50
+        default: pending
+        enum:
+          - pending
+          - paid
+          - processing
+          - shipped
+          - delivered
+          - cancelled
+          - refunded
+        description: '订单状态 (pending:待支付, paid:已支付, processing:处理中, shipped:已发货, delivered:已送达, cancelled:已取消, refunded:已退款)'
+      total_amount:
+        type: number
+        description: 订单总金额
+      shipping_amount:
+        type: number
+        default: 0
+        description: 运费
+      discount_amount:
+        type: number
+        default: 0
+        description: 折扣金额
+      payment_method:
+        type: string
+        maxLength: 50
+        nullable: true
+        description: 支付方式
+      payment_status:
+        type: string
+        maxLength: 50
+        default: pending
+        enum:
+          - pending
+          - paid
+          - failed
+          - refunded
+        description: '支付状态 (pending:待支付, paid:已支付, failed:支付失败, refunded:已退款)'
+      transaction_id:
+        type: string
+        maxLength: 255
+        nullable: true
+        description: 交易ID
+      shipping_address:
+        type: string
+        description: 收货地址(JSON格式)
+      billing_address:
+        type: string
+        nullable: true
+        description: 账单地址(JSON格式)
+      notes:
+        type: text
+        nullable: true
+        description: 订单备注
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+      paid_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: 支付时间
+      shipped_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: 发货时间
+      delivered_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: 送达时间
+    orm: true
+    table: orders
+    indexes:
+      - name: idx_orders_order_number
+        columns: [ order_number ]
+        unique: true
+        comment: "订单号唯一索引"
+      - name: idx_orders_user
+        columns: [ user_id ]
+        comment: "用户订单索引"
+      - name: idx_orders_status
+        columns: [ status ]
+        comment: "订单状态索引"
+      - name: idx_orders_payment_status
+        columns: [ payment_status ]
+        comment: "支付状态索引"
+      - name: idx_orders_created
+        columns: [ created_at ]
+        order: DESC
+        comment: "创建时间索引"
+  OrderItem:
+    description: 订单项模型
+    properties:
+      id:
+        type: bigint
+        description: 订单项 ID
+      order_id:
+        type: bigint
+        description: 订单ID
+        foreignKey: Order
+        index: true
+      product_id:
+        type: bigint
+        description: 商品ID
+        foreignKey: Product
+        index: true
+      product_name:
+        type: string
+        maxLength: 255
+        description: 商品名称(快照)
+      quantity:
+        type: integer
+        description: 数量
+      price:
+        type: number
+        description: 单价
+      total:
+        type: number
+        description: 小计
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+    orm: true
+    table: order_items
+    indexes:
+      - name: idx_order_items_order
+        columns: [ order_id ]
+        comment: "订单索引"
+      - name: idx_order_items_product
+        columns: [ product_id ]
+        comment: "商品索引"
+
   Site:
     description: 站点模型（多站点支持）
     properties:

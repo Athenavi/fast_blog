@@ -1,7 +1,7 @@
 """
 Django ORM 抽象基类定义
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-01 21:32:22
+生成时间：2026-05-02 09:13:51
 """
 
 from django.db import models
@@ -2057,6 +2057,199 @@ class ArticleSEOMixin(models.Model):
         # 注意：请在具体模型类中设置 db_table = get_table_name("article_seo")
 
 
+class ProductMixin(models.Model):
+    """商品模型 Mixin"""
+
+    # id
+    id = models.BigAutoField(
+        'id', primary_key=True)
+    # name
+    name = models.CharField(
+        'name', max_length=255)
+    # slug
+    slug = models.CharField(
+        'slug', max_length=255, unique=True)
+    # description
+    description = models.TextField(
+        'description', blank=True, null=True)
+    # price
+    price = models.DecimalField(
+        'price', max_digits=10, decimal_places=2)
+    # original_price
+    original_price = models.DecimalField(
+        'original_price', max_digits=10, decimal_places=2, blank=True, null=True)
+    # stock
+    stock = models.IntegerField(
+        'stock', default=0)
+    # sku
+    sku = models.CharField(
+        'sku', max_length=100, blank=True, null=True)
+    # images
+    images = models.TextField(
+        'images', blank=True, null=True)
+    # category_id
+    category_id = models.IntegerField(
+        'category_id (暂为 IntegerField，等待 Category 模型实现)', null=True, blank=True)
+    # is_active
+    is_active = models.BooleanField(
+        'is_active', default=True)
+    # is_featured
+    is_featured = models.BooleanField(
+        'is_featured', default=False)
+    # weight
+    weight = models.DecimalField(
+        'weight', max_digits=10, decimal_places=2, blank=True, null=True)
+    # dimensions
+    dimensions = models.TextField(
+        'dimensions', blank=True, null=True)
+    # attributes
+    attributes = models.TextField(
+        'attributes', blank=True, null=True)
+
+    class Meta:
+        abstract = True
+        app_label = 'generated'
+        verbose_name = '商品模型'
+        # 注意：请在具体模型类中设置 db_table = get_table_name("products")
+
+
+class CartMixin(models.Model):
+    """购物车模型 Mixin"""
+
+    # id
+    id = models.BigAutoField(
+        'id', primary_key=True)
+    # user_id
+    user_id = models.IntegerField(
+        'user_id (暂为 IntegerField，等待 User 模型实现)', null=True, blank=True)
+    # session_id
+    session_id = models.CharField(
+        'session_id', max_length=255, blank=True, null=True)
+
+    class Meta:
+        abstract = True
+        app_label = 'generated'
+        verbose_name = '购物车模型'
+        # 注意：请在具体模型类中设置 db_table = get_table_name("carts")
+
+
+class CartItemMixin(models.Model):
+    """购物车项模型 Mixin"""
+
+    # id
+    id = models.BigAutoField(
+        'id', primary_key=True)
+    # cart_id
+    cart_id = models.IntegerField(
+        'cart_id (暂为 IntegerField，等待 Cart 模型实现)', )
+    # product_id
+    product_id = models.IntegerField(
+        'product_id (暂为 IntegerField，等待 Product 模型实现)', )
+    # quantity
+    quantity = models.IntegerField(
+        'quantity', default=1)
+    # price
+    price = models.DecimalField(
+        'price', max_digits=10, decimal_places=2)
+
+    class Meta:
+        abstract = True
+        app_label = 'generated'
+        verbose_name = '购物车项模型'
+        # 注意：请在具体模型类中设置 db_table = get_table_name("cart_items")
+
+
+class OrderMixin(models.Model):
+    """订单模型 Mixin"""
+
+    # id
+    id = models.BigAutoField(
+        'id', primary_key=True)
+    # order_number
+    order_number = models.CharField(
+        'order_number', max_length=50, unique=True)
+    # user_id
+    user_id = models.IntegerField(
+        'user_id (暂为 IntegerField，等待 User 模型实现)', )
+    # status
+    status = models.CharField(
+        'status', max_length=50, default='pending')
+    # total_amount
+    total_amount = models.DecimalField(
+        'total_amount', max_digits=10, decimal_places=2)
+    # shipping_amount
+    shipping_amount = models.DecimalField(
+        'shipping_amount', max_digits=10, decimal_places=2, default=0)
+    # discount_amount
+    discount_amount = models.DecimalField(
+        'discount_amount', max_digits=10, decimal_places=2, default=0)
+    # payment_method
+    payment_method = models.CharField(
+        'payment_method', max_length=50, blank=True, null=True)
+    # payment_status
+    payment_status = models.CharField(
+        'payment_status', max_length=50, default='pending')
+    # transaction_id
+    transaction_id = models.CharField(
+        'transaction_id', max_length=255, blank=True, null=True)
+    # shipping_address
+    shipping_address = models.CharField(
+        'shipping_address', max_length=255)
+    # billing_address
+    billing_address = models.CharField(
+        'billing_address', max_length=255, blank=True, null=True)
+    # notes
+    notes = models.TextField(
+        'notes', blank=True, null=True)
+    # paid_at
+    paid_at = models.DateTimeField(
+        'paid_at', blank=True, null=True)
+    # shipped_at
+    shipped_at = models.DateTimeField(
+        'shipped_at', blank=True, null=True)
+    # delivered_at
+    delivered_at = models.DateTimeField(
+        'delivered_at', blank=True, null=True)
+
+    class Meta:
+        abstract = True
+        app_label = 'generated'
+        verbose_name = '订单模型'
+        # 注意：请在具体模型类中设置 db_table = get_table_name("orders")
+
+
+class OrderItemMixin(models.Model):
+    """订单项模型 Mixin"""
+
+    # id
+    id = models.BigAutoField(
+        'id', primary_key=True)
+    # order_id
+    order_id = models.IntegerField(
+        'order_id (暂为 IntegerField，等待 Order 模型实现)', )
+    # product_id
+    product_id = models.IntegerField(
+        'product_id (暂为 IntegerField，等待 Product 模型实现)', )
+    # product_name
+    product_name = models.CharField(
+        'product_name', max_length=255)
+    # quantity
+    quantity = models.IntegerField(
+        'quantity')
+    # price
+    price = models.DecimalField(
+        'price', max_digits=10, decimal_places=2)
+    # total
+    total = models.DecimalField(
+        'total', max_digits=10, decimal_places=2)
+
+    class Meta:
+        abstract = True
+        app_label = 'generated'
+        verbose_name = '订单项模型'
+        # 注意：请在具体模型类中设置 db_table = get_table_name("order_items")
+
+
 
 class SiteMixin(models.Model):
     """站点模型（多站点支持） Mixin"""
@@ -2114,127 +2307,3 @@ class SiteMixin(models.Model):
         # 注意：请在具体模型类中设置 db_table = get_table_name("sites")
 
 
-class MembershipPlanMixin(models.Model):
-    """会员套餐模型 Mixin"""
-
-    # id
-    id = models.BigAutoField(
-        'id', primary_key=True)
-    # name
-    name = models.CharField(
-        'name', max_length=100)
-    # slug
-    slug = models.CharField(
-        'slug', max_length=50, unique=True)
-    # description
-    description = models.TextField(
-        'description', blank=True, null=True)
-    # price
-    price = models.CharField(
-        'price', max_length=255)
-    # currency
-    currency = models.CharField(
-        'currency', max_length=3, default='CNY')
-    # duration_days
-    duration_days = models.IntegerField(
-        'duration_days')
-    # features
-    features = models.CharField(
-        'features', max_length=255, blank=True, null=True)
-    # max_posts
-    max_posts = models.IntegerField(
-        'max_posts', blank=True, null=True)
-    # max_storage
-    max_storage = models.BigIntegerField(
-        'max_storage', blank=True, null=True)
-    # priority_support
-    priority_support = models.BooleanField(
-        'priority_support', default=False)
-    # is_active
-    is_active = models.BooleanField(
-        'is_active', default=True)
-    # sort_order
-    sort_order = models.IntegerField(
-        'sort_order', default=0)
-
-    class Meta:
-        abstract = True
-        app_label = 'generated'
-        verbose_name = '会员套餐模型'
-        # 注意：请在具体模型类中设置 db_table = get_table_name("membership_plans")
-
-
-class UserSubscriptionMixin(models.Model):
-    """用户订阅模型 Mixin"""
-
-    # id
-    id = models.BigAutoField(
-        'id', primary_key=True)
-    # user_id
-    user_id = models.IntegerField(
-        'user_id (暂为 IntegerField，等待 User.id 模型实现)', )
-    # plan_id
-    plan_id = models.IntegerField(
-        'plan_id (暂为 IntegerField，等待 MembershipPlan.id 模型实现)', )
-    # status
-    status = models.CharField(
-        'status', max_length=20, default='active')
-    # start_date
-    start_date = models.DateTimeField(
-        'start_date')
-    # end_date
-    end_date = models.DateTimeField(
-        'end_date')
-    # auto_renew
-    auto_renew = models.BooleanField(
-        'auto_renew', default=False)
-    # payment_method
-    payment_method = models.CharField(
-        'payment_method', max_length=50, blank=True, null=True)
-    # transaction_id
-    transaction_id = models.CharField(
-        'transaction_id', max_length=100, blank=True, null=True)
-    # amount_paid
-    amount_paid = models.CharField(
-        'amount_paid', max_length=255, blank=True, null=True)
-    # currency
-    currency = models.CharField(
-        'currency', max_length=3, default='CNY')
-    # cancelled_at
-    cancelled_at = models.DateTimeField(
-        'cancelled_at', blank=True, null=True)
-    # cancellation_reason
-    cancellation_reason = models.TextField(
-        'cancellation_reason', blank=True, null=True)
-
-    class Meta:
-        abstract = True
-        app_label = 'generated'
-        verbose_name = '用户订阅模型'
-        # 注意：请在具体模型类中设置 db_table = get_table_name("user_subscriptions")
-
-
-class ContentAccessMixin(models.Model):
-    """内容访问权限模型 Mixin"""
-
-    # id
-    id = models.BigAutoField(
-        'id', primary_key=True)
-    # article_id
-    article_id = models.IntegerField(
-        'article_id (暂为 IntegerField，等待 Article.id 模型实现)', )
-    # required_level
-    required_level = models.IntegerField(
-        'required_level', default=0)
-    # required_plan_ids
-    required_plan_ids = models.CharField(
-        'required_plan_ids', max_length=255, blank=True, null=True)
-    # preview_content
-    preview_content = models.TextField(
-        'preview_content', blank=True, null=True)
-
-    class Meta:
-        abstract = True
-        app_label = 'generated'
-        verbose_name = '内容访问权限模型'
-        # 注意：请在具体模型类中设置 db_table = get_table_name("content_access")

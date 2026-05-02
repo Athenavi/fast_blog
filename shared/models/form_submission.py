@@ -1,13 +1,14 @@
 """
 SQLAlchemy 模型定义 - FormSubmission
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-01 20:50:14
+生成时间：2026-05-02 09:13:51
 """
 
-from sqlalchemy import Column, BigInteger, String, DateTime, ForeignKey, Index
+from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, ForeignKey
 
 from . import Base  # 使用统一的 Base
 
+from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, ForeignKey, Index
 
 class FormSubmission(Base):
     """表单提交记录模型模型"""
@@ -40,7 +41,7 @@ class FormSubmission(Base):
 
     __table_args__ = (
 
-    Index('idx_form_submissions_form_id', 'form_id'),
+        Index('idx_form_submissions_form_id', 'form_id'),
         Index('idx_form_submissions_status', 'status'),
         Index('idx_form_submissions_created', 'created_at'),
     )

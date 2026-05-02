@@ -1,14 +1,15 @@
 """
 SQLAlchemy 模型定义 - ArticleRevision
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-01 20:50:14
+生成时间：2026-05-02 09:13:51
 """
 
-from sqlalchemy import Column, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
+from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 
 from . import Base  # 使用统一的 Base
 
+from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, ForeignKey, Index
 
 class ArticleRevision(Base):
     """文章修订历史模型模型"""
@@ -59,7 +60,9 @@ class ArticleRevision(Base):
 
     author_id = Column(BigInteger, ForeignKey('users.id'), nullable=True, doc='author_id')
 
+
     change_summary = Column(String(500), nullable=True, doc='change_summary')
+
 
     hash_code = Column(String(64), index=True, nullable=True, doc='hash_code')
 
@@ -69,7 +72,7 @@ class ArticleRevision(Base):
 
     __table_args__ = (
 
-    Index('idx_article_revisions_article_id', 'article_id'),
+        Index('idx_article_revisions_article_id', 'article_id'),
         Index('idx_article_revisions_number', 'revision_number'),
         Index('idx_article_revisions_created', 'created_at'),
         Index('idx_article_revisions_hash', 'hash_code'),

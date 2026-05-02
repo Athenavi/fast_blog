@@ -1,13 +1,14 @@
 """
 SQLAlchemy 模型定义 - Category
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-01 20:50:13
+生成时间：2026-05-02 09:13:51
 """
 
-from sqlalchemy import Column, BigInteger, String, Boolean, DateTime, Index
+from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime
 
 from . import Base  # 使用统一的 Base
 
+from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, Index
 
 class Category(Base):
     """分类模型模型"""
@@ -43,13 +44,16 @@ class Category(Base):
 
     articles_count = Column(BigInteger, doc='articles_count')
 
+
     created_at = Column(DateTime, doc='created_at')
+
 
     updated_at = Column(DateTime, doc='updated_at')
 
+
     __table_args__ = (
 
-        Index('idx_categories_slug', 'slug', unique=True),
+    Index('idx_categories_slug', 'slug', unique=True),
         Index('idx_categories_parent', 'parent_id'),
         Index('idx_categories_sort_order', 'sort_order'),
         Index('idx_categories_is_visible', 'is_visible'),

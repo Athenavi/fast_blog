@@ -1,13 +1,14 @@
 """
 SQLAlchemy 模型定义 - Comment
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-01 20:50:14
+生成时间：2026-05-02 09:13:51
 """
 
-from sqlalchemy import Column, BigInteger, String, Text, Boolean, DateTime, Numeric, ForeignKey, Index
+from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, Numeric, ForeignKey
 
 from . import Base  # 使用统一的 Base
 
+from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, Numeric, ForeignKey, Index
 
 class Comment(Base):
     """评论模型模型"""
@@ -49,18 +50,22 @@ class Comment(Base):
 
     likes = Column(BigInteger, default=0, doc='likes')
 
+
     spam_score = Column(Numeric(10, 2), nullable=True, doc='spam_score')
+
 
     spam_reasons = Column(String(255), nullable=True, doc='spam_reasons')
 
+
     created_at = Column(DateTime, doc='created_at')
+
 
     updated_at = Column(DateTime, doc='updated_at')
 
 
     __table_args__ = (
 
-        Index('idx_comments_article_id', 'article_id'),
+    Index('idx_comments_article_id', 'article_id'),
         Index('idx_comments_user_id', 'user_id'),
         Index('idx_comments_parent_id', 'parent_id'),
         Index('idx_comments_is_approved', 'is_approved'),

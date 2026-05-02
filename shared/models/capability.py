@@ -1,13 +1,14 @@
 """
 SQLAlchemy 模型定义 - Capability
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-01 20:50:14
+生成时间：2026-05-02 09:13:51
 """
 
-from sqlalchemy import Column, BigInteger, String, Boolean, DateTime, Index
+from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime
 
 from . import Base  # 使用统一的 Base
 
+from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, Index
 
 class Capability(Base):
     """权限能力模型模型"""
@@ -43,7 +44,7 @@ class Capability(Base):
 
     __table_args__ = (
 
-    Index('idx_capabilities_code', 'code', unique=True),
+        Index('idx_capabilities_code', 'code', unique=True),
         Index('idx_capabilities_resource', 'resource_type', 'action'),
     )
 

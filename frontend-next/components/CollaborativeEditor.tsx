@@ -1,121 +1,247 @@
 'use client';
 
-import {useEffect, useRef, useState} from 'react';
-import * as Y from 'yjs';
-import {WebsocketProvider} from 'y-websocket';
-import {EditorContent, useEditor} from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
+import React, {useState, useCallback, useRef, useEffect} from 'react';
+import {useCollaboration} from '@/hooks/useCollaboration';
+import {Card} from '@/components/ui/card';
+import {Badge} from '@/components/ui/badge';
+import {Button} from '@/components/ui/button';
+import {Users, Wifi, WifiOff, Save, RefreshCw} from 'lucide-react';
 
 interface CollaborativeEditorProps {
     documentId: string;
-    userId: number;
-    userName: string;
+    token?: string;
+    initialContent?: string;
+    onSave?: (content: string) => Promise<void>;
+    readOnly?: boolean;
 }
 
-export default function CollaborativeEditor({
-                                                documentId,
-                                                userId,
-                                                userName,
-                                            }: CollaborativeEditorProps) {
-    const [onlineUsers, setOnlineUsers] = useState<string[]>([]);
-    const providerRef = useRef<WebsocketProvider | null>(null);
-    const docRef = useRef<Y.Doc | null>(null);
+export function CollaborativeEditor({
+                                        documentId,
+                                        token,
+                                        initialContent = '',
+                                        onSave,
+                                        readOnly = false,
+                                    }: CollaborativeEditorProps) {
+    const [localContent, setLocalContent] = useState(initialContent);
+    const textareaRef = useRef<HTMLTextAreaElement>(null);
+    const lastSelectionRef = useRef<{ start: number; end: number } | null>(null);
 
-    // 初始化 Yjs 文档和 WebSocket 提供者
-    useEffect(() => {
-        const ydoc = new Y.Doc();
-        docRef.current = ydoc;
-
-        // 连接到 WebSocket 服务器
-        const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:9421';
-        const provider = new WebsocketProvider(
-            `${wsUrl}/ws/collaborate/${documentId}`,
-            `article-${documentId}`,
-            ydoc,
-            {
-                params: {
-                    user_id: userId.toString(),
-                },
-            }
-        );
-
-        providerRef.current = provider;
-
-        // 监听用户列表变化
-        provider.awareness.on('change', () => {
-            const states = provider.awareness.getStates();
-            const users = Array.from(states.values()).map((state: any) => state.user?.name || 'Anonymous');
-            setOnlineUsers(users);
-        });
-
-        // 清理
-        return () => {
-            provider.destroy();
-            ydoc.destroy();
-        };
-    }, [documentId, userId]);
-
-    // 初始化 TipTap 编辑器
-    const editor = useEditor({
-        extensions: [
-            StarterKit.configure({
-                history: false, // 禁用本地历史，使用 Yjs 的协同历史
-            }),
-        ],
-        content: '',
-        editorProps: {
-            attributes: {
-                class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl mx-auto focus:outline-none min-h-[500px]',
-            },
+    const {
+        isConnected,
+        content,
+        remoteCursors,
+        clientCount,
+        clientId,
+        sendOperation,
+        updateCursor,
+        requestSync,
+    } = useCollaboration({
+        documentId,
+        token,
+        onContentChange: (newContent) => {
+            setLocalContent(newContent);
         },
     });
 
-    // 将 Yjs 绑定到 TipTap
+    // 当远程内容变化时更新本地内容
     useEffect(() => {
-        if (!editor || !docRef.current) return;
+        if (content !== localContent) {
+            setLocalContent(content);
+        }
+    }, [content]);
 
-        // 这里需要集成 y-prosemirror
-        // 由于篇幅限制，简化实现
-        console.log('Editor initialized with Yjs');
-    }, [editor]);
+    // 处理文本变化
+    const handleTextChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
+        const newText = e.target.value;
+        const oldText = localContent;
+
+        // 计算差异并发送操作
+        if (newText.length > oldText.length) {
+            // 插入操作
+            const position = findInsertPosition(oldText, newText);
+            const insertedText = newText.slice(position, position + (newText.length - oldText.length));
+
+            sendOperation({
+                type: 'insert',
+                position,
+                text: insertedText,
+            });
+        } else if (newText.length < oldText.length) {
+            // 删除操作
+            const position = findDeletePosition(oldText, newText);
+            const deletedLength = oldText.length - newText.length;
+
+            sendOperation({
+                type: 'delete',
+                position,
+                length: deletedLength,
+            });
+        }
+
+        setLocalContent(newText);
+    }, [localContent, sendOperation]);
+
+    // 查找插入位置
+    const findInsertPosition = (oldText: string, newText: string): number => {
+        for (let i = 0; i < Math.min(oldText.length, newText.length); i++) {
+            if (oldText[i] !== newText[i]) {
+                return i;
+            }
+        }
+        return oldText.length;
+    };
+
+    // 查找删除位置
+    const findDeletePosition = (oldText: string, newText: string): number => {
+        for (let i = 0; i < newText.length; i++) {
+            if (oldText[i] !== newText[i]) {
+                return i;
+            }
+        }
+        return newText.length;
+    };
+
+    // 处理光标/选区变化
+    const handleSelect = useCallback(() => {
+        const textarea = textareaRef.current;
+        if (!textarea) return;
+
+        const selection = {
+            start: textarea.selectionStart,
+            end: textarea.selectionEnd,
+        };
+
+        lastSelectionRef.current = selection;
+        updateCursor(selection.start, selection);
+    }, [updateCursor]);
+
+    // 保存文档
+    const handleSave = async () => {
+        if (onSave) {
+            try {
+                await onSave(localContent);
+            } catch (error) {
+                console.error('Failed to save document:', error);
+            }
+        }
+    };
+
+    // 渲染远程光标
+    const renderRemoteCursors = () => {
+        if (!textareaRef.current) return null;
+
+        const cursors: JSX.Element[] = [];
+        remoteCursors.forEach((remoteCursor, id) => {
+            if (id === clientId) return; // 不显示自己的光标
+
+            const cursorStyle = {
+                position: 'absolute' as const,
+                left: `${(remoteCursor.cursor.position % 50) * 8}px`, // 简化计算
+                top: `${Math.floor(remoteCursor.cursor.position / 50) * 20}px`,
+                width: '2px',
+                height: '20px',
+                backgroundColor: remoteCursor.color || '#FF6B6B',
+                pointerEvents: 'none' as const,
+                zIndex: 10,
+            };
+
+            cursors.push(
+                <div key={id} style={cursorStyle}>
+                    <div
+                        style={{
+                            position: 'absolute',
+                            top: '-20px',
+                            left: '0',
+                            backgroundColor: remoteCursor.color || '#FF6B6B',
+                            color: 'white',
+                            padding: '2px 6px',
+                            borderRadius: '4px',
+                            fontSize: '10px',
+                            whiteSpace: 'nowrap' as const,
+                        }}
+                    >
+                        User {id.slice(-4)}
+                    </div>
+                </div>
+            );
+        });
+
+        return cursors;
+    };
 
     return (
-        <div className="space-y-4">
-            {/* 在线用户列表 */}
-            <div className="flex items-center space-x-2 p-3 bg-gray-50 rounded-lg">
-                <span className="text-sm text-gray-600">在线用户:</span>
-                <div className="flex -space-x-2">
-                    {onlineUsers.map((user, index) => (
-                        <div
-                            key={index}
-                            className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white text-xs border-2 border-white"
-                            title={user}
-                        >
-                            {user.charAt(0).toUpperCase()}
-                        </div>
-                    ))}
+        <Card className="p-4">
+            {/* 工具栏 */}
+            <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                    {isConnected ? (
+                        <Badge variant="default" className="gap-1">
+                            <Wifi className="w-3 h-3"/>
+                            已连接
+                        </Badge>
+                    ) : (
+                        <Badge variant="destructive" className="gap-1">
+                            <WifiOff className="w-3 h-3"/>
+                            未连接
+                        </Badge>
+                    )}
+
+                    <Badge variant="secondary" className="gap-1">
+                        <Users className="w-3 h-3"/>
+                        {clientCount} 人在线
+                    </Badge>
                 </div>
-                <span className="text-sm text-gray-500">
-          {onlineUsers.length} 人正在编辑
-        </span>
+
+                <div className="flex gap-2">
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={requestSync}
+                        disabled={!isConnected}
+                    >
+                        <RefreshCw className="w-4 h-4 mr-1"/>
+                        同步
+                    </Button>
+
+                    {onSave && (
+                        <Button
+                            variant="default"
+                            size="sm"
+                            onClick={handleSave}
+                            disabled={!isConnected}
+                        >
+                            <Save className="w-4 h-4 mr-1"/>
+                            保存
+                        </Button>
+                    )}
+                </div>
             </div>
 
-            {/* 编辑器 */}
-            <div className="border rounded-lg p-4 bg-white">
-                {editor && <EditorContent editor={editor}/>}
+            {/* 编辑器区域 */}
+            <div className="relative">
+        <textarea
+            ref={textareaRef}
+            value={localContent}
+            onChange={handleTextChange}
+            onSelect={handleSelect}
+            onKeyUp={handleSelect}
+            onClick={handleSelect}
+            readOnly={readOnly}
+            className="w-full min-h-[400px] p-4 border rounded-lg font-mono text-sm resize-y focus:outline-none focus:ring-2 focus:ring-blue-500"
+            placeholder="开始编辑..."
+        />
+
+                {/* 远程光标层 */}
+                <div className="absolute inset-0 pointer-events-none">
+                    {renderRemoteCursors()}
+                </div>
             </div>
 
-            {/* 状态指示器 */}
-            <div className="flex items-center justify-between text-sm text-gray-500">
-        <span>
-          {providerRef.current?.wsconnected ? (
-              <span className="text-green-600">● 已连接</span>
-          ) : (
-              <span className="text-yellow-600">● 连接中...</span>
-          )}
-        </span>
-                <span>最后保存: {new Date().toLocaleTimeString()}</span>
+            {/* 状态信息 */}
+            <div className="mt-4 text-xs text-gray-500">
+                <p>文档ID: {documentId}</p>
+                <p>客户端ID: {clientId}</p>
             </div>
-        </div>
+        </Card>
     );
 }

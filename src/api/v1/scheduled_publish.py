@@ -1,127 +1,165 @@
 """
-文章定时发布API端点
+文章定时发布 API
 """
-
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel
+from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.services.scheduled_publish_service import (
-    check_and_publish_scheduled_articles,
-    get_scheduled_articles,
-    cancel_scheduled_publish
-)
-from src.api.v1.responses import ApiResponse
-from src.auth import jwt_required_dependency as jwt_required
-from src.extensions import get_async_db_session as get_async_db
+from src.utils.database import get_db
+from shared.services.scheduled_publish import create_scheduled_publish_service
 
-router = APIRouter(prefix="/articles", tags=["scheduled-publish"])
+router = APIRouter(prefix="/scheduled-publish", tags=["scheduled-publish"])
 
 
-@router.post("/scheduled/check-and-publish")
-async def trigger_scheduled_publish(
-        current_user=Depends(jwt_required),
-        db: AsyncSession = Depends(get_async_db)
+class ScheduleArticleRequest(BaseModel):
+    """定时发布请求"""
+    article_id: int
+    publish_at: str  # ISO format datetime
+
+
+@router.post("/schedule")
+async def schedule_article(
+        request: ScheduleArticleRequest,
+        db: AsyncSession = Depends(get_db)
 ):
     """
-    手动触发检查并发布到期的定时文章
-    
-    注意：此接口通常需要管理员权限，实际使用时应添加权限检查
-    """
-    try:
-        # 添加管理员权限检查
-        from shared.services.permission_system import permission_manager
-        is_admin = await permission_manager.has_permission(db, current_user.id, 'manage_articles')
-        
-        if not is_admin:
-            return ApiResponse(success=False, error="权限不足，需要管理员权限")
-
-        result = await check_and_publish_scheduled_articles(db=db)
-
-        if not result["success"]:
-            return ApiResponse(
-                success=False,
-                error=result.get("error", "检查定时发布失败")
-            )
-
-        return ApiResponse(
-            success=True,
-            data={
-                "message": f"成功发布 {result['published_count']} 篇文章",
-                "published_count": result["published_count"],
-                "failed_count": result["failed_count"],
-                "total_checked": result["total_checked"],
-                "published_articles": result["published_articles"]
-            }
-        )
-
-    except Exception as e:
-        return ApiResponse(success=False, error=str(e))
-
-
-@router.get("/scheduled/list")
-async def list_scheduled_articles(
-        page: int = Query(1, ge=1, description="页码"),
-        per_page: int = Query(20, ge=1, le=100, description="每页数量"),
-        current_user=Depends(jwt_required),
-        db: AsyncSession = Depends(get_async_db)
-):
-    """
-    获取待发布的定时文章列表
+    设置文章定时发布
     
     Args:
-        page: 页码
-        per_page: 每页数量
+        request: 定时发布请求
+        db: 数据库会话
+        
+    Returns:
+        调度结果
     """
     try:
-        result = await get_scheduled_articles(
-            db=db,
-            page=page,
-            per_page=per_page
+        # 解析发布时间
+        publish_at = datetime.fromisoformat(request.publish_at)
+
+        service = create_scheduled_publish_service(db)
+        result = await service.schedule_article(
+            article_id=request.article_id,
+            publish_at=publish_at
         )
 
-        if not result["success"]:
-            return ApiResponse(
-                success=False,
-                error=result.get("error", "获取定时文章列表失败")
-            )
+        if not result['success']:
+            raise HTTPException(status_code=400, detail=result['message'])
 
-        return ApiResponse(
-            success=True,
-            data=result
-        )
-
+        return result
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid datetime format: {str(e)}")
+    except HTTPException:
+        raise
     except Exception as e:
-        return ApiResponse(success=False, error=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/{article_id}/scheduled/cancel")
-async def cancel_article_schedule(
+@router.post("/cancel/{article_id}")
+async def cancel_scheduled_publish(
         article_id: int,
-        current_user=Depends(jwt_required),
-        db: AsyncSession = Depends(get_async_db)
+        db: AsyncSession = Depends(get_db)
 ):
     """
-    取消文章的定时发布
+    取消文章定时发布
     
     Args:
         article_id: 文章ID
+        db: 数据库会话
+        
+    Returns:
+        取消结果
     """
     try:
-        success = await cancel_scheduled_publish(
-            db=db,
-            article_id=article_id
-        )
+        service = create_scheduled_publish_service(db)
+        result = await service.cancel_scheduled_publish(article_id)
 
-        if not success:
-            return ApiResponse(
-                success=False,
-                error="取消定时发布失败，文章可能不存在"
-            )
+        if not result['success']:
+            raise HTTPException(status_code=400, detail=result['message'])
 
-        return ApiResponse(
-            success=True,
-            data={"message": "已取消定时发布"}
-        )
-
+        return result
+    except HTTPException:
+        raise
     except Exception as e:
-        return ApiResponse(success=False, error=str(e))
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/publish-due")
+async def publish_due_articles(
+        db: AsyncSession = Depends(get_db)
+):
+    """
+    发布所有到期的定时文章
+    
+    Args:
+        db: 数据库会话
+        
+    Returns:
+        发布结果统计
+    """
+    try:
+        service = create_scheduled_publish_service(db)
+        result = await service.publish_due_articles()
+
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/list")
+async def get_scheduled_articles(
+        limit: int = Query(50, ge=1, le=200, description="返回数量"),
+        offset: int = Query(0, ge=0, description="偏移量"),
+        db: AsyncSession = Depends(get_db)
+):
+    """
+    获取待发布的文章列表
+    
+    Args:
+        limit: 返回数量限制
+        offset: 偏移量
+        db: 数据库会话
+        
+    Returns:
+        待发布文章列表
+    """
+    try:
+        service = create_scheduled_publish_service(db)
+        articles = await service.get_scheduled_articles(limit, offset)
+
+        return {
+            'success': True,
+            'data': articles,
+            'count': len(articles),
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/upcoming")
+async def get_upcoming_publishes(
+        hours: int = Query(24, ge=1, le=168, description="小时数"),
+        db: AsyncSession = Depends(get_db)
+):
+    """
+    获取即将发布的文章
+    
+    Args:
+        hours: 未来多少小时内
+        db: 数据库会话
+        
+    Returns:
+        即将发布的文章列表
+    """
+    try:
+        service = create_scheduled_publish_service(db)
+        articles = await service.get_upcoming_publishes(hours)
+
+        return {
+            'success': True,
+            'data': articles,
+            'count': len(articles),
+            'hours': hours,
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

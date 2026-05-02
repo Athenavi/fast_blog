@@ -1,13 +1,14 @@
 """
 SQLAlchemy 模型定义 - MenuLocation
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-01 20:50:13
+生成时间：2026-05-02 09:13:51
 """
 
-from sqlalchemy import Column, Integer, String, DateTime, Index
+from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, Float
 
 from . import Base  # 使用统一的 Base
 
+from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, Float, Index
 
 class MenuLocation(Base):
     """菜单位置模型（主菜单、页脚菜单等）模型"""
@@ -37,7 +38,7 @@ class MenuLocation(Base):
 
     __table_args__ = (
 
-    Index('idx_menu_locations_slug', 'slug', unique=True),
+        Index('idx_menu_locations_slug', 'slug', unique=True),
     )
 
 

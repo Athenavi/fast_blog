@@ -1,13 +1,14 @@
 """
 SQLAlchemy 模型定义 - Plugin
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-01 20:50:14
+生成时间：2026-05-02 09:13:51
 """
 
-from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, Index
+from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, Float
 
 from . import Base  # 使用统一的 Base
 
+from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, Float, Index
 
 class Plugin(Base):
     """插件模型模型"""
@@ -49,14 +50,16 @@ class Plugin(Base):
 
     priority = Column(Integer, default=0, doc='priority')
 
+
     created_at = Column(DateTime, doc='created_at')
+
 
     updated_at = Column(DateTime, doc='updated_at')
 
 
     __table_args__ = (
 
-    Index('idx_plugins_slug', 'slug', unique=True),
+        Index('idx_plugins_slug', 'slug', unique=True),
         Index('idx_plugins_is_active', 'is_active'),
     )
 

@@ -1,13 +1,14 @@
 """
 SQLAlchemy 模型定义 - FormField
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-01 20:50:14
+生成时间：2026-05-02 09:13:51
 """
 
-from sqlalchemy import Column, BigInteger, String, Boolean, DateTime, ForeignKey, Index
+from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, ForeignKey
 
 from . import Base  # 使用统一的 Base
 
+from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, ForeignKey, Index
 
 class FormField(Base):
     """表单字段模型模型"""
@@ -46,16 +47,19 @@ class FormField(Base):
 
     order_index = Column(BigInteger, default=0, doc='order_index')
 
+
     is_active = Column(Boolean, default=True, doc='is_active')
 
+
     created_at = Column(DateTime, doc='created_at')
+
 
     updated_at = Column(DateTime, doc='updated_at')
 
 
     __table_args__ = (
 
-    Index('idx_form_fields_form_id', 'form_id'),
+        Index('idx_form_fields_form_id', 'form_id'),
         Index('idx_form_fields_order', 'order_index'),
     )
 

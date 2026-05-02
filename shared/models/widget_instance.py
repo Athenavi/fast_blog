@@ -1,13 +1,14 @@
 """
 SQLAlchemy 模型定义 - WidgetInstance
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-01 20:50:14
+生成时间：2026-05-02 09:13:51
 """
 
-from sqlalchemy import Column, BigInteger, String, Boolean, DateTime, Index
+from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime
 
 from . import Base  # 使用统一的 Base
 
+from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, Index
 
 class WidgetInstance(Base):
     """Widget实例模型（持久化存储）模型"""
@@ -46,7 +47,7 @@ class WidgetInstance(Base):
 
     __table_args__ = (
 
-    Index('idx_widget_instances_area', 'area'),
+        Index('idx_widget_instances_area', 'area'),
         Index('idx_widget_instances_order', 'order_index'),
         Index('idx_widget_instances_type', 'widget_type'),
     )

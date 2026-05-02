@@ -1,11 +1,10 @@
 """
 SQLAlchemy 模型定义 - SystemSettings
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-01 20:50:13
+生成时间：2026-05-02 09:13:51
 """
 
-
-from sqlalchemy import Column, Integer, String, Boolean, DateTime
+from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, Float
 
 from . import Base  # 使用统一的 Base
 

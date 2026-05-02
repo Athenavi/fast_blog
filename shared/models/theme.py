@@ -1,13 +1,14 @@
 """
 SQLAlchemy 模型定义 - Theme
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-01 20:50:14
+生成时间：2026-05-02 09:13:51
 """
 
-from sqlalchemy import Column, BigInteger, String, Boolean, DateTime, Index
+from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime
 
 from . import Base  # 使用统一的 Base
 
+from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, Index
 
 class Theme(Base):
     """主题模型模型"""
@@ -49,11 +50,15 @@ class Theme(Base):
 
     settings_schema = Column(String(255), nullable=True, doc='settings_schema')
 
+
     theme_path = Column(String(500), nullable=True, doc='theme_path')
+
 
     is_active = Column(Boolean, default=False, doc='is_active')
 
+
     is_installed = Column(Boolean, default=True, doc='is_installed')
+
 
     settings = Column(String(255), nullable=True, doc='settings')
 
@@ -66,7 +71,7 @@ class Theme(Base):
 
     __table_args__ = (
 
-    Index('idx_themes_slug', 'slug', unique=True),
+        Index('idx_themes_slug', 'slug', unique=True),
         Index('idx_themes_is_active', 'is_active'),
     )
 

@@ -7,6 +7,9 @@ import {ArticleService, Category} from '@/lib/api';
 import LoadingState from '@/components/LoadingState';
 import ErrorState from '@/components/ErrorState';
 import AuthErrorBoundary from '@/components/AuthErrorBoundary';
+import {Button} from '@/components/ui/button';
+import {Badge} from '@/components/ui/badge';
+import {Users, Wifi, WifiOff} from 'lucide-react';
 
 // 动态导入表单组件
 const ArticleForm = dynamic(
@@ -47,6 +50,8 @@ const EditArticlePageContent = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
     const [currentContent, setCurrentContent] = useState<string>('');
+    const [showCollaboration, setShowCollaboration] = useState(false);
+    const [collabDocId, setCollabDocId] = useState<string>('');
 
     // 监听获取编辑器内容的事件
     useEffect(() => {
@@ -127,6 +132,9 @@ const EditArticlePageContent = () => {
           // 初始化当前内容
           setCurrentContent(content);
           console.log('初始化currentContent，长度:', content?.length);
+
+          // 设置协作文档ID (使用文章ID)
+          setCollabDocId(`article-${article.id}`);
 
         setCategories(result.data.categories || []);
       } catch (err) {
@@ -214,6 +222,60 @@ const EditArticlePageContent = () => {
 
   return (
       <>
+          {/* 协作编辑面板 */}
+          {showCollaboration && collabDocId && (
+              <div
+                  className="fixed top-4 right-4 z-50 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 border max-w-sm">
+                  <div className="flex items-center justify-between mb-3">
+                      <h3 className="font-semibold flex items-center gap-2">
+                          <Users className="w-4 h-4"/>
+                          协作编辑
+                      </h3>
+                      <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setShowCollaboration(false)}
+                      >
+                          ×
+                      </Button>
+                  </div>
+
+                  <div className="space-y-3">
+                      <div className="text-sm text-gray-600 dark:text-gray-400">
+                          <p>文档ID: <code
+                              className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">{collabDocId}</code></p>
+                      </div>
+
+                      <Button
+                          className="w-full"
+                          size="sm"
+                          onClick={() => {
+                              window.open(`/collaboration?doc=${collabDocId}`, '_blank');
+                          }}
+                      >
+                          打开协作编辑器
+                      </Button>
+
+                      <p className="text-xs text-gray-500">
+                          点击按钮在新窗口打开协作编辑器，可邀请多人同时编辑
+                      </p>
+                  </div>
+              </div>
+          )}
+
+          {/* 协作编辑按钮 */}
+          <div className="fixed bottom-4 right-4 z-40">
+              <Button
+                  variant={showCollaboration ? "default" : "secondary"}
+                  size="sm"
+                  onClick={() => setShowCollaboration(!showCollaboration)}
+                  className="shadow-lg"
+              >
+                  <Users className="w-4 h-4 mr-2"/>
+                  协作编辑
+              </Button>
+          </div>
+          
           <ArticleForm
               mode="edit"
               initialData={initialData}

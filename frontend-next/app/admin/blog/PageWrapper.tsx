@@ -80,6 +80,7 @@ const ArticleManagementContent = () => {
     required_vip_level: 0,
     article_ad: '',
     is_featured: false,
+    scheduled_publish_at: '', // 定时发布时间
   });
   
   const [formErrors, setFormErrors] = React.useState<Record<string, string>>({});
@@ -313,6 +314,7 @@ const ArticleManagementContent = () => {
       required_vip_level: article.required_vip_level || 0,
       article_ad: article.article_ad || '',
       is_featured: !!article.is_featured,
+      scheduled_publish_at: (article as any).scheduled_publish_at || '', // 定时发布时间
     });
     setFormErrors({});
     setCurrentArticle(article);
@@ -404,6 +406,11 @@ const ArticleManagementContent = () => {
       articleData.append('required_vip_level', formData.required_vip_level.toString());
       articleData.append('article_ad', formData.article_ad);
       articleData.append('is_featured', formData.is_featured ? '1' : '0');
+
+      // 如果有定时发布时间，添加到表单数据
+      if (formData.scheduled_publish_at) {
+        articleData.append('scheduled_publish_at', formData.scheduled_publish_at);
+      }
       
       let response;
       if (isEditing && currentArticle) {
@@ -436,6 +443,7 @@ const ArticleManagementContent = () => {
           required_vip_level: 0,
           article_ad: '',
           is_featured: false,
+          scheduled_publish_at: '',
         });
       } else {
         setFormErrors({ submit: response.error || '操作失败' });
@@ -1026,6 +1034,25 @@ const ArticleManagementContent = () => {
                     <option value="Published">已发布</option>
                   </select>
                 </div>
+
+                {isEditing && (
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        定时发布
+                      </label>
+                      <input
+                          type="datetime-local"
+                          name="scheduled_publish_at"
+                          value={formData.scheduled_publish_at}
+                          onChange={handleInputChange}
+                          className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          min={new Date().toISOString().slice(0, 16)}
+                      />
+                      <p className="text-xs text-gray-500 mt-1">
+                        留空表示立即发布或保持当前状态
+                      </p>
+                    </div>
+                )}
 
                 <div className="md:col-span-2">
                   <div className="grid grid-cols-2 gap-4">

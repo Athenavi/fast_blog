@@ -69,6 +69,20 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     from src.scheduler import init_scheduler
     init_scheduler(app)
 
+    # 启动定时发布调度器
+    try:
+        from shared.services.scheduler import init_scheduler as init_publish_scheduler, start_scheduler
+        from src.utils.database.unified_manager import db_manager
+
+        publish_scheduler = init_publish_scheduler(
+            db_manager.get_async_session_factory,
+            check_interval=60  # 每60秒检查一次
+        )
+        await start_scheduler()
+        print("\n[ScheduledPublish] ✅ Scheduled publish scheduler started")
+    except Exception as e:
+        print(f"\n[ScheduledPublish] ⚠️ Failed to start scheduler: {e}")
+
     # 初始化插件系统
     try:
         print("\n" + "=" * 60)
@@ -703,6 +717,38 @@ curl -X POST "http://localhost:9421/api/v1/media/upload" \
             print(f"{worker_info} [OK] WebSocket API 已加载")
         except ImportError as e:
             print(f"Warning: WebSocket API could not be loaded: {e}")
+
+        # Collaboration 实时协作编辑 API
+        try:
+            from src.api.v1.collaboration import router as collaboration_router
+            app.include_router(collaboration_router, prefix='/api/v1')
+            print(f"{worker_info} [OK] Collaboration API 已加载")
+        except ImportError as e:
+            print(f"Warning: Collaboration API could not be loaded: {e}")
+
+        # Collaboration Invites 邀请管理 API
+        try:
+            from src.api.v1.collaboration_invites import router as collaboration_invites_router
+            app.include_router(collaboration_invites_router, prefix='/api/v1')
+            print(f"{worker_info} [OK] Collaboration Invites API 已加载")
+        except ImportError as e:
+            print(f"Warning: Collaboration Invites API could not be loaded: {e}")
+
+        # Edge Functions API
+        try:
+            from src.api.v1.edge_functions import router as edge_functions_router
+            app.include_router(edge_functions_router, prefix='/api/v1', tags=['edge-functions'])
+            print(f"{worker_info} [OK] Edge Functions API 已加载")
+        except ImportError as e:
+            print(f"Warning: Edge Functions API could not be loaded: {e}")
+
+        # 文章定时发布 API
+        try:
+            from src.api.v1.scheduled_publish import router as scheduled_publish_router
+            app.include_router(scheduled_publish_router, prefix='/api/v1', tags=['scheduled-publish'])
+            print(f"{worker_info} [OK] Scheduled Publish API 已加载")
+        except ImportError as e:
+            print(f"Warning: Scheduled Publish API could not be loaded: {e}")
 
         env_key = f"ROUTER_PRINTED_{os.getpid()}"
 

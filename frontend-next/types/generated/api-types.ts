@@ -1,7 +1,7 @@
 /**
  * API 类型定义
  * 由 routes.yaml 自动生成 - 请勿手动修改
- * 生成时间：2026-05-01 20:50:13
+ * 生成时间：2026-05-02 09:13:51
  */
 
 export interface User {
@@ -690,6 +690,76 @@ export interface ArticleSEO {
     updated_at: string;
 }
 
+export interface Product {
+    id: any;
+    name: string;
+    slug: string;
+    description?: any;
+    price: any;
+    original_price?: any;
+    stock: number;
+    sku?: string;
+    images?: any;
+    category_id?: any;
+    is_active: boolean;
+    is_featured: boolean;
+    weight?: any;
+    dimensions?: any;
+    attributes?: any;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface Cart {
+    id: any;
+    user_id?: any;
+    session_id?: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface CartItem {
+    id: any;
+    cart_id: any;
+    product_id: any;
+    quantity: number;
+    price: any;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface Order {
+    id: any;
+    order_number: string;
+    user_id: any;
+    status: string;
+    total_amount: any;
+    shipping_amount: any;
+    discount_amount: any;
+    payment_method?: string;
+    payment_status: string;
+    transaction_id?: string;
+    shipping_address: string;
+    billing_address?: string;
+    notes?: any;
+    created_at: string;
+    updated_at: string;
+    paid_at?: string;
+    shipped_at?: string;
+    delivered_at?: string;
+}
+
+export interface OrderItem {
+    id: any;
+    order_id: any;
+    product_id: any;
+    product_name: string;
+    quantity: number;
+    price: any;
+    total: any;
+    created_at: string;
+}
+
 export interface Site {
     id: any;
     name: string;
@@ -817,35 +887,28 @@ export interface Compare_article_revisionsParams {
 export interface Save_article_draftParams {
     article_id: number;
 }
-
 export interface Sync_article_revisionsParams {
     article_id: number;
 }
-
 export interface Delete_article_revisionParams {
     article_id: number;
     revision_id: number;
 }
-
 export interface Create_article_revisionParams {
     article_id: number;
 }
-
 export interface List_article_revisionsParams {
     article_id: number;
     page?: number;
     per_page?: number;
 }
-
 export interface Get_revisionParams {
     revision_id: number;
 }
-
 export interface Rollback_articleParams {
     article_id: number;
     revision_id: number;
 }
-
 export interface Compare_article_revisionsParams {
     revision1_id: number;
     revision2_id: number;
