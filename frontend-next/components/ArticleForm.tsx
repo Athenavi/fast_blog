@@ -265,15 +265,21 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
               description: (result.data as any).message || '内容未发生变化，已跳过创建修订版本',
             variant: 'default'
           });
+          } else {
+            // 只有在实际保存成功时才显示提示
+            toast({
+              title: '✅ 保存成功',
+              description: mode === 'create' ? '文章已创建' : '文章已更新',
+              variant: 'default'
+            });
         }
         
         // 如果是创建模式，且返回了 article_id，则跳转到编辑页面
         if (mode === 'create' && result.data?.article_id) {
           router.push(`/my/posts/edit?id=${result.data.article_id}`);
-        } else {
-          // 编辑模式或其他情况，刷新当前页面
-          router.refresh();
         }
+        // 注意：移除了 router.refresh()，避免无限刷新循环
+        // 编辑模式下不需要刷新页面，用户可以看到当前编辑的内容
 
         // 提交成功后删除本地草稿
         if (form.id) {

@@ -3,11 +3,9 @@
 """
 import uuid
 from datetime import datetime, timedelta
-from typing import Optional, List
-from fastapi import APIRouter, HTTPException, Depends
-from pydantic import BaseModel
 
-from shared.services.collaboration import collaboration_service
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
 
 router = APIRouter(prefix="/collaboration/invites", tags=["collaboration-invites"])
 
@@ -84,9 +82,9 @@ async def create_invitation(request: CreateInvitationRequest):
         invitations_db[invite_id] = invitation
 
         # 生成邀请URL
-        # 在实际部署中，应该从配置中获取前端地址
+        # 使用独立的协作房间页面
         base_url = "http://localhost:3000"  # 前端地址
-        invite_url = f"{base_url}/collaboration?doc={request.document_id}&invite={invite_id}"
+        invite_url = f"{base_url}/collaboration/room?invite={invite_id}&doc={request.document_id}"
 
         print(f"Invitation created successfully: {invite_id}")
 
@@ -212,7 +210,7 @@ async def get_active_invitations(document_id: str):
                 "expires_at": invitation["expires_at"].isoformat(),
                 "max_users": invitation["max_users"],
                 "current_users": invitation["current_users"],
-                "invite_url": f"http://localhost:3000/collaboration?doc={document_id}&invite={invite_id}",
+                "invite_url": f"http://localhost:3000/collaboration/room?invite={invite_id}&doc={document_id}",
             })
 
     return {

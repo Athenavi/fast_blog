@@ -1,6 +1,6 @@
 'use client';
 
-import React, {Suspense, useEffect, useState} from 'react';
+import React, {Suspense, useEffect, useRef, useState} from 'react';
 import {useRouter, useSearchParams} from 'next/navigation';
 import dynamic from 'next/dynamic';
 import {ArticleService, Category} from '@/lib/api';
@@ -9,22 +9,15 @@ import ErrorState from '@/components/ErrorState';
 import AuthErrorBoundary from '@/components/AuthErrorBoundary';
 import {Button} from '@/components/ui/button';
 import {Users} from 'lucide-react';
+import {CreateCollaborationDialog} from '@/components/CreateCollaborationDialog';
 
-// 动态导入表单组件和协作编辑器
+// 动态导入表单组件
 const ArticleForm = dynamic(
   () => import('@/components/ArticleForm'),
   {
     ssr: false,
     loading: () => <LoadingState message="加载表单中..." />
   }
-);
-
-const YjsCollaborativeEditor = dynamic(
-    () => import('@/components/YjsCollaborativeEditor').then(mod => ({default: mod.YjsCollaborativeEditor})),
-    {
-        ssr: false,
-        loading: () => <LoadingState message="加载协作编辑器中..."/>
-    }
 );
 
 interface ArticleData {
@@ -57,9 +50,10 @@ const EditArticlePageContent = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
     const [currentContent, setCurrentContent] = useState<string>('');
-    const [showCollaboration, setShowCollaboration] = useState(false);
+    const [showCollaborationDialog, setShowCollaborationDialog] = useState(false);
     const [collabDocId, setCollabDocId] = useState<string>('');
     const [collabArticleId, setCollabArticleId] = useState<number | undefined>(undefined);
+    const hasLoadedRef = useRef(false); // 防止重复加载
 
     // 监听获取编辑器内容的事件
     useEffect(() => {
@@ -86,18 +80,26 @@ const EditArticlePageContent = () => {
             console.log('已移除监听器');
         };
     }, []); // 移除 currentContent 依赖，避免不必要的重新渲染
-      
-  // 加载文章数据
+
+    // 加载文章数据 - 只在组件挂载时执行一次
   useEffect(() => {
+      let isMounted = true; // 跟踪组件是否已挂载
+
+      // 在 effect 内部获取 articleId，避免依赖问题
+      const currentArticleId = searchParams?.get('id');
+      console.log('[EditPage] useEffect triggered, articleId:', currentArticleId);
+    
     const fetchArticleData = async () => {
-      if (!articleId) {
-        setError('文章 ID 未指定');
-        setLoading(false);
+        if (!currentArticleId) {
+            if (isMounted) {
+                setError('文章 ID 未指定');
+                setLoading(false);
+            }
         return;
       }
 
       try {
-        const result = await ArticleService.getEditArticleData(Number(articleId));
+          const result = await ArticleService.getEditArticleData(Number(currentArticleId));
 
         if (!result.success || !result.data) {
           throw new Error(result.error || '获取文章数据失败');
@@ -142,20 +144,30 @@ const EditArticlePageContent = () => {
           console.log('初始化currentContent，长度:', content?.length);
 
           // 设置协作文档ID (使用文章ID)
-          setCollabDocId(`article-${article.id}`);
+          const docId = `article-${article.id}`;
+          setCollabDocId(docId);
           setCollabArticleId(article.id);
 
         setCategories(result.data.categories || []);
       } catch (err) {
-        console.error('加载文章失败:', err);
-        setError(err instanceof Error ? err.message : '加载文章失败');
+          if (isMounted) {
+              console.error('加载文章失败:', err);
+              setError(err instanceof Error ? err.message : '加载文章失败');
+          }
       } finally {
-        setLoading(false);
+          if (isMounted) {
+              setLoading(false);
+          }
       }
     };
 
     fetchArticleData();
-  }, [articleId]); // 保持 articleId 依赖，这是必要的
+
+      // 清理函数
+      return () => {
+          isMounted = false;
+      };
+  }, []); // 空依赖数组，只在挂载时执行一次
 
   // 处理表单提交
     const handleSubmit = async (formData: ArticleData, createRevision?: boolean) => {
@@ -231,42 +243,27 @@ const EditArticlePageContent = () => {
 
   return (
       <>
-          {/* 协作编辑面板 */}
-          {showCollaboration && collabDocId && (
-              <div
-                  className="fixed top-4 right-4 z-50 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 border max-w-2xl w-full">
-                  <div className="flex items-center justify-between mb-3">
-                      <h3 className="font-semibold flex items-center gap-2">
-                          <Users className="w-4 h-4"/>
-                          协作编辑 - {collabDocId}
-                      </h3>
-                      <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setShowCollaboration(false)}
-                      >
-                          ×
-                      </Button>
-                  </div>
-
-                  {/* 集成Yjs协作编辑器 */}
-                  <YjsCollaborativeEditor
-                      documentId={collabDocId}
-                      articleId={collabArticleId}
-                  />
-              </div>
+          {/* 协作邀请对话框 */}
+          {collabDocId && (
+              <CreateCollaborationDialog
+                  open={showCollaborationDialog}
+                  onOpenChange={setShowCollaborationDialog}
+                  documentId={collabDocId}
+                  articleId={collabArticleId}
+                  articleTitle={initialData?.title}
+              />
           )}
 
           {/* 协作编辑按钮 */}
           <div className="fixed bottom-4 right-4 z-40">
               <Button
-                  variant={showCollaboration ? "default" : "secondary"}
+                  variant="default"
                   size="sm"
-                  onClick={() => setShowCollaboration(!showCollaboration)}
+                  onClick={() => setShowCollaborationDialog(true)}
                   className="shadow-lg"
               >
                   <Users className="w-4 h-4 mr-2"/>
-                  {showCollaboration ? '关闭协作' : '协作编辑'}
+                  开始协作
               </Button>
           </div>
           

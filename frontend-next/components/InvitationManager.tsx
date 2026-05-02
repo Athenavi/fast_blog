@@ -1,14 +1,15 @@
 'use client';
 
-import React, {useState, useEffect} from 'react';
+import React, {useEffect, useState} from 'react';
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card';
 import {Button} from '@/components/ui/button';
 import {Input} from '@/components/ui/input';
 import {Label} from '@/components/ui/label';
 import {Badge} from '@/components/ui/badge';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select';
-import {Copy, Users, Link as LinkIcon, Trash2, CheckCircle} from 'lucide-react';
+import {CheckCircle, Copy, Link as LinkIcon, Trash2, Users} from 'lucide-react';
 import {apiFetch} from '@/lib/api';
+import {getInvitesApiUrl} from '@/lib/collaboration-config';
 
 interface Invitation {
     invite_id: string;
@@ -39,7 +40,8 @@ export function InvitationManager({documentId}: InvitationManagerProps) {
 
     const loadInvitations = async () => {
         try {
-            const response = await apiFetch(`/api/v1/collaboration/invites/document/${documentId}/active`);
+          const url = getInvitesApiUrl(`/document/${documentId}/active`);
+          const response = await apiFetch(url);
             const data = await response.json();
             if (data.success) {
                 setInvitations(data.data.invitations);
@@ -60,7 +62,8 @@ export function InvitationManager({documentId}: InvitationManagerProps) {
                 max_users: maxUsers,
             });
 
-            const response = await apiFetch('/api/v1/collaboration/invites/create', {
+          const url = getInvitesApiUrl('/create');
+          const response = await apiFetch(url, {
                 method: 'POST',
                 body: JSON.stringify({
                     document_id: documentId,
@@ -105,7 +108,8 @@ export function InvitationManager({documentId}: InvitationManagerProps) {
         if (!confirm('确定要撤销此邀请吗?')) return;
 
         try {
-            const response = await apiFetch(`/api/v1/collaboration/invites/${inviteId}`, {
+          const url = getInvitesApiUrl(`/${inviteId}`);
+          const response = await apiFetch(url, {
                 method: 'DELETE',
             });
 

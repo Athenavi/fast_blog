@@ -762,6 +762,14 @@ curl -X POST "http://localhost:9421/api/v1/media/upload" \
         except ImportError as e:
             print(f"Warning: Collaboration Invites API could not be loaded: {e}")
 
+        # Yjs Collaboration 实时协作编辑 API (基于 CRDT)
+        try:
+            from src.api.v1.yjs_collaboration import router as yjs_collaboration_router
+            app.include_router(yjs_collaboration_router, prefix='/api/v1')
+            print(f"{worker_info} [OK] Yjs Collaboration API 已加载")
+        except ImportError as e:
+            print(f"Warning: Yjs Collaboration API could not be loaded: {e}")
+
         # Edge Functions API
         try:
             from src.api.v1.edge_functions import router as edge_functions_router
