@@ -18,9 +18,9 @@ class YjsDocument:
         self.document_id = document_id
         self.article_id = article_id
         self.clients: Dict[str, WebSocket] = {}  # {client_id: websocket}
-        self.created_at = datetime.utcnow()
-        self.last_modified = datetime.utcnow()
-        self.last_saved = datetime.utcnow()
+        self.created_at = datetime.now()
+        self.last_modified = datetime.now()
+        self.last_saved = datetime.now()
 
         # Yjs 文档状态（二进制）
         self.state: bytes = b''
@@ -84,7 +84,7 @@ class YjsDocument:
         # 注意：实际应用中需要使用 y-py 库来处理 Yjs 更新
         # 这里简化处理，仅存储最新的更新
         self.state = update
-        self.last_modified = datetime.utcnow()
+        self.last_modified = datetime.now()
 
     def get_state(self) -> bytes:
         """获取文档状态"""
@@ -92,7 +92,7 @@ class YjsDocument:
 
     def needs_auto_save(self) -> bool:
         """检查是否需要自动保存"""
-        now = datetime.utcnow()
+        now = datetime.now()
         elapsed = (now - self.last_saved).total_seconds()
         return elapsed >= self.auto_save_interval
 
@@ -155,7 +155,7 @@ class YjsCollaborationService:
             # 这需要在前端定期发送 HTML 快照，或者使用 y-py 库
 
             print(f"[Yjs] Saving document {document_id} to database")
-            doc.last_saved = datetime.utcnow()
+            doc.last_saved = datetime.now()
             return True
 
         except Exception as e:
