@@ -1,6 +1,6 @@
 'use client';
 
-import React, {useEffect, useState, useCallback, useMemo} from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import {useRouter} from 'next/navigation';
 import Image from 'next/image';
 import {apiClient, Article} from '@/lib/api';
@@ -8,20 +8,19 @@ import WithAuthProtection from '@/components/WithAuthProtection';
 import {
     AlertCircle,
     Calendar,
-    ChevronRight,
     Edit,
     Eye,
     FileText,
     Filter,
     Heart,
     Key,
+    Lock,
+    MoreVertical,
     Plus,
     Search,
     Tag,
     Trash2,
-    X,
-    MoreVertical,
-    Lock
+    X
 } from 'lucide-react';
 
 const MyArticlesPage = () => {
@@ -176,7 +175,25 @@ const MyArticlesPage = () => {
     // 页面加载时获取文章
     useEffect(() => {
         fetchArticles();
-    }, [fetchArticles]);
+    }, []); // ✅ 空依赖数组，只在挂载时执行一次
+
+    // ✅ 当筛选条件变化时，重置页码并重新获取
+    useEffect(() => {
+        if (currentPage === 1) {
+            // 如果已经在第一页，直接重新获取
+            fetchArticles();
+        } else {
+            // 否则重置到第一页
+            setCurrentPage(1);
+        }
+    }, [filterStatus, filterHidden, searchQuery]); // ✅ 只依赖筛选条件
+
+    // ✅ 当页码变化时，重新获取文章
+    useEffect(() => {
+        if (currentPage > 1) {
+            fetchArticles();
+        }
+    }, [currentPage]); // ✅ 只依赖页码
 
     // 状态相关辅助函数
     const getStatusBadge = useCallback((status: string | number) => {

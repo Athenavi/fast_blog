@@ -406,13 +406,6 @@ export default function YjsCollaborativeEditor({
             <div className="border rounded-lg p-4 min-h-[400px] prose max-w-none">
                 <EditorContent editor={editor}/>
             </div>
-
-            {/* 提示信息 */}
-            <div className="mt-4 text-xs text-gray-500">
-                <p>✓ 使用 Yjs CRDT 算法实现真正的实时协作</p>
-                <p>✓ 支持离线编辑和自动合并</p>
-                <p>✓ 多人同时编辑不会冲突</p>
-            </div>
         </Card>
     );
 }

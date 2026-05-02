@@ -176,13 +176,6 @@ export function CreateCollaborationDialog({
                                 </SelectContent>
                             </Select>
                         </div>
-
-                        <div className="bg-blue-50 p-3 rounded-lg text-sm text-blue-700">
-                            <p>✓ 使用 Yjs CRDT 算法实现真正的实时协作</p>
-                            <p>✓ 支持多人同时编辑，自动解决冲突</p>
-                            <p>✓ 断线重连后自动恢复状态</p>
-                        </div>
-
                         <Button
                             onClick={handleCreateInvitation}
                             disabled={loading}
