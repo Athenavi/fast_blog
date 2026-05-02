@@ -100,38 +100,39 @@ const nextConfig: NextConfig = {
         return config;
     },
 
-    // 添加自定义 headers 来优化缓存
-    async headers() {
-        return [
-            {
-                source: '/(.*)',
-                headers: [
-                    {
-                        key: 'Cache-Control',
-                        value: 'public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400',
-                    },
-                ],
-            },
-            {
-                source: '/_next/static/(.*)',
-                headers: [
-                    {
-                        key: 'Cache-Control',
-                        value: 'public, max-age=31536000, immutable',
-                    },
-                ],
-            },
-            {
-                source: '/static/(.*)',
-                headers: [
-                    {
-                        key: 'Cache-Control',
-                        value: 'public, max-age=31536000, immutable',
-                    },
-                ],
-            },
-        ];
-    },
+    // 注意：在 output: export 模式下，headers 配置不被支持
+    // 缓存控制需要在部署时通过 Web 服务器（如 Nginx）配置
+    // async headers() {
+    //     return [
+    //         {
+    //             source: '/(.*)',
+    //             headers: [
+    //                 {
+    //                     key: 'Cache-Control',
+    //                     value: 'public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400',
+    //                 },
+    //             ],
+    //         },
+    //         {
+    //             source: '/_next/static/(.*)',
+    //             headers: [
+    //                 {
+    //                     key: 'Cache-Control',
+    //                     value: 'public, max-age=31536000, immutable',
+    //                 },
+    //             ],
+    //         },
+    //         {
+    //             source: '/static/(.*)',
+    //             headers: [
+    //                 {
+    //                     key: 'Cache-Control',
+    //                     value: 'public, max-age=31536000, immutable',
+    //                 },
+    //             ],
+    //         },
+    //     ];
+    // },
 };
 
 // 导出时包装 Bundle Analyzer

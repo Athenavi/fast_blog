@@ -74,20 +74,6 @@ python main.py --backend fastapi  # 或 django
 
 - [部署指南](docs/DEPLOYMENT_GUIDE.md) - Docker/服务器部署
 
-## 🛠️ 技术栈
-
-### 后端
-
-- **框架**: FastAPI 0.100+ / Django 4.2+
-- **Python**: 3.10+
-- **数据库**: PostgreSQL 14+
-- **缓存**: Redis 6+
-
-### 前端
-- **框架**: Next.js 15（App Router）
-- **语言**: TypeScript 5+
-- **样式**: TailwindCSS 3+
-
 ## 🤝 参与贡献
 
 我们欢迎任何形式的贡献！
