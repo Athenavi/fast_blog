@@ -83,7 +83,7 @@ const OptimizedMarkdownEditor: React.FC<OptimizedMarkdownEditorProps> = ({
   // 监听外部value变化，同步本地状态
   useEffect(() => {
     setLocalValue(value);
-  }, [value]);
+  }, []); // 移除 value 依赖，避免循环更新
 
   // 组件卸载时清理定时器
   useEffect(() => {

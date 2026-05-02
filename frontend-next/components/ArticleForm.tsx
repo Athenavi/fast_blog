@@ -201,7 +201,7 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
         }
       };
     }
-  }, [mode, form.id, autoSaveDraft]);
+  }, [mode, form.id]); // 移除 autoSaveDraft 依赖，避免不必要的重新渲染
 
   // 预览模式状态
   const [showPreview, setShowPreview] = useState(false);
@@ -221,7 +221,7 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
       const newSlug = generateSlug(form.title);
       setForm(prev => ({...prev, slug: newSlug}));
     }
-  }, [form.title, form.slug, mode, generateSlug]);
+  }, [form.title, mode]); // 移除 form.slug 和 generateSlug 依赖，避免不必要的重新渲染
 
   // 使用useCallback优化输入处理函数
   const handleInputChange = useCallback((field: keyof ArticleFormData, value: string | number | boolean | string[] | null) => {
@@ -245,7 +245,7 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
 
     // 显示确认对话框
     setShowSaveConfirm(true);
-  }, []);
+  }, []); // 移除所有依赖，避免不必要的重新渲染
 
   // 确认保存
   const handleConfirmSave = useCallback(async () => {
@@ -287,7 +287,7 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
     } finally {
       setIsSubmitting(false);
     }
-  }, [form, onSubmit, router, mode, createRevision]);
+  }, [form, onSubmit, router, mode, createRevision, toast]); // 添加 toast 依赖
 
   // 取消保存
   const handleCancelSave = useCallback(() => {

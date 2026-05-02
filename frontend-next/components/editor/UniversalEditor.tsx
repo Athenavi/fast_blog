@@ -113,7 +113,7 @@ const UniversalEditor: React.FC<UniversalEditorProps> = ({
         } else {
             setHtmlValue(value);
         }
-    }, [value, editorMode]);
+    }, [editorMode]); // 移除 value 依赖，避免循环更新
 
     // 处理Markdown编辑器变化
     const handleMarkdownChange = (markdown: string) => {

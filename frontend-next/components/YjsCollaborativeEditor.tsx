@@ -10,6 +10,20 @@ import {Badge} from '@/components/ui/badge';
 import {Button} from '@/components/ui/button';
 import {Save, Users, Wifi, WifiOff} from 'lucide-react';
 
+// 从 cookie 获取 token 的工具函数
+const getTokenFromCookie = (): string => {
+    if (typeof document === 'undefined') return '';
+
+    const cookies = document.cookie.split(';');
+    for (const cookie of cookies) {
+        const [name, value] = cookie.trim().split('=');
+        if (name === 'access_token') {
+            return decodeURIComponent(value);
+        }
+    }
+    return '';
+};
+
 interface CollaborativeEditorProps {
     documentId: string;
     articleId?: number;
@@ -62,6 +76,9 @@ function EditorWithYjs({
                            wsRef,
                            clientIdRef,
                        }: EditorWithYjsProps) {
+    const [isSaving, setIsSaving] = useState(false);
+    const [lastSaved, setLastSaved] = useState<Date | null>(null);
+    const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'success' | 'error'>('idle');
     // 初始化TipTap编辑器 - ydoc 一定存在
     const editor = useEditor({
         extensions: [
@@ -114,6 +131,8 @@ function EditorWithYjs({
     const handleSave = async () => {
         if (!editor || !wsRef.current) return;
 
+        setIsSaving(true);
+        setSaveStatus('saving');
         const content = editor.getHTML();
 
         try {
@@ -138,9 +157,24 @@ function EditorWithYjs({
 
             const data = await response.json();
             console.log('[Yjs Collaboration] Save successful:', data);
+            setSaveStatus('success');
+            setLastSaved(new Date());
+
+            // 3秒后重置状态
+            setTimeout(() => {
+                setSaveStatus('idle');
+            }, 3000);
         } catch (error) {
             console.error('[Yjs Collaboration] Save error:', error);
+            setSaveStatus('error');
             alert('保存失败，请重试');
+
+            // 5秒后重置状态
+            setTimeout(() => {
+                setSaveStatus('idle');
+            }, 5000);
+        } finally {
+            setIsSaving(false);
         }
     };
 
@@ -165,6 +199,24 @@ function EditorWithYjs({
                         <Users className="w-3 h-3"/>
                         {awarenessUsers.length + 1} 人在线
                     </Badge>
+
+                    {/* 保存状态指示器 */}
+                    {saveStatus === 'saving' && (
+                        <Badge variant="outline" className="gap-1">
+                            <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-gray-900"></div>
+                            保存中...
+                        </Badge>
+                    )}
+                    {saveStatus === 'success' && (
+                        <Badge variant="default" className="gap-1 bg-green-500">
+                            ✓ 已保存
+                        </Badge>
+                    )}
+                    {saveStatus === 'error' && (
+                        <Badge variant="destructive" className="gap-1">
+                            ✗ 保存失败
+                        </Badge>
+                    )}
                 </div>
 
                 {onSave && (
@@ -172,9 +224,10 @@ function EditorWithYjs({
                         variant="default"
                         size="sm"
                         onClick={handleSave}
+                        disabled={isSaving || !isConnected}
                     >
                         <Save className="w-4 h-4 mr-1"/>
-                        保存
+                        {isSaving ? '保存中...' : '保存'}
                     </Button>
                 )}
             </div>
@@ -210,7 +263,9 @@ function EditorWithYjs({
             <div className="mt-4 text-xs text-gray-500">
                 <p>文档ID: {documentId}</p>
                 {articleId && <p>文章ID: {articleId}</p>}
+                {lastSaved && <p>最后保存: {lastSaved.toLocaleTimeString()}</p>}
                 <p>提示: 多个用户可以同时编辑，所有更改会自动同步</p>
+                <p>自动保存: 每30秒自动保存一次</p>
             </div>
         </Card>
     );
@@ -220,10 +275,39 @@ function EditorWithYjs({
 export function YjsCollaborativeEditor({
                                            documentId,
                                            articleId,
-                                           token,
+                                           token: propToken,
                                            onSave,
                                            readOnly = false,
                                        }: CollaborativeEditorProps) {
+    // 优先使用传入的token，否则从 cookie 或 localStorage 获取
+    const [token, setToken] = useState<string>(propToken || '');
+
+    // 在客户端初始化时获取 token
+    useEffect(() => {
+        if (!propToken && typeof window !== 'undefined') {
+            console.log('[Yjs Collaboration] === Token Debug Start ===');
+
+            // 优先从 cookie 获取
+            let tokenValue = getTokenFromCookie();
+            console.log('[Yjs Collaboration] Token from cookie:', tokenValue ? `Found (${tokenValue.substring(0, 20)}...)` : 'Not found');
+
+            // 如果 cookie 中没有，尝试从 localStorage 获取
+            if (!tokenValue) {
+                tokenValue = localStorage.getItem('access_token') || '';
+                console.log('[Yjs Collaboration] Token from localStorage:', tokenValue ? `Found (${tokenValue.substring(0, 20)}...)` : 'Not found');
+            }
+
+            // 检查所有 cookies
+            console.log('[Yjs Collaboration] All cookies:', document.cookie);
+            console.log('[Yjs Collaboration] Final token value:', tokenValue ? `Set (${tokenValue.length} chars)` : 'Empty');
+            console.log('[Yjs Collaboration] === Token Debug End ===');
+
+            setToken(tokenValue);
+        } else if (propToken) {
+            console.log('[Yjs Collaboration] Using propToken:', propToken ? `Provided (${propToken.length} chars)` : 'Empty');
+            setToken(propToken);
+        }
+    }, []); // 移除 propToken 依赖，避免不必要的重新渲染
     const [awarenessUsers, setAwarenessUsers] = useState<Array<{
         client_id?: string;
         name?: string;
@@ -248,108 +332,157 @@ export function YjsCollaborativeEditor({
     useEffect(() => {
         if (!ydoc) return;
 
-        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsHost = process.env.NEXT_PUBLIC_WS_URL || `${wsProtocol}//localhost:9421`;
-        const wsUrl = `${wsHost}/api/v1/collaboration/ws/${documentId}?token=${token}&article_id=${articleId || ''}`;
-
-        console.log('[Yjs Collaboration] Connecting to:', wsUrl);
-
-        const ws = new WebSocket(wsUrl);
-        wsRef.current = ws;
-
-        ws.onopen = () => {
-            console.log('[Yjs Collaboration] Connected');
-            setIsConnected(true);
-        };
-
-        ws.onmessage = (event) => {
-            try {
-                // 检查是否是二进制数据（Yjs更新）
-                if (event.data instanceof ArrayBuffer || event.data instanceof Uint8Array) {
-                    const update = new Uint8Array(event.data);
-                    Y.applyUpdate(ydoc, update);
-                    return;
-                }
-
-                // 处理JSON消息
-                const message = JSON.parse(typeof event.data === 'string' ? event.data : new TextDecoder().decode(event.data));
-                console.log('[Yjs Collaboration] Received:', message.type);
-
-                switch (message.type) {
-                    case 'welcome':
-                        clientIdRef.current = message.client_id;
-                        console.log('[Yjs Collaboration] Client ID:', clientIdRef.current);
-
-                        // 如果有初始状态，应用它
-                        if (message.state && message.state.content) {
-                            const ytext = ydoc.getText('content');
-                            ytext.delete(0, ytext.length);
-                            ytext.insert(0, message.state.content);
-                        }
-                        break;
-
-                    case 'awareness':
-                        // 更新感知状态
-                        if (message.state) {
-                            setAwarenessUsers(prev => {
-                                const exists = prev.find(u => u.client_id === message.state.client_id);
-                                if (exists) {
-                                    return prev.map(u =>
-                                        u.client_id === message.state.client_id ? message.state : u
-                                    );
-                                } else {
-                                    return [...prev, message.state];
-                                }
-                            });
-                        }
-                        break;
-
-                    case 'user_joined':
-                    case 'user_left':
-                        console.log('[Yjs Collaboration] User count:', message.client_count);
-                        break;
-
-                    case 'save_result':
-                        if (message.success) {
-                            alert('文档保存成功！');
-                        } else {
-                            alert('保存失败，请重试');
-                        }
-                        break;
-
-                    case 'pong':
-                        // 心跳响应
-                        break;
-                }
-            } catch (error) {
-                console.error('[Yjs Collaboration] Message parse error:', error);
-            }
-        };
-
-        ws.onerror = (error) => {
-            console.error('[Yjs Collaboration] WebSocket error:', error);
-        };
-
-        ws.onclose = () => {
-            console.log('[Yjs Collaboration] Disconnected');
+        // 检查必要参数
+        if (!token) {
+            console.error('[Yjs Collaboration] Token is missing!');
             setIsConnected(false);
+            return;
+        }
+
+        const connectWebSocket = () => {
+            const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9421';
+            const wsProtocol = baseUrl.startsWith('https') ? 'wss:' : 'ws:';
+            const wsHost = baseUrl.replace(/^https?:\/\//, '');
+            // 不再需要传递 token，后端会从 cookie 自动读取
+            const wsUrl = `${wsProtocol}//${wsHost}/api/v1/collaboration/ws/${documentId}?article_id=${articleId || ''}`;
+
+            console.log('[Yjs Collaboration] Connecting to:', wsUrl);
+            console.log('[Yjs Collaboration] Document ID:', documentId);
+            console.log('[Yjs Collaboration] Article ID:', articleId);
+            console.log('[Yjs Collaboration] Token will be read from cookie by backend');
+
+            const ws = new WebSocket(wsUrl);
+            wsRef.current = ws;
+
+            ws.onopen = () => {
+                console.log('[Yjs Collaboration] ✓ Connected successfully');
+                setIsConnected(true);
+            };
+
+            ws.onmessage = (event) => {
+                try {
+                    // 检查是否是二进制数据（Yjs更新）
+                    if (event.data instanceof ArrayBuffer || event.data instanceof Uint8Array) {
+                        const update = new Uint8Array(event.data);
+                        Y.applyUpdate(ydoc, update);
+                        return;
+                    }
+
+                    // 处理JSON消息
+                    const message = JSON.parse(typeof event.data === 'string' ? event.data : new TextDecoder().decode(event.data));
+                    console.log('[Yjs Collaboration] Received message type:', message.type);
+
+                    switch (message.type) {
+                        case 'welcome':
+                            clientIdRef.current = message.client_id;
+                            console.log('[Yjs Collaboration] Client ID:', clientIdRef.current);
+
+                            // 如果有初始状态，应用它
+                            if (message.state && message.state.content) {
+                                const ytext = ydoc.getText('content');
+                                ytext.delete(0, ytext.length);
+                                ytext.insert(0, message.state.content);
+                            }
+                            break;
+
+                        case 'awareness':
+                            // 更新感知状态
+                            if (message.state) {
+                                setAwarenessUsers(prev => {
+                                    const exists = prev.find(u => u.client_id === message.state.client_id);
+                                    if (exists) {
+                                        return prev.map(u =>
+                                            u.client_id === message.state.client_id ? message.state : u
+                                        );
+                                    } else {
+                                        return [...prev, message.state];
+                                    }
+                                });
+                            }
+                            break;
+
+                        case 'user_joined':
+                        case 'user_left':
+                            console.log('[Yjs Collaboration] User count:', message.client_count);
+                            break;
+
+                        case 'save_result':
+                            if (message.success) {
+                                setSaveStatus('success');
+                                setLastSaved(new Date());
+                                setTimeout(() => {
+                                    setSaveStatus('idle');
+                                }, 3000);
+                            } else {
+                                setSaveStatus('error');
+                                setTimeout(() => {
+                                    setSaveStatus('idle');
+                                }, 5000);
+                            }
+                            break;
+
+                        case 'auto_save':
+                            // 自动保存通知
+                            if (message.success) {
+                                console.log('[Yjs Collaboration] Auto-saved');
+                                setSaveStatus('success');
+                                setLastSaved(new Date());
+                                setTimeout(() => {
+                                    setSaveStatus('idle');
+                                }, 2000);
+                            }
+                            break;
+
+                        case 'pong':
+                            // 心跳响应
+                            break;
+                    }
+                } catch (error) {
+                    console.error('[Yjs Collaboration] Message parse error:', error);
+                }
+            };
+
+            ws.onerror = (error) => {
+                console.error('[Yjs Collaboration] ✗ WebSocket error:', error);
+                console.error('[Yjs Collaboration] ReadyState:', ws.readyState);
+            };
+
+            ws.onclose = (event) => {
+                console.log('[Yjs Collaboration] Disconnected - Code:', event.code, 'Reason:', event.reason || 'No reason provided');
+                setIsConnected(false);
+
+                // 自动重连（除非是正常关闭或认证失败）
+                if (event.code !== 1000 && event.code !== 1001 && event.code !== 4001) {
+                    console.log('[Yjs Collaboration] Attempting to reconnect in 3 seconds...');
+                    setTimeout(() => {
+                        if (ydoc) {
+                            connectWebSocket();
+                        }
+                    }, 3000);
+                } else if (event.code === 4001) {
+                    console.error('[Yjs Collaboration] Authentication failed. Please check your token.');
+                }
+            };
+
+            // 监听Yjs文档更新并发送到服务器
+            const updateHandler = (update: Uint8Array) => {
+                if (ws.readyState === WebSocket.OPEN) {
+                    ws.send(update);
+                }
+            };
+
+            ydoc.on('update', updateHandler);
+
+            return () => {
+                ydoc.off('update', updateHandler);
+                if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+                    ws.close();
+                }
+            };
         };
 
-        // 监听Yjs文档更新并发送到服务器
-        const updateHandler = (update: Uint8Array) => {
-            if (ws.readyState === WebSocket.OPEN) {
-                ws.send(update);
-            }
-        };
-
-        ydoc.on('update', updateHandler);
-
-        return () => {
-            ydoc.off('update', updateHandler);
-            if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
-                ws.close();
-            }
-        };
+        const cleanup = connectWebSocket();
+        return cleanup;
     }, [documentId, articleId, token]);
 
     // 如果 ydoc 还未初始化，显示加载状态
@@ -361,6 +494,22 @@ export function YjsCollaborativeEditor({
                         <div
                             className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-2"></div>
                         <p className="text-sm text-gray-500">正在初始化编辑器...</p>
+                    </div>
+                </div>
+            </Card>
+        );
+    }
+
+    // 如果没有token，显示错误提示
+    if (!token) {
+        return (
+            <Card className="p-4">
+                <div className="flex items-center justify-center min-h-[400px]">
+                    <div className="text-center">
+                        <div className="text-red-500 text-4xl mb-4">⚠️</div>
+                        <p className="text-sm text-red-600 font-semibold mb-2">未登录或Token已过期</p>
+                        <p className="text-xs text-gray-500 mb-4">请先登录后再使用协作编辑功能</p>
+                        <p className="text-xs text-gray-400">Document ID: {documentId}</p>
                     </div>
                 </div>
             </Card>

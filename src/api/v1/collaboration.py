@@ -21,7 +21,6 @@ router = APIRouter(prefix="/collaboration", tags=["collaboration"])
 async def websocket_endpoint(
         websocket: WebSocket,
         document_id: str,
-        token: Optional[str] = Query(None, description="JWT Token for authentication"),
         client_id: Optional[str] = Query(None, description="Client identifier"),
         article_id: Optional[int] = Query(None, description="Article ID")
 ):
@@ -34,17 +33,63 @@ async def websocket_endpoint(
     - awareness: 用户感知状态（光标、选区等）
     - ping: 心跳检测
     """
+    print(f"\n{'=' * 60}")
+    print(f"[Collaboration Debug] WebSocket connection attempt")
+    print(f"[Collaboration Debug] Document ID: {document_id}")
+    print(f"[Collaboration Debug] Article ID: {article_id}")
+    print(f"[Collaboration Debug] Client ID: {client_id}")
 
-    # 验证token
-    if not token:
-        await websocket.close(code=4001, reason="Authentication required")
-        return
+    # 打印 WebSocket scope 信息
+    print(f"[Collaboration Debug] WebSocket scope keys: {list(websocket.scope.keys())}")
 
+    # 从 WebSocket headers 中提取 cookie 进行认证
+    from src.auth.auth_deps import _authenticate_user
+    from src.extensions import get_async_db_session
+    from starlette.requests import HTTPConnection
+
+    # 创建 Mock Request 对象，需要从 WebSocket scope 中提取 cookies
+    # WebSocket 的 cookies 在 headers 中的 'cookie' 字段
+    cookies = {}
+    cookie_header = websocket.scope.get("headers", [])
+    print(f"[Collaboration Debug] Headers count: {len(cookie_header)}")
+
+    for name, value in cookie_header:
+        header_name = name.decode("utf-8") if isinstance(name, bytes) else name
+        if header_name.lower() == "cookie":
+            cookie_str = value.decode("utf-8") if isinstance(value, bytes) else value
+            print(f"[Collaboration Debug] Raw cookie string: {cookie_str[:100]}...")
+            # 解析 cookie 字符串: "key1=value1; key2=value2"
+            for item in cookie_str.split(";"):
+                if "=" in item:
+                    key, val = item.strip().split("=", 1)
+                    cookies[key] = val
+            break
+
+    print(f"[Collaboration Debug] Extracted cookies: {list(cookies.keys())}")
+    print(f"[Collaboration Debug] Has access_token: {'access_token' in cookies}")
+
+    # 创建带有 cookies 的 mock request
+    mock_request = HTTPConnection(scope=websocket.scope)
+    mock_request._cookies = cookies  # 直接设置 cookies
+
+    # 获取数据库会话
+    db_session = get_async_db_session()
+    
     try:
-        # TODO: 实现token验证逻辑，这里简化处理
-        # 实际应该调用 get_current_user 进行验证
-        user_id = 1  # 临时占位，实际需要解析token获取user_id
+        print(f"[Collaboration Debug] Attempting authentication...")
+        # 使用系统的认证函数
+        current_user = await _authenticate_user(mock_request, db_session, required=True)
+        user_id = current_user.id
+        print(f"[Collaboration] ✓ User {user_id} authenticated successfully from cookie")
+        print(f"{'=' * 60}\n")
     except Exception as e:
+        print(f"[Collaboration Debug] ✗ Authentication failed!")
+        print(f"[Collaboration Debug] Error type: {type(e).__name__}")
+        print(f"[Collaboration Debug] Error message: {str(e)}")
+        import traceback
+        print(f"[Collaboration Debug] Traceback:")
+        traceback.print_exc()
+        print(f"{'=' * 60}\n")
         await websocket.close(code=4001, reason=f"Authentication failed: {str(e)}")
         return
 
@@ -114,8 +159,27 @@ async def websocket_endpoint(
                     }, exclude=client_id)
 
                 elif msg_type == "ping":
-                    # 心跳检测
+                    # 心跳检测，同时检查是否需要自动保存
                     await websocket.send_json({"type": "pong"})
+
+                    # 检查是否需要自动保存
+                    doc_obj = collaboration_service.documents.get(document_id)
+                    if doc_obj and doc_obj.needs_auto_save() and len(doc_obj.clients) > 0:
+                        print(f"[Auto-save] Triggering auto-save for document {document_id}")
+                        from src.extensions import get_async_db_session
+                        db_session = get_async_db_session()
+                        success = await collaboration_service.save_to_revision(
+                            document_id=document_id,
+                            db_session=db_session,
+                            author_id=user_id,
+                            change_summary="自动保存"
+                        )
+                        if success:
+                            await websocket.send_json({
+                                "type": "auto_save",
+                                "success": True,
+                                "message": "文档已自动保存"
+                            })
 
                 elif msg_type == "save":
                     # 手动保存到修订版本

@@ -152,7 +152,7 @@ export default function BlockEditor({
         if (editor && value !== editor.getHTML()) {
             editor.commands.setContent(value);
         }
-    }, [value, editor]);
+    }, [editor]); // 移除 value 依赖，避免循环更新
 
     // 清理定时器
     useEffect(() => {

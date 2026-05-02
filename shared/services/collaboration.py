@@ -18,12 +18,14 @@ class CollaborativeDocument:
         self.clients: Dict[str, WebSocket] = {}  # {client_id: websocket}
         self.created_at = datetime.utcnow()
         self.last_modified = datetime.utcnow()
+        self.last_saved = datetime.utcnow()  # 最后保存到数据库的时间
         # Yjs文档
         self.ydoc = Y.YDoc()
         self.ytext = self.ydoc.get_text('content')
         # 用户感知状态
         self.awareness: Dict[str, dict] = {}
         self.article_id: Optional[int] = None  # 关联的文章ID
+        self.auto_save_interval = 30  # 自动保存间隔（秒）
 
     def add_client(self, client_id: str, websocket: WebSocket):
         """添加客户端连接"""
@@ -80,6 +82,12 @@ class CollaborativeDocument:
         except Exception as e:
             print(f"Error applying Yjs update: {e}")
             return False
+
+    def needs_auto_save(self) -> bool:
+        """检查是否需要自动保存"""
+        now = datetime.utcnow()
+        elapsed = (now - self.last_saved).total_seconds()
+        return elapsed >= self.auto_save_interval
 
     def get_content(self) -> str:
         """获取文档内容"""
@@ -147,23 +155,70 @@ class CollaborationService:
     async def save_to_revision(self, document_id: str, db_session, author_id: int,
                                change_summary: str = "协作编辑保存"):
         """将协作文档保存到文章修订版本"""
-        from shared.services.article_manager import save_article_revision
-
+        from shared.models.article import Article
+        from shared.models.article_content import ArticleContent
+        from sqlalchemy import select
+        from datetime import datetime, timezone
+        
         doc = self.documents.get(document_id)
         if not doc or not doc.article_id:
             return False
 
         try:
-            # 使用现有的修订服务保存
+            # 先更新数据库中的文章内容
+            content = doc.get_content()
+            now = datetime.now(timezone.utc).replace(tzinfo=None)
+
+            # 查询并更新ArticleContent
+            content_query = select(ArticleContent).where(
+                ArticleContent.article == doc.article_id
+            )
+            result = await db_session.execute(content_query)
+            content_obj = result.scalar_one_or_none()
+
+            if content_obj:
+                # 更新现有内容
+                content_obj.content = content
+                content_obj.updated_at = now
+            else:
+                # 创建新内容记录
+                new_content = ArticleContent(
+                    article=doc.article_id,
+                    content=content,
+                    created_at=now,
+                    updated_at=now
+                )
+                db_session.add(new_content)
+
+            # 同时更新Article的更新时间
+            article_query = select(Article).where(Article.id == doc.article_id)
+            article_result = await db_session.execute(article_query)
+            article = article_result.scalar_one_or_none()
+
+            if article:
+                article.updated_at = now
+
+            await db_session.commit()
+
+            # 使用现有的修订服务保存（现在会读取到最新的内容）
+            from shared.services.article_manager import save_article_revision
             revision = await save_article_revision(
                 db=db_session,
                 article_id=doc.article_id,
                 author_id=author_id,
                 change_summary=change_summary
             )
+
+            # 更新最后保存时间
+            if revision:
+                doc.last_saved = datetime.utcnow()
+            
             return revision is not None
         except Exception as e:
             print(f"Error saving to revision: {e}")
+            import traceback
+            traceback.print_exc()
+            await db_session.rollback()
             return False
 
 

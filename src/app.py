@@ -497,6 +497,34 @@ curl -X POST "http://localhost:9421/api/v1/media/upload" \
     app.add_middleware(DebugRequestMiddleware)
     print("[Debug] Request debug middleware added")
 
+    # 添加 WebSocket 调试中间件（用于调试协作编辑 403 错误）
+    from starlette.middleware.base import BaseHTTPMiddleware
+
+    class DebugWebSocketMiddleware(BaseHTTPMiddleware):
+        async def dispatch(self, request, call_next):
+            # 检查是否是 WebSocket 升级请求
+            if request.headers.get("upgrade", "").lower() == "websocket":
+                if "/collaboration/ws/" in str(request.url):
+                    print(f"\n{'=' * 80}")
+                    print(f"[DEBUG WEBSOCKET] Collaboration WebSocket Connection Attempt")
+                    print(f"URL: {request.url}")
+                    print(f"Method: {request.method}")
+                    print(f"Upgrade: {request.headers.get('upgrade')}")
+                    print(f"Connection: {request.headers.get('connection')}")
+                    print(f"Sec-WebSocket-Key: {request.headers.get('sec-websocket-key', 'N/A')[:20]}...")
+                    print(f"Cookie Header: {request.headers.get('cookie', 'NO COOKIE')[:150]}...")
+                    print(f"All Headers:")
+                    for key, value in request.headers.items():
+                        if key.lower() in ['cookie', 'authorization']:
+                            print(f"  {key}: {value[:50]}..." if len(value) > 50 else f"  {key}: {value}")
+                    print(f"{'=' * 80}\n")
+
+            response = await call_next(request)
+            return response
+
+    app.add_middleware(DebugWebSocketMiddleware)
+    print("[Debug] WebSocket debug middleware added")
+
     # 添加安全中间件（XSS过滤、CSRF保护、速率限制、SQL注入检测）
     try:
         from src.auth.security_middleware import create_security_middleware_stack

@@ -121,7 +121,7 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
         if (editor && value !== editor.getHTML()) {
             editor.commands.setContent(value);
         }
-    }, [value, editor]);
+    }, [editor]); // 移除 value 依赖，避免循环更新
 
     // 插入媒体文件
     const handleMediaSelect = useCallback((media: MediaFile | MediaFile[]) => {

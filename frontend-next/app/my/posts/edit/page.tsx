@@ -85,7 +85,7 @@ const EditArticlePageContent = () => {
             window.removeEventListener('editorContentChanged', handleContentChanged as EventListener);
             console.log('已移除监听器');
         };
-    }, [currentContent]);
+    }, []); // 移除 currentContent 依赖，避免不必要的重新渲染
       
   // 加载文章数据
   useEffect(() => {
@@ -155,7 +155,7 @@ const EditArticlePageContent = () => {
     };
 
     fetchArticleData();
-  }, [articleId]);
+  }, [articleId]); // 保持 articleId 依赖，这是必要的
 
   // 处理表单提交
     const handleSubmit = async (formData: ArticleData, createRevision?: boolean) => {
@@ -253,7 +253,6 @@ const EditArticlePageContent = () => {
                   <YjsCollaborativeEditor
                       documentId={collabDocId}
                       articleId={collabArticleId}
-                      token={typeof window !== 'undefined' ? localStorage.getItem('access_token') || '' : ''}
                   />
               </div>
           )}
