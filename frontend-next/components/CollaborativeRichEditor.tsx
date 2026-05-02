@@ -1,13 +1,12 @@
 'use client';
 
 import React, {useEffect, useRef, useState} from 'react';
-import {useEditor, EditorContent} from '@tiptap/react';
+import {EditorContent, useEditor} from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import * as Y from 'yjs';
 import {Card} from '@/components/ui/card';
 import {Badge} from '@/components/ui/badge';
 import {Button} from '@/components/ui/button';
-import {Users, Wifi, WifiOff, Save} from 'lucide-react';
+import {Save, Users, Wifi, WifiOff} from 'lucide-react';
 
 interface CollaborativeEditorProps {
     documentId: string;
@@ -80,19 +79,23 @@ export function CollaborativeEditor({
                     console.log('[Collaboration] Content length:', content.length);
                     console.log('[Collaboration] Content preview:', content.substring(0, 100));
 
-                    // 设置编辑器内容
+                    // 如果协作文档有内容，使用它
                     if (content) {
                         console.log('[Collaboration] Setting content to editor...');
                         editor.commands.setContent(content);
                         console.log('[Collaboration] ✓ Content successfully set to editor');
                     } else {
-                        console.log('[Collaboration] Document is empty, no content to set');
+                        console.log('[Collaboration] Collaboration document is empty, trying to load from article...');
+                        // 尝试从文章API加载
+                        await loadFromArticleAPI();
                     }
                 } else {
                     console.warn('[Collaboration] Response success=false or no data:', data);
                 }
             } else if (response.status === 404) {
-                console.log('[Collaboration] ⚠ Document not found (404), will create on first edit');
+                console.log('[Collaboration] ⚠ Document not found (404), trying to load from article...');
+                // 尝试从文章API加载
+                await loadFromArticleAPI();
             } else {
                 console.error('[Collaboration] ✗ Failed to load document, status:', response.status);
                 const text = await response.text();
@@ -106,6 +109,96 @@ export function CollaborativeEditor({
             }
         }
         console.log('=== [Collaboration] loadDocumentContent finished ===');
+    };
+
+    // 从文章API加载内容
+    const loadFromArticleAPI = async () => {
+        console.log('[Collaboration] Loading from article API...');
+        const articleUrl = `http://localhost:9421/api/v1/articles/${documentId}`;
+        console.log('[Collaboration] Fetching from article URL:', articleUrl);
+
+        try {
+            const articleResponse = await fetch(articleUrl, {
+                credentials: 'include',
+            });
+
+            console.log('[Collaboration] Article response status:', articleResponse.status);
+
+            if (articleResponse.ok) {
+                const articleData = await articleResponse.json();
+                console.log('[Collaboration] Article data keys:', Object.keys(articleData));
+                console.log('[Collaboration] Full article data:', JSON.stringify(articleData, null, 2));
+
+                // 检查不同的响应格式
+                let articleContent = '';
+
+                // 尝试多种可能的路径
+                if (articleData.success && articleData.data) {
+                    // 路径1: data.article.content
+                    if (articleData.data.article && articleData.data.article.content) {
+                        articleContent = articleData.data.article.content;
+                        console.log('[Collaboration] Using path: data.article.content');
+                    }
+                    // 路径2: data.raw_content 或 data.markdown_content
+                    else if (articleData.data.raw_content) {
+                        articleContent = articleData.data.raw_content;
+                        console.log('[Collaboration] Using path: data.raw_content');
+                    } else if (articleData.data.markdown_content) {
+                        articleContent = articleData.data.markdown_content;
+                        console.log('[Collaboration] Using path: data.markdown_content');
+                    }
+                    // 路径3: data.content
+                    else if (articleData.data.content) {
+                        articleContent = articleData.data.content;
+                        console.log('[Collaboration] Using path: data.content');
+                    }
+                }
+                // 直接访问 content
+                else if (articleData.content) {
+                    articleContent = articleData.content;
+                    console.log('[Collaboration] Using path: root content');
+                }
+
+                console.log('[Collaboration] Article content length:', articleContent.length);
+
+                if (articleContent) {
+                    console.log('[Collaboration] Article content preview:', articleContent.substring(0, 200));
+                    console.log('[Collaboration] Setting article content to editor...');
+
+                    // TipTap可以直接处理HTML
+                    editor?.commands.setContent(articleContent);
+                    console.log('[Collaboration] ✓ Article content successfully set to editor');
+
+                    // 将文章内容同步到协作文档服务
+                    console.log('[Collaboration] Syncing content to collaboration service...');
+                    await fetch(`http://localhost:9421/api/v1/collaboration/document/${documentId}/save`, {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        credentials: 'include',
+                        body: JSON.stringify({content: articleContent}),
+                    });
+                    console.log('[Collaboration] ✓ Content synced to collaboration service');
+                } else {
+                    console.log('[Collaboration] ⚠ No content found in article');
+                    console.log('[Collaboration] Available fields in data:', Object.keys(articleData.data || {}));
+                    if (articleData.data.article) {
+                        console.log('[Collaboration] Available fields in data.article:', Object.keys(articleData.data.article));
+                    }
+                }
+            } else if (articleResponse.status === 404) {
+                console.log('[Collaboration] ⚠ Article not found (404)');
+            } else {
+                console.error('[Collaboration] ✗ Failed to load article, status:', articleResponse.status);
+                const errorText = await articleResponse.text();
+                console.error('[Collaboration] Error response:', errorText);
+            }
+        } catch (error) {
+            console.error('[Collaboration] ✗ Exception while loading from article:', error);
+            if (error instanceof Error) {
+                console.error('[Collaboration] Error message:', error.message);
+                console.error('[Collaboration] Error stack:', error.stack);
+            }
+        }
     };
 
     // 初始化编辑器 - 必须在顶层调用
@@ -132,11 +225,6 @@ export function CollaborativeEditor({
         ws.onopen = () => {
             console.log('[Collaboration] Connected');
             setIsConnected(true);
-
-            // 连接成功后加载文档内容
-            setTimeout(() => {
-                loadDocumentContent();
-            }, 100);
         };
 
         ws.onmessage = (event) => {
@@ -183,6 +271,18 @@ export function CollaborativeEditor({
         };
     }, [documentId]);
 
+    // 当编辑器和连接都准备好时，加载文档内容
+    useEffect(() => {
+        if (editor && isConnected) {
+            console.log('[Collaboration] Editor and connection ready, loading document...');
+            // 延迟一下确保编辑器完全初始化
+            const timer = setTimeout(() => {
+                loadDocumentContent();
+            }, 200);
+            return () => clearTimeout(timer);
+        }
+    }, [editor, isConnected]);
+
     // 获取连接状态
     const userCount = awarenessUsers.length;
 
@@ -213,12 +313,25 @@ export function CollaborativeEditor({
 
     // 保存文档
     const handleSave = async () => {
-        if (!editor) return;
+        console.log('=== [Collaboration] handleSave called ===');
+
+        if (!editor) {
+            console.warn('[Collaboration] Editor not available');
+            alert('编辑器未初始化');
+            return;
+        }
 
         const content = editor.getHTML();
+        console.log('[Collaboration] Content length:', content.length);
+        console.log('[Collaboration] Content preview:', content.substring(0, 100));
+        
         try {
-            console.log('[Collaboration] Saving document...');
-            const response = await fetch(`http://localhost:9421/api/v1/collaboration/document/${documentId}/save`, {
+            const url = `http://localhost:9421/api/v1/collaboration/document/${documentId}/save`;
+            console.log('[Collaboration] Saving to URL:', url);
+            console.log('[Collaboration] Request method: POST');
+            console.log('[Collaboration] Request credentials: include');
+
+            const response = await fetch(url, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -227,17 +340,43 @@ export function CollaborativeEditor({
                 body: JSON.stringify({content}),
             });
 
+            console.log('[Collaboration] Save response status:', response.status);
+            console.log('[Collaboration] Save response ok:', response.ok);
+                    
             if (!response.ok) {
-                throw new Error('Failed to save');
+                const errorText = await response.text();
+                console.error('[Collaboration] Save failed with status:', response.status);
+                console.error('[Collaboration] Error response text:', errorText);
+                throw new Error(`Save failed: ${response.status} - ${errorText}`);
             }
 
             const data = await response.json();
-            console.log('[Collaboration] Document saved:', data);
+            console.log('[Collaboration]  Save successful:', data);
             alert('文档保存成功!');
         } catch (error) {
-            console.error('[Collaboration] Failed to save:', error);
-            alert('保存失败');
+            console.error('[Collaboration]  Save error:', error);
+            if (error instanceof Error) {
+                console.error('[Collaboration] Error name:', error.name);
+                console.error('[Collaboration] Error message:', error.message);
+                console.error('[Collaboration] Error stack:', error.stack);
+
+                // 检查是否是网络错误
+                if (error.message === 'Failed to fetch') {
+                    console.error('[Collaboration] This is likely a CORS or network issue.');
+                    console.error('[Collaboration] Please check:');
+                    console.error('[Collaboration] 1. Backend server is running on http://localhost:9421');
+                    console.error('[Collaboration] 2. CORS is properly configured');
+                    console.error('[Collaboration] 3. Network connection is stable');
+                    alert('保存失败：无法连接到服务器。请检查后端服务是否正在运行。');
+                } else {
+                    alert(`保存失败：${error.message}`);
+                }
+            } else {
+                console.error('[Collaboration] Unknown error type:', error);
+                alert('保存失败，发生未知错误');
+            }
         }
+        console.log('=== [Collaboration] handleSave finished ===');
     };
 
     return (
@@ -306,6 +445,26 @@ export function CollaborativeEditor({
             <div className="mt-4 text-xs text-gray-500">
                 <p>文档ID: {documentId}</p>
                 <p>提示: 多个用户可以同时编辑,光标和选区会实时显示</p>
+                <button
+                    onClick={() => {
+                        console.log('[DEBUG] Testing article API...');
+                        fetch(`http://localhost:9421/api/v1/articles/${documentId}`, {
+                            credentials: 'include'
+                        })
+                            .then(r => {
+                                console.log('[DEBUG] Response status:', r.status);
+                                return r.json();
+                            })
+                            .then(d => {
+                                console.log('[DEBUG] Article data:', d);
+                                console.log('[DEBUG] Content:', d.data?.content || d.content);
+                            })
+                            .catch(e => console.error('[DEBUG] Error:', e));
+                    }}
+                    className="text-blue-500 hover:underline mt-2"
+                >
+                    🔍 测试文章API
+                </button>
             </div>
         </Card>
     );

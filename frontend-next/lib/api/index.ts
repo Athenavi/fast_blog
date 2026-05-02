@@ -50,3 +50,42 @@ export type {
 
 // Utils
 export {normalizeApiResponse} from './utils';
+
+// Helper function for direct fetch calls with auth
+export async function apiFetch(
+    path: string,
+    options: RequestInit = {}
+): Promise<Response> {
+    const config = await import('@/lib/config').then(m => m.getConfig());
+    const fullPath = path.startsWith(config.API_PREFIX) ? path : `${config.API_PREFIX}${path}`;
+    const fullUrl = `${config.API_BASE_URL}${fullPath}`;
+
+    // Get token from cookie
+    const getTokenFromCookie = (): string | null => {
+        if (typeof document === 'undefined') return null;
+        const cookies = document.cookie.split(';');
+        for (const cookie of cookies) {
+            const [name, value] = cookie.trim().split('=');
+            if (name === 'access_token') {
+                return decodeURIComponent(value);
+            }
+        }
+        return null;
+    };
+
+    const token = getTokenFromCookie();
+    const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...(options.headers as Record<string, string>),
+    };
+
+    if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    return fetch(fullUrl, {
+        ...options,
+        headers,
+        credentials: 'include',
+    });
+}

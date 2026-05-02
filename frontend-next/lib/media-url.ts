@@ -1,114 +1,64 @@
 /**
- * 媒体资源 URL 生成工具
+ * 媒体URL工具函数
  *
- * 用于生成完整的后端媒体资源 URL
+ * 用于生成和获取媒体文件的URL
  */
 
+import {getConfig} from '@/lib/config';
+
 /**
- * 生成媒体资源完整 URL
- * @param mediaId 媒体 ID
- * @returns 完整的媒体资源 URL
+ * 根据媒体ID或哈希生成媒体URL
+ * @param mediaId - 媒体ID或哈希
+ * @returns 完整的媒体URL
  */
-export async function getMediaUrl(mediaId: string): Promise<string> {
-    const config = await import('@/lib/config');
-    const apiConfig = config.getConfig();
-    return `${apiConfig.API_BASE_URL}${apiConfig.API_PREFIX}/media/${mediaId}`;
+export function getMediaUrl(mediaId: string): string {
+    const config = getConfig();
+    const baseUrl = config.API_BASE_URL.replace(/\/api\/v1$/, '');
+
+    // 如果已经是完整URL，直接返回
+    if (mediaId.startsWith('http://') || mediaId.startsWith('https://')) {
+        return mediaId;
+    }
+
+    // 根据ID生成URL
+    return `${baseUrl}/media/${mediaId}`;
 }
 
 /**
- * 生成缩略图完整 URL
- * @param mediaId 媒体 ID
- * @returns 完整的缩略图 URL
+ * 同步版本 - 用于客户端组件
+ * @param mediaId - 媒体ID或哈希
+ * @returns 完整的媒体URL
  */
-export async function getThumbnailUrl(mediaId: string): Promise<string> {
-    const config = await import('@/lib/config');
-    const apiConfig = config.getConfig();
-    return `${apiConfig.API_BASE_URL}${apiConfig.API_PREFIX}/thumbnail/${mediaId}`;
+export function getMediaUrlSync(mediaId: string): string {
+    return getMediaUrl(mediaId);
 }
 
 /**
- * 同步版本的媒体 URL 生成（使用默认配置）
- * @param mediaId 媒体 ID
- * @returns 媒体资源 URL
- */
-export function getMediaUrlSync(mediaId: string | number): string {
-    const config = window as any;
-    const apiConfig = config.runtimeConfig || {
-        API_BASE_URL: 'http://localhost:8000',
-        API_PREFIX: '/api/v1'
-    };
-    return `${apiConfig.API_BASE_URL}${apiConfig.API_PREFIX}/media/${mediaId}`;
-}
-
-/**
- * 同步版本的缩略图 URL 生成（使用默认配置）
- * @param mediaId 媒体 ID
- * @returns 缩略图 URL
- */
-export function getThumbnailUrlSync(mediaId: string | number): string {
-    const config = window as any;
-    const apiConfig = config.runtimeConfig || {
-        API_BASE_URL: 'http://localhost:8000',
-        API_PREFIX: '/api/v1'
-    };
-    return `${apiConfig.API_BASE_URL}${apiConfig.API_PREFIX}/thumbnail/${mediaId}`;
-}
-
-/**
- * 生成封面图片 URL（公开访问，无需认证）
- * @param mediaId 媒体 ID
- * @param fileHash 文件哈希值
- * @param extension 文件扩展名（默认 .jpg）
- * @returns 封面图片 URL
- */
-export function getCoverImageUrl(mediaId: string | number, fileHash: string, extension: string = '.jpg'): string {
-    const config = window as any;
-    const apiConfig = config.runtimeConfig || {
-        API_BASE_URL: 'http://localhost:8000',
-        API_PREFIX: '/api/v1'
-    };
-    // 文件名格式：{media_id}_{hash前16位}.{ext}
-    const filename = `${mediaId}_${fileHash.substring(0, 16)}${extension}`;
-    return `${apiConfig.API_BASE_URL}${apiConfig.API_PREFIX}/media/cover/${filename}`;
-}
-
-/**
- * 异步版本：生成封面图片 URL 并确保封面已生成
- * @param mediaId 媒体 ID
- * @returns 封面图片 URL
+ * 生成并获取封面URL
+ * @param mediaId - 媒体ID
+ * @returns 封面URL
  */
 export async function generateAndGetCoverUrl(mediaId: string | number): Promise<string> {
-    const config = await import('@/lib/config');
-    const apiConfig = config.getConfig();
+    // 如果是数字ID，转换为字符串
+    const id = String(mediaId);
 
-    try {
-        // 调用后端API生成封面
-        const response = await fetch(
-            `${apiConfig.API_BASE_URL}${apiConfig.API_PREFIX}/media/generate-cover/${mediaId}`,
-            {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    // 需要携带认证信息
-                    'Authorization': `Bearer ${document.cookie.split('; ').find(row => row.startsWith('access_token='))?.split('=')[1]}`
-                },
-                credentials: 'include'
-            }
-        );
+    // 这里可以调用后端API生成优化的封面
+    // 目前直接返回媒体URL
+    return getMediaUrl(id);
+}
 
-        if (!response.ok) {
-            throw new Error(`生成封面失败: ${response.status}`);
-        }
+/**
+ * 获取缩略图URL
+ * @param mediaId - 媒体ID
+ * @returns 缩略图URL
+ */
+export function getThumbnailUrl(mediaId: string): string {
+    const config = getConfig();
+    const baseUrl = config.API_BASE_URL.replace(/\/api\/v1$/, '');
 
-        const result = await response.json();
-        if (result.success && result.data?.cover_url) {
-            // 返回完整的URL
-            return `${apiConfig.API_BASE_URL}${result.data.cover_url}`;
-        }
-
-        throw new Error('生成封面失败');
-    } catch (error) {
-        console.error('生成封面URL失败:', error);
-        throw error;
+    if (mediaId.startsWith('http://') || mediaId.startsWith('https://')) {
+        return mediaId;
     }
+
+    return `${baseUrl}/media/thumbnails/${mediaId}`;
 }

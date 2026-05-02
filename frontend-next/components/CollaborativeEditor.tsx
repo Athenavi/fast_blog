@@ -1,14 +1,16 @@
 'use client';
 
-import React, {useState, useCallback, useRef, useEffect} from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {useCollaboration} from '@/hooks/useCollaboration';
 import {Card} from '@/components/ui/card';
 import {Badge} from '@/components/ui/badge';
 import {Button} from '@/components/ui/button';
-import {Users, Wifi, WifiOff, Save, RefreshCw} from 'lucide-react';
+import {RefreshCw, Save, Users, Wifi, WifiOff} from 'lucide-react';
 
 interface CollaborativeEditorProps {
     documentId: string;
+    userId?: number;
+    userName?: string;
     token?: string;
     initialContent?: string;
     onSave?: (content: string) => Promise<void>;
@@ -130,7 +132,7 @@ export function CollaborativeEditor({
     const renderRemoteCursors = () => {
         if (!textareaRef.current) return null;
 
-        const cursors: JSX.Element[] = [];
+        const cursors: React.JSX.Element[] = [];
         remoteCursors.forEach((remoteCursor, id) => {
             if (id === clientId) return; // 不显示自己的光标
 

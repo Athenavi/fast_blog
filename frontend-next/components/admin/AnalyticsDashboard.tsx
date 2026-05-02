@@ -2,7 +2,8 @@
 
 import {useEffect, useState} from 'react';
 import {Card, CardContent, CardHeader, CardTitle} from '@/components/ui/card';
-import {LineChart, BarChart, PieChart} from '@/components/charts';
+// @ts-ignore - Charts components are placeholders for now
+import {LineChart} from '@/components/charts';
 
 interface OverviewStats {
     total_articles: number;

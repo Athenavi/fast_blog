@@ -1,57 +1,31 @@
 'use client';
 
-import React, {useState, useEffect} from 'react';
-import {useSearchParams, useRouter} from 'next/navigation';
-import {CollaborativeEditor} from '@/components/CollaborativeRichEditor';
-import {InvitationManager} from '@/components/InvitationManager';
+import React, {useState} from 'react';
+import {useRouter, useSearchParams} from 'next/navigation';
+import {YjsCollaborativeEditor} from '@/components/YjsCollaborativeEditor';
+import {AuthProtected} from '@/components/AuthProtected';
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card';
 import {Input} from '@/components/ui/input';
 import {Label} from '@/components/ui/label';
 import {Button} from '@/components/ui/button';
-import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/components/ui/tabs';
-import {apiFetch} from '@/lib/api';
 
 export default function CollaborationPage() {
+    return (
+        <AuthProtected>
+            <CollaborationPageContent/>
+        </AuthProtected>
+    );
+}
+
+function CollaborationPageContent() {
     const searchParams = useSearchParams();
     const router = useRouter();
 
-    const documentId = searchParams.get('doc') || '';
-    const inviteId = searchParams.get('invite');
+    const documentId = searchParams?.get('doc') || '';
+    const articleId = searchParams?.get('article_id');
 
-    const [token, setToken] = useState('');
     const [isEditing, setIsEditing] = useState(false);
-    const [activeTab, setActiveTab] = useState('editor');
     const [inputDocId, setInputDocId] = useState(documentId);
-
-    // 如果有邀请ID,自动接受邀请
-    useEffect(() => {
-        if (inviteId && documentId) {
-            handleAcceptInvite(inviteId);
-        }
-    }, [inviteId, documentId]);
-
-    const handleAcceptInvite = async (inviteId: string) => {
-        try {
-            const response = await apiFetch(`/api/v1/collaboration/invites/${inviteId}/accept`, {
-                method: 'POST',
-                body: JSON.stringify({}),
-            });
-
-            if (!response.ok) {
-                const error = await response.json();
-                alert(`邀请无效: ${error.detail}`);
-                return;
-            }
-
-            const data = await response.json();
-            console.log('Accepted invitation:', data);
-            setIsEditing(true);
-            setActiveTab('editor');
-        } catch (error) {
-            console.error('Accept invite error:', error);
-            alert('接受邀请失败');
-        }
-    };
 
     const handleStartEdit = () => {
         if (!inputDocId) {
@@ -60,30 +34,10 @@ export default function CollaborationPage() {
         }
 
         // 更新URL参数
-        const params = new URLSearchParams(searchParams.toString());
+        const params = new URLSearchParams(searchParams?.toString() || '');
         params.set('doc', inputDocId);
         router.push(`/collaboration?${params.toString()}`);
         setIsEditing(true);
-    };
-
-    const handleSave = async (content: string) => {
-        try {
-            const response = await apiFetch(`/api/v1/collaboration/document/${documentId}/save`, {
-                method: 'POST',
-                body: JSON.stringify({content}),
-            });
-
-            if (!response.ok) {
-                throw new Error('Failed to save');
-            }
-
-            const data = await response.json();
-            console.log('Saved:', data);
-            alert('文档保存成功!');
-        } catch (error) {
-            console.error('Save error:', error);
-            alert('保存失败');
-        }
     };
 
     if (!isEditing || !documentId) {
@@ -182,24 +136,12 @@ export default function CollaborationPage() {
                 </Button>
             </div>
 
-            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-                <TabsList className="grid w-full max-w-md grid-cols-2 mb-8">
-                    <TabsTrigger value="editor">📝 编辑器</TabsTrigger>
-                    <TabsTrigger value="invites">🔗 邀请管理</TabsTrigger>
-                </TabsList>
-
-                <TabsContent value="editor" className="space-y-4">
-                    <CollaborativeEditor
+            {/* Yjs协作编辑器 */}
+            <YjsCollaborativeEditor
                         documentId={documentId}
-                        token={token || undefined}
-                        onSave={handleSave}
+                        articleId={articleId ? parseInt(articleId) : undefined}
+                        token={typeof window !== 'undefined' ? localStorage.getItem('access_token') || '' : ''}
                     />
-                </TabsContent>
-
-                <TabsContent value="invites">
-                    <InvitationManager documentId={documentId}/>
-                </TabsContent>
-            </Tabs>
         </div>
     );
 }

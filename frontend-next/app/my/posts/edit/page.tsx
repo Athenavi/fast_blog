@@ -8,16 +8,23 @@ import LoadingState from '@/components/LoadingState';
 import ErrorState from '@/components/ErrorState';
 import AuthErrorBoundary from '@/components/AuthErrorBoundary';
 import {Button} from '@/components/ui/button';
-import {Badge} from '@/components/ui/badge';
-import {Users, Wifi, WifiOff} from 'lucide-react';
+import {Users} from 'lucide-react';
 
-// 动态导入表单组件
+// 动态导入表单组件和协作编辑器
 const ArticleForm = dynamic(
   () => import('@/components/ArticleForm'),
   {
     ssr: false,
     loading: () => <LoadingState message="加载表单中..." />
   }
+);
+
+const YjsCollaborativeEditor = dynamic(
+    () => import('@/components/YjsCollaborativeEditor').then(mod => ({default: mod.YjsCollaborativeEditor})),
+    {
+        ssr: false,
+        loading: () => <LoadingState message="加载协作编辑器中..."/>
+    }
 );
 
 interface ArticleData {
@@ -52,6 +59,7 @@ const EditArticlePageContent = () => {
     const [currentContent, setCurrentContent] = useState<string>('');
     const [showCollaboration, setShowCollaboration] = useState(false);
     const [collabDocId, setCollabDocId] = useState<string>('');
+    const [collabArticleId, setCollabArticleId] = useState<number | undefined>(undefined);
 
     // 监听获取编辑器内容的事件
     useEffect(() => {
@@ -135,6 +143,7 @@ const EditArticlePageContent = () => {
 
           // 设置协作文档ID (使用文章ID)
           setCollabDocId(`article-${article.id}`);
+          setCollabArticleId(article.id);
 
         setCategories(result.data.categories || []);
       } catch (err) {
@@ -225,11 +234,11 @@ const EditArticlePageContent = () => {
           {/* 协作编辑面板 */}
           {showCollaboration && collabDocId && (
               <div
-                  className="fixed top-4 right-4 z-50 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 border max-w-sm">
+                  className="fixed top-4 right-4 z-50 bg-white dark:bg-gray-800 rounded-lg shadow-lg p-4 border max-w-2xl w-full">
                   <div className="flex items-center justify-between mb-3">
                       <h3 className="font-semibold flex items-center gap-2">
                           <Users className="w-4 h-4"/>
-                          协作编辑
+                          协作编辑 - {collabDocId}
                       </h3>
                       <Button
                           variant="ghost"
@@ -240,26 +249,12 @@ const EditArticlePageContent = () => {
                       </Button>
                   </div>
 
-                  <div className="space-y-3">
-                      <div className="text-sm text-gray-600 dark:text-gray-400">
-                          <p>文档ID: <code
-                              className="bg-gray-100 dark:bg-gray-700 px-2 py-1 rounded">{collabDocId}</code></p>
-                      </div>
-
-                      <Button
-                          className="w-full"
-                          size="sm"
-                          onClick={() => {
-                              window.open(`/collaboration?doc=${collabDocId}`, '_blank');
-                          }}
-                      >
-                          打开协作编辑器
-                      </Button>
-
-                      <p className="text-xs text-gray-500">
-                          点击按钮在新窗口打开协作编辑器，可邀请多人同时编辑
-                      </p>
-                  </div>
+                  {/* 集成Yjs协作编辑器 */}
+                  <YjsCollaborativeEditor
+                      documentId={collabDocId}
+                      articleId={collabArticleId}
+                      token={typeof window !== 'undefined' ? localStorage.getItem('access_token') || '' : ''}
+                  />
               </div>
           )}
 
@@ -272,7 +267,7 @@ const EditArticlePageContent = () => {
                   className="shadow-lg"
               >
                   <Users className="w-4 h-4 mr-2"/>
-                  协作编辑
+                  {showCollaboration ? '关闭协作' : '协作编辑'}
               </Button>
           </div>
           

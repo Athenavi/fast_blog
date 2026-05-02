@@ -6,7 +6,7 @@ import dynamic from 'next/dynamic';
 import {Category} from "@/lib/api";
 import {OptimizedInput, OptimizedTextarea} from '@/components/ui/optimized-input';
 import CoverImageUploader from '@/components/CoverImageUploader';
-import {DraftService, LocalDraft} from '@/lib/draft-service';
+import {DraftService} from '@/lib/draft-service';
 import {
   Dialog,
   DialogContent,
@@ -51,6 +51,7 @@ interface ArticleFormData {
   article_ad: string;
   is_featured: boolean;
   category_id: number | null;
+  scheduled_publish_at: string;
 }
 
 interface ArticleFormProps {
@@ -99,6 +100,7 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
     article_ad: '',
     is_featured: false,
     category_id: null,
+    scheduled_publish_at: '',
     ...initialData
   }), [initialData]);
 

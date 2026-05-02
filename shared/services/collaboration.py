@@ -1,101 +1,114 @@
 """
 实时协作编辑服务
 
-基于WebSocket实现多人实时协作编辑功能
+基于Yjs CRDT实现多人实时协作编辑功能
 """
-import asyncio
-import json
-from typing import Dict, Set, Optional
 from datetime import datetime
+from typing import Dict, Optional
+
+import y_py as Y
 from fastapi import WebSocket
 
 
 class CollaborativeDocument:
-    """协作文档"""
+    """协作文档 - 基于Yjs CRDT"""
 
     def __init__(self, document_id: str):
         self.document_id = document_id
-        self.clients: Set[WebSocket] = set()
-        self.operations: list = []
+        self.clients: Dict[str, WebSocket] = {}  # {client_id: websocket}
         self.created_at = datetime.utcnow()
         self.last_modified = datetime.utcnow()
-        # 文档内容(简化版,实际应使用Yjs)
-        self.content = ""
-        self.cursors: Dict[str, dict] = {}  # {client_id: {position, selection}}
+        # Yjs文档
+        self.ydoc = Y.YDoc()
+        self.ytext = self.ydoc.get_text('content')
+        # 用户感知状态
+        self.awareness: Dict[str, dict] = {}
+        self.article_id: Optional[int] = None  # 关联的文章ID
 
-    def add_client(self, websocket: WebSocket):
+    def add_client(self, client_id: str, websocket: WebSocket):
         """添加客户端连接"""
-        self.clients.add(websocket)
+        self.clients[client_id] = websocket
 
-    def remove_client(self, websocket: WebSocket):
+    def remove_client(self, client_id: str):
         """移除客户端连接"""
-        self.clients.discard(websocket)
+        if client_id in self.clients:
+            del self.clients[client_id]
         # 清理光标信息
-        client_id = id(websocket)
-        self.cursors.pop(str(client_id), None)
+        self.awareness.pop(client_id, None)
 
-    async def broadcast(self, message: dict, exclude: Optional[WebSocket] = None):
-        """广播消息给所有连接的客户端"""
-        disconnected = set()
+    async def broadcast_update(self, update: bytes, exclude: Optional[str] = None):
+        """广播Yjs更新给所有连接的客户端"""
+        disconnected = []
 
-        for client in self.clients:
-            if client != exclude:
+        for client_id, client in self.clients.items():
+            if client_id != exclude:
                 try:
-                    await client.send_json(message)
+                    await client.send_bytes(update)
                 except Exception as e:
-                    print(f"Broadcast error: {e}")
-                    disconnected.add(client)
+                    print(f"Broadcast error for client {client_id}: {e}")
+                    disconnected.append(client_id)
 
         # 清理断开的连接
-        for client in disconnected:
-            self.remove_client(client)
+        for client_id in disconnected:
+            self.remove_client(client_id)
 
-    def apply_operation(self, operation: dict, client_id: str):
-        """应用操作到文档"""
-        op_type = operation.get("type")
+    async def broadcast_awareness(self, awareness_state: dict, exclude: Optional[str] = None):
+        """广播感知状态（光标等）"""
+        disconnected = []
 
-        if op_type == "insert":
-            position = operation.get("position", 0)
-            text = operation.get("text", "")
-            self.content = self.content[:position] + text + self.content[position:]
+        for client_id, client in self.clients.items():
+            if client_id != exclude:
+                try:
+                    await client.send_json({
+                        'type': 'awareness',
+                        'state': awareness_state
+                    })
+                except Exception as e:
+                    print(f"Awareness broadcast error for client {client_id}: {e}")
+                    disconnected.append(client_id)
 
-        elif op_type == "delete":
-            position = operation.get("position", 0)
-            length = operation.get("length", 0)
-            self.content = self.content[:position] + self.content[position + length:]
+        # 清理断开的连接
+        for client_id in disconnected:
+            self.remove_client(client_id)
 
-        elif op_type == "replace":
-            position = operation.get("position", 0)
-            length = operation.get("length", 0)
-            text = operation.get("text", "")
-            self.content = self.content[:position] + text + self.content[position + length:]
+    def apply_yjs_update(self, update: bytes, client_id: str):
+        """应用Yjs更新到文档"""
+        try:
+            Y.apply_update(self.ydoc, update)
+            self.last_modified = datetime.utcnow()
+            return True
+        except Exception as e:
+            print(f"Error applying Yjs update: {e}")
+            return False
 
-        elif op_type == "cursor":
-            # 更新光标位置
-            self.cursors[client_id] = {
-                "position": operation.get("position", 0),
-                "selection": operation.get("selection", None),
-                "timestamp": datetime.utcnow().isoformat()
-            }
-            return  # 光标更新不需要广播内容变更
+    def get_content(self) -> str:
+        """获取文档内容"""
+        return str(self.ytext)
 
+    def set_content(self, content: str):
+        """设置文档内容"""
+        self.ytext.delete(0, len(self.ytext))
+        self.ytext.insert(0, content)
         self.last_modified = datetime.utcnow()
-        self.operations.append({
-            "operation": operation,
-            "client_id": client_id,
-            "timestamp": datetime.utcnow().isoformat()
-        })
 
     def get_state(self) -> dict:
         """获取文档状态"""
         return {
             "document_id": self.document_id,
-            "content": self.content,
-            "cursors": self.cursors,
+            "content": self.get_content(),
+            "article_id": self.article_id,
+            "awareness": self.awareness,
             "client_count": len(self.clients),
-            "last_modified": self.last_modified.isoformat(),
-            "operations_count": len(self.operations)
+            "last_modified": self.last_modified.isoformat()
         }
+
+    def get_yjs_state_vector(self) -> bytes:
+        """获取Yjs状态向量用于增量同步"""
+        return Y.encode_state_vector(self.ydoc)
+
+    def get_yjs_full_state(self) -> bytes:
+        """获取完整的Yjs文档状态"""
+        return Y.encode_state_as_update(self.ydoc)
 
 
 class CollaborationService:
@@ -104,10 +117,13 @@ class CollaborationService:
     def __init__(self):
         self.documents: Dict[str, CollaborativeDocument] = {}
 
-    def get_or_create_document(self, document_id: str) -> CollaborativeDocument:
+    def get_or_create_document(self, document_id: str, article_id: Optional[int] = None) -> CollaborativeDocument:
         """获取或创建协作文档"""
         if document_id not in self.documents:
-            self.documents[document_id] = CollaborativeDocument(document_id)
+            doc = CollaborativeDocument(document_id)
+            if article_id:
+                doc.article_id = article_id
+            self.documents[document_id] = doc
         return self.documents[document_id]
 
     def remove_document(self, document_id: str):
@@ -120,41 +136,35 @@ class CollaborationService:
         return [
             {
                 "document_id": doc.document_id,
+                "article_id": doc.article_id,
                 "client_count": len(doc.clients),
                 "last_modified": doc.last_modified.isoformat()
             }
             for doc in self.documents.values()
             if len(doc.clients) > 0
         ]
-    
-    async def connect(self, document_id: str, user_id: int, websocket: WebSocket):
-        """连接用户到文档"""
-        doc = self.get_or_create_document(document_id)
-        doc.add_client(websocket)
-        await websocket.send_json({
-            "type": "connected",
-            "document_id": document_id,
-            "user_id": user_id
-        })
 
-    async def disconnect(self, document_id: str, user_id: int):
-        """断开用户连接"""
-        pass
-    
-    async def handle_operation(self, document_id: str, user_id: int, operation: dict):
-        """处理编辑操作"""
-        doc = self.get_or_create_document(document_id)
-        doc.apply_operation(operation, str(user_id))
-        await doc.broadcast({
-            "type": "remote_operation",
-            "operation": operation,
-            "user_id": user_id
-        })
+    async def save_to_revision(self, document_id: str, db_session, author_id: int,
+                               change_summary: str = "协作编辑保存"):
+        """将协作文档保存到文章修订版本"""
+        from shared.services.article_manager import save_article_revision
 
-    async def update_awareness(self, document_id: str, user_id: int, state: dict):
-        """更新用户状态(光标等)"""
-        doc = self.get_or_create_document(document_id)
-        doc.cursors[str(user_id)] = state
+        doc = self.documents.get(document_id)
+        if not doc or not doc.article_id:
+            return False
+
+        try:
+            # 使用现有的修订服务保存
+            revision = await save_article_revision(
+                db=db_session,
+                article_id=doc.article_id,
+                author_id=author_id,
+                change_summary=change_summary
+            )
+            return revision is not None
+        except Exception as e:
+            print(f"Error saving to revision: {e}")
+            return False
 
 
 # 全局协作服务实例

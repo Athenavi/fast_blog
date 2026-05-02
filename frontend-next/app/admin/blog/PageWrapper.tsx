@@ -30,7 +30,7 @@ import dynamic from 'next/dynamic';
 
 // 动态导入协作编辑器（避免 SSR 问题）
 const CollaborativeEditor = dynamic(
-    () => import('@/components/CollaborativeEditor'),
+    () => import('@/components/CollaborativeEditor').then(mod => ({default: mod.CollaborativeEditor})),
     {ssr: false}
 );
 
@@ -292,6 +292,7 @@ const ArticleManagementContent = () => {
       required_vip_level: 0,
       article_ad: '',
       is_featured: false,
+      scheduled_publish_at: '',
     });
     setFormErrors({});
     setCurrentArticle(null);
