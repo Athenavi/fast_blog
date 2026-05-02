@@ -143,7 +143,10 @@ class ArticleViewStatsService:
                     keys.append(key)
 
         if not keys:
-            return
+            return {
+                "synced": 0,
+                "errors": []
+            }
 
         synced_count = 0
         errors = []

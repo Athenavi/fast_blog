@@ -5,9 +5,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 
-from shared.models.article import Article
 from shared.services.backup_manager import BackupService
-from src.extensions import cache, SessionLocal
 
 # 配置日志
 logging.basicConfig()
@@ -70,10 +68,15 @@ class SessionScheduler:
                 # 批量同步所有文章
                 result = await article_view_stats.batch_sync_all(db)
 
-                if result['synced'] > 0:
+                # 检查结果是否为 None 或缺少预期字段
+                if result is None:
+                    logger.warning("batch_sync_all 返回 None，可能没有需要同步的数据")
+                    return
+
+                if result.get('synced', 0) > 0:
                     logger.info(f"成功同步 {result['synced']} 篇文章的浏览量")
 
-                if result['errors']:
+                if result.get('errors'):
                     logger.warning(f"同步错误: {result['errors'][:5]}")  # 只显示前5个错误
 
                 await db.close()
