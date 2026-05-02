@@ -1,9 +1,9 @@
 'use client';
 
-import {useEffect, useState} from 'react';
+import {Suspense, useEffect, useState} from 'react';
 import {useSearchParams} from 'next/navigation';
 
-const ScanSuccessPage = () => {
+const ScanSuccessContent = () => {
     const searchParams = useSearchParams();
   const [message, setMessage] = useState<string>('扫码成功，请在手机端确认登录');
 
@@ -33,6 +33,24 @@ const ScanSuccessPage = () => {
       </div>
     </div>
   );
+};
+
+const ScanSuccessPage = () => {
+    return (
+        <Suspense fallback={
+            <div className="min-h-full flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+                <div className="sm:mx-auto sm:w-full sm:max-w-md">
+                    <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
+                        <div className="text-center">
+                            <p className="text-gray-600">加载中...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }>
+            <ScanSuccessContent/>
+        </Suspense>
+    );
 };
 
 export default ScanSuccessPage;
