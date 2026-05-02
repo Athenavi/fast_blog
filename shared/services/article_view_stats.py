@@ -7,9 +7,7 @@
 3. 防刷机制（同一用户/IP 短时间内只计一次）
 4. 支持实时查询和定期刷新
 """
-import time
 from typing import Optional
-from datetime import datetime, timedelta
 
 from src.extensions import cache
 
@@ -130,8 +128,19 @@ class ArticleViewStatsService:
         # 获取所有有阅读计数的文章
         pattern = self.VIEW_COUNT_KEY.format("*")
         keys = []
-        async for key in cache.redis.scan_iter(match=pattern):
-            keys.append(key)
+
+        # 检查是否是 Redis 缓存（具有 redis 属性）
+        if hasattr(cache, 'redis'):
+            # 使用 Redis 的 scan_iter 方法
+            async for key in cache.redis.scan_iter(match=pattern):
+                keys.append(key)
+        else:
+            # 对于 SimpleCache，我们需要遍历所有键来匹配模式
+            import re
+            pattern_regex = pattern.replace('*', '.*')
+            for key in cache._cache.keys():
+                if re.match(pattern_regex, key):
+                    keys.append(key)
 
         if not keys:
             return
@@ -186,11 +195,24 @@ class ArticleViewStatsService:
         pattern = self.VIEW_COUNT_KEY.format("*")
         articles = []
 
-        async for key in cache.redis.scan_iter(match=pattern):
-            count = await cache.get(key)
-            if count and int(count) > 0:
-                article_id = int(key.split(":")[-1])
-                articles.append((article_id, int(count)))
+        # 检查是否是 Redis 缓存（具有 redis 属性）
+        if hasattr(cache, 'redis'):
+            # 使用 Redis 的 scan_iter 方法
+            async for key in cache.redis.scan_iter(match=pattern):
+                count = await cache.get(key)
+                if count and int(count) > 0:
+                    article_id = int(key.split(":")[-1])
+                    articles.append((article_id, int(count)))
+        else:
+            # 对于 SimpleCache，我们需要遍历所有键来匹配模式
+            import re
+            pattern_regex = pattern.replace('*', '.*')
+            for key in cache._cache.keys():
+                if re.match(pattern_regex, key):
+                    count = await cache.get(key)
+                    if count and int(count) > 0:
+                        article_id = int(key.split(":")[-1])
+                        articles.append((article_id, int(count)))
 
         # 按阅读量排序
         articles.sort(key=lambda x: x[1], reverse=True)
@@ -209,8 +231,19 @@ class ArticleViewStatsService:
 
         # 同时清除防刷记录
         pattern = f"article:view_record:{article_id}:*"
-        async for key in cache.redis.scan_iter(match=pattern):
-            await cache.delete(key)
+
+        # 检查是否是 Redis 缓存（具有 redis 属性）
+        if hasattr(cache, 'redis'):
+            # 使用 Redis 的 scan_iter 方法
+            async for key in cache.redis.scan_iter(match=pattern):
+                await cache.delete(key)
+        else:
+            # 对于 SimpleCache，我们需要遍历所有键来匹配模式
+            import re
+            pattern_regex = pattern.replace('*', '.*')
+            for key in cache._cache.keys():
+                if re.match(pattern_regex, key):
+                    await cache.delete(key)
 
 
 # 全局实例

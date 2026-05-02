@@ -4,7 +4,6 @@ import React, {useEffect, useRef, useState} from 'react';
 import {EditorContent, useEditor} from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Collaboration from '@tiptap/extension-collaboration';
-import CollaborationCursor from '@tiptap/extension-collaboration-cursor';
 import * as Y from 'yjs';
 import {Card} from '@/components/ui/card';
 import {Badge} from '@/components/ui/badge';
@@ -39,155 +38,47 @@ const getRandomColor = (clientId: string) => {
     return USER_COLORS[Math.abs(hash) % USER_COLORS.length];
 };
 
-export function YjsCollaborativeEditor({
-                                           documentId,
-                                           articleId,
-                                           token,
-                                           onSave,
-                                           readOnly = false,
-                                       }: CollaborativeEditorProps) {
-    const [awarenessUsers, setAwarenessUsers] = useState<any[]>([]);
-    const [isConnected, setIsConnected] = useState(false);
-    const wsRef = useRef<WebSocket | null>(null);
-    const ydocRef = useRef<Y.Doc | null>(null);
-    const clientIdRef = useRef<string>('');
+// EditorWithYjs 组件 - 独立的组件，确保 Hooks 调用顺序一致
+interface EditorWithYjsProps {
+    ydoc: Y.Doc;
+    isConnected: boolean;
+    awarenessUsers: Array<{ client_id?: string; name?: string; color?: string }>;
+    documentId: string;
+    articleId?: number;
+    readOnly: boolean;
+    onSave?: (content: string) => Promise<void>;
+    wsRef: React.MutableRefObject<WebSocket | null>;
+    clientIdRef: React.MutableRefObject<string>;
+}
 
-    // 初始化Yjs文档
-    useEffect(() => {
-        const ydoc = new Y.Doc();
-        ydocRef.current = ydoc;
-
-        return () => {
-            ydoc.destroy();
-        };
-    }, []);
-
-    // 初始化WebSocket连接并集成Yjs
-    useEffect(() => {
-        if (!ydocRef.current) return;
-
-        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-        const wsHost = process.env.NEXT_PUBLIC_WS_URL || `${wsProtocol}//localhost:9421`;
-        const wsUrl = `${wsHost}/api/v1/collaboration/ws/${documentId}?token=${token}&article_id=${articleId || ''}`;
-
-        console.log('[Yjs Collaboration] Connecting to:', wsUrl);
-
-        const ws = new WebSocket(wsUrl);
-        wsRef.current = ws;
-
-        const ydoc = ydocRef.current;
-
-        ws.onopen = () => {
-            console.log('[Yjs Collaboration] Connected');
-            setIsConnected(true);
-        };
-
-        ws.onmessage = (event) => {
-            try {
-                // 检查是否是二进制数据（Yjs更新）
-                if (event.data instanceof ArrayBuffer || event.data instanceof Uint8Array) {
-                    const update = new Uint8Array(event.data);
-                    Y.applyUpdate(ydoc, update);
-                    return;
-                }
-
-                // 处理JSON消息
-                const message = JSON.parse(typeof event.data === 'string' ? event.data : new TextDecoder().decode(event.data));
-                console.log('[Yjs Collaboration] Received:', message.type);
-
-                switch (message.type) {
-                    case 'welcome':
-                        clientIdRef.current = message.client_id;
-                        console.log('[Yjs Collaboration] Client ID:', clientIdRef.current);
-
-                        // 如果有初始状态，应用它
-                        if (message.state && message.state.content) {
-                            const ytext = ydoc.getText('content');
-                            ytext.delete(0, ytext.length);
-                            ytext.insert(0, message.state.content);
-                        }
-                        break;
-
-                    case 'awareness':
-                        // 更新感知状态
-                        if (message.state) {
-                            setAwarenessUsers(prev => {
-                                const exists = prev.find(u => u.client_id === message.state.client_id);
-                                if (exists) {
-                                    return prev.map(u =>
-                                        u.client_id === message.state.client_id ? message.state : u
-                                    );
-                                } else {
-                                    return [...prev, message.state];
-                                }
-                            });
-                        }
-                        break;
-
-                    case 'user_joined':
-                    case 'user_left':
-                        console.log('[Yjs Collaboration] User count:', message.client_count);
-                        break;
-
-                    case 'save_result':
-                        if (message.success) {
-                            alert('文档保存成功！');
-                        } else {
-                            alert('保存失败，请重试');
-                        }
-                        break;
-
-                    case 'pong':
-                        // 心跳响应
-                        break;
-                }
-            } catch (error) {
-                console.error('[Yjs Collaboration] Message parse error:', error);
-            }
-        };
-
-        ws.onerror = (error) => {
-            console.error('[Yjs Collaboration] WebSocket error:', error);
-        };
-
-        ws.onclose = () => {
-            console.log('[Yjs Collaboration] Disconnected');
-            setIsConnected(false);
-        };
-
-        // 监听Yjs文档更新并发送到服务器
-        const updateHandler = (update: Uint8Array, origin: any) => {
-            if (ws.readyState === WebSocket.OPEN) {
-                ws.send(update);
-            }
-        };
-
-        ydoc.on('update', updateHandler);
-
-        return () => {
-            ydoc.off('update', updateHandler);
-            if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
-                ws.close();
-            }
-        };
-    }, [documentId, articleId, token]);
-
-    // 初始化TipTap编辑器
+function EditorWithYjs({
+                           ydoc,
+                           isConnected,
+                           awarenessUsers,
+                           documentId,
+                           articleId,
+                           readOnly,
+                           onSave,
+                           wsRef,
+                           clientIdRef,
+                       }: EditorWithYjsProps) {
+    // 初始化TipTap编辑器 - ydoc 一定存在
     const editor = useEditor({
         extensions: [
             StarterKit.configure({
-                history: false, // 禁用历史记录，使用Yjs
-            } as any),
+                history: false,
+            }),
             Collaboration.configure({
-                document: ydocRef.current!,
+                document: ydoc,
             }),
-            CollaborationCursor.configure({
-                provider: null, // 我们将手动管理光标
-                user: {
-                    name: `User ${clientIdRef.current?.slice(-4) || 'Unknown'}`,
-                    color: getRandomColor(clientIdRef.current || 'default'),
-                },
-            }),
+            // 暂时禁用 CollaborationCursor，因为我们使用自定义的光标管理
+            // CollaborationCursor.configure({
+            //     provider: null,
+            //     user: {
+            //         name: `User ${clientIdRef.current?.slice(-4) || 'Unknown'}`,
+            //         color: getRandomColor(clientIdRef.current || 'default'),
+            //     },
+            // }),
         ],
         editable: !readOnly,
         immediatelyRender: false,
@@ -291,7 +182,7 @@ export function YjsCollaborativeEditor({
             {/* 在线用户列表 */}
             {awarenessUsers.length > 0 && (
                 <div className="flex items-center gap-2 mb-4 flex-wrap">
-                    {awarenessUsers.map((state: any, index: number) => (
+                    {awarenessUsers.map((state, index) => (
                         <div
                             key={index}
                             className="flex items-center gap-1 px-2 py-1 rounded text-xs"
@@ -322,5 +213,172 @@ export function YjsCollaborativeEditor({
                 <p>提示: 多个用户可以同时编辑，所有更改会自动同步</p>
             </div>
         </Card>
+    );
+}
+
+// 主组件
+export function YjsCollaborativeEditor({
+                                           documentId,
+                                           articleId,
+                                           token,
+                                           onSave,
+                                           readOnly = false,
+                                       }: CollaborativeEditorProps) {
+    const [awarenessUsers, setAwarenessUsers] = useState<Array<{
+        client_id?: string;
+        name?: string;
+        color?: string
+    }>>([]);
+    const [isConnected, setIsConnected] = useState(false);
+    const [ydoc, setYdoc] = useState<Y.Doc | null>(null);
+    const wsRef = useRef<WebSocket | null>(null);
+    const clientIdRef = useRef<string>('');
+
+    // 初始化Yjs文档
+    useEffect(() => {
+        const doc = new Y.Doc();
+        setYdoc(doc);
+
+        return () => {
+            doc.destroy();
+        };
+    }, []);
+
+    // 初始化WebSocket连接并集成Yjs
+    useEffect(() => {
+        if (!ydoc) return;
+
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsHost = process.env.NEXT_PUBLIC_WS_URL || `${wsProtocol}//localhost:9421`;
+        const wsUrl = `${wsHost}/api/v1/collaboration/ws/${documentId}?token=${token}&article_id=${articleId || ''}`;
+
+        console.log('[Yjs Collaboration] Connecting to:', wsUrl);
+
+        const ws = new WebSocket(wsUrl);
+        wsRef.current = ws;
+
+        ws.onopen = () => {
+            console.log('[Yjs Collaboration] Connected');
+            setIsConnected(true);
+        };
+
+        ws.onmessage = (event) => {
+            try {
+                // 检查是否是二进制数据（Yjs更新）
+                if (event.data instanceof ArrayBuffer || event.data instanceof Uint8Array) {
+                    const update = new Uint8Array(event.data);
+                    Y.applyUpdate(ydoc, update);
+                    return;
+                }
+
+                // 处理JSON消息
+                const message = JSON.parse(typeof event.data === 'string' ? event.data : new TextDecoder().decode(event.data));
+                console.log('[Yjs Collaboration] Received:', message.type);
+
+                switch (message.type) {
+                    case 'welcome':
+                        clientIdRef.current = message.client_id;
+                        console.log('[Yjs Collaboration] Client ID:', clientIdRef.current);
+
+                        // 如果有初始状态，应用它
+                        if (message.state && message.state.content) {
+                            const ytext = ydoc.getText('content');
+                            ytext.delete(0, ytext.length);
+                            ytext.insert(0, message.state.content);
+                        }
+                        break;
+
+                    case 'awareness':
+                        // 更新感知状态
+                        if (message.state) {
+                            setAwarenessUsers(prev => {
+                                const exists = prev.find(u => u.client_id === message.state.client_id);
+                                if (exists) {
+                                    return prev.map(u =>
+                                        u.client_id === message.state.client_id ? message.state : u
+                                    );
+                                } else {
+                                    return [...prev, message.state];
+                                }
+                            });
+                        }
+                        break;
+
+                    case 'user_joined':
+                    case 'user_left':
+                        console.log('[Yjs Collaboration] User count:', message.client_count);
+                        break;
+
+                    case 'save_result':
+                        if (message.success) {
+                            alert('文档保存成功！');
+                        } else {
+                            alert('保存失败，请重试');
+                        }
+                        break;
+
+                    case 'pong':
+                        // 心跳响应
+                        break;
+                }
+            } catch (error) {
+                console.error('[Yjs Collaboration] Message parse error:', error);
+            }
+        };
+
+        ws.onerror = (error) => {
+            console.error('[Yjs Collaboration] WebSocket error:', error);
+        };
+
+        ws.onclose = () => {
+            console.log('[Yjs Collaboration] Disconnected');
+            setIsConnected(false);
+        };
+
+        // 监听Yjs文档更新并发送到服务器
+        const updateHandler = (update: Uint8Array) => {
+            if (ws.readyState === WebSocket.OPEN) {
+                ws.send(update);
+            }
+        };
+
+        ydoc.on('update', updateHandler);
+
+        return () => {
+            ydoc.off('update', updateHandler);
+            if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+                ws.close();
+            }
+        };
+    }, [documentId, articleId, token]);
+
+    // 如果 ydoc 还未初始化，显示加载状态
+    if (!ydoc) {
+        return (
+            <Card className="p-4">
+                <div className="flex items-center justify-center min-h-[400px]">
+                    <div className="text-center">
+                        <div
+                            className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-2"></div>
+                        <p className="text-sm text-gray-500">正在初始化编辑器...</p>
+                    </div>
+                </div>
+            </Card>
+        );
+    }
+
+    // ydoc 已准备好，渲染编辑器组件
+    return (
+        <EditorWithYjs
+            ydoc={ydoc}
+            isConnected={isConnected}
+            awarenessUsers={awarenessUsers}
+            documentId={documentId}
+            articleId={articleId}
+            readOnly={readOnly}
+            onSave={onSave}
+            wsRef={wsRef}
+            clientIdRef={clientIdRef}
+        />
     );
 }

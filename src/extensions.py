@@ -6,7 +6,6 @@ from contextlib import contextmanager
 from typing import Generator, AsyncGenerator
 
 import redis
-from fastapi import Request
 from slowapi import _rate_limit_exceeded_handler, Limiter
 from slowapi.util import get_remote_address
 from sqlalchemy.ext.declarative import declarative_base
@@ -346,6 +345,20 @@ except (redis.ConnectionError, ImportError):
             # 同时删除过期时间记录
             self._expiry.pop(key, None)
             self._stats['deletes'] += 1
+
+        def incr(self, key, amount=1):
+            """增加缓存值（原子操作）"""
+            current_value = self.get(key)
+            if current_value is None:
+                new_value = amount
+            else:
+                try:
+                    new_value = int(current_value) + amount
+                except (ValueError, TypeError):
+                    new_value = amount
+
+            self.set(key, str(new_value))
+            return new_value
 
         def memoize(self, timeout=300):
             """
