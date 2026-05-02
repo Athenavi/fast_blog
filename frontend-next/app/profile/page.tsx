@@ -1,27 +1,22 @@
 'use client';
 
-import React, {useEffect, useState, useCallback} from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import {useRouter} from 'next/navigation';
-import Link from 'next/link';
 import Image from 'next/image';
 import {motion} from 'framer-motion';
 import {
-    MapPin,
-    Link as LinkIcon,
     Calendar,
-    Mail,
-    Lock,
-    FileText,
-    Users,
-    UserPlus,
-    MessageSquare,
-    Settings,
     Edit3,
     Eye,
+    FileText,
     Heart,
-    TrendingUp,
-    Bookmark,
-    Share2
+    Link as LinkIcon,
+    Lock,
+    Mail,
+    MapPin,
+    Settings,
+    UserPlus,
+    Users
 } from 'lucide-react';
 import WithAuthProtection from '@/components/WithAuthProtection';
 import {apiClient, UserProfileResponse} from '@/lib/api';
@@ -49,7 +44,7 @@ const ProfilePage = () => {
     const [avatarUrl, setAvatarUrl] = useState<string>('');
     const [activeTab, setActiveTab] = useState<'articles' | 'about'>('articles');
 
-    // 获取头像URL
+    // 获取头像URL（使用 useCallback 确保稳定引用）
     const fetchAvatarUrl = useCallback(async (userId: number, username: string, avatar?: string) => {
         let avatarUrl = avatar;
 
@@ -110,6 +105,8 @@ const ProfilePage = () => {
     }, []);
 
     useEffect(() => {
+        let isCancelled = false; // 防止组件卸载后更新状态
+        
         async function fetchUserProfile() {
             try {
                 setLoading(true);
@@ -122,6 +119,8 @@ const ProfilePage = () => {
                     return;
                 }
 
+                if (isCancelled) return;
+
                 const data = response.data;
                 const userData = (data as any).user ? data : {user: data};
                 setUserData(userData as UserProfileResponse);
@@ -130,15 +129,24 @@ const ProfilePage = () => {
                 // 确保传递完整的头像 URL
                 const userAvatar = (user as any).avatar_url || (user as any).avatar || (user as any).profile_picture;
                 const avatar = await fetchAvatarUrl(user.id, user.username, userAvatar);
-                setAvatarUrl(avatar);
+
+                if (!isCancelled) {
+                    setAvatarUrl(avatar);
+                }
             } catch (error) {
                 console.error('加载用户资料失败:', error);
             } finally {
-                setLoading(false);
+                if (!isCancelled) {
+                    setLoading(false);
+                }
             }
         }
 
         fetchUserProfile();
+
+        return () => {
+            isCancelled = true;
+        };
     }, [router, fetchAvatarUrl]);
 
     if (loading || !userData) {

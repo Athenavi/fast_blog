@@ -5,8 +5,9 @@
 
 'use client';
 
-import {useState, useEffect} from 'react';
+import {useEffect, useState} from 'react';
 import {Article, Category} from '@/lib/api';
+import {cachedFetch} from '@/lib/api-cache';
 
 interface HomePageData {
     featuredArticles: Article[];
@@ -37,14 +38,14 @@ export function useHomePageData() {
                 const apiConfig = config.getConfig();
                 const apiUrl = `${apiConfig.API_BASE_URL}${apiConfig.API_PREFIX}`;
 
-                // 并行获取所有数据
+                // 并行获取所有数据，使用缓存
                 const [articlesRes, categoriesRes] = await Promise.all([
-                    fetch(`${apiUrl}/articles?page=1&page_size=20`),
-                    fetch(`${apiUrl}/categories`)
+                    cachedFetch(`${apiUrl}/articles?page=1&page_size=20`, undefined, 5 * 60 * 1000), // 5分钟缓存
+                    cachedFetch(`${apiUrl}/categories`, undefined, 10 * 60 * 1000) // 10分钟缓存
                 ]);
 
-                const articlesData = await articlesRes.json();
-                const categoriesData = await categoriesRes.json();
+                const articlesData = articlesRes;
+                const categoriesData = categoriesRes;
 
                 if (articlesData.success && categoriesData.success) {
                     const articles = articlesData.data || [];

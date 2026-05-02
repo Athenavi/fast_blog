@@ -69,11 +69,11 @@ export default function CollaborativeEditor({
     const isRemoteUpdate = useRef<boolean>(false);
     const reconnectTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-    // 在客户端初始化时获取 token
+    // 在客户端初始化时获取 token（仅从 cookie 读取）
     useEffect(() => {
         if (!propToken && typeof window !== 'undefined') {
-            const tokenValue = getTokenFromCookie() || localStorage.getItem('access_token') || '';
-            setToken(tokenValue);
+            const tokenValue = getTokenFromCookie();
+            setToken(tokenValue || '');
         } else if (propToken) {
             setToken(propToken);
         }

@@ -50,7 +50,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({children}) => {
                 router.push('/');
             }
         }
-    }, [currentUser, loading, router]);
+    }, [currentUser, loading]); // 移除 router 依赖，避免无限循环
 
     // 切换移动端侧边栏
     const toggleSidebar = () => {

@@ -251,10 +251,11 @@ const LoginPage = () => {
               console.log('[QR Polling] ✅ refresh_token saved successfully');
             }
             setQrStatus('confirmed');
-            console.log('[QR Polling] 🚀 Refreshing page to complete login...');
-            // 延迟刷新页面以确保令牌已保存
+            console.log('[QR Polling] 🚀 Redirecting to complete login...');
+            // 直接跳转到目标页面，而不是 reload
             setTimeout(() => {
-              window.location.reload();
+              const nextUrl = new URLSearchParams(window.location.search).get('next') || '/profile';
+              window.location.href = nextUrl;
             }, 300);
             return true;
           } else {
@@ -263,10 +264,12 @@ const LoginPage = () => {
           }
         } else if (status && String(status) === 'pending') {
           console.log('[QR Polling] ⏳ Status: PENDING (waiting for scan)');
-          setQrStatus('pending');
+          // ✅ 只在状态不同时更新
+          setQrStatus(prev => prev === 'pending' ? prev : 'pending');
         } else if (status && String(status) === 'scanned') {
           console.log('[QR Polling] 📱 Status: SCANNED (waiting for confirmation)');
-          setQrStatus('scanned');
+          // ✅ 只在状态不同时更新
+          setQrStatus(prev => prev === 'scanned' ? prev : 'scanned');
         } else if (isExpired) {
           console.log('[QR Polling] ⏰ Status: EXPIRED');
           setQrStatus('expired');
@@ -277,7 +280,8 @@ const LoginPage = () => {
           const validStatus = ['pending', 'scanned', 'confirmed', 'expired'].includes(String(status)) 
             ? String(status) as 'pending' | 'scanned' | 'confirmed' | 'expired'
             : 'pending';
-          setQrStatus(validStatus);
+          // ✅ 只在状态不同时更新
+          setQrStatus(prev => prev === validStatus ? prev : validStatus);
         }
       } else {
         // 请求失败，可能需要处理错误
@@ -291,10 +295,11 @@ const LoginPage = () => {
   };
 
   // 开始二维码状态轮询
-  const startQRPolling = () => {
+  const startQRPolling = (): (() => void) => {
     if (qrPolling) {
       console.log('[QR Polling] Already polling, skipping start');
-      return;
+      return () => {
+      }; // 返回空的清理函数
     }
     console.log('[QR Polling] 🔄 Starting QR status polling (every 3 seconds)...');
     setQrPolling(true);
@@ -317,9 +322,10 @@ const LoginPage = () => {
       }
     }, 3000); // 每3秒检查一次状态
 
-    // 清理函数
+    // 返回清理函数
     return () => {
       clearInterval(interval);
+      setQrPolling(false);
     };
   };
 
@@ -333,6 +339,7 @@ const LoginPage = () => {
     console.log('[QR Login useEffect] activeMethod:', activeMethod, ', qrCodeImage:', !!qrCodeImage, ', qrPolling:', qrPolling);
 
     let isMounted = true;
+    let pollingCleanup: (() => void) | null = null;
 
     const handleQrMethodChange = async () => {
       if (activeMethod === 'qr' && !qrCodeImage) {
@@ -341,7 +348,7 @@ const LoginPage = () => {
       } else if (isMounted && activeMethod === 'qr' && qrCodeImage && !qrPolling) {
         // 重新激活轮询（只有在未轮询时才启动）
         console.log('[QR Login useEffect] Starting QR polling...');
-        startQRPolling();
+        pollingCleanup = startQRPolling();
       } else if (isMounted && activeMethod !== 'qr') {
         // 停止轮询
         console.log('[QR Login useEffect] Stopping QR polling...');
@@ -355,9 +362,12 @@ const LoginPage = () => {
     return () => {
       console.log('[QR Login useEffect] Cleanup - stopping polling');
       isMounted = false;
+      if (pollingCleanup) {
+        pollingCleanup();
+      }
       stopQRPolling();
     };
-  }, [activeMethod, qrCodeImage]);
+  }, [activeMethod]); // ✅ 移除 qrCodeImage 依赖，避免无限循环
 
   // 二维码倒计时
   useEffect(() => {

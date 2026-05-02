@@ -114,12 +114,12 @@ export default function ModernMediaLibraryPage() {
         if (token) {
             headers['Authorization'] = `Bearer ${token}`;
         } else {
-            // 自动跳转到登录页面，保存当前路径用于登录后重定向
+            // 自动跳转到登录页面，使用 URL 参数保存当前路径
             if (typeof window !== 'undefined' && !hasRedirected) {
                 setHasRedirected(true); // 标记已重定向，防止重复
                 const currentPath = window.location.pathname + window.location.search;
-                localStorage.setItem('redirect_after_login', currentPath);
-                router.push('/login');
+                const nextParam = encodeURIComponent(currentPath);
+                router.push(`/login?next=${nextParam}`);
             }
         }
 

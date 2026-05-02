@@ -50,6 +50,8 @@ const nextConfig: NextConfig = {
         // optimizeFonts: true,
         // 优化包导入
         optimizePackageImports: ['@radix-ui/react-icons', 'lucide-react'],
+        // 启用 scroll restoration
+        scrollRestoration: true,
     },
 
     // Turbopack 配置（Next.js 16 默认使用 Turbopack）
@@ -96,6 +98,39 @@ const nextConfig: NextConfig = {
             };
         }
         return config;
+    },
+
+    // 添加自定义 headers 来优化缓存
+    async headers() {
+        return [
+            {
+                source: '/(.*)',
+                headers: [
+                    {
+                        key: 'Cache-Control',
+                        value: 'public, max-age=3600, s-maxage=3600, stale-while-revalidate=86400',
+                    },
+                ],
+            },
+            {
+                source: '/_next/static/(.*)',
+                headers: [
+                    {
+                        key: 'Cache-Control',
+                        value: 'public, max-age=31536000, immutable',
+                    },
+                ],
+            },
+            {
+                source: '/static/(.*)',
+                headers: [
+                    {
+                        key: 'Cache-Control',
+                        value: 'public, max-age=31536000, immutable',
+                    },
+                ],
+            },
+        ];
     },
 };
 

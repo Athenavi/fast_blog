@@ -1,7 +1,7 @@
 // Menu service for Next.js frontend
-import {apiClient} from './base-client';
 import type {ApiResponse} from '@/lib/api/base-types';
 import {MenuItem} from './admin-settings-service';
+import {cachedFetch} from '@/lib/api-cache';
 
 export interface MenuTreeItem extends MenuItem {
     children?: MenuTreeItem[];
@@ -20,8 +20,8 @@ export class MenuService {
     // 从首页API获取动态菜单数据
     static async getMenuBySlug(slug: string = 'main'): Promise<ApiResponse<MenuData>> {
         try {
-            // 使用新的专用API端点获取指定菜单
-            const response = await apiClient.get(`/home/menu/${slug}`);
+            // 使用新的专用API端点获取指定菜单，添加缓存
+            const response = await cachedFetch(`/home/menu/${slug}`, undefined, 10 * 60 * 1000); // 10分钟缓存
 
             if (response.success && response.data) {
                 const menuData = response.data as any;
@@ -57,7 +57,7 @@ export class MenuService {
     // 获取所有菜单数据
     static async getAllMenus(): Promise<ApiResponse<any>> {
         try {
-            const response = await apiClient.get('/home/menus');
+            const response = await cachedFetch('/home/menus', undefined, 10 * 60 * 1000); // 10分钟缓存
             return response;
         } catch (error) {
             return {
@@ -73,7 +73,7 @@ export class MenuService {
     static async getMainMenu(): Promise<ApiResponse<MenuTreeItem[]>> {
         try {
             // 优先获取名为'main'的菜单，如果没有则获取第一个菜单
-            let response = await apiClient.get('/home/menus');
+            let response = await cachedFetch('/home/menus', undefined, 10 * 60 * 1000); // 10分钟缓存
 
             if (response.success && response.data && (response.data as any).menus) {
                 const menus = (response.data as any).menus;

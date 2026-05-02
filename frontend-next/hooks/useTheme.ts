@@ -3,7 +3,7 @@
  * 用于在前端动态加载和应用主题
  */
 
-import {useCallback, useEffect, useState} from 'react';
+import {createContext, useCallback, useContext, useEffect, useState} from 'react';
 
 interface ThemeConfig {
     metadata: {
@@ -149,7 +149,7 @@ export function useTheme() {
     // 初始化时加载主题
     useEffect(() => {
         loadTheme();
-    }, [loadTheme]);
+    }, []); // ✅ 空依赖数组，只在挂载时执行一次
 
     // 获取主题配置值
     const getThemeValue = (path: string): any => {
@@ -174,3 +174,18 @@ export function useTheme() {
 }
 
 export default useTheme;
+
+// ✅ 创建 Theme Context，实现单例模式
+const ThemeContext = createContext<ReturnType<typeof useTheme> | null>(null);
+
+// ✅ 使用 Context 的 Hook，确保全局共享同一个实例
+export function useThemeContext() {
+    const context = useContext(ThemeContext);
+    if (!context) {
+        throw new Error('useThemeContext must be used within ThemeProvider');
+    }
+    return context;
+}
+
+// ✅ 导出 Context 供 ThemeProvider 使用
+export {ThemeContext};

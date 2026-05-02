@@ -30,20 +30,35 @@ const AuthErrorBoundary: React.FC<AuthErrorBoundaryProps> = ({
   useEffect(() => {
     // 如果是401错误且需要自动重定向
     if (isUnauthorized && typeof window !== 'undefined') {
-      // 保存当前路径用于登录后重定向
+      // 保存当前路径用于登录后重定向（使用 URL 参数）
       const currentPath = redirectPath || window.location.pathname + window.location.search;
-      localStorage.setItem('redirect_after_login', currentPath);
       
       // 构造带next参数的登录URL
       const nextParam = encodeURIComponent(currentPath);
       const loginUrl = `/login?next=${nextParam}`;
+
+      // ✅ 添加标记，防止重复重定向
+      const hasRedirected = sessionStorage.getItem('auth_redirect_pending');
+      if (hasRedirected) {
+        console.warn('[AuthErrorBoundary] 已有待处理的重定向，跳过');
+        return;
+      }
+
+      // 设置标记
+      sessionStorage.setItem('auth_redirect_pending', 'true');
       
       // 延迟重定向，给用户一点时间看到错误信息
       const timer = setTimeout(() => {
-        router.push({ pathname: '/login', query: { next: nextParam } } as any);
+        // ✅ 清除标记
+        sessionStorage.removeItem('auth_redirect_pending');
+        router.push(loginUrl);
       }, 3200);
-      
-      return () => clearTimeout(timer);
+
+      return () => {
+        clearTimeout(timer);
+        // ✅ 清理时移除标记
+        sessionStorage.removeItem('auth_redirect_pending');
+      };
     }
   }, [isUnauthorized, router, redirectPath]);
 

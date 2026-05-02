@@ -1,29 +1,24 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { Droppable } from '@hello-pangea/dnd';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
-import { Label } from '@/components/ui/label';
+import React, {useEffect, useState} from 'react';
+import {useRouter} from 'next/navigation';
+import {Droppable} from '@hello-pangea/dnd';
+import {Button} from '@/components/ui/button';
+import {Input} from '@/components/ui/input';
+import {Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle} from '@/components/ui/dialog';
+import {Label} from '@/components/ui/label';
 import {
+  ChevronDown,
+  ChevronRight,
+  Edit,
+  FileImage,
   Folder,
   FolderOpen,
   FolderPlus,
   MoreVertical,
-  Edit,
-  Trash2,
-  ChevronRight,
-  ChevronDown,
-  FileImage
+  Trash2
 } from 'lucide-react';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,} from '@/components/ui/dropdown-menu';
 
 interface FolderNode {
   id: number;
@@ -189,13 +184,13 @@ const FolderTree: React.FC<FolderTreeProps> = ({
       console.log('🔐 已添加 Authorization header');
     } else {
       console.error('❌ 没有 token，请求将失败');
-      // 自动跳转到登录页面，保存当前路径用于登录后重定向
+        // 自动跳转到登录页面，使用 URL 参数保存当前路径
       if (typeof window !== 'undefined' && !hasRedirected) {
         setHasRedirected(true); // 标记已重定向，防止重复
         const currentPath = window.location.pathname + window.location.search;
-        localStorage.setItem('redirect_after_login', currentPath);
+          const nextParam = encodeURIComponent(currentPath);
         console.log('🔄 正在跳转到登录页面...');
-        router.push('/login');
+          router.push(`/login?next=${nextParam}`);
       }
     }
 

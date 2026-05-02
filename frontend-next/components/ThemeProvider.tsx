@@ -1,9 +1,9 @@
 'use client';
 
-import React, {useEffect, useCallback} from 'react';
+import React, {useCallback, useEffect} from 'react';
 import {usePathname} from 'next/navigation';
-import useTheme from '@/hooks/useTheme';
-import {applyThemeAdaptation, observeThemeChanges} from '@/lib/theme-adapter';
+import useTheme, {ThemeContext} from '@/hooks/useTheme';
+import {applyThemeAdaptation} from '@/lib/theme-adapter';
 import {darkModeManager} from '@/lib/dark-mode-manager';
 
 interface ThemeProviderProps {
@@ -16,11 +16,27 @@ interface ThemeProviderProps {
  * 注意：/admin/* 路径下的页面会跳过主题加载
  */
 export const ThemeProvider: React.FC<ThemeProviderProps> = ({children}) => {
+    // ✅ 在 TSX 文件中创建 Provider，调用 useTheme
+    const theme = useTheme();
+
+    return (
+        <ThemeContext.Provider value={theme}>
+            <ThemeProviderContent>{children}</ThemeProviderContent>
+        </ThemeContext.Provider>
+    );
+};
+
+// ✅ 内部组件，使用 Context
+const ThemeProviderContent: React.FC<ThemeProviderProps> = ({children}) => {
     const pathname = usePathname();
     const isAdminPage = pathname?.startsWith('/admin');
 
-    // 始终调用 Hook，但在 admin 页面不使用其返回值
-    const themeHook = useTheme();
+    // ✅ 使用 Context，确保全局共享同一个实例
+    const themeHook = React.useContext(ThemeContext);
+    if (!themeHook) {
+        throw new Error('ThemeProviderContent must be used within ThemeProvider');
+    }
+    
     const {cssVariables, stylesheetUrl, isLoading, config} = themeHook;
 
     // 注入全局样式覆盖（最高优先级）
@@ -105,13 +121,13 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({children}) => {
             console.log('[ThemeProvider] 应用主题适配，颜色:', colors);
             applyThemeAdaptation(colors);
 
-            // 启动 DOM 观察器，自动适配新添加的元素
-            observeThemeChanges();
+            // ✅ 移除 observeThemeChanges()，它会导致无限循环
+            // observeThemeChanges();
 
             // 注入高优先级的全局样式覆盖
             injectGlobalStyleOverrides(colors);
         }
-    }, [config, isAdminPage, injectGlobalStyleOverrides]);
+    }, [config, isAdminPage]); // ✅ 移除 injectGlobalStyleOverrides 依赖
 
     // 监听深色模式变化并重新应用主题
     useEffect(() => {
@@ -128,7 +144,7 @@ export const ThemeProvider: React.FC<ThemeProviderProps> = ({children}) => {
         });
 
         return unsubscribe;
-    }, [config, isAdminPage, injectGlobalStyleOverrides]);
+    }, [config, isAdminPage]); // ✅ 移除 injectGlobalStyleOverrides 依赖
 
     // 如果是管理后台页面，直接渲染子组件，不加载主题
     if (isAdminPage) {

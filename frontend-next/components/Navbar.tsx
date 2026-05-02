@@ -1,23 +1,10 @@
 'use client';
 
-import React, {useState, useEffect} from 'react';
+import React, {useEffect, useState} from 'react';
 import Link from 'next/link';
 import {usePathname} from 'next/navigation';
 import {motion} from 'framer-motion';
-import {
-    Home,
-    Image as ImageIcon,
-    Settings,
-    User,
-    LogOut,
-    Menu,
-    X,
-    Sun,
-    Moon,
-    Bell,
-    Search
-} from 'lucide-react';
-import {useThemeToggle} from '@/hooks/useThemeToggle';
+import {Bell, Home, Image as ImageIcon, LogOut, Moon, Search, Settings, Sun, User} from 'lucide-react';
 import {useDarkMode} from '@/lib/dark-mode-manager';
 
 interface NavbarProps {
@@ -103,12 +90,9 @@ const Navbar: React.FC<NavbarProps> = ({
     return (
         <>
             <header
-                className="border-b border-gray-200 dark:border-gray-800 shadow-sm fixed top-0 left-0 right-0 z-[9999] w-full"
-                style={{
-                    backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-                    borderColor: theme === 'dark' ? '#1f2937' : '#e5e7eb'
-                }}
-                data-theme={theme}>
+                className="border-b border-gray-200 dark:border-gray-800 shadow-sm fixed top-0 left-0 right-0 z-[9999] w-full bg-white dark:bg-gray-900"
+                suppressHydrationWarning // ✅ 抑制 hydration 警告
+            >
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex items-center justify-between h-16">
                         {/* 左侧：Logo 和标题 */}
@@ -193,13 +177,14 @@ const Navbar: React.FC<NavbarProps> = ({
                                 <button
                                     onClick={toggleTheme}
                                     className="p-2 rounded-lg text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
-                                    title={theme === 'dark' ? '切换到亮色模式' : '切换到暗色模式'}
+                                    suppressHydrationWarning // ✅ 抑制 hydration 警告
                                 >
-                                    {theme === 'dark' ? (
-                                        <Sun className="w-5 h-5"/>
-                                    ) : (
+                                    <span className="dark:hidden">
                                         <Moon className="w-5 h-5"/>
-                                    )}
+                                    </span>
+                                    <span className="hidden dark:inline">
+                                        <Sun className="w-5 h-5"/>
+                                    </span>
                                 </button>
                             </div>
 
@@ -220,10 +205,9 @@ const Navbar: React.FC<NavbarProps> = ({
                                         animate={{opacity: 1, y: 0}}
                                         exit={{opacity: 0, y: -10}}
                                         className="absolute right-0 mt-2 w-48 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-50"
-                                        style={{
-                                            backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-                                            borderColor: theme === 'dark' ? '#374151' : '#e5e7eb'
-                                        }}>
+                                        className="absolute right-0 mt-2 w-48 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-50 bg-white dark:bg-gray-900"
+                                        suppressHydrationWarning // ✅ 抑制 hydration 警告
+                                    >
                                         {userMenuItems.map((item) => {
                                             const Icon = item.icon;
 
@@ -266,11 +250,9 @@ const Navbar: React.FC<NavbarProps> = ({
 
             {/* 自定义右侧操作区域（如果提供） */}
             {rightActions && (
-                <div className="border-b border-gray-200 dark:border-gray-800"
-                     style={{
-                         backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-                         borderColor: theme === 'dark' ? '#1f2937' : '#e5e7eb'
-                     }}>
+                <div className="border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900"
+                     suppressHydrationWarning // ✅ 抑制 hydration 警告
+                >
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
                         {rightActions}
                     </div>

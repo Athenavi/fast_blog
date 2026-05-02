@@ -11,6 +11,7 @@
 const CACHE_NAME = 'fastblog-v1';
 const STATIC_CACHE = 'fastblog-static-v1';
 const DYNAMIC_CACHE = 'fastblog-dynamic-v1';
+const PRECACHE_CACHE = 'fastblog-precache-v1';
 
 // 需要预缓存的静态资源
 const PRECACHE_URLS = [
@@ -52,21 +53,21 @@ self.addEventListener('fetch', (event) => {
     const {request} = event;
     const url = new URL(request.url);
 
-    // API 请求 - Network First
+    // API 请求 - Network First with cache fallback
     if (url.pathname.startsWith('/api/')) {
-        event.respondWith(networkFirst(request));
-    return;
-  }
-
-    // 静态资源 - Cache First
-    if (isStaticAsset(url.pathname)) {
-        event.respondWith(cacheFirst(request));
+        event.respondWith(networkFirstWithCache(request));
         return;
     }
 
-    // 页面请求 - Stale While Revalidate
+    // 静态资源 - Cache First with network update
+    if (isStaticAsset(url.pathname)) {
+        event.respondWith(cacheFirstWithUpdate(request));
+        return;
+    }
+
+    // 页面请求 - Stale While Revalidate with timeout
     if (request.mode === 'navigate') {
-        event.respondWith(staleWhileRevalidate(request));
+        event.respondWith(staleWhileRevalidateWithTimeout(request));
         return;
     }
 
@@ -113,6 +114,38 @@ async function cacheFirst(request) {
     }
 }
 
+// Cache First with Update - 先返回缓存，同时在后台更新缓存
+async function cacheFirstWithUpdate(request) {
+    const cachedResponse = await caches.match(request);
+
+    // 如果有缓存，立即返回，同时在后台更新
+    if (cachedResponse) {
+        // 异步更新缓存
+        const fetchPromise = fetch(request).then((networkResponse) => {
+            if (networkResponse.ok) {
+                const cache = caches.open(STATIC_CACHE);
+                cache.then(c => c.put(request, networkResponse.clone()));
+            }
+        }).catch(() => {
+            // 静默失败
+        });
+
+        return cachedResponse;
+    }
+
+    // 没有缓存，从网络获取
+    try {
+        const networkResponse = await fetch(request);
+        if (networkResponse.ok) {
+            const cache = await caches.open(STATIC_CACHE);
+            cache.put(request, networkResponse.clone());
+        }
+        return networkResponse;
+    } catch (error) {
+        return caches.match('/offline.html');
+    }
+}
+
 // Network First - 优先使用网络，网络失败则使用缓存
 async function networkFirst(request) {
     try {
@@ -126,6 +159,37 @@ async function networkFirst(request) {
         const cachedResponse = await caches.match(request);
         return cachedResponse || new Response(
             JSON.stringify({error: 'Network error'}),
+            {status: 503, headers: {'Content-Type': 'application/json'}}
+        );
+    }
+}
+
+// Network First with Cache - 优先网络，但快速回退到缓存
+async function networkFirstWithCache(request) {
+    const cachePromise = caches.match(request).then(cachedResponse => cachedResponse);
+
+    try {
+        // 设置网络请求超时
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000); // 3秒超时
+
+        const networkResponse = await fetch(request, {signal: controller.signal});
+        clearTimeout(timeoutId);
+
+        if (networkResponse.ok) {
+            const cache = await caches.open(DYNAMIC_CACHE);
+            cache.put(request, networkResponse.clone());
+        }
+        return networkResponse;
+    } catch (error) {
+        // 网络失败或超时，使用缓存
+        const cachedResponse = await cachePromise;
+        if (cachedResponse) {
+            return cachedResponse;
+        }
+
+        return new Response(
+            JSON.stringify({error: 'Network error or timeout'}),
             {status: 503, headers: {'Content-Type': 'application/json'}}
         );
     }
@@ -147,6 +211,32 @@ async function staleWhileRevalidate(request) {
     });
 
     return cachedResponse || fetchPromise;
+}
+
+// Stale While Revalidate with Timeout - 带超时的版本
+async function staleWhileRevalidateWithTimeout(request) {
+    const cache = await caches.open(DYNAMIC_CACHE);
+    const cachedResponse = await cache.match(request);
+
+    const fetchPromise = fetch(request).then((networkResponse) => {
+        if (networkResponse.ok) {
+            cache.put(request, networkResponse.clone());
+        }
+        return networkResponse;
+    }).catch(() => {
+        // 网络失败时返回缓存或离线页面
+        return cachedResponse || caches.match('/offline.html');
+    });
+
+    // 如果有缓存，立即返回，否则等待网络请求
+    if (cachedResponse) {
+        // 异步更新缓存
+        fetchPromise.catch(() => {
+        }); // 防止未处理的错误
+        return cachedResponse;
+    }
+
+    return fetchPromise;
 }
 
 // 判断是否为静态资源

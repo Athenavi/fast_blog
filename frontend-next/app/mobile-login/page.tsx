@@ -101,13 +101,18 @@ const MobileLoginPageContent = () => {
       const result = await response.json();
 
       if (result.success && result.data) {
-        // 保存令牌到本地存储
+          // 保存令牌到 cookie（仅使用 cookie，不使用 localStorage）
         if (typeof window !== 'undefined') {
-          localStorage.setItem('access_token', result.data.access_token);
+            // 设置 access_token cookie
+            const expirationDate = new Date();
+            expirationDate.setTime(expirationDate.getTime() + (60 * 60 * 1000)); // 1 小时后过期
+            document.cookie = `access_token=${result.data.access_token}; expires=${expirationDate.toUTCString()}; path=/; SameSite=Strict;`;
           
           // 如果有refresh_token，也保存
           if (result.data.refresh_token) {
-            localStorage.setItem('refresh_token', result.data.refresh_token);
+              const refreshExpirationDate = new Date();
+              refreshExpirationDate.setTime(refreshExpirationDate.getTime() + (7 * 24 * 60 * 60 * 1000)); // 7 天后过期
+              document.cookie = `refresh_token=${result.data.refresh_token}; expires=${refreshExpirationDate.toUTCString()}; path=/; SameSite=Strict;`;
           }
         }
 

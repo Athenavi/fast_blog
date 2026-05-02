@@ -54,56 +54,41 @@ const EditArticlePageContent = () => {
     const [collabDocId, setCollabDocId] = useState<string>('');
     const [collabArticleId, setCollabArticleId] = useState<number | undefined>(undefined);
     const hasLoadedRef = useRef(false); // 防止重复加载
+    const currentContentRef = useRef(currentContent); // ✅ 使用 ref 存储最新值
+
+    // ✅ 更新 ref 值
+    useEffect(() => {
+        currentContentRef.current = currentContent;
+    }, [currentContent]);
 
     // 监听获取编辑器内容的事件
     useEffect(() => {
         const handleGetEditorContent = (e: CustomEvent) => {
-            console.log('收到getEditorContent事件，当前内容长度:', currentContent?.length);
+            // ✅ 使用 ref 获取最新值，避免闭包问题
             if (e.detail?.callback && typeof e.detail.callback === 'function') {
-                console.log('调用回调函数...');
-                e.detail.callback(currentContent);
+                e.detail.callback(currentContentRef.current);
             }
         };
 
         // 监听编辑器内容变化
         const handleContentChanged = (e: CustomEvent) => {
-            console.log('收到editorContentChanged事件，新内容长度:', e.detail?.content?.length);
             setCurrentContent(e.detail?.content || '');
         };
 
         window.addEventListener('getEditorContent', handleGetEditorContent as EventListener);
         window.addEventListener('editorContentChanged', handleContentChanged as EventListener);
-        console.log('已注册getEditorContent和editorContentChanged监听器');
+
         return () => {
             window.removeEventListener('getEditorContent', handleGetEditorContent as EventListener);
             window.removeEventListener('editorContentChanged', handleContentChanged as EventListener);
-            console.log('已移除监听器');
         };
-    }, []); // 移除 currentContent 依赖，避免不必要的重新渲染
+    }, []); // ✅ 空依赖数组，现在是安全的
 
     // 加载文章数据 - 只在组件挂载时执行一次
   useEffect(() => {
       let isMounted = true; // 跟踪组件是否已挂载
 
-      // 检查用户是否登录
-      const checkAuth = (): boolean => {
-          if (typeof document === 'undefined') return false;
-          const cookies = document.cookie.split(';');
-          for (const cookie of cookies) {
-              const [name, value] = cookie.trim().split('=');
-              if (name === 'access_token' && value) {
-                  return true;
-              }
-          }
-          return false;
-      };
-
-      if (!checkAuth()) {
-          console.log('[EditPage] User not authenticated, redirecting to login');
-          router.push(`/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`);
-          return;
-      }
-
+      // ✅ 移除重复的认证检查，由布局统一处理
       // 在 effect 内部获取 articleId，避免依赖问题
       const currentArticleId = searchParams?.get('id');
       console.log('[EditPage] useEffect triggered, articleId:', currentArticleId);
@@ -236,16 +221,22 @@ const EditArticlePageContent = () => {
   }
 
   if (error) {
-    // 使用认证错误边界包装，自动处理 401 错误
+      // ✅ 使用认证错误边界包装，自动处理 401 错误
     return (
       <AuthErrorBoundary 
         error={error}
-        retryAction={() => window.location.reload()}
+          // ✅ 改为跳转到登录页，而不是 reload
+        retryAction={() => {
+            router.push(`/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+        }}
         redirectPath={`/my/posts/edit?id=${articleId}`}
       >
         <ErrorState
           error={error}
-          retryAction={() => window.location.reload()}
+            // ✅ 同样修改
+          retryAction={() => {
+              router.push(`/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+          }}
           secondaryAction={{
             label: '返回文章',
             onClick: () => router.push(`/blog/detail?slug=${initialData?.slug || articleId}`)

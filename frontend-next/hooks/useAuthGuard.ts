@@ -45,34 +45,28 @@ export const useAuthGuard = (options: UseAuthGuardOptions = {}): UseAuthGuardRet
     const isAuthenticated = !!user && !authLoading;
     const isLoading = authLoading || !checked;
 
-    // 检查认证状态并处理重定向
+    // 检查认证状态并处理重定向（合并两个 useEffect，避免相互触发）
     useEffect(() => {
-        if (!authLoading && checked) {
-            if (!isAuthenticated && redirectIfUnauthenticated) {
-                // 保存当前路径用于登录后重定向
-                if (saveRedirectPath && typeof window !== 'undefined') {
-                    const currentPath = window.location.pathname + window.location.search;
-                    localStorage.setItem('redirect_after_login', currentPath);
-                }
+        if (authLoading) return;
 
-                // 执行重定向
+        // 首次检查完成
+        if (!checkedRef.current) {
+            checkedRef.current = true;
+            setChecked(true);
+            return;
+        }
+
+        // 已检查完毕，处理重定向
+        if (checked && !isAuthenticated && redirectIfUnauthenticated) {
+            if (saveRedirectPath && typeof window !== 'undefined') {
+                const currentPath = window.location.pathname + window.location.search;
+                const nextParam = encodeURIComponent(currentPath);
+                window.location.href = `${redirectTo}?next=${nextParam}`;
+            } else {
                 window.location.href = redirectTo;
             }
         }
-    }, [isAuthenticated, authLoading, checked, redirectIfUnauthenticated, redirectTo, router, saveRedirectPath]);
-
-    // 初始化检查完成标记
-    useEffect(() => {
-        if (!authLoading && !checkedRef.current) {
-            checkedRef.current = true;
-            // 使用 setTimeout 避免在 effect 中同步设置状态
-            setTimeout(() => {
-                if (checkedRef.current) {
-                    setChecked(true);
-                }
-            }, 0);
-        }
-    }, [authLoading]);
+    }, [authLoading, checked, isAuthenticated, redirectIfUnauthenticated, redirectTo, saveRedirectPath]);
 
     /**
      * 手动触发认证检查
@@ -81,9 +75,11 @@ export const useAuthGuard = (options: UseAuthGuardOptions = {}): UseAuthGuardRet
         if (!isAuthenticated && redirectIfUnauthenticated) {
             if (saveRedirectPath && typeof window !== 'undefined') {
                 const currentPath = window.location.pathname + window.location.search;
-                localStorage.setItem('redirect_after_login', currentPath);
+                const nextParam = encodeURIComponent(currentPath);
+                window.location.href = `${redirectTo}?next=${nextParam}`;
+            } else {
+                window.location.href = redirectTo;
             }
-            window.location.href = redirectTo;
         }
     };
 

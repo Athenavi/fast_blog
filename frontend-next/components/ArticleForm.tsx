@@ -82,8 +82,10 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
   const router = useRouter();
   const {toast} = useToast();
 
-  // 调试信息
-  console.log('ArticleForm rendered - mode:', mode, 'articleId:', articleId);
+  // ✅ 移除生产环境的 console.log，避免性能问题
+  // if (process.env.NODE_ENV === 'development') {
+  //   console.log('ArticleForm rendered - mode:', mode, 'articleId:', articleId);
+  // }
 
   // 使用useMemo初始化表单数据，避免不必要的重新计算
   const initialFormState = useMemo(() => ({

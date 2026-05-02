@@ -37,12 +37,12 @@ export function AuthProtected({children}: AuthProtectedProps) {
                 return;
             }
 
-            // 已登录
-            setIsAuthenticated(true);
+            // 已登录 - 使用函数式更新避免不必要的重渲染
+            setIsAuthenticated(prev => prev === null ? true : prev);
         };
 
         checkAuth();
-    }, [router]);
+    }, []); // 空依赖数组，只在挂载时执行一次
 
     // 正在检查认证状态
     if (isAuthenticated === null) {

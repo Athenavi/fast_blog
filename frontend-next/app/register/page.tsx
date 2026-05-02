@@ -120,11 +120,7 @@ const RegisterPage = () => {
               // 注册成功后，保存 token 并跳转
               if (response.data && (response.data as any).access_token) {
                   if (typeof window !== 'undefined') {
-                      // 保存到 localStorage
-                      localStorage.setItem('access_token', (response.data as any).access_token);
-                      localStorage.setItem('refresh_token', (response.data as any).refresh_token || '');
-
-                      // 设置 cookie
+                      // 设置 cookie（仅使用 cookie，不使用 localStorage）
                       const expirationDate = new Date();
                       expirationDate.setTime(expirationDate.getTime() + (60 * 60 * 1000)); // 1 小时后过期
                       document.cookie = `access_token=${(response.data as any).access_token}; expires=${expirationDate.toUTCString()}; path=/; SameSite=Strict;`;
