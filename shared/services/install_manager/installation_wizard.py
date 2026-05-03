@@ -358,8 +358,9 @@ class InstallationWizardService:
             from datetime import datetime
 
             async def _import_data():
-                # get_async_session() 返回的是异步生成器，需要使用 async for
-                async for session in get_async_session():
+                # 使用统一管理器获取会话
+                from src.utils.database.unified_manager import db_manager as unified_db_manager
+                async with unified_db_manager.get_session_no_auto_commit() as session:
                     try:
                         imported = {
                             'articles': 0,
@@ -469,10 +470,20 @@ class InstallationWizardService:
             # 运行异步函数（处理可能在异步上下文中调用的情况）
             try:
                 loop = asyncio.get_running_loop()
-                # 如果已经有运行的事件循环，使用线程池
+                # 如果已经有运行的事件循环，使用 create_task
                 import concurrent.futures
+
+                def run_in_new_loop():
+                    """在新的事件循环中运行异步函数"""
+                    new_loop = asyncio.new_event_loop()
+                    try:
+                        asyncio.set_event_loop(new_loop)
+                        return new_loop.run_until_complete(_import_data())
+                    finally:
+                        new_loop.close()
+                
                 with concurrent.futures.ThreadPoolExecutor() as executor:
-                    future = executor.submit(lambda: asyncio.run(_import_data()))
+                    future = executor.submit(run_in_new_loop)
                     result = future.result(timeout=30)
                     return result
             except RuntimeError:
@@ -582,13 +593,20 @@ class InstallationWizardService:
             from src.utils.database.main import get_async_session
             from shared.models import User
 
+            # 确保数据库管理器已初始化
+            from src.utils.database.unified_manager import db_manager as unified_db_manager
+            if unified_db_manager._async_session_factory is None:
+                print("[Install] Initializing database manager for admin user creation...")
+                unified_db_manager.initialize()
+
             # 使用 Django 的密码哈希函数（与项目其他地方保持一致）
             from django.contrib.auth.hashers import make_password
             hashed_password = make_password(password)
 
             async def _create_user():
-                # get_async_session() 返回的是异步生成器，需要使用 async for
-                async for session in get_async_session():
+                # 使用统一管理器获取会话
+                from src.utils.database.unified_manager import db_manager as unified_db_manager
+                async with unified_db_manager.get_session_no_auto_commit() as session:
                     try:
                         # 检查用户是否已存在
                         result = await session.execute(
@@ -646,10 +664,34 @@ class InstallationWizardService:
             # 运行异步函数（处理可能在异步上下文中调用的情况）
             try:
                 loop = asyncio.get_running_loop()
-                # 如果已经有运行的事件循环，使用 create_task
+                # 如果已经有运行的事件循环，直接创建任务并等待
                 import concurrent.futures
+
+                def run_in_thread():
+                    """在线程中运行，但复用主线程的数据库引擎"""
+                    # 创建新的事件循环
+                    new_loop = asyncio.new_event_loop()
+                    try:
+                        asyncio.set_event_loop(new_loop)
+                        # 重新初始化数据库管理器（在新的事件循环中）
+                        from src.utils.database.unified_manager import UnifiedDatabaseManager
+                        # 重置单例，以便在新的事件循环中重新初始化
+                        UnifiedDatabaseManager._instance = None
+                        UnifiedDatabaseManager._initialized = False
+
+                        from src.utils.database.unified_manager import db_manager as new_db_manager
+                        new_db_manager.initialize()
+
+                        # 运行异步函数
+                        return new_loop.run_until_complete(_create_user())
+                    finally:
+                        new_loop.close()
+                        # 恢复原来的单例
+                        UnifiedDatabaseManager._instance = unified_db_manager
+                        UnifiedDatabaseManager._initialized = True
+                
                 with concurrent.futures.ThreadPoolExecutor() as executor:
-                    future = executor.submit(lambda: asyncio.run(_create_user()))
+                    future = executor.submit(run_in_thread)
                     result = future.result(timeout=30)
                     return result
             except RuntimeError:

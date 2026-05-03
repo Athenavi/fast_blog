@@ -5,7 +5,7 @@ from contextlib import contextmanager
 from pathlib import Path
 from typing import AsyncGenerator, List, Dict, Tuple
 
-from sqlalchemy import create_engine, inspect, text
+from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, configure_mappers
@@ -291,137 +291,111 @@ def get_model_classes() -> List:
     return model_classes
 
 
-def check_consistency() -> Tuple[List[Dict], List[str]]:
-    """快速一致性检查"""
-    _import_models_once()
-
-    try:
-        engine = db.sync_engine
-        inspector = inspect(engine)
-        model_classes = get_model_classes()
-
-        inconsistent = []
-        existing_tables = set(inspector.get_table_names())
-        model_tables = set()
-
-        for model in model_classes:
-            table_name = getattr(model, '__tablename__', None)
-            if not table_name:
-                continue
-
-            model_tables.add(table_name)
-
-            if table_name not in existing_tables:
-                inconsistent.append({
-                    'table': table_name,
-                    'issue': 'missing',
-                    'model': model.__name__
-                })
-                continue
-
-            # 快速列检查（可选，可注释掉以提高性能）
-            try:
-                model_cols = {c.name for c in model.__table__.columns}
-                db_cols = {c['name'] for c in inspector.get_columns(table_name)}
-
-                if model_cols != db_cols:
-                    inconsistent.append({
-                        'table': table_name,
-                        'issue': 'columns_mismatch',
-                        'model': model.__name__
-                    })
-            except Exception as e:
-                logger.debug(f"检查列时出错 {table_name}: {e}")
-
-        # 找出数据库中多余的表
-        extra_tables = [
-            t for t in existing_tables
-            if t not in model_tables and t != 'alembic_version'
-        ]
-
-        return inconsistent, extra_tables
-
-    except Exception as e:
-        logger.error(f"一致性检查失败: {e}")
-        return [{'error': str(e)}], []
-
-
-def create_tables():
-    """创建所有表"""
-    _import_models_once()
-
-    try:
-        Base.metadata.create_all(db.sync_engine)
-        logger.info("表创建完成")
-        return True
-    except Exception as e:
-        logger.error(f"创建表失败: {e}")
-        return False
-
-
-def drop_tables():
-    """删除所有表（仅用于测试）"""
-    _import_models_once()
-
-    try:
-        Base.metadata.drop_all(db.sync_engine)
-        logger.info("表删除完成")
-        return True
-    except Exception as e:
-        logger.error(f"删除表失败: {e}")
-        return False
-
-
 # 连接测试
-def test_connection() -> bool:
-    """快速连接测试"""
+async def test_connection_async() -> bool:
+    """异步连接测试"""
     try:
-        with db.sync_engine.connect() as conn:
-            result = conn.execute(text("SELECT 1")).scalar()
-            return result == 1
+        from src.utils.database.unified_manager import db_manager
+        async with db_manager.get_session() as session:
+            from sqlalchemy import text
+            result = await session.execute(text("SELECT 1"))
+            return result.scalar() == 1
+    except Exception as e:
+        logger.error(f"连接测试失败: {e}")
+        return False
+
+
+def test_connection() -> bool:
+    """快速连接测试（同步包装器）"""
+    import asyncio
+    try:
+        # 尝试获取当前事件循环
+        try:
+            loop = asyncio.get_running_loop()
+            # 如果已经有运行的事件循环，使用线程池执行
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(lambda: asyncio.run(test_connection_async()))
+                return future.result(timeout=10)
+        except RuntimeError:
+            # 没有运行的事件循环，直接使用 asyncio.run
+            return asyncio.run(test_connection_async())
     except Exception as e:
         logger.error(f"连接测试失败: {e}")
         return False
 
 
 def get_table_count() -> int:
-    """获取表数量"""
-    try:
-        inspector = inspect(db.sync_engine)
-        return len(inspector.get_table_names())
-    except Exception:
-        return 0
+    """获取表数量（已废弃，使用 Alembic 管理迁移）"""
+    logger.warning("get_table_count() is deprecated. Please use Alembic for migration management.")
+    return 0
+
+
+def check_consistency() -> Tuple[List[Dict], List[str]]:
+    """快速一致性检查（已废弃，使用 Alembic 管理迁移）"""
+    logger.warning("check_consistency() is deprecated. Please use Alembic for migration management.")
+    return [], []
+
+
+def create_tables():
+    """创建所有表（已废弃，使用 Alembic 管理迁移）"""
+    logger.warning("create_tables() is deprecated. Please use Alembic for migration management.")
+    return False
+
+
+def drop_tables():
+    """删除所有表（已废弃，使用 Alembic 管理迁移）"""
+    logger.warning("drop_tables() is deprecated. Please use Alembic for migration management.")
+    return False
 
 
 # 初始化函数
-def init_database(create_if_missing=True, check_consistency=True):
-    """初始化数据库"""
+async def init_database_async(create_if_missing=True, check_consistency=True):
+    """异步初始化数据库"""
+    from src.utils.database.unified_manager import db_manager
 
-    # 预加载引擎
-    _ = db.sync_engine
+    # 确保数据库管理器已初始化
+    if db_manager._async_engine is None:
+        db_manager.initialize()
 
-    if not test_connection():
+    if not await test_connection_async():
         logger.error("数据库连接失败")
         return False
 
     logger.info("数据库连接成功")
 
-    table_count = get_table_count()
-    logger.info(f"发现 {table_count} 个表")
-
-    if table_count == 0 and create_if_missing:
-        logger.info("创建缺失表...")
-        create_tables()
-
-    if check_consistency and table_count > 0:
-        inconsistent, extra = check_consistency()
-        if inconsistent or extra:
-            logger.warning(f"发现不一致: {len(inconsistent)} 处, 多余表: {len(extra)}")
+    # 注意：表创建和一致性检查需要使用 Alembic 迁移，这里不再直接操作
+    logger.info("数据库初始化完成（请使用 Alembic 进行迁移）")
 
     return True
 
 
+def init_database(create_if_missing=True, check_consistency=True):
+    """初始化数据库（同步包装器）"""
+    import asyncio
+    try:
+        # 尝试获取当前事件循环
+        try:
+            loop = asyncio.get_running_loop()
+            # 如果已经有运行的事件循环，使用线程池执行
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(lambda: asyncio.run(init_database_async(create_if_missing, check_consistency)))
+                return future.result(timeout=30)
+        except RuntimeError:
+            # 没有运行的事件循环，直接使用 asyncio.run
+            return asyncio.run(init_database_async(create_if_missing, check_consistency))
+    except Exception as e:
+        logger.error(f"数据库初始化失败: {e}")
+        return False
+
+
 # 简化版本，按需初始化
+async def ensure_database_async():
+    """确保数据库已初始化（异步）"""
+    return await init_database_async()
+
+
 def ensure_database():
     """确保数据库已初始化"""
     return init_database()

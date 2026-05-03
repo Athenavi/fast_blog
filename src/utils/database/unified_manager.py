@@ -280,30 +280,51 @@ class UnifiedDatabaseManager:
             except Exception as e:
                 logger.warning(f"Error closing session (may be expected): {e}")
 
+    @asynccontextmanager
     async def get_session_no_auto_commit(self) -> AsyncGenerator[AsyncSession, None]:
         """
-        获取数据库会话（不自动提交）
+        获取数据库会话（不自动提交）- 上下文管理器版本
         
         适用于需要手动控制事务的场景。
         调用者负责 commit/rollback。
         
         使用示例：
-            async for session in db_manager.get_session_no_auto_commit():
-                try:
-                    result = await session.execute(query)
-                    await session.commit()
-                except Exception:
-                    await session.rollback()
-                    raise
+            async with db_manager.get_session_no_auto_commit() as session:
+                result = await session.execute(query)
+                await session.commit()
         """
         session = self.async_session_factory()
+        logger.debug(f"Creating new session (no auto-commit): {id(session)}")
         try:
             yield session
-        finally:
+        except Exception as e:
+            # 发生异常时回滚
+            error_msg = str(e)
+            if "another operation is in progress" in error_msg:
+                logger.warning(
+                    f"⚠️ Concurrent operation error on session {id(session)}: {error_msg}"
+                )
+                # 在 Windows 上，如果遇到并发错误，等待一小段时间
+                if sys.platform == 'win32':
+                    import asyncio
+                    await asyncio.sleep(0.2)
+            else:
+                logger.debug(f"Exception occurred, rolling back session: {id(session)}")
+
             try:
+                await session.rollback()
+                logger.debug(f"Session rolled back after exception: {id(session)}")
+            except Exception as rollback_err:
+                logger.error(f"Error during rollback: {rollback_err}")
+            raise
+        finally:
+            # 确保会话总是被关闭
+            try:
+                logger.debug(f"Closing session: {id(session)}")
                 await session.close()
+                logger.debug(f"Session closed successfully: {id(session)}")
             except Exception as e:
-                logger.debug(f"Error closing session: {e}")
+                logger.warning(f"Error closing session (may be expected): {e}")
 
     async def close(self):
         """关闭数据库引擎（应用 shutdown 时调用）"""
