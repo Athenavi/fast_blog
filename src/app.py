@@ -794,6 +794,22 @@ curl -X POST "http://localhost:9421/api/v1/media/upload" \
         except ImportError as e:
             print(f"Warning: Custom Blocks API could not be loaded: {e}")
 
+        # NFT 内容所有权 API
+        try:
+            from src.api.v1.nft import router as nft_router
+            app.include_router(nft_router, prefix='/api/v1', tags=['nft'])
+            print(f"{worker_info} [OK] NFT API 已加载")
+        except ImportError as e:
+            print(f"Warning: NFT API could not be loaded: {e}")
+
+        # IPFS 去中心化存储 API
+        try:
+            from src.api.v1.ipfs import router as ipfs_router
+            app.include_router(ipfs_router, prefix='/api/v1', tags=['ipfs'])
+            print(f"{worker_info} [OK] IPFS API 已加载")
+        except ImportError as e:
+            print(f"Warning: IPFS API could not be loaded: {e}")
+
         env_key = f"ROUTER_PRINTED_{os.getpid()}"
 
         if not os.environ.get(env_key):
