@@ -111,6 +111,137 @@ async def configure_database_api(
         return ApiResponse(success=False, error=str(e))
 
 
+async def _import_sample_data_helper(import_articles: bool, import_categories: bool):
+    """
+    导入示例数据的辅助函数（可复用）
+    
+    Args:
+        import_articles: 是否导入文章
+        import_categories: 是否导入分类
+        
+    Returns:
+        ApiResponse
+    """
+    # 如果都不导入，直接返回成功
+    if not import_articles and not import_categories:
+        return ApiResponse(
+            success=True,
+            data={
+                'success': True,
+                'message': '已跳过示例数据导入',
+                'imported': {'articles': 0, 'categories': 0}
+            }
+        )
+
+    from sqlalchemy import select
+    from src.utils.database.unified_manager import db_manager as unified_db_manager
+    from shared.models import Category, Article, ArticleContent
+    from datetime import datetime
+
+    async with unified_db_manager.get_session_no_auto_commit() as session:
+        try:
+            imported = {
+                'articles': 0,
+                'categories': 0
+            }
+
+            # 导入分类
+            if import_categories:
+                sample_categories = [
+                    {'name': '技术分享', 'slug': 'tech', 'description': '技术相关文章'},
+                    {'name': '生活随笔', 'slug': 'life', 'description': '生活感悟和随笔'},
+                    {'name': '学习笔记', 'slug': 'study', 'description': '学习过程中的笔记'},
+                    {'name': '项目实战', 'slug': 'project', 'description': '项目开发经验'},
+                    {'name': '行业资讯', 'slug': 'news', 'description': '行业最新动态'},
+                ]
+
+                for cat_data in sample_categories:
+                    result = await session.execute(
+                        select(Category).where(Category.slug == cat_data['slug'])
+                    )
+                    existing = result.scalar_one_or_none()
+
+                    if not existing:
+                        category = Category(
+                            name=cat_data['name'],
+                            slug=cat_data['slug'],
+                            description=cat_data['description'],
+                            created_at=datetime.now(),
+                            updated_at=datetime.now()
+                        )
+                        session.add(category)
+                        imported['categories'] += 1
+
+                await session.commit()
+
+            # 导入文章
+            if import_articles:
+                result = await session.execute(select(Category))
+                categories = result.scalars().all()
+
+                if categories:
+                    sample_articles = [
+                        {
+                            'title': '欢迎使用 FastBlog',
+                            'slug': 'welcome-to-fastblog',
+                            'content': '# 欢迎使用 FastBlog\n\n这是一个基于 FastAPI 和 Django 构建的现代化博客系统。\n\n## 特性\n\n- 🚀 高性能：基于 FastAPI 异步框架\n- 🎨 美观：现代化的 UI 设计\n- 🔌 可扩展：强大的插件系统\n- 📱 响应式：完美支持移动端\n\n开始你的博客之旅吧！',
+                            'excerpt': '欢迎使用 FastBlog 博客系统',
+                            'status': 1,
+                        },
+                        {
+                            'title': 'FastBlog 快速入门指南',
+                            'slug': 'fastblog-quick-start',
+                            'content': '# FastBlog 快速入门\n\n## 安装\n\n1. 克隆仓库\n2. 安装依赖\n3. 配置环境变量\n4. 运行安装向导\n\n## 基本使用\n\n- 创建文章\n- 管理分类\n- 自定义主题\n- 安装插件\n\n更多文档请访问我们的官方网站。',
+                            'excerpt': 'FastBlog 的快速入门教程',
+                            'status': 0,
+                        },
+                    ]
+
+                    for article_data in sample_articles:
+                        result = await session.execute(
+                            select(Article).where(Article.slug == article_data['slug'])
+                        )
+                        existing = result.scalar_one_or_none()
+
+                        if not existing:
+                            category = categories[0]
+                            article = Article(
+                                title=article_data['title'],
+                                slug=article_data['slug'],
+                                excerpt=article_data['excerpt'],
+                                status=article_data['status'],
+                                category=category.id,
+                                user=1,
+                                created_at=datetime.now(),
+                                updated_at=datetime.now()
+                            )
+                            session.add(article)
+                            await session.flush()
+
+                            article_content = ArticleContent(
+                                article=article.id,
+                                content=article_data['content'],
+                                created_at=datetime.now(),
+                                updated_at=datetime.now()
+                            )
+                            session.add(article_content)
+                            imported['articles'] += 1
+
+                    await session.commit()
+
+            return ApiResponse(
+                success=True,
+                data={
+                    'success': True,
+                    'message': f'示例数据导入成功：{imported["categories"]} 个分类，{imported["articles"]} 篇文章',
+                    'imported': imported
+                }
+            )
+        except Exception:
+            await session.rollback()
+            raise
+
+
 @router.post("/import-sample-data",
              summary="导入示例数据",
              description="导入示例文章和分类",
@@ -127,15 +258,12 @@ async def import_sample_data_api(
                 error="System already installed"
             )
 
-        result = installation_wizard_service.import_sample_data(
+        # 调用辅助函数
+        return await _import_sample_data_helper(
             import_articles=request.import_articles,
             import_categories=request.import_categories
         )
-        
-        return ApiResponse(
-            success=result['success'],
-            data=result
-        )
+
     except Exception as e:
         import traceback
         print(f"Error in import_sample_data_api: {str(e)}")
@@ -223,17 +351,97 @@ async def create_admin_user_api(
                 success=False,
                 error="System already installed"
             )
-        
-        result = installation_wizard_service.create_admin_user(
-            username=request.username,
-            email=request.email,
-            password=request.password
-        )
-        
-        return ApiResponse(
-            success=result['success'],
-            data=result
-        )
+
+        # 直接调用内部异步函数
+        from shared.services.install_manager.installation_wizard import installation_wizard_service as wizard
+
+        # 验证输入
+        if not request.username or not request.email or not request.password:
+            return ApiResponse(
+                success=False,
+                error='用户名、邮箱和密码不能为空'
+            )
+
+        if len(request.password) < 6:
+            return ApiResponse(
+                success=False,
+                error='密码长度至少为6个字符'
+            )
+
+        import re
+        if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', request.email):
+            return ApiResponse(
+                success=False,
+                error='邮箱格式不正确'
+            )
+
+        # 使用 Django 的密码哈希
+        from django.contrib.auth.hashers import make_password
+        hashed_password = make_password(request.password)
+
+        # 使用统一管理器获取会话
+        from src.utils.database.unified_manager import db_manager as unified_db_manager
+        from sqlalchemy import select
+        from shared.models import User
+        from datetime import datetime
+
+        async with unified_db_manager.get_session_no_auto_commit() as session:
+            try:
+                # 检查用户是否已存在
+                result = await session.execute(
+                    select(User).where(User.username == request.username)
+                )
+                existing_user = result.scalar_one_or_none()
+
+                if existing_user:
+                    return ApiResponse(
+                        success=False,
+                        error=f'用户名 "{request.username}" 已存在'
+                    )
+
+                # 检查邮箱是否已存在
+                result = await session.execute(
+                    select(User).where(User.email == request.email)
+                )
+                existing_email = result.scalar_one_or_none()
+
+                if existing_email:
+                    return ApiResponse(
+                        success=False,
+                        error=f'邮箱 "{request.email}" 已被注册'
+                    )
+
+                # 创建新用户
+                new_user = User(
+                    username=request.username,
+                    email=request.email,
+                    password=hashed_password,
+                    is_active=True,
+                    is_superuser=True,
+                    is_staff=True,
+                    date_joined=datetime.now(),
+                )
+
+                session.add(new_user)
+                await session.commit()
+                await session.refresh(new_user)
+
+                return ApiResponse(
+                    success=True,
+                    data={
+                        'success': True,
+                        'message': f'管理员账号 "{request.username}" 创建成功',
+                        'data': {
+                            'user_id': new_user.id,
+                            'username': new_user.username,
+                            'email': new_user.email
+                        }
+                    }
+                )
+            except Exception:
+                await session.rollback()
+                raise
+                
     except Exception as e:
         import traceback
         print(f"Error in create_admin_user_api: {str(e)}")
@@ -299,12 +507,46 @@ async def complete_installation_api(
                 success=False,
                 error="System already installed"
             )
-        
-        result = installation_wizard_service.complete_installation(install_info)
-        
+
+        # 标记安装完成
+        from datetime import datetime
+        install_info['completed_at'] = datetime.now().isoformat()
+        install_info['is_installed'] = True
+
+        # 保存安装标志
+        with open(installation_wizard_service.install_flag_file, 'w', encoding='utf-8') as f:
+            import json
+            json.dump(install_info, f, ensure_ascii=False, indent=2)
+
+        print("\n" + "=" * 60)
+        print("✓ 安装完成！")
+        print("=" * 60)
+
+        # 如果选择导入示例数据，调用辅助函数
+        sample_data_imported = False
+        if install_info.get('import_sample_data', False):
+            print("\n正在导入示例数据...")
+            try:
+                result = await _import_sample_data_helper(
+                    import_articles=install_info.get('import_articles', True),
+                    import_categories=install_info.get('import_categories', True)
+                )
+
+                if result.success:
+                    print(f"✓ {result.data.get('message', '示例数据导入成功')}")
+                    sample_data_imported = True
+                else:
+                    print(f"✗ 示例数据导入失败: {result.error}")
+            except Exception as e:
+                print(f"✗ 示例数据导入失败: {str(e)}")
+
         return ApiResponse(
-            success=result['success'],
-            data=result
+            success=True,
+            data={
+                "success": True,
+                "message": "安装完成",
+                "sample_data_imported": sample_data_imported
+            }
         )
     except Exception as e:
         import traceback
