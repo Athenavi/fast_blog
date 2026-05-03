@@ -1,19 +1,19 @@
 /**
  * Modern Minimal Theme Footer Component
- * 现代简约主题底部组件 - 简洁优雅的页脚设计
+ * 现代简约主题底部组�?- 简洁优雅的页脚设计
  */
 'use client';
 
 import React from 'react';
 import Link from 'next/link';
-import {useTheme} from '@/hooks/useTheme';
+import {useThemeContext} from '@/hooks/useTheme';
 
 interface ModernMinimalFooterProps {
     darkMode?: boolean;
 }
 
 const ModernMinimalFooter: React.FC<ModernMinimalFooterProps> = ({darkMode = false}) => {
-    const {config} = useTheme();
+    const {config} = useThemeContext();
     
     // 获取主题配置
     const themeConfig = config?.config || {};
@@ -61,9 +61,7 @@ const ModernMinimalFooter: React.FC<ModernMinimalFooterProps> = ({darkMode = fal
                                 className="text-sm leading-relaxed"
                                 style={{color: darkMode ? colors.foreground || '#e2e8f0' : colors.foreground || '#1f2937'}}
                             >
-                                现代简约博客主题，注重内容呈现和阅读体验。
-                                干净、优雅、响应式设计。
-                            </p>
+                                现代简约博客主题，注重内容呈现和阅读体验�? 干净、优雅、响应式设计�? </p>
                         </div>
 
                         {/* 链接 */}

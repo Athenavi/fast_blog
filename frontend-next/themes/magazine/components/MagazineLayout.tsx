@@ -1,20 +1,19 @@
 /**
  * Magazine主题 - 布局组件
- * 杂志风格布局，支持网格展示、特色文章和多栏目
- */
+ * 杂志风格布局，支持网格展示、特色文章和多栏�? */
 'use client';
 
-import React, {useState, useEffect} from 'react';
+import React, {useEffect, useState} from 'react';
 import {MagazineHeader} from './MagazineHeader';
 import {MagazineFooter} from './MagazineFooter';
-import {useTheme} from '@/hooks/useTheme';
+import {useThemeContext} from '@/hooks/useTheme';
 
 interface MagazineLayoutProps {
     children: React.ReactNode;
 }
 
 export const MagazineLayout: React.FC<MagazineLayoutProps> = ({children}) => {
-    const {config} = useTheme();
+    const {config} = useThemeContext();
     const [isMounted, setIsMounted] = useState(false);
     const [darkMode, setDarkMode] = useState(false);
 
@@ -23,8 +22,7 @@ export const MagazineLayout: React.FC<MagazineLayoutProps> = ({children}) => {
     const colors = (themeConfig as any).colors || {};
     const features = (themeConfig as any).features || {};
 
-    // 初始化挂载状态
-    useEffect(() => {
+    // 初始化挂载状�?    useEffect(() => {
         setIsMounted(true);
     }, []);
 

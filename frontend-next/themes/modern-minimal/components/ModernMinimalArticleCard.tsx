@@ -1,12 +1,11 @@
 /**
  * Modern Minimal Theme Article Card Component
- * 现代简约主题文章卡片组件
- */
+ * 现代简约主题文章卡片组�? */
 'use client';
 
 import React from 'react';
 import Link from 'next/link';
-import {useTheme} from '@/hooks/useTheme';
+import {useThemeContext} from '@/hooks/useTheme';
 
 interface Article {
     id: number;
@@ -27,7 +26,7 @@ const ModernMinimalArticleCard: React.FC<ModernMinimalArticleCardProps> = ({
                                                                                article,
                                                                                layout = 'card',
                                                                            }) => {
-    const {config} = useTheme();
+    const {config} = useThemeContext();
     const themeConfig = config?.config || {};
     const colors = (themeConfig as any).colors || {};
     const features = (themeConfig as any).features || {};
@@ -71,8 +70,8 @@ const ModernMinimalArticleCard: React.FC<ModernMinimalArticleCardProps> = ({
                     <time>{formatDate(article.created_at)}</time>
                     {features.showReadingTime && article.views !== undefined && (
                         <>
-                            <span>•</span>
-                            <span>{article.views} 次阅读</span>
+                        <span>�?/span>
+                            <span>{article.views} 次阅�?/span>
                         </>
                     )}
                 </div>
@@ -121,7 +120,7 @@ const ModernMinimalArticleCard: React.FC<ModernMinimalArticleCardProps> = ({
                 >
                     <time>{formatDate(article.created_at)}</time>
                     {features.showReadingTime && article.views !== undefined && (
-                        <span>{article.views} 次阅读</span>
+                        <span>{article.views} 次阅�?/span>
                     )}
                 </div>
             </div>

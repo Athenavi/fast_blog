@@ -266,6 +266,39 @@ export default function BlockEditor({
 
     return (
         <div className="relative">
+            {/* 编辑器工具栏 */}
+            <div
+                className="mb-4 flex items-center gap-2 p-2 bg-gray-50 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+                <button
+                    type="button"
+                    onClick={() => editor.chain().focus().undo().run()}
+                    disabled={!editor.can().undo()}
+                    className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    title="撤销 (Ctrl+Z)"
+                >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                              d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+                    </svg>
+                </button>
+                <button
+                    type="button"
+                    onClick={() => editor.chain().focus().redo().run()}
+                    disabled={!editor.can().redo()}
+                    className="p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    title="重做 (Ctrl+Y)"
+                >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                              d="M21 10h-10a8 8 0 00-8 8v2M21 10l-6 6m6-6l-6-6"/>
+                    </svg>
+                </button>
+                <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1"/>
+                <span className="text-xs text-gray-500 dark:text-gray-400">
+                    💡 输入 "/" 快速插入块
+                </span>
+            </div>
+
             {/* Slash命令菜单 */}
             {showSlashMenu && (
                 <SlashMenu
@@ -355,18 +388,6 @@ export default function BlockEditor({
                     onClose={() => setShowAIAssistant(false)}
                 />
             )}
-
-            {/* 提示信息 */}
-            <div
-                className="mt-4 p-3 bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-lg">
-                <p className="text-sm text-blue-900 dark:text-blue-100">
-                    💡 <strong>提示：</strong>输入 <kbd
-                    className="px-2 py-1 bg-white dark:bg-gray-800 rounded border">/</kbd> 可以快速插入块（标题、列表、图片等）
-                </p>
-                <p className="text-xs text-blue-700 dark:text-blue-300 mt-2">
-                    📱 <strong>移动端：</strong>长按文本可选择，工具栏会自动显示
-                </p>
-            </div>
         </div>
     );
 }

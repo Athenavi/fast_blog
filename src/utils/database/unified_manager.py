@@ -365,7 +365,7 @@ async def get_db_session_manual() -> AsyncGenerator[AsyncSession, None]:
     
     适用于需要手动控制 commit/rollback 的场景。
     """
-    async for session in db_manager.get_session_no_auto_commit():
+    async with db_manager.get_session_no_auto_commit() as session:
         yield session
 
 

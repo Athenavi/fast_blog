@@ -127,7 +127,7 @@ const ThemeProviderContent: React.FC<ThemeProviderProps> = ({children}) => {
             // 注入高优先级的全局样式覆盖
             injectGlobalStyleOverrides(colors);
         }
-    }, [config, isAdminPage]); // ✅ 移除 injectGlobalStyleOverrides 依赖
+    }, [config?.config?.colors, isAdminPage]); // ✅ 只监听颜色变化，避免无限循环
 
     // 监听深色模式变化并重新应用主题
     useEffect(() => {
@@ -144,7 +144,7 @@ const ThemeProviderContent: React.FC<ThemeProviderProps> = ({children}) => {
         });
 
         return unsubscribe;
-    }, [config, isAdminPage]); // ✅ 移除 injectGlobalStyleOverrides 依赖
+    }, [config?.config?.colors, isAdminPage]); // ✅ 只监听颜色变化，避免无限循环
 
     // 如果是管理后台页面，直接渲染子组件，不加载主题
     if (isAdminPage) {

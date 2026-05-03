@@ -4,8 +4,8 @@
  */
 'use client';
 
-import React, {useState, useEffect} from 'react';
-import {useTheme} from '@/hooks/useTheme';
+import React, {useEffect, useState} from 'react';
+import {useThemeContext} from '@/hooks/useTheme';
 import ModernMinimalHeader from './ModernMinimalHeader';
 import ModernMinimalFooter from './ModernMinimalFooter';
 
@@ -14,7 +14,7 @@ interface ModernMinimalLayoutProps {
 }
 
 const ModernMinimalLayout: React.FC<ModernMinimalLayoutProps> = ({children}) => {
-    const {config} = useTheme();
+    const {config} = useThemeContext();
     const [isMounted, setIsMounted] = useState(false);
     const [darkMode, setDarkMode] = useState(false);
 
@@ -24,8 +24,7 @@ const ModernMinimalLayout: React.FC<ModernMinimalLayoutProps> = ({children}) => 
     const features = (themeConfig as any).features || {};
     const layout = (themeConfig as any).layout || {};
 
-    // 初始化挂载状态
-    useEffect(() => {
+    // 初始化挂载状�?    useEffect(() => {
         setIsMounted(true);
     }, []);
 
@@ -96,7 +95,7 @@ const ModernMinimalLayout: React.FC<ModernMinimalLayoutProps> = ({children}) => 
                 /* 平滑滚动 */
                 ${features.smoothScroll ? 'html { scroll-behavior: smooth; }' : ''}
 
-                /* 图片懒加载优化 */
+                /* 图片懒加载优�?*/
                 ${features.lazyLoadImages ? 'img { loading: lazy; }' : ''}
             `}</style>
 

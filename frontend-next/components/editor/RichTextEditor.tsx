@@ -330,6 +330,30 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
 
                 <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1"/>
 
+                {/* 撤销/重做 */}
+                <ToolbarButton
+                    onClick={() => editor.chain().focus().undo().run()}
+                    disabled={!editor.can().undo()}
+                    title="撤销 (Ctrl+Z)"
+                >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                              d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+                    </svg>
+                </ToolbarButton>
+                <ToolbarButton
+                    onClick={() => editor.chain().focus().redo().run()}
+                    disabled={!editor.can().redo()}
+                    title="重做 (Ctrl+Y)"
+                >
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                              d="M21 10h-10a8 8 0 00-8 8v2M21 10l-6 6m6-6l-6-6"/>
+                    </svg>
+                </ToolbarButton>
+
+                <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1"/>
+
                 {/* 其他 */}
                 <ToolbarButton
                     onClick={() => editor.chain().focus().toggleBlockquote().run()}

@@ -1,11 +1,10 @@
 /**
  * Code Block Component with Syntax Highlighting
- * 代码块组件 - 支持语法高亮和复制功能
- */
+ * 代码块组�?- 支持语法高亮和复制功�? */
 'use client';
 
 import React, {useState} from 'react';
-import {useTheme} from '@/hooks/useTheme';
+import {useThemeContext} from '@/hooks/useTheme';
 
 interface CodeBlockProps {
     code: string;
@@ -20,7 +19,7 @@ const CodeBlock: React.FC<CodeBlockProps> = ({
                                                  showLineNumbers = true,
                                                  showCopyButton = true,
                                              }) => {
-    const {config} = useTheme();
+    const {config} = useThemeContext();
     const themeConfig = config?.config || {};
     const colors = (themeConfig as any).colors || {};
     const features = (themeConfig as any).features || {};
@@ -51,7 +50,7 @@ const CodeBlock: React.FC<CodeBlockProps> = ({
                 color: colors.code_text || '#e2e8f0',
             }}
         >
-            {/* 代码块头部 */}
+            {/* 代码块头�?*/}
             {(shouldShowCopyButton || language) && (
                 <div
                     className="flex items-center justify-between px-4 py-2 border-b"
@@ -67,7 +66,7 @@ const CodeBlock: React.FC<CodeBlockProps> = ({
                                 color: '#ffffff',
                             }}
                         >
-                            {copied ? '已复制!' : '复制'}
+                            {copied ? '已复�?' : '复制'}
                         </button>
                     )}
                 </div>

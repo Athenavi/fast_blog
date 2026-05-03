@@ -6,14 +6,14 @@
 
 import React from 'react';
 import Link from 'next/link';
-import {useTheme} from '@/hooks/useTheme';
+import {useThemeContext} from '@/hooks/useTheme';
 
 interface MagazineFooterProps {
     darkMode?: boolean;
 }
 
 export const MagazineFooter: React.FC<MagazineFooterProps> = ({darkMode = false}) => {
-    const {config} = useTheme();
+    const {config} = useThemeContext();
 
     // 获取主题配置
     const themeConfig = config?.config || {};

@@ -5,6 +5,7 @@ import '../styles/rtl.css';
 import {getDirection} from '@/i18n';
 import Navbar from '@/components/Navbar';
 import ThemeInitializer from '@/components/ThemeInitializer';
+import ThemeProvider from '@/components/ThemeProvider';
 import PerformanceOptimizer from '@/components/PerformanceOptimizer';
 import {PerformanceReportTrigger} from '@/components/PerformanceMonitor';
 
@@ -46,11 +47,10 @@ export default function RootLayout({
       <body className="antialiased">
       <ThemeInitializer>
           <PerformanceOptimizer enablePreload={true} enableLazyLoad={true}>
-              {/* ✅ ThemeProvider 仍然导致无限刷新，完全禁用 */}
-              {/* <ThemeProvider> */}
+              <ThemeProvider>
           <Navbar/>
           {children}
-              {/* </ThemeProvider> */}
+              </ThemeProvider>
           </PerformanceOptimizer>
       </ThemeInitializer>
         {/* PWA Service Worker Registration */}

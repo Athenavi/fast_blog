@@ -254,8 +254,8 @@ async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
     
     推荐使用：from src.utils.database.unified_manager import get_db_session
     """
-    # 委托给统一管理器
-    async for session in unified_db_manager.get_session_no_auto_commit():
+    # 委托给统一管理器 - 使用 async with 而不是 async for
+    async with unified_db_manager.get_session_no_auto_commit() as session:
         yield session
 
 
@@ -272,8 +272,8 @@ async def get_async_db():
     
     推荐使用：from src.utils.database.unified_manager import get_db_session
     """
-    # 委托给统一管理器
-    async for session in unified_db_manager.get_session():
+    # 委托给统一管理器 - 使用 async with 而不是 async for
+    async with unified_db_manager.get_session() as session:
         yield session
 
 

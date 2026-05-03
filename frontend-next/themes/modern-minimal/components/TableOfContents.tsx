@@ -4,8 +4,8 @@
  */
 'use client';
 
-import React, {useState, useEffect} from 'react';
-import {useTheme} from '@/hooks/useTheme';
+import React, {useEffect, useState} from 'react';
+import {useThemeContext} from '@/hooks/useTheme';
 
 interface Heading {
     id: string;
@@ -18,7 +18,7 @@ interface TableOfContentsProps {
 }
 
 const TableOfContents: React.FC<TableOfContentsProps> = ({headings = []}) => {
-    const {config} = useTheme();
+    const {config} = useThemeContext();
     const themeConfig = config?.config || {};
     const colors = themeConfig?.colors || {};
     const features = themeConfig?.features || {};

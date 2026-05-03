@@ -180,30 +180,42 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
       setTimeout(() => {
         setAutoSaveStatus('idle');
       }, 3000);
-
-      console.log('✅ 草稿已自动保存到本地');
     } catch (error) {
       setAutoSaveStatus('error');
       console.error('❌ 自动保存出错:', error);
     }
   }, [form, mode]);
 
-  // 设置自动保存定时器
+  // 设置自动保存定时器 - 使用防抖策略
   useEffect(() => {
     if (mode === 'edit' && form.id) {
-      // 每30秒自动保存一次到本地
-      autoSaveTimerRef.current = setInterval(() => {
-        autoSaveDraft();
-      }, 30000);
-
-      // 清理定时器
-      return () => {
+      // 监听内容变化，使用防抖自动保存
+      const handleAutoSave = () => {
         if (autoSaveTimerRef.current) {
-          clearInterval(autoSaveTimerRef.current);
+          clearTimeout(autoSaveTimerRef.current);
+        }
+        // 用户停止输入2秒后自动保存
+        autoSaveTimerRef.current = setTimeout(() => {
+          autoSaveDraft();
+        }, 2000);
+      };
+
+      // 监听键盘事件触发自动保存
+      const handleKeyDown = () => {
+        handleAutoSave();
+      };
+
+      document.addEventListener('keydown', handleKeyDown);
+
+      // 清理
+      return () => {
+        document.removeEventListener('keydown', handleKeyDown);
+        if (autoSaveTimerRef.current) {
+          clearTimeout(autoSaveTimerRef.current);
         }
       };
     }
-  }, [mode, form.id]); // 移除 autoSaveDraft 依赖，避免不必要的重新渲染
+  }, [mode, form.id, autoSaveDraft]);
 
   // 预览模式状态
   const [showPreview, setShowPreview] = useState(false);

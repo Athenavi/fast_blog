@@ -786,6 +786,14 @@ curl -X POST "http://localhost:9421/api/v1/media/upload" \
         except ImportError as e:
             print(f"Warning: Scheduled Publish API could not be loaded: {e}")
 
+        # 自定义块管理 API
+        try:
+            from src.api.v1.custom_blocks import router as custom_blocks_router
+            app.include_router(custom_blocks_router, prefix='/api/v1', tags=['custom-blocks'])
+            print(f"{worker_info} [OK] Custom Blocks API 已加载")
+        except ImportError as e:
+            print(f"Warning: Custom Blocks API could not be loaded: {e}")
+
         env_key = f"ROUTER_PRINTED_{os.getpid()}"
 
         if not os.environ.get(env_key):
