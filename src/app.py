@@ -1002,6 +1002,30 @@ curl -X POST "http://localhost:9421/api/v1/media/upload" \
         except ImportError as e:
             print(f"Warning: Backup Management API could not be loaded: {e}")
 
+        # GDPR合规 API
+        try:
+            from src.api.v1.gdpr_compliance import router as gdpr_router
+            app.include_router(gdpr_router, prefix='/api/v1/gdpr', tags=['gdpr'])
+            print(f"{worker_info} [OK] GDPR Compliance API 已加载")
+        except ImportError as e:
+            print(f"Warning: GDPR Compliance API could not be loaded: {e}")
+
+        # 无障碍性审计 API
+        try:
+            from src.api.v1.accessibility_audit import router as accessibility_router
+            app.include_router(accessibility_router, prefix='/api/v1/accessibility', tags=['accessibility'])
+            print(f"{worker_info} [OK] Accessibility Audit API 已加载")
+        except ImportError as e:
+            print(f"Warning: Accessibility Audit API could not be loaded: {e}")
+
+        # CDN管理 API
+        try:
+            from src.api.v1.cdn_management import router as cdn_router
+            app.include_router(cdn_router, prefix='/api/v1/cdn', tags=['cdn'])
+            print(f"{worker_info} [OK] CDN Management API 已加载")
+        except ImportError as e:
+            print(f"Warning: CDN Management API could not be loaded: {e}")
+
         # IPFS 去中心化存储 API
         try:
             from src.api.v1.ipfs import router as ipfs_router
