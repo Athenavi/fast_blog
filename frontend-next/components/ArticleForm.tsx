@@ -287,10 +287,10 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
               variant: 'default'
             });
         }
-        
-        // 如果是创建模式，且返回了 article_id，则跳转到编辑页面
-        if (mode === 'create' && result.data?.article_id) {
-          router.push(`/my/posts/edit?id=${result.data.article_id}`);
+
+        // 如果是创建模式，跳转到文章列表页
+        if (mode === 'create') {
+          router.push('/my/posts');
         }
         // 注意：移除了 router.refresh()，避免无限刷新循环
         // 编辑模式下不需要刷新页面，用户可以看到当前编辑的内容
@@ -316,107 +316,116 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
 
   return (
       <>
-        {/* 顶部工具栏 - 固定定位 */}
-        <div
-            className="sticky top-0 z-40 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200 dark:border-gray-800 pt-18">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center justify-between h-16">
-              <div className="flex items-center gap-4">
-                <button
-                    onClick={onCancel}
-                    className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
-                    title="返回"
-                >
-                  <svg className="w-5 h-5 text-gray-600 dark:text-gray-400" fill="none" stroke="currentColor"
-                       viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7"/>
-                  </svg>
-                </button>
-                <div className="h-6 w-px bg-gray-200 dark:bg-gray-700"/>
-              <div>
-                <h1 className="text-sm font-semibold text-gray-900 dark:text-white">
-                  {mode === 'create' ? '新建文章' : '编辑文章'}
-                </h1>
-                {mode === 'edit' && form.id && (
-                    <p className="text-xs text-gray-500 dark:text-gray-400">ID: {form.id}</p>
-                )}
-              </div>
-              </div>
-
-              <div className="flex items-center gap-3">
-                {/* 自动保存状态 */}
-                {mode === 'edit' && (
-                    <div className="hidden sm:flex items-center gap-2 text-sm">
-                      {autoSaveStatus === 'saving' && (
-                          <span className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400">
-                      <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                        <path className="opacity-75" fill="currentColor"
-                              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
-                      </svg>
-                      保存中...
-                    </span>
-                      )}
-                      {autoSaveStatus === 'saved' && lastSavedTime && (
-                          <span className="flex items-center gap-1.5 text-green-600 dark:text-green-400">
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/>
-                      </svg>
-                      已保存 {lastSavedTime.toLocaleTimeString('zh-CN', {hour: '2-digit', minute: '2-digit'})}
-                    </span>
-                      )}
-                    </div>
-                )}
-
-                {/* 修订历史按钮 */}
-                {mode === 'edit' && articleId ? (
-                    <button
-                        type="button"
-                        onClick={() => setShowRevisionsSidebar(true)}
-                        className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors border border-gray-200 dark:border-gray-700"
-                        title="查看修订历史"
-                    >
-                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                      </svg>
-                      <span className="hidden sm:inline">历史版本</span>
-                    </button>
-                ) : null}
-
-                {/* 保存按钮 */}
-                <button
-                    type="submit"
-                    disabled={isSubmitting || isLoading}
-                    className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
-                >
-                  {isSubmitting ? (
-                      <>
-                        <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"/>
-                          <path className="opacity-75" fill="currentColor"
-                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
-                        </svg>
-                        {mode === 'create' ? '创建中...' : '保存中...'}
-                      </>
-                  ) : (
-                      <>
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
-                                d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/>
-                        </svg>
-                        {mode === 'create' ? '发布文章' : '保存更改'}
-                      </>
-                )}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
         {/* 主内容区域 */}
         <div className="min-h-screen bg-white dark:bg-gray-950">
           <form onSubmit={handleSubmit} className="max-w-7xl mx-auto">
+            {/* 顶部工具栏 - 固定定位 */}
+            <div
+                className="sticky top-0 z-40 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-b border-gray-200 dark:border-gray-800 pt-18">
+              <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div className="flex items-center justify-between h-16">
+                  <div className="flex items-center gap-4">
+                    <button
+                        type="button"
+                        onClick={onCancel}
+                        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors"
+                        title="返回"
+                    >
+                      <svg className="w-5 h-5 text-gray-600 dark:text-gray-400" fill="none"
+                           stroke="currentColor"
+                           viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                              d="M15 19l-7-7 7-7"/>
+                      </svg>
+                    </button>
+                    <div className="h-6 w-px bg-gray-200 dark:bg-gray-700"/>
+                    <div>
+                      <h1 className="text-sm font-semibold text-gray-900 dark:text-white">
+                        {mode === 'create' ? '新建文章' : '编辑文章'}
+                      </h1>
+                      {mode === 'edit' && form.id && (
+                          <p className="text-xs text-gray-500 dark:text-gray-400">ID: {form.id}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-3">
+                    {/* 自动保存状态 */}
+                    {mode === 'edit' && (
+                        <div className="hidden sm:flex items-center gap-2 text-sm">
+                          {autoSaveStatus === 'saving' && (
+                              <span
+                                  className="flex items-center gap-1.5 text-blue-600 dark:text-blue-400">
+                          <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                    strokeWidth="4"/>
+                            <path className="opacity-75" fill="currentColor"
+                                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                          </svg>
+                          保存中...
+                        </span>
+                          )}
+                          {autoSaveStatus === 'saved' && lastSavedTime && (
+                              <span
+                                  className="flex items-center gap-1.5 text-green-600 dark:text-green-400">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7"/>
+                          </svg>
+                          已保存 {lastSavedTime.toLocaleTimeString('zh-CN', {hour: '2-digit', minute: '2-digit'})}
+                        </span>
+                          )}
+                        </div>
+                    )}
+
+                    {/* 修订历史按钮 */}
+                    {mode === 'edit' && articleId ? (
+                        <button
+                            type="button"
+                            onClick={() => setShowRevisionsSidebar(true)}
+                            className="flex items-center gap-2 px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors border border-gray-200 dark:border-gray-700"
+                            title="查看修订历史"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor"
+                               viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                  d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                          </svg>
+                          <span className="hidden sm:inline">历史版本</span>
+                        </button>
+                    ) : null}
+
+                    {/* 保存按钮 */}
+                    <button
+                        type="submit"
+                        disabled={isSubmitting || isLoading}
+                        className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-sm hover:shadow-md"
+                    >
+                      {isSubmitting ? (
+                          <>
+                            <svg className="animate-spin h-4 w-4" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10"
+                                      stroke="currentColor" strokeWidth="4"/>
+                              <path className="opacity-75" fill="currentColor"
+                                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/>
+                            </svg>
+                            {mode === 'create' ? '创建中...' : '保存中...'}
+                          </>
+                      ) : (
+                          <>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor"
+                                 viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                                    d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/>
+                            </svg>
+                            {mode === 'create' ? '发布文章' : '保存更改'}
+                          </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-0">
               {/* 左侧主要内容区 - 占据更多空间 */}
               <div className="lg:col-span-9 xl:col-span-10">

@@ -178,6 +178,162 @@ class SEOService:
 
         return schema
 
+    def generate_person_schema(self, person: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        生成人员结构化数据
+        
+        Args:
+            person: 人员数据 {name, job_title, description, image, url, ...}
+            
+        Returns:
+            Schema.org JSON-LD数据
+        """
+        schema = {
+            "@context": "https://schema.org",
+            "@type": "Person",
+            "name": person.get('name', ''),
+        }
+
+        if person.get('job_title'):
+            schema['jobTitle'] = person['job_title']
+
+        if person.get('description') or person.get('bio'):
+            schema['description'] = person.get('description') or person.get('bio')
+
+        if person.get('image') or person.get('profile_picture'):
+            schema['image'] = person.get('image') or person.get('profile_picture')
+
+        if person.get('url') or person.get('website'):
+            schema['url'] = person.get('url') or person.get('website')
+
+        if person.get('email'):
+            schema['email'] = person['email']
+
+        if person.get('same_as'):
+            schema['sameAs'] = person['same_as']
+
+        return schema
+
+    def generate_organization_schema(self, org: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        生成组织结构化数据
+        
+        Args:
+            org: 组织数据 {name, url, logo, description, contact_point, ...}
+            
+        Returns:
+            Schema.org JSON-LD数据
+        """
+        schema = {
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            "name": org.get('name', ''),
+            "url": org.get('url', self.base_url),
+        }
+
+        if org.get('logo'):
+            schema['logo'] = org['logo']
+
+        if org.get('description'):
+            schema['description'] = org['description']
+
+        if org.get('contact_point'):
+            schema['contactPoint'] = org['contact_point']
+
+        if org.get('same_as'):
+            schema['sameAs'] = org['same_as']
+
+        return schema
+
+    def generate_faq_schema(self, faqs: List[Dict[str, str]]) -> Dict[str, Any]:
+        """
+        生成FAQ结构化数据
+        
+        Args:
+            faqs: FAQ列表 [{'question': '...', 'answer': '...'}]
+            
+        Returns:
+            Schema.org JSON-LD数据
+        """
+        main_entity = []
+
+        for faq in faqs:
+            main_entity.append({
+                "@type": "Question",
+                "name": faq.get('question', ''),
+                "acceptedAnswer": {
+                    "@type": "Answer",
+                    "text": faq.get('answer', '')
+                }
+            })
+
+        schema = {
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            "mainEntity": main_entity
+        }
+
+        return schema
+
+    def generate_howto_schema(self, howto: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        生成HowTo结构化数据
+        
+        Args:
+            howto: HowTo数据 {
+                'name': '教程名称',
+                'description': '教程描述',
+                'step': [{'name': '步骤名', 'text': '步骤说明', 'image': '图片URL'}],
+                'totalTime': 'PT30M',
+                'estimatedCost': {'currency': 'USD', 'value': '10'},
+                ...
+            }
+            
+        Returns:
+            Schema.org JSON-LD数据
+        """
+        schema = {
+            "@context": "https://schema.org",
+            "@type": "HowTo",
+            "name": howto.get('name', ''),
+            "description": howto.get('description', ''),
+        }
+
+        # 添加步骤
+        if howto.get('step'):
+            steps = []
+            for i, step in enumerate(howto['step'], 1):
+                step_data = {
+                    "@type": "HowToStep",
+                    "position": i,
+                    "name": step.get('name', f'步骤 {i}'),
+                    "text": step.get('text', ''),
+                }
+                if step.get('image'):
+                    step_data['image'] = step['image']
+                if step.get('url'):
+                    step_data['url'] = step['url']
+                steps.append(step_data)
+            schema['step'] = steps
+
+        # 添加总时间
+        if howto.get('total_time') or howto.get('totalTime'):
+            schema['totalTime'] = howto.get('total_time') or howto.get('totalTime')
+
+        # 添加预估成本
+        if howto.get('estimated_cost') or howto.get('estimatedCost'):
+            schema['estimatedCost'] = howto.get('estimated_cost') or howto.get('estimatedCost')
+
+        # 添加工具
+        if howto.get('tool'):
+            schema['tool'] = howto['tool']
+
+        # 添加供应
+        if howto.get('supply'):
+            schema['supply'] = howto['supply']
+
+        return schema
+
     # ==================== 面包屑导航 ====================
 
     def generate_breadcrumbs(

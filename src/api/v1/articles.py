@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request
-from sqlalchemy import func, select, update
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -17,6 +17,7 @@ from shared.models.article_revision import ArticleRevision
 from shared.models.category import Category
 from shared.models.user import User
 from shared.models.vip_plan import VIPPlan
+from shared.services.api_embed import APIEmbedService
 from shared.services.article_manager import article_query_service, password_protection_service
 from shared.services.shortcode_service import shortcode_service
 from src.api.v1.openapi_examples import ARTICLE_LIST_EXAMPLE, ARTICLE_DETAIL_EXAMPLE, ARTICLE_CREATE_EXAMPLE, \
@@ -25,6 +26,7 @@ from src.api.v1.responses import ApiResponse
 from src.auth.auth_deps import jwt_optional_dependency, jwt_required_dependency as jwt_required
 from src.setting import app_config
 from src.utils.database.main import get_async_session
+from src.utils.field_filter import filter_fields
 from src.utils.filters import markdown_to_html
 
 router = APIRouter()
@@ -186,6 +188,9 @@ async def get_articles_api(
                                        example=ARTICLE_LIST_EXAMPLE["parameters"]["user_id"]["example"]),
         status: Optional[str] = Query(None, description=ARTICLE_LIST_EXAMPLE["parameters"]["status"]["description"],
                                       example=ARTICLE_LIST_EXAMPLE["parameters"]["status"]["example"]),
+        fields: Optional[str] = Query(None,
+                                      description="指定返回的字段，逗号分隔。支持嵌套字段如: id,title,author.username"),
+        embed: Optional[str] = Query(None, description="嵌入关联资源，逗号分隔。支持: author,category"),
         db: AsyncSession = Depends(get_async_session)
 ):
     try:
@@ -240,6 +245,20 @@ async def get_articles_api(
                 "created_at": article.created_at.isoformat() if article.created_at else None,
                 "updated_at": article.updated_at.isoformat() if article.updated_at else None
             })
+
+        # 应用嵌入功能
+        if embed:
+            embed_service = APIEmbedService(db)
+            embed_fields = APIEmbedService.parse_embed_param(embed)
+            allowed_fields = ['author', 'category']
+            valid_fields = APIEmbedService.validate_embed_fields(embed_fields, allowed_fields)
+
+            if valid_fields:
+                articles_data = await embed_service.embed_article_relations(articles, valid_fields)
+
+        # 应用字段过滤
+        if fields:
+            articles_data = filter_fields(articles_data, fields)
 
         return ApiResponse(
             success=True,

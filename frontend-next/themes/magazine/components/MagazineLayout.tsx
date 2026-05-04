@@ -1,6 +1,6 @@
 /**
  * Magazine主题 - 布局组件
- * 杂志风格布局，支持网格展示、特色文章和多栏�? */
+ * 杂志风格布局，支持网格展示、特色文章和多栏?*/
 'use client';
 
 import React, {useEffect, useState} from 'react';
@@ -22,7 +22,8 @@ export const MagazineLayout: React.FC<MagazineLayoutProps> = ({children}) => {
     const colors = (themeConfig as any).colors || {};
     const features = (themeConfig as any).features || {};
 
-    // 初始化挂载状�?    useEffect(() => {
+    // 初始化挂载状态
+    useEffect(() => {
         setIsMounted(true);
     }, []);
 

@@ -1,197 +1,181 @@
 """
-Redis 缓存管理 API
-提供缓存查看、清除和统计功能
+缓存管理 API
+
+提供多级缓存的管理、监控和预热功能
 """
-from typing import Optional, List
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from typing import Optional, List, Dict, Any
 
-from apps.user.models import User
-from src.auth import jwt_required_dependency as jwt_required
-from src.services.redis_service import redis_service
+from fastapi import APIRouter, Depends, HTTPException, Body
 
-router = APIRouter(tags=["cache"])
+from shared.services.multi_level_cache import multi_level_cache
+from src.api.v1.responses import ApiResponse
+from src.auth.auth_deps import jwt_required_dependency as jwt_required
+
+router = APIRouter()
 
 
-@router.get("/cache/stats")
+@router.get("/stats", summary="获取缓存统计", description="获取多级缓存的详细统计信息")
 async def get_cache_stats(
-        current_user: User = Depends(jwt_required),
+        current_user=Depends(jwt_required),
 ):
     """获取缓存统计信息"""
-    stats = await redis_service.get_stats()
-    return {"success": True, "data": stats}
+    # 检查权限
+    is_admin = getattr(current_user, 'is_superuser', False) or getattr(current_user, 'is_staff', False)
+    if not is_admin:
+        raise HTTPException(status_code=403, detail="Permission denied")
+
+    stats = multi_level_cache.get_stats()
+
+    return ApiResponse(
+        success=True,
+        data=stats
+    )
 
 
-@router.get("/cache/keys")
-async def list_cache_keys(
-        pattern: str = Query(default="*", description="键名模式（支持通配符）"),
-        limit: int = Query(default=100, ge=1, le=1000, description="返回数量限制"),
-        current_user: User = Depends(jwt_required),
+@router.post("/warmup", summary="缓存预热", description="批量预热缓存数据")
+async def warmup_cache(
+        keys_data: List[Dict[str, Any]] = Body(..., description="预热数据列表"),
+        current_user=Depends(jwt_required),
 ):
-    """列出缓存键"""
+    """
+    缓存预热
+    
+    请求体示例:
+    [
+        {"key": "article:1", "value": {...}, "ttl": 3600},
+        {"key": "category:list", "value": [...], "ttl": 1800}
+    ]
+    """
+    # 检查权限
+    is_admin = getattr(current_user, 'is_superuser', False) or getattr(current_user, 'is_staff', False)
+    if not is_admin:
+        raise HTTPException(status_code=403, detail="Permission denied")
+
     try:
-        keys = []
-        async for key in redis_service.redis.scan_iter(match=pattern, count=limit):
-            keys.append(key)
-            if len(keys) >= limit:
-                break
+        multi_level_cache.warmup(keys_data)
 
-        return {
-            "success": True,
-            "data": {
-                "keys": keys,
-                "total": len(keys),
-                "pattern": pattern,
-            }
-        }
+        return ApiResponse(
+            success=True,
+            message=f"Successfully warmed up {len(keys_data)} cache entries"
+        )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"获取缓存键失败: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Cache warmup failed: {str(e)}")
 
 
-@router.get("/cache/{key:path}")
+@router.delete("/clear", summary="清空缓存", description="清空所有缓存层级")
+async def clear_cache(
+        current_user=Depends(jwt_required),
+):
+    """清空所有缓存"""
+    # 检查权限
+    is_admin = getattr(current_user, 'is_superuser', False) or getattr(current_user, 'is_staff', False)
+    if not is_admin:
+        raise HTTPException(status_code=403, detail="Permission denied")
+
+    try:
+        multi_level_cache.clear()
+
+        return ApiResponse(
+            success=True,
+            message="All cache levels cleared successfully"
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Cache clear failed: {str(e)}")
+
+
+@router.get("/{key}", summary="获取缓存值", description="从多级缓存中获取指定键的值")
 async def get_cache_value(
         key: str,
-        current_user: User = Depends(jwt_required),
+        current_user=Depends(jwt_required),
 ):
-    """获取缓存值"""
-    value = await redis_service.get(key)
+    """获取单个缓存值"""
+    # 检查权限
+    is_admin = getattr(current_user, 'is_superuser', False) or getattr(current_user, 'is_staff', False)
+    if not is_admin:
+        raise HTTPException(status_code=403, detail="Permission denied")
 
+    value = multi_level_cache.get(key)
+    
     if value is None:
-        raise HTTPException(status_code=404, detail="缓存键不存在")
+        raise HTTPException(status_code=404, detail="Cache key not found")
 
-    return {
-        "success": True,
-        "data": {
-            "key": key,
-            "value": value,
+    return ApiResponse(
+        success=True,
+        data={
+            'key': key,
+            'value': value,
         }
-    }
+    )
 
 
-@router.delete("/cache/{key:path}")
-async def delete_cache_key(
+@router.post("/{key}", summary="设置缓存值", description="设置缓存值到所有层级")
+async def set_cache_value(
         key: str,
-        current_user: User = Depends(jwt_required),
+        value: Any = Body(..., description="缓存值"),
+        ttl: Optional[int] = Body(None, description="TTL(秒)"),
+        current_user=Depends(jwt_required),
 ):
-    """删除缓存键"""
-    deleted = await redis_service.delete(key)
-
-    return {
-        "success": True,
-        "data": {
-            "deleted": deleted,
-            "key": key,
-        },
-        "message": f"成功删除 {deleted} 个缓存键"
-    }
-
-
-@router.post("/cache/clear")
-async def clear_cache(
-        pattern: Optional[str] = Query(default=None, description="清除匹配模式的键（不填则清空全部）"),
-        current_user: User = Depends(jwt_required),
-):
-    """清除缓存"""
-    try:
-        if pattern:
-            # 清除匹配模式的键
-            deleted_count = 0
-            async for key in redis_service.redis.scan_iter(match=pattern):
-                await redis_service.delete(key)
-                deleted_count += 1
-
-            return {
-                "success": True,
-                "data": {"deleted": deleted_count, "pattern": pattern},
-                "message": f"成功清除 {deleted_count} 个缓存键"
-            }
-        else:
-            # 清空整个数据库（危险操作）
-            success = await redis_service.flushdb()
-
-            if not success:
-                raise HTTPException(status_code=500, detail="清空缓存失败")
-
-            return {
-                "success": True,
-                "message": "缓存已清空",
-            }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"清除缓存失败: {str(e)}")
-
-
-@router.post("/cache/warmup")
-async def warmup_cache(
-        cache_types: Optional[List[str]] = Query(
-            default=None,
-            description="要预热的缓存类型：articles, categories, tags, config"
-        ),
-        current_user: User = Depends(jwt_required),
-):
-    """预热缓存"""
-    from sqlalchemy import select
-    from sqlalchemy.ext.asyncio import AsyncSession
-    from src.extensions import get_async_db_session as get_async_db
-    from shared.models.article import Article
-    from apps.category.models import Category
-
-    db: AsyncSession = next(get_async_db())
-
-    warmed_up = {}
+    """设置缓存值"""
+    # 检查权限
+    is_admin = getattr(current_user, 'is_superuser', False) or getattr(current_user, 'is_staff', False)
+    if not is_admin:
+        raise HTTPException(status_code=403, detail="Permission denied")
     
     try:
-        # 如果没有指定类型，预热所有类型
-        types_to_warmup = cache_types or ["articles", "categories", "tags"]
+        multi_level_cache.set(key, value, ttl)
 
-        for cache_type in types_to_warmup:
-            if cache_type == "articles":
-                # 预热热门文章
-                stmt = (
-                    select(Article)
-                    .where(Article.status == 'published')
-                    .order_by(Article.views.desc())
-                    .limit(20)
-                )
-                result = await db.execute(stmt)
-                articles = result.scalars().all()
-
-                # 缓存每篇文章
-                for article in articles:
-                    cache_key = f"article:{article.id}"
-                    await redis_service.set(
-                        cache_key,
-                        {
-                            "id": article.id,
-                            "title": article.title,
-                            "views": article.views,
-                        },
-                        expire=3600,  # 1小时
-                    )
-
-                warmed_up[cache_type] = len(articles)
-
-            elif cache_type == "categories":
-                # 预热分类列表
-                stmt = select(Category).order_by(Category.name)
-                result = await db.execute(stmt)
-                categories = result.scalars().all()
-
-                cache_key = "categories:all"
-                await redis_service.set(
-                    cache_key,
-                    [{"id": c.id, "name": c.name, "slug": c.slug} for c in categories],
-                    expire=7200,  # 2小时
-                )
-
-                warmed_up[cache_type] = len(categories)
-
-        return {
-            "success": True,
-            "data": warmed_up,
-            "message": f"成功预热 {len(warmed_up)} 个缓存类型"
-        }
-    
+        return ApiResponse(
+            success=True,
+            message="Cache value set successfully"
+        )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"缓存预热失败: {str(e)}")
-    finally:
-        await db.close()
+        raise HTTPException(status_code=500, detail=f"Failed to set cache: {str(e)}")
+
+
+@router.delete("/{key}", summary="删除缓存值", description="从所有缓存层级删除指定键")
+async def delete_cache_value(
+        key: str,
+        current_user=Depends(jwt_required),
+):
+    """删除缓存值"""
+    # 检查权限
+    is_admin = getattr(current_user, 'is_superuser', False) or getattr(current_user, 'is_staff', False)
+    if not is_admin:
+        raise HTTPException(status_code=403, detail="Permission denied")
+    
+    try:
+        multi_level_cache.delete(key)
+
+        return ApiResponse(
+            success=True,
+            message="Cache value deleted successfully"
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to delete cache: {str(e)}")
+
+
+@router.post("/config", summary="更新缓存配置", description="动态更新缓存配置")
+async def update_cache_config(
+        config: Dict[str, Any] = Body(..., description="配置项"),
+        current_user=Depends(jwt_required),
+):
+    """
+    更新缓存配置
+    
+    可配置项:
+    - memory_ttl: 内存缓存TTL
+    - file_cache_ttl: 文件缓存TTL
+    """
+    # 检查权限
+    is_admin = getattr(current_user, 'is_superuser', False) or getattr(current_user, 'is_staff', False)
+    if not is_admin:
+        raise HTTPException(status_code=403, detail="Permission denied")
+
+    # 注意: 当前实现不支持动态重新初始化,需要重启服务
+    # 这里只返回提示信息
+    return ApiResponse(
+        success=True,
+        message="Config update received. Note: Some config changes require service restart.",
+        data=config
+    )

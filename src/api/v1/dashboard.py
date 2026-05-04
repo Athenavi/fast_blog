@@ -843,7 +843,10 @@ async def delete_blog_management_article(
     删除博客管理文章
     """
     try:
-        from sqlalchemy import select
+        from sqlalchemy import select, delete
+        from shared.models.article_content import ArticleContent
+        from shared.models.article_revision import ArticleRevision
+        
         article_query = select(Article).where(Article.id == article_id)
         article_result = await db.execute(article_query)
         article = article_result.scalar_one_or_none()
@@ -855,6 +858,18 @@ async def delete_blog_management_article(
             from fastapi import HTTPException
             raise HTTPException(status_code=403, detail="Permission denied")
 
+        # 级联删除修订历史
+        revisions_query = select(ArticleRevision).where(ArticleRevision.article_id == article_id)
+        revisions_result = await db.execute(revisions_query)
+        for revision in revisions_result.scalars().all():
+            await db.delete(revision)
+
+        # 级联删除内容
+        content_query = select(ArticleContent).where(ArticleContent.article == article_id)
+        content_result = await db.execute(content_query)
+        for content in content_result.scalars().all():
+            await db.delete(content)
+
         await db.delete(article)
         await db.commit()
 
@@ -863,4 +878,6 @@ async def delete_blog_management_article(
             data={"message": "Article deleted successfully"}
         )
     except Exception as e:
+        import traceback
+        print(f"Error in delete_blog_management_article: {e}\n{traceback.format_exc()}")
         return ApiResponse(success=False, error=str(e))

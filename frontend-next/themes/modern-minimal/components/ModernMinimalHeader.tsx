@@ -1,6 +1,6 @@
 /**
  * Modern Minimal Theme Header Component
- * 现代简约主题头部组�?- 简洁、优雅的导航设计
+ * 现代简约主题头部组? - 简洁、优雅的导航设计
  */
 'use client';
 
@@ -23,7 +23,8 @@ const ModernMinimalHeader: React.FC<ModernMinimalHeaderProps> = ({darkMode = fal
     const layout = (themeConfig as any).layout || {};
     const features = (themeConfig as any).features || {};
 
-    // 监听滚动，实现粘性头部效�?    useEffect(() => {
+    // 监听滚动，实现粘性头部效果
+    useEffect(() => {
         const handleScroll = () => {
             setIsScrolled(window.scrollY > 20);
         };
@@ -66,7 +67,7 @@ const ModernMinimalHeader: React.FC<ModernMinimalHeaderProps> = ({darkMode = fal
                         {config?.metadata?.name || 'Modern Minimal'}
                     </Link>
 
-                    {/* 桌面端导�?*/}
+                    {/* 桌面端导?*/}
                     <nav className="hidden md:flex items-center space-x-1">
                         {navItems.map((item) => (
                             <Link
@@ -82,7 +83,7 @@ const ModernMinimalHeader: React.FC<ModernMinimalHeaderProps> = ({darkMode = fal
                         ))}
                     </nav>
 
-                    {/* 移动端菜单按�?*/}
+                    {/* 移动端菜单按?*/}
                     <button
                         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
                         className="md:hidden p-2 rounded-lg transition-colors"
@@ -102,7 +103,7 @@ const ModernMinimalHeader: React.FC<ModernMinimalHeaderProps> = ({darkMode = fal
                     </button>
                 </div>
 
-                {/* 移动端菜�?*/}
+                {/* 移动端菜?*/}
                 {mobileMenuOpen && (
                     <nav className="md:hidden py-4 border-t" 
                          style={{borderColor: darkMode ? colors.border || '#334155' : colors.border || '#e5e7eb'}}>

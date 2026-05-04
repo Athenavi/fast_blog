@@ -1,6 +1,6 @@
 /**
  * Modern Minimal Theme HomePage Component
- * 现代简约主题首页组�? */
+ * 现代简约主题首页组?*/
 'use client';
 
 import React from 'react';
@@ -53,7 +53,7 @@ const ModernMinimalHomePage: React.FC<ModernMinimalHomePageProps> = ({
                     className="text-lg max-w-2xl mx-auto"
                     style={{color: colors.secondary || '#64748b'}}
                 >
-                    {config?.metadata?.description || '现代简约博客主�?}
+                    {config?.metadata?.description || '现代简约博客主?'}
                 </p>
             </section>
 
@@ -87,7 +87,7 @@ const ModernMinimalHomePage: React.FC<ModernMinimalHomePageProps> = ({
                             borderColor: colors.border || '#e5e7eb',
                         }}
                     >
-                        最新文�? </h2>
+                        最新文章? </h2>
                     <div className="space-y-6">
                         {recentArticles.slice(0, 5).map((article, idx) => (
                             article &&

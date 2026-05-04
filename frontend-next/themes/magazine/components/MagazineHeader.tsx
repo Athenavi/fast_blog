@@ -1,7 +1,6 @@
 /**
  * Magazine主题 - Header组件
- * 杂志风格头部，支持Breaking News栏和粘性导航
- */
+ * 杂志风格头部，支持Breaking News栏和粘性导航 */
 'use client';
 
 import React, {useEffect, useState} from 'react';

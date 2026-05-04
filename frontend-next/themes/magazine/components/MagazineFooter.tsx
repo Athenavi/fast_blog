@@ -44,8 +44,7 @@ export const MagazineFooter: React.FC<MagazineFooterProps> = ({darkMode = false}
                         </h3>
                         <p className="text-sm leading-relaxed" style={{color: 'rgba(255, 255, 255, 0.7)'}}>
                             FastBlog Magazine 致力于提供深度报道与专业分析，
-                            为您带来最前沿的科技、商业和文化资讯。
-                        </p>
+                            为您带来最前沿的科技、商业和文化资讯。 </p>
                     </div>
 
                     {/* 快速链接 */}
@@ -57,8 +56,7 @@ export const MagazineFooter: React.FC<MagazineFooterProps> = ({darkMode = false}
                                 color: colors.primary || '#dc2626'
                             }}
                         >
-                            快速链接
-                        </h3>
+                            快速链接 </h3>
                         <ul className="space-y-2 text-sm">
                             {['首页', '分类', '标签', '归档', '关于'].map((item) => (
                                 <li key={item}>
@@ -132,7 +130,7 @@ export const MagazineFooter: React.FC<MagazineFooterProps> = ({darkMode = false}
                     style={{borderColor: 'rgba(255, 255, 255, 0.2)'}}
                 >
                     <p style={{color: 'rgba(255, 255, 255, 0.5)'}}>
-                        © {currentYear} {config?.metadata?.name || 'FastBlog Magazine'}. All rights reserved.
+                        漏 {currentYear} {config?.metadata?.name || 'FastBlog Magazine'}. All rights reserved.
                     </p>
                     <p className="mt-2" style={{color: 'rgba(255, 255, 255, 0.4)'}}>
                         Powered by FastBlog | Theme: Magazine

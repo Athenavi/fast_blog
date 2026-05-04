@@ -1,6 +1,6 @@
 /**
  * Modern Minimal Theme Footer Component
- * 现代简约主题底部组�?- 简洁优雅的页脚设计
+ * 现代简约主题底部组? - 简洁优雅的页脚设计
  */
 'use client';
 
@@ -38,7 +38,7 @@ const ModernMinimalFooter: React.FC<ModernMinimalFooterProps> = ({darkMode = fal
                             className="text-sm"
                             style={{color: darkMode ? colors.secondary || '#94a3b8' : colors.secondary || '#64748b'}}
                         >
-                            © {currentYear} {config?.metadata?.name || 'Modern Minimal'}. All rights reserved.
+                            漏 {currentYear} {config?.metadata?.name || 'Modern Minimal'}. All rights reserved.
                         </p>
                         <p 
                             className="mt-2 text-xs"
@@ -61,7 +61,7 @@ const ModernMinimalFooter: React.FC<ModernMinimalFooterProps> = ({darkMode = fal
                                 className="text-sm leading-relaxed"
                                 style={{color: darkMode ? colors.foreground || '#e2e8f0' : colors.foreground || '#1f2937'}}
                             >
-                                现代简约博客主题，注重内容呈现和阅读体验�? 干净、优雅、响应式设计�? </p>
+                                现代简约博客主题，注重内容呈现和阅读体验? 干净、优雅、响应式设计? </p>
                         </div>
 
                         {/* 链接 */}

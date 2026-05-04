@@ -24,7 +24,8 @@ const ModernMinimalLayout: React.FC<ModernMinimalLayoutProps> = ({children}) => 
     const features = (themeConfig as any).features || {};
     const layout = (themeConfig as any).layout || {};
 
-    // 初始化挂载状�?    useEffect(() => {
+    // 初始化挂载状态
+    useEffect(() => {
         setIsMounted(true);
     }, []);
 
@@ -95,7 +96,7 @@ const ModernMinimalLayout: React.FC<ModernMinimalLayoutProps> = ({children}) => 
                 /* 平滑滚动 */
                 ${features.smoothScroll ? 'html { scroll-behavior: smooth; }' : ''}
 
-                /* 图片懒加载优�?*/
+                /* 图片懒加载优?*/
                 ${features.lazyLoadImages ? 'img { loading: lazy; }' : ''}
             `}</style>
 

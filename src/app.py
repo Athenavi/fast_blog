@@ -525,6 +525,29 @@ curl -X POST "http://localhost:9421/api/v1/media/upload" \
     app.add_middleware(DebugWebSocketMiddleware)
     print("[Debug] WebSocket debug middleware added")
 
+    # 添加 HTTP 缓存中间件（ETag、Last-Modified、条件请求支持）
+    try:
+        from src.middleware.http_cache_middleware import HttpCacheMiddleware
+        app.add_middleware(
+            HttpCacheMiddleware,
+            enable_etag=True,
+            enable_last_modified=True,
+            default_cache_ttl=300,  # 5分钟默认缓存
+            skip_paths=[
+                '/admin',
+                '/api/v1/auth',
+                '/api/v1/user',
+                '/login',
+                '/register',
+                '/api/v1/installation',
+            ],
+            skip_methods=['POST', 'PUT', 'DELETE', 'PATCH'],
+            cache_public_only=True,
+        )
+        print("[HTTP Cache] HTTP cache middleware added (ETag + Last-Modified support)")
+    except ImportError as e:
+        print(f"Warning: HTTP Cache middleware could not be loaded: {e}")
+
     # 添加安全中间件（XSS过滤、CSRF保护、速率限制、SQL注入检测）
     try:
         from src.auth.security_middleware import create_security_middleware_stack
@@ -537,6 +560,14 @@ curl -X POST "http://localhost:9421/api/v1/media/upload" \
         print("[Security] Security middleware stack initialized")
     except ImportError as e:
         print(f"Warning: Security middleware could not be loaded: {e}")
+
+    # 添加 API 速率限制中间件（令牌桶算法）
+    try:
+        from src.middleware.rate_limit_middleware import RateLimitMiddleware
+        app.add_middleware(RateLimitMiddleware)
+        print("[Rate Limit] API rate limit middleware added (Token Bucket algorithm)")
+    except ImportError as e:
+        print(f"Warning: Rate Limit middleware could not be loaded: {e}")
 
     @app.get("/health",
              summary="健康检查",
@@ -786,6 +817,14 @@ curl -X POST "http://localhost:9421/api/v1/media/upload" \
         except ImportError as e:
             print(f"Warning: Scheduled Publish API could not be loaded: {e}")
 
+        # 草稿预览链接 API
+        try:
+            from src.api.v1.draft_preview import router as draft_preview_router
+            app.include_router(draft_preview_router, prefix='/api/v1', tags=['draft-preview'])
+            print(f"{worker_info} [OK] Draft Preview API 已加载")
+        except ImportError as e:
+            print(f"Warning: Draft Preview API could not be loaded: {e}")
+
         # 自定义块管理 API
         try:
             from src.api.v1.custom_blocks import router as custom_blocks_router
@@ -801,6 +840,167 @@ curl -X POST "http://localhost:9421/api/v1/media/upload" \
             print(f"{worker_info} [OK] NFT API 已加载")
         except ImportError as e:
             print(f"Warning: NFT API could not be loaded: {e}")
+
+        # 审计日志 API
+        try:
+            from src.api.v1.audit_log import router as audit_log_router
+            app.include_router(audit_log_router, prefix='/api/v1/audit-log', tags=['audit-log'])
+            print(f"{worker_info} [OK] Audit Log API 已加载")
+        except ImportError as e:
+            print(f"Warning: Audit Log API could not be loaded: {e}")
+
+        # 查询优化 API
+        try:
+            from src.api.v1.query_optimization import router as query_opt_router
+            app.include_router(query_opt_router, prefix='/api/v1/query-optimization', tags=['query-optimization'])
+            print(f"{worker_info} [OK] Query Optimization API 已加载")
+        except ImportError as e:
+            print(f"Warning: Query Optimization API could not be loaded: {e}")
+
+        # 页面缓存管理 API
+        try:
+            from src.api.v1.page_cache import router as page_cache_router
+            app.include_router(page_cache_router, prefix='/api/v1/page-cache', tags=['page-cache'])
+            print(f"{worker_info} [OK] Page Cache API 已加载")
+        except ImportError as e:
+            print(f"Warning: Page Cache API could not be loaded: {e}")
+
+        # 对象缓存管理 API
+        try:
+            from src.api.v1.object_cache import router as object_cache_router
+            app.include_router(object_cache_router, prefix='/api/v1/object-cache', tags=['object-cache'])
+            print(f"{worker_info} [OK] Object Cache API 已加载")
+        except ImportError as e:
+            print(f"Warning: Object Cache API could not be loaded: {e}")
+
+        # 资源优化管理 API
+        try:
+            from src.api.v1.resource_optimization import router as resource_opt_router
+            app.include_router(resource_opt_router, prefix='/api/v1/resource-optimization',
+                               tags=['resource-optimization'])
+            print(f"{worker_info} [OK] Resource Optimization API 已加载")
+        except ImportError as e:
+            print(f"Warning: Resource Optimization API could not be loaded: {e}")
+
+        # 图片懒加载 API
+        try:
+            from src.api.v1.image_lazy_load import router as lazy_load_router
+            app.include_router(lazy_load_router, prefix='/api/v1/image-lazy-load', tags=['image-lazy-load'])
+            print(f"{worker_info} [OK] Image Lazy Load API 已加载")
+        except ImportError as e:
+            print(f"Warning: Image Lazy Load API could not be loaded: {e}")
+
+        # 性能监控 API
+        try:
+            from src.api.v1.performance_monitor import router as perf_monitor_router
+            app.include_router(perf_monitor_router, prefix='/api/v1/performance', tags=['performance'])
+            print(f"{worker_info} [OK] Performance Monitor API 已加载")
+        except ImportError as e:
+            print(f"Warning: Performance Monitor API could not be loaded: {e}")
+
+        # 慢查询日志 API
+        try:
+            from src.api.v1.slow_query_log import router as slow_query_router
+            app.include_router(slow_query_router, prefix='/api/v1/slow-query', tags=['slow-query'])
+            print(f"{worker_info} [OK] Slow Query Log API 已加载")
+        except ImportError as e:
+            print(f"Warning: Slow Query Log API could not be loaded: {e}")
+
+        # HTTP/2 配置 API
+        try:
+            from src.api.v1.http2_config import router as http2_router
+            app.include_router(http2_router, prefix='/api/v1/http2', tags=['http2'])
+            print(f"{worker_info} [OK] HTTP/2 Config API 已加载")
+        except ImportError as e:
+            print(f"Warning: HTTP/2 Config API could not be loaded: {e}")
+
+        # 翻译进度 API
+        try:
+            from src.api.v1.translation_progress import router as translation_router
+            app.include_router(translation_router, prefix='/api/v1/translation', tags=['translation'])
+            print(f"{worker_info} [OK] Translation Progress API 已加载")
+        except ImportError as e:
+            print(f"Warning: Translation Progress API could not be loaded: {e}")
+
+        # 异常行为检测 API
+        try:
+            from src.api.v1.anomaly_detection import router as anomaly_router
+            app.include_router(anomaly_router, prefix='/api/v1/anomaly-detection', tags=['anomaly-detection'])
+            print(f"{worker_info} [OK] Anomaly Detection API 已加载")
+        except ImportError as e:
+            print(f"Warning: Anomaly Detection API could not be loaded: {e}")
+
+        # 安全事件告警 API
+        try:
+            from src.api.v1.security_alert import router as alert_router
+            app.include_router(alert_router, prefix='/api/v1/security-alert', tags=['security-alert'])
+            print(f"{worker_info} [OK] Security Alert API 已加载")
+        except ImportError as e:
+            print(f"Warning: Security Alert API could not be loaded: {e}")
+
+        # 安全报告 API
+        try:
+            from src.api.v1.security_report import router as report_router
+            app.include_router(report_router, prefix='/api/v1/security-report', tags=['security-report'])
+            print(f"{worker_info} [OK] Security Report API 已加载")
+        except ImportError as e:
+            print(f"Warning: Security Report API could not be loaded: {e}")
+
+        # 内容审批工作流 API
+        try:
+            from src.api.v1.content_approval import router as approval_router
+            app.include_router(approval_router, prefix='/api/v1/approval', tags=['approval'])
+            print(f"{worker_info} [OK] Content Approval API 已加载")
+        except ImportError as e:
+            print(f"Warning: Content Approval API could not be loaded: {e}")
+
+        # 团队评论 API
+        try:
+            from src.api.v1.team_comments import router as team_comment_router
+            app.include_router(team_comment_router, prefix='/api/v1/team-comments', tags=['team-comments'])
+            print(f"{worker_info} [OK] Team Comments API 已加载")
+        except ImportError as e:
+            print(f"Warning: Team Comments API could not be loaded: {e}")
+
+        # 速率限制管理 API
+        try:
+            from src.api.v1.rate_limit import router as rate_limit_router
+            app.include_router(rate_limit_router, prefix='/api/v1/rate-limit', tags=['rate-limit'])
+            print(f"{worker_info} [OK] Rate Limit API 已加载")
+        except ImportError as e:
+            print(f"Warning: Rate Limit API could not be loaded: {e}")
+
+        # 页面性能追踪 API
+        try:
+            from src.api.v1.performance_tracking import router as performance_router
+            app.include_router(performance_router, prefix='/api/v1/performance', tags=['performance'])
+            print(f"{worker_info} [OK] Performance Tracking API 已加载")
+        except ImportError as e:
+            print(f"Warning: Performance Tracking API could not be loaded: {e}")
+
+        # 翻译导出/导入 API
+        try:
+            from src.api.v1.translation_io import router as translation_io_router
+            app.include_router(translation_io_router, prefix='/api/v1/translation-io', tags=['translation-io'])
+            print(f"{worker_info} [OK] Translation I/O API 已加载")
+        except ImportError as e:
+            print(f"Warning: Translation I/O API could not be loaded: {e}")
+
+        # SEO管理 API
+        try:
+            from src.api.v1.seo_management import router as seo_router
+            app.include_router(seo_router, prefix='/api/v1/seo', tags=['seo'])
+            print(f"{worker_info} [OK] SEO Management API 已加载")
+        except ImportError as e:
+            print(f"Warning: SEO Management API could not be loaded: {e}")
+
+        # 备份管理 API
+        try:
+            from src.api.v1.backup_management import router as backup_router
+            app.include_router(backup_router, prefix='/api/v1/backup', tags=['backup'])
+            print(f"{worker_info} [OK] Backup Management API 已加载")
+        except ImportError as e:
+            print(f"Warning: Backup Management API could not be loaded: {e}")
 
         # IPFS 去中心化存储 API
         try:

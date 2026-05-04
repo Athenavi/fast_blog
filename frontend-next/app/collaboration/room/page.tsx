@@ -117,6 +117,20 @@ function CollaborationRoomContent() {
             const data = await response.json();
             if (data.success) {
                 setAccepted(true);
+                // 接受成功后，跳转到文章编辑页面（带协作模式）
+                const documentId = invitation?.document_id;
+                if (documentId) {
+                    // 从 document_id 提取 article_id (格式: article-{id})
+                    const articleIdMatch = documentId.match(/article-(\d+)/);
+                    if (articleIdMatch && articleIdMatch[1]) {
+                        const articleId = articleIdMatch[1];
+                        // 跳转到编辑页面，并标记为协作模式
+                        router.push(`/my/posts/edit?id=${articleId}&collab=true`);
+                    } else {
+                        // 如果不是文章格式，保持在当前页面
+                        setAccepted(true);
+                    }
+                }
             }
         } catch (err) {
             console.error('Accept invitation error:', err);

@@ -1,6 +1,6 @@
 /**
  * Modern Minimal Theme Article Card Component
- * 现代简约主题文章卡片组�? */
+ * 现代简约主题文章卡片组?*/
 'use client';
 
 import React from 'react';
@@ -70,8 +70,8 @@ const ModernMinimalArticleCard: React.FC<ModernMinimalArticleCardProps> = ({
                     <time>{formatDate(article.created_at)}</time>
                     {features.showReadingTime && article.views !== undefined && (
                         <>
-                        <span>�?/span>
-                            <span>{article.views} 次阅�?/span>
+                            <span>·</span>
+                            <span>{article.views} 次阅读?</span>
                         </>
                     )}
                 </div>
@@ -120,7 +120,7 @@ const ModernMinimalArticleCard: React.FC<ModernMinimalArticleCardProps> = ({
                 >
                     <time>{formatDate(article.created_at)}</time>
                     {features.showReadingTime && article.views !== undefined && (
-                        <span>{article.views} 次阅�?/span>
+                        <span>{article.views} 次阅读?</span>
                     )}
                 </div>
             </div>

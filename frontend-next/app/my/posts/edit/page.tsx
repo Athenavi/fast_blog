@@ -91,7 +91,8 @@ const EditArticlePageContent = () => {
       // ✅ 移除重复的认证检查，由布局统一处理
       // 在 effect 内部获取 articleId，避免依赖问题
       const currentArticleId = searchParams?.get('id');
-      console.log('[EditPage] useEffect triggered, articleId:', currentArticleId);
+      const isCollabMode = searchParams?.get('collab') === 'true'; // 检查是否为协作模式
+      console.log('[EditPage] useEffect triggered, articleId:', currentArticleId, 'collab:', isCollabMode);
     
     const fetchArticleData = async () => {
         if (!currentArticleId) {
@@ -151,6 +152,13 @@ const EditArticlePageContent = () => {
           const docId = `article-${article.id}`;
           setCollabDocId(docId);
           setCollabArticleId(article.id);
+
+          // 如果是协作模式，自动打开协作对话框
+          if (isCollabMode && isMounted) {
+              setTimeout(() => {
+                  setShowCollaborationDialog(true);
+              }, 500); // 延迟一下，确保页面完全加载
+          }
 
         setCategories(result.data.categories || []);
       } catch (err) {

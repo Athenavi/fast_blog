@@ -334,7 +334,7 @@ async def update_article_content(
 
 async def delete_article(db: AsyncSession, article_id: int) -> bool:
     """
-    删除文章（包括内容）
+    删除文章（包括内容和修订历史）
     
     Args:
         db: 异步数据库会话
@@ -343,12 +343,19 @@ async def delete_article(db: AsyncSession, article_id: int) -> bool:
     Returns:
         是否成功
     """
+    from shared.models.article_revision import ArticleRevision
+    
     article = await get_article_by_id(db, article_id)
     if not article:
         return False
 
     # 保存文章信息用于事件触发
     article_title = article.title
+
+    # 删除修订历史
+    await db.execute(
+        delete(ArticleRevision).where(ArticleRevision.article_id == article_id)
+    )
     
     # 删除文章内容
     await db.execute(

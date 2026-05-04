@@ -1,505 +1,420 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 """
-性能监控服务 - 增强版
-提供全面的性能指标收集、分析和告警功能
+性能监控服务
 
-功能:
-1. 请求性能监控 (响应时间、QPS)
-2. 数据库查询监控 (慢查询检测)
-3. 系统资源监控 (CPU、内存、磁盘)
-4. 缓存命中率监控
-5. 自定义性能追踪
-6. 性能报告生成
-7. 异常检测和告警
+提供系统性能指标收集和监控功能
+包括页面加载时间、服务器指标、数据库性能等
 """
 
-import logging
-import statistics
-from collections import defaultdict, deque
-from dataclasses import dataclass, field
-from datetime import datetime
-from typing import Dict, List, Any
+from collections import deque
+from datetime import datetime, timedelta
+from typing import Dict, Any, List, Optional
 
-logger = logging.getLogger(__name__)
-
-
-@dataclass
-class RequestMetric:
-    """请求性能指标"""
-    endpoint: str
-    method: str
-    status_code: int
-    response_time: float  # 秒
-    timestamp: datetime = field(default_factory=datetime.now)
-    request_size: int = 0
-    response_size: int = 0
-
-
-@dataclass
-class DatabaseQueryMetric:
-    """数据库查询性能指标"""
-    query: str
-    table: str
-    execution_time: float  # 秒
-    timestamp: datetime = field(default_factory=datetime.now)
-    rows_affected: int = 0
-    is_slow: bool = False
-
-
-@dataclass
-class SystemResourceMetric:
-    """系统资源指标"""
-    cpu_percent: float
-    memory_mb: float
-    memory_percent: float
-    disk_usage_percent: float
-    network_in_mb: float
-    network_out_mb: float
-    timestamp: datetime = field(default_factory=datetime.now)
+import psutil
 
 
 class PerformanceMonitor:
     """
-    性能监控器
+    性能监控服务
     
-    核心功能:
-    1. 实时性能指标收集
-    2. 滑动窗口统计
-    3. 百分位计算 (P50, P95, P99)
-    4. 异常检测
-    5. 性能报告
+    收集和监控系统各项性能指标
     """
 
-    def __init__(self, window_size: int = 1000, slow_query_threshold: float = 1.0):
+    def __init__(self, max_history: int = 1000):
         """
-        初始化性能监控器
+        初始化性能监控
         
         Args:
-            window_size: 滑动窗口大小 (保留最近的N条记录)
-            slow_query_threshold: 慢查询阈值 (秒)
+            max_history: 最大历史记录数
         """
-        self.window_size = window_size
-        self.slow_query_threshold = slow_query_threshold
+        self.max_history = max_history
 
-        # 请求指标存储 (按端点分组)
-        self.request_metrics: Dict[str, deque] = defaultdict(lambda: deque(maxlen=window_size))
+        # 页面加载时间历史
+        self.page_load_times = deque(maxlen=max_history)
 
-        # 数据库查询指标
-        self.db_query_metrics: deque = deque(maxlen=window_size)
+        # 数据库查询历史
+        self.db_query_times = deque(maxlen=max_history)
 
-        # 系统资源指标
-        self.system_metrics: deque = deque(maxlen=window_size)
+        # API响应时间历史
+        self.api_response_times = deque(maxlen=max_history)
 
-        # 全局统计
-        self.total_requests = 0
-        self.total_errors = 0
-        self.start_time = datetime.now()
+        # 内存使用历史
+        self.memory_usage_history = deque(maxlen=max_history)
 
-        # 性能告警配置
-        self.alert_thresholds = {
-            'response_time_p95': 2.0,  # P95响应时间超过2秒告警
-            'error_rate': 0.05,  # 错误率超过5%告警
-            'slow_query_count': 10,  # 每分钟慢查询超过10次告警
-            'cpu_usage': 80.0,  # CPU使用率超过80%告警
-            'memory_usage': 85.0,  # 内存使用率超过85%告警
-        }
+        # CPU使用历史
+        self.cpu_usage_history = deque(maxlen=max_history)
 
-        # 告警历史记录
-        self.alerts: deque = deque(maxlen=100)
+        # 启动时间
+        self.start_time = datetime.utcnow()
 
-    # ==================== 请求性能监控 ====================
-
-    def record_request(self, endpoint: str, method: str, status_code: int,
-                       response_time: float, request_size: int = 0,
-                       response_size: int = 0):
+    def record_page_load(self, url: str, load_time: float,
+                         user_agent: Optional[str] = None):
         """
-        记录请求性能指标
+        记录页面加载时间
         
         Args:
-            endpoint: API端点路径
+            url: 页面URL
+            load_time: 加载时间(秒)
+            user_agent: 用户代理
+        """
+        self.page_load_times.append({
+            'url': url,
+            'load_time': load_time,
+            'user_agent': user_agent,
+            'timestamp': datetime.utcnow().isoformat(),
+        })
+
+    def record_db_query(self, query_type: str, duration: float,
+                        table: Optional[str] = None):
+        """
+        记录数据库查询时间
+        
+        Args:
+            query_type: 查询类型 (SELECT, INSERT, UPDATE, DELETE)
+            duration: 查询耗时(秒)
+            table: 表名
+        """
+        self.db_query_times.append({
+            'query_type': query_type,
+            'duration': duration,
+            'table': table,
+            'timestamp': datetime.utcnow().isoformat(),
+        })
+
+    def record_api_response(self, endpoint: str, method: str,
+                            response_time: float, status_code: int):
+        """
+        记录API响应时间
+        
+        Args:
+            endpoint: API端点
             method: HTTP方法
-            status_code: 响应状态码
-            response_time: 响应时间 (秒)
-            request_size: 请求大小 (字节)
-            response_size: 响应大小 (字节)
+            response_time: 响应时间(秒)
+            status_code: 状态码
         """
-        metric = RequestMetric(
-            endpoint=endpoint,
-            method=method,
-            status_code=status_code,
-            response_time=response_time,
-            request_size=request_size,
-            response_size=response_size
-        )
-
-        self.request_metrics[endpoint].append(metric)
-        self.total_requests += 1
-
-        if status_code >= 400:
-            self.total_errors += 1
-
-    def get_endpoint_stats(self, endpoint: str) -> Dict[str, Any]:
-        """
-        获取端点性能统计
-        
-        Args:
-            endpoint: API端点路径
-            
-        Returns:
-            性能统计数据
-        """
-        metrics = list(self.request_metrics.get(endpoint, []))
-
-        if not metrics:
-            return {'endpoint': endpoint, 'count': 0}
-
-        response_times = [m.response_time for m in metrics]
-        error_count = sum(1 for m in metrics if m.status_code >= 400)
-
-        return {
+        self.api_response_times.append({
             'endpoint': endpoint,
-            'count': len(metrics),
-            'avg_response_time': round(statistics.mean(response_times), 4),
-            'min_response_time': round(min(response_times), 4),
-            'max_response_time': round(max(response_times), 4),
-            'p50_response_time': round(self._percentile(response_times, 50), 4),
-            'p95_response_time': round(self._percentile(response_times, 95), 4),
-            'p99_response_time': round(self._percentile(response_times, 99), 4),
-            'error_count': error_count,
-            'error_rate': round(error_count / len(metrics), 4),
-            'avg_request_size': round(statistics.mean([m.request_size for m in metrics]), 2),
-            'avg_response_size': round(statistics.mean([m.response_size for m in metrics]), 2),
+            'method': method,
+            'response_time': response_time,
+            'status_code': status_code,
+            'timestamp': datetime.utcnow().isoformat(),
+        })
+
+    def get_server_metrics(self) -> Dict[str, Any]:
+        """
+        获取服务器指标
+        
+        Returns:
+            服务器指标字典
+        """
+        # CPU使用率
+        cpu_percent = psutil.cpu_percent(interval=1)
+
+        # 内存使用
+        memory = psutil.virtual_memory()
+
+        # 磁盘使用
+        disk = psutil.disk_usage('/')
+
+        # 网络IO
+        net_io = psutil.net_io_counters()
+
+        # 进程数
+        process_count = len(psutil.pids())
+        
+        return {
+            'cpu': {
+                'percent': cpu_percent,
+                'count': psutil.cpu_count(),
+            },
+            'memory': {
+                'total': memory.total,
+                'available': memory.available,
+                'used': memory.used,
+                'percent': memory.percent,
+            },
+            'disk': {
+                'total': disk.total,
+                'used': disk.used,
+                'free': disk.free,
+                'percent': disk.percent,
+            },
+            'network': {
+                'bytes_sent': net_io.bytes_sent,
+                'bytes_recv': net_io.bytes_recv,
+                'packets_sent': net_io.packets_sent,
+                'packets_recv': net_io.packets_recv,
+            },
+            'processes': process_count,
+            'uptime': (datetime.utcnow() - self.start_time).total_seconds(),
         }
 
-    def get_all_endpoints_stats(self) -> List[Dict[str, Any]]:
-        """获取所有端点的性能统计"""
-        stats = []
-        for endpoint in self.request_metrics.keys():
-            stats.append(self.get_endpoint_stats(endpoint))
+    def get_page_load_stats(self, hours: int = 24) -> Dict[str, Any]:
+        """
+        获取页面加载统计
+        
+        Args:
+            hours: 统计最近多少小时的数据
+        
+        Returns:
+            统计信息
+        """
+        cutoff_time = datetime.utcnow() - timedelta(hours=hours)
 
-        # 按请求次数排序
-        stats.sort(key=lambda x: x.get('count', 0), reverse=True)
-        return stats
+        # 过滤指定时间范围内的数据
+        recent_loads = [
+            load for load in self.page_load_times
+            if datetime.fromisoformat(load['timestamp']) > cutoff_time
+        ]
 
-    def get_global_stats(self) -> Dict[str, Any]:
-        """获取全局性能统计"""
-        uptime = (datetime.now() - self.start_time).total_seconds()
-
-        all_metrics = []
-        for metrics in self.request_metrics.values():
-            all_metrics.extend(metrics)
-
-        if not all_metrics:
+        if not recent_loads:
             return {
                 'total_requests': 0,
-                'uptime_seconds': round(uptime, 2),
+                'avg_load_time': 0,
+                'min_load_time': 0,
+                'max_load_time': 0,
+                'p95_load_time': 0,
+                'slow_pages': [],
             }
 
-        response_times = [m.response_time for m in all_metrics]
+        load_times = [load['load_time'] for load in recent_loads]
+        load_times.sort()
+
+        # 计算百分位数
+        p95_index = int(len(load_times) * 0.95)
+        p95_load_time = load_times[p95_index] if p95_index < len(load_times) else load_times[-1]
+
+        # 找出最慢的页面
+        slow_pages = sorted(recent_loads, key=lambda x: x['load_time'], reverse=True)[:10]
 
         return {
-            'total_requests': self.total_requests,
-            'total_errors': self.total_errors,
-            'error_rate': round(self.total_errors / max(self.total_requests, 1), 4),
-            'requests_per_second': round(self.total_requests / max(uptime, 1), 2),
-            'avg_response_time': round(statistics.mean(response_times), 4),
-            'p50_response_time': round(self._percentile(response_times, 50), 4),
-            'p95_response_time': round(self._percentile(response_times, 95), 4),
-            'p99_response_time': round(self._percentile(response_times, 99), 4),
-            'uptime_seconds': round(uptime, 2),
-            'monitored_endpoints': len(self.request_metrics),
+            'total_requests': len(recent_loads),
+            'avg_load_time': sum(load_times) / len(load_times),
+            'min_load_time': min(load_times),
+            'max_load_time': max(load_times),
+            'p95_load_time': p95_load_time,
+            'slow_pages': slow_pages,
         }
 
-    # ==================== 数据库查询监控 ====================
-
-    def record_db_query(self, query: str, table: str, execution_time: float,
-                        rows_affected: int = 0):
+    def get_db_query_stats(self, hours: int = 24) -> Dict[str, Any]:
         """
-        记录数据库查询性能
+        获取数据库查询统计
         
         Args:
-            query: SQL查询语句
-            table: 涉及的表名
-            execution_time: 执行时间 (秒)
-            rows_affected: 影响的行数
+            hours: 统计最近多少小时的数据
+        
+        Returns:
+            统计信息
         """
-        is_slow = execution_time > self.slow_query_threshold
+        cutoff_time = datetime.utcnow() - timedelta(hours=hours)
 
-        metric = DatabaseQueryMetric(
-            query=query[:200],  # 限制长度
-            table=table,
-            execution_time=execution_time,
-            rows_affected=rows_affected,
-            is_slow=is_slow
-        )
+        # 过滤指定时间范围内的数据
+        recent_queries = [
+            query for query in self.db_query_times
+            if datetime.fromisoformat(query['timestamp']) > cutoff_time
+        ]
 
-        self.db_query_metrics.append(metric)
+        if not recent_queries:
+            return {
+                'total_queries': 0,
+                'avg_query_time': 0,
+                'slow_queries': [],
+                'by_type': {},
+                'by_table': {},
+            }
 
-        if is_slow:
-            logger.warning(f"慢查询检测: {table}, 耗时: {execution_time:.3f}s")
+        query_times = [query['duration'] for query in recent_queries]
 
-    def get_db_query_stats(self) -> Dict[str, Any]:
-        """获取数据库查询统计"""
-        metrics = list(self.db_query_metrics)
+        # 按类型统计
+        by_type = {}
+        for query in recent_queries:
+            qtype = query['query_type']
+            if qtype not in by_type:
+                by_type[qtype] = {'count': 0, 'total_time': 0}
+            by_type[qtype]['count'] += 1
+            by_type[qtype]['total_time'] += query['duration']
 
-        if not metrics:
-            return {'total_queries': 0}
+        # 按表统计
+        by_table = {}
+        for query in recent_queries:
+            table = query.get('table', 'unknown')
+            if table not in by_table:
+                by_table[table] = {'count': 0, 'total_time': 0, 'avg_time': 0}
+            by_table[table]['count'] += 1
+            by_table[table]['total_time'] += query['duration']
+            by_table[table]['avg_time'] = by_table[table]['total_time'] / by_table[table]['count']
 
-        execution_times = [m.execution_time for m in metrics]
-        slow_queries = [m for m in metrics if m.is_slow]
-
-        # 按表分组统计
-        table_stats = defaultdict(lambda: {'count': 0, 'total_time': 0, 'slow_count': 0})
-        for m in metrics:
-            table_stats[m.table]['count'] += 1
-            table_stats[m.table]['total_time'] += m.execution_time
-            if m.is_slow:
-                table_stats[m.table]['slow_count'] += 1
-
+        # 找出慢查询 (>100ms)
+        slow_queries = [
+            query for query in recent_queries
+            if query['duration'] > 0.1
+        ]
+        slow_queries = sorted(slow_queries, key=lambda x: x['duration'], reverse=True)[:20]
+        
         return {
-            'total_queries': len(metrics),
-            'avg_execution_time': round(statistics.mean(execution_times), 4),
-            'p95_execution_time': round(self._percentile(execution_times, 95), 4),
-            'slow_query_count': len(slow_queries),
-            'slow_query_rate': round(len(slow_queries) / len(metrics), 4),
-            'table_stats': dict(table_stats),
-            'top_slow_queries': [
-                {
-                    'query': m.query,
-                    'table': m.table,
-                    'execution_time': m.execution_time,
-                }
-                for m in sorted(slow_queries, key=lambda x: x.execution_time, reverse=True)[:10]
-            ]
+            'total_queries': len(recent_queries),
+            'avg_query_time': sum(query_times) / len(query_times) if query_times else 0,
+            'slow_queries': slow_queries,
+            'by_type': by_type,
+            'by_table': by_table,
         }
 
-    # ==================== 系统资源监控 ====================
+    def get_api_stats(self, hours: int = 24) -> Dict[str, Any]:
+        """
+        获取API统计
+        
+        Args:
+            hours: 统计最近多少小时的数据
+        
+        Returns:
+            统计信息
+        """
+        cutoff_time = datetime.utcnow() - timedelta(hours=hours)
 
-    def record_system_metrics(self):
-        """记录当前系统资源使用情况"""
-        try:
-            import psutil
+        # 过滤指定时间范围内的数据
+        recent_responses = [
+            resp for resp in self.api_response_times
+            if datetime.fromisoformat(resp['timestamp']) > cutoff_time
+        ]
 
-            cpu_percent = psutil.cpu_percent(interval=0.1)
-            memory = psutil.virtual_memory()
-            disk = psutil.disk_usage('/')
-            net_io = psutil.net_io_counters()
+        if not recent_responses:
+            return {
+                'total_requests': 0,
+                'avg_response_time': 0,
+                'error_rate': 0,
+                'by_endpoint': {},
+                'by_status': {},
+            }
 
-            metric = SystemResourceMetric(
-                cpu_percent=cpu_percent,
-                memory_mb=round(memory.used / (1024 * 1024), 2),
-                memory_percent=memory.percent,
-                disk_usage_percent=disk.percent,
-                network_in_mb=round(net_io.bytes_recv / (1024 * 1024), 2),
-                network_out_mb=round(net_io.bytes_sent / (1024 * 1024), 2),
+        response_times = [resp['response_time'] for resp in recent_responses]
+
+        # 按端点统计
+        by_endpoint = {}
+        for resp in recent_responses:
+            endpoint = resp['endpoint']
+            if endpoint not in by_endpoint:
+                by_endpoint[endpoint] = {
+                    'count': 0,
+                    'total_time': 0,
+                    'avg_time': 0,
+                    'errors': 0,
+                }
+            by_endpoint[endpoint]['count'] += 1
+            by_endpoint[endpoint]['total_time'] += resp['response_time']
+            by_endpoint[endpoint]['avg_time'] = (
+                    by_endpoint[endpoint]['total_time'] / by_endpoint[endpoint]['count']
             )
+            if resp['status_code'] >= 400:
+                by_endpoint[endpoint]['errors'] += 1
 
-            self.system_metrics.append(metric)
-            return metric
+        # 按状态码统计
+        by_status = {}
+        for resp in recent_responses:
+            status = str(resp['status_code'])
+            if status not in by_status:
+                by_status[status] = 0
+            by_status[status] += 1
 
-        except ImportError:
-            logger.warning("psutil库未安装，无法记录系统指标")
-            return None
-        except Exception as e:
-            logger.error(f"记录系统指标失败: {e}")
-            return None
-
-    def get_system_stats(self) -> Dict[str, Any]:
-        """获取系统资源统计"""
-        metrics = list(self.system_metrics)
-
-        if not metrics:
-            return {'available': False}
-
-        latest = metrics[-1]
-
+        # 计算错误率
+        error_count = sum(1 for resp in recent_responses if resp['status_code'] >= 400)
+        error_rate = (error_count / len(recent_responses)) * 100
+        
         return {
-            'available': True,
-            'current': {
-                'cpu_percent': latest.cpu_percent,
-                'memory_mb': latest.memory_mb,
-                'memory_percent': latest.memory_percent,
-                'disk_usage_percent': latest.disk_usage_percent,
-                'network_in_mb': latest.network_in_mb,
-                'network_out_mb': latest.network_out_mb,
-            },
-            'averages': {
-                'cpu_percent': round(statistics.mean([m.cpu_percent for m in metrics]), 2),
-                'memory_mb': round(statistics.mean([m.memory_mb for m in metrics]), 2),
-                'memory_percent': round(statistics.mean([m.memory_percent for m in metrics]), 2),
-            }
+            'total_requests': len(recent_responses),
+            'avg_response_time': sum(response_times) / len(response_times) if response_times else 0,
+            'error_rate': error_rate,
+            'by_endpoint': by_endpoint,
+            'by_status': by_status,
         }
 
-    # ==================== 性能告警 ====================
-
-    def check_alerts(self) -> List[Dict[str, Any]]:
+    def get_comprehensive_report(self) -> Dict[str, Any]:
         """
-        检查性能告警
+        获取综合性能报告
         
         Returns:
-            告警列表
+            综合报告
         """
-        alerts = []
-
-        # 检查响应时间P95
-        global_stats = self.get_global_stats()
-        p95_time = global_stats.get('p95_response_time', 0)
-        if p95_time > self.alert_thresholds['response_time_p95']:
-            alert = {
-                'type': 'high_response_time',
-                'severity': 'warning',
-                'message': f'P95响应时间过高: {p95_time:.3f}s (阈值: {self.alert_thresholds["response_time_p95"]}s)',
-                'timestamp': datetime.now().isoformat(),
-            }
-            alerts.append(alert)
-            self.alerts.append(alert)
-
-        # 检查错误率
-        error_rate = global_stats.get('error_rate', 0)
-        if error_rate > self.alert_thresholds['error_rate']:
-            alert = {
-                'type': 'high_error_rate',
-                'severity': 'critical',
-                'message': f'错误率过高: {error_rate * 100:.2f}% (阈值: {self.alert_thresholds["error_rate"] * 100}%)',
-                'timestamp': datetime.now().isoformat(),
-            }
-            alerts.append(alert)
-            self.alerts.append(alert)
-
-        # 检查慢查询
+        server_metrics = self.get_server_metrics()
+        page_stats = self.get_page_load_stats()
         db_stats = self.get_db_query_stats()
-        slow_count = db_stats.get('slow_query_count', 0)
-        if slow_count > self.alert_thresholds['slow_query_count']:
-            alert = {
-                'type': 'too_many_slow_queries',
-                'severity': 'warning',
-                'message': f'慢查询数量过多: {slow_count} (阈值: {self.alert_thresholds["slow_query_count"]})',
-                'timestamp': datetime.now().isoformat(),
-            }
-            alerts.append(alert)
-            self.alerts.append(alert)
-
-        # 检查系统资源
-        system_stats = self.get_system_stats()
-        if system_stats.get('available'):
-            current = system_stats['current']
-
-            if current['cpu_percent'] > self.alert_thresholds['cpu_usage']:
-                alert = {
-                    'type': 'high_cpu_usage',
-                    'severity': 'warning',
-                    'message': f'CPU使用率过高: {current["cpu_percent"]}% (阈值: {self.alert_thresholds["cpu_usage"]}%)',
-                    'timestamp': datetime.now().isoformat(),
-                }
-                alerts.append(alert)
-                self.alerts.append(alert)
-
-            if current['memory_percent'] > self.alert_thresholds['memory_usage']:
-                alert = {
-                    'type': 'high_memory_usage',
-                    'severity': 'critical',
-                    'message': f'内存使用率过高: {current["memory_percent"]}% (阈值: {self.alert_thresholds["memory_usage"]}%)',
-                    'timestamp': datetime.now().isoformat(),
-                }
-                alerts.append(alert)
-                self.alerts.append(alert)
-
-        return alerts
-
-    def get_recent_alerts(self, limit: int = 10) -> List[Dict[str, Any]]:
-        """获取最近的告警"""
-        return list(self.alerts)[-limit:]
-
-    # ==================== 性能报告 ====================
-
-    def generate_report(self) -> Dict[str, Any]:
-        """
-        生成综合性能报告
+        api_stats = self.get_api_stats()
         
-        Returns:
-            完整的性能报告
-        """
         return {
-            'generated_at': datetime.now().isoformat(),
-            'global_stats': self.get_global_stats(),
-            'endpoints': self.get_all_endpoints_stats()[:20],  # Top 20端点
-            'database': self.get_db_query_stats(),
-            'system': self.get_system_stats(),
-            'alerts': self.get_recent_alerts(20),
-            'recommendations': self._generate_recommendations(),
+            'generated_at': datetime.utcnow().isoformat(),
+            'server': server_metrics,
+            'page_load': page_stats,
+            'database': db_stats,
+            'api': api_stats,
+            'recommendations': self._generate_recommendations(
+                server_metrics, page_stats, db_stats, api_stats
+            ),
         }
 
-    def _generate_recommendations(self) -> List[str]:
-        """生成性能优化建议"""
+    def _generate_recommendations(self, server_metrics: Dict,
+                                  page_stats: Dict, db_stats: Dict,
+                                  api_stats: Dict) -> List[Dict[str, str]]:
+        """
+        生成优化建议
+        
+        Returns:
+            建议列表
+        """
         recommendations = []
 
-        # 基于统计数据生成建议
-        global_stats = self.get_global_stats()
-        db_stats = self.get_db_query_stats()
+        # CPU使用率检查
+        if server_metrics['cpu']['percent'] > 80:
+            recommendations.append({
+                'type': 'warning',
+                'category': 'server',
+                'title': 'CPU使用率过高',
+                'message': f"当前CPU使用率为{server_metrics['cpu']['percent']}%",
+                'suggestion': '考虑优化代码或增加服务器资源',
+            })
 
-        if global_stats.get('p95_response_time', 0) > 1.0:
-            recommendations.append(
-                "P95响应时间超过1秒，建议：\n"
-                "- 检查慢接口并优化\n"
-                "- 添加缓存层\n"
-                "- 优化数据库查询"
-            )
+        # 内存使用率检查
+        if server_metrics['memory']['percent'] > 85:
+            recommendations.append({
+                'type': 'warning',
+                'category': 'server',
+                'title': '内存使用率过高',
+                'message': f"当前内存使用率为{server_metrics['memory']['percent']}%",
+                'suggestion': '检查是否有内存泄漏，考虑增加内存',
+            })
 
-        if global_stats.get('error_rate', 0) > 0.05:
-            recommendations.append(
-                "错误率超过5%，建议：\n"
-                "- 检查错误日志\n"
-                "- 增加异常处理\n"
-                "- 完善输入验证"
-            )
+        # 页面加载时间检查
+        if page_stats['p95_load_time'] > 3:
+            recommendations.append({
+                'type': 'warning',
+                'category': 'performance',
+                'title': '页面加载时间过长',
+                'message': f"P95加载时间为{page_stats['p95_load_time']:.2f}秒",
+                'suggestion': '优化资源加载，启用缓存，压缩资源',
+            })
 
-        if db_stats.get('slow_query_rate', 0) > 0.1:
-            recommendations.append(
-                "慢查询比例超过10%，建议：\n"
-                "- 为常用查询添加索引\n"
-                "- 优化复杂SQL\n"
-                "- 考虑读写分离"
-            )
+        # 数据库慢查询检查
+        if db_stats['slow_queries']:
+            recommendations.append({
+                'type': 'warning',
+                'category': 'database',
+                'title': '存在慢查询',
+                'message': f"发现{len(db_stats['slow_queries'])}个慢查询(>100ms)",
+                'suggestion': '添加索引，优化查询语句，使用缓存',
+            })
 
-        system_stats = self.get_system_stats()
-        if system_stats.get('available'):
-            if system_stats['current']['cpu_percent'] > 70:
-                recommendations.append(
-                    "CPU使用率较高，建议：\n"
-                    "- 优化CPU密集型操作\n"
-                    "- 考虑水平扩展\n"
-                    "- 使用异步处理"
-                )
-
-        if not recommendations:
-            recommendations.append("系统性能良好，继续保持!")
-
+        # API错误率检查
+        if api_stats['error_rate'] > 5:
+            recommendations.append({
+                'type': 'critical',
+                'category': 'api',
+                'title': 'API错误率过高',
+                'message': f"当前错误率为{api_stats['error_rate']:.2f}%",
+                'suggestion': '检查API日志，修复错误原因',
+            })
+        
         return recommendations
 
-    # ==================== 工具方法 ====================
 
-    def _percentile(self, data: List[float], percentile: int) -> float:
-        """计算百分位数"""
-        if not data:
-            return 0.0
-
-        sorted_data = sorted(data)
-        index = int(len(sorted_data) * percentile / 100)
-        index = min(index, len(sorted_data) - 1)
-        return sorted_data[index]
-
-    def reset(self):
-        """重置所有监控数据"""
-        self.request_metrics.clear()
-        self.db_query_metrics.clear()
-        self.system_metrics.clear()
-        self.total_requests = 0
-        self.total_errors = 0
-        self.start_time = datetime.now()
-        self.alerts.clear()
-        logger.info("性能监控数据已重置")
-
-
-# 全局单例
+# 全局实例
 performance_monitor = PerformanceMonitor()
+
+# 导出
+__all__ = ['PerformanceMonitor', 'performance_monitor']
