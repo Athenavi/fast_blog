@@ -801,6 +801,22 @@ curl -X POST "http://localhost:9421/api/v1/media/upload" \
         except ImportError as e:
             print(f"Warning: Yjs Collaboration API could not be loaded: {e}")
 
+        # E-commerce Products 电商产品管理 API
+        try:
+            from src.api.v1.ecommerce_products import router as ecommerce_products_router
+            app.include_router(ecommerce_products_router, prefix='/api/v1')
+            print(f"{worker_info} [OK] E-commerce Products API 已加载")
+        except ImportError as e:
+            print(f"Warning: E-commerce Products API could not be loaded: {e}")
+
+        # E-commerce Cart & Orders 电商购物车和订单 API
+        try:
+            from src.api.v1.ecommerce_cart_orders import router as ecommerce_cart_orders_router
+            app.include_router(ecommerce_cart_orders_router, prefix='/api/v1')
+            print(f"{worker_info} [OK] E-commerce Cart & Orders API 已加载")
+        except ImportError as e:
+            print(f"Warning: E-commerce Cart & Orders API could not be loaded: {e}")
+
         # Edge Functions API
         try:
             from src.api.v1.edge_functions import router as edge_functions_router

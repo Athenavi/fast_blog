@@ -60,10 +60,10 @@ class SessionScheduler:
             """使用新的 ArticleViewStatsService 同步文章浏览量"""
             try:
                 from shared.services.article_view_stats import article_view_stats
-                from src.extensions import get_async_db_session
+                from src.utils.database.unified_manager import get_db_session
 
                 # 使用 async with 正确管理数据库会话
-                async with get_async_db_session()() as db:
+                async with get_db_session() as db:
                     # 批量同步所有文章
                     result = await article_view_stats.batch_sync_all(db)
 
