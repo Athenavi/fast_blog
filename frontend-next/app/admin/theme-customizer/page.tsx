@@ -26,6 +26,32 @@ import {ColorPicker} from '@/components/ColorPicker';
 import {apiClient} from '@/lib/api-client';
 import {Code, History, Monitor, RotateCcw, Save, Smartphone, Tablet} from 'lucide-react';
 
+// 模板卡片组件
+interface TemplateCardProps {
+    title: string;
+    description: string;
+    category: string;
+    icon: string;
+    onApply: () => void;
+}
+
+function TemplateCard({title, description, category, icon, onApply}: TemplateCardProps) {
+    return (
+        <div
+            className="border rounded-lg p-4 hover:shadow-md transition-shadow cursor-pointer bg-white dark:bg-gray-800"
+            onClick={onApply}>
+            <div className="flex items-start justify-between mb-2">
+                <span className="text-2xl">{icon}</span>
+                <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
+                    {category}
+                </span>
+            </div>
+            <h3 className="font-semibold mb-1">{title}</h3>
+            <p className="text-sm text-gray-500">{description}</p>
+        </div>
+    );
+}
+
 interface ThemeConfig {
     colors: {
         primary: string;
@@ -286,6 +312,207 @@ export default function ThemeCustomizerPage() {
         }
     };
 
+    // 应用预设模板
+    const applyTemplate = async (templateName: string) => {
+        if (!confirm(`确定要应用"${templateName}"模板吗？当前配置将被覆盖。`)) {
+            return;
+        }
+
+        try {
+            setLoading(true);
+
+            // 定义模板配置
+            const templates: Record<string, Partial<ThemeConfig>> = {
+                'simple-blog': {
+                    colors: {
+                        primary: '#3b82f6',
+                        secondary: '#64748b',
+                        accent: '#f59e0b',
+                        background: '#ffffff',
+                        foreground: '#1f2937'
+                    },
+                    fonts: {
+                        heading: 'Inter, system-ui, sans-serif',
+                        body: 'Inter, system-ui, sans-serif',
+                        mono: 'Fira Code, monospace'
+                    },
+                    layout: {sidebar_position: 'right', content_width: 'max-w-4xl'},
+                },
+                'magazine': {
+                    colors: {
+                        primary: '#dc2626',
+                        secondary: '#1f2937',
+                        accent: '#f59e0b',
+                        background: '#ffffff',
+                        foreground: '#111827'
+                    },
+                    fonts: {
+                        heading: 'Montserrat, sans-serif',
+                        body: 'Merriweather, Georgia, serif',
+                        mono: 'Fira Code, monospace'
+                    },
+                    layout: {sidebar_position: 'right', content_width: 'max-w-7xl'},
+                },
+                'photography': {
+                    colors: {
+                        primary: '#000000',
+                        secondary: '#6b7280',
+                        accent: '#f59e0b',
+                        background: '#ffffff',
+                        foreground: '#111827'
+                    },
+                    fonts: {
+                        heading: 'Playfair Display, serif',
+                        body: 'Inter, system-ui, sans-serif',
+                        mono: 'Fira Code, monospace'
+                    },
+                    layout: {sidebar_position: 'none', content_width: 'max-w-7xl'},
+                },
+                'corporate': {
+                    colors: {
+                        primary: '#1e40af',
+                        secondary: '#475569',
+                        accent: '#0ea5e9',
+                        background: '#ffffff',
+                        foreground: '#1e293b'
+                    },
+                    fonts: {heading: 'Roboto, sans-serif', body: 'Open Sans, sans-serif', mono: 'Fira Code, monospace'},
+                    layout: {sidebar_position: 'left', content_width: 'max-w-5xl'},
+                },
+                'product': {
+                    colors: {
+                        primary: '#7c3aed',
+                        secondary: '#64748b',
+                        accent: '#ec4899',
+                        background: '#fafafa',
+                        foreground: '#1f2937'
+                    },
+                    fonts: {
+                        heading: 'Inter, system-ui, sans-serif',
+                        body: 'Inter, system-ui, sans-serif',
+                        mono: 'Fira Code, monospace'
+                    },
+                    layout: {sidebar_position: 'right', content_width: 'max-w-5xl'},
+                },
+                'fashion-store': {
+                    colors: {
+                        primary: '#be185d',
+                        secondary: '#6b7280',
+                        accent: '#fbbf24',
+                        background: '#fefefe',
+                        foreground: '#1f2937'
+                    },
+                    fonts: {heading: 'Playfair Display, serif', body: 'Lato, sans-serif', mono: 'Fira Code, monospace'},
+                    layout: {sidebar_position: 'none', content_width: 'max-w-7xl'},
+                },
+                'tech-store': {
+                    colors: {
+                        primary: '#0ea5e9',
+                        secondary: '#475569',
+                        accent: '#10b981',
+                        background: '#ffffff',
+                        foreground: '#0f172a'
+                    },
+                    fonts: {
+                        heading: 'Inter, system-ui, sans-serif',
+                        body: 'Inter, system-ui, sans-serif',
+                        mono: 'JetBrains Mono, monospace'
+                    },
+                    layout: {sidebar_position: 'right', content_width: 'max-w-7xl'},
+                },
+                'artist-portfolio': {
+                    colors: {
+                        primary: '#7c2d12',
+                        secondary: '#78716c',
+                        accent: '#f59e0b',
+                        background: '#fafaf9',
+                        foreground: '#1c1917'
+                    },
+                    fonts: {
+                        heading: 'Playfair Display, serif',
+                        body: 'Source Sans Pro, sans-serif',
+                        mono: 'Fira Code, monospace'
+                    },
+                    layout: {sidebar_position: 'none', content_width: 'max-w-5xl'},
+                },
+                'designer-cv': {
+                    colors: {
+                        primary: '#0f766e',
+                        secondary: '#57534e',
+                        accent: '#14b8a6',
+                        background: '#ffffff',
+                        foreground: '#1c1917'
+                    },
+                    fonts: {
+                        heading: 'Helvetica Neue, sans-serif',
+                        body: 'Helvetica Neue, sans-serif',
+                        mono: 'Menlo, monospace'
+                    },
+                    layout: {sidebar_position: 'none', content_width: 'max-w-3xl'},
+                },
+                'news-portal': {
+                    colors: {
+                        primary: '#1e3a8a',
+                        secondary: '#374151',
+                        accent: '#ef4444',
+                        background: '#ffffff',
+                        foreground: '#111827'
+                    },
+                    fonts: {heading: 'Georgia, serif', body: 'Georgia, serif', mono: 'Consolas, monospace'},
+                    layout: {sidebar_position: 'right', content_width: 'max-w-7xl'},
+                },
+                'tech-media': {
+                    colors: {
+                        primary: '#2563eb',
+                        secondary: '#4b5563',
+                        accent: '#06b6d4',
+                        background: '#ffffff',
+                        foreground: '#111827'
+                    },
+                    fonts: {
+                        heading: 'Inter, system-ui, sans-serif',
+                        body: 'Inter, system-ui, sans-serif',
+                        mono: 'Fira Code, monospace'
+                    },
+                    layout: {sidebar_position: 'right', content_width: 'max-w-7xl'},
+                },
+                'travel-blog': {
+                    colors: {
+                        primary: '#059669',
+                        secondary: '#6b7280',
+                        accent: '#f59e0b',
+                        background: '#ffffff',
+                        foreground: '#1f2937'
+                    },
+                    fonts: {heading: 'Lora, serif', body: 'Open Sans, sans-serif', mono: 'Fira Code, monospace'},
+                    layout: {sidebar_position: 'right', content_width: 'max-w-5xl'},
+                },
+            };
+
+            const template = templates[templateName];
+            if (!template) {
+                alert('模板不存在');
+                return;
+            }
+
+            // 合并配置
+            const newConfig = {...config};
+            if (template.colors) newConfig.colors = {...newConfig.colors, ...template.colors};
+            if (template.fonts) newConfig.fonts = {...newConfig.fonts, ...template.fonts};
+            if (template.layout) newConfig.layout = {...newConfig.layout, ...template.layout};
+
+            setConfig(newConfig);
+            generatePreview(newConfig);
+
+            alert('模板已应用！记得点击“保存配置”按钮。');
+        } catch (error) {
+            console.error('Failed to apply template:', error);
+            alert('应用模板失败');
+        } finally {
+            setLoading(false);
+        }
+    };
+
     // 辅助函数: 展平配置
     const flattenConfig = (obj: any, prefix = ''): Record<string, any> => {
         const result: Record<string, any> = {};
@@ -346,11 +573,12 @@ export default function ThemeCustomizerPage() {
                     {/* 左侧: 配置面板 */}
                     <div className="lg:col-span-2 space-y-6">
                         <Tabs value={activeTab} onValueChange={setActiveTab}>
-                            <TabsList className="grid grid-cols-5 w-full">
+                            <TabsList className="grid grid-cols-6 w-full">
                                 <TabsTrigger value="colors">颜色</TabsTrigger>
                                 <TabsTrigger value="fonts">字体</TabsTrigger>
                                 <TabsTrigger value="layout">布局</TabsTrigger>
                                 <TabsTrigger value="components">组件</TabsTrigger>
+                                <TabsTrigger value="templates">模板</TabsTrigger>
                                 <TabsTrigger value="other">其他</TabsTrigger>
                             </TabsList>
 
@@ -523,6 +751,117 @@ export default function ThemeCustomizerPage() {
                                                     <SelectItem value="large">大</SelectItem>
                                                 </SelectContent>
                                             </Select>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            </TabsContent>
+
+                            {/* 预设模板库 */}
+                            <TabsContent value="templates" className="space-y-6">
+                                <Card>
+                                    <CardHeader>
+                                        <CardTitle>🎨 预设模板库</CardTitle>
+                                        <p className="text-sm text-gray-500 mt-1">
+                                            一键应用行业场景模板，快速打造专业网站
+                                        </p>
+                                    </CardHeader>
+                                    <CardContent>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            {/* 博客类 */}
+                                            <TemplateCard
+                                                title="简约博客"
+                                                description="清新简洁的个人博客风格"
+                                                category="博客"
+                                                icon="✍️"
+                                                onApply={() => applyTemplate('simple-blog')}
+                                            />
+                                            <TemplateCard
+                                                title="杂志风格"
+                                                description="专业的新闻杂志布局"
+                                                category="博客"
+                                                icon="📰"
+                                                onApply={() => applyTemplate('magazine')}
+                                            />
+                                            <TemplateCard
+                                                title="摄影作品集"
+                                                description="视觉冲击力的图片展示"
+                                                category="创意"
+                                                icon="📷"
+                                                onApply={() => applyTemplate('photography')}
+                                            />
+
+                                            {/* 企业类 */}
+                                            <TemplateCard
+                                                title="企业官网"
+                                                description="专业的企业形象展示"
+                                                category="企业"
+                                                icon="🏢"
+                                                onApply={() => applyTemplate('corporate')}
+                                            />
+                                            <TemplateCard
+                                                title="产品展示"
+                                                description="突出产品特性的设计"
+                                                category="企业"
+                                                icon="🛍️"
+                                                onApply={() => applyTemplate('product')}
+                                            />
+
+                                            {/* 电商类 */}
+                                            <TemplateCard
+                                                title="时尚精品店"
+                                                description="优雅的电商购物体验"
+                                                category="电商"
+                                                icon="👗"
+                                                onApply={() => applyTemplate('fashion-store')}
+                                            />
+                                            <TemplateCard
+                                                title="数码商城"
+                                                description="现代科技感的在线商店"
+                                                category="电商"
+                                                icon="💻"
+                                                onApply={() => applyTemplate('tech-store')}
+                                            />
+
+                                            {/* 创意类 */}
+                                            <TemplateCard
+                                                title="艺术家作品集"
+                                                description="展现创意的个人主页"
+                                                category="创意"
+                                                icon="🎨"
+                                                onApply={() => applyTemplate('artist-portfolio')}
+                                            />
+                                            <TemplateCard
+                                                title="设计师简历"
+                                                description="专业的个人简历展示"
+                                                category="创意"
+                                                icon="📄"
+                                                onApply={() => applyTemplate('designer-cv')}
+                                            />
+
+                                            {/* 新闻类 */}
+                                            <TemplateCard
+                                                title="新闻门户"
+                                                description="信息丰富的新闻网站"
+                                                category="新闻"
+                                                icon="📺"
+                                                onApply={() => applyTemplate('news-portal')}
+                                            />
+                                            <TemplateCard
+                                                title="科技媒体"
+                                                description="前沿科技资讯平台"
+                                                category="新闻"
+                                                icon="🚀"
+                                                onApply={() => applyTemplate('tech-media')}
+                                            />
+
+                                            {/* 旅行类 */}
+                                            <TemplateCard
+                                                title="旅行博客"
+                                                description="分享旅途见闻和攻略"
+                                                category="博客"
+                                                icon="✈️"
+                                                onApply={() => applyTemplate('travel-blog')}
+                                            />
                                         </div>
                                     </CardContent>
                                 </Card>

@@ -512,29 +512,50 @@ const ThemeManagement = () => {
           </DialogContent>
         </Dialog>
 
-        {/* 配置对话框（简化版） */}
+        {/* 配置对话框 */}
         <Dialog open={showConfigDialog} onOpenChange={setShowConfigDialog}>
-          <DialogContent>
+          <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>配置主题</DialogTitle>
               <DialogDescription>
-                {currentTheme?.name} 的配置选项
+                {currentTheme?.name} 的可视化定制
               </DialogDescription>
             </DialogHeader>
 
-            <div className="py-4">
-              <Alert>
-                <AlertDescription>
-                  主题配置功能正在开发中。您可以通过编辑主题的配置文件来自定义主题。
-                </AlertDescription>
-              </Alert>
-            </div>
+            <div className="py-4 space-y-4">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <h3 className="font-semibold text-blue-900 mb-2">🎨 可视化主题定制器</h3>
+                <p className="text-sm text-blue-800 mb-3">
+                  使用我们的可视化定制器来调整颜色、字体、布局等所有主题设置，并实时预览效果。
+                </p>
+                <ul className="text-sm text-blue-700 space-y-1 list-disc list-inside">
+                  <li>实时预览 - 所见即所得</li>
+                  <li>颜色方案 - 预设配色和自定义颜色</li>
+                  <li>字体排版 - 多种字体选择和字号调整</li>
+                  <li>布局定制 - 侧边栏位置、内容宽度</li>
+                  <li>CSS编辑器 - 高级用户自定义样式</li>
+                  <li>版本历史 - 保存和恢复配置</li>
+                </ul>
+              </div>
 
-            <DialogFooter>
-              <Button onClick={() => setShowConfigDialog(false)}>
-                关闭
-              </Button>
-            </DialogFooter>
+              <div className="flex gap-3">
+                <Button
+                    variant="outline"
+                    onClick={() => setShowConfigDialog(false)}
+                    className="flex-1"
+                >
+                  取消
+                </Button>
+                <Button
+                    onClick={() => {
+                      window.location.href = `/admin/theme-customizer?theme=${currentTheme?.slug}`;
+                    }}
+                    className="flex-1"
+                >
+                  打开定制器
+                </Button>
+              </div>
+            </div>
           </DialogContent>
         </Dialog>
       </div>

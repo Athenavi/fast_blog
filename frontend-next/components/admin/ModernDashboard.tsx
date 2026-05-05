@@ -24,6 +24,7 @@ import {
 import ActivityStream from './ActivityStream';
 import SiteHealthPanel from './SiteHealthPanel';
 import TodoReminders from './TodoReminders';
+import PerformanceCharts from './PerformanceCharts';
 import apiClient from '@/lib/api-client';
 
 interface StatsCard {
@@ -239,6 +240,9 @@ export default function ModernDashboard() {
                 {/* 待办事项 */}
                 <TodoReminders/>
             </div>
+
+            {/* 性能监控图表 */}
+            <PerformanceCharts/>
 
             {/* 热门文章列表 */}
             <Card>
