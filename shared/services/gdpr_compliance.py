@@ -6,8 +6,17 @@ GDPR合规工具服务
 """
 
 import json
+import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
+
+from sqlalchemy import select, func, update, delete
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from shared.models.article import Article
+from shared.models.comment import Comment
+from shared.models.media import Media
+from shared.models.user import User
 
 
 class GDPRComplianceService:
@@ -28,8 +37,9 @@ class GDPRComplianceService:
         # 数据删除请求 {request_id: request_data}
         self.deletion_requests: Dict[str, Dict[str, Any]] = {}
 
-    def export_user_data(
+    async def export_user_data(
             self,
+            db: AsyncSession,
             user_id: int,
             username: str,
             email: str,
@@ -42,6 +52,7 @@ class GDPRComplianceService:
         导出用户数据
         
         Args:
+            db: 数据库会话
             user_id: 用户ID
             username: 用户名
             email: 邮箱
@@ -68,11 +79,9 @@ class GDPRComplianceService:
             'data_categories': [],
         }
 
-        # TODO: 从数据库实际获取数据
-        # 这里提供示例数据结构
-
+        # 获取用户文章
         if include_articles:
-            articles = self._get_user_articles(user_id)
+            articles = await self._get_user_articles(db, user_id)
             exported_data['articles'] = articles
             exported_data['data_categories'].append({
                 'category': 'articles',
@@ -80,8 +89,9 @@ class GDPRComplianceService:
                 'description': '用户创建的文章',
             })
 
+        # 获取用户评论
         if include_comments:
-            comments = self._get_user_comments(user_id)
+            comments = await self._get_user_comments(db, user_id)
             exported_data['comments'] = comments
             exported_data['data_categories'].append({
                 'category': 'comments',
@@ -89,8 +99,9 @@ class GDPRComplianceService:
                 'description': '用户的评论',
             })
 
+        # 获取用户媒体
         if include_media:
-            media = self._get_user_media(user_id)
+            media = await self._get_user_media(db, user_id)
             exported_data['media'] = media
             exported_data['data_categories'].append({
                 'category': 'media',
@@ -98,12 +109,13 @@ class GDPRComplianceService:
                 'description': '用户上传的媒体文件',
             })
 
+        # 获取用户设置
         if include_settings:
-            settings = self._get_user_settings(user_id)
+            settings = await self._get_user_settings(db, user_id)
             exported_data['settings'] = settings
             exported_data['data_categories'].append({
                 'category': 'settings',
-                'count': len(settings.keys()),
+                'count': len(settings.keys()) if isinstance(settings, dict) else 0,
                 'description': '用户的个人设置',
             })
 
@@ -121,13 +133,14 @@ class GDPRComplianceService:
             'user_id': user_id,
             'requested_at': timestamp.isoformat(),
             'status': 'completed',
-            'data_size': len(json.dumps(exported_data)),
+            'data_size': len(json.dumps(exported_data, default=str)),
         }
 
         return exported_data
 
-    def anonymize_user_data(
+    async def anonymize_user_data(
             self,
+            db: AsyncSession,
             user_id: int,
             hard_delete: bool = False
     ) -> Dict[str, Any]:
@@ -135,6 +148,7 @@ class GDPRComplianceService:
         匿名化或删除用户数据
         
         Args:
+            db: 数据库会话
             user_id: 用户ID
             hard_delete: 是否硬删除（否则匿名化）
         
@@ -155,15 +169,13 @@ class GDPRComplianceService:
         }
 
         try:
-            # TODO: 实际执行数据删除或匿名化
-
             if hard_delete:
                 # 硬删除所有用户数据
                 deleted_counts = {
-                    'articles': self._delete_user_articles(user_id),
-                    'comments': self._delete_user_comments(user_id),
-                    'media': self._delete_user_media(user_id),
-                    'settings': self._delete_user_settings(user_id),
+                    'articles': await self._delete_user_articles(db, user_id),
+                    'comments': await self._delete_user_comments(db, user_id),
+                    'media': await self._delete_user_media(db, user_id),
+                    'settings': await self._delete_user_settings(db, user_id),
                     'user_account': 1,
                 }
 
@@ -172,16 +184,17 @@ class GDPRComplianceService:
             else:
                 # 匿名化处理
                 anonymized_counts = {
-                    'username': self._anonymize_username(user_id),
-                    'email': self._anonymize_email(user_id),
-                    'profile': self._anonymize_profile(user_id),
-                    'comments': self._anonymize_comments(user_id),
+                    'username': await self._anonymize_username(db, user_id),
+                    'email': await self._anonymize_email(db, user_id),
+                    'profile': await self._anonymize_profile(db, user_id),
+                    'comments': await self._anonymize_comments(db, user_id),
                 }
 
                 result['affected_data'] = anonymized_counts
                 result['status'] = 'completed'
 
             result['completed_at'] = datetime.utcnow().isoformat()
+            await db.commit()
 
             # 记录删除请求
             self.deletion_requests[request_id] = result
@@ -189,6 +202,7 @@ class GDPRComplianceService:
             return result
 
         except Exception as e:
+            await db.rollback()
             result['status'] = 'failed'
             result['error'] = str(e)
             return result
@@ -336,80 +350,163 @@ class GDPRComplianceService:
 
         return report
 
-    def _get_user_articles(self, user_id: int) -> List[Dict[str, Any]]:
-        """获取用户文章（示例）"""
-        # TODO: 从数据库实际获取
-        return []
+    async def _get_user_articles(self, db: AsyncSession, user_id: int) -> List[Dict[str, Any]]:
+        """获取用户文章"""
+        stmt = select(Article).where(Article.user == user_id)
+        result = await db.execute(stmt)
+        articles = result.scalars().all()
 
-    def _get_user_comments(self, user_id: int) -> List[Dict[str, Any]]:
-        """获取用户评论（示例）"""
-        # TODO: 从数据库实际获取
-        return []
+        return [
+            {
+                'id': article.id,
+                'title': article.title,
+                'slug': article.slug,
+                'excerpt': article.excerpt,
+                'status': article.status,
+                'created_at': article.created_at.isoformat() if article.created_at else None,
+                'updated_at': article.updated_at.isoformat() if article.updated_at else None,
+            }
+            for article in articles
+        ]
 
-    def _get_user_media(self, user_id: int) -> List[Dict[str, Any]]:
-        """获取用户媒体（示例）"""
-        # TODO: 从数据库实际获取
-        return []
+    async def _get_user_comments(self, db: AsyncSession, user_id: int) -> List[Dict[str, Any]]:
+        """获取用户评论"""
+        stmt = select(Comment).where(Comment.user_id == user_id)
+        result = await db.execute(stmt)
+        comments = result.scalars().all()
 
-    def _get_user_settings(self, user_id: int) -> Dict[str, Any]:
-        """获取用户设置（示例）"""
-        # TODO: 从数据库实际获取
+        return [
+            {
+                'id': comment.id,
+                'content': comment.content,
+                'article_id': comment.article_id,
+                'created_at': comment.created_at.isoformat() if comment.created_at else None,
+            }
+            for comment in comments
+        ]
+
+    async def _get_user_media(self, db: AsyncSession, user_id: int) -> List[Dict[str, Any]]:
+        """获取用户媒体"""
+        stmt = select(Media).where(Media.user == user_id)
+        result = await db.execute(stmt)
+        media_list = result.scalars().all()
+
+        return [
+            {
+                'id': media.id,
+                'filename': media.filename,
+                'file_url': media.file_url,
+                'file_type': media.file_type,
+                'file_size': media.file_size,
+                'created_at': media.created_at.isoformat() if media.created_at else None,
+            }
+            for media in media_list
+        ]
+
+    async def _get_user_settings(self, db: AsyncSession, user_id: int) -> Dict[str, Any]:
+        """获取用户设置"""
+        from shared.models.admin_settings import AdminSettings
+
+        stmt = select(AdminSettings).where(AdminSettings.user == user_id)
+        result = await db.execute(stmt)
+        settings = result.scalar_one_or_none()
+
+        if settings and settings.settings_data:
+            return settings.settings_data
         return {}
 
-    def _delete_user_articles(self, user_id: int) -> int:
-        """删除用户文章（示例）"""
-        # TODO: 实际删除
-        return 0
+    async def _delete_user_articles(self, db: AsyncSession, user_id: int) -> int:
+        """删除用户文章"""
+        stmt = delete(Article).where(Article.user == user_id)
+        result = await db.execute(stmt)
+        return result.rowcount
 
-    def _delete_user_comments(self, user_id: int) -> int:
-        """删除用户评论（示例）"""
-        # TODO: 实际删除
-        return 0
+    async def _delete_user_comments(self, db: AsyncSession, user_id: int) -> int:
+        """删除用户评论"""
+        stmt = delete(Comment).where(Comment.user_id == user_id)
+        result = await db.execute(stmt)
+        return result.rowcount
 
-    def _delete_user_media(self, user_id: int) -> int:
-        """删除用户媒体（示例）"""
-        # TODO: 实际删除
-        return 0
+    async def _delete_user_media(self, db: AsyncSession, user_id: int) -> int:
+        """删除用户媒体"""
+        stmt = delete(Media).where(Media.user == user_id)
+        result = await db.execute(stmt)
+        return result.rowcount
 
-    def _delete_user_settings(self, user_id: int) -> int:
-        """删除用户设置（示例）"""
-        # TODO: 实际删除
-        return 0
+    async def _delete_user_settings(self, db: AsyncSession, user_id: int) -> int:
+        """删除用户设置"""
+        from shared.models.admin_settings import AdminSettings
 
-    def _anonymize_username(self, user_id: int) -> bool:
-        """匿名化用户名（示例）"""
-        # TODO: 实际匿名化
+        stmt = delete(AdminSettings).where(AdminSettings.user == user_id)
+        result = await db.execute(stmt)
+        return result.rowcount
+
+    async def _anonymize_username(self, db: AsyncSession, user_id: int) -> bool:
+        """匿名化用户名"""
+        anonymized_name = f"user_{uuid.uuid4().hex[:8]}"
+        stmt = update(User).where(User.id == user_id).values(username=anonymized_name)
+        await db.execute(stmt)
         return True
 
-    def _anonymize_email(self, user_id: int) -> bool:
-        """匿名化邮箱（示例）"""
-        # TODO: 实际匿名化
+    async def _anonymize_email(self, db: AsyncSession, user_id: int) -> bool:
+        """匿名化邮箱"""
+        anonymized_email = f"deleted_{uuid.uuid4().hex[:8]}@anonymous.invalid"
+        stmt = update(User).where(User.id == user_id).values(email=anonymized_email)
+        await db.execute(stmt)
         return True
 
-    def _anonymize_profile(self, user_id: int) -> bool:
-        """匿名化个人资料（示例）"""
-        # TODO: 实际匿名化
+    async def _anonymize_profile(self, db: AsyncSession, user_id: int) -> bool:
+        """匿名化个人资料"""
+        stmt = update(User).where(User.id == user_id).values(
+            profile_picture=None,
+            bio=None,
+            locale='zh_CN',
+            profile_private=False
+        )
+        await db.execute(stmt)
         return True
 
-    def _anonymize_comments(self, user_id: int) -> int:
-        """匿名化评论（示例）"""
-        # TODO: 实际匿名化
-        return 0
+    async def _anonymize_comments(self, db: AsyncSession, user_id: int) -> int:
+        """匿名化评论（保留内容但移除作者信息）"""
+        stmt = update(Comment).where(Comment.user_id == user_id).values(
+            user_id=None,
+            author_name='Anonymous',
+            author_email=None,
+            author_url=None
+        )
+        result = await db.execute(stmt)
+        return result.rowcount
 
-    def _count_user_articles(self, user_id: int) -> int:
-        """统计用户文章数（示例）"""
-        return 0
+    async def _count_user_articles(self, user_id: int) -> int:
+        """统计用户文章数"""
+        from src.utils.database.unified_manager import db_manager
 
-    def _count_user_comments(self, user_id: int) -> int:
-        """统计用户评论数（示例）"""
-        return 0
+        async with db_manager.get_session() as db:
+            stmt = select(func.count(Article.id)).where(Article.user == user_id)
+            result = await db.execute(stmt)
+            return result.scalar() or 0
 
-    def _count_user_media(self, user_id: int) -> int:
-        """统计用户媒体数（示例）"""
-        return 0
+    async def _count_user_comments(self, user_id: int) -> int:
+        """统计用户评论数"""
+        from src.utils.database.unified_manager import db_manager
 
-    def _count_user_logins(self, user_id: int) -> int:
-        """统计用户登录次数（示例）"""
+        async with db_manager.get_session() as db:
+            stmt = select(func.count(Comment.id)).where(Comment.user_id == user_id)
+            result = await db.execute(stmt)
+            return result.scalar() or 0
+
+    async def _count_user_media(self, user_id: int) -> int:
+        """统计用户媒体数"""
+        from src.utils.database.unified_manager import db_manager
+
+        async with db_manager.get_session() as db:
+            stmt = select(func.count(Media.id)).where(Media.user == user_id)
+            result = await db.execute(stmt)
+            return result.scalar() or 0
+
+    async def _count_user_logins(self, user_id: int) -> int:
+        """统计用户登录次数"""
+        # TODO: 如果有登录日志表，从这里统计
         return 0
 
 

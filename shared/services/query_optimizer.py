@@ -233,7 +233,7 @@ class QueryOptimizer:
 
         return suggestions
 
-    def optimize_article_query(
+    async def optimize_article_query(
             self,
             db: AsyncSession,
             page: int = 1,

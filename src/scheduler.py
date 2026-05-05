@@ -62,24 +62,21 @@ class SessionScheduler:
                 from shared.services.article_view_stats import article_view_stats
                 from src.extensions import get_async_db_session
 
-                # 获取数据库会话
-                db = get_async_db_session()
+                # 使用 async with 正确管理数据库会话
+                async with get_async_db_session()() as db:
+                    # 批量同步所有文章
+                    result = await article_view_stats.batch_sync_all(db)
 
-                # 批量同步所有文章
-                result = await article_view_stats.batch_sync_all(db)
+                    # 检查结果是否为 None 或缺少预期字段
+                    if result is None:
+                        logger.warning("batch_sync_all 返回 None，可能没有需要同步的数据")
+                        return
 
-                # 检查结果是否为 None 或缺少预期字段
-                if result is None:
-                    logger.warning("batch_sync_all 返回 None，可能没有需要同步的数据")
-                    return
+                    if result.get('synced', 0) > 0:
+                        logger.info(f"成功同步 {result['synced']} 篇文章的浏览量")
 
-                if result.get('synced', 0) > 0:
-                    logger.info(f"成功同步 {result['synced']} 篇文章的浏览量")
-
-                if result.get('errors'):
-                    logger.warning(f"同步错误: {result['errors'][:5]}")  # 只显示前5个错误
-
-                await db.close()
+                    if result.get('errors'):
+                        logger.warning(f"同步错误: {result['errors'][:5]}")  # 只显示前5个错误
                 
             except Exception as e:
                 logger.error(f"同步文章浏览量时出错：{e}")

@@ -7,10 +7,12 @@ GDPR合规 API
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Body
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.services.gdpr_compliance import gdpr_service
 from src.api.v1.responses import ApiResponse
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
+from src.extensions import get_async_db_session as get_async_db
 
 router = APIRouter()
 
@@ -22,9 +24,11 @@ async def export_personal_data(
         include_media: bool = Body(True, description="是否包含媒体"),
         include_settings: bool = Body(True, description="是否包含设置"),
         current_user=Depends(jwt_required),
+        db: AsyncSession = Depends(get_async_db),
 ):
     """导出个人数据"""
-    result = gdpr_service.export_user_data(
+    result = await gdpr_service.export_user_data(
+        db=db,
         user_id=current_user.id,
         username=getattr(current_user, 'username', 'Unknown'),
         email=getattr(current_user, 'email', ''),

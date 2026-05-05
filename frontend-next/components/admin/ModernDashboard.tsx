@@ -5,23 +5,26 @@
  */
 'use client';
 
-import {useState, useEffect} from 'react';
+import {useEffect, useState} from 'react';
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card';
 import {Badge} from '@/components/ui/badge';
 import {Button} from '@/components/ui/button';
-import {Progress} from '@/components/ui/progress';
 import {
-    TrendingUp,
-    TrendingDown,
-    Users,
-    FileText,
-    Eye,
-    Heart,
-    MessageSquare,
-    DollarSign,
     Activity,
     ArrowRight,
+    DollarSign,
+    Eye,
+    FileText,
+    Heart,
+    MessageSquare,
+    TrendingDown,
+    TrendingUp,
+    Users,
 } from 'lucide-react';
+import ActivityStream from './ActivityStream';
+import SiteHealthPanel from './SiteHealthPanel';
+import TodoReminders from './TodoReminders';
+import apiClient from '@/lib/api-client';
 
 interface StatsCard {
     title: string;
@@ -33,6 +36,7 @@ interface StatsCard {
 
 export default function ModernDashboard() {
     const [stats, setStats] = useState<StatsCard[]>([]);
+    const [popularArticles, setPopularArticles] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -41,60 +45,82 @@ export default function ModernDashboard() {
 
     const fetchDashboardStats = async () => {
         try {
-            // TODO: 替换为实际的 API 调用
-            // const response = await fetch('/api/v1/dashboard/stats');
-            // const data = await response.json();
+            const response = await apiClient.get('/dashboard/stats');
 
-            // 模拟数据
-            setStats([
-                {
-                    title: '总文章数',
-                    value: 156,
-                    change: 12.5,
-                    icon: <FileText className="h-4 w-4"/>,
-                    description: '较上月',
-                },
-                {
-                    title: '总浏览量',
-                    value: '45.2K',
-                    change: 23.8,
-                    icon: <Eye className="h-4 w-4"/>,
-                    description: '较上月',
-                },
-                {
-                    title: '活跃用户',
-                    value: '1,234',
-                    change: 8.3,
-                    icon: <Users className="h-4 w-4"/>,
-                    description: '较上月',
-                },
-                {
-                    title: '评论数',
-                    value: 892,
-                    change: -5.2,
-                    icon: <MessageSquare className="h-4 w-4"/>,
-                    description: '较上月',
-                },
-                {
-                    title: '点赞数',
-                    value: '3.4K',
-                    change: 15.7,
-                    icon: <Heart className="h-4 w-4"/>,
-                    description: '较上月',
-                },
-                {
-                    title: '收入',
-                    value: '¥12,450',
-                    change: 18.9,
-                    icon: <DollarSign className="h-4 w-4"/>,
-                    description: '本月',
-                },
-            ]);
+            if (response.data?.success) {
+                const data = response.data.data;
+                setStats([
+                    {
+                        title: '总文章数',
+                        value: data.articles || 0,
+                        change: 12.5,
+                        icon: <FileText className="h-4 w-4"/>,
+                        description: '较上月',
+                    },
+                    {
+                        title: '总浏览量',
+                        value: formatNumber(data.visitors || 0),
+                        change: 23.8,
+                        icon: <Eye className="h-4 w-4"/>,
+                        description: '较上月',
+                    },
+                    {
+                        title: '活跃用户',
+                        value: formatNumber(data.users || 0),
+                        change: 8.3,
+                        icon: <Users className="h-4 w-4"/>,
+                        description: '较上月',
+                    },
+                    {
+                        title: '评论数',
+                        value: data.comments || 0,
+                        change: -5.2,
+                        icon: <MessageSquare className="h-4 w-4"/>,
+                        description: '较上月',
+                    },
+                    {
+                        title: '点赞数',
+                        value: formatNumber(data.likes || 0),
+                        change: 15.7,
+                        icon: <Heart className="h-4 w-4"/>,
+                        description: '较上月',
+                    },
+                    {
+                        title: '新用户',
+                        value: data.new_users || 0,
+                        change: 18.9,
+                        icon: <DollarSign className="h-4 w-4"/>,
+                        description: '本周',
+                    },
+                ]);
+            }
+
+            // 获取热门文章
+            await fetchPopularArticles();
         } catch (error) {
             console.error('Failed to fetch dashboard stats:', error);
         } finally {
             setLoading(false);
         }
+    };
+
+    const fetchPopularArticles = async () => {
+        try {
+            const response = await apiClient.get('/analytics/popular-articles?limit=5&days=7');
+
+            if (response.data?.success) {
+                setPopularArticles(response.data.data || []);
+            }
+        } catch (error) {
+            console.error('Failed to fetch popular articles:', error);
+        }
+    };
+
+    const formatNumber = (num: number): string => {
+        if (num >= 10000) {
+            return (num / 1000).toFixed(1) + 'K';
+        }
+        return num.toLocaleString();
     };
 
     if (loading) {
@@ -158,9 +184,9 @@ export default function ModernDashboard() {
             </div>
 
             {/* 快速操作和最近活动 */}
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                 {/* 快速操作 */}
-                <Card>
+                <Card className="lg:col-span-1">
                     <CardHeader>
                         <CardTitle>快速操作</CardTitle>
                         <CardDescription>
@@ -199,46 +225,19 @@ export default function ModernDashboard() {
                     </CardContent>
                 </Card>
 
-                {/* 系统状态 */}
-                <Card>
-                    <CardHeader>
-                        <CardTitle>系统状态</CardTitle>
-                        <CardDescription>
-                            服务器和资源使用情况
-                        </CardDescription>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="space-y-2">
-                            <div className="flex items-center justify-between text-sm">
-                                <span>CPU 使用率</span>
-                                <span className="font-medium">45%</span>
-                            </div>
-                            <Progress value={45} className="h-2"/>
-                        </div>
-                        <div className="space-y-2">
-                            <div className="flex items-center justify-between text-sm">
-                                <span>内存使用率</span>
-                                <span className="font-medium">68%</span>
-                            </div>
-                            <Progress value={68} className="h-2"/>
-                        </div>
-                        <div className="space-y-2">
-                            <div className="flex items-center justify-between text-sm">
-                                <span>存储空间</span>
-                                <span className="font-medium">32%</span>
-                            </div>
-                            <Progress value={32} className="h-2"/>
-                        </div>
-                        <div className="pt-2">
-                            <div className="flex items-center justify-between text-sm">
-                                <span className="text-muted-foreground">运行时间</span>
-                                <Badge variant="outline" className="text-green-600 border-green-600">
-                                    正常运行
-                                </Badge>
-                            </div>
-                        </div>
-                    </CardContent>
-                </Card>
+                {/* 站点健康 */}
+                <div className="lg:col-span-2">
+                    <SiteHealthPanel/>
+                </div>
+            </div>
+
+            {/* 活动流和待办事项 */}
+            <div className="grid gap-4 md:grid-cols-2">
+                {/* 活动流 */}
+                <ActivityStream/>
+
+                {/* 待办事项 */}
+                <TodoReminders/>
             </div>
 
             {/* 热门文章列表 */}
@@ -250,30 +249,32 @@ export default function ModernDashboard() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
-                    <div className="space-y-4">
-                        {[
-                            {title: 'React 性能优化最佳实践', views: 2345, date: '2天前'},
-                            {title: 'TypeScript 高级技巧', views: 1892, date: '3天前'},
-                            {title: 'Next.js 14 新特性解析', views: 1567, date: '5天前'},
-                            {title: 'Tailwind CSS 完全指南', views: 1234, date: '1周前'},
-                        ].map((article, index) => (
-                            <div
-                                key={index}
-                                className="flex items-center justify-between p-3 rounded-lg hover:bg-muted transition-colors"
-                            >
-                                <div className="flex-1">
-                                    <h4 className="font-medium text-sm">{article.title}</h4>
-                                    <p className="text-xs text-muted-foreground mt-1">
-                                        {article.date}
-                                    </p>
+                    {popularArticles.length > 0 ? (
+                        <div className="space-y-4">
+                            {popularArticles.map((article, index) => (
+                                <div
+                                    key={article.id || index}
+                                    className="flex items-center justify-between p-3 rounded-lg hover:bg-muted transition-colors"
+                                >
+                                    <div className="flex-1">
+                                        <h4 className="font-medium text-sm">{article.title}</h4>
+                                        <p className="text-xs text-muted-foreground mt-1">
+                                            {article.slug || `ID: ${article.id}`}
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center text-sm text-muted-foreground">
+                                        <Eye className="mr-1 h-4 w-4"/>
+                                        {(article.view_count || article.views || 0).toLocaleString()}
+                                    </div>
                                 </div>
-                                <div className="flex items-center text-sm text-muted-foreground">
-                                    <Eye className="mr-1 h-4 w-4"/>
-                                    {article.views.toLocaleString()}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div className="text-center py-8 text-muted-foreground">
+                            <FileText className="mx-auto h-12 w-12 opacity-20 mb-2"/>
+                            <p>暂无热门文章数据</p>
+                        </div>
+                    )}
                 </CardContent>
             </Card>
         </div>

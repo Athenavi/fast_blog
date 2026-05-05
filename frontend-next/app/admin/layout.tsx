@@ -16,6 +16,7 @@ import {
     FaSlidersH,
     FaThLarge,
     FaTimes,
+    FaUniversalAccess,
     FaUsers
 } from 'react-icons/fa';
 import './admin.css';
@@ -222,6 +223,17 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({children}) => {
                                 <FaArchive className="mr-3"/>
                                 <span>数据备份</span>
                             </Link>
+                            <Link
+                                href="/admin/database-migration"
+                                className={`flex items-center px-4 py-3 rounded-lg ${
+                                    isActivePath('/admin/database-migration')
+                                        ? 'text-primary bg-blue-50 font-medium'
+                                        : 'text-gray-600 hover:bg-gray-100'
+                                }`}
+                            >
+                                <FaSlidersH className="mr-3"/>
+                                <span>迁移工具</span>
+                            </Link>
                         </div>
 
                         <hr className="my-4 border-gray-200"/>
@@ -246,6 +258,17 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({children}) => {
                             >
                                 <FaComments className="mr-3"/>
                                 <span>评论配置</span>
+                            </Link>
+                            <Link
+                                href="/admin/accessibility"
+                                className={`flex items-center px-4 py-3 rounded-lg ${
+                                    isActivePath('/admin/accessibility')
+                                        ? 'text-primary bg-blue-50 font-medium'
+                                        : 'text-gray-600 hover:bg-gray-100'
+                                }`}
+                            >
+                                <FaUniversalAccess className="mr-3"/>
+                                <span>无障碍性</span>
                             </Link>
                             <Link
                                 href="/admin/config-manager"
@@ -302,11 +325,13 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({children}) => {
                                             pathname === '/admin/categories' ? '分类管理' :
                                                 pathname === '/admin/media' ? '附件管理' :
                                                     pathname === '/admin/backup' ? '数据备份' :
-                                                        pathname === '/admin/users' ? '用户管理' :
-                                                            pathname === '/admin/comment-config' ? '评论配置' :
-                                                                pathname === '/admin/config-manager' ? '配置管理' :
-                                                                    pathname === '/admin/settings' ? '系统设置' :
-                                                                        pathname === '/admin/misc' ? '更多管理' : '管理后台'}
+                                                        pathname === '/admin/database-migration' ? '数据库迁移' :
+                                                            pathname === '/admin/users' ? '用户管理' :
+                                                                pathname === '/admin/comment-config' ? '评论配置' :
+                                                                    pathname === '/admin/accessibility' ? '无障碍性管理' :
+                                                                        pathname === '/admin/config-manager' ? '配置管理' :
+                                                                            pathname === '/admin/settings' ? '系统设置' :
+                                                                                pathname === '/admin/misc' ? '更多管理' : '管理后台'}
                             </h1>
                         </div>
                     </div>

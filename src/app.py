@@ -1002,6 +1002,22 @@ curl -X POST "http://localhost:9421/api/v1/media/upload" \
         except ImportError as e:
             print(f"Warning: Backup Management API could not be loaded: {e}")
 
+        # 增量备份 API
+        try:
+            from src.api.v1.incremental_backup import router as incremental_backup_router
+            app.include_router(incremental_backup_router, prefix='/api/v1', tags=['incremental-backup'])
+            print(f"{worker_info} [OK] Incremental Backup API 已加载")
+        except ImportError as e:
+            print(f"Warning: Incremental Backup API could not be loaded: {e}")
+
+        # 数据库迁移工具 API
+        try:
+            from src.api.v1.database_migration import router as database_migration_router
+            app.include_router(database_migration_router, prefix='/api/v1', tags=['database-migration'])
+            print(f"{worker_info} [OK] Database Migration API 已加载")
+        except ImportError as e:
+            print(f"Warning: Database Migration API could not be loaded: {e}")
+
         # GDPR合规 API
         try:
             from src.api.v1.gdpr_compliance import router as gdpr_router

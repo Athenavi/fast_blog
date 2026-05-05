@@ -160,17 +160,23 @@ async def get_file_mime_type(file_hash: str, db=None) -> str:
         MIME类型字符串
     """
     try:
+        mime_type = None
+        
         # 如果没有提供数据库会话，创建一个新的
         if db is None:
             from src.extensions import get_async_db_session
-            # 正确处理异步生成器
-            db_gen = get_async_db_session()
-            db = await anext(db_gen)  # 使用anext()处理异步生成器
-            should_close_db = True
-        else:
-            should_close_db = False
+            from sqlalchemy import select
 
-        try:
+            # 使用 async with 正确管理数据库会话
+            async with get_async_db_session()() as session:
+                result_query = select(FileHash.mime_type).where(FileHash.hash == file_hash)
+                result_result = await session.execute(result_query)
+                result = result_result.first()
+                if result:
+                    # 查询结果通常是一个元组，取第一个元素
+                    mime_type = result[0] if isinstance(result, tuple) else getattr(result, 'mime_type', None)
+        else:
+            # 如果提供了数据库会话，直接使用
             from sqlalchemy import select
 
             result_query = select(FileHash.mime_type).where(FileHash.hash == file_hash)
@@ -180,12 +186,9 @@ async def get_file_mime_type(file_hash: str, db=None) -> str:
                 # 查询结果通常是一个元组，取第一个元素
                 mime_type = result[0] if isinstance(result, tuple) else getattr(result, 'mime_type', None)
 
-                if mime_type:
-                    return mime_type
-        finally:
-            # 如果是我们创建的数据库会话，则关闭它
-            if should_close_db and db:
-                await db.close()
+        # 如果在数据库中找到了mime_type，直接返回
+        if mime_type:
+            return mime_type
 
         # 如果数据库中没有找到对应的mime_type，尝试使用magic库
         import magic

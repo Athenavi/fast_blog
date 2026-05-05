@@ -3090,6 +3090,17 @@ models:
         columns: [ created_at ]
         order: DESC
         comment: "创建时间索引"
+      - name: idx_orders_user_status_created
+        columns: [ user_id, status, created_at ]
+        order: DESC
+        comment: "用户订单列表查询优化索引"
+      - name: idx_orders_status_payment_created
+        columns: [ status, payment_status, created_at ]
+        order: DESC
+        comment: "订单状态和支付状态联合查询索引"
+      - name: idx_orders_payment_transaction
+        columns: [ transaction_id ]
+        comment: "交易ID查询索引"
   OrderItem:
     description: 订单项模型
     properties:
