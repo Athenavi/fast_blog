@@ -6,6 +6,7 @@ import {EmotePicker} from './EmotePicker';
 import {MentionPicker} from './MentionPicker';
 import {parseEmotes} from '@/lib/emoteService';
 import {useToast} from '@/hooks/use-toast';
+import {userService, UserSuggestion} from '@/lib/api/user-service';
 
 interface CommentInputProps {
   onSubmit: (content: string) => void;
@@ -24,14 +25,28 @@ export function CommentInput({ onSubmit, placeholder = '发表评论...' }: Comm
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  // 模拟用户列表（实际应该从 API 获取）
-  const [users] = useState([
-    { id: 1, username: 'admin', avatar_url: '' },
-    { id: 2, username: 'user1', avatar_url: '' },
-    { id: 3, username: 'user2', avatar_url: '' },
-    { id: 4, username: 'developer', avatar_url: '' },
-    { id: 5, username: 'blogger', avatar_url: '' },
-  ]);
+  // 真实用户列表（从 API 获取）
+  const [users, setUsers] = useState<UserSuggestion[]>([]);
+  const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+
+  // 当 @提及框显示时，加载用户列表
+  useEffect(() => {
+    if (showMentionPicker) {
+      setIsLoadingUsers(true);
+      userService.searchUsers(mentionQuery, 10)
+          .then(result => {
+            if (result.success && result.data) {
+              setUsers(result.data.users);
+            }
+          })
+          .catch(error => {
+            console.error('Failed to load users:', error);
+          })
+          .finally(() => {
+            setIsLoadingUsers(false);
+          });
+    }
+  }, [showMentionPicker, mentionQuery]);
 
   // 处理表情选择
   const handleEmoteSelect = (emoteCode: string) => {

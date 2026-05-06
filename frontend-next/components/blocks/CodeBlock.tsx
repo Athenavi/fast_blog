@@ -1,6 +1,7 @@
 'use client';
 
-import React from 'react';
+import React, {useState} from 'react';
+import {Check, Copy} from 'lucide-react';
 
 interface CodeBlockProps {
     attributes: {
@@ -20,6 +21,7 @@ const CodeBlock: React.FC<CodeBlockProps> = ({
     isSelected,
     onChange 
 }) => {
+    const [copied, setCopied] = useState(false);
     const language = attributes.language || 'javascript';
     const content = attributes.content || '';
     const showLineNumbers = attributes.show_line_numbers ?? true;
@@ -31,6 +33,17 @@ const CodeBlock: React.FC<CodeBlockProps> = ({
 
     const handleChange = (field: string, value: any) => {
         if (onChange) onChange(field, value);
+    };
+
+    // 复制代码到剪贴板
+    const handleCopy = async () => {
+        try {
+            await navigator.clipboard.writeText(content);
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        } catch (error) {
+            console.error('Failed to copy:', error);
+        }
     };
 
     if (isSelected) {
@@ -84,11 +97,23 @@ const CodeBlock: React.FC<CodeBlockProps> = ({
     
     return (
         <div className="py-2">
-            <div className="relative">
-                {/* 语言标签 */}
-                <div className="absolute top-0 right-0 px-2 py-1 text-xs bg-gray-200 dark:bg-gray-700 
-                    text-gray-700 dark:text-gray-300 rounded-bl">
-                    {language}
+            <div className="relative group">
+                {/* 语言标签和复制按钮 */}
+                <div className="absolute top-0 right-0 flex items-center gap-2 px-2 py-1 bg-gray-800 rounded-bl">
+                    <span className="text-xs text-gray-300">
+                        {language}
+                    </span>
+                    <button
+                        onClick={handleCopy}
+                        className="p-1 hover:bg-gray-700 rounded transition-colors"
+                        title="复制代码"
+                    >
+                        {copied ? (
+                            <Check className="w-4 h-4 text-green-400"/>
+                        ) : (
+                            <Copy className="w-4 h-4 text-gray-400 hover:text-white"/>
+                        )}
+                    </button>
                 </div>
                 
                 <pre className="bg-gray-900 text-gray-100 p-4 rounded-lg overflow-x-auto">

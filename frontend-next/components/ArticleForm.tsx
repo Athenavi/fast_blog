@@ -6,7 +6,7 @@ import dynamic from 'next/dynamic';
 import {Category} from "@/lib/api";
 import {OptimizedInput, OptimizedTextarea} from '@/components/ui/optimized-input';
 import CoverImageUploader from '@/components/CoverImageUploader';
-import {DraftService} from '@/lib/draft-service';
+import {draftService} from '@/lib/draft-service';
 import {
   Dialog,
   DialogContent,
@@ -157,7 +157,7 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
       setAutoSaveStatus('saving');
 
       // 保存草稿到本地
-      DraftService.saveDraft(form.id, {
+      draftService.saveDraft(form.id, {
         title: form.title,
         excerpt: form.excerpt,
         content: form.content,
@@ -297,7 +297,7 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
 
         // 提交成功后删除本地草稿
         if (form.id) {
-          DraftService.deleteDraft(form.id);
+          draftService.deleteDraft(form.id);
         }
       } else {
         setError(result.error || '提交失败');

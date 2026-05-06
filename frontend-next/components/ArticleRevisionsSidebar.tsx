@@ -15,22 +15,22 @@ import {ScrollArea} from '@/components/ui/scroll-area';
 import {Separator} from '@/components/ui/separator';
 import {
     AlertCircle,
+    ChevronDown,
     Clock,
     Eye,
     FileText,
     GitCompare,
     History,
     RotateCcw,
-    User,
-    X,
     Save,
     Trash2,
     Upload,
-    ChevronDown
+    User,
+    X
 } from 'lucide-react';
 import {useToast} from '@/hooks/use-toast';
 import {apiClient} from '@/lib/api/base-client';
-import {DraftService, LocalDraft} from '@/lib/draft-service';
+import {draftService, LocalDraft} from '@/lib/draft-service';
 
 interface Revision {
     id: number;
@@ -160,7 +160,7 @@ export default function ArticleRevisionsSidebar({
     // 检查本地草稿
     const checkLocalDraft = () => {
         if (!articleId) return;
-        const draft = DraftService.loadDraft(articleId);
+        const draft = draftService.getDraft(articleId);
         setLocalDraft(draft);
     };
 
@@ -496,7 +496,7 @@ export default function ArticleRevisionsSidebar({
     const handleDeleteLocalDraft = () => {
         if (!articleId) return;
 
-        DraftService.deleteDraft(articleId);
+        draftService.deleteDraft(articleId);
         setLocalDraft(null);
 
         toast({
@@ -525,7 +525,7 @@ export default function ArticleRevisionsSidebar({
                 });
 
                 // 删除本地草稿
-                DraftService.deleteDraft(articleId);
+                draftService.deleteDraft(articleId);
                 setLocalDraft(null);
 
                 // 刷新修订历史
