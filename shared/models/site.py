@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - Site
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-06 17:19:47
+生成时间：2026-05-06 17:26:12
 """
 
 
@@ -36,11 +36,15 @@ class Site(Base):
 
     is_default = Column(Boolean, default=False, doc='is_default')
 
+
     settings = Column(String(255), nullable=True, doc='settings')
+
 
     theme = Column(String(100), default='default', doc='theme')
 
+
     language = Column(String(10), default='zh-CN', doc='language')
+
 
     timezone = Column(String(50), default='Asia/Shanghai', doc='timezone')
 
@@ -58,7 +62,7 @@ class Site(Base):
 
     __table_args__ = (
 
-        Index('idx_sites_domain', 'domain'),
+    Index('idx_sites_domain', 'domain'),
         Index('idx_sites_slug', 'slug', unique=True),
         Index('idx_sites_is_active', 'is_active'),
         Index('idx_sites_is_default', 'is_default'),

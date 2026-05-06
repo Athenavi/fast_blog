@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - MenuItems
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-06 17:19:46
+生成时间：2026-05-06 17:26:12
 """
 
 
@@ -45,7 +45,7 @@ class MenuItems(Base):
 
     __table_args__ = (
 
-    Index('idx_menu_items_menu_id', 'menu_id'),
+        Index('idx_menu_items_menu_id', 'menu_id'),
         Index('idx_menu_items_parent_id', 'parent_id'),
         Index('idx_menu_items_order', 'order_index'),
     )

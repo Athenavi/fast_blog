@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - Article
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-06 17:19:46
+生成时间：2026-05-06 17:26:12
 """
 
 
@@ -85,7 +85,7 @@ class Article(Base):
 
     __table_args__ = (
 
-        Index('idx_articles_status', 'status'),
+    Index('idx_articles_status', 'status'),
         Index('idx_articles_category', 'category'),
         Index('idx_articles_user_id', 'user'),
         Index('idx_articles_created_at', 'created_at'),

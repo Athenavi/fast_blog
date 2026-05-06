@@ -3,6 +3,7 @@ from sqlalchemy.orm import declarative_base
 Base = declarative_base()
 
 
+
 from .user import User
 from .article import Article
 from .category import Category
@@ -55,6 +56,7 @@ from .order import Order
 from .order_item import OrderItem
 from .site import Site
 from .sensitive_word import SensitiveWord
+from .user_session import UserSession
 
 # ==================== 自动生成的导入 - 由 routes.yaml 管理 ====================
 # 此部分由脚本自动生成 - 请勿手动修改
@@ -112,6 +114,7 @@ __all__ = [
     'Order',
     'OrderItem',
     'Site',
-    'SensitiveWord'
+    'SensitiveWord',
+    'UserSession'
 ]
 # ============================================================================

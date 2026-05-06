@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - Plugin
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-06 17:19:46
+生成时间：2026-05-06 17:26:12
 """
 
 
@@ -60,7 +60,7 @@ class Plugin(Base):
 
     __table_args__ = (
 
-    Index('idx_plugins_slug', 'slug', unique=True),
+        Index('idx_plugins_slug', 'slug', unique=True),
         Index('idx_plugins_is_active', 'is_active'),
     )
 

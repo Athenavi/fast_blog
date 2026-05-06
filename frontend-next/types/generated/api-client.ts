@@ -1,7 +1,7 @@
 /**
  * API 客户端
  * 由 routes.yaml 自动生成 - 请勿手动修改
- * 生成时间：2026-05-06 17:19:46
+ * 生成时间：2026-05-06 17:26:12
  */
 
 import {ApiResponse} from './api-types';
@@ -127,7 +127,7 @@ async function submitForm<T>(
 
 /**
  * 获取用户列表
- *
+ * 
  */
 export async function get_users_list_api(
     params: {
@@ -148,7 +148,7 @@ export async function get_users_list_api(
 
 /**
  *
- *
+ * 
  */
 export async function get_settings(): Promise<ApiResponse<any>> {
     return request(
@@ -161,7 +161,7 @@ export async function get_settings(): Promise<ApiResponse<any>> {
 
 /**
  *
- *
+ * 
  */
 export async function update_settings(): Promise<ApiResponse<any>> {
     return request(
@@ -174,7 +174,7 @@ export async function update_settings(): Promise<ApiResponse<any>> {
 
 /**
  *
- *
+ * 
  */
 export async function create_menu(): Promise<ApiResponse<any>> {
     return request(
@@ -187,7 +187,7 @@ export async function create_menu(): Promise<ApiResponse<any>> {
 
 /**
  *
- *
+ * 
  */
 export async function update_menu(
     params: {
@@ -204,7 +204,7 @@ export async function update_menu(
 
 /**
  *
- *
+ * 
  */
 export async function delete_menu(
     params: {
@@ -221,7 +221,7 @@ export async function delete_menu(
 
 /**
  *
- *
+ * 
  */
 export async function create_page(): Promise<ApiResponse<any>> {
     return request(
@@ -234,7 +234,7 @@ export async function create_page(): Promise<ApiResponse<any>> {
 
 /**
  *
- *
+ * 
  */
 export async function update_page(
     params: {
@@ -251,7 +251,7 @@ export async function update_page(
 
 /**
  *
- *
+ * 
  */
 export async function delete_page(
     params: {
@@ -268,7 +268,7 @@ export async function delete_page(
 
 /**
  *
- *
+ * 
  */
 export async function create_menu_item(): Promise<ApiResponse<any>> {
     return request(
@@ -281,7 +281,7 @@ export async function create_menu_item(): Promise<ApiResponse<any>> {
 
 /**
  *
- *
+ * 
  */
 export async function update_menu_item(
     params: {
@@ -298,7 +298,7 @@ export async function update_menu_item(
 
 /**
  *
- *
+ * 
  */
 export async function delete_menu_item(
     params: {
@@ -315,7 +315,7 @@ export async function delete_menu_item(
 
 /**
  *
- *
+ * 
  */
 export async function admin_dashboard(): Promise<ApiResponse<any>> {
     return request(
@@ -328,7 +328,7 @@ export async function admin_dashboard(): Promise<ApiResponse<any>> {
 
 /**
  *
- *
+ * 
  */
 export async function list_backups(): Promise<ApiResponse<any>> {
     return request(
@@ -341,7 +341,7 @@ export async function list_backups(): Promise<ApiResponse<any>> {
 
 /**
  *
- *
+ * 
  */
 export async function create_backup(): Promise<ApiResponse<any>> {
     return request(
@@ -354,7 +354,7 @@ export async function create_backup(): Promise<ApiResponse<any>> {
 
 /**
  *
- *
+ * 
  */
 export async function delete_backup(): Promise<ApiResponse<any>> {
     return request(
@@ -367,7 +367,7 @@ export async function delete_backup(): Promise<ApiResponse<any>> {
 
 /**
  *
- *
+ * 
  */
 export async function download_backup(
     params: {
@@ -384,7 +384,7 @@ export async function download_backup(
 
 /**
  *
- *
+ * 
  */
 export async function admin_roles_search(
     params: {
@@ -403,7 +403,7 @@ export async function admin_roles_search(
 
 /**
  *
- *
+ * 
  */
 export async function create_role(): Promise<ApiResponse<any>> {
     return request(
@@ -416,7 +416,7 @@ export async function create_role(): Promise<ApiResponse<any>> {
 
 /**
  *
- *
+ * 
  */
 export async function admin_role_detail(
     params: {
@@ -433,7 +433,7 @@ export async function admin_role_detail(
 
 /**
  *
- *
+ * 
  */
 export async function update_role(
     params: {
@@ -450,7 +450,7 @@ export async function update_role(
 
 /**
  *
- *
+ * 
  */
 export async function delete_role(
     params: {
@@ -467,7 +467,7 @@ export async function delete_role(
 
 /**
  *
- *
+ * 
  */
 export async function get_permissions(
     params: {
@@ -486,7 +486,7 @@ export async function get_permissions(
 
 /**
  *
- *
+ * 
  */
 export async function create_permission(): Promise<ApiResponse<any>> {
     return request(
@@ -499,7 +499,7 @@ export async function create_permission(): Promise<ApiResponse<any>> {
 
 /**
  *
- *
+ * 
  */
 export async function update_permission(
     params: {
@@ -516,7 +516,7 @@ export async function update_permission(
 
 /**
  *
- *
+ * 
  */
 export async function delete_permission(
     params: {
@@ -533,7 +533,7 @@ export async function delete_permission(
 
 /**
  *
- *
+ * 
  */
 export async function get_user_roles(
     params: {
@@ -550,7 +550,7 @@ export async function get_user_roles(
 
 /**
  *
- *
+ * 
  */
 export async function update_user_roles(
     params: {
@@ -567,7 +567,7 @@ export async function update_user_roles(
 
 /**
  *
- *
+ * 
  */
 export async function get_admin_role_permission_stats(): Promise<ApiResponse<any>> {
     return request(
@@ -580,7 +580,7 @@ export async function get_admin_role_permission_stats(): Promise<ApiResponse<any
 
 /**
  *
- *
+ * 
  */
 export async function get_system_settings(): Promise<ApiResponse<any>> {
     return request(
@@ -593,7 +593,7 @@ export async function get_system_settings(): Promise<ApiResponse<any>> {
 
 /**
  *
- *
+ * 
  */
 export async function update_system_settings(): Promise<ApiResponse<any>> {
     return request(
@@ -608,7 +608,7 @@ export async function update_system_settings(): Promise<ApiResponse<any>> {
 
 /**
  *
- *
+ * 
  */
 export async function update_article_status(
     params: {
@@ -626,7 +626,7 @@ export async function update_article_status(
 
 /**
  *
- *
+ * 
  */
 export async function get_password_form(
     aid: number,
@@ -641,7 +641,7 @@ export async function get_password_form(
 
 /**
  *
- *
+ * 
  */
 export async function api_update_article_password(
     aid: number,
@@ -656,7 +656,7 @@ export async function api_update_article_password(
 
 /**
  *
- *
+ * 
  */
 export async function like_article(
     params: {
@@ -674,7 +674,7 @@ export async function like_article(
 
 /**
  *
- *
+ * 
  */
 export async function record_article_view(
     params: {
@@ -941,7 +941,7 @@ export async function delete_article_revision(
 
 /**
  * 获取文章列表
- *
+ * 
  */
 export async function get_articles_api(
     params: {
@@ -963,7 +963,7 @@ export async function get_articles_api(
 
 /**
  * 获取文章详情
- *
+ * 
  */
 export async function get_article_detail_api(
     params: {
@@ -980,7 +980,7 @@ export async function get_article_detail_api(
 
 /**
  * 获取文章原始内容
- *
+ * 
  */
 export async function get_article_raw_content_api(
     params: {
@@ -997,7 +997,7 @@ export async function get_article_raw_content_api(
 
 /**
  * 创建文章
- *
+ * 
  */
 export async function create_article_api(): Promise<ApiResponse<any>> {
     return request(
@@ -1010,7 +1010,7 @@ export async function create_article_api(): Promise<ApiResponse<any>> {
 
 /**
  * 更新文章
- *
+ * 
  */
 export async function update_article_api(
     params: {
@@ -1027,7 +1027,7 @@ export async function update_article_api(
 
 /**
  * 删除文章
- *
+ * 
  */
 export async function delete_article_api(
     params: {
@@ -1044,7 +1044,7 @@ export async function delete_article_api(
 
 /**
  * 获取用户文章列表
- *
+ * 
  */
 export async function get_user_articles_api(
     params: {
@@ -1063,7 +1063,7 @@ export async function get_user_articles_api(
 
 /**
  * 获取用户统计信息
- *
+ * 
  */
 export async function get_user_articles_stats_api(
     params: {
@@ -1080,7 +1080,7 @@ export async function get_user_articles_stats_api(
 
 /**
  *
- *
+ * 
  */
 export async function get_article_by_slug_api(
     params: {
@@ -1097,7 +1097,7 @@ export async function get_article_by_slug_api(
 
 /**
  *
- *
+ * 
  */
 export async function get_article_by_id_api(
     params: {
@@ -1114,7 +1114,7 @@ export async function get_article_by_id_api(
 
 /**
  *
- *
+ * 
  */
 export async function get_articles_by_tag_api(
     params: {
@@ -1131,7 +1131,7 @@ export async function get_articles_by_tag_api(
 
 /**
  *
- *
+ * 
  */
 export async function get_featured_articles_api(): Promise<ApiResponse<any>> {
     return request(
@@ -1144,7 +1144,7 @@ export async function get_featured_articles_api(): Promise<ApiResponse<any>> {
 
 /**
  *
- *
+ * 
  */
 export async function get_contribute_info_api(
     params: {
@@ -1161,7 +1161,7 @@ export async function get_contribute_info_api(
 
 /**
  *
- *
+ * 
  */
 export async function submit_contribution_api(
     params: {
@@ -1178,7 +1178,7 @@ export async function submit_contribution_api(
 
 /**
  *
- *
+ * 
  */
 export async function get_edit_article_api(
     params: {
@@ -1195,7 +1195,7 @@ export async function get_edit_article_api(
 
 /**
  *
- *
+ * 
  */
 export async function get_new_article_form_api(): Promise<ApiResponse<any>> {
     return request(
@@ -1208,7 +1208,7 @@ export async function get_new_article_form_api(): Promise<ApiResponse<any>> {
 
 /**
  *
- *
+ * 
  */
 export async function update_article_via_blog_api(
     params: {
@@ -1225,7 +1225,7 @@ export async function update_article_via_blog_api(
 
 /**
  *
- *
+ * 
  */
 export async function create_article_via_blog_api(): Promise<ApiResponse<any>> {
     return request(
@@ -1238,7 +1238,7 @@ export async function create_article_via_blog_api(): Promise<ApiResponse<any>> {
 
 /**
  *
- *
+ * 
  */
 export async function api_blog_i18n_content(
     aid: number,
@@ -1258,7 +1258,7 @@ export async function api_blog_i18n_content(
 
 /**
  *
- *
+ * 
  */
 export async function update_avatar_api(
     params: {
@@ -1275,7 +1275,7 @@ export async function update_avatar_api(
 
 /**
  *
- *
+ * 
  */
 export async function update_user_setting_profiles(): Promise<ApiResponse<any>> {
     return request(
@@ -1288,7 +1288,7 @@ export async function update_user_setting_profiles(): Promise<ApiResponse<any>> 
 
 /**
  * 用户登录
- *
+ * 
  */
 export async function login_api(
     params: {
@@ -1306,7 +1306,7 @@ export async function login_api(
 
 /**
  * 用户注册
- *
+ * 
  */
 export async function register_api(
     params: {
@@ -1325,7 +1325,7 @@ export async function register_api(
 
 /**
  * 用户登出
- *
+ * 
  */
 export async function logout_api(): Promise<ApiResponse<any>> {
     return request(
@@ -1338,7 +1338,7 @@ export async function logout_api(): Promise<ApiResponse<any>> {
 
 /**
  *
- *
+ * 
  */
 export async function get_user_management_users(
     params: {
@@ -1416,7 +1416,7 @@ export async function export_data(): Promise<ApiResponse<any>> {
 
 /**
  *
- *
+ * 
  */
 export async function get_blog_management_articles(
     params: {
@@ -1437,7 +1437,7 @@ export async function get_blog_management_articles(
 
 /**
  *
- *
+ * 
  */
 export async function get_blog_management_articles_stats(): Promise<ApiResponse<any>> {
     return request(
@@ -1450,7 +1450,7 @@ export async function get_blog_management_articles_stats(): Promise<ApiResponse<
 
 /**
  *
- *
+ * 
  */
 export async function delete_blog_management_article(
     params: {
@@ -1469,7 +1469,7 @@ export async function delete_blog_management_article(
 
 /**
  *
- *
+ * 
  */
 export async function get_all_categories_api(
     params: {
@@ -1486,7 +1486,7 @@ export async function get_all_categories_api(
 
 /**
  *
- *
+ * 
  */
 export async function get_public_categories_api(
     params: {
@@ -1503,7 +1503,7 @@ export async function get_public_categories_api(
 
 /**
  *
- *
+ * 
  */
 export async function get_category_by_name_api(
     params: {
@@ -1521,7 +1521,7 @@ export async function get_category_by_name_api(
 
 /**
  *
- *
+ * 
  */
 export async function get_all_categories_root_api(
     params: {
@@ -1538,7 +1538,7 @@ export async function get_all_categories_root_api(
 
 /**
  *
- *
+ * 
  */
 export async function subscribe_category_api(): Promise<ApiResponse<any>> {
     return request(
@@ -1551,7 +1551,7 @@ export async function subscribe_category_api(): Promise<ApiResponse<any>> {
 
 /**
  *
- *
+ * 
  */
 export async function unsubscribe_category_api(): Promise<ApiResponse<any>> {
     return request(
@@ -1564,7 +1564,7 @@ export async function unsubscribe_category_api(): Promise<ApiResponse<any>> {
 
 /**
  *
- *
+ * 
  */
 export async function create_category_api(): Promise<ApiResponse<any>> {
     return request(
@@ -1577,7 +1577,7 @@ export async function create_category_api(): Promise<ApiResponse<any>> {
 
 /**
  *
- *
+ * 
  */
 export async function update_category_api(
     params: {
@@ -1594,7 +1594,7 @@ export async function update_category_api(
 
 /**
  *
- *
+ * 
  */
 export async function get_categories_with_stats_api(
     params: {
@@ -1612,7 +1612,7 @@ export async function get_categories_with_stats_api(
 
 /**
  *
- *
+ * 
  */
 export async function delete_category_api(
     params: {
@@ -1631,7 +1631,7 @@ export async function delete_category_api(
 
 /**
  *
- *
+ * 
  */
 export async function confirm_email_change(
     params: {
@@ -1651,7 +1651,7 @@ export async function confirm_email_change(
 
 /**
  *
- *
+ * 
  */
 export async function check_email(
     params: {
@@ -1668,7 +1668,7 @@ export async function check_email(
 
 /**
  * 检查邮箱可用性
- *
+ * 
  */
 export async function api_check_email(
     params: {
@@ -1687,7 +1687,7 @@ export async function api_check_email(
 
 /**
  *
- *
+ * 
  */
 export async function check_username(
     params: {
@@ -1704,7 +1704,7 @@ export async function check_username(
 
 /**
  * 检查用户名可用性
- *
+ * 
  */
 export async function api_check_username(
     params: {
@@ -1723,7 +1723,7 @@ export async function api_check_username(
 
 /**
  * 获取首页文章列表
- *
+ * 
  */
 export async function get_home_articles_api(
     params: {
@@ -1741,7 +1741,7 @@ export async function get_home_articles_api(
 
 /**
  *
- *
+ * 
  */
 export async function get_home_data(
     params: {
@@ -1761,7 +1761,7 @@ export async function get_home_data(
 
 /**
  *
- *
+ * 
  */
 export async function get_home_config(): Promise<ApiResponse<any>> {
     return request(
@@ -1774,7 +1774,7 @@ export async function get_home_config(): Promise<ApiResponse<any>> {
 
 /**
  *
- *
+ * 
  */
 export async function get_featured_articles(
     params: {
@@ -1791,7 +1791,7 @@ export async function get_featured_articles(
 
 /**
  *
- *
+ * 
  */
 export async function get_recent_articles(
     params: {
@@ -1810,7 +1810,7 @@ export async function get_recent_articles(
 
 /**
  *
- *
+ * 
  */
 export async function get_popular_articles(
     params: {
@@ -1828,7 +1828,7 @@ export async function get_popular_articles(
 
 /**
  *
- *
+ * 
  */
 export async function get_home_categories(
     params: {
@@ -1845,7 +1845,7 @@ export async function get_home_categories(
 
 /**
  *
- *
+ * 
  */
 export async function get_home_stats(): Promise<ApiResponse<any>> {
     return request(
@@ -1858,7 +1858,7 @@ export async function get_home_stats(): Promise<ApiResponse<any>> {
 
 /**
  *
- *
+ * 
  */
 export async function get_home_menus(): Promise<ApiResponse<any>> {
     return request(
@@ -1871,7 +1871,7 @@ export async function get_home_menus(): Promise<ApiResponse<any>> {
 
 /**
  *
- *
+ * 
  */
 export async function subscribe_email(
     params: {
@@ -1888,7 +1888,7 @@ export async function subscribe_email(
 
 /**
  *
- *
+ * 
  */
 export async function search_home_articles(
     params: {
@@ -1907,7 +1907,7 @@ export async function search_home_articles(
 
 /**
  *
- *
+ * 
  */
 export async function get_comment_config(): Promise<ApiResponse<any>> {
     return request(
@@ -1920,7 +1920,7 @@ export async function get_comment_config(): Promise<ApiResponse<any>> {
 
 /**
  *
- *
+ * 
  */
 export async function update_comment_config(): Promise<ApiResponse<any>> {
     return request(
@@ -1933,7 +1933,7 @@ export async function update_comment_config(): Promise<ApiResponse<any>> {
 
 /**
  *
- *
+ * 
  */
 export async function get_dashboard_stats(): Promise<ApiResponse<any>> {
     return request(
@@ -1946,7 +1946,7 @@ export async function get_dashboard_stats(): Promise<ApiResponse<any>> {
 
 /**
  *
- *
+ * 
  */
 export async function __get_recent_articles(): Promise<ApiResponse<any>> {
     return request(
@@ -1959,7 +1959,7 @@ export async function __get_recent_articles(): Promise<ApiResponse<any>> {
 
 /**
  *
- *
+ * 
  */
 export async function get_traffic_data(): Promise<ApiResponse<any>> {
     return request(
@@ -1974,7 +1974,7 @@ export async function get_traffic_data(): Promise<ApiResponse<any>> {
 
 /**
  *
- *
+ * 
  */
 export async function email_exists_back(
     params: {
@@ -2057,7 +2057,7 @@ export async function legacy_feed_redirect(): Promise<ApiResponse<any>> {
 
 /**
  * 用户登录（兼容 Django 认证方式）
- *
+ * 
  */
 export async function login_management_api(
     params: {
@@ -2075,7 +2075,7 @@ export async function login_management_api(
 
 /**
  * 用户注册
- *
+ * 
  */
 export async function register_management_api(
     params: {
@@ -2094,7 +2094,7 @@ export async function register_management_api(
 
 /**
  * 用户登出
- *
+ * 
  */
 export async function logout_management_api(): Promise<ApiResponse<any>> {
     return request(
@@ -2107,7 +2107,7 @@ export async function logout_management_api(): Promise<ApiResponse<any>> {
 
 /**
  *
- *
+ * 
  */
 export async function get_management_me_profile_api(): Promise<ApiResponse<any>> {
     return request(
@@ -2120,7 +2120,7 @@ export async function get_management_me_profile_api(): Promise<ApiResponse<any>>
 
 /**
  *
- *
+ * 
  */
 export async function get_user_profile_api(
     params: {
@@ -2137,7 +2137,7 @@ export async function get_user_profile_api(
 
 /**
  *
- *
+ * 
  */
 export async function update_management_me_profile_api(): Promise<ApiResponse<any>> {
     return request(
@@ -2150,7 +2150,7 @@ export async function update_management_me_profile_api(): Promise<ApiResponse<an
 
 /**
  *
- *
+ * 
  */
 export async function confirm_password_form_api(): Promise<ApiResponse<any>> {
     return request(
@@ -2163,7 +2163,7 @@ export async function confirm_password_form_api(): Promise<ApiResponse<any>> {
 
 /**
  *
- *
+ * 
  */
 export async function confirm_password_api(): Promise<ApiResponse<any>> {
     return request(
@@ -2176,7 +2176,7 @@ export async function confirm_password_api(): Promise<ApiResponse<any>> {
 
 /**
  *
- *
+ * 
  */
 export async function change_password_form_api(): Promise<ApiResponse<any>> {
     return request(
@@ -2189,7 +2189,7 @@ export async function change_password_form_api(): Promise<ApiResponse<any>> {
 
 /**
  *
- *
+ * 
  */
 export async function change_password_api(): Promise<ApiResponse<any>> {
     return request(
@@ -2202,7 +2202,7 @@ export async function change_password_api(): Promise<ApiResponse<any>> {
 
 /**
  *
- *
+ * 
  */
 export async function update_setting_profiles(): Promise<ApiResponse<any>> {
     return request(
@@ -2215,7 +2215,7 @@ export async function update_setting_profiles(): Promise<ApiResponse<any>> {
 
 /**
  *
- *
+ * 
  */
 export async function get_users(
     params: {
@@ -2236,7 +2236,7 @@ export async function get_users(
 
 /**
  * 获取当前用户信息
- *
+ * 
  */
 export async function get_current_user_api(): Promise<ApiResponse<any>> {
     return request(
@@ -2251,7 +2251,7 @@ export async function get_current_user_api(): Promise<ApiResponse<any>> {
 
 /**
  *
- *
+ * 
  */
 export async function get_user_media_api(
     params: {
@@ -2270,7 +2270,7 @@ export async function get_user_media_api(
 
 /**
  *
- *
+ * 
  */
 export async function get_media_file_by_id(
     params: {
@@ -2289,7 +2289,7 @@ export async function get_media_file_by_id(
 
 /**
  *
- *
+ * 
  */
 export async function delete_user_media_api(
     params: {
@@ -2307,7 +2307,7 @@ export async function delete_user_media_api(
 
 /**
  *
- *
+ * 
  */
 export async function upload_media_file(
     params: {
@@ -2324,7 +2324,7 @@ export async function upload_media_file(
 
 /**
  *
- *
+ * 
  */
 export async function chunked_upload_init(
     params: {
@@ -2341,7 +2341,7 @@ export async function chunked_upload_init(
 
 /**
  *
- *
+ * 
  */
 export async function chunked_upload_chunk(
     params: {
@@ -2358,7 +2358,7 @@ export async function chunked_upload_chunk(
 
 /**
  *
- *
+ * 
  */
 export async function chunked_upload_complete(
     params: {
@@ -2375,7 +2375,7 @@ export async function chunked_upload_complete(
 
 /**
  *
- *
+ * 
  */
 export async function chunked_upload_progress(
     params: {
@@ -2392,7 +2392,7 @@ export async function chunked_upload_progress(
 
 /**
  *
- *
+ * 
  */
 export async function chunked_upload_chunks(
     params: {
@@ -2409,7 +2409,7 @@ export async function chunked_upload_chunks(
 
 /**
  *
- *
+ * 
  */
 export async function chunked_upload_cancel(
     params: {
@@ -2426,7 +2426,7 @@ export async function chunked_upload_cancel(
 
 /**
  *
- *
+ * 
  */
 export async function get_media_management_files(
     params: {
@@ -2606,7 +2606,7 @@ export async function get_available_categories(): Promise<ApiResponse<any>> {
 
 /**
  *
- *
+ * 
  */
 export async function list_all_routes(): Promise<ApiResponse<any>> {
     return request(
@@ -2619,7 +2619,7 @@ export async function list_all_routes(): Promise<ApiResponse<any>> {
 
 /**
  *
- *
+ * 
  */
 export async function get_version_info(): Promise<ApiResponse<any>> {
     return request(
@@ -2632,7 +2632,7 @@ export async function get_version_info(): Promise<ApiResponse<any>> {
 
 /**
  *
- *
+ * 
  */
 export async function get_frontend_version(): Promise<ApiResponse<any>> {
     return request(
@@ -2645,7 +2645,7 @@ export async function get_frontend_version(): Promise<ApiResponse<any>> {
 
 /**
  *
- *
+ * 
  */
 export async function get_backend_version(): Promise<ApiResponse<any>> {
     return request(
@@ -2660,7 +2660,7 @@ export async function get_backend_version(): Promise<ApiResponse<any>> {
 
 /**
  *
- *
+ * 
  */
 export async function get_my_articles(
     params: {
@@ -2679,7 +2679,7 @@ export async function get_my_articles(
 
 /**
  *
- *
+ * 
  */
 export async function get_my_messages(): Promise<ApiResponse<any>> {
     return request(
@@ -2694,7 +2694,7 @@ export async function get_my_messages(): Promise<ApiResponse<any>> {
 
 /**
  *
- *
+ * 
  */
 export async function read_notification_api(
     params: {
@@ -2711,7 +2711,7 @@ export async function read_notification_api(
 
 /**
  *
- *
+ * 
  */
 export async function fetch_message_api(): Promise<ApiResponse<any>> {
     return request(
@@ -2724,7 +2724,7 @@ export async function fetch_message_api(): Promise<ApiResponse<any>> {
 
 /**
  *
- *
+ * 
  */
 export async function mark_all_as_read_api(): Promise<ApiResponse<any>> {
     return request(
@@ -2737,7 +2737,7 @@ export async function mark_all_as_read_api(): Promise<ApiResponse<any>> {
 
 /**
  *
- *
+ * 
  */
 export async function clean_notification_api(
     params: {
@@ -2754,7 +2754,7 @@ export async function clean_notification_api(
 
 /**
  *
- *
+ * 
  */
 export async function mark_notification_as_read_api(
     params: {
@@ -2771,7 +2771,7 @@ export async function mark_notification_as_read_api(
 
 /**
  *
- *
+ * 
  */
 export async function delete_notification_api(
     params: {
@@ -2788,7 +2788,7 @@ export async function delete_notification_api(
 
 /**
  *
- *
+ * 
  */
 export async function get_notifications_api(): Promise<ApiResponse<any>> {
     return request(
@@ -2801,7 +2801,7 @@ export async function get_notifications_api(): Promise<ApiResponse<any>> {
 
 /**
  *
- *
+ * 
  */
 export async function mark_all_as_read_api_new(): Promise<ApiResponse<any>> {
     return request(
@@ -2979,7 +2979,7 @@ export async function check_permission(): Promise<ApiResponse<any>> {
 
 /**
  * 手机扫码登录
- *
+ * 
  */
 export async function api_phone_scan(): Promise<ApiResponse<any>> {
     return request(
@@ -3095,7 +3095,7 @@ export async function list_hooks(): Promise<ApiResponse<any>> {
 
 /**
  * 获取用户资料
- *
+ * 
  */
 export async function get_my_profile_api(): Promise<ApiResponse<any>> {
     return request(
@@ -3108,7 +3108,7 @@ export async function get_my_profile_api(): Promise<ApiResponse<any>> {
 
 /**
  * 更新用户资料
- *
+ * 
  */
 export async function update_my_profile_api(): Promise<ApiResponse<any>> {
     return request(
@@ -3123,7 +3123,7 @@ export async function update_my_profile_api(): Promise<ApiResponse<any>> {
 
 /**
  * 生成二维码
- *
+ * 
  */
 export async function api_generate_qr(): Promise<ApiResponse<any>> {
     return request(
@@ -3136,7 +3136,7 @@ export async function api_generate_qr(): Promise<ApiResponse<any>> {
 
 /**
  * 检查二维码状态
- *
+ * 
  */
 export async function api_check_qr_status(): Promise<ApiResponse<any>> {
     return request(
@@ -3151,7 +3151,7 @@ export async function api_check_qr_status(): Promise<ApiResponse<any>> {
 
 /**
  *
- *
+ * 
  */
 export async function get_role_permission_stats(): Promise<ApiResponse<any>> {
     return request(
@@ -3164,7 +3164,7 @@ export async function get_role_permission_stats(): Promise<ApiResponse<any>> {
 
 /**
  *
- *
+ * 
  */
 export async function get_role_management_roles(): Promise<ApiResponse<any>> {
     return request(
@@ -3177,7 +3177,7 @@ export async function get_role_management_roles(): Promise<ApiResponse<any>> {
 
 /**
  *
- *
+ * 
  */
 export async function get_role_management_permissions(): Promise<ApiResponse<any>> {
     return request(
@@ -3190,7 +3190,7 @@ export async function get_role_management_permissions(): Promise<ApiResponse<any
 
 /**
  *
- *
+ * 
  */
 export async function create_role_for_management(): Promise<ApiResponse<any>> {
     return request(
@@ -3203,7 +3203,7 @@ export async function create_role_for_management(): Promise<ApiResponse<any>> {
 
 /**
  *
- *
+ * 
  */
 export async function update_role_for_management(
     params: {
@@ -3220,7 +3220,7 @@ export async function update_role_for_management(
 
 /**
  *
- *
+ * 
  */
 export async function delete_role_for_management(
     params: {
@@ -3237,7 +3237,7 @@ export async function delete_role_for_management(
 
 /**
  *
- *
+ * 
  */
 export async function create_permission_for_management(): Promise<ApiResponse<any>> {
     return request(
@@ -3250,7 +3250,7 @@ export async function create_permission_for_management(): Promise<ApiResponse<an
 
 /**
  *
- *
+ * 
  */
 export async function update_permission_for_management(
     params: {
@@ -3267,7 +3267,7 @@ export async function update_permission_for_management(
 
 /**
  *
- *
+ * 
  */
 export async function delete_permission_for_management(
     params: {
@@ -3334,7 +3334,7 @@ export async function cancel_article_schedule(
 
 /**
  *
- *
+ * 
  */
 export async function get_search_history(): Promise<ApiResponse<any>> {
     return request(
@@ -3349,7 +3349,7 @@ export async function get_search_history(): Promise<ApiResponse<any>> {
 
 /**
  *
- *
+ * 
  */
 export async function suggest_tags(
     params: {
@@ -3469,7 +3469,7 @@ export async function get_active_theme(): Promise<ApiResponse<any>> {
 
 /**
  *
- *
+ * 
  */
 export async function public_media_thumbnail(
     params: {
@@ -3488,7 +3488,7 @@ export async function public_media_thumbnail(
 
 /**
  *
- *
+ * 
  */
 export async function upload_cover(
     params: {
@@ -3507,7 +3507,7 @@ export async function upload_cover(
 
 /**
  *
- *
+ * 
  */
 export async function api_user_avatar(
     params: {
@@ -3524,7 +3524,7 @@ export async function api_user_avatar(
 
 /**
  *
- *
+ * 
  */
 export async function api_user_bio(
     params: {
@@ -3541,7 +3541,7 @@ export async function api_user_bio(
 
 /**
  *
- *
+ * 
  */
 export async function api_user_profile_endpoint(
     params: {
@@ -3558,7 +3558,7 @@ export async function api_user_profile_endpoint(
 
 /**
  *
- *
+ * 
  */
 export async function check_login_status(): Promise<ApiResponse<any>> {
     return request(
@@ -3573,7 +3573,7 @@ export async function check_login_status(): Promise<ApiResponse<any>> {
 
 /**
  *
- *
+ * 
  */
 export async function username_exists(
     params: {
@@ -3592,7 +3592,7 @@ export async function username_exists(
 
 /**
  *
- *
+ * 
  */
 export async function get_vip_management_data(): Promise<ApiResponse<any>> {
     return request(

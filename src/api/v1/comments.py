@@ -94,6 +94,33 @@ async def create_comment(
             submit_time=comment_data.page_load_time
         )
 
+        # 5. 敏感词过滤检查
+        from shared.services.sensitive_word_service import sensitive_word_service
+        sensitive_check = sensitive_word_service.check_content(comment_data.content)
+
+        # 如果包含需要拦截的敏感词，直接拒绝
+        if sensitive_check['has_sensitive'] and 'block' in sensitive_check['actions']:
+            return ApiResponse(
+                success=False,
+                error="评论包含违规内容，已拒绝",
+                data={
+                    "sensitive_words_detected": True,
+                    "words_found": len(sensitive_check['words_found'])
+                }
+            )
+
+        # 如果有警告级别的敏感词，标记为待审核
+        if sensitive_check['has_sensitive'] and 'warn' in sensitive_check['actions']:
+            is_approved = False  # 强制待审核
+        else:
+            # 根据垃圾检测结果决定审核状态
+            is_approved = spam_check['action'] == 'approve'
+
+        # 6. 如果内容需要替换敏感词，进行替换
+        filtered_content = comment_data.content
+        if sensitive_check['has_sensitive'] and 'replace' in sensitive_check['actions']:
+            filtered_content, _ = sensitive_word_service.filter_content(comment_data.content)
+
         # 5. 根据检测结果决定操作
         if spam_check['action'] == 'reject':
             return ApiResponse(
@@ -106,14 +133,12 @@ async def create_comment(
                 }
             )
 
-        # 6. 创建评论
-        is_approved = spam_check['action'] == 'approve'
-
+        # 7. 创建评论
         new_comment = Comment(
             article_id=comment_data.article_id,
             user_id=current_user.id if current_user else None,
             parent_id=comment_data.parent_id,
-            content=comment_data.content,
+            content=filtered_content,  # 使用过滤后的内容
             is_approved=is_approved,
             likes=0,
             # 访客信息
@@ -131,7 +156,7 @@ async def create_comment(
         await db.commit()
         await db.refresh(new_comment)
 
-        # 7. 发送通知(如果评论通过审核)
+        # 8. 发送通知(如果评论通过审核)
         if is_approved:
             try:
                 from shared.models.article import Article

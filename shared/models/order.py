@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - Order
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-06 17:19:47
+生成时间：2026-05-06 17:26:12
 """
 
 
@@ -27,11 +27,15 @@ class Order(Base):
 
     status = Column(String(50), default='pending', doc='status')
 
+
     total_amount = Column(Numeric(10, 2), doc='total_amount')
+
 
     shipping_amount = Column(Numeric(10, 2), default=0, doc='shipping_amount')
 
+
     discount_amount = Column(Numeric(10, 2), default=0, doc='discount_amount')
+
 
     payment_method = Column(String(50), nullable=True, doc='payment_method')
 
@@ -57,7 +61,7 @@ class Order(Base):
 
     __table_args__ = (
 
-        Index('idx_orders_order_number', 'order_number', unique=True),
+    Index('idx_orders_order_number', 'order_number', unique=True),
         Index('idx_orders_user', 'user_id'),
         Index('idx_orders_status', 'status'),
         Index('idx_orders_payment_status', 'payment_status'),

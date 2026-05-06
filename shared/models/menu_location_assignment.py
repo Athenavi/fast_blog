@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - MenuLocationAssignment
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-06 17:19:46
+生成时间：2026-05-06 17:26:12
 """
 
 
@@ -30,7 +30,7 @@ class MenuLocationAssignment(Base):
 
     __table_args__ = (
 
-    Index('idx_menu_location_menu_id', 'menu_id'),
+        Index('idx_menu_location_menu_id', 'menu_id'),
         Index('idx_menu_location_location_id', 'location_id'),
         Index('idx_menu_location_unique', 'menu_id', 'location_id', unique=True),
     )

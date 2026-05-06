@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - OrderItem
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-06 17:19:47
+生成时间：2026-05-06 17:26:12
 """
 
 
@@ -24,11 +24,15 @@ class OrderItem(Base):
 
     product_id = Column(BigInteger, ForeignKey('products.id'), nullable=False, doc='product_id')
 
+
     product_name = Column(String(255), nullable=True, doc='product_name')
+
 
     quantity = Column(Integer, doc='quantity')
 
+
     price = Column(Numeric(10, 2), doc='price')
+
 
     total = Column(Numeric(10, 2), doc='total')
 
@@ -36,7 +40,7 @@ class OrderItem(Base):
 
     __table_args__ = (
 
-    Index('idx_order_items_order', 'order_id'),
+        Index('idx_order_items_order', 'order_id'),
         Index('idx_order_items_product', 'product_id'),
     )
 

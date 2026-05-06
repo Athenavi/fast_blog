@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - User
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-06 17:19:46
+生成时间：2026-05-06 17:26:12
 """
 
 
@@ -68,11 +68,15 @@ class User(Base):
 
     is_staff = Column(Boolean, default=False, doc='is_staff')
 
+
     last_login_ip = Column(String(255), nullable=True, doc='last_login_ip')
+
 
     register_ip = Column(String(255), nullable=True, doc='register_ip')
 
+
     is_2fa_enabled = Column(Boolean, default=False, doc='is_2fa_enabled')
+
 
     totp_secret = Column(String(255), nullable=True, doc='totp_secret')
 
@@ -80,7 +84,7 @@ class User(Base):
 
     __table_args__ = (
 
-        Index('idx_users_username', 'username', unique=True),
+    Index('idx_users_username', 'username', unique=True),
         Index('idx_users_email', 'email', unique=True),
         Index('idx_users_is_active', 'is_active'),
         Index('idx_users_vip_level', 'vip_level'),

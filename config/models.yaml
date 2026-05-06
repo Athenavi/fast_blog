@@ -3366,3 +3366,71 @@ models:
       - name: idx_sensitive_word_active
         columns: [ is_active ]
         comment: "激活状态索引"
+
+  # ============================================================================
+  # 会话管理模型
+  # ============================================================================
+  UserSession:
+    description: 用户会话模型
+    properties:
+      id:
+        type: bigint
+        description: 会话 ID
+      user_id:
+        type: bigint
+        index: true
+        description: 用户ID
+        foreignKey: User
+      session_token:
+        type: string
+        maxLength: 255
+        unique: true
+        index: true
+        description: 会话令牌
+      device_info:
+        type: string
+        nullable: true
+        maxLength: 500
+        description: 设备信息（User-Agent）
+      ip_address:
+        type: string
+        nullable: true
+        maxLength: 45
+        description: IP地址
+      location:
+        type: string
+        nullable: true
+        maxLength: 100
+        description: 地理位置
+      is_active:
+        type: boolean
+        default: true
+        description: 是否活跃
+      last_activity:
+        type: string
+        format: date-time
+        description: 最后活动时间
+      expires_at:
+        type: string
+        format: date-time
+        description: 过期时间
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+    orm: true
+    table: user_sessions
+    indexes:
+      - name: idx_user_sessions_user_id
+        columns: [ user_id ]
+        comment: "用户ID索引"
+      - name: idx_user_sessions_token
+        columns: [ session_token ]
+        unique: true
+        comment: "会话令牌唯一索引"
+      - name: idx_user_sessions_is_active
+        columns: [ is_active ]
+        comment: "活跃状态索引"
+      - name: idx_user_sessions_expires
+        columns: [ expires_at ]
+        comment: "过期时间索引"

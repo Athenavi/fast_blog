@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - BlockPattern
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-06 17:19:46
+生成时间：2026-05-06 17:26:12
 """
 
 
@@ -65,7 +65,7 @@ class BlockPattern(Base):
 
     __table_args__ = (
 
-    Index('idx_block_patterns_name', 'name', unique=True),
+        Index('idx_block_patterns_name', 'name', unique=True),
         Index('idx_block_patterns_category', 'category'),
         Index('idx_block_patterns_user_id', 'user_id'),
     )
@@ -181,6 +181,7 @@ class BlockPattern(Base):
             self.keywords = ','.join(keywords)
         elif isinstance(keywords, str):
             self.keywords = keywords
+
 
     def is_custom_pattern(self) -> bool:
         """

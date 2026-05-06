@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - ArticleRevision
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-06 17:19:46
+生成时间：2026-05-06 17:26:12
 """
 
 
@@ -73,7 +73,7 @@ class ArticleRevision(Base):
 
     __table_args__ = (
 
-    Index('idx_article_revisions_article_id', 'article_id'),
+        Index('idx_article_revisions_article_id', 'article_id'),
         Index('idx_article_revisions_number', 'revision_number'),
         Index('idx_article_revisions_created', 'created_at'),
         Index('idx_article_revisions_hash', 'hash_code'),

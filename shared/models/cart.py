@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - Cart
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-06 17:19:47
+生成时间：2026-05-06 17:26:12
 """
 
 
@@ -24,13 +24,16 @@ class Cart(Base):
 
     session_id = Column(String(255), index=True, nullable=True, doc='session_id')
 
+
     created_at = Column(DateTime, doc='created_at')
+
 
     updated_at = Column(DateTime, doc='updated_at')
 
+
     __table_args__ = (
 
-    Index('idx_carts_user', 'user_id'),
+        Index('idx_carts_user', 'user_id'),
         Index('idx_carts_session', 'session_id'),
     )
 

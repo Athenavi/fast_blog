@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - CommentSubscription
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-06 17:19:46
+生成时间：2026-05-06 17:26:12
 """
 
 
@@ -48,7 +48,7 @@ class CommentSubscription(Base):
 
     __table_args__ = (
 
-    Index('idx_comment_subscriptions_article', 'article_id'),
+        Index('idx_comment_subscriptions_article', 'article_id'),
         Index('idx_comment_subscriptions_email', 'email'),
         Index('idx_comment_subscriptions_user', 'user_id'),
         Index('idx_comment_subscriptions_unique', 'article_id', 'email', unique=True),

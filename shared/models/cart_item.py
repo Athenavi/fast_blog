@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - CartItem
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-06 17:19:47
+生成时间：2026-05-06 17:26:12
 """
 
 
@@ -24,17 +24,21 @@ class CartItem(Base):
 
     product_id = Column(BigInteger, ForeignKey('products.id'), nullable=False, doc='product_id')
 
+
     quantity = Column(Integer, default=1, doc='quantity')
+
 
     price = Column(Numeric(10, 2), doc='price')
 
+
     created_at = Column(DateTime, doc='created_at')
+
 
     updated_at = Column(DateTime, doc='updated_at')
 
     __table_args__ = (
 
-    Index('idx_cart_items_cart', 'cart_id'),
+        Index('idx_cart_items_cart', 'cart_id'),
         Index('idx_cart_items_product', 'product_id'),
         Index('idx_cart_items_unique', 'cart_id', 'product_id', unique=True),
     )

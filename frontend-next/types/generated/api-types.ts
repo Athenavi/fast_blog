@@ -1,7 +1,7 @@
 /**
  * API 类型定义
  * 由 routes.yaml 自动生成 - 请勿手动修改
- * 生成时间：2026-05-06 17:19:46
+ * 生成时间：2026-05-06 17:26:12
  */
 
 export interface User {
@@ -801,6 +801,19 @@ export interface SensitiveWord {
     created_by?: any;
     created_at: string;
     updated_at: string;
+}
+
+export interface UserSession {
+    id: any;
+    user_id: any;
+    session_token: string;
+    device_info?: string;
+    ip_address?: string;
+    location?: string;
+    is_active: boolean;
+    last_activity: string;
+    expires_at: string;
+    created_at: string;
 }
 
 

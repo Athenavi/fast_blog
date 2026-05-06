@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - Capability
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-06 17:19:46
+生成时间：2026-05-06 17:26:12
 """
 
 
@@ -45,7 +45,7 @@ class Capability(Base):
 
     __table_args__ = (
 
-    Index('idx_capabilities_code', 'code', unique=True),
+        Index('idx_capabilities_code', 'code', unique=True),
         Index('idx_capabilities_resource', 'resource_type', 'action'),
     )
 

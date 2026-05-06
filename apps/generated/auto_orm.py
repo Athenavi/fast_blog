@@ -1,7 +1,7 @@
 """
 Django ORM 抽象基类定义
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-06 17:19:46
+生成时间：2026-05-06 17:26:12
 """
 
 from django.db import models
@@ -2057,6 +2057,7 @@ class ArticleSEOMixin(models.Model):
         # 注意：请在具体模型类中设置 db_table = get_table_name("article_seo")
 
 
+
 class ShareStatMixin(models.Model):
     """分享统计模型 Mixin"""
 
@@ -2341,6 +2342,7 @@ class SiteMixin(models.Model):
         # 注意：请在具体模型类中设置 db_table = get_table_name("sites")
 
 
+
 class SensitiveWordMixin(models.Model):
     """敏感词模型 Mixin"""
 
@@ -2374,3 +2376,41 @@ class SensitiveWordMixin(models.Model):
         app_label = 'generated'
         verbose_name = '敏感词模型'
         # 注意：请在具体模型类中设置 db_table = get_table_name("sensitive_words")
+
+
+class UserSessionMixin(models.Model):
+    """用户会话模型 Mixin"""
+
+    # id
+    id = models.BigAutoField(
+        'id', primary_key=True)
+    # user_id
+    user_id = models.IntegerField(
+        'user_id (暂为 IntegerField，等待 User 模型实现)', )
+    # session_token
+    session_token = models.CharField(
+        'session_token', max_length=255, unique=True)
+    # device_info
+    device_info = models.CharField(
+        'device_info', max_length=500, blank=True, null=True)
+    # ip_address
+    ip_address = models.CharField(
+        'ip_address', max_length=45, blank=True, null=True)
+    # location
+    location = models.CharField(
+        'location', max_length=100, blank=True, null=True)
+    # is_active
+    is_active = models.BooleanField(
+        'is_active', default=True)
+    # last_activity
+    last_activity = models.DateTimeField(
+        'last_activity')
+    # expires_at
+    expires_at = models.DateTimeField(
+        'expires_at')
+
+    class Meta:
+        abstract = True
+        app_label = 'generated'
+        verbose_name = '用户会话模型'
+        # 注意：请在具体模型类中设置 db_table = get_table_name("user_sessions")

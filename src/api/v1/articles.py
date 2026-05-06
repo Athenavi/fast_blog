@@ -597,8 +597,31 @@ async def create_article_api(
         else:
             tags_str = str(tags)
 
+        # 敏感词过滤检查
+        from shared.services.sensitive_word_service import sensitive_word_service
+        content_to_check = form_data.get('content', '') + ' ' + form_data.get('title', '')
+        sensitive_check = sensitive_word_service.check_content(content_to_check)
+
+        # 如果包含需要拦截的敏感词，直接拒绝
+        if sensitive_check['has_sensitive'] and 'block' in sensitive_check['actions']:
+            return ApiResponse(
+                success=False,
+                error="文章内容包含违规内容，已拒绝",
+                data={
+                    "sensitive_words_detected": True,
+                    "words_found": len(sensitive_check['words_found'])
+                }
+            )
+
+        # 如果内容需要替换敏感词，进行替换
+        filtered_title = form_data.get('title', '')
+        filtered_content = form_data.get('content', '')
+        if sensitive_check['has_sensitive'] and 'replace' in sensitive_check['actions']:
+            filtered_title, _ = sensitive_word_service.filter_content(form_data.get('title', ''))
+            filtered_content, _ = sensitive_word_service.filter_content(form_data.get('content', ''))
+
         new_article = Article(
-            title=form_data.get('title', ''),
+            title=filtered_title,  # 使用过滤后的标题
             slug=slug,
             user=current_user.id,
             excerpt=form_data.get('excerpt', ''),
@@ -633,7 +656,7 @@ async def create_article_api(
         now = datetime.now()
         new_content = ArticleContent(
             article=new_article.id,
-            content=form_data.get('content', ''),
+            content=filtered_content,  # 使用过滤后的内容
             created_at=now,
             updated_at=now
         )
