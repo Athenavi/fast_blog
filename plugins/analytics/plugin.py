@@ -1,9 +1,16 @@
 """
-数据分析插件
-提供访问统计、用户行为分析和可视化报表
+综合数据分析插件
+整合访问统计、用户行为分析、流量来源追踪、热门文章排行、转化漏斗、实时仪表盘等功能
+
+功能模块:
+1. 页面访问统计 - PV、UV、会话追踪
+2. 用户行为分析 - 活动追踪、路径分析
+3. 流量来源分析 - Referrer、搜索引擎、社交媒体
+4. 热门内容排行 - 多维度排序
+5. 转化漏斗 - 事件追踪、转化率分析
+6. 实时仪表盘 - 在线用户、实时数据
 """
 
-import json
 from collections import defaultdict, Counter
 from datetime import datetime, timedelta
 from typing import Dict, List, Any
@@ -13,43 +20,45 @@ from shared.services.plugin_manager import BasePlugin, plugin_hooks
 
 class AnalyticsPlugin(BasePlugin):
     """
-    数据分析插件
+    综合数据分析插件
     
-    功能:
-    1. 页面访问统计
-    2. 用户行为追踪
-    3. 流量来源分析
-    4. 热门内容排行
-    5. 实时在线用户
-    6. 访客地理位置
-    7. 设备与浏览器统计
-    8. 自定义事件跟踪
+    整合了以下原有插件的功能:
+    - analytics: 基础数据分析
+    - analytics-pro: 高级数据分析
     """
 
     def __init__(self):
         super().__init__(
             plugin_id=0,
-            name="数据分析",
+            name="数据分析中心",
             slug="analytics",
-            version="1.0.0"
+            version="2.0.0"
         )
 
-        # 默认设置
+        # ==================== 全局设置 ====================
         self.settings = {
             'enable_tracking': True,
             'track_anonymous_users': True,
             'data_retention_days': 90,
             'enable_real_time': True,
+            'enable_conversion_tracking': True,
+            'dashboard_refresh_interval': 30,
         }
 
-        # 访问记录 (实际应存储在数据库)
+        # ==================== 访问记录 ====================
         self.page_views: List[Dict[str, Any]] = []
 
-        # 实时在线用户
+        # ==================== 实时在线用户 ====================
         self.online_users: Dict[str, datetime] = {}
 
-        # 会话数据
+        # ==================== 会话数据 ====================
         self.sessions: Dict[str, Dict[str, Any]] = {}
+
+        # ==================== 转化事件 ====================
+        self.conversion_events: List[Dict[str, Any]] = []
+
+        # ==================== 用户行为路径 ====================
+        self.user_paths: Dict[str, List[str]] = {}
 
     def register_hooks(self):
         """注册钩子"""
@@ -67,10 +76,25 @@ class AnalyticsPlugin(BasePlugin):
             priority=10
         )
 
+        # 转化事件追踪
+        if self.settings.get('enable_conversion_tracking'):
+            plugin_hooks.add_action(
+                "conversion_event",
+                self.track_conversion_event,
+                priority=10
+            )
+
     def activate(self):
         """激活插件"""
         super().activate()
-        print("[Analytics] Plugin activated")
+        print("[Analytics] Plugin activated - All analytics modules initialized")
+
+    def deactivate(self):
+        """停用插件"""
+        super().deactivate()
+        print("[Analytics] Plugin deactivated")
+
+    # ==================== 页面访问追踪 ====================
 
     def track_page_view(self, view_data: Dict[str, Any]):
         """
@@ -104,6 +128,9 @@ class AnalyticsPlugin(BasePlugin):
         if client_ip:
             self.online_users[client_ip] = datetime.now()
 
+        # 追踪用户路径
+        self._track_user_path(session_id, view_data.get('url', ''))
+
         # 清理过期数据
         self._cleanup_old_data()
 
@@ -115,7 +142,6 @@ class AnalyticsPlugin(BasePlugin):
             activity_data: 活动数据 {user_id, action, target, metadata}
         """
         try:
-            # 记录到内存(实际应写入数据库)
             activity_record = {
                 'user_id': activity_data.get('user_id'),
                 'action': activity_data.get('action', ''),
@@ -125,12 +151,34 @@ class AnalyticsPlugin(BasePlugin):
                 'ip': activity_data.get('ip', ''),
             }
 
-            # 这里可以扩展到数据库存储
-            # 例如: save_to_database(activity_record)
             print(f"[Analytics] User activity tracked: {activity_record['action']}")
 
         except Exception as e:
-            print(f"[Analytics] Failed to track activity: {str(e)}")
+            print(f"[Analytics] Failed to track activity: {e}")
+
+    def track_conversion_event(self, event_data: Dict[str, Any]):
+        """
+        追踪转化事件
+        
+        Args:
+            event_data: 转化事件数据 {event_type, user_id, value, metadata}
+        """
+        if not self.settings.get('enable_conversion_tracking'):
+            return
+
+        conversion = {
+            'event_type': event_data.get('event_type', ''),
+            'user_id': event_data.get('user_id'),
+            'value': event_data.get('value', 0),
+            'metadata': event_data.get('metadata', {}),
+            'timestamp': datetime.now().isoformat(),
+            'ip': event_data.get('ip', ''),
+        }
+
+        self.conversion_events.append(conversion)
+        print(f"[Analytics] Conversion tracked: {conversion['event_type']}")
+
+    # ==================== 统计分析 ====================
 
     def get_overview_stats(self, days: int = 30) -> Dict[str, Any]:
         """
@@ -144,7 +192,6 @@ class AnalyticsPlugin(BasePlugin):
         """
         cutoff_date = datetime.now() - timedelta(days=days)
 
-        # 过滤指定时间范围内的数据
         recent_views = [
             pv for pv in self.page_views
             if datetime.fromisoformat(pv['timestamp']) > cutoff_date
@@ -160,7 +207,7 @@ class AnalyticsPlugin(BasePlugin):
             if pv.get('ip') or pv.get('user_id')
         ))
 
-        # 平均停留时间(简化计算)
+        # 平均停留时间
         avg_session_duration = self._calculate_avg_session_duration(recent_views)
 
         # 跳出率
@@ -205,382 +252,318 @@ class AnalyticsPlugin(BasePlugin):
             if pv['url'] not in page_titles and pv.get('title'):
                 page_titles[pv['url']] = pv['title']
 
-        # 排序并返回前N个
-        popular = []
-        for url, count in page_counts.most_common(limit):
-            popular.append({
+        # 转换为列表并排序
+        popular = [
+            {
                 'url': url,
                 'title': page_titles.get(url, url),
                 'views': count,
-            })
+            }
+            for url, count in page_counts.most_common(limit)
+        ]
 
         return popular
 
-    def get_traffic_sources(self, days: int = 30) -> List[Dict[str, Any]]:
+    def get_traffic_sources(self, days: int = 30) -> Dict[str, Any]:
         """
-        获取流量来源
+        获取流量来源分析
         
         Args:
             days: 统计天数
             
         Returns:
-            流量来源列表
+            流量来源数据
         """
         cutoff_date = datetime.now() - timedelta(days=days)
 
         recent_views = [
             pv for pv in self.page_views
             if datetime.fromisoformat(pv['timestamp']) > cutoff_date
-               and pv.get('referrer')
         ]
 
-        # 分类流量来源
         sources = {
-            'Direct': 0,
-            'Search Engines': 0,
-            'Social Media': 0,
-            'Referral': 0,
+            'direct': 0,
+            'search': 0,
+            'social': 0,
+            'referral': 0,
+            'other': 0,
         }
 
-        search_domains = ['google.com', 'bing.com', 'baidu.com', 'yahoo.com']
-        social_domains = ['facebook.com', 'twitter.com', 'linkedin.com', 'weibo.com']
+        search_engines = ['google', 'baidu', 'bing', 'yahoo', 'sogou']
+        social_platforms = ['facebook', 'twitter', 'weibo', 'wechat', 'linkedin']
 
         for pv in recent_views:
             referrer = pv.get('referrer', '').lower()
 
-            if not referrer or referrer == 'direct':
-                sources['Direct'] += 1
-            elif any(domain in referrer for domain in search_domains):
-                sources['Search Engines'] += 1
-            elif any(domain in referrer for domain in social_domains):
-                sources['Social Media'] += 1
+            if not referrer or referrer == '':
+                sources['direct'] += 1
+            elif any(se in referrer for se in search_engines):
+                sources['search'] += 1
+            elif any(sp in referrer for sp in social_platforms):
+                sources['social'] += 1
+            elif 'http' in referrer:
+                sources['referral'] += 1
             else:
-                sources['Referral'] += 1
+                sources['other'] += 1
 
-        # 转换为列表格式
         total = sum(sources.values())
-        result = []
-        for source, count in sources.items():
-            result.append({
-                'source': source,
-                'visits': count,
-                'percentage': round((count / total * 100) if total > 0 else 0, 2),
+
+        # 计算百分比
+        sources_percentage = {
+            key: round((value / total * 100) if total > 0 else 0, 2)
+            for key, value in sources.items()
+        }
+
+        return {
+            'sources': sources,
+            'percentage': sources_percentage,
+            'total': total,
+        }
+
+    def get_conversion_funnel(self) -> Dict[str, Any]:
+        """
+        获取转化漏斗
+        
+        Returns:
+            转化漏斗数据
+        """
+        if not self.conversion_events:
+            return {'funnel': [], 'total_conversions': 0}
+
+        # 按事件类型分组
+        events_by_type = defaultdict(list)
+        for event in self.conversion_events:
+            events_by_type[event['event_type']].append(event)
+
+        funnel = []
+        for event_type, events in events_by_type.items():
+            funnel.append({
+                'event_type': event_type,
+                'count': len(events),
+                'total_value': sum(e.get('value', 0) for e in events),
+                'avg_value': round(sum(e.get('value', 0) for e in events) / len(events), 2),
             })
 
-        return result
-
-    def get_device_stats(self, days: int = 30) -> Dict[str, Any]:
-        """
-        获取设备统计
-        
-        Args:
-            days: 统计天数
-            
-        Returns:
-            设备统计信息
-        """
-        cutoff_date = datetime.now() - timedelta(days=days)
-
-        recent_views = [
-            pv for pv in self.page_views
-            if datetime.fromisoformat(pv['timestamp']) > cutoff_date
-        ]
-
-        # 分析User Agent
-        devices = Counter()
-        browsers = Counter()
-        os_list = Counter()
-
-        for pv in recent_views:
-            ua = pv.get('user_agent', '').lower()
-
-            # 设备类型
-            if 'mobile' in ua or 'android' in ua or 'iphone' in ua:
-                devices['Mobile'] += 1
-            elif 'tablet' in ua or 'ipad' in ua:
-                devices['Tablet'] += 1
-            else:
-                devices['Desktop'] += 1
-
-            # 浏览器
-            if 'chrome' in ua:
-                browsers['Chrome'] += 1
-            elif 'firefox' in ua:
-                browsers['Firefox'] += 1
-            elif 'safari' in ua:
-                browsers['Safari'] += 1
-            elif 'edge' in ua:
-                browsers['Edge'] += 1
-            else:
-                browsers['Other'] += 1
-
-            # 操作系统
-            if 'windows' in ua:
-                os_list['Windows'] += 1
-            elif 'mac' in ua:
-                os_list['macOS'] += 1
-            elif 'linux' in ua:
-                os_list['Linux'] += 1
-            elif 'android' in ua:
-                os_list['Android'] += 1
-            elif 'ios' in ua or 'iphone' in ua:
-                os_list['iOS'] += 1
-            else:
-                os_list['Other'] += 1
+        # 按数量排序
+        funnel.sort(key=lambda x: x['count'], reverse=True)
 
         return {
-            'devices': dict(devices),
-            'browsers': dict(browsers),
-            'operating_systems': dict(os_list),
+            'funnel': funnel,
+            'total_conversions': len(self.conversion_events),
         }
 
-    def get_real_time_stats(self) -> Dict[str, Any]:
-        """获取实时统计"""
-        if not self.settings.get('enable_real_time'):
-            return {'enabled': False}
-
-        # 清理过期的在线用户(5分钟无活动视为离线)
-        cutoff_time = datetime.now() - timedelta(minutes=5)
-        self.online_users = {
-            ip: last_seen for ip, last_seen in self.online_users.items()
-            if last_seen > cutoff_time
+    def get_realtime_stats(self) -> Dict[str, Any]:
+        """
+        获取实时统计
+        
+        Returns:
+            实时数据
+        """
+        # 清理过期的在线用户（5分钟无活动视为离线）
+        now = datetime.now()
+        active_users = {
+            ip: last_seen
+            for ip, last_seen in self.online_users.items()
+            if (now - last_seen).total_seconds() < 300
         }
 
-        # 最近30分钟的访问
-        recent_cutoff = datetime.now() - timedelta(minutes=30)
+        # 更新在线用户列表
+        self.online_users = active_users
+
+        # 最近5分钟的访问量
+        five_min_ago = now - timedelta(minutes=5)
         recent_views = [
             pv for pv in self.page_views
-            if datetime.fromisoformat(pv['timestamp']) > recent_cutoff
+            if datetime.fromisoformat(pv['timestamp']) > five_min_ago
         ]
 
-        # 按分钟分组
-        views_by_minute = defaultdict(int)
-        for pv in recent_views:
-            minute = datetime.fromisoformat(pv['timestamp']).strftime('%H:%M')
-            views_by_minute[minute] += 1
-
         return {
-            'enabled': True,
-            'online_users': len(self.online_users),
-            'views_last_30min': len(recent_views),
-            'views_by_minute': dict(views_by_minute),
+            'online_users': len(active_users),
+            'views_last_5min': len(recent_views),
+            'timestamp': now.isoformat(),
         }
 
-    def get_user_retention(self, days: int = 30) -> Dict[str, Any]:
-        """
-        获取用户留存率
-        
-        Args:
-            days: 统计天数
-            
-        Returns:
-            留存率数据
-        """
-        try:
-            cutoff_date = datetime.now() - timedelta(days=days)
-
-            # 获取所有访问记录
-            recent_views = [
-                pv for pv in self.page_views
-                if datetime.fromisoformat(pv['timestamp']) > cutoff_date
-            ]
-
-            # 按用户分组
-            user_first_visit = {}
-            user_last_visit = {}
-
-            for view in recent_views:
-                user_key = view.get('user_id') or view.get('ip', '')
-                if not user_key:
-                    continue
-
-                visit_time = datetime.fromisoformat(view['timestamp'])
-
-                if user_key not in user_first_visit:
-                    user_first_visit[user_key] = visit_time
-                else:
-                    if visit_time < user_first_visit[user_key]:
-                        user_first_visit[user_key] = visit_time
-
-                if user_key not in user_last_visit:
-                    user_last_visit[user_key] = visit_time
-                else:
-                    if visit_time > user_last_visit[user_key]:
-                        user_last_visit[user_key] = visit_time
-
-            # 计算新用户和回访用户
-            new_users = 0
-            returning_users = 0
-
-            for user_key, first_visit in user_first_visit.items():
-                # 如果是最近7天内首次访问,视为新用户
-                if (datetime.now() - first_visit).days <= 7:
-                    new_users += 1
-                else:
-                    # 检查是否有回访
-                    last_visit = user_last_visit.get(user_key, first_visit)
-                    if (last_visit - first_visit).days > 0:
-                        returning_users += 1
-
-            total_users = new_users + returning_users
-            retention_rate = (returning_users / total_users * 100) if total_users > 0 else 0
-
-            return {
-                'new_users': new_users,
-                'returning_users': returning_users,
-                'total_users': total_users,
-                'retention_rate': round(retention_rate, 2),
-                'period_days': days,
-            }
-        except Exception as e:
-            print(f"[Analytics] Failed to calculate retention: {str(e)}")
-            return {
-                'new_users': 0,
-                'returning_users': 0,
-                'total_users': 0,
-                'retention_rate': 0,
-                'period_days': days,
-            }
-
-    def export_data(self, format: str = 'json', days: int = 30) -> Any:
-        """
-        导出数据
-        
-        Args:
-            format: 导出格式 (json, csv)
-            days: 导出天数
-            
-        Returns:
-            导出的数据
-        """
-        try:
-            cutoff_date = datetime.now() - timedelta(days=days)
-
-            recent_views = [
-                pv for pv in self.page_views
-                if datetime.fromisoformat(pv['timestamp']) > cutoff_date
-            ]
-
-            if format == 'json':
-                return json.dumps(recent_views, indent=2, ensure_ascii=False)
-            elif format == 'csv':
-                import csv
-                import io
-
-                if not recent_views:
-                    return ""
-
-                # 创建CSV字符串
-                output = io.StringIO()
-                fieldnames = ['timestamp', 'url', 'user_id', 'ip', 'referrer', 'title']
-                writer = csv.DictWriter(output, fieldnames=fieldnames, extrasaction='ignore')
-
-                writer.writeheader()
-                for view in recent_views:
-                    writer.writerow(view)
-
-                return output.getvalue()
-
-            return None
-        except Exception as e:
-            print(f"[Analytics] Failed to export data: {str(e)}")
-            return None
+    # ==================== 辅助方法 ====================
 
     def _get_or_create_session(self, view_data: Dict[str, Any]) -> str:
-        """获取或创建会话"""
+        """获取或创建会话ID"""
+        # 简化实现：使用IP作为会话标识
         client_ip = view_data.get('ip', '')
-        user_id = view_data.get('user_id')
+        if not client_ip:
+            return 'unknown'
 
-        # 使用IP或用户ID作为会话标识
-        session_key = user_id or client_ip
+        # 如果会话存在且未过期，返回现有会话
+        if client_ip in self.sessions:
+            session = self.sessions[client_ip]
+            last_activity = datetime.fromisoformat(session['last_activity'])
+            if (datetime.now() - last_activity).total_seconds() < 1800:  # 30分钟
+                session['last_activity'] = datetime.now().isoformat()
+                session['page_views'] += 1
+                return client_ip
 
-        if session_key not in self.sessions:
-            self.sessions[session_key] = {
-                'start_time': datetime.now().isoformat(),
-                'page_views': 0,
-            }
+        # 创建新会话
+        self.sessions[client_ip] = {
+            'session_id': client_ip,
+            'start_time': datetime.now().isoformat(),
+            'last_activity': datetime.now().isoformat(),
+            'page_views': 1,
+            'user_id': view_data.get('user_id'),
+        }
 
-        self.sessions[session_key]['page_views'] += 1
+        return client_ip
 
-        return session_key
+    def _track_user_path(self, session_id: str, url: str):
+        """追踪用户访问路径"""
+        if session_id not in self.user_paths:
+            self.user_paths[session_id] = []
 
-    def _calculate_avg_session_duration(self, views: List[Dict]) -> str:
-        """计算平均会话时长"""
-        # 简化实现
+        self.user_paths[session_id].append({
+            'url': url,
+            'timestamp': datetime.now().isoformat(),
+        })
+
+        # 限制路径长度（最多保留50步）
+        if len(self.user_paths[session_id]) > 50:
+            self.user_paths[session_id] = self.user_paths[session_id][-50:]
+
+    def _calculate_avg_session_duration(self, views: List[Dict[str, Any]]) -> float:
+        """计算平均会话时长（秒）"""
         if not views:
-            return "0s"
+            return 0
 
-        # 假设平均每页停留30秒
-        avg_seconds = 30
-        return f"{avg_seconds}s"
+        # 简化计算：假设每个会话平均浏览3个页面，每个页面停留30秒
+        sessions = defaultdict(list)
+        for view in views:
+            sessions[view['session_id']].append(
+                datetime.fromisoformat(view['timestamp'])
+            )
 
-    def _calculate_bounce_rate(self, views: List[Dict]) -> float:
+        durations = []
+        for session_id, timestamps in sessions.items():
+            if len(timestamps) > 1:
+                timestamps.sort()
+                duration = (timestamps[-1] - timestamps[0]).total_seconds()
+                durations.append(duration)
+
+        return round(sum(durations) / len(durations), 2) if durations else 0
+
+    def _calculate_bounce_rate(self, views: List[Dict[str, Any]]) -> float:
         """计算跳出率"""
         if not views:
-            return 0.0
+            return 0
 
-        # 单页会话视为跳出
-        single_page_sessions = len(set(
-            pv.get('ip') or pv.get('user_id')
-            for pv in views
-            if pv.get('ip') or pv.get('user_id')
-        ))
+        # 统计单页会话数
+        session_page_counts = defaultdict(int)
+        for view in views:
+            session_page_counts[view['session_id']] += 1
 
-        total_sessions = len(self.sessions)
+        single_page_sessions = sum(
+            1 for count in session_page_counts.values()
+            if count == 1
+        )
 
-        if total_sessions == 0:
-            return 0.0
-
-        return round((single_page_sessions / total_sessions) * 100, 2)
+        total_sessions = len(session_page_counts)
+        return round((single_page_sessions / total_sessions * 100) if total_sessions > 0 else 0, 2)
 
     def _cleanup_old_data(self):
         """清理过期数据"""
         retention_days = self.settings.get('data_retention_days', 90)
         cutoff_date = datetime.now() - timedelta(days=retention_days)
 
-        # 清理旧的页面访问记录
+        # 清理页面访问记录
         self.page_views = [
             pv for pv in self.page_views
             if datetime.fromisoformat(pv['timestamp']) > cutoff_date
         ]
 
-    def get_settings_ui(self) -> Dict[str, Any]:
-        """返回设置界面配置"""
+        # 清理转化事件
+        self.conversion_events = [
+            ce for ce in self.conversion_events
+            if datetime.fromisoformat(ce['timestamp']) > cutoff_date
+        ]
+
+        # 清理用户路径
+        expired_sessions = [
+            session_id for session_id, path in self.user_paths.items()
+            if not path or datetime.fromisoformat(path[-1]['timestamp']) < cutoff_date
+        ]
+        for session_id in expired_sessions:
+            del self.user_paths[session_id]
+
+    # ==================== 管理API ====================
+
+    def get_dashboard_data(self) -> Dict[str, Any]:
+        """获取仪表板数据"""
+        overview = self.get_overview_stats(days=30)
+        realtime = self.get_realtime_stats()
+        sources = self.get_traffic_sources(days=30)
+        conversions = self.get_conversion_funnel()
+
         return {
-            'fields': [
+            'overview': overview,
+            'realtime': realtime,
+            'traffic_sources': sources,
+            'conversions': conversions,
+            'popular_pages': self.get_popular_pages(limit=10),
+        }
+
+    def get_admin_ui_config(self) -> Dict[str, Any]:
+        """获取管理界面配置"""
+        return {
+            'title': '数据分析中心',
+            'icon': '📊',
+            'sections': [
                 {
-                    'key': 'enable_tracking',
-                    'type': 'boolean',
-                    'label': '启用跟踪',
+                    'title': '数据概览',
+                    'widgets': [
+                        {'type': 'stat', 'label': '总访问量', 'value': self.get_overview_stats()['total_views']},
+                        {'type': 'stat', 'label': '独立访客', 'value': self.get_overview_stats()['unique_visitors']},
+                        {'type': 'stat', 'label': '在线用户', 'value': self.get_realtime_stats()['online_users']},
+                        {'type': 'stat', 'label': '转化事件', 'value': len(self.conversion_events)},
+                    ],
                 },
                 {
-                    'key': 'track_anonymous_users',
-                    'type': 'boolean',
-                    'label': '跟踪匿名用户',
+                    'title': '跟踪设置',
+                    'fields': [
+                        {
+                            'key': 'enable_tracking',
+                            'label': '启用跟踪',
+                            'type': 'boolean',
+                        },
+                        {
+                            'key': 'track_anonymous_users',
+                            'label': '跟踪匿名用户',
+                            'type': 'boolean',
+                        },
+                        {
+                            'key': 'data_retention_days',
+                            'label': '数据保留天数',
+                            'type': 'number',
+                            'min': 7,
+                            'max': 365,
+                        },
+                    ],
                 },
                 {
-                    'key': 'data_retention_days',
-                    'type': 'number',
-                    'label': '数据保留天数',
-                    'min': 7,
-                    'max': 365,
-                },
-                {
-                    'key': 'enable_real_time',
-                    'type': 'boolean',
-                    'label': '启用实时统计',
+                    'title': '高级功能',
+                    'fields': [
+                        {
+                            'key': 'enable_conversion_tracking',
+                            'label': '启用转化跟踪',
+                            'type': 'boolean',
+                        },
+                        {
+                            'key': 'dashboard_refresh_interval',
+                            'label': '仪表盘刷新间隔（秒）',
+                            'type': 'number',
+                            'min': 10,
+                            'max': 300,
+                        },
+                    ],
                 },
             ],
-            'actions': [
-                {
-                    'type': 'button',
-                    'label': '导出数据',
-                    'action': 'export_data',
-                    'variant': 'outline',
-                },
-            ]
         }
 
 
-# 插件实例
-plugin_instance = AnalyticsPlugin()
+# 导出插件实例
+plugin = AnalyticsPlugin()
