@@ -31,6 +31,7 @@ import {
 import {useToast} from '@/hooks/use-toast';
 import {apiClient} from '@/lib/api/base-client';
 import {draftService, LocalDraft} from '@/lib/draft-service';
+import {computeDiff, formatDiffAsHtml} from '@/lib/diff-utils';
 
 interface Revision {
     id: number;
@@ -148,6 +149,9 @@ export default function ArticleRevisionsSidebar({
 
     // 本地草稿状态
     const [localDraft, setLocalDraft] = useState<LocalDraft | null>(null);
+
+    // Diff视图状态
+    const [showDiffView, setShowDiffView] = useState(false);
 
     // 加载修订历史
     useEffect(() => {
@@ -1087,39 +1091,86 @@ export default function ArticleRevisionsSidebar({
                                     <div
                                         className="border-2 border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden shadow-lg">
                                         <div
-                                            className="bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-800 dark:to-gray-900 px-6 py-3 border-b-2 border-gray-200 dark:border-gray-700">
+                                            className="bg-gradient-to-r from-gray-100 to-gray-50 dark:from-gray-800 dark:to-gray-900 px-6 py-3 border-b-2 border-gray-200 dark:border-gray-700 flex items-center justify-between">
                                             <h4 className="font-bold text-lg text-gray-900 dark:text-white flex items-center gap-2">
                                                 <FileText className="w-5 h-5"/>
                                                 文章内容对比
                                             </h4>
-                                        </div>
-                                        <div
-                                            className="grid grid-cols-2 divide-x-2 divide-gray-200 dark:divide-gray-700">
-                                            <div
-                                                className="p-6 bg-gradient-to-b from-red-50 to-white dark:from-red-950/20 dark:to-gray-900">
-                                                <div
-                                                    className="text-sm font-bold text-red-700 dark:text-red-400 mb-3 flex items-center gap-2 pb-2 border-b-2 border-red-200 dark:border-red-800">
-                                                    <span className="w-2 h-2 rounded-full bg-red-500"></span>
-                                                    旧版本 (v{comparisonResult.revision1.revision_number})
-                                                </div>
-                                                <div
-                                                    className="prose prose-sm md:prose-base dark:prose-invert max-w-none"
-                                                    dangerouslySetInnerHTML={{__html: comparisonResult.revision1.content || '<p class="text-gray-400 italic">无内容</p>'}}
-                                                />
-                                            </div>
-                                            <div
-                                                className="p-6 bg-gradient-to-b from-green-50 to-white dark:from-green-950/20 dark:to-gray-900">
-                                                <div
-                                                    className="text-sm font-bold text-green-700 dark:text-green-400 mb-3 flex items-center gap-2 pb-2 border-b-2 border-green-200 dark:border-green-800">
-                                                    <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                                                    {comparisonResult.revision2.revision_number === 0 ? '当前编辑器' : `新版本 (v${comparisonResult.revision2.revision_number})`}
-                                                </div>
-                                                <div
-                                                    className="prose prose-sm md:prose-base dark:prose-invert max-w-none"
-                                                    dangerouslySetInnerHTML={{__html: comparisonResult.revision2.content || '<p class="text-gray-400 italic">无内容</p>'}}
-                                                />
+                                            <div className="flex gap-2">
+                                                <Button
+                                                    size="sm"
+                                                    variant={!showDiffView ? "default" : "outline"}
+                                                    onClick={() => setShowDiffView(false)}
+                                                    className="text-xs"
+                                                >
+                                                    并排视图
+                                                </Button>
+                                                <Button
+                                                    size="sm"
+                                                    variant={showDiffView ? "default" : "outline"}
+                                                    onClick={() => {
+                                                        setShowDiffView(true);
+                                                    }}
+                                                    className="text-xs"
+                                                >
+                                                    差异视图
+                                                </Button>
                                             </div>
                                         </div>
+
+                                        {!showDiffView ? (
+                                            // 并排视图
+                                            <div
+                                                className="grid grid-cols-2 divide-x-2 divide-gray-200 dark:divide-gray-700">
+                                                <div
+                                                    className="p-6 bg-gradient-to-b from-red-50 to-white dark:from-red-950/20 dark:to-gray-900">
+                                                    <div
+                                                        className="text-sm font-bold text-red-700 dark:text-red-400 mb-3 flex items-center gap-2 pb-2 border-b-2 border-red-200 dark:border-red-800">
+                                                        <span className="w-2 h-2 rounded-full bg-red-500"></span>
+                                                        旧版本 (v{comparisonResult.revision1.revision_number})
+                                                    </div>
+                                                    <div
+                                                        className="prose prose-sm md:prose-base dark:prose-invert max-w-none"
+                                                        dangerouslySetInnerHTML={{__html: comparisonResult.revision1.content || '<p class="text-gray-400 italic">无内容</p>'}}
+                                                    />
+                                                </div>
+                                                <div
+                                                    className="p-6 bg-gradient-to-b from-green-50 to-white dark:from-green-950/20 dark:to-gray-900">
+                                                    <div
+                                                        className="text-sm font-bold text-green-700 dark:text-green-400 mb-3 flex items-center gap-2 pb-2 border-b-2 border-green-200 dark:border-green-800">
+                                                        <span className="w-2 h-2 rounded-full bg-green-500"></span>
+                                                        {comparisonResult.revision2.revision_number === 0 ? '当前编辑器' : `新版本 (v${comparisonResult.revision2.revision_number})`}
+                                                    </div>
+                                                    <div
+                                                        className="prose prose-sm md:prose-base dark:prose-invert max-w-none"
+                                                        dangerouslySetInnerHTML={{__html: comparisonResult.revision2.content || '<p class="text-gray-400 italic">无内容</p>'}}
+                                                    />
+                                                </div>
+                                            </div>
+                                        ) : (
+                                            // 差异视图
+                                            <div className="p-6 bg-gray-50 dark:bg-gray-900">
+                                                <div
+                                                    className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+                                                    <p className="text-sm text-blue-900 dark:text-blue-200">
+                                                        <strong>差异说明：</strong>
+                                                        <span
+                                                            className="ml-2 text-red-600 dark:text-red-400">红色背景</span>表示删除的行，
+                                                        <span
+                                                            className="ml-2 text-green-600 dark:text-green-400">绿色背景</span>表示新增的行
+                                                    </p>
+                                                </div>
+                                                <div
+                                                    className="border border-gray-300 dark:border-gray-700 rounded-lg overflow-auto max-h-[500px] bg-white dark:bg-gray-900"
+                                                    dangerouslySetInnerHTML={{
+                                                        __html: formatDiffAsHtml(computeDiff(
+                                                            comparisonResult.revision1.content || '',
+                                                            comparisonResult.revision2.content || ''
+                                                        ))
+                                                    }}
+                                                />
+                                            </div>
+                                        )}
                                     </div>
                                 )}
 

@@ -9,6 +9,7 @@ import {
     Camera,
     Eye,
     EyeOff,
+    Laptop,
     LogOut,
     Moon,
     Palette,
@@ -43,7 +44,7 @@ interface PasswordForm {
     confirmPassword: string;
 }
 
-type TabType = 'profile' | 'account' | 'appearance' | 'notifications' | 'security';
+type TabType = 'profile' | 'account' | 'appearance' | 'notifications' | 'security' | 'sessions';
 
 const SettingsPage = () => {
     const router = useRouter();
@@ -76,6 +77,10 @@ const SettingsPage = () => {
     const [verificationCode, setVerificationCode] = useState('');
     const [backupCodes, setBackupCodes] = useState<string[]>([]);
     const [showQRCode, setShowQRCode] = useState(false);
+
+    // 会话管理状态
+    const [sessions, setSessions] = useState<any[]>([]);
+    const [loadingSessions, setLoadingSessions] = useState(false);
 
     // 加载用户资料
     useEffect(() => {
@@ -461,6 +466,59 @@ const SettingsPage = () => {
         }
     };
 
+    // 会话管理相关函数
+    const loadSessions = async () => {
+        try {
+            setLoadingSessions(true);
+            const response = await apiClient.get('/sessions');
+            if (response.success && response.data) {
+                setSessions(response.data.sessions || []);
+            }
+        } catch (error) {
+            console.error('加载会话列表失败:', error);
+        } finally {
+            setLoadingSessions(false);
+        }
+    };
+
+    const revokeSession = async (sessionId: number) => {
+        if (!confirm('确定要注销此设备吗？')) {
+            return;
+        }
+
+        try {
+            const response = await apiClient.post(`/sessions/${sessionId}/revoke`);
+            if (response.success) {
+                alert('设备已注销');
+                loadSessions(); // 重新加载列表
+            } else {
+                alert(response.error || '注销失败');
+            }
+        } catch (error) {
+            console.error('注销设备失败:', error);
+            alert('注销失败，请稍后重试');
+        }
+    };
+
+    const revokeAllSessions = async () => {
+        if (!confirm('确定要注销所有其他设备吗？当前设备将保持登录状态。')) {
+            return;
+        }
+
+        try {
+            const response = await apiClient.post('/sessions/revoke-all');
+            if (response.success) {
+                alert(`已注销 ${response.data.revoked_count || 0} 个设备`);
+                loadSessions();
+            } else {
+                alert(response.error || '操作失败');
+            }
+        } catch (error) {
+            console.error('注销所有设备失败:', error);
+            alert('操作失败，请稍后重试');
+        }
+    };
+
     // 注销登录
     const logout = async () => {
         if (confirm('确定要注销登录吗？')) {
@@ -488,6 +546,7 @@ const SettingsPage = () => {
         {id: 'appearance', label: '外观设置', icon: Palette},
         {id: 'notifications', label: '通知设置', icon: Bell},
         {id: 'security', label: '双因素认证', icon: Shield},
+        {id: 'sessions', label: '会话管理', icon: Laptop},
     ];
 
     return (
@@ -1089,6 +1148,104 @@ const SettingsPage = () => {
                                             >
                                                 复制所有备用码
                                             </button>
+                                        </div>
+                                    )}
+                                </motion.div>
+                            )}
+
+                            {/* 会话管理 */}
+                            {activeTab === 'sessions' && (
+                                <motion.div
+                                    variants={fadeInUp}
+                                    initial="initial"
+                                    animate="animate"
+                                    className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 p-8"
+                                >
+                                    <div className="flex items-center justify-between mb-6">
+                                        <h2 className="text-xl font-bold text-gray-900 dark:text-white">会话管理</h2>
+                                        <button
+                                            onClick={loadSessions}
+                                            disabled={loadingSessions}
+                                            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-colors disabled:opacity-50"
+                                        >
+                                            {loadingSessions ? '加载中...' : '刷新'}
+                                        </button>
+                                    </div>
+
+                                    <div className="mb-6">
+                                        <div
+                                            className="flex items-start gap-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
+                                            <Laptop className="w-6 h-6 text-blue-600 flex-shrink-0 mt-1"/>
+                                            <div>
+                                                <h3 className="font-medium text-gray-900 dark:text-white mb-2">管理您的登录设备</h3>
+                                                <p className="text-sm text-gray-600 dark:text-gray-400">
+                                                    查看当前登录的所有设备，您可以远程注销不需要的设备以保护账户安全。
+                                                </p>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    {sessions.length > 0 ? (
+                                        <div className="space-y-4">
+                                            {sessions.map((session) => (
+                                                <div
+                                                    key={session.id}
+                                                    className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-xl"
+                                                >
+                                                    <div className="flex-1">
+                                                        <div className="flex items-center gap-3 mb-2">
+                                                            <Smartphone
+                                                                className="w-5 h-5 text-gray-600 dark:text-gray-400"/>
+                                                            <span className="font-medium text-gray-900 dark:text-white">
+                                                                {session.device_name || '未知设备'}
+                                                            </span>
+                                                            {session.is_current && (
+                                                                <span
+                                                                    className="px-2 py-1 bg-green-100 dark:bg-green-900/30 text-green-800 dark:text-green-200 text-xs rounded-full">
+                                                                    当前设备
+                                                                </span>
+                                                            )}
+                                                        </div>
+                                                        <div
+                                                            className="text-sm text-gray-600 dark:text-gray-400 space-y-1">
+                                                            {session.ip_address && (
+                                                                <div>IP: {session.ip_address}</div>
+                                                            )}
+                                                            {session.location && (
+                                                                <div>位置: {session.location}</div>
+                                                            )}
+                                                            <div>
+                                                                最后活动: {new Date(session.last_activity).toLocaleString('zh-CN')}
+                                                            </div>
+                                                            <div>
+                                                                过期时间: {new Date(session.expires_at).toLocaleString('zh-CN')}
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    {!session.is_current && (
+                                                        <button
+                                                            onClick={() => revokeSession(session.id)}
+                                                            className="ml-4 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-xl font-medium transition-colors text-sm"
+                                                        >
+                                                            注销
+                                                        </button>
+                                                    )}
+                                                </div>
+                                            ))}
+
+                                            <div className="pt-4 border-t border-gray-200 dark:border-gray-700">
+                                                <button
+                                                    onClick={revokeAllSessions}
+                                                    className="w-full px-4 py-3 bg-yellow-600 hover:bg-yellow-700 text-white rounded-xl font-medium transition-colors"
+                                                >
+                                                    注销所有其他设备
+                                                </button>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-12">
+                                            <Laptop className="w-16 h-16 text-gray-400 mx-auto mb-4"/>
+                                            <p className="text-gray-600 dark:text-gray-400">暂无会话记录</p>
                                         </div>
                                     )}
                                 </motion.div>

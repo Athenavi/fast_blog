@@ -948,6 +948,14 @@ curl -X POST "http://localhost:9421/api/v1/media/upload" \
         except ImportError as e:
             print(f"Warning: Translation Progress API could not be loaded: {e}")
 
+        # 会话管理 API
+        try:
+            from src.api.v1.session_management import router as session_router
+            app.include_router(session_router, prefix='/api/v1', tags=['session-management'])
+            print(f"{worker_info} [OK] Session Management API 已加载")
+        except ImportError as e:
+            print(f"Warning: Session Management API could not be loaded: {e}")
+
         # 异常行为检测 API
         try:
             from src.api.v1.anomaly_detection import router as anomaly_router
