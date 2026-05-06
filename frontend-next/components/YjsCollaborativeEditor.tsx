@@ -8,7 +8,7 @@ import * as Y from 'yjs';
 import {Card} from '@/components/ui/card';
 import {Badge} from '@/components/ui/badge';
 import {Button} from '@/components/ui/button';
-import {Save, Users, Wifi, WifiOff} from 'lucide-react';
+import {AlertCircle, Save, Users, Wifi} from 'lucide-react';
 import {getSaveDocumentUrl, getYjsWebSocketUrl} from '@/lib/collaboration-config';
 
 interface YjsCollaborativeEditorProps {
@@ -87,166 +87,53 @@ export default function YjsCollaborativeEditor({
 
     // 初始化 WebSocket 连接 - 当 editor 就绪时执行
     useEffect(() => {
-        console.log('[Yjs Editor] useEffect triggered, editor:', !!editor, 'documentId:', documentId);
-
         if (!editor) {
-            console.log('[Yjs Editor] Editor not ready yet, skipping WebSocket connection');
+            console.log('[Yjs Editor] Editor not ready yet');
             return;
         }
 
-        console.log('[Yjs Editor] Editor is ready, starting WebSocket connection...');
+        console.log('[Yjs Editor] Starting WebSocket connection for document:', documentId);
 
-        const connectWebSocket = () => {
-            const wsUrl = getYjsWebSocketUrl(documentId, articleId);
-            console.log('[Yjs Editor] ====== WebSocket Connection Start ======');
-            console.log('[Yjs Editor] Document ID:', documentId);
-            console.log('[Yjs Editor] Article ID:', articleId);
-            console.log('[Yjs Editor] WebSocket URL:', wsUrl);
+        const wsUrl = getYjsWebSocketUrl(documentId, articleId);
+        console.log('[Yjs Editor] WebSocket URL:', wsUrl);
 
-            const ws = new WebSocket(wsUrl);
-            wsRef.current = ws;
+        const ws = new WebSocket(wsUrl);
+        wsRef.current = ws;
 
-            ws.onopen = () => {
-                console.log('[Yjs Editor] ✓ Connected successfully');
-                setIsConnected(true);
-                setReconnectAttempts(0);
-                setErrorMessage('');
-            };
-
-            ws.onmessage = (event) => {
-                try {
-                    // 检查是否是二进制数据（Yjs 更新）
-                    if (event.data instanceof ArrayBuffer || event.data instanceof Uint8Array) {
-                        const update = new Uint8Array(event.data);
-                        Y.applyUpdate(ydoc, update);
-                        return;
-                    }
-
-                    // 处理 Blob 类型的二进制数据
-                    if (event.data instanceof Blob) {
-                        event.data.arrayBuffer().then((buffer: ArrayBuffer) => {
-                            const update = new Uint8Array(buffer);
-                            Y.applyUpdate(ydoc, update);
-                        });
-                        return;
-                    }
-
-                    // 处理 JSON 消息（字符串类型）
-                    if (typeof event.data === 'string') {
-                        const message = JSON.parse(event.data);
-
-                        switch (message.type) {
-                            case 'welcome':
-                                clientIdRef.current = message.client_id;
-                                console.log('[Yjs Editor] Client ID:', clientIdRef.current);
-                                break;
-
-                            case 'awareness':
-                                // 更新感知状态
-                                if (message.state) {
-                                    setAwarenessUsers(prev => {
-                                        const exists = prev.find(u => u.client_id === message.state.client_id);
-                                        if (exists) {
-                                            return prev.map(u =>
-                                                u.client_id === message.state.client_id ? message.state : u
-                                            );
-                                        } else {
-                                            return [...prev, message.state];
-                                        }
-                                    });
-                                }
-                                break;
-
-                            case 'user_joined':
-                            case 'user_left':
-                                console.log('[Yjs Editor] User count:', message.client_count);
-                                break;
-
-                            case 'save_result':
-                                if (message.success) {
-                                    setSaveStatus('success');
-                                    setLastSaved(new Date());
-                                    setTimeout(() => setSaveStatus('idle'), 3000);
-                                } else {
-                                    setSaveStatus('error');
-                                    setErrorMessage(message.message || '保存失败');
-                                    setTimeout(() => setSaveStatus('idle'), 5000);
-                                }
-                                break;
-
-                            case 'pong':
-                                // 心跳响应
-                                break;
-                        }
-                    }
-                } catch (error) {
-                    console.error('[Yjs Editor] Message parse error:', error);
-                }
-            };
-
-            ws.onerror = (error) => {
-                console.error('[Yjs Editor] ✗ WebSocket error:', error);
-                console.error('[Yjs Editor] ReadyState:', ws.readyState);
-                console.error('[Yjs Editor] URL:', ws.url);
-            };
-
-            ws.onclose = (event) => {
-                console.log('[Yjs Editor] Disconnected - Code:', event.code, 'Reason:', event.reason || 'No reason');
-                setIsConnected(false);
-
-                // 清除之前的重连定时器
-                if (reconnectTimerRef.current) {
-                    clearTimeout(reconnectTimerRef.current);
-                }
-
-                // 自动重连（除非是正常关闭）
-                if (event.code !== 1000 && event.code !== 1001) {
-                    const delay = Math.min(3000 * Math.pow(2, reconnectAttempts), 30000);
-                    console.log(`[Yjs Editor] Reconnecting in ${delay / 1000}s... (Attempt ${reconnectAttempts + 1})`);
-
-                    reconnectTimerRef.current = setTimeout(() => {
-                        setReconnectAttempts(prev => prev + 1);
-                        connectWebSocket();
-                    }, delay);
-                }
-            };
-
-            // 监听 Yjs 文档更新并发送到服务器
-            const updateHandler = (update: Uint8Array, origin: any) => {
-                // 如果是来自 WebSocket 的更新，不需要再发送回去
-                if (origin === ws) return;
-
-                if (ws.readyState === WebSocket.OPEN) {
-                    ws.send(update);
-                }
-            };
-
-            ydoc.on('update', updateHandler);
-
-            // 发送心跳
-            const pingInterval = setInterval(() => {
-                if (ws.readyState === WebSocket.OPEN) {
-                    ws.send(JSON.stringify({type: 'ping'}));
-                }
-            }, 30000);
-
-            return () => {
-                ydoc.off('update', updateHandler);
-                clearInterval(pingInterval);
-                if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
-                    ws.close();
-                }
-            };
+        ws.onopen = () => {
+            console.log('[Yjs Editor] Connected');
+            setIsConnected(true);
+            setReconnectAttempts(0);
         };
 
-        const cleanup = connectWebSocket();
-        return () => {
-            if (cleanup) cleanup();
-            if (reconnectTimerRef.current) {
-                clearTimeout(reconnectTimerRef.current);
+        ws.onmessage = (event) => {
+            try {
+                if (typeof event.data === 'string') {
+                    const message = JSON.parse(event.data);
+                    if (message.type === 'welcome') {
+                        clientIdRef.current = message.client_id;
+                    }
+                }
+            } catch (error) {
+                console.error('[Yjs Editor] Message error:', error);
             }
         };
-    }, [documentId, articleId, ydoc, editor]); // 添加 editor 依赖，当 editor 就绪时重新执行
+
+        ws.onerror = (error) => {
+            console.error('[Yjs Editor] WebSocket error');
+        };
+
+        ws.onclose = () => {
+            console.log('[Yjs Editor] Disconnected');
+            setIsConnected(false);
+        };
+
+        return () => {
+            if (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING) {
+                ws.close();
+            }
+        };
+    }, [documentId, articleId]); // 移除 editor 和 ydoc 依赖
 
     // 保存文档
     const handleSave = async () => {
@@ -337,7 +224,7 @@ export default function YjsCollaborativeEditor({
                         </Badge>
                     ) : (
                         <Badge variant="destructive" className="gap-1">
-                            <WifiOff className="w-3 h-3"/>
+                            <AlertCircle className="w-3 h-3"/>
                             未连接
                         </Badge>
                     )}

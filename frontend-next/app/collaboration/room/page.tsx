@@ -48,7 +48,8 @@ function CollaborationRoomContent() {
     const [invitation, setInvitation] = useState<InvitationInfo | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [accepted, setAccepted] = useState(false);
+    // 使用 URL 参数来判断是否已接受，避免页面刷新后状态丢失
+    const accepted = searchParams?.get('accepted') === 'true';
 
     // 获取邀请信息 - 只在组件挂载时执行一次
     useEffect(() => {
@@ -115,22 +116,12 @@ function CollaborationRoomContent() {
             }
 
             const data = await response.json();
+
             if (data.success) {
-                setAccepted(true);
-                // 接受成功后，跳转到文章编辑页面（带协作模式）
-                const documentId = invitation?.document_id;
-                if (documentId) {
-                    // 从 document_id 提取 article_id (格式: article-{id})
-                    const articleIdMatch = documentId.match(/article-(\d+)/);
-                    if (articleIdMatch && articleIdMatch[1]) {
-                        const articleId = articleIdMatch[1];
-                        // 跳转到编辑页面，并标记为协作模式
-                        router.push(`/my/posts/edit?id=${articleId}&collab=true`);
-                    } else {
-                        // 如果不是文章格式，保持在当前页面
-                        setAccepted(true);
-                    }
-                }
+                // 使用 URL 参数来持久化状态，避免页面刷新后丢失
+                router.push(`/collaboration/room?invite=${currentInviteId}&accepted=true`);
+            } else {
+                alert(data.error || '接受邀请失败');
             }
         } catch (err) {
             console.error('Accept invitation error:', err);
@@ -248,12 +239,26 @@ function CollaborationRoomContent() {
                 </div>
             </div>
 
-            {/* 协作编辑器 */}
+            {/* 协作编辑器 - 暂时注释 */}
             <div className="container mx-auto px-4 py-6">
+                <Card className="p-8">
+                    <div className="text-center space-y-4">
+                        <h2 className="text-xl font-semibold">协作编辑器（调试中）</h2>
+                        <p className="text-gray-600">文档ID: {invitation.document_id}</p>
+                        <p className="text-gray-600">权限: {invitation.permission}</p>
+                        <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded">
+                            <p className="text-sm text-blue-800">
+                                YjsCollaborativeEditor 组件正在修复中...
+                            </p>
+                        </div>
+                    </div>
+                </Card>
+                {/* 
                 <YjsCollaborativeEditor
                     documentId={invitation.document_id}
                     readOnly={invitation.permission !== 'edit'}
                 />
+                */}
             </div>
         </div>
     );
