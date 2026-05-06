@@ -7,6 +7,8 @@ import logging
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Tuple
 
+from sqlalchemy import select, func, delete
+
 from shared.models.login_attempt import LoginAttempt
 from src.extensions import db
 
@@ -196,6 +198,115 @@ class LoginSecurityService:
 
         db.session.commit()
         logger.info(f"Cleaned up {count} old login attempt records")
+        return count
+
+    # ==================== 异步方法（用于 FastAPI） ====================
+
+    async def record_login_attempt_async(
+            self,
+            username: str,
+            ip_address: str,
+            user_agent: Optional[str] = None,
+            is_success: bool = False,
+            failure_reason: Optional[str] = None
+    ):
+        """
+        异步记录登录尝试（用于 FastAPI 异步端点）
+        """
+        from src.utils.database.main import get_async_session
+        from sqlalchemy import insert
+
+        async with get_async_session() as session:
+            stmt = insert(LoginAttempt).values(
+                username=username,
+                ip_address=ip_address,
+                user_agent=user_agent,
+                is_success=is_success,
+                failure_reason=failure_reason,
+                created_at=datetime.utcnow()
+            )
+            await session.execute(stmt)
+            await session.commit()
+
+        logger.info(
+            f"Login attempt recorded (async): username={username}, ip={ip_address}, "
+            f"success={is_success}, reason={failure_reason}"
+        )
+
+    async def check_account_locked_async(self, username: str) -> Tuple[bool, Optional[datetime]]:
+        """
+        异步检查账户是否被锁定（用于 FastAPI 异步端点）
+        """
+        from src.utils.database.main import get_async_session
+
+        async with get_async_session() as session:
+            # 计算检查窗口的起始时间
+            window_start = datetime.utcnow() - timedelta(minutes=self.CHECK_WINDOW_MINUTES)
+
+            # 统计窗口期内的失败次数
+            count_stmt = select(func.count()).select_from(LoginAttempt).where(
+                LoginAttempt.username == username,
+                LoginAttempt.is_success == False,
+                LoginAttempt.created_at >= window_start
+            )
+            result = await session.execute(count_stmt)
+            failed_attempts = result.scalar()
+
+            if failed_attempts >= self.MAX_FAILED_ATTEMPTS:
+                # 获取最后一次失败的时间
+                last_failed_stmt = select(LoginAttempt).where(
+                    LoginAttempt.username == username,
+                    LoginAttempt.is_success == False,
+                    LoginAttempt.created_at >= window_start
+                ).order_by(LoginAttempt.created_at.desc()).limit(1)
+
+                result = await session.execute(last_failed_stmt)
+                last_failed = result.scalar_one_or_none()
+
+                if last_failed:
+                    # 计算解锁时间
+                    unlock_time = last_failed.created_at + timedelta(minutes=self.LOCKOUT_DURATION_MINUTES)
+
+                    # 如果还未到解锁时间，则账户仍被锁定
+                    if datetime.utcnow() < unlock_time:
+                        logger.warning(f"Account locked (async): {username}, unlock at {unlock_time}")
+                        return True, unlock_time
+
+        return False, None
+
+    async def get_failed_attempts_count_async(self, username: str, minutes: int = 15) -> int:
+        """
+        异步获取指定时间窗口内的失败尝试次数
+        """
+        from src.utils.database.main import get_async_session
+
+        async with get_async_session() as session:
+            window_start = datetime.utcnow() - timedelta(minutes=minutes)
+
+            count_stmt = select(func.count()).select_from(LoginAttempt).where(
+                LoginAttempt.username == username,
+                LoginAttempt.is_success == False,
+                LoginAttempt.created_at >= window_start
+            )
+            result = await session.execute(count_stmt)
+            return result.scalar()
+
+    async def clear_failed_attempts_async(self, username: str) -> int:
+        """
+        异步清除指定用户的失败尝试记录
+        """
+        from src.utils.database.main import get_async_session
+
+        async with get_async_session() as session:
+            delete_stmt = delete(LoginAttempt).where(
+                LoginAttempt.username == username,
+                LoginAttempt.is_success == False
+            )
+            result = await session.execute(delete_stmt)
+            await session.commit()
+            count = result.rowcount
+
+        logger.info(f"Cleared {count} failed attempts for user (async): {username}")
         return count
 
     def get_security_stats(self) -> Dict:

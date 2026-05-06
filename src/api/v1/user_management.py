@@ -9,7 +9,6 @@ from typing import Optional
 
 import jwt
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request, status
-from fastapi.responses import JSONResponse
 from jwt.exceptions import InvalidTokenError
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -276,13 +275,72 @@ async def login_api(
         print(f"  - remember_me: {remember_me}")
         print(f"  - content_type: {request.headers.get('content-type')}")
 
+        # 获取IP地址和User-Agent
+        ip_address = request.client.host if request.client else "unknown"
+        user_agent = request.headers.get("user-agent", "")
+
+        # 安全检查：检查账户是否被锁定
+        from shared.services.login_security_service import login_security_service
+        is_locked, unlock_time = await login_security_service.check_account_locked_async(username)
+
+        if is_locked:
+            # 记录这次被阻止的尝试
+            await login_security_service.record_login_attempt_async(
+                username=username,
+                ip_address=ip_address,
+                user_agent=user_agent,
+                is_success=False,
+                failure_reason="Account locked due to too many failed attempts"
+            )
+
+            unlock_minutes = (unlock_time - datetime.utcnow()).total_seconds() / 60
+            return ApiResponse(
+                success=False,
+                error=f"账户已被临时锁定，请在 {int(unlock_minutes)} 分钟后重试",
+                data={
+                    "locked": True,
+                    "unlock_at": unlock_time.isoformat()
+                }
+            )
+
         # 1. 验证凭证
         user = await authenticate_user_with_session(username, password, db)
         if not user:
             print(f"[Login API] Authentication failed for user: {username}")
+
+            # 记录失败尝试
+            await login_security_service.record_login_attempt_async(
+                username=username,
+                ip_address=ip_address,
+                user_agent=user_agent,
+                is_success=False,
+                failure_reason="Invalid credentials"
+            )
+
+            # 检查是否需要警告
+            failed_count = await login_security_service.get_failed_attempts_count_async(username)
+            remaining_attempts = login_security_service.MAX_FAILED_ATTEMPTS - failed_count
+
+            if remaining_attempts <= 2 and remaining_attempts > 0:
+                return ApiResponse(
+                    success=False,
+                    error=f"用户名或密码错误（还剩 {remaining_attempts} 次尝试机会）"
+                )
+            
             return ApiResponse(success=False, error="用户名或密码错误")
+
         if not user.is_active:
             print(f"[Login API] User account is disabled: {username}")
+
+            # 记录失败尝试
+            await login_security_service.record_login_attempt_async(
+                username=username,
+                ip_address=ip_address,
+                user_agent=user_agent,
+                is_success=False,
+                failure_reason="Account disabled"
+            )
+            
             return ApiResponse(success=False, error="账户已被禁用")
 
         # 2. 生成 JWT
@@ -292,6 +350,17 @@ async def login_api(
         # 3. 更新最后登录时间
         user.last_login = datetime.now(timezone.utc)
         await db.commit()
+
+        # 4. 记录成功登录
+        await login_security_service.record_login_attempt_async(
+            username=username,
+            ip_address=ip_address,
+            user_agent=user_agent,
+            is_success=True
+        )
+
+        # 5. 清除之前的失败记录
+        await login_security_service.clear_failed_attempts_async(username)
 
         print(f"[Login API] Login successful for user: {username}")
         return ApiResponse(
@@ -376,6 +445,82 @@ async def register_api(
         },
         message="注册成功",
     )
+
+
+# ---------------------------------------------------------------------------
+# 邮箱验证 API
+# ---------------------------------------------------------------------------
+
+@router.post("/auth/email/send-code", summary="发送邮箱验证码")
+async def send_email_verification_code(
+        request: Request,
+        email: str = Form(..., description="邮箱地址")
+):
+    """
+    发送邮箱验证码
+    用于注册、找回密码等场景的邮箱验证
+    """
+    from shared.services.email_verification_service import email_verification_service
+
+    # 验证邮箱格式
+    if not re.match(r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$", email):
+        return ApiResponse(success=False, error="邮箱格式不正确")
+
+    result = email_verification_service.send_verification_code(email)
+
+    if result['success']:
+        return ApiResponse(
+            success=True,
+            message=result['message'],
+            data={
+                'expire_minutes': result['expire_minutes']
+            }
+        )
+    else:
+        return ApiResponse(
+            success=False,
+            error=result['message'],
+            data={
+                'can_resend_in': result.get('can_resend_in')
+            }
+        )
+
+
+@router.post("/auth/email/verify-code", summary="验证邮箱验证码")
+async def verify_email_code(
+        request: Request,
+        email: str = Form(..., description="邮箱地址"),
+        code: str = Form(..., description="验证码")
+):
+    """
+    验证邮箱验证码
+    验证成功后可用于后续操作（如注册、重置密码等）
+    """
+    from shared.services.email_verification_service import email_verification_service
+
+    # 验证验证码格式
+    if not code or len(code) != 6 or not code.isdigit():
+        return ApiResponse(success=False, error="验证码格式不正确")
+
+    result = email_verification_service.verify_code(email, code)
+
+    if result['success']:
+        return ApiResponse(
+            success=True,
+            message=result['message'],
+            data={
+                'verified': True,
+                'email': email
+            }
+        )
+    else:
+        return ApiResponse(
+            success=False,
+            error=result['message'],
+            data={
+                'remaining_attempts': result.get('remaining_attempts')
+            }
+        )
 
 
 @router.post("/auth/logout", summary="用户登出")
