@@ -101,22 +101,61 @@ export class CategoryService {
         categories: Array<{ category: Category; article_count: number; subscriber_count: number }>;
         pagination: Pagination;
     }>> {
-        const response = await apiClient.get('/category-management', params); // 认证用户使用的API
+        const response = await apiClient.get('/category/all', params); // 认证用户使用的API
 
         // 确保返回正确的格式
         if (response.success && response.data && typeof response.data === 'object') {
-            // 如果响应数据已经是期望格式
+            // 如果响应数据已经是期望格式（包含 categories 和 pagination）
             if ('categories' in response.data && 'pagination' in response.data) {
                 return response as ApiResponse<{
                     categories: Array<{ category: Category; article_count: number; subscriber_count: number }>;
                     pagination: Pagination;
                 }>;
-            } else {
-                // 如果响应数据是纯数组或不同格式，构造期望的格式
+            }
+            // 处理实际的 API 返回格式：{ categories: [], subscribed_ids: [], total_categories, page, per_page }
+            else if ('categories' in response.data && 'total_categories' in response.data) {
+                const apiData = response.data as any;
+                const categories = apiData.categories || [];
+                const totalCategories = apiData.total_categories || 0;
+                const currentPage = apiData.page || params?.page || 1;
+                const perPage = apiData.per_page || params?.per_page || 12;
+
+                // 将纯 Category 数组转换为期望的格式（添加默认统计值）
+                const formattedCategories = categories.map((cat: Category) => ({
+                    category: cat,
+                    article_count: 0,  // API 未返回，使用默认值
+                    subscriber_count: 0  // API 未返回，使用默认值
+                }));
+
+                const totalPages = Math.ceil(totalCategories / perPage);
+
                 return {
                     ...response,
                     data: {
-                        categories: Array.isArray(response.data) ? response.data : [],
+                        categories: formattedCategories,
+                        pagination: {
+                            current_page: currentPage,
+                            per_page: perPage,
+                            total: totalCategories,
+                            total_pages: totalPages,
+                            has_next: currentPage < totalPages,
+                            has_prev: currentPage > 1
+                        }
+                    }
+                } as ApiResponse<{
+                    categories: Array<{ category: Category; article_count: number; subscriber_count: number }>;
+                    pagination: Pagination;
+                }>;
+            } else {
+                // 如果响应数据是纯数组或其他格式，构造期望的格式
+                return {
+                    ...response,
+                    data: {
+                        categories: Array.isArray(response.data) ? response.data.map((cat: Category) => ({
+                            category: cat,
+                            article_count: 0,
+                            subscriber_count: 0
+                        })) : [],
                         pagination: response.pagination || {
                             current_page: params?.page || 1,
                             per_page: params?.per_page || 10,

@@ -4,13 +4,15 @@
 
 'use client';
 
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {Button} from '@/components/ui/button';
 import {Badge} from '@/components/ui/badge';
 import {Avatar, AvatarFallback, AvatarImage} from '@/components/ui/avatar';
 import {MessageSquare, MoreVertical, ThumbsUp} from 'lucide-react';
 import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,} from '@/components/ui/dropdown-menu';
 import {parseEmotes} from '@/lib/emoteService';
+import {commentService} from '@/lib/api/comment-service';
+import {useToast} from '@/hooks/use-toast';
 
 interface Comment {
     id: number;
@@ -32,7 +34,7 @@ interface Comment {
 interface CommentItemProps {
     comment: Comment;
     onReply: (commentId: number, authorName: string) => void;
-    onLike: (commentId: number) => void;
+    onLike: (commentId: number) => Promise<void>;
     formatDate: (dateString: string) => string;
     depth: number;
 }
@@ -45,7 +47,30 @@ const CommentItem: React.FC<CommentItemProps> = ({
                                                      depth
                                                  }) => {
     const [isLiked, setIsLiked] = useState(false);
+    const [likes, setLikes] = useState(comment.likes);
+    const [isLoading, setIsLoading] = useState(false);
     const maxDepth = 5; // 最大嵌套层级
+    const {toast} = useToast();
+
+    // 检查用户是否已点赞
+    useEffect(() => {
+        const checkUserVote = async () => {
+            try {
+                const result = await commentService.getUserVote(comment.id);
+                if (result.success && result.data) {
+                    setIsLiked(result.data.vote_type === 'like');
+                }
+            } catch (error) {
+                console.error('Failed to check user vote:', error);
+            }
+        };
+
+        // 只有登录用户才检查投票状态
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        if (token) {
+            checkUserVote();
+        }
+    }, [comment.id]);
 
     // 获取作者名称
     const getAuthorName = () => {
@@ -58,10 +83,40 @@ const CommentItem: React.FC<CommentItemProps> = ({
     };
 
     // 处理点赞
-    const handleLike = () => {
-        if (!isLiked) {
-            setIsLiked(true);
-            onLike(comment.id);
+    const handleLike = async () => {
+        // 检查是否登录
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        if (!token) {
+            toast({
+                title: '需要登录',
+                description: '请先登录后再点赞',
+                variant: 'destructive',
+            });
+            return;
+        }
+
+        if (isLoading) return;
+
+        setIsLoading(true);
+        try {
+            const result = await onLike(comment.id);
+
+            // 更新本地状态
+            if (isLiked) {
+                setLikes(prev => Math.max(0, prev - 1));
+                setIsLiked(false);
+            } else {
+                setLikes(prev => prev + 1);
+                setIsLiked(true);
+            }
+        } catch (error) {
+            toast({
+                title: '操作失败',
+                description: '点赞失败，请稍后重试',
+                variant: 'destructive',
+            });
+        } finally {
+            setIsLoading(false);
         }
     };
 
@@ -147,10 +202,12 @@ const CommentItem: React.FC<CommentItemProps> = ({
                                 variant="ghost"
                                 size="sm"
                                 onClick={handleLike}
-                                className={`h-8 px-2 ${isLiked ? 'text-blue-600' : 'text-gray-500'}`}
+                                disabled={isLoading}
+                                className={`h-8 px-2 ${isLiked ? 'text-blue-600' : 'text-gray-500'} hover:text-blue-600 transition-colors`}
                             >
-                                <ThumbsUp className={`w-4 h-4 mr-1 ${isLiked ? 'fill-current' : ''}`}/>
-                                {comment.likes > 0 && <span>{comment.likes}</span>}
+                                <ThumbsUp
+                                    className={`w-4 h-4 mr-1 ${isLiked ? 'fill-current' : ''} ${isLoading ? 'animate-pulse' : ''}`}/>
+                                {likes > 0 && <span>{likes}</span>}
                             </Button>
 
                             <Button

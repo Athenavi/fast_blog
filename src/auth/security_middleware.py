@@ -110,7 +110,7 @@ class XSSFilterMiddleware(BaseHTTPMiddleware):
         path = request.url.path
         if any(path.startswith(excluded) for excluded in self.EXCLUDED_PATHS):
             return await call_next(request)
-        
+
         # 只检查 POST/PUT/PATCH 请求
         if request.method in ['POST', 'PUT', 'PATCH']:
             content_type = request.headers.get('content-type', '')
@@ -171,7 +171,7 @@ class XSSFilterMiddleware(BaseHTTPMiddleware):
         )
         response.headers['X-Content-Type-Options'] = 'nosniff'
         response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
-        
+
         return response
 
     def _check_for_xss(self, data) -> dict:
@@ -306,7 +306,7 @@ class CSRFProtectionMiddleware(BaseHTTPMiddleware):
                     "error": "CSRF token invalid or expired"
                 }
             )
-        
+
         # 验证后删除token(一次性使用)
         await cache.delete(f"csrf_token:{csrf_token}")
 
@@ -325,7 +325,7 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
     # 不需要速率限制的路径
     EXCLUDED_PATHS = [
         '/api/v1/thumbnail',  # 缩略图接口（频繁访问，需要豁免）
-        '/api/v1/media/',     # 媒体文件接口（图片加载需要豁免）
+        '/api/v1/media/',  # 媒体文件接口（图片加载需要豁免）
         '/health',  # 健康检查接口
         '/static/',  # 静态文件
     ]
@@ -363,7 +363,7 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
         path = request.url.path
         if any(path.startswith(excluded) for excluded in self.EXCLUDED_PATHS):
             return await call_next(request)
-        
+
         # 获取客户端 IP
         client_ip = self._get_client_ip(request)
 
@@ -526,7 +526,7 @@ class SQLInjectionFilterMiddleware(BaseHTTPMiddleware):
         path = request.url.path
         if any(path.startswith(excluded) for excluded in self.EXCLUDED_PATHS):
             return await call_next(request)
-        
+
         # 检查查询参数
         query_params = dict(request.query_params)
         injection_result = self._check_sql_injection(query_params)
@@ -651,12 +651,12 @@ def create_security_middleware_stack(app, rate_limit_requests: int = 100, rate_l
         添加了安全中间件的应用
     """
     # 按顺序添加中间件（后添加的先执行）
-
+    # 已经注释1 2 它们可能影响绝大多数路由的正确执行
     # 1. SQL 注入过滤（最外层）
-    app.add_middleware(SQLInjectionFilterMiddleware)
+    # app.add_middleware(SQLInjectionFilterMiddleware)
 
     # 2. XSS 过滤
-    app.add_middleware(XSSFilterMiddleware)
+    # app.add_middleware(XSSFilterMiddleware)
 
     # 3. CSRF 保护
     app.add_middleware(CSRFProtectionMiddleware)

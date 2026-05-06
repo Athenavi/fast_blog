@@ -279,19 +279,45 @@ async def get_article_comments(
         article_id: int,
         page: int = 1,
         per_page: int = 20,
+        sort_by: str = 'created_at',  # created_at | likes
+        order: str = 'desc',  # asc | desc
         db: AsyncSession = Depends(get_async_db)
 ):
-    """获取文章的所有已审核评论"""
+    """获取文章的所有已审核评论
+    
+    Args:
+        article_id: 文章ID
+        page: 页码
+        per_page: 每页数量
+        sort_by: 排序方式 (created_at-时间, likes-热度)
+        order: 排序方向 (asc-升序, desc-降序)
+    """
     try:
         from sqlalchemy import select, func
         from shared.models.user import User
+
+        # 验证排序参数
+        valid_sort_fields = ['created_at', 'likes']
+        if sort_by not in valid_sort_fields:
+            sort_by = 'created_at'
+
+        valid_orders = ['asc', 'desc']
+        if order not in valid_orders:
+            order = 'desc'
+
+        # 构建排序表达式
+        sort_field = getattr(Comment, sort_by)
+        if order == 'desc':
+            sort_expression = sort_field.desc()
+        else:
+            sort_expression = sort_field.asc()
 
         # 查询已审核的评论
         query = (
             select(Comment)
             .where(Comment.article_id == article_id)
             .where(Comment.is_approved == True)
-            .order_by(Comment.created_at.desc())
+            .order_by(sort_expression)
             .offset((page - 1) * per_page)
             .limit(per_page)
         )
@@ -342,7 +368,9 @@ async def get_article_comments(
                 "total": total,
                 "page": page,
                 "per_page": per_page,
-                "total_pages": (total + per_page - 1) // per_page
+                "total_pages": (total + per_page - 1) // per_page,
+                "sort_by": sort_by,
+                "order": order
             }
         )
 

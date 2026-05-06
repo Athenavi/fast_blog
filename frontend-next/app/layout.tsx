@@ -3,6 +3,7 @@ import '../globals.css';
 import '../styles/rtl.css';
 import {getDirection} from '@/i18n';
 import Navbar from '@/components/Navbar';
+import {GlobalShortcuts} from '@/components/GlobalShortcuts';
 
 export const metadata: Metadata = {
     title: 'FastBlog',
@@ -27,6 +28,7 @@ export default function RootLayout({
         <html lang={defaultLocale} dir={direction} suppressHydrationWarning>
         <body className="antialiased" suppressHydrationWarning>
         <Navbar/>
+        <GlobalShortcuts/>
         {children}
         </body>
         </html>

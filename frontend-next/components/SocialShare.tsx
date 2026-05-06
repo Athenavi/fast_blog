@@ -1,7 +1,7 @@
 'use client';
 
 import React, {useState} from 'react';
-import {Check, Copy, Facebook, Linkedin, Mail, MessageCircle, Share2, Twitter} from 'lucide-react';
+import {BookOpen, Check, Copy, Facebook, Linkedin, Mail, MessageCircle, Send, Share2, Twitter, Zap} from 'lucide-react';
 
 interface SocialShareProps {
     url: string;
@@ -13,7 +13,18 @@ interface SocialShareProps {
     layout?: 'horizontal' | 'vertical' | 'dropdown';
 }
 
-type SocialPlatform = 'facebook' | 'twitter' | 'linkedin' | 'wechat' | 'weibo' | 'email' | 'copy';
+type SocialPlatform =
+    'facebook'
+    | 'twitter'
+    | 'linkedin'
+    | 'wechat'
+    | 'weibo'
+    | 'email'
+    | 'copy'
+    | 'zhihu'
+    | 'juejin'
+    | 'segmentfault'
+    | 'telegram';
 
 interface PlatformConfig {
     name: string;
@@ -68,6 +79,34 @@ const platformConfigs: Record<SocialPlatform, PlatformConfig> = {
         color: '#6B7280',
         shareUrl: () => '', // 特殊处理
     },
+    zhihu: {
+        name: '知乎',
+        icon: BookOpen,
+        color: '#0084FF',
+        shareUrl: (url, title) =>
+            `https://zhuanlan.zhihu.com/share?url=${encodeURIComponent(url)}&title=${encodeURIComponent(title)}`,
+    },
+    juejin: {
+        name: '掘金',
+        icon: Zap,
+        color: '#1E80FF',
+        shareUrl: (url, title) =>
+            `https://juejin.cn/share?url=${encodeURIComponent(url)}&title=${encodeURIComponent(title)}`,
+    },
+    segmentfault: {
+        name: 'SegmentFault',
+        icon: Share2,
+        color: '#009A61',
+        shareUrl: (url, title) =>
+            `https://segmentfault.com/share?url=${encodeURIComponent(url)}&title=${encodeURIComponent(title)}`,
+    },
+    telegram: {
+        name: 'Telegram',
+        icon: Send,
+        color: '#0088CC',
+        shareUrl: (url, title) =>
+            `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(title)}`,
+    },
 };
 
 const SocialShare: React.FC<SocialShareProps> = ({
@@ -75,7 +114,7 @@ const SocialShare: React.FC<SocialShareProps> = ({
     title,
     description = '',
     image,
-    platforms = ['facebook', 'twitter', 'linkedin', 'wechat', 'weibo', 'email', 'copy'],
+                                                     platforms = ['facebook', 'twitter', 'linkedin', 'wechat', 'weibo', 'zhihu', 'juejin', 'segmentfault', 'telegram', 'email', 'copy'],
     size = 'md',
     layout = 'horizontal',
 }) => {

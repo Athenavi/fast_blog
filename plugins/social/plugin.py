@@ -123,6 +123,10 @@ class SocialPlugin(BasePlugin):
             'twitter': {'name': 'Twitter', 'icon': '🐦', 'color': '#1DA1F2'},
             'facebook': {'name': 'Facebook', 'icon': '📘', 'color': '#1877F2'},
             'linkedin': {'name': 'LinkedIn', 'icon': '💼', 'color': '#0A66C2'},
+            'zhihu': {'name': '知乎', 'icon': '📖', 'color': '#0084FF'},
+            'juejin': {'name': '掘金', 'icon': '⚡', 'color': '#1E80FF'},
+            'segmentfault': {'name': 'SegmentFault', 'icon': '🔗', 'color': '#009A61'},
+            'telegram': {'name': 'Telegram', 'icon': '✈️', 'color': '#0088CC'},
         }
 
         for platform in platforms:
@@ -165,6 +169,10 @@ class SocialPlugin(BasePlugin):
             'twitter': f'https://twitter.com/intent/tweet?url={encoded_url}&text={encoded_title}',
             'facebook': f'https://www.facebook.com/sharer/sharer.php?u={encoded_url}',
             'linkedin': f'https://www.linkedin.com/shareArticle?mini=true&url={encoded_url}&title={encoded_title}',
+            'zhihu': f'https://zhuanlan.zhihu.com/share?url={encoded_url}&title={encoded_title}',
+            'juejin': f'https://juejin.cn/share?url={encoded_url}&title={encoded_title}',
+            'segmentfault': f'https://segmentfault.com/share?url={encoded_url}&title={encoded_title}',
+            'telegram': f'https://t.me/share/url?url={encoded_url}&text={encoded_title}',
         }
 
         return share_urls.get(platform, url)
@@ -276,7 +284,8 @@ class SocialPlugin(BasePlugin):
                             'key': 'share_platforms',
                             'label': '分享平台',
                             'type': 'multiselect',
-                            'options': ['wechat', 'weibo', 'qq', 'twitter', 'facebook', 'linkedin'],
+                            'options': ['wechat', 'weibo', 'qq', 'twitter', 'facebook', 'linkedin', 'zhihu', 'juejin',
+                                        'segmentfault', 'telegram'],
                         },
                         {
                             'key': 'button_position',

@@ -2801,6 +2801,59 @@ models:
         unique: true
 
   # ============================================================================
+  # 分享统计模型
+  # ============================================================================
+  ShareStat:
+    description: 分享统计模型
+    properties:
+      id:
+        type: bigint
+        description: 统计 ID
+      article_id:
+        type: bigint
+        description: 文章 ID
+        foreignKey: Article
+        index: true
+      platform:
+        type: string
+        maxLength: 50
+        description: 分享平台 (wechat, weibo, twitter, facebook, linkedin, zhihu, juejin, segmentfault, telegram, copy)
+        index: true
+      shared_by:
+        type: bigint
+        nullable: true
+        description: 分享者用户 ID
+        foreignKey: User
+      ip_address:
+        type: string
+        nullable: true
+        maxLength: 45
+        description: 分享者 IP 地址
+      user_agent:
+        type: string
+        nullable: true
+        maxLength: 500
+        description: 用户代理
+      created_at:
+        type: string
+        format: date-time
+        description: 分享时间
+    orm: true
+    table: share_stats
+    indexes:
+      - name: idx_share_stats_article_platform
+        columns: [ article_id, platform ]
+        comment: "文章和平台联合索引"
+      - name: idx_share_stats_created
+        columns: [ created_at ]
+        order: DESC
+        comment: "创建时间索引"
+      - name: idx_share_stats_article_created
+        columns: [ article_id, created_at ]
+        order: DESC
+        comment: "文章分享时间索引"
+
+  # ============================================================================
   # 多站点支持 - Site 模型
   # ============================================================================
   # ============================================================================

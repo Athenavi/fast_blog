@@ -1,74 +1,76 @@
 'use client';
 
-import { useState, useMemo } from 'react';
-import { getAvailableEmotes } from '@/lib/emoteService';
-import { Search } from 'lucide-react';
+import React, {useState} from 'react';
+import {getAvailableEmotes} from '@/lib/emoteService';
+import {Button} from '@/components/ui/button';
+import {Popover, PopoverContent, PopoverTrigger} from '@/components/ui/popover';
+import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/components/ui/tabs';
+import {Smile} from 'lucide-react';
 
 interface EmotePickerProps {
   onSelect: (emoteCode: string) => void;
+  trigger?: React.ReactNode;
 }
 
-export function EmotePicker({ onSelect }: EmotePickerProps) {
-  const [searchTerm, setSearchTerm] = useState('');
-  const emotes = useMemo(() => getAvailableEmotes(), []);
-
-  const filteredEmotes = emotes.filter(emote => 
-    emote.code.includes(searchTerm.toLowerCase()) || 
-    emote.category.includes(searchTerm)
-  );
-
+export function EmotePicker({onSelect, trigger}: EmotePickerProps) {
+  const [open, setOpen] = useState(false);
+  const emotes = getAvailableEmotes();
+  
   // 按分类分组
-  const groupedEmotes = useMemo(() => {
-    const groups: Record<string, typeof emotes> = {};
-    filteredEmotes.forEach(emote => {
-      if (!groups[emote.category]) {
-        groups[emote.category] = [];
-      }
-      groups[emote.category].push(emote);
-    });
-    return groups;
-  }, [filteredEmotes]);
+  const categorizedEmotes = emotes.reduce((acc, emote) => {
+    if (!acc[emote.category]) {
+      acc[emote.category] = [];
+    }
+    acc[emote.category].push(emote);
+    return acc;
+  }, {} as Record<string, typeof emotes>);
+
+  const categories = Object.keys(categorizedEmotes);
+
+  const handleSelect = (code: string) => {
+    onSelect(code);
+    setOpen(false);
+  };
 
   return (
-    <div className="w-72 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-xl p-3">
-      {/* 搜索框 */}
-      <div className="relative mb-3">
-        <Search className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-        <input
-          type="text"
-          placeholder="搜索表情..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-8 pr-2 py-1.5 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-        />
-      </div>
-
-      {/* 表情列表 */}
-      <div className="max-h-64 overflow-y-auto space-y-3">
-        {Object.entries(groupedEmotes).map(([category, categoryEmotes]) => (
-          <div key={category}>
-            <h4 className="text-xs font-medium text-gray-500 dark:text-gray-400 mb-1.5">{category}</h4>
-            <div className="grid grid-cols-6 gap-1">
-              {categoryEmotes.map((emote) => (
-                <button
-                  key={emote.code}
-                  onClick={() => onSelect(emote.code)}
-                  title={emote.code}
-                  className="p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 rounded transition-colors text-xl flex items-center justify-center"
-                >
-                  {emote.emoji}
-                </button>
+      <Popover open={open} onOpenChange={setOpen}>
+        <PopoverTrigger asChild>
+          {trigger || (
+              <Button variant="ghost" size="sm" type="button">
+                <Smile className="w-5 h-5"/>
+              </Button>
+          )}
+        </PopoverTrigger>
+        <PopoverContent className="w-80 p-2" align="start">
+          <Tabs defaultValue={categories[0]} className="w-full">
+            <TabsList className="grid w-full grid-cols-4 mb-2">
+              {categories.map((category) => (
+                  <TabsTrigger key={category} value={category} className="text-xs">
+                    {category}
+                  </TabsTrigger>
               ))}
-            </div>
-          </div>
-        ))}
-        
-        {filteredEmotes.length === 0 && (
-          <div className="text-center py-4 text-sm text-gray-500 dark:text-gray-400">
-            未找到相关表情
-          </div>
-        )}
-      </div>
-    </div>
+            </TabsList>
+
+            {categories.map((category) => (
+                <TabsContent key={category} value={category} className="mt-0">
+                  <div className="grid grid-cols-6 gap-1 max-h-48 overflow-y-auto p-1">
+                    {categorizedEmotes[category].map((emote) => (
+                        <Button
+                            key={emote.code}
+                            variant="ghost"
+                            size="sm"
+                            className="h-9 w-9 p-0 hover:bg-gray-100 dark:hover:bg-gray-800 text-lg"
+                            onClick={() => handleSelect(emote.code)}
+                            title={emote.code}
+                        >
+                          {emote.emoji}
+                        </Button>
+                    ))}
+                  </div>
+                </TabsContent>
+            ))}
+          </Tabs>
+        </PopoverContent>
+      </Popover>
   );
 }

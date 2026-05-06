@@ -1,215 +1,160 @@
 /**
- * 本地草稿管理服务
- * 使用 localStorage 保存和加载文章草稿
+ * 本地草稿服务
+ * 提供离线草稿保存和恢复功能
  */
 
-export interface LocalDraft {
-    articleId: number;
-    title: string;
-    excerpt: string;
-    content: string;
-    cover_image: string;
-    tags: string[];
-    category_id: number | null;
-    status: number;
-    hidden: boolean;
-    is_vip_only: boolean;
-    required_vip_level: number;
-    is_featured: boolean;
-    savedAt: string; // ISO 格式时间戳
-    autoSave?: boolean; // 是否为自动保存
+interface DraftData {
+    [key: string]: any;
 }
 
-export class DraftService {
-    private static readonly DRAFT_PREFIX = 'article_draft_';
-    private static readonly DRAFT_LIST_KEY = 'article_draft_list';
+interface SavedDraft {
+    data: DraftData;
+    savedAt: string;
+    articleId?: number;
+}
 
+const DRAFT_STORAGE_KEY = 'fastblog_drafts';
+
+class DraftService {
     /**
-     * 保存草稿到本地
+     * 保存草稿到本地存储
+     * @param articleId - 文章ID（可选，新建文章时可不传）
+     * @param data - 草稿数据
      */
-    static saveDraft(articleId: number, draftData: Omit<LocalDraft, 'articleId' | 'savedAt'>): void {
+    saveDraft(articleId: number | string, data: DraftData): void {
         try {
-            const draft: LocalDraft = {
-                articleId,
-                ...draftData,
-                savedAt: new Date().toISOString()
+            const drafts = this.getAllDrafts();
+            const key = articleId.toString();
+
+            drafts[key] = {
+                data,
+                savedAt: new Date().toISOString(),
+                articleId: typeof articleId === 'number' ? articleId : undefined,
             };
 
-            // 保存单个草稿
-            const draftKey = `${this.DRAFT_PREFIX}${articleId}`;
-            localStorage.setItem(draftKey, JSON.stringify(draft));
-
-            // 更新草稿列表
-            this.addToDraftList(articleId);
-
-            console.log('✅ 草稿已保存到本地', {articleId, savedAt: draft.savedAt});
+            localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(drafts));
+            console.log('[DraftService] Draft saved:', key);
         } catch (error) {
-            console.error('❌ 保存草稿失败:', error);
-            throw error;
+            console.error('[DraftService] Failed to save draft:', error);
         }
     }
 
     /**
-     * 从本地加载草稿
+     * 获取草稿
+     * @param articleId - 文章ID
+     * @returns 草稿数据，如果不存在则返回 null
      */
-    static loadDraft(articleId: number): LocalDraft | null {
+    getDraft(articleId: number | string): SavedDraft | null {
         try {
-            const draftKey = `${this.DRAFT_PREFIX}${articleId}`;
-            const draftJson = localStorage.getItem(draftKey);
-
-            if (!draftJson) {
-                return null;
-            }
-
-            const draft = JSON.parse(draftJson) as LocalDraft;
-            console.log('✅ 已加载本地草稿', {articleId, savedAt: draft.savedAt});
-
-            return draft;
+            const drafts = this.getAllDrafts();
+            const key = articleId.toString();
+            return drafts[key] || null;
         } catch (error) {
-            console.error('❌ 加载草稿失败:', error);
+            console.error('[DraftService] Failed to get draft:', error);
             return null;
         }
     }
 
     /**
-     * 删除本地草稿
+     * 删除草稿
+     * @param articleId - 文章ID
      */
-    static deleteDraft(articleId: number): void {
+    deleteDraft(articleId: number | string): void {
         try {
-            const draftKey = `${this.DRAFT_PREFIX}${articleId}`;
-            localStorage.removeItem(draftKey);
-
-            // 从草稿列表中移除
-            this.removeFromDraftList(articleId);
-
-            console.log('✅ 已删除本地草稿', {articleId});
+            const drafts = this.getAllDrafts();
+            const key = articleId.toString();
+            delete drafts[key];
+            localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(drafts));
+            console.log('[DraftService] Draft deleted:', key);
         } catch (error) {
-            console.error('❌ 删除草稿失败:', error);
+            console.error('[DraftService] Failed to delete draft:', error);
+    }
+    }
+
+    /**
+     * 获取所有草稿
+     * @returns 所有草稿的键值对
+     */
+    getAllDrafts(): Record<string, SavedDraft> {
+        try {
+            const stored = localStorage.getItem(DRAFT_STORAGE_KEY);
+            return stored ? JSON.parse(stored) : {};
+        } catch (error) {
+            console.error('[DraftService] Failed to get all drafts:', error);
+            return {};
         }
     }
 
     /**
-     * 检查是否存在本地草稿
+     * 检查是否存在草稿
+     * @param articleId - 文章ID
+     * @returns 是否存在草稿
      */
-    static hasDraft(articleId: number): boolean {
-        const draftKey = `${this.DRAFT_PREFIX}${articleId}`;
-        return localStorage.getItem(draftKey) !== null;
-    }
-
-    /**
-     * 获取所有草稿列表
-     */
-    static getDraftList(): LocalDraft[] {
-        try {
-            const draftListJson = localStorage.getItem(this.DRAFT_LIST_KEY);
-
-            if (!draftListJson) {
-                return [];
-            }
-
-            const articleIds: number[] = JSON.parse(draftListJson);
-            const drafts: LocalDraft[] = [];
-
-            articleIds.forEach(articleId => {
-                const draft = this.loadDraft(articleId);
-                if (draft) {
-                    drafts.push(draft);
-                }
-            });
-
-            // 按保存时间降序排列
-            return drafts.sort((a, b) =>
-                new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime()
-            );
-        } catch (error) {
-            console.error('❌ 获取草稿列表失败:', error);
-            return [];
-        }
+    hasDraft(articleId: number | string): boolean {
+        const draft = this.getDraft(articleId);
+        return draft !== null;
     }
 
     /**
      * 获取草稿的最后保存时间
+     * @param articleId - 文章ID
+     * @returns 最后保存时间，如果不存在则返回 null
      */
-    static getLastSavedTime(articleId: number): string | null {
-        const draft = this.loadDraft(articleId);
-        return draft ? draft.savedAt : null;
+    getLastSavedTime(articleId: number | string): Date | null {
+        const draft = this.getDraft(articleId);
+        return draft ? new Date(draft.savedAt) : null;
     }
 
     /**
-     * 清除所有草稿
+     * 清理过期草稿（超过7天）
      */
-    static clearAllDrafts(): void {
+    cleanupExpiredDrafts(): void {
         try {
-            const draftList = this.getDraftList();
+            const drafts = this.getAllDrafts();
+            const now = new Date();
+            const sevenDaysMs = 7 * 24 * 60 * 60 * 1000;
 
-            draftList.forEach(draft => {
-                const draftKey = `${this.DRAFT_PREFIX}${draft.articleId}`;
-                localStorage.removeItem(draftKey);
+            const cleanedDrafts: Record<string, SavedDraft> = {};
+
+            Object.entries(drafts).forEach(([key, draft]) => {
+                const savedAt = new Date(draft.savedAt);
+                const diff = now.getTime() - savedAt.getTime();
+
+                // 保留7天内的草稿
+                if (diff < sevenDaysMs) {
+                    cleanedDrafts[key] = draft;
+                }
             });
 
-            localStorage.removeItem(this.DRAFT_LIST_KEY);
-
-            console.log('✅ 已清除所有本地草稿');
+            localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(cleanedDrafts));
+            console.log('[DraftService] Expired drafts cleaned up');
         } catch (error) {
-            console.error('❌ 清除草稿失败:', error);
+            console.error('[DraftService] Failed to cleanup drafts:', error);
         }
     }
 
     /**
-     * 比较草稿与服务器数据是否有变化
+     * 清空所有草稿
      */
-    static hasChanges(
-        draft: LocalDraft,
-        serverData: {
-            title: string;
-            content: string;
-            excerpt: string;
-            cover_image: string;
-            tags: string[];
-            category_id: number | null;
-        }
-    ): boolean {
-        return (
-            draft.title !== serverData.title ||
-            draft.content !== serverData.content ||
-            draft.excerpt !== serverData.excerpt ||
-            draft.cover_image !== serverData.cover_image ||
-            JSON.stringify(draft.tags) !== JSON.stringify(serverData.tags) ||
-            draft.category_id !== serverData.category_id
-        );
-    }
-
-    /**
-     * 添加文章ID到草稿列表
-     */
-    private static addToDraftList(articleId: number): void {
+    clearAllDrafts(): void {
         try {
-            const draftListJson = localStorage.getItem(this.DRAFT_LIST_KEY);
-            const articleIds: number[] = draftListJson ? JSON.parse(draftListJson) : [];
-
-            if (!articleIds.includes(articleId)) {
-                articleIds.push(articleId);
-                localStorage.setItem(this.DRAFT_LIST_KEY, JSON.stringify(articleIds));
-            }
+            localStorage.removeItem(DRAFT_STORAGE_KEY);
+            console.log('[DraftService] All drafts cleared');
         } catch (error) {
-            console.error('❌ 更新草稿列表失败:', error);
+            console.error('[DraftService] Failed to clear drafts:', error);
         }
     }
 
     /**
-     * 从草稿列表中移除文章ID
+     * 获取草稿数量
+     * @returns 草稿数量
      */
-    private static removeFromDraftList(articleId: number): void {
-        try {
-            const draftListJson = localStorage.getItem(this.DRAFT_LIST_KEY);
-
-            if (draftListJson) {
-                const articleIds: number[] = JSON.parse(draftListJson);
-                const filteredIds = articleIds.filter(id => id !== articleId);
-                localStorage.setItem(this.DRAFT_LIST_KEY, JSON.stringify(filteredIds));
-            }
-        } catch (error) {
-            console.error('❌ 更新草稿列表失败:', error);
-        }
+    getDraftCount(): number {
+        const drafts = this.getAllDrafts();
+        return Object.keys(drafts).length;
     }
 }
+
+// 导出单例实例
+export const draftService = new DraftService();
+export default draftService;
