@@ -1,6 +1,6 @@
 'use client';
 
-import React, {useEffect, useState, useCallback, useRef} from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import Link from 'next/link';
 import Image from 'next/image';
 import tocbot from 'tocbot';
@@ -205,7 +205,7 @@ const ArticleDetail: React.FC<{ articleData: ArticleDetailResponse }> = ({articl
       } catch {
       }
     };
-  }, [article.content, showMobileToc]); // 添加 showMobileToc 依赖
+  }, [article.content]); // 移除 showMobileToc 依赖以避免不必要的重新渲染
 
   return (
       <div className="min-h-screen bg-white dark:bg-gray-950 transition-colors duration-300">
@@ -412,44 +412,50 @@ const BlogDetailContent: React.FC<BlogDetailContentProps> = ({slug}) => {
     excerpt: string;
   } | null>(null);
 
-  useEffect(() => {
+  // 使用 useRef 来跟踪当前 slug，避免不必要的重复请求
+  const prevSlugRef = useRef<string | null>(null);
+
+  // 提取 fetchArticle 函数以便复用
+  const fetchArticle = useCallback(async () => {
     if (!slug) return;
-    let cancelled = false;
 
-    const fetchArticle = async () => {
-      try {
-        setLoading(true);
-        const response = await ArticleService.getArticleBySlug(slug);
-        if (cancelled) return;
+    try {
+      setLoading(true);
+      const response = await ArticleService.getArticleBySlug(slug);
 
-        if (response.success && response.data) {
-          setArticleData(response.data);
-          setRequiresPassword(false);
+      if (response.success && response.data) {
+        setArticleData(response.data);
+        setRequiresPassword(false);
+      } else {
+        const data = response.data as { requires_password?: boolean } & Partial<PasswordArticleInfo>;
+        if (response.error === 'Password required' && data?.requires_password) {
+          setRequiresPassword(true);
+          setPasswordArticleInfo({
+            article_id: data.article_id!,
+            article_title: data.article_title!,
+            excerpt: data.excerpt!,
+          });
         } else {
-          const data = response.data as { requires_password?: boolean } & Partial<PasswordArticleInfo>;
-          if (response.error === 'Password required' && data?.requires_password) {
-            setRequiresPassword(true);
-            setPasswordArticleInfo({
-              article_id: data.article_id!,
-              article_title: data.article_title!,
-              excerpt: data.excerpt!,
-            });
-          } else {
-            setError(response.error || '文章不存在');
-          }
+          setError(response.error || '文章不存在');
         }
-      } catch (err) {
-        if (!cancelled) setError(err instanceof Error ? err.message : '加载失败');
-      } finally {
-        if (!cancelled) setLoading(false);
       }
-    };
-
-    fetchArticle();
-    return () => {
-      cancelled = true;
-    };
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '加载失败');
+    } finally {
+      setLoading(false);
+    }
   }, [slug]);
+
+  useEffect(() => {
+    // 如果 slug 没有变化且已有数据，不重新请求
+    if (prevSlugRef.current === slug && articleData) {
+      return;
+    }
+
+    prevSlugRef.current = slug;
+    fetchArticle();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [slug, fetchArticle]);
 
   if (loading) return <LoadingState message="加载文章中..."/>;
 
@@ -461,8 +467,8 @@ const BlogDetailContent: React.FC<BlogDetailContentProps> = ({slug}) => {
               onPasswordVerified={() => {
                 setRequiresPassword(false);
                 setPasswordArticleInfo(null);
-                setLoading(true);
-                window.location.reload();
+                // 重新获取文章数据，而不是刷新整个页面
+                fetchArticle();
               }}
           />
         </div>
@@ -483,7 +489,7 @@ const BlogDetailContent: React.FC<BlogDetailContentProps> = ({slug}) => {
   return (
       <>
         <ArticleSchema article={articleData}/>
-        <ArticleDetail articleData={articleData}/>
+        <ArticleDetail articleData={articleData as ArticleDetailResponse}/>
       </>
   );
 };
