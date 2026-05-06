@@ -39,6 +39,8 @@ def _import_modules():
         "page_templates", "comment_subscriptions", "installation", "system", "screen_options", "query_monitor", "amp",
         "css_optimizer", "translation_memory", "translation_service", "internal_links", "migrations",
         "template_hierarchy", "ecommerce", "ecommerce_cart",
+        "inventory_management",  # 库存管理
+        "payment_management",  # 支付管理
     ]
 
     for name in module_names:
@@ -64,6 +66,8 @@ __all__ = [
     "maintenance", "article_password", "page_templates", "comment_subscriptions",
     "installation", "system", "screen_options", "query_monitor", "amp", "css_optimizer", "translation_memory",
     "translation_service", "internal_links", "migrations", "template_hierarchy", "ecommerce", "ecommerce_cart",
+    "inventory_management",  # 库存管理
+    "payment_management",  # 支付管理
 ]
 
 api_v1_router = APIRouter(prefix="/api/v1", tags=["api-v1"])
@@ -123,6 +127,8 @@ def _include_routers():
         ("template_hierarchy", True, "/template-hierarchy"),
         ("ecommerce", True, ""),  # 商品管理
         ("ecommerce_cart", True, ""),  # 购物车和订单
+        ("inventory_management", True, "/inventory"),  # 库存管理
+        ("payment_management", True, "/payment"),  # 支付管理
     ]
 
     for name, required, prefix in router_configs:

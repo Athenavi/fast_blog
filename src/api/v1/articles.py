@@ -653,6 +653,24 @@ async def create_article_api(
                 print(f"保存修订失败: {rev_err}")
 
         await db.commit()
+
+        # 触发 Webhook 事件
+        try:
+            from shared.services.webhook_service import webhook_service
+            webhook_service.trigger_event(
+                'article.created',
+                {
+                    'article_id': new_article.id,
+                    'title': new_article.title,
+                    'slug': new_article.slug,
+                    'author_id': current_user.id,
+                    'status': new_article.status,
+                    'created_at': new_article.created_at.isoformat() if new_article.created_at else None,
+                }
+            )
+        except Exception as webhook_err:
+            print(f"Webhook trigger failed: {webhook_err}")
+        
         return ApiResponse(success=True, data={"message": "Article created successfully", "article_id": new_article.id})
     except Exception as e:
         await db.rollback()
@@ -761,6 +779,23 @@ async def update_article_api(
                 print(f"保存修订失败: {rev_err}")
 
         await db.commit()
+
+        # 触发 Webhook 事件
+        try:
+            from shared.services.webhook_service import webhook_service
+            webhook_service.trigger_event(
+                'article.updated',
+                {
+                    'article_id': article_id,
+                    'title': article.title,
+                    'slug': article.slug,
+                    'updated_fields': list(form_data.keys()),
+                    'updated_at': article.updated_at.isoformat() if article.updated_at else None,
+                }
+            )
+        except Exception as webhook_err:
+            print(f"Webhook trigger failed: {webhook_err}")
+        
         return ApiResponse(success=True, data={"message": "Article updated successfully"})
     except Exception as e:
         await db.rollback()
@@ -799,6 +834,22 @@ async def delete_article_api(
 
         await db.delete(article)
         await db.commit()
+
+        # 触发 Webhook 事件
+        try:
+            from shared.services.webhook_service import webhook_service
+            webhook_service.trigger_event(
+                'article.deleted',
+                {
+                    'article_id': article_id,
+                    'title': article.title,
+                    'slug': article.slug,
+                    'deleted_at': datetime.now().isoformat(),
+                }
+            )
+        except Exception as webhook_err:
+            print(f"Webhook trigger failed: {webhook_err}")
+        
         return ApiResponse(success=True, data={"message": "Article deleted successfully"})
     except Exception as e:
         import traceback

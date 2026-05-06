@@ -8,10 +8,11 @@
 4. 批量添加标签
 5. 操作日志记录
 """
-from typing import List, Dict, Optional
 from datetime import datetime
-from sqlalchemy.ext.asyncio import AsyncSession
+from typing import List, Dict, Optional
+
 from sqlalchemy import update, delete
+from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class BatchOperationService:
@@ -28,7 +29,8 @@ class BatchOperationService:
     async def batch_delete_articles(
             self,
             article_ids: List[int],
-            operator_id: Optional[int] = None
+            operator_id: Optional[int] = None,
+            user=None
     ) -> Dict:
         """
         批量删除文章
@@ -36,18 +38,36 @@ class BatchOperationService:
         Args:
             article_ids: 文章ID列表
             operator_id: 操作者ID
+            user: 当前用户对象（用于权限检查）
             
         Returns:
             操作结果
         """
         from shared.models.article import Article
         from shared.models.comment import Comment
-        from shared.models.article_view import ArticleView
+        from sqlalchemy import select
 
         if not article_ids:
             return {'success': False, 'message': '没有选择任何文章'}
 
         try:
+            # 权限检查：如果不是管理员，只能删除自己的文章
+            if user and not getattr(user, 'is_superuser', False):
+                stmt = select(Article).where(
+                    Article.id.in_(article_ids),
+                    Article.user_id == user.id
+                )
+                result = await self.db.execute(stmt)
+                allowed_articles = result.scalars().all()
+                allowed_ids = [a.id for a in allowed_articles]
+
+                if len(allowed_ids) != len(article_ids):
+                    forbidden_count = len(article_ids) - len(allowed_ids)
+                    return {
+                        'success': False,
+                        'message': f'您没有权限删除 {forbidden_count} 篇文章'
+                    }
+
             # 先删除相关文章的评论
             await self.db.execute(
                 delete(Comment).where(
@@ -55,12 +75,8 @@ class BatchOperationService:
                 )
             )
 
-            # 删除文章浏览记录
-            await self.db.execute(
-                delete(ArticleView).where(
-                    ArticleView.article_id.in_(article_ids)
-                )
-            )
+            # 注意：如果有文章浏览记录表，也应该在这里删除
+            # 目前文章浏览量直接存储在 Article 表中，随文章一起删除
 
             # 删除文章
             result = await self.db.execute(
@@ -95,7 +111,8 @@ class BatchOperationService:
             self,
             article_ids: List[int],
             status: str,
-            operator_id: Optional[int] = None
+            operator_id: Optional[int] = None,
+            user=None
     ) -> Dict:
         """
         批量更新文章状态
@@ -104,11 +121,13 @@ class BatchOperationService:
             article_ids: 文章ID列表
             status: 新状态 (published, draft, archived)
             operator_id: 操作者ID
+            user: 当前用户对象（用于权限检查）
             
         Returns:
             操作结果
         """
         from shared.models.article import Article
+        from sqlalchemy import select
 
         if not article_ids:
             return {'success': False, 'message': '没有选择任何文章'}
@@ -118,6 +137,23 @@ class BatchOperationService:
             return {'success': False, 'message': f'无效的状态: {status}'}
 
         try:
+            # 权限检查：如果不是管理员，只能更新自己的文章
+            if user and not getattr(user, 'is_superuser', False):
+                stmt = select(Article).where(
+                    Article.id.in_(article_ids),
+                    Article.user_id == user.id
+                )
+                result = await self.db.execute(stmt)
+                allowed_articles = result.scalars().all()
+                allowed_ids = [a.id for a in allowed_articles]
+
+                if len(allowed_ids) != len(article_ids):
+                    forbidden_count = len(article_ids) - len(allowed_ids)
+                    return {
+                        'success': False,
+                        'message': f'您没有权限更新 {forbidden_count} 篇文章'
+                    }
+
             result = await self.db.execute(
                 update(Article)
                 .where(Article.id.in_(article_ids))
@@ -153,7 +189,8 @@ class BatchOperationService:
             self,
             article_ids: List[int],
             category_id: int,
-            operator_id: Optional[int] = None
+            operator_id: Optional[int] = None,
+            user=None
     ) -> Dict:
         """
         批量移动文章到指定分类
@@ -162,12 +199,14 @@ class BatchOperationService:
             article_ids: 文章ID列表
             category_id: 目标分类ID
             operator_id: 操作者ID
+            user: 当前用户对象（用于权限检查）
             
         Returns:
             操作结果
         """
         from shared.models.article import Article
         from shared.models.category import Category
+        from sqlalchemy import select
 
         if not article_ids:
             return {'success': False, 'message': '没有选择任何文章'}
@@ -178,6 +217,23 @@ class BatchOperationService:
             return {'success': False, 'message': '分类不存在'}
 
         try:
+            # 权限检查：如果不是管理员，只能移动自己的文章
+            if user and not getattr(user, 'is_superuser', False):
+                stmt = select(Article).where(
+                    Article.id.in_(article_ids),
+                    Article.user_id == user.id
+                )
+                result = await self.db.execute(stmt)
+                allowed_articles = result.scalars().all()
+                allowed_ids = [a.id for a in allowed_articles]
+
+                if len(allowed_ids) != len(article_ids):
+                    forbidden_count = len(article_ids) - len(allowed_ids)
+                    return {
+                        'success': False,
+                        'message': f'您没有权限移动 {forbidden_count} 篇文章'
+                    }
+
             result = await self.db.execute(
                 update(Article)
                 .where(Article.id.in_(article_ids))
@@ -213,7 +269,8 @@ class BatchOperationService:
             self,
             article_ids: List[int],
             tags: List[str],
-            operator_id: Optional[int] = None
+            operator_id: Optional[int] = None,
+            user=None
     ) -> Dict:
         """
         批量添加标签
@@ -222,11 +279,13 @@ class BatchOperationService:
             article_ids: 文章ID列表
             tags: 标签列表
             operator_id: 操作者ID
+            user: 当前用户对象（用于权限检查）
             
         Returns:
             操作结果
         """
         from shared.models.article import Article
+        from sqlalchemy import select
         import json
 
         if not article_ids:
@@ -236,11 +295,28 @@ class BatchOperationService:
             return {'success': False, 'message': '没有提供标签'}
 
         try:
+            # 权限检查：如果不是管理员，只能为自己的文章添加标签
+            if user and not getattr(user, 'is_superuser', False):
+                stmt = select(Article).where(
+                    Article.id.in_(article_ids),
+                    Article.user_id == user.id
+                )
+                result = await self.db.execute(stmt)
+                allowed_articles = result.scalars().all()
+                allowed_ids = [a.id for a in allowed_articles]
+
+                if len(allowed_ids) != len(article_ids):
+                    forbidden_count = len(article_ids) - len(allowed_ids)
+                    return {
+                        'success': False,
+                        'message': f'您没有权限为 {forbidden_count} 篇文章添加标签'
+                    }
+
             # 获取所有文章
             result = await self.db.execute(
-                Article.id, Article.tags
-            ).where(
-                Article.id.in_(article_ids)
+                select(Article.id, Article.tags).where(
+                    Article.id.in_(article_ids)
+                )
             )
 
             articles = result.all()
@@ -392,6 +468,283 @@ class BatchOperationService:
             return {
                 'success': False,
                 'message': f'更新失败: {str(e)}',
+            }
+
+    async def batch_delete_products(
+            self,
+            product_ids: List[int],
+            operator_id: Optional[int] = None,
+            user=None
+    ) -> Dict:
+        """
+        批量删除商品
+        
+        Args:
+            product_ids: 商品ID列表
+            operator_id: 操作者ID
+            user: 当前用户对象（用于权限检查）
+            
+        Returns:
+            操作结果
+        """
+        from shared.models.product import Product
+        from shared.models.cart_item import CartItem
+
+        if not product_ids:
+            return {'success': False, 'message': '没有选择任何商品'}
+
+        try:
+            # 先删除相关购物车项
+            await self.db.execute(
+                delete(CartItem).where(
+                    CartItem.product_id.in_(product_ids)
+                )
+            )
+
+            # 删除商品
+            result = await self.db.execute(
+                delete(Product).where(
+                    Product.id.in_(product_ids)
+                )
+            )
+
+            deleted_count = result.rowcount
+            await self.db.commit()
+
+            # 记录操作日志
+            self._log_operation(
+                'batch_delete_products',
+                {'product_ids': product_ids, 'count': deleted_count},
+                operator_id
+            )
+
+            return {
+                'success': True,
+                'message': f'成功删除 {deleted_count} 个商品',
+                'deleted_count': deleted_count,
+            }
+        except Exception as e:
+            await self.db.rollback()
+            return {
+                'success': False,
+                'message': f'删除失败: {str(e)}',
+            }
+
+    async def batch_update_product_price(
+            self,
+            product_ids: List[int],
+            price: float,
+            original_price: Optional[float] = None,
+            operator_id: Optional[int] = None,
+            user=None
+    ) -> Dict:
+        """
+        批量更新商品价格
+        
+        Args:
+            product_ids: 商品ID列表
+            price: 新价格
+            original_price: 原价（可选）
+            operator_id: 操作者ID
+            user: 当前用户对象（用于权限检查）
+            
+        Returns:
+            操作结果
+        """
+        from shared.models.product import Product
+        from decimal import Decimal
+
+        if not product_ids:
+            return {'success': False, 'message': '没有选择任何商品'}
+
+        if price < 0:
+            return {'success': False, 'message': '价格不能为负数'}
+
+        try:
+            update_values = {
+                'price': Decimal(str(price)),
+                'updated_at': datetime.now()
+            }
+
+            if original_price is not None:
+                update_values['original_price'] = Decimal(str(original_price))
+
+            result = await self.db.execute(
+                update(Product)
+                .where(Product.id.in_(product_ids))
+                .values(**update_values)
+            )
+
+            updated_count = result.rowcount
+            await self.db.commit()
+
+            # 记录操作日志
+            self._log_operation(
+                'batch_update_product_price',
+                {'product_ids': product_ids, 'price': price, 'count': updated_count},
+                operator_id
+            )
+
+            return {
+                'success': True,
+                'message': f'成功更新 {updated_count} 个商品价格',
+                'updated_count': updated_count,
+            }
+        except Exception as e:
+            await self.db.rollback()
+            return {
+                'success': False,
+                'message': f'更新价格失败: {str(e)}',
+            }
+
+    async def batch_update_product_stock(
+            self,
+            product_ids: List[int],
+            stock: int,
+            operation: str = 'set',
+            operator_id: Optional[int] = None,
+            user=None
+    ) -> Dict:
+        """
+        批量更新商品库存
+        
+        Args:
+            product_ids: 商品ID列表
+            stock: 库存数量
+            operation: 操作类型 (set=设置, add=增加, subtract=减少)
+            operator_id: 操作者ID
+            user: 当前用户对象（用于权限检查）
+            
+        Returns:
+            操作结果
+        """
+        from shared.models.product import Product
+        from sqlalchemy import select
+
+        if not product_ids:
+            return {'success': False, 'message': '没有选择任何商品'}
+
+        if operation not in ['set', 'add', 'subtract']:
+            return {'success': False, 'message': f'无效的操作类型: {operation}'}
+
+        try:
+            updated_count = 0
+
+            if operation == 'set':
+                # 直接设置库存
+                result = await self.db.execute(
+                    update(Product)
+                    .where(Product.id.in_(product_ids))
+                    .values(
+                        stock=stock,
+                        updated_at=datetime.now()
+                    )
+                )
+                updated_count = result.rowcount
+            else:
+                # 需要逐个处理增加或减少
+                for product_id in product_ids:
+                    stmt = select(Product).where(Product.id == product_id)
+                    result = await self.db.execute(stmt)
+                    product = result.scalar_one_or_none()
+
+                    if product:
+                        if operation == 'add':
+                            new_stock = product.stock + stock
+                        else:  # subtract
+                            new_stock = max(0, product.stock - stock)
+
+                        await self.db.execute(
+                            update(Product)
+                            .where(Product.id == product_id)
+                            .values(
+                                stock=new_stock,
+                                updated_at=datetime.now()
+                            )
+                        )
+                        updated_count += 1
+
+            await self.db.commit()
+
+            # 记录操作日志
+            self._log_operation(
+                'batch_update_product_stock',
+                {'product_ids': product_ids, 'stock': stock, 'operation': operation, 'count': updated_count},
+                operator_id
+            )
+
+            return {
+                'success': True,
+                'message': f'成功更新 {updated_count} 个商品库存',
+                'updated_count': updated_count,
+            }
+        except Exception as e:
+            await self.db.rollback()
+            return {
+                'success': False,
+                'message': f'更新库存失败: {str(e)}',
+            }
+
+    async def batch_update_product_status(
+            self,
+            product_ids: List[int],
+            status: str,
+            operator_id: Optional[int] = None,
+            user=None
+    ) -> Dict:
+        """
+        批量更新商品状态
+        
+        Args:
+            product_ids: 商品ID列表
+            status: 新状态 (active/inactive)
+            operator_id: 操作者ID
+            user: 当前用户对象（用于权限检查）
+            
+        Returns:
+            操作结果
+        """
+        from shared.models.product import Product
+
+        if not product_ids:
+            return {'success': False, 'message': '没有选择任何商品'}
+
+        valid_statuses = ['active', 'inactive']
+        if status not in valid_statuses:
+            return {'success': False, 'message': f'无效的状态: {status}'}
+
+        try:
+            is_active = (status == 'active')
+
+            result = await self.db.execute(
+                update(Product)
+                .where(Product.id.in_(product_ids))
+                .values(
+                    is_active=is_active,
+                    updated_at=datetime.now()
+                )
+            )
+
+            updated_count = result.rowcount
+            await self.db.commit()
+
+            # 记录操作日志
+            self._log_operation(
+                'batch_update_product_status',
+                {'product_ids': product_ids, 'status': status, 'count': updated_count},
+                operator_id
+            )
+
+            return {
+                'success': True,
+                'message': f'成功更新 {updated_count} 个商品状态为 {status}',
+                'updated_count': updated_count,
+            }
+        except Exception as e:
+            await self.db.rollback()
+            return {
+                'success': False,
+                'message': f'更新状态失败: {str(e)}',
             }
 
     def _log_operation(

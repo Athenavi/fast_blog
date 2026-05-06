@@ -3,7 +3,7 @@
  * 用于在前端动态加载和应用主题
  */
 
-import {createContext, useCallback, useContext, useEffect, useState} from 'react';
+import {createContext, useCallback, useContext, useEffect, useMemo, useState} from 'react';
 
 interface ThemeConfig {
     metadata: {
@@ -110,8 +110,8 @@ export function useTheme() {
                     error: null,
                 });
 
-                // 应用CSS变量（样式表由 ThemeProvider 统一加载）
-                applyCssVariables(result.data.css_variables);
+                // ✅ 移除 applyCssVariables 调用，DOM 操作由 ThemeProvider 统一处理
+                // applyCssVariables(result.data.css_variables);
             } else {
                 setThemeData(prev => ({
                     ...prev,
@@ -128,23 +128,18 @@ export function useTheme() {
         }
     }, []);
 
-    // 应用CSS变量到document
-    const applyCssVariables = (cssVariables: string) => {
-        if (!cssVariables) return;
-
-        // 只在客户端执行，避免服务端和客户端不一致
-        if (typeof window === 'undefined') return;
-
-        let styleElement = document.getElementById('theme-variables') as HTMLStyleElement;
-
-        if (!styleElement) {
-            styleElement = document.createElement('style');
-            styleElement.id = 'theme-variables';
-            document.head.appendChild(styleElement);
-        }
-
-        styleElement.textContent = cssVariables;
-    };
+    // ✅ 移除 applyCssVariables 函数，DOM 操作由 ThemeProvider 统一处理
+    // const applyCssVariables = (cssVariables: string) => {
+    //     if (!cssVariables) return;
+    //     if (typeof window === 'undefined') return;
+    //     let styleElement = document.getElementById('theme-variables') as HTMLStyleElement;
+    //     if (!styleElement) {
+    //         styleElement = document.createElement('style');
+    //         styleElement.id = 'theme-variables';
+    //         document.head.appendChild(styleElement);
+    //     }
+    //     styleElement.textContent = cssVariables;
+    // };
 
     // 初始化时加载主题
     useEffect(() => {
@@ -152,7 +147,7 @@ export function useTheme() {
     }, []); // ✅ 空依赖数组，只在挂载时执行一次
 
     // 获取主题配置值
-    const getThemeValue = (path: string): any => {
+    const getThemeValue = useCallback((path: string): any => {
         if (!themeData.config) return undefined;
 
         const keys = path.split('.');
@@ -164,13 +159,16 @@ export function useTheme() {
         }
 
         return value;
-    };
+    }, [themeData.config]);
 
-    return {
+    // ✅ 使用 useMemo 稳定返回值，避免每次渲染都创建新对象
+    const result = useMemo(() => ({
         ...themeData,
         loadTheme,
         getThemeValue,
-    };
+    }), [themeData, loadTheme, getThemeValue]);
+
+    return result;
 }
 
 export default useTheme;

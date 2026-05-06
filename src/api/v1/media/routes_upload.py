@@ -79,6 +79,27 @@ async def upload_media_file(
 
         successful = [r for r in results if r.get('success')]
         if successful:
+            # 触发 Webhook 事件
+            try:
+                from shared.services.webhook_service import webhook_service
+                for file_result in successful:
+                    if file_result.get('data'):
+                        file_data = file_result['data']
+                        webhook_service.trigger_event(
+                            'media.uploaded',
+                            {
+                                'file_id': file_data.get('id'),
+                                'filename': file_data.get('filename'),
+                                'file_type': file_data.get('mime_type'),
+                                'file_size': file_data.get('size'),
+                                'url': file_data.get('url'),
+                                'uploaded_by': current_user_obj.id,
+                                'uploaded_at': datetime.now().isoformat(),
+                            }
+                        )
+            except Exception as webhook_err:
+                logger.error(f"Webhook trigger failed: {webhook_err}")
+            
             return JSONResponse({'success': True, 'message': '上传成功', 'data': {'files': successful}})
         errors = '; '.join([r.get('error', '未知错误') for r in results if not r.get('success')])
         return JSONResponse({'success': False, 'message': '文件上传失败', 'error': errors}, status_code=400)

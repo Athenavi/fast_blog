@@ -1,7 +1,7 @@
 """
 评论管理API - 包含垃圾评论过滤
 """
-
+from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Request
@@ -206,6 +206,25 @@ async def create_comment(
                 # 通知失败不影响评论创建
 
         # 8. 返回结果
+
+        # 触发 Webhook 事件
+        try:
+            from shared.services.webhook_service import webhook_service
+            webhook_service.trigger_event(
+                'comment.created',
+                {
+                    'comment_id': new_comment.id,
+                    'article_id': comment_data.article_id,
+                    'author_id': current_user.id if current_user else None,
+                    'author_name': current_user.username if current_user else comment_data.author_name or '访客',
+                    'content_preview': new_comment.content[:200],
+                    'is_approved': new_comment.is_approved,
+                    'created_at': new_comment.created_at.isoformat() if new_comment.created_at else None,
+                }
+            )
+        except Exception as webhook_err:
+            print(f"Webhook trigger failed: {webhook_err}")
+        
         return ApiResponse(
             success=True,
             data={
@@ -392,6 +411,21 @@ async def delete_comment(
         await db.delete(comment)
         await db.commit()
 
+        # 触发 Webhook 事件
+        try:
+            from shared.services.webhook_service import webhook_service
+            webhook_service.trigger_event(
+                'comment.deleted',
+                {
+                    'comment_id': comment_id,
+                    'article_id': comment.article_id,
+                    'author_id': comment.user_id,
+                    'deleted_at': datetime.now().isoformat(),
+                }
+            )
+        except Exception as webhook_err:
+            print(f"Webhook trigger failed: {webhook_err}")
+        
         return ApiResponse(
             success=True,
             message="评论删除成功"

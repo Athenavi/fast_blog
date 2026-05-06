@@ -569,6 +569,14 @@ curl -X POST "http://localhost:9421/api/v1/media/upload" \
     except ImportError as e:
         print(f"Warning: Rate Limit middleware could not be loaded: {e}")
 
+    # 添加多站点中间件
+    try:
+        from src.middleware.multisite_middleware import MultiSiteMiddleware
+        app.add_middleware(MultiSiteMiddleware)
+        print("[MultiSite] Multi-site middleware added (domain/path-based routing)")
+    except ImportError as e:
+        print(f"Warning: Multi-site middleware could not be loaded: {e}")
+
     @app.get("/health",
              summary="健康检查",
              description="检查API服务的健康状态，包括数据库、Redis等依赖服务",

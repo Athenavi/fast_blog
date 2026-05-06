@@ -1,28 +1,36 @@
 'use client';
 
 import {useEffect} from 'react';
-import {darkModeManager} from '@/lib/dark-mode-manager';
 
 /**
- * 主题初始化组件
- * 确保主题在客户端正确初始化和同步
+ * 极简主题初始化组件
+ * 只负责确保深色模式类正确设置
  */
 export default function ThemeInitializer({children}: { children: React.ReactNode }) {
     useEffect(() => {
-        // 初始化深色模式管理器
-        const currentTheme = darkModeManager.getTheme();
+        // 从 cookie 读取主题并应用
+        const getThemeFromCookie = () => {
+            const cookies = document.cookie.split(';');
+            for (const cookie of cookies) {
+                const [name, value] = cookie.trim().split('=');
+                if (name === 'theme') {
+                    return value;
+                }
+            }
+            return null;
+        };
 
-        // 确保 HTML 元素上的 dark 类与当前主题状态同步
+        const theme = getThemeFromCookie();
         const root = document.documentElement;
 
-        if (currentTheme === 'dark') {
+        if (theme === 'dark') {
             root.classList.add('dark');
-        } else {
+        } else if (theme === 'light') {
             root.classList.remove('dark');
+        } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            // 如果没有设置主题，使用系统偏好
+            root.classList.add('dark');
         }
-
-        // 启动系统主题监听
-        darkModeManager.watchSystemTheme();
     }, []);
 
     return <>{children}</>;

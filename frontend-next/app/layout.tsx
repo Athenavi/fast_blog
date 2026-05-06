@@ -35,7 +35,19 @@ export default function RootLayout({
             {`
             (function() {
               try {
-                var theme = localStorage.getItem('theme');
+                // ✅ 只使用 cookie，不再使用 localStorage
+                function getThemeFromCookie() {
+                  var cookies = document.cookie.split(';');
+                  for (var i = 0; i < cookies.length; i++) {
+                    var cookie = cookies[i].trim();
+                    if (cookie.startsWith('theme=')) {
+                      return cookie.substring('theme='.length);
+                    }
+                  }
+                  return null;
+                }
+                
+                var theme = getThemeFromCookie();
                 if (theme === 'dark' || (!theme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
                   document.documentElement.classList.add('dark');
                 }

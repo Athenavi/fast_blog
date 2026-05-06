@@ -10,9 +10,16 @@ class DarkModeManager {
     private listeners: Array<(theme: Theme) => void> = [];
 
     private constructor() {
-        // 初始化时从 localStorage 或系统偏好读取
+        // 初始化时从 cookie 或系统偏好读取
         if (typeof window !== 'undefined') {
-            const savedTheme = localStorage.getItem('theme') as Theme;
+            // ✅ 清理旧的 localStorage 数据，避免冲突
+            try {
+                localStorage.removeItem('theme');
+            } catch (e) {
+                // 忽略错误
+            }
+
+            const savedTheme = this.getThemeFromCookie();
             if (savedTheme && (savedTheme === 'light' || savedTheme === 'dark')) {
                 this.currentTheme = savedTheme;
             } else if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
@@ -58,6 +65,34 @@ class DarkModeManager {
     }
 
     /**
+     * 监听系统主题变化
+     */
+    public watchSystemTheme(): () => void {
+        if (typeof window !== 'undefined') {
+            const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+
+            const handleChange = (e: MediaQueryListEvent) => {
+                // 只有当用户没有手动设置主题时才跟随系统
+                const savedTheme = this.getThemeFromCookie();
+                if (!savedTheme) {
+                    this.setTheme(e.matches ? 'dark' : 'light');
+                }
+            };
+
+            mediaQuery.addEventListener('change', handleChange);
+
+            // 返回清理函数
+            return () => {
+                mediaQuery.removeEventListener('change', handleChange);
+            };
+        }
+
+        // 在非浏览器环境中返回空函数
+        return () => {
+        };
+    }
+
+    /**
      * 应用主题到 DOM
      */
     private applyTheme(theme: Theme): void {
@@ -70,9 +105,7 @@ class DarkModeManager {
                 root.classList.remove('dark');
             }
 
-            localStorage.setItem('theme', theme);
-
-            // 同时设置 cookie，供后端使用
+            // ✅ 只使用 cookie，不再使用 localStorage
             this.setThemeCookie(theme);
         }
     }
@@ -109,31 +142,19 @@ class DarkModeManager {
     }
 
     /**
-     * 监听系统主题变化
+     * 从 cookie 获取主题
      */
-    public watchSystemTheme(): () => void {
-        if (typeof window !== 'undefined') {
-            const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
+    private getThemeFromCookie(): Theme | null {
+        if (typeof document === 'undefined') return null;
 
-            const handleChange = (e: MediaQueryListEvent) => {
-                // 只有当用户没有手动设置主题时才跟随系统
-                const savedTheme = localStorage.getItem('theme');
-                if (!savedTheme) {
-                    this.setTheme(e.matches ? 'dark' : 'light');
-                }
-            };
-
-            mediaQuery.addEventListener('change', handleChange);
-
-            // 返回清理函数
-            return () => {
-                mediaQuery.removeEventListener('change', handleChange);
-            };
+        const cookies = document.cookie.split(';');
+        for (const cookie of cookies) {
+            const [name, value] = cookie.trim().split('=');
+            if (name === 'theme') {
+                return value as Theme;
+            }
         }
-
-        // 在非浏览器环境中返回空函数
-        return () => {
-        };
+        return null;
     }
 }
 
@@ -141,7 +162,7 @@ class DarkModeManager {
 export const darkModeManager = DarkModeManager.getInstance();
 
 // 导出 React Hook
-import {useState, useEffect} from 'react';
+import {useEffect, useState} from 'react';
 
 export function useDarkMode() {
     const [theme, setTheme] = useState<Theme>(darkModeManager.getTheme());

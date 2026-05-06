@@ -1,7 +1,7 @@
 """
 多站点支持 - 站点管理 API
 """
-from typing import List, Optional
+from typing import Optional
 
 from fastapi import APIRouter, Depends, Request, HTTPException, status
 from pydantic import BaseModel
@@ -58,7 +58,12 @@ async def list_sites(
         db: AsyncSession = Depends(get_async_db)
 ):
     """获取站点列表（需要管理员权限）"""
-    # TODO: 添加权限检查
+    # 检查权限：仅超级管理员可以查看所有站点
+    if not getattr(current_user, 'is_superuser', False):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Permission denied. Superuser required."
+        )
 
     offset = (page - 1) * per_page
 
@@ -106,7 +111,12 @@ async def create_site(
         db: AsyncSession = Depends(get_async_db)
 ):
     """创建新站点（需要超级管理员权限）"""
-    # TODO: 添加超级管理员权限检查
+    # 检查权限：仅超级管理员可以创建站点
+    if not getattr(current_user, 'is_superuser', False):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Permission denied. Superuser required."
+        )
 
     # 检查 slug 是否已存在
     stmt = select(Site).where(Site.slug == data.slug)
@@ -293,7 +303,7 @@ async def get_site_stats(
         db: AsyncSession = Depends(get_async_db)
 ):
     """获取站点统计数据"""
-    from shared.models.blog import Article
+    from shared.models.article import Article
     from shared.models.category import Category
 
     stmt = select(Site).where(Site.id == site_id)
@@ -307,12 +317,12 @@ async def get_site_stats(
         )
 
     # 统计文章数量
-    article_stmt = select(func.count(Article.id)).where(Article.site_id == site_id)
+    article_stmt = select(func.count(Article.id))
     article_result = await db.execute(article_stmt)
     article_count = article_result.scalar()
 
     # 统计分类数量
-    category_stmt = select(func.count(Category.id)).where(Category.site_id == site_id)
+    category_stmt = select(func.count(Category.id))
     category_result = await db.execute(category_stmt)
     category_count = category_result.scalar()
 
@@ -326,3 +336,66 @@ async def get_site_stats(
             "created_at": site.created_at.isoformat() if site.created_at else None,
         }
     }
+
+
+@router.get("/{site_id}/quota", summary="获取站点配额")
+async def get_site_quota(
+        site_id: int,
+        request: Request,
+        current_user: User = Depends(jwt_required),
+        db: AsyncSession = Depends(get_async_db)
+):
+    """获取站点配额信息（需要管理员权限）"""
+    if not getattr(current_user, 'is_superuser', False):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Permission denied. Superuser required."
+        )
+
+    from shared.services.site_quota_service import create_site_quota_service
+
+    try:
+        service = create_site_quota_service(db)
+        quota_info = await service.get_site_quota(site_id)
+
+        return {
+            "success": True,
+            "data": quota_info
+        }
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )
+
+
+@router.put("/{site_id}/quota", summary="更新站点配额")
+async def update_site_quota(
+        site_id: int,
+        request: Request,
+        quotas: dict,
+        current_user: User = Depends(jwt_required),
+        db: AsyncSession = Depends(get_async_db)
+):
+    """更新站点配额（需要超级管理员权限）"""
+    if not getattr(current_user, 'is_superuser', False):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Permission denied. Superuser required."
+        )
+
+    from shared.services.site_quota_service import create_site_quota_service
+
+    try:
+        service = create_site_quota_service(db)
+        result = await service.update_site_quota(site_id, quotas)
+
+        return {
+            "success": True,
+            "data": result
+        }
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=str(e)
+        )

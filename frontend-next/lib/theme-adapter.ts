@@ -173,41 +173,56 @@ function generateOverrideRules(colors: ThemeColors, isDark: boolean): string {
 function replaceInlineStyles(isDark: boolean): void {
     // 只在客户端执行，避免服务端和客户端不一致
     if (typeof window === 'undefined') return;
-    
-    // 查找所有带有 style 属性的元素
-    const elementsWithStyle = document.querySelectorAll('[style]');
 
-    elementsWithStyle.forEach(element => {
-        const htmlElement = element as HTMLElement;
-        const inlineStyle = htmlElement.style.cssText;
+    // ✅ 添加标志位，防止重复执行
+    if ((window as any).__themeAdapterUpdating__) {
+        console.log('[ThemeAdapter] 跳过重复更新');
+        return;
+    }
 
-        if (!inlineStyle) return;
+    try {
+        (window as any).__themeAdapterUpdating__ = true;
 
-        let newStyle = inlineStyle;
+        // 查找所有带有 style 属性的元素
+        const elementsWithStyle = document.querySelectorAll('[style]');
 
-        // 根据深色模式选择颜色映射
-        const colorMapping = isDark
-            ? {...COLOR_MAPPING, ...createDarkModeMapping()}
-            : COLOR_MAPPING;
+        elementsWithStyle.forEach(element => {
+            const htmlElement = element as HTMLElement;
+            const inlineStyle = htmlElement.style.cssText;
 
-        // 替换背景色
-        Object.entries(colorMapping).forEach(([hexColor, cssVar]) => {
-            const regex = new RegExp(hexColor, 'gi');
-            newStyle = newStyle.replace(regex, cssVar);
-        });
+            if (!inlineStyle) return;
 
-        // 替换渐变
-        Object.entries(GRADIENT_MAPPING).forEach(([gradient, replacement]) => {
-            if (newStyle.includes(gradient)) {
-                newStyle = newStyle.replace(gradient, replacement);
+            let newStyle = inlineStyle;
+
+            // 根据深色模式选择颜色映射
+            const colorMapping = isDark
+                ? {...COLOR_MAPPING, ...createDarkModeMapping()}
+                : COLOR_MAPPING;
+
+            // 替换背景色
+            Object.entries(colorMapping).forEach(([hexColor, cssVar]) => {
+                const regex = new RegExp(hexColor, 'gi');
+                newStyle = newStyle.replace(regex, cssVar);
+            });
+
+            // 替换渐变
+            Object.entries(GRADIENT_MAPPING).forEach(([gradient, replacement]) => {
+                if (newStyle.includes(gradient)) {
+                    newStyle = newStyle.replace(gradient, replacement);
+                }
+            });
+
+            // 如果样式有变化，更新它
+            if (newStyle !== inlineStyle) {
+                htmlElement.style.cssText = newStyle;
             }
         });
-
-        // 如果样式有变化，更新它
-        if (newStyle !== inlineStyle) {
-            htmlElement.style.cssText = newStyle;
-        }
-    });
+    } finally {
+        // ✅ 使用 setTimeout 延迟重置标志位，确保所有同步操作完成
+        setTimeout(() => {
+            (window as any).__themeAdapterUpdating__ = false;
+        }, 0);
+    }
 }
 
 /**
@@ -229,25 +244,74 @@ function createDarkModeMapping(): Record<string, string> {
 
 /**
  * 监听DOM变化，自动适配新添加的元素
+ * ⚠️ 注意：此函数可能导致性能问题和无限循环，谨慎使用
  */
 export function observeThemeChanges(): void {
     // 只在客户端执行，避免服务端和客户端不一致
     if (typeof window === 'undefined') return;
+
+    // ✅ 添加标志位，防止重复启动观察者
+    if ((window as any).__themeObserverActive__) {
+        console.log('[ThemeAdapter] 观察者已激活，跳过重复启动');
+        return;
+    }
+
+    (window as any).__themeObserverActive__ = true;
+
+    // ✅ 使用防抖，避免频繁触发
+    let debounceTimer: NodeJS.Timeout | null = null;
     
     const observer = new MutationObserver((mutations) => {
+        // 如果正在更新主题，跳过此次观察
+        if ((window as any).__themeAdapterUpdating__) {
+            return;
+        }
+
+        let hasRelevantChanges = false;
         mutations.forEach((mutation) => {
             if (mutation.addedNodes.length > 0) {
-                // 有新节点添加，重新应用适配
-                const isDark = darkModeManager.getTheme() === 'dark';
-                replaceInlineStyles(isDark);
+                // 检查是否有需要适配的新节点
+                mutation.addedNodes.forEach((node) => {
+                    if (node.nodeType === Node.ELEMENT_NODE) {
+                        const element = node as Element;
+                        // 只关注有 style 属性或特定 class 的元素
+                        if (element.hasAttribute('style') ||
+                            element.className?.toString().includes('bg-') ||
+                            element.className?.toString().includes('text-')) {
+                            hasRelevantChanges = true;
+                        }
+                    }
+                });
             }
         });
+
+        if (hasRelevantChanges) {
+            // 防抖处理：500ms 后才执行
+            if (debounceTimer) {
+                clearTimeout(debounceTimer);
+            }
+            debounceTimer = setTimeout(() => {
+                const isDark = darkModeManager.getTheme() === 'dark';
+                replaceInlineStyles(isDark);
+            }, 500);
+        }
     });
 
     observer.observe(document.body, {
         childList: true,
         subtree: true,
+        attributes: true,
+        attributeFilter: ['style', 'class'],
     });
 
-    console.log('[ThemeAdapter] 已启动 DOM 观察器');
+    console.log('[ThemeAdapter] 已启动 DOM 观察器（带防抖）');
+
+    // 返回清理函数
+    return () => {
+        observer.disconnect();
+        (window as any).__themeObserverActive__ = false;
+        if (debounceTimer) {
+            clearTimeout(debounceTimer);
+        }
+    };
 }
