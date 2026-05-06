@@ -1,8 +1,9 @@
 """
 SQLAlchemy 模型定义 - ArticleSEO
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-02 09:13:51
+生成时间：2026-05-06 17:19:47
 """
+
 
 from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
@@ -51,9 +52,12 @@ class ArticleSEO(Base):
 
     twitter_image = Column(String(500), nullable=True, doc='twitter_image')
 
+
     twitter_card = Column(String(50), default='summary_large_image', doc='twitter_card')
 
+
     canonical_url = Column(String(500), nullable=True, doc='canonical_url')
+
 
     robots_meta = Column(String(100), default='index,follow', doc='robots_meta')
 
@@ -67,7 +71,7 @@ class ArticleSEO(Base):
 
     __table_args__ = (
 
-    Index('idx_article_seo_article_id', 'article_id', unique=True),
+        Index('idx_article_seo_article_id', 'article_id', unique=True),
     )
 
     # 关系定义

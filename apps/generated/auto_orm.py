@@ -1,7 +1,7 @@
 """
 Django ORM 抽象基类定义
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-02 09:13:51
+生成时间：2026-05-06 17:19:46
 """
 
 from django.db import models
@@ -2057,6 +2057,36 @@ class ArticleSEOMixin(models.Model):
         # 注意：请在具体模型类中设置 db_table = get_table_name("article_seo")
 
 
+class ShareStatMixin(models.Model):
+    """分享统计模型 Mixin"""
+
+    # id
+    id = models.BigAutoField(
+        'id', primary_key=True)
+    # article_id
+    article_id = models.IntegerField(
+        'article_id (暂为 IntegerField，等待 Article 模型实现)', )
+    # platform
+    platform = models.CharField(
+        'platform', max_length=50)
+    # shared_by
+    shared_by = models.IntegerField(
+        'shared_by (暂为 IntegerField，等待 User 模型实现)', null=True, blank=True)
+    # ip_address
+    ip_address = models.CharField(
+        'ip_address', max_length=45, blank=True, null=True)
+    # user_agent
+    user_agent = models.CharField(
+        'user_agent', max_length=500, blank=True, null=True)
+
+    class Meta:
+        abstract = True
+        app_label = 'generated'
+        verbose_name = '分享统计模型'
+        # 注意：请在具体模型类中设置 db_table = get_table_name("share_stats")
+
+
+
 class ProductMixin(models.Model):
     """商品模型 Mixin"""
 
@@ -2113,6 +2143,7 @@ class ProductMixin(models.Model):
         # 注意：请在具体模型类中设置 db_table = get_table_name("products")
 
 
+
 class CartMixin(models.Model):
     """购物车模型 Mixin"""
 
@@ -2131,6 +2162,7 @@ class CartMixin(models.Model):
         app_label = 'generated'
         verbose_name = '购物车模型'
         # 注意：请在具体模型类中设置 db_table = get_table_name("carts")
+
 
 
 class CartItemMixin(models.Model):
@@ -2157,6 +2189,7 @@ class CartItemMixin(models.Model):
         app_label = 'generated'
         verbose_name = '购物车项模型'
         # 注意：请在具体模型类中设置 db_table = get_table_name("cart_items")
+
 
 
 class OrderMixin(models.Model):
@@ -2216,6 +2249,7 @@ class OrderMixin(models.Model):
         app_label = 'generated'
         verbose_name = '订单模型'
         # 注意：请在具体模型类中设置 db_table = get_table_name("orders")
+
 
 
 class OrderItemMixin(models.Model):
@@ -2307,3 +2341,36 @@ class SiteMixin(models.Model):
         # 注意：请在具体模型类中设置 db_table = get_table_name("sites")
 
 
+class SensitiveWordMixin(models.Model):
+    """敏感词模型 Mixin"""
+
+    # id
+    id = models.BigAutoField(
+        'id', primary_key=True)
+    # word
+    word = models.CharField(
+        'word', max_length=100, unique=True)
+    # level
+    level = models.IntegerField(
+        'level', default=1)
+    # action
+    action = models.CharField(
+        'action', max_length=50, default='block')
+    # replacement
+    replacement = models.CharField(
+        'replacement', max_length=100, blank=True, null=True)
+    # category
+    category = models.CharField(
+        'category', max_length=50, blank=True, null=True)
+    # is_active
+    is_active = models.BooleanField(
+        'is_active', default=True)
+    # created_by
+    created_by = models.IntegerField(
+        'created_by (暂为 IntegerField，等待 User 模型实现)', null=True, blank=True)
+
+    class Meta:
+        abstract = True
+        app_label = 'generated'
+        verbose_name = '敏感词模型'
+        # 注意：请在具体模型类中设置 db_table = get_table_name("sensitive_words")

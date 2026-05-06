@@ -43,7 +43,7 @@ interface PasswordForm {
     confirmPassword: string;
 }
 
-type TabType = 'profile' | 'account' | 'appearance' | 'notifications';
+type TabType = 'profile' | 'account' | 'appearance' | 'notifications' | 'security';
 
 const SettingsPage = () => {
     const router = useRouter();
@@ -68,6 +68,14 @@ const SettingsPage = () => {
     });
     const [showPassword, setShowPassword] = useState(false);
     const [saving, setSaving] = useState(false);
+
+    // 2FA状态
+    const [twoFactorEnabled, setTwoFactorEnabled] = useState(false);
+    const [qrCodeImage, setQrCodeImage] = useState<string>('');
+    const [totpSecret, setTotpSecret] = useState<string>('');
+    const [verificationCode, setVerificationCode] = useState('');
+    const [backupCodes, setBackupCodes] = useState<string[]>([]);
+    const [showQRCode, setShowQRCode] = useState(false);
 
     // 加载用户资料
     useEffect(() => {
@@ -132,6 +140,22 @@ const SettingsPage = () => {
         };
 
         loadUserProfile();
+    }, []);
+
+    // 加载2FA状态
+    useEffect(() => {
+        const load2FAStatus = async () => {
+            try {
+                const response = await apiClient.get('/auth/2fa/status');
+                if (response.success && response.data) {
+                    setTwoFactorEnabled(response.data.is_2fa_enabled || false);
+                }
+            } catch (error) {
+                console.error('获取2FA状态失败:', error);
+            }
+        };
+
+        load2FAStatus();
     }, []);
 
     // 更新头像
@@ -355,6 +379,88 @@ const SettingsPage = () => {
         }
     };
 
+    // 2FA相关函数
+    const setup2FA = async () => {
+        try {
+            const response = await apiClient.get('/auth/2fa/setup');
+            if (response.success && response.data) {
+                setQrCodeImage(response.data.qr_code);
+                setTotpSecret(response.data.secret);
+                setShowQRCode(true);
+            }
+        } catch (error) {
+            console.error('设置2FA失败:', error);
+            alert('设置2FA失败，请稍后重试');
+        }
+    };
+
+    const enable2FA = async () => {
+        if (!verificationCode || verificationCode.length !== 6) {
+            alert('请输入6位验证码');
+            return;
+        }
+
+        try {
+            setSaving(true);
+            const response = await apiClient.post('/auth/2fa/enable', {
+                totp_token: verificationCode
+            });
+
+            if (response.success) {
+                setTwoFactorEnabled(true);
+                setShowQRCode(false);
+                setBackupCodes(response.data.backup_codes || []);
+                alert('2FA已启用！请保存备用码');
+            } else {
+                alert(response.error || '启用2FA失败');
+            }
+        } catch (error) {
+            console.error('启用2FA失败:', error);
+            alert('启用2FA失败，请稍后重试');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const disable2FA = async () => {
+        if (!confirm('确定要禁用2FA吗？这将降低账户安全性。')) {
+            return;
+        }
+
+        try {
+            setSaving(true);
+            const response = await apiClient.post('/auth/2fa/disable');
+
+            if (response.success) {
+                setTwoFactorEnabled(false);
+                setQrCodeImage('');
+                setTotpSecret('');
+                setBackupCodes([]);
+                alert('2FA已禁用');
+            } else {
+                alert(response.error || '禁用2FA失败');
+            }
+        } catch (error) {
+            console.error('禁用2FA失败:', error);
+            alert('禁用2FA失败，请稍后重试');
+        } finally {
+            setSaving(false);
+        }
+    };
+
+    const regenerateBackupCodes = async () => {
+        try {
+            const response = await apiClient.post('/auth/2fa/regenerate-backup-codes');
+            if (response.success) {
+                setBackupCodes(response.data.backup_codes || []);
+                alert('备用码已重新生成，请保存新备用码');
+            }
+        } catch (error) {
+            console.error('重新生成备用码失败:', error);
+            alert('重新生成备用码失败');
+        }
+    };
+
     // 注销登录
     const logout = async () => {
         if (confirm('确定要注销登录吗？')) {
@@ -381,6 +487,7 @@ const SettingsPage = () => {
         {id: 'account', label: '账户安全', icon: Shield},
         {id: 'appearance', label: '外观设置', icon: Palette},
         {id: 'notifications', label: '通知设置', icon: Bell},
+        {id: 'security', label: '双因素认证', icon: Shield},
     ];
 
     return (
@@ -816,6 +923,174 @@ const SettingsPage = () => {
                                     <p className="text-sm text-gray-500 dark:text-gray-400 mt-6 text-center">
                                         通知设置将在后续版本中完善
                                     </p>
+                                </motion.div>
+                            )}
+
+                            {/* 双因素认证 */}
+                            {activeTab === 'security' && (
+                                <motion.div
+                                    variants={fadeInUp}
+                                    initial="initial"
+                                    animate="animate"
+                                    className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 p-8"
+                                >
+                                    <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">双因素认证
+                                        (2FA)</h2>
+
+                                    {!showQRCode ? (
+                                        <>
+                                            <div className="mb-6">
+                                                <div
+                                                    className="flex items-start gap-4 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl">
+                                                    <Shield className="w-6 h-6 text-blue-600 flex-shrink-0 mt-1"/>
+                                                    <div>
+                                                        <h3 className="font-medium text-gray-900 dark:text-white mb-2">什么是双因素认证？</h3>
+                                                        <p className="text-sm text-gray-600 dark:text-gray-400">
+                                                            双因素认证为您的账户提供额外的安全保护。启用后，登录时需要输入密码和手机应用生成的验证码。
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div className="space-y-4">
+                                                <div
+                                                    className="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
+                                                    <div>
+                                                        <div
+                                                            className="font-medium text-gray-900 dark:text-white">双因素认证状态
+                                                        </div>
+                                                        <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                                                            {twoFactorEnabled ? '已启用' : '未启用'}
+                                                        </div>
+                                                    </div>
+                                                    <div className={`px-3 py-1 rounded-full text-sm font-medium ${
+                                                        twoFactorEnabled
+                                                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                                                            : 'bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300'
+                                                    }`}>
+                                                        {twoFactorEnabled ? '已启用' : '未启用'}
+                                                    </div>
+                                                </div>
+
+                                                {twoFactorEnabled ? (
+                                                    <div className="space-y-3">
+                                                        <button
+                                                            onClick={regenerateBackupCodes}
+                                                            className="w-full px-4 py-3 bg-yellow-100 hover:bg-yellow-200 dark:bg-yellow-900/30 dark:hover:bg-yellow-900/50 text-yellow-800 dark:text-yellow-200 rounded-xl font-medium transition-colors"
+                                                        >
+                                                            重新生成备用码
+                                                        </button>
+                                                        <button
+                                                            onClick={disable2FA}
+                                                            disabled={saving}
+                                                            className="w-full px-4 py-3 bg-red-600 hover:bg-red-700 text-white rounded-xl font-medium transition-colors disabled:opacity-50"
+                                                        >
+                                                            {saving ? '处理中...' : '禁用2FA'}
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <button
+                                                        onClick={setup2FA}
+                                                        className="w-full px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-colors"
+                                                    >
+                                                        启用2FA
+                                                    </button>
+                                                )}
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <div className="space-y-6">
+                                            <div className="text-center">
+                                                <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">
+                                                    扫描二维码
+                                                </h3>
+                                                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                                                    使用 Google Authenticator 或 Microsoft Authenticator 扫描下方二维码
+                                                </p>
+                                            </div>
+
+                                            {qrCodeImage && (
+                                                <div className="flex justify-center">
+                                                    <img
+                                                        src={qrCodeImage}
+                                                        alt="2FA QR Code"
+                                                        className="w-64 h-64 border-2 border-gray-200 dark:border-gray-700 rounded-lg"
+                                                    />
+                                                </div>
+                                            )}
+
+                                            <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-xl">
+                                                <div
+                                                    className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                    无法扫描？手动输入密钥：
+                                                </div>
+                                                <code
+                                                    className="block bg-white dark:bg-gray-900 p-3 rounded-lg text-sm font-mono break-all">
+                                                    {totpSecret}
+                                                </code>
+                                            </div>
+
+                                            <div>
+                                                <label
+                                                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                    输入验证码以验证
+                                                </label>
+                                                <input
+                                                    type="text"
+                                                    value={verificationCode}
+                                                    onChange={(e) => setVerificationCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                                    placeholder="000000"
+                                                    maxLength={6}
+                                                    className="w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent dark:bg-gray-800 dark:text-white text-center text-2xl font-mono tracking-widest"
+                                                />
+                                            </div>
+
+                                            <div className="flex gap-3">
+                                                <button
+                                                    onClick={() => setShowQRCode(false)}
+                                                    className="flex-1 px-4 py-3 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-xl font-medium hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                                                >
+                                                    取消
+                                                </button>
+                                                <button
+                                                    onClick={enable2FA}
+                                                    disabled={saving || verificationCode.length !== 6}
+                                                    className="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-medium transition-colors disabled:opacity-50"
+                                                >
+                                                    {saving ? '验证中...' : '验证并启用'}
+                                                </button>
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {backupCodes.length > 0 && (
+                                        <div className="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                                            <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-3">
+                                                备用码
+                                            </h3>
+                                            <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+                                                请妥善保存这些备用码，它们可以在您无法访问手机时用于登录。每个备用码只能使用一次。
+                                            </p>
+                                            <div className="grid grid-cols-2 gap-2">
+                                                {backupCodes.map((code, index) => (
+                                                    <code key={index}
+                                                          className="block bg-gray-100 dark:bg-gray-800 p-2 rounded text-sm font-mono text-center">
+                                                        {code}
+                                                    </code>
+                                                ))}
+                                            </div>
+                                            <button
+                                                onClick={() => {
+                                                    const text = backupCodes.join('\n');
+                                                    navigator.clipboard.writeText(text);
+                                                    alert('备用码已复制到剪贴板');
+                                                }}
+                                                className="mt-4 w-full px-4 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-800 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 rounded-xl font-medium transition-colors"
+                                            >
+                                                复制所有备用码
+                                            </button>
+                                        </div>
+                                    )}
                                 </motion.div>
                             )}
                         </main>

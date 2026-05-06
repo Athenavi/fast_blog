@@ -1,8 +1,9 @@
 """
 SQLAlchemy 模型定义 - Order
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-02 09:13:51
+生成时间：2026-05-06 17:19:47
 """
+
 
 from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, Float, Numeric, ForeignKey
 
@@ -10,16 +11,19 @@ from . import Base  # 使用统一的 Base
 
 from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, Float, Numeric, ForeignKey, Index
 
-
 class Order(Base):
     """订单模型模型"""
     __tablename__ = 'orders'
 
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='id')
+
 
     order_number = Column(String(50), unique=True, nullable=True, doc='order_number')
 
+
     user_id = Column(BigInteger, ForeignKey('users.id'), nullable=False, doc='user_id')
+
 
     status = Column(String(50), default='pending', doc='status')
 
@@ -58,6 +62,9 @@ class Order(Base):
         Index('idx_orders_status', 'status'),
         Index('idx_orders_payment_status', 'payment_status'),
         Index('idx_orders_created', 'created_at'),
+        Index('idx_orders_user_status_created', 'user_id', 'status', 'created_at'),
+        Index('idx_orders_status_payment_created', 'status', 'payment_status', 'created_at'),
+        Index('idx_orders_payment_transaction', 'transaction_id'),
     )
 
     def to_dict(self, exclude_sensitive=True):

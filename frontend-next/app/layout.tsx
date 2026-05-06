@@ -4,6 +4,8 @@ import '../styles/rtl.css';
 import {getDirection} from '@/i18n';
 import Navbar from '@/components/Navbar';
 import {GlobalShortcuts} from '@/components/GlobalShortcuts';
+import MobileGestures from '@/components/MobileGestures';
+import MobileBottomNav from '@/components/MobileBottomNav';
 
 export const metadata: Metadata = {
     title: 'FastBlog',
@@ -29,7 +31,9 @@ export default function RootLayout({
         <body className="antialiased" suppressHydrationWarning>
         <Navbar/>
         <GlobalShortcuts/>
+        <MobileGestures/>
         {children}
+        <MobileBottomNav/>
         </body>
         </html>
     );

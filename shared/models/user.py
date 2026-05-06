@@ -1,8 +1,9 @@
 """
 SQLAlchemy 模型定义 - User
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-02 09:13:51
+生成时间：2026-05-06 17:19:46
 """
+
 
 from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime
 
@@ -13,6 +14,7 @@ from . import Base  # 使用统一的 Base
 # 以下导入是自定义方法可能需要的，如果不需要可以删除：
 # - from datetime import datetime
 # ============================================================================
+
 
 
 from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, Index
@@ -60,7 +62,9 @@ class User(Base):
 
     last_login_at = Column(DateTime, nullable=True, doc='last_login_at')
 
+
     locale = Column(String(255), default='zh_CN', doc='locale')
+
 
     is_staff = Column(Boolean, default=False, doc='is_staff')
 
@@ -76,7 +80,7 @@ class User(Base):
 
     __table_args__ = (
 
-    Index('idx_users_username', 'username', unique=True),
+        Index('idx_users_username', 'username', unique=True),
         Index('idx_users_email', 'email', unique=True),
         Index('idx_users_is_active', 'is_active'),
         Index('idx_users_vip_level', 'vip_level'),

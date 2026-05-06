@@ -1,7 +1,7 @@
 /**
  * API 类型定义
  * 由 routes.yaml 自动生成 - 请勿手动修改
- * 生成时间：2026-05-02 09:13:51
+ * 生成时间：2026-05-06 17:19:46
  */
 
 export interface User {
@@ -690,6 +690,16 @@ export interface ArticleSEO {
     updated_at: string;
 }
 
+export interface ShareStat {
+    id: any;
+    article_id: any;
+    platform: string;
+    shared_by?: any;
+    ip_address?: string;
+    user_agent?: string;
+    created_at: string;
+}
+
 export interface Product {
     id: any;
     name: string;
@@ -776,6 +786,19 @@ export interface Site {
     description?: any;
     keywords?: string;
     admin_user_id?: any;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface SensitiveWord {
+    id: any;
+    word: string;
+    level: number;
+    action: string;
+    replacement?: string;
+    category?: string;
+    is_active: boolean;
+    created_by?: any;
     created_at: string;
     updated_at: string;
 }

@@ -3294,3 +3294,75 @@ models:
       - name: idx_sites_is_default
         columns: [ is_default ]
         comment: "默认站点索引"
+
+  # ============================================================================
+  # 内容审核系统 - 敏感词模型
+  # ============================================================================
+  SensitiveWord:
+    description: 敏感词模型
+    properties:
+      id:
+        type: bigint
+        description: 敏感词 ID
+      word:
+        type: string
+        maxLength: 100
+        unique: true
+        index: true
+        description: 敏感词内容
+      level:
+        type: integer
+        default: 1
+        enum:
+          - 1
+          - 2
+          - 3
+        description: '敏感级别 (1:低, 2:中, 3:高)'
+      action:
+        type: string
+        maxLength: 50
+        default: block
+        enum:
+          - block
+          - replace
+          - warn
+        description: '处理方式 (block:拦截, replace:替换, warn:警告)'
+      replacement:
+        type: string
+        nullable: true
+        maxLength: 100
+        description: 替换词（当action为replace时使用）
+      category:
+        type: string
+        nullable: true
+        maxLength: 50
+        description: 分类（政治、色情、暴力等）
+      is_active:
+        type: boolean
+        default: true
+        description: 是否激活
+      created_by:
+        type: bigint
+        nullable: true
+        description: 创建者用户ID
+        foreignKey: User
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    orm: true
+    table: sensitive_words
+    indexes:
+      - name: idx_sensitive_word_level
+        columns: [ level ]
+        comment: "敏感级别索引"
+      - name: idx_sensitive_word_category
+        columns: [ category ]
+        comment: "分类索引"
+      - name: idx_sensitive_word_active
+        columns: [ is_active ]
+        comment: "激活状态索引"

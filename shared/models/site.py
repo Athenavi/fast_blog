@@ -1,8 +1,9 @@
 """
 SQLAlchemy 模型定义 - Site
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-02 09:13:51
+生成时间：2026-05-06 17:19:47
 """
+
 
 from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime
 
@@ -26,9 +27,12 @@ class Site(Base):
 
     domain = Column(String(255), index=True, nullable=True, doc='domain')
 
+
     path = Column(String(255), default='/', nullable=True, doc='path')
 
+
     is_active = Column(Boolean, default=True, doc='is_active')
+
 
     is_default = Column(Boolean, default=False, doc='is_default')
 
@@ -54,7 +58,7 @@ class Site(Base):
 
     __table_args__ = (
 
-    Index('idx_sites_domain', 'domain'),
+        Index('idx_sites_domain', 'domain'),
         Index('idx_sites_slug', 'slug', unique=True),
         Index('idx_sites_is_active', 'is_active'),
         Index('idx_sites_is_default', 'is_default'),

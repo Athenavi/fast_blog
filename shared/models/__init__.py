@@ -2,6 +2,7 @@ from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
 
+
 from .user import User
 from .article import Article
 from .category import Category
@@ -46,12 +47,14 @@ from .capability import Capability
 from .user_role import UserRole
 from .o_auth_account import OAuthAccount
 from .article_seo import ArticleSEO
+from .share_stat import ShareStat
 from .product import Product
 from .cart import Cart
 from .cart_item import CartItem
 from .order import Order
 from .order_item import OrderItem
 from .site import Site
+from .sensitive_word import SensitiveWord
 
 # ==================== 自动生成的导入 - 由 routes.yaml 管理 ====================
 # 此部分由脚本自动生成 - 请勿手动修改
@@ -102,11 +105,13 @@ __all__ = [
     'UserRole',
     'OAuthAccount',
     'ArticleSEO',
+    'ShareStat',
     'Product',
     'Cart',
     'CartItem',
     'Order',
     'OrderItem',
-    'Site'
+    'Site',
+    'SensitiveWord'
 ]
 # ============================================================================

@@ -1,8 +1,9 @@
 """
 SQLAlchemy 模型定义 - Theme
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-02 09:13:51
+生成时间：2026-05-06 17:19:46
 """
+
 
 from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime
 
@@ -62,16 +63,19 @@ class Theme(Base):
 
     settings = Column(String(255), nullable=True, doc='settings')
 
+
     supports = Column(String(255), nullable=True, doc='supports')
 
+
     created_at = Column(DateTime, doc='created_at')
+
 
     updated_at = Column(DateTime, doc='updated_at')
 
 
     __table_args__ = (
 
-        Index('idx_themes_slug', 'slug', unique=True),
+    Index('idx_themes_slug', 'slug', unique=True),
         Index('idx_themes_is_active', 'is_active'),
     )
 
