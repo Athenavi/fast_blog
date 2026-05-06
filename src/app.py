@@ -540,6 +540,8 @@ curl -X POST "http://localhost:9421/api/v1/media/upload" \
                 '/login',
                 '/register',
                 '/api/v1/installation',
+                '/api/v1/home/categories',  # 排除分类接口，避免 CORS 问题
+                '/api/v1/articles',  # 排除文章列表接口，避免 CORS 问题
             ],
             skip_methods=['POST', 'PUT', 'DELETE', 'PATCH'],
             cache_public_only=True,

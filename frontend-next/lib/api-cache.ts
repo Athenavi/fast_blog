@@ -116,11 +116,64 @@ export async function cachedFetch<T>(
     return apiCache.getOrFetch(
         cacheKey,
         async () => {
-            const response = await fetch(url, options);
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+            console.log('[API Cache] Fetching:', url);
+            console.log('[API Cache] Options:', options);
+            try {
+                // 验证 URL
+                if (!url || typeof url !== 'string') {
+                    throw new Error(`Invalid URL: ${url}`);
+                }
+
+                const response = await fetch(url, options);
+                console.log('[API Cache] Response status:', response.status, 'for', url);
+
+                // Handle 304 Not Modified - return cached data if available
+                if (response.status === 304) {
+                    const cachedData = apiCache.get<T>(cacheKey);
+                    if (cachedData !== null) {
+                        console.log('[API Cache] Using cached data for 304 response:', url);
+                        return cachedData;
+                    }
+                    // If no cached data, treat as error
+                    throw new Error('304 Not Modified but no cached data available');
+                }
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status} ${response.statusText}`);
+                }
+
+                // Handle empty responses
+                const text = await response.text();
+                if (!text) {
+                    console.warn('[API Cache] Empty response from:', url);
+                    throw new Error('Empty response from server');
+                }
+
+                try {
+                    return JSON.parse(text) as T;
+                } catch (e) {
+                    console.error('[API Cache] Failed to parse JSON from:', url, 'Response:', text.substring(0, 200));
+                    throw new Error(`Failed to parse JSON response: ${e instanceof Error ? e.message : 'Unknown error'}`);
+                }
+            } catch (error) {
+                console.error('[API Cache] Fetch error details:', {
+                    url,
+                    error: error instanceof Error ? error.message : String(error),
+                    errorType: error?.constructor?.name,
+                    stack: error instanceof Error ? error.stack : undefined
+                });
+
+                // If fetch fails completely, check if we have cached data
+                if (error instanceof TypeError && error.message === 'Failed to fetch') {
+                    const cachedData = apiCache.get<T>(cacheKey);
+                    if (cachedData !== null) {
+                        console.warn('[API Cache] Fetch failed, using stale cached data for:', url);
+                        return cachedData;
+                    }
+                }
+                // Re-throw the error if no cached data available
+                throw error;
             }
-            return response.json() as Promise<T>;
         },
         ttl
     );

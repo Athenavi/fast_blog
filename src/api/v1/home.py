@@ -215,6 +215,71 @@ async def get_featured_articles(
         return ApiResponse(success=False, error=str(e))
 
 
+@router.get("/articles")
+async def get_home_articles_api(
+        request: Request,
+        page: int = Query(1, ge=1),
+        per_page: int = Query(9, ge=1, le=50),
+        db: AsyncSession = Depends(get_async_session)
+):
+    """
+    获取首页文章列表（分页）
+    用于前端首页展示最新文章
+    """
+    try:
+        # 构建查询 - 只获取已发布、非隐藏、非VIP的文章
+        query = select(Article).where(
+            Article.hidden == False,
+            Article.status == 1,
+            Article.is_vip_only == False
+        ).order_by(desc(Article.created_at))
+
+        # 获取总数
+        count_query = select(func.count(Article.id)).where(
+            Article.hidden == False,
+            Article.status == 1,
+            Article.is_vip_only == False
+        )
+        total_result = await db.execute(count_query)
+        total = total_result.scalar() or 0
+
+        # 分页
+        offset = (page - 1) * per_page
+        articles_result = await db.execute(query.offset(offset).limit(per_page))
+        articles = articles_result.scalars().unique().all()
+
+        # 批量加载分类信息（避免 N+1）
+        category_ids = [art.category for art in articles if art.category]
+        categories_dict = {}
+        if category_ids:
+            cat_query = select(Category).where(Category.id.in_(category_ids))
+            cat_result = await db.execute(cat_query)
+            for cat in cat_result.scalars().all():
+                categories_dict[cat.id] = cat
+
+        # 格式化文章数据
+        articles_data = [_format_article_with_category(article, categories_dict) for article in articles]
+
+        return ApiResponse(
+            success=True,
+            data={
+                "data": articles_data,
+                "pagination": {
+                    "current_page": page,
+                    "per_page": per_page,
+                    "total": total,
+                    "total_pages": (total + per_page - 1) // per_page,
+                    "has_next": page < (total + per_page - 1) // per_page,
+                    "has_prev": page > 1
+                }
+            }
+        )
+    except Exception as e:
+        import traceback
+        print(f"Error in get_home_articles_api: {e}\n{traceback.format_exc()}")
+        return ApiResponse(success=False, error=str(e))
+
+
 @router.get("/recent")
 async def get_recent_articles(
         page: int = Query(1, ge=1, description="页码"),
@@ -223,7 +288,7 @@ async def get_recent_articles(
         db: AsyncSession = Depends(get_async_session)
 ):
     """
-    获取最新文章（分页）
+    获取最新文章（分页）- 别名接口，与 /articles 相同
     """
     try:
         articles, pagination = None, None

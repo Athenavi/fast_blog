@@ -38,10 +38,16 @@ export function useHomePageData() {
                 const apiConfig = config.getConfig();
                 const apiUrl = `${apiConfig.API_BASE_URL}${apiConfig.API_PREFIX}`;
 
+                console.log('[useHomePageData] API Configuration:', {
+                    API_BASE_URL: apiConfig.API_BASE_URL,
+                    API_PREFIX: apiConfig.API_PREFIX,
+                    fullUrl: apiUrl
+                });
+
                 // 并行获取所有数据，使用缓存
                 const [articlesRes, categoriesRes] = await Promise.all([
                     cachedFetch<any>(`${apiUrl}/articles?page=1&page_size=20`, undefined, 5 * 60 * 1000), // 5分钟缓存
-                    cachedFetch<any>(`${apiUrl}/categories`, undefined, 10 * 60 * 1000) // 10分钟缓存
+                    cachedFetch<any>(`${apiUrl}/home/categories`, undefined, 10 * 60 * 1000) // 10分钟缓存
                 ]);
 
                 const articlesData = articlesRes;
