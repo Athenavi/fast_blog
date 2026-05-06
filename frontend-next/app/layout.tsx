@@ -4,15 +4,16 @@ import '../globals.css';
 import '../styles/rtl.css';
 import {getDirection} from '@/i18n';
 import Navbar from '@/components/Navbar';
-import ThemeInitializer from '@/components/ThemeInitializer';
 import ThemeProvider from '@/components/ThemeProvider';
-import PerformanceOptimizer from '@/components/PerformanceOptimizer';
-import {PerformanceReportTrigger} from '@/components/PerformanceMonitor';
+// import {PerformanceReportTrigger} from '@/components/PerformanceMonitor'; // 暂时保持注释
 
 export const metadata: Metadata = {
   title: 'FastBlog',
   description: 'A modern blog platform',
   manifest: '/manifest.json',
+    other: {
+        // 添加自定义元数据
+    }
 };
 
 export default function RootLayout({
@@ -28,14 +29,19 @@ export default function RootLayout({
   return (
       <html lang={defaultLocale} dir={direction} suppressHydrationWarning>
     <head>
-        {/* Load runtime config */}
-        <Script src="/config.js" strategy="beforeInteractive"/>
-        {/* 初始化主题，避免 hydration 不匹配 */}
-        <Script id="theme-init" strategy="beforeInteractive">
+        {/* Scripts will be loaded via next/script in body */}
+    </head>
+    <body className="antialiased" suppressHydrationWarning>
+    <ThemeProvider>
+        <Navbar/>
+        {children}
+    </ThemeProvider>
+
+    {/* Initialize theme only - removed config.js to avoid HMR issues */}
+    <Script id="theme-init" strategy="beforeInteractive">
             {`
             (function() {
               try {
-                // ✅ 只使用 cookie，不再使用 localStorage
                 function getThemeFromCookie() {
                   var cookies = document.cookie.split(';');
                   for (var i = 0; i < cookies.length; i++) {
@@ -54,17 +60,8 @@ export default function RootLayout({
               } catch (e) {}
             })();
           `}
-        </Script>
-    </head>
-      <body className="antialiased">
-      <ThemeInitializer>
-          <PerformanceOptimizer enablePreload={true} enableLazyLoad={true}>
-              <ThemeProvider>
-          <Navbar/>
-          {children}
-              </ThemeProvider>
-          </PerformanceOptimizer>
-      </ThemeInitializer>
+    </Script>
+    {/* <PerformanceReportTrigger/> */}
         {/* PWA Service Worker Registration */}
       {/* ✅ 临时禁用 Service Worker，测试是否导致刷新 */}
       {/* <Script
@@ -86,7 +83,6 @@ export default function RootLayout({
             `
           }}
         /> */}
-      <PerformanceReportTrigger/>
       </body>
     </html>
   );

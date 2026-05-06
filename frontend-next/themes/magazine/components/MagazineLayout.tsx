@@ -6,14 +6,14 @@
 import React, {useEffect, useState} from 'react';
 import {MagazineHeader} from './MagazineHeader';
 import {MagazineFooter} from './MagazineFooter';
-import {useThemeContext} from '@/hooks/useTheme';
+import {useTheme} from '@/hooks/useTheme';
 
 interface MagazineLayoutProps {
     children: React.ReactNode;
 }
 
 export const MagazineLayout: React.FC<MagazineLayoutProps> = ({children}) => {
-    const {config} = useThemeContext();
+    const {config} = useTheme();
     const [isMounted, setIsMounted] = useState(false);
     const [darkMode, setDarkMode] = useState(false);
 

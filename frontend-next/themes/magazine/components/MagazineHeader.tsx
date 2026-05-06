@@ -5,14 +5,14 @@
 
 import React, {useEffect, useState} from 'react';
 import Link from 'next/link';
-import {useThemeContext} from '@/hooks/useTheme';
+import {useTheme} from '@/hooks/useTheme';
 
 interface MagazineHeaderProps {
     darkMode?: boolean;
 }
 
 export const MagazineHeader: React.FC<MagazineHeaderProps> = ({darkMode = false}) => {
-    const {config} = useThemeContext();
+    const {config} = useTheme();
     const [isScrolled, setIsScrolled] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 

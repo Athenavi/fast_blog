@@ -6,7 +6,7 @@ import {Button} from '@/components/ui/button';
 import {Badge} from '@/components/ui/badge';
 import {Clock, ExternalLink, FileText, RefreshCw, Trash2, Users} from 'lucide-react';
 import apiClient from '@/lib/api-client';
-import {toast} from '@/hooks/use-toast';
+import {useToast} from '@/hooks/use-toast';
 
 interface CollaborationSession {
     document_id: string;
@@ -17,6 +17,7 @@ interface CollaborationSession {
 }
 
 export default function CollaborationManager() {
+    const {toast} = useToast();
     const [sessions, setSessions] = useState<CollaborationSession[]>([]);
     const [loading, setLoading] = useState(true);
     const [closing, setClosing] = useState<string | null>(null);

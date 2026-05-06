@@ -19,7 +19,7 @@ export const useAuth = () => {
   const [error, setError] = useState<string | null>(null);
 
   // 从 cookie 获取 token
-  const getTokenFromCookie = useCallback((): string | null => {
+  const getTokenFromCookie = (): string | null => {
     if (typeof document === 'undefined') return null;
     const cookies = document.cookie.split(';');
     for (const cookie of cookies) {
@@ -29,7 +29,7 @@ export const useAuth = () => {
       }
     }
     return null;
-  }, []);
+  };
 
   const checkAuthStatus = useCallback(async () => {
     try {
@@ -59,7 +59,7 @@ export const useAuth = () => {
     } finally {
       setLoading(false);
     }
-  }, [getTokenFromCookie]);
+  }, []); // 移除 getTokenFromCookie 依赖，因为它不是 useCallback
 
   const refreshUser = useCallback(async () => {
     try {
@@ -87,7 +87,7 @@ export const useAuth = () => {
       setError(err instanceof Error ? err.message : 'An error occurred');
       return null;
     }
-  }, [getTokenFromCookie]);
+  }, []); // 移除 getTokenFromCookie 依赖
 
   const logout = async () => {
     try {
@@ -115,7 +115,8 @@ export const useAuth = () => {
 
   useEffect(() => {
     checkAuthStatus();
-  }, [checkAuthStatus]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // 只在组件挂载时执行一次
 
   return { user, loading, error, checkAuthStatus, refreshUser, logout };
 };

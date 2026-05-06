@@ -5,7 +5,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import {useThemeContext} from '@/hooks/useTheme';
+import {useTheme} from '@/hooks/useTheme';
 import ModernMinimalArticleCard from './ModernMinimalArticleCard';
 
 interface Article {
@@ -29,7 +29,7 @@ const ModernMinimalHomePage: React.FC<ModernMinimalHomePageProps> = ({
                                                                          recentArticles = [],
                                                                          popularArticles = [],
                                                                      }) => {
-    const {config} = useThemeContext();
+    const {config} = useTheme();
     const themeConfig = config?.config || {};
     const colors = (themeConfig as any).colors || {};
     const features = (themeConfig as any).features || {};

@@ -5,7 +5,7 @@
 'use client';
 
 import React, {useEffect, useState} from 'react';
-import {useThemeContext} from '@/hooks/useTheme';
+import {useTheme} from '@/hooks/useTheme';
 import ModernMinimalHeader from './ModernMinimalHeader';
 import ModernMinimalFooter from './ModernMinimalFooter';
 
@@ -14,7 +14,7 @@ interface ModernMinimalLayoutProps {
 }
 
 const ModernMinimalLayout: React.FC<ModernMinimalLayoutProps> = ({children}) => {
-    const {config} = useThemeContext();
+    const {config} = useTheme();
     const [isMounted, setIsMounted] = useState(false);
     const [darkMode, setDarkMode] = useState(false);
 

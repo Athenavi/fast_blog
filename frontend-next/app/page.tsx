@@ -28,7 +28,8 @@ export default function HomePage() {
             if (layout) setThemedLayout(() => layout);
             if (homePage) setThemedHomePage(() => homePage);
         }
-    }, [themeLoading, getComponent]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [themeLoading]); // 移除 getComponent 依赖，因为它现在是稳定的
     
     // 加载中状态
     if (themeLoading || dataLoading) {

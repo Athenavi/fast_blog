@@ -6,7 +6,7 @@
 'use client';
 
 import {useEffect, useState} from 'react';
-import {useThemeContext} from '@/hooks/useTheme';
+import {useTheme} from '@/hooks/useTheme';
 
 interface ThemeCustomizerProps {
     themeId?: number;
@@ -14,7 +14,7 @@ interface ThemeCustomizerProps {
 }
 
 export default function ThemeCustomizer({themeId, onSave}: ThemeCustomizerProps) {
-    const {config, isLoading, error} = useThemeContext();
+    const {config, isLoading, error} = useTheme();
 
     const [settings, setSettings] = useState({
         colors: {

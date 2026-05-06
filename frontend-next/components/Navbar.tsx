@@ -25,11 +25,12 @@ const Navbar: React.FC<NavbarProps> = ({
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
 
-    // 调试：记录主题变化
+    // 调试：记录主题变化（仅在开发环境）
     useEffect(() => {
-        console.log('[Navbar] 当前主题:', theme);
-        console.log('[Navbar] HTML 元素的类:', document.documentElement.classList.toString());
-        console.log('[Navbar] localStorage theme:', localStorage.getItem('theme'));
+        if (process.env.NODE_ENV === 'development') {
+            console.log('[Navbar] 当前主题:', theme);
+            console.log('[Navbar] HTML 元素的类:', document.documentElement.classList.toString());
+        }
     }, [theme]);
 
     // 检查用户是否登录

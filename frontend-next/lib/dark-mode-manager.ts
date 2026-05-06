@@ -12,11 +12,15 @@ class DarkModeManager {
     private constructor() {
         // 初始化时从 cookie 或系统偏好读取
         if (typeof window !== 'undefined') {
-            // ✅ 清理旧的 localStorage 数据，避免冲突
-            try {
-                localStorage.removeItem('theme');
-            } catch (e) {
-                // 忽略错误
+            // ✅ 只在第一次初始化时清理 localStorage，避免重复操作
+            const hasInitialized = sessionStorage.getItem('darkModeInitialized');
+            if (!hasInitialized) {
+                try {
+                    localStorage.removeItem('theme');
+                    sessionStorage.setItem('darkModeInitialized', 'true');
+                } catch (e) {
+                    // 忽略错误
+                }
             }
 
             const savedTheme = this.getThemeFromCookie();

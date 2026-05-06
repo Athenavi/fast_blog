@@ -83,11 +83,13 @@ export function ThemeDataProvider({children}: { children: React.ReactNode }) {
                         error: null,
                     });
                 } else {
-                    setThemeData(prev => ({
-                        ...prev,
-                        isLoading: false,
-                        error: result.error || '加载主题失败',
-                    }));
+                    if (mounted) {
+                        setThemeData(prev => ({
+                            ...prev,
+                            isLoading: false,
+                            error: result.error || '加载主题失败',
+                        }));
+                    }
                 }
             } catch (error) {
                 if (!mounted) return;
@@ -104,7 +106,7 @@ export function ThemeDataProvider({children}: { children: React.ReactNode }) {
         return () => {
             mounted = false;
         };
-    }, []);
+    }, []); // 空依赖数组，只执行一次
 
     return (
         <ThemeContext.Provider value={themeData}>

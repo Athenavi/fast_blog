@@ -4,7 +4,7 @@
  */
 
 import {useMemo} from 'react';
-import useTheme from './useTheme';
+import {useTheme} from './useTheme';
 
 /**
  * 获取主题渐变背景样式

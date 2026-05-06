@@ -6,14 +6,14 @@
 
 import React, {useState} from 'react';
 import Link from 'next/link';
-import {useThemeContext} from '@/hooks/useTheme';
+import {useTheme} from '@/hooks/useTheme';
 
 interface ModernMinimalHeaderProps {
     darkMode?: boolean;
 }
 
 const ModernMinimalHeader: React.FC<ModernMinimalHeaderProps> = ({darkMode = false}) => {
-    const {config} = useThemeContext();
+    const {config} = useTheme();
     const [isScrolled, setIsScrolled] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 

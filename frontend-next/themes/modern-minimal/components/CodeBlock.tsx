@@ -4,7 +4,7 @@
 'use client';
 
 import React, {useState} from 'react';
-import {useThemeContext} from '@/hooks/useTheme';
+import {useTheme} from '@/hooks/useTheme';
 
 interface CodeBlockProps {
     code: string;
@@ -19,7 +19,7 @@ const CodeBlock: React.FC<CodeBlockProps> = ({
                                                  showLineNumbers = true,
                                                  showCopyButton = true,
                                              }) => {
-    const {config} = useThemeContext();
+    const {config} = useTheme();
     const themeConfig = config?.config || {};
     const colors = (themeConfig as any).colors || {};
     const features = (themeConfig as any).features || {};

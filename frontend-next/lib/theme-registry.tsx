@@ -5,7 +5,7 @@
  * 每个主题可以提供自己的一组组件，系统会根据当前激活的主题动态加载对应的组件
  */
 
-import React from 'react';
+import React, {useCallback} from 'react';
 import {useTheme} from '@/hooks/useTheme';
 
 // 定义组件映射类型
@@ -134,21 +134,53 @@ export function useThemeComponents() {
     const [components, setComponents] = React.useState<ComponentMap>({});
     const [loading, setLoading] = React.useState(true);
 
+    // ✅ 使用 useRef 跟踪是否已经加载过组件
+    const hasLoadedRef = React.useRef(false);
+    const themeSlugRef = React.useRef<string | null>(null);
+    const renderCountRef = React.useRef(0);
+
+    // ✅ 记录渲染次数
+    renderCountRef.current += 1;
+    if (renderCountRef.current <= 20) {
+        console.log('[useThemeComponents] Render #', renderCountRef.current, 'isLoading:', isLoading, 'hasConfig:', !!config, 'hasLoaded:', hasLoadedRef.current);
+    }
+
     React.useEffect(() => {
-        if (!isLoading && config) {
+        // ✅ 只在第一次加载时执行，之后不再重新加载
+        if (!isLoading && config && !hasLoadedRef.current) {
             const themeSlug = config.metadata?.slug || 'default';
+
+            console.log('[useThemeComponents] Loading theme components for slug:', themeSlug);
+
+            // ✅ 只有当 themeSlug 真正改变时才重新加载
+            if (themeSlugRef.current === themeSlug && hasLoadedRef.current) {
+                console.log('[useThemeComponents] Theme already loaded, skipping');
+                return;
+            }
+
+            themeSlugRef.current = themeSlug;
+            hasLoadedRef.current = true;
             setLoading(true);
-            loadThemeComponents(themeSlug).then(setComponents).finally(() => setLoading(false));
+            loadThemeComponents(themeSlug).then((comps) => {
+                console.log('[useThemeComponents] Components loaded:', Object.keys(comps));
+                setComponents(comps);
+            }).finally(() => {
+                setLoading(false);
+                console.log('[useThemeComponents] Loading complete');
+            });
         }
-    }, [config, isLoading]);
+    }, [isLoading]); // ✅ 只依赖 isLoading
+
+    // 使用 useCallback 稳定 getComponent 引用
+    const getComponent = useCallback(<K extends keyof ComponentMap>(name: K): ComponentMap[K] | undefined => {
+        return components[name];
+    }, [components]);
 
     return {
         components,
         loading: loading || isLoading,
         // 提供便捷的访问方式
-        getComponent: <K extends keyof ComponentMap>(name: K): ComponentMap[K] | undefined => {
-            return components[name];
-        }
+        getComponent
     };
 }
 

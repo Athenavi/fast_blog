@@ -29,7 +29,7 @@ const ThemeInjector: React.FC<{ children: React.ReactNode }> = ({children}) => {
     const isAdminPage = pathname?.startsWith('/admin');
     const theme = useTheme();
 
-    const {cssVariables, stylesheetUrl, isLoading} = theme;
+    const {cssVariables, stylesheetUrl} = theme;
 
     // 只在客户端注入样式表
     useEffect(() => {
@@ -45,7 +45,8 @@ const ThemeInjector: React.FC<{ children: React.ReactNode }> = ({children}) => {
                 document.head.appendChild(linkElement);
             }
 
-            if (linkElement.href !== stylesheetUrl) {
+            // 只有当 URL 真正不同时才更新，避免不必要的重渲染
+            if (linkElement.href !== stylesheetUrl && !linkElement.href.endsWith(stylesheetUrl)) {
                 linkElement.href = stylesheetUrl;
             }
         }
@@ -56,19 +57,8 @@ const ThemeInjector: React.FC<{ children: React.ReactNode }> = ({children}) => {
         return <>{children}</>;
     }
 
-    // 加载中状态
-    if (isLoading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900">
-                <div className="text-center">
-                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                    <p className="text-gray-600 dark:text-gray-400">加载中...</p>
-                </div>
-            </div>
-        );
-    }
-
-    // 渲染主题 CSS 变量和子组件
+    // ✅ 始终渲染子组件，不再显示加载状态
+    // 主题变量会在后台加载，加载完成后自动应用
     return (
         <>
             {/* 注入主题CSS变量 */}

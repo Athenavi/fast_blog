@@ -36,9 +36,11 @@ export const PerformanceOptimizer: React.FC<PerformanceOptimizerProps> = ({
         return () => {
             if (observerRef.current) {
                 observerRef.current.disconnect();
+                observerRef.current = null;
             }
         };
-    }, [enablePreload, enableLazyLoad, preloadUrls]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []); // 只在挂载时执行一次
 
     // 预加载资源函数
     const preloadResources = (urls: string[]) => {

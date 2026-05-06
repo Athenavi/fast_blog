@@ -6,14 +6,14 @@
 
 import React from 'react';
 import Link from 'next/link';
-import {useThemeContext} from '@/hooks/useTheme';
+import {useTheme} from '@/hooks/useTheme';
 
 interface ModernMinimalFooterProps {
     darkMode?: boolean;
 }
 
 const ModernMinimalFooter: React.FC<ModernMinimalFooterProps> = ({darkMode = false}) => {
-    const {config} = useThemeContext();
+    const {config} = useTheme();
     
     // 获取主题配置
     const themeConfig = config?.config || {};

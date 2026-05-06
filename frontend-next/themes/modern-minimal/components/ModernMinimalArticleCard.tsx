@@ -5,7 +5,7 @@
 
 import React from 'react';
 import Link from 'next/link';
-import {useThemeContext} from '@/hooks/useTheme';
+import {useTheme} from '@/hooks/useTheme';
 
 interface Article {
     id: number;
@@ -26,7 +26,7 @@ const ModernMinimalArticleCard: React.FC<ModernMinimalArticleCardProps> = ({
                                                                                article,
                                                                                layout = 'card',
                                                                            }) => {
-    const {config} = useThemeContext();
+    const {config} = useTheme();
     const themeConfig = config?.config || {};
     const colors = (themeConfig as any).colors || {};
     const features = (themeConfig as any).features || {};
