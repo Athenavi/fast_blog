@@ -175,20 +175,32 @@ async def confirm_email_back(
 router = APIRouter(prefix="/user-settings", tags=["user-settings"])
 
 
-@router.put("/profile/avatar")
+@router.post("/profile/avatar", response_model_exclude_none=True)
 async def update_avatar_api(
-        request: Request,
-        file: UploadFile = File(...),
-        current_user=Depends(jwt_required),
-        db: AsyncSession = Depends(get_async_db)
+        file: UploadFile = File(..., description="头像文件"),
+        current_user=Depends(jwt_required)
 ):
     """
     更新用户头像API
+    
+    Args:
+        file: 上传的头像文件（JPG、PNG、WEBP格式，最大5MB）
+        
+    Returns:
+        JSON响应，包含成功状态和头像URL
     """
     try:
+        # 调试日志
+        print(f"[Avatar Upload] === START ===")
+        print(f"[Avatar Upload] Received request from user: {current_user.id}")
+        print(f"[Avatar Upload] File name: {file.filename}")
+        print(f"[Avatar Upload] Content type: {file.content_type}")
+        print(f"[Avatar Upload] File size attr: {file.size if hasattr(file, 'size') else 'unknown'}")
+        
         # 验证文件类型
         allowed_types = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg']
         if file.content_type not in allowed_types:
+            print(f"[Avatar Upload] Invalid content type: {file.content_type}")
             return JSONResponse(
                 content={"success": False, "error": "不支持的文件类型"},
                 status_code=400
@@ -196,6 +208,7 @@ async def update_avatar_api(
 
         # 验证文件大小 (最大5MB)
         file_content = await file.read()
+        print(f"[Avatar Upload] Actual file size: {len(file_content)} bytes")
         if len(file_content) > 5 * 1024 * 1024:
             return JSONResponse(
                 content={"success": False, "error": "文件大小不能超过5MB"},
@@ -204,13 +217,23 @@ async def update_avatar_api(
 
         # 重置文件指针，因为我们需要再次读取文件
         await file.seek(0)
-        result = await save_uploaded_avatar(file, current_user.id, db)
 
-        avatar_url = f"{request.url.scheme}://{request.url.netloc}/static/avatar/{result}.webp"
+        # 获取数据库会话
+        from src.extensions import get_async_db_session
+        db = await get_async_db_session().__anext__()
+        try:
+            result = await save_uploaded_avatar(file, current_user.id, db)
+        finally:
+            await db.close()
+
+        # 构建头像 URL
+        avatar_url = f"/static/avatar/{result}.webp"
+        print(f"[Avatar Upload] Success! Avatar URL: {avatar_url}")
+        print(f"[Avatar Upload] === END ===")
         return JSONResponse(content={"success": True, "avatar_url": avatar_url})
     except Exception as e:
         import traceback
-        print(f"Error in update_avatar_api: {str(e)}")
+        print(f"[Avatar Upload] Error: {str(e)}")
         print(traceback.format_exc())
         return JSONResponse(content={"error": f"头像更新失败: {str(e)}"}, status_code=500)
 

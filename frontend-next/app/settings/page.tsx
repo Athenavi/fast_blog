@@ -5,24 +5,19 @@ import {useRouter} from 'next/navigation';
 import Image from 'next/image';
 import {motion} from 'framer-motion';
 import {
-    User,
-    Shield,
     Bell,
-    Palette,
-    Globe,
-    Lock,
-    Mail,
-    Upload,
     Camera,
-    Check,
-    X,
-    LogOut,
-    Save,
     Eye,
     EyeOff,
-    Smartphone,
+    LogOut,
     Moon,
-    Sun
+    Palette,
+    Save,
+    Shield,
+    Smartphone,
+    Sun,
+    Upload,
+    User
 } from 'lucide-react';
 import WithAuthProtection from '@/components/WithAuthProtection';
 import {apiClient} from "@/lib/api";
@@ -163,16 +158,44 @@ const SettingsPage = () => {
             const config = await import('@/lib/config');
             const apiConfig = config.getConfig();
 
+            // 从 cookie 获取 token
+            const getTokenFromCookie = (): string | null => {
+                if (typeof document === 'undefined') return null;
+                const cookies = document.cookie.split(';');
+                for (const cookie of cookies) {
+                    const [name, value] = cookie.trim().split('=');
+                    if (name === 'access_token') {
+                        return decodeURIComponent(value);
+                    }
+                }
+                return null;
+            };
+
+            const token = getTokenFromCookie();
+
+            // 构建请求头 - 只在有 token 时添加 Authorization
+            const headers: HeadersInit = {};
+            if (token) {
+                headers['Authorization'] = `Bearer ${token}`;
+            }
+            // 注意：不要设置 Content-Type，让浏览器自动设置 multipart/form-data 和 boundary
+
+            console.log('[Avatar Upload] Sending request with headers:', headers);
+            console.log('[Avatar Upload] File:', file.name, file.type, file.size);
+
             const response = await fetch(
                 `${apiConfig.API_BASE_URL}${apiConfig.API_PREFIX}/user-settings/profile/avatar`,
                 {
-                    method: 'PUT',
+                    method: 'POST',
                     body: formData,
                     credentials: "include",
+                    headers: Object.keys(headers).length > 0 ? headers : undefined,
                 }
             );
 
+            console.log('[Avatar Upload] Response status:', response.status);
             const result = await response.json();
+            console.log('[Avatar Upload] Response data:', result);
 
             if (response.ok && result.success) {
                 const reader = new FileReader();
