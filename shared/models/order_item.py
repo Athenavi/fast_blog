@@ -1,15 +1,13 @@
 """
 SQLAlchemy 模型定义 - OrderItem
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-06 17:26:12
+生成时间：2026-05-06 17:36:26
 """
 
-
-from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, Float, Numeric, ForeignKey
+from sqlalchemy import Column, BigInteger, Integer, String, DateTime, Numeric, ForeignKey, Index
 
 from . import Base  # 使用统一的 Base
 
-from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, Float, Numeric, ForeignKey, Index
 
 class OrderItem(Base):
     """订单项模型模型"""
@@ -36,13 +34,16 @@ class OrderItem(Base):
 
     total = Column(Numeric(10, 2), doc='total')
 
+
     created_at = Column(DateTime, doc='created_at')
+
 
     __table_args__ = (
 
-        Index('idx_order_items_order', 'order_id'),
+    Index('idx_order_items_order', 'order_id'),
         Index('idx_order_items_product', 'product_id'),
     )
+
 
     def to_dict(self, exclude_sensitive=True):
         """转换为字典

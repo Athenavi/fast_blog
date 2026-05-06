@@ -1,15 +1,13 @@
 """
 SQLAlchemy 模型定义 - Product
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-06 17:26:12
+生成时间：2026-05-06 17:36:26
 """
 
-
-from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, Float, Numeric, ForeignKey
+from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, Numeric, ForeignKey, Index
 
 from . import Base  # 使用统一的 Base
 
-from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, Float, Numeric, ForeignKey, Index
 
 class Product(Base):
     """商品模型模型"""
@@ -36,11 +34,15 @@ class Product(Base):
 
     stock = Column(Integer, default=0, doc='stock')
 
+
     sku = Column(String(100), index=True, nullable=True, doc='sku')
+
 
     images = Column(Text, nullable=True, doc='images')
 
+
     category_id = Column(BigInteger, ForeignKey('categories.id'), nullable=True, doc='category_id')
+
 
     is_active = Column(Boolean, default=True, doc='is_active')
 
@@ -58,7 +60,7 @@ class Product(Base):
 
     __table_args__ = (
 
-        Index('idx_products_slug', 'slug', unique=True),
+    Index('idx_products_slug', 'slug', unique=True),
         Index('idx_products_category', 'category_id'),
         Index('idx_products_is_active', 'is_active'),
         Index('idx_products_sku', 'sku'),

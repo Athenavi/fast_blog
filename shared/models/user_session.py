@@ -1,23 +1,24 @@
 """
 SQLAlchemy 模型定义 - UserSession
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-06 17:26:12
+生成时间：2026-05-06 17:36:26
 """
 
-from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, ForeignKey
+from sqlalchemy import Column, BigInteger, String, Boolean, DateTime, ForeignKey, Index
 
 from . import Base  # 使用统一的 Base
-
-from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, ForeignKey, Index
 
 
 class UserSession(Base):
     """用户会话模型模型"""
     __tablename__ = 'user_sessions'
 
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='id')
 
+
     user_id = Column(BigInteger, ForeignKey('users.id'), nullable=False, doc='user_id')
+
 
     session_token = Column(String(255), unique=True, nullable=True, doc='session_token')
 
@@ -37,7 +38,7 @@ class UserSession(Base):
 
     __table_args__ = (
 
-        Index('idx_user_sessions_user_id', 'user_id'),
+    Index('idx_user_sessions_user_id', 'user_id'),
         Index('idx_user_sessions_token', 'session_token', unique=True),
         Index('idx_user_sessions_is_active', 'is_active'),
         Index('idx_user_sessions_expires', 'expires_at'),

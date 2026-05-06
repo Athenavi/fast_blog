@@ -1,16 +1,12 @@
 """
 FastAPI 路由文件
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-06 17:26:12
+生成时间：2026-05-06 17:36:26
 """
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Query
 
 from src.api.v1.responses import ApiResponse
-
-from fastapi import APIRouter, Depends, Form, Query, Path
-from src.api.v1.responses import ApiResponse
-from src.auth import jwt_required_dependency as jwt_required
 
 # 导入依赖
 
@@ -4649,6 +4645,7 @@ except Exception as e:
     return ApiResponse(success=False, error=str(e))
 
 
+
 @router.post("/articles/{article_id}/revisions/sync", summary="同步文章修订历史到云端")
 async def sync_article_revisions_endpoint(
         article_id: int = Path(...),
@@ -4670,6 +4667,7 @@ except Exception as e:
     print(f"Error in sync_article_revisions: {str(e)}")
     print(traceback.format_exc())
     return ApiResponse(success=False, error=str(e))
+
 
 
 @router.delete("/articles/{article_id}/revisions/{revision_id}", summary="删除修订版本")
@@ -4696,6 +4694,7 @@ except Exception as e:
     print(traceback.format_exc())
     return ApiResponse(success=False, error=str(e))
 
+
 # ====================
 #
 Scheduled_publish
@@ -4721,6 +4720,7 @@ except Exception as e:
     print(f"Error in trigger_scheduled_publish: {str(e)}")
     print(traceback.format_exc())
     return ApiResponse(success=False, error=str(e))
+
 
 
 @router.get("/articles/scheduled/list", summary="获取定时文章列表")
@@ -4752,6 +4752,7 @@ except Exception as e:
     return ApiResponse(success=False, error=str(e))
 
 
+
 @router.post("/articles/{article_id}/scheduled/cancel", summary="取消定时发布")
 async def cancel_article_schedule_endpoint(
         article_id: int = Path(...),
@@ -4773,6 +4774,7 @@ except Exception as e:
     print(f"Error in cancel_article_schedule: {str(e)}")
     print(traceback.format_exc())
     return ApiResponse(success=False, error=str(e))
+
 
 # ====================
 #
@@ -4809,6 +4811,7 @@ except Exception as e:
     return ApiResponse(success=False, error=str(e))
 
 
+
 @router.get("/feed/atom", summary="获取Atom订阅")
 async def get_atom_feed_endpoint(
         limit: int = Query(20)
@@ -4838,6 +4841,7 @@ except Exception as e:
     return ApiResponse(success=False, error=str(e))
 
 
+
 @router.get("/feed/metadata", summary="获取Feed元数据")
 async def get_feed_meta_endpoint(
         db: AsyncSession = Depends(get_async_db),
@@ -4859,6 +4863,7 @@ except Exception as e:
     return ApiResponse(success=False, error=str(e))
 
 
+
 @router.get("/feed", summary="Feed重定向")
 async def legacy_feed_redirect_endpoint(
         db: AsyncSession = Depends(get_async_db),
@@ -4878,6 +4883,7 @@ except Exception as e:
     print(f"Error in legacy_feed_redirect: {str(e)}")
     print(traceback.format_exc())
     return ApiResponse(success=False, error=str(e))
+
 
 # ====================
 #
@@ -4918,6 +4924,7 @@ except Exception as e:
     return ApiResponse(success=False, error=str(e))
 
 
+
 @router.get("/pages/hierarchy", summary="获取页面层级结构")
 async def get_pages_tree_endpoint(
         db: AsyncSession = Depends(get_async_db),
@@ -4937,6 +4944,7 @@ except Exception as e:
     print(f"Error in get_pages_tree: {str(e)}")
     print(traceback.format_exc())
     return ApiResponse(success=False, error=str(e))
+
 
 
 @router.get("/pages/{slug}", summary="获取页面详情")
@@ -4962,6 +4970,7 @@ except Exception as e:
     return ApiResponse(success=False, error=str(e))
 
 
+
 @router.post("/pages", summary="创建页面")
 async def create_new_page_endpoint(
         db: AsyncSession = Depends(get_async_db),
@@ -4981,6 +4990,7 @@ except Exception as e:
     print(f"Error in create_new_page: {str(e)}")
     print(traceback.format_exc())
     return ApiResponse(success=False, error=str(e))
+
 
 
 @router.put("/pages/{page_id}", summary="更新页面")
@@ -5006,6 +5016,7 @@ except Exception as e:
     return ApiResponse(success=False, error=str(e))
 
 
+
 @router.delete("/pages/{page_id}", summary="删除页面")
 async def delete_existing_page_endpoint(
         page_id: int = Path(...),
@@ -5027,6 +5038,7 @@ except Exception as e:
     print(f"Error in delete_existing_page: {str(e)}")
     print(traceback.format_exc())
     return ApiResponse(success=False, error=str(e))
+
 
 # ====================
 #
@@ -5055,6 +5067,7 @@ except Exception as e:
     return ApiResponse(success=False, error=str(e))
 
 
+
 @router.get("/menus/{menu_id}", summary="获取菜单详情")
 async def get_menu_detail_endpoint(
         menu_id: int = Path(...),
@@ -5078,6 +5091,7 @@ except Exception as e:
     return ApiResponse(success=False, error=str(e))
 
 
+
 @router.post("/menus", summary="创建菜单")
 async def create_new_menu_endpoint(
         db: AsyncSession = Depends(get_async_db),
@@ -5097,6 +5111,7 @@ except Exception as e:
     print(f"Error in create_new_menu: {str(e)}")
     print(traceback.format_exc())
     return ApiResponse(success=False, error=str(e))
+
 
 
 @router.put("/menus/{menu_id}", summary="更新菜单")
@@ -5122,6 +5137,7 @@ except Exception as e:
     return ApiResponse(success=False, error=str(e))
 
 
+
 @router.delete("/menus/{menu_id}", summary="删除菜单")
 async def delete_existing_menu_endpoint(
         menu_id: int = Path(...),
@@ -5143,6 +5159,7 @@ except Exception as e:
     print(f"Error in delete_existing_menu: {str(e)}")
     print(traceback.format_exc())
     return ApiResponse(success=False, error=str(e))
+
 
 
 @router.post("/menus/{menu_id}/items", summary="添加菜单项")
@@ -5168,6 +5185,7 @@ except Exception as e:
     return ApiResponse(success=False, error=str(e))
 
 
+
 @router.put("/menus/items/{item_id}", summary="更新菜单项")
 async def update_menu_item_detail_endpoint(
         item_id: int = Path(...),
@@ -5189,6 +5207,7 @@ except Exception as e:
     print(f"Error in update_menu_item_detail: {str(e)}")
     print(traceback.format_exc())
     return ApiResponse(success=False, error=str(e))
+
 
 
 @router.delete("/menus/items/{item_id}", summary="删除菜单项")
@@ -5214,6 +5233,7 @@ except Exception as e:
     return ApiResponse(success=False, error=str(e))
 
 
+
 @router.post("/menus/{menu_id}/reorder", summary="重新排序菜单项")
 async def reorder_menu_endpoint(
         menu_id: int = Path(...),
@@ -5237,6 +5257,7 @@ except Exception as e:
     return ApiResponse(success=False, error=str(e))
 
 
+
 @router.get("/menus/available/pages", summary="获取可用页面")
 async def get_available_pages_endpoint(
         db: AsyncSession = Depends(get_async_db),
@@ -5258,6 +5279,7 @@ except Exception as e:
     return ApiResponse(success=False, error=str(e))
 
 
+
 @router.get("/menus/available/categories", summary="获取可用分类")
 async def get_available_categories_endpoint(
         db: AsyncSession = Depends(get_async_db),
@@ -5277,6 +5299,7 @@ except Exception as e:
     print(f"Error in get_available_categories: {str(e)}")
     print(traceback.format_exc())
     return ApiResponse(success=False, error=str(e))
+
 
 # ====================
 #
@@ -5305,6 +5328,7 @@ except Exception as e:
     return ApiResponse(success=False, error=str(e))
 
 
+
 @router.delete("/backup/{backup_filename}", summary="删除备份")
 async def delete_backup_file_endpoint(
         backup_filename: str = Path(...),
@@ -5328,6 +5352,7 @@ except Exception as e:
     return ApiResponse(success=False, error=str(e))
 
 
+
 @router.get("/backup/stats", summary="获取数据库统计")
 async def get_db_stats_endpoint(
         db: AsyncSession = Depends(get_async_db),
@@ -5349,6 +5374,7 @@ except Exception as e:
     return ApiResponse(success=False, error=str(e))
 
 
+
 @router.post("/backup/export", summary="导出数据")
 async def export_data_endpoint(
         db: AsyncSession = Depends(get_async_db),
@@ -5368,6 +5394,7 @@ except Exception as e:
     print(f"Error in export_data: {str(e)}")
     print(traceback.format_exc())
     return ApiResponse(success=False, error=str(e))
+
 
 # ====================
 #
@@ -5396,6 +5423,7 @@ except Exception as e:
     return ApiResponse(success=False, error=str(e))
 
 
+
 @router.post("/plugins/install", summary="安装插件")
 async def install_plugin_endpoint(
         db: AsyncSession = Depends(get_async_db),
@@ -5415,6 +5443,7 @@ except Exception as e:
     print(f"Error in install_plugin: {str(e)}")
     print(traceback.format_exc())
     return ApiResponse(success=False, error=str(e))
+
 
 
 @router.post("/plugins/{plugin_id}/activate", summary="激活插件")
@@ -5440,6 +5469,7 @@ except Exception as e:
     return ApiResponse(success=False, error=str(e))
 
 
+
 @router.post("/plugins/{plugin_id}/deactivate", summary="停用插件")
 async def deactivate_plugin_endpoint(
         plugin_id: int = Path(...),
@@ -5461,6 +5491,7 @@ except Exception as e:
     print(f"Error in deactivate_plugin: {str(e)}")
     print(traceback.format_exc())
     return ApiResponse(success=False, error=str(e))
+
 
 
 @router.delete("/plugins/{plugin_id}", summary="卸载插件")
@@ -5486,6 +5517,7 @@ except Exception as e:
     return ApiResponse(success=False, error=str(e))
 
 
+
 @router.put("/plugins/{plugin_id}/settings", summary="更新插件设置")
 async def update_plugin_settings_endpoint(
         plugin_id: int = Path(...),
@@ -5509,6 +5541,7 @@ except Exception as e:
     return ApiResponse(success=False, error=str(e))
 
 
+
 @router.get("/plugins/hooks", summary="获取钩子列表")
 async def list_hooks_endpoint(
         db: AsyncSession = Depends(get_async_db),
@@ -5528,6 +5561,7 @@ except Exception as e:
     print(f"Error in list_hooks: {str(e)}")
     print(traceback.format_exc())
     return ApiResponse(success=False, error=str(e))
+
 
 # ====================
 #

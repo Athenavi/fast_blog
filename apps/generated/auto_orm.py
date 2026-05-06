@@ -1,7 +1,7 @@
 """
 Django ORM 抽象基类定义
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-06 17:26:12
+生成时间：2026-05-06 17:36:25
 """
 
 from django.db import models
@@ -2378,6 +2378,7 @@ class SensitiveWordMixin(models.Model):
         # 注意：请在具体模型类中设置 db_table = get_table_name("sensitive_words")
 
 
+
 class UserSessionMixin(models.Model):
     """用户会话模型 Mixin"""
 
@@ -2414,3 +2415,32 @@ class UserSessionMixin(models.Model):
         app_label = 'generated'
         verbose_name = '用户会话模型'
         # 注意：请在具体模型类中设置 db_table = get_table_name("user_sessions")
+
+
+class LoginAttemptMixin(models.Model):
+    """登录尝试记录模型 Mixin"""
+
+    # id
+    id = models.BigAutoField(
+        'id', primary_key=True)
+    # username
+    username = models.CharField(
+        'username', max_length=255)
+    # ip_address
+    ip_address = models.CharField(
+        'ip_address', max_length=45)
+    # user_agent
+    user_agent = models.CharField(
+        'user_agent', max_length=500, blank=True, null=True)
+    # is_success
+    is_success = models.BooleanField(
+        'is_success', default=False)
+    # failure_reason
+    failure_reason = models.CharField(
+        'failure_reason', max_length=255, blank=True, null=True)
+
+    class Meta:
+        abstract = True
+        app_label = 'generated'
+        verbose_name = '登录尝试记录模型'
+        # 注意：请在具体模型类中设置 db_table = get_table_name("login_attempts")

@@ -1,23 +1,19 @@
 """
 SQLAlchemy 模型定义 - User
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-06 17:26:12
+生成时间：2026-05-06 17:36:26
 """
 
-
-from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime
+from sqlalchemy import Column, BigInteger, String, Boolean, DateTime, Index
 
 from . import Base  # 使用统一的 Base
+
 
 # ============================================================================
 # 自定义方法导入提示
 # 以下导入是自定义方法可能需要的，如果不需要可以删除：
 # - from datetime import datetime
 # ============================================================================
-
-
-
-from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, Index
 
 class User(Base):
     """用户模型模型"""
@@ -80,11 +76,13 @@ class User(Base):
 
     totp_secret = Column(String(255), nullable=True, doc='totp_secret')
 
+
     backup_codes = Column(String(255), nullable=True, doc='backup_codes')
+
 
     __table_args__ = (
 
-    Index('idx_users_username', 'username', unique=True),
+        Index('idx_users_username', 'username', unique=True),
         Index('idx_users_email', 'email', unique=True),
         Index('idx_users_is_active', 'is_active'),
         Index('idx_users_vip_level', 'vip_level'),

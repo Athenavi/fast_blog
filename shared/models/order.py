@@ -1,15 +1,13 @@
 """
 SQLAlchemy 模型定义 - Order
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-06 17:26:12
+生成时间：2026-05-06 17:36:26
 """
 
-
-from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, Float, Numeric, ForeignKey
+from sqlalchemy import Column, BigInteger, String, Text, DateTime, Numeric, ForeignKey, Index
 
 from . import Base  # 使用统一的 Base
 
-from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, Float, Numeric, ForeignKey, Index
 
 class Order(Base):
     """订单模型模型"""
@@ -39,11 +37,15 @@ class Order(Base):
 
     payment_method = Column(String(50), nullable=True, doc='payment_method')
 
+
     payment_status = Column(String(50), default='pending', doc='payment_status')
+
 
     transaction_id = Column(String(255), nullable=True, doc='transaction_id')
 
+
     shipping_address = Column(String(255), nullable=True, doc='shipping_address')
+
 
     billing_address = Column(String(255), nullable=True, doc='billing_address')
 
@@ -61,7 +63,7 @@ class Order(Base):
 
     __table_args__ = (
 
-    Index('idx_orders_order_number', 'order_number', unique=True),
+        Index('idx_orders_order_number', 'order_number', unique=True),
         Index('idx_orders_user', 'user_id'),
         Index('idx_orders_status', 'status'),
         Index('idx_orders_payment_status', 'payment_status'),

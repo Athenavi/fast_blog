@@ -1,15 +1,13 @@
 """
 SQLAlchemy 模型定义 - Cart
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-06 17:26:12
+生成时间：2026-05-06 17:36:26
 """
 
-
-from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, ForeignKey
+from sqlalchemy import Column, BigInteger, String, DateTime, ForeignKey, Index
 
 from . import Base  # 使用统一的 Base
 
-from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, ForeignKey, Index
 
 class Cart(Base):
     """购物车模型模型"""
@@ -33,9 +31,10 @@ class Cart(Base):
 
     __table_args__ = (
 
-        Index('idx_carts_user', 'user_id'),
+    Index('idx_carts_user', 'user_id'),
         Index('idx_carts_session', 'session_id'),
     )
+
 
     def to_dict(self, exclude_sensitive=True):
         """转换为字典

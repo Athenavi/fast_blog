@@ -1,48 +1,38 @@
 """
-SQLAlchemy 模型定义 - UserActivity
+SQLAlchemy 模型定义 - LoginAttempt
 由 routes.yaml 自动生成 - 请勿手动修改
 生成时间：2026-05-06 17:36:26
 """
 
-
-from sqlalchemy import Column, BigInteger, String, DateTime, ForeignKey
+from sqlalchemy import Column, BigInteger, String, Boolean, DateTime, Index
 
 from . import Base  # 使用统一的 Base
 
 
-class UserActivity(Base):
-    """用户活动模型模型"""
-    __tablename__ = 'user_activities'
-
+class LoginAttempt(Base):
+    """登录尝试记录模型模型"""
+    __tablename__ = 'login_attempts'
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='id')
 
+    username = Column(String(255), index=True, nullable=True, doc='username')
 
-    user = Column(BigInteger, ForeignKey('users.id'), nullable=False, doc='user')
-
-
-    activity_type = Column(String(100), nullable=True, doc='activity_type')
-
-
-    target_type = Column(String(50), nullable=True, doc='target_type')
-
-
-    target_id = Column(BigInteger, doc='target_id')
-
-
-    details = Column(String(255), nullable=True, doc='details')
-
-
-    ip_address = Column(String(45), nullable=True, doc='ip_address')
-
+    ip_address = Column(String(45), index=True, nullable=True, doc='ip_address')
 
     user_agent = Column(String(500), nullable=True, doc='user_agent')
 
+    is_success = Column(Boolean, default=False, doc='is_success')
+
+    failure_reason = Column(String(255), nullable=True, doc='failure_reason')
 
     created_at = Column(DateTime, doc='created_at')
 
+    __table_args__ = (
 
-
+        Index('idx_login_attempts_username', 'username'),
+        Index('idx_login_attempts_ip', 'ip_address'),
+        Index('idx_login_attempts_created', 'created_at'),
+    )
 
     def to_dict(self, exclude_sensitive=True):
         """转换为字典
@@ -52,13 +42,11 @@ class UserActivity(Base):
         """
         data = {
             'id': self.id,
-            'user': self.user,
-            'activity_type': self.activity_type,
-            'target_type': self.target_type,
-            'target_id': self.target_id,
-            'details': self.details,
+            'username': self.username,
             'ip_address': self.ip_address,
             'user_agent': self.user_agent,
+            'is_success': self.is_success,
+            'failure_reason': self.failure_reason,
             'created_at': self.created_at.isoformat() if self.created_at else None,
         }
 
@@ -72,4 +60,4 @@ class UserActivity(Base):
 
     def __repr__(self):
         """字符串表示"""
-        return f'<UserActivity id={self.id}>'
+        return f'<LoginAttempt id={self.id}>'

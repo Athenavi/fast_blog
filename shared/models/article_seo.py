@@ -1,16 +1,14 @@
 """
 SQLAlchemy 模型定义 - ArticleSEO
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-06 17:26:12
+生成时间：2026-05-06 17:36:26
 """
 
-
-from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, ForeignKey
+from sqlalchemy import Column, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
 from sqlalchemy.orm import relationship
 
 from . import Base  # 使用统一的 Base
 
-from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, ForeignKey, Index
 
 class ArticleSEO(Base):
     """文章SEO元数据模型模型"""
@@ -73,9 +71,10 @@ class ArticleSEO(Base):
 
     updated_at = Column(DateTime, doc='updated_at')
 
+
     __table_args__ = (
 
-    Index('idx_article_seo_article_id', 'article_id', unique=True),
+        Index('idx_article_seo_article_id', 'article_id', unique=True),
     )
 
     # 关系定义

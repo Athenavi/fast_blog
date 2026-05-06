@@ -1,7 +1,7 @@
 /**
  * API 类型定义
  * 由 routes.yaml 自动生成 - 请勿手动修改
- * 生成时间：2026-05-06 17:26:12
+ * 生成时间：2026-05-06 17:36:26
  */
 
 export interface User {
@@ -813,6 +813,16 @@ export interface UserSession {
     is_active: boolean;
     last_activity: string;
     expires_at: string;
+    created_at: string;
+}
+
+export interface LoginAttempt {
+    id: any;
+    username: string;
+    ip_address: string;
+    user_agent?: string;
+    is_success: boolean;
+    failure_reason?: string;
     created_at: string;
 }
 

@@ -1,15 +1,13 @@
 """
 SQLAlchemy 模型定义 - SensitiveWord
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-06 17:26:12
+生成时间：2026-05-06 17:36:26
 """
 
-
-from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, Float, ForeignKey
+from sqlalchemy import Column, BigInteger, Integer, String, Boolean, DateTime, ForeignKey, Index
 
 from . import Base  # 使用统一的 Base
 
-from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, Float, ForeignKey, Index
 
 class SensitiveWord(Base):
     """敏感词模型模型"""
@@ -24,11 +22,15 @@ class SensitiveWord(Base):
 
     level = Column(Integer, default=1, doc='level')
 
+
     action = Column(String(50), default='block', doc='action')
+
 
     replacement = Column(String(100), nullable=True, doc='replacement')
 
+
     category = Column(String(50), nullable=True, doc='category')
+
 
     is_active = Column(Boolean, default=True, doc='is_active')
 
@@ -40,7 +42,7 @@ class SensitiveWord(Base):
 
     __table_args__ = (
 
-    Index('idx_sensitive_word_level', 'level'),
+        Index('idx_sensitive_word_level', 'level'),
         Index('idx_sensitive_word_category', 'category'),
         Index('idx_sensitive_word_active', 'is_active'),
     )

@@ -3434,3 +3434,54 @@ models:
       - name: idx_user_sessions_expires
         columns: [ expires_at ]
         comment: "过期时间索引"
+
+  # ============================================================================
+  # 登录安全 - 登录尝试记录模型
+  # ============================================================================
+  LoginAttempt:
+    description: 登录尝试记录模型
+    properties:
+      id:
+        type: bigint
+        description: 记录 ID
+      username:
+        type: string
+        maxLength: 255
+        index: true
+        description: 尝试登录的用户名
+      ip_address:
+        type: string
+        maxLength: 45
+        index: true
+        description: IP地址
+      user_agent:
+        type: string
+        nullable: true
+        maxLength: 500
+        description: User-Agent
+      is_success:
+        type: boolean
+        default: false
+        description: 是否成功
+      failure_reason:
+        type: string
+        nullable: true
+        maxLength: 255
+        description: 失败原因
+      created_at:
+        type: string
+        format: date-time
+        description: 尝试时间
+    orm: true
+    table: login_attempts
+    indexes:
+      - name: idx_login_attempts_username
+        columns: [ username ]
+        comment: "用户名索引"
+      - name: idx_login_attempts_ip
+        columns: [ ip_address ]
+        comment: "IP地址索引"
+      - name: idx_login_attempts_created
+        columns: [ created_at ]
+        order: DESC
+        comment: "创建时间索引"
