@@ -46,10 +46,12 @@ export default function ModernDashboard() {
 
     const fetchDashboardStats = async () => {
         try {
+            console.log('[ModernDashboard] Fetching dashboard stats...');
             const response = await apiClient.get('/dashboard/stats');
+            console.log('[ModernDashboard] Dashboard stats response:', response);
 
-            if (response.data?.success) {
-                const data = response.data.data;
+            if (response.success && response.data) {
+                const data = response.data;
                 setStats([
                     {
                         title: '总文章数',
@@ -94,12 +96,33 @@ export default function ModernDashboard() {
                         description: '本周',
                     },
                 ]);
+                console.log('[ModernDashboard] Stats set successfully:', stats.length, 'cards');
+            } else {
+                console.error('[ModernDashboard] Failed to fetch stats:', response.error);
+                // 设置默认值
+                setStats([
+                    {title: '总文章数', value: 0, icon: <FileText className="h-4 w-4"/>},
+                    {title: '总浏览量', value: '0', icon: <Eye className="h-4 w-4"/>},
+                    {title: '活跃用户', value: '0', icon: <Users className="h-4 w-4"/>},
+                    {title: '评论数', value: 0, icon: <MessageSquare className="h-4 w-4"/>},
+                    {title: '点赞数', value: '0', icon: <Heart className="h-4 w-4"/>},
+                    {title: '新用户', value: 0, icon: <DollarSign className="h-4 w-4"/>},
+                ]);
             }
 
             // 获取热门文章
             await fetchPopularArticles();
         } catch (error) {
-            console.error('Failed to fetch dashboard stats:', error);
+            console.error('[ModernDashboard] Failed to fetch dashboard stats:', error);
+            // 设置默认值
+            setStats([
+                {title: '总文章数', value: 0, icon: <FileText className="h-4 w-4"/>},
+                {title: '总浏览量', value: '0', icon: <Eye className="h-4 w-4"/>},
+                {title: '活跃用户', value: '0', icon: <Users className="h-4 w-4"/>},
+                {title: '评论数', value: 0, icon: <MessageSquare className="h-4 w-4"/>},
+                {title: '点赞数', value: '0', icon: <Heart className="h-4 w-4"/>},
+                {title: '新用户', value: 0, icon: <DollarSign className="h-4 w-4"/>},
+            ]);
         } finally {
             setLoading(false);
         }
@@ -107,13 +130,21 @@ export default function ModernDashboard() {
 
     const fetchPopularArticles = async () => {
         try {
-            const response = await apiClient.get('/analytics/popular-articles?limit=5&days=7');
+            console.log('[ModernDashboard] Fetching popular articles...');
+            // 修正API路径：analytics router已经注册在 /api/v1 前缀下
+            const response = await apiClient.get('/popular-articles', {limit: 5, days: 7});
+            console.log('[ModernDashboard] Popular articles response:', response);
 
-            if (response.data?.success) {
-                setPopularArticles(response.data.data || []);
+            if (response.success && response.data) {
+                setPopularArticles(response.data || []);
+                console.log('[ModernDashboard] Popular articles set:', response.data.length, 'articles');
+            } else {
+                console.warn('[ModernDashboard] No popular articles found or failed to fetch');
+                setPopularArticles([]);
             }
         } catch (error) {
-            console.error('Failed to fetch popular articles:', error);
+            console.error('[ModernDashboard] Failed to fetch popular articles:', error);
+            setPopularArticles([]);
         }
     };
 

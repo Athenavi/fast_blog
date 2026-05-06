@@ -919,7 +919,7 @@ curl -X POST "http://localhost:9421/api/v1/media/upload" \
         # 性能监控 API
         try:
             from src.api.v1.performance_monitor import router as perf_monitor_router
-            app.include_router(perf_monitor_router, prefix='/api/v1/performance', tags=['performance'])
+            app.include_router(perf_monitor_router, prefix='/api/v1/performance-monitor', tags=['performance-monitor'])
             print(f"{worker_info} [OK] Performance Monitor API 已加载")
         except ImportError as e:
             print(f"Warning: Performance Monitor API could not be loaded: {e}")
@@ -999,7 +999,7 @@ curl -X POST "http://localhost:9421/api/v1/media/upload" \
         # 页面性能追踪 API
         try:
             from src.api.v1.performance_tracking import router as performance_router
-            app.include_router(performance_router, prefix='/api/v1/performance', tags=['performance'])
+            app.include_router(performance_router, prefix='/api/v1/performance-tracking', tags=['performance-tracking'])
             print(f"{worker_info} [OK] Performance Tracking API 已加载")
         except ImportError as e:
             print(f"Warning: Performance Tracking API could not be loaded: {e}")

@@ -289,7 +289,9 @@ const MediaGrid: React.FC<MediaGridProps> = ({
 
   // 复制文件链接
   const handleCopyLink = (media: MediaFile) => {
-    const url = `${window.location.origin}${apiBaseUrl}${apiPrefix}/media/${media.hash}`;
+    // 如果 apiBaseUrl 已经是完整 URL，直接使用；否则拼接 window.location.origin
+    const baseUrl = apiBaseUrl.startsWith('http') ? apiBaseUrl : `${window.location.origin}${apiBaseUrl}`;
+    const url = `${baseUrl}${apiPrefix}/media/${media.hash}`;
     navigator.clipboard.writeText(url).then(() => {
       alert('链接已复制到剪贴板');
     }).catch(() => {
@@ -747,7 +749,7 @@ const MediaGrid: React.FC<MediaGridProps> = ({
                                   <div className="flex-shrink-0 h-10 w-10">
                             {media.mime_type.startsWith('image/') || media.mime_type.startsWith('video/') ? (
                               <img
-                                src={`${apiBaseUrl}${apiPrefix}/thumbnail/?data=${media.hash}`}
+                                  src={`${apiBaseUrl}${apiPrefix}/thumbnail?data=${media.hash}`}
                                 alt={media.original_filename}
                                 className="h-10 w-10 rounded object-cover"
                                 loading="lazy"

@@ -35,15 +35,18 @@ export default function ActivityStream() {
             // 并行获取各种活动数据
             const [articlesRes, commentsRes, notificationsRes] = await Promise.all([
                 apiClient.get('/dashboard/recent-articles'),
-                apiClient.get('/comments/admin/pending?page=1&per_page=5').catch(() => ({data: {comments: []}})),
-                apiClient.get('/notifications?limit=5').catch(() => ({data: {notifications: []}}))
+                apiClient.get('/comments/admin/pending', {page: 1, per_page: 5}).catch(() => ({
+                    success: false,
+                    data: null
+                })),
+                apiClient.get('/notifications', {limit: 5}).catch(() => ({success: false, data: null}))
             ]);
 
             const activityList: ActivityItem[] = [];
 
             // 处理最近文章
-            if (articlesRes.data?.success && articlesRes.data.data) {
-                articlesRes.data.data.forEach((article: any) => {
+            if (articlesRes.success && articlesRes.data) {
+                articlesRes.data.forEach((article: any) => {
                     activityList.push({
                         id: `article-${article.id}`,
                         type: 'article',
@@ -57,8 +60,8 @@ export default function ActivityStream() {
             }
 
             // 处理待审核评论
-            if (commentsRes.data?.success && commentsRes.data.data?.comments) {
-                commentsRes.data.data.comments.forEach((comment: any) => {
+            if (commentsRes.success && commentsRes.data?.comments) {
+                commentsRes.data.comments.forEach((comment: any) => {
                     activityList.push({
                         id: `comment-${comment.id}`,
                         type: 'comment',
@@ -72,8 +75,8 @@ export default function ActivityStream() {
             }
 
             // 处理通知
-            if (notificationsRes.data?.success && notificationsRes.data.data?.notifications) {
-                notificationsRes.data.data.notifications.forEach((notif: any) => {
+            if (notificationsRes.success && notificationsRes.data?.notifications) {
+                notificationsRes.data.notifications.forEach((notif: any) => {
                     activityList.push({
                         id: `notification-${notif.id}`,
                         type: 'notification',
