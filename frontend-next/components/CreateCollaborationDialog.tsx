@@ -55,7 +55,7 @@ export function CreateCollaborationDialog({
                 },
                 credentials: 'include',
                 body: JSON.stringify({
-                    document_id: documentId,
+                    article_id: articleId || parseInt(documentId.replace('article-', '')),
                     permission,
                     expire_hours: expireHours,
                     max_users: maxUsers,
@@ -63,8 +63,36 @@ export function CreateCollaborationDialog({
             });
 
             if (!response.ok) {
-                const errorData = await response.json().catch(() => ({}));
-                throw new Error(errorData.detail || '创建邀请失败');
+                console.error('Response status:', response.status);
+                console.error('Response headers:', response.headers);
+
+                const errorText = await response.text().catch(() => '');
+                console.error('Response text:', errorText);
+
+                let errorData = {};
+                try {
+                    errorData = JSON.parse(errorText);
+                } catch (e) {
+                    console.error('Failed to parse error as JSON');
+                }
+
+                console.error('API Error Response:', errorData);
+
+                // 处理不同类型的错误响应
+                let errorMessage = `创建邀请失败 (HTTP ${response.status})`;
+                if (errorData.detail) {
+                    if (typeof errorData.detail === 'string') {
+                        errorMessage = errorData.detail;
+                    } else if (Array.isArray(errorData.detail)) {
+                        // Pydantic 验证错误
+                        errorMessage = errorData.detail.map((e: any) => `${e.loc?.join('.')}: ${e.msg}`).join(', ');
+                    } else {
+                        errorMessage = JSON.stringify(errorData.detail);
+                    }
+                } else if (errorText) {
+                    errorMessage = errorText.substring(0, 200);
+                }
+                throw new Error(errorMessage);
             }
 
             const data = await response.json();

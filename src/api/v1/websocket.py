@@ -105,22 +105,68 @@ async def collaborate_websocket(
         await websocket.close(code=4003, reason="Authentication required")
         return
 
-    # TODO: 验证邀请ID是否有效且用户有权限
-    # 这里需要查询数据库验证邀请是否存在且未过期
-
     print(f"[WebSocket] User {user_id} connecting to invite {invite_id}")
 
-    # 接受WebSocket连接
+    # 接受WebSocket连接（必须先accept才能发送消息）
     await websocket.accept()
     print(f"[WebSocket] Connection accepted for user {user_id}")
 
-    # 获取或创建协作文档
+    # 从邀请记录中获取 article_id
+    from src.api.v1.collaboration_invites import invitations_db
+    invitation = invitations_db.get(invite_id)
+
+    if not invitation:
+        print(f"[WebSocket] Invitation {invite_id} not found")
+        await websocket.close(code=4004, reason="Invitation not found")
+        return
+
+    # 检查邀请是否过期
+    from datetime import datetime
+    if datetime.utcnow() > invitation["expires_at"]:
+        print(f"[WebSocket] Invitation {invite_id} expired")
+        await websocket.close(code=4010, reason="Invitation expired")
+        return
+
+    article_id = invitation.get("article_id")
+    if not article_id:
+        print(f"[WebSocket] No article_id in invitation {invite_id}")
+        await websocket.close(code=4005, reason="Invalid invitation")
+        return
+
+    print(f"[WebSocket] Invite {invite_id} maps to article {article_id}")
+
+    # 获取或创建协作文档（使用invite_id作为文档ID）
     doc = collaboration_service.get_or_create_document(invite_id)
+    doc.article_id = article_id  # 设置文章ID
+
+    # 如果是新创建的文档，从数据库加载初始内容
+    if not doc.content:
+        try:
+            from shared.models.article_content import ArticleContent
+            from sqlalchemy import select
+            from src.utils.database.unified_manager import db_manager
+
+            async with db_manager.get_session() as db_session:
+                content_query = select(ArticleContent).where(
+                    ArticleContent.article == article_id
+                )
+                result = await db_session.execute(content_query)
+                content_obj = result.scalar_one_or_none()
+
+                if content_obj:
+                    doc.set_content(content_obj.content)
+                    print(f"[WebSocket] Loaded initial content for article {article_id}")
+                else:
+                    print(f"[WebSocket] No content found for article {article_id}")
+        except Exception as e:
+            print(f"[WebSocket] Failed to load initial content: {e}")
+            import traceback
+            traceback.print_exc()
 
     # 添加客户端
     client_id = f"user_{user_id}"
     doc.add_client(client_id, websocket)
-    print(f"[WebSocket] Client {client_id} added to document {invite_id}")
+    print(f"[WebSocket] Client {client_id} added to document {invite_id}, total clients: {len(doc.clients)}")
 
     # 发送当前文档内容
     await websocket.send_json({

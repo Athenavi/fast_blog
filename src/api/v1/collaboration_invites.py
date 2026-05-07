@@ -4,18 +4,56 @@
 import uuid
 from datetime import datetime, timedelta
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends, Body, Request
 from pydantic import BaseModel
 
 router = APIRouter(prefix="/collaboration/invites", tags=["collaboration-invites"])
 
 # 简化的邀请存储(生产环境应使用数据库)
+# 结构: {invite_id: invitation_data}
 invitations_db = {}
+
+# 用户活跃邀请映射: {user_id: invite_id} - 确保用户同一时间只有一个活跃邀请
+user_active_invites = {}
+
+
+async def get_current_user(request: Request) -> dict:
+    """从请求中获取当前用户信息"""
+    # 从 cookie 或 header 中获取 token
+    token = None
+
+    # 尝试从 cookie 获取
+    if "access_token" in request.cookies:
+        token = request.cookies["access_token"]
+    # 尝试从 Authorization header 获取
+    elif "authorization" in request.headers:
+        auth_header = request.headers["authorization"]
+        if auth_header.startswith("Bearer "):
+            token = auth_header[7:]
+
+    if not token:
+        raise HTTPException(status_code=401, detail="Authentication required")
+
+    # 解码 JWT token
+    import jwt
+    from src.setting import settings
+
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+        user_id = payload.get('sub') or payload.get('user_id')
+        if not user_id:
+            raise HTTPException(status_code=401, detail="Invalid token")
+
+        return {"user_id": int(user_id)}
+    except jwt.ExpiredSignatureError:
+        raise HTTPException(status_code=401, detail="Token expired")
+    except jwt.InvalidTokenError:
+        raise HTTPException(status_code=401, detail="Invalid token")
 
 
 class CreateInvitationRequest(BaseModel):
     """创建邀请请求"""
-    document_id: str
+    article_id: int  # 文章ID
     permission: str = "edit"  # edit or view
     expire_hours: int = 24  # 过期时间(小时)
     max_users: int = 3  # 最大用户数
@@ -33,24 +71,26 @@ class InvitationResponse(BaseModel):
 
 
 @router.post("/create", response_model=InvitationResponse)
-async def create_invitation(request: CreateInvitationRequest):
+async def create_invitation(request: CreateInvitationRequest = Body(...),
+                            current_user: dict = Depends(get_current_user)):
     """
     创建协作文档邀请链接
     
     Args:
         request: 邀请配置
+        user_info: 当前用户信息（从认证中间件获取）
         
     Returns:
         邀请信息,包含邀请链接
     """
     try:
-        print(f"Creating invitation for document: {request.document_id}")
-        print(
-            f"Request data: permission={request.permission}, expire_hours={request.expire_hours}, max_users={request.max_users}")
+        # 获取当前用户ID
+        creator_id = current_user['user_id']
+        print(f"User {creator_id} creating invitation for article: {request.article_id}")
 
         # 验证输入参数
-        if not request.document_id:
-            raise HTTPException(status_code=400, detail="Document ID is required")
+        if request.article_id <= 0:
+            raise HTTPException(status_code=400, detail="Invalid article ID")
 
         if request.permission not in ["edit", "view"]:
             raise HTTPException(status_code=400, detail="Permission must be 'edit' or 'view'")
@@ -61,36 +101,70 @@ async def create_invitation(request: CreateInvitationRequest):
         if request.max_users <= 0:
             raise HTTPException(status_code=400, detail="Max users must be positive")
 
+        # TODO: 验证用户对文章是否有编辑权限
+        # 这里需要查询数据库，确认用户是文章作者或有编辑权限
+        from shared.models.article import Article
+        from sqlalchemy import select
+        from src.utils.database.unified_manager import db_manager
+
+        async with db_manager.get_session() as db_session:
+            article_query = select(Article).where(Article.id == request.article_id)
+            result = await db_session.execute(article_query)
+            article = result.scalar_one_or_none()
+
+            if not article:
+                raise HTTPException(status_code=404, detail="Article not found")
+
+            # 验证权限：只有文章作者可以创建协作邀请
+            # TODO: 可以根据需要扩展为检查用户角色或协作权限
+            if article.author != creator_id:
+                raise HTTPException(
+                    status_code=403,
+                    detail="You don't have permission to create collaboration for this article"
+                )
+
+        # 检查用户是否已有活跃邀请，如果有则先撤销
+        existing_invite_id = user_active_invites.get(creator_id)
+        if existing_invite_id and existing_invite_id in invitations_db:
+            existing_invite = invitations_db[existing_invite_id]
+            # 检查是否过期
+            if datetime.now() <= existing_invite["expires_at"]:
+                print(f"Revoking existing invite {existing_invite_id} for user {creator_id}")
+                del invitations_db[existing_invite_id]
+        
         # 生成唯一邀请ID
         invite_id = str(uuid.uuid4())
 
         # 计算过期时间
-        expires_at = datetime.utcnow() + timedelta(hours=request.expire_hours)
+        expires_at = datetime.now() + timedelta(hours=request.expire_hours)
 
         # 创建邀请记录
         invitation = {
             "invite_id": invite_id,
-            "document_id": request.document_id,
+            "article_id": request.article_id,  # 存储文章ID
+            "creator_id": creator_id,
             "permission": request.permission,
             "expires_at": expires_at,
             "max_users": request.max_users,
             "current_users": 0,
             "active_users": [],
-            "created_at": datetime.utcnow(),
+            "created_at": datetime.now(),
         }
 
         invitations_db[invite_id] = invitation
 
-        # 生成邀请URL
-        # 使用独立的协作房间页面
-        base_url = "http://localhost:3000"  # 前端地址
-        invite_url = f"{base_url}/collaboration/room?invite={invite_id}&doc={request.document_id}"
+        # 更新用户活跃邀请映射
+        user_active_invites[creator_id] = invite_id
 
-        print(f"Invitation created successfully: {invite_id}")
+        # 生成邀请URL
+        base_url = "http://localhost:3000"  # 前端地址
+        invite_url = f"{base_url}/collaboration/room?invite={invite_id}"
+
+        print(f"Invitation created successfully: {invite_id} for article {request.article_id}")
 
         return InvitationResponse(
             invite_id=invite_id,
-            document_id=request.document_id,
+            document_id=f"article-{request.article_id}",  # 兼容前端格式
             invite_url=invite_url,
             permission=request.permission,
             expires_at=expires_at.isoformat(),
@@ -125,14 +199,15 @@ async def get_invitation(invite_id: str):
         raise HTTPException(status_code=404, detail="Invitation not found")
 
     # 检查是否过期
-    if datetime.utcnow() > invitation["expires_at"]:
+    if datetime.now() > invitation["expires_at"]:
         raise HTTPException(status_code=410, detail="Invitation expired")
 
     return {
         "success": True,
         "data": {
             "invite_id": invite_id,
-            "document_id": invitation["document_id"],
+            "document_id": f"article-{invitation['article_id']}",  # 兼容前端格式
+            "article_id": invitation["article_id"],
             "permission": invitation["permission"],
             "expires_at": invitation["expires_at"].isoformat(),
             "max_users": invitation["max_users"],
@@ -159,7 +234,7 @@ async def accept_invitation(invite_id: str, user_info: dict = None):
         raise HTTPException(status_code=404, detail="Invitation not found")
 
     # 检查是否过期
-    if datetime.utcnow() > invitation["expires_at"]:
+    if datetime.now() > invitation["expires_at"]:
         raise HTTPException(status_code=410, detail="Invitation expired")
 
     # 检查人数限制
@@ -175,7 +250,7 @@ async def accept_invitation(invite_id: str, user_info: dict = None):
                             f"guest_{uuid.uuid4().hex[:8]}") if user_info else f"guest_{uuid.uuid4().hex[:8]}"
     invitation["active_users"].append({
         "user_id": user_id,
-        "joined_at": datetime.utcnow().isoformat()
+        "joined_at": datetime.now().isoformat()
     })
 
     return {
@@ -203,7 +278,7 @@ async def get_active_invitations(document_id: str):
 
     for invite_id, invitation in invitations_db.items():
         if (invitation["document_id"] == document_id and
-                datetime.utcnow() <= invitation["expires_at"]):
+                datetime.now() <= invitation["expires_at"]):
             active_invites.append({
                 "invite_id": invite_id,
                 "permission": invitation["permission"],

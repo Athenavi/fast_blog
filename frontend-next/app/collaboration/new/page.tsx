@@ -1,6 +1,6 @@
 'use client';
 
-import React, {useState} from 'react';
+import React, {useEffect, useState} from 'react';
 import {useRouter} from 'next/navigation';
 import {AuthProtected} from '@/components/AuthProtected';
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card';
@@ -10,6 +10,12 @@ import {Label} from '@/components/ui/label';
 import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select';
 import {ArrowLeft, FileText, Plus, Users} from 'lucide-react';
 import {apiClient} from '@/lib/api/base-client';
+
+interface Article {
+    id: number;
+    title: string;
+    status: string;
+}
 
 export default function NewCollaborationPage() {
     return (
@@ -22,27 +28,58 @@ export default function NewCollaborationPage() {
 function NewCollaborationContent() {
     const router = useRouter();
     const [loading, setLoading] = useState(false);
+    const [articles, setArticles] = useState<Article[]>([]);
+    const [loadingArticles, setLoadingArticles] = useState(true);
     const [formData, setFormData] = useState({
-        documentId: '',
+        articleId: '',
         permission: 'edit',
         maxUsers: 5,
         expiresIn: 7 // days
     });
 
+    // 加载用户的文章列表
+    useEffect(() => {
+        const fetchArticles = async () => {
+            try {
+                const response = await apiClient.get('/articles');
+                if (response.success && response.data) {
+                    // 只显示已发布或草稿状态的文章
+                    const userArticles = response.data.articles || response.data;
+                    setArticles(userArticles.filter((a: Article) =>
+                        a.status === 'published' || a.status === 'draft'
+                    ));
+                }
+            } catch (error) {
+                console.error('Fetch articles error:', error);
+            } finally {
+                setLoadingArticles(false);
+            }
+        };
+
+        fetchArticles();
+    }, []);
+
     const handleCreateRoom = async () => {
-        if (!formData.documentId) {
-            alert('请输入文档ID');
+        if (!formData.articleId) {
+            alert('请选择一篇文章');
             return;
         }
 
         setLoading(true);
         try {
-            // 创建协作邀请
-            const response = await apiClient.post('/collaboration/invites', {
-                document_id: formData.documentId,
+            console.log('Creating invitation with data:', {
+                article_id: parseInt(formData.articleId),
                 permission: formData.permission,
                 max_users: parseInt(formData.maxUsers.toString()),
-                expires_in_days: parseInt(formData.expiresIn.toString())
+                expire_hours: parseInt(formData.expiresIn.toString()) * 24
+            });
+            
+            // 创建协作邀请
+            const response = await apiClient.post('/collaboration/invites/create', {
+                article_id: parseInt(formData.articleId),
+                permission: formData.permission,
+                max_users: parseInt(formData.maxUsers.toString()),
+                expire_hours: parseInt(formData.expiresIn.toString()) * 24
             });
 
             if (response.success && response.data) {
@@ -50,11 +87,16 @@ function NewCollaborationContent() {
                 // 跳转到协作房间
                 router.push(`/collaboration/room?invite=${inviteId}`);
             } else {
+                console.error('Create invitation failed:', response);
                 alert(response.error || '创建协作房间失败');
             }
         } catch (error) {
             console.error('Create collaboration room error:', error);
-            alert('创建协作房间失败，请稍后重试');
+            if (error instanceof Error) {
+                alert(`创建协作房间失败: ${error.message}`);
+            } else {
+                alert('创建协作房间失败，请稍后重试');
+            }
         } finally {
             setLoading(false);
         }
@@ -84,17 +126,34 @@ function NewCollaborationContent() {
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
-                    {/* 文档ID */}
+                    {/* 文章选择 */}
                     <div className="space-y-2">
-                        <Label htmlFor="documentId">文档ID</Label>
-                        <Input
-                            id="documentId"
-                            placeholder="例如: article-123"
-                            value={formData.documentId}
-                            onChange={(e) => setFormData({...formData, documentId: e.target.value})}
-                        />
+                        <Label htmlFor="articleId">选择文章</Label>
+                        {loadingArticles ? (
+                            <div className="text-sm text-gray-500">加载文章中...</div>
+                        ) : articles.length === 0 ? (
+                            <div className="text-sm text-red-500">
+                                您还没有文章，请先创建一篇文章
+                            </div>
+                        ) : (
+                            <Select
+                                value={formData.articleId}
+                                onValueChange={(value) => setFormData({...formData, articleId: value})}
+                            >
+                                <SelectTrigger>
+                                    <SelectValue placeholder="选择要协作的文章"/>
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {articles.map((article) => (
+                                        <SelectItem key={article.id} value={article.id.toString()}>
+                                            {article.title} ({article.status === 'published' ? '已发布' : '草稿'})
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        )}
                         <p className="text-sm text-gray-500">
-                            要协作文档的唯一标识符
+                            只能为您拥有编辑权限的文章创建协作邀请
                         </p>
                     </div>
 
@@ -154,7 +213,7 @@ function NewCollaborationContent() {
                     <div className="flex gap-4 pt-4">
                         <Button
                             onClick={handleCreateRoom}
-                            disabled={loading}
+                            disabled={loading || loadingArticles || articles.length === 0}
                             className="flex-1"
                         >
                             {loading ? (
