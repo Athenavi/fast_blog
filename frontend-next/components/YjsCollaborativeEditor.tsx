@@ -128,7 +128,11 @@ export default function CollaborativeMarkdownEditor({
           }
           if (data.version) versionRef.current = data.version;
         } else if (data.type === 'user_joined' || data.type === 'user_left') {
-          // 更新在线用户数量（如果后端发送了用户列表）
+          // 更新在线用户列表
+          if (data.users) {
+            console.log('[Collab Markdown] User list updated:', data.users);
+            setOnlineUsers(data.users);
+          }
           if (data.client_count !== undefined) {
             console.log('[Collab Markdown] User count:', data.client_count);
           }

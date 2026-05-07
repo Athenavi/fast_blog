@@ -196,6 +196,23 @@ async def collaborate_websocket(
         'document_id': invite_id
     })
 
+    # 广播用户加入消息，包含用户列表
+    user_list = [
+        {
+            'id': cid,
+            'name': f'User {cid.split("_")[1][:8]}',  # 从 client_id 提取用户ID
+            'color': '#958DF1'  # 默认颜色
+        }
+        for cid in doc.clients.keys()
+    ]
+
+    await doc.broadcast_awareness({
+        'type': 'user_joined',
+        'client_id': client_id,
+        'client_count': len(doc.clients),
+        'users': user_list
+    })
+
     try:
         while True:
             # 接收消息
@@ -242,9 +259,43 @@ async def collaborate_websocket(
         print(f"[WebSocket] User {user_id} disconnected")
         doc.remove_client(client_id)
 
+        # 广播用户离开消息，包含更新后的用户列表
+        user_list = [
+            {
+                'id': cid,
+                'name': f'User {cid.split("_")[1][:8]}',
+                'color': '#958DF1'
+            }
+            for cid in doc.clients.keys()
+        ]
+
+        await doc.broadcast_awareness({
+            'type': 'user_left',
+            'client_id': client_id,
+            'client_count': len(doc.clients),
+            'users': user_list
+        })
+
     except Exception as e:
         # 其他错误
         print(f"[WebSocket] Error: {e}")
         import traceback
         traceback.print_exc()
         doc.remove_client(client_id)
+
+        # 广播用户离开消息
+        user_list = [
+            {
+                'id': cid,
+                'name': f'User {cid.split("_")[1][:8]}',
+                'color': '#958DF1'
+            }
+            for cid in doc.clients.keys()
+        ]
+
+        await doc.broadcast_awareness({
+            'type': 'user_left',
+            'client_id': client_id,
+            'client_count': len(doc.clients),
+            'users': user_list
+        })
