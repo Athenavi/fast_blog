@@ -87,14 +87,18 @@ class CollaborativeDocument:
         disconnected = []
         step_data = step.to_dict()
 
+        print(f"[Collab] Broadcasting step to {len(self.clients)} clients (excluding {exclude})")
+
         for client_id, client in self.clients.items():
             if client_id != exclude:
                 try:
+                    print(f"[Collab] Sending to client {client_id}")
                     await client.send_json({
                         'type': 'receive_steps',
                         'steps': [step_data],
                         'version': self.version
                     })
+                    print(f"[Collab] Successfully sent to {client_id}")
                 except Exception as e:
                     print(f"Broadcast error for client {client_id}: {e}")
                     disconnected.append(client_id)

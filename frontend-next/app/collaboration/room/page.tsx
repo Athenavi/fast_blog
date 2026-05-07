@@ -11,9 +11,8 @@ import {Button} from '@/components/ui/button';
 import {Badge} from '@/components/ui/badge';
 import {ArrowLeft, FileText, Users} from 'lucide-react';
 
-// 动态导入 Yjs 协作编辑器 - 使用测试版本
 const YjsCollaborativeEditor = dynamic(
-    () => import('@/components/YjsCollaborativeEditor.test'),
+    () => import('@/components/YjsCollaborativeEditor'),
     {
         ssr: false,
         loading: () => <LoadingState message="加载协作编辑器中..."/>

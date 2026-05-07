@@ -163,12 +163,32 @@ async def collaborate_websocket(
             import traceback
             traceback.print_exc()
 
-    # 添加客户端
-    client_id = f"user_{user_id}"
+    # 检查用户是否已有活跃连接
+    existing_client_id = None
+    for cid in doc.clients.keys():
+        if cid.startswith(f"user_{user_id}_"):
+            existing_client_id = cid
+            break
+
+    if existing_client_id:
+        print(f"[WebSocket] User {user_id} already has an active connection: {existing_client_id}")
+        await websocket.close(code=4009, reason="You already have an active collaboration session")
+        return
+
+    # 添加客户端 - 使用唯一ID标识此连接
+    import uuid
+    client_id = f"user_{user_id}_{uuid.uuid4().hex[:8]}"
     doc.add_client(client_id, websocket)
-    print(f"[WebSocket] Client {client_id} added to document {invite_id}, total clients: {len(doc.clients)}")
+    print(
+        f"[WebSocket] Client {client_id} (user_id={user_id}) added to document {invite_id}, total clients: {len(doc.clients)}")
 
     # 发送当前文档内容
+    print(f"[WebSocket] Sending init message, content length: {len(doc.content)}, version: {doc.version}")
+    if doc.content:
+        print(f"[WebSocket] Content preview: {doc.content[:100]}")
+    else:
+        print(f"[WebSocket] WARNING: Document content is empty!")
+    
     await websocket.send_json({
         'type': 'init',
         'content': doc.content,
@@ -196,17 +216,24 @@ async def collaborate_websocket(
                 step_data = data.get('step', {})
                 new_content = data.get('content', '')
 
+                print(f"[WebSocket] Received step from {client_id}, content length: {len(new_content)}")
+                
                 step = Step.from_dict(step_data)
                 success = doc.apply_step(step, new_content)
 
                 if success:
+                    print(f"[WebSocket] Step applied successfully, broadcasting to other clients...")
+                    print(f"[WebSocket] Document has {len(doc.clients)} clients total")
                     # 广播给其他客户端
                     await doc.broadcast_step(step, exclude=client_id)
+                    print(f"[WebSocket] Broadcast completed")
 
                     # 检查是否需要自动保存
                     if doc.needs_auto_save():
                         print(f"[WebSocket] Auto-save triggered for document {invite_id}")
                         # TODO: 实现自动保存到数据库
+                else:
+                    print(f"[WebSocket] Failed to apply step")
             else:
                 print(f"[WebSocket] Unknown operation type: {op_type}")
 

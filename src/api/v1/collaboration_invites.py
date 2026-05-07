@@ -101,8 +101,6 @@ async def create_invitation(request: CreateInvitationRequest = Body(...),
         if request.max_users <= 0:
             raise HTTPException(status_code=400, detail="Max users must be positive")
 
-        # TODO: 验证用户对文章是否有编辑权限
-        # 这里需要查询数据库，确认用户是文章作者或有编辑权限
         from shared.models.article import Article
         from sqlalchemy import select
         from src.utils.database.unified_manager import db_manager
@@ -116,10 +114,10 @@ async def create_invitation(request: CreateInvitationRequest = Body(...),
                 raise HTTPException(status_code=404, detail="Article not found")
 
             # 验证权限：只有文章作者可以创建协作邀请
-            # TODO: 可以根据需要扩展为检查用户角色或协作权限
-            if article.author != creator_id:
+            # Article模型使用'user'字段存储作者ID
+            if article.user != creator_id:
                 raise HTTPException(
-                    status_code=403,
+                    status_code=403, 
                     detail="You don't have permission to create collaboration for this article"
                 )
 
@@ -256,7 +254,7 @@ async def accept_invitation(invite_id: str, user_info: dict = None):
     return {
         "success": True,
         "data": {
-            "document_id": invitation["document_id"],
+            "document_id": f"article-{invitation['article_id']}",  # 动态生成
             "permission": invitation["permission"],
             "user_id": user_id,
         }
@@ -277,7 +275,9 @@ async def get_active_invitations(document_id: str):
     active_invites = []
 
     for invite_id, invitation in invitations_db.items():
-        if (invitation["document_id"] == document_id and
+        # 动态生成 document_id
+        doc_id = f"article-{invitation['article_id']}"
+        if (doc_id == document_id and
                 datetime.now() <= invitation["expires_at"]):
             active_invites.append({
                 "invite_id": invite_id,
