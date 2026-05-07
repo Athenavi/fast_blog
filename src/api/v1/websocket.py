@@ -206,12 +206,21 @@ async def collaborate_websocket(
         for cid in doc.clients.keys()
     ]
 
-    await doc.broadcast_awareness({
-        'type': 'user_joined',
-        'client_id': client_id,
-        'client_count': len(doc.clients),
-        'users': user_list
-    })
+    print(f"[WebSocket] Broadcasting user_joined to {len(doc.clients)} clients")
+    print(f"[WebSocket] User list: {user_list}")
+
+    # 直接向所有客户端发送用户列表更新
+    for cid, client in doc.clients.items():
+        try:
+            await client.send_json({
+                'type': 'user_joined',
+                'client_id': client_id,
+                'client_count': len(doc.clients),
+                'users': user_list
+            })
+            print(f"[WebSocket] Sent user_joined to {cid}")
+        except Exception as e:
+            print(f"Error broadcasting to {cid}: {e}")
 
     try:
         while True:
@@ -269,12 +278,17 @@ async def collaborate_websocket(
             for cid in doc.clients.keys()
         ]
 
-        await doc.broadcast_awareness({
-            'type': 'user_left',
-            'client_id': client_id,
-            'client_count': len(doc.clients),
-            'users': user_list
-        })
+        # 直接向所有客户端发送用户列表更新
+        for cid, client in doc.clients.items():
+            try:
+                await client.send_json({
+                    'type': 'user_left',
+                    'client_id': client_id,
+                    'client_count': len(doc.clients),
+                    'users': user_list
+                })
+            except Exception as e:
+                print(f"Error broadcasting to {cid}: {e}")
 
     except Exception as e:
         # 其他错误
@@ -293,9 +307,14 @@ async def collaborate_websocket(
             for cid in doc.clients.keys()
         ]
 
-        await doc.broadcast_awareness({
-            'type': 'user_left',
-            'client_id': client_id,
-            'client_count': len(doc.clients),
-            'users': user_list
-        })
+        # 直接向所有客户端发送用户列表更新
+        for cid, client in doc.clients.items():
+            try:
+                await client.send_json({
+                    'type': 'user_left',
+                    'client_id': client_id,
+                    'client_count': len(doc.clients),
+                    'users': user_list
+                })
+            except Exception as e:
+                print(f"Error broadcasting to {cid}: {e}")

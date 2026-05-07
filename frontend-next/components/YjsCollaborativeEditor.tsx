@@ -108,9 +108,10 @@ export default function CollaborativeMarkdownEditor({
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        console.log('[Collab Markdown] Received:', data.type);
+        console.log('[Collab Markdown] Received message type:', data.type);
 
         if (data.type === 'init') {
+          console.log('[Collab Markdown] Init message received');
           if (data.content !== undefined && data.content !== null) {
             if (editorRef.current) {
               applyRemoteContent(data.content);
@@ -129,12 +130,15 @@ export default function CollaborativeMarkdownEditor({
           if (data.version) versionRef.current = data.version;
         } else if (data.type === 'user_joined' || data.type === 'user_left') {
           // 更新在线用户列表
+          console.log('[Collab Markdown] User event received:', data.type);
+          console.log('[Collab Markdown] Users data:', data.users);
+          console.log('[Collab Markdown] Client count:', data.client_count);
+          
           if (data.users) {
-            console.log('[Collab Markdown] User list updated:', data.users);
+            console.log('[Collab Markdown] Updating user list with', data.users.length, 'users');
             setOnlineUsers(data.users);
-          }
-          if (data.client_count !== undefined) {
-            console.log('[Collab Markdown] User count:', data.client_count);
+          } else {
+            console.warn('[Collab Markdown] No users data in message');
           }
         }
       } catch (error) {
