@@ -343,7 +343,30 @@ async def login_api(
             
             return ApiResponse(success=False, error="账户已被禁用")
 
-        # 2. 生成 JWT
+        # 2. 检查是否启用了2FA
+        if user.is_2fa_enabled:
+            print(f"[Login API] User {username} has 2FA enabled, requiring 2FA verification")
+
+            # 生成临时令牌用于2FA验证阶段（有效期5分钟）
+            temp_token = create_jwt_token(
+                subject=str(user.id),
+                token_type="2fa_temp",
+                expires_delta=timedelta(minutes=5)
+            )
+
+            return ApiResponse(
+                success=True,
+                data={
+                    "requires_2fa": True,
+                    "temp_token": temp_token,
+                    "user_id": user.id,
+                    "username": user.username,
+                    "message": "请输入2FA验证码"
+                },
+                message="需要2FA验证"
+            )
+
+        # 3. 生成 JWT（未启用2FA的用户）
         access_token = create_jwt_token(subject=str(user.id), token_type="access")
         refresh_token = create_jwt_token(subject=str(user.id), token_type="refresh")
 

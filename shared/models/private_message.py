@@ -1,8 +1,9 @@
 """
 SQLAlchemy 模型定义 - PrivateMessage
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-07 16:38:48
+生成时间：2026-05-07 17:20:28
 """
+
 
 from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, ForeignKey
 
@@ -10,16 +11,19 @@ from . import Base  # 使用统一的 Base
 
 from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, ForeignKey, Index
 
-
 class PrivateMessage(Base):
     """站内私信模型模型"""
     __tablename__ = 'private_messages'
 
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='id')
+
 
     sender = Column(BigInteger, ForeignKey('users.id'), nullable=False, doc='sender')
 
+
     recipient = Column(BigInteger, ForeignKey('users.id'), nullable=False, doc='recipient')
+
 
     content = Column(Text, nullable=False, doc='content')
 
@@ -38,13 +42,14 @@ class PrivateMessage(Base):
     parent_message = Column('parent_message', BigInteger, ForeignKey('private_messages.id'), nullable=True,
                             doc='parent_message')
 
+
     created_at = Column(DateTime, doc='created_at')
 
     updated_at = Column(DateTime, doc='updated_at')
 
     __table_args__ = (
 
-        Index('idx_private_messages_sender', 'sender'),
+    Index('idx_private_messages_sender', 'sender'),
         Index('idx_private_messages_recipient', 'recipient'),
         Index('idx_private_messages_created', 'created_at'),
         Index('idx_private_messages_conversation', 'sender', 'recipient'),

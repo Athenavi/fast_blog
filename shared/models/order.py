@@ -1,8 +1,9 @@
 """
 SQLAlchemy 模型定义 - Order
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-07 16:38:48
+生成时间：2026-05-07 17:20:28
 """
+
 
 from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, Float, Numeric, ForeignKey
 
@@ -62,13 +63,16 @@ class Order(Base):
 
     paid_at = Column(DateTime, nullable=True, doc='paid_at')
 
+
     shipped_at = Column(DateTime, nullable=True, doc='shipped_at')
+
 
     delivered_at = Column(DateTime, nullable=True, doc='delivered_at')
 
+
     __table_args__ = (
 
-    Index('idx_orders_order_number', 'order_number', unique=True),
+        Index('idx_orders_order_number', 'order_number', unique=True),
         Index('idx_orders_user', 'user_id'),
         Index('idx_orders_status', 'status'),
         Index('idx_orders_payment_status', 'payment_status'),

@@ -1,8 +1,9 @@
 """
 SQLAlchemy 模型定义 - ShareStat
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-07 16:38:48
+生成时间：2026-05-07 17:20:28
 """
+
 
 from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, ForeignKey
 
@@ -38,7 +39,7 @@ class ShareStat(Base):
 
     __table_args__ = (
 
-    Index('idx_share_stats_article_platform', 'article_id', 'platform'),
+        Index('idx_share_stats_article_platform', 'article_id', 'platform'),
         Index('idx_share_stats_created', 'created_at'),
         Index('idx_share_stats_article_created', 'article_id', 'created_at'),
     )

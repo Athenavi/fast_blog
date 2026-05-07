@@ -40,6 +40,13 @@ const LoginPage = () => {
   const [qrStatus, setQrStatus] = useState<'pending' | 'scanned' | 'confirmed' | 'expired'>('pending');
   const [countdown, setCountdown] = useState<number>(0);
   const [qrPolling, setQrPolling] = useState<boolean>(false);
+
+  // 2FA相关状态
+  const [requires2FA, setRequires2FA] = useState(false);
+  const [tempToken, setTempToken] = useState<string>('');
+  const [userId, setUserId] = useState<number | null>(null);
+  const [twoFACode, setTwoFACode] = useState('');
+  const [twoFALoading, setTwoFALoading] = useState(false);
   
   // 使用 useRef 来跟踪最新状态
   const qrStatusRef = useRef(qrStatus);
@@ -416,8 +423,21 @@ const LoginPage = () => {
         const loginData = response.data as {
           access_token?: string;
           refresh_token?: string;
-          user?: Record<string, unknown>
+          user?: Record<string, unknown>;
+          requires_2fa?: boolean;
+          temp_token?: string;
+          user_id?: number;
         };
+
+        // 检查是否需要2FA验证
+        if (loginData.requires_2fa && loginData.temp_token) {
+          console.log('[Login] 2FA verification required');
+          setRequires2FA(true);
+          setTempToken(loginData.temp_token);
+          setUserId(loginData.user_id || null);
+          setErrorMessage(''); // 清除错误消息
+          return; // 不跳转，等待2FA输入
+        }
           
         // 登录成功，只保存到 cookie，不再使用 localStorage
         if (loginData.access_token) {
@@ -474,6 +494,68 @@ const LoginPage = () => {
       ...prev,
       [field]: value
     }));
+  };
+
+  // 处理2FA验证提交
+  const handle2FASubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!twoFACode || twoFACode.length !== 6) {
+      setErrorMessage('请输入6位验证码');
+      return;
+    }
+
+    if (!userId) {
+      setErrorMessage('用户信息丢失，请重新登录');
+      return;
+    }
+
+    setTwoFALoading(true);
+    setErrorMessage('');
+
+    try {
+      const response = await apiClient.post('/management/2fa/verify-login', {
+        user_id: userId,
+        token: twoFACode
+      });
+
+      if (response.success && response.data) {
+        const loginData = response.data as {
+          access_token?: string;
+          refresh_token?: string;
+          user?: Record<string, unknown>;
+        };
+
+        // 保存token到cookie
+        if (loginData.access_token && typeof window !== 'undefined') {
+          const expirationDate = new Date();
+          expirationDate.setTime(expirationDate.getTime() + (60 * 60 * 1000)); // 1 小时后过期
+          document.cookie = `access_token=${loginData.access_token}; expires=${expirationDate.toUTCString()}; path=/; SameSite=Lax;`;
+
+          if (loginData.refresh_token) {
+            const refreshExpirationDate = new Date();
+            refreshExpirationDate.setTime(refreshExpirationDate.getTime() + (7 * 24 * 60 * 60 * 1000)); // 7 天后过期
+            document.cookie = `refresh_token=${loginData.refresh_token}; expires=${refreshExpirationDate.toUTCString()}; path=/; SameSite=Lax;`;
+          }
+        }
+
+        // 跳转到目标页面
+        const nextUrl = new URLSearchParams(window.location.search).get('next') || '/profile';
+        const validatedNextUrl = typeof nextUrl === 'string' && nextUrl ? nextUrl : '/profile';
+
+        setTimeout(() => {
+          window.location.href = validatedNextUrl;
+        }, 300);
+      } else {
+        setErrorMessage(response.error || response.message || '2FA验证失败');
+      }
+    } catch (error: unknown) {
+      console.error('2FA verification error:', error);
+      const errorObj = error instanceof Error ? error : new Error(String(error));
+      setErrorMessage(errorObj.message || '2FA验证过程中发生错误');
+    } finally {
+      setTwoFALoading(false);
+    }
   };
 
   // 如果仍在检查认证状态，则不显示登录表单
@@ -614,6 +696,79 @@ const LoginPage = () => {
                 ) : '登录'}
               </button>
             </form>
+          )}
+
+          {/* 2FA验证表单 */}
+          {requires2FA && (
+              <form onSubmit={handle2FASubmit} className="mt-6">
+                <div className="text-center mb-6">
+                  <div className="flex justify-center mb-4">
+                    <div
+                        className="w-16 h-16 bg-indigo-100 dark:bg-indigo-900 rounded-full flex items-center justify-center">
+                      <i className="fas fa-shield-alt text-3xl text-indigo-600 dark:text-indigo-400"></i>
+                    </div>
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">双因素认证</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                    请输入您的身份验证器应用中的6位验证码
+                  </p>
+                </div>
+
+                <div className="mb-6">
+                  <label htmlFor="two-fa-code"
+                         className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    验证码
+                  </label>
+                  <input
+                      id="two-fa-code"
+                      type="text"
+                      value={twoFACode}
+                      onChange={(e) => setTwoFACode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                      placeholder="000000"
+                      maxLength={6}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-600 dark:border-gray-500 dark:text-white text-center text-2xl tracking-widest"
+                      required
+                      autoFocus
+                  />
+                  <p className="mt-2 text-xs text-gray-500 dark:text-gray-400 text-center">
+                    使用 Google Authenticator、Microsoft Authenticator 或其他 TOTP 应用
+                  </p>
+                </div>
+
+                <button
+                    type="submit"
+                    disabled={twoFALoading || twoFACode.length !== 6}
+                    className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
+                >
+                  {twoFALoading ? (
+                      <span className="flex items-center">
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg"
+                         fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                              strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor"
+                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    验证中...
+                  </span>
+                  ) : '验证'}
+                </button>
+
+                <div className="mt-4 text-center">
+                  <button
+                      type="button"
+                      onClick={() => {
+                        setRequires2FA(false);
+                        setTempToken('');
+                        setUserId(null);
+                        setTwoFACode('');
+                      }}
+                      className="text-sm text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
+                  >
+                    返回重新输入密码
+                  </button>
+                </div>
+              </form>
           )}
 
           {/* 二维码登录 */}

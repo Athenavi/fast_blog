@@ -1,7 +1,7 @@
 """
 Django ORM 抽象基类定义
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-07 16:38:48
+生成时间：2026-05-07 17:20:28
 """
 
 from django.db import models
@@ -115,10 +115,10 @@ class UserMixin(models.Model):
         'is_2fa_enabled', default=False)
     # totp_secret
     totp_secret = models.CharField(
-        'totp_secret', max_length=255, blank=True, null=True)
+        'totp_secret', max_length=32, blank=True, null=True)
     # backup_codes
-    backup_codes = models.CharField(
-        'backup_codes', max_length=255, blank=True, null=True)
+    backup_codes = models.TextField(
+        'backup_codes', blank=True, null=True)
 
     class Meta:
         abstract = True
@@ -1072,6 +1072,7 @@ class NotificationMixin(models.Model):
         app_label = 'generated'
         verbose_name = '通知模型'
         # 注意：请在具体模型类中设置 db_table = get_table_name("notifications")
+
 
 
 class PrivateMessageMixin(models.Model):

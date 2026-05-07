@@ -1,8 +1,9 @@
 """
 SQLAlchemy 模型定义 - User
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-07 16:38:48
+生成时间：2026-05-07 17:20:28
 """
+
 
 from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime
 
@@ -13,6 +14,7 @@ from . import Base  # 使用统一的 Base
 # 以下导入是自定义方法可能需要的，如果不需要可以删除：
 # - from datetime import datetime
 # ============================================================================
+
 
 
 from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, Index
@@ -75,16 +77,14 @@ class User(Base):
 
     is_2fa_enabled = Column(Boolean, default=False, doc='is_2fa_enabled')
 
+    totp_secret = Column(String(32), nullable=True, doc='totp_secret')
 
-    totp_secret = Column(String(255), nullable=True, doc='totp_secret')
-
-
-    backup_codes = Column(String(255), nullable=True, doc='backup_codes')
+    backup_codes = Column(Text, nullable=True, doc='backup_codes')
 
 
     __table_args__ = (
 
-    Index('idx_users_username', 'username', unique=True),
+        Index('idx_users_username', 'username', unique=True),
         Index('idx_users_email', 'email', unique=True),
         Index('idx_users_is_active', 'is_active'),
         Index('idx_users_vip_level', 'vip_level'),

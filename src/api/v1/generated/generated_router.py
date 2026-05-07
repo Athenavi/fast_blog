@@ -1,7 +1,7 @@
 """
 FastAPI 路由文件
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-07 16:38:48
+生成时间：2026-05-07 17:20:28
 """
 
 from fastapi import APIRouter, Request
@@ -5807,6 +5807,7 @@ except Exception as e:
     return ApiResponse(success=False, error=str(e))
 
 
+
 @router.get("/permissions/users/{user_id}/permissions", summary="获取用户权限")
 async def get_user_permissions_endpoint(
         user_id: int = Path(...),
@@ -5828,6 +5829,7 @@ except Exception as e:
     print(f"Error in get_user_permissions: {str(e)}")
     print(traceback.format_exc())
     return ApiResponse(success=False, error=str(e))
+
 
 
 @router.post("/permissions/check", summary="检查权限")

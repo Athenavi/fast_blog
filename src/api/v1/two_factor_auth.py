@@ -179,26 +179,80 @@ async def verify_2fa_login(
     验证2FA登录
     
     在用户输入用户名密码后,如果启用了2FA,需要调用此接口
+    验证成功后返回正式的access_token和refresh_token
     """
     try:
+        from shared.models.user import User
+        from sqlalchemy import select
+        from datetime import datetime, timezone, timedelta
+        from src.api.v1.user_management import create_jwt_token
+
+        # 首先验证2FA令牌
         result = two_factor_auth.verify_2fa_login(
             user_id=request_data.user_id,
             token=request_data.token,
             db_session=db
         )
 
-        if result['success']:
-            return ApiResponse(
-                success=True,
-                data={
-                    "method": result['method'],
-                    "message": "2FA验证成功,可以完成登录"
-                }
-            )
-        else:
+        if not result['success']:
             return ApiResponse(success=False, error=result['error'])
 
+        # 2FA验证成功，获取用户信息
+        query = select(User).where(User.id == request_data.user_id)
+        query_result = await db.execute(query)
+        user = query_result.scalar_one_or_none()
+
+        if not user:
+            return ApiResponse(success=False, error="用户不存在")
+
+        if not user.is_active:
+            return ApiResponse(success=False, error="账户已被禁用")
+
+        # 生成正式的JWT token
+        access_token = create_jwt_token(subject=str(user.id), token_type="access")
+        refresh_token = create_jwt_token(subject=str(user.id), token_type="refresh")
+
+        # 更新最后登录时间
+        user.last_login = datetime.now(timezone.utc)
+        await db.commit()
+
+        # 记录成功登录
+        try:
+            from shared.services.login_security_service import login_security_service
+            await login_security_service.record_login_attempt_async(
+                username=user.username,
+                ip_address="unknown",  # TODO: 从请求中获取IP
+                user_agent="",
+                is_success=True
+            )
+            await login_security_service.clear_failed_attempts_async(user.username)
+        except Exception as e:
+            print(f"Failed to record login attempt: {e}")
+
+        return ApiResponse(
+            success=True,
+            data={
+                "user": {
+                    "id": user.id,
+                    "username": user.username,
+                    "email": user.email,
+                    "profile_picture": user.profile_picture or None,
+                    "is_active": user.is_active,
+                    "is_superuser": user.is_superuser,
+                    "is_staff": user.is_staff,
+                    "vip_level": getattr(user, "vip_level", 0),
+                },
+                "access_token": access_token,
+                "refresh_token": refresh_token,
+                "method": result['method'],
+                "message": "2FA验证成功，登录完成"
+            }
+        )
+
     except Exception as e:
+        import traceback
+        print(f"2FA verification error: {str(e)}")
+        print(traceback.format_exc())
         return ApiResponse(success=False, error=f"2FA验证失败: {str(e)}")
 
 

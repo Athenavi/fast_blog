@@ -1,8 +1,9 @@
 """
 SQLAlchemy 模型定义 - UserSession
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-07 16:38:48
+生成时间：2026-05-07 17:20:28
 """
+
 
 from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, ForeignKey
 
@@ -35,15 +36,18 @@ class UserSession(Base):
 
     is_active = Column(Boolean, default=True, doc='is_active')
 
+
     last_activity = Column(DateTime, doc='last_activity')
 
+
     expires_at = Column(DateTime, doc='expires_at')
+
 
     created_at = Column(DateTime, doc='created_at')
 
     __table_args__ = (
 
-        Index('idx_user_sessions_user_id', 'user_id'),
+    Index('idx_user_sessions_user_id', 'user_id'),
         Index('idx_user_sessions_token', 'session_token', unique=True),
         Index('idx_user_sessions_is_active', 'is_active'),
         Index('idx_user_sessions_expires', 'expires_at'),

@@ -121,11 +121,12 @@ models:
       totp_secret:
         type: string
         nullable: true
+        maxLength: 32
         description: TOTP 密钥
       backup_codes:
-        type: string
+        type: text
         nullable: true
-        description: 备用码
+        description: 备用码(JSON格式存储)
     orm: true
     table: users
     indexes:

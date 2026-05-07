@@ -151,7 +151,7 @@ const SettingsPage = () => {
     useEffect(() => {
         const load2FAStatus = async () => {
             try {
-                const response = await apiClient.get('/auth/2fa/status');
+                const response = await apiClient.get('/management/2fa/status');
                 if (response.success && response.data) {
                     setTwoFactorEnabled(response.data.is_2fa_enabled || false);
                 }
@@ -387,11 +387,20 @@ const SettingsPage = () => {
     // 2FA相关函数
     const setup2FA = async () => {
         try {
-            const response = await apiClient.get('/auth/2fa/setup');
+            console.log('[2FA Setup] Starting 2FA setup...');
+            const response = await apiClient.get('/2fa/setup');
+            console.log('[2FA Setup] Response:', response);
+
             if (response.success && response.data) {
+                console.log('[2FA Setup] QR Code data:', response.data.qr_code ? 'present' : 'missing');
+                console.log('[2FA Setup] Secret:', response.data.secret ? 'present' : 'missing');
                 setQrCodeImage(response.data.qr_code);
                 setTotpSecret(response.data.secret);
                 setShowQRCode(true);
+                console.log('[2FA Setup] showQRCode set to true');
+            } else {
+                console.error('[2FA Setup] Response not successful or no data');
+                alert(response.error || '获取2FA设置信息失败');
             }
         } catch (error) {
             console.error('设置2FA失败:', error);
@@ -407,7 +416,7 @@ const SettingsPage = () => {
 
         try {
             setSaving(true);
-            const response = await apiClient.post('/auth/2fa/enable', {
+            const response = await apiClient.post('/2fa/enable', {
                 totp_token: verificationCode
             });
 
@@ -434,7 +443,7 @@ const SettingsPage = () => {
 
         try {
             setSaving(true);
-            const response = await apiClient.post('/auth/2fa/disable');
+            const response = await apiClient.post('/2fa/disable');
 
             if (response.success) {
                 setTwoFactorEnabled(false);
@@ -455,7 +464,7 @@ const SettingsPage = () => {
 
     const regenerateBackupCodes = async () => {
         try {
-            const response = await apiClient.post('/auth/2fa/regenerate-backup-codes');
+            const response = await apiClient.post('/2fa/backup-codes/regenerate');
             if (response.success) {
                 setBackupCodes(response.data.backup_codes || []);
                 alert('备用码已重新生成，请保存新备用码');
@@ -470,7 +479,7 @@ const SettingsPage = () => {
     const loadSessions = async () => {
         try {
             setLoadingSessions(true);
-            const response = await apiClient.get('/sessions');
+            const response = await apiClient.get('/management/sessions');
             if (response.success && response.data) {
                 setSessions(response.data.sessions || []);
             }
@@ -487,7 +496,7 @@ const SettingsPage = () => {
         }
 
         try {
-            const response = await apiClient.post(`/sessions/${sessionId}/revoke`);
+            const response = await apiClient.post(`/management/sessions/${sessionId}/revoke`);
             if (response.success) {
                 alert('设备已注销');
                 loadSessions(); // 重新加载列表
@@ -506,7 +515,7 @@ const SettingsPage = () => {
         }
 
         try {
-            const response = await apiClient.post('/sessions/revoke-all');
+            const response = await apiClient.post('/management/sessions/revoke-all');
             if (response.success) {
                 alert(`已注销 ${response.data.revoked_count || 0} 个设备`);
                 loadSessions();
@@ -792,7 +801,7 @@ const SettingsPage = () => {
                                     <div
                                         className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 p-8">
                                         <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">修改密码</h2>
-                                        
+
                                         <div className="space-y-4">
                                             <div>
                                                 <label
@@ -995,6 +1004,16 @@ const SettingsPage = () => {
                                 >
                                     <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">双因素认证
                                         (2FA)</h2>
+
+                                    {/* 调试信息 - 可以稍后删除 */}
+                                    {process.env.NODE_ENV === 'development' && (
+                                        <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg text-xs">
+                                            <div>showQRCode: {String(showQRCode)}</div>
+                                            <div>twoFactorEnabled: {String(twoFactorEnabled)}</div>
+                                            <div>qrCodeImage: {qrCodeImage ? 'present' : 'empty'}</div>
+                                            <div>totpSecret: {totpSecret ? 'present' : 'empty'}</div>
+                                        </div>
+                                    )}
 
                                     {!showQRCode ? (
                                         <>

@@ -1,8 +1,9 @@
 """
 SQLAlchemy 模型定义 - LoginAttempt
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-07 16:38:48
+生成时间：2026-05-07 17:20:28
 """
+
 
 from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime
 
@@ -26,15 +27,18 @@ class LoginAttempt(Base):
 
     user_agent = Column(String(500), nullable=True, doc='user_agent')
 
+
     is_success = Column(Boolean, default=False, doc='is_success')
 
+
     failure_reason = Column(String(255), nullable=True, doc='failure_reason')
+
 
     created_at = Column(DateTime, doc='created_at')
 
     __table_args__ = (
 
-    Index('idx_login_attempts_username', 'username'),
+        Index('idx_login_attempts_username', 'username'),
         Index('idx_login_attempts_ip', 'ip_address'),
         Index('idx_login_attempts_created', 'created_at'),
     )

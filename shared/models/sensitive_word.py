@@ -1,8 +1,9 @@
 """
 SQLAlchemy 模型定义 - SensitiveWord
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-07 16:38:48
+生成时间：2026-05-07 17:20:28
 """
+
 
 from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, Float, ForeignKey
 
@@ -47,10 +48,11 @@ class SensitiveWord(Base):
 
     __table_args__ = (
 
-    Index('idx_sensitive_word_level', 'level'),
+        Index('idx_sensitive_word_level', 'level'),
         Index('idx_sensitive_word_category', 'category'),
         Index('idx_sensitive_word_active', 'is_active'),
     )
+
 
     def to_dict(self, exclude_sensitive=True):
         """转换为字典

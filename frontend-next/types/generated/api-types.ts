@@ -1,7 +1,7 @@
 /**
  * API 类型定义
  * 由 routes.yaml 自动生成 - 请勿手动修改
- * 生成时间：2026-05-07 16:38:48
+ * 生成时间：2026-05-07 17:20:28
  */
 
 export interface User {
@@ -24,7 +24,7 @@ export interface User {
     register_ip?: string;
     is_2fa_enabled: boolean;
     totp_secret?: string;
-    backup_codes?: string;
+    backup_codes?: any;
 }
 
 export interface UserCreate {

@@ -1,8 +1,9 @@
 """
 SQLAlchemy 模型定义 - UserRole
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-07 16:38:48
+生成时间：2026-05-07 17:20:28
 """
+
 
 from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, ForeignKey
 
@@ -32,7 +33,7 @@ class UserRole(Base):
 
     __table_args__ = (
 
-        Index('idx_user_roles_user_id', 'user_id'),
+    Index('idx_user_roles_user_id', 'user_id'),
         Index('idx_user_roles_role_id', 'role_id'),
         Index('idx_user_roles_unique', 'user_id', 'role_id', unique=True),
     )
