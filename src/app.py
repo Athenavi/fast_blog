@@ -803,6 +803,14 @@ curl -X POST "http://localhost:9421/api/v1/media/upload" \
         except ImportError as e:
             print(f"Warning: Collaboration Invites API could not be loaded: {e}")
 
+        # Collaboration Save 保存协作文档 API
+        try:
+            from src.api.v1.collaboration_save import router as collaboration_save_router
+            app.include_router(collaboration_save_router, prefix='/api/v1')
+            print(f"{worker_info} [OK] Collaboration Save API 已加载")
+        except ImportError as e:
+            print(f"Warning: Collaboration Save API could not be loaded: {e}")
+
         # Yjs Collaboration 实时协作编辑 API (基于 CRDT)
         try:
             from src.api.v1.yjs_collaboration import router as yjs_collaboration_router

@@ -188,7 +188,7 @@ async def collaborate_websocket(
         print(f"[WebSocket] Content preview: {doc.content[:100]}")
     else:
         print(f"[WebSocket] WARNING: Document content is empty!")
-    
+
     await websocket.send_json({
         'type': 'init',
         'content': doc.content,
@@ -243,7 +243,7 @@ async def collaborate_websocket(
                 new_content = data.get('content', '')
 
                 print(f"[WebSocket] Received step from {client_id}, content length: {len(new_content)}")
-                
+
                 step = Step.from_dict(step_data)
                 success = doc.apply_step(step, new_content)
 

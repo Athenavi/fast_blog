@@ -57,18 +57,32 @@ export default function CollaborationBar({
             return;
         }
 
-        if (!isConnected) {
-            toast({
-                title: '保存失败',
-                description: '未连接到协作服务器',
-                variant: 'destructive'
-            });
-            return;
-        }
+        // 不检查 isConnected，允许离线保存
+        // if (!isConnected) {
+        //     toast({
+        //         title: '保存失败',
+        //         description: '未连接到协作服务器',
+        //         variant: 'destructive'
+        //     });
+        //     return;
+        // }
 
         try {
             setIsSaving(true);
-            const content = editor.getHTML();
+
+            // 兼容不同类型的编辑器
+            let content = '';
+            if (typeof editor.getHTML === 'function') {
+                // Tiptap/ProseMirror 编辑器
+                content = editor.getHTML();
+            } else if (typeof editor.value === 'function') {
+                // EasyMDE/Markdown 编辑器
+                content = editor.value();
+            } else {
+                throw new Error('不支持的编辑器类型');
+            }
+
+            console.log('[Collab] 准备保存内容，长度:', content.length);
             const url = getSaveDocumentUrl(documentId);
 
             const response = await fetch(url, {
@@ -82,6 +96,8 @@ export default function CollaborationBar({
             });
 
             if (!response.ok) {
+                const errorText = await response.text();
+                console.error('[Collab] Save API error:', response.status, errorText);
                 throw new Error(`保存失败: ${response.status} ${response.statusText}`);
             }
 
@@ -228,7 +244,7 @@ export default function CollaborationBar({
                 {/* 保存按钮 */}
                 <Button
                     onClick={handleSave}
-                    disabled={isSaving || !isConnected}
+                    disabled={isSaving}
                     size="sm"
                     className="gap-2"
                 >

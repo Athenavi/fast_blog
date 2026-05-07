@@ -7,11 +7,7 @@ Yjs 实时协作编辑 WebSocket API
 import json
 from typing import Optional
 
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query, Depends
-from fastapi.responses import JSONResponse
-from sqlalchemy.ext.asyncio import AsyncSession
-from src.database import get_async_session
-from src.utils.auth import get_current_user
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
 
 from shared.services.yjs_collaboration import yjs_collaboration_service
 
@@ -34,9 +30,6 @@ async def yjs_websocket_endpoint(
     - 感知状态（光标、选区等）
     - 自动重连
     """
-    # TODO: 在这里添加认证逻辑（与 collaboration.py 类似）
-    # 为了简化，暂时跳过认证
-
     await websocket.accept()
 
     # 生成客户端ID
@@ -173,68 +166,5 @@ async def list_yjs_documents():
         "data": {
             "documents": documents,
             "count": len(documents)
-        }
-    }
-
-
-@router.post("/document/{document_id}/save")
-async def save_yjs_document(
-        document_id: str,
-        save_data: dict,
-        current_user=Depends(get_current_user),
-        db: AsyncSession = Depends(get_async_session)
-):
-    """
-    保存 Yjs 协作文档内容到文章修订版本
-    
-    Args:
-        document_id: 文档ID
-        save_data: {"content": "...", "change_summary": "..."}
-    """
-    print(f"[Yjs Save] Saving document {document_id} for user {current_user.id}")
-
-    # 从 Yjs 服务获取文档
-    doc = yjs_collaboration_service.get_document(document_id)
-
-    if not doc:
-        print(f"[Yjs Save] Document {document_id} not found")
-        return JSONResponse(
-            status_code=404,
-            content={"success": False, "error": "Document not found"}
-        )
-
-    # 如果提供了新内容，先更新文档状态
-    if "content" in save_data:
-        # TODO: 将 HTML 内容转换为 Yjs 格式
-        # 目前暂时只记录日志
-        print(f"[Yjs Save] Received content, length: {len(save_data['content'])}")
-
-    # 保存到修订版本
-    change_summary = save_data.get("change_summary", "Yjs 协作编辑保存")
-
-    # 使用 collaboration_service 保存到数据库
-    from shared.services.collaboration import collaboration_service
-    success = await collaboration_service.save_to_revision(
-        document_id=document_id,
-        db_session=db,
-        author_id=current_user.id,
-        change_summary=change_summary
-    )
-
-    if not success:
-        print(f"[Yjs Save] Failed to save document {document_id}")
-        return JSONResponse(
-            status_code=500,
-            content={"success": False, "error": "Failed to save to revision"}
-        )
-
-    print(f"[Yjs Save] Successfully saved document {document_id}")
-    return {
-        "success": True,
-        "message": "Document saved successfully",
-        "data": {
-            "document_id": document_id,
-            "article_id": doc.article_id,
-            "saved_at": doc.last_modified.isoformat()
         }
     }

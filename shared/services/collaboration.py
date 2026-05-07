@@ -65,7 +65,7 @@ class CollaborativeDocument:
         # 步骤历史（用于协作同步）
         self.steps: List[Step] = []
         self.version: int = 0  # 当前版本号
-        
+
         # 用户感知状态
         self.awareness: Dict[str, dict] = {}
         self.article_id: Optional[int] = None
@@ -200,7 +200,7 @@ class CollaborativeDocument:
 
 class CollaborationService:
     """协作服务管理器"""
-    
+
     def __init__(self):
         self.documents: Dict[str, CollaborativeDocument] = {}
 
@@ -231,67 +231,6 @@ class CollaborationService:
             for doc in self.documents.values()
             if len(doc.clients) > 0
         ]
-
-    async def save_to_revision(self, document_id: str, db_session, author_id: int,
-                               change_summary: str = "协作编辑保存"):
-        """将协作文档保存到文章修订版本"""
-        from shared.models.article import Article
-        from shared.models.article_content import ArticleContent
-        from sqlalchemy import select
-        from datetime import datetime, timezone
-        
-        doc = self.documents.get(document_id)
-        if not doc or not doc.article_id:
-            return False
-
-        try:
-            # 先更新数据库中的文章内容
-            content = doc.get_content()
-            now = datetime.now(timezone.utc).replace(tzinfo=None)
-
-            # 查询并更新ArticleContent
-            content_query = select(ArticleContent).where(
-                ArticleContent.article == doc.article_id
-            )
-            result = await db_session.execute(content_query)
-            content_obj = result.scalar_one_or_none()
-
-            if content_obj:
-                # 更新现有内容
-                content_obj.content = content
-                content_obj.updated_at = now
-            else:
-                # 创建新内容记录
-                new_content = ArticleContent(
-                    article=doc.article_id,
-                    content=content,
-                    created_at=now,
-                    updated_at=now
-                )
-                db_session.add(new_content)
-
-            # 同时更新Article的更新时间
-            article_query = select(Article).where(Article.id == doc.article_id)
-            article_result = await db_session.execute(article_query)
-            article = article_result.scalar_one_or_none()
-
-            if article:
-                article.updated_at = now
-
-            await db_session.commit()
-
-            # 更新最后保存时间
-            doc.last_saved = now
-
-            print(f"[Collab] Saved document {document_id} to revision")
-            return True
-
-        except Exception as e:
-            print(f"Error saving to revision: {e}")
-            import traceback
-            traceback.print_exc()
-            await db_session.rollback()
-            return False
 
 
 # 全局实例
