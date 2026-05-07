@@ -457,12 +457,12 @@ def user_create(args):
 
     try:
         from shared.models.user import User
-        from shared.utils.database.main import get_async_session
+        from shared.utils.database.main import get_async_session, get_async_session_context
         import asyncio
         from datetime import datetime
 
         async def create_user():
-            async for db in get_async_session():
+            async with get_async_session_context() as db:
                 # 检查用户名是否已存在
                 from sqlalchemy import select
                 result = await db.execute(select(User).where(User.username == username))
@@ -509,12 +509,12 @@ def user_list(args):
     """列出用户"""
     try:
         from shared.models.user import User
-        from shared.utils.database.main import get_async_session
+        from shared.utils.database.main import get_async_session, get_async_session_context
         from sqlalchemy import select
         import asyncio
 
         async def list_users():
-            async for db in get_async_session():
+            async with get_async_session_context() as db:
                 result = await db.execute(select(User).order_by(User.date_joined.desc()))
                 users = result.scalars().all()
 
@@ -547,12 +547,12 @@ def user_delete(args):
 
     try:
         from shared.models.user import User
-        from shared.utils.database.main import get_async_session
+        from shared.utils.database.main import get_async_session, get_async_session_context
         from sqlalchemy import select
         import asyncio
 
         async def delete_user():
-            async for db in get_async_session():
+            async with get_async_session_context() as db:
                 result = await db.execute(select(User).where(User.username == username))
                 user = result.scalar_one_or_none()
 

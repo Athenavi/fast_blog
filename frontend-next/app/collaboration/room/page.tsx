@@ -11,9 +11,9 @@ import {Button} from '@/components/ui/button';
 import {Badge} from '@/components/ui/badge';
 import {ArrowLeft, FileText, Users} from 'lucide-react';
 
-// 动态导入 Yjs 协作编辑器
+// 动态导入 Yjs 协作编辑器 - 使用测试版本
 const YjsCollaborativeEditor = dynamic(
-    () => import('@/components/YjsCollaborativeEditor'),
+    () => import('@/components/YjsCollaborativeEditor.test'),
     {
         ssr: false,
         loading: () => <LoadingState message="加载协作编辑器中..."/>
@@ -239,26 +239,12 @@ function CollaborationRoomContent() {
                 </div>
             </div>
 
-            {/* 协作编辑器 - 暂时注释 */}
+            {/* 协作编辑器 - 测试版本 */}
             <div className="container mx-auto px-4 py-6">
-                <Card className="p-8">
-                    <div className="text-center space-y-4">
-                        <h2 className="text-xl font-semibold">协作编辑器（调试中）</h2>
-                        <p className="text-gray-600">文档ID: {invitation.document_id}</p>
-                        <p className="text-gray-600">权限: {invitation.permission}</p>
-                        <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded">
-                            <p className="text-sm text-blue-800">
-                                YjsCollaborativeEditor 组件正在修复中...
-                            </p>
-                        </div>
-                    </div>
-                </Card>
-                {/* 
                 <YjsCollaborativeEditor
                     documentId={invitation.document_id}
                     readOnly={invitation.permission !== 'edit'}
                 />
-                */}
             </div>
         </div>
     );

@@ -212,6 +212,22 @@ class UnifiedDatabaseManager:
                 result = await session.execute(query)
                 await session.commit()
         """
+        # 检查会话工厂是否已初始化
+        if self._async_session_factory is None:
+            # 尝试初始化
+            self.initialize()
+
+            # 如果仍然为 None，说明数据库URL未配置
+            if self._async_session_factory is None:
+                error_msg = (
+                    "Database manager not initialized. "
+                    "This usually means the database URL is not configured. "
+                    "Please ensure you have completed the database configuration step "
+                    "before attempting to use the database."
+                )
+                logger.error(error_msg)
+                raise RuntimeError(error_msg)
+        
         session = self.async_session_factory()
         logger.debug(f"Creating new session: {id(session)}")
         
@@ -293,6 +309,22 @@ class UnifiedDatabaseManager:
                 result = await session.execute(query)
                 await session.commit()
         """
+        # 检查会话工厂是否已初始化
+        if self._async_session_factory is None:
+            # 尝试初始化
+            self.initialize()
+
+            # 如果仍然为 None，说明数据库URL未配置
+            if self._async_session_factory is None:
+                error_msg = (
+                    "Database manager not initialized. "
+                    "This usually means the database URL is not configured. "
+                    "Please ensure you have completed the database configuration step "
+                    "before attempting to use the database."
+                )
+                logger.error(error_msg)
+                raise RuntimeError(error_msg)
+        
         session = self.async_session_factory()
         logger.debug(f"Creating new session (no auto-commit): {id(session)}")
         try:

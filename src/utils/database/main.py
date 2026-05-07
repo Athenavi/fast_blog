@@ -248,13 +248,35 @@ def get_session():
     )
 
 
+from contextlib import asynccontextmanager
+
 async def get_async_session() -> AsyncGenerator[AsyncSession, None]:
     """
-    异步会话生成器（已迁移到统一管理器）
+    异步会话生成器（用于 FastAPI 依赖注入）
+    
+    这是一个异步生成器，专门用于 FastAPI 的 Depends() 依赖注入。
+    如果需要在代码中直接使用 async with，请使用 get_async_session_context()。
     
     推荐使用：from src.utils.database.unified_manager import get_db_session
     """
-    # 委托给统一管理器 - 使用 async with 而不是 async for
+    # 使用 async with 调用统一管理器的异步上下文管理器
+    async with unified_db_manager.get_session_no_auto_commit() as session:
+        yield session
+
+
+@asynccontextmanager
+async def get_async_session_context() -> AsyncGenerator[AsyncSession, None]:
+    """
+    异步会话上下文管理器（用于直接调用）
+    
+    这是一个异步上下文管理器，用于在代码中直接使用 async with 语法。
+    不应用于 FastAPI 的 Depends() 依赖注入。
+    
+    使用示例：
+        async with get_async_session_context() as session:
+            result = await session.execute(query)
+    """
+    # 委托给统一管理器
     async with unified_db_manager.get_session_no_auto_commit() as session:
         yield session
 

@@ -601,10 +601,10 @@ curl -X POST "http://localhost:9421/api/v1/media/upload" \
 
         # 检查数据库连接
         try:
-            from src.utils.database.main import get_async_session
+            from src.utils.database.main import get_async_session, get_async_session_context
             from sqlalchemy import text
 
-            async with get_async_session() as session:
+            async with get_async_session_context() as session:
                 await session.execute(text("SELECT 1"))
             health_status["services"]["database"] = {
                 "status": "healthy",

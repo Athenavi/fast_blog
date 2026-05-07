@@ -7,7 +7,7 @@ from typing import Dict, List, Any, Optional
 from sqlalchemy import select
 
 from shared.models.article import Article
-from src.extensions import get_async_db
+from src.extensions import get_async_session_context
 
 
 class PluginPublicAPI:
@@ -64,7 +64,7 @@ class PluginPublicAPI:
                 filters.append(Article.category == category_id)
 
             # 执行异步查询
-            async for db_session in get_async_db():
+            async with get_async_session_context() as db_session:
                 stmt = select(Article).where(*filters).order_by(Article.created_at.desc())
 
                 # 应用分页
@@ -120,7 +120,7 @@ class PluginPublicAPI:
         """
         try:
             # 执行异步查询
-            async for db_session in get_async_db():
+            async with get_async_session_context() as db_session:
                 stmt = select(Article).where(
                     Article.slug == slug,
                     Article.status == 1,
@@ -184,7 +184,7 @@ class PluginPublicAPI:
             from shared.models.site_settings import SiteSettings
 
             # 执行异步查询
-            async for db_session in get_async_db():
+            async with get_async_session_context() as db_session:
                 stmt = select(SiteSettings).limit(1)
                 result = await db_session.execute(stmt)
                 site_settings = result.scalar_one_or_none()

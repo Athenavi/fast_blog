@@ -848,6 +848,16 @@ class InstallationWizardService:
                 if result.stdout:
                     print(f"\n迁移输出:\n{result.stdout}")
 
+                # 初始化统一数据库管理器，确保后续操作可以使用数据库会话
+                print("\n[4/4] 初始化数据库连接池...")
+                try:
+                    from src.utils.database.unified_manager import db_manager
+                    db_manager.initialize()
+                    print("✓ 数据库连接池初始化成功")
+                except Exception as init_err:
+                    print(f"⚠ 数据库连接池初始化警告: {init_err}")
+                    # 不阻断流程，继续返回成功
+
                 return {
                     'success': True,
                     'message': '数据库配置已确认，迁移执行成功',

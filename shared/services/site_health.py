@@ -10,6 +10,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any, List
 
+from sqlalchemy import select
+
 
 class SiteHealthService:
     """站点健康检查服务"""
@@ -110,10 +112,10 @@ class SiteHealthService:
         # 数据库连接测试
         try:
             import asyncio
-            from src.utils.database.main import get_async_session
+            from src.utils.database.main import get_async_session, get_async_session_context
             
             async def test_connection():
-                async with get_async_session()() as session:
+                async with get_async_session_context() as session:
                     await session.execute(select(1))
             
             # 这里简化处理,实际应该异步执行

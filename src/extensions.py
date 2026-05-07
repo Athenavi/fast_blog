@@ -521,7 +521,6 @@ pwd_context = _get_pwd_context()
 # 数据库引擎和会话 - 使用统一管理器
 from src.utils.database.unified_manager import (
     db_manager,
-    get_db_session,
 )
 
 # 为了向后兼容，保留旧的变量名（但指向统一管理器的实例）
@@ -602,14 +601,39 @@ def get_db() -> Generator:
 
 
 # 异步便捷函数：获取异步数据库会话（使用统一管理器）
+from contextlib import asynccontextmanager
+
 async def get_async_db() -> AsyncGenerator:
     """
-    获取异步数据库会话的便捷函数（已迁移到统一管理器）
+    获取异步数据库会话的便捷函数（用于 FastAPI 依赖注入）
     
-    推荐使用：from src.utils.database.unified_manager import get_db_session
+    这是一个异步生成器，专门用于 FastAPI 的 Depends() 依赖注入。
+    如果需要在代码中直接使用，请使用 get_async_session_context()。
+    
+    使用示例（FastAPI 依赖注入）：
+        @router.get("/example")
+        async def example(db: AsyncSession = Depends(get_async_db)):
+            ...
     """
-    # 委托给统一管理器
-    async for session in get_db_session():
+    # 直接使用统一管理器的 get_session 异步上下文管理器
+    async with db_manager.get_session() as session:
+        yield session
+
+
+@asynccontextmanager
+async def get_async_session_context() -> AsyncGenerator:
+    """
+    获取异步数据库会话的上下文管理器（用于直接调用）
+    
+    这是一个异步上下文管理器，用于在代码中直接使用 async with 语法。
+    不应用于 FastAPI 的 Depends() 依赖注入。
+    
+    使用示例（直接调用）：
+        async with get_async_session_context() as session:
+            result = await session.execute(query)
+    """
+    # 直接使用统一管理器的 get_session 异步上下文管理器
+    async with db_manager.get_session() as session:
         yield session
 
 
@@ -626,10 +650,11 @@ get_sync_db_session = get_sync_db
 
 async def get_async_db_session():
     """
-    FastAPI依赖注入：获取异步数据库会话（使用统一管理器）
+    FastAPI依赖注入：获取异步数据库会话（用于 FastAPI Depends）
     
-    推荐使用：from src.utils.database.unified_manager import get_db_session
+    这是一个异步生成器，专门用于 FastAPI 的 Depends() 依赖注入。
+    如果需要在代码中直接使用，请使用 get_async_session_context()。
     """
-    # 委托给统一管理器
-    async for session in get_db_session():
+    # 直接使用统一管理器的 get_session 异步上下文管理器
+    async with db_manager.get_session() as session:
         yield session
