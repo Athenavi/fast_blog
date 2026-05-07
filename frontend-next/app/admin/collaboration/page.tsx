@@ -23,7 +23,7 @@ export default function CollaborationManager() {
     const [closing, setClosing] = useState<string | null>(null);
 
     // 获取活跃会话
-    const fetchSessions = async () => {
+    const fetchSessions = React.useCallback(async () => {
         try {
             setLoading(true);
             const response = await apiClient.get('/collaboration/active-sessions');
@@ -47,7 +47,7 @@ export default function CollaborationManager() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [toast]);
 
     useEffect(() => {
         fetchSessions();
@@ -58,7 +58,7 @@ export default function CollaborationManager() {
     }, []);
 
     // 关闭会话
-    const handleCloseSession = async (documentId: string) => {
+    const handleCloseSession = React.useCallback(async (documentId: string) => {
         if (!confirm('确定要关闭这个协作会话吗？所有连接的用户将被断开。')) {
             return;
         }
@@ -90,7 +90,7 @@ export default function CollaborationManager() {
         } finally {
             setClosing(null);
         }
-    };
+    }, [toast, fetchSessions]);
 
     // 格式化时间
     const formatTimeAgo = (dateString: string) => {

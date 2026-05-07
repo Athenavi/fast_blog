@@ -59,7 +59,7 @@ function NewCollaborationContent() {
         fetchArticles();
     }, []);
 
-    const handleCreateRoom = async () => {
+    const handleCreateRoom = React.useCallback(async () => {
         if (!formData.articleId) {
             alert('请选择一篇文章');
             return;
@@ -100,7 +100,7 @@ function NewCollaborationContent() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [formData, router]);
 
     return (
         <div className="container mx-auto py-8 px-4">

@@ -41,7 +41,7 @@ export function CreateCollaborationDialog({
     const [copied, setCopied] = useState(false);
 
     // 创建邀请
-    const handleCreateInvitation = async () => {
+    const handleCreateInvitation = React.useCallback(async () => {
         setLoading(true);
         try {
             // 直接使用完整 URL，避免 apiFetch 重复添加前缀
@@ -103,7 +103,7 @@ export function CreateCollaborationDialog({
         } finally {
             setLoading(false);
         }
-    };
+    }, [articleId, documentId, permission, expireHours, maxUsers]);
 
     // 复制链接
     const handleCopyLink = async () => {
