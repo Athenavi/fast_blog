@@ -47,6 +47,7 @@ const LoginPage = () => {
   const [userId, setUserId] = useState<number | null>(null);
   const [twoFACode, setTwoFACode] = useState('');
   const [twoFALoading, setTwoFALoading] = useState(false);
+  const [useBackupCode, setUseBackupCode] = useState(false); // 是否使用备用码
   
   // 使用 useRef 来跟踪最新状态
   const qrStatusRef = useRef(qrStatus);
@@ -500,8 +501,10 @@ const LoginPage = () => {
   const handle2FASubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!twoFACode || twoFACode.length !== 6) {
-      setErrorMessage('请输入6位验证码');
+    // 根据模式验证输入长度
+    const expectedLength = useBackupCode ? 8 : 6;
+    if (!twoFACode || twoFACode.length !== expectedLength) {
+      setErrorMessage(useBackupCode ? '请输入8位备用码' : '请输入6位验证码');
       return;
     }
 
@@ -705,39 +708,53 @@ const LoginPage = () => {
                   <div className="flex justify-center mb-4">
                     <div
                         className="w-16 h-16 bg-indigo-100 dark:bg-indigo-900 rounded-full flex items-center justify-center">
-                      <i className="fas fa-shield-alt text-3xl text-indigo-600 dark:text-indigo-400"></i>
+                      <i className={`fas ${useBackupCode ? 'fa-key' : 'fa-shield-alt'} text-3xl text-indigo-600 dark:text-indigo-400`}></i>
                     </div>
                   </div>
                   <h3 className="text-lg font-medium text-gray-900 dark:text-white mb-2">双因素认证</h3>
                   <p className="text-sm text-gray-500 dark:text-gray-400">
-                    请输入您的身份验证器应用中的6位验证码
+                    {useBackupCode
+                        ? '请输入您的备用码（8位数字）'
+                        : '请输入您的身份验证器应用中的6位验证码'
+                    }
                   </p>
                 </div>
 
                 <div className="mb-6">
                   <label htmlFor="two-fa-code"
                          className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    验证码
+                    {useBackupCode ? '备用码' : '验证码'}
                   </label>
                   <input
                       id="two-fa-code"
                       type="text"
                       value={twoFACode}
-                      onChange={(e) => setTwoFACode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                      placeholder="000000"
-                      maxLength={6}
+                      onChange={(e) => {
+                        if (useBackupCode) {
+                          // 备用码只允许数字
+                          setTwoFACode(e.target.value.replace(/\D/g, '').slice(0, 8));
+                        } else {
+                          // TOTP只允许数字
+                          setTwoFACode(e.target.value.replace(/\D/g, '').slice(0, 6));
+                        }
+                      }}
+                      placeholder={useBackupCode ? '00000000' : '000000'}
+                      maxLength={useBackupCode ? 8 : 6}
                       className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 dark:bg-gray-600 dark:border-gray-500 dark:text-white text-center text-2xl tracking-widest"
                       required
                       autoFocus
                   />
                   <p className="mt-2 text-xs text-gray-500 dark:text-gray-400 text-center">
-                    使用 Google Authenticator、Microsoft Authenticator 或其他 TOTP 应用
+                    {useBackupCode
+                        ? '备用码是您启用2FA时保存的8位数字代码'
+                        : '使用 Google Authenticator、Microsoft Authenticator 或其他 TOTP 应用'
+                    }
                   </p>
                 </div>
 
                 <button
                     type="submit"
-                    disabled={twoFALoading || twoFACode.length !== 6}
+                    disabled={twoFALoading || (useBackupCode ? twoFACode.length !== 8 : twoFACode.length !== 6)}
                     className="w-full flex justify-center py-3 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50"
                 >
                   {twoFALoading ? (
@@ -754,7 +771,17 @@ const LoginPage = () => {
                   ) : '验证'}
                 </button>
 
-                <div className="mt-4 text-center">
+                <div className="mt-4 text-center space-y-2">
+                  <button
+                      type="button"
+                      onClick={() => {
+                        setUseBackupCode(!useBackupCode);
+                        setTwoFACode(''); // 清空输入
+                      }}
+                      className="text-sm text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300 block"
+                  >
+                    {useBackupCode ? '使用身份验证器应用' : '使用备用码'}
+                  </button>
                   <button
                       type="button"
                       onClick={() => {
@@ -762,8 +789,9 @@ const LoginPage = () => {
                         setTempToken('');
                         setUserId(null);
                         setTwoFACode('');
+                        setUseBackupCode(false);
                       }}
-                      className="text-sm text-indigo-600 hover:text-indigo-500 dark:text-indigo-400 dark:hover:text-indigo-300"
+                      className="text-sm text-gray-600 hover:text-gray-500 dark:text-gray-400 dark:hover:text-gray-300 block"
                   >
                     返回重新输入密码
                   </button>
