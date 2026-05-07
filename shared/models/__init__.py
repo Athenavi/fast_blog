@@ -5,6 +5,7 @@ Base = declarative_base()
 
 
 
+
 from .user import User
 from .article import Article
 from .category import Category
@@ -24,6 +25,7 @@ from .pages import Pages
 from .upload_task import UploadTask
 from .upload_chunk import UploadChunk
 from .notification import Notification
+from .private_message import PrivateMessage
 from .search_history import SearchHistory
 from .page_view import PageView
 from .user_activity import UserActivity
@@ -84,6 +86,7 @@ __all__ = [
     'UploadTask',
     'UploadChunk',
     'Notification',
+    'PrivateMessage',
     'SearchHistory',
     'PageView',
     'UserActivity',

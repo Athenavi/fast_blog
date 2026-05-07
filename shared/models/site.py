@@ -1,13 +1,14 @@
 """
 SQLAlchemy 模型定义 - Site
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-06 17:36:26
+生成时间：2026-05-07 16:38:48
 """
 
-from sqlalchemy import Column, BigInteger, String, Text, Boolean, DateTime, Index
+from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime
 
 from . import Base  # 使用统一的 Base
 
+from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, Index
 
 class Site(Base):
     """站点模型（多站点支持）模型"""
@@ -58,13 +59,16 @@ class Site(Base):
 
     admin_user_id = Column(BigInteger, nullable=True, doc='admin_user_id')
 
+
     created_at = Column(DateTime, doc='created_at')
+
 
     updated_at = Column(DateTime, doc='updated_at')
 
+
     __table_args__ = (
 
-        Index('idx_sites_domain', 'domain'),
+    Index('idx_sites_domain', 'domain'),
         Index('idx_sites_slug', 'slug', unique=True),
         Index('idx_sites_is_active', 'is_active'),
         Index('idx_sites_is_default', 'is_default'),

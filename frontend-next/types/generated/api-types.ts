@@ -1,7 +1,7 @@
 /**
  * API 类型定义
  * 由 routes.yaml 自动生成 - 请勿手动修改
- * 生成时间：2026-05-06 17:36:26
+ * 生成时间：2026-05-07 16:38:48
  */
 
 export interface User {
@@ -346,6 +346,22 @@ export interface Notification {
     message: string;
     is_read: boolean;
     read_at?: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface PrivateMessage {
+    id: any;
+    sender: any;
+    recipient: any;
+    content: any;
+    message_type: string;
+    attachment_url?: string;
+    is_read: boolean;
+    read_at?: string;
+    is_deleted_by_sender: boolean;
+    is_deleted_by_recipient: boolean;
+    parent_message?: any;
     created_at: string;
     updated_at: string;
 }

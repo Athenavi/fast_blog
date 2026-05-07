@@ -1,13 +1,14 @@
 """
 SQLAlchemy 模型定义 - CommentSubscription
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-06 17:36:26
+生成时间：2026-05-07 16:38:48
 """
 
-from sqlalchemy import Column, BigInteger, String, Boolean, DateTime, ForeignKey, Index
+from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, ForeignKey
 
 from . import Base  # 使用统一的 Base
 
+from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, ForeignKey, Index
 
 class CommentSubscription(Base):
     """评论订阅模型模型"""
@@ -46,7 +47,7 @@ class CommentSubscription(Base):
 
     __table_args__ = (
 
-    Index('idx_comment_subscriptions_article', 'article_id'),
+        Index('idx_comment_subscriptions_article', 'article_id'),
         Index('idx_comment_subscriptions_email', 'email'),
         Index('idx_comment_subscriptions_user', 'user_id'),
         Index('idx_comment_subscriptions_unique', 'article_id', 'email', unique=True),

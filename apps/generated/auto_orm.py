@@ -1,7 +1,7 @@
 """
 Django ORM 抽象基类定义
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-06 17:36:25
+生成时间：2026-05-07 16:38:48
 """
 
 from django.db import models
@@ -1072,6 +1072,52 @@ class NotificationMixin(models.Model):
         app_label = 'generated'
         verbose_name = '通知模型'
         # 注意：请在具体模型类中设置 db_table = get_table_name("notifications")
+
+
+class PrivateMessageMixin(models.Model):
+    """站内私信模型 Mixin"""
+
+    # id
+    id = models.BigAutoField(
+        'id', primary_key=True)
+    # sender
+    sender = models.IntegerField(
+        'sender (暂为 IntegerField，等待 User 模型实现)', )
+    # recipient
+    recipient = models.IntegerField(
+        'recipient (暂为 IntegerField，等待 User 模型实现)', )
+    # content
+    content = models.TextField(
+        'content')
+    # message_type
+    message_type = models.CharField(
+        'message_type', max_length=50, default='text')
+    # attachment_url
+    attachment_url = models.CharField(
+        'attachment_url', max_length=500, blank=True, null=True)
+    # is_read
+    is_read = models.BooleanField(
+        'is_read', default=False)
+    # read_at
+    read_at = models.DateTimeField(
+        'read_at', blank=True, null=True)
+    # is_deleted_by_sender
+    is_deleted_by_sender = models.BooleanField(
+        'is_deleted_by_sender', default=False)
+    # is_deleted_by_recipient
+    is_deleted_by_recipient = models.BooleanField(
+        'is_deleted_by_recipient', default=False)
+    # parent_message
+    parent_message = models.ForeignKey(
+        'self',
+        on_delete=models.CASCADE,
+        verbose_name='parent_message', null=True, blank=True)
+
+    class Meta:
+        abstract = True
+        app_label = 'generated'
+        verbose_name = '站内私信模型'
+        # 注意：请在具体模型类中设置 db_table = get_table_name("private_messages")
 
 
 
@@ -2415,6 +2461,7 @@ class UserSessionMixin(models.Model):
         app_label = 'generated'
         verbose_name = '用户会话模型'
         # 注意：请在具体模型类中设置 db_table = get_table_name("user_sessions")
+
 
 
 class LoginAttemptMixin(models.Model):

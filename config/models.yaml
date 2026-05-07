@@ -1,5 +1,5 @@
 # ============================================================================
-# FastBlog 模型定义配置文件
+# FastBlog 模型定义配置文件（origin_site: https://github.com/Athenavi/fast_blog）
 # ============================================================================
 #
 # 本文件用于定义项目中所有的 SQLAlchemy 数据模型和 Pydantic 请求/响应模型。
@@ -36,7 +36,7 @@
 #   - 请勿手动修改自动生成的模型文件（文件头部有注释标识）
 #   - 自定义方法应放在 shared/defs/ 目录下的对应文件中
 #   - 修改配置后需要重新运行代码生成器
-#   - 数据库迁移需要单独执行（使用 Alembic 或 Django migrations）
+#   - 数据库迁移需要单独执行（建议使用 Alembic）
 #
 # ============================================================================
 
@@ -1414,6 +1414,86 @@ models:
         description: 更新时间
     orm: true
     table: notifications
+  PrivateMessage:
+    description: 站内私信模型
+    properties:
+      id:
+        type: bigint
+        description: 消息ID
+      sender:
+        type: bigint
+        description: 发送者
+        foreignKey: User
+      recipient:
+        type: bigint
+        description: 接收者
+        foreignKey: User
+      content:
+        type: text
+        description: 消息内容
+      message_type:
+        type: string
+        maxLength: 50
+        default: text
+        enum:
+          - text
+          - image
+          - file
+        description: 消息类型
+      attachment_url:
+        type: string
+        nullable: true
+        maxLength: 500
+        description: 附件URL(图片/文件)
+      is_read:
+        type: boolean
+        default: false
+        description: 是否已读
+      read_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: 阅读时间
+      is_deleted_by_sender:
+        type: boolean
+        default: false
+        description: 发送者是否删除
+      is_deleted_by_recipient:
+        type: boolean
+        default: false
+        description: 接收者是否删除
+      parent_message:
+        type: bigint
+        nullable: true
+        description: 父消息ID(用于回复)
+        foreignKey: PrivateMessage
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    orm: true
+    table: private_messages
+    indexes:
+      - name: idx_private_messages_sender
+        columns: [ sender ]
+        comment: "发送者索引"
+      - name: idx_private_messages_recipient
+        columns: [ recipient ]
+        comment: "接收者索引"
+      - name: idx_private_messages_created
+        columns: [ created_at ]
+        order: DESC
+        comment: "创建时间索引"
+      - name: idx_private_messages_conversation
+        columns: [ sender, recipient ]
+        comment: "会话查询索引"
+      - name: idx_private_messages_is_read
+        columns: [ is_read ]
+        comment: "已读状态索引"
   SearchHistory:
     description: 搜索历史模型
     properties:

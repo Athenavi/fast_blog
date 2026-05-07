@@ -1,12 +1,16 @@
 """
 FastAPI 路由文件
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-06 17:36:26
+生成时间：2026-05-07 16:38:48
 """
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Request
 
 from src.api.v1.responses import ApiResponse
+
+from fastapi import APIRouter, Depends, Form, Query, Path
+from src.api.v1.responses import ApiResponse
+from src.auth import jwt_required_dependency as jwt_required
 
 # 导入依赖
 
@@ -5590,6 +5594,7 @@ except Exception as e:
     return ApiResponse(success=False, error=str(e))
 
 
+
 @router.post("/themes/install", summary="安装主题")
 async def install_theme_endpoint(
         db: AsyncSession = Depends(get_async_db),
@@ -5609,6 +5614,7 @@ except Exception as e:
     print(f"Error in install_theme: {str(e)}")
     print(traceback.format_exc())
     return ApiResponse(success=False, error=str(e))
+
 
 
 @router.post("/themes/{theme_id}/activate", summary="激活主题")
@@ -5634,6 +5640,7 @@ except Exception as e:
     return ApiResponse(success=False, error=str(e))
 
 
+
 @router.get("/themes/{theme_id}/preview", summary="预览主题")
 async def preview_theme_endpoint(
         theme_id: int = Path(...),
@@ -5655,6 +5662,7 @@ except Exception as e:
     print(f"Error in preview_theme: {str(e)}")
     print(traceback.format_exc())
     return ApiResponse(success=False, error=str(e))
+
 
 
 @router.put("/themes/{theme_id}/settings", summary="更新主题设置")
@@ -5680,6 +5688,7 @@ except Exception as e:
     return ApiResponse(success=False, error=str(e))
 
 
+
 @router.delete("/themes/{theme_id}", summary="卸载主题")
 async def uninstall_theme_endpoint(
         theme_id: int = Path(...),
@@ -5703,6 +5712,7 @@ except Exception as e:
     return ApiResponse(success=False, error=str(e))
 
 
+
 @router.get("/themes/active", summary="获取当前激活主题")
 async def get_active_theme_endpoint(
         db: AsyncSession = Depends(get_async_db),
@@ -5722,6 +5732,7 @@ except Exception as e:
     print(f"Error in get_active_theme: {str(e)}")
     print(traceback.format_exc())
     return ApiResponse(success=False, error=str(e))
+
 
 # ====================
 #
@@ -5750,6 +5761,7 @@ except Exception as e:
     return ApiResponse(success=False, error=str(e))
 
 
+
 @router.get("/permissions/roles", summary="获取角色列表")
 async def list_roles_endpoint(
         db: AsyncSession = Depends(get_async_db),
@@ -5769,6 +5781,7 @@ except Exception as e:
     print(f"Error in list_roles: {str(e)}")
     print(traceback.format_exc())
     return ApiResponse(success=False, error=str(e))
+
 
 
 @router.post("/permissions/users/{user_id}/assign-role", summary="分配用户角色")

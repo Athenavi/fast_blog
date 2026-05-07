@@ -1,23 +1,28 @@
 """
 SQLAlchemy 模型定义 - LoginAttempt
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-06 17:36:26
+生成时间：2026-05-07 16:38:48
 """
 
-from sqlalchemy import Column, BigInteger, String, Boolean, DateTime, Index
+from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime
 
 from . import Base  # 使用统一的 Base
 
+from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, Index
 
 class LoginAttempt(Base):
     """登录尝试记录模型模型"""
     __tablename__ = 'login_attempts'
 
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='id')
+
 
     username = Column(String(255), index=True, nullable=True, doc='username')
 
+
     ip_address = Column(String(45), index=True, nullable=True, doc='ip_address')
+
 
     user_agent = Column(String(500), nullable=True, doc='user_agent')
 
@@ -29,7 +34,7 @@ class LoginAttempt(Base):
 
     __table_args__ = (
 
-        Index('idx_login_attempts_username', 'username'),
+    Index('idx_login_attempts_username', 'username'),
         Index('idx_login_attempts_ip', 'ip_address'),
         Index('idx_login_attempts_created', 'created_at'),
     )

@@ -1,13 +1,14 @@
 """
 SQLAlchemy 模型定义 - CartItem
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-06 17:36:26
+生成时间：2026-05-07 16:38:48
 """
 
-from sqlalchemy import Column, BigInteger, Integer, DateTime, Numeric, ForeignKey, Index
+from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, Float, Numeric, ForeignKey
 
 from . import Base  # 使用统一的 Base
 
+from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, Float, Numeric, ForeignKey, Index
 
 class CartItem(Base):
     """购物车项模型模型"""
@@ -37,7 +38,7 @@ class CartItem(Base):
 
     __table_args__ = (
 
-    Index('idx_cart_items_cart', 'cart_id'),
+        Index('idx_cart_items_cart', 'cart_id'),
         Index('idx_cart_items_product', 'product_id'),
         Index('idx_cart_items_unique', 'cart_id', 'product_id', unique=True),
     )

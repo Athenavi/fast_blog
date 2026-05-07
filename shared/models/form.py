@@ -1,13 +1,14 @@
 """
 SQLAlchemy 模型定义 - Form
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-06 17:36:26
+生成时间：2026-05-07 16:38:48
 """
 
-from sqlalchemy import Column, BigInteger, String, Boolean, DateTime, Index
+from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime
 
 from . import Base  # 使用统一的 Base
 
+from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, Index
 
 class Form(Base):
     """表单模型模型"""
@@ -52,7 +53,7 @@ class Form(Base):
 
     __table_args__ = (
 
-    Index('idx_forms_slug', 'slug', unique=True),
+        Index('idx_forms_slug', 'slug', unique=True),
         Index('idx_forms_status', 'status'),
     )
 
