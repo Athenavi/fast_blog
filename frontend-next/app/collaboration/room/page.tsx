@@ -242,7 +242,7 @@ function CollaborationRoomContent() {
             {/* 协作编辑器 - 测试版本 */}
             <div className="container mx-auto px-4 py-6">
                 <YjsCollaborativeEditor
-                    documentId={invitation.document_id}
+                    documentId={inviteId || ''}  // 使用邀请ID而不是文档ID
                     readOnly={invitation.permission !== 'edit'}
                 />
             </div>

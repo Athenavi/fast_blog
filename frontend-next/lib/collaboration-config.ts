@@ -4,25 +4,33 @@
  */
 
 /**
- * 获取 Yjs WebSocket 连接 URL
- * @param documentId 文档ID
- * @param articleId 文章ID（可选）
+ * 获取 WebSocket 连接 URL
+ * @param inviteId 邀请ID（UUID）
+ * @param token 认证token（可选）
  * @returns WebSocket URL
  */
-export function getYjsWebSocketUrl(documentId: string, articleId?: number): string {
+export function getWebSocketUrl(inviteId: string, token?: string): string {
     const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9421';
     const wsProtocol = baseUrl.startsWith('https') ? 'wss' : 'ws';
     const wsBaseUrl = baseUrl.replace(/^https?:\/\//, '');
 
-    // 构建 WebSocket URL
-    let url = `${wsProtocol}://${wsBaseUrl}/ws/collaboration/${documentId}`;
+    let url = `${wsProtocol}://${wsBaseUrl}/ws/collaborate/${inviteId}`;
 
-    // 添加文章ID参数
-    if (articleId) {
-        url += `?article_id=${articleId}`;
+    // 添加token参数
+    if (token) {
+        url += `?token=${encodeURIComponent(token)}`;
     }
 
     return url;
+}
+
+/**
+ * 获取 Yjs WebSocket 连接 URL（保留用于兼容）
+ * @deprecated 请使用 getWebSocketUrl
+ */
+export function getYjsWebSocketUrl(documentId: string, articleId?: number, token?: string): string {
+    // 这个方法已废弃，使用 getWebSocketUrl 代替
+    return getWebSocketUrl(documentId);
 }
 
 /**
