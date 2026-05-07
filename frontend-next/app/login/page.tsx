@@ -514,7 +514,7 @@ const LoginPage = () => {
     setErrorMessage('');
 
     try {
-      const response = await apiClient.post('/management/2fa/verify-login', {
+      const response = await apiClient.post('/2fa/verify-login', {
         user_id: userId,
         token: twoFACode
       });

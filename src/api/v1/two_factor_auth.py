@@ -158,15 +158,31 @@ async def disable_2fa(
     禁用2FA
     """
     try:
-        result = two_factor_auth.disable_2fa(current_user.id, db)
+        from shared.models.user import User
+        from sqlalchemy import select
 
-        if result['success']:
-            return ApiResponse(success=True, message=result['message'])
-        else:
-            return ApiResponse(success=False, error=result['error'])
+        # 获取用户信息
+        query = select(User).where(User.id == current_user.id)
+        result = await db.execute(query)
+        user = result.scalar_one_or_none()
+
+        if not user:
+            return ApiResponse(success=False, error="用户不存在")
+
+        # 清除2FA设置
+        user.is_2fa_enabled = False
+        user.totp_secret = None
+        user.backup_codes = None
+
+        await db.commit()
+
+        return ApiResponse(success=True, message="2FA已禁用")
 
     except Exception as e:
         await db.rollback()
+        import traceback
+        print(f"Disable 2FA error: {str(e)}")
+        print(traceback.format_exc())
         return ApiResponse(success=False, error=f"禁用2FA失败: {str(e)}")
 
 
@@ -187,23 +203,41 @@ async def verify_2fa_login(
         from datetime import datetime, timezone, timedelta
         from src.api.v1.user_management import create_jwt_token
 
-        # 首先验证2FA令牌
-        result = two_factor_auth.verify_2fa_login(
-            user_id=request_data.user_id,
-            token=request_data.token,
-            db_session=db
-        )
-
-        if not result['success']:
-            return ApiResponse(success=False, error=result['error'])
-
-        # 2FA验证成功，获取用户信息
+        # 获取用户信息
         query = select(User).where(User.id == request_data.user_id)
         query_result = await db.execute(query)
         user = query_result.scalar_one_or_none()
 
         if not user:
             return ApiResponse(success=False, error="用户不存在")
+
+        if not user.is_2fa_enabled:
+            return ApiResponse(success=False, error="2FA未启用")
+
+        # 验证TOTP或备用码
+        verification_method = None
+
+        # 首先尝试TOTP验证
+        if user.totp_secret and two_factor_auth.verify_totp(user.totp_secret, request_data.token):
+            verification_method = 'totp'
+        # 然后尝试备用码验证
+        elif user.backup_codes:
+            import json
+            import hashlib
+            try:
+                hashed_codes = json.loads(user.backup_codes)
+                input_hashed = hashlib.sha256(request_data.token.encode('utf-8')).hexdigest()
+
+                if input_hashed in hashed_codes:
+                    # 移除已使用的备用码并保存
+                    hashed_codes.remove(input_hashed)
+                    user.backup_codes = json.dumps(hashed_codes)
+                    verification_method = 'backup_code'
+            except Exception as e:
+                print(f"Backup code verification error: {e}")
+
+        if not verification_method:
+            return ApiResponse(success=False, error="验证码错误")
 
         if not user.is_active:
             return ApiResponse(success=False, error="账户已被禁用")
@@ -244,7 +278,7 @@ async def verify_2fa_login(
                 },
                 "access_token": access_token,
                 "refresh_token": refresh_token,
-                "method": result['method'],
+                "method": verification_method,
                 "message": "2FA验证成功，登录完成"
             }
         )
@@ -265,22 +299,40 @@ async def regenerate_backup_codes(
     重新生成备用码
     """
     try:
-        result = two_factor_auth.regenerate_backup_codes(current_user.id, db)
+        from shared.models.user import User
+        from sqlalchemy import select
 
-        if result['success']:
-            return ApiResponse(
-                success=True,
-                data={
-                    "backup_codes": result['backup_codes'],
-                    "message": "旧备用码已失效,请保存新备用码"
-                },
-                message="备用码已重新生成"
-            )
-        else:
-            return ApiResponse(success=False, error=result['error'])
+        # 获取用户信息
+        query = select(User).where(User.id == current_user.id)
+        result = await db.execute(query)
+        user = result.scalar_one_or_none()
+
+        if not user:
+            return ApiResponse(success=False, error="用户不存在")
+
+        if not user.is_2fa_enabled:
+            return ApiResponse(success=False, error="2FA未启用")
+
+        # 生成新的备用码
+        new_codes = two_factor_auth.generate_backup_codes()
+        user.backup_codes = two_factor_auth.hash_backup_codes(new_codes)
+
+        await db.commit()
+
+        return ApiResponse(
+            success=True,
+            data={
+                "backup_codes": new_codes,
+                "message": "旧备用码已失效,请保存新备用码"
+            },
+            message="备用码已重新生成"
+        )
 
     except Exception as e:
         await db.rollback()
+        import traceback
+        print(f"Regenerate backup codes error: {str(e)}")
+        print(traceback.format_exc())
         return ApiResponse(success=False, error=f"重新生成备用码失败: {str(e)}")
 
 

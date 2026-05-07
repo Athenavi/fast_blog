@@ -151,7 +151,7 @@ const SettingsPage = () => {
     useEffect(() => {
         const load2FAStatus = async () => {
             try {
-                const response = await apiClient.get('/management/2fa/status');
+                const response = await apiClient.get('/2fa/status');
                 if (response.success && response.data) {
                     setTwoFactorEnabled(response.data.is_2fa_enabled || false);
                 }
@@ -1004,16 +1004,6 @@ const SettingsPage = () => {
                                 >
                                     <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">双因素认证
                                         (2FA)</h2>
-
-                                    {/* 调试信息 - 可以稍后删除 */}
-                                    {process.env.NODE_ENV === 'development' && (
-                                        <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg text-xs">
-                                            <div>showQRCode: {String(showQRCode)}</div>
-                                            <div>twoFactorEnabled: {String(twoFactorEnabled)}</div>
-                                            <div>qrCodeImage: {qrCodeImage ? 'present' : 'empty'}</div>
-                                            <div>totpSecret: {totpSecret ? 'present' : 'empty'}</div>
-                                        </div>
-                                    )}
 
                                     {!showQRCode ? (
                                         <>
