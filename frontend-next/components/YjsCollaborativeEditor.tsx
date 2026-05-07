@@ -2,7 +2,7 @@
 
 import React, {useEffect, useRef, useState} from 'react';
 import {Card} from '@/components/ui/card';
-import {Badge} from '@/components/ui/badge';
+import CollaborationBar from '@/components/CollaborationBar';
 import {getWebSocketUrl} from '@/lib/collaboration-config';
 
 interface CollaborativeMarkdownEditorProps {
@@ -18,12 +18,38 @@ export default function CollaborativeMarkdownEditor({
                                                     }: CollaborativeMarkdownEditorProps) {
   const [isConnected, setIsConnected] = useState(false);
   const [pendingInitContent, setPendingInitContent] = useState<string | null>(null);
+  const [onlineUsers, setOnlineUsers] = useState<Array<{ client_id?: string; name?: string; color?: string }>>([]);
   const wsRef = useRef<WebSocket | null>(null);
   const versionRef = useRef<number>(0);
   const editorRef = useRef<any>(null);
   const isRemoteUpdate = useRef(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const changeHandlerRef = useRef<(() => void) | null>(null);
+
+  // 获取当前用户信息（从 cookie 或 localStorage）
+  const getCurrentUserInfo = () => {
+    if (typeof window === 'undefined') {
+      return {userId: 'anonymous', userName: '匿名用户'};
+    }
+
+    // 尝试从 localStorage 获取用户信息
+    const userInfo = localStorage.getItem('user_info');
+    if (userInfo) {
+      try {
+        const parsed = JSON.parse(userInfo);
+        return {
+          userId: parsed.id?.toString() || 'anonymous',
+          userName: parsed.nickname || parsed.username || '匿名用户'
+        };
+      } catch (e) {
+        console.error('Failed to parse user info:', e);
+      }
+    }
+
+    return {userId: 'anonymous', userName: '匿名用户'};
+  };
+
+  const {userId, userName} = getCurrentUserInfo();
 
   // 统一安全地应用远程内容
   const applyRemoteContent = (content: string) => {
@@ -101,6 +127,11 @@ export default function CollaborativeMarkdownEditor({
             }
           }
           if (data.version) versionRef.current = data.version;
+        } else if (data.type === 'user_joined' || data.type === 'user_left') {
+          // 更新在线用户数量（如果后端发送了用户列表）
+          if (data.client_count !== undefined) {
+            console.log('[Collab Markdown] User count:', data.client_count);
+          }
         }
       } catch (error) {
         console.error('[Collab Markdown] Message parse error:', error);
@@ -225,24 +256,34 @@ export default function CollaborativeMarkdownEditor({
   }, [readOnly]);
 
   return (
-      <Card className="p-4">
-        <div className="mb-4 flex items-center justify-between">
-          <div>
-            <h3 className="font-semibold">协作文档编辑器（Markdown）</h3>
-            <p className="text-sm text-gray-600">文档ID: {documentId}</p>
-            <p className="text-sm text-gray-600">只读模式: {readOnly ? '是' : '否'}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            {isConnected ? (
-                <Badge variant="default">已连接</Badge>
-            ) : (
-                <Badge variant="destructive">未连接</Badge>
-            )}
-          </div>
+      <div className="min-h-screen bg-gray-50">
+        {/* 协作工具栏 */}
+        {!readOnly && (
+            <CollaborationBar
+                documentId={documentId}
+                userId={userId}
+                userName={userName}
+                articleId={articleId}
+                editor={editorRef.current}
+                isConnected={isConnected}
+                onlineUsers={onlineUsers}
+            />
+        )}
+
+        <div className="container mx-auto px-4 py-6">
+          <Card className="p-4">
+            <div className="mb-4">
+              <h3 className="font-semibold">协作文档编辑器（Markdown）</h3>
+              <p className="text-sm text-gray-600">文档ID: {documentId}</p>
+              {readOnly && (
+                  <p className="text-sm text-gray-600">只读模式</p>
+              )}
+            </div>
+            <div className="border rounded min-h-[400px]">
+              <textarea ref={textareaRef}></textarea>
+            </div>
+          </Card>
         </div>
-        <div className="border rounded min-h-[400px]">
-          <textarea ref={textareaRef}></textarea>
-        </div>
-      </Card>
+      </div>
   );
 }
