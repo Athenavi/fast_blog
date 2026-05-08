@@ -80,6 +80,7 @@ class RouteGenerator:
             trim_blocks=True,
             lstrip_blocks=True
         )
+        self.jinja_env.filters['quote'] = lambda x: f"'{x}'"
 
         # 注册自定义过滤器
         import sys
@@ -210,7 +211,6 @@ class RouteGenerator:
 
         # 写入文件
         self._write_file(output_path, content)
-        self._write_file(output_path, content)
         print(f"  [OK] FastAPI Router: {output_path}")
 
     def _generate_typescript(self):
@@ -253,11 +253,12 @@ class RouteGenerator:
         except ImportError:
             settings = type('Settings', (), {'db_table_prefix': ''})()
 
+        table_prefix = getattr(settings, 'db_table_prefix', '')
+
         # 收集所有需要生成 ORM 的模型（orm: true）
         orm_models = {}
         for model_name, model_def in self.models.items():
-            orm_enabled = model_def.get('orm')
-            if orm_enabled is True:  # 只处理 orm: true 的模型
+            if model_def.get('orm') is True:
                 orm_models[model_name] = model_def
 
         if not orm_models:
@@ -269,59 +270,88 @@ class RouteGenerator:
         output_base.mkdir(parents=True, exist_ok=True)
 
         generated_count = 0
+        success_models = []
+
         for model_name, model_def in orm_models.items():
             try:
                 # 每个模型生成一个单独的文件
                 output_path = output_base / f"{self._model_name_to_filename(model_name)}.py"
 
-                # 从 properties 自动生成 SQLAlchemy 字段
+                # 从 properties 自动生成 SQLAlchemy 字段，并传入全量模型配置用于外键解析
                 properties = model_def.get('properties', {})
-                fields = self._convert_properties_to_fields(properties)
+                fields = self._convert_properties_to_fields(
+                    properties,
+                    model_name=model_name,
+                    all_models=self.models,
+                    table_prefix=table_prefix
+                )
 
-                # 获取 def_list 配置
+                # 获取自定义方法
                 def_list = model_def.get('def_list', [])
                 custom_methods = {}
                 if def_list:
-                    # 获取自定义目标文件（默认：<model_name>_defs.py）
                     defs_target = model_def.get('defs_target', f"{model_name.lower()}_defs.py")
-                    # 从 shared/defs/<defs_target> 加载自定义方法
                     custom_methods = self._load_custom_methods_from_target(model_name, def_list, defs_target)
+
+                # 准备模板上下文
+                class_def = {
+                    'fields': fields,
+                    'table': model_def.get('table'),
+                    'description': model_def.get('description'),
+                    'relationships': model_def.get('relationships', {}),
+                    'indexes': model_def.get('indexes', []),
+                    'unique_constraints': model_def.get('unique_constraints', []),
+                }
+
+                # 检测 uuid 主键 / datetime 默认值（用于控制顶层 import）
+                has_uuid_pk = False
+                has_datetime_default = False
+                for fdef in fields.values():
+                    if fdef.get('primary_key') and fdef.get('type') == 'string':
+                        has_uuid_pk = True
+                    if fdef.get('default') == 'datetime.utcnow':
+                        has_datetime_default = True
 
                 template_data = {
                     'model_name': model_name,
-                    'classes': {model_name: {
-                        'fields': fields,
-                        'table': model_def.get('table'),  # 添加表名配置
-                        'description': model_def.get('description'),
-                        'relationships': model_def.get('relationships', {}),  # 添加关系定义
-                        'indexes': model_def.get('indexes', []),  # 添加索引定义
-                        'unique_constraints': model_def.get('unique_constraints', []),  # 添加唯一约束定义
-                    }},
-                    'table_prefix': getattr(settings, 'db_table_prefix', ''),  # 添加表前缀
-                    'all_models': self.models,  # 传递所有模型配置，用于查找外键引用的表名
+                    'classes': {model_name: class_def},
+                    'table_prefix': table_prefix,
+                    'all_models': self.models,
                     'generation_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-                    'has_list_fields': self._check_list_fields_from_properties(properties),
-                    'has_numeric': self._check_numeric_fields_from_properties(properties),
-                    'has_decimal': self._check_decimal_fields_from_properties(properties),  # 添加 decimal 类型检查
+                    'has_numeric': self._check_decimal_fields_from_properties(properties),
+                    'has_decimal': self._check_decimal_fields_from_properties(properties),
                     'has_text': self._check_text_fields_from_properties(properties),
                     'has_timestamps': self._check_timestamp_fields_from_properties(properties),
-                    'has_foreign_keys': self._check_foreign_keys_in_fields(fields),  # 检查 fields 中的外键
-                    'has_relationships': self._check_relationships(model_def),  # 检查是否有关系定义
-                    'is_unlogged': model_def.get('unlogged', False),  # 是否为 UNLOGGED 表
-                    'custom_methods': custom_methods,  # 添加自定义方法
+                    'has_foreign_keys': self._check_foreign_keys_in_fields(fields),
+                    'has_relationships': self._check_relationships(model_def),
+                    'is_unlogged': model_def.get('unlogged', False),
+                    'custom_methods': custom_methods,
+                    'table_has_indexes': bool(model_def.get('indexes')),
+                    'table_has_unique_constraints': bool(model_def.get('unique_constraints')),
+                    # 传入 jinja 模板内使用的命名空间变量
+                    'ns': {
+                        'has_uuid_pk': has_uuid_pk,
+                        'has_datetime_default': has_datetime_default,
+                    },
                 }
 
                 content = self._render_template('sqlalchemy_model.py.jinja2', template_data)
                 self._write_file(output_path, content)
                 print(f"  [OK] Model: {output_path}")
+                success_models.append(model_name)
                 generated_count += 1
+
             except Exception as e:
                 import traceback
                 print(f"  [ERROR] 生成 {model_name} 失败：{e}")
                 print(f"    详细信息：{traceback.format_exc()}")
+                # 存在失败模型时直接退出，避免生成不完整的 __init__.py
+                raise SystemExit(1)
 
-        # 更新 __init__.py 文件
-        self._update_shared_models_init_from_orm(orm_models)
+        # 全部生成成功后才更新 __init__.py
+        if success_models:
+            successful_orm_config = {k: v for k, v in orm_models.items() if k in success_models}
+            self._update_shared_models_init_from_orm(successful_orm_config)
 
         print(f"  ✓ 共生成 {generated_count} 个模型文件")
 
@@ -510,78 +540,76 @@ class RouteGenerator:
 
     # ==================== ORM 配置检查方法（从 models[*].orm 读取） ====================
 
-    def _convert_properties_to_fields(self, properties: Dict, model_name: str = None) -> Dict:
-        """从 API properties 转换为 SQLAlchemy fields
-        
-        Args:
-            properties: 属性定义字典
-            model_name: 当前模型名称（用于检测自引用）
-        """
+    def _convert_properties_to_fields(self, properties: Dict, model_name: str = None,
+                                      all_models: Dict = None, table_prefix: str = '') -> Dict:
+        """从 API properties 转换为 SQLAlchemy fields，支持完整配置"""
         fields = {}
-        first_field_name = None
-        has_id_field = False
+        first_integer_field = None  # 用于无 id 且未明确声明自增的主键自动设置递增
 
-        # 第一次遍历：检查是否有名为 id 的字段
-        for prop_name, prop_def in properties.items():
-            if prop_name == 'id':
-                has_id_field = True
-                break
+        # 先检查是否有名为 id 的字段
+        has_id_field = any(k == 'id' for k in properties)
 
-        # 第二次遍历：转换字段
         for prop_name, prop_def in properties.items():
-            field_type = self._map_property_type_to_sqlalchemy(prop_def.get('type', 'string'))
+            raw_type = prop_def.get('type', 'string')
+            field_type = self._map_property_type_to_sqlalchemy(raw_type)
 
             field_info = {
                 'type': field_type,
+                'description': prop_def.get('description', prop_name),
+                'doc': prop_def.get('description', prop_name),
             }
 
-            # 特殊处理：string + date-time 格式应该映射为 datetime
-            if prop_def.get('type') == 'string' and prop_def.get('format') == 'date-time':
+            # 特殊处理：string + date-time 格式 -> datetime
+            if raw_type == 'string' and prop_def.get('format') == 'date-time':
                 field_info['type'] = 'datetime'
 
-            # 处理主键（优先使用名为 id 的字段，如果没有则使用第一个 integer 类型字段）
+            # 主键处理
             if prop_name == 'id':
-                # 名为 id 的字段一定是主键
                 field_info['primary_key'] = True
                 field_info['autoincrement'] = True
-            elif prop_def.get('primaryKey') is True:
-                # 明确标记 primaryKey: true 的字段
+            elif prop_def.get('primaryKey'):
                 field_info['primary_key'] = True
-                # 如果同时标记了 autoIncrement: true，则设置自动递增
-                if prop_def.get('autoIncrement') is True:
-                    field_info['autoincrement'] = True
-                elif not has_id_field and first_field_name is None and prop_def.get('type') == 'integer':
-                    # 没有 id 字段时，第一个 integer 类型主键字段默认自增
-                    field_info['autoincrement'] = True
+                # 如果没有 id 字段，且该字段是 integer，则尝试自增
+                if not has_id_field and field_type == 'integer':
+                    if first_integer_field is None:
+                        field_info['autoincrement'] = True
+                        first_integer_field = prop_name  # 记录第一个
+                    else:
+                        # 后续的整数主键不再自动递增
+                        pass
 
-            # 处理 nullable
+            # 常规属性
             if prop_def.get('nullable'):
                 field_info['nullable'] = True
-
-            # 处理 max_length (string 类型)
             if prop_def.get('maxLength'):
                 field_info['max_length'] = prop_def['maxLength']
-
-            # 处理 default
             if 'default' in prop_def:
                 field_info['default'] = prop_def['default']
-
-            # 处理 unique
             if prop_def.get('unique'):
                 field_info['unique'] = True
+            if prop_def.get('index'):
+                field_info['index'] = True
+            if prop_def.get('sensitive'):
+                field_info['sensitive'] = True
 
-            # 处理 index (默认为 False，只有明确设置 index: true 时才添加索引)
-            field_info['index'] = prop_def.get('index', False)
+            # Decimal 精度
+            if raw_type in ('number', 'float', 'decimal'):
+                field_info['type'] = 'decimal'  # 统一为 decimal
+                field_info['max_digits'] = prop_def.get('maxDigits', 10)
+                field_info['decimal_places'] = prop_def.get('decimalPlaces', 2)
 
-            # 处理 foreign_key
+            # 外键处理：预解析目标表全名及主键列（默认为 'id'）
             if prop_def.get('foreignKey'):
-                field_info['foreign_key'] = prop_def['foreignKey']
-                # 检测自引用：如果外键引用的模型与当前模型相同
-                if model_name and prop_def['foreignKey'] == model_name:
+                fk_model_name = prop_def['foreignKey']
+                field_info['foreign_key'] = fk_model_name
+                # 查找目标模型配置
+                target_model = all_models.get(fk_model_name, {}) if all_models else {}
+                target_table = target_model.get('table', self._model_name_to_filename(fk_model_name))
+                field_info['fk_table'] = table_prefix + target_table
+                # 简单起见，主键列默认为 'id'，如项目中统一规范即可
+                field_info['fk_column'] = 'id'
+                if model_name and fk_model_name == model_name:
                     field_info['is_self_reference'] = True
-                # 提取 related_name 如果有
-                if prop_def.get('related_name'):
-                    field_info['related_name'] = prop_def['related_name']
 
             fields[prop_name] = field_info
 

@@ -4,12 +4,11 @@ SQLAlchemy 模型定义 - {{ model_name }}
 生成时间：{{ generation_time }}
 """
 
-{# 构建需要的 SQLAlchemy 基础类型导入 #}
+{# 构建导入列表 #}
 {% set core_imports = ['Column', 'Integer', 'BigInteger', 'String', 'Text', 'Boolean', 'DateTime'] %}
 {% if has_numeric or has_decimal %}
     {% set _ = core_imports.append('Numeric') %}
 {% endif %}
-{# 不再单独引入 Float，统一使用 Numeric 保持一致性 #}
 {% if has_foreign_keys %}
     {% set _ = core_imports.append('ForeignKey') %}
 {% endif %}
@@ -41,12 +40,15 @@ class {{ class_name }}(Base):
     {% set table_args_items = [] %}
     {% if class_def.unique_constraints %}
         {% for constraint in class_def.unique_constraints %}
-            {% set _ = table_args_items.append("UniqueConstraint({}, name='{}')".format(constraint.columns|join(', '), constraint.name))%}
+            {% set cols = constraint.columns | map('quote') | join(', ') %}
+            {% set _ = table_args_items.append("UniqueConstraint(" ~ cols ~ ", name='" ~ constraint.name ~ "')") %}
         {% endfor %}
     {% endif %}
     {% if class_def.indexes %}
         {% for index in class_def.indexes %}
-            {% set _ = table_args_items.append("Index('{}', {}{})".format(index.name, index.columns|join(', '), ', unique=True' if index.unique else ''))%}
+            {% set cols = index.columns | map('quote') | join(', ') %}
+            {% set extra = ', unique=True' if index.unique else '' %}
+            {% set _ = table_args_items.append("Index('" ~ index.name ~ "', " ~ cols ~ extra ~ ")") %}
         {% endfor %}
     {% endif %}
     {% if is_unlogged %}
@@ -73,59 +75,58 @@ class {{ class_name }}(Base):
     {% set doc = field_def.get('doc', field_def.get('description', field_name)) %}
 
     {# 主键字段 #}
-    {% if primary_key %}
-        {% if field_type == 'bigint' %}
-            {{ field_name }} = Column(BigInteger, primary_key=True, autoincrement={{ autoincrement }}{% if doc %}, doc='{{ doc }}'{% endif %})
-        {% elif field_type == 'string' %}
-            {# String 类型的主键（UUID） #}
-            {% set uuid_len = field_def.get('max_length', 36) %}
-            {{ field_name }} = Column(String({{ uuid_len }}), primary_key=True, default=lambda: str(uuid.uuid4()){% if doc %}, doc='{{ doc }}'{% endif %})
-        {% else %}
-            {{ field_name }} = Column(Integer, primary_key=True, autoincrement={{ autoincrement }}{% if doc %}, doc='{{ doc }}'{% endif %})
-        {% endif %}
+    {%- if primary_key %}
+        {%- if field_type == 'bigint' %}
+    {{ field_name }} = Column(BigInteger, primary_key=True, autoincrement={{ autoincrement }}{% if doc %}, doc='{{ doc }}'{% endif %})
+        {%- elif field_type == 'string' %}
+            {%- set uuid_len = field_def.get('max_length', 36) %}
+    {{ field_name }} = Column(String({{ uuid_len }}), primary_key=True, default=lambda: str(uuid.uuid4()){% if doc %}, doc='{{ doc }}'{% endif %})
+        {%- else %}
+    {{ field_name }} = Column(Integer, primary_key=True, autoincrement={{ autoincrement }}{% if doc %}, doc='{{ doc }}'{% endif %})
+        {%- endif %}
     {# 外键字段 #}
-    {% elif field_def.get('foreign_key') %}
-        {% if field_type == 'bigint' %}
-            {% set col_type = 'BigInteger' %}
-        {% elif field_type == 'integer' %}
-            {% set col_type = 'Integer' %}
-        {% elif field_type == 'string' %}
-            {% set col_type = 'String(' ~ max_length ~ ')' %}
-        {% else %}
-            {% set col_type = 'Integer' %}
-        {% endif %}
-        {% set fk_table = field_def.fk_table %}
-        {% set fk_column = field_def.fk_column or 'id' %}
-        {% set doc_part = ', doc=\'' ~ doc ~ '\'' if doc else '' %}
-        {% set nullable_part = ', nullable=True' if nullable else '' %}
-        {{ field_name }} = Column({{ col_type }}, ForeignKey('{{ fk_table }}.{{ fk_column }}'){{ nullable_part }}{{ doc_part }})
+    {%- elif field_def.get('foreign_key') %}
+        {%- if field_type == 'bigint' %}
+            {%- set col_type = 'BigInteger' %}
+        {%- elif field_type == 'integer' %}
+            {%- set col_type = 'Integer' %}
+        {%- elif field_type == 'string' %}
+            {%- set col_type = 'String(' ~ max_length ~ ')' %}
+        {%- else %}
+            {%- set col_type = 'Integer' %}
+        {%- endif %}
+        {%- set fk_table = field_def.fk_table %}
+        {%- set fk_column = field_def.fk_column or 'id' %}
+        {%- set doc_part = ', doc=\'' ~ doc ~ '\'' if doc else '' %}
+        {%- set nullable_part = ', nullable=True' if nullable else '' %}
+    {{ field_name }} = Column({{ col_type }}, ForeignKey('{{ fk_table }}.{{ fk_column }}'){{ nullable_part }}{{ doc_part }})
     {# 布尔类型 #}
-    {% elif field_type == 'boolean' %}
-        {{ field_name }} = Column(Boolean, default={{ default if default is not none else 'False' }}{% if nullable %}, nullable=True{% endif %}{% if doc %}, doc='{{ doc }}'{% endif %})
+    {%- elif field_type == 'boolean' %}
+    {{ field_name }} = Column(Boolean, default={{ default if default is not none else 'False' }}{% if nullable %}, nullable=True{% endif %}{% if doc %}, doc='{{ doc }}'{% endif %})
     {# 整数类型 #}
-    {% elif field_type == 'integer' or field_type == 'bigint' %}
-        {% set int_type = 'BigInteger' if field_type == 'bigint' else 'Integer' %}
-        {{ field_name }} = Column({{ int_type }}{% if index %}, index=True{% endif %}{% if default is not none %}, default={{ default }}{% endif %}{% if nullable %}, nullable=True{% endif %}{% if doc %}, doc='{{ doc }}'{% endif %})
+    {%- elif field_type == 'integer' or field_type == 'bigint' %}
+        {%- set int_type = 'BigInteger' if field_type == 'bigint' else 'Integer' %}
+    {{ field_name }} = Column({{ int_type }}{% if index %}, index=True{% endif %}{% if default is not none %}, default={{ default }}{% endif %}{% if nullable %}, nullable=True{% endif %}{% if doc %}, doc='{{ doc }}'{% endif %})
     {# Decimal / Numeric 类型 #}
-    {% elif field_type == 'decimal' %}
-        {% set max_digits = field_def.get('max_digits', 10) %}
-        {% set decimal_places = field_def.get('decimal_places', 2) %}
-        {{ field_name }} = Column(Numeric({{ max_digits }}, {{ decimal_places }}){% if index %}, index=True{% endif %}{% if default is not none %}, default={{ default }}{% endif %}{% if nullable %}, nullable=True{% endif %}{% if doc %}, doc='{{ doc }}'{% endif %})
+    {%- elif field_type == 'decimal' %}
+        {%- set max_digits = field_def.get('max_digits', 10) %}
+        {%- set decimal_places = field_def.get('decimal_places', 2) %}
+    {{ field_name }} = Column(Numeric({{ max_digits }}, {{ decimal_places }}){% if index %}, index=True{% endif %}{% if default is not none %}, default={{ default }}{% endif %}{% if nullable %}, nullable=True{% endif %}{% if doc %}, doc='{{ doc }}'{% endif %})
     {# 文本类型 #}
-    {% elif field_type == 'text' %}
-        {{ field_name }} = Column(Text{% if nullable %}, nullable=True{% else %}, nullable=False{% endif %}{% if doc %}, doc='{{ doc }}'{% endif %})
+    {%- elif field_type == 'text' %}
+    {{ field_name }} = Column(Text{% if nullable %}, nullable=True{% else %}, nullable=False{% endif %}{% if doc %}, doc='{{ doc }}'{% endif %})
     {# 日期时间类型 #}
-    {% elif field_type == 'datetime' or field_type == 'timestamp' %}
-        {% if default is not none and default == 'datetime.utcnow' %}
-            {{ field_name }} = Column(DateTime, default=datetime.utcnow{% if nullable %}, nullable=True{% endif %}{% if doc %}, doc='{{ doc }}'{% endif %})
-        {% else %}
-            {{ field_name }} = Column(DateTime{% if default is not none %}, default={{ default }}{% endif %}{% if nullable %}, nullable=True{% endif %}{% if doc %}, doc='{{ doc }}'{% endif %})
-        {% endif %}
+    {%- elif field_type == 'datetime' or field_type == 'timestamp' %}
+        {%- if default is not none and default == 'datetime.utcnow' %}
+    {{ field_name }} = Column(DateTime, default=datetime.utcnow{% if nullable %}, nullable=True{% endif %}{% if doc %}, doc='{{ doc }}'{% endif %})
+        {%- else %}
+    {{ field_name }} = Column(DateTime{% if default is not none %}, default={{ default }}{% endif %}{% if nullable %}, nullable=True{% endif %}{% if doc %}, doc='{{ doc }}'{% endif %})
+        {%- endif %}
     {# 字符串类型（默认） #}
-    {% else %}
-        {% set actual_nullable = not nullable and default is none %}
-        {{ field_name }} = Column(String({{ max_length }}){% if unique %}, unique=True{% endif %}{% if index and not unique %}, index=True{% endif %}{% if default is not none %}, default='{{ default }}'{% elif actual_nullable %}, nullable=True{% endif %}{% if nullable %}, nullable=True{% endif %}{% if doc %}, doc='{{ doc }}'{% endif %})
-    {% endif %}
+    {%- else %}
+        {%- set actual_nullable = not nullable and default is none %}
+    {{ field_name }} = Column(String({{ max_length }}){% if unique %}, unique=True{% endif %}{% if index and not unique %}, index=True{% endif %}{% if default is not none %}, default='{{ default }}'{% elif actual_nullable %}, nullable=True{% endif %}{% if nullable %}, nullable=True{% endif %}{% if doc %}, doc='{{ doc }}'{% endif %})
+    {%- endif %}
 
     {% endfor %}
 
@@ -133,10 +134,8 @@ class {{ class_name }}(Base):
     # 关系定义
     {% for rel_name, rel_def in class_def.relationships.items() %}
     {% if rel_def.get('secondary') %}
-    {# 多对多关系 #}
     {{ rel_name }} = relationship('{{ rel_def.target }}', secondary='{{ rel_def.secondary }}', back_populates='{{ rel_def.back_populates }}')
     {% else %}
-    {# 一对多或多对一关系 #}
     {{ rel_name }} = relationship('{{ rel_def.target }}', back_populates='{{ rel_def.back_populates }}'{% if rel_def.get('cascade') %}, cascade='{{ rel_def.cascade }}'{% endif %}{% if rel_def.get('primaryjoin') %}, primaryjoin="{{ rel_def.primaryjoin }}"{% endif %}{% if rel_def.get('remote_side') %}, remote_side="{{ rel_def.remote_side }}"{% endif %}{% if rel_def.get('overlaps') %}, overlaps="{{ rel_def.overlaps }}"{% endif %})
     {% endif %}
     {% endfor %}
