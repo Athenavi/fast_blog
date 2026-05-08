@@ -68,6 +68,13 @@ class UserFollowPlugin(BasePlugin):
             priority=10
         )
 
+        # 用户发表评论时推送到粉丝动态
+        plugin_hooks.add_action(
+            "comment_created",
+            self.on_comment_created,
+            priority=10
+        )
+
         # 每日清理任务
         plugin_hooks.add_action(
             "daily_cleanup",
@@ -299,6 +306,52 @@ class UserFollowPlugin(BasePlugin):
 
         print(f"[UserFollow] Pushed article to {len(fans)} followers")
 
+    def on_comment_created(self, comment_data: Dict[str, Any]):
+        """
+        评论创建时的处理
+        
+        Args:
+            comment_data: 评论数据 {user_id, article_id, article_title, content}
+        """
+        if not self.settings.get('enable_feed'):
+            return
+
+        user_id = comment_data.get('user_id') or comment_data.get('author_id')
+        if not user_id:
+            return
+
+        # 获取用户的粉丝
+        fans = self.followers.get(str(user_id), {})
+
+        # 为每个粉丝添加动态
+        activity = {
+            'type': 'comment_created',
+            'user_id': user_id,
+            'article_id': comment_data.get('article_id'),
+            'article_title': comment_data.get('article_title', ''),
+            'comment_preview': comment_data.get('content', '')[:100],
+            'timestamp': time.time(),
+            'created_at': datetime.now().isoformat(),
+        }
+
+        for fan_id in fans.keys():
+            self.feed[fan_id].append(activity)
+
+            # 限制动态数量（保留最近100条）
+            if len(self.feed[fan_id]) > 100:
+                self.feed[fan_id] = self.feed[fan_id][-100:]
+
+            # 发送通知
+            if self.settings.get('enable_notifications'):
+                self._send_notification(fan_id, {
+                    'type': 'comment_created',
+                    'user_id': user_id,
+                    'article_title': comment_data.get('article_title', ''),
+                    'comment_preview': comment_data.get('content', '')[:50],
+                })
+
+        print(f"[UserFollow] Pushed comment to {len(fans)} followers")
+
     def get_recommendations(self, user_id: str, limit: int = None) -> List[Dict[str, Any]]:
         """
         获取推荐关注的用户
@@ -384,6 +437,13 @@ class UserFollowPlugin(BasePlugin):
                 article_title = notification.get('article_title', '')
                 title = '关注的作者发布了新文章'
                 content = f'{author_id} 发布了新文章: {article_title}'
+                severity = 'info'
+            elif notif_type == 'comment_created':
+                user_id = notification.get('user_id', '')
+                article_title = notification.get('article_title', '')
+                comment_preview = notification.get('comment_preview', '')
+                title = '关注的用户发表了评论'
+                content = f'{user_id} 在《{article_title}》中评论: {comment_preview}'
                 severity = 'info'
             else:
                 title = '新通知'

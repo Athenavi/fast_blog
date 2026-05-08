@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - Plugin
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-08 11:23:57
+生成时间：2026-05-08 14:40:59
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Index
@@ -19,6 +19,7 @@ class Plugin(Base):
         Index('idx_plugins_slug', 'slug', unique=True),
         Index('idx_plugins_is_active', 'is_active'),
     )
+
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='插件ID')
 
@@ -38,11 +39,15 @@ class Plugin(Base):
 
     is_active = Column(Boolean, default=False, doc='是否激活')
 
+
     is_installed = Column(Boolean, default=True, doc='是否已安装')
+
 
     settings = Column(Text, nullable=True, doc='插件配置（JSON格式）')
 
+
     priority = Column(Integer, default=0, doc='执行优先级')
+
 
     created_at = Column(DateTime, doc='安装时间')
 
@@ -82,3 +87,5 @@ class Plugin(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<Plugin id={self.id}>'
+
+

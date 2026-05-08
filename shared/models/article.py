@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - Article
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-08 11:23:57
+生成时间：2026-05-08 14:40:59
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
@@ -34,6 +34,7 @@ class Article(Base):
         Index('idx_articles_user_status_created', 'user', 'status', 'created_at'),
     )
 
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='文章 ID')
 
     title = Column(String(255), nullable=True, doc='标题')
@@ -46,23 +47,32 @@ class Article(Base):
 
     category = Column(BigInteger, ForeignKey('categories.id'), nullable=True, doc='分类')
 
+
     tags_list = Column(String(255), nullable=True, doc='标签列表')
 
     views = Column(BigInteger, default=0, doc='浏览量')
 
+
     user = Column(BigInteger, ForeignKey('users.id'), doc='用户')
+
 
     likes = Column(BigInteger, default=0, doc='点赞数')
 
+
     status = Column(Integer, doc='状态 (-1:已删除，0:草稿，1:已发布)')
+
 
     hidden = Column(Boolean, default=False, doc='是否隐藏')
 
+
     is_featured = Column(Boolean, default=False, doc='是否推荐')
+
 
     is_vip_only = Column(Boolean, default=False, doc='是否仅 VIP 可见')
 
+
     required_vip_level = Column(Integer, default=0, doc='所需 VIP 等级')
+
 
     article_ad = Column(String(255), nullable=True, doc='广告内容')
 
@@ -72,6 +82,7 @@ class Article(Base):
 
     is_sticky = Column(Boolean, default=False, doc='是否置顶（粘性文章）')
 
+
     sticky_until = Column(DateTime, nullable=True, doc='置顶过期时间（可选，过期后自动取消置顶）')
 
     created_at = Column(DateTime, doc='创建时间')
@@ -79,8 +90,7 @@ class Article(Base):
     updated_at = Column(DateTime, doc='更新时间')
 
     # 关系定义
-    revisions = relationship('ArticleRevision', back_populates='article',
-                             primaryjoin="Article.id == ArticleRevision.article_id")
+    revisions = relationship('ArticleRevision', back_populates='article', primaryjoin="Article.id == ArticleRevision.article_id")
     seo_data = relationship('ArticleSEO', back_populates='article', primaryjoin="Article.id == ArticleSEO.article_id")
 
     def to_dict(self, exclude_sensitive=True):
@@ -124,3 +134,5 @@ class Article(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<Article id={self.id}>'
+
+

@@ -1,7 +1,7 @@
 /**
  * API 客户端
  * 由 routes.yaml 自动生成 - 请勿手动修改
- * 生成时间：2026-05-08 11:23:56
+ * 生成时间：2026-05-08 14:40:59
  */
 
 import {ApiResponse} from './api-types';
@@ -130,17 +130,17 @@ async function submitForm<T>(
  * 
  */
 export async function get_users_list_api(
-    params: {
-        page?: number;
-        per_page?: number;
-        search?: string;
-    },
+                    params: {
+                        page?: number;
+                        per_page?: number;
+                        search?: string;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/",
         "GET",
         params
-    )
+)
 
 }
 
@@ -150,12 +150,13 @@ export async function get_users_list_api(
  * 
  * 
  */
-export async function get_settings(): Promise<ApiResponse<any>> {
+export async function get_settings(
+): Promise<ApiResponse<any>> {
     return request(
         "/admin-settings/",
         "GET",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -163,12 +164,13 @@ export async function get_settings(): Promise<ApiResponse<any>> {
  * 
  * 
  */
-export async function update_settings(): Promise<ApiResponse<any>> {
+export async function update_settings(
+): Promise<ApiResponse<any>> {
     return request(
         "/admin-settings/",
         "POST",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -176,12 +178,13 @@ export async function update_settings(): Promise<ApiResponse<any>> {
  * 
  * 
  */
-export async function create_menu(): Promise<ApiResponse<any>> {
+export async function create_menu(
+): Promise<ApiResponse<any>> {
     return request(
         "/admin-settings/menus",
         "POST",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -190,15 +193,15 @@ export async function create_menu(): Promise<ApiResponse<any>> {
  * 
  */
 export async function update_menu(
-    params: {
-        menu_id: number;
-    },
+                    params: {
+                        menu_id: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/admin-settings/menus/{menu_id}",
         "PUT",
         params
-    )
+)
 
 }
 
@@ -207,15 +210,15 @@ export async function update_menu(
  * 
  */
 export async function delete_menu(
-    params: {
-        menu_id: number;
-    },
+                    params: {
+                        menu_id: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/admin-settings/menus/{menu_id}",
         "DELETE",
         params
-    )
+)
 
 }
 
@@ -223,12 +226,13 @@ export async function delete_menu(
  * 
  * 
  */
-export async function create_page(): Promise<ApiResponse<any>> {
+export async function create_page(
+): Promise<ApiResponse<any>> {
     return request(
         "/admin-settings/pages",
         "POST",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -237,15 +241,15 @@ export async function create_page(): Promise<ApiResponse<any>> {
  * 
  */
 export async function update_page(
-    params: {
-        page_id: number;
-    },
+                    params: {
+                        page_id: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/admin-settings/pages/{page_id}",
         "PUT",
         params
-    )
+)
 
 }
 
@@ -254,15 +258,15 @@ export async function update_page(
  * 
  */
 export async function delete_page(
-    params: {
-        page_id: number;
-    },
+                    params: {
+                        page_id: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/admin-settings/pages/{page_id}",
         "DELETE",
         params
-    )
+)
 
 }
 
@@ -270,12 +274,13 @@ export async function delete_page(
  * 
  * 
  */
-export async function create_menu_item(): Promise<ApiResponse<any>> {
+export async function create_menu_item(
+): Promise<ApiResponse<any>> {
     return request(
         "/admin-settings/menu-items",
         "POST",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -284,15 +289,15 @@ export async function create_menu_item(): Promise<ApiResponse<any>> {
  * 
  */
 export async function update_menu_item(
-    params: {
-        menu_item_id: number;
-    },
+                    params: {
+                        menu_item_id: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/admin-settings/menu-items/{menu_item_id}",
         "PUT",
         params
-    )
+)
 
 }
 
@@ -301,15 +306,15 @@ export async function update_menu_item(
  * 
  */
 export async function delete_menu_item(
-    params: {
-        menu_item_id: number;
-    },
+                    params: {
+                        menu_item_id: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/admin-settings/menu-items/{menu_item_id}",
         "DELETE",
         params
-    )
+)
 
 }
 
@@ -317,12 +322,13 @@ export async function delete_menu_item(
  * 
  * 
  */
-export async function admin_dashboard(): Promise<ApiResponse<any>> {
+export async function admin_dashboard(
+): Promise<ApiResponse<any>> {
     return request(
         "/admin/dashboard",
         "GET",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -330,12 +336,13 @@ export async function admin_dashboard(): Promise<ApiResponse<any>> {
  * 
  * 
  */
-export async function list_backups(): Promise<ApiResponse<any>> {
+export async function list_backups(
+): Promise<ApiResponse<any>> {
     return request(
         "/backup/list",
         "GET",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -343,12 +350,13 @@ export async function list_backups(): Promise<ApiResponse<any>> {
  * 
  * 
  */
-export async function create_backup(): Promise<ApiResponse<any>> {
+export async function create_backup(
+): Promise<ApiResponse<any>> {
     return request(
         "/backup/create",
         "POST",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -356,12 +364,13 @@ export async function create_backup(): Promise<ApiResponse<any>> {
  * 
  * 
  */
-export async function delete_backup(): Promise<ApiResponse<any>> {
+export async function delete_backup(
+): Promise<ApiResponse<any>> {
     return request(
         "/backup/delete",
         "POST",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -370,15 +379,15 @@ export async function delete_backup(): Promise<ApiResponse<any>> {
  * 
  */
 export async function download_backup(
-    params: {
-        filename: string;
-    },
+                    params: {
+                        filename: string;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/backup/download/{filename}",
         "GET",
         params
-    )
+)
 
 }
 
@@ -387,17 +396,17 @@ export async function download_backup(
  * 
  */
 export async function admin_roles_search(
-    params: {
-        page?: number;
-        per_page?: number;
-        search?: string;
-    },
+                    params: {
+                        page?: number;
+                        per_page?: number;
+                        search?: string;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/admin/role/search",
         "GET",
         params
-    )
+)
 
 }
 
@@ -405,12 +414,13 @@ export async function admin_roles_search(
  * 
  * 
  */
-export async function create_role(): Promise<ApiResponse<any>> {
+export async function create_role(
+): Promise<ApiResponse<any>> {
     return request(
         "/admin/role",
         "POST",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -419,15 +429,15 @@ export async function create_role(): Promise<ApiResponse<any>> {
  * 
  */
 export async function admin_role_detail(
-    params: {
-        role_id: number;
-    },
+                    params: {
+                        role_id: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/admin/role/{role_id}",
         "GET",
         params
-    )
+)
 
 }
 
@@ -436,15 +446,15 @@ export async function admin_role_detail(
  * 
  */
 export async function update_role(
-    params: {
-        role_id: number;
-    },
+                    params: {
+                        role_id: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/admin/role/{role_id}",
         "PUT",
         params
-    )
+)
 
 }
 
@@ -453,15 +463,15 @@ export async function update_role(
  * 
  */
 export async function delete_role(
-    params: {
-        role_id: number;
-    },
+                    params: {
+                        role_id: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/admin/role/{role_id}",
         "DELETE",
         params
-    )
+)
 
 }
 
@@ -470,17 +480,17 @@ export async function delete_role(
  * 
  */
 export async function get_permissions(
-    params: {
-        page?: number;
-        per_page?: number;
-        search?: string;
-    },
+                    params: {
+                        page?: number;
+                        per_page?: number;
+                        search?: string;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/admin/permission",
         "GET",
         params
-    )
+)
 
 }
 
@@ -488,12 +498,13 @@ export async function get_permissions(
  * 
  * 
  */
-export async function create_permission(): Promise<ApiResponse<any>> {
+export async function create_permission(
+): Promise<ApiResponse<any>> {
     return request(
         "/admin/permission",
         "POST",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -502,15 +513,15 @@ export async function create_permission(): Promise<ApiResponse<any>> {
  * 
  */
 export async function update_permission(
-    params: {
-        permission_id: number;
-    },
+                    params: {
+                        permission_id: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/admin/permission/{permission_id}",
         "PUT",
         params
-    )
+)
 
 }
 
@@ -519,15 +530,15 @@ export async function update_permission(
  * 
  */
 export async function delete_permission(
-    params: {
-        permission_id: number;
-    },
+                    params: {
+                        permission_id: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/admin/permission/{permission_id}",
         "DELETE",
         params
-    )
+)
 
 }
 
@@ -536,15 +547,15 @@ export async function delete_permission(
  * 
  */
 export async function get_user_roles(
-    params: {
-        user_id: number;
-    },
+                    params: {
+                        user_id: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/admin/user/{user_id}/roles",
         "GET",
         params
-    )
+)
 
 }
 
@@ -553,15 +564,15 @@ export async function get_user_roles(
  * 
  */
 export async function update_user_roles(
-    params: {
-        user_id: number;
-    },
+                    params: {
+                        user_id: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/admin/user/{user_id}/roles",
         "PUT",
         params
-    )
+)
 
 }
 
@@ -569,12 +580,13 @@ export async function update_user_roles(
  * 
  * 
  */
-export async function get_admin_role_permission_stats(): Promise<ApiResponse<any>> {
+export async function get_admin_role_permission_stats(
+): Promise<ApiResponse<any>> {
     return request(
         "/admin/role-permission/stats",
         "GET",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -582,12 +594,13 @@ export async function get_admin_role_permission_stats(): Promise<ApiResponse<any
  * 
  * 
  */
-export async function get_system_settings(): Promise<ApiResponse<any>> {
+export async function get_system_settings(
+): Promise<ApiResponse<any>> {
     return request(
         "/system-settings",
         "GET",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -595,12 +608,13 @@ export async function get_system_settings(): Promise<ApiResponse<any>> {
  * 
  * 
  */
-export async function update_system_settings(): Promise<ApiResponse<any>> {
+export async function update_system_settings(
+): Promise<ApiResponse<any>> {
     return request(
         "/system-settings",
         "POST",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -611,16 +625,16 @@ export async function update_system_settings(): Promise<ApiResponse<any>> {
  * 
  */
 export async function update_article_status(
-    params: {
-        article_id: number;
-        current_user_obj?: string;
-    },
+                    params: {
+                        article_id: number;
+                        current_user_obj?: string;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/article/{article_id}/status",
         "POST",
         params
-    )
+)
 
 }
 
@@ -634,8 +648,8 @@ export async function get_password_form(
     return request(
         "/article/password-form/{aid}",
         "GET",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -649,8 +663,8 @@ export async function api_update_article_password(
     return request(
         "/article/password/{aid}",
         "POST",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -659,16 +673,16 @@ export async function api_update_article_password(
  * 
  */
 export async function like_article(
-    params: {
-        article_id: number;
-        current_user_obj?: string;
-    },
+                    params: {
+                        article_id: number;
+                        current_user_obj?: string;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/article/{article_id}/like",
         "POST",
         params
-    )
+)
 
 }
 
@@ -677,15 +691,15 @@ export async function like_article(
  * 
  */
 export async function record_article_view(
-    params: {
-        article_id: number;
-    },
+                    params: {
+                        article_id: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/article/{article_id}/view",
         "POST",
         params
-    )
+)
 
 }
 
@@ -697,15 +711,15 @@ export async function record_article_view(
  */
 export async function create_article_revision(
     article_id: number,
-    params: {
-        change_summary?: string;
-    },
+                    params: {
+                        change_summary?: string;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/articles/{article_id}/revisions",
         "POST",
         params
-    )
+)
 
 }
 
@@ -715,16 +729,16 @@ export async function create_article_revision(
  */
 export async function list_article_revisions(
     article_id: number,
-    params: {
-        page?: number;
-        per_page?: number;
-    },
+                    params: {
+                        page?: number;
+                        per_page?: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/articles/{article_id}/revisions",
         "GET",
         params
-    )
+)
 
 }
 
@@ -738,8 +752,8 @@ export async function get_revision(
     return request(
         "/articles/revisions/{revision_id}",
         "GET",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -754,8 +768,8 @@ export async function rollback_article(
     return request(
         "/articles/{article_id}/revisions/{revision_id}/rollback",
         "POST",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -764,16 +778,16 @@ export async function rollback_article(
  * 对比两个修订版本的差异
  */
 export async function compare_article_revisions(
-    params: {
-        revision1_id: number;
-        revision2_id: number;
-    },
+                    params: {
+                        revision1_id: number;
+                        revision2_id: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/articles/revisions/compare",
         "GET",
         params
-    )
+)
 
 }
 
@@ -787,8 +801,8 @@ export async function save_article_draft(
     return request(
         "/articles/{article_id}/draft",
         "POST",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -802,8 +816,8 @@ export async function sync_article_revisions(
     return request(
         "/articles/{article_id}/revisions/sync",
         "POST",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -818,8 +832,8 @@ export async function delete_article_revision(
     return request(
         "/articles/{article_id}/revisions/{revision_id}",
         "DELETE",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -833,8 +847,8 @@ export async function create_article_revision(
     return request(
         "/articles/{article_id}/revisions",
         "POST",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -844,16 +858,16 @@ export async function create_article_revision(
  */
 export async function list_article_revisions(
     article_id: number,
-    params: {
-        page?: number;
-        per_page?: number;
-    },
+                    params: {
+                        page?: number;
+                        per_page?: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/articles/{article_id}/revisions",
         "GET",
         params
-    )
+)
 
 }
 
@@ -867,8 +881,8 @@ export async function get_revision(
     return request(
         "/articles/revisions/{revision_id}",
         "GET",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -883,8 +897,8 @@ export async function rollback_article(
     return request(
         "/articles/{article_id}/revisions/{revision_id}/rollback",
         "POST",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -893,16 +907,16 @@ export async function rollback_article(
  * 比较两个修订版本的差异
  */
 export async function compare_article_revisions(
-    params: {
-        revision1_id: number;
-        revision2_id: number;
-    },
+                    params: {
+                        revision1_id: number;
+                        revision2_id: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/articles/revisions/compare",
         "GET",
         params
-    )
+)
 
 }
 
@@ -916,8 +930,8 @@ export async function sync_article_revisions(
     return request(
         "/articles/{article_id}/revisions/sync",
         "POST",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -932,8 +946,8 @@ export async function delete_article_revision(
     return request(
         "/articles/{article_id}/revisions/{revision_id}",
         "DELETE",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -944,20 +958,20 @@ export async function delete_article_revision(
  * 
  */
 export async function get_articles_api(
-    params: {
-        page?: number;
-        per_page?: number;
-        search?: string;
-        category_id?: number;
-        user_id?: number;
-        status?: string;
-    },
+                    params: {
+                        page?: number;
+                        per_page?: number;
+                        search?: string;
+                        category_id?: number;
+                        user_id?: number;
+                        status?: string;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/articles",
         "GET",
         params
-    )
+)
 
 }
 
@@ -966,15 +980,15 @@ export async function get_articles_api(
  * 
  */
 export async function get_article_detail_api(
-    params: {
-        article_id: number;
-    },
+                    params: {
+                        article_id: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/articles/{article_id}",
         "GET",
         params
-    )
+)
 
 }
 
@@ -983,15 +997,15 @@ export async function get_article_detail_api(
  * 
  */
 export async function get_article_raw_content_api(
-    params: {
-        article_id: number;
-    },
+                    params: {
+                        article_id: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/articles/{article_id}/raw",
         "GET",
         params
-    )
+)
 
 }
 
@@ -999,12 +1013,13 @@ export async function get_article_raw_content_api(
  * 创建文章
  * 
  */
-export async function create_article_api(): Promise<ApiResponse<any>> {
+export async function create_article_api(
+): Promise<ApiResponse<any>> {
     return request(
         "/articles",
         "POST",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -1013,15 +1028,15 @@ export async function create_article_api(): Promise<ApiResponse<any>> {
  * 
  */
 export async function update_article_api(
-    params: {
-        article_id: number;
-    },
+                    params: {
+                        article_id: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/articles/{article_id}",
         "PUT",
         params
-    )
+)
 
 }
 
@@ -1030,15 +1045,15 @@ export async function update_article_api(
  * 
  */
 export async function delete_article_api(
-    params: {
-        article_id: number;
-    },
+                    params: {
+                        article_id: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/articles/{article_id}",
         "DELETE",
         params
-    )
+)
 
 }
 
@@ -1047,17 +1062,17 @@ export async function delete_article_api(
  * 
  */
 export async function get_user_articles_api(
-    params: {
-        user_id: number;
-        page?: number;
-        per_page?: number;
-    },
+                    params: {
+                        user_id: number;
+                        page?: number;
+                        per_page?: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/articles/user/{user_id}",
         "GET",
         params
-    )
+)
 
 }
 
@@ -1066,15 +1081,15 @@ export async function get_user_articles_api(
  * 
  */
 export async function get_user_articles_stats_api(
-    params: {
-        user_id: number;
-    },
+                    params: {
+                        user_id: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/articles/user/{user_id}/stats",
         "GET",
         params
-    )
+)
 
 }
 
@@ -1083,15 +1098,15 @@ export async function get_user_articles_stats_api(
  * 
  */
 export async function get_article_by_slug_api(
-    params: {
-        slug: string;
-    },
+                    params: {
+                        slug: string;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/blog/p/{slug}",
         "GET",
         params
-    )
+)
 
 }
 
@@ -1100,15 +1115,15 @@ export async function get_article_by_slug_api(
  * 
  */
 export async function get_article_by_id_api(
-    params: {
-        article_id: number;
-    },
+                    params: {
+                        article_id: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/blog/{article_id}.html",
         "GET",
         params
-    )
+)
 
 }
 
@@ -1117,15 +1132,15 @@ export async function get_article_by_id_api(
  * 
  */
 export async function get_articles_by_tag_api(
-    params: {
-        tag_name: string;
-    },
+                    params: {
+                        tag_name: string;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/blog/tag/{tag_name}",
         "GET",
         params
-    )
+)
 
 }
 
@@ -1133,12 +1148,13 @@ export async function get_articles_by_tag_api(
  * 
  * 
  */
-export async function get_featured_articles_api(): Promise<ApiResponse<any>> {
+export async function get_featured_articles_api(
+): Promise<ApiResponse<any>> {
     return request(
         "/blog/featured",
         "GET",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -1147,15 +1163,15 @@ export async function get_featured_articles_api(): Promise<ApiResponse<any>> {
  * 
  */
 export async function get_contribute_info_api(
-    params: {
-        article_id: number;
-    },
+                    params: {
+                        article_id: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/blog/contribute/{article_id}",
         "GET",
         params
-    )
+)
 
 }
 
@@ -1164,15 +1180,15 @@ export async function get_contribute_info_api(
  * 
  */
 export async function submit_contribution_api(
-    params: {
-        article_id: number;
-    },
+                    params: {
+                        article_id: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/blog/contribute/{article_id}",
         "POST",
         params
-    )
+)
 
 }
 
@@ -1181,15 +1197,15 @@ export async function submit_contribution_api(
  * 
  */
 export async function get_edit_article_api(
-    params: {
-        article_id: number;
-    },
+                    params: {
+                        article_id: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/blog/edit/{article_id}",
         "GET",
         params
-    )
+)
 
 }
 
@@ -1197,12 +1213,13 @@ export async function get_edit_article_api(
  * 
  * 
  */
-export async function get_new_article_form_api(): Promise<ApiResponse<any>> {
+export async function get_new_article_form_api(
+): Promise<ApiResponse<any>> {
     return request(
         "/blog/new",
         "GET",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -1211,15 +1228,15 @@ export async function get_new_article_form_api(): Promise<ApiResponse<any>> {
  * 
  */
 export async function update_article_via_blog_api(
-    params: {
-        article_id: number;
-    },
+                    params: {
+                        article_id: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/blog/edit/{article_id}",
         "POST",
         params
-    )
+)
 
 }
 
@@ -1227,12 +1244,13 @@ export async function update_article_via_blog_api(
  * 
  * 
  */
-export async function create_article_via_blog_api(): Promise<ApiResponse<any>> {
+export async function create_article_via_blog_api(
+): Promise<ApiResponse<any>> {
     return request(
         "/blog/new",
         "POST",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -1242,15 +1260,15 @@ export async function create_article_via_blog_api(): Promise<ApiResponse<any>> {
  */
 export async function api_blog_i18n_content(
     aid: number,
-    params: {
-        iso: string;
-    },
+                    params: {
+                        iso: string;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/blog/{aid}/i18n/{iso}",
         "GET",
         params
-    )
+)
 
 }
 
@@ -1261,15 +1279,15 @@ export async function api_blog_i18n_content(
  * 
  */
 export async function update_avatar_api(
-    params: {
-        file: string;
-    },
+                    params: {
+                        file: string;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/user-settings/profile/avatar",
         "PUT",
         params
-    )
+)
 
 }
 
@@ -1277,12 +1295,13 @@ export async function update_avatar_api(
  * 
  * 
  */
-export async function update_user_setting_profiles(): Promise<ApiResponse<any>> {
+export async function update_user_setting_profiles(
+): Promise<ApiResponse<any>> {
     return request(
         "/user-settings/profiles",
         "PUT",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -1291,11 +1310,11 @@ export async function update_user_setting_profiles(): Promise<ApiResponse<any>> 
  * 
  */
 export async function login_api(
-    params: {
-        username: string;
-        password: string;
-        remember_me?: boolean;
-    },
+                    params: {
+                        username: string;
+                        password: string;
+                        remember_me?: boolean;
+                    },
 ): Promise<ApiResponse<any>> {
     return submitForm(
         "/auth/login",
@@ -1309,17 +1328,17 @@ export async function login_api(
  * 
  */
 export async function register_api(
-    params: {
-        username: string;
-        email: string;
-        password: string;
-    },
+                    params: {
+                        username: string;
+                        email: string;
+                        password: string;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/auth/register",
         "POST",
         params
-    )
+)
 
 }
 
@@ -1327,12 +1346,13 @@ export async function register_api(
  * 用户登出
  * 
  */
-export async function logout_api(): Promise<ApiResponse<any>> {
+export async function logout_api(
+): Promise<ApiResponse<any>> {
     return request(
         "/auth/logout",
         "POST",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -1341,18 +1361,18 @@ export async function logout_api(): Promise<ApiResponse<any>> {
  * 
  */
 export async function get_user_management_users(
-    params: {
-        page?: number;
-        per_page?: number;
-        role?: string;
-        search?: string;
-    },
+                    params: {
+                        page?: number;
+                        per_page?: number;
+                        role?: string;
+                        search?: string;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/user-management/users",
         "GET",
         params
-    )
+)
 
 }
 
@@ -1362,12 +1382,13 @@ export async function get_user_management_users(
  * 恢复备份
  * 从备份文件恢复数据
  */
-export async function restore_backup(): Promise<ApiResponse<any>> {
+export async function restore_backup(
+): Promise<ApiResponse<any>> {
     return request(
         "/backup/restore",
         "POST",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -1381,8 +1402,8 @@ export async function delete_backup_file(
     return request(
         "/backup/{backup_filename}",
         "DELETE",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -1390,12 +1411,13 @@ export async function delete_backup_file(
  * 获取数据库统计
  * 获取数据库各项数据统计
  */
-export async function get_db_stats(): Promise<ApiResponse<any>> {
+export async function get_db_stats(
+): Promise<ApiResponse<any>> {
     return request(
         "/backup/stats",
         "GET",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -1403,12 +1425,13 @@ export async function get_db_stats(): Promise<ApiResponse<any>> {
  * 导出数据
  * 导出数据为JSON格式
  */
-export async function export_data(): Promise<ApiResponse<any>> {
+export async function export_data(
+): Promise<ApiResponse<any>> {
     return request(
         "/backup/export",
         "POST",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -1419,19 +1442,19 @@ export async function export_data(): Promise<ApiResponse<any>> {
  * 
  */
 export async function get_blog_management_articles(
-    params: {
-        page?: number;
-        per_page?: number;
-        status?: string;
-        search?: string;
-        category_id?: number;
-    },
+                    params: {
+                        page?: number;
+                        per_page?: number;
+                        status?: string;
+                        search?: string;
+                        category_id?: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/blog-management/articles",
         "GET",
         params
-    )
+)
 
 }
 
@@ -1439,12 +1462,13 @@ export async function get_blog_management_articles(
  * 
  * 
  */
-export async function get_blog_management_articles_stats(): Promise<ApiResponse<any>> {
+export async function get_blog_management_articles_stats(
+): Promise<ApiResponse<any>> {
     return request(
         "/blog-management/articles/stats",
         "GET",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -1453,15 +1477,15 @@ export async function get_blog_management_articles_stats(): Promise<ApiResponse<
  * 
  */
 export async function delete_blog_management_article(
-    params: {
-        article_id: number;
-    },
+                    params: {
+                        article_id: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/blog-management/articles/{article_id}",
         "DELETE",
         params
-    )
+)
 
 }
 
@@ -1472,15 +1496,15 @@ export async function delete_blog_management_article(
  * 
  */
 export async function get_all_categories_api(
-    params: {
-        page?: number;
-    },
+                    params: {
+                        page?: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/category/all",
         "GET",
         params
-    )
+)
 
 }
 
@@ -1489,15 +1513,15 @@ export async function get_all_categories_api(
  * 
  */
 export async function get_public_categories_api(
-    params: {
-        page?: number;
-    },
+                    params: {
+                        page?: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/category/public",
         "GET",
         params
-    )
+)
 
 }
 
@@ -1506,16 +1530,16 @@ export async function get_public_categories_api(
  * 
  */
 export async function get_category_by_name_api(
-    params: {
-        name: string;
-        page?: number;
-    },
+                    params: {
+                        name: string;
+                        page?: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/category/{name}",
         "GET",
         params
-    )
+)
 
 }
 
@@ -1524,15 +1548,15 @@ export async function get_category_by_name_api(
  * 
  */
 export async function get_all_categories_root_api(
-    params: {
-        page?: number;
-    },
+                    params: {
+                        page?: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/category/",
         "GET",
         params
-    )
+)
 
 }
 
@@ -1540,12 +1564,13 @@ export async function get_all_categories_root_api(
  * 
  * 
  */
-export async function subscribe_category_api(): Promise<ApiResponse<any>> {
+export async function subscribe_category_api(
+): Promise<ApiResponse<any>> {
     return request(
         "/category/subscribe",
         "POST",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -1553,12 +1578,13 @@ export async function subscribe_category_api(): Promise<ApiResponse<any>> {
  * 
  * 
  */
-export async function unsubscribe_category_api(): Promise<ApiResponse<any>> {
+export async function unsubscribe_category_api(
+): Promise<ApiResponse<any>> {
     return request(
         "/category/unsubscribe",
         "POST",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -1566,12 +1592,13 @@ export async function unsubscribe_category_api(): Promise<ApiResponse<any>> {
  * 
  * 
  */
-export async function create_category_api(): Promise<ApiResponse<any>> {
+export async function create_category_api(
+): Promise<ApiResponse<any>> {
     return request(
         "/category-management/",
         "POST",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -1580,15 +1607,15 @@ export async function create_category_api(): Promise<ApiResponse<any>> {
  * 
  */
 export async function update_category_api(
-    params: {
-        category_id: number;
-    },
+                    params: {
+                        category_id: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/category-management/{category_id}",
         "PUT",
         params
-    )
+)
 
 }
 
@@ -1597,16 +1624,16 @@ export async function update_category_api(
  * 
  */
 export async function get_categories_with_stats_api(
-    params: {
-        page?: number;
-        per_page?: number;
-    },
+                    params: {
+                        page?: number;
+                        per_page?: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/category-management/",
         "GET",
         params
-    )
+)
 
 }
 
@@ -1615,15 +1642,15 @@ export async function get_categories_with_stats_api(
  * 
  */
 export async function delete_category_api(
-    params: {
-        category_id: number;
-    },
+                    params: {
+                        category_id: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/category-management/{category_id}",
         "DELETE",
         params
-    )
+)
 
 }
 
@@ -1634,16 +1661,16 @@ export async function delete_category_api(
  * 
  */
 export async function confirm_email_change(
-    params: {
-        token: string;
-        current_user_obj?: string;
-    },
+                    params: {
+                        token: string;
+                        current_user_obj?: string;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/change-email/confirm/{token}",
         "GET",
         params
-    )
+)
 
 }
 
@@ -1654,15 +1681,15 @@ export async function confirm_email_change(
  * 
  */
 export async function check_email(
-    params: {
-        email: string;
-    },
+                    params: {
+                        email: string;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/check-email",
         "GET",
         params
-    )
+)
 
 }
 
@@ -1671,15 +1698,15 @@ export async function check_email(
  * 
  */
 export async function api_check_email(
-    params: {
-        email: string;
-    },
+                    params: {
+                        email: string;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/check-email",
         "GET",
         params
-    )
+)
 
 }
 
@@ -1690,15 +1717,15 @@ export async function api_check_email(
  * 
  */
 export async function check_username(
-    params: {
-        username: string;
-    },
+                    params: {
+                        username: string;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/check-username",
         "GET",
         params
-    )
+)
 
 }
 
@@ -1707,15 +1734,15 @@ export async function check_username(
  * 
  */
 export async function api_check_username(
-    params: {
-        username: string;
-    },
+                    params: {
+                        username: string;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/check-username",
         "GET",
         params
-    )
+)
 
 }
 
@@ -1726,16 +1753,16 @@ export async function api_check_username(
  * 
  */
 export async function get_home_articles_api(
-    params: {
-        page?: number;
-        per_page?: number;
-    },
+                    params: {
+                        page?: number;
+                        per_page?: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/home/articles",
         "GET",
         params
-    )
+)
 
 }
 
@@ -1744,18 +1771,18 @@ export async function get_home_articles_api(
  * 
  */
 export async function get_home_data(
-    params: {
-        limit_featured?: number;
-        limit_popular?: number;
-        limit_recent?: number;
-        limit_categories?: number;
-    },
+                    params: {
+                        limit_featured?: number;
+                        limit_popular?: number;
+                        limit_recent?: number;
+                        limit_categories?: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/home/data",
         "GET",
         params
-    )
+)
 
 }
 
@@ -1763,12 +1790,13 @@ export async function get_home_data(
  * 
  * 
  */
-export async function get_home_config(): Promise<ApiResponse<any>> {
+export async function get_home_config(
+): Promise<ApiResponse<any>> {
     return request(
         "/home/config",
         "GET",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -1777,15 +1805,15 @@ export async function get_home_config(): Promise<ApiResponse<any>> {
  * 
  */
 export async function get_featured_articles(
-    params: {
-        limit?: number;
-    },
+                    params: {
+                        limit?: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/home/featured",
         "GET",
         params
-    )
+)
 
 }
 
@@ -1794,17 +1822,17 @@ export async function get_featured_articles(
  * 
  */
 export async function get_recent_articles(
-    params: {
-        page?: number;
-        per_page?: number;
-        category_id?: number;
-    },
+                    params: {
+                        page?: number;
+                        per_page?: number;
+                        category_id?: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/home/recent",
         "GET",
         params
-    )
+)
 
 }
 
@@ -1813,16 +1841,16 @@ export async function get_recent_articles(
  * 
  */
 export async function get_popular_articles(
-    params: {
-        limit?: number;
-        days?: number;
-    },
+                    params: {
+                        limit?: number;
+                        days?: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/home/popular",
         "GET",
         params
-    )
+)
 
 }
 
@@ -1831,15 +1859,15 @@ export async function get_popular_articles(
  * 
  */
 export async function get_home_categories(
-    params: {
-        limit?: number;
-    },
+                    params: {
+                        limit?: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/home/categories",
         "GET",
         params
-    )
+)
 
 }
 
@@ -1847,12 +1875,13 @@ export async function get_home_categories(
  * 
  * 
  */
-export async function get_home_stats(): Promise<ApiResponse<any>> {
+export async function get_home_stats(
+): Promise<ApiResponse<any>> {
     return request(
         "/home/stats",
         "GET",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -1860,12 +1889,13 @@ export async function get_home_stats(): Promise<ApiResponse<any>> {
  * 
  * 
  */
-export async function get_home_menus(): Promise<ApiResponse<any>> {
+export async function get_home_menus(
+): Promise<ApiResponse<any>> {
     return request(
         "/home/menus",
         "GET",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -1874,15 +1904,15 @@ export async function get_home_menus(): Promise<ApiResponse<any>> {
  * 
  */
 export async function subscribe_email(
-    params: {
-        email: string;
-    },
+                    params: {
+                        email: string;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/home/subscribe",
         "POST",
         params
-    )
+)
 
 }
 
@@ -1891,17 +1921,17 @@ export async function subscribe_email(
  * 
  */
 export async function search_home_articles(
-    params: {
-        q: string;
-        page?: number;
-        per_page?: number;
-    },
+                    params: {
+                        q: string;
+                        page?: number;
+                        per_page?: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/home/search",
         "GET",
         params
-    )
+)
 
 }
 
@@ -1909,12 +1939,13 @@ export async function search_home_articles(
  * 
  * 
  */
-export async function get_comment_config(): Promise<ApiResponse<any>> {
+export async function get_comment_config(
+): Promise<ApiResponse<any>> {
     return request(
         "/dashboard/comment_config",
         "GET",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -1922,12 +1953,13 @@ export async function get_comment_config(): Promise<ApiResponse<any>> {
  * 
  * 
  */
-export async function update_comment_config(): Promise<ApiResponse<any>> {
+export async function update_comment_config(
+): Promise<ApiResponse<any>> {
     return request(
         "/dashboard/comment_config",
         "POST",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -1935,12 +1967,13 @@ export async function update_comment_config(): Promise<ApiResponse<any>> {
  * 
  * 
  */
-export async function get_dashboard_stats(): Promise<ApiResponse<any>> {
+export async function get_dashboard_stats(
+): Promise<ApiResponse<any>> {
     return request(
         "/dashboard/stats",
         "GET",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -1948,12 +1981,13 @@ export async function get_dashboard_stats(): Promise<ApiResponse<any>> {
  * 
  * 
  */
-export async function __get_recent_articles(): Promise<ApiResponse<any>> {
+export async function __get_recent_articles(
+): Promise<ApiResponse<any>> {
     return request(
         "/dashboard/recent-articles",
         "GET",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -1961,12 +1995,13 @@ export async function __get_recent_articles(): Promise<ApiResponse<any>> {
  * 
  * 
  */
-export async function get_traffic_data(): Promise<ApiResponse<any>> {
+export async function get_traffic_data(
+): Promise<ApiResponse<any>> {
     return request(
         "/dashboard/traffic",
         "GET",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -1977,15 +2012,15 @@ export async function get_traffic_data(): Promise<ApiResponse<any>> {
  * 
  */
 export async function email_exists_back(
-    params: {
-        email: string;
-    },
+                    params: {
+                        email: string;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/email-exists",
         "GET",
         params
-    )
+)
 
 }
 
@@ -1996,16 +2031,16 @@ export async function email_exists_back(
  * 获取RSS 2.0格式的Feed订阅
  */
 export async function get_rss_feed(
-    params: {
-        limit?: number;
-        category_id?: number;
-    },
+                    params: {
+                        limit?: number;
+                        category_id?: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/feed/rss",
         "GET",
         params
-    )
+)
 
 }
 
@@ -2014,16 +2049,16 @@ export async function get_rss_feed(
  * 获取Atom 1.0格式的Feed订阅
  */
 export async function get_atom_feed(
-    params: {
-        limit?: number;
-        category_id?: number;
-    },
+                    params: {
+                        limit?: number;
+                        category_id?: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/feed/atom",
         "GET",
         params
-    )
+)
 
 }
 
@@ -2031,12 +2066,13 @@ export async function get_atom_feed(
  * 获取Feed元数据
  * 获取Feed的统计信息和URL
  */
-export async function get_feed_meta(): Promise<ApiResponse<any>> {
+export async function get_feed_meta(
+): Promise<ApiResponse<any>> {
     return request(
         "/feed/metadata",
         "GET",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -2044,12 +2080,13 @@ export async function get_feed_meta(): Promise<ApiResponse<any>> {
  * Feed重定向
  * 兼容旧版路径，重定向到RSS
  */
-export async function legacy_feed_redirect(): Promise<ApiResponse<any>> {
+export async function legacy_feed_redirect(
+): Promise<ApiResponse<any>> {
     return request(
         "/feed",
         "GET",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -2060,11 +2097,11 @@ export async function legacy_feed_redirect(): Promise<ApiResponse<any>> {
  * 
  */
 export async function login_management_api(
-    params: {
-        username: string;
-        password: string;
-        remember_me?: boolean;
-    },
+                    params: {
+                        username: string;
+                        password: string;
+                        remember_me?: boolean;
+                    },
 ): Promise<ApiResponse<any>> {
     return submitForm(
         "/management/auth/login",
@@ -2078,17 +2115,17 @@ export async function login_management_api(
  * 
  */
 export async function register_management_api(
-    params: {
-        username: string;
-        email: string;
-        password: string;
-    },
+                    params: {
+                        username: string;
+                        email: string;
+                        password: string;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/management/auth/register",
         "POST",
         params
-    )
+)
 
 }
 
@@ -2096,12 +2133,13 @@ export async function register_management_api(
  * 用户登出
  * 
  */
-export async function logout_management_api(): Promise<ApiResponse<any>> {
+export async function logout_management_api(
+): Promise<ApiResponse<any>> {
     return request(
         "/management/auth/logout",
         "POST",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -2109,12 +2147,13 @@ export async function logout_management_api(): Promise<ApiResponse<any>> {
  * 
  * 
  */
-export async function get_management_me_profile_api(): Promise<ApiResponse<any>> {
+export async function get_management_me_profile_api(
+): Promise<ApiResponse<any>> {
     return request(
         "/management/me/profile",
         "GET",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -2123,15 +2162,15 @@ export async function get_management_me_profile_api(): Promise<ApiResponse<any>>
  * 
  */
 export async function get_user_profile_api(
-    params: {
-        user_id: number;
-    },
+                    params: {
+                        user_id: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/management/{user_id}/profile",
         "GET",
         params
-    )
+)
 
 }
 
@@ -2139,12 +2178,13 @@ export async function get_user_profile_api(
  * 
  * 
  */
-export async function update_management_me_profile_api(): Promise<ApiResponse<any>> {
+export async function update_management_me_profile_api(
+): Promise<ApiResponse<any>> {
     return request(
         "/management/me/profile",
         "PUT",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -2152,12 +2192,13 @@ export async function update_management_me_profile_api(): Promise<ApiResponse<an
  * 
  * 
  */
-export async function confirm_password_form_api(): Promise<ApiResponse<any>> {
+export async function confirm_password_form_api(
+): Promise<ApiResponse<any>> {
     return request(
         "/management/me/security/confirm-password",
         "GET",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -2165,12 +2206,13 @@ export async function confirm_password_form_api(): Promise<ApiResponse<any>> {
  * 
  * 
  */
-export async function confirm_password_api(): Promise<ApiResponse<any>> {
+export async function confirm_password_api(
+): Promise<ApiResponse<any>> {
     return request(
         "/management/me/security/confirm-password",
         "POST",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -2178,12 +2220,13 @@ export async function confirm_password_api(): Promise<ApiResponse<any>> {
  * 
  * 
  */
-export async function change_password_form_api(): Promise<ApiResponse<any>> {
+export async function change_password_form_api(
+): Promise<ApiResponse<any>> {
     return request(
         "/management/me/security/change-password",
         "GET",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -2191,12 +2234,13 @@ export async function change_password_form_api(): Promise<ApiResponse<any>> {
  * 
  * 
  */
-export async function change_password_api(): Promise<ApiResponse<any>> {
+export async function change_password_api(
+): Promise<ApiResponse<any>> {
     return request(
         "/management/me/security/change-password",
         "PUT",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -2204,12 +2248,13 @@ export async function change_password_api(): Promise<ApiResponse<any>> {
  * 
  * 
  */
-export async function update_setting_profiles(): Promise<ApiResponse<any>> {
+export async function update_setting_profiles(
+): Promise<ApiResponse<any>> {
     return request(
         "/management/setting/profiles",
         "PUT",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -2218,17 +2263,17 @@ export async function update_setting_profiles(): Promise<ApiResponse<any>> {
  * 
  */
 export async function get_users(
-    params: {
-        page?: number;
-        per_page?: number;
-        search?: string;
-    },
+                    params: {
+                        page?: number;
+                        per_page?: number;
+                        search?: string;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/management",
         "GET",
         params
-    )
+)
 
 }
 
@@ -2238,12 +2283,13 @@ export async function get_users(
  * 获取当前用户信息
  * 
  */
-export async function get_current_user_api(): Promise<ApiResponse<any>> {
+export async function get_current_user_api(
+): Promise<ApiResponse<any>> {
     return request(
         "/me",
         "GET",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -2254,17 +2300,17 @@ export async function get_current_user_api(): Promise<ApiResponse<any>> {
  * 
  */
 export async function get_user_media_api(
-    params: {
-        current_user_obj?: string;
-        media_type?: string;
-        page?: number;
-    },
+                    params: {
+                        current_user_obj?: string;
+                        media_type?: string;
+                        page?: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/media/",
         "GET",
         params
-    )
+)
 
 }
 
@@ -2273,17 +2319,17 @@ export async function get_user_media_api(
  * 
  */
 export async function get_media_file_by_id(
-    params: {
-        media_id: number;
-        range_header?: string;
-        current_user_obj?: string;
-    },
+                    params: {
+                        media_id: number;
+                        range_header?: string;
+                        current_user_obj?: string;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/media/{media_id}",
         "GET",
         params
-    )
+)
 
 }
 
@@ -2292,16 +2338,16 @@ export async function get_media_file_by_id(
  * 
  */
 export async function delete_user_media_api(
-    params: {
-        current_user_obj?: string;
-        file_id_list: string;
-    },
+                    params: {
+                        current_user_obj?: string;
+                        file_id_list: string;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/media/",
         "DELETE",
         params
-    )
+)
 
 }
 
@@ -2310,15 +2356,15 @@ export async function delete_user_media_api(
  * 
  */
 export async function upload_media_file(
-    params: {
-        current_user_obj?: string;
-    },
+                    params: {
+                        current_user_obj?: string;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/media/upload",
         "POST",
         params
-    )
+)
 
 }
 
@@ -2327,15 +2373,15 @@ export async function upload_media_file(
  * 
  */
 export async function chunked_upload_init(
-    params: {
-        current_user_obj?: string;
-    },
+                    params: {
+                        current_user_obj?: string;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/media/upload/chunked/init",
         "POST",
         params
-    )
+)
 
 }
 
@@ -2344,15 +2390,15 @@ export async function chunked_upload_init(
  * 
  */
 export async function chunked_upload_chunk(
-    params: {
-        current_user_obj?: string;
-    },
+                    params: {
+                        current_user_obj?: string;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/media/upload/chunked/chunk",
         "POST",
         params
-    )
+)
 
 }
 
@@ -2361,15 +2407,15 @@ export async function chunked_upload_chunk(
  * 
  */
 export async function chunked_upload_complete(
-    params: {
-        current_user_obj?: string;
-    },
+                    params: {
+                        current_user_obj?: string;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/media/upload/chunked/complete",
         "POST",
         params
-    )
+)
 
 }
 
@@ -2378,15 +2424,15 @@ export async function chunked_upload_complete(
  * 
  */
 export async function chunked_upload_progress(
-    params: {
-        current_user_obj?: string;
-    },
+                    params: {
+                        current_user_obj?: string;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/media/upload/chunked/progress",
         "GET",
         params
-    )
+)
 
 }
 
@@ -2395,15 +2441,15 @@ export async function chunked_upload_progress(
  * 
  */
 export async function chunked_upload_chunks(
-    params: {
-        current_user_obj?: string;
-    },
+                    params: {
+                        current_user_obj?: string;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/media/upload/chunked/chunks",
         "GET",
         params
-    )
+)
 
 }
 
@@ -2412,15 +2458,15 @@ export async function chunked_upload_chunks(
  * 
  */
 export async function chunked_upload_cancel(
-    params: {
-        current_user_obj?: string;
-    },
+                    params: {
+                        current_user_obj?: string;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/media/upload/chunked/cancel",
         "POST",
         params
-    )
+)
 
 }
 
@@ -2429,17 +2475,17 @@ export async function chunked_upload_cancel(
  * 
  */
 export async function get_media_management_files(
-    params: {
-        page?: number;
-        per_page?: number;
-        file_type?: string;
-    },
+                    params: {
+                        page?: number;
+                        per_page?: number;
+                        file_type?: string;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/media-management/files",
         "GET",
         params
-    )
+)
 
 }
 
@@ -2449,12 +2495,13 @@ export async function get_media_management_files(
  * 获取菜单列表
  * 获取所有菜单的列表
  */
-export async function list_menus(): Promise<ApiResponse<any>> {
+export async function list_menus(
+): Promise<ApiResponse<any>> {
     return request(
         "/menus",
         "GET",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -2468,8 +2515,8 @@ export async function get_menu_detail(
     return request(
         "/menus/{menu_id}",
         "GET",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -2477,12 +2524,13 @@ export async function get_menu_detail(
  * 创建菜单
  * 创建新的菜单
  */
-export async function create_new_menu(): Promise<ApiResponse<any>> {
+export async function create_new_menu(
+): Promise<ApiResponse<any>> {
     return request(
         "/menus",
         "POST",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -2496,8 +2544,8 @@ export async function update_existing_menu(
     return request(
         "/menus/{menu_id}",
         "PUT",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -2511,8 +2559,8 @@ export async function delete_existing_menu(
     return request(
         "/menus/{menu_id}",
         "DELETE",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -2526,8 +2574,8 @@ export async function add_item_to_menu(
     return request(
         "/menus/{menu_id}/items",
         "POST",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -2541,8 +2589,8 @@ export async function update_menu_item_detail(
     return request(
         "/menus/items/{item_id}",
         "PUT",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -2556,8 +2604,8 @@ export async function delete_menu_item_detail(
     return request(
         "/menus/items/{item_id}",
         "DELETE",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -2571,8 +2619,8 @@ export async function reorder_menu(
     return request(
         "/menus/{menu_id}/reorder",
         "POST",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -2580,12 +2628,13 @@ export async function reorder_menu(
  * 获取可用页面
  * 获取可添加到菜单的页面列表
  */
-export async function get_available_pages(): Promise<ApiResponse<any>> {
+export async function get_available_pages(
+): Promise<ApiResponse<any>> {
     return request(
         "/menus/available/pages",
         "GET",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -2593,12 +2642,13 @@ export async function get_available_pages(): Promise<ApiResponse<any>> {
  * 获取可用分类
  * 获取可添加到菜单的分类列表
  */
-export async function get_available_categories(): Promise<ApiResponse<any>> {
+export async function get_available_categories(
+): Promise<ApiResponse<any>> {
     return request(
         "/menus/available/categories",
         "GET",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -2608,12 +2658,13 @@ export async function get_available_categories(): Promise<ApiResponse<any>> {
  * 
  * 
  */
-export async function list_all_routes(): Promise<ApiResponse<any>> {
+export async function list_all_routes(
+): Promise<ApiResponse<any>> {
     return request(
         "/routes",
         "GET",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -2621,12 +2672,13 @@ export async function list_all_routes(): Promise<ApiResponse<any>> {
  * 
  * 
  */
-export async function get_version_info(): Promise<ApiResponse<any>> {
+export async function get_version_info(
+): Promise<ApiResponse<any>> {
     return request(
         "/version/info",
         "GET",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -2634,12 +2686,13 @@ export async function get_version_info(): Promise<ApiResponse<any>> {
  * 
  * 
  */
-export async function get_frontend_version(): Promise<ApiResponse<any>> {
+export async function get_frontend_version(
+): Promise<ApiResponse<any>> {
     return request(
         "/version/frontend",
         "GET",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -2647,12 +2700,13 @@ export async function get_frontend_version(): Promise<ApiResponse<any>> {
  * 
  * 
  */
-export async function get_backend_version(): Promise<ApiResponse<any>> {
+export async function get_backend_version(
+): Promise<ApiResponse<any>> {
     return request(
         "/version/backend",
         "GET",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -2663,17 +2717,17 @@ export async function get_backend_version(): Promise<ApiResponse<any>> {
  * 
  */
 export async function get_my_articles(
-    params: {
-        page?: number;
-        per_page?: number;
-        status?: string;
-    },
+                    params: {
+                        page?: number;
+                        per_page?: number;
+                        status?: string;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/my/articles",
         "GET",
         params
-    )
+)
 
 }
 
@@ -2681,12 +2735,13 @@ export async function get_my_articles(
  * 
  * 
  */
-export async function get_my_messages(): Promise<ApiResponse<any>> {
+export async function get_my_messages(
+): Promise<ApiResponse<any>> {
     return request(
         "/my/messages",
         "GET",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -2697,15 +2752,15 @@ export async function get_my_messages(): Promise<ApiResponse<any>> {
  * 
  */
 export async function read_notification_api(
-    params: {
-        nid: number;
-    },
+                    params: {
+                        nid: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/notifications/messages/read",
         "POST",
         params
-    )
+)
 
 }
 
@@ -2713,12 +2768,13 @@ export async function read_notification_api(
  * 
  * 
  */
-export async function fetch_message_api(): Promise<ApiResponse<any>> {
+export async function fetch_message_api(
+): Promise<ApiResponse<any>> {
     return request(
         "/notifications/messages",
         "GET",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -2726,12 +2782,13 @@ export async function fetch_message_api(): Promise<ApiResponse<any>> {
  * 
  * 
  */
-export async function mark_all_as_read_api(): Promise<ApiResponse<any>> {
+export async function mark_all_as_read_api(
+): Promise<ApiResponse<any>> {
     return request(
         "/notifications/messages/read_all",
         "POST",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -2740,15 +2797,15 @@ export async function mark_all_as_read_api(): Promise<ApiResponse<any>> {
  * 
  */
 export async function clean_notification_api(
-    params: {
-        nid?: string;
-    },
+                    params: {
+                        nid?: string;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/notifications/messages/clean",
         "DELETE",
         params
-    )
+)
 
 }
 
@@ -2757,15 +2814,15 @@ export async function clean_notification_api(
  * 
  */
 export async function mark_notification_as_read_api(
-    params: {
-        notification_id: number;
-    },
+                    params: {
+                        notification_id: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/notifications/{notification_id}/read",
         "PATCH",
         params
-    )
+)
 
 }
 
@@ -2774,15 +2831,15 @@ export async function mark_notification_as_read_api(
  * 
  */
 export async function delete_notification_api(
-    params: {
-        notification_id: number;
-    },
+                    params: {
+                        notification_id: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/notifications/{notification_id}",
         "DELETE",
         params
-    )
+)
 
 }
 
@@ -2790,12 +2847,13 @@ export async function delete_notification_api(
  * 
  * 
  */
-export async function get_notifications_api(): Promise<ApiResponse<any>> {
+export async function get_notifications_api(
+): Promise<ApiResponse<any>> {
     return request(
         "/notifications/",
         "GET",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -2803,12 +2861,13 @@ export async function get_notifications_api(): Promise<ApiResponse<any>> {
  * 
  * 
  */
-export async function mark_all_as_read_api_new(): Promise<ApiResponse<any>> {
+export async function mark_all_as_read_api_new(
+): Promise<ApiResponse<any>> {
     return request(
         "/notifications/read_all",
         "POST",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -2819,17 +2878,17 @@ export async function mark_all_as_read_api_new(): Promise<ApiResponse<any>> {
  * 获取所有页面的列表，支持分页和状态筛选
  */
 export async function list_pages(
-    params: {
-        page?: number;
-        per_page?: number;
-        status?: number;
-    },
+                    params: {
+                        page?: number;
+                        per_page?: number;
+                        status?: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/pages",
         "GET",
         params
-    )
+)
 
 }
 
@@ -2837,12 +2896,13 @@ export async function list_pages(
  * 获取页面层级结构
  * 获取树形结构的页面层级
  */
-export async function get_pages_tree(): Promise<ApiResponse<any>> {
+export async function get_pages_tree(
+): Promise<ApiResponse<any>> {
     return request(
         "/pages/hierarchy",
         "GET",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -2856,8 +2916,8 @@ export async function get_page_detail(
     return request(
         "/pages/{slug}",
         "GET",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -2865,12 +2925,13 @@ export async function get_page_detail(
  * 创建页面
  * 创建新的静态页面
  */
-export async function create_new_page(): Promise<ApiResponse<any>> {
+export async function create_new_page(
+): Promise<ApiResponse<any>> {
     return request(
         "/pages",
         "POST",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -2884,8 +2945,8 @@ export async function update_existing_page(
     return request(
         "/pages/{page_id}",
         "PUT",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -2899,8 +2960,8 @@ export async function delete_existing_page(
     return request(
         "/pages/{page_id}",
         "DELETE",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -2910,12 +2971,13 @@ export async function delete_existing_page(
  * 获取所有权限
  * 获取系统所有可用权限列表
  */
-export async function list_all_permissions(): Promise<ApiResponse<any>> {
+export async function list_all_permissions(
+): Promise<ApiResponse<any>> {
     return request(
         "/permissions/list",
         "GET",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -2923,12 +2985,13 @@ export async function list_all_permissions(): Promise<ApiResponse<any>> {
  * 获取角色列表
  * 获取所有角色及其权限
  */
-export async function list_roles(): Promise<ApiResponse<any>> {
+export async function list_roles(
+): Promise<ApiResponse<any>> {
     return request(
         "/permissions/roles",
         "GET",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -2942,8 +3005,8 @@ export async function assign_user_role(
     return request(
         "/permissions/users/{user_id}/assign-role",
         "POST",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -2957,8 +3020,8 @@ export async function get_user_permissions(
     return request(
         "/permissions/users/{user_id}/permissions",
         "GET",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -2966,12 +3029,13 @@ export async function get_user_permissions(
  * 检查权限
  * 检查用户是否有指定权限
  */
-export async function check_permission(): Promise<ApiResponse<any>> {
+export async function check_permission(
+): Promise<ApiResponse<any>> {
     return request(
         "/permissions/check",
         "POST",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -2981,12 +3045,13 @@ export async function check_permission(): Promise<ApiResponse<any>> {
  * 手机扫码登录
  * 
  */
-export async function api_phone_scan(): Promise<ApiResponse<any>> {
+export async function api_phone_scan(
+): Promise<ApiResponse<any>> {
     return request(
         "/phone/scan",
         "GET",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -2996,12 +3061,13 @@ export async function api_phone_scan(): Promise<ApiResponse<any>> {
  * 获取插件列表
  * 获取所有已安装和可用的插件
  */
-export async function list_plugins(): Promise<ApiResponse<any>> {
+export async function list_plugins(
+): Promise<ApiResponse<any>> {
     return request(
         "/plugins",
         "GET",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -3009,12 +3075,13 @@ export async function list_plugins(): Promise<ApiResponse<any>> {
  * 安装插件
  * 安装新的插件
  */
-export async function install_plugin(): Promise<ApiResponse<any>> {
+export async function install_plugin(
+): Promise<ApiResponse<any>> {
     return request(
         "/plugins/install",
         "POST",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -3028,8 +3095,8 @@ export async function activate_plugin(
     return request(
         "/plugins/{plugin_id}/activate",
         "POST",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -3043,8 +3110,8 @@ export async function deactivate_plugin(
     return request(
         "/plugins/{plugin_id}/deactivate",
         "POST",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -3058,8 +3125,8 @@ export async function uninstall_plugin(
     return request(
         "/plugins/{plugin_id}",
         "DELETE",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -3073,8 +3140,8 @@ export async function update_plugin_settings(
     return request(
         "/plugins/{plugin_id}/settings",
         "PUT",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -3082,12 +3149,13 @@ export async function update_plugin_settings(
  * 获取钩子列表
  * 获取所有已注册的钩子信息
  */
-export async function list_hooks(): Promise<ApiResponse<any>> {
+export async function list_hooks(
+): Promise<ApiResponse<any>> {
     return request(
         "/plugins/hooks",
         "GET",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -3097,12 +3165,13 @@ export async function list_hooks(): Promise<ApiResponse<any>> {
  * 获取用户资料
  * 
  */
-export async function get_my_profile_api(): Promise<ApiResponse<any>> {
+export async function get_my_profile_api(
+): Promise<ApiResponse<any>> {
     return request(
         "/profile",
         "GET",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -3110,12 +3179,13 @@ export async function get_my_profile_api(): Promise<ApiResponse<any>> {
  * 更新用户资料
  * 
  */
-export async function update_my_profile_api(): Promise<ApiResponse<any>> {
+export async function update_my_profile_api(
+): Promise<ApiResponse<any>> {
     return request(
         "/profile",
         "PUT",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -3125,12 +3195,13 @@ export async function update_my_profile_api(): Promise<ApiResponse<any>> {
  * 生成二维码
  * 
  */
-export async function api_generate_qr(): Promise<ApiResponse<any>> {
+export async function api_generate_qr(
+): Promise<ApiResponse<any>> {
     return request(
         "/qr/generate",
         "GET",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -3138,12 +3209,13 @@ export async function api_generate_qr(): Promise<ApiResponse<any>> {
  * 检查二维码状态
  * 
  */
-export async function api_check_qr_status(): Promise<ApiResponse<any>> {
+export async function api_check_qr_status(
+): Promise<ApiResponse<any>> {
     return request(
         "/qr/status",
         "GET",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -3153,12 +3225,13 @@ export async function api_check_qr_status(): Promise<ApiResponse<any>> {
  * 
  * 
  */
-export async function get_role_permission_stats(): Promise<ApiResponse<any>> {
+export async function get_role_permission_stats(
+): Promise<ApiResponse<any>> {
     return request(
         "/role-management/permission-stats",
         "GET",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -3166,12 +3239,13 @@ export async function get_role_permission_stats(): Promise<ApiResponse<any>> {
  * 
  * 
  */
-export async function get_role_management_roles(): Promise<ApiResponse<any>> {
+export async function get_role_management_roles(
+): Promise<ApiResponse<any>> {
     return request(
         "/role-management/roles",
         "GET",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -3179,12 +3253,13 @@ export async function get_role_management_roles(): Promise<ApiResponse<any>> {
  * 
  * 
  */
-export async function get_role_management_permissions(): Promise<ApiResponse<any>> {
+export async function get_role_management_permissions(
+): Promise<ApiResponse<any>> {
     return request(
         "/role-management/permissions",
         "GET",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -3192,12 +3267,13 @@ export async function get_role_management_permissions(): Promise<ApiResponse<any
  * 
  * 
  */
-export async function create_role_for_management(): Promise<ApiResponse<any>> {
+export async function create_role_for_management(
+): Promise<ApiResponse<any>> {
     return request(
         "/role-management/roles",
         "POST",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -3206,15 +3282,15 @@ export async function create_role_for_management(): Promise<ApiResponse<any>> {
  * 
  */
 export async function update_role_for_management(
-    params: {
-        role_id: number;
-    },
+                    params: {
+                        role_id: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/role-management/roles/{role_id}",
         "PUT",
         params
-    )
+)
 
 }
 
@@ -3223,15 +3299,15 @@ export async function update_role_for_management(
  * 
  */
 export async function delete_role_for_management(
-    params: {
-        role_id: number;
-    },
+                    params: {
+                        role_id: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/role-management/roles/{role_id}",
         "DELETE",
         params
-    )
+)
 
 }
 
@@ -3239,12 +3315,13 @@ export async function delete_role_for_management(
  * 
  * 
  */
-export async function create_permission_for_management(): Promise<ApiResponse<any>> {
+export async function create_permission_for_management(
+): Promise<ApiResponse<any>> {
     return request(
         "/role-management/permissions",
         "POST",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -3253,15 +3330,15 @@ export async function create_permission_for_management(): Promise<ApiResponse<an
  * 
  */
 export async function update_permission_for_management(
-    params: {
-        permission_id: number;
-    },
+                    params: {
+                        permission_id: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/role-management/permissions/{permission_id}",
         "PUT",
         params
-    )
+)
 
 }
 
@@ -3270,15 +3347,15 @@ export async function update_permission_for_management(
  * 
  */
 export async function delete_permission_for_management(
-    params: {
-        permission_id: number;
-    },
+                    params: {
+                        permission_id: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/role-management/permissions/{permission_id}",
         "DELETE",
         params
-    )
+)
 
 }
 
@@ -3288,12 +3365,13 @@ export async function delete_permission_for_management(
  * 触发定时发布检查
  * 手动检查并发布到期的定时文章
  */
-export async function trigger_scheduled_publish(): Promise<ApiResponse<any>> {
+export async function trigger_scheduled_publish(
+): Promise<ApiResponse<any>> {
     return request(
         "/articles/scheduled/check-and-publish",
         "POST",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -3302,16 +3380,16 @@ export async function trigger_scheduled_publish(): Promise<ApiResponse<any>> {
  * 获取所有待发布的定时文章
  */
 export async function list_scheduled_articles(
-    params: {
-        page?: number;
-        per_page?: number;
-    },
+                    params: {
+                        page?: number;
+                        per_page?: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/articles/scheduled/list",
         "GET",
         params
-    )
+)
 
 }
 
@@ -3325,8 +3403,8 @@ export async function cancel_article_schedule(
     return request(
         "/articles/{article_id}/scheduled/cancel",
         "POST",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -3336,12 +3414,13 @@ export async function cancel_article_schedule(
  * 
  * 
  */
-export async function get_search_history(): Promise<ApiResponse<any>> {
+export async function get_search_history(
+): Promise<ApiResponse<any>> {
     return request(
         "/search/history",
         "GET",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -3352,15 +3431,15 @@ export async function get_search_history(): Promise<ApiResponse<any>> {
  * 
  */
 export async function suggest_tags(
-    params: {
-        query?: string;
-    },
+                    params: {
+                        query?: string;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/tags/suggest",
         "GET",
         params
-    )
+)
 
 }
 
@@ -3370,12 +3449,13 @@ export async function suggest_tags(
  * 获取主题列表
  * 获取所有已安装和可用的主题
  */
-export async function list_themes(): Promise<ApiResponse<any>> {
+export async function list_themes(
+): Promise<ApiResponse<any>> {
     return request(
         "/themes",
         "GET",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -3383,12 +3463,13 @@ export async function list_themes(): Promise<ApiResponse<any>> {
  * 安装主题
  * 安装新的主题
  */
-export async function install_theme(): Promise<ApiResponse<any>> {
+export async function install_theme(
+): Promise<ApiResponse<any>> {
     return request(
         "/themes/install",
         "POST",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -3402,8 +3483,8 @@ export async function activate_theme(
     return request(
         "/themes/{theme_id}/activate",
         "POST",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -3417,8 +3498,8 @@ export async function preview_theme(
     return request(
         "/themes/{theme_id}/preview",
         "GET",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -3432,8 +3513,8 @@ export async function update_theme_settings(
     return request(
         "/themes/{theme_id}/settings",
         "PUT",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -3447,8 +3528,8 @@ export async function uninstall_theme(
     return request(
         "/themes/{theme_id}",
         "DELETE",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -3456,12 +3537,13 @@ export async function uninstall_theme(
  * 获取当前激活主题
  * 获取当前正在使用的主题
  */
-export async function get_active_theme(): Promise<ApiResponse<any>> {
+export async function get_active_theme(
+): Promise<ApiResponse<any>> {
     return request(
         "/themes/active",
         "GET",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -3472,15 +3554,15 @@ export async function get_active_theme(): Promise<ApiResponse<any>> {
  * 
  */
 export async function public_media_thumbnail(
-    params: {
-        data: string;
-    },
+                    params: {
+                        data: string;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/thumbnail",
         "GET",
         params
-    )
+)
 
 }
 
@@ -3491,15 +3573,15 @@ export async function public_media_thumbnail(
  * 
  */
 export async function upload_cover(
-    params: {
-        current_user_obj?: string;
-    },
+                    params: {
+                        current_user_obj?: string;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/upload/cover",
         "POST",
         params
-    )
+)
 
 }
 
@@ -3510,15 +3592,15 @@ export async function upload_cover(
  * 
  */
 export async function api_user_avatar(
-    params: {
-        user_id?: number;
-    },
+                    params: {
+                        user_id?: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/user/avatar",
         "GET",
         params
-    )
+)
 
 }
 
@@ -3527,15 +3609,15 @@ export async function api_user_avatar(
  * 
  */
 export async function api_user_bio(
-    params: {
-        user_id: number;
-    },
+                    params: {
+                        user_id: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/user/bio/{user_id}",
         "GET",
         params
-    )
+)
 
 }
 
@@ -3544,15 +3626,15 @@ export async function api_user_bio(
  * 
  */
 export async function api_user_profile_endpoint(
-    params: {
-        user_id: number;
-    },
+                    params: {
+                        user_id: number;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/user/profile/{user_id}",
         "GET",
         params
-    )
+)
 
 }
 
@@ -3560,12 +3642,13 @@ export async function api_user_profile_endpoint(
  * 
  * 
  */
-export async function check_login_status(): Promise<ApiResponse<any>> {
+export async function check_login_status(
+): Promise<ApiResponse<any>> {
     return request(
         "/user/check-login",
         "GET",
-        undefined
-    )
+    undefined
+)
 
 }
 
@@ -3576,15 +3659,15 @@ export async function check_login_status(): Promise<ApiResponse<any>> {
  * 
  */
 export async function username_exists(
-    params: {
-        username: string;
-    },
+                    params: {
+                        username: string;
+                    },
 ): Promise<ApiResponse<any>> {
     return request(
         "/username-exists/{username}",
         "GET",
         params
-    )
+)
 
 }
 
@@ -3594,12 +3677,13 @@ export async function username_exists(
  * 
  * 
  */
-export async function get_vip_management_data(): Promise<ApiResponse<any>> {
+export async function get_vip_management_data(
+): Promise<ApiResponse<any>> {
     return request(
         "/vip-management",
         "GET",
-        undefined
-    )
+    undefined
+)
 
 }
 

@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - Comment
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-08 11:23:57
+生成时间：2026-05-08 14:40:59
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Numeric, ForeignKey, Index
@@ -27,15 +27,20 @@ class Comment(Base):
         Index('idx_comments_spam_score', 'spam_score'),
     )
 
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='评论 ID')
 
     article_id = Column(BigInteger, ForeignKey('articles.id'), doc='文章 ID')
 
+
     user_id = Column(BigInteger, ForeignKey('users.id'), nullable=True, doc='用户 ID（访客评论可为空）')
+
 
     parent_id = Column(BigInteger, ForeignKey('comments.id'), nullable=True, doc='父评论 ID（用于回复）')
 
+
     content = Column(Text, nullable=False, doc='评论内容')
+
 
     author_name = Column(String(100), nullable=True, doc='作者姓名（访客填写）')
 
@@ -49,9 +54,12 @@ class Comment(Base):
 
     is_approved = Column(Boolean, default=True, doc='是否已审核通过')
 
+
     likes = Column(BigInteger, default=0, doc='点赞数')
 
+
     spam_score = Column(Numeric(10, 2), nullable=True, doc='垃圾评分')
+
 
     spam_reasons = Column(String(255), nullable=True, doc='垃圾检测原因（JSON格式）')
 
@@ -95,3 +103,5 @@ class Comment(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<Comment id={self.id}>'
+
+

@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - UploadTask
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-08 11:23:57
+生成时间：2026-05-08 14:40:59
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime
@@ -16,17 +16,24 @@ class UploadTask(Base):
     """上传任务模型模型"""
     __tablename__ = 'upload_tasks'
 
+
+
+
     id = Column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()), doc='任务 ID (UUID)')
 
     user_id = Column(BigInteger, doc='用户 ID')
+
 
     filename = Column(String(255), nullable=True, doc='文件名')
 
     total_size = Column(BigInteger, doc='文件总大小')
 
+
     total_chunks = Column(BigInteger, doc='总分块数')
 
+
     uploaded_chunks = Column(BigInteger, default=0, doc='已上传分块数')
+
 
     file_hash = Column(String(64), nullable=True, doc='文件哈希')
 
@@ -66,3 +73,5 @@ class UploadTask(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<UploadTask id={self.id}>'
+
+

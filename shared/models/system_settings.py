@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - SystemSettings
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-08 11:23:57
+生成时间：2026-05-08 14:40:59
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime
@@ -14,6 +14,9 @@ class SystemSettings(Base):
     """系统设置模型模型"""
     __tablename__ = 'system_settings'
 
+
+
+
     id = Column(Integer, primary_key=True, autoincrement=True, doc='设置 ID')
 
     setting_key = Column(String(100), nullable=True, doc='设置键')
@@ -25,6 +28,7 @@ class SystemSettings(Base):
     description = Column(String(255), nullable=True, doc='描述')
 
     is_public = Column(Boolean, default=False, doc='是否公开')
+
 
     created_at = Column(DateTime, doc='创建时间')
 
@@ -58,3 +62,5 @@ class SystemSettings(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<SystemSettings id={self.id}>'
+
+

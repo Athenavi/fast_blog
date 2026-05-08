@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - Form
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-08 11:23:57
+生成时间：2026-05-08 14:40:59
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Index
@@ -20,6 +20,7 @@ class Form(Base):
         Index('idx_forms_status', 'status'),
     )
 
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='表单 ID')
 
     title = Column(String(255), nullable=True, doc='表单标题')
@@ -34,9 +35,11 @@ class Form(Base):
 
     email_notification = Column(Boolean, default=False, doc='是否启用邮件通知')
 
+
     notification_email = Column(String(255), nullable=True, doc='通知邮箱地址')
 
     store_submissions = Column(Boolean, default=True, doc='是否存储提交数据')
+
 
     created_at = Column(DateTime, doc='创建时间')
 
@@ -76,3 +79,5 @@ class Form(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<Form id={self.id}>'
+
+

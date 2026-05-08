@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - UserSession
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-08 11:23:57
+生成时间：2026-05-08 14:40:59
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
@@ -22,9 +22,11 @@ class UserSession(Base):
         Index('idx_user_sessions_expires', 'expires_at'),
     )
 
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='会话 ID')
 
     user_id = Column(BigInteger, ForeignKey('users.id'), doc='用户ID')
+
 
     access_token = Column(String(255), unique=True, nullable=True, doc='会话令牌')
 
@@ -37,6 +39,7 @@ class UserSession(Base):
     location = Column(String(100), nullable=True, doc='地理位置')
 
     is_active = Column(Boolean, default=True, doc='是否活跃')
+
 
     last_activity = Column(DateTime, doc='最后活动时间')
 
@@ -75,3 +78,5 @@ class UserSession(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<UserSession id={self.id}>'
+
+

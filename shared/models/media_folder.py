@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - MediaFolder
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-08 11:23:57
+生成时间：2026-05-08 14:40:59
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
@@ -21,21 +21,27 @@ class MediaFolder(Base):
         Index('idx_media_folders_unique_name', 'user', 'parent_id', 'name', unique=True),
     )
 
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='文件夹 ID')
 
     name = Column(String(255), nullable=True, doc='文件夹名称')
 
     parent_id = Column(BigInteger, ForeignKey('media_folders.id'), nullable=True, doc='父文件夹 ID')
 
+
     user = Column(BigInteger, ForeignKey('users.id'), doc='所属用户')
+
 
     description = Column(String(255), nullable=True, doc='文件夹描述')
 
     sort_order = Column(BigInteger, default=0, doc='排序顺序')
 
+
     is_public = Column(Boolean, default=True, doc='是否公开')
 
+
     media_count = Column(BigInteger, default=0, doc='文件夹内媒体数量')
+
 
     created_at = Column(DateTime, doc='创建时间')
 
@@ -71,3 +77,5 @@ class MediaFolder(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<MediaFolder id={self.id}>'
+
+

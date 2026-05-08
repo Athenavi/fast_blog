@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - SearchHistory
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-08 11:23:57
+生成时间：2026-05-08 14:40:59
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey
@@ -14,13 +14,18 @@ class SearchHistory(Base):
     """搜索历史模型模型"""
     __tablename__ = 'search_history'
 
+
+
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='搜索历史 ID')
 
     user = Column(BigInteger, ForeignKey('users.id'), doc='用户')
 
+
     keyword = Column(String(255), nullable=True, doc='搜索关键词')
 
     results_count = Column(BigInteger, doc='结果数量')
+
 
     created_at = Column(DateTime, doc='创建时间')
 
@@ -49,3 +54,5 @@ class SearchHistory(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<SearchHistory id={self.id}>'
+
+

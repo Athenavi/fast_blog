@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - Media
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-08 11:23:57
+生成时间：2026-05-08 14:40:59
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
@@ -24,9 +24,11 @@ class Media(Base):
         Index('idx_media_folder', 'folder_id'),
     )
 
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='媒体 ID')
 
     user = Column(BigInteger, ForeignKey('users.id'), doc='上传用户')
+
 
     hash = Column(String(64), nullable=True, doc='文件哈希')
 
@@ -40,15 +42,19 @@ class Media(Base):
 
     file_size = Column(BigInteger, default=0, doc='文件大小 (字节)')
 
+
     file_type = Column(String(255), default='other', doc='文件类型')
 
     mime_type = Column(String(255), nullable=True, doc='MIME 类型')
 
     width = Column(BigInteger, nullable=True, doc='宽度')
 
+
     height = Column(BigInteger, nullable=True, doc='高度')
 
+
     duration = Column(BigInteger, nullable=True, doc='时长 (秒)')
+
 
     thumbnail_path = Column(String(255), nullable=True, doc='缩略图路径')
 
@@ -60,13 +66,16 @@ class Media(Base):
 
     is_public = Column(Boolean, default=True, doc='是否公开')
 
+
     download_count = Column(BigInteger, default=0, doc='下载次数')
+
 
     category = Column(String(100), nullable=True, doc='媒体分类')
 
     tags = Column(String(500), nullable=True, doc='标签(逗号分隔)')
 
     folder_id = Column(BigInteger, ForeignKey('media_folders.id'), nullable=True, doc='所属文件夹 ID')
+
 
     created_at = Column(DateTime, doc='创建时间')
 
@@ -116,3 +125,5 @@ class Media(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<Media id={self.id}>'
+
+

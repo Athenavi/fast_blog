@@ -11,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.private_message import PrivateMessage
 from shared.models.user import User
+from shared.models.user_block import UserBlock
 from src.api.v1.responses import ApiResponse
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
@@ -50,6 +51,32 @@ async def send_private_message(
         # 不能给自己发消息
         if recipient_id == current_user_id:
             return ApiResponse(success=False, error="不能给自己发送消息")
+
+        # 检查是否被对方屏蔽
+        block_check_query = select(UserBlock).where(
+            and_(
+                UserBlock.blocker == recipient_id,
+                UserBlock.blocked_user == current_user_id
+            )
+        )
+        block_check_result = await db.execute(block_check_query)
+        is_blocked = block_check_result.scalar_one_or_none()
+
+        if is_blocked:
+            return ApiResponse(success=False, error="您已被该用户屏蔽，无法发送消息")
+
+        # 检查是否屏蔽了对方
+        my_block_query = select(UserBlock).where(
+            and_(
+                UserBlock.blocker == current_user_id,
+                UserBlock.blocked_user == recipient_id
+            )
+        )
+        my_block_result = await db.execute(my_block_query)
+        i_blocked = my_block_result.scalar_one_or_none()
+
+        if i_blocked:
+            return ApiResponse(success=False, error="您已屏蔽该用户，请先取消屏蔽")
 
         # 如果指定了父消息,验证父消息存在且属于该会话
         if parent_message_id:

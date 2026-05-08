@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - PrivateMessage
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-08 11:23:57
+生成时间：2026-05-08 14:40:59
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
@@ -23,13 +23,17 @@ class PrivateMessage(Base):
         Index('idx_private_messages_is_read', 'is_read'),
     )
 
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='消息ID')
 
     sender = Column(BigInteger, ForeignKey('users.id'), doc='发送者')
 
+
     recipient = Column(BigInteger, ForeignKey('users.id'), doc='接收者')
 
+
     content = Column(Text, nullable=False, doc='消息内容')
+
 
     message_type = Column(String(50), default='text', doc='消息类型')
 
@@ -37,13 +41,17 @@ class PrivateMessage(Base):
 
     is_read = Column(Boolean, default=False, doc='是否已读')
 
+
     read_at = Column(DateTime, nullable=True, doc='阅读时间')
 
     is_deleted_by_sender = Column(Boolean, default=False, doc='发送者是否删除')
 
+
     is_deleted_by_recipient = Column(Boolean, default=False, doc='接收者是否删除')
 
+
     parent_message = Column(BigInteger, ForeignKey('private_messages.id'), nullable=True, doc='父消息ID(用于回复)')
+
 
     created_at = Column(DateTime, doc='创建时间')
 
@@ -82,3 +90,5 @@ class PrivateMessage(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<PrivateMessage id={self.id}>'
+
+

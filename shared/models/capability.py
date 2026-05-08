@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - Capability
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-08 11:23:57
+生成时间：2026-05-08 14:40:59
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Index
@@ -20,6 +20,7 @@ class Capability(Base):
         Index('idx_capabilities_resource', 'resource_type', 'action'),
     )
 
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='权限 ID')
 
     code = Column(String(100), unique=True, nullable=True, doc='权限代码（唯一标识）')
@@ -33,6 +34,7 @@ class Capability(Base):
     action = Column(String(50), nullable=True, doc='操作类型（create, read, update, delete）')
 
     is_active = Column(Boolean, default=True, doc='是否激活')
+
 
     created_at = Column(DateTime, doc='创建时间')
 
@@ -67,3 +69,5 @@ class Capability(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<Capability id={self.id}>'
+
+

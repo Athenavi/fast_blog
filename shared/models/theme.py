@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - Theme
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-08 11:23:57
+生成时间：2026-05-08 14:40:59
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Index
@@ -19,6 +19,7 @@ class Theme(Base):
         Index('idx_themes_slug', 'slug', unique=True),
         Index('idx_themes_is_active', 'is_active'),
     )
+
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='主题ID')
 
@@ -48,7 +49,9 @@ class Theme(Base):
 
     is_active = Column(Boolean, default=False, doc='是否为当前激活主题')
 
+
     is_installed = Column(Boolean, default=True, doc='是否已安装')
+
 
     settings = Column(String(255), nullable=True, doc='主题配置（JSON格式）')
 
@@ -97,3 +100,5 @@ class Theme(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<Theme id={self.id}>'
+
+

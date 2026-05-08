@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - WidgetInstance
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-08 11:23:57
+生成时间：2026-05-08 14:40:59
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Index
@@ -21,6 +21,7 @@ class WidgetInstance(Base):
         Index('idx_widget_instances_type', 'widget_type'),
     )
 
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='Widget实例 ID')
 
     widget_type = Column(String(50), nullable=True, doc='Widget类型（search, recent_posts, categories等）')
@@ -33,7 +34,9 @@ class WidgetInstance(Base):
 
     order_index = Column(BigInteger, default=0, doc='显示顺序')
 
+
     is_active = Column(Boolean, default=True, doc='是否启用')
+
 
     conditions = Column(String(255), nullable=True, doc='显示条件（JSON格式）')
 
@@ -71,3 +74,5 @@ class WidgetInstance(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<WidgetInstance id={self.id}>'
+
+

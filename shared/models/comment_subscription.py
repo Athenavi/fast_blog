@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - CommentSubscription
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-08 11:23:57
+生成时间：2026-05-08 14:40:59
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
@@ -22,18 +22,21 @@ class CommentSubscription(Base):
         Index('idx_comment_subscriptions_unique', 'article_id', 'email', unique=True),
     )
 
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='订阅 ID')
 
     article_id = Column(BigInteger, index=True, doc='文章 ID')
 
+
     user_id = Column(BigInteger, ForeignKey('users.id'), nullable=True, doc='用户 ID（访客订阅可为空）')
+
 
     email = Column(String(255), nullable=True, doc='订阅邮箱')
 
-    notify_type = Column(String(255), default='new_comment',
-                         doc='通知类型 (new_comment: 新评论, reply_to_me: 回复我, all_replies: 所有回复)')
+    notify_type = Column(String(255), default='new_comment', doc='通知类型 (new_comment: 新评论, reply_to_me: 回复我, all_replies: 所有回复)')
 
     is_active = Column(Boolean, default=True, doc='是否激活')
+
 
     confirm_token = Column(String(64), nullable=True, doc='确认token（用于访客验证）')
 
@@ -73,3 +76,5 @@ class CommentSubscription(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<CommentSubscription id={self.id}>'
+
+

@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - Category
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-08 11:23:57
+生成时间：2026-05-08 14:40:59
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Index
@@ -22,6 +22,7 @@ class Category(Base):
         Index('idx_categories_is_visible', 'is_visible'),
     )
 
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='分类 ID')
 
     name = Column(String(100), nullable=True, doc='分类名')
@@ -32,7 +33,9 @@ class Category(Base):
 
     parent_id = Column(BigInteger, nullable=True, doc='父分类 ID')
 
+
     sort_order = Column(BigInteger, default=0, doc='排序')
+
 
     icon = Column(String(255), nullable=True, doc='图标')
 
@@ -40,7 +43,9 @@ class Category(Base):
 
     is_visible = Column(Boolean, default=True, doc='是否可见')
 
+
     articles_count = Column(BigInteger, doc='分类下的文章数量')
+
 
     created_at = Column(DateTime, doc='创建时间')
 
@@ -78,3 +83,5 @@ class Category(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<Category id={self.id}>'
+
+

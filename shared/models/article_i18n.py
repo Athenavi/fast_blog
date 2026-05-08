@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - ArticleI18n
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-08 11:23:57
+生成时间：2026-05-08 14:40:59
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey
@@ -14,9 +14,13 @@ class ArticleI18n(Base):
     """文章国际化模型模型"""
     __tablename__ = 'article_i18n'
 
+
+
+
     i18n_id = Column(BigInteger, primary_key=True, autoincrement=True, doc='国际化 ID')
 
     article = Column(BigInteger, ForeignKey('articles.id'), doc='文章')
+
 
     language_id = Column(String(10), nullable=True, doc='语言 ID')
 
@@ -25,6 +29,7 @@ class ArticleI18n(Base):
     slug = Column(String(255), nullable=True, doc='文章 slug')
 
     content = Column(Text, nullable=False, doc='文章内容')
+
 
     excerpt = Column(String(255), nullable=True, doc='摘要')
 
@@ -61,3 +66,5 @@ class ArticleI18n(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<ArticleI18n i18n_id={self.i18n_id}>'
+
+

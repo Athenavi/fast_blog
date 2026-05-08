@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - Cart
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-08 11:23:57
+生成时间：2026-05-08 14:40:59
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
@@ -20,9 +20,11 @@ class Cart(Base):
         Index('idx_carts_session', 'session_id'),
     )
 
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='购物车 ID')
 
     user_id = Column(BigInteger, ForeignKey('users.id'), nullable=True, doc='用户ID(访客可为空)')
+
 
     session_id = Column(String(255), index=True, nullable=True, doc='会话ID(用于访客购物车)')
 
@@ -55,3 +57,5 @@ class Cart(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<Cart id={self.id}>'
+
+

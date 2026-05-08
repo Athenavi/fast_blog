@@ -1,7 +1,7 @@
 /**
  * API 类型定义
  * 由 routes.yaml 自动生成 - 请勿手动修改
- * 生成时间：2026-05-08 11:23:56
+ * 生成时间：2026-05-08 14:40:59
  */
 
 export interface User {
@@ -364,6 +364,14 @@ export interface PrivateMessage {
     parent_message?: any;
     created_at: string;
     updated_at: string;
+}
+
+export interface UserBlock {
+    id: any;
+    blocker: any;
+    blocked_user: any;
+    reason?: string;
+    created_at: string;
 }
 
 export interface SearchHistory {

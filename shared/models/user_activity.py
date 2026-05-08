@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - UserActivity
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-08 11:23:57
+生成时间：2026-05-08 14:40:59
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey
@@ -14,15 +14,20 @@ class UserActivity(Base):
     """用户活动模型模型"""
     __tablename__ = 'user_activities'
 
+
+
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='活动 ID')
 
     user = Column(BigInteger, ForeignKey('users.id'), doc='用户')
+
 
     activity_type = Column(String(100), nullable=True, doc='活动类型')
 
     target_type = Column(String(50), nullable=True, doc='目标类型')
 
     target_id = Column(BigInteger, doc='目标 ID')
+
 
     details = Column(String(255), nullable=True, doc='活动详情')
 
@@ -61,3 +66,5 @@ class UserActivity(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<UserActivity id={self.id}>'
+
+

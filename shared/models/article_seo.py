@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - ArticleSEO
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-08 11:23:57
+生成时间：2026-05-08 14:40:59
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
@@ -20,19 +20,23 @@ class ArticleSEO(Base):
         Index('idx_article_seo_article_id', 'article_id', unique=True),
     )
 
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='SEO记录ID')
 
     article_id = Column(BigInteger, ForeignKey('articles.id'), doc='关联的文章ID')
 
+
     seo_title = Column(String(255), nullable=True, doc='SEO标题')
 
     seo_description = Column(Text, nullable=True, doc='SEO描述')
+
 
     seo_keywords = Column(String(500), nullable=True, doc='SEO关键词')
 
     og_title = Column(String(255), nullable=True, doc='Open Graph标题')
 
     og_description = Column(Text, nullable=True, doc='Open Graph描述')
+
 
     og_image = Column(String(500), nullable=True, doc='Open Graph图片')
 
@@ -41,6 +45,7 @@ class ArticleSEO(Base):
     twitter_title = Column(String(255), nullable=True, doc='Twitter Card标题')
 
     twitter_description = Column(Text, nullable=True, doc='Twitter Card描述')
+
 
     twitter_image = Column(String(500), nullable=True, doc='Twitter Card图片')
 
@@ -51,6 +56,7 @@ class ArticleSEO(Base):
     robots_meta = Column(String(100), default='index,follow', doc='Robots元标签')
 
     schema_org_enabled = Column(Boolean, default=True, doc='是否启用Schema.org')
+
 
     schema_org_type = Column(String(50), default='BlogPosting', doc='Schema.org类型')
 
@@ -99,3 +105,5 @@ class ArticleSEO(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<ArticleSEO id={self.id}>'
+
+

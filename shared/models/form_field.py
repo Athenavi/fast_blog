@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - FormField
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-08 11:23:57
+生成时间：2026-05-08 14:40:59
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
@@ -20,20 +20,22 @@ class FormField(Base):
         Index('idx_form_fields_order', 'order_index'),
     )
 
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='字段 ID')
 
     form_id = Column(BigInteger, ForeignKey('forms.id'), doc='所属表单 ID')
 
+
     label = Column(String(255), nullable=True, doc='字段标签')
 
-    field_type = Column(String(50), nullable=True,
-                        doc='字段类型（text, email, textarea, select, checkbox, radio, number, date, file）')
+    field_type = Column(String(50), nullable=True, doc='字段类型（text, email, textarea, select, checkbox, radio, number, date, file）')
 
     placeholder = Column(String(255), nullable=True, doc='占位符文本')
 
     help_text = Column(String(255), nullable=True, doc='帮助文本')
 
     required = Column(Boolean, default=False, doc='是否必填')
+
 
     options = Column(String(255), nullable=True, doc='选项列表（JSON格式，用于select/radio/checkbox）')
 
@@ -43,7 +45,9 @@ class FormField(Base):
 
     order_index = Column(BigInteger, default=0, doc='显示顺序')
 
+
     is_active = Column(Boolean, default=True, doc='是否启用')
+
 
     created_at = Column(DateTime, doc='创建时间')
 
@@ -83,3 +87,5 @@ class FormField(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<FormField id={self.id}>'
+
+

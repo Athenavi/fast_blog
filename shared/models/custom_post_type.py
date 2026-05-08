@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - CustomPostType
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-08 11:23:57
+生成时间：2026-05-08 14:40:59
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Index
@@ -20,6 +20,7 @@ class CustomPostType(Base):
         Index('idx_cpt_is_active', 'is_active'),
     )
 
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='内容类型ID')
 
     name = Column(String(100), nullable=True, doc='内容类型名称')
@@ -32,11 +33,14 @@ class CustomPostType(Base):
 
     has_archive = Column(Boolean, default=False, doc='是否有归档页')
 
+
     menu_icon = Column(String(255), nullable=True, doc='菜单图标')
 
     menu_position = Column(Integer, default=5, doc='菜单位置')
 
+
     is_active = Column(Boolean, default=True, doc='是否激活')
+
 
     created_at = Column(DateTime, doc='创建时间')
 
@@ -73,3 +77,5 @@ class CustomPostType(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<CustomPostType id={self.id}>'
+
+

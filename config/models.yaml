@@ -1496,6 +1496,44 @@ models:
       - name: idx_private_messages_is_read
         columns: [ is_read ]
         comment: "已读状态索引"
+  UserBlock:
+    description: 用户屏蔽/拉黑模型
+    properties:
+      id:
+        type: bigint
+        description: 屏蔽记录ID
+      blocker:
+        type: bigint
+        description: 屏蔽者用户ID
+        foreignKey: User
+        index: true
+      blocked_user:
+        type: bigint
+        description: 被屏蔽用户ID
+        foreignKey: User
+        index: true
+      reason:
+        type: string
+        nullable: true
+        maxLength: 500
+        description: 屏蔽原因
+      created_at:
+        type: string
+        format: date-time
+        description: 屏蔽时间
+    orm: true
+    table: user_blocks
+    indexes:
+      - name: idx_user_blocks_unique
+        columns: [ blocker, blocked_user ]
+        unique: true
+        comment: "唯一屏蔽关系索引"
+      - name: idx_user_blocks_blocker
+        columns: [ blocker ]
+        comment: "屏蔽者索引"
+      - name: idx_user_blocks_blocked
+        columns: [ blocked_user ]
+        comment: "被屏蔽者索引"
   SearchHistory:
     description: 搜索历史模型
     properties:

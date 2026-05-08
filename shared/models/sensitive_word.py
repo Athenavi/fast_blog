@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - SensitiveWord
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-08 11:23:57
+生成时间：2026-05-08 14:40:59
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
@@ -21,11 +21,13 @@ class SensitiveWord(Base):
         Index('idx_sensitive_word_active', 'is_active'),
     )
 
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='敏感词 ID')
 
     word = Column(String(100), unique=True, nullable=True, doc='敏感词内容')
 
     level = Column(Integer, default=1, doc='敏感级别 (1:低, 2:中, 3:高)')
+
 
     action = Column(String(50), default='block', doc='处理方式 (block:拦截, replace:替换, warn:警告)')
 
@@ -35,7 +37,9 @@ class SensitiveWord(Base):
 
     is_active = Column(Boolean, default=True, doc='是否激活')
 
+
     created_by = Column(BigInteger, ForeignKey('users.id'), nullable=True, doc='创建者用户ID')
+
 
     created_at = Column(DateTime, doc='创建时间')
 
@@ -71,3 +75,5 @@ class SensitiveWord(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<SensitiveWord id={self.id}>'
+
+

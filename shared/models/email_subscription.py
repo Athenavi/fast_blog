@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - EmailSubscription
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-08 11:23:57
+生成时间：2026-05-08 14:40:59
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey
@@ -14,11 +14,16 @@ class EmailSubscription(Base):
     """邮件订阅模型模型"""
     __tablename__ = 'email_subscriptions'
 
+
+
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='订阅 ID')
 
     user = Column(BigInteger, ForeignKey('users.id'), doc='用户')
 
+
     subscribed = Column(Boolean, default=True, doc='是否订阅邮件')
+
 
     created_at = Column(DateTime, doc='创建时间')
 
@@ -46,3 +51,5 @@ class EmailSubscription(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<EmailSubscription id={self.id}>'
+
+

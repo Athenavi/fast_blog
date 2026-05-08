@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - VIPPlan
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-08 11:23:57
+生成时间：2026-05-08 14:40:59
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Numeric
@@ -14,6 +14,9 @@ class VIPPlan(Base):
     """VIP 套餐模型模型"""
     __tablename__ = 'vip_plans'
 
+
+
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='套餐 ID')
 
     name = Column(String(100), nullable=True, doc='套餐名称')
@@ -22,15 +25,20 @@ class VIPPlan(Base):
 
     price = Column(Numeric(10, 2), doc='价格')
 
+
     original_price = Column(Numeric(10, 2), nullable=True, doc='原价')
+
 
     duration_days = Column(Integer, doc='有效期天数')
 
+
     level = Column(BigInteger, default=1, doc='VIP 等级')
+
 
     features = Column(String(255), nullable=True, doc='特权功能 JSON')
 
     is_active = Column(Boolean, default=True, doc='是否激活')
+
 
     created_at = Column(DateTime, doc='创建时间')
 
@@ -67,3 +75,5 @@ class VIPPlan(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<VIPPlan id={self.id}>'
+
+

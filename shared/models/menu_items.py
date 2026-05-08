@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - MenuItems
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-08 11:23:57
+生成时间：2026-05-08 14:40:59
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Index
@@ -21,11 +21,14 @@ class MenuItems(Base):
         Index('idx_menu_items_order', 'order_index'),
     )
 
+
     id = Column(Integer, primary_key=True, autoincrement=True, doc='菜单项 ID')
 
     menu_id = Column(Integer, doc='菜单 ID')
 
+
     parent_id = Column(Integer, nullable=True, doc='父菜单项 ID')
+
 
     title = Column(String(255), nullable=True, doc='标题')
 
@@ -35,7 +38,9 @@ class MenuItems(Base):
 
     order_index = Column(Integer, default=0, doc='排序索引')
 
+
     is_active = Column(Boolean, default=True, doc='是否激活')
+
 
     created_at = Column(DateTime, doc='创建时间')
 
@@ -68,3 +73,5 @@ class MenuItems(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<MenuItems id={self.id}>'
+
+

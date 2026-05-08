@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - ArticleRevision
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-08 11:23:57
+生成时间：2026-05-08 14:40:59
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
@@ -23,11 +23,14 @@ class ArticleRevision(Base):
         Index('idx_article_revisions_hash', 'hash_code'),
     )
 
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='修订ID')
 
     article_id = Column(BigInteger, ForeignKey('articles.id'), doc='关联的文章ID')
 
+
     revision_number = Column(BigInteger, doc='修订版本号')
+
 
     title = Column(String(255), nullable=True, doc='修订时的标题')
 
@@ -35,23 +38,31 @@ class ArticleRevision(Base):
 
     content = Column(Text, nullable=False, doc='修订时的文章内容')
 
+
     cover_image = Column(String(255), nullable=True, doc='修订时的封面图')
 
     tags_list = Column(String(255), nullable=True, doc='修订时的标签')
 
     category_id = Column(BigInteger, nullable=True, doc='修订时的分类ID')
 
+
     status = Column(BigInteger, default=0, doc='修订时的文章状态')
+
 
     hidden = Column(Boolean, default=False, doc='修订时的隐藏状态')
 
+
     is_featured = Column(Boolean, default=False, doc='修订时的精选状态')
+
 
     is_vip_only = Column(Boolean, default=False, doc='修订时的VIP限制')
 
+
     required_vip_level = Column(BigInteger, default=0, doc='修订时的VIP等级要求')
 
+
     author_id = Column(BigInteger, ForeignKey('users.id'), nullable=True, doc='执行修订的用户ID')
+
 
     change_summary = Column(String(500), nullable=True, doc='修订说明/变更摘要')
 
@@ -60,8 +71,7 @@ class ArticleRevision(Base):
     created_at = Column(DateTime, doc='修订创建时间')
 
     # 关系定义
-    article = relationship('Article', back_populates='revisions',
-                           primaryjoin="ArticleRevision.article_id == Article.id")
+    article = relationship('Article', back_populates='revisions', primaryjoin="ArticleRevision.article_id == Article.id")
 
     def to_dict(self, exclude_sensitive=True):
         """转换为字典
@@ -100,3 +110,5 @@ class ArticleRevision(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<ArticleRevision id={self.id}>'
+
+

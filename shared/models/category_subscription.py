@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - CategorySubscription
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-08 11:23:57
+生成时间：2026-05-08 14:40:59
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey
@@ -14,11 +14,16 @@ class CategorySubscription(Base):
     """分类订阅模型模型"""
     __tablename__ = 'category_subscriptions'
 
+
+
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='订阅 ID')
 
     category = Column(BigInteger, ForeignKey('categories.id'), doc='分类')
 
+
     subscriber = Column(BigInteger, ForeignKey('users.id'), doc='订阅用户')
+
 
     created_at = Column(DateTime, doc='创建时间')
 
@@ -46,3 +51,5 @@ class CategorySubscription(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<CategorySubscription id={self.id}>'
+
+

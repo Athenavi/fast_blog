@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - Site
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-08 11:23:57
+生成时间：2026-05-08 14:40:59
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Index
@@ -22,6 +22,7 @@ class Site(Base):
         Index('idx_sites_is_default', 'is_default'),
     )
 
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='站点 ID')
 
     name = Column(String(200), nullable=True, doc='站点名称')
@@ -34,7 +35,9 @@ class Site(Base):
 
     is_active = Column(Boolean, default=True, doc='是否激活')
 
+
     is_default = Column(Boolean, default=False, doc='是否为默认站点')
+
 
     settings = Column(String(255), nullable=True, doc='站点设置（JSON格式）')
 
@@ -48,9 +51,11 @@ class Site(Base):
 
     description = Column(Text, nullable=True, doc='站点描述')
 
+
     keywords = Column(String(500), nullable=True, doc='关键词')
 
     admin_user_id = Column(BigInteger, nullable=True, doc='站点管理员ID')
+
 
     created_at = Column(DateTime, doc='创建时间')
 
@@ -93,3 +98,5 @@ class Site(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<Site id={self.id}>'
+
+

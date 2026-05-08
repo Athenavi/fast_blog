@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - User
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-08 11:23:56
+生成时间：2026-05-08 14:40:59
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Index
@@ -25,6 +25,7 @@ class User(Base):
         Index('idx_users_last_login', 'last_login_at'),
     )
 
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='用户 ID')
 
     username = Column(String(255), unique=True, nullable=True, doc='用户名')
@@ -39,13 +40,17 @@ class User(Base):
 
     profile_private = Column(Boolean, default=False, doc='是否私密资料')
 
+
     vip_level = Column(BigInteger, default=0, doc='VIP 等级')
+
 
     vip_expires_at = Column(DateTime, nullable=True, doc='VIP 过期时间')
 
     is_active = Column(Boolean, default=True, doc='是否激活')
 
+
     is_superuser = Column(Boolean, default=False, doc='是否为超级管理员')
+
 
     date_joined = Column(DateTime, doc='注册时间')
 
@@ -55,11 +60,13 @@ class User(Base):
 
     is_staff = Column(Boolean, default=False, doc='是否为工作人员')
 
+
     last_login_ip = Column(String(255), nullable=True, doc='上次登录 IP')
 
     register_ip = Column(String(255), nullable=True, doc='注册 IP')
 
     is_2fa_enabled = Column(Boolean, default=False, doc='是否启用双因素认证')
+
 
     totp_secret = Column(String(32), nullable=True, doc='TOTP 密钥')
 
@@ -107,43 +114,4 @@ class User(Base):
         """字符串表示"""
         return f'<User id={self.id}>'
 
-    def is_vip(self) -> bool:
-        """
-        判断是否为 VIP 用户
 
-        Returns:
-            bool: 是否为 VIP 用户
-        """
-        if not self.vip_level:
-            return False
-
-        # 检查 VIP 是否过期
-        if self.vip_expires_at:
-            try:
-                # 如果 vip_expires_at 是字符串，尝试解析
-                if isinstance(self.vip_expires_at, str):
-                    expires = datetime.fromisoformat(self.vip_expires_at.replace('Z', '+00:00'))
-                    return datetime.now(expires.tzinfo) < expires
-                else:
-                    # 如果是 datetime 对象
-                    tzinfo = getattr(self.vip_expires_at, 'tzinfo', None)
-                    return datetime.now(tzinfo) < self.vip_expires_at
-            except Exception:
-                # 如果解析失败，只检查 vip_level
-                return self.vip_level > 0
-
-        return self.vip_level > 0
-
-
-    def get_display_name(self) -> str:
-        """
-        获取显示名称
-
-        Returns:
-            str: 显示名称（优先返回 username）
-        """
-        if hasattr(self, 'username'):
-            return self.username
-        if hasattr(self, 'name'):
-            return self.name
-        return f"User_{self.id}"

@@ -41,6 +41,9 @@ def _import_modules():
         "template_hierarchy", "ecommerce", "ecommerce_cart",
         "inventory_management",  # 库存管理
         "payment_management",  # 支付管理
+        "share_stats",  # 分享统计
+        "user_blocks",  # 用户屏蔽
+        "sensitive_words",  # 敏感词管理
     ]
 
     for name in module_names:
@@ -69,6 +72,9 @@ __all__ = [
     "translation_service", "internal_links", "migrations", "template_hierarchy", "ecommerce", "ecommerce_cart",
     "inventory_management",  # 库存管理
     "payment_management",  # 支付管理
+    "share_stats",  # 分享统计
+    "user_blocks",  # 用户屏蔽
+    "sensitive_words",  # 敏感词管理
 ]
 
 api_v1_router = APIRouter(prefix="/api/v1", tags=["api-v1"])
@@ -131,6 +137,9 @@ def _include_routers():
         ("ecommerce_cart", True, ""),  # 购物车和订单
         ("inventory_management", True, "/inventory"),  # 库存管理
         ("payment_management", True, "/payment"),  # 支付管理
+        ("share_stats", True, "/shares"),  # 分享统计
+        ("user_blocks", True, "/blocks"),  # 用户屏蔽
+        ("sensitive_words", True, "/sensitive-words"),  # 敏感词管理
     ]
 
     for name, required, prefix in router_configs:

@@ -1,7 +1,7 @@
 """
 Django ORM 抽象基类定义
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-08 10:43:26
+生成时间：2026-05-08 14:40:59
 """
 
 from django.db import models
@@ -59,66 +59,66 @@ class SoftDeleteMixin(models.Model):
 class UserMixin(models.Model):
     """用户模型 Mixin"""
 
-    # id
+    # 用户 ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # username
+        '用户 ID'        , primary_key=True)
+    # 用户名
     username = models.CharField(
-        'username', max_length=255, unique=True)
-    # email
+        '用户名', max_length=255, unique=True)
+    # 邮箱
     email = models.CharField(
-        'email', max_length=255)
-    # password
+        '邮箱', max_length=255)
+    # 密码(哈希后存储)
     password = models.CharField(
-        'password', max_length=255)
-    # profile_picture
+        '密码(哈希后存储)', max_length=255)
+    # 个人资料图片
     profile_picture = models.CharField(
-        'profile_picture', max_length=255, blank=True, null=True)
-    # bio
+        '个人资料图片', max_length=255, blank=True, null=True)
+    # 个人简介
     bio = models.CharField(
-        'bio', max_length=255, blank=True, null=True)
-    # profile_private
+        '个人简介', max_length=255, blank=True, null=True)
+    # 是否私密资料
     profile_private = models.BooleanField(
-        'profile_private', default=False)
-    # vip_level
+        '是否私密资料',default=False)
+    # VIP 等级
     vip_level = models.BigIntegerField(
-        'vip_level', default=0)
-    # vip_expires_at
+        'VIP 等级', default=0)
+    # VIP 过期时间
     vip_expires_at = models.DateTimeField(
-        'vip_expires_at', blank=True, null=True)
-    # is_active
+        'VIP 过期时间', blank=True, null=True)
+    # 是否激活
     is_active = models.BooleanField(
-        'is_active', default=True)
-    # is_superuser
+        '是否激活',default=True)
+    # 是否为超级管理员
     is_superuser = models.BooleanField(
-        'is_superuser', default=False)
-    # date_joined
+        '是否为超级管理员',default=False)
+    # 注册时间
     date_joined = models.DateTimeField(
-        'date_joined')
-    # last_login_at
+        '注册时间')
+    # 上次登录时间
     last_login_at = models.DateTimeField(
-        'last_login_at', blank=True, null=True)
-    # locale
+        '上次登录时间', blank=True, null=True)
+    # 语言设置
     locale = models.CharField(
-        'locale', max_length=255, default='zh_CN')
-    # is_staff
+        '语言设置', max_length=255, default='zh_CN')
+    # 是否为工作人员
     is_staff = models.BooleanField(
-        'is_staff', default=False)
-    # last_login_ip
+        '是否为工作人员',default=False)
+    # 上次登录 IP
     last_login_ip = models.CharField(
-        'last_login_ip', max_length=255, blank=True, null=True)
-    # register_ip
+        '上次登录 IP', max_length=255, blank=True, null=True)
+    # 注册 IP
     register_ip = models.CharField(
-        'register_ip', max_length=255, blank=True, null=True)
-    # is_2fa_enabled
+        '注册 IP', max_length=255, blank=True, null=True)
+    # 是否启用双因素认证
     is_2fa_enabled = models.BooleanField(
-        'is_2fa_enabled', default=False)
-    # totp_secret
+        '是否启用双因素认证',default=False)
+    # TOTP 密钥
     totp_secret = models.CharField(
-        'totp_secret', max_length=32, blank=True, null=True)
-    # backup_codes
+        'TOTP 密钥', max_length=32, blank=True, null=True)
+    # 备用码(JSON格式存储)
     backup_codes = models.TextField(
-        'backup_codes', blank=True, null=True)
+        '备用码(JSON格式存储)', blank=True, null=True)
 
     class Meta:
         abstract = True
@@ -131,18 +131,18 @@ class UserMixin(models.Model):
 class UserCreateMixin(models.Model):
     """用户创建请求模型 Mixin"""
 
-    # username
+    # 用户名
     username = models.CharField(
-        'username', max_length=150)
-    # email
+        '用户名', max_length=150)
+    # 邮箱
     email = models.CharField(
-        'email', max_length=255)
-    # password
+        '邮箱', max_length=255)
+    # 密码
     password = models.CharField(
-        'password', max_length=255)
-    # password_confirm
+        '密码', max_length=255)
+    # 确认密码
     password_confirm = models.CharField(
-        'password_confirm', max_length=255)
+        '确认密码', max_length=255)
 
     class Meta:
         abstract = True
@@ -155,24 +155,24 @@ class UserCreateMixin(models.Model):
 class UserUpdateMixin(models.Model):
     """用户更新请求模型 Mixin"""
 
-    # username
+    # 用户名
     username = models.CharField(
-        'username', max_length=150)
-    # email
+        '用户名', max_length=150)
+    # 邮箱
     email = models.CharField(
-        'email', max_length=255)
-    # profile_picture
+        '邮箱', max_length=255)
+    # 个人资料图片
     profile_picture = models.CharField(
-        'profile_picture', max_length=255, blank=True, null=True)
-    # bio
+        '个人资料图片', max_length=255, blank=True, null=True)
+    # 个人简介
     bio = models.CharField(
-        'bio', max_length=255, blank=True, null=True)
-    # locale
+        '个人简介', max_length=255, blank=True, null=True)
+    # 语言设置
     locale = models.CharField(
-        'locale', max_length=255, default='zh_CN')
-    # profile_private
+        '语言设置', max_length=255, default='zh_CN')
+    # 是否私密资料
     profile_private = models.BooleanField(
-        'profile_private', default=False)
+        '是否私密资料',default=False)
 
     class Meta:
         abstract = True
@@ -185,21 +185,21 @@ class UserUpdateMixin(models.Model):
 class ProfileUpdateRequestMixin(models.Model):
     """用户资料更新请求 Mixin"""
 
-    # username
+    # 用户名
     username = models.CharField(
-        'username', max_length=255, blank=True, null=True)
-    # email
+        '用户名', max_length=255, blank=True, null=True)
+    # 邮箱
     email = models.CharField(
-        'email', max_length=255, blank=True, null=True)
-    # bio
+        '邮箱', max_length=255, blank=True, null=True)
+    # 个人简介
     bio = models.CharField(
-        'bio', max_length=255, blank=True, null=True)
-    # profile_private
+        '个人简介', max_length=255, blank=True, null=True)
+    # 是否私密资料
     profile_private = models.BooleanField(
-        'profile_private', default=False)
-    # locale
+        '是否私密资料',default = False)
+    # 语言设置
     locale = models.CharField(
-        'locale', max_length=255, blank=True, null=True)
+        '语言设置', max_length=255, blank=True, null=True)
 
     class Meta:
         abstract = True
@@ -212,15 +212,15 @@ class ProfileUpdateRequestMixin(models.Model):
 class PasswordChangeMixin(models.Model):
     """密码修改请求模型 Mixin"""
 
-    # old_password
+    # 当前密码
     old_password = models.CharField(
-        'old_password', max_length=255)
-    # new_password
+        '当前密码', max_length=255)
+    # 新密码
     new_password = models.CharField(
-        'new_password', max_length=255)
-    # new_password_confirm
+        '新密码', max_length=255)
+    # 确认新密码
     new_password_confirm = models.CharField(
-        'new_password_confirm', max_length=255)
+        '确认新密码', max_length=255)
 
     class Meta:
         abstract = True
@@ -233,66 +233,66 @@ class PasswordChangeMixin(models.Model):
 class ArticleMixin(models.Model):
     """文章模型 Mixin"""
 
-    # id
+    # 文章 ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # title
+        '文章 ID'        , primary_key=True)
+    # 标题
     title = models.CharField(
-        'title', max_length=255)
-    # slug
+        '标题', max_length=255)
+    # 文章 slug
     slug = models.CharField(
-        'slug', max_length=255)
-    # excerpt
+        '文章 slug', max_length=255)
+    # 摘要
     excerpt = models.CharField(
-        'excerpt', max_length=255, blank=True, null=True)
-    # cover_image
+        '摘要', max_length=255, blank=True, null=True)
+    # 封面图 URL
     cover_image = models.CharField(
-        'cover_image', max_length=255, blank=True, null=True)
-    # category
+        '封面图 URL', max_length=255, blank=True, null=True)
+    # 分类
     category = models.IntegerField(
-        'category (暂为 IntegerField，等待 Category 模型实现)', null=True, blank=True)
-    # tags_list
+        '分类 (暂为 IntegerField，等待 Category 模型实现)',null=True, blank=True)
+    # 标签列表
     tags_list = models.CharField(
-        'tags_list', max_length=255)
-    # views
+        '标签列表', max_length=255)
+    # 浏览量
     views = models.BigIntegerField(
-        'views', default=0)
-    # user
+        '浏览量', default=0)
+    # 用户
     user = models.IntegerField(
-        'user (暂为 IntegerField，等待 User 模型实现)', )
-    # likes
+        '用户 (暂为 IntegerField，等待 User 模型实现)',)
+    # 点赞数
     likes = models.BigIntegerField(
-        'likes', default=0)
-    # status
+        '点赞数', default=0)
+    # 状态 (-1:已删除，0:草稿，1:已发布)
     status = models.IntegerField(
-        'status')
-    # hidden
+        '状态 (-1:已删除，0:草稿，1:已发布)')
+    # 是否隐藏
     hidden = models.BooleanField(
-        'hidden', default=False)
-    # is_featured
+        '是否隐藏',default=False)
+    # 是否推荐
     is_featured = models.BooleanField(
-        'is_featured', default=False)
-    # is_vip_only
+        '是否推荐',default=False)
+    # 是否仅 VIP 可见
     is_vip_only = models.BooleanField(
-        'is_vip_only', default=False)
-    # required_vip_level
+        '是否仅 VIP 可见',default=False)
+    # 所需 VIP 等级
     required_vip_level = models.IntegerField(
-        'required_vip_level', default=0)
-    # article_ad
+        '所需 VIP 等级', default=0)
+    # 广告内容
     article_ad = models.CharField(
-        'article_ad', max_length=255, blank=True, null=True)
-    # scheduled_publish_at
+        '广告内容', max_length=255, blank=True, null=True)
+    # 定时发布时间(设置为未来时间后自动发布)
     scheduled_publish_at = models.DateTimeField(
-        'scheduled_publish_at', blank=True, null=True)
-    # post_type
+        '定时发布时间(设置为未来时间后自动发布)', blank=True, null=True)
+    # 内容类型(article/book/product等)
     post_type = models.CharField(
-        'post_type', max_length=50, default='article')
-    # is_sticky
+        '内容类型(article/book/product等)', max_length=50, default='article')
+    # 是否置顶(粘性文章)
     is_sticky = models.BooleanField(
-        'is_sticky', default=False)
-    # sticky_until
+        '是否置顶(粘性文章)',default=False)
+    # 置顶过期时间(可选，过期后自动取消置顶)
     sticky_until = models.DateTimeField(
-        'sticky_until', blank=True, null=True)
+        '置顶过期时间(可选，过期后自动取消置顶)', blank=True, null=True)
 
     class Meta:
         abstract = True
@@ -305,48 +305,48 @@ class ArticleMixin(models.Model):
 class ArticleListMixin(models.Model):
     """文章列表模型 Mixin"""
 
-    # id
+    # 文章 ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # title
+        '文章 ID'        , primary_key=True)
+    # 标题
     title = models.CharField(
-        'title', max_length=255)
-    # slug
+        '标题', max_length=255)
+    # 文章 slug
     slug = models.CharField(
-        'slug', max_length=255)
-    # excerpt
+        '文章 slug', max_length=255)
+    # 摘要
     excerpt = models.CharField(
-        'excerpt', max_length=255, blank=True, null=True)
-    # cover_image
+        '摘要', max_length=255, blank=True, null=True)
+    # 封面图 URL
     cover_image = models.CharField(
-        'cover_image', max_length=255, blank=True, null=True)
-    # category_id
+        '封面图 URL', max_length=255, blank=True, null=True)
+    # 分类 ID
     category_id = models.BigIntegerField(
-        'category_id', blank=True, null=True)
-    # tags_list
+        '分类 ID', blank=True, null=True)
+    # 标签列表
     tags_list = models.CharField(
-        'tags_list', max_length=255)
-    # views
+        '标签列表', max_length=255)
+    # 浏览量
     views = models.BigIntegerField(
-        'views', default=0)
-    # likes
+        '浏览量', default=0)
+    # 点赞数
     likes = models.BigIntegerField(
-        'likes', default=0)
-    # status
+        '点赞数', default=0)
+    # 状态
     status = models.IntegerField(
-        'status')
-    # is_featured
+        '状态')
+    # 是否推荐
     is_featured = models.BooleanField(
-        'is_featured', default=False)
-    # is_vip_only
+        '是否推荐',default=False)
+    # 是否仅 VIP 可见
     is_vip_only = models.BooleanField(
-        'is_vip_only', default=False)
-    # required_vip_level
+        '是否仅 VIP 可见',default=False)
+    # 所需 VIP 等级
     required_vip_level = models.IntegerField(
-        'required_vip_level', default=0)
-    # is_sticky
+        '所需 VIP 等级', default=0)
+    # 是否置顶
     is_sticky = models.BooleanField(
-        'is_sticky', default=False)
+        '是否置顶',default=False)
 
     class Meta:
         abstract = True
@@ -359,12 +359,12 @@ class ArticleListMixin(models.Model):
 class AuthorSimpleMixin(models.Model):
     """作者简化信息 Mixin"""
 
-    # id
+    # 用户 ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # username
+        '用户 ID'        , primary_key=True)
+    # 用户名
     username = models.CharField(
-        'username', max_length=255)
+        '用户名', max_length=255)
 
     class Meta:
         abstract = True
@@ -377,51 +377,51 @@ class AuthorSimpleMixin(models.Model):
 class ArticleCreateUpdateMixin(models.Model):
     """文章创建/更新请求模型 Mixin"""
 
-    # title
+    # 标题
     title = models.CharField(
-        'title', max_length=255)
-    # slug
+        '标题', max_length=255)
+    # 文章 slug
     slug = models.CharField(
-        'slug', max_length=255)
-    # excerpt
+        '文章 slug', max_length=255)
+    # 摘要
     excerpt = models.CharField(
-        'excerpt', max_length=255, blank=True, null=True)
-    # cover_image
+        '摘要', max_length=255, blank=True, null=True)
+    # 封面图 URL
     cover_image = models.CharField(
-        'cover_image', max_length=255, blank=True, null=True)
-    # category_id
+        '封面图 URL', max_length=255, blank=True, null=True)
+    # 分类 ID
     category_id = models.BigIntegerField(
-        'category_id', blank=True, null=True)
-    # tags
+        '分类 ID', blank=True, null=True)
+    # 标签 (逗号分隔)
     tags = models.CharField(
-        'tags', max_length=255, blank=True, null=True)
-    # status
+        '标签 (逗号分隔)', max_length=255, blank=True, null=True)
+    # 状态
     status = models.BigIntegerField(
-        'status', default=1)
-    # hidden
+        '状态', default=1)
+    # 是否隐藏
     hidden = models.BooleanField(
-        'hidden', default=False)
-    # is_featured
+        '是否隐藏',default=False)
+    # 是否推荐
     is_featured = models.BooleanField(
-        'is_featured', default=False)
-    # is_vip_only
+        '是否推荐',default=False)
+    # 是否仅 VIP 可见
     is_vip_only = models.BooleanField(
-        'is_vip_only', default=False)
-    # required_vip_level
+        '是否仅 VIP 可见',default=False)
+    # 所需 VIP 等级
     required_vip_level = models.BigIntegerField(
-        'required_vip_level', default=0)
-    # article_ad
+        '所需 VIP 等级', default=0)
+    # 广告内容
     article_ad = models.CharField(
-        'article_ad', max_length=255, blank=True, null=True)
-    # scheduled_publish_at
+        '广告内容', max_length=255, blank=True, null=True)
+    # 定时发布时间
     scheduled_publish_at = models.DateTimeField(
-        'scheduled_publish_at', blank=True, null=True)
-    # is_sticky
+        '定时发布时间', blank=True, null=True)
+    # 是否置顶
     is_sticky = models.BooleanField(
-        'is_sticky', default=False)
-    # sticky_until
+        '是否置顶',default=False)
+    # 置顶过期时间
     sticky_until = models.DateTimeField(
-        'sticky_until', blank=True, null=True)
+        '置顶过期时间', blank=True, null=True)
 
     class Meta:
         abstract = True
@@ -434,36 +434,36 @@ class ArticleCreateUpdateMixin(models.Model):
 class CategoryMixin(models.Model):
     """分类模型 Mixin"""
 
-    # id
+    # 分类 ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # name
+        '分类 ID'        , primary_key=True)
+    # 分类名
     name = models.CharField(
-        'name', max_length=100)
-    # slug
+        '分类名', max_length=100)
+    # 分类 slug
     slug = models.CharField(
-        'slug', max_length=255, blank=True, null=True)
-    # description
+        '分类 slug', max_length=255, blank=True, null=True)
+    # 分类描述
     description = models.CharField(
-        'description', max_length=255, blank=True, null=True)
-    # parent_id
+        '分类描述', max_length=255, blank=True, null=True)
+    # 父分类 ID
     parent_id = models.BigIntegerField(
-        'parent_id', blank=True, null=True)
-    # sort_order
+        '父分类 ID', blank=True, null=True)
+    # 排序
     sort_order = models.BigIntegerField(
-        'sort_order', default=0)
-    # icon
+        '排序', default=0)
+    # 图标
     icon = models.CharField(
-        'icon', max_length=255, blank=True, null=True)
-    # color
+        '图标', max_length=255, blank=True, null=True)
+    # 颜色
     color = models.CharField(
-        'color', max_length=255, blank=True, null=True)
-    # is_visible
+        '颜色', max_length=255, blank=True, null=True)
+    # 是否可见
     is_visible = models.BooleanField(
-        'is_visible', default=True)
-    # articles_count
+        '是否可见',default=True)
+    # 分类下的文章数量
     articles_count = models.BigIntegerField(
-        'articles_count')
+        '分类下的文章数量')
 
     class Meta:
         abstract = True
@@ -476,30 +476,30 @@ class CategoryMixin(models.Model):
 class CategoryCreateUpdateMixin(models.Model):
     """分类创建/更新请求模型 Mixin"""
 
-    # name
+    # 分类名
     name = models.CharField(
-        'name', max_length=100)
-    # slug
+        '分类名', max_length=100)
+    # 分类 slug
     slug = models.CharField(
-        'slug', max_length=255, blank=True, null=True)
-    # description
+        '分类 slug', max_length=255, blank=True, null=True)
+    # 分类描述
     description = models.CharField(
-        'description', max_length=255, blank=True, null=True)
-    # parent_id
+        '分类描述', max_length=255, blank=True, null=True)
+    # 父分类 ID
     parent_id = models.BigIntegerField(
-        'parent_id', blank=True, null=True)
-    # sort_order
+        '父分类 ID', blank=True, null=True)
+    # 排序
     sort_order = models.BigIntegerField(
-        'sort_order', default=0)
-    # icon
+        '排序', default=0)
+    # 图标
     icon = models.CharField(
-        'icon', max_length=255, blank=True, null=True)
-    # color
+        '图标', max_length=255, blank=True, null=True)
+    # 颜色
     color = models.CharField(
-        'color', max_length=255, blank=True, null=True)
-    # is_visible
+        '颜色', max_length=255, blank=True, null=True)
+    # 是否可见
     is_visible = models.BooleanField(
-        'is_visible', default=True)
+        '是否可见',default=True)
 
     class Meta:
         abstract = True
@@ -512,15 +512,15 @@ class CategoryCreateUpdateMixin(models.Model):
 class CategorySubscriptionMixin(models.Model):
     """分类订阅模型 Mixin"""
 
-    # id
+    # 订阅 ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # category
+        '订阅 ID'        , primary_key=True)
+    # 分类
     category = models.IntegerField(
-        'category (暂为 IntegerField，等待 Category 模型实现)', )
-    # subscriber
+        '分类 (暂为 IntegerField，等待 Category 模型实现)',)
+    # 订阅用户
     subscriber = models.IntegerField(
-        'subscriber (暂为 IntegerField，等待 User 模型实现)', )
+        '订阅用户 (暂为 IntegerField，等待 User 模型实现)',)
 
     class Meta:
         abstract = True
@@ -533,72 +533,72 @@ class CategorySubscriptionMixin(models.Model):
 class MediaMixin(models.Model):
     """媒体文件模型 Mixin"""
 
-    # id
+    # 媒体 ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # user
+        '媒体 ID'        , primary_key=True)
+    # 上传用户
     user = models.IntegerField(
-        'user (暂为 IntegerField，等待 User 模型实现)', )
-    # hash
+        '上传用户 (暂为 IntegerField，等待 User 模型实现)',)
+    # 文件哈希
     hash = models.CharField(
-        'hash', max_length=64)
-    # filename
+        '文件哈希', max_length=64)
+    # 文件名
     filename = models.CharField(
-        'filename', max_length=255)
-    # original_filename
+        '文件名', max_length=255)
+    # 原始文件名
     original_filename = models.CharField(
-        'original_filename', max_length=255, blank=True, null=True)
-    # file_path
+        '原始文件名', max_length=255, blank=True, null=True)
+    # 文件路径
     file_path = models.CharField(
-        'file_path', max_length=500)
-    # file_url
+        '文件路径', max_length=500)
+    # 文件 URL
     file_url = models.CharField(
-        'file_url', max_length=500)
-    # file_size
+        '文件 URL', max_length=500)
+    # 文件大小 (字节)
     file_size = models.BigIntegerField(
-        'file_size', default=0)
-    # file_type
+        '文件大小 (字节)', default=0)
+    # 文件类型
     file_type = models.CharField(
-        'file_type', max_length=255, default='other')
-    # mime_type
+        '文件类型', max_length=255, default='other')
+    # MIME 类型
     mime_type = models.CharField(
-        'mime_type', max_length=255, blank=True, null=True)
-    # width
+        'MIME 类型', max_length=255, blank=True, null=True)
+    # 宽度
     width = models.BigIntegerField(
-        'width', blank=True, null=True)
-    # height
+        '宽度', blank=True, null=True)
+    # 高度
     height = models.BigIntegerField(
-        'height', blank=True, null=True)
-    # duration
+        '高度', blank=True, null=True)
+    # 时长 (秒)
     duration = models.BigIntegerField(
-        'duration', blank=True, null=True)
-    # thumbnail_path
+        '时长 (秒)', blank=True, null=True)
+    # 缩略图路径
     thumbnail_path = models.CharField(
-        'thumbnail_path', max_length=255, blank=True, null=True)
-    # thumbnail_url
+        '缩略图路径', max_length=255, blank=True, null=True)
+    # 缩略图 URL
     thumbnail_url = models.CharField(
-        'thumbnail_url', max_length=255, blank=True, null=True)
-    # description
+        '缩略图 URL', max_length=255, blank=True, null=True)
+    # 描述
     description = models.CharField(
-        'description', max_length=255, blank=True, null=True)
-    # alt_text
+        '描述', max_length=255, blank=True, null=True)
+    # 替代文本
     alt_text = models.CharField(
-        'alt_text', max_length=255, blank=True, null=True)
-    # is_public
+        '替代文本', max_length=255, blank=True, null=True)
+    # 是否公开
     is_public = models.BooleanField(
-        'is_public', default=True)
-    # download_count
+        '是否公开',default=True)
+    # 下载次数
     download_count = models.BigIntegerField(
-        'download_count', default=0)
-    # category
+        '下载次数', default=0)
+    # 媒体分类
     category = models.CharField(
-        'category', max_length=100, blank=True, null=True)
-    # tags
+        '媒体分类', max_length=100, blank=True, null=True)
+    # 标签(逗号分隔)
     tags = models.CharField(
-        'tags', max_length=500, blank=True, null=True)
-    # folder_id
+        '标签(逗号分隔)', max_length=500, blank=True, null=True)
+    # 所属文件夹 ID
     folder_id = models.IntegerField(
-        'folder_id (暂为 IntegerField，等待 MediaFolder 模型实现)', null=True, blank=True)
+        '所属文件夹 ID (暂为 IntegerField，等待 MediaFolder 模型实现)',null=True, blank=True)
 
     class Meta:
         abstract = True
@@ -611,32 +611,32 @@ class MediaMixin(models.Model):
 class MediaFolderMixin(models.Model):
     """媒体文件夹模型 Mixin"""
 
-    # id
+    # 文件夹 ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # name
+        '文件夹 ID'        , primary_key=True)
+    # 文件夹名称
     name = models.CharField(
-        'name', max_length=255)
-    # parent_id
+        '文件夹名称', max_length=255)
+    # 父文件夹 ID
     parent_id = models.ForeignKey(
         'self',
         on_delete=models.CASCADE,
-        verbose_name='parent_id', null=True, blank=True)
-    # user
+        verbose_name='父文件夹 ID',null=True, blank=True)
+    # 所属用户
     user = models.IntegerField(
-        'user (暂为 IntegerField，等待 User 模型实现)', )
-    # description
+        '所属用户 (暂为 IntegerField，等待 User 模型实现)',)
+    # 文件夹描述
     description = models.CharField(
-        'description', max_length=255, blank=True, null=True)
-    # sort_order
+        '文件夹描述', max_length=255, blank=True, null=True)
+    # 排序顺序
     sort_order = models.BigIntegerField(
-        'sort_order', default=0)
-    # is_public
+        '排序顺序', default=0)
+    # 是否公开
     is_public = models.BooleanField(
-        'is_public', default=True)
-    # media_count
+        '是否公开',default=True)
+    # 文件夹内媒体数量
     media_count = models.BigIntegerField(
-        'media_count', default=0)
+        '文件夹内媒体数量', default=0)
 
     class Meta:
         abstract = True
@@ -649,24 +649,24 @@ class MediaFolderMixin(models.Model):
 class SystemSettingsMixin(models.Model):
     """系统设置模型 Mixin"""
 
-    # id
+    # 设置 ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # setting_key
+        '设置 ID'        , primary_key=True)
+    # 设置键
     setting_key = models.CharField(
-        'setting_key', max_length=100)
-    # setting_value
+        '设置键', max_length=100)
+    # 设置值
     setting_value = models.CharField(
-        'setting_value', max_length=255)
-    # setting_type
+        '设置值', max_length=255)
+    # 设置类型
     setting_type = models.CharField(
-        'setting_type', max_length=255, default='string')
-    # description
+        '设置类型', max_length=255, default='string')
+    # 描述
     description = models.CharField(
-        'description', max_length=255, blank=True, null=True)
-    # is_public
+        '描述', max_length=255, blank=True, null=True)
+    # 是否公开
     is_public = models.BooleanField(
-        'is_public', default=False)
+        '是否公开',default=False)
 
     class Meta:
         abstract = True
@@ -679,15 +679,15 @@ class SystemSettingsMixin(models.Model):
 class AdminSettingsMixin(models.Model):
     """管理员设置模型 Mixin"""
 
-    # id
+    # 设置 ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # user
+        '设置 ID'        , primary_key=True)
+    # 用户
     user = models.IntegerField(
-        'user (暂为 IntegerField，等待 User 模型实现)', )
-    # settings_data
+        '用户 (暂为 IntegerField，等待 User 模型实现)',)
+    # 设置数据
     settings_data = models.TextField(
-        'settings_data')
+        '设置数据')
 
     class Meta:
         abstract = True
@@ -700,21 +700,21 @@ class AdminSettingsMixin(models.Model):
 class ArticleContentMixin(models.Model):
     """文章内容模型 Mixin"""
 
-    # id
+    # ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # article
+        'ID'        , primary_key=True)
+    # 文章
     article = models.IntegerField(
-        'article (暂为 IntegerField，等待 Article 模型实现)', )
-    # passwd
+        '文章 (暂为 IntegerField，等待 Article 模型实现)',)
+    # 访问密码
     passwd = models.CharField(
-        'passwd', max_length=255, blank=True, null=True)
-    # content
+        '访问密码', max_length=255, blank=True, null=True)
+    # 文章内容
     content = models.TextField(
-        'content')
-    # language_code
+        '文章内容')
+    # 语言代码
     language_code = models.CharField(
-        'language_code', max_length=255, default='zh-CN')
+        '语言代码', max_length=255, default='zh-CN')
 
     class Meta:
         abstract = True
@@ -727,27 +727,27 @@ class ArticleContentMixin(models.Model):
 class ArticleI18nMixin(models.Model):
     """文章国际化模型 Mixin"""
 
-    # i18n_id
-    i18n_id = models.BigAutoField(
-        'i18n_id', primary_key=True)
-    # article
+    # 国际化 ID
+    i18n_id = models.BigIntegerField(
+        '国际化 ID')
+    # 文章
     article = models.IntegerField(
-        'article (暂为 IntegerField，等待 Article 模型实现)', )
-    # language_id
+        '文章 (暂为 IntegerField，等待 Article 模型实现)',)
+    # 语言 ID
     language_id = models.CharField(
-        'language_id', max_length=10)
-    # title
+        '语言 ID', max_length=10)
+    # 标题
     title = models.CharField(
-        'title', max_length=255)
-    # slug
+        '标题', max_length=255)
+    # 文章 slug
     slug = models.CharField(
-        'slug', max_length=255)
-    # content
+        '文章 slug', max_length=255)
+    # 文章内容
     content = models.TextField(
-        'content')
-    # excerpt
+        '文章内容')
+    # 摘要
     excerpt = models.CharField(
-        'excerpt', max_length=255, blank=True, null=True)
+        '摘要', max_length=255, blank=True, null=True)
 
     class Meta:
         abstract = True
@@ -760,15 +760,15 @@ class ArticleI18nMixin(models.Model):
 class ArticleLikeMixin(models.Model):
     """文章点赞模型 Mixin"""
 
-    # id
+    # 点赞 ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # user
+        '点赞 ID'        , primary_key=True)
+    # 用户
     user = models.IntegerField(
-        'user (暂为 IntegerField，等待 User 模型实现)', )
-    # article
+        '用户 (暂为 IntegerField，等待 User 模型实现)',)
+    # 文章
     article = models.IntegerField(
-        'article (暂为 IntegerField，等待 Article 模型实现)', )
+        '文章 (暂为 IntegerField，等待 Article 模型实现)',)
 
     class Meta:
         abstract = True
@@ -781,27 +781,27 @@ class ArticleLikeMixin(models.Model):
 class FileHashMixin(models.Model):
     """文件哈希模型 Mixin"""
 
-    # id
+    # 哈希 ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # hash
+        '哈希 ID'        , primary_key=True)
+    # 文件哈希
     hash = models.CharField(
-        'hash', max_length=64)
-    # filename
+        '文件哈希', max_length=64)
+    # 文件名
     filename = models.CharField(
-        'filename', max_length=255)
-    # reference_count
+        '文件名', max_length=255)
+    # 引用计数
     reference_count = models.BigIntegerField(
-        'reference_count', default=1)
-    # file_size
+        '引用计数', default=1)
+    # 文件大小
     file_size = models.BigIntegerField(
-        'file_size')
-    # mime_type
+        '文件大小')
+    # MIME 类型
     mime_type = models.CharField(
-        'mime_type', max_length=100)
-    # storage_path
+        'MIME 类型', max_length=100)
+    # 存储路径
     storage_path = models.CharField(
-        'storage_path', max_length=512)
+        '存储路径', max_length=512)
 
     class Meta:
         abstract = True
@@ -814,21 +814,21 @@ class FileHashMixin(models.Model):
 class MenusMixin(models.Model):
     """菜单模型 Mixin"""
 
-    # id
+    # 菜单 ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # name
+        '菜单 ID'        , primary_key=True)
+    # 菜单名
     name = models.CharField(
-        'name', max_length=100)
-    # slug
+        '菜单名', max_length=100)
+    # 菜单 slug
     slug = models.CharField(
-        'slug', max_length=100)
-    # description
+        '菜单 slug', max_length=100)
+    # 菜单描述
     description = models.CharField(
-        'description', max_length=255, blank=True, null=True)
-    # is_active
+        '菜单描述', max_length=255, blank=True, null=True)
+    # 是否激活
     is_active = models.BooleanField(
-        'is_active', default=True)
+        '是否激活',default=True)
 
     class Meta:
         abstract = True
@@ -841,30 +841,30 @@ class MenusMixin(models.Model):
 class MenuItemsMixin(models.Model):
     """菜单项模型 Mixin"""
 
-    # id
+    # 菜单项 ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # menu_id
+        '菜单项 ID'        , primary_key=True)
+    # 菜单 ID
     menu_id = models.IntegerField(
-        'menu_id')
-    # parent_id
+        '菜单 ID')
+    # 父菜单项 ID
     parent_id = models.IntegerField(
-        'parent_id', blank=True, null=True)
-    # title
+        '父菜单项 ID', blank=True, null=True)
+    # 标题
     title = models.CharField(
-        'title', max_length=255)
-    # url
+        '标题', max_length=255)
+    # URL
     url = models.CharField(
-        'url', max_length=500)
-    # target
+        'URL', max_length=500)
+    # 打开方式
     target = models.CharField(
-        'target', max_length=255, default='_self')
-    # order_index
+        '打开方式', max_length=255, default='_self')
+    # 排序索引
     order_index = models.IntegerField(
-        'order_index', default=0)
-    # is_active
+        '排序索引', default=0)
+    # 是否激活
     is_active = models.BooleanField(
-        'is_active', default=True)
+        '是否激活',default=True)
 
     class Meta:
         abstract = True
@@ -877,21 +877,21 @@ class MenuItemsMixin(models.Model):
 class MenuLocationMixin(models.Model):
     """菜单位置模型（主菜单、页脚菜单等） Mixin"""
 
-    # id
+    # 位置 ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # name
+        '位置 ID'        , primary_key=True)
+    # 位置显示名称
     name = models.CharField(
-        'name', max_length=100)
-    # slug
+        '位置显示名称', max_length=100)
+    # 位置标识(primary-menu, footer-menu等)
     slug = models.CharField(
-        'slug', max_length=100, unique=True)
-    # description
+        '位置标识(primary-menu, footer-menu等)', max_length=100, unique=True)
+    # 位置描述
     description = models.CharField(
-        'description', max_length=255, blank=True, null=True)
-    # theme_supports
+        '位置描述', max_length=255, blank=True, null=True)
+    # 支持的主题列表(JSON格式)
     theme_supports = models.CharField(
-        'theme_supports', max_length=255, blank=True, null=True)
+        '支持的主题列表(JSON格式)', max_length=255, blank=True, null=True)
 
     class Meta:
         abstract = True
@@ -904,15 +904,15 @@ class MenuLocationMixin(models.Model):
 class MenuLocationAssignmentMixin(models.Model):
     """菜单-位置关联表 Mixin"""
 
-    # id
+    # 关联 ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # menu_id
+        '关联 ID'        , primary_key=True)
+    # 菜单 ID
     menu_id = models.IntegerField(
-        'menu_id (暂为 IntegerField，等待 Menus 模型实现)', )
-    # location_id
+        '菜单 ID (暂为 IntegerField，等待 Menus 模型实现)',)
+    # 位置 ID
     location_id = models.IntegerField(
-        'location_id (暂为 IntegerField，等待 MenuLocation 模型实现)', )
+        '位置 ID (暂为 IntegerField，等待 MenuLocation 模型实现)',)
 
     class Meta:
         abstract = True
@@ -925,48 +925,48 @@ class MenuLocationAssignmentMixin(models.Model):
 class PagesMixin(models.Model):
     """页面模型 Mixin"""
 
-    # id
+    # 页面 ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # title
+        '页面 ID'        , primary_key=True)
+    # 标题
     title = models.CharField(
-        'title', max_length=255)
-    # slug
+        '标题', max_length=255)
+    # 页面 slug
     slug = models.CharField(
-        'slug', max_length=255)
-    # content
+        '页面 slug', max_length=255)
+    # 页面内容
     content = models.CharField(
-        'content', max_length=255)
-    # excerpt
+        '页面内容', max_length=255)
+    # 摘要
     excerpt = models.CharField(
-        'excerpt', max_length=255, blank=True, null=True)
-    # template
+        '摘要', max_length=255, blank=True, null=True)
+    # 模板
     template = models.CharField(
-        'template', max_length=255, blank=True, null=True)
-    # status
+        '模板', max_length=255, blank=True, null=True)
+    # 状态
     status = models.BigIntegerField(
-        'status', default=0)
-    # author_id
+        '状态', default=0)
+    # 作者 ID
     author_id = models.BigIntegerField(
-        'author_id', blank=True, null=True)
-    # parent_id
+        '作者 ID', blank=True, null=True)
+    # 父页面 ID
     parent_id = models.BigIntegerField(
-        'parent_id', blank=True, null=True)
-    # order_index
+        '父页面 ID', blank=True, null=True)
+    # 排序索引
     order_index = models.IntegerField(
-        'order_index', default=0)
-    # meta_title
+        '排序索引', default=0)
+    # 元标题
     meta_title = models.CharField(
-        'meta_title', max_length=255, blank=True, null=True)
-    # meta_description
+        '元标题', max_length=255, blank=True, null=True)
+    # 元描述
     meta_description = models.CharField(
-        'meta_description', max_length=255, blank=True, null=True)
-    # meta_keywords
+        '元描述', max_length=255, blank=True, null=True)
+    # 元关键词
     meta_keywords = models.CharField(
-        'meta_keywords', max_length=255, blank=True, null=True)
-    # published_at
+        '元关键词', max_length=255, blank=True, null=True)
+    # 发布时间
     published_at = models.DateTimeField(
-        'published_at', blank=True, null=True)
+        '发布时间', blank=True, null=True)
 
     class Meta:
         abstract = True
@@ -979,30 +979,30 @@ class PagesMixin(models.Model):
 class UploadTaskMixin(models.Model):
     """上传任务模型 Mixin"""
 
-    # id
+    # 任务 ID (UUID)
     id = models.CharField(
-        'id', max_length=36)
-    # user_id
+        '任务 ID (UUID)', max_length=36)
+    # 用户 ID
     user_id = models.BigIntegerField(
-        'user_id')
-    # filename
+        '用户 ID')
+    # 文件名
     filename = models.CharField(
-        'filename', max_length=255)
-    # total_size
+        '文件名', max_length=255)
+    # 文件总大小
     total_size = models.BigIntegerField(
-        'total_size')
-    # total_chunks
+        '文件总大小')
+    # 总分块数
     total_chunks = models.BigIntegerField(
-        'total_chunks')
-    # uploaded_chunks
+        '总分块数')
+    # 已上传分块数
     uploaded_chunks = models.BigIntegerField(
-        'uploaded_chunks', default=0)
-    # file_hash
+        '已上传分块数', default=0)
+    # 文件哈希
     file_hash = models.CharField(
-        'file_hash', max_length=64, blank=True, null=True)
-    # status
+        '文件哈希', max_length=64, blank=True, null=True)
+    # 状态
     status = models.CharField(
-        'status', max_length=255, default='initialized')
+        '状态', max_length=255, default='initialized')
 
     class Meta:
         abstract = True
@@ -1015,24 +1015,24 @@ class UploadTaskMixin(models.Model):
 class UploadChunkMixin(models.Model):
     """上传分块模型 Mixin"""
 
-    # id
+    # 分块 ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # upload_id
+        '分块 ID'        , primary_key=True)
+    # 上传任务 ID
     upload_id = models.CharField(
-        'upload_id', max_length=36)
-    # chunk_index
+        '上传任务 ID', max_length=36)
+    # 分块索引
     chunk_index = models.BigIntegerField(
-        'chunk_index')
-    # chunk_hash
+        '分块索引')
+    # 分块哈希
     chunk_hash = models.CharField(
-        'chunk_hash', max_length=64)
-    # chunk_size
+        '分块哈希', max_length=64)
+    # 分块大小
     chunk_size = models.BigIntegerField(
-        'chunk_size')
-    # chunk_path
+        '分块大小')
+    # 分块路径
     chunk_path = models.CharField(
-        'chunk_path', max_length=500)
+        '分块路径', max_length=500)
 
     class Meta:
         abstract = True
@@ -1045,27 +1045,27 @@ class UploadChunkMixin(models.Model):
 class NotificationMixin(models.Model):
     """通知模型 Mixin"""
 
-    # id
+    # 通知 ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # recipient
+        '通知 ID'        , primary_key=True)
+    # 接收者
     recipient = models.IntegerField(
-        'recipient (暂为 IntegerField，等待 User 模型实现)', )
-    # type
+        '接收者 (暂为 IntegerField，等待 User 模型实现)',)
+    # 通知类型
     type = models.CharField(
-        'type', max_length=100)
-    # title
+        '通知类型', max_length=100)
+    # 标题
     title = models.CharField(
-        'title', max_length=200)
-    # message
+        '标题', max_length=200)
+    # 消息内容
     message = models.CharField(
-        'message', max_length=255)
-    # is_read
+        '消息内容', max_length=255)
+    # 是否已读
     is_read = models.BooleanField(
-        'is_read', default=False)
-    # read_at
+        '是否已读',default=False)
+    # 阅读时间
     read_at = models.DateTimeField(
-        'read_at', blank=True, null=True)
+        '阅读时间', blank=True, null=True)
 
     class Meta:
         abstract = True
@@ -1078,41 +1078,41 @@ class NotificationMixin(models.Model):
 class PrivateMessageMixin(models.Model):
     """站内私信模型 Mixin"""
 
-    # id
+    # 消息ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # sender
+        '消息ID'        , primary_key=True)
+    # 发送者
     sender = models.IntegerField(
-        'sender (暂为 IntegerField，等待 User 模型实现)', )
-    # recipient
+        '发送者 (暂为 IntegerField，等待 User 模型实现)',)
+    # 接收者
     recipient = models.IntegerField(
-        'recipient (暂为 IntegerField，等待 User 模型实现)', )
-    # content
+        '接收者 (暂为 IntegerField，等待 User 模型实现)',)
+    # 消息内容
     content = models.TextField(
-        'content')
-    # message_type
+        '消息内容')
+    # 消息类型
     message_type = models.CharField(
-        'message_type', max_length=50, default='text')
-    # attachment_url
+        '消息类型', max_length=50, default='text')
+    # 附件URL(图片/文件)
     attachment_url = models.CharField(
-        'attachment_url', max_length=500, blank=True, null=True)
-    # is_read
+        '附件URL(图片/文件)', max_length=500, blank=True, null=True)
+    # 是否已读
     is_read = models.BooleanField(
-        'is_read', default=False)
-    # read_at
+        '是否已读',default=False)
+    # 阅读时间
     read_at = models.DateTimeField(
-        'read_at', blank=True, null=True)
-    # is_deleted_by_sender
+        '阅读时间', blank=True, null=True)
+    # 发送者是否删除
     is_deleted_by_sender = models.BooleanField(
-        'is_deleted_by_sender', default=False)
-    # is_deleted_by_recipient
+        '发送者是否删除',default=False)
+    # 接收者是否删除
     is_deleted_by_recipient = models.BooleanField(
-        'is_deleted_by_recipient', default=False)
-    # parent_message
+        '接收者是否删除',default=False)
+    # 父消息ID(用于回复)
     parent_message = models.ForeignKey(
         'self',
         on_delete=models.CASCADE,
-        verbose_name='parent_message', null=True, blank=True)
+        verbose_name='父消息ID(用于回复)',null=True, blank=True)
 
     class Meta:
         abstract = True
@@ -1122,21 +1122,45 @@ class PrivateMessageMixin(models.Model):
 
 
 
+class UserBlockMixin(models.Model):
+    """用户屏蔽/拉黑模型 Mixin"""
+
+    # 屏蔽记录ID
+    id = models.BigAutoField(
+        '屏蔽记录ID'        , primary_key=True)
+    # 屏蔽者用户ID
+    blocker = models.IntegerField(
+        '屏蔽者用户ID (暂为 IntegerField，等待 User 模型实现)',)
+    # 被屏蔽用户ID
+    blocked_user = models.IntegerField(
+        '被屏蔽用户ID (暂为 IntegerField，等待 User 模型实现)',)
+    # 屏蔽原因
+    reason = models.CharField(
+        '屏蔽原因', max_length=500, blank=True, null=True)
+
+    class Meta:
+        abstract = True
+        app_label = 'generated'
+        verbose_name = '用户屏蔽/拉黑模型'
+        # 注意：请在具体模型类中设置 db_table = get_table_name("user_blocks")
+
+
+
 class SearchHistoryMixin(models.Model):
     """搜索历史模型 Mixin"""
 
-    # id
+    # 搜索历史 ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # user
+        '搜索历史 ID'        , primary_key=True)
+    # 用户
     user = models.IntegerField(
-        'user (暂为 IntegerField，等待 User 模型实现)', )
-    # keyword
+        '用户 (暂为 IntegerField，等待 User 模型实现)',)
+    # 搜索关键词
     keyword = models.CharField(
-        'keyword', max_length=255)
-    # results_count
+        '搜索关键词', max_length=255)
+    # 结果数量
     results_count = models.BigIntegerField(
-        'results_count')
+        '结果数量')
 
     class Meta:
         abstract = True
@@ -1149,45 +1173,45 @@ class SearchHistoryMixin(models.Model):
 class PageViewMixin(models.Model):
     """页面浏览模型 Mixin"""
 
-    # id
+    # 浏览 ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # user
+        '浏览 ID'        , primary_key=True)
+    # 用户
     user = models.IntegerField(
-        'user (暂为 IntegerField，等待 User 模型实现)', null=True, blank=True)
-    # session_id
+        '用户 (暂为 IntegerField，等待 User 模型实现)',null=True, blank=True)
+    # 会话 ID
     session_id = models.CharField(
-        'session_id', max_length=255, blank=True, null=True)
-    # page_url
+        '会话 ID', max_length=255, blank=True, null=True)
+    # 页面 URL
     page_url = models.CharField(
-        'page_url', max_length=500)
-    # page_title
+        '页面 URL', max_length=500)
+    # 页面标题
     page_title = models.CharField(
-        'page_title', max_length=500, blank=True, null=True)
-    # referrer
+        '页面标题', max_length=500, blank=True, null=True)
+    # 来源页面
     referrer = models.CharField(
-        'referrer', max_length=500, blank=True, null=True)
-    # user_agent
+        '来源页面', max_length=500, blank=True, null=True)
+    # 用户代理
     user_agent = models.CharField(
-        'user_agent', max_length=500, blank=True, null=True)
-    # ip_address
+        '用户代理', max_length=500, blank=True, null=True)
+    # IP 地址
     ip_address = models.CharField(
-        'ip_address', max_length=45, blank=True, null=True)
-    # device_type
+        'IP 地址', max_length=45, blank=True, null=True)
+    # 设备类型
     device_type = models.CharField(
-        'device_type', max_length=50, blank=True, null=True)
-    # browser
+        '设备类型', max_length=50, blank=True, null=True)
+    # 浏览器类型
     browser = models.CharField(
-        'browser', max_length=100, blank=True, null=True)
-    # platform
+        '浏览器类型', max_length=100, blank=True, null=True)
+    # 操作系统平台
     platform = models.CharField(
-        'platform', max_length=100, blank=True, null=True)
-    # country
+        '操作系统平台', max_length=100, blank=True, null=True)
+    # 国家
     country = models.CharField(
-        'country', max_length=100, blank=True, null=True)
-    # city
+        '国家', max_length=100, blank=True, null=True)
+    # 城市
     city = models.CharField(
-        'city', max_length=100, blank=True, null=True)
+        '城市', max_length=100, blank=True, null=True)
 
     class Meta:
         abstract = True
@@ -1200,30 +1224,30 @@ class PageViewMixin(models.Model):
 class UserActivityMixin(models.Model):
     """用户活动模型 Mixin"""
 
-    # id
+    # 活动 ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # user
+        '活动 ID'        , primary_key=True)
+    # 用户
     user = models.IntegerField(
-        'user (暂为 IntegerField，等待 User 模型实现)', )
-    # activity_type
+        '用户 (暂为 IntegerField，等待 User 模型实现)',)
+    # 活动类型
     activity_type = models.CharField(
-        'activity_type', max_length=100)
-    # target_type
+        '活动类型', max_length=100)
+    # 目标类型
     target_type = models.CharField(
-        'target_type', max_length=50)
-    # target_id
+        '目标类型', max_length=50)
+    # 目标 ID
     target_id = models.BigIntegerField(
-        'target_id')
-    # details
+        '目标 ID')
+    # 活动详情
     details = models.CharField(
-        'details', max_length=255, blank=True, null=True)
-    # ip_address
+        '活动详情', max_length=255, blank=True, null=True)
+    # IP 地址
     ip_address = models.CharField(
-        'ip_address', max_length=45, blank=True, null=True)
-    # user_agent
+        'IP 地址', max_length=45, blank=True, null=True)
+    # 用户代理
     user_agent = models.CharField(
-        'user_agent', max_length=500, blank=True, null=True)
+        '用户代理', max_length=500, blank=True, null=True)
 
     class Meta:
         abstract = True
@@ -1236,33 +1260,33 @@ class UserActivityMixin(models.Model):
 class VIPPlanMixin(models.Model):
     """VIP 套餐模型 Mixin"""
 
-    # id
+    # 套餐 ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # name
+        '套餐 ID'        , primary_key=True)
+    # 套餐名称
     name = models.CharField(
-        'name', max_length=100)
-    # description
+        '套餐名称', max_length=100)
+    # 套餐描述
     description = models.CharField(
-        'description', max_length=255, blank=True, null=True)
-    # price
+        '套餐描述', max_length=255, blank=True, null=True)
+    # 价格
     price = models.DecimalField(
-        'price', max_digits=10, decimal_places=2)
-    # original_price
+        '价格', max_digits=10, decimal_places=2)
+    # 原价
     original_price = models.DecimalField(
-        'original_price', max_digits=10, decimal_places=2, blank=True, null=True)
-    # duration_days
+        '原价', max_digits=10, decimal_places=2, blank=True, null=True)
+    # 有效期天数
     duration_days = models.IntegerField(
-        'duration_days')
-    # level
+        '有效期天数')
+    # VIP 等级
     level = models.BigIntegerField(
-        'level', default=1)
-    # features
+        'VIP 等级', default=1)
+    # 特权功能 JSON
     features = models.CharField(
-        'features', max_length=255, blank=True, null=True)
-    # is_active
+        '特权功能 JSON', max_length=255, blank=True, null=True)
+    # 是否激活
     is_active = models.BooleanField(
-        'is_active', default=True)
+        '是否激活',default=True)
 
     class Meta:
         abstract = True
@@ -1275,30 +1299,30 @@ class VIPPlanMixin(models.Model):
 class VIPSubscriptionMixin(models.Model):
     """VIP 订阅模型 Mixin"""
 
-    # id
+    # 订阅 ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # user
+        '订阅 ID'        , primary_key=True)
+    # 用户
     user = models.IntegerField(
-        'user (暂为 IntegerField，等待 User 模型实现)', )
-    # plan
+        '用户 (暂为 IntegerField，等待 User 模型实现)',)
+    # 套餐
     plan = models.IntegerField(
-        'plan (暂为 IntegerField，等待 VIPPlan 模型实现)', )
-    # starts_at
+        '套餐 (暂为 IntegerField，等待 VIPPlan 模型实现)',)
+    # 开始时间
     starts_at = models.DateTimeField(
-        'starts_at')
-    # expires_at
+        '开始时间')
+    # 过期时间
     expires_at = models.DateTimeField(
-        'expires_at')
-    # status
+        '过期时间')
+    # 状态
     status = models.BigIntegerField(
-        'status', default=0)
-    # payment_amount
+        '状态', default=0)
+    # 实际支付金额
     payment_amount = models.DecimalField(
-        'payment_amount', max_digits=10, decimal_places=2, blank=True, null=True)
-    # transaction_id
+        '实际支付金额', max_digits=10, decimal_places=2, blank=True, null=True)
+    # 支付交易 ID
     transaction_id = models.CharField(
-        'transaction_id', max_length=255, blank=True, null=True)
+        '支付交易 ID', max_length=255, blank=True, null=True)
 
     class Meta:
         abstract = True
@@ -1311,24 +1335,24 @@ class VIPSubscriptionMixin(models.Model):
 class VIPFeatureMixin(models.Model):
     """VIP 功能特权模型 Mixin"""
 
-    # id
+    # 功能 ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # code
+        '功能 ID'        , primary_key=True)
+    # 功能代码
     code = models.CharField(
-        'code', max_length=50)
-    # name
+        '功能代码', max_length=50)
+    # 功能名称
     name = models.CharField(
-        'name', max_length=100)
-    # description
+        '功能名称', max_length=100)
+    # 功能描述
     description = models.CharField(
-        'description', max_length=255, blank=True, null=True)
-    # required_level
+        '功能描述', max_length=255, blank=True, null=True)
+    # 所需 VIP 等级
     required_level = models.IntegerField(
-        'required_level', default=1)
-    # is_active
+        '所需 VIP 等级', default=1)
+    # 是否激活
     is_active = models.BooleanField(
-        'is_active', default=True)
+        '是否激活',default=True)
 
     class Meta:
         abstract = True
@@ -1341,18 +1365,18 @@ class VIPFeatureMixin(models.Model):
 class CustomFieldMixin(models.Model):
     """自定义字段模型 Mixin"""
 
-    # id
+    # 字段 ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # user
+        '字段 ID'        , primary_key=True)
+    # 用户
     user = models.IntegerField(
-        'user (暂为 IntegerField，等待 User 模型实现)', )
-    # field_name
+        '用户 (暂为 IntegerField，等待 User 模型实现)',)
+    # 字段名称
     field_name = models.CharField(
-        'field_name', max_length=100)
-    # field_value
+        '字段名称', max_length=100)
+    # 字段值
     field_value = models.CharField(
-        'field_value', max_length=255)
+        '字段值', max_length=255)
 
     class Meta:
         abstract = True
@@ -1365,15 +1389,15 @@ class CustomFieldMixin(models.Model):
 class EmailSubscriptionMixin(models.Model):
     """邮件订阅模型 Mixin"""
 
-    # id
+    # 订阅 ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # user
+        '订阅 ID'        , primary_key=True)
+    # 用户
     user = models.IntegerField(
-        'user (暂为 IntegerField，等待 User 模型实现)', )
-    # subscribed
+        '用户 (暂为 IntegerField，等待 User 模型实现)',)
+    # 是否订阅邮件
     subscribed = models.BooleanField(
-        'subscribed', default=True)
+        '是否订阅邮件',default=True)
 
     class Meta:
         abstract = True
@@ -1386,57 +1410,57 @@ class EmailSubscriptionMixin(models.Model):
 class ArticleRevisionMixin(models.Model):
     """文章修订历史模型 Mixin"""
 
-    # id
+    # 修订ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # article_id
+        '修订ID'        , primary_key=True)
+    # 关联的文章ID
     article_id = models.IntegerField(
-        'article_id (暂为 IntegerField，等待 Article 模型实现)', )
-    # revision_number
+        '关联的文章ID (暂为 IntegerField，等待 Article 模型实现)',)
+    # 修订版本号
     revision_number = models.BigIntegerField(
-        'revision_number')
-    # title
+        '修订版本号')
+    # 修订时的标题
     title = models.CharField(
-        'title', max_length=255)
-    # excerpt
+        '修订时的标题', max_length=255)
+    # 修订时的摘要
     excerpt = models.CharField(
-        'excerpt', max_length=255, blank=True, null=True)
-    # content
+        '修订时的摘要', max_length=255, blank=True, null=True)
+    # 修订时的文章内容
     content = models.TextField(
-        'content')
-    # cover_image
+        '修订时的文章内容')
+    # 修订时的封面图
     cover_image = models.CharField(
-        'cover_image', max_length=255, blank=True, null=True)
-    # tags_list
+        '修订时的封面图', max_length=255, blank=True, null=True)
+    # 修订时的标签
     tags_list = models.CharField(
-        'tags_list', max_length=255, blank=True, null=True)
-    # category_id
+        '修订时的标签', max_length=255, blank=True, null=True)
+    # 修订时的分类ID
     category_id = models.BigIntegerField(
-        'category_id', blank=True, null=True)
-    # status
+        '修订时的分类ID', blank=True, null=True)
+    # 修订时的文章状态
     status = models.BigIntegerField(
-        'status', default=0)
-    # hidden
+        '修订时的文章状态', default=0)
+    # 修订时的隐藏状态
     hidden = models.BooleanField(
-        'hidden', default=False)
-    # is_featured
+        '修订时的隐藏状态',default=False)
+    # 修订时的精选状态
     is_featured = models.BooleanField(
-        'is_featured', default=False)
-    # is_vip_only
+        '修订时的精选状态',default=False)
+    # 修订时的VIP限制
     is_vip_only = models.BooleanField(
-        'is_vip_only', default=False)
-    # required_vip_level
+        '修订时的VIP限制',default=False)
+    # 修订时的VIP等级要求
     required_vip_level = models.BigIntegerField(
-        'required_vip_level', default=0)
-    # author_id
+        '修订时的VIP等级要求', default=0)
+    # 执行修订的用户ID
     author_id = models.IntegerField(
-        'author_id (暂为 IntegerField，等待 User 模型实现)', null=True, blank=True)
-    # change_summary
+        '执行修订的用户ID (暂为 IntegerField，等待 User 模型实现)',null=True, blank=True)
+    # 修订说明/变更摘要
     change_summary = models.CharField(
-        'change_summary', max_length=500, blank=True, null=True)
-    # hash_code
+        '修订说明/变更摘要', max_length=500, blank=True, null=True)
+    # 内容哈希码(用于去重)
     hash_code = models.CharField(
-        'hash_code', max_length=64, blank=True, null=True)
+        '内容哈希码(用于去重)', max_length=64, blank=True, null=True)
 
     class Meta:
         abstract = True
@@ -1449,42 +1473,42 @@ class ArticleRevisionMixin(models.Model):
 class PluginMixin(models.Model):
     """插件模型 Mixin"""
 
-    # id
+    # 插件ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # name
+        '插件ID'        , primary_key=True)
+    # 插件名称
     name = models.CharField(
-        'name', max_length=100)
-    # slug
+        '插件名称', max_length=100)
+    # 插件唯一标识
     slug = models.CharField(
-        'slug', max_length=100, unique=True)
-    # version
+        '插件唯一标识', max_length=100, unique=True)
+    # 插件版本
     version = models.CharField(
-        'version', max_length=20)
-    # description
+        '插件版本', max_length=20)
+    # 插件描述
     description = models.CharField(
-        'description', max_length=255, blank=True, null=True)
-    # author
+        '插件描述', max_length=255, blank=True, null=True)
+    # 插件作者
     author = models.CharField(
-        'author', max_length=100, blank=True, null=True)
-    # author_url
+        '插件作者', max_length=100, blank=True, null=True)
+    # 作者网站
     author_url = models.CharField(
-        'author_url', max_length=255, blank=True, null=True)
-    # plugin_url
+        '作者网站', max_length=255, blank=True, null=True)
+    # 插件官网
     plugin_url = models.CharField(
-        'plugin_url', max_length=255, blank=True, null=True)
-    # is_active
+        '插件官网', max_length=255, blank=True, null=True)
+    # 是否激活
     is_active = models.BooleanField(
-        'is_active', default=False)
-    # is_installed
+        '是否激活',default=False)
+    # 是否已安装
     is_installed = models.BooleanField(
-        'is_installed', default=True)
-    # settings
+        '是否已安装',default=True)
+    # 插件配置(JSON格式)
     settings = models.TextField(
-        'settings', blank=True, null=True)
-    # priority
+        '插件配置(JSON格式)', blank=True, null=True)
+    # 执行优先级
     priority = models.IntegerField(
-        'priority', default=0)
+        '执行优先级', default=0)
 
     class Meta:
         abstract = True
@@ -1497,57 +1521,57 @@ class PluginMixin(models.Model):
 class ThemeMixin(models.Model):
     """主题模型 Mixin"""
 
-    # id
+    # 主题ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # name
+        '主题ID'        , primary_key=True)
+    # 主题名称
     name = models.CharField(
-        'name', max_length=100)
-    # slug
+        '主题名称', max_length=100)
+    # 主题唯一标识
     slug = models.CharField(
-        'slug', max_length=100, unique=True)
-    # version
+        '主题唯一标识', max_length=100, unique=True)
+    # 主题版本
     version = models.CharField(
-        'version', max_length=20)
-    # description
+        '主题版本', max_length=20)
+    # 主题描述
     description = models.CharField(
-        'description', max_length=255, blank=True, null=True)
-    # author
+        '主题描述', max_length=255, blank=True, null=True)
+    # 主题作者
     author = models.CharField(
-        'author', max_length=100, blank=True, null=True)
-    # author_url
+        '主题作者', max_length=100, blank=True, null=True)
+    # 作者网站
     author_url = models.CharField(
-        'author_url', max_length=255, blank=True, null=True)
-    # theme_url
+        '作者网站', max_length=255, blank=True, null=True)
+    # 主题官网
     theme_url = models.CharField(
-        'theme_url', max_length=255, blank=True, null=True)
-    # screenshot
+        '主题官网', max_length=255, blank=True, null=True)
+    # 主题截图路径
     screenshot = models.CharField(
-        'screenshot', max_length=500, blank=True, null=True)
-    # tags
+        '主题截图路径', max_length=500, blank=True, null=True)
+    # 标签列表(JSON格式)
     tags = models.CharField(
-        'tags', max_length=255, blank=True, null=True)
-    # requires
+        '标签列表(JSON格式)', max_length=255, blank=True, null=True)
+    # 依赖要求(JSON格式)
     requires = models.CharField(
-        'requires', max_length=255, blank=True, null=True)
-    # settings_schema
+        '依赖要求(JSON格式)', max_length=255, blank=True, null=True)
+    # 设置架构(JSON格式)
     settings_schema = models.CharField(
-        'settings_schema', max_length=255, blank=True, null=True)
-    # theme_path
+        '设置架构(JSON格式)', max_length=255, blank=True, null=True)
+    # 主题文件路径
     theme_path = models.CharField(
-        'theme_path', max_length=500, blank=True, null=True)
-    # is_active
+        '主题文件路径', max_length=500, blank=True, null=True)
+    # 是否为当前激活主题
     is_active = models.BooleanField(
-        'is_active', default=False)
-    # is_installed
+        '是否为当前激活主题',default=False)
+    # 是否已安装
     is_installed = models.BooleanField(
-        'is_installed', default=True)
-    # settings
+        '是否已安装',default=True)
+    # 主题配置(JSON格式)
     settings = models.CharField(
-        'settings', max_length=255, blank=True, null=True)
-    # supports
+        '主题配置(JSON格式)', max_length=255, blank=True, null=True)
+    # 支持的功能(JSON数组)
     supports = models.CharField(
-        'supports', max_length=255, blank=True, null=True)
+        '支持的功能(JSON数组)', max_length=255, blank=True, null=True)
 
     class Meta:
         abstract = True
@@ -1560,36 +1584,36 @@ class ThemeMixin(models.Model):
 class FormMixin(models.Model):
     """表单模型 Mixin"""
 
-    # id
+    # 表单 ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # title
+        '表单 ID'        , primary_key=True)
+    # 表单标题
     title = models.CharField(
-        'title', max_length=255)
-    # slug
+        '表单标题', max_length=255)
+    # 表单标识
     slug = models.CharField(
-        'slug', max_length=255, unique=True)
-    # description
+        '表单标识', max_length=255, unique=True)
+    # 表单描述
     description = models.CharField(
-        'description', max_length=255, blank=True, null=True)
-    # status
+        '表单描述', max_length=255, blank=True, null=True)
+    # 表单状态(draft, published, archived)
     status = models.CharField(
-        'status', max_length=255, default='draft')
-    # submit_message
+        '表单状态(draft, published, archived)', max_length=255, default='draft')
+    # 提交成功消息
     submit_message = models.CharField(
-        'submit_message', max_length=255, blank=True, null=True)
-    # email_notification
+        '提交成功消息', max_length=255, blank=True, null=True)
+    # 是否启用邮件通知
     email_notification = models.BooleanField(
-        'email_notification', default=False)
-    # notification_email
+        '是否启用邮件通知',default=False)
+    # 通知邮箱地址
     notification_email = models.CharField(
-        'notification_email', max_length=255, blank=True, null=True)
-    # store_submissions
+        '通知邮箱地址', max_length=255, blank=True, null=True)
+    # 是否存储提交数据
     store_submissions = models.BooleanField(
-        'store_submissions', default=True)
-    # published_at
+        '是否存储提交数据',default=True)
+    # 发布时间
     published_at = models.DateTimeField(
-        'published_at', blank=True, null=True)
+        '发布时间', blank=True, null=True)
 
     class Meta:
         abstract = True
@@ -1602,42 +1626,42 @@ class FormMixin(models.Model):
 class FormFieldMixin(models.Model):
     """表单字段模型 Mixin"""
 
-    # id
+    # 字段 ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # form_id
+        '字段 ID'        , primary_key=True)
+    # 所属表单 ID
     form_id = models.IntegerField(
-        'form_id (暂为 IntegerField，等待 Form 模型实现)', )
-    # label
+        '所属表单 ID (暂为 IntegerField，等待 Form 模型实现)',)
+    # 字段标签
     label = models.CharField(
-        'label', max_length=255)
-    # field_type
+        '字段标签', max_length=255)
+    # 字段类型(text, email, textarea, select, checkbox, radio, number, date, file)
     field_type = models.CharField(
-        'field_type', max_length=50)
-    # placeholder
+        '字段类型(text, email, textarea, select, checkbox, radio, number, date, file)', max_length=50)
+    # 占位符文本
     placeholder = models.CharField(
-        'placeholder', max_length=255, blank=True, null=True)
-    # help_text
+        '占位符文本', max_length=255, blank=True, null=True)
+    # 帮助文本
     help_text = models.CharField(
-        'help_text', max_length=255, blank=True, null=True)
-    # required
+        '帮助文本', max_length=255, blank=True, null=True)
+    # 是否必填
     required = models.BooleanField(
-        'required', default=False)
-    # options
+        '是否必填',default=False)
+    # 选项列表(JSON格式，用于select/radio/checkbox)
     options = models.CharField(
-        'options', max_length=255, blank=True, null=True)
-    # validation_rules
+        '选项列表(JSON格式,用于select/radio/checkbox)', max_length=255, blank=True, null=True)
+    # 验证规则(JSON格式)
     validation_rules = models.CharField(
-        'validation_rules', max_length=255, blank=True, null=True)
-    # default_value
+        '验证规则(JSON格式)', max_length=255, blank=True, null=True)
+    # 默认值
     default_value = models.CharField(
-        'default_value', max_length=255, blank=True, null=True)
-    # order_index
+        '默认值', max_length=255, blank=True, null=True)
+    # 显示顺序
     order_index = models.BigIntegerField(
-        'order_index', default=0)
-    # is_active
+        '显示顺序', default=0)
+    # 是否启用
     is_active = models.BooleanField(
-        'is_active', default=True)
+        '是否启用',default=True)
 
     class Meta:
         abstract = True
@@ -1650,27 +1674,27 @@ class FormFieldMixin(models.Model):
 class FormSubmissionMixin(models.Model):
     """表单提交记录模型 Mixin"""
 
-    # id
+    # 提交 ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # form_id
+        '提交 ID'        , primary_key=True)
+    # 所属表单 ID
     form_id = models.IntegerField(
-        'form_id (暂为 IntegerField，等待 Form 模型实现)', )
-    # data
+        '所属表单 ID (暂为 IntegerField，等待 Form 模型实现)',)
+    # 提交数据(JSON格式)
     data = models.CharField(
-        'data', max_length=255)
-    # ip_address
+        '提交数据(JSON格式)', max_length=255)
+    # 提交者 IP
     ip_address = models.CharField(
-        'ip_address', max_length=45, blank=True, null=True)
-    # user_agent
+        '提交者 IP', max_length=45, blank=True, null=True)
+    # 浏览器信息
     user_agent = models.CharField(
-        'user_agent', max_length=255, blank=True, null=True)
-    # user_id
+        '浏览器信息', max_length=255, blank=True, null=True)
+    # 用户 ID(如果已登录)
     user_id = models.IntegerField(
-        'user_id (暂为 IntegerField，等待 User 模型实现)', null=True, blank=True)
-    # status
+        '用户 ID(如果已登录) (暂为 IntegerField，等待 User 模型实现)',null=True, blank=True)
+    # 提交状态(new, read, replied, spam)
     status = models.CharField(
-        'status', max_length=255, default='new')
+        '提交状态(new, read, replied, spam)', max_length=255, default='new')
 
     class Meta:
         abstract = True
@@ -1683,30 +1707,30 @@ class FormSubmissionMixin(models.Model):
 class WidgetInstanceMixin(models.Model):
     """Widget实例模型（持久化存储） Mixin"""
 
-    # id
+    # Widget实例 ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # widget_type
+        'Widget实例 ID'        , primary_key=True)
+    # Widget类型(search, recent_posts, categories等)
     widget_type = models.CharField(
-        'widget_type', max_length=50)
-    # area
+        'Widget类型(search, recent_posts, categories等)', max_length=50)
+    # 显示区域(sidebar_primary, footer_1等)
     area = models.CharField(
-        'area', max_length=50)
-    # title
+        '显示区域(sidebar_primary, footer_1等)', max_length=50)
+    # Widget标题
     title = models.CharField(
-        'title', max_length=255, blank=True, null=True)
-    # config
+        'Widget标题', max_length=255, blank=True, null=True)
+    # Widget配置(JSON格式)
     config = models.CharField(
-        'config', max_length=255)
-    # order_index
+        'Widget配置(JSON格式)', max_length=255)
+    # 显示顺序
     order_index = models.BigIntegerField(
-        'order_index', default=0)
-    # is_active
+        '显示顺序', default=0)
+    # 是否启用
     is_active = models.BooleanField(
-        'is_active', default=True)
-    # conditions
+        '是否启用',default=True)
+    # 显示条件(JSON格式)
     conditions = models.CharField(
-        'conditions', max_length=255, blank=True, null=True)
+        '显示条件(JSON格式)', max_length=255, blank=True, null=True)
 
     class Meta:
         abstract = True
@@ -1719,39 +1743,39 @@ class WidgetInstanceMixin(models.Model):
 class BlockPatternMixin(models.Model):
     """自定义块模式模型 Mixin"""
 
-    # id
+    # 模式ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # name
+        '模式ID'        , primary_key=True)
+    # 模式名称(唯一标识)
     name = models.CharField(
-        'name', max_length=100, unique=True)
-    # title
+        '模式名称(唯一标识)', max_length=100, unique=True)
+    # 模式标题(显示名称)
     title = models.CharField(
-        'title', max_length=255)
-    # description
+        '模式标题(显示名称)', max_length=255)
+    # 模式描述
     description = models.TextField(
-        'description', blank=True, null=True)
-    # category
+        '模式描述', blank=True, null=True)
+    # 分类(custom, hero, features等)
     category = models.CharField(
-        'category', max_length=50, default='custom')
-    # blocks
+        '分类(custom, hero, features等)', max_length=50, default='custom')
+    # 块数据(JSON格式)
     blocks = models.TextField(
-        'blocks')
-    # keywords
+        '块数据(JSON格式)')
+    # 关键词(逗号分隔)
     keywords = models.TextField(
-        'keywords', blank=True, null=True)
-    # thumbnail
+        '关键词(逗号分隔)', blank=True, null=True)
+    # 缩略图URL
     thumbnail = models.CharField(
-        'thumbnail', max_length=500, blank=True, null=True)
-    # is_public
+        '缩略图URL', max_length=500, blank=True, null=True)
+    # 是否公开(false=私有，true=公开)
     is_public = models.BooleanField(
-        'is_public', default=False)
-    # user_id
+        '是否公开(false=私有,true=公开)',default=False)
+    # 创建者用户ID
     user_id = models.IntegerField(
-        'user_id (暂为 IntegerField，等待 User 模型实现)', null=True, blank=True)
-    # viewport_width
+        '创建者用户ID (暂为 IntegerField，等待 User 模型实现)',null=True, blank=True)
+    # 预览宽度
     viewport_width = models.BigIntegerField(
-        'viewport_width', default=800)
+        '预览宽度', default=800)
 
     class Meta:
         abstract = True
@@ -1764,33 +1788,33 @@ class BlockPatternMixin(models.Model):
 class CustomPostTypeMixin(models.Model):
     """自定义内容类型模型 Mixin"""
 
-    # id
+    # 内容类型ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # name
+        '内容类型ID'        , primary_key=True)
+    # 内容类型名称
     name = models.CharField(
-        'name', max_length=100)
-    # slug
+        '内容类型名称', max_length=100)
+    # 内容类型标识
     slug = models.CharField(
-        'slug', max_length=100, unique=True)
-    # description
+        '内容类型标识', max_length=100, unique=True)
+    # 描述
     description = models.CharField(
-        'description', max_length=255, blank=True, null=True)
-    # supports
+        '描述', max_length=255, blank=True, null=True)
+    # 支持的功能(JSON数组)
     supports = models.CharField(
-        'supports', max_length=255, blank=True, null=True)
-    # has_archive
+        '支持的功能(JSON数组)', max_length=255, blank=True, null=True)
+    # 是否有归档页
     has_archive = models.BooleanField(
-        'has_archive', default=False)
-    # menu_icon
+        '是否有归档页',default=False)
+    # 菜单图标
     menu_icon = models.CharField(
-        'menu_icon', max_length=255, blank=True, null=True)
-    # menu_position
+        '菜单图标', max_length=255, blank=True, null=True)
+    # 菜单位置
     menu_position = models.IntegerField(
-        'menu_position', default=5)
-    # is_active
+        '菜单位置', default=5)
+    # 是否激活
     is_active = models.BooleanField(
-        'is_active', default=True)
+        '是否激活',default=True)
 
     class Meta:
         abstract = True
@@ -1803,21 +1827,21 @@ class CustomPostTypeMixin(models.Model):
 class CommentVoteMixin(models.Model):
     """评论投票模型 Mixin"""
 
-    # id
+    # 投票 ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # comment_id
+        '投票 ID'        , primary_key=True)
+    # 评论 ID
     comment_id = models.BigIntegerField(
-        'comment_id')
-    # user
+        '评论 ID')
+    # 用户 ID(匿名投票可为空)
     user = models.IntegerField(
-        'user (暂为 IntegerField，等待 User 模型实现)', null=True, blank=True)
-    # vote_type
+        '用户 ID(匿名投票可为空) (暂为 IntegerField，等待 User 模型实现)',null=True, blank=True)
+    # 投票类型 (1: 赞, -1: 踩)
     vote_type = models.IntegerField(
-        'vote_type')
-    # ip_address
+        '投票类型 (1: 赞, -1: 踩)')
+    # IP 地址(用于防刷)
     ip_address = models.CharField(
-        'ip_address', max_length=45, blank=True, null=True)
+        'IP 地址(用于防刷)', max_length=45, blank=True, null=True)
 
     class Meta:
         abstract = True
@@ -1830,30 +1854,30 @@ class CommentVoteMixin(models.Model):
 class CommentSubscriptionMixin(models.Model):
     """评论订阅模型 Mixin"""
 
-    # id
+    # 订阅 ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # article_id
+        '订阅 ID'        , primary_key=True)
+    # 文章 ID
     article_id = models.BigIntegerField(
-        'article_id')
-    # user_id
+        '文章 ID')
+    # 用户 ID(访客订阅可为空)
     user_id = models.IntegerField(
-        'user_id (暂为 IntegerField，等待 User 模型实现)', null=True, blank=True)
-    # email
+        '用户 ID(访客订阅可为空) (暂为 IntegerField，等待 User 模型实现)',null=True, blank=True)
+    # 订阅邮箱
     email = models.CharField(
-        'email', max_length=255)
-    # notify_type
+        '订阅邮箱', max_length=255)
+    # 通知类型 (new_comment: 新评论, reply_to_me: 回复我, all_replies: 所有回复)
     notify_type = models.CharField(
-        'notify_type', max_length=255, default='new_comment')
-    # is_active
+        '通知类型 (new_comment: 新评论, reply_to_me: 回复我, all_replies: 所有回复)', max_length=255, default='new_comment')
+    # 是否激活
     is_active = models.BooleanField(
-        'is_active', default=True)
-    # confirm_token
+        '是否激活',default=True)
+    # 确认token(用于访客验证)
     confirm_token = models.CharField(
-        'confirm_token', max_length=64, blank=True, null=True)
-    # confirmed_at
+        '确认token(用于访客验证)', max_length=64, blank=True, null=True)
+    # 确认时间
     confirmed_at = models.DateTimeField(
-        'confirmed_at', blank=True, null=True)
+        '确认时间', blank=True, null=True)
 
     class Meta:
         abstract = True
@@ -1866,50 +1890,50 @@ class CommentSubscriptionMixin(models.Model):
 class CommentMixin(models.Model):
     """评论模型 Mixin"""
 
-    # id
+    # 评论 ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # article_id
+        '评论 ID'        , primary_key=True)
+    # 文章 ID
     article_id = models.IntegerField(
-        'article_id (暂为 IntegerField，等待 Article 模型实现)', )
-    # user_id
+        '文章 ID (暂为 IntegerField，等待 Article 模型实现)',)
+    # 用户 ID(访客评论可为空)
     user_id = models.IntegerField(
-        'user_id (暂为 IntegerField，等待 User 模型实现)', null=True, blank=True)
-    # parent_id
+        '用户 ID(访客评论可为空) (暂为 IntegerField，等待 User 模型实现)',null=True, blank=True)
+    # 父评论 ID(用于回复)
     parent_id = models.ForeignKey(
         'self',
         on_delete=models.CASCADE,
-        verbose_name='parent_id', null=True, blank=True)
-    # content
+        verbose_name='父评论 ID(用于回复)',null=True, blank=True)
+    # 评论内容
     content = models.TextField(
-        'content')
-    # author_name
+        '评论内容')
+    # 作者姓名(访客填写)
     author_name = models.CharField(
-        'author_name', max_length=100, blank=True, null=True)
-    # author_email
+        '作者姓名(访客填写)', max_length=100, blank=True, null=True)
+    # 作者邮箱(访客填写)
     author_email = models.CharField(
-        'author_email', max_length=255, blank=True, null=True)
-    # author_url
+        '作者邮箱(访客填写)', max_length=255, blank=True, null=True)
+    # 作者网站(访客填写)
     author_url = models.CharField(
-        'author_url', max_length=500, blank=True, null=True)
-    # author_ip
+        '作者网站(访客填写)', max_length=500, blank=True, null=True)
+    # 作者 IP 地址
     author_ip = models.CharField(
-        'author_ip', max_length=45, blank=True, null=True)
-    # user_agent
+        '作者 IP 地址', max_length=45, blank=True, null=True)
+    # 用户代理
     user_agent = models.CharField(
-        'user_agent', max_length=500, blank=True, null=True)
-    # is_approved
+        '用户代理', max_length=500, blank=True, null=True)
+    # 是否已审核通过
     is_approved = models.BooleanField(
-        'is_approved', default=True)
-    # likes
+        '是否已审核通过',default=True)
+    # 点赞数
     likes = models.BigIntegerField(
-        'likes', default=0)
-    # spam_score
+        '点赞数', default=0)
+    # 垃圾评分
     spam_score = models.DecimalField(
-        'spam_score', max_digits=10, decimal_places=2, blank=True, null=True)
-    # spam_reasons
+        '垃圾评分', max_digits=10, decimal_places=2, blank=True, null=True)
+    # 垃圾检测原因(JSON格式)
     spam_reasons = models.CharField(
-        'spam_reasons', max_length=255, blank=True, null=True)
+        '垃圾检测原因(JSON格式)', max_length=255, blank=True, null=True)
 
     class Meta:
         abstract = True
@@ -1922,24 +1946,24 @@ class CommentMixin(models.Model):
 class RoleMixin(models.Model):
     """角色模型 Mixin"""
 
-    # id
+    # 角色 ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # name
+        '角色 ID'        , primary_key=True)
+    # 角色名称
     name = models.CharField(
-        'name', max_length=100)
-    # slug
+        '角色名称', max_length=100)
+    # 角色标识(唯一)
     slug = models.CharField(
-        'slug', max_length=100, unique=True)
-    # description
+        '角色标识(唯一)', max_length=100, unique=True)
+    # 角色描述
     description = models.CharField(
-        'description', max_length=255, blank=True, null=True)
-    # permissions
+        '角色描述', max_length=255, blank=True, null=True)
+    # 权限列表(JSON格式)
     permissions = models.CharField(
-        'permissions', max_length=255, blank=True, null=True)
-    # is_system
+        '权限列表(JSON格式)', max_length=255, blank=True, null=True)
+    # 是否为系统角色(系统角色不可删除)
     is_system = models.BooleanField(
-        'is_system', default=False)
+        '是否为系统角色(系统角色不可删除)',default=False)
 
     class Meta:
         abstract = True
@@ -1952,27 +1976,27 @@ class RoleMixin(models.Model):
 class CapabilityMixin(models.Model):
     """权限能力模型 Mixin"""
 
-    # id
+    # 权限 ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # code
+        '权限 ID'        , primary_key=True)
+    # 权限代码(唯一标识)
     code = models.CharField(
-        'code', max_length=100, unique=True)
-    # name
+        '权限代码(唯一标识)', max_length=100, unique=True)
+    # 权限名称
     name = models.CharField(
-        'name', max_length=255)
-    # description
+        '权限名称', max_length=255)
+    # 权限描述
     description = models.CharField(
-        'description', max_length=255, blank=True, null=True)
-    # resource_type
+        '权限描述', max_length=255, blank=True, null=True)
+    # 资源类型(article, user, category等)
     resource_type = models.CharField(
-        'resource_type', max_length=100, blank=True, null=True)
-    # action
+        '资源类型(article, user, category等)', max_length=100, blank=True, null=True)
+    # 操作类型(create, read, update, delete)
     action = models.CharField(
-        'action', max_length=50, blank=True, null=True)
-    # is_active
+        '操作类型(create, read, update, delete)', max_length=50, blank=True, null=True)
+    # 是否激活
     is_active = models.BooleanField(
-        'is_active', default=True)
+        '是否激活',default=True)
 
     class Meta:
         abstract = True
@@ -1985,18 +2009,18 @@ class CapabilityMixin(models.Model):
 class UserRoleMixin(models.Model):
     """用户角色关联模型 Mixin"""
 
-    # id
+    # 关联 ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # user_id
+        '关联 ID'        , primary_key=True)
+    # 用户 ID
     user_id = models.IntegerField(
-        'user_id (暂为 IntegerField，等待 User 模型实现)', )
-    # role_id
+        '用户 ID (暂为 IntegerField，等待 User 模型实现)',)
+    # 角色 ID
     role_id = models.IntegerField(
-        'role_id (暂为 IntegerField，等待 Role 模型实现)', )
-    # assigned_by
+        '角色 ID (暂为 IntegerField，等待 Role 模型实现)',)
+    # 分配者用户 ID
     assigned_by = models.IntegerField(
-        'assigned_by (暂为 IntegerField，等待 User 模型实现)', null=True, blank=True)
+        '分配者用户 ID (暂为 IntegerField，等待 User 模型实现)',null=True, blank=True)
 
     class Meta:
         abstract = True
@@ -2009,30 +2033,30 @@ class UserRoleMixin(models.Model):
 class OAuthAccountMixin(models.Model):
     """OAuth 第三方登录账号关联模型 Mixin"""
 
-    # id
+    # 主键ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # user_id
+        '主键ID'        , primary_key=True)
+    # 关联的用户ID
     user_id = models.IntegerField(
-        'user_id (暂为 IntegerField，等待 User 模型实现)', )
-    # provider
+        '关联的用户ID (暂为 IntegerField，等待 User 模型实现)',)
+    # OAuth提供商(github/google/wechat/qq/weibo)
     provider = models.CharField(
-        'provider', max_length=50)
-    # provider_user_id
+        'OAuth提供商(github/google/wechat/qq/weibo)', max_length=50)
+    # 第三方平台的用户ID
     provider_user_id = models.CharField(
-        'provider_user_id', max_length=255)
-    # access_token
+        '第三方平台的用户ID', max_length=255)
+    # 访问令牌(加密存储)
     access_token = models.CharField(
-        'access_token', max_length=255, blank=True, null=True)
-    # refresh_token
+        '访问令牌(加密存储)', max_length=255, blank=True, null=True)
+    # 刷新令牌(加密存储)
     refresh_token = models.CharField(
-        'refresh_token', max_length=255, blank=True, null=True)
-    # token_expires_at
+        '刷新令牌(加密存储)', max_length=255, blank=True, null=True)
+    # Token过期时间
     token_expires_at = models.DateTimeField(
-        'token_expires_at', blank=True, null=True)
-    # extra_data
+        'Token过期时间', blank=True, null=True)
+    # 额外数据(JSON格式，存储头像、昵称等)
     extra_data = models.CharField(
-        'extra_data', max_length=255, blank=True, null=True)
+        '额外数据(JSON格式,存储头像、昵称等)', max_length=255, blank=True, null=True)
 
     class Meta:
         abstract = True
@@ -2045,57 +2069,57 @@ class OAuthAccountMixin(models.Model):
 class ArticleSEOMixin(models.Model):
     """文章SEO元数据模型 Mixin"""
 
-    # id
+    # SEO记录ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # article_id
+        'SEO记录ID'        , primary_key=True)
+    # 关联的文章ID
     article_id = models.IntegerField(
-        'article_id (暂为 IntegerField，等待 Article 模型实现)', )
-    # seo_title
+        '关联的文章ID (暂为 IntegerField，等待 Article 模型实现)',)
+    # SEO标题
     seo_title = models.CharField(
-        'seo_title', max_length=255, blank=True, null=True)
-    # seo_description
+        'SEO标题', max_length=255, blank=True, null=True)
+    # SEO描述
     seo_description = models.TextField(
-        'seo_description', blank=True, null=True)
-    # seo_keywords
+        'SEO描述', blank=True, null=True)
+    # SEO关键词
     seo_keywords = models.CharField(
-        'seo_keywords', max_length=500, blank=True, null=True)
-    # og_title
+        'SEO关键词', max_length=500, blank=True, null=True)
+    # Open Graph标题
     og_title = models.CharField(
-        'og_title', max_length=255, blank=True, null=True)
-    # og_description
+        'Open Graph标题', max_length=255, blank=True, null=True)
+    # Open Graph描述
     og_description = models.TextField(
-        'og_description', blank=True, null=True)
-    # og_image
+        'Open Graph描述', blank=True, null=True)
+    # Open Graph图片
     og_image = models.CharField(
-        'og_image', max_length=500, blank=True, null=True)
-    # og_type
+        'Open Graph图片', max_length=500, blank=True, null=True)
+    # Open Graph类型
     og_type = models.CharField(
-        'og_type', max_length=50, default='article')
-    # twitter_title
+        'Open Graph类型', max_length=50, default='article')
+    # Twitter Card标题
     twitter_title = models.CharField(
-        'twitter_title', max_length=255, blank=True, null=True)
-    # twitter_description
+        'Twitter Card标题', max_length=255, blank=True, null=True)
+    # Twitter Card描述
     twitter_description = models.TextField(
-        'twitter_description', blank=True, null=True)
-    # twitter_image
+        'Twitter Card描述', blank=True, null=True)
+    # Twitter Card图片
     twitter_image = models.CharField(
-        'twitter_image', max_length=500, blank=True, null=True)
-    # twitter_card
+        'Twitter Card图片', max_length=500, blank=True, null=True)
+    # Twitter Card类型
     twitter_card = models.CharField(
-        'twitter_card', max_length=50, default='summary_large_image')
-    # canonical_url
+        'Twitter Card类型', max_length=50, default='summary_large_image')
+    # 规范URL
     canonical_url = models.CharField(
-        'canonical_url', max_length=500, blank=True, null=True)
-    # robots_meta
+        '规范URL', max_length=500, blank=True, null=True)
+    # Robots元标签
     robots_meta = models.CharField(
-        'robots_meta', max_length=100, default='index,follow')
-    # schema_org_enabled
+        'Robots元标签', max_length=100, default='index,follow')
+    # 是否启用Schema.org
     schema_org_enabled = models.BooleanField(
-        'schema_org_enabled', default=True)
-    # schema_org_type
+        '是否启用Schema.org',default=True)
+    # Schema.org类型
     schema_org_type = models.CharField(
-        'schema_org_type', max_length=50, default='BlogPosting')
+        'Schema.org类型', max_length=50, default='BlogPosting')
 
     class Meta:
         abstract = True
@@ -2108,24 +2132,24 @@ class ArticleSEOMixin(models.Model):
 class ShareStatMixin(models.Model):
     """分享统计模型 Mixin"""
 
-    # id
+    # 统计 ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # article_id
+        '统计 ID'        , primary_key=True)
+    # 文章 ID
     article_id = models.IntegerField(
-        'article_id (暂为 IntegerField，等待 Article 模型实现)', )
-    # platform
+        '文章 ID (暂为 IntegerField，等待 Article 模型实现)',)
+    # 分享平台 (wechat, weibo, twitter, facebook, linkedin, zhihu, juejin, segmentfault, telegram, copy)
     platform = models.CharField(
-        'platform', max_length=50)
-    # shared_by
+        '分享平台 (wechat, weibo, twitter, facebook, linkedin, zhihu, juejin, segmentfault, telegram, copy)', max_length=50)
+    # 分享者用户 ID
     shared_by = models.IntegerField(
-        'shared_by (暂为 IntegerField，等待 User 模型实现)', null=True, blank=True)
-    # ip_address
+        '分享者用户 ID (暂为 IntegerField，等待 User 模型实现)',null=True, blank=True)
+    # 分享者 IP 地址
     ip_address = models.CharField(
-        'ip_address', max_length=45, blank=True, null=True)
-    # user_agent
+        '分享者 IP 地址', max_length=45, blank=True, null=True)
+    # 用户代理
     user_agent = models.CharField(
-        'user_agent', max_length=500, blank=True, null=True)
+        '用户代理', max_length=500, blank=True, null=True)
 
     class Meta:
         abstract = True
@@ -2138,51 +2162,51 @@ class ShareStatMixin(models.Model):
 class ProductMixin(models.Model):
     """商品模型 Mixin"""
 
-    # id
+    # 商品 ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # name
+        '商品 ID'        , primary_key=True)
+    # 商品名称
     name = models.CharField(
-        'name', max_length=255)
-    # slug
+        '商品名称', max_length=255)
+    # 商品标识
     slug = models.CharField(
-        'slug', max_length=255, unique=True)
-    # description
+        '商品标识', max_length=255, unique=True)
+    # 商品描述
     description = models.TextField(
-        'description', blank=True, null=True)
-    # price
+        '商品描述', blank=True, null=True)
+    # 价格
     price = models.DecimalField(
-        'price', max_digits=10, decimal_places=2)
-    # original_price
+        '价格', max_digits=10, decimal_places=2)
+    # 原价
     original_price = models.DecimalField(
-        'original_price', max_digits=10, decimal_places=2, blank=True, null=True)
-    # stock
+        '原价', max_digits=10, decimal_places=2, blank=True, null=True)
+    # 库存数量
     stock = models.IntegerField(
-        'stock', default=0)
-    # sku
+        '库存数量', default=0)
+    # SKU编码
     sku = models.CharField(
-        'sku', max_length=100, blank=True, null=True)
-    # images
+        'SKU编码', max_length=100, blank=True, null=True)
+    # 商品图片(JSON数组)
     images = models.TextField(
-        'images', blank=True, null=True)
-    # category_id
+        '商品图片(JSON数组)', blank=True, null=True)
+    # 分类ID
     category_id = models.IntegerField(
-        'category_id (暂为 IntegerField，等待 Category 模型实现)', null=True, blank=True)
-    # is_active
+        '分类ID (暂为 IntegerField，等待 Category 模型实现)',null=True, blank=True)
+    # 是否上架
     is_active = models.BooleanField(
-        'is_active', default=True)
-    # is_featured
+        '是否上架',default=True)
+    # 是否推荐
     is_featured = models.BooleanField(
-        'is_featured', default=False)
-    # weight
+        '是否推荐',default=False)
+    # 重量(kg)
     weight = models.DecimalField(
-        'weight', max_digits=10, decimal_places=2, blank=True, null=True)
-    # dimensions
+        '重量(kg)', max_digits=10, decimal_places=2, blank=True, null=True)
+    # 尺寸(长x宽x高,JSON格式)
     dimensions = models.TextField(
-        'dimensions', blank=True, null=True)
-    # attributes
+        '尺寸(长x宽x高,JSON格式)', blank=True, null=True)
+    # 商品属性(JSON格式)
     attributes = models.TextField(
-        'attributes', blank=True, null=True)
+        '商品属性(JSON格式)', blank=True, null=True)
 
     class Meta:
         abstract = True
@@ -2195,15 +2219,15 @@ class ProductMixin(models.Model):
 class CartMixin(models.Model):
     """购物车模型 Mixin"""
 
-    # id
+    # 购物车 ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # user_id
+        '购物车 ID'        , primary_key=True)
+    # 用户ID(访客可为空)
     user_id = models.IntegerField(
-        'user_id (暂为 IntegerField，等待 User 模型实现)', null=True, blank=True)
-    # session_id
+        '用户ID(访客可为空) (暂为 IntegerField，等待 User 模型实现)',null=True, blank=True)
+    # 会话ID(用于访客购物车)
     session_id = models.CharField(
-        'session_id', max_length=255, blank=True, null=True)
+        '会话ID(用于访客购物车)', max_length=255, blank=True, null=True)
 
     class Meta:
         abstract = True
@@ -2216,21 +2240,21 @@ class CartMixin(models.Model):
 class CartItemMixin(models.Model):
     """购物车项模型 Mixin"""
 
-    # id
+    # 购物车项 ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # cart_id
+        '购物车项 ID'        , primary_key=True)
+    # 购物车ID
     cart_id = models.IntegerField(
-        'cart_id (暂为 IntegerField，等待 Cart 模型实现)', )
-    # product_id
+        '购物车ID (暂为 IntegerField，等待 Cart 模型实现)',)
+    # 商品ID
     product_id = models.IntegerField(
-        'product_id (暂为 IntegerField，等待 Product 模型实现)', )
-    # quantity
+        '商品ID (暂为 IntegerField，等待 Product 模型实现)',)
+    # 数量
     quantity = models.IntegerField(
-        'quantity', default=1)
-    # price
+        '数量', default=1)
+    # 单价(加入购物车时的价格)
     price = models.DecimalField(
-        'price', max_digits=10, decimal_places=2)
+        '单价(加入购物车时的价格)', max_digits=10, decimal_places=2)
 
     class Meta:
         abstract = True
@@ -2243,54 +2267,54 @@ class CartItemMixin(models.Model):
 class OrderMixin(models.Model):
     """订单模型 Mixin"""
 
-    # id
+    # 订单 ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # order_number
+        '订单 ID'        , primary_key=True)
+    # 订单号
     order_number = models.CharField(
-        'order_number', max_length=50, unique=True)
-    # user_id
+        '订单号', max_length=50, unique=True)
+    # 用户ID
     user_id = models.IntegerField(
-        'user_id (暂为 IntegerField，等待 User 模型实现)', )
-    # status
+        '用户ID (暂为 IntegerField，等待 User 模型实现)',)
+    # 订单状态 (pending:待支付, paid:已支付, processing:处理中, shipped:已发货, delivered:已送达, cancelled:已取消, refunded:已退款)
     status = models.CharField(
-        'status', max_length=50, default='pending')
-    # total_amount
+        '订单状态 (pending:待支付, paid:已支付, processing:处理中, shipped:已发货, delivered:已送达, cancelled:已取消, refunded:已退款)', max_length=50, default='pending')
+    # 订单总金额
     total_amount = models.DecimalField(
-        'total_amount', max_digits=10, decimal_places=2)
-    # shipping_amount
+        '订单总金额', max_digits=10, decimal_places=2)
+    # 运费
     shipping_amount = models.DecimalField(
-        'shipping_amount', max_digits=10, decimal_places=2, default=0)
-    # discount_amount
+        '运费', max_digits=10, decimal_places=2, default=0)
+    # 折扣金额
     discount_amount = models.DecimalField(
-        'discount_amount', max_digits=10, decimal_places=2, default=0)
-    # payment_method
+        '折扣金额', max_digits=10, decimal_places=2, default=0)
+    # 支付方式
     payment_method = models.CharField(
-        'payment_method', max_length=50, blank=True, null=True)
-    # payment_status
+        '支付方式', max_length=50, blank=True, null=True)
+    # 支付状态 (pending:待支付, paid:已支付, failed:支付失败, refunded:已退款)
     payment_status = models.CharField(
-        'payment_status', max_length=50, default='pending')
-    # transaction_id
+        '支付状态 (pending:待支付, paid:已支付, failed:支付失败, refunded:已退款)', max_length=50, default='pending')
+    # 交易ID
     transaction_id = models.CharField(
-        'transaction_id', max_length=255, blank=True, null=True)
-    # shipping_address
+        '交易ID', max_length=255, blank=True, null=True)
+    # 收货地址(JSON格式)
     shipping_address = models.CharField(
-        'shipping_address', max_length=255)
-    # billing_address
+        '收货地址(JSON格式)', max_length=255)
+    # 账单地址(JSON格式)
     billing_address = models.CharField(
-        'billing_address', max_length=255, blank=True, null=True)
-    # notes
+        '账单地址(JSON格式)', max_length=255, blank=True, null=True)
+    # 订单备注
     notes = models.TextField(
-        'notes', blank=True, null=True)
-    # paid_at
+        '订单备注', blank=True, null=True)
+    # 支付时间
     paid_at = models.DateTimeField(
-        'paid_at', blank=True, null=True)
-    # shipped_at
+        '支付时间', blank=True, null=True)
+    # 发货时间
     shipped_at = models.DateTimeField(
-        'shipped_at', blank=True, null=True)
-    # delivered_at
+        '发货时间', blank=True, null=True)
+    # 送达时间
     delivered_at = models.DateTimeField(
-        'delivered_at', blank=True, null=True)
+        '送达时间', blank=True, null=True)
 
     class Meta:
         abstract = True
@@ -2303,27 +2327,27 @@ class OrderMixin(models.Model):
 class OrderItemMixin(models.Model):
     """订单项模型 Mixin"""
 
-    # id
+    # 订单项 ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # order_id
+        '订单项 ID'        , primary_key=True)
+    # 订单ID
     order_id = models.IntegerField(
-        'order_id (暂为 IntegerField，等待 Order 模型实现)', )
-    # product_id
+        '订单ID (暂为 IntegerField，等待 Order 模型实现)',)
+    # 商品ID
     product_id = models.IntegerField(
-        'product_id (暂为 IntegerField，等待 Product 模型实现)', )
-    # product_name
+        '商品ID (暂为 IntegerField，等待 Product 模型实现)',)
+    # 商品名称(快照)
     product_name = models.CharField(
-        'product_name', max_length=255)
-    # quantity
+        '商品名称(快照)', max_length=255)
+    # 数量
     quantity = models.IntegerField(
-        'quantity')
-    # price
+        '数量')
+    # 单价
     price = models.DecimalField(
-        'price', max_digits=10, decimal_places=2)
-    # total
+        '单价', max_digits=10, decimal_places=2)
+    # 小计
     total = models.DecimalField(
-        'total', max_digits=10, decimal_places=2)
+        '小计', max_digits=10, decimal_places=2)
 
     class Meta:
         abstract = True
@@ -2336,51 +2360,51 @@ class OrderItemMixin(models.Model):
 class SiteMixin(models.Model):
     """站点模型（多站点支持） Mixin"""
 
-    # id
+    # 站点 ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # name
+        '站点 ID'        , primary_key=True)
+    # 站点名称
     name = models.CharField(
-        'name', max_length=200)
-    # slug
+        '站点名称', max_length=200)
+    # 站点标识
     slug = models.CharField(
-        'slug', max_length=100, unique=True)
-    # domain
+        '站点标识', max_length=100, unique=True)
+    # 域名(如 example.com)
     domain = models.CharField(
-        'domain', max_length=255, blank=True, null=True)
-    # path
+        '域名(如 example.com)', max_length=255, blank=True, null=True)
+    # 路径前缀(如 /site1)
     path = models.CharField(
-        'path', max_length=255, blank=True, null=True, default='/')
-    # is_active
+        '路径前缀(如 /site1)', max_length=255, blank=True, null=True, default='/')
+    # 是否激活
     is_active = models.BooleanField(
-        'is_active', default=True)
-    # is_default
+        '是否激活',default=True)
+    # 是否为默认站点
     is_default = models.BooleanField(
-        'is_default', default=False)
-    # settings
+        '是否为默认站点',default=False)
+    # 站点设置(JSON格式)
     settings = models.CharField(
-        'settings', max_length=255, blank=True, null=True)
-    # theme
+        '站点设置(JSON格式)', max_length=255, blank=True, null=True)
+    # 主题slug
     theme = models.CharField(
-        'theme', max_length=100, default='default')
-    # language
+        '主题slug', max_length=100, default='default')
+    # 语言代码
     language = models.CharField(
-        'language', max_length=10, default='zh-CN')
-    # timezone
+        '语言代码', max_length=10, default='zh-CN')
+    # 时区
     timezone = models.CharField(
-        'timezone', max_length=50, default='Asia/Shanghai')
-    # title
+        '时区', max_length=50, default='Asia/Shanghai')
+    # 站点标题
     title = models.CharField(
-        'title', max_length=200, blank=True, null=True)
-    # description
+        '站点标题', max_length=200, blank=True, null=True)
+    # 站点描述
     description = models.TextField(
-        'description', blank=True, null=True)
-    # keywords
+        '站点描述', blank=True, null=True)
+    # 关键词
     keywords = models.CharField(
-        'keywords', max_length=500, blank=True, null=True)
-    # admin_user_id
+        '关键词', max_length=500, blank=True, null=True)
+    # 站点管理员ID
     admin_user_id = models.BigIntegerField(
-        'admin_user_id', blank=True, null=True)
+        '站点管理员ID', blank=True, null=True)
 
     class Meta:
         abstract = True
@@ -2393,30 +2417,30 @@ class SiteMixin(models.Model):
 class SensitiveWordMixin(models.Model):
     """敏感词模型 Mixin"""
 
-    # id
+    # 敏感词 ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # word
+        '敏感词 ID'        , primary_key=True)
+    # 敏感词内容
     word = models.CharField(
-        'word', max_length=100, unique=True)
-    # level
+        '敏感词内容', max_length=100, unique=True)
+    # 敏感级别 (1:低, 2:中, 3:高)
     level = models.IntegerField(
-        'level', default=1)
-    # action
+        '敏感级别 (1:低, 2:中, 3:高)', default=1)
+    # 处理方式 (block:拦截, replace:替换, warn:警告)
     action = models.CharField(
-        'action', max_length=50, default='block')
-    # replacement
+        '处理方式 (block:拦截, replace:替换, warn:警告)', max_length=50, default='block')
+    # 替换词(当action为replace时使用)
     replacement = models.CharField(
-        'replacement', max_length=100, blank=True, null=True)
-    # category
+        '替换词(当action为replace时使用)', max_length=100, blank=True, null=True)
+    # 分类(政治、色情、暴力等)
     category = models.CharField(
-        'category', max_length=50, blank=True, null=True)
-    # is_active
+        '分类(政治、色情、暴力等)', max_length=50, blank=True, null=True)
+    # 是否激活
     is_active = models.BooleanField(
-        'is_active', default=True)
-    # created_by
+        '是否激活',default=True)
+    # 创建者用户ID
     created_by = models.IntegerField(
-        'created_by (暂为 IntegerField，等待 User 模型实现)', null=True, blank=True)
+        '创建者用户ID (暂为 IntegerField，等待 User 模型实现)',null=True, blank=True)
 
     class Meta:
         abstract = True
@@ -2429,36 +2453,36 @@ class SensitiveWordMixin(models.Model):
 class UserSessionMixin(models.Model):
     """用户会话模型 Mixin"""
 
-    # id
+    # 会话 ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # user_id
+        '会话 ID'        , primary_key=True)
+    # 用户ID
     user_id = models.IntegerField(
-        'user_id (暂为 IntegerField，等待 User 模型实现)', )
-    # access_token
+        '用户ID (暂为 IntegerField，等待 User 模型实现)',)
+    # 会话令牌
     access_token = models.CharField(
-        'access_token', max_length=255, unique=True)
-    # refresh_token
+        '会话令牌', max_length=255, unique=True)
+    # 会话刷新令牌(不唯一 扫码的登录依赖)
     refresh_token = models.CharField(
-        'refresh_token', max_length=255)
-    # device_info
+        '会话刷新令牌(不唯一 扫码的登录依赖)', max_length=255)
+    # 设备信息(User-Agent)
     device_info = models.CharField(
-        'device_info', max_length=500, blank=True, null=True)
-    # ip_address
+        '设备信息(User-Agent)', max_length=500, blank=True, null=True)
+    # IP地址
     ip_address = models.CharField(
-        'ip_address', max_length=45, blank=True, null=True)
-    # location
+        'IP地址', max_length=45, blank=True, null=True)
+    # 地理位置
     location = models.CharField(
-        'location', max_length=100, blank=True, null=True)
-    # is_active
+        '地理位置', max_length=100, blank=True, null=True)
+    # 是否活跃
     is_active = models.BooleanField(
-        'is_active', default=True)
-    # last_activity
+        '是否活跃',default=True)
+    # 最后活动时间
     last_activity = models.DateTimeField(
-        'last_activity')
-    # expires_at
+        '最后活动时间')
+    # 过期时间
     expires_at = models.DateTimeField(
-        'expires_at')
+        '过期时间')
 
     class Meta:
         abstract = True
@@ -2471,24 +2495,24 @@ class UserSessionMixin(models.Model):
 class LoginAttemptMixin(models.Model):
     """登录尝试记录模型 Mixin"""
 
-    # id
+    # 记录 ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # username
+        '记录 ID'        , primary_key=True)
+    # 尝试登录的用户名
     username = models.CharField(
-        'username', max_length=255)
-    # ip_address
+        '尝试登录的用户名', max_length=255)
+    # IP地址
     ip_address = models.CharField(
-        'ip_address', max_length=45)
-    # user_agent
+        'IP地址', max_length=45)
+    # User-Agent
     user_agent = models.CharField(
-        'user_agent', max_length=500, blank=True, null=True)
-    # is_success
+        'User-Agent', max_length=500, blank=True, null=True)
+    # 是否成功
     is_success = models.BooleanField(
-        'is_success', default=False)
-    # failure_reason
+        '是否成功',default=False)
+    # 失败原因
     failure_reason = models.CharField(
-        'failure_reason', max_length=255, blank=True, null=True)
+        '失败原因', max_length=255, blank=True, null=True)
 
     class Meta:
         abstract = True
@@ -2497,27 +2521,30 @@ class LoginAttemptMixin(models.Model):
         # 注意：请在具体模型类中设置 db_table = get_table_name("login_attempts")
 
 
+
 class TokenBlacklistMixin(models.Model):
     """Token 黑名单模型（UNLOGGED 表，用于存储被撤销的 JWT Token） Mixin"""
 
-    # id
+    # ID
     id = models.BigAutoField(
-        'id', primary_key=True)
-    # token_identifier
+        'ID'        , primary_key=True)
+    # Token 唯一标识符(token 前32个字符)
     token_identifier = models.CharField(
-        'token_identifier', max_length=64, unique=True)
-    # token_hash
+        'Token 唯一标识符(token 前32个字符)', max_length=64, unique=True)
+    # Token 哈希值(用于调试和审计)
     token_hash = models.CharField(
-        'token_hash', max_length=128, blank=True, null=True)
-    # expires_at
+        'Token 哈希值(用于调试和审计)', max_length=128, blank=True, null=True)
+    # Token 过期时间
     expires_at = models.DateTimeField(
-        'expires_at')
-    # reason
+        'Token 过期时间')
+    # 撤销原因
     reason = models.CharField(
-        'reason', max_length=255, blank=True, null=True)
+        '撤销原因', max_length=255, blank=True, null=True)
 
     class Meta:
         abstract = True
         app_label = 'generated'
         verbose_name = 'Token 黑名单模型（UNLOGGED 表，用于存储被撤销的 JWT Token）'
         # 注意：请在具体模型类中设置 db_table = get_table_name("token_blacklist")
+
+

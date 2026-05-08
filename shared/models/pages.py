@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - Pages
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-08 11:23:57
+生成时间：2026-05-08 14:40:59
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Index
@@ -23,6 +23,7 @@ class Pages(Base):
         Index('idx_pages_order', 'order_index'),
     )
 
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='页面 ID')
 
     title = Column(String(255), nullable=True, doc='标题')
@@ -37,11 +38,15 @@ class Pages(Base):
 
     status = Column(BigInteger, default=0, doc='状态')
 
+
     author_id = Column(BigInteger, nullable=True, doc='作者 ID')
+
 
     parent_id = Column(BigInteger, nullable=True, doc='父页面 ID')
 
+
     order_index = Column(Integer, default=0, doc='排序索引')
+
 
     meta_title = Column(String(255), nullable=True, doc='元标题')
 
@@ -91,3 +96,5 @@ class Pages(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<Pages id={self.id}>'
+
+

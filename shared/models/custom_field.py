@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - CustomField
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-08 11:23:57
+生成时间：2026-05-08 14:40:59
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey
@@ -14,9 +14,13 @@ class CustomField(Base):
     """自定义字段模型模型"""
     __tablename__ = 'custom_fields'
 
+
+
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='字段 ID')
 
     user = Column(BigInteger, ForeignKey('users.id'), doc='用户')
+
 
     field_name = Column(String(100), nullable=True, doc='字段名称')
 
@@ -46,3 +50,5 @@ class CustomField(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<CustomField id={self.id}>'
+
+

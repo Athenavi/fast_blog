@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - OrderItem
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-08 11:23:57
+生成时间：2026-05-08 14:40:59
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Numeric, ForeignKey, Index
@@ -20,19 +20,25 @@ class OrderItem(Base):
         Index('idx_order_items_product', 'product_id'),
     )
 
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='订单项 ID')
 
     order_id = Column(BigInteger, ForeignKey('orders.id'), doc='订单ID')
 
+
     product_id = Column(BigInteger, ForeignKey('products.id'), doc='商品ID')
+
 
     product_name = Column(String(255), nullable=True, doc='商品名称(快照)')
 
     quantity = Column(Integer, doc='数量')
 
+
     price = Column(Numeric(10, 2), doc='单价')
 
+
     total = Column(Numeric(10, 2), doc='小计')
+
 
     created_at = Column(DateTime, doc='创建时间')
 
@@ -64,3 +70,5 @@ class OrderItem(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<OrderItem id={self.id}>'
+
+

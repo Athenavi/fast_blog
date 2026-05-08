@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - ShareStat
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-08 11:23:57
+生成时间：2026-05-08 14:40:59
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
@@ -21,14 +21,16 @@ class ShareStat(Base):
         Index('idx_share_stats_article_created', 'article_id', 'created_at'),
     )
 
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='统计 ID')
 
     article_id = Column(BigInteger, ForeignKey('articles.id'), doc='文章 ID')
 
-    platform = Column(String(50), index=True, nullable=True,
-                      doc='分享平台 (wechat, weibo, twitter, facebook, linkedin, zhihu, juejin, segmentfault, telegram, copy)')
+
+    platform = Column(String(50), index=True, nullable=True, doc='分享平台 (wechat, weibo, twitter, facebook, linkedin, zhihu, juejin, segmentfault, telegram, copy)')
 
     shared_by = Column(BigInteger, ForeignKey('users.id'), nullable=True, doc='分享者用户 ID')
+
 
     ip_address = Column(String(45), nullable=True, doc='分享者 IP 地址')
 
@@ -63,3 +65,5 @@ class ShareStat(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<ShareStat id={self.id}>'
+
+

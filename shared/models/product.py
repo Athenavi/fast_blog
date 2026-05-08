@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - Product
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-08 11:23:57
+生成时间：2026-05-08 14:40:59
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Numeric, ForeignKey, Index
@@ -22,6 +22,7 @@ class Product(Base):
         Index('idx_products_sku', 'sku'),
     )
 
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='商品 ID')
 
     name = Column(String(255), nullable=True, doc='商品名称')
@@ -30,27 +31,38 @@ class Product(Base):
 
     description = Column(Text, nullable=True, doc='商品描述')
 
+
     price = Column(Numeric(10, 2), doc='价格')
+
 
     original_price = Column(Numeric(10, 2), nullable=True, doc='原价')
 
+
     stock = Column(Integer, default=0, doc='库存数量')
+
 
     sku = Column(String(100), index=True, nullable=True, doc='SKU编码')
 
     images = Column(Text, nullable=True, doc='商品图片(JSON数组)')
 
+
     category_id = Column(BigInteger, ForeignKey('categories.id'), nullable=True, doc='分类ID')
+
 
     is_active = Column(Boolean, default=True, doc='是否上架')
 
+
     is_featured = Column(Boolean, default=False, doc='是否推荐')
+
 
     weight = Column(Numeric(10, 2), nullable=True, doc='重量(kg)')
 
+
     dimensions = Column(Text, nullable=True, doc='尺寸(长x宽x高,JSON格式)')
 
+
     attributes = Column(Text, nullable=True, doc='商品属性(JSON格式)')
+
 
     created_at = Column(DateTime, doc='创建时间')
 
@@ -93,3 +105,5 @@ class Product(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<Product id={self.id}>'
+
+

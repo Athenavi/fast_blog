@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - CommentVote
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-08 11:23:57
+生成时间：2026-05-08 14:40:59
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
@@ -19,13 +19,17 @@ class CommentVote(Base):
         Index('idx_comment_votes_comment_user', 'comment_id', 'user', unique=True),
     )
 
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='投票 ID')
 
     comment_id = Column(BigInteger, index=True, doc='评论 ID')
 
+
     user = Column(BigInteger, ForeignKey('users.id'), nullable=True, doc='用户 ID（匿名投票可为空）')
 
+
     vote_type = Column(Integer, doc='投票类型 (1: 赞, -1: 踩)')
+
 
     ip_address = Column(String(45), nullable=True, doc='IP 地址（用于防刷）')
 
@@ -57,3 +61,5 @@ class CommentVote(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<CommentVote id={self.id}>'
+
+

@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - CartItem
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-08 11:23:57
+生成时间：2026-05-08 14:40:59
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Numeric, ForeignKey, Index
@@ -21,15 +21,20 @@ class CartItem(Base):
         Index('idx_cart_items_unique', 'cart_id', 'product_id', unique=True),
     )
 
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='购物车项 ID')
 
     cart_id = Column(BigInteger, ForeignKey('carts.id'), doc='购物车ID')
 
+
     product_id = Column(BigInteger, ForeignKey('products.id'), doc='商品ID')
+
 
     quantity = Column(Integer, default=1, doc='数量')
 
+
     price = Column(Numeric(10, 2), doc='单价(加入购物车时的价格)')
+
 
     created_at = Column(DateTime, doc='创建时间')
 
@@ -62,3 +67,5 @@ class CartItem(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<CartItem id={self.id}>'
+
+

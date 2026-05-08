@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - Role
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-08 11:23:57
+生成时间：2026-05-08 14:40:59
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Index
@@ -20,6 +20,7 @@ class Role(Base):
         Index('idx_roles_is_system', 'is_system'),
     )
 
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='角色 ID')
 
     name = Column(String(100), nullable=True, doc='角色名称')
@@ -31,6 +32,7 @@ class Role(Base):
     permissions = Column(String(255), nullable=True, doc='权限列表（JSON格式）')
 
     is_system = Column(Boolean, default=False, doc='是否为系统角色（系统角色不可删除）')
+
 
     created_at = Column(DateTime, doc='创建时间')
 
@@ -64,3 +66,5 @@ class Role(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<Role id={self.id}>'
+
+

@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - LoginAttempt
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-08 11:23:57
+生成时间：2026-05-08 14:40:59
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Index
@@ -21,6 +21,7 @@ class LoginAttempt(Base):
         Index('idx_login_attempts_created', 'created_at'),
     )
 
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='记录 ID')
 
     username = Column(String(255), index=True, nullable=True, doc='尝试登录的用户名')
@@ -30,6 +31,7 @@ class LoginAttempt(Base):
     user_agent = Column(String(500), nullable=True, doc='User-Agent')
 
     is_success = Column(Boolean, default=False, doc='是否成功')
+
 
     failure_reason = Column(String(255), nullable=True, doc='失败原因')
 
@@ -62,3 +64,5 @@ class LoginAttempt(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<LoginAttempt id={self.id}>'
+
+
