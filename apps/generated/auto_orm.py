@@ -1,7 +1,7 @@
 """
 Django ORM 抽象基类定义
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-07 17:20:28
+生成时间：2026-05-08 10:43:26
 """
 
 from django.db import models
@@ -2435,9 +2435,12 @@ class UserSessionMixin(models.Model):
     # user_id
     user_id = models.IntegerField(
         'user_id (暂为 IntegerField，等待 User 模型实现)', )
-    # session_token
-    session_token = models.CharField(
-        'session_token', max_length=255, unique=True)
+    # access_token
+    access_token = models.CharField(
+        'access_token', max_length=255, unique=True)
+    # refresh_token
+    refresh_token = models.CharField(
+        'refresh_token', max_length=255)
     # device_info
     device_info = models.CharField(
         'device_info', max_length=500, blank=True, null=True)
@@ -2492,3 +2495,29 @@ class LoginAttemptMixin(models.Model):
         app_label = 'generated'
         verbose_name = '登录尝试记录模型'
         # 注意：请在具体模型类中设置 db_table = get_table_name("login_attempts")
+
+
+class TokenBlacklistMixin(models.Model):
+    """Token 黑名单模型（UNLOGGED 表，用于存储被撤销的 JWT Token） Mixin"""
+
+    # id
+    id = models.BigAutoField(
+        'id', primary_key=True)
+    # token_identifier
+    token_identifier = models.CharField(
+        'token_identifier', max_length=64, unique=True)
+    # token_hash
+    token_hash = models.CharField(
+        'token_hash', max_length=128, blank=True, null=True)
+    # expires_at
+    expires_at = models.DateTimeField(
+        'expires_at')
+    # reason
+    reason = models.CharField(
+        'reason', max_length=255, blank=True, null=True)
+
+    class Meta:
+        abstract = True
+        app_label = 'generated'
+        verbose_name = 'Token 黑名单模型（UNLOGGED 表，用于存储被撤销的 JWT Token）'
+        # 注意：请在具体模型类中设置 db_table = get_table_name("token_blacklist")

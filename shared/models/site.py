@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - Site
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-07 17:20:28
+生成时间：2026-05-08 10:43:26
 """
 
 
@@ -14,6 +14,7 @@ from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateT
 class Site(Base):
     """站点模型（多站点支持）模型"""
     __tablename__ = 'sites'
+
 
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='id')
@@ -69,10 +70,11 @@ class Site(Base):
 
     __table_args__ = (
 
-        Index('idx_sites_domain', 'domain'),
+    Index('idx_sites_domain', 'domain'),
         Index('idx_sites_slug', 'slug', unique=True),
         Index('idx_sites_is_active', 'is_active'),
         Index('idx_sites_is_default', 'is_default'),
+
     )
 
 

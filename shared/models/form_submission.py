@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - FormSubmission
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-07 17:20:28
+生成时间：2026-05-08 10:43:26
 """
 
 
@@ -14,6 +14,7 @@ from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateT
 class FormSubmission(Base):
     """表单提交记录模型模型"""
     __tablename__ = 'form_submissions'
+
 
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='id')
@@ -42,9 +43,10 @@ class FormSubmission(Base):
 
     __table_args__ = (
 
-    Index('idx_form_submissions_form_id', 'form_id'),
+        Index('idx_form_submissions_form_id', 'form_id'),
         Index('idx_form_submissions_status', 'status'),
         Index('idx_form_submissions_created', 'created_at'),
+
     )
 
 

@@ -100,6 +100,16 @@ def decode_jwt_token(token: str) -> dict:
             algorithms=[settings.JWT_ALGORITHM],
             options={"verify_exp": True},
         )
+
+        # 黑名单检查
+        jti = payload.get("jti")
+        if jti and token_blacklist.is_available and token_blacklist.is_blacklisted(jti):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Token has been revoked",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
         return payload
     except InvalidTokenError as e:
         raise HTTPException(
@@ -370,11 +380,35 @@ async def login_api(
         access_token = create_jwt_token(subject=str(user.id), token_type="access")
         refresh_token = create_jwt_token(subject=str(user.id), token_type="refresh")
 
-        # 3. 更新最后登录时间
+        # 3.5 创建用户会话记录
+        try:
+            from shared.services.session_management_service import session_management_service
+            # 获取设备信息
+            user_agent = request.headers.get("User-Agent", "Unknown")
+            ip_address = request.client.host if request.client else None
+
+            # 使用异步方法创建会话
+            await session_management_service.create_session(
+                user_id=user.id,
+                access_token=access_token,
+                refresh_token=refresh_token,  # 同时存储 refresh_token
+                device_info=user_agent,
+                ip_address=ip_address,
+                expires_hours=720,  # 30天
+                db_session=db  # 复用当前的数据库会话
+            )
+            print(f"[Login API] Session created for user {user.id}")
+        except Exception as e:
+            print(f"[Login API] Warning: Failed to create session record: {e}")
+            import traceback
+            traceback.print_exc()
+            # 会话创建失败不影响登录流程
+
+        # 4. 更新最后登录时间
         user.last_login = datetime.now(timezone.utc)
         await db.commit()
 
-        # 4. 记录成功登录
+        # 5. 记录成功登录
         await login_security_service.record_login_attempt_async(
             username=username,
             ip_address=ip_address,
@@ -382,7 +416,7 @@ async def login_api(
             is_success=True
         )
 
-        # 5. 清除之前的失败记录
+        # 6. 清除之前的失败记录
         await login_security_service.clear_failed_attempts_async(username)
 
         print(f"[Login API] Login successful for user: {username}")
@@ -450,6 +484,25 @@ async def register_api(
     # 生成 token
     access_token = create_jwt_token(subject=str(user.id), token_type="access")
     refresh_token = create_jwt_token(subject=str(user.id), token_type="refresh")
+
+    # 创建用户会话记录
+    try:
+        from shared.services.session_management_service import session_management_service
+        user_agent = request.headers.get("User-Agent", "Unknown")
+        ip_address = request.client.host if request.client else None
+
+        await session_management_service.create_session(
+            user_id=user.id,
+            access_token=access_token,
+            refresh_token=refresh_token,  # 同时存储 refresh_token
+            device_info=user_agent,
+            ip_address=ip_address,
+            expires_hours=720,
+            db_session=db
+        )
+        print(f"[Register API] Session created for user {user.id}")
+    except Exception as e:
+        print(f"[Register API] Warning: Failed to create session: {e}")
 
     return ApiResponse(
         success=True,
@@ -584,7 +637,7 @@ async def logout_api(request: Request):
 
 @router.post("/auth/token/refresh", summary="刷新访问令牌")
 async def refresh_token_api(request: Request):
-    """使用 refresh_token 获取新的 access_token（支持可选的 refresh token 轮换）"""
+    """使用 refresh_token 获取新的 access_token（支持 refresh token 轮换）"""
     try:
         body = await request.body()
         data = json.loads(body)
@@ -601,19 +654,23 @@ async def refresh_token_api(request: Request):
         if not user_id:
             return ApiResponse(success=False, error="无效的 refresh token")
 
-        # 生成新的 access token（以及可选的 refresh token 轮换）
+        # 黑名单检查：检查 refresh token 的 JTI 是否在黑名单中
+        jti = payload.get("jti")
+        exp = payload.get("exp")
+        if jti and token_blacklist.is_available and token_blacklist.is_blacklisted(jti):
+            return ApiResponse(success=False, error="Token 已被撤销，请重新登录")
+
+        # 生成新的 access token 和 refresh token（token 轮换）
         new_access_token = create_jwt_token(subject=user_id, token_type="access")
-        new_refresh_token = refresh_token_str  # 默认不轮换
-        # 如果需要轮换，取消注释以下代码块：
-        # new_refresh_token = create_jwt_token(subject=user_id, token_type="refresh")
-        # # 将旧的 refresh token 加入黑名单
-        # old_jti = payload.get("jti")
-        # old_exp = payload.get("exp")
-        # if old_jti and old_exp:
-        #     token_blacklist.add_to_blacklist(
-        #         old_jti,
-        #         datetime.fromtimestamp(old_exp, tz=timezone.utc)
-        #     )
+        new_refresh_token = create_jwt_token(subject=user_id, token_type="refresh")
+
+        # 将旧的 refresh token 加入黑名单（token 轮换策略）
+        if jti and exp:
+            from datetime import datetime, timezone
+            token_blacklist.add_to_blacklist(
+                jti,
+                datetime.fromtimestamp(exp, tz=timezone.utc)
+            )
 
         return ApiResponse(
             success=True,

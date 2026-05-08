@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - Pages
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-07 17:20:28
+生成时间：2026-05-08 10:43:26
 """
 
 
@@ -14,6 +14,7 @@ from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateT
 class Pages(Base):
     """页面模型模型"""
     __tablename__ = 'pages'
+
 
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='id')
@@ -66,11 +67,12 @@ class Pages(Base):
 
     __table_args__ = (
 
-    Index('idx_pages_slug', 'slug', unique=True),
+        Index('idx_pages_slug', 'slug', unique=True),
         Index('idx_pages_status', 'status'),
         Index('idx_pages_author_id', 'author_id'),
         Index('idx_pages_parent_id', 'parent_id'),
         Index('idx_pages_order', 'order_index'),
+
     )
 
 

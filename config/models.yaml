@@ -31,6 +31,7 @@
 #         enum: []       # 枚举值列表
 #         format:        # 格式（如 email, date-time）
 #         index: true    # 是否创建索引
+#   - unlogged: false     # 是否为 PostgreSQL UNLOGGED 表（不启用 WAL，性能更高，但崩溃时可能丢失数据）
 #
 # 注意事项：
 #   - 请勿手动修改自动生成的模型文件（文件头部有注释标识）
@@ -3462,12 +3463,17 @@ models:
         index: true
         description: 用户ID
         foreignKey: User
-      session_token:
+      access_token:
         type: string
         maxLength: 255
         unique: true
         index: true
         description: 会话令牌
+      refresh_token:
+        type: string
+        maxLength: 255
+        index: true
+        description: 会话刷新令牌（不唯一 扫码的登录依赖）
       device_info:
         type: string
         nullable: true
@@ -3505,8 +3511,8 @@ models:
       - name: idx_user_sessions_user_id
         columns: [ user_id ]
         comment: "用户ID索引"
-      - name: idx_user_sessions_token
-        columns: [ session_token ]
+      - name: idx_user_access_token
+        columns: [ access_token ]
         unique: true
         comment: "会话令牌唯一索引"
       - name: idx_user_sessions_is_active
@@ -3563,6 +3569,46 @@ models:
         columns: [ ip_address ]
         comment: "IP地址索引"
       - name: idx_login_attempts_created
+        columns: [ created_at ]
+        order: DESC
+        comment: "创建时间索引"
+  TokenBlacklist:
+    description: Token 黑名单模型（UNLOGGED 表，用于存储被撤销的 JWT Token）
+    properties:
+      id:
+        type: bigint
+        description: ID
+      token_identifier:
+        type: string
+        maxLength: 64
+        unique: true
+        description: Token 唯一标识符（token 前32个字符）
+      token_hash:
+        type: string
+        maxLength: 128
+        nullable: true
+        description: Token 哈希值（用于调试和审计）
+      expires_at:
+        type: string
+        format: date-time
+        description: Token 过期时间
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      reason:
+        type: string
+        maxLength: 255
+        nullable: true
+        description: 撤销原因
+    orm: true
+    table: token_blacklist
+    unlogged: true  # UNLOGGED 表，不写入 WAL，性能更高
+    indexes:
+      - name: idx_token_blacklist_expires
+        columns: [ expires_at ]
+        comment: "过期时间索引"
+      - name: idx_token_blacklist_created
         columns: [ created_at ]
         order: DESC
         comment: "创建时间索引"

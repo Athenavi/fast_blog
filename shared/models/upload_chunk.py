@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - UploadChunk
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-07 17:20:28
+生成时间：2026-05-08 10:43:26
 """
 
 
@@ -14,6 +14,7 @@ from . import Base  # 使用统一的 Base
 class UploadChunk(Base):
     """上传分块模型模型"""
     __tablename__ = 'upload_chunks'
+
 
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='id')

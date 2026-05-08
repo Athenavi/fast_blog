@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - Cart
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-07 17:20:28
+生成时间：2026-05-08 10:43:26
 """
 
 
@@ -14,6 +14,7 @@ from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateT
 class Cart(Base):
     """购物车模型模型"""
     __tablename__ = 'carts'
+
 
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='id')
@@ -33,8 +34,9 @@ class Cart(Base):
 
     __table_args__ = (
 
-    Index('idx_carts_user', 'user_id'),
+        Index('idx_carts_user', 'user_id'),
         Index('idx_carts_session', 'session_id'),
+
     )
 
 

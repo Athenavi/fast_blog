@@ -3,20 +3,21 @@
 提供查看和管理用户登录设备的功能
 """
 
-from typing import Optional
 from fastapi import APIRouter, Depends, Request, HTTPException
-
+from sqlalchemy.ext.asyncio import AsyncSession
+from src.auth import jwt_required_dependency as jwt_required
+from src.extensions import get_async_db_session as get_async_db
 from shared.services.session_management_service import session_management_service
 from src.api.v1.responses import ApiResponse
-from src.auth.jwt_auth import jwt_required
 
-router = APIRouter(prefix="/sessions", tags=["会话管理"])
+router = APIRouter(tags=["会话管理"])
 
 
 @router.get("")
 async def get_user_sessions(
         request: Request,
-        current_user_id: int = Depends(jwt_required)
+        current_user=Depends(jwt_required),
+        db: AsyncSession = Depends(get_async_db)
 ):
     """
     获取当前用户的所有活跃会话（登录设备列表）
@@ -24,9 +25,10 @@ async def get_user_sessions(
     Returns:
         会话列表，包含设备信息、IP地址、最后活动时间等
     """
-    sessions = session_management_service.get_user_sessions(
-        user_id=current_user_id,
-        active_only=True
+    sessions = await session_management_service.get_user_sessions(
+        user_id=current_user.id,
+        active_only=True,
+        db_session=db
     )
 
     return ApiResponse(
@@ -41,7 +43,9 @@ async def get_user_sessions(
 @router.post("/{session_id}/revoke")
 async def revoke_session(
         session_id: int,
-        current_user_id: int = Depends(jwt_required)
+        request: Request,
+        current_user=Depends(jwt_required),
+        db: AsyncSession = Depends(get_async_db)
 ):
     """
     撤销指定会话（远程注销设备）
@@ -52,9 +56,18 @@ async def revoke_session(
     Returns:
         操作结果
     """
-    success = session_management_service.revoke_session(
+    # 尝试从请求体中获取 refresh_token
+    try:
+        body = await request.json()
+        refresh_token = body.get("refresh_token")
+    except:
+        refresh_token = None
+
+    success = await session_management_service.revoke_session(
         session_id=session_id,
-        user_id=current_user_id
+        user_id=current_user.id,
+        db_session=db,
+        refresh_token=refresh_token
     )
 
     if not success:
@@ -69,7 +82,8 @@ async def revoke_session(
 @router.post("/revoke-all")
 async def revoke_all_sessions(
         request: Request,
-        current_user_id: int = Depends(jwt_required)
+        current_user=Depends(jwt_required),
+        db: AsyncSession = Depends(get_async_db)
 ):
     """
     撤销所有其他会话（退出所有其他设备）
@@ -83,8 +97,9 @@ async def revoke_all_sessions(
     # 从请求中获取当前会话ID（如果有）
     # 这里简化处理，不传递exclude_current参数
 
-    count = session_management_service.revoke_all_sessions(
-        user_id=current_user_id
+    count = await session_management_service.revoke_all_sessions(
+        user_id=current_user.id,
+        db_session=db
     )
 
     return ApiResponse(
@@ -98,7 +113,8 @@ async def revoke_all_sessions(
 
 @router.post("/cleanup")
 async def cleanup_expired_sessions(
-        current_user_id: int = Depends(jwt_required)
+        current_user=Depends(jwt_required),
+        db: AsyncSession = Depends(get_async_db)
 ):
     """
     清理当前用户的过期会话
@@ -109,7 +125,9 @@ async def cleanup_expired_sessions(
     # 注意：这里的cleanup_expired_sessions是全局清理
     # 如果需要只清理当前用户的，可以添加user_id参数
 
-    count = session_management_service.cleanup_expired_sessions()
+    count = await session_management_service.cleanup_expired_sessions(
+        db_session=db
+    )
 
     return ApiResponse(
         success=True,

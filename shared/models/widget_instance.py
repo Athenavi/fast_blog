@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - WidgetInstance
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-07 17:20:28
+生成时间：2026-05-08 10:43:26
 """
 
 
@@ -14,6 +14,7 @@ from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateT
 class WidgetInstance(Base):
     """Widget实例模型（持久化存储）模型"""
     __tablename__ = 'widget_instances'
+
 
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='id')
@@ -48,9 +49,10 @@ class WidgetInstance(Base):
 
     __table_args__ = (
 
-    Index('idx_widget_instances_area', 'area'),
+        Index('idx_widget_instances_area', 'area'),
         Index('idx_widget_instances_order', 'order_index'),
         Index('idx_widget_instances_type', 'widget_type'),
+
     )
 
 

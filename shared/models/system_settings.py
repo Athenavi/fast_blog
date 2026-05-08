@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - SystemSettings
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-07 17:20:28
+生成时间：2026-05-08 10:43:26
 """
 
 
@@ -13,6 +13,7 @@ from . import Base  # 使用统一的 Base
 class SystemSettings(Base):
     """系统设置模型模型"""
     __tablename__ = 'system_settings'
+
 
 
     id = Column(Integer, primary_key=True, autoincrement=True, doc='id')

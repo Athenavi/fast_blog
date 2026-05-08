@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - CommentVote
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-07 17:20:28
+生成时间：2026-05-08 10:43:26
 """
 
 
@@ -14,6 +14,7 @@ from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateT
 class CommentVote(Base):
     """评论投票模型模型"""
     __tablename__ = 'comment_votes'
+
 
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='id')
@@ -36,7 +37,8 @@ class CommentVote(Base):
 
     __table_args__ = (
 
-    Index('idx_comment_votes_comment_user', 'comment_id', 'user', unique=True),
+        Index('idx_comment_votes_comment_user', 'comment_id', 'user', unique=True),
+        
     )
 
 

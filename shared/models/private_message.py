@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - PrivateMessage
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-07 17:20:28
+生成时间：2026-05-08 10:43:26
 """
 
 
@@ -16,6 +16,7 @@ class PrivateMessage(Base):
     __tablename__ = 'private_messages'
 
 
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='id')
 
 
@@ -27,13 +28,18 @@ class PrivateMessage(Base):
 
     content = Column(Text, nullable=False, doc='content')
 
+
     message_type = Column(String(50), default='text', doc='message_type')
+
 
     attachment_url = Column(String(500), nullable=True, doc='attachment_url')
 
+
     is_read = Column(Boolean, default=False, doc='is_read')
 
+
     read_at = Column(DateTime, nullable=True, doc='read_at')
+
 
     is_deleted_by_sender = Column(Boolean, default=False, doc='is_deleted_by_sender')
 
@@ -49,11 +55,12 @@ class PrivateMessage(Base):
 
     __table_args__ = (
 
-    Index('idx_private_messages_sender', 'sender'),
+        Index('idx_private_messages_sender', 'sender'),
         Index('idx_private_messages_recipient', 'recipient'),
         Index('idx_private_messages_created', 'created_at'),
         Index('idx_private_messages_conversation', 'sender', 'recipient'),
         Index('idx_private_messages_is_read', 'is_read'),
+
     )
 
     def to_dict(self, exclude_sensitive=True):

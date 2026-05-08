@@ -307,6 +307,7 @@ class RouteGenerator:
                     'has_timestamps': self._check_timestamp_fields_from_properties(properties),
                     'has_foreign_keys': self._check_foreign_keys_in_fields(fields),  # 检查 fields 中的外键
                     'has_relationships': self._check_relationships(model_def),  # 检查是否有关系定义
+                    'is_unlogged': model_def.get('unlogged', False),  # 是否为 UNLOGGED 表
                     'custom_methods': custom_methods,  # 添加自定义方法
                 }
 

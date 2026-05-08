@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - Menus
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-07 17:20:28
+生成时间：2026-05-08 10:43:26
 """
 
 
@@ -14,6 +14,7 @@ from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateT
 class Menus(Base):
     """菜单模型模型"""
     __tablename__ = 'menus'
+
 
 
     id = Column(Integer, primary_key=True, autoincrement=True, doc='id')
@@ -39,8 +40,9 @@ class Menus(Base):
 
     __table_args__ = (
 
-    Index('idx_menus_slug', 'slug', unique=True),
+        Index('idx_menus_slug', 'slug', unique=True),
         Index('idx_menus_is_active', 'is_active'),
+
     )
 
 

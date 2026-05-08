@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - Article
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-07 17:20:28
+生成时间：2026-05-08 10:43:26
 """
 
 
@@ -15,6 +15,7 @@ from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateT
 class Article(Base):
     """文章模型模型"""
     __tablename__ = 'articles'
+
 
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='id')
@@ -85,7 +86,7 @@ class Article(Base):
 
     __table_args__ = (
 
-        Index('idx_articles_status', 'status'),
+    Index('idx_articles_status', 'status'),
         Index('idx_articles_category', 'category'),
         Index('idx_articles_user_id', 'user'),
         Index('idx_articles_created_at', 'created_at'),
@@ -100,6 +101,7 @@ class Article(Base):
         Index('idx_articles_post_type_status', 'post_type', 'status'),
         Index('idx_articles_category_status_created', 'category', 'status', 'created_at'),
         Index('idx_articles_user_status_created', 'user', 'status', 'created_at'),
+
     )
 
     # 关系定义

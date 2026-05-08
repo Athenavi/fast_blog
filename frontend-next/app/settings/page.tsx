@@ -479,7 +479,7 @@ const SettingsPage = () => {
     const loadSessions = async () => {
         try {
             setLoadingSessions(true);
-            const response = await apiClient.get('/management/sessions');
+            const response = await apiClient.get('/sessions');
             if (response.success && response.data) {
                 setSessions(response.data.sessions || []);
             }
@@ -496,7 +496,7 @@ const SettingsPage = () => {
         }
 
         try {
-            const response = await apiClient.post(`/management/sessions/${sessionId}/revoke`);
+            const response = await apiClient.post(`/sessions/${sessionId}/revoke`);
             if (response.success) {
                 alert('设备已注销');
                 loadSessions(); // 重新加载列表
@@ -515,7 +515,7 @@ const SettingsPage = () => {
         }
 
         try {
-            const response = await apiClient.post('/management/sessions/revoke-all');
+            const response = await apiClient.post('/sessions/revoke-all');
             if (response.success) {
                 alert(`已注销 ${response.data.revoked_count || 0} 个设备`);
                 loadSessions();

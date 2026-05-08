@@ -1,7 +1,7 @@
 /**
  * API 类型定义
  * 由 routes.yaml 自动生成 - 请勿手动修改
- * 生成时间：2026-05-07 17:20:28
+ * 生成时间：2026-05-08 10:43:26
  */
 
 export interface User {
@@ -822,7 +822,8 @@ export interface SensitiveWord {
 export interface UserSession {
     id: any;
     user_id: any;
-    session_token: string;
+    access_token: string;
+    refresh_token: string;
     device_info?: string;
     ip_address?: string;
     location?: string;
@@ -840,6 +841,15 @@ export interface LoginAttempt {
     is_success: boolean;
     failure_reason?: string;
     created_at: string;
+}
+
+export interface TokenBlacklist {
+    id: any;
+    token_identifier: string;
+    token_hash?: string;
+    expires_at: string;
+    created_at: string;
+    reason?: string;
 }
 
 

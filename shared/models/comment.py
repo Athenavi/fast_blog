@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - Comment
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-07 17:20:28
+生成时间：2026-05-08 10:43:26
 """
 
 
@@ -14,6 +14,7 @@ from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateT
 class Comment(Base):
     """评论模型模型"""
     __tablename__ = 'comments'
+
 
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='id')
@@ -66,7 +67,7 @@ class Comment(Base):
 
     __table_args__ = (
 
-        Index('idx_comments_article_id', 'article_id'),
+    Index('idx_comments_article_id', 'article_id'),
         Index('idx_comments_user_id', 'user_id'),
         Index('idx_comments_parent_id', 'parent_id'),
         Index('idx_comments_is_approved', 'is_approved'),
@@ -75,6 +76,7 @@ class Comment(Base):
         Index('idx_comments_user_created', 'user_id', 'created_at'),
         Index('idx_comments_email', 'author_email'),
         Index('idx_comments_spam_score', 'spam_score'),
+
     )
 
 

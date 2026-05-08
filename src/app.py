@@ -472,11 +472,11 @@ curl -X POST "http://localhost:9421/api/v1/media/upload" \
 
     # 添加请求调试中间件（用于调试 422 错误）
     from starlette.middleware.base import BaseHTTPMiddleware
-    
+
     class DebugRequestMiddleware(BaseHTTPMiddleware):
         async def dispatch(self, request, call_next):
             if request.method == "POST" and "/management/auth/login" in str(request.url):
-                print(f"\n{'='*80}")
+                print(f"\n{'=' * 80}")
                 print(f"[DEBUG MIDDLEWARE] Login Request Received")
                 print(f"URL: {request.url}")
                 print(f"Method: {request.method}")
@@ -484,16 +484,16 @@ curl -X POST "http://localhost:9421/api/v1/media/upload" \
                 print(f"Content-Length: {request.headers.get('content-length')}")
                 print(f"All Headers: {dict(request.headers)}")
                 # 注意：不要在这里读取 body，否则后续处理器无法读取
-                print(f"{'='*80}\n")
-            
+                print(f"{'=' * 80}\n")
+
             response = await call_next(request)
-            
+
             # 打印响应状态
             if request.method == "POST" and "/management/auth/login" in str(request.url):
                 print(f"[DEBUG MIDDLEWARE] Response Status: {response.status_code}")
-            
+
             return response
-    
+
     app.add_middleware(DebugRequestMiddleware)
     print("[Debug] Request debug middleware added")
 
@@ -955,14 +955,6 @@ curl -X POST "http://localhost:9421/api/v1/media/upload" \
             print(f"{worker_info} [OK] Translation Progress API 已加载")
         except ImportError as e:
             print(f"Warning: Translation Progress API could not be loaded: {e}")
-
-        # 会话管理 API
-        try:
-            from src.api.v1.session_management import router as session_router
-            app.include_router(session_router, prefix='/api/v1', tags=['session-management'])
-            print(f"{worker_info} [OK] Session Management API 已加载")
-        except ImportError as e:
-            print(f"Warning: Session Management API could not be loaded: {e}")
 
         # 异常行为检测 API
         try:

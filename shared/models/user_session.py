@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - UserSession
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-07 17:20:28
+生成时间：2026-05-08 10:43:26
 """
 
 
@@ -16,13 +16,15 @@ class UserSession(Base):
     __tablename__ = 'user_sessions'
 
 
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='id')
 
 
     user_id = Column(BigInteger, ForeignKey('users.id'), nullable=False, doc='user_id')
 
+    access_token = Column(String(255), unique=True, nullable=True, doc='access_token')
 
-    session_token = Column(String(255), unique=True, nullable=True, doc='session_token')
+    refresh_token = Column(String(255), index=True, nullable=True, doc='refresh_token')
 
 
     device_info = Column(String(500), nullable=True, doc='device_info')
@@ -45,13 +47,16 @@ class UserSession(Base):
 
     created_at = Column(DateTime, doc='created_at')
 
+
     __table_args__ = (
 
-    Index('idx_user_sessions_user_id', 'user_id'),
-        Index('idx_user_sessions_token', 'session_token', unique=True),
+        Index('idx_user_sessions_user_id', 'user_id'),
+        Index('idx_user_access_token', 'access_token', unique=True),
         Index('idx_user_sessions_is_active', 'is_active'),
         Index('idx_user_sessions_expires', 'expires_at'),
+
     )
+
 
     def to_dict(self, exclude_sensitive=True):
         """转换为字典
@@ -62,7 +67,8 @@ class UserSession(Base):
         data = {
             'id': self.id,
             'user_id': self.user_id,
-            'session_token': self.session_token,
+            'access_token': self.access_token,
+            'refresh_token': self.refresh_token,
             'device_info': self.device_info,
             'ip_address': self.ip_address,
             'location': self.location,

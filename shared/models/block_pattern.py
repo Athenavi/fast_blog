@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - BlockPattern
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-07 17:20:28
+生成时间：2026-05-08 10:43:26
 """
 
 
@@ -22,6 +22,7 @@ from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateT
 class BlockPattern(Base):
     """自定义块模式模型模型"""
     __tablename__ = 'block_patterns'
+
 
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='id')
@@ -65,9 +66,10 @@ class BlockPattern(Base):
 
     __table_args__ = (
 
-    Index('idx_block_patterns_name', 'name', unique=True),
+        Index('idx_block_patterns_name', 'name', unique=True),
         Index('idx_block_patterns_category', 'category'),
         Index('idx_block_patterns_user_id', 'user_id'),
+
     )
 
 

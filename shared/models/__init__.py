@@ -57,6 +57,7 @@ from .site import Site
 from .sensitive_word import SensitiveWord
 from .user_session import UserSession
 from .login_attempt import LoginAttempt
+from .token_blacklist import TokenBlacklist
 
 # ==================== 自动生成的导入 - 由 routes.yaml 管理 ====================
 # 此部分由脚本自动生成 - 请勿手动修改
@@ -117,6 +118,7 @@ __all__ = [
     'Site',
     'SensitiveWord',
     'UserSession',
-    'LoginAttempt'
+    'LoginAttempt',
+    'TokenBlacklist'
 ]
 # ============================================================================

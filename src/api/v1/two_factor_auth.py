@@ -188,6 +188,7 @@ async def disable_2fa(
 
 @router.post("/2fa/verify-login")
 async def verify_2fa_login(
+        request: Request,
         request_data: Verify2FALoginRequest,
         db: AsyncSession = Depends(get_async_db)
 ):
@@ -202,6 +203,10 @@ async def verify_2fa_login(
         from sqlalchemy import select
         from datetime import datetime, timezone, timedelta
         from src.api.v1.user_management import create_jwt_token
+
+        # 获取设备信息（在try块开头定义，确保后续可用）
+        user_agent = request.headers.get("User-Agent", "Unknown")
+        ip_address = request.client.host if request.client else None
 
         # 获取用户信息
         query = select(User).where(User.id == request_data.user_id)
@@ -246,6 +251,24 @@ async def verify_2fa_login(
         access_token = create_jwt_token(subject=str(user.id), token_type="access")
         refresh_token = create_jwt_token(subject=str(user.id), token_type="refresh")
 
+        # 创建用户会话记录
+        try:
+            from shared.services.session_management_service import session_management_service
+
+            await session_management_service.create_session_async(
+                user_id=user.id,
+                session_token=access_token,
+                device_info=user_agent,
+                ip_address=ip_address,
+                expires_hours=720,
+                db_session=db
+            )
+            print(f"[2FA Verify] Session created for user {user.id}")
+        except Exception as e:
+            print(f"[2FA Verify] Warning: Failed to create session: {e}")
+            import traceback
+            traceback.print_exc()
+
         # 更新最后登录时间
         user.last_login = datetime.now(timezone.utc)
         await db.commit()
@@ -255,8 +278,8 @@ async def verify_2fa_login(
             from shared.services.login_security_service import login_security_service
             await login_security_service.record_login_attempt_async(
                 username=user.username,
-                ip_address="unknown",  # TODO: 从请求中获取IP
-                user_agent="",
+                ip_address=ip_address or "unknown",
+                user_agent=user_agent,
                 is_success=True
             )
             await login_security_service.clear_failed_attempts_async(user.username)
