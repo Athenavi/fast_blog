@@ -475,22 +475,51 @@ curl -X POST "http://localhost:9421/api/v1/media/upload" \
 
     class DebugRequestMiddleware(BaseHTTPMiddleware):
         async def dispatch(self, request, call_next):
-            if request.method == "POST" and "/management/auth/login" in str(request.url):
+            # 监控所有敏感词相关的请求
+            if "/sensitive-words" in str(request.url):
                 print(f"\n{'=' * 80}")
-                print(f"[DEBUG MIDDLEWARE] Login Request Received")
+                print(f"[DEBUG MIDDLEWARE] Sensitive Words Request")
                 print(f"URL: {request.url}")
                 print(f"Method: {request.method}")
                 print(f"Content-Type: {request.headers.get('content-type')}")
                 print(f"Content-Length: {request.headers.get('content-length')}")
+                print(f"Authorization: {request.headers.get('authorization', 'NONE')[:50]}...")
                 print(f"All Headers: {dict(request.headers)}")
-                # 注意：不要在这里读取 body，否则后续处理器无法读取
+
+                # 尝试读取并打印请求体
+                if request.method == "POST":
+                    try:
+                        body = await request.body()
+                        print(f"Request Body: {body.decode('utf-8')}")
+                    except Exception as e:
+                        print(f"Could not read body: {e}")
+                
                 print(f"{'=' * 80}\n")
 
             response = await call_next(request)
 
             # 打印响应状态
-            if request.method == "POST" and "/management/auth/login" in str(request.url):
+            if "/sensitive-words" in str(request.url):
                 print(f"[DEBUG MIDDLEWARE] Response Status: {response.status_code}")
+                print(f"[DEBUG MIDDLEWARE] Response Headers: {dict(response.headers)}")
+
+                # 如果是422，尝试读取响应体
+                if response.status_code == 422:
+                    from starlette.responses import JSONResponse
+                    if hasattr(response, 'body'):
+                        try:
+                            body_content = b''
+                            async for chunk in response.body_iterator:
+                                body_content += chunk
+                            print(f"[DEBUG MIDDLEWARE] 422 Response Body: {body_content.decode('utf-8')}")
+
+                            # 重新设置body_iterator，让后续处理能读取
+                            async def body_iterator():
+                                yield body_content
+
+                            response.body_iterator = body_iterator()
+                        except Exception as e:
+                            print(f"Could not read 422 response body: {e}")
 
             return response
 

@@ -5,8 +5,9 @@
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query, Body
-from sqlalchemy import select, func, or_
+from fastapi import APIRouter, Depends, Query, Body, Request
+from pydantic import BaseModel
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.sensitive_word import SensitiveWord
@@ -14,53 +15,80 @@ from src.api.v1.responses import ApiResponse
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 
-router = APIRouter(prefix="/sensitive-words", tags=["sensitive-words"])
+router = APIRouter(tags=["sensitive-words"])
+
+
+# 测试端点 - 用于调试
+@router.post("/test")
+async def test_endpoint(data: SensitiveWordCreate):
+    """测试端点，验证Pydantic模型"""
+    print(f"[TEST] Received: {data}")
+    return {"success": True, "data": data.dict()}
+
+
+# Pydantic 模型定义
+class SensitiveWordCreate(BaseModel):
+    word: str
+    level: int
+    action: str
+    replacement: Optional[str]
+    category: Optional[str]
+
+
+class SensitiveWordUpdate(BaseModel):
+    level: Optional[int] = None
+    action: Optional[str] = None
+    replacement: Optional[str] = None
+    category: Optional[str] = None
+    is_active: Optional[bool] = None
 
 
 @router.post("/")
 async def create_sensitive_word(
-        word: str = Body(..., description="敏感词内容", min_length=1, max_length=100),
-        level: int = Body(1, ge=1, le=3, description="敏感级别 (1:低, 2:中, 3:高)"),
-        action: str = Body("block", description="处理方式 (block/replace/warn)"),
-        replacement: Optional[str] = Body(None, description="替换词"),
-        category: Optional[str] = Body(None, description="分类"),
-        current_user_id: int = Depends(jwt_required),
+        request: Request,
+        data: SensitiveWordCreate,
+        current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
     添加敏感词
     
     Args:
-        word: 敏感词内容
-        level: 敏感级别
-        action: 处理方式
-        replacement: 替换词
-        category: 分类
+        data: 敏感词数据
     """
+    # 打印原始请求体
+    try:
+        body = await request.json()
+        print(f"[DEBUG] Raw request body: {body}")
+    except:
+        print(f"[DEBUG] Could not read request body")
+
+    print(f"[DEBUG] Received data: {data}")
+    print(f"[DEBUG] Current user ID: {current_user.id}")
     try:
         # 验证action参数
-        if action not in ['block', 'replace', 'warn']:
+        if data.action not in ['block', 'replace', 'warn']:
             return ApiResponse(success=False, error="无效的处理方式，必须是 block/replace/warn")
 
         # 检查是否已存在
-        existing_query = select(SensitiveWord).where(SensitiveWord.word == word)
+        existing_query = select(SensitiveWord).where(SensitiveWord.word == data.word)
         existing_result = await db.execute(existing_query)
         existing = existing_result.scalar_one_or_none()
 
         if existing:
-            return ApiResponse(success=False, error=f"敏感词 '{word}' 已存在")
+            return ApiResponse(success=False, error=f"敏感词 '{data.word}' 已存在")
 
         # 创建新敏感词
         new_word = SensitiveWord(
-            word=word,
-            level=level,
-            action=action,
-            replacement=replacement,
-            category=category,
+            word=data.word,
+            level=data.level,
+            action=data.action,
+            replacement=data.replacement,
+            category=data.category,
             is_active=True,
-            created_by=current_user_id,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
+            created_by=1,
+            created_at=datetime.now(),
+            updated_at=datetime.now()
         )
 
         db.add(new_word)
@@ -205,11 +233,7 @@ async def get_sensitive_word(
 @router.put("/{word_id}")
 async def update_sensitive_word(
         word_id: int,
-        level: Optional[int] = Body(None, ge=1, le=3, description="敏感级别"),
-        action: Optional[str] = Body(None, description="处理方式"),
-        replacement: Optional[str] = Body(None, description="替换词"),
-        category: Optional[str] = Body(None, description="分类"),
-        is_active: Optional[bool] = Body(None, description="是否激活"),
+        data: SensitiveWordUpdate,
         db: AsyncSession = Depends(get_async_db)
 ):
     """
@@ -217,11 +241,7 @@ async def update_sensitive_word(
     
     Args:
         word_id: 敏感词ID
-        level: 敏感级别
-        action: 处理方式
-        replacement: 替换词
-        category: 分类
-        is_active: 是否激活
+        data: 更新数据
     """
     try:
         # 查询敏感词
@@ -233,22 +253,22 @@ async def update_sensitive_word(
             return ApiResponse(success=False, error="敏感词不存在")
 
         # 验证action参数
-        if action and action not in ['block', 'replace', 'warn']:
+        if data.action and data.action not in ['block', 'replace', 'warn']:
             return ApiResponse(success=False, error="无效的处理方式")
 
         # 更新字段
-        if level is not None:
-            word.level = level
-        if action is not None:
-            word.action = action
-        if replacement is not None:
-            word.replacement = replacement
-        if category is not None:
-            word.category = category
-        if is_active is not None:
-            word.is_active = is_active
+        if data.level is not None:
+            word.level = data.level
+        if data.action is not None:
+            word.action = data.action
+        if data.replacement is not None:
+            word.replacement = data.replacement
+        if data.category is not None:
+            word.category = data.category
+        if data.is_active is not None:
+            word.is_active = data.is_active
 
-        word.updated_at = datetime.utcnow()
+        word.updated_at = datetime.now()
         await db.commit()
         await db.refresh(word)
 
@@ -300,7 +320,7 @@ async def delete_sensitive_word(
 @router.post("/batch-import")
 async def batch_import_sensitive_words(
         words: list = Body(..., description="敏感词列表，每项包含word, level, action等字段"),
-        current_user_id: int = Depends(jwt_required),
+        current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
@@ -344,9 +364,9 @@ async def batch_import_sensitive_words(
                     replacement=item.get('replacement'),
                     category=item.get('category'),
                     is_active=True,
-                    created_by=current_user_id,
-                    created_at=datetime.utcnow(),
-                    updated_at=datetime.utcnow()
+                    created_by=current_user.id,
+                    created_at=datetime.now(),
+                    updated_at=datetime.now()
                 )
 
                 db.add(new_word)
@@ -379,7 +399,7 @@ async def batch_import_sensitive_words(
 
 @router.post("/refresh-cache")
 async def refresh_sensitive_word_cache(
-        current_user_id: int = Depends(jwt_required)
+        current_user=Depends(jwt_required),
 ):
     """
     刷新敏感词缓存（管理员操作）
