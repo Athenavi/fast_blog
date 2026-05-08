@@ -1,73 +1,22 @@
 """
 SQLAlchemy 模型定义 - Comment
-由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-08 10:43:26
+由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
+生成时间：2026-05-08 11:23:57
 """
 
-
-from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, Numeric, ForeignKey
+from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Numeric, ForeignKey, Index
 
 from . import Base  # 使用统一的 Base
 
-from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, Numeric, ForeignKey, Index
+
 
 class Comment(Base):
     """评论模型模型"""
     __tablename__ = 'comments'
 
 
-
-    id = Column(BigInteger, primary_key=True, autoincrement=True, doc='id')
-
-
-    article_id = Column(BigInteger, ForeignKey('articles.id'), nullable=False, doc='article_id')
-
-
-    user_id = Column(BigInteger, ForeignKey('users.id'), nullable=True, doc='user_id')
-
-
-    parent_id = Column('parent_id', BigInteger, ForeignKey('comments.id'), nullable=True, doc='parent_id')
-
-
-    content = Column(Text, nullable=False, doc='content')
-
-
-    author_name = Column(String(100), nullable=True, doc='author_name')
-
-
-    author_email = Column(String(255), nullable=True, doc='author_email')
-
-
-    author_url = Column(String(500), nullable=True, doc='author_url')
-
-
-    author_ip = Column(String(45), nullable=True, doc='author_ip')
-
-
-    user_agent = Column(String(500), nullable=True, doc='user_agent')
-
-
-    is_approved = Column(Boolean, default=True, doc='is_approved')
-
-
-    likes = Column(BigInteger, default=0, doc='likes')
-
-
-    spam_score = Column(Numeric(10, 2), nullable=True, doc='spam_score')
-
-
-    spam_reasons = Column(String(255), nullable=True, doc='spam_reasons')
-
-
-    created_at = Column(DateTime, doc='created_at')
-
-
-    updated_at = Column(DateTime, doc='updated_at')
-
-
     __table_args__ = (
-
-    Index('idx_comments_article_id', 'article_id'),
+        Index('idx_comments_article_id', 'article_id'),
         Index('idx_comments_user_id', 'user_id'),
         Index('idx_comments_parent_id', 'parent_id'),
         Index('idx_comments_is_approved', 'is_approved'),
@@ -76,13 +25,44 @@ class Comment(Base):
         Index('idx_comments_user_created', 'user_id', 'created_at'),
         Index('idx_comments_email', 'author_email'),
         Index('idx_comments_spam_score', 'spam_score'),
-
     )
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True, doc='评论 ID')
+
+    article_id = Column(BigInteger, ForeignKey('articles.id'), doc='文章 ID')
+
+    user_id = Column(BigInteger, ForeignKey('users.id'), nullable=True, doc='用户 ID（访客评论可为空）')
+
+    parent_id = Column(BigInteger, ForeignKey('comments.id'), nullable=True, doc='父评论 ID（用于回复）')
+
+    content = Column(Text, nullable=False, doc='评论内容')
+
+    author_name = Column(String(100), nullable=True, doc='作者姓名（访客填写）')
+
+    author_email = Column(String(255), nullable=True, doc='作者邮箱（访客填写）')
+
+    author_url = Column(String(500), nullable=True, doc='作者网站（访客填写）')
+
+    author_ip = Column(String(45), nullable=True, doc='作者 IP 地址')
+
+    user_agent = Column(String(500), nullable=True, doc='用户代理')
+
+    is_approved = Column(Boolean, default=True, doc='是否已审核通过')
+
+    likes = Column(BigInteger, default=0, doc='点赞数')
+
+    spam_score = Column(Numeric(10, 2), nullable=True, doc='垃圾评分')
+
+    spam_reasons = Column(String(255), nullable=True, doc='垃圾检测原因（JSON格式）')
+
+    created_at = Column(DateTime, doc='创建时间')
+
+    updated_at = Column(DateTime, doc='更新时间')
 
 
     def to_dict(self, exclude_sensitive=True):
         """转换为字典
-        
+
         Args:
             exclude_sensitive: 是否排除敏感字段（密码、密钥、token 等）
         """
@@ -95,6 +75,7 @@ class Comment(Base):
             'author_name': self.author_name,
             'author_email': self.author_email,
             'author_url': self.author_url,
+            'author_ip': self.author_ip,
             'user_agent': self.user_agent,
             'is_approved': self.is_approved,
             'likes': self.likes,
@@ -104,10 +85,8 @@ class Comment(Base):
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }
 
-        # 只有当明确要求包含敏感字段时才添加
         if not exclude_sensitive:
             sensitive_data = {
-                'author_ip': self.author_ip,
             }
             data.update(sensitive_data)
 

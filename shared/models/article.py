@@ -1,92 +1,23 @@
 """
 SQLAlchemy 模型定义 - Article
-由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-08 10:43:26
+由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
+生成时间：2026-05-08 11:23:57
 """
 
-
-from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, Float, ForeignKey
+from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
 from sqlalchemy.orm import relationship
 
 from . import Base  # 使用统一的 Base
 
-from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, Float, ForeignKey, Index
+
 
 class Article(Base):
     """文章模型模型"""
     __tablename__ = 'articles'
 
 
-
-    id = Column(BigInteger, primary_key=True, autoincrement=True, doc='id')
-
-
-    title = Column(String(255), nullable=True, doc='title')
-
-
-    slug = Column(String(255), nullable=True, doc='slug')
-
-
-    excerpt = Column(String(255), nullable=True, doc='excerpt')
-
-
-    cover_image = Column(String(255), nullable=True, doc='cover_image')
-
-
-    category = Column(BigInteger, ForeignKey('categories.id'), nullable=True, doc='category')
-
-
-    tags_list = Column(String(255), nullable=True, doc='tags_list')
-
-
-    views = Column(BigInteger, default=0, doc='views')
-
-
-    user = Column(BigInteger, ForeignKey('users.id'), nullable=False, doc='user')
-
-
-    likes = Column(BigInteger, default=0, doc='likes')
-
-
-    status = Column(Integer, doc='status')
-
-
-    hidden = Column(Boolean, default=False, doc='hidden')
-
-
-    is_featured = Column(Boolean, default=False, doc='is_featured')
-
-
-    is_vip_only = Column(Boolean, default=False, doc='is_vip_only')
-
-
-    required_vip_level = Column(Integer, default=0, doc='required_vip_level')
-
-
-    article_ad = Column(String(255), nullable=True, doc='article_ad')
-
-
-    scheduled_publish_at = Column(DateTime, nullable=True, doc='scheduled_publish_at')
-
-
-    post_type = Column(String(50), index=True, default='article', doc='post_type')
-
-
-    is_sticky = Column(Boolean, default=False, doc='is_sticky')
-
-
-    sticky_until = Column(DateTime, nullable=True, doc='sticky_until')
-
-
-    created_at = Column(DateTime, doc='created_at')
-
-
-    updated_at = Column(DateTime, doc='updated_at')
-
-
     __table_args__ = (
-
-    Index('idx_articles_status', 'status'),
+        Index('idx_articles_status', 'status'),
         Index('idx_articles_category', 'category'),
         Index('idx_articles_user_id', 'user'),
         Index('idx_articles_created_at', 'created_at'),
@@ -101,8 +32,51 @@ class Article(Base):
         Index('idx_articles_post_type_status', 'post_type', 'status'),
         Index('idx_articles_category_status_created', 'category', 'status', 'created_at'),
         Index('idx_articles_user_status_created', 'user', 'status', 'created_at'),
-
     )
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True, doc='文章 ID')
+
+    title = Column(String(255), nullable=True, doc='标题')
+
+    slug = Column(String(255), nullable=True, doc='文章 slug')
+
+    excerpt = Column(String(255), nullable=True, doc='摘要')
+
+    cover_image = Column(String(255), nullable=True, doc='封面图 URL')
+
+    category = Column(BigInteger, ForeignKey('categories.id'), nullable=True, doc='分类')
+
+    tags_list = Column(String(255), nullable=True, doc='标签列表')
+
+    views = Column(BigInteger, default=0, doc='浏览量')
+
+    user = Column(BigInteger, ForeignKey('users.id'), doc='用户')
+
+    likes = Column(BigInteger, default=0, doc='点赞数')
+
+    status = Column(Integer, doc='状态 (-1:已删除，0:草稿，1:已发布)')
+
+    hidden = Column(Boolean, default=False, doc='是否隐藏')
+
+    is_featured = Column(Boolean, default=False, doc='是否推荐')
+
+    is_vip_only = Column(Boolean, default=False, doc='是否仅 VIP 可见')
+
+    required_vip_level = Column(Integer, default=0, doc='所需 VIP 等级')
+
+    article_ad = Column(String(255), nullable=True, doc='广告内容')
+
+    scheduled_publish_at = Column(DateTime, nullable=True, doc='定时发布时间（设置为未来时间后自动发布）')
+
+    post_type = Column(String(50), index=True, default='article', doc='内容类型(article/book/product等)')
+
+    is_sticky = Column(Boolean, default=False, doc='是否置顶（粘性文章）')
+
+    sticky_until = Column(DateTime, nullable=True, doc='置顶过期时间（可选，过期后自动取消置顶）')
+
+    created_at = Column(DateTime, doc='创建时间')
+
+    updated_at = Column(DateTime, doc='更新时间')
 
     # 关系定义
     revisions = relationship('ArticleRevision', back_populates='article',
@@ -111,7 +85,7 @@ class Article(Base):
 
     def to_dict(self, exclude_sensitive=True):
         """转换为字典
-        
+
         Args:
             exclude_sensitive: 是否排除敏感字段（密码、密钥、token 等）
         """
@@ -140,7 +114,6 @@ class Article(Base):
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }
 
-        # 只有当明确要求包含敏感字段时才添加
         if not exclude_sensitive:
             sensitive_data = {
             }

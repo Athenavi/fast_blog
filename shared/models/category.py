@@ -1,71 +1,55 @@
 """
 SQLAlchemy 模型定义 - Category
-由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-08 10:43:26
+由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
+生成时间：2026-05-08 11:23:57
 """
 
-
-from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime
+from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Index
 
 from . import Base  # 使用统一的 Base
 
-from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, Index
+
 
 class Category(Base):
     """分类模型模型"""
     __tablename__ = 'categories'
 
 
-
-    id = Column(BigInteger, primary_key=True, autoincrement=True, doc='id')
-
-
-    name = Column(String(100), nullable=True, doc='name')
-
-
-    slug = Column(String(255), nullable=True, doc='slug')
-
-
-    description = Column(String(255), nullable=True, doc='description')
-
-
-    parent_id = Column(BigInteger, nullable=True, doc='parent_id')
-
-
-    sort_order = Column(BigInteger, default=0, doc='sort_order')
-
-
-    icon = Column(String(255), nullable=True, doc='icon')
-
-
-    color = Column(String(255), nullable=True, doc='color')
-
-
-    is_visible = Column(Boolean, default=True, doc='is_visible')
-
-
-    articles_count = Column(BigInteger, doc='articles_count')
-
-
-    created_at = Column(DateTime, doc='created_at')
-
-
-    updated_at = Column(DateTime, doc='updated_at')
-
-
     __table_args__ = (
-
-    Index('idx_categories_slug', 'slug', unique=True),
+        Index('idx_categories_slug', 'slug', unique=True),
         Index('idx_categories_parent', 'parent_id'),
         Index('idx_categories_sort_order', 'sort_order'),
         Index('idx_categories_is_visible', 'is_visible'),
-
     )
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True, doc='分类 ID')
+
+    name = Column(String(100), nullable=True, doc='分类名')
+
+    slug = Column(String(255), nullable=True, doc='分类 slug')
+
+    description = Column(String(255), nullable=True, doc='分类描述')
+
+    parent_id = Column(BigInteger, nullable=True, doc='父分类 ID')
+
+    sort_order = Column(BigInteger, default=0, doc='排序')
+
+    icon = Column(String(255), nullable=True, doc='图标')
+
+    color = Column(String(255), nullable=True, doc='颜色')
+
+    is_visible = Column(Boolean, default=True, doc='是否可见')
+
+    articles_count = Column(BigInteger, doc='分类下的文章数量')
+
+    created_at = Column(DateTime, doc='创建时间')
+
+    updated_at = Column(DateTime, doc='更新时间')
 
 
     def to_dict(self, exclude_sensitive=True):
         """转换为字典
-        
+
         Args:
             exclude_sensitive: 是否排除敏感字段（密码、密钥、token 等）
         """
@@ -84,7 +68,6 @@ class Category(Base):
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }
 
-        # 只有当明确要求包含敏感字段时才添加
         if not exclude_sensitive:
             sensitive_data = {
             }

@@ -1,60 +1,47 @@
 """
 SQLAlchemy 模型定义 - Capability
-由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-08 10:43:26
+由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
+生成时间：2026-05-08 11:23:57
 """
 
-
-from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime
+from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Index
 
 from . import Base  # 使用统一的 Base
 
-from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, Index
+
 
 class Capability(Base):
     """权限能力模型模型"""
     __tablename__ = 'capabilities'
 
 
-
-    id = Column(BigInteger, primary_key=True, autoincrement=True, doc='id')
-
-
-    code = Column(String(100), unique=True, nullable=True, doc='code')
-
-
-    name = Column(String(255), nullable=True, doc='name')
-
-
-    description = Column(String(255), nullable=True, doc='description')
-
-
-    resource_type = Column(String(100), nullable=True, doc='resource_type')
-
-
-    action = Column(String(50), nullable=True, doc='action')
-
-
-    is_active = Column(Boolean, default=True, doc='is_active')
-
-
-    created_at = Column(DateTime, doc='created_at')
-
-
-    updated_at = Column(DateTime, doc='updated_at')
-
-
     __table_args__ = (
-
         Index('idx_capabilities_code', 'code', unique=True),
         Index('idx_capabilities_resource', 'resource_type', 'action'),
-
     )
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True, doc='权限 ID')
+
+    code = Column(String(100), unique=True, nullable=True, doc='权限代码（唯一标识）')
+
+    name = Column(String(255), nullable=True, doc='权限名称')
+
+    description = Column(String(255), nullable=True, doc='权限描述')
+
+    resource_type = Column(String(100), nullable=True, doc='资源类型（article, user, category等）')
+
+    action = Column(String(50), nullable=True, doc='操作类型（create, read, update, delete）')
+
+    is_active = Column(Boolean, default=True, doc='是否激活')
+
+    created_at = Column(DateTime, doc='创建时间')
+
+    updated_at = Column(DateTime, doc='更新时间')
 
 
     def to_dict(self, exclude_sensitive=True):
         """转换为字典
-        
+
         Args:
             exclude_sensitive: 是否排除敏感字段（密码、密钥、token 等）
         """
@@ -70,7 +57,6 @@ class Capability(Base):
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }
 
-        # 只有当明确要求包含敏感字段时才添加
         if not exclude_sensitive:
             sensitive_data = {
             }

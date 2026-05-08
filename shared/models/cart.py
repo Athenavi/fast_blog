@@ -1,48 +1,39 @@
 """
 SQLAlchemy 模型定义 - Cart
-由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-08 10:43:26
+由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
+生成时间：2026-05-08 11:23:57
 """
 
-
-from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
 
 from . import Base  # 使用统一的 Base
 
-from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, ForeignKey, Index
+
 
 class Cart(Base):
     """购物车模型模型"""
     __tablename__ = 'carts'
 
 
-
-    id = Column(BigInteger, primary_key=True, autoincrement=True, doc='id')
-
-
-    user_id = Column(BigInteger, ForeignKey('users.id'), nullable=True, doc='user_id')
-
-
-    session_id = Column(String(255), index=True, nullable=True, doc='session_id')
-
-
-    created_at = Column(DateTime, doc='created_at')
-
-
-    updated_at = Column(DateTime, doc='updated_at')
-
-
     __table_args__ = (
-
         Index('idx_carts_user', 'user_id'),
         Index('idx_carts_session', 'session_id'),
-
     )
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True, doc='购物车 ID')
+
+    user_id = Column(BigInteger, ForeignKey('users.id'), nullable=True, doc='用户ID(访客可为空)')
+
+    session_id = Column(String(255), index=True, nullable=True, doc='会话ID(用于访客购物车)')
+
+    created_at = Column(DateTime, doc='创建时间')
+
+    updated_at = Column(DateTime, doc='更新时间')
 
 
     def to_dict(self, exclude_sensitive=True):
         """转换为字典
-        
+
         Args:
             exclude_sensitive: 是否排除敏感字段（密码、密钥、token 等）
         """
@@ -54,7 +45,6 @@ class Cart(Base):
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }
 
-        # 只有当明确要求包含敏感字段时才添加
         if not exclude_sensitive:
             sensitive_data = {
             }

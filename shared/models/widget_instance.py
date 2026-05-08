@@ -1,64 +1,50 @@
 """
 SQLAlchemy 模型定义 - WidgetInstance
-由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-08 10:43:26
+由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
+生成时间：2026-05-08 11:23:57
 """
 
-
-from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime
+from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Index
 
 from . import Base  # 使用统一的 Base
 
-from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, Index
+
 
 class WidgetInstance(Base):
     """Widget实例模型（持久化存储）模型"""
     __tablename__ = 'widget_instances'
 
 
-
-    id = Column(BigInteger, primary_key=True, autoincrement=True, doc='id')
-
-
-    widget_type = Column(String(50), nullable=True, doc='widget_type')
-
-
-    area = Column(String(50), nullable=True, doc='area')
-
-
-    title = Column(String(255), nullable=True, doc='title')
-
-
-    config = Column(String(255), nullable=True, doc='config')
-
-
-    order_index = Column(BigInteger, default=0, doc='order_index')
-
-
-    is_active = Column(Boolean, default=True, doc='is_active')
-
-
-    conditions = Column(String(255), nullable=True, doc='conditions')
-
-
-    created_at = Column(DateTime, doc='created_at')
-
-
-    updated_at = Column(DateTime, doc='updated_at')
-
-
     __table_args__ = (
-
         Index('idx_widget_instances_area', 'area'),
         Index('idx_widget_instances_order', 'order_index'),
         Index('idx_widget_instances_type', 'widget_type'),
-
     )
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True, doc='Widget实例 ID')
+
+    widget_type = Column(String(50), nullable=True, doc='Widget类型（search, recent_posts, categories等）')
+
+    area = Column(String(50), nullable=True, doc='显示区域（sidebar_primary, footer_1等）')
+
+    title = Column(String(255), nullable=True, doc='Widget标题')
+
+    config = Column(String(255), nullable=True, doc='Widget配置（JSON格式）')
+
+    order_index = Column(BigInteger, default=0, doc='显示顺序')
+
+    is_active = Column(Boolean, default=True, doc='是否启用')
+
+    conditions = Column(String(255), nullable=True, doc='显示条件（JSON格式）')
+
+    created_at = Column(DateTime, doc='创建时间')
+
+    updated_at = Column(DateTime, doc='更新时间')
 
 
     def to_dict(self, exclude_sensitive=True):
         """转换为字典
-        
+
         Args:
             exclude_sensitive: 是否排除敏感字段（密码、密钥、token 等）
         """
@@ -75,7 +61,6 @@ class WidgetInstance(Base):
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }
 
-        # 只有当明确要求包含敏感字段时才添加
         if not exclude_sensitive:
             sensitive_data = {
             }

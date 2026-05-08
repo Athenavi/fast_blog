@@ -1,65 +1,52 @@
 """
 SQLAlchemy 模型定义 - CommentSubscription
-由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-08 10:43:26
+由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
+生成时间：2026-05-08 11:23:57
 """
 
-
-from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
 
 from . import Base  # 使用统一的 Base
 
-from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, ForeignKey, Index
+
 
 class CommentSubscription(Base):
     """评论订阅模型模型"""
     __tablename__ = 'comment_subscriptions'
 
 
-
-    id = Column(BigInteger, primary_key=True, autoincrement=True, doc='id')
-
-
-    article_id = Column(BigInteger, index=True, doc='article_id')
-
-
-    user_id = Column(BigInteger, ForeignKey('users.id'), nullable=True, doc='user_id')
-
-
-    email = Column(String(255), nullable=True, doc='email')
-
-
-    notify_type = Column(String(255), default='new_comment', doc='notify_type')
-
-
-    is_active = Column(Boolean, default=True, doc='is_active')
-
-
-    confirm_token = Column(String(64), nullable=True, doc='confirm_token')
-
-
-    confirmed_at = Column(DateTime, nullable=True, doc='confirmed_at')
-
-
-    created_at = Column(DateTime, doc='created_at')
-
-
-    updated_at = Column(DateTime, doc='updated_at')
-
-
     __table_args__ = (
-
         Index('idx_comment_subscriptions_article', 'article_id'),
         Index('idx_comment_subscriptions_email', 'email'),
         Index('idx_comment_subscriptions_user', 'user_id'),
         Index('idx_comment_subscriptions_unique', 'article_id', 'email', unique=True),
-
     )
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True, doc='订阅 ID')
+
+    article_id = Column(BigInteger, index=True, doc='文章 ID')
+
+    user_id = Column(BigInteger, ForeignKey('users.id'), nullable=True, doc='用户 ID（访客订阅可为空）')
+
+    email = Column(String(255), nullable=True, doc='订阅邮箱')
+
+    notify_type = Column(String(255), default='new_comment',
+                         doc='通知类型 (new_comment: 新评论, reply_to_me: 回复我, all_replies: 所有回复)')
+
+    is_active = Column(Boolean, default=True, doc='是否激活')
+
+    confirm_token = Column(String(64), nullable=True, doc='确认token（用于访客验证）')
+
+    confirmed_at = Column(DateTime, nullable=True, doc='确认时间')
+
+    created_at = Column(DateTime, doc='创建时间')
+
+    updated_at = Column(DateTime, doc='更新时间')
 
 
     def to_dict(self, exclude_sensitive=True):
         """转换为字典
-        
+
         Args:
             exclude_sensitive: 是否排除敏感字段（密码、密钥、token 等）
         """
@@ -76,7 +63,6 @@ class CommentSubscription(Base):
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }
 
-        # 只有当明确要求包含敏感字段时才添加
         if not exclude_sensitive:
             sensitive_data = {
             }

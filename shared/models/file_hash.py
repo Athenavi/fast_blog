@@ -1,53 +1,41 @@
 """
 SQLAlchemy 模型定义 - FileHash
-由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-08 10:43:26
+由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
+生成时间：2026-05-08 11:23:57
 """
 
-
-from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime
+from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime
 
 from . import Base  # 使用统一的 Base
+
 
 
 class FileHash(Base):
     """文件哈希模型模型"""
     __tablename__ = 'file_hashs'
 
+    id = Column(BigInteger, primary_key=True, autoincrement=True, doc='哈希 ID')
 
+    hash = Column(String(64), nullable=True, doc='文件哈希')
 
-    id = Column(BigInteger, primary_key=True, autoincrement=True, doc='id')
+    filename = Column(String(255), nullable=True, doc='文件名')
 
+    created_at = Column(DateTime, doc='创建时间')
 
-    hash = Column(String(64), nullable=True, doc='hash')
+    updated_at = Column(DateTime, doc='更新时间')
 
+    reference_count = Column(BigInteger, default=1, doc='引用计数')
 
-    filename = Column(String(255), nullable=True, doc='filename')
+    file_size = Column(BigInteger, doc='文件大小')
 
+    mime_type = Column(String(100), nullable=True, doc='MIME 类型')
 
-    created_at = Column(DateTime, doc='created_at')
-
-
-    updated_at = Column(DateTime, doc='updated_at')
-
-
-    reference_count = Column(BigInteger, default=1, doc='reference_count')
-
-
-    file_size = Column(BigInteger, doc='file_size')
-
-
-    mime_type = Column(String(100), nullable=True, doc='mime_type')
-
-
-    storage_path = Column(String(512), nullable=True, doc='storage_path')
-
-
+    storage_path = Column(String(512), nullable=True, doc='存储路径')
 
 
     def to_dict(self, exclude_sensitive=True):
         """转换为字典
-        
+
         Args:
             exclude_sensitive: 是否排除敏感字段（密码、密钥、token 等）
         """
@@ -63,7 +51,6 @@ class FileHash(Base):
             'storage_path': self.storage_path,
         }
 
-        # 只有当明确要求包含敏感字段时才添加
         if not exclude_sensitive:
             sensitive_data = {
             }

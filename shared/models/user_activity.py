@@ -1,53 +1,41 @@
 """
 SQLAlchemy 模型定义 - UserActivity
-由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-08 10:43:26
+由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
+生成时间：2026-05-08 11:23:57
 """
 
-
-from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey
 
 from . import Base  # 使用统一的 Base
+
 
 
 class UserActivity(Base):
     """用户活动模型模型"""
     __tablename__ = 'user_activities'
 
+    id = Column(BigInteger, primary_key=True, autoincrement=True, doc='活动 ID')
 
+    user = Column(BigInteger, ForeignKey('users.id'), doc='用户')
 
-    id = Column(BigInteger, primary_key=True, autoincrement=True, doc='id')
+    activity_type = Column(String(100), nullable=True, doc='活动类型')
 
+    target_type = Column(String(50), nullable=True, doc='目标类型')
 
-    user = Column(BigInteger, ForeignKey('users.id'), nullable=False, doc='user')
+    target_id = Column(BigInteger, doc='目标 ID')
 
+    details = Column(String(255), nullable=True, doc='活动详情')
 
-    activity_type = Column(String(100), nullable=True, doc='activity_type')
+    ip_address = Column(String(45), nullable=True, doc='IP 地址')
 
+    user_agent = Column(String(500), nullable=True, doc='用户代理')
 
-    target_type = Column(String(50), nullable=True, doc='target_type')
-
-
-    target_id = Column(BigInteger, doc='target_id')
-
-
-    details = Column(String(255), nullable=True, doc='details')
-
-
-    ip_address = Column(String(45), nullable=True, doc='ip_address')
-
-
-    user_agent = Column(String(500), nullable=True, doc='user_agent')
-
-
-    created_at = Column(DateTime, doc='created_at')
-
-
+    created_at = Column(DateTime, doc='活动时间')
 
 
     def to_dict(self, exclude_sensitive=True):
         """转换为字典
-        
+
         Args:
             exclude_sensitive: 是否排除敏感字段（密码、密钥、token 等）
         """
@@ -63,7 +51,6 @@ class UserActivity(Base):
             'created_at': self.created_at.isoformat() if self.created_at else None,
         }
 
-        # 只有当明确要求包含敏感字段时才添加
         if not exclude_sensitive:
             sensitive_data = {
             }

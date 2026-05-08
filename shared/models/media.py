@@ -1,109 +1,81 @@
 """
 SQLAlchemy 模型定义 - Media
-由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-08 10:43:26
+由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
+生成时间：2026-05-08 11:23:57
 """
 
-
-from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
 
 from . import Base  # 使用统一的 Base
 
-from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, ForeignKey, Index
+
 
 class Media(Base):
     """媒体文件模型模型"""
     __tablename__ = 'media'
 
 
-
-    id = Column(BigInteger, primary_key=True, autoincrement=True, doc='id')
-
-
-    user = Column(BigInteger, ForeignKey('users.id'), nullable=False, doc='user')
-
-
-    hash = Column(String(64), nullable=True, doc='hash')
-
-
-    filename = Column(String(255), nullable=True, doc='filename')
-
-
-    original_filename = Column(String(255), nullable=True, doc='original_filename')
-
-
-    file_path = Column(String(500), nullable=True, doc='file_path')
-
-
-    file_url = Column(String(500), nullable=True, doc='file_url')
-
-
-    file_size = Column(BigInteger, default=0, doc='file_size')
-
-
-    file_type = Column(String(255), default='other', doc='file_type')
-
-
-    mime_type = Column(String(255), nullable=True, doc='mime_type')
-
-
-    width = Column(BigInteger, nullable=True, doc='width')
-
-
-    height = Column(BigInteger, nullable=True, doc='height')
-
-
-    duration = Column(BigInteger, nullable=True, doc='duration')
-
-
-    thumbnail_path = Column(String(255), nullable=True, doc='thumbnail_path')
-
-
-    thumbnail_url = Column(String(255), nullable=True, doc='thumbnail_url')
-
-
-    description = Column(String(255), nullable=True, doc='description')
-
-
-    alt_text = Column(String(255), nullable=True, doc='alt_text')
-
-
-    is_public = Column(Boolean, default=True, doc='is_public')
-
-
-    download_count = Column(BigInteger, default=0, doc='download_count')
-
-
-    category = Column(String(100), nullable=True, doc='category')
-
-
-    tags = Column(String(500), nullable=True, doc='tags')
-
-
-    folder_id = Column(BigInteger, ForeignKey('media_folders.id'), nullable=True, doc='folder_id')
-
-
-    created_at = Column(DateTime, doc='created_at')
-
-
-    updated_at = Column(DateTime, doc='updated_at')
-
-
     __table_args__ = (
-
-    Index('idx_media_user', 'user'),
+        Index('idx_media_user', 'user'),
         Index('idx_media_hash', 'hash', unique=True),
         Index('idx_media_file_type', 'file_type'),
         Index('idx_media_is_public', 'is_public'),
         Index('idx_media_created_at', 'created_at'),
         Index('idx_media_folder', 'folder_id'),
-
     )
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True, doc='媒体 ID')
+
+    user = Column(BigInteger, ForeignKey('users.id'), doc='上传用户')
+
+    hash = Column(String(64), nullable=True, doc='文件哈希')
+
+    filename = Column(String(255), nullable=True, doc='文件名')
+
+    original_filename = Column(String(255), nullable=True, doc='原始文件名')
+
+    file_path = Column(String(500), nullable=True, doc='文件路径')
+
+    file_url = Column(String(500), nullable=True, doc='文件 URL')
+
+    file_size = Column(BigInteger, default=0, doc='文件大小 (字节)')
+
+    file_type = Column(String(255), default='other', doc='文件类型')
+
+    mime_type = Column(String(255), nullable=True, doc='MIME 类型')
+
+    width = Column(BigInteger, nullable=True, doc='宽度')
+
+    height = Column(BigInteger, nullable=True, doc='高度')
+
+    duration = Column(BigInteger, nullable=True, doc='时长 (秒)')
+
+    thumbnail_path = Column(String(255), nullable=True, doc='缩略图路径')
+
+    thumbnail_url = Column(String(255), nullable=True, doc='缩略图 URL')
+
+    description = Column(String(255), nullable=True, doc='描述')
+
+    alt_text = Column(String(255), nullable=True, doc='替代文本')
+
+    is_public = Column(Boolean, default=True, doc='是否公开')
+
+    download_count = Column(BigInteger, default=0, doc='下载次数')
+
+    category = Column(String(100), nullable=True, doc='媒体分类')
+
+    tags = Column(String(500), nullable=True, doc='标签(逗号分隔)')
+
+    folder_id = Column(BigInteger, ForeignKey('media_folders.id'), nullable=True, doc='所属文件夹 ID')
+
+    created_at = Column(DateTime, doc='创建时间')
+
+    updated_at = Column(DateTime, doc='更新时间')
 
 
     def to_dict(self, exclude_sensitive=True):
         """转换为字典
-        
+
         Args:
             exclude_sensitive: 是否排除敏感字段（密码、密钥、token 等）
         """
@@ -134,7 +106,6 @@ class Media(Base):
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }
 
-        # 只有当明确要求包含敏感字段时才添加
         if not exclude_sensitive:
             sensitive_data = {
             }

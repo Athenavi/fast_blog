@@ -1,58 +1,46 @@
 """
 SQLAlchemy 模型定义 - FormSubmission
-由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-08 10:43:26
+由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
+生成时间：2026-05-08 11:23:57
 """
 
-
-from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
 
 from . import Base  # 使用统一的 Base
 
-from sqlalchemy import Column, BigInteger, Integer, String, Text, Boolean, DateTime, ForeignKey, Index
+
 
 class FormSubmission(Base):
     """表单提交记录模型模型"""
     __tablename__ = 'form_submissions'
 
 
-
-    id = Column(BigInteger, primary_key=True, autoincrement=True, doc='id')
-
-
-    form_id = Column(BigInteger, ForeignKey('forms.id'), nullable=False, doc='form_id')
-
-
-    data = Column(String(255), nullable=True, doc='data')
-
-
-    ip_address = Column(String(45), nullable=True, doc='ip_address')
-
-
-    user_agent = Column(String(255), nullable=True, doc='user_agent')
-
-
-    user_id = Column(BigInteger, ForeignKey('users.id'), nullable=True, doc='user_id')
-
-
-    status = Column(String(255), default='new', doc='status')
-
-
-    created_at = Column(DateTime, doc='created_at')
-
-
     __table_args__ = (
-
         Index('idx_form_submissions_form_id', 'form_id'),
         Index('idx_form_submissions_status', 'status'),
         Index('idx_form_submissions_created', 'created_at'),
-
     )
+
+    id = Column(BigInteger, primary_key=True, autoincrement=True, doc='提交 ID')
+
+    form_id = Column(BigInteger, ForeignKey('forms.id'), doc='所属表单 ID')
+
+    data = Column(String(255), nullable=True, doc='提交数据（JSON格式）')
+
+    ip_address = Column(String(45), nullable=True, doc='提交者 IP')
+
+    user_agent = Column(String(255), nullable=True, doc='浏览器信息')
+
+    user_id = Column(BigInteger, ForeignKey('users.id'), nullable=True, doc='用户 ID（如果已登录）')
+
+    status = Column(String(255), default='new', doc='提交状态（new, read, replied, spam）')
+
+    created_at = Column(DateTime, doc='提交时间')
 
 
     def to_dict(self, exclude_sensitive=True):
         """转换为字典
-        
+
         Args:
             exclude_sensitive: 是否排除敏感字段（密码、密钥、token 等）
         """
@@ -67,7 +55,6 @@ class FormSubmission(Base):
             'created_at': self.created_at.isoformat() if self.created_at else None,
         }
 
-        # 只有当明确要求包含敏感字段时才添加
         if not exclude_sensitive:
             sensitive_data = {
             }
