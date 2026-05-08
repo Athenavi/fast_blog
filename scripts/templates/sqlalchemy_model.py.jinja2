@@ -18,7 +18,9 @@ SQLAlchemy 模型定义 - {{ model_name }}
 {% if table_has_unique_constraints %}
     {% set _ = core_imports.append('UniqueConstraint') %}
 {% endif %}
-
+{% if is_unlogged %}
+from sqlalchemy import event
+{% endif %}
 from sqlalchemy import {{ core_imports | join(', ') }}
 {% if ns.has_uuid_pk %}import uuid
 {% endif %}
@@ -50,9 +52,6 @@ class {{ class_name }}(Base):
             {% set extra = ', unique=True' if index.unique else '' %}
             {% set _ = table_args_items.append("Index('" ~ index.name ~ "', " ~ cols ~ extra ~ ")") %}
         {% endfor %}
-    {% endif %}
-    {% if is_unlogged %}
-        {% set _ = table_args_items.append("{'postgresql_unlogged': True}") %}
     {% endif %}
 
     {% if table_args_items %}
@@ -183,11 +182,11 @@ class {{ class_name }}(Base):
         return f'<{{ class_name }}>'
         {% endif %}
 
-{% if custom_methods %}
-{% for method_name, method_source in custom_methods.items() %}
-{{ method_source | indent(4) }}
-
-{% endfor %}
+{% if is_unlogged %}
+# UNLOGGED 表监听器（PostgreSQL 专用）
+@event.listens_for({{ class_name }}.__table__, "after_create")
+def _set_{{ class_name|lower }}_unlogged(target, connection, **kw):
+    connection.execute(f"ALTER TABLE {target.name} SET UNLOGGED")
 {% endif %}
 
 {% endfor %}

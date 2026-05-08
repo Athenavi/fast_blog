@@ -385,6 +385,45 @@ async def create_admin_user_api(
         from shared.models import User
         from datetime import datetime
 
+        # 确保数据库管理器已初始化
+        if unified_db_manager._async_session_factory is None:
+            print("[Install] 检测到数据库管理器未初始化，尝试重新加载配置...")
+            try:
+                # 强制重新加载 .env 文件和配置
+                import importlib
+                from dotenv import load_dotenv
+                
+                # 重新加载 .env 文件
+                load_dotenv(override=True)
+                print("  ✓ .env 文件已重新加载")
+                
+                # 重新导入并初始化设置
+                import src.setting
+                importlib.reload(src.setting)
+                from src.setting import settings as new_settings
+                print(f"  ✓ 配置已重新加载，数据库 URL: {new_settings.database_url[:50]}..." if new_settings.database_url else "  ⚠ 数据库 URL 仍为空")
+                
+                # 重置并重新初始化数据库管理器
+                unified_db_manager._async_engine = None
+                unified_db_manager._async_session_factory = None
+                unified_db_manager.initialize()
+                
+                if unified_db_manager._async_session_factory is not None:
+                    print("✓ 数据库连接池初始化成功")
+                else:
+                    return ApiResponse(
+                        success=False,
+                        error='数据库连接池初始化失败。请确认已完成“确认数据库配置并执行迁移”步骤。'
+                    )
+            except Exception as init_err:
+                import traceback
+                print(f"数据库管理器初始化失败: {init_err}")
+                print(traceback.format_exc())
+                return ApiResponse(
+                    success=False,
+                    error=f'数据库管理器初始化失败: {str(init_err)}'
+                )
+
         async with unified_db_manager.get_session_no_auto_commit() as session:
             try:
                 # 检查用户是否已存在

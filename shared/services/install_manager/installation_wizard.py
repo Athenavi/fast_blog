@@ -848,15 +848,48 @@ class InstallationWizardService:
                 if result.stdout:
                     print(f"\n迁移输出:\n{result.stdout}")
 
-                # 初始化统一数据库管理器，确保后续操作可以使用数据库会话
-                print("\n[4/4] 初始化数据库连接池...")
+                # 重要：重新加载配置以确保数据库 URL 被正确读取
+                print("\n[4/4] 重新加载配置并初始化数据库连接池...")
                 try:
+                    # 强制重新加载 .env 文件和配置
+                    import importlib
+                    from dotenv import load_dotenv
+                    
+                    # 重新加载 .env 文件
+                    load_dotenv(override=True)
+                    print("  ✓ .env 文件已重新加载")
+                    
+                    # 重新导入并初始化设置
+                    import src.setting
+                    importlib.reload(src.setting)
+                    from src.setting import settings as new_settings
+                    print(f"  ✓ 配置已重新加载，数据库 URL: {new_settings.database_url[:50]}..." if new_settings.database_url else "  ⚠ 数据库 URL 仍为空")
+                    
+                    # 初始化统一数据库管理器
                     from src.utils.database.unified_manager import db_manager
+                    # 重置管理器状态以允许重新初始化
+                    db_manager._async_engine = None
+                    db_manager._async_session_factory = None
                     db_manager.initialize()
-                    print("✓ 数据库连接池初始化成功")
+                    
+                    if db_manager._async_session_factory is not None:
+                        print("✓ 数据库连接池初始化成功")
+                    else:
+                        print("⚠ 警告：数据库连接池初始化失败，数据库 URL 可能未正确配置")
+                        return {
+                            'success': False,
+                            'error': '数据库连接池初始化失败。请检查 .env 文件中的数据库配置是否正确。'
+                        }
+                        
                 except Exception as init_err:
-                    print(f"⚠ 数据库连接池初始化警告: {init_err}")
-                    # 不阻断流程，继续返回成功
+                    import traceback
+                    error_msg = f'数据库连接池初始化失败: {str(init_err)}'
+                    print(f"✗ {error_msg}")
+                    print(traceback.format_exc())
+                    return {
+                        'success': False,
+                        'error': error_msg
+                    }
 
                 return {
                     'success': True,

@@ -1,24 +1,22 @@
 """
 SQLAlchemy 模型定义 - TokenBlacklist
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-08 11:23:57
+生成时间：2026-05-08 11:46:52
 """
 
-from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Index
+from sqlalchemy import Column, BigInteger, String, DateTime, Index
+from sqlalchemy import event
 
 from . import Base  # 使用统一的 Base
-
 
 
 class TokenBlacklist(Base):
     """Token 黑名单模型（UNLOGGED 表，用于存储被撤销的 JWT Token）模型"""
     __tablename__ = 'token_blacklist'
 
-
     __table_args__ = (
         Index('idx_token_blacklist_expires', 'expires_at'),
         Index('idx_token_blacklist_created', 'created_at'),
-        {'postgresql_unlogged': True},
     )
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='ID')
@@ -32,7 +30,6 @@ class TokenBlacklist(Base):
     created_at = Column(DateTime, doc='创建时间')
 
     reason = Column(String(255), nullable=True, doc='撤销原因')
-
 
     def to_dict(self, exclude_sensitive=True):
         """转换为字典
@@ -59,3 +56,9 @@ class TokenBlacklist(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<TokenBlacklist id={self.id}>'
+
+
+# UNLOGGED 表监听器（PostgreSQL 专用）
+@event.listens_for(TokenBlacklist.__table__, "after_create")
+def _set_tokenblacklist_unlogged(target, connection, **kw):
+    connection.execute(f"ALTER TABLE {target.name} SET UNLOGGED")
