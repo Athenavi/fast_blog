@@ -1,6 +1,6 @@
 # FastBlog 文档索引
 
-**版本**: V0.0.2.1 | **最后更新**: 2026-05-02
+**最后更新**: 2026-05-09
 
 ---
 
@@ -8,26 +8,26 @@
 
 ### 🚀 新手入门
 
-| 文档                     | 说明      |
-|------------------------|---------|
-| [快速开始](QUICK_START.md) | 5分钟部署指南 |
-| [技术架构](TECHNICAL.md)   | 系统架构详解  |
+| 文档                     | 说明     |
+|------------------------|--------|
+| [快速开始](QUICK_START.md) | 部署指南   |
+| [技术架构](TECHNICAL.md)   | 系统架构详解 |
 
 ### 👨‍💻 开发者文档
 
 | 文档                                    | 说明             |
 |---------------------------------------|----------------|
+| [API 参考](API_REFERENCE.md)            | RESTful API 文档 |
 | [插件开发指南](PLUGIN_DEVELOPMENT_GUIDE.md) | 插件系统完整教程       |
 | [主题开发指南](THEME_DEVELOPMENT_GUIDE.md)  | 主题定制指南         |
-| [API 参考](API_REFERENCE.md)            | 完整 API 文档（含示例） |
 | [贡献指南](CONTRIBUTING.md)               | 参与开发           |
 
 ### 🔧 运维部署
 
-| 文档                                 | 说明      |
-|------------------------------------|---------|
-| [部署指南](DEPLOYMENT_GUIDE.md)        | 多平台部署方案 |
-| [故障排查 FAQ](TROUBLESHOOTING_FAQ.md) | 常见问题解答  |
+| 文档                                 | 说明       |
+|------------------------------------|----------|
+| [部署指南](DEPLOYMENT_GUIDE.md)        | 生产环境部署方案 |
+| [故障排查 FAQ](TROUBLESHOOTING_FAQ.md) | 常见问题解答   |
 
 ### 📝 其他
 
@@ -41,9 +41,9 @@
 ## 🎯 快速查找
 
 - **快速部署** → [快速开始](QUICK_START.md)
+- **调用 API** → [API 参考](API_REFERENCE.md)
 - **开发插件** → [插件开发指南](PLUGIN_DEVELOPMENT_GUIDE.md)
 - **定制主题** → [主题开发指南](THEME_DEVELOPMENT_GUIDE.md)
-- **调用 API** → [API 参考](API_REFERENCE.md)
 - **部署到服务器** → [部署指南](DEPLOYMENT_GUIDE.md)
 - **解决问题** → [故障排查 FAQ](TROUBLESHOOTING_FAQ.md)
 - **参与贡献** → [贡献指南](CONTRIBUTING.md)

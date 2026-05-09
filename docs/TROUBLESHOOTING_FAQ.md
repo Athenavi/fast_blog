@@ -1,6 +1,6 @@
 # FastBlog 故障排查 FAQ
 
-**适用版本**: FastBlog 0.0.2.0+
+**适用版本**: FastBlog 0.0.2+
 
 ---
 

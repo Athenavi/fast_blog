@@ -27,7 +27,7 @@ git checkout -b feature/your-feature
 pip install -r requirements.txt
 cd frontend-next && npm install
 
-# 4. 提交
+# 4. 提交更改
 git add .
 git commit -m "feat: 添加新功能"
 git push origin feature/your-feature
@@ -56,6 +56,7 @@ black src/
 flake8 src/
 
 # 前端检查
+cd frontend-next
 npm run lint
 ```
 
@@ -77,6 +78,7 @@ npm run lint
 
 **环境**
 - 操作系统：Windows/Linux/macOS
+- Python 版本：3.14+
 - 浏览器：Chrome/Firefox
 - 版本：具体版本号
 ```

@@ -5,6 +5,20 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且此项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [未发布]
+
+### 优化
+
+- 📝 **文档彻底重构** - 全面清理和精简项目文档
+  - 删除重复内容：API示例文件（api_examples.*）已合并到API参考文档
+  - 精简QUICK_START.md和DEPLOYMENT_GUIDE.md，去除大量重复内容
+  - 更新所有技术栈版本信息（Python 3.9+, FastAPI 0.100+, Django 4.2+, PostgreSQL 14+）
+  - 修正过时的版本号和技术描述
+  - 简化文档结构，提高可读性
+  - 从28个文档精简到核心文档集
+
+---
+
 ## [0.0.2.1] - 2026-05-02
 
 ### 优化

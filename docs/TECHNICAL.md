@@ -1,6 +1,6 @@
 # FastBlog 技术架构
 
-**版本**: V0.0.2.0 | **Python**: 3.14+ | **FastAPI**: 0.136+ | **Django**: 6.0.4+
+**Python**: 3.9+ | **FastAPI**: 0.100+ | **Django**: 4.2+ | **Next.js**: 16
 
 ## 🏗️ 系统架构
 
@@ -78,15 +78,18 @@ frontend-next/
 ## 🔧 技术栈
 
 ### 前端
-- Next.js 16 / TypeScript / TailwindCSS
+
+- Next.js 16 / TypeScript / TailwindCSS 4
 
 ### 后端
-- **FastAPI**: 0.136+ / Python 3.14+ / SQLAlchemy (异步)
-- **Django**: 6.0.4+ / Python 3.14+ / Django ORM
-- **数据库**: PostgreSQL 17+ / Redis 7+
+
+- **FastAPI**: 0.100+ / Python 3.14/ SQLAlchemy (异步)
+- **Django**: 4.2+ / Python 3.14/ Django ORM
+- **数据库**: PostgreSQL 14+ / Redis 7+
 
 ### 部署
-- Docker / Nginx / Gunicorn/Uvicorn
+
+- Docker / Nginx / Uvicorn/Gunicorn
 
 ## 💻 开发环境
 

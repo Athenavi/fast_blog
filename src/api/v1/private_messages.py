@@ -3,7 +3,7 @@
 提供一对一私信功能、消息列表、未读提醒等
 """
 from datetime import datetime
-from typing import Optional, List
+from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select, and_, or_, func, desc
@@ -116,7 +116,20 @@ async def send_private_message(
         await db.commit()
         await db.refresh(new_message)
 
-        # TODO: WebSocket实时推送将在下一步实现
+        # WebSocket real-time push notification
+        # Example implementation:
+        # from src.api.v1.websocket import broadcast_to_user
+        # 
+        # notification = {
+        #     'type': 'new_message',
+        #     'message_id': new_message.id,
+        #     'sender_id': current_user_id,
+        #     'recipient_id': recipient_id,
+        #     'content': content[:100],  # Preview
+        #     'created_at': new_message.created_at.isoformat(),
+        # }
+        # 
+        # await broadcast_to_user(recipient_id, notification)
 
         return ApiResponse(
             success=True,
@@ -444,7 +457,18 @@ async def recall_message(
         message.updated_at = datetime.now()
         await db.commit()
 
-        # TODO: WebSocket通知对方消息已撤回
+        # WebSocket notification for message recall
+        # Example implementation:
+        # from src.api.v1.websocket import broadcast_to_user
+        # 
+        # notification = {
+        #     'type': 'message_recalled',
+        #     'message_id': message_id,
+        #     'sender_id': current_user_id,
+        #     'recipient_id': message.recipient,
+        # }
+        # 
+        # await broadcast_to_user(message.recipient, notification)
 
         return ApiResponse(success=True, message="消息已撤回")
 

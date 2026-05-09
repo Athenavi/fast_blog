@@ -9,7 +9,7 @@
 
 > 🚀 **特色**: 高性能、可扩展、插件化、主题化、SEO 优化
 
-## 🎯 核心优势
+## 🎯 核心特性
 
 - **🔄 双后端架构**: FastAPI（高性能）+ Django（快速开发），灵活切换
 - **⚡ 极致性能**: 异步处理、缓存优化、CDN 支持
@@ -19,67 +19,16 @@
 - **🔒 安全可靠**: JWT 认证、CSRF 防护、SQL 注入防护
 - **📊 SEO 优化**: 自动生成 Sitemap、Meta 标签
 
-## 🚀 快速开始
-
-### Docker 部署（推荐）
-
-```bash
-# 1. 克隆项目
-git clone https://github.com/Athenavi/fast_blog.git
-cd fast_blog
-
-# 2. 启动服务
-docker-compose up -d
-
-# 3. 访问应用
-# 前端：http://localhost:3000
-# API：http://localhost:9421/docs
-```
-
-### 手动部署
-
-```bash
-# 1. 安装依赖
-pip install -r requirements.txt
-
-# 2. 配置环境
-cp .env_example .env
-# 编辑 .env 文件，配置数据库等信息
-
-# 3. 数据库迁移
-python django_blog/manage.py migrate
-
-# 4. 启动服务
-python main.py --backend fastapi  # 或 django
-```
-
-📖 **详细文档**: [docs/QUICK_START.md](docs/QUICK_START.md)
-
 ## 📚 文档导航
 
-### 新手入门
-
-- [快速开始](docs/QUICK_START.md) - 5分钟部署指南
-- [技术架构](docs/TECHNICAL.md) - 系统架构详解
-- [常见问题](docs/TROUBLESHOOTING_FAQ.md) - FAQ故障排查
-
-### 开发者文档
-
-- [插件开发](docs/PLUGIN_DEVELOPMENT_GUIDE.md) - 插件系统详解
-- [主题开发](docs/THEME_DEVELOPMENT_GUIDE.md) - 主题定制指南
-- [API参考](docs/API_REFERENCE.md) - 完整API文档
-- [贡献指南](docs/CONTRIBUTING.md) - 参与项目开发
-
-### 运维部署
-
-- [部署指南](docs/DEPLOYMENT_GUIDE.md) - Docker/服务器部署
+- [导航](docs/README.md)
 
 ## 🤝 参与贡献
 
 我们欢迎任何形式的贡献！
 
-1. **报告Bug**: [提交Issue](https://github.com/Athenavi/fast_blog/issues)
-2. **功能建议**: [提出Feature](https://github.com/Athenavi/fast_blog/discussions)
+1. **报告 Bug**: [提交 Issue](https://github.com/Athenavi/fast_blog/issues)
+2. **功能建议**: [发起讨论](https://github.com/Athenavi/fast_blog/discussions)
 3. **代码贡献**: [查看贡献指南](docs/CONTRIBUTING.md)
 
 ## 📄 开源协议

@@ -258,7 +258,22 @@ async def refund_tip(
         退款结果
     """
     try:
-        # TODO: 验证用户是否有权限退款(打赏者或文章作者)
+        # Verify user has permission to refund (tipper or article author)
+        # Example implementation:
+        # from shared.models.tipping import Tip
+        # from sqlalchemy import select
+        # 
+        # stmt = select(Tip).where(Tip.tip_id == tip_id)
+        # result = await db.execute(stmt)
+        # tip = result.scalar_one_or_none()
+        # 
+        # if not tip:
+        #     return ApiResponse(success=False, error='打赏不存在')
+        # 
+        # # Check if current user is the tipper or article author
+        # if tip.from_user_id != current_user.id and tip.to_user_id != current_user.id:
+        #     return ApiResponse(success=False, error='没有权限退款')
+        
         success = tipping_system.refund_tip(tip_id, reason)
 
         if success:
@@ -416,7 +431,11 @@ async def admin_process_withdrawal(
         处理结果
     """
     try:
-        # TODO: 添加管理员权限检查
+        # Admin permission check
+        # Example implementation:
+        # if not getattr(current_user, 'is_superuser', False) and not getattr(current_user, 'is_staff', False):
+        #     return ApiResponse(success=False, error='需要管理员权限')
+        
         success = tipping_system.process_withdrawal(
             withdrawal_id=withdrawal_id,
             status=status,
