@@ -1,13 +1,14 @@
 'use client';
 
-import { useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Info, Link as LinkIcon, AlertTriangle } from 'lucide-react';
-import { toast } from 'sonner';
+import {useState} from 'react';
+import {Card, CardContent, CardHeader, CardTitle} from '@/components/ui/card';
+import {Button} from '@/components/ui/button';
+import {Input} from '@/components/ui/input';
+import {Badge} from '@/components/ui/badge';
+import {Alert, AlertDescription, AlertTitle} from '@/components/ui/alert';
+import {AlertTriangle, Info, Link as LinkIcon} from 'lucide-react';
+import {toast} from 'sonner';
+import {getAccessTokenFromCookie} from '@/lib/auth-utils';
 
 export default function InternalLinksPage() {
   const [articleId, setArticleId] = useState('');
@@ -25,11 +26,12 @@ export default function InternalLinksPage() {
 
     try {
       setLoading(true);
+      const token = getAccessTokenFromCookie();
       const response = await fetch('/api/v1/internal-links/suggest', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           article_id: parseInt(articleId),
@@ -56,9 +58,10 @@ export default function InternalLinksPage() {
   const handleDetectOrphans = async () => {
     try {
       setLoading(true);
+      const token = getAccessTokenFromCookie();
       const response = await fetch('/api/v1/internal-links/orphan-articles', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+          'Authorization': `Bearer ${token}`,
         },
       });
 
@@ -82,9 +85,10 @@ export default function InternalLinksPage() {
   const handleGetAnalysis = async () => {
     try {
       setLoading(true);
+      const token = getAccessTokenFromCookie();
       const response = await fetch('/api/v1/internal-links/analysis', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+          'Authorization': `Bearer ${token}`,
         },
       });
 

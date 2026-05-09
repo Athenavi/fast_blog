@@ -13,6 +13,7 @@ import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger
 import {parseEmotes} from '@/lib/emoteService';
 import {commentService} from '@/lib/api/comment-service';
 import {useToast} from '@/hooks/use-toast';
+import {getAccessTokenFromCookie} from '@/lib/auth-utils';
 
 interface Comment {
     id: number;
@@ -66,7 +67,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
         };
 
         // 只有登录用户才检查投票状态
-        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        const token = getAccessTokenFromCookie();
         if (token) {
             checkUserVote();
         }
@@ -85,7 +86,7 @@ const CommentItem: React.FC<CommentItemProps> = ({
     // 处理点赞
     const handleLike = async () => {
         // 检查是否登录
-        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
+        const token = getAccessTokenFromCookie();
         if (!token) {
             toast({
                 title: '需要登录',

@@ -1,15 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Info, Settings } from 'lucide-react';
-import { toast } from 'sonner';
+import {useEffect, useState} from 'react';
+import {Card, CardContent, CardHeader, CardTitle} from '@/components/ui/card';
+import {Button} from '@/components/ui/button';
+import {Input} from '@/components/ui/input';
+import {Textarea} from '@/components/ui/textarea';
+import {Badge} from '@/components/ui/badge';
+import {Alert, AlertDescription, AlertTitle} from '@/components/ui/alert';
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select';
+import {Info, Settings} from 'lucide-react';
+import {toast} from 'sonner';
+import {getAccessTokenFromCookie} from '@/lib/auth-utils';
 
 export default function TranslationServicePage() {
   const [providers, setProviders] = useState<any>(null);
@@ -25,9 +26,10 @@ export default function TranslationServicePage() {
   // 加载提供商列表
   const loadProviders = async () => {
     try {
+      const token = getAccessTokenFromCookie();
       const response = await fetch('/api/v1/translation-service/providers', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+          'Authorization': `Bearer ${token}`,
         },
       });
 
@@ -63,11 +65,12 @@ export default function TranslationServicePage() {
 
     try {
       setLoading(true);
+      const token = getAccessTokenFromCookie();
       const response = await fetch('/api/v1/translation-service/translate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           text: text,
@@ -102,11 +105,12 @@ export default function TranslationServicePage() {
 
     try {
       setLoading(true);
+      const token = getAccessTokenFromCookie();
       const response = await fetch('/api/v1/translation-service/detect-language', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           text: text,
@@ -138,11 +142,12 @@ export default function TranslationServicePage() {
     }
 
     try {
+      const token = getAccessTokenFromCookie();
       const response = await fetch('/api/v1/translation-service/configure', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           provider: selectedProvider,

@@ -1,15 +1,16 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Info, Download, Upload, Trash2 } from 'lucide-react';
-import { toast } from 'sonner';
+import {useEffect, useState} from 'react';
+import {Card, CardContent, CardHeader, CardTitle} from '@/components/ui/card';
+import {Button} from '@/components/ui/button';
+import {Input} from '@/components/ui/input';
+import {Textarea} from '@/components/ui/textarea';
+import {Badge} from '@/components/ui/badge';
+import {Alert, AlertDescription, AlertTitle} from '@/components/ui/alert';
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select';
+import {Download, Info, Trash2} from 'lucide-react';
+import {toast} from 'sonner';
+import {getAccessTokenFromCookie} from '@/lib/auth-utils';
 
 export default function TranslationMemoryPage() {
   const [stats, setStats] = useState<any>(null);
@@ -25,9 +26,10 @@ export default function TranslationMemoryPage() {
   // 加载统计
   const loadStats = async () => {
     try {
+      const token = getAccessTokenFromCookie();
       const response = await fetch('/api/v1/translation-memory/stats', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+          'Authorization': `Bearer ${token}`,
         },
       });
 
@@ -55,11 +57,12 @@ export default function TranslationMemoryPage() {
 
     try {
       setLoading(true);
+      const token = getAccessTokenFromCookie();
       const response = await fetch('/api/v1/translation-memory/add', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           source_text: sourceText,
@@ -130,10 +133,11 @@ export default function TranslationMemoryPage() {
   // 导出记忆
   const handleExport = async () => {
     try {
+      const token = getAccessTokenFromCookie();
       const response = await fetch('/api/v1/translation-memory/export', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+          'Authorization': `Bearer ${token}`,
         },
       });
 
@@ -161,11 +165,12 @@ export default function TranslationMemoryPage() {
     }
 
     try {
+      const token = getAccessTokenFromCookie();
       const response = await fetch('/api/v1/translation-memory/clear', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({}),
       });

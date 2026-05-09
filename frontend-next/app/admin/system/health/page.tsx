@@ -1,12 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { CheckCircle, XCircle, AlertTriangle, RefreshCw, Download } from 'lucide-react';
-import { toast } from 'sonner';
+import {useEffect, useState} from 'react';
+import {Card, CardContent, CardHeader, CardTitle} from '@/components/ui/card';
+import {Button} from '@/components/ui/button';
+import {Badge} from '@/components/ui/badge';
+import {Progress} from '@/components/ui/progress';
+import {AlertTriangle, CheckCircle, Download, RefreshCw, XCircle} from 'lucide-react';
+import {toast} from 'sonner';
+import {getAccessTokenFromCookie} from '@/lib/auth-utils';
 
 interface HealthCheckItem {
   name: string;
@@ -35,9 +36,10 @@ export default function SiteHealthPage() {
   const fetchHealthData = async () => {
     try {
       setLoading(true);
+      const token = getAccessTokenFromCookie();
       const response = await fetch('/api/v1/system/health', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+          'Authorization': `Bearer ${token}`,
         },
       });
 
@@ -65,9 +67,10 @@ export default function SiteHealthPage() {
 
   const handleDownloadReport = async () => {
     try {
+      const token = getAccessTokenFromCookie();
       const response = await fetch('/api/v1/system/health?format=text', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+          'Authorization': `Bearer ${token}`,
         },
       });
 

@@ -1,14 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Info } from 'lucide-react';
-import { toast } from 'sonner';
+import {useEffect, useState} from 'react';
+import {Card, CardContent, CardHeader, CardTitle} from '@/components/ui/card';
+import {Button} from '@/components/ui/button';
+import {Input} from '@/components/ui/input';
+import {Badge} from '@/components/ui/badge';
+import {Alert, AlertDescription, AlertTitle} from '@/components/ui/alert';
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from '@/components/ui/select';
+import {Info} from 'lucide-react';
+import {toast} from 'sonner';
+import {getAccessTokenFromCookie} from '@/lib/auth-utils';
 
 export default function TemplateHierarchyPage() {
   const [hierarchy, setHierarchy] = useState<any>(null);
@@ -36,9 +37,10 @@ export default function TemplateHierarchyPage() {
   // 加载可用模板
   const loadTemplates = async () => {
     try {
+      const token = getAccessTokenFromCookie();
       const response = await fetch(`/api/v1/template-hierarchy/templates/${theme}`, {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+          'Authorization': `Bearer ${token}`,
         },
       });
 
@@ -67,11 +69,12 @@ export default function TemplateHierarchyPage() {
 
     try {
       setLoading(true);
+      const token = getAccessTokenFromCookie();
       const response = await fetch('/api/v1/template-hierarchy/resolve/article', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           article: {

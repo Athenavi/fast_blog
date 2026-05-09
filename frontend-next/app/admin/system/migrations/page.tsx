@@ -1,14 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Info, RefreshCw, ArrowLeft, FilePlus } from 'lucide-react';
-import { toast } from 'sonner';
+import {useEffect, useState} from 'react';
+import {Card, CardContent, CardHeader, CardTitle} from '@/components/ui/card';
+import {Button} from '@/components/ui/button';
+import {Input} from '@/components/ui/input';
+import {Badge} from '@/components/ui/badge';
+import {Alert, AlertDescription, AlertTitle} from '@/components/ui/alert';
+import {ArrowLeft, FilePlus, Info, RefreshCw} from 'lucide-react';
+import {toast} from 'sonner';
+import {getAccessTokenFromCookie} from '@/lib/auth-utils';
 
 export default function MigrationsPage() {
   const [status, setStatus] = useState<any>(null);
@@ -19,9 +19,10 @@ export default function MigrationsPage() {
   // 加载迁移状态
   const loadStatus = async () => {
     try {
+      const token = getAccessTokenFromCookie();
       const response = await fetch('/api/v1/migrations/status', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+          'Authorization': `Bearer ${token}`,
         },
       });
 
@@ -48,10 +49,11 @@ export default function MigrationsPage() {
 
     try {
       setLoading(true);
+      const token = getAccessTokenFromCookie();
       const response = await fetch('/api/v1/migrations/apply', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+          'Authorization': `Bearer ${token}`,
         },
       });
 
@@ -79,11 +81,12 @@ export default function MigrationsPage() {
     }
 
     try {
+      const token = getAccessTokenFromCookie();
       const response = await fetch('/api/v1/migrations/create', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           message: migrationName,
@@ -118,11 +121,12 @@ export default function MigrationsPage() {
     }
 
     try {
+      const token = getAccessTokenFromCookie();
       const response = await fetch('/api/v1/migrations/rollback', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           steps: parseInt(rollbackVersion),

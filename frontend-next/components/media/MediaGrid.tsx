@@ -25,6 +25,7 @@ import {
   Video,
   X
 } from 'lucide-react';
+import {getAccessTokenFromCookie} from '@/lib/auth-utils';
 
 // 缩略图组件，支持加载失败时显示默认图标
 const ThumbnailImage: React.FC<{
@@ -150,10 +151,10 @@ const MediaGrid: React.FC<MediaGridProps> = ({
   // 加载文件夹列表（使用树形结构）
   const loadFolders = async () => {
     try {
-      const token = document.cookie.split(';').find(c => c.trim().startsWith('access_token='))?.split('=')[1];
+        const token = getAccessTokenFromCookie();
       const response = await fetch(`${apiBaseUrl}${apiPrefix}/media/folders/tree`, {
         headers: {
-          'Authorization': `Bearer ${decodeURIComponent(token || '')}`,
+            'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         }
       });
@@ -205,11 +206,11 @@ const MediaGrid: React.FC<MediaGridProps> = ({
   // 执行批量移动
   const handleBatchMove = async () => {
     try {
-      const token = document.cookie.split(';').find(c => c.trim().startsWith('access_token='))?.split('=')[1];
+        const token = getAccessTokenFromCookie();
       const response = await fetch(`${apiBaseUrl}${apiPrefix}/media/folders/move-media`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${decodeURIComponent(token || '')}`,
+            'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({

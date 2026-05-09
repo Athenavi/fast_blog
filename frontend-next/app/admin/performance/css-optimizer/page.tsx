@@ -1,13 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Textarea } from '@/components/ui/textarea';
-import { Info, Trash2, RefreshCw } from 'lucide-react';
-import { toast } from 'sonner';
+import {useEffect, useState} from 'react';
+import {Card, CardContent, CardHeader, CardTitle} from '@/components/ui/card';
+import {Button} from '@/components/ui/button';
+import {Badge} from '@/components/ui/badge';
+import {Alert, AlertDescription, AlertTitle} from '@/components/ui/alert';
+import {Textarea} from '@/components/ui/textarea';
+import {Info, Trash2} from 'lucide-react';
+import {toast} from 'sonner';
+import {getAccessTokenFromCookie} from '@/lib/auth-utils';
 
 export default function CSSOptimizerPage() {
   const [htmlContent, setHtmlContent] = useState('');
@@ -18,9 +19,10 @@ export default function CSSOptimizerPage() {
   // 加载缓存统计
   const loadCacheStats = async () => {
     try {
+      const token = getAccessTokenFromCookie();
       const response = await fetch('/api/v1/css-optimizer/cache/stats', {
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+          'Authorization': `Bearer ${token}`,
         },
       });
 
@@ -48,11 +50,12 @@ export default function CSSOptimizerPage() {
 
     try {
       setLoading(true);
+      const token = getAccessTokenFromCookie();
       const response = await fetch('/api/v1/css-optimizer/extract', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           html_content: htmlContent,
@@ -86,10 +89,11 @@ export default function CSSOptimizerPage() {
   // 清除缓存
   const handleClearCache = async () => {
     try {
+      const token = getAccessTokenFromCookie();
       const response = await fetch('/api/v1/css-optimizer/cache/clear', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${localStorage.getItem('access_token')}`,
+          'Authorization': `Bearer ${token}`,
         },
       });
 

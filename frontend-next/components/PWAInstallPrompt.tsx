@@ -118,7 +118,9 @@ export default function PWAInstallPrompt({showPrompt = true}: PWAInstallPromptPr
     const handleDismiss = () => {
         setIsVisible(false);
         // 保存用户选择，30天内不再显示
-        localStorage.setItem('pwa-install-dismissed', Date.now().toString());
+        if (typeof window !== 'undefined') {
+            localStorage.setItem('pwa-install-dismissed', Date.now().toString());
+        }
     };
 
     const handleUpdate = () => {
@@ -129,7 +131,7 @@ export default function PWAInstallPrompt({showPrompt = true}: PWAInstallPromptPr
     };
 
     // 检查是否应该显示
-    const dismissedTime = localStorage.getItem('pwa-install-dismissed');
+    const dismissedTime = typeof window !== 'undefined' ? localStorage.getItem('pwa-install-dismissed') : null;
     const shouldShow = showPrompt &&
         isInstallable &&
         !isInstalled &&

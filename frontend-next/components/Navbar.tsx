@@ -6,6 +6,7 @@ import {usePathname} from 'next/navigation';
 import {motion} from 'framer-motion';
 import {Bell, Home, Image as ImageIcon, LogOut, Moon, Search, Settings, Sun, User} from 'lucide-react';
 import {useDarkMode} from '@/lib/dark-mode-manager';
+import {getAccessTokenFromCookie} from '@/lib/auth-utils';
 
 interface NavbarProps {
     title?: string;
@@ -36,7 +37,7 @@ const Navbar: React.FC<NavbarProps> = ({
     // 检查用户是否登录
     useEffect(() => {
         const checkLoginStatus = () => {
-            const token = document.cookie.split('; ').find(row => row.startsWith('access_token='));
+            const token = getAccessTokenFromCookie();
             const isLoggedIn = !!token;
             console.log('[Navbar] 登录状态检查:', {
                 hasToken: isLoggedIn,
