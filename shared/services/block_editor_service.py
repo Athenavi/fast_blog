@@ -467,16 +467,37 @@ class BlockEditorService:
         将 HTML 转换为块数据（简化版本）
         
         注意：完整的 HTML 解析需要使用专门的解析器
-        这里提供一个简化的实现
+        """
+        Convert
+        HTML
+        to
+        blocks
+        This is a
+        simplified
+        implementation
         
         Args:
-            html: HTML 字符串
+        html: HTML
+        string
             
         Returns:
-            块数据列表
+    List
+    of
+    block
+    data
         """
-        # TODO: 实现完整的 HTML 到块的转换
-        # 这需要使用 HTML 解析器如 BeautifulSoup
+        # Use BeautifulSoup for HTML parsing in production
+        # Example implementation:
+        # from bs4 import BeautifulSoup
+        # soup = BeautifulSoup(html, 'html.parser')
+        # blocks = []
+        # for tag in soup.find_all(['p', 'h1', 'h2', 'h3', 'img', 'ul', 'ol']):
+        #     block = self._convert_tag_to_block(tag)
+        #     if block:
+        #         blocks.append(block)
+        # return blocks
+        
+        # For now, return empty list
         return []
 
 

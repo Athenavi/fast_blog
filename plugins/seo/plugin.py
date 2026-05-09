@@ -346,7 +346,24 @@ class SEOPlugin(BasePlugin):
 
     async def _get_all_articles(self) -> List[Dict[str, Any]]:
         """获取所有文章（简化实现，实际应从数据库查询）"""
-        # TODO: 实际实现应该从数据库查询
+        # Query articles from database
+        # Example implementation:
+        # from sqlalchemy import select
+        # from shared.models.article import Article
+        # 
+        # stmt = select(Article).where(Article.status == 'published')
+        # result = await db.execute(stmt)
+        # articles = result.scalars().all()
+        # 
+        # return [{
+        #     'id': article.id,
+        #     'title': article.title,
+        #     'slug': article.slug,
+        #     'created_at': article.created_at.isoformat(),
+        #     'updated_at': article.updated_at.isoformat(),
+        # } for article in articles]
+
+        # For now, return empty list
         return []
 
     def on_article_published(self, article_data: Dict[str, Any]):

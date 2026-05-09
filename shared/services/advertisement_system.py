@@ -355,7 +355,9 @@ class AdvertisementSystem:
         Returns:
             广告列表
         """
-        # TODO: 添加user_id字段并过滤
+        # Filter ads by user_id if provided
+        if user_id:
+            return [ad for ad in self._ads.values() if ad.get('user_id') == user_id]
         return list(self._ads.values())
 
     def check_expired_ads(self):
@@ -474,7 +476,14 @@ class AdvertisementSystem:
         for ad_id, stats in self._ad_stats.items():
             ad = self._ads.get(ad_id)
             if ad:
-                # TODO: 根据时间范围过滤
+                # Filter by date range if provided
+                if start_date and ad.get('created_at'):
+                    if ad['created_at'] < start_date:
+                        continue
+                if end_date and ad.get('end_date'):
+                    if ad['end_date'] > end_date:
+                        continue
+                        
                 total_impressions += stats['impressions']
                 total_clicks += stats['clicks']
                 total_revenue += ad.get('spent', 0)

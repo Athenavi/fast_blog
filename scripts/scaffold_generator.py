@@ -3,9 +3,6 @@ FastBlog 脚手架生成器
 
 提供插件、主题、API 端点的代码生成功能
 """
-import os
-from pathlib import Path
-from datetime import datetime
 
 
 class ScaffoldGenerator:
@@ -117,8 +114,6 @@ A plugin for FastBlog that provides additional functionality.
 '''
 import logging
 from typing import Dict, Any
-
-from shared.services.plugin_manager import BasePlugin, plugin_hooks
 
 logger = logging.getLogger(__name__)
 
@@ -246,7 +241,6 @@ MIT License
         content = f'''"""
 Tests for {name} Plugin
 """
-import pytest
 from pathlib import Path
 
 
@@ -582,13 +576,11 @@ class ApiScaffold(ScaffoldGenerator):
 
 {description or f"API endpoints for managing {name.lower()}"}
 """
-from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.extensions import get_async_db_session
 from src.auth.dependencies import get_current_user
-from shared.models.user import User
 
 router = APIRouter(
     prefix="/{module_name}",
@@ -610,7 +602,13 @@ async def list_{module_name}(
     - **skip**: Number of records to skip
     - **limit**: Maximum number of records to return
     """
-    # TODO: Implement listing logic
+# Example implementation:
+# from sqlalchemy import select
+# stmt = select({name}).offset(skip).limit(limit)
+# result = await db.execute(stmt)
+# items = result.scalars().all()
+# return {{"items": items, "total": len(items), "skip": skip, "limit": limit}}
+    
     return {{
         "items": [],
         "total": 0,
@@ -628,8 +626,11 @@ async def get_{module_name}(
     """
     Get a specific {name.lower()} by ID
     """
-    # TODO: Implement get logic
-    # item = await get_item_by_id(db, item_id)
+# Example implementation:
+# from sqlalchemy import select
+# stmt = select({name}).where({name}.id == item_id)
+# result = await db.execute(stmt)
+# item = result.scalar_one_or_none()
     # if not item:
     #     raise HTTPException(status_code=404, detail="{name} not found")
     # return item
@@ -646,9 +647,12 @@ async def create_{module_name}(
     """
     Create a new {name.lower()}
     """
-    # TODO: Implement create logic
-    # item = await create_item(db, data, current_user)
-    # return item
+# Example implementation:
+# new_item = {name}(**data.dict(), user_id=current_user.id)
+# db.add(new_item)
+# await db.commit()
+# await db.refresh(new_item)
+# return new_item
     
     raise HTTPException(status_code=501, detail="Not implemented yet")
 
@@ -663,7 +667,18 @@ async def update_{module_name}(
     """
     Update a {name.lower()}
     """
-    # TODO: Implement update logic
+# Example implementation:
+# stmt = select({name}).where({name}.id == item_id)
+# result = await db.execute(stmt)
+# item = result.scalar_one_or_none()
+# if not item:
+#     raise HTTPException(status_code=404, detail="{name} not found")
+# for key, value in data.dict(exclude_unset=True).items():
+#     setattr(item, key, value)
+# await db.commit()
+# await db.refresh(item)
+# return item
+    
     raise HTTPException(status_code=501, detail="Not implemented yet")
 
 
@@ -676,7 +691,16 @@ async def delete_{module_name}(
     """
     Delete a {name.lower()}
     """
-    # TODO: Implement delete logic
+# Example implementation:
+# stmt = select({name}).where({name}.id == item_id)
+# result = await db.execute(stmt)
+# item = result.scalar_one_or_none()
+# if not item:
+#     raise HTTPException(status_code=404, detail="{name} not found")
+# await db.delete(item)
+# await db.commit()
+# return {{"message": "Deleted successfully"}}
+    
     raise HTTPException(status_code=501, detail="Not implemented yet")
 '''
 

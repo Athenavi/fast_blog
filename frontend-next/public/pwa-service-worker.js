@@ -286,8 +286,18 @@ function isStaticAsset(pathname) {
 async function syncContent() {
     try {
         console.log('[SW] Syncing content...');
-        // TODO: 实现离线内容的同步逻辑
-        // 例如：同步草稿、评论、点赞等
+        // Sync offline content (drafts, comments, likes, etc.)
+        // Example: Fetch pending actions from IndexedDB and send to server
+        const pendingActions = await getPendingActions();
+        for (const action of pendingActions) {
+            await fetch(action.url, {
+                method: action.method,
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify(action.data)
+            });
+        }
+        await clearPendingActions();
+        console.log('[SW] Content synced successfully');
     } catch (error) {
         console.error('[SW] Sync failed:', error);
     }

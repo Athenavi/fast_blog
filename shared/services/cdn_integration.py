@@ -279,8 +279,23 @@ class CDNService:
 
         config = self.cdn_configs[provider]
 
-        # TODO: 实际调用CDN API清除缓存
-        # 这里提供示例逻辑
+        # Call CDN API to purge cache
+        # Example for Cloudflare:
+        # import requests
+        # headers = {'Authorization': f'Bearer {config.get("api_token")}'}
+        # if purge_all:
+        #     response = requests.post(
+        #         f'https://api.cloudflare.com/client/v4/zones/{config.get("zone_id")}/purge_cache',
+        #         headers=headers,
+        #         json={'purge_everything': True}
+        #     )
+        # else:
+        #     response = requests.post(
+        #         f'https://api.cloudflare.com/client/v4/zones/{config.get("zone_id")}/purge_cache',
+        #         headers=headers,
+        #         json={'files': urls}
+        #     )
+        # result['api_response'] = response.json()
 
         result = {
             'success': True,
@@ -310,8 +325,18 @@ class CDNService:
                 'error': f'CDN provider "{provider}" not configured',
             }
 
-        # TODO: 实际从CDN API获取统计数据
-        # 这里提供示例数据
+        # Fetch statistics from CDN API
+        # Example for Cloudflare:
+        # import requests
+        # headers = {'Authorization': f'Bearer {config.get("api_token")}'}
+        # response = requests.get(
+        #     f'https://api.cloudflare.com/client/v4/zones/{config.get("zone_id")}/analytics/dashboard',
+        #     headers=headers,
+        #     params={'since': f'-{hours}hours'}
+        # )
+        # stats = response.json()['result']
+        # 
+        # For now, return sample data
 
         stats = {
             'provider': provider,

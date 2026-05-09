@@ -175,10 +175,21 @@ self.addEventListener('sync', (event) => {
 // 同步通知数据
 async function syncNotifications() {
     try {
-        // TODO: 从服务器获取最新通知
+        // Fetch latest notifications from server
         console.log('[SW] Syncing notifications...');
 
-        // 可以在这里实现离线通知队列的同步
+        const response = await fetch('/api/v1/notifications?limit=20');
+        if (response.ok) {
+            const notifications = await response.json();
+
+            // Cache notifications for offline access
+            const cache = await caches.open(PUSH_CACHE_NAME);
+            await cache.put('/api/v1/notifications?cached=true', new Response(JSON.stringify(notifications)));
+
+            console.log('[SW] Notifications synced:', notifications.length);
+        }
+
+        // Can implement offline notification queue sync here
     } catch (error) {
         console.error('[SW] Failed to sync notifications:', error);
     }

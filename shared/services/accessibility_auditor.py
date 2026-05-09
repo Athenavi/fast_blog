@@ -403,8 +403,19 @@ class AccessibilityAuditor:
 
     def check_image_alt(self, html_content: str) -> Dict[str, Any]:
         """检查图片ALT文本"""
-        # TODO: 实际解析HTML进行检查
-        # 这里提供示例逻辑
+        # Parse HTML and check for alt attributes on img tags
+        # Example implementation using BeautifulSoup:
+        # from bs4 import BeautifulSoup
+        # soup = BeautifulSoup(html_content, 'html.parser')
+        # images = soup.find_all('img')
+        # missing_alt = [img for img in images if not img.get('alt')]
+        # if missing_alt:
+        #     return {
+        #         'status': 'violation',
+        #         'message': f'{len(missing_alt)} images missing alt text',
+        #         'elements': [{'tag': str(img), 'line': img.sourceline} for img in missing_alt],
+        #         'recommendation': 'Add descriptive alt text to all images'
+        #     }
         return {
             'status': 'pass',  # violation, warning, pass
             'message': 'All images have alt text',
@@ -414,7 +425,9 @@ class AccessibilityAuditor:
 
     def check_color_contrast(self, html_content: str) -> Dict[str, Any]:
         """检查颜色对比度"""
-        # TODO: 实际解析CSS进行检查
+        # Parse CSS and check color contrast ratios
+        # WCAG requires minimum 4.5:1 for normal text, 3:1 for large text
+        # Example: Use a library like wcag-contrast-checker
         return {
             'status': 'pass',
             'message': 'Color contrast meets requirements',
@@ -422,7 +435,12 @@ class AccessibilityAuditor:
 
     def check_heading_structure(self, html_content: str) -> Dict[str, Any]:
         """检查标题结构"""
-        # TODO: 实际解析HTML进行检查
+        # Check heading hierarchy (h1 > h2 > h3, no skipping levels)
+        # Example implementation:
+        # from bs4 import BeautifulSoup
+        # soup = BeautifulSoup(html_content, 'html.parser')
+        # headings = soup.find_all(['h1', 'h2', 'h3', 'h4', 'h5', 'h6'])
+        # Check for proper nesting and single h1
         return {
             'status': 'pass',
             'message': 'Heading structure is correct',

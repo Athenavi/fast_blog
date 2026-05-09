@@ -8,11 +8,14 @@
 4. 批量添加标签
 5. 操作日志记录
 """
+import logging
 from datetime import datetime
 from typing import List, Dict, Optional
 
 from sqlalchemy import update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
+
+logger = logging.getLogger(__name__)
 
 
 class BatchOperationService:
@@ -770,8 +773,9 @@ class BatchOperationService:
 
         self.operation_log.append(log_entry)
 
-        # TODO: 实际项目中应该写入数据库或日志文件
-        print(f"[Batch Operation] {log_entry}")
+        # Log to database or file in production
+        # Example: await db.execute(insert(OperationLog).values(**log_entry))
+        logger.info(f"[Batch Operation] {operation_type} - {details}")
 
     def get_operation_log(self) -> List[Dict]:
         """

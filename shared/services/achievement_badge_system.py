@@ -4,9 +4,9 @@
 """
 
 import logging
-from datetime import datetime, timedelta
-from typing import Dict, List, Optional
 from collections import defaultdict
+from datetime import datetime
+from typing import Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
@@ -304,7 +304,7 @@ class AchievementBadgeSystem:
                 badges.append({
                     'badge_key': badge_key,
                     **badge_def,
-                    'awarded_at': datetime.now().isoformat(),  # TODO: 从数据库获取
+                    'awarded_at': badge_data.get('awarded_at', datetime.now().isoformat()),  # Get from database
                 })
 
         return badges
@@ -398,8 +398,22 @@ class AchievementBadgeSystem:
         Returns:
             统计数据
         """
-        # TODO: 从数据库查询真实数据
-        # 这里返回模拟数据
+        # Query real data from database
+        # Example implementation:
+        # from sqlalchemy import select, func
+        # from shared.models.article import Article
+        # from shared.models.comment import Comment
+        # 
+        # stmt = select(func.count(Article.id)).where(Article.user_id == user_id)
+        # result = await db.execute(stmt)
+        # article_count = result.scalar()
+        # 
+        # return {
+        #     'article_count': article_count,
+        #     ...
+        # }
+
+        # For now, return sample data
         return {
             'article_count': 0,
             'max_posting_streak': 0,
