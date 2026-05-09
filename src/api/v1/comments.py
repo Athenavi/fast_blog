@@ -96,7 +96,7 @@ async def create_comment(
 
         # 5. 敏感词过滤检查
         from shared.services.sensitive_word_service import sensitive_word_service
-        sensitive_check = sensitive_word_service.check_content(comment_data.content)
+        sensitive_check = await sensitive_word_service.check_content(comment_data.content)
 
         # 如果包含需要拦截的敏感词，直接拒绝
         if sensitive_check['has_sensitive'] and 'block' in sensitive_check['actions']:
@@ -119,7 +119,7 @@ async def create_comment(
         # 6. 如果内容需要替换敏感词，进行替换
         filtered_content = comment_data.content
         if sensitive_check['has_sensitive'] and 'replace' in sensitive_check['actions']:
-            filtered_content, _ = sensitive_word_service.filter_content(comment_data.content)
+            filtered_content, _ = await sensitive_word_service.filter_content(comment_data.content)
 
         # 5. 根据检测结果决定操作
         if spam_check['action'] == 'reject':
@@ -170,7 +170,7 @@ async def create_comment(
 
                 # 触发关注插件的评论事件
                 try:
-                    from shared.services.plugin_init import trigger_plugin_event
+                    from shared.services.plugin_manager.init import trigger_plugin_event
                     commenter_id = current_user.id if current_user else None
                     if commenter_id and article:
                         await trigger_plugin_event('comment_created', {

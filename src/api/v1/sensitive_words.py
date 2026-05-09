@@ -406,7 +406,7 @@ async def refresh_sensitive_word_cache(
     """
     try:
         from shared.services.sensitive_word_service import sensitive_word_service
-        sensitive_word_service.refresh_cache()
+        await sensitive_word_service.refresh_cache()
 
         return ApiResponse(
             success=True,
