@@ -3,6 +3,7 @@
 import React, {useEffect, useState} from 'react';
 import {useRouter} from 'next/navigation';
 import LoadingState from '@/components/LoadingState';
+import {getAccessTokenFromCookie} from '@/lib/auth-utils';
 
 interface AuthProtectedProps {
     children: React.ReactNode;
@@ -15,20 +16,7 @@ export function AuthProtected({children}: AuthProtectedProps) {
     useEffect(() => {
         // 检查用户是否已登录（仅从 cookie 读取）
         const checkAuth = () => {
-            // 从 cookie 获取 token
-            const getTokenFromCookie = (): string | null => {
-                if (typeof document === 'undefined') return null;
-                const cookies = document.cookie.split(';');
-                for (const cookie of cookies) {
-                    const [name, value] = cookie.trim().split('=');
-                    if (name === 'access_token' && value) {
-                        return decodeURIComponent(value);
-                    }
-                }
-                return null;
-            };
-
-            const token = getTokenFromCookie();
+            const token = getAccessTokenFromCookie();
 
             if (!token) {
                 // 未登录，重定向到登录页

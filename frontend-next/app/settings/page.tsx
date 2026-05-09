@@ -23,6 +23,7 @@ import {
 import WithAuthProtection from '@/components/WithAuthProtection';
 import {apiClient} from "@/lib/api";
 import {useDarkMode} from '@/lib/dark-mode-manager';
+import {getAccessTokenFromCookie} from '@/lib/auth-utils';
 
 // 动画配置
 const fadeInUp = {
@@ -188,19 +189,7 @@ const SettingsPage = () => {
             const apiConfig = config.getConfig();
 
             // 从 cookie 获取 token
-            const getTokenFromCookie = (): string | null => {
-                if (typeof document === 'undefined') return null;
-                const cookies = document.cookie.split(';');
-                for (const cookie of cookies) {
-                    const [name, value] = cookie.trim().split('=');
-                    if (name === 'access_token') {
-                        return decodeURIComponent(value);
-                    }
-                }
-                return null;
-            };
-
-            const token = getTokenFromCookie();
+            const token = getAccessTokenFromCookie();
 
             // 构建请求头 - 只在有 token 时添加 Authorization
             const headers: HeadersInit = {};

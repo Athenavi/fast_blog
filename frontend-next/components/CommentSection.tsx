@@ -14,6 +14,7 @@ import CommentItem from './CommentItem';
 import {CommentInput} from './CommentInput';
 import apiClient from '@/lib/api-client';
 import {MessageSquare} from 'lucide-react';
+import {getAccessTokenFromCookie} from '@/lib/auth-utils';
 
 interface Comment {
     id: number;
@@ -70,9 +71,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({articleId}) => {
     // 检查登录状态
     const checkLoginStatus = () => {
         if (typeof window !== 'undefined') {
-            const token = document.cookie
-                .split('; ')
-                .find(row => row.startsWith('access_token='));
+            const token = getAccessTokenFromCookie();
             setIsLoggedIn(!!token);
 
             // 如果已登录，从cookie或localStorage获取用户信息
