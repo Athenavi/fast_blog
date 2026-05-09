@@ -41,7 +41,7 @@ async def send_subscription_confirmation_email(email: str):
             <li>特别活动通知</li>
         </ul>
         <p>如果您不想继续接收邮件,可以随时取消订阅。</p>
-        <p style="color: #999; font-size: 12px;">订阅时间: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}</p>
+        <p style="color: #999; font-size: 12px;">订阅时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
         """
         
         text_content = f"""感谢订阅 FastBlog!
@@ -55,7 +55,7 @@ async def send_subscription_confirmation_email(email: str):
 
 如果您不想继续接收邮件,可以随时取消订阅。
 
-订阅时间: {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}
+订阅时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
         """
         
         # 发送邮件

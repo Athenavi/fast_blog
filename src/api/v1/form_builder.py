@@ -44,7 +44,7 @@ async def send_form_notification_email(
         html_content = f"""
         <h2>新表单提交</h2>
         <p><strong>表单:</strong> {form_title}</p>
-        <p><strong>提交时间:</strong> {datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')}</p>
+        <p><strong>提交时间:</strong> {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
         <h3>提交数据:</h3>
         <ul>
         """
@@ -354,7 +354,7 @@ async def submit_form(
             ip_address=None,  # 可以从request中获取
             user_agent=None,
             status='new',
-            created_at=datetime.utcnow()
+            created_at=datetime.now()
         )
         db.add(submission_record)
         await db.commit()
@@ -470,7 +470,7 @@ async def get_form_statistics(
         total_submissions = count_result.scalar() or 0
         
         # 最近7天提交数
-        seven_days_ago = datetime.utcnow() - timedelta(days=7)
+        seven_days_ago = datetime.now() - timedelta(days=7)
         recent_stmt = select(func.count(FormSubmission.id)).where(
             FormSubmission.form_id == form_id,
             FormSubmission.created_at >= seven_days_ago

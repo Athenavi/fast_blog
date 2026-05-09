@@ -194,7 +194,7 @@ async def oauth_callback(
                         nickname=user_info.get('name', ''),
                         avatar_url=user_info.get('avatar', ''),
                         is_active=True,
-                        created_at=datetime.utcnow()
+                        created_at=datetime.now()
                     )
                     db.add(user)
                     await db.flush()  # 获取user.id
@@ -207,7 +207,7 @@ async def oauth_callback(
                 provider=provider,
                 provider_user_id=str(user_info.get('id')),
                 access_token=access_token,
-                created_at=datetime.utcnow()
+                created_at=datetime.now()
             )
             db.add(oauth_account)
         

@@ -142,7 +142,7 @@ class WidgetService:
                     return {'success': False, 'error': '小部件不存在'}
 
                 widget.config = json.dumps(config, ensure_ascii=False)
-                widget.updated_at = datetime.utcnow()
+                widget.updated_at = datetime.now()
                 await db.commit()
 
             return {'success': True, 'message': '配置更新成功'}

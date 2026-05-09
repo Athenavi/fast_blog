@@ -56,7 +56,7 @@ class BackupService:
         Returns:
             备份信息
         """
-        timestamp = datetime.utcnow()
+        timestamp = datetime.now()
         filename = f"db_backup_{timestamp.strftime('%Y%m%d_%H%M%S')}"
 
         if compress:
@@ -117,7 +117,7 @@ class BackupService:
         Returns:
             备份信息
         """
-        timestamp = datetime.utcnow()
+        timestamp = datetime.now()
         filename = f"files_backup_{timestamp.strftime('%Y%m%d_%H%M%S')}"
 
         if compress:
@@ -194,7 +194,7 @@ class BackupService:
         Returns:
             备份信息
         """
-        timestamp = datetime.utcnow()
+        timestamp = datetime.now()
         filename = f"full_backup_{timestamp.strftime('%Y%m%d_%H%M%S')}"
 
         if compress:
@@ -340,7 +340,7 @@ class BackupService:
         Returns:
             清理统计
         """
-        cutoff = datetime.utcnow() - timedelta(days=days)
+        cutoff = datetime.now() - timedelta(days=days)
 
         deleted_count = 0
         kept_count = 0

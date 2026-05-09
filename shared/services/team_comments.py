@@ -64,7 +64,7 @@ class TeamCommentService:
             'text': text,
             'parent_id': parent_id,
             'mentions': mentions or [],
-            'created_at': datetime.utcnow().isoformat(),
+            'created_at': datetime.now().isoformat(),
             'updated_at': None,
             'is_resolved': False,
             'resolved_by': None,
@@ -113,7 +113,7 @@ class TeamCommentService:
             raise ValueError("Only the author can update the comment")
 
         comment['text'] = text
-        comment['updated_at'] = datetime.utcnow().isoformat()
+        comment['updated_at'] = datetime.now().isoformat()
 
         return comment
 
@@ -166,7 +166,7 @@ class TeamCommentService:
         comment = self.comments[comment_id]
         comment['is_resolved'] = True
         comment['resolved_by'] = resolver_id
-        comment['resolved_at'] = datetime.utcnow().isoformat()
+        comment['resolved_at'] = datetime.now().isoformat()
 
         return comment
 

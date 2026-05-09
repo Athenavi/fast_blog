@@ -78,7 +78,7 @@ class IncrementalBackupService:
                 }
 
             # 2. 生成增量备份文件名
-            timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
             backup_filename = f"incremental_{timestamp}.dump"
             backup_path = self.backup_dir / backup_filename
 
@@ -119,7 +119,7 @@ class IncrementalBackupService:
                 'tables': changed_tables,
                 'tables_checksum': new_checksums,
                 'file_size': backup_path.stat().st_size if backup_path.exists() else 0,
-                'created_at': datetime.utcnow().isoformat(),
+                'created_at': datetime.now().isoformat(),
                 'status': 'completed'
             }
 
@@ -649,7 +649,7 @@ class IncrementalBackupService:
         Returns:
             清理结果
         """
-        cutoff_date = datetime.utcnow() - timedelta(days=keep_days)
+        cutoff_date = datetime.now() - timedelta(days=keep_days)
         deleted_count = 0
         deleted_size = 0
 

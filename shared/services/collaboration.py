@@ -25,7 +25,7 @@ class Step:
         self.data = data
         self.client_id = client_id
         self.version = version
-        self.timestamp = datetime.utcnow()
+        self.timestamp = datetime.now()
 
     def to_dict(self) -> dict:
         return {
@@ -55,9 +55,9 @@ class CollaborativeDocument:
     def __init__(self, document_id: str):
         self.document_id = document_id
         self.clients: Dict[str, WebSocket] = {}  # {client_id: websocket}
-        self.created_at = datetime.utcnow()
-        self.last_modified = datetime.utcnow()
-        self.last_saved = datetime.utcnow()
+        self.created_at = datetime.now()
+        self.last_modified = datetime.now()
+        self.last_saved = datetime.now()
 
         # 文档内容（HTML格式）
         self.content: str = ""
@@ -140,7 +140,7 @@ class CollaborativeDocument:
             # 记录步骤
             self.steps.append(step)
             self.version += 1
-            self.last_modified = datetime.utcnow()
+            self.last_modified = datetime.now()
 
             # 限制步骤历史长度，避免内存泄漏
             if len(self.steps) > 100:
@@ -171,7 +171,7 @@ class CollaborativeDocument:
 
     def needs_auto_save(self) -> bool:
         """检查是否需要自动保存"""
-        now = datetime.utcnow()
+        now = datetime.now()
         elapsed = (now - self.last_saved).total_seconds()
         return elapsed >= self.auto_save_interval
 
@@ -182,7 +182,7 @@ class CollaborativeDocument:
     def set_content(self, content: str):
         """设置文档内容"""
         self.content = content
-        self.last_modified = datetime.utcnow()
+        self.last_modified = datetime.now()
 
     def get_state(self) -> dict:
         """获取文档状态"""

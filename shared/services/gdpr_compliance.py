@@ -64,7 +64,7 @@ class GDPRComplianceService:
         Returns:
             导出的数据
         """
-        timestamp = datetime.utcnow()
+        timestamp = datetime.now()
         request_id = f"export_{user_id}_{timestamp.strftime('%Y%m%d%H%M%S')}"
 
         # 构建导出数据
@@ -155,7 +155,7 @@ class GDPRComplianceService:
         Returns:
             操作结果
         """
-        timestamp = datetime.utcnow()
+        timestamp = datetime.now()
         request_id = f"deletion_{user_id}_{timestamp.strftime('%Y%m%d%H%M%S')}"
 
         result = {
@@ -193,7 +193,7 @@ class GDPRComplianceService:
                 result['affected_data'] = anonymized_counts
                 result['status'] = 'completed'
 
-            result['completed_at'] = datetime.utcnow().isoformat()
+            result['completed_at'] = datetime.now().isoformat()
             await db.commit()
 
             # 记录删除请求
@@ -226,7 +226,7 @@ class GDPRComplianceService:
         Returns:
             同意记录
         """
-        timestamp = datetime.utcnow()
+        timestamp = datetime.now()
 
         if user_id not in self.consent_records:
             self.consent_records[user_id] = {
@@ -316,7 +316,7 @@ class GDPRComplianceService:
 
         report = {
             'user_id': user_id,
-            'generated_at': datetime.utcnow().isoformat(),
+            'generated_at': datetime.now().isoformat(),
             'data_summary': data_summary,
             'consents': consents,
             'data_retention': {

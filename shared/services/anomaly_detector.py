@@ -57,7 +57,7 @@ class AnomalyDetector:
             timestamp: 时间戳
         """
         if timestamp is None:
-            timestamp = datetime.utcnow()
+            timestamp = datetime.now()
 
         self.login_attempts[ip_address].append((timestamp, success, username))
 
@@ -88,7 +88,7 @@ class AnomalyDetector:
             timestamp: 时间戳
         """
         if timestamp is None:
-            timestamp = datetime.utcnow()
+            timestamp = datetime.now()
 
         self.user_activities[user_id].append((action, timestamp, details or {}))
 
@@ -115,7 +115,7 @@ class AnomalyDetector:
             timestamp: 时间戳
         """
         if timestamp is None:
-            timestamp = datetime.utcnow()
+            timestamp = datetime.now()
 
         self.access_patterns[ip_address].append(timestamp)
 
@@ -144,7 +144,7 @@ class AnomalyDetector:
         Returns:
             异常事件列表
         """
-        cutoff = datetime.utcnow() - timedelta(hours=hours)
+        cutoff = datetime.now() - timedelta(hours=hours)
 
         filtered = [
             anomaly for anomaly in self.anomalies
@@ -346,7 +346,7 @@ class AnomalyDetector:
         Returns:
             可疑IP列表
         """
-        cutoff = datetime.utcnow() - timedelta(hours=hours)
+        cutoff = datetime.now() - timedelta(hours=hours)
 
         ip_scores = defaultdict(lambda: {'score': 0, 'anomalies': []})
 

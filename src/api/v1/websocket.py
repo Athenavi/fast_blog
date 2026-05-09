@@ -122,7 +122,7 @@ async def collaborate_websocket(
 
     # 检查邀请是否过期
     from datetime import datetime
-    if datetime.utcnow() > invitation["expires_at"]:
+    if datetime.now() > invitation["expires_at"]:
         print(f"[WebSocket] Invitation {invite_id} expired")
         await websocket.close(code=4010, reason="Invitation expired")
         return

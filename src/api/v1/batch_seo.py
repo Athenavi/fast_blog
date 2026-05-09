@@ -77,7 +77,7 @@ async def batch_update_seo(
             )
 
         updated_count = 0
-        now = datetime.utcnow()
+        now = datetime.now()
 
         for article in articles:
             # 查找或创建SEO记录
@@ -226,7 +226,7 @@ async def batch_export_seo(
             "data": {
                 "count": len(rows),
                 "csv_content": csv_content,
-                "filename": f"seo_export_{datetime.utcnow().strftime('%Y%m%d_%H%M%S')}.csv"
+                "filename": f"seo_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
             }
         }
 
@@ -262,7 +262,7 @@ async def batch_import_seo(
         imported_count = 0
         error_count = 0
         errors = []
-        now = datetime.utcnow()
+        now = datetime.now()
 
         # 处理每一行数据
         for i, line in enumerate(lines[1:], start=2):

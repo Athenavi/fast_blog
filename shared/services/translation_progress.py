@@ -50,7 +50,7 @@ class TranslationProgressTracker:
             'translated': is_translated,
             'translator_id': translator_id,
             'translator_name': translator_name,
-            'updated_at': datetime.utcnow().isoformat(),
+            'updated_at': datetime.now().isoformat(),
         }
 
         # 更新贡献者统计
@@ -63,7 +63,7 @@ class TranslationProgressTracker:
                 }
 
             self.contributors[translator_id]['translations_count'] += 1
-            self.contributors[translator_id]['last_contribution'] = datetime.utcnow().isoformat()
+            self.contributors[translator_id]['last_contribution'] = datetime.now().isoformat()
 
     def get_language_progress(self, language_code: str) -> Dict[str, Any]:
         """
@@ -171,7 +171,7 @@ class TranslationProgressTracker:
                 'total_languages': total_languages,
                 'completed_languages': completed_languages,
                 'average_progress': round(avg_progress, 2),
-                'generated_at': datetime.utcnow().isoformat(),
+                'generated_at': datetime.now().isoformat(),
             },
             'languages': languages_progress,
             'top_contributors': contributor_stats[:10],

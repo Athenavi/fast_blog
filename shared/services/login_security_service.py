@@ -43,7 +43,7 @@ class LoginSecurityService:
                 user_agent=user_agent,
                 is_success=is_success,
                 failure_reason=failure_reason,
-                created_at=datetime.utcnow()
+                created_at=datetime.now()
             )
             await session.execute(stmt)
             await session.commit()
@@ -58,7 +58,7 @@ class LoginSecurityService:
         异步检查账户是否被锁定（用于 FastAPI 异步端点）
         """
         # 计算检查窗口的起始时间
-        window_start = datetime.utcnow() - timedelta(minutes=self.CHECK_WINDOW_MINUTES)
+        window_start = datetime.now() - timedelta(minutes=self.CHECK_WINDOW_MINUTES)
 
         async with get_async_session_context() as session:
             # 统计窗口期内的失败次数
@@ -86,7 +86,7 @@ class LoginSecurityService:
                     unlock_time = last_failed.created_at + timedelta(minutes=self.LOCKOUT_DURATION_MINUTES)
 
                     # 如果还未到解锁时间，则账户仍被锁定
-                    if datetime.utcnow() < unlock_time:
+                    if datetime.now() < unlock_time:
                         logger.warning(f"Account locked (async): {username}, unlock at {unlock_time}")
                         return True, unlock_time
 
@@ -96,7 +96,7 @@ class LoginSecurityService:
         """
         异步获取指定时间窗口内的失败尝试次数
         """
-        window_start = datetime.utcnow() - timedelta(minutes=minutes)
+        window_start = datetime.now() - timedelta(minutes=minutes)
 
         async with get_async_session_context() as session:
             count_stmt = select(func.count()).select_from(LoginAttempt).where(
@@ -168,7 +168,7 @@ class LoginSecurityService:
         """
         异步清理旧的登录尝试记录
         """
-        cutoff_date = datetime.utcnow() - timedelta(days=days)
+        cutoff_date = datetime.now() - timedelta(days=days)
 
         async with get_async_session_context() as session:
             delete_stmt = delete(LoginAttempt).where(
@@ -185,7 +185,7 @@ class LoginSecurityService:
         """
         异步获取安全统计数据
         """
-        now = datetime.utcnow()
+        now = datetime.now()
         today_start = now.replace(hour=0, minute=0, second=0, microsecond=0)
         week_start = today_start - timedelta(days=7)
 

@@ -63,7 +63,7 @@ async def block_user(
             blocker=current_user_id,
             blocked_user=blocked_user_id,
             reason=reason,
-            created_at=datetime.utcnow()
+            created_at=datetime.now()
         )
 
         db.add(new_block)

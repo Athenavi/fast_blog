@@ -65,7 +65,7 @@ class ContentApprovalWorkflow:
             'author_name': author_name,
             'title': title,
             'status': ApprovalStatus.PENDING_REVIEW.value,
-            'submitted_at': datetime.utcnow().isoformat(),
+            'submitted_at': datetime.now().isoformat(),
             'reviewers': reviewers or [],
             'current_reviewer_index': 0,
             'comments': [],
@@ -78,7 +78,7 @@ class ContentApprovalWorkflow:
             'action': 'submitted',
             'user_id': author_id,
             'user_name': author_name,
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now().isoformat(),
             'comment': '提交审批',
         }]
 
@@ -149,7 +149,7 @@ class ContentApprovalWorkflow:
                 'reviewer_name': reviewer_name,
                 'action': 'approve',
                 'comment': comment,
-                'timestamp': datetime.utcnow().isoformat(),
+                'timestamp': datetime.now().isoformat(),
             })
 
         # 检查是否还有更多审核人
@@ -169,7 +169,7 @@ class ContentApprovalWorkflow:
             # 所有审核人都已批准
             approval['status'] = ApprovalStatus.APPROVED.value
             approval['final_decision'] = 'approved'
-            approval['completed_at'] = datetime.utcnow().isoformat()
+            approval['completed_at'] = datetime.now().isoformat()
 
             self._add_history(
                 content_id,
@@ -214,12 +214,12 @@ class ContentApprovalWorkflow:
             'reviewer_name': reviewer_name,
             'action': 'reject',
             'comment': reason,
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now().isoformat(),
         })
 
         approval['status'] = ApprovalStatus.REJECTED.value
         approval['final_decision'] = 'rejected'
-        approval['completed_at'] = datetime.utcnow().isoformat()
+        approval['completed_at'] = datetime.now().isoformat()
 
         self._add_history(
             content_id,
@@ -372,7 +372,7 @@ class ContentApprovalWorkflow:
         Returns:
             统计信息
         """
-        cutoff = datetime.utcnow().timestamp() - (hours * 3600)
+        cutoff = datetime.now().timestamp() - (hours * 3600)
 
         stats = {
             'total_submissions': 0,
@@ -431,7 +431,7 @@ class ContentApprovalWorkflow:
             'action': action,
             'user_id': user_id,
             'user_name': user_name,
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now().isoformat(),
             'comment': comment,
         })
 

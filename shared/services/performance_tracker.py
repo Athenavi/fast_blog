@@ -46,7 +46,7 @@ class PagePerformanceTracker:
         Returns:
             记录的性能数据
         """
-        timestamp = datetime.utcnow()
+        timestamp = datetime.now()
 
         record = {
             'url': url,
@@ -82,7 +82,7 @@ class PagePerformanceTracker:
         if cache_key in self.stats_cache:
             return self.stats_cache[cache_key]
 
-        cutoff = datetime.utcnow().timestamp() - (hours * 3600)
+        cutoff = datetime.now().timestamp() - (hours * 3600)
 
         # 过滤数据
         records = [
@@ -134,7 +134,7 @@ class PagePerformanceTracker:
         Returns:
             整体统计
         """
-        cutoff = datetime.utcnow().timestamp() - (hours * 3600)
+        cutoff = datetime.now().timestamp() - (hours * 3600)
 
         all_records = []
         for records in self.performance_data.values():
@@ -187,7 +187,7 @@ class PagePerformanceTracker:
         Returns:
             最慢页面列表
         """
-        cutoff = datetime.utcnow().timestamp() - (hours * 3600)
+        cutoff = datetime.now().timestamp() - (hours * 3600)
 
         page_load_times = {}
 
@@ -231,7 +231,7 @@ class PagePerformanceTracker:
         trends = []
 
         for day_offset in range(days):
-            start_date = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+            start_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
             start_date = start_date.replace(day=start_date.day - day_offset)
             end_date = start_date.replace(day=start_date.day + 1)
 

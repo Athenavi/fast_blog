@@ -43,7 +43,7 @@ class TranslationExportImport:
         """
         export_data = {
             'language': language_code,
-            'exported_at': datetime.utcnow().isoformat(),
+            'exported_at': datetime.now().isoformat(),
             'total_strings': len(translations),
             'translations': translations,
         }
@@ -70,7 +70,7 @@ class TranslationExportImport:
         """
         export_data = {
             'language': language_code,
-            'exported_at': datetime.utcnow().isoformat(),
+            'exported_at': datetime.now().isoformat(),
             'total_strings': len(translations),
             'translations': translations,
         }
@@ -101,7 +101,7 @@ class TranslationExportImport:
         # PO文件头
         lines.append('# FastBlog Translation File')
         lines.append(f'# Language: {language_code}')
-        lines.append(f'# Generated at: {datetime.utcnow().isoformat()}')
+        lines.append(f'# Generated at: {datetime.now().isoformat()}')
         lines.append('')
         lines.append('msgid ""')
         lines.append('msgstr ""')

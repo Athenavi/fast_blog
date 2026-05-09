@@ -59,7 +59,7 @@ class EmailAlertChannel(AlertChannel):
                 <h2 style="color: #d32f2f;">{alert_data.get('title', '安全告警')}</h2>
                 <p><strong>类型:</strong> {alert_data.get('type', 'N/A')}</p>
                 <p><strong>严重程度:</strong> {alert_data.get('severity', 'N/A')}</p>
-                <p><strong>时间:</strong> {alert_data.get('timestamp', datetime.utcnow().isoformat())}</p>
+                <p><strong>时间:</strong> {alert_data.get('timestamp', datetime.now().isoformat())}</p>
                 <p><strong>消息:</strong> {alert_data.get('message', 'N/A')}</p>
                 
                 <h3>详细信息:</h3>
@@ -228,7 +228,7 @@ class SecurityAlertService:
             'title': title,
             'message': message,
             'severity': severity,
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now().isoformat(),
             'details': details or {},
         }
 
@@ -262,7 +262,7 @@ class SecurityAlertService:
         self.alert_history.append(alert_data)
 
         # 更新频率限制
-        self.rate_limits[alert_type] = datetime.utcnow()
+        self.rate_limits[alert_type] = datetime.now()
 
         return {
             'success': any(results.values()),
@@ -284,7 +284,7 @@ class SecurityAlertService:
             return True
 
         last_sent = self.rate_limits[alert_type]
-        elapsed = (datetime.utcnow() - last_sent).total_seconds() / 60
+        elapsed = (datetime.now() - last_sent).total_seconds() / 60
 
         return elapsed >= self.rate_limit_minutes
 
@@ -305,7 +305,7 @@ class SecurityAlertService:
         Returns:
             告警历史列表
         """
-        cutoff = datetime.utcnow().timestamp() - (hours * 3600)
+        cutoff = datetime.now().timestamp() - (hours * 3600)
 
         filtered = []
         for alert in self.alert_history:

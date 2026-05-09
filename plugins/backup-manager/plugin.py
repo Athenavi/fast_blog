@@ -173,7 +173,7 @@ class PostgreSQLBackupPlugin(BasePlugin):
         Returns:
             导出结果
         """
-        start_time = datetime.utcnow()
+        start_time = datetime.now()
         
         try:
             # 生成文件名
@@ -250,8 +250,8 @@ class PostgreSQLBackupPlugin(BasePlugin):
             )
             
             stdout, stderr = await process.communicate()
-            
-            end_time = datetime.utcnow()
+
+            end_time = datetime.now()
             duration = (end_time - start_time).total_seconds()
             
             if process.returncode != 0:
@@ -306,7 +306,7 @@ class PostgreSQLBackupPlugin(BasePlugin):
             }
             
         except Exception as e:
-            end_time = datetime.utcnow()
+            end_time = datetime.now()
             duration = (end_time - start_time).total_seconds()
             
             print(f"导出异常: {e}")
@@ -348,7 +348,7 @@ class PostgreSQLBackupPlugin(BasePlugin):
         Returns:
             导入结果
         """
-        start_time = datetime.utcnow()
+        start_time = datetime.now()
         
         try:
             backup_path = self.backup_dir / filename
@@ -406,8 +406,8 @@ class PostgreSQLBackupPlugin(BasePlugin):
             )
             
             stdout, stderr = await process.communicate()
-            
-            end_time = datetime.utcnow()
+
+            end_time = datetime.now()
             duration = (end_time - start_time).total_seconds()
             
             if process.returncode != 0:
@@ -429,7 +429,7 @@ class PostgreSQLBackupPlugin(BasePlugin):
             }
             
         except Exception as e:
-            end_time = datetime.utcnow()
+            end_time = datetime.now()
             duration = (end_time - start_time).total_seconds()
             
             print(f"导入异常: {e}")
@@ -629,7 +629,7 @@ class PostgreSQLBackupPlugin(BasePlugin):
                 format,
                 file_size,
                 status,
-                datetime.utcnow().isoformat(),
+                datetime.now().isoformat(),
                 duration,
                 notes
             ))

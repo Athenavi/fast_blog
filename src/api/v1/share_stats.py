@@ -53,7 +53,7 @@ async def track_share(
             shared_by=current_user_id,
             ip_address=ip_address,
             user_agent=user_agent,
-            created_at=datetime.utcnow()
+            created_at=datetime.now()
         )
 
         db.add(share_stat)
@@ -93,7 +93,7 @@ async def get_article_share_stats(
         if not article:
             return ApiResponse(success=False, error="文章不存在")
 
-        cutoff_date = datetime.utcnow() - timedelta(days=days)
+        cutoff_date = datetime.now() - timedelta(days=days)
 
         # 总分享数
         total_query = (
@@ -178,7 +178,7 @@ async def get_share_ranking(
         limit: 返回数量
     """
     try:
-        cutoff_date = datetime.utcnow() - timedelta(days=days)
+        cutoff_date = datetime.now() - timedelta(days=days)
 
         # 按文章统计分享数
         ranking_query = (
@@ -236,7 +236,7 @@ async def get_platform_statistics(
         days: 统计天数
     """
     try:
-        cutoff_date = datetime.utcnow() - timedelta(days=days)
+        cutoff_date = datetime.now() - timedelta(days=days)
 
         # 按平台统计
         platform_query = (

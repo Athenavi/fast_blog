@@ -340,7 +340,7 @@ class ResourceOptimizer:
             资源清单字典
         """
         manifest = {
-            'generated_at': datetime.utcnow().isoformat(),
+            'generated_at': datetime.now().isoformat(),
             'version_map': self.version_map,
             'resources': {},
         }

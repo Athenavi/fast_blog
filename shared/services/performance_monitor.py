@@ -44,7 +44,7 @@ class PerformanceMonitor:
         self.cpu_usage_history = deque(maxlen=max_history)
 
         # 启动时间
-        self.start_time = datetime.utcnow()
+        self.start_time = datetime.now()
 
     def record_page_load(self, url: str, load_time: float,
                          user_agent: Optional[str] = None):
@@ -60,7 +60,7 @@ class PerformanceMonitor:
             'url': url,
             'load_time': load_time,
             'user_agent': user_agent,
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now().isoformat(),
         })
 
     def record_db_query(self, query_type: str, duration: float,
@@ -77,7 +77,7 @@ class PerformanceMonitor:
             'query_type': query_type,
             'duration': duration,
             'table': table,
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now().isoformat(),
         })
 
     def record_api_response(self, endpoint: str, method: str,
@@ -96,7 +96,7 @@ class PerformanceMonitor:
             'method': method,
             'response_time': response_time,
             'status_code': status_code,
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now().isoformat(),
         })
 
     def get_server_metrics(self) -> Dict[str, Any]:
@@ -145,7 +145,7 @@ class PerformanceMonitor:
                 'packets_recv': net_io.packets_recv,
             },
             'processes': process_count,
-            'uptime': (datetime.utcnow() - self.start_time).total_seconds(),
+            'uptime': (datetime.now() - self.start_time).total_seconds(),
         }
 
     def get_page_load_stats(self, hours: int = 24) -> Dict[str, Any]:
@@ -158,7 +158,7 @@ class PerformanceMonitor:
         Returns:
             统计信息
         """
-        cutoff_time = datetime.utcnow() - timedelta(hours=hours)
+        cutoff_time = datetime.now() - timedelta(hours=hours)
 
         # 过滤指定时间范围内的数据
         recent_loads = [
@@ -205,7 +205,7 @@ class PerformanceMonitor:
         Returns:
             统计信息
         """
-        cutoff_time = datetime.utcnow() - timedelta(hours=hours)
+        cutoff_time = datetime.now() - timedelta(hours=hours)
 
         # 过滤指定时间范围内的数据
         recent_queries = [
@@ -268,7 +268,7 @@ class PerformanceMonitor:
         Returns:
             统计信息
         """
-        cutoff_time = datetime.utcnow() - timedelta(hours=hours)
+        cutoff_time = datetime.now() - timedelta(hours=hours)
 
         # 过滤指定时间范围内的数据
         recent_responses = [
@@ -339,7 +339,7 @@ class PerformanceMonitor:
         api_stats = self.get_api_stats()
         
         return {
-            'generated_at': datetime.utcnow().isoformat(),
+            'generated_at': datetime.now().isoformat(),
             'server': server_metrics,
             'page_load': page_stats,
             'database': db_stats,

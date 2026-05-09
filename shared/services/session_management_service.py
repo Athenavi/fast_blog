@@ -1,14 +1,13 @@
 """
-用户会话管理服务
-提供会话管理、设备管理等功能
+会话管理服务
+提供会话追踪、设备管理、远程注销等功能
 """
 
 import logging
-from typing import List, Dict, Optional
+import hashlib
 from datetime import datetime, timedelta
-
-from shared.models.user_session import UserSession
-from src.extensions import get_async_db_session as get_async_db
+from typing import Dict, List, Optional
+from collections import defaultdict
 
 logger = logging.getLogger(__name__)
 
@@ -16,401 +15,380 @@ logger = logging.getLogger(__name__)
 class SessionManagementService:
     """会话管理服务"""
 
-    async def create_session(
-            self,
-            user_id: int,
-            access_token: str,  # access_token
-            device_info: Optional[str] = None,
-            ip_address: Optional[str] = None,
-            location: Optional[str] = None,
-            expires_hours: int = 720,  # 默认30天
-            db_session=None,
-            refresh_token: Optional[str] = None  # refresh_token
-    ) -> UserSession:
+    def __init__(self):
+        # 用户会话存储 {user_id: [session_info, ...]}
+        self._user_sessions = defaultdict(list)
+
+        # 会话索引 {session_id: user_id}
+        self._session_index = {}
+
+        # 默认配置
+        self.session_timeout_hours = 24 * 30  # 30天
+        self.max_sessions_per_user = 10  # 每个用户最多10个活跃会话
+
+    def create_session(self, user_id: int, device_info: Dict,
+                       ip_address: str = None, user_agent: str = None) -> str:
         """
         创建新会话
         
         Args:
             user_id: 用户ID
-            access_token: JWT access token
             device_info: 设备信息
             ip_address: IP地址
-            location: 地理位置
-            expires_hours: 过期时间（小时）
-            db_session: 数据库会话（可选）
-            refresh_token: JWT refresh token
+            user_agent: User-Agent字符串
             
         Returns:
-            创建的会话对象
+            会话ID
         """
-        from src.utils.database.unified_manager import db_manager
+        # 生成会话ID
+        session_id = self._generate_session_id(user_id, device_info, ip_address)
 
-        should_close = False
-        if db_session is None:
-            db_session = await db_manager.get_session().__aenter__()
-            should_close = True
+        # 检查并清理旧会话
+        self._cleanup_old_sessions(user_id)
 
-        try:
-            expires_at = datetime.now() + timedelta(hours=expires_hours)
-
-            session = UserSession(
-                user_id=user_id,
-                access_token=access_token,  # access_token
-                refresh_token=refresh_token,  # refresh_token
-                device_info=device_info,
-                ip_address=ip_address,
-                location=location,
-                is_active=True,
-                last_activity=datetime.now(),
-                expires_at=expires_at,
-                created_at=datetime.now()
+        # 检查会话数量限制
+        if len(self._user_sessions[user_id]) >= self.max_sessions_per_user:
+            # 移除最旧的会话
+            oldest_session = min(
+                self._user_sessions[user_id],
+                key=lambda s: s['created_at']
             )
+            self._remove_session(user_id, oldest_session['session_id'])
 
-            db_session.add(session)
-            await db_session.commit()
-            await db_session.refresh(session)
+        # 创建会话记录
+        now = datetime.now()
+        session = {
+            'session_id': session_id,
+            'user_id': user_id,
+            'device_info': device_info,
+            'ip_address': ip_address,
+            'user_agent': user_agent,
+            'device_fingerprint': self._generate_device_fingerprint(device_info, user_agent),
+            'created_at': now,
+            'last_active': now,
+            'expires_at': now + timedelta(hours=self.session_timeout_hours),
+            'is_active': True,
+            'location': self._estimate_location(ip_address),
+        }
 
-            logger.info(f"Created new session for user {user_id}")
-            return session
-        finally:
-            if should_close:
-                await db_session.close()
+        # 存储会话
+        self._user_sessions[user_id].append(session)
+        self._session_index[session_id] = user_id
 
-    async def get_user_sessions(self, user_id: int, active_only: bool = True, db_session=None) -> List[Dict]:
+        logger.info(f"Created session {session_id} for user {user_id}")
+        return session_id
+
+    def get_user_sessions(self, user_id: int) -> List[Dict]:
         """
-        获取用户的所有会话
+        获取用户的所有活跃会话
         
         Args:
             user_id: 用户ID
-            active_only: 只返回活跃会话
             
         Returns:
             会话列表
         """
-        from src.utils.database.unified_manager import db_manager
-        from sqlalchemy import select
+        sessions = []
 
-        should_close = False
-        if db_session is None:
-            db_session = await db_manager.get_session().__aenter__()
-            should_close = True
+        for session in self._user_sessions.get(user_id, []):
+            if session['is_active'] and session['expires_at'] > datetime.now():
+                sessions.append({
+                    'session_id': session['session_id'],
+                    'device_info': session['device_info'],
+                    'ip_address': session['ip_address'],
+                    'user_agent': session['user_agent'],
+                    'device_fingerprint': session['device_fingerprint'],
+                    'created_at': session['created_at'].isoformat(),
+                    'last_active': session['last_active'].isoformat(),
+                    'expires_at': session['expires_at'].isoformat(),
+                    'location': session.get('location', 'Unknown'),
+                    'is_current': False,  # 需要调用方判断
+                })
 
-        try:
-            query = select(UserSession).where(UserSession.user_id == user_id)
+        # 按最后活动时间排序
+        sessions.sort(key=lambda s: s['last_active'], reverse=True)
 
-            if active_only:
-                query = query.where(
-                    UserSession.is_active == True,
-                    UserSession.expires_at > datetime.now()
-                )
+        return sessions
 
-            query = query.order_by(UserSession.last_activity.desc())
-            result = await db_session.execute(query)
-            sessions = result.scalars().all()
-
-            return [self._format_session(s) for s in sessions]
-        finally:
-            if should_close:
-                await db_session.close()
-
-    async def _blacklist_jwt_token(self, token: str, description: str = "token") -> None:
+    def update_session_activity(self, session_id: str):
         """
-        将 JWT token 加入黑名单
-        
-        Args:
-            token: JWT token 字符串
-            description: 描述信息（用于日志）
-        """
-        from src.utils.token_blacklist import token_blacklist
-
-        try:
-            import jwt
-            from src.setting import settings
-            from datetime import datetime
-
-            payload = jwt.decode(
-                token,
-                getattr(settings, "JWT_SECRET_KEY", settings.SECRET_KEY),
-                algorithms=[getattr(settings, "JWT_ALGORITHM", "HS256")],
-                options={"verify_exp": False}
-            )
-            jti = payload.get("jti")
-            exp = payload.get("exp")
-
-            if jti and exp:
-                expires_at = datetime.fromtimestamp(exp)
-                token_blacklist.add_to_blacklist(jti, expires_at)
-                logger.info(f"Added JTI {jti} to blacklist for {description}")
-            else:
-                logger.warning(f"Token for {description} has no JTI or exp field")
-        except Exception as e:
-            logger.error(f"Failed to blacklist {description}: {e}")
-
-    async def revoke_session(self, session_id: int, user_id: int, db_session=None,
-                             refresh_token: Optional[str] = None) -> bool:
-        """
-        异步撤销指定会话（远程注销设备）
+        更新会话活动时间
         
         Args:
             session_id: 会话ID
-            user_id: 用户ID（用于权限验证）
-            db_session: 异步数据库会话（可选）
-            
-        Returns:
-            是否成功撤销
         """
-        from src.utils.database.unified_manager import db_manager
-        from src.utils.token_blacklist import token_blacklist
+        if session_id not in self._session_index:
+            return
 
-        should_close = False
-        if db_session is None:
-            db_session = await db_manager.get_session().__aenter__()
-            should_close = True
+        user_id = self._session_index[session_id]
 
-        try:
-            from sqlalchemy import select
-            query = select(UserSession).where(
-                UserSession.id == session_id,
-                UserSession.user_id == user_id
-            )
-            result = await db_session.execute(query)
-            session = result.scalar_one_or_none()
+        for session in self._user_sessions.get(user_id, []):
+            if session['session_id'] == session_id:
+                session['last_active'] = datetime.now()
+                break
 
-            if not session:
-                return False
-
-            # 将 access_token 加入黑名单
-            if session.access_token:
-                await self._blacklist_jwt_token(session.access_token, f"session {session_id}")
-
-            # 将 refresh_token 加入黑名单（如果提供）
-            if refresh_token:
-                await self._blacklist_jwt_token(refresh_token, f"refresh token for session {session_id}")
-
-            session.is_active = False
-            await db_session.commit()
-
-            logger.info(f"Revoked session {session_id} for user {user_id}")
-            return True
-        finally:
-            if should_close:
-                await db_session.close()
-
-    async def revoke_all_sessions(self, user_id: int, exclude_current: Optional[int] = None, db_session=None) -> int:
+    def revoke_session(self, user_id: int, session_id: str) -> bool:
         """
-        撤销用户的所有会话（退出所有设备）
+        撤销指定会话(远程注销)
         
         Args:
             user_id: 用户ID
-            exclude_current: 排除当前会话ID
-            db_session: 异步数据库会话（可选）
+            session_id: 会话ID
+            
+        Returns:
+            是否成功
+        """
+        return self._remove_session(user_id, session_id)
+
+    def revoke_all_sessions(self, user_id: int, exclude_session_id: str = None) -> int:
+        """
+        撤销用户的所有会话(除当前会话外)
+        
+        Args:
+            user_id: 用户ID
+            exclude_session_id: 排除的会话ID(当前会话)
             
         Returns:
             撤销的会话数量
         """
-        from src.utils.database.unified_manager import db_manager
-        from src.utils.token_blacklist import token_blacklist
-        from sqlalchemy import select
+        revoked_count = 0
 
-        should_close = False
-        if db_session is None:
-            db_session = await db_manager.get_session().__aenter__()
-            should_close = True
+        sessions_to_remove = []
+        for session in self._user_sessions.get(user_id, []):
+            if session['is_active'] and session['session_id'] != exclude_session_id:
+                sessions_to_remove.append(session['session_id'])
 
-        try:
-            # 先查询所有要撤销的会话
-            query = select(UserSession).where(
-                UserSession.user_id == user_id,
-                UserSession.is_active == True
-            )
+        for session_id in sessions_to_remove:
+            if self._remove_session(user_id, session_id):
+                revoked_count += 1
 
-            if exclude_current:
-                query = query.where(UserSession.id != exclude_current)
+        logger.info(f"Revoked {revoked_count} sessions for user {user_id}")
+        return revoked_count
 
-            result = await db_session.execute(query)
-            sessions = result.scalars().all()
-
-            # 将所有 access_token 加入黑名单
-            count = 0
-            for session in sessions:
-                if session.access_token:
-                    await self._blacklist_jwt_token(session.access_token, f"session {session.id}")
-
-                session.is_active = False
-                count += 1
-
-            await db_session.commit()
-
-            logger.info(f"Revoked {count} sessions for user {user_id}")
-            return count
-        finally:
-            if should_close:
-                await db_session.close()
-
-    async def update_last_activity(self, access_token: str, db_session=None) -> bool:
+    def is_session_valid(self, session_id: str) -> bool:
         """
-        更新会话的最后活动时间
+        检查会话是否有效
         
         Args:
-            access_token: JWT access token
+            session_id: 会话ID
             
         Returns:
-            是否成功更新
+            是否有效
         """
-        from src.utils.database.unified_manager import db_manager
-        from sqlalchemy import select
+        if session_id not in self._session_index:
+            return False
 
-        should_close = False
-        if db_session is None:
-            db_session = await db_manager.get_session().__aenter__()
-            should_close = True
+        user_id = self._session_index[session_id]
 
-        try:
-            query = select(UserSession).where(
-                UserSession.access_token == access_token,
-                UserSession.is_active == True
-            )
-            result = await db_session.execute(query)
-            session = result.scalar_one_or_none()
+        for session in self._user_sessions.get(user_id, []):
+            if session['session_id'] == session_id:
+                # 检查是否激活且未过期
+                if not session['is_active']:
+                    return False
+                if session['expires_at'] <= datetime.now():
+                    return False
+                return True
 
-            if not session:
-                return False
+        return False
 
-            # 检查是否已过期
-            if session.expires_at < datetime.now():
-                session.is_active = False
-                await db_session.commit()
-                return False
-
-            session.last_activity = datetime.now()
-            await db_session.commit()
-            return True
-        finally:
-            if should_close:
-                await db_session.close()
-
-    async def cleanup_expired_sessions(self, db_session=None) -> int:
+    def get_session_details(self, session_id: str) -> Optional[Dict]:
         """
-        清理过期的会话
-        
-        Returns:
-            清理的会话数量
-        """
-        from src.utils.database.unified_manager import db_manager
-        from sqlalchemy import update
-
-        should_close = False
-        if db_session is None:
-            db_session = await db_manager.get_session().__aenter__()
-            should_close = True
-
-        try:
-            query = update(UserSession).where(
-                UserSession.expires_at < datetime.now(),
-                UserSession.is_active == True
-            ).values(is_active=False)
-
-            result = await db_session.execute(query)
-            count = result.rowcount
-            await db_session.commit()
-
-            logger.info(f"Cleaned up {count} expired sessions")
-            return count
-        finally:
-            if should_close:
-                await db_session.close()
-
-    async def get_session_by_token(self, access_token: str, db_session=None) -> Optional[UserSession]:
-        """
-        根据令牌获取会话
+        获取会话详细信息
         
         Args:
-            access_token: JWT access token
+            session_id: 会话ID
             
         Returns:
-            会话对象或None
+            会话详情
         """
-        from src.utils.database.unified_manager import db_manager
-        from sqlalchemy import select
+        if session_id not in self._session_index:
+            return None
 
-        should_close = False
-        if db_session is None:
-            db_session = await db_manager.get_session().__aenter__()
-            should_close = True
+        user_id = self._session_index[session_id]
 
-        try:
-            query = select(UserSession).where(
-                UserSession.access_token == access_token,
-                UserSession.is_active == True
-            )
-            result = await db_session.execute(query)
-            session = result.scalar_one_or_none()
+        for session in self._user_sessions.get(user_id, []):
+            if session['session_id'] == session_id:
+                return {
+                    'session_id': session['session_id'],
+                    'user_id': session['user_id'],
+                    'device_info': session['device_info'],
+                    'ip_address': session['ip_address'],
+                    'user_agent': session['user_agent'],
+                    'device_fingerprint': session['device_fingerprint'],
+                    'created_at': session['created_at'].isoformat(),
+                    'last_active': session['last_active'].isoformat(),
+                    'expires_at': session['expires_at'].isoformat(),
+                    'is_active': session['is_active'],
+                    'location': session.get('location', 'Unknown'),
+                }
 
-            if not session:
-                return None
+        return None
 
-            # 检查是否已过期
-            if session.expires_at < datetime.now():
-                session.is_active = False
-                await db_session.commit()
-                return None
+    def detect_suspicious_activity(self, user_id: int,
+                                   current_ip: str,
+                                   current_device_fingerprint: str) -> List[Dict]:
+        """
+        检测可疑活动(异地登录、新设备等)
+        
+        Args:
+            user_id: 用户ID
+            current_ip: 当前IP地址
+            current_device_fingerprint: 当前设备指纹
+            
+        Returns:
+            可疑活动列表
+        """
+        alerts = []
+        active_sessions = self.get_user_sessions(user_id)
 
-            return session
-        finally:
-            if should_close:
-                await db_session.close()
+        if not active_sessions:
+            return alerts
 
-    def _format_session(self, session: UserSession) -> Dict:
-        """格式化会话数据"""
-        # 解析设备信息
-        device_name = "未知设备"
-        browser = "未知浏览器"
-        os_name = "未知系统"
+        # 检查是否有不同IP的活跃会话
+        ips = set(s['ip_address'] for s in active_sessions if s['ip_address'])
+        if current_ip and current_ip not in ips:
+            alerts.append({
+                'type': 'new_location',
+                'severity': 'warning',
+                'message': f'检测到新的登录地点: {current_ip}',
+                'ip_address': current_ip,
+            })
 
-        if session.device_info:
-            # 简单的设备信息解析（实际应使用专门的库如 user-agents）
-            ua = session.device_info
+        # 检查是否有新设备
+        fingerprints = set(s['device_fingerprint'] for s in active_sessions)
+        if current_device_fingerprint and current_device_fingerprint not in fingerprints:
+            alerts.append({
+                'type': 'new_device',
+                'severity': 'info',
+                'message': '检测到新设备登录',
+                'device_fingerprint': current_device_fingerprint,
+            })
 
-            # 检测操作系统
-            if 'Windows' in ua:
-                os_name = 'Windows'
-            elif 'Macintosh' in ua or 'Mac OS' in ua:
-                os_name = 'macOS'
-            elif 'Linux' in ua:
-                os_name = 'Linux'
-            elif 'Android' in ua:
-                os_name = 'Android'
-            elif 'iPhone' in ua or 'iPad' in ua:
-                os_name = 'iOS'
+        # 检查并发会话数
+        if len(active_sessions) > 5:
+            alerts.append({
+                'type': 'many_sessions',
+                'severity': 'warning',
+                'message': f'当前有 {len(active_sessions)} 个活跃会话',
+                'session_count': len(active_sessions),
+            })
 
-            # 检测浏览器
-            if 'Chrome' in ua and 'Edg' not in ua:
-                browser = 'Chrome'
-            elif 'Firefox' in ua:
-                browser = 'Firefox'
-            elif 'Safari' in ua and 'Chrome' not in ua:
-                browser = 'Safari'
-            elif 'Edg' in ua:
-                browser = 'Edge'
-            elif 'MSIE' in ua or 'Trident' in ua:
-                browser = 'Internet Explorer'
+        return alerts
 
-            device_name = f"{os_name} / {browser}"
+    def _generate_session_id(self, user_id: int, device_info: Dict,
+                             ip_address: str = None) -> str:
+        """
+        生成会话ID
+        
+        Args:
+            user_id: 用户ID
+            device_info: 设备信息
+            ip_address: IP地址
+            
+        Returns:
+            会话ID
+        """
+        data = f"{user_id}:{device_info}:{ip_address}:{datetime.now().timestamp()}"
+        return hashlib.sha256(data.encode()).hexdigest()[:32]
 
-        # 判断是否为当前设备
-        is_current = False
+    def _generate_device_fingerprint(self, device_info: Dict,
+                                     user_agent: str = None) -> str:
+        """
+        生成设备指纹
+        
+        Args:
+            device_info: 设备信息
+            user_agent: User-Agent字符串
+            
+        Returns:
+            设备指纹
+        """
+        data = f"{device_info}:{user_agent}"
+        return hashlib.sha256(data.encode()).hexdigest()
 
+    def _estimate_location(self, ip_address: str = None) -> str:
+        """
+        估算位置(基于IP)
+        
+        Args:
+            ip_address: IP地址
+            
+        Returns:
+            位置描述
+        """
+        if not ip_address:
+            return 'Unknown'
+
+        # TODO: 集成IP地理位置服务
+        # 这里返回简化版本
+        if ip_address.startswith('192.168') or ip_address.startswith('10.'):
+            return 'Local Network'
+        elif ip_address.startswith('127.'):
+            return 'localhost'
+        else:
+            return f'IP: {ip_address}'
+
+    def _cleanup_old_sessions(self, user_id: int):
+        """
+        清理过期会话
+        
+        Args:
+            user_id: 用户ID
+        """
+        now = datetime.now()
+        expired_sessions = [
+            s for s in self._user_sessions.get(user_id, [])
+            if s['expires_at'] <= now or not s['is_active']
+        ]
+
+        for session in expired_sessions:
+            self._remove_session(user_id, session['session_id'])
+
+    def _remove_session(self, user_id: int, session_id: str) -> bool:
+        """
+        移除会话
+        
+        Args:
+            user_id: 用户ID
+            session_id: 会话ID
+            
+        Returns:
+            是否成功
+        """
+        sessions = self._user_sessions.get(user_id, [])
+
+        for i, session in enumerate(sessions):
+            if session['session_id'] == session_id:
+                session['is_active'] = False
+                session['expires_at'] = datetime.now()
+
+                # 从索引中移除
+                if session_id in self._session_index:
+                    del self._session_index[session_id]
+
+                logger.info(f"Removed session {session_id} for user {user_id}")
+                return True
+
+        return False
+
+    def get_session_stats(self) -> Dict:
+        """
+        获取会话统计信息
+        
+        Returns:
+            统计数据
+        """
+        total_sessions = sum(len(sessions) for sessions in self._user_sessions.values())
+        active_sessions = sum(
+            1 for sessions in self._user_sessions.values()
+            for s in sessions
+            if s['is_active'] and s['expires_at'] > datetime.now()
+        )
+        
         return {
-            'id': session.id,
-            'device_name': device_name,
-            'device_info': session.device_info,
-            'ip_address': session.ip_address,
-            'location': session.location,
-            'last_activity': session.last_activity.isoformat() if session.last_activity else None,
-            'created_at': session.created_at.isoformat() if session.created_at else None,
-            'expires_at': session.expires_at.isoformat() if session.expires_at else None,
-            'is_current': is_current,
-            'is_expired': session.expires_at < datetime.now() if session.expires_at else False
+            'total_users_with_sessions': len(self._user_sessions),
+            'total_sessions': total_sessions,
+            'active_sessions': active_sessions,
         }
 
 

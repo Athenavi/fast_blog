@@ -96,7 +96,7 @@ class AuditLogService:
             details=details_json,
             ip_address=ip_address,
             user_agent=user_agent,
-            created_at=datetime.utcnow(),
+            created_at=datetime.now(),
         )
 
         self.db.add(activity)
@@ -207,7 +207,7 @@ class AuditLogService:
         """
         from datetime import timedelta
 
-        cutoff_date = datetime.utcnow() - timedelta(days=days)
+        cutoff_date = datetime.now() - timedelta(days=days)
 
         # 先统计要删除的数量
         count_query = select(UserActivity).where(UserActivity.created_at < cutoff_date)

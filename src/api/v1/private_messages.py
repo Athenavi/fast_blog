@@ -108,8 +108,8 @@ async def send_private_message(
             attachment_url=attachment_url,
             parent_message=parent_message_id,
             is_read=False,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
+            created_at=datetime.now(),
+            updated_at=datetime.now()
         )
 
         db.add(new_message)
@@ -321,7 +321,7 @@ async def get_conversation_messages(
         if unread_messages:
             for msg in unread_messages:
                 msg.is_read = True
-                msg.read_at = datetime.utcnow()
+                msg.read_at = datetime.now()
             await db.commit()
 
         # 格式化消息列表
@@ -396,7 +396,7 @@ async def delete_message(
         else:
             message.is_deleted_by_recipient = True
 
-        message.updated_at = datetime.utcnow()
+        message.updated_at = datetime.now()
         await db.commit()
 
         return ApiResponse(success=True, message="消息已删除")
@@ -434,14 +434,14 @@ async def recall_message(
             return ApiResponse(success=False, error="只有发送者可以撤回消息")
 
         # 检查是否在2分钟内
-        time_diff = (datetime.utcnow() - message.created_at).total_seconds()
+        time_diff = (datetime.now() - message.created_at).total_seconds()
         if time_diff > 120:
             return ApiResponse(success=False, error="超过2分钟,无法撤回消息")
 
         # 修改内容为撤回提示
         message.content = "[消息已撤回]"
         message.message_type = "system"
-        message.updated_at = datetime.utcnow()
+        message.updated_at = datetime.now()
         await db.commit()
 
         # TODO: WebSocket通知对方消息已撤回

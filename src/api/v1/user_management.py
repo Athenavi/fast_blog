@@ -303,7 +303,7 @@ async def login_api(
                 failure_reason="Account locked due to too many failed attempts"
             )
 
-            unlock_minutes = (unlock_time - datetime.utcnow()).total_seconds() / 60
+            unlock_minutes = (unlock_time - datetime.now()).total_seconds() / 60
             return ApiResponse(
                 success=False,
                 error=f"账户已被临时锁定，请在 {int(unlock_minutes)} 分钟后重试",
@@ -570,7 +570,7 @@ async def verify_email_code(
 ):
     """
     验证邮箱验证码
-    验证成功后可用于后续操作（如注册、重置密码等）
+    验证成功后可用于后续操作(如注册、重置密码等)
     """
     from shared.services.email_verification_service import email_verification_service
 
@@ -587,6 +587,75 @@ async def verify_email_code(
             data={
                 'verified': True,
                 'email': email
+            }
+        )
+    else:
+        return ApiResponse(
+            success=False,
+            error=result['message'],
+            data={
+                'remaining_attempts': result.get('remaining_attempts')
+            }
+        )
+
+
+# ---------------------------------------------------------------------------
+# 手机短信验证 API
+# ---------------------------------------------------------------------------
+
+@router.post("/auth/sms/send-code", summary="发送手机验证码")
+async def send_sms_verification_code(
+        request: Request,
+        phone: str = Form(..., description="手机号")
+):
+    """
+    发送手机短信验证码
+    用于注册、登录、找回密码等场景的手机验证
+    """
+    from shared.services.sms_verification_service import sms_verification_service
+
+    result = sms_verification_service.send_verification_code(phone)
+
+    if result['success']:
+        return ApiResponse(
+            success=True,
+            message=result['message'],
+            data={
+                'expire_minutes': result['expire_minutes']
+            }
+        )
+    else:
+        return ApiResponse(
+            success=False,
+            error=result['message']
+        )
+
+
+@router.post("/auth/sms/verify-code", summary="验证手机验证码")
+async def verify_sms_code(
+        request: Request,
+        phone: str = Form(..., description="手机号"),
+        code: str = Form(..., description="验证码")
+):
+    """
+    验证手机短信验证码
+    验证成功后可用于后续操作(如注册、重置密码等)
+    """
+    from shared.services.sms_verification_service import sms_verification_service
+
+    # 验证验证码格式
+    if not code or len(code) != 6 or not code.isdigit():
+        return ApiResponse(success=False, error="验证码格式不正确")
+
+    result = sms_verification_service.verify_code(phone, code)
+
+    if result['success']:
+        return ApiResponse(
+            success=True,
+            message=result['message'],
+            data={
+                'verified': True,
+                'phone': phone
             }
         )
     else:

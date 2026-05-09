@@ -102,7 +102,7 @@ class SEOAnalyzer:
                 'images': images_score,
             },
             'suggestions': suggestions,
-            'analyzed_at': datetime.utcnow().isoformat(),
+            'analyzed_at': datetime.now().isoformat(),
         }
 
     def _analyze_title(self, title: str) -> Dict[str, Any]:

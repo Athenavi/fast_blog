@@ -73,7 +73,7 @@ class CDNService:
                 'browser_cache_ttl': 14400,
             },
             'status': 'configured',
-            'configured_at': datetime.utcnow().isoformat(),
+            'configured_at': datetime.now().isoformat(),
         }
 
         self.cdn_configs['cloudflare'] = config
@@ -124,7 +124,7 @@ class CDNService:
                 'max_ttl': 31536000,
             },
             'status': 'configured',
-            'configured_at': datetime.utcnow().isoformat(),
+            'configured_at': datetime.now().isoformat(),
         }
 
         self.cdn_configs['aws_cloudfront'] = config
@@ -172,7 +172,7 @@ class CDNService:
                 'range_origin': True,
             },
             'status': 'configured',
-            'configured_at': datetime.utcnow().isoformat(),
+            'configured_at': datetime.now().isoformat(),
         }
 
         self.cdn_configs['aliyun_cdn'] = config
@@ -212,7 +212,7 @@ class CDNService:
             'api_key': api_key,
             'settings': settings or {},
             'status': 'configured',
-            'configured_at': datetime.utcnow().isoformat(),
+            'configured_at': datetime.now().isoformat(),
         }
 
         self.cdn_configs['custom'] = config
@@ -288,7 +288,7 @@ class CDNService:
             'provider': provider,
             'purge_type': 'all' if purge_all else 'urls',
             'urls_purged': len(urls) if urls else 0,
-            'timestamp': datetime.utcnow().isoformat(),
+            'timestamp': datetime.now().isoformat(),
         }
 
         return result

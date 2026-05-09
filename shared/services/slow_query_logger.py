@@ -72,7 +72,7 @@ class SlowQueryLogger:
                 'params': params,
                 'table': table,
                 'query_type': query_type or self._detect_query_type(sql),
-                'timestamp': datetime.utcnow().isoformat(),
+                'timestamp': datetime.now().isoformat(),
             }
 
             self.queries.append(query_log)
@@ -96,7 +96,7 @@ class SlowQueryLogger:
         Returns:
             慢查询列表
         """
-        cutoff_time = datetime.utcnow() - timedelta(hours=hours)
+        cutoff_time = datetime.now() - timedelta(hours=hours)
 
         # 过滤数据
         filtered = []
@@ -129,7 +129,7 @@ class SlowQueryLogger:
         Returns:
             统计信息字典
         """
-        cutoff_time = datetime.utcnow() - timedelta(hours=hours)
+        cutoff_time = datetime.now() - timedelta(hours=hours)
 
         # 过滤数据
         recent_queries = [

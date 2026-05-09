@@ -38,7 +38,7 @@ class SecurityReportGenerator:
         Returns:
             日报数据
         """
-        today = datetime.utcnow().date()
+        today = datetime.now().date()
 
         # 过滤今天的数据
         today_anomalies = [
@@ -59,7 +59,7 @@ class SecurityReportGenerator:
         report = {
             'report_type': 'daily',
             'date': today.isoformat(),
-            'generated_at': datetime.utcnow().isoformat(),
+            'generated_at': datetime.now().isoformat(),
             'summary': {
                 'total_anomalies': len(today_anomalies),
                 'total_alerts': len(today_alerts),
@@ -92,7 +92,7 @@ class SecurityReportGenerator:
         Returns:
             周报数据
         """
-        end_date = datetime.utcnow().date()
+        end_date = datetime.now().date()
         start_date = end_date - timedelta(days=7)
 
         # 过滤本周数据
@@ -120,7 +120,7 @@ class SecurityReportGenerator:
                 'start': start_date.isoformat(),
                 'end': end_date.isoformat(),
             },
-            'generated_at': datetime.utcnow().isoformat(),
+            'generated_at': datetime.now().isoformat(),
             'summary': {
                 'total_anomalies': len(week_anomalies),
                 'total_alerts': len(week_alerts),
@@ -156,7 +156,7 @@ class SecurityReportGenerator:
         Returns:
             月报数据
         """
-        end_date = datetime.utcnow().date()
+        end_date = datetime.now().date()
         start_date = end_date - timedelta(days=30)
 
         # 过滤本月数据
@@ -184,7 +184,7 @@ class SecurityReportGenerator:
                 'start': start_date.isoformat(),
                 'end': end_date.isoformat(),
             },
-            'generated_at': datetime.utcnow().isoformat(),
+            'generated_at': datetime.now().isoformat(),
             'summary': {
                 'total_anomalies': len(month_anomalies),
                 'total_alerts': len(month_alerts),
@@ -269,7 +269,7 @@ class SecurityReportGenerator:
     ) -> List[Dict[str, Any]]:
         """计算每日趋势"""
         trend = []
-        end_date = datetime.utcnow().date()
+        end_date = datetime.now().date()
 
         for i in range(days):
             date = end_date - timedelta(days=days - 1 - i)
@@ -300,7 +300,7 @@ class SecurityReportGenerator:
     ) -> List[Dict[str, Any]]:
         """计算每周趋势"""
         trend = []
-        end_date = datetime.utcnow().date()
+        end_date = datetime.now().date()
 
         for i in range(weeks):
             week_end = end_date - timedelta(days=(weeks - 1 - i) * 7)

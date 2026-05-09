@@ -126,7 +126,7 @@ class AccessibilityAuditor:
         Returns:
             审计报告
         """
-        timestamp = datetime.utcnow()
+        timestamp = datetime.now()
 
         # 过滤适用的规则
         applicable_rules = [
@@ -246,7 +246,7 @@ class AccessibilityAuditor:
 
         return {
             'total_pages': len(reports),
-            'audited_at': datetime.utcnow().isoformat(),
+            'audited_at': datetime.now().isoformat(),
             'level': level,
             'summary': {
                 'total_violations': total_violations,

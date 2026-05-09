@@ -127,7 +127,7 @@ async def add_to_cart(
         if existing_item:
             # 更新数量
             existing_item.quantity += quantity
-            existing_item.updated_at = datetime.utcnow()
+            existing_item.updated_at = datetime.now()
         else:
             # 创建新购物车项
             new_item = CartItem(
@@ -189,7 +189,7 @@ async def update_cart_item(
             return ApiResponse(success=False, error=f"库存不足,当前库存: {product.stock}", data=None)
 
         cart_item.quantity = quantity
-        cart_item.updated_at = datetime.utcnow()
+        cart_item.updated_at = datetime.now()
 
         await db.commit()
 

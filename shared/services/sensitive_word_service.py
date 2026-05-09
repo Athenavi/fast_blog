@@ -177,8 +177,8 @@ class SensitiveWordService:
             category=category,
             is_active=True,
             created_by=created_by,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
+            created_at=datetime.now(),
+            updated_at=datetime.now()
         )
 
         db.session.add(new_word)
@@ -253,7 +253,7 @@ class SensitiveWordService:
         if is_active is not None:
             word.is_active = is_active
 
-        word.updated_at = datetime.utcnow()
+        word.updated_at = datetime.now()
         db.session.commit()
 
         # 更新缓存
@@ -351,8 +351,8 @@ class SensitiveWordService:
                     category=word_data.get('category'),
                     is_active=True,
                     created_by=created_by,
-                    created_at=datetime.utcnow(),
-                    updated_at=datetime.utcnow()
+                    created_at=datetime.now(),
+                    updated_at=datetime.now()
                 )
 
                 db.session.add(new_word)
