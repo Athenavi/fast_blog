@@ -762,12 +762,15 @@ export default function ModernMediaLibraryPage() {
                                         crossOrigin="anonymous"
                                         onError={(e) => {
                                             const target = e.target as HTMLImageElement;
-                                            target.onerror = null;
-                                            // 如果缩略图加载失败，尝试使用 hash 生成缩略图 URL
-                                            if (item.hash && item.hash.trim()) {
-                                                target.src = `${apiBaseUrl}${apiPrefix}/thumbnail?data=${item.hash}`;
-                                            } else {
-                                                target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjBmMGYwIi8+PC9zdmc+';
+                                            // 防止无限重试：检查是否已经尝试过备用URL
+                                            if (!target.dataset.errorHandled) {
+                                                target.dataset.errorHandled = 'true';
+                                                // 如果缩略图加载失败，尝试使用 hash 生成缩略图 URL
+                                                if (item.hash && item.hash.trim()) {
+                                                    target.src = `${apiBaseUrl}${apiPrefix}/thumbnail?data=${item.hash}`;
+                                                } else {
+                                                    target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjBmMGYwIi8+PC9zdmc+';
+                                                }
                                             }
                                         }}
                                     />
@@ -897,9 +900,12 @@ export default function ModernMediaLibraryPage() {
                                                 crossOrigin="anonymous"
                                                 onError={(e) => {
                                                     const target = e.target as HTMLImageElement;
-                                                    target.onerror = null;
-                                                    if (item.hash && item.hash.trim()) {
-                                                        target.src = `${apiBaseUrl}${apiPrefix}/thumbnail?data=${item.hash}`;
+                                                    // 防止无限重试：检查是否已经尝试过备用URL
+                                                    if (!target.dataset.errorHandled) {
+                                                        target.dataset.errorHandled = 'true';
+                                                        if (item.hash && item.hash.trim()) {
+                                                            target.src = `${apiBaseUrl}${apiPrefix}/thumbnail?data=${item.hash}`;
+                                                        }
                                                     }
                                                 }}
                                             />
@@ -982,11 +988,14 @@ export default function ModernMediaLibraryPage() {
                                         onLoad={() => setDetailImageLoaded(true)}
                                         onError={(e) => {
                                             const target = e.target as HTMLImageElement;
-                                            target.onerror = null;
-                                            // 如果原图加载失败，显示缩略图
-                                            if (selectedMedia.hash) {
-                                                target.src = `${apiBaseUrl}${apiPrefix}/thumbnail?data=${selectedMedia.hash}`;
-                                                setDetailImageLoaded(true);
+                                            // 防止无限重试：检查是否已经尝试过备用URL
+                                            if (!target.dataset.errorHandled) {
+                                                target.dataset.errorHandled = 'true';
+                                                // 如果原图加载失败，显示缩略图
+                                                if (selectedMedia.hash) {
+                                                    target.src = `${apiBaseUrl}${apiPrefix}/thumbnail?data=${selectedMedia.hash}`;
+                                                    setDetailImageLoaded(true);
+                                                }
                                             }
                                         }}
                                     />

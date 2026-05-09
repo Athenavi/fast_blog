@@ -3650,3 +3650,483 @@ models:
         columns: [ created_at ]
         order: DESC
         comment: "创建时间索引"
+
+  # ==================== 广告管理模型 ====================
+  AdPlacement:
+    description: 广告位模型
+    properties:
+      id:
+        type: bigint
+        description: 广告位 ID
+      name:
+        type: string
+        maxLength: 100
+        description: 广告位名称
+      code:
+        type: string
+        maxLength: 50
+        unique: true
+        description: 广告位代码
+      description:
+        type: text
+        nullable: true
+        description: 广告位描述
+      position:
+        type: string
+        maxLength: 50
+        description: 广告位置 (header, sidebar, footer, content等)
+      width:
+        type: integer
+        nullable: true
+        description: 广告位宽度
+      height:
+        type: integer
+        nullable: true
+        description: 广告位高度
+      is_active:
+        type: boolean
+        default: true
+        description: 是否激活
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    orm: true
+    table: ad_placements
+    indexes:
+      - name: idx_ad_placements_code
+        columns: [ code ]
+        unique: true
+        comment: "广告位代码唯一索引"
+      - name: idx_ad_placements_is_active
+        columns: [ is_active ]
+        comment: "激活状态索引"
+
+  Ad:
+    description: 广告模型
+    properties:
+      id:
+        type: bigint
+        description: 广告 ID
+      title:
+        type: string
+        maxLength: 200
+        description: 广告标题
+      content:
+        type: text
+        nullable: true
+        description: 广告内容 (HTML/JavaScript代码)
+      image_url:
+        type: string
+        maxLength: 500
+        nullable: true
+        description: 广告图片URL
+      link_url:
+        type: string
+        maxLength: 500
+        nullable: true
+        description: 广告链接URL
+      alt_text:
+        type: string
+        maxLength: 200
+        nullable: true
+        description: 图片替代文本
+      ad_type:
+        type: string
+        maxLength: 20
+        default: html
+        description: "广告类型: html, image, google_adsense, baidu_union"
+      placement_id:
+        type: bigint
+        nullable: true
+        description: 广告位ID
+        foreignKey: AdPlacement
+      start_date:
+        type: string
+        format: date-time
+        nullable: true
+        description: 广告开始时间
+      end_date:
+        type: string
+        format: date-time
+        nullable: true
+        description: 广告结束时间
+      click_count:
+        type: bigint
+        default: 0
+        description: 点击次数
+      impression_count:
+        type: bigint
+        default: 0
+        description: 展示次数
+      budget:
+        type: number
+        nullable: true
+        description: 广告预算
+      cost_per_click:
+        type: number
+        nullable: true
+        description: 每次点击费用
+      cost_per_impression:
+        type: number
+        nullable: true
+        description: 每千次展示费用
+      is_active:
+        type: boolean
+        default: true
+        description: 是否激活
+      priority:
+        type: integer
+        default: 0
+        description: 优先级 (数字越大优先级越高)
+      target_audience:
+        type: string
+        maxLength: 100
+        default: all
+        description: 目标受众 (all, registered, vip等)
+      device_targeting:
+        type: string
+        maxLength: 50
+        default: all
+        description: "设备定位: all, desktop, mobile"
+      geo_targeting:
+        type: string
+        maxLength: 200
+        nullable: true
+        description: 地理定位 (国家/地区代码，逗号分隔)
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    orm: true
+    table: ads
+    indexes:
+      - name: idx_ads_placement_id
+        columns: [ placement_id ]
+        comment: "广告位ID索引"
+      - name: idx_ads_is_active
+        columns: [ is_active ]
+        comment: "激活状态索引"
+      - name: idx_ads_dates
+        columns: [ start_date, end_date ]
+        comment: "日期范围索引"
+      - name: idx_ads_priority
+        columns: [ priority ]
+        order: DESC
+        comment: "优先级索引"
+
+  AdClick:
+    description: 广告点击记录模型
+    properties:
+      id:
+        type: bigint
+        description: 点击记录 ID
+      ad_id:
+        type: bigint
+        description: 广告ID
+        foreignKey: Ad
+      user_id:
+        type: bigint
+        nullable: true
+        description: 用户ID (如果已登录)
+      ip_address:
+        type: string
+        maxLength: 45
+        nullable: true
+        description: IP地址
+      user_agent:
+        type: text
+        nullable: true
+        description: 用户代理
+      referrer:
+        type: string
+        maxLength: 500
+        nullable: true
+        description: 来源页面
+      clicked_at:
+        type: string
+        format: date-time
+        description: 点击时间
+    orm: true
+    table: ad_clicks
+    indexes:
+      - name: idx_ad_clicks_ad_id
+        columns: [ ad_id ]
+        comment: "广告ID索引"
+      - name: idx_ad_clicks_clicked_at
+        columns: [ clicked_at ]
+        order: DESC
+        comment: "点击时间索引"
+
+  AdImpression:
+    description: 广告展示记录模型
+    properties:
+      id:
+        type: bigint
+        description: 展示记录 ID
+      ad_id:
+        type: bigint
+        description: 广告ID
+        foreignKey: Ad
+      user_id:
+        type: bigint
+        nullable: true
+        description: 用户ID (如果已登录)
+      ip_address:
+        type: string
+        maxLength: 45
+        nullable: true
+        description: IP地址
+      user_agent:
+        type: text
+        nullable: true
+        description: 用户代理
+      page_url:
+        type: string
+        maxLength: 500
+        nullable: true
+        description: 页面URL
+      displayed_at:
+        type: string
+        format: date-time
+        description: 展示时间
+    orm: true
+    table: ad_impressions
+    indexes:
+      - name: idx_ad_impressions_ad_id
+        columns: [ ad_id ]
+        comment: "广告ID索引"
+      - name: idx_ad_impressions_displayed_at
+        columns: [ displayed_at ]
+        order: DESC
+        comment: "展示时间索引"
+
+  # ==================== 收益分成模型 ====================
+  RevenueRecord:
+    description: 收益记录模型
+    properties:
+      id:
+        type: bigint
+        description: 收益记录 ID
+      user_id:
+        type: bigint
+        description: 用户ID (创作者)
+      revenue_type:
+        type: string
+        maxLength: 50
+        description: "收益类型: advertisement, vip_subscription, article_purchase, donation, other"
+      amount:
+        type: number
+        description: 收益金额
+      platform_fee:
+        type: number
+        default: 0
+        description: 平台手续费
+      creator_earnings:
+        type: number
+        description: 创作者实际收益
+      description:
+        type: text
+        nullable: true
+        description: 收益描述
+      reference_id:
+        type: bigint
+        nullable: true
+        description: 关联记录ID (如广告ID、订单ID等)
+      reference_type:
+        type: string
+        maxLength: 50
+        nullable: true
+        description: 关联记录类型
+      status:
+        type: string
+        maxLength: 20
+        default: pending
+        description: "状态: pending, confirmed, paid"
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    orm: true
+    table: revenue_records
+    indexes:
+      - name: idx_revenue_records_user_id
+        columns: [ user_id ]
+        comment: "用户ID索引"
+      - name: idx_revenue_records_type
+        columns: [ revenue_type ]
+        comment: "收益类型索引"
+      - name: idx_revenue_records_status
+        columns: [ status ]
+        comment: "状态索引"
+      - name: idx_revenue_records_created_at
+        columns: [ created_at ]
+        order: DESC
+        comment: "创建时间索引"
+
+  RevenueSharingConfig:
+    description: 收益分成配置模型
+    properties:
+      id:
+        type: bigint
+        description: 配置 ID
+      revenue_type:
+        type: string
+        maxLength: 50
+        unique: true
+        description: 收益类型
+      platform_percentage:
+        type: number
+        default: 30.0
+        description: 平台分成百分比
+      creator_percentage:
+        type: number
+        default: 70.0
+        description: 创作者分成百分比
+      min_payout_amount:
+        type: number
+        default: 100.0
+        description: 最低提现金额
+      is_active:
+        type: boolean
+        default: true
+        description: 是否激活
+      description:
+        type: text
+        nullable: true
+        description: 配置描述
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    orm: true
+    table: revenue_sharing_configs
+    indexes:
+      - name: idx_revenue_sharing_configs_type
+        columns: [ revenue_type ]
+        unique: true
+        comment: "收益类型唯一索引"
+
+  PayoutRequest:
+    description: 提现申请模型
+    properties:
+      id:
+        type: bigint
+        description: 提现申请 ID
+      user_id:
+        type: bigint
+        description: 用户ID
+      amount:
+        type: number
+        description: 提现金额
+      payment_method:
+        type: string
+        maxLength: 50
+        description: "支付方式: alipay, wechat, bank_transfer"
+      payment_account:
+        type: string
+        maxLength: 200
+        description: 支付账号
+      account_name:
+        type: string
+        maxLength: 100
+        nullable: true
+        description: 账户姓名
+      status:
+        type: string
+        maxLength: 20
+        default: pending
+        description: "状态: pending, approved, rejected, completed"
+      admin_notes:
+        type: text
+        nullable: true
+        description: 管理员备注
+      processed_by:
+        type: bigint
+        nullable: true
+        description: 处理人ID
+      processed_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: 处理时间
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    orm: true
+    table: payout_requests
+    indexes:
+      - name: idx_payout_requests_user_id
+        columns: [ user_id ]
+        comment: "用户ID索引"
+      - name: idx_payout_requests_status
+        columns: [ status ]
+        comment: "状态索引"
+      - name: idx_payout_requests_created_at
+        columns: [ created_at ]
+        order: DESC
+        comment: "创建时间索引"
+
+  UserRevenueStats:
+    description: 用户收益统计模型
+    properties:
+      id:
+        type: bigint
+        description: 统计 ID
+      user_id:
+        type: bigint
+        unique: true
+        description: 用户ID
+      total_earnings:
+        type: number
+        default: 0
+        description: 总收益
+      total_paid:
+        type: number
+        default: 0
+        description: 已支付金额
+      pending_earnings:
+        type: number
+        default: 0
+        description: 待结算收益
+      available_balance:
+        type: number
+        default: 0
+        description: 可用余额
+      last_payout_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: 最后提现时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    orm: true
+    table: user_revenue_stats
+    indexes:
+      - name: idx_user_revenue_stats_user_id
+        columns: [ user_id ]
+        unique: true
+        comment: "用户ID唯一索引"

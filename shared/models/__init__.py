@@ -3,6 +3,7 @@ from sqlalchemy.orm import declarative_base
 Base = declarative_base()
 
 
+
 from .user import User
 from .article import Article
 from .category import Category
@@ -60,6 +61,14 @@ from .sensitive_word import SensitiveWord
 from .user_session import UserSession
 from .login_attempt import LoginAttempt
 from .token_blacklist import TokenBlacklist
+from .ad_placement import AdPlacement
+from .ad import Ad
+from .ad_click import AdClick
+from .ad_impression import AdImpression
+from .revenue_record import RevenueRecord
+from .revenue_sharing_config import RevenueSharingConfig
+from .payout_request import PayoutRequest
+from .user_revenue_stats import UserRevenueStats
 
 # ==================== 自动生成的导入 - 由 routes.yaml 管理 ====================
 # 此部分由脚本自动生成 - 请勿手动修改
@@ -122,6 +131,14 @@ __all__ = [
     'SensitiveWord',
     'UserSession',
     'LoginAttempt',
-    'TokenBlacklist'
+    'TokenBlacklist',
+    'AdPlacement',
+    'Ad',
+    'AdClick',
+    'AdImpression',
+    'RevenueRecord',
+    'RevenueSharingConfig',
+    'PayoutRequest',
+    'UserRevenueStats'
 ]
 # ============================================================================

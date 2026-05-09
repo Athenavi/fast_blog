@@ -27,6 +27,9 @@ import {MediaFile} from '@/lib/api';
 import {getMediaUrlSync} from '@/lib/media-url';
 import MediaSelectorModal from '@/components/ui/MediaSelectorModal';
 import AIAssistant from '@/components/AIAssistant';
+import {LineHeight} from '@/lib/tiptap-extensions/LineHeight';
+import {TextAlignExtended} from '@/lib/tiptap-extensions/TextAlignExtended';
+import {LetterSpacing} from '@/lib/tiptap-extensions/LetterSpacing';
 
 const lowlight = createLowlight(all);
 
@@ -102,6 +105,12 @@ export default function BlockEditor({
             Typography,
             Dropcursor,
             Gapcursor,
+            LineHeight.configure({
+                types: ['heading', 'paragraph'],
+                defaultLineHeight: 'normal',
+            }),
+            TextAlignExtended,
+            LetterSpacing,
         ],
         content: value,
         editable: !disabled,
@@ -132,6 +141,47 @@ export default function BlockEditor({
             },
             handleClick: () => {
                 setShowSlashMenu(false);
+            },
+            handleDrop: (view, event, slice, moved) => {
+                // 处理拖拽事件
+                if (!moved && event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files.length > 0) {
+                    event.preventDefault();
+                    const files = Array.from(event.dataTransfer.files);
+
+                    files.forEach(file => {
+                        if (file.type.startsWith('image/')) {
+                            const reader = new FileReader();
+                            reader.onload = (e) => {
+                                const result = e.target?.result as string;
+                                if (editor && result) {
+                                    editor.chain().focus().setImage({src: result}).run();
+                                }
+                            };
+                            reader.readAsDataURL(file);
+                        } else if (file.type.startsWith('video/')) {
+                            const url = URL.createObjectURL(file);
+                            if (editor) {
+                                const videoHtml = `<video controls src="${url}" class="max-w-full rounded-lg my-4"></video>`;
+                                editor.chain().focus().insertContent(videoHtml).run();
+                            }
+                        } else if (file.type.startsWith('audio/')) {
+                            const url = URL.createObjectURL(file);
+                            if (editor) {
+                                const audioHtml = `<audio controls src="${url}" class="w-full my-4"></audio>`;
+                                editor.chain().focus().insertContent(audioHtml).run();
+                            }
+                        } else if (file.type === 'application/pdf') {
+                            const url = URL.createObjectURL(file);
+                            if (editor) {
+                                const pdfHtml = `<iframe src="${url}" width="100%" height="500px" class="my-4 border rounded-lg"></iframe>`;
+                                editor.chain().focus().insertContent(pdfHtml).run();
+                            }
+                        }
+                    });
+
+                    return true;
+                }
+                return false;
             },
         },
         onUpdate: ({editor}) => {

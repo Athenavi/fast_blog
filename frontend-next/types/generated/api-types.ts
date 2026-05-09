@@ -1,7 +1,7 @@
 /**
  * API 类型定义
  * 由 routes.yaml 自动生成 - 请勿手动修改
- * 生成时间：2026-05-08 14:40:59
+ * 生成时间：2026-05-09 11:47:19
  */
 
 export interface User {
@@ -858,6 +858,117 @@ export interface TokenBlacklist {
     expires_at: string;
     created_at: string;
     reason?: string;
+}
+
+export interface AdPlacement {
+    id: any;
+    name: string;
+    code: string;
+    description?: any;
+    position: string;
+    width?: number;
+    height?: number;
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface Ad {
+    id: any;
+    title: string;
+    content?: any;
+    image_url?: string;
+    link_url?: string;
+    alt_text?: string;
+    ad_type: string;
+    placement_id?: any;
+    start_date?: string;
+    end_date?: string;
+    click_count: any;
+    impression_count: any;
+    budget?: any;
+    cost_per_click?: any;
+    cost_per_impression?: any;
+    is_active: boolean;
+    priority: number;
+    target_audience: string;
+    device_targeting: string;
+    geo_targeting?: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface AdClick {
+    id: any;
+    ad_id: any;
+    user_id?: any;
+    ip_address?: string;
+    user_agent?: any;
+    referrer?: string;
+    clicked_at: string;
+}
+
+export interface AdImpression {
+    id: any;
+    ad_id: any;
+    user_id?: any;
+    ip_address?: string;
+    user_agent?: any;
+    page_url?: string;
+    displayed_at: string;
+}
+
+export interface RevenueRecord {
+    id: any;
+    user_id: any;
+    revenue_type: string;
+    amount: any;
+    platform_fee: any;
+    creator_earnings: any;
+    description?: any;
+    reference_id?: any;
+    reference_type?: string;
+    status: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface RevenueSharingConfig {
+    id: any;
+    revenue_type: string;
+    platform_percentage: any;
+    creator_percentage: any;
+    min_payout_amount: any;
+    is_active: boolean;
+    description?: any;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface PayoutRequest {
+    id: any;
+    user_id: any;
+    amount: any;
+    payment_method: string;
+    payment_account: string;
+    account_name?: string;
+    status: string;
+    admin_notes?: any;
+    processed_by?: any;
+    processed_at?: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface UserRevenueStats {
+    id: any;
+    user_id: any;
+    total_earnings: any;
+    total_paid: any;
+    pending_earnings: any;
+    available_balance: any;
+    last_payout_at?: string;
+    updated_at: string;
 }
 
 

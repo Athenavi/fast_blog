@@ -23,6 +23,8 @@ import Dropcursor from '@tiptap/extension-dropcursor';
 import Gapcursor from '@tiptap/extension-gapcursor';
 import FontFamily from '@tiptap/extension-font-family';
 import {LineHeight} from '@/lib/tiptap-extensions/LineHeight';
+import {TextAlignExtended} from '@/lib/tiptap-extensions/TextAlignExtended';
+import {LetterSpacing} from '@/lib/tiptap-extensions/LetterSpacing';
 import {common, createLowlight} from 'lowlight';
 import MediaSelectorModal from '@/components/ui/MediaSelectorModal';
 import type {MediaFile} from '@/lib/api';
@@ -112,6 +114,8 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 types: ['heading', 'paragraph'],
                 defaultLineHeight: 'normal',
             }),
+            TextAlignExtended, // 增强文本对齐
+            LetterSpacing, // 字母间距
         ],
         content: value,
         editable: !disabled,
@@ -138,8 +142,20 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                         } else if (file.type.startsWith('video/')) {
                             const url = URL.createObjectURL(file);
                             if (editor) {
-                                const videoHtml = `<video controls src="${url}"></video>`;
+                                const videoHtml = `<video controls src="${url}" class="max-w-full rounded-lg my-4"></video>`;
                                 editor.chain().focus().insertContent(videoHtml).run();
+                            }
+                        } else if (file.type.startsWith('audio/')) {
+                            const url = URL.createObjectURL(file);
+                            if (editor) {
+                                const audioHtml = `<audio controls src="${url}" class="w-full my-4"></audio>`;
+                                editor.chain().focus().insertContent(audioHtml).run();
+                            }
+                        } else if (file.type === 'application/pdf') {
+                            const url = URL.createObjectURL(file);
+                            if (editor) {
+                                const pdfHtml = `<iframe src="${url}" width="100%" height="500px" class="my-4 border rounded-lg"></iframe>`;
+                                editor.chain().focus().insertContent(pdfHtml).run();
                             }
                         }
                     });
@@ -339,6 +355,13 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                 >
                     →
                 </ToolbarButton>
+                <ToolbarButton
+                    onClick={() => editor.chain().focus().setTextAlign('justify').run()}
+                    active={editor.isActive({textAlign: 'justify'})}
+                    title="两端对齐"
+                >
+                    ⇹
+                </ToolbarButton>
 
                 <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1"/>
 
@@ -457,6 +480,28 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                     <option value="2">2.0</option>
                     <option value="2.5">2.5</option>
                     <option value="3">3.0</option>
+                </select>
+
+                {/* 字母间距选择 */}
+                <select
+                    onChange={(e) => {
+                        const spacing = e.target.value;
+                        if (spacing) {
+                            editor.chain().focus().setLetterSpacing(spacing + 'px').run();
+                        } else {
+                            editor.chain().focus().unsetLetterSpacing().run();
+                        }
+                    }}
+                    className="px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 w-24"
+                    title="字母间距"
+                >
+                    <option value="">默认</option>
+                    <option value="0">0px</option>
+                    <option value="1">1px</option>
+                    <option value="2">2px</option>
+                    <option value="3">3px</option>
+                    <option value="4">4px</option>
+                    <option value="5">5px</option>
                 </select>
 
                 <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1"/>

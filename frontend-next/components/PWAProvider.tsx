@@ -76,7 +76,9 @@ export default function PWAProvider({children}: { children: React.ReactNode }) {
         if (typeof window === 'undefined') return;
 
         // 初始化时同步当前网络状态
-        setState(prev => ({...prev, isOnline: navigator.onLine}));
+        const initialOnlineStatus = navigator.onLine;
+        setState(prev => ({...prev, isOnline: initialOnlineStatus}));
+        console.log('[PWA] Initial network status:', initialOnlineStatus ? 'online' : 'offline');
 
         const handleOnline = () => {
             setState(prev => ({...prev, isOnline: true}));

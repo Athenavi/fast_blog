@@ -17,7 +17,7 @@ export default function PWAInstallPrompt({showPrompt = true}: PWAInstallPromptPr
     const [isInstallable, setIsInstallable] = useState(false);
     const [isInstalled, setIsInstalled] = useState(false);
     const [isVisible, setIsVisible] = useState(false);
-    const [isOffline, setIsOffline] = useState(!navigator.onLine);
+    const [isOffline, setIsOffline] = useState(false);
     const [updateAvailable, setUpdateAvailable] = useState(false);
 
     useEffect(() => {
@@ -41,9 +41,18 @@ export default function PWAInstallPrompt({showPrompt = true}: PWAInstallPromptPr
 
         window.addEventListener('beforeinstallprompt', handler);
 
-        // 监听网络状态
-        const handleOnline = () => setIsOffline(false);
-        const handleOffline = () => setIsOffline(true);
+        // 监听网络状态 - 初始化时同步当前状态
+        const handleOnline = () => {
+            setIsOffline(false);
+            console.log('[PWA] Network online');
+        };
+        const handleOffline = () => {
+            setIsOffline(true);
+            console.log('[PWA] Network offline');
+        };
+
+        // 初始化时设置正确的网络状态
+        setIsOffline(!navigator.onLine);
 
         window.addEventListener('online', handleOnline);
         window.addEventListener('offline', handleOffline);

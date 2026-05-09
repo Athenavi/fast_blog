@@ -1,7 +1,7 @@
 """
 Django ORM 抽象基类定义
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-08 14:40:59
+生成时间：2026-05-09 11:47:18
 """
 
 from django.db import models
@@ -2548,3 +2548,317 @@ class TokenBlacklistMixin(models.Model):
         # 注意：请在具体模型类中设置 db_table = get_table_name("token_blacklist")
 
 
+class AdPlacementMixin(models.Model):
+    """广告位模型 Mixin"""
+
+    # 广告位 ID
+    id = models.BigAutoField(
+        '广告位 ID', primary_key=True)
+    # 广告位名称
+    name = models.CharField(
+        '广告位名称', max_length=100)
+    # 广告位代码
+    code = models.CharField(
+        '广告位代码', max_length=50, unique=True)
+    # 广告位描述
+    description = models.TextField(
+        '广告位描述', blank=True, null=True)
+    # 广告位置 (header, sidebar, footer, content等)
+    position = models.CharField(
+        '广告位置 (header, sidebar, footer, content等)', max_length=50)
+    # 广告位宽度
+    width = models.IntegerField(
+        '广告位宽度', blank=True, null=True)
+    # 广告位高度
+    height = models.IntegerField(
+        '广告位高度', blank=True, null=True)
+    # 是否激活
+    is_active = models.BooleanField(
+        '是否激活', default=True)
+
+    class Meta:
+        abstract = True
+        app_label = 'generated'
+        verbose_name = '广告位模型'
+        # 注意：请在具体模型类中设置 db_table = get_table_name("ad_placements")
+
+
+class AdMixin(models.Model):
+    """广告模型 Mixin"""
+
+    # 广告 ID
+    id = models.BigAutoField(
+        '广告 ID', primary_key=True)
+    # 广告标题
+    title = models.CharField(
+        '广告标题', max_length=200)
+    # 广告内容 (HTML/JavaScript代码)
+    content = models.TextField(
+        '广告内容 (HTML/JavaScript代码)', blank=True, null=True)
+    # 广告图片URL
+    image_url = models.CharField(
+        '广告图片URL', max_length=500, blank=True, null=True)
+    # 广告链接URL
+    link_url = models.CharField(
+        '广告链接URL', max_length=500, blank=True, null=True)
+    # 图片替代文本
+    alt_text = models.CharField(
+        '图片替代文本', max_length=200, blank=True, null=True)
+    # 广告类型: html, image, google_adsense, baidu_union
+    ad_type = models.CharField(
+        '广告类型: html, image, google_adsense, baidu_union', max_length=20, default='html')
+    # 广告位ID
+    placement_id = models.IntegerField(
+        '广告位ID (暂为 IntegerField，等待 AdPlacement 模型实现)', null=True, blank=True)
+    # 广告开始时间
+    start_date = models.DateTimeField(
+        '广告开始时间', blank=True, null=True)
+    # 广告结束时间
+    end_date = models.DateTimeField(
+        '广告结束时间', blank=True, null=True)
+    # 点击次数
+    click_count = models.BigIntegerField(
+        '点击次数', default=0)
+    # 展示次数
+    impression_count = models.BigIntegerField(
+        '展示次数', default=0)
+    # 广告预算
+    budget = models.DecimalField(
+        '广告预算', max_digits=10, decimal_places=2, blank=True, null=True)
+    # 每次点击费用
+    cost_per_click = models.DecimalField(
+        '每次点击费用', max_digits=10, decimal_places=2, blank=True, null=True)
+    # 每千次展示费用
+    cost_per_impression = models.DecimalField(
+        '每千次展示费用', max_digits=10, decimal_places=2, blank=True, null=True)
+    # 是否激活
+    is_active = models.BooleanField(
+        '是否激活', default=True)
+    # 优先级 (数字越大优先级越高)
+    priority = models.IntegerField(
+        '优先级 (数字越大优先级越高)', default=0)
+    # 目标受众 (all, registered, vip等)
+    target_audience = models.CharField(
+        '目标受众 (all, registered, vip等)', max_length=100, default='all')
+    # 设备定位: all, desktop, mobile
+    device_targeting = models.CharField(
+        '设备定位: all, desktop, mobile', max_length=50, default='all')
+    # 地理定位 (国家/地区代码，逗号分隔)
+    geo_targeting = models.CharField(
+        '地理定位 (国家/地区代码,逗号分隔)', max_length=200, blank=True, null=True)
+
+    class Meta:
+        abstract = True
+        app_label = 'generated'
+        verbose_name = '广告模型'
+        # 注意：请在具体模型类中设置 db_table = get_table_name("ads")
+
+
+class AdClickMixin(models.Model):
+    """广告点击记录模型 Mixin"""
+
+    # 点击记录 ID
+    id = models.BigAutoField(
+        '点击记录 ID', primary_key=True)
+    # 广告ID
+    ad_id = models.IntegerField(
+        '广告ID (暂为 IntegerField，等待 Ad 模型实现)', )
+    # 用户ID (如果已登录)
+    user_id = models.BigIntegerField(
+        '用户ID (如果已登录)', blank=True, null=True)
+    # IP地址
+    ip_address = models.CharField(
+        'IP地址', max_length=45, blank=True, null=True)
+    # 用户代理
+    user_agent = models.TextField(
+        '用户代理', blank=True, null=True)
+    # 来源页面
+    referrer = models.CharField(
+        '来源页面', max_length=500, blank=True, null=True)
+    # 点击时间
+    clicked_at = models.DateTimeField(
+        '点击时间')
+
+    class Meta:
+        abstract = True
+        app_label = 'generated'
+        verbose_name = '广告点击记录模型'
+        # 注意：请在具体模型类中设置 db_table = get_table_name("ad_clicks")
+
+
+class AdImpressionMixin(models.Model):
+    """广告展示记录模型 Mixin"""
+
+    # 展示记录 ID
+    id = models.BigAutoField(
+        '展示记录 ID', primary_key=True)
+    # 广告ID
+    ad_id = models.IntegerField(
+        '广告ID (暂为 IntegerField，等待 Ad 模型实现)', )
+    # 用户ID (如果已登录)
+    user_id = models.BigIntegerField(
+        '用户ID (如果已登录)', blank=True, null=True)
+    # IP地址
+    ip_address = models.CharField(
+        'IP地址', max_length=45, blank=True, null=True)
+    # 用户代理
+    user_agent = models.TextField(
+        '用户代理', blank=True, null=True)
+    # 页面URL
+    page_url = models.CharField(
+        '页面URL', max_length=500, blank=True, null=True)
+    # 展示时间
+    displayed_at = models.DateTimeField(
+        '展示时间')
+
+    class Meta:
+        abstract = True
+        app_label = 'generated'
+        verbose_name = '广告展示记录模型'
+        # 注意：请在具体模型类中设置 db_table = get_table_name("ad_impressions")
+
+
+class RevenueRecordMixin(models.Model):
+    """收益记录模型 Mixin"""
+
+    # 收益记录 ID
+    id = models.BigAutoField(
+        '收益记录 ID', primary_key=True)
+    # 用户ID (创作者)
+    user_id = models.BigIntegerField(
+        '用户ID (创作者)')
+    # 收益类型: advertisement, vip_subscription, article_purchase, donation, other
+    revenue_type = models.CharField(
+        '收益类型: advertisement, vip_subscription, article_purchase, donation, other', max_length=50)
+    # 收益金额
+    amount = models.DecimalField(
+        '收益金额', max_digits=10, decimal_places=2)
+    # 平台手续费
+    platform_fee = models.DecimalField(
+        '平台手续费', max_digits=10, decimal_places=2, default=0)
+    # 创作者实际收益
+    creator_earnings = models.DecimalField(
+        '创作者实际收益', max_digits=10, decimal_places=2)
+    # 收益描述
+    description = models.TextField(
+        '收益描述', blank=True, null=True)
+    # 关联记录ID (如广告ID、订单ID等)
+    reference_id = models.BigIntegerField(
+        '关联记录ID (如广告ID、订单ID等)', blank=True, null=True)
+    # 关联记录类型
+    reference_type = models.CharField(
+        '关联记录类型', max_length=50, blank=True, null=True)
+    # 状态: pending, confirmed, paid
+    status = models.CharField(
+        '状态: pending, confirmed, paid', max_length=20, default='pending')
+
+    class Meta:
+        abstract = True
+        app_label = 'generated'
+        verbose_name = '收益记录模型'
+        # 注意：请在具体模型类中设置 db_table = get_table_name("revenue_records")
+
+
+class RevenueSharingConfigMixin(models.Model):
+    """收益分成配置模型 Mixin"""
+
+    # 配置 ID
+    id = models.BigAutoField(
+        '配置 ID', primary_key=True)
+    # 收益类型
+    revenue_type = models.CharField(
+        '收益类型', max_length=50, unique=True)
+    # 平台分成百分比
+    platform_percentage = models.DecimalField(
+        '平台分成百分比', max_digits=10, decimal_places=2, default=30.0)
+    # 创作者分成百分比
+    creator_percentage = models.DecimalField(
+        '创作者分成百分比', max_digits=10, decimal_places=2, default=70.0)
+    # 最低提现金额
+    min_payout_amount = models.DecimalField(
+        '最低提现金额', max_digits=10, decimal_places=2, default=100.0)
+    # 是否激活
+    is_active = models.BooleanField(
+        '是否激活', default=True)
+    # 配置描述
+    description = models.TextField(
+        '配置描述', blank=True, null=True)
+
+    class Meta:
+        abstract = True
+        app_label = 'generated'
+        verbose_name = '收益分成配置模型'
+        # 注意：请在具体模型类中设置 db_table = get_table_name("revenue_sharing_configs")
+
+
+class PayoutRequestMixin(models.Model):
+    """提现申请模型 Mixin"""
+
+    # 提现申请 ID
+    id = models.BigAutoField(
+        '提现申请 ID', primary_key=True)
+    # 用户ID
+    user_id = models.BigIntegerField(
+        '用户ID')
+    # 提现金额
+    amount = models.DecimalField(
+        '提现金额', max_digits=10, decimal_places=2)
+    # 支付方式: alipay, wechat, bank_transfer
+    payment_method = models.CharField(
+        '支付方式: alipay, wechat, bank_transfer', max_length=50)
+    # 支付账号
+    payment_account = models.CharField(
+        '支付账号', max_length=200)
+    # 账户姓名
+    account_name = models.CharField(
+        '账户姓名', max_length=100, blank=True, null=True)
+    # 状态: pending, approved, rejected, completed
+    status = models.CharField(
+        '状态: pending, approved, rejected, completed', max_length=20, default='pending')
+    # 管理员备注
+    admin_notes = models.TextField(
+        '管理员备注', blank=True, null=True)
+    # 处理人ID
+    processed_by = models.BigIntegerField(
+        '处理人ID', blank=True, null=True)
+    # 处理时间
+    processed_at = models.DateTimeField(
+        '处理时间', blank=True, null=True)
+
+    class Meta:
+        abstract = True
+        app_label = 'generated'
+        verbose_name = '提现申请模型'
+        # 注意：请在具体模型类中设置 db_table = get_table_name("payout_requests")
+
+
+class UserRevenueStatsMixin(models.Model):
+    """用户收益统计模型 Mixin"""
+
+    # 统计 ID
+    id = models.BigAutoField(
+        '统计 ID', primary_key=True)
+    # 用户ID
+    user_id = models.BigIntegerField(
+        '用户ID', unique=True)
+    # 总收益
+    total_earnings = models.DecimalField(
+        '总收益', max_digits=10, decimal_places=2, default=0)
+    # 已支付金额
+    total_paid = models.DecimalField(
+        '已支付金额', max_digits=10, decimal_places=2, default=0)
+    # 待结算收益
+    pending_earnings = models.DecimalField(
+        '待结算收益', max_digits=10, decimal_places=2, default=0)
+    # 可用余额
+    available_balance = models.DecimalField(
+        '可用余额', max_digits=10, decimal_places=2, default=0)
+    # 最后提现时间
+    last_payout_at = models.DateTimeField(
+        '最后提现时间', blank=True, null=True)
+
+    class Meta:
+        abstract = True
+        app_label = 'generated'
+        verbose_name = '用户收益统计模型'
+        # 注意：请在具体模型类中设置 db_table = get_table_name("user_revenue_stats")
