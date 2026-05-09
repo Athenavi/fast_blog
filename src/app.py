@@ -808,6 +808,14 @@ curl -X POST "http://localhost:9421/api/v1/media/upload" \
         except ImportError as e:
             print(f"Warning: Analytics API could not be loaded: {e}")
 
+        # 用户画像 API
+        try:
+            from src.api.v1.user_profile import router as user_profile_router
+            app.include_router(user_profile_router, prefix='/api/v1', tags=['user-profile'])
+            print(f"{worker_info} [OK] User Profile API 已加载")
+        except ImportError as e:
+            print(f"Warning: User Profile API could not be loaded: {e}")
+
         # 批量操作 API
         try:
             from src.api.v1.batch_operations import router as batch_router
@@ -1088,6 +1096,14 @@ curl -X POST "http://localhost:9421/api/v1/media/upload" \
             print(f"{worker_info} [OK] SEO Management API 已加载")
         except ImportError as e:
             print(f"Warning: SEO Management API could not be loaded: {e}")
+
+        # SEO 效果追踪 API
+        try:
+            from src.api.v1.seo_tracking import router as seo_tracking_router
+            app.include_router(seo_tracking_router, prefix='/api/v1', tags=['seo-tracking'])
+            print(f"{worker_info} [OK] SEO Tracking API 已加载")
+        except ImportError as e:
+            print(f"Warning: SEO Tracking API could not be loaded: {e}")
 
         # 备份管理 API
         try:

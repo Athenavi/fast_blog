@@ -4,6 +4,7 @@ import type {Options} from 'easymde';
 import MediaSelectorModal from '@/components/ui/MediaSelectorModal';
 import type {MediaFile} from '@/lib/api';
 import {getMediaUrlSync} from '@/lib/media-url';
+import AIWritingAssistant from './AIWritingAssistant';
 
 // 动态导入编辑器组件
 const SimpleMdeEditor = dynamic(
@@ -63,10 +64,46 @@ const OptimizedMarkdownEditor: React.FC<OptimizedMarkdownEditorProps> = ({
   const [showMediaSelector, setShowMediaSelector] = useState(false);
   const [mediaSelectorType, setMediaSelectorType] = useState<'image' | 'video' | 'audio' | 'all'>('image');
   const editorRef = useRef<unknown>(null); // 使用unknown替代any
+  const [showAIAssistant, setShowAIAssistant] = useState(false);
+  const [selectedText, setSelectedText] = useState('');
+  const [cursorPosition, setCursorPosition] = useState({line: 0, ch: 0});
+  const contextMenuRef = useRef<HTMLDivElement>(null);
   
   // 设置编辑器引用
   const handleEditorMount = useCallback((editor: unknown) => {
     editorRef.current = editor;
+
+    // 添加右键菜单事件监听
+    if (editor && typeof editor === 'object' && 'codemirror' in editor) {
+      const cm = (editor as SimpleMDEditor).codemirror;
+      const editorElement = cm.getWrapperElement();
+
+      editorElement.addEventListener('contextmenu', handleContextMenu);
+
+      // 清理函数
+      return () => {
+        editorElement.removeEventListener('contextmenu', handleContextMenu);
+      };
+    }
+  }, []);
+
+  // 处理右键菜单
+  const handleContextMenu = useCallback((e: MouseEvent) => {
+    e.preventDefault();
+
+    if (editorRef.current) {
+      const editorInstance = editorRef.current as SimpleMDEditor;
+      const cm = editorInstance.codemirror;
+      const selection = cm.getSelection();
+      const cursor = cm.getCursor();
+
+      setSelectedText(selection);
+      setCursorPosition(cursor);
+
+      if (selection.trim().length > 0) {
+        setShowAIAssistant(true);
+      }
+    }
   }, []);
 
   // 防抖函数
@@ -108,6 +145,30 @@ const OptimizedMarkdownEditor: React.FC<OptimizedMarkdownEditorProps> = ({
         document.head.appendChild(link);
       }
     }
+
+    // 添加键盘快捷键监听
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl+Shift+A 打开 AI 助手
+      if (e.ctrlKey && e.shiftKey && e.key === 'A') {
+        e.preventDefault();
+        if (editorRef.current) {
+          const editorInstance = editorRef.current as SimpleMDEditor;
+          const cm = editorInstance.codemirror;
+          const selection = cm.getSelection();
+          const cursor = cm.getCursor();
+
+          setSelectedText(selection);
+          setCursorPosition(cursor);
+          setShowAIAssistant(true);
+        }
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
   }, []);
 
   // 确保编辑器样式正确加载
@@ -179,6 +240,31 @@ const OptimizedMarkdownEditor: React.FC<OptimizedMarkdownEditorProps> = ({
     }
   }, [onInsertMedia, debouncedOnChange]);
 
+  // 处理 AI 助手插入文本
+  const handleAIInsert = useCallback((text: string) => {
+    if (editorRef.current) {
+      const editorInstance = editorRef.current as SimpleMDEditor;
+      const cm = editorInstance.codemirror;
+
+      if (selectedText) {
+        // 如果有选中文本，替换选中内容
+        cm.replaceSelection(text);
+      } else {
+        // 否则在光标处插入
+        const cursor = cm.getCursor();
+        cm.replaceRange(text, cursor);
+        cm.setCursor(cursor.line, cursor.ch + text.length);
+      }
+
+      cm.focus();
+
+      // 触发 onChange 事件
+      const newValue = cm.getValue();
+      setLocalValue(newValue);
+      debouncedOnChange(newValue);
+    }
+  }, [selectedText, debouncedOnChange]);
+
   // 自定义媒体按钮
   const customImageToolbarButton = useMemo(() => ({
     name: 'custom-image',
@@ -210,6 +296,25 @@ const OptimizedMarkdownEditor: React.FC<OptimizedMarkdownEditorProps> = ({
     title: '从媒体库选择音频',
   }), []);
 
+  // AI 助手工具栏按钮
+  const aiAssistantButton = useMemo(() => ({
+    name: 'ai-assistant',
+    action: () => {
+      if (editorRef.current) {
+        const editorInstance = editorRef.current as SimpleMDEditor;
+        const cm = editorInstance.codemirror;
+        const selection = cm.getSelection();
+        const cursor = cm.getCursor();
+
+        setSelectedText(selection);
+        setCursorPosition(cursor);
+        setShowAIAssistant(true);
+      }
+    },
+    className: 'fa fa-magic',
+    title: 'AI 写作助手（快捷键：Ctrl+Shift+A）',
+  }), []);
+
   // 编辑器配置选项
   const easyMDEOptions = useMemo<Options>(() => ({
     autofocus: false,
@@ -227,6 +332,8 @@ const OptimizedMarkdownEditor: React.FC<OptimizedMarkdownEditorProps> = ({
       customVideoToolbarButton, 
       customAudioToolbarButton, 
       '|',
+      aiAssistantButton,
+      '|',
       'preview', 'side-by-side', 'fullscreen', '|',
       'guide'
     ],
@@ -242,7 +349,7 @@ const OptimizedMarkdownEditor: React.FC<OptimizedMarkdownEditorProps> = ({
       toggleSideBySide: null,
       toggleFullScreen: null,
     },
-  }), [placeholder, minHeight, maxHeight, customImageToolbarButton, customVideoToolbarButton, customAudioToolbarButton]);
+  }), [placeholder, minHeight, maxHeight, customImageToolbarButton, customVideoToolbarButton, customAudioToolbarButton, aiAssistantButton]);
 
   if (!isClient) {
     return (
@@ -271,6 +378,22 @@ const OptimizedMarkdownEditor: React.FC<OptimizedMarkdownEditorProps> = ({
         onSelect={handleMediaSelect}
         allowedTypes={[mediaSelectorType]} // 根据按钮类型筛选
       />
+
+      {/* AI 写作助手面板 */}
+      {showAIAssistant && (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <div className="w-full max-w-3xl">
+              <AIWritingAssistant
+                  editorInstance={editorRef.current}
+                  selectedText={selectedText}
+                  fullText={localValue}
+                  cursorPosition={cursorPosition}
+                  onClose={() => setShowAIAssistant(false)}
+                  onInsert={handleAIInsert}
+              />
+            </div>
+          </div>
+      )}
     </div>
   );
 };
