@@ -280,9 +280,10 @@ async def verify_2fa_login(
                 username=user.username,
                 ip_address=ip_address or "unknown",
                 user_agent=user_agent,
-                is_success=True
+                is_success=True,
+                db=db
             )
-            await login_security_service.clear_failed_attempts_async(user.username)
+            await login_security_service.clear_failed_attempts_async(user.username, db)
         except Exception as e:
             print(f"Failed to record login attempt: {e}")
 

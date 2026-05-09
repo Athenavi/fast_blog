@@ -5,323 +5,390 @@
 
 import hashlib
 import logging
-from collections import defaultdict
 from datetime import datetime, timedelta
-from typing import Dict, List
+from typing import Dict, List, Optional, Tuple
+
+from sqlalchemy import select, func, and_
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from shared.models.login_attempt import LoginAttempt
 
 logger = logging.getLogger(__name__)
 
 
 class LoginSecurityService:
-    """登录安全服务"""
+    """登录安全服务（基于数据库的异步实现）"""
 
     def __init__(self):
-        # 登录失败记录 {user_id: [(timestamp, ip_address), ...]}
-        self._login_failures = defaultdict(list)
-
-        # 用户锁定状态 {user_id: lock_info}
-        self._user_locks = {}
-
-        # 登录历史 {user_id: [login_record, ...]}
-        self._login_history = defaultdict(list)
-
         # 配置参数
         self.max_failures = 5  # 最大失败次数
         self.lock_duration_minutes = 30  # 锁定时长(分钟)
         self.failure_window_minutes = 15  # 失败时间窗口(分钟)
 
-    def record_login_failure(self, user_id: int, ip_address: str,
-                             user_agent: str = '') -> Dict:
+    async def record_login_attempt_async(self, username: str, ip_address: str,
+                                         user_agent: str = '', is_success: bool = False,
+                                         failure_reason: str = '', db: AsyncSession = None) -> Dict:
         """
-        记录登录失败
+        异步记录登录尝试
         
         Args:
-            user_id: 用户ID
+            username: 用户名
             ip_address: IP地址
             user_agent: User-Agent
+            is_success: 是否成功
+            failure_reason: 失败原因
+            db: 数据库会话
             
         Returns:
-            检查结果(是否被锁定)
+            记录结果
         """
-        now = datetime.now()
+        try:
+            now = datetime.now()
 
-        # 记录失败
-        self._login_failures[user_id].append({
-            'timestamp': now,
-            'ip_address': ip_address,
-            'user_agent': user_agent,
-        })
+            # 创建登录尝试记录
+            attempt = LoginAttempt(
+                username=username,
+                ip_address=ip_address,
+                user_agent=user_agent,
+                is_success=is_success,
+                failure_reason=failure_reason if not is_success else None,
+                created_at=now
+            )
 
-        # 清理旧记录(超出时间窗口的)
-        cutoff = now - timedelta(minutes=self.failure_window_minutes)
-        self._login_failures[user_id] = [
-            f for f in self._login_failures[user_id]
-            if f['timestamp'] > cutoff
-        ]
+            if db:
+                db.add(attempt)
+                await db.commit()
+                logger.info(f"Login attempt recorded for user: {username}, success: {is_success}")
 
-        # 检查失败次数
-        recent_failures = len(self._login_failures[user_id])
+            return {'status': 'recorded', 'attempt_id': attempt.id if hasattr(attempt, 'id') else None}
+        except Exception as e:
+            logger.error(f"Failed to record login attempt: {e}")
+            if db:
+                await db.rollback()
+            return {'status': 'error', 'message': str(e)}
 
-        if recent_failures >= self.max_failures:
-            # 锁定账户
-            lock_until = now + timedelta(minutes=self.lock_duration_minutes)
-            self._user_locks[user_id] = {
-                'locked_at': now,
-                'lock_until': lock_until,
-                'failure_count': recent_failures,
-                'ip_address': ip_address,
-            }
-
-            logger.warning(f"User {user_id} locked due to {recent_failures} failed login attempts")
-
-            return {
-                'is_locked': True,
-                'lock_until': lock_until.isoformat(),
-                'remaining_minutes': self.lock_duration_minutes,
-                'failure_count': recent_failures,
-            }
-
-        return {
-            'is_locked': False,
-            'failure_count': recent_failures,
-            'remaining_attempts': self.max_failures - recent_failures,
-        }
-
-    def check_user_locked(self, user_id: int) -> Dict:
+    async def check_account_locked_async(self, username: str, db: AsyncSession = None) -> Tuple[
+        bool, Optional[datetime]]:
         """
-        检查用户是否被锁定
+        异步检查账户是否被锁定（基于用户名）
         
         Args:
-            user_id: 用户ID
+            username: 用户名
+            db: 数据库会话
             
         Returns:
-            锁定状态
+            (is_locked, unlock_time) 元组
         """
-        lock_info = self._user_locks.get(user_id)
+        try:
+            if not db:
+                return False, None
 
-        if not lock_info:
-            return {'is_locked': False}
+            now = datetime.now()
+            failure_cutoff = now - timedelta(minutes=self.failure_window_minutes)
 
-        now = datetime.now()
+            # 查询最近失败次数
+            result = await db.execute(
+                select(func.count(LoginAttempt.id))
+                .where(
+                    and_(
+                        LoginAttempt.username == username,
+                        LoginAttempt.is_success == False,
+                        LoginAttempt.created_at >= failure_cutoff
+                    )
+                )
+            )
+            failure_count = result.scalar() or 0
 
-        # 检查是否已过期
-        if now >= lock_info['lock_until']:
-            # 解锁并清除失败记录
-            del self._user_locks[user_id]
-            self._login_failures[user_id] = []
+            if failure_count >= self.max_failures:
+                # 获取最后一次失败时间
+                last_failure = await db.execute(
+                    select(LoginAttempt.created_at)
+                    .where(
+                        and_(
+                            LoginAttempt.username == username,
+                            LoginAttempt.is_success == False,
+                            LoginAttempt.created_at >= failure_cutoff
+                        )
+                    )
+                    .order_by(LoginAttempt.created_at.desc())
+                    .limit(1)
+                )
+                last_failure_time = last_failure.scalar_one_or_none()
 
-            return {'is_locked': False}
+                if last_failure_time:
+                    unlock_time = last_failure_time + timedelta(minutes=self.lock_duration_minutes)
+                    if now < unlock_time:
+                        logger.warning(f"Account locked for user: {username}, failures: {failure_count}")
+                        return True, unlock_time
 
-        # 仍然锁定
-        remaining_seconds = (lock_info['lock_until'] - now).total_seconds()
-        remaining_minutes = int(remaining_seconds / 60)
+            return False, None
+        except Exception as e:
+            logger.error(f"Failed to check account lock status: {e}")
+            return False, None
 
-        return {
-            'is_locked': True,
-            'lock_until': lock_info['lock_until'].isoformat(),
-            'remaining_minutes': remaining_minutes,
-            'failure_count': lock_info['failure_count'],
-        }
-
-    def unlock_user(self, user_id: int) -> bool:
+    async def get_failed_attempts_count_async(self, username: str, db: AsyncSession = None) -> int:
         """
-        手动解锁用户(管理员操作)
+        异步获取失败尝试次数
         
         Args:
-            user_id: 用户ID
+            username: 用户名
+            db: 数据库会话
             
         Returns:
-            是否成功
+            失败尝试次数
         """
-        if user_id in self._user_locks:
-            del self._user_locks[user_id]
-            self._login_failures[user_id] = []
+        try:
+            if not db:
+                return 0
 
-            logger.info(f"User {user_id} manually unlocked by admin")
+            now = datetime.now()
+            failure_cutoff = now - timedelta(minutes=self.failure_window_minutes)
+
+            result = await db.execute(
+                select(func.count(LoginAttempt.id))
+                .where(
+                    and_(
+                        LoginAttempt.username == username,
+                        LoginAttempt.is_success == False,
+                        LoginAttempt.created_at >= failure_cutoff
+                    )
+                )
+            )
+            return result.scalar() or 0
+        except Exception as e:
+            logger.error(f"Failed to get failed attempts count: {e}")
+            return 0
+
+    async def clear_failed_attempts_async(self, username: str, db: AsyncSession = None) -> bool:
+        """
+        异步清除失败尝试记录
+        
+        Args:
+            username: 用户名
+            db: 数据库会话
+            
+        Returns:
+            是否成功清除
+        """
+        try:
+            if not db:
+                return False
+
+            now = datetime.now()
+            failure_cutoff = now - timedelta(minutes=self.failure_window_minutes)
+
+            # 删除指定时间窗口内的失败记录
+            await db.execute(
+                LoginAttempt.__table__.delete()
+                .where(
+                    and_(
+                        LoginAttempt.username == username,
+                        LoginAttempt.is_success == False,
+                        LoginAttempt.created_at >= failure_cutoff
+                    )
+                )
+            )
+            await db.commit()
+
+            logger.info(f"Cleared failed attempts for user: {username}")
             return True
+        except Exception as e:
+            logger.error(f"Failed to clear failed attempts: {e}")
+            if db:
+                await db.rollback()
+            return False
 
-        return False
-
-    def record_login_success(self, user_id: int, ip_address: str,
-                             user_agent: str = '', device_info: Dict = None) -> Dict:
+    async def get_login_history_async(self, username: str, limit: int = 50, db: AsyncSession = None) -> List[Dict]:
         """
-        记录登录成功
+        异步获取用户登录历史
         
         Args:
-            user_id: 用户ID
-            ip_address: IP地址
-            user_agent: User-Agent
-            device_info: 设备信息
-            
-        Returns:
-            安全检查结果
-        """
-        now = datetime.now()
-
-        # 生成设备指纹
-        device_fingerprint = self._generate_device_fingerprint(device_info or {}, user_agent)
-
-        # 记录登录历史
-        login_record = {
-            'timestamp': now,
-            'ip_address': ip_address,
-            'user_agent': user_agent,
-            'device_fingerprint': device_fingerprint,
-            'device_info': device_info or {},
-            'success': True,
-        }
-
-        self._login_history[user_id].append(login_record)
-
-        # 清除失败记录
-        self._login_failures[user_id] = []
-
-        # 检测异常
-        alerts = self._detect_anomalies(user_id, login_record)
-
-        return {
-            'success': True,
-            'alerts': alerts,
-            'device_fingerprint': device_fingerprint,
-        }
-
-    def _detect_anomalies(self, user_id: int, current_login: Dict) -> List[Dict]:
-        """
-        检测登录异常
-        
-        Args:
-            user_id: 用户ID
-            current_login: 当前登录记录
-            
-        Returns:
-            异常告警列表
-        """
-        alerts = []
-        history = self._login_history.get(user_id, [])
-
-        if not history:
-            return alerts
-
-        # 获取上次登录
-        last_login = history[-1] if len(history) > 1 else None
-
-        if not last_login:
-            return alerts
-
-        # 1. 检测异地登录(IP变化)
-        if current_login['ip_address'] != last_login['ip_address']:
-            alerts.append({
-                'type': 'new_location',
-                'severity': 'warning',
-                'message': f'检测到新的登录地点',
-                'current_ip': current_login['ip_address'],
-                'last_ip': last_login['ip_address'],
-            })
-
-        # 2. 检测新设备
-        if current_login['device_fingerprint'] != last_login['device_fingerprint']:
-            alerts.append({
-                'type': 'new_device',
-                'severity': 'info',
-                'message': '检测到新设备登录',
-                'current_device': current_login.get('device_info', {}),
-            })
-
-        # 3. 检测异常时间(凌晨登录)
-        current_hour = current_login['timestamp'].hour
-        if current_hour >= 0 and current_hour < 5:
-            alerts.append({
-                'type': 'unusual_time',
-                'severity': 'info',
-                'message': '检测到非正常时间登录',
-                'login_time': current_login['timestamp'].isoformat(),
-            })
-
-        # 4. 检测频繁登录(1小时内多次)
-        one_hour_ago = current_login['timestamp'] - timedelta(hours=1)
-        recent_logins = [
-            l for l in history
-            if l['timestamp'] > one_hour_ago and l.get('success', False)
-        ]
-
-        if len(recent_logins) >= 5:
-            alerts.append({
-                'type': 'frequent_login',
-                'severity': 'warning',
-                'message': f'1小时内登录{len(recent_logins)}次',
-                'login_count': len(recent_logins),
-            })
-
-        return alerts
-
-    def get_login_history(self, user_id: int, limit: int = 50) -> List[Dict]:
-        """
-        获取用户登录历史
-        
-        Args:
-            user_id: 用户ID
+            username: 用户名
             limit: 返回数量
+            db: 数据库会话
             
         Returns:
             登录历史记录
         """
-        history = self._login_history.get(user_id, [])
+        try:
+            if not db:
+                return []
 
-        # 返回最近的记录
-        recent_history = history[-limit:]
+            result = await db.execute(
+                select(LoginAttempt)
+                .where(LoginAttempt.username == username)
+                .order_by(LoginAttempt.created_at.desc())
+                .limit(limit)
+            )
+            attempts = result.scalars().all()
 
-        return [
-            {
-                'timestamp': record['timestamp'].isoformat(),
-                'ip_address': record['ip_address'],
-                'user_agent': record['user_agent'],
-                'device_fingerprint': record['device_fingerprint'],
-                'device_info': record.get('device_info', {}),
-                'success': record.get('success', False),
-            }
-            for record in reversed(recent_history)
-        ]
+            return [
+                {
+                    'timestamp': attempt.created_at.isoformat() if attempt.created_at else None,
+                    'ip_address': attempt.ip_address,
+                    'user_agent': attempt.user_agent,
+                    'is_success': attempt.is_success,
+                    'failure_reason': attempt.failure_reason,
+                }
+                for attempt in attempts
+            ]
+        except Exception as e:
+            logger.error(f"Failed to get login history: {e}")
+            return []
 
-    def get_security_stats(self, user_id: int) -> Dict:
+    async def get_security_stats_async(self, username: str, db: AsyncSession = None) -> Dict:
         """
-        获取用户安全统计
+        异步获取用户安全统计
         
         Args:
-            user_id: 用户ID
+            username: 用户名
+            db: 数据库会话
             
         Returns:
             统计数据
         """
-        history = self._login_history.get(user_id, [])
-        failures = self._login_failures.get(user_id, [])
+        try:
+            if not db:
+                return {}
 
-        # 统计不同IP数量
-        unique_ips = set(r['ip_address'] for r in history if r.get('success'))
+            now = datetime.now()
+            seven_days_ago = now - timedelta(days=7)
+            failure_cutoff = now - timedelta(minutes=self.failure_window_minutes)
 
-        # 统计不同设备数量
-        unique_devices = set(r['device_fingerprint'] for r in history if r.get('success'))
+            # 总登录次数
+            total_result = await db.execute(
+                select(func.count(LoginAttempt.id))
+                .where(LoginAttempt.username == username)
+            )
+            total_logins = total_result.scalar() or 0
 
-        # 最近7天登录次数
-        seven_days_ago = datetime.now() - timedelta(days=7)
-        recent_logins = [
-            r for r in history
-            if r['timestamp'] > seven_days_ago and r.get('success')
-        ]
+            # 成功登录次数
+            success_result = await db.execute(
+                select(func.count(LoginAttempt.id))
+                .where(
+                    and_(
+                        LoginAttempt.username == username,
+                        LoginAttempt.is_success == True
+                    )
+                )
+            )
+            successful_logins = success_result.scalar() or 0
+
+            # 失败次数
+            failed_logins = total_logins - successful_logins
+
+            # 唯一IP数量
+            ip_result = await db.execute(
+                select(func.count(func.distinct(LoginAttempt.ip_address)))
+                .where(
+                    and_(
+                        LoginAttempt.username == username,
+                        LoginAttempt.is_success == True
+                    )
+                )
+            )
+            unique_ips = ip_result.scalar() or 0
+
+            # 最近7天登录次数
+            recent_result = await db.execute(
+                select(func.count(LoginAttempt.id))
+                .where(
+                    and_(
+                        LoginAttempt.username == username,
+                        LoginAttempt.is_success == True,
+                        LoginAttempt.created_at >= seven_days_ago
+                    )
+                )
+            )
+            recent_7days_logins = recent_result.scalar() or 0
+
+            # 当前失败次数（在时间窗口内）
+            current_failures_result = await db.execute(
+                select(func.count(LoginAttempt.id))
+                .where(
+                    and_(
+                        LoginAttempt.username == username,
+                        LoginAttempt.is_success == False,
+                        LoginAttempt.created_at >= failure_cutoff
+                    )
+                )
+            )
+            current_failures = current_failures_result.scalar() or 0
+
+            # 检查是否被锁定
+            is_locked = current_failures >= self.max_failures
+
+            return {
+                'total_logins': total_logins,
+                'successful_logins': successful_logins,
+                'failed_logins': failed_logins,
+                'unique_ips': unique_ips,
+                'recent_7days_logins': recent_7days_logins,
+                'current_failures': current_failures,
+                'is_locked': is_locked,
+            }
+        except Exception as e:
+            logger.error(f"Failed to get security stats: {e}")
+            return {}
+
+    async def get_locked_users_async(self, db: AsyncSession = None) -> List[Dict]:
+        """
+        异步获取所有被锁定的用户(管理员)
         
-        return {
-            'total_logins': len([r for r in history if r.get('success')]),
-            'total_failures': len([r for r in history if not r.get('success')]),
-            'unique_ips': len(unique_ips),
-            'unique_devices': len(unique_devices),
-            'recent_7days_logins': len(recent_logins),
-            'current_failures': len(failures),
-            'is_locked': user_id in self._user_locks,
-        }
+        Args:
+            db: 数据库会话
+            
+        Returns:
+            锁定用户列表
+        """
+        try:
+            if not db:
+                return []
+
+            now = datetime.now()
+            failure_cutoff = now - timedelta(minutes=self.failure_window_minutes)
+
+            # 查询失败次数超过阈值的用户名
+            result = await db.execute(
+                select(
+                    LoginAttempt.username,
+                    func.count(LoginAttempt.id).label('failure_count'),
+                    func.max(LoginAttempt.created_at).label('last_failure')
+                )
+                .where(
+                    and_(
+                        LoginAttempt.is_success == False,
+                        LoginAttempt.created_at >= failure_cutoff
+                    )
+                )
+                .group_by(LoginAttempt.username)
+                .having(func.count(LoginAttempt.id) >= self.max_failures)
+            )
+
+            locked_users = []
+            for row in result.all():
+                username, failure_count, last_failure = row
+                unlock_time = last_failure + timedelta(minutes=self.lock_duration_minutes)
+
+                if now < unlock_time:
+                    remaining_seconds = (unlock_time - now).total_seconds()
+                    locked_users.append({
+                        'username': username,
+                        'locked_at': last_failure.isoformat(),
+                        'lock_until': unlock_time.isoformat(),
+                        'remaining_minutes': int(remaining_seconds / 60),
+                        'failure_count': failure_count,
+                    })
+
+            return locked_users
+        except Exception as e:
+            logger.error(f"Failed to get locked users: {e}")
+            return []
 
     def _generate_device_fingerprint(self, device_info: Dict,
                                      user_agent: str = '') -> str:
         """
-        生成设备指纹
+        生成设备指纹（保留用于向后兼容）
         
         Args:
             device_info: 设备信息
@@ -332,31 +399,6 @@ class LoginSecurityService:
         """
         data = f"{device_info}:{user_agent}"
         return hashlib.sha256(data.encode()).hexdigest()[:32]
-
-    def get_locked_users(self) -> List[Dict]:
-        """
-        获取所有被锁定的用户(管理员)
-        
-        Returns:
-            锁定用户列表
-        """
-        locked_users = []
-        now = datetime.now()
-
-        for user_id, lock_info in self._user_locks.items():
-            if now < lock_info['lock_until']:
-                remaining_seconds = (lock_info['lock_until'] - now).total_seconds()
-                locked_users.append({
-                    'user_id': user_id,
-                    'locked_at': lock_info['locked_at'].isoformat(),
-                    'lock_until': lock_info['lock_until'].isoformat(),
-                    'remaining_minutes': int(remaining_seconds / 60),
-                    'failure_count': lock_info['failure_count'],
-                    'ip_address': lock_info['ip_address'],
-                })
-
-        return locked_users
-
 
 # 全局实例
 login_security_service = LoginSecurityService()

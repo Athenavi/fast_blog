@@ -291,7 +291,7 @@ async def login_api(
 
         # 安全检查：检查账户是否被锁定
         from shared.services.login_security_service import login_security_service
-        is_locked, unlock_time = await login_security_service.check_account_locked_async(username)
+        is_locked, unlock_time = await login_security_service.check_account_locked_async(username, db)
 
         if is_locked:
             # 记录这次被阻止的尝试
@@ -300,7 +300,8 @@ async def login_api(
                 ip_address=ip_address,
                 user_agent=user_agent,
                 is_success=False,
-                failure_reason="Account locked due to too many failed attempts"
+                failure_reason="Account locked due to too many failed attempts",
+                db=db
             )
 
             unlock_minutes = (unlock_time - datetime.now()).total_seconds() / 60
@@ -324,12 +325,13 @@ async def login_api(
                 ip_address=ip_address,
                 user_agent=user_agent,
                 is_success=False,
-                failure_reason="Invalid credentials"
+                failure_reason="Invalid credentials",
+                db=db
             )
 
             # 检查是否需要警告
-            failed_count = await login_security_service.get_failed_attempts_count_async(username)
-            remaining_attempts = login_security_service.MAX_FAILED_ATTEMPTS - failed_count
+            failed_count = await login_security_service.get_failed_attempts_count_async(username, db)
+            remaining_attempts = login_security_service.max_failures - failed_count
 
             if remaining_attempts <= 2 and remaining_attempts > 0:
                 return ApiResponse(
@@ -348,7 +350,8 @@ async def login_api(
                 ip_address=ip_address,
                 user_agent=user_agent,
                 is_success=False,
-                failure_reason="Account disabled"
+                failure_reason="Account disabled",
+                db=db
             )
             
             return ApiResponse(success=False, error="账户已被禁用")
@@ -413,11 +416,12 @@ async def login_api(
             username=username,
             ip_address=ip_address,
             user_agent=user_agent,
-            is_success=True
+            is_success=True,
+            db=db
         )
 
         # 6. 清除之前的失败记录
-        await login_security_service.clear_failed_attempts_async(username)
+        await login_security_service.clear_failed_attempts_async(username, db)
 
         print(f"[Login API] Login successful for user: {username}")
         return ApiResponse(
