@@ -27,8 +27,7 @@ setup(
     ],
     python_requires=">=3.8",
     install_requires=[
-        "httpx>=0.25.0",
-        "aiohttp>=3.9.0",
+        "requests>=2.31.0",
     ],
     extras_require={
         "dev": [

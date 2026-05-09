@@ -212,7 +212,9 @@ class GDPRComplianceService:
             user_id: int,
             consent_type: str,
             granted: bool,
-            details: Optional[str] = None
+            details: Optional[str] = None,
+            ip_address: Optional[str] = None,
+            user_agent: Optional[str] = None
     ) -> Dict[str, Any]:
         """
         记录用户同意
@@ -222,6 +224,8 @@ class GDPRComplianceService:
             consent_type: 同意类型 (analytics, marketing, cookies, etc.)
             granted: 是否授予
             details: 详细信息
+            ip_address: IP地址（可选）
+            user_agent: 用户代理（可选）
         
         Returns:
             同意记录
@@ -240,8 +244,8 @@ class GDPRComplianceService:
             'granted': granted,
             'details': details,
             'timestamp': timestamp.isoformat(),
-            'ip_address': None,  # TODO: 从请求中获取
-            'user_agent': None,  # TODO: 从请求中获取
+            'ip_address': ip_address,
+            'user_agent': user_agent,
         }
 
         # 更新当前同意状态

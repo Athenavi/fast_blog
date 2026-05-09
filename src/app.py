@@ -431,6 +431,22 @@ curl -X POST "http://localhost:9421/api/v1/media/upload" \
                     "url": "https://docs.fastblog.example.com/ads"
                 }
             },
+            {
+                "name": "seo-tracking",
+                "description": "📈 SEO 效果追踪接口，包括搜索引擎流量分析、关键词排名追踪、流量来源分析等功能",
+                "externalDocs": {
+                    "description": "SEO 追踪指南",
+                    "url": "https://docs.fastblog.example.com/seo-tracking"
+                }
+            },
+            {
+                "name": "reports",
+                "description": "📊 自定义报表接口，包括内容报表、用户活动报表、流量报表生成和导出功能",
+                "externalDocs": {
+                    "description": "报表管理指南",
+                    "url": "https://docs.fastblog.example.com/reports"
+                }
+            },
         ],
         lifespan=lifespan,
         # 自定义文档路径
@@ -1104,6 +1120,14 @@ curl -X POST "http://localhost:9421/api/v1/media/upload" \
             print(f"{worker_info} [OK] SEO Tracking API 已加载")
         except ImportError as e:
             print(f"Warning: SEO Tracking API could not be loaded: {e}")
+
+        # 报表管理 API
+        try:
+            from src.api.v1.report_management import router as report_router
+            app.include_router(report_router, prefix='/api/v1', tags=['reports'])
+            print(f"{worker_info} [OK] Report Management API 已加载")
+        except ImportError as e:
+            print(f"Warning: Report Management API could not be loaded: {e}")
 
         # 备份管理 API
         try:

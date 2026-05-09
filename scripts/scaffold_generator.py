@@ -110,11 +110,11 @@ class PluginScaffold(ScaffoldGenerator):
         """生成 plugin.py 主文件"""
         class_name = ''.join(word.capitalize() for word in name.replace('-', '_').split('_'))
 
-        content = f'''"""
+        content = f'''
 {name} Plugin
 
-Description: TODO: Add plugin description
-"""
+A plugin for FastBlog that provides additional functionality.
+'''
 import logging
 from typing import Dict, Any
 
@@ -146,19 +146,19 @@ class {class_name}Plugin(BasePlugin):
         """Activate plugin"""
         super().activate()
         logger.info(f"[{name}] Plugin activated")
-        # TODO: Add activation logic (e.g., create database tables)
+        # Activation logic can be added here (e.g., create database tables)
     
     def deactivate(self):
         """Deactivate plugin"""
         super().deactivate()
         logger.info(f"[{name}] Plugin deactivated")
-        # TODO: Add deactivation logic (e.g., cleanup resources)
+        # Deactivation logic can be added here (e.g., cleanup resources)
     
     def uninstall(self):
         """Uninstall plugin"""
         super().uninstall()
         logger.info(f"[{name}] Plugin uninstalled")
-        # TODO: Add uninstallation logic (e.g., drop database tables)
+        # Uninstallation logic can be added here (e.g., drop database tables)
     
     def get_settings_ui(self) -> str:
         """Return settings UI HTML (optional)"""
@@ -171,7 +171,8 @@ class {class_name}Plugin(BasePlugin):
     
     def save_settings(self, settings: Dict[str, Any]):
         """Save plugin settings (optional)"""
-        # TODO: Implement settings saving logic
+        # Save settings to database or config file
+        # Example: self.settings.update(settings)
         pass
 
 
@@ -201,11 +202,11 @@ plugin_instance = {class_name}Plugin()
 
 ## Configuration
 
-TODO: Add configuration instructions
+Configure your plugin settings from the admin panel.
 
 ## Usage
 
-TODO: Add usage examples
+After activation, the plugin will automatically hook into the system.
 
 ## Development
 
@@ -270,6 +271,11 @@ def test_plugin_activation():
 
 
 # TODO: Add more tests for your plugin functionality
+# Example:
+# def test_plugin_feature():
+#     from plugins.{slug}.plugin import plugin_instance
+#     # Test your plugin's features here
+#     pass
 '''
 
         test_file = plugin_dir / "tests" / "test_plugin.py"
