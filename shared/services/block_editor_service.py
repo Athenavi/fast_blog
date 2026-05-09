@@ -467,24 +467,12 @@ class BlockEditorService:
         将 HTML 转换为块数据（简化版本）
         
         注意：完整的 HTML 解析需要使用专门的解析器
-        """
-        Convert
-        HTML
-        to
-        blocks
-        This is a
-        simplified
-        implementation
         
         Args:
-        html: HTML
-        string
+            html: HTML string
             
         Returns:
-    List
-    of
-    block
-    data
+            List of block data
         """
         # Use BeautifulSoup for HTML parsing in production
         # Example implementation:
