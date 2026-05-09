@@ -19,6 +19,7 @@ import {
   Trash2
 } from 'lucide-react';
 import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,} from '@/components/ui/dropdown-menu';
+import {getAccessTokenFromCookie} from '@/lib/auth-utils';
 
 interface FolderNode {
   id: number;
@@ -153,30 +154,7 @@ const FolderTree: React.FC<FolderTreeProps> = ({
 
   // 获取认证头
   const getAuthHeaders = (): HeadersInit => {
-    const getTokenFromCookie = (): string | null => {
-      if (typeof document === 'undefined') {
-        console.warn('⚠️ 在服务端环境中，无法访问 cookie');
-        return null;
-      }
-      
-      console.log('🍪 所有 cookies:', document.cookie);
-      
-      const cookies = document.cookie.split(';');
-      for (const cookie of cookies) {
-        const [name, value] = cookie.trim().split('=');
-        console.log('🔍 检查 cookie:', { name, hasValue: !!value });
-        if (name === 'access_token') {
-          const decodedValue = decodeURIComponent(value);
-          console.log('✅ 找到 access_token:', decodedValue.substring(0, 20) + '...');
-          return decodedValue;
-        }
-      }
-      
-      console.warn('⚠️ 未找到 access_token cookie');
-      return null;
-    };
-
-    const token = getTokenFromCookie();
+    const token = getAccessTokenFromCookie();
     const headers: HeadersInit = { 'Content-Type': 'application/json' };
 
     if (token) {

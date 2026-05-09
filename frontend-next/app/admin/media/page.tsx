@@ -28,6 +28,7 @@ import {
     Trash2,
     X
 } from 'lucide-react';
+import {getAccessTokenFromCookie} from '@/lib/auth-utils';
 
 // 动态导入 ImageEditor，禁用 SSR
 const ImageEditor = dynamic(() => import('@/components/ImageEditor'), {
@@ -96,19 +97,7 @@ export default function ModernMediaLibraryPage() {
 
     // 获取认证头
     const getAuthHeaders = (): HeadersInit => {
-        const getTokenFromCookie = (): string | null => {
-            if (typeof document === 'undefined') return null;
-            const cookies = document.cookie.split(';');
-            for (const cookie of cookies) {
-                const [name, value] = cookie.trim().split('=');
-                if (name === 'access_token') {
-                    return decodeURIComponent(value);
-                }
-            }
-            return null;
-        };
-
-        const token = getTokenFromCookie();
+        const token = getAccessTokenFromCookie();
         const headers: HeadersInit = {'Content-Type': 'application/json'};
 
         if (token) {

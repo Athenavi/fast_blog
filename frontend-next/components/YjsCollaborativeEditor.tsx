@@ -4,6 +4,7 @@ import React, {useEffect, useRef, useState} from 'react';
 import {Card} from '@/components/ui/card';
 import CollaborationBar from '@/components/CollaborationBar';
 import {getWebSocketUrl} from '@/lib/collaboration-config';
+import {getAccessTokenFromCookie} from '@/lib/auth-utils';
 
 interface CollaborativeMarkdownEditorProps {
   documentId: string;
@@ -69,17 +70,7 @@ export default function CollaborativeMarkdownEditor({
   useEffect(() => {
     console.log('[Collab Markdown] Connecting with documentId:', documentId);
 
-    const getTokenFromCookie = (): string | null => {
-      if (typeof document === 'undefined') return null;
-      const cookies = document.cookie.split(';');
-      for (const cookie of cookies) {
-        const [name, value] = cookie.trim().split('=');
-        if (name === 'access_token') return decodeURIComponent(value);
-      }
-      return null;
-    };
-
-    const token = getTokenFromCookie();
+      const token = getAccessTokenFromCookie();
     const wsUrl = getWebSocketUrl(documentId, token || undefined);
     console.log('[Collab Markdown] WebSocket URL:', wsUrl);
 

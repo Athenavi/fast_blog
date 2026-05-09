@@ -8,19 +8,8 @@ import {Badge} from '@/components/ui/badge';
 import {Button} from '@/components/ui/button';
 import {Save, Users, Wifi, WifiOff} from 'lucide-react';
 import {getSaveDocumentUrl, getWebSocketUrl} from '@/lib/collaboration-config';
+import {getAccessTokenFromCookie} from '@/lib/auth-utils';
 
-// 从 cookie 获取 token 的工具函数
-const getTokenFromCookie = (): string => {
-    if (typeof document === 'undefined') return '';
-    const cookies = document.cookie.split(';');
-    for (const cookie of cookies) {
-        const [name, value] = cookie.trim().split('=');
-        if (name === 'access_token') {
-            return decodeURIComponent(value);
-        }
-    }
-    return '';
-};
 
 interface CollaborativeEditorProps {
     documentId: string;
@@ -72,7 +61,7 @@ export default function CollaborativeEditor({
     // 在客户端初始化时获取 token（仅从 cookie 读取）
     useEffect(() => {
         if (!propToken && typeof window !== 'undefined') {
-            const tokenValue = getTokenFromCookie();
+            const tokenValue = getAccessTokenFromCookie();
             setToken(tokenValue || '');
         } else if (propToken) {
             setToken(propToken);
