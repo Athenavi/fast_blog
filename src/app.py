@@ -415,6 +415,22 @@ curl -X POST "http://localhost:9421/api/v1/media/upload" \
                     "url": "https://docs.fastblog.example.com/widgets"
                 }
             },
+            {
+                "name": "tips",
+                "description": "💰 打赏系统接口，包括文章打赏、打赏统计、排行榜、提现申请等功能",
+                "externalDocs": {
+                    "description": "打赏系统指南",
+                    "url": "https://docs.fastblog.example.com/tips"
+                }
+            },
+            {
+                "name": "advertisements",
+                "description": "📢 广告管理系统接口，包括广告位管理、广告投放、AdSense/百度联盟集成、收益报表等功能",
+                "externalDocs": {
+                    "description": "广告管理指南",
+                    "url": "https://docs.fastblog.example.com/ads"
+                }
+            },
         ],
         lifespan=lifespan,
         # 自定义文档路径
@@ -1000,6 +1016,22 @@ curl -X POST "http://localhost:9421/api/v1/media/upload" \
             print(f"{worker_info} [OK] Security Alert API 已加载")
         except ImportError as e:
             print(f"Warning: Security Alert API could not be loaded: {e}")
+
+        # 打赏系统 API
+        try:
+            from src.api.v1.tipping_system import router as tipping_router
+            app.include_router(tipping_router, prefix='/api/v1', tags=['tips'])
+            print(f"{worker_info} [OK] Tipping System API 已加载")
+        except ImportError as e:
+            print(f"Warning: Tipping System API could not be loaded: {e}")
+
+        # 广告管理系统 API
+        try:
+            from src.api.v1.advertisement_system import router as ads_router
+            app.include_router(ads_router, prefix='/api/v1', tags=['advertisements'])
+            print(f"{worker_info} [OK] Advertisement System API 已加载")
+        except ImportError as e:
+            print(f"Warning: Advertisement System API could not be loaded: {e}")
 
         # 安全报告 API
         try:

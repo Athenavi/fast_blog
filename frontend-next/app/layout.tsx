@@ -6,6 +6,7 @@ import Navbar from '@/components/Navbar';
 import {GlobalShortcuts} from '@/components/GlobalShortcuts';
 import MobileGestures from '@/components/MobileGestures';
 import MobileBottomNav from '@/components/MobileBottomNav';
+import PWAInstallPrompt from '@/components/PWAInstallPrompt';
 
 export const metadata: Metadata = {
     title: 'FastBlog',
@@ -34,6 +35,7 @@ export default function RootLayout({
         <MobileGestures/>
         {children}
         <MobileBottomNav/>
+        <PWAInstallPrompt/>
         </body>
         </html>
     );

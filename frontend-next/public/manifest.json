@@ -1,19 +1,22 @@
 {
-  "name": "FastBlog",
+  "name": "FastBlog - 现代化博客平台",
   "short_name": "FastBlog",
-  "description": "A modern, fast blog platform",
-  "start_url": "/",
+  "description": "一个快速、现代化的博客平台，支持富文本编辑、打赏系统、广告管理等功能",
+  "start_url": "/?source=pwa",
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#3b82f6",
-  "orientation": "portrait-primary",
+  "orientation": "any",
   "categories": [
     "news",
     "blog",
-    "education"
+    "education",
+    "productivity"
   ],
   "lang": "zh-CN",
   "dir": "ltr",
+  "iarc_rating_id": "",
+  "prefer_related_applications": false,
   "icons": [
     {
       "src": "/icons/icon-72x72.png",

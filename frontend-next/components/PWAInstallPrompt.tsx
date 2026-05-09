@@ -1,123 +1,226 @@
 'use client';
 
-import {useState, useEffect} from 'react';
-import {X, Download} from 'lucide-react';
+import React, {useEffect, useState} from 'react';
+import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card';
+import {Button} from '@/components/ui/button';
+import {Badge} from '@/components/ui/badge';
+import {useToast} from '@/hooks/use-toast';
+import {Bell, Download, RefreshCw, Smartphone, Wifi, WifiOff, X} from 'lucide-react';
 
-interface BeforeInstallPromptEvent extends Event {
-    prompt: () => Promise<void>;
-    userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+interface PWAInstallPromptProps {
+    showPrompt?: boolean;
 }
 
-export default function PWAInstallPrompt() {
-    const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
-    const [showPrompt, setShowPrompt] = useState(false);
+export default function PWAInstallPrompt({showPrompt = true}: PWAInstallPromptProps) {
+    const {toast} = useToast();
+    const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
+    const [isInstallable, setIsInstallable] = useState(false);
+    const [isInstalled, setIsInstalled] = useState(false);
+    const [isVisible, setIsVisible] = useState(false);
+    const [isOffline, setIsOffline] = useState(!navigator.onLine);
+    const [updateAvailable, setUpdateAvailable] = useState(false);
 
     useEffect(() => {
-        // 监听 beforeinstallprompt 事件
+        // 检查是否已安装
+        if (window.matchMedia('(display-mode: standalone)').matches) {
+            setIsInstalled(true);
+            return;
+        }
+
+        // 监听beforeinstallprompt事件
         const handler = (e: Event) => {
             e.preventDefault();
-            setDeferredPrompt(e as BeforeInstallPromptEvent);
-            // 延迟显示，避免立即弹出
+            setDeferredPrompt(e);
+            setIsInstallable(true);
+
+            // 延迟显示提示，避免打扰用户
             setTimeout(() => {
-                setShowPrompt(true);
+                setIsVisible(true);
             }, 3000);
         };
 
         window.addEventListener('beforeinstallprompt', handler);
 
+        // 监听网络状态
+        const handleOnline = () => setIsOffline(false);
+        const handleOffline = () => setIsOffline(true);
+
+        window.addEventListener('online', handleOnline);
+        window.addEventListener('offline', handleOffline);
+
+        // 检查Service Worker更新
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.ready.then((registration) => {
+                registration.addEventListener('updatefound', () => {
+                    const newWorker = registration.installing;
+                    if (newWorker) {
+                        newWorker.addEventListener('statechange', () => {
+                            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+                                setUpdateAvailable(true);
+                                toast({
+                                    title: '更新可用',
+                                    description: '新版本已准备好，请刷新页面',
+                                    action: (
+                                        <Button size="sm" onClick={() => window.location.reload()}>
+                                            刷新
+                                        </Button>
+                                    ),
+                                });
+                            }
+                        });
+                    }
+                });
+            });
+        }
+
         return () => {
             window.removeEventListener('beforeinstallprompt', handler);
+            window.removeEventListener('online', handleOnline);
+            window.removeEventListener('offline', handleOffline);
         };
     }, []);
 
     const handleInstall = async () => {
-        if (!deferredPrompt) return;
+        if (!deferredPrompt) {
+            toast({
+                title: '提示',
+                description: '当前浏览器不支持自动安装',
+            });
+            return;
+        }
 
         try {
             await deferredPrompt.prompt();
-            const {outcome} = await deferredPrompt.userChoice;
+            const choiceResult = await deferredPrompt.userChoice;
 
-            if (outcome === 'accepted') {
-                console.log('[PWA] 用户接受了安装');
+            if (choiceResult.outcome === 'accepted') {
+                console.log('[PWA] User accepted the install prompt');
+                toast({
+                    title: '安装成功',
+                    description: 'FastBlog 已添加到您的桌面',
+                });
             } else {
-                console.log('[PWA] 用户拒绝了安装');
+                console.log('[PWA] User dismissed the install prompt');
             }
-        } catch (error) {
-            console.error('[PWA] 安装失败:', error);
-        } finally {
+
             setDeferredPrompt(null);
-            setShowPrompt(false);
+            setIsVisible(false);
+        } catch (error) {
+            console.error('[PWA] Install failed:', error);
+            toast({
+                title: '错误',
+                description: '安装失败，请稍后重试',
+                variant: 'destructive',
+            });
         }
     };
 
     const handleDismiss = () => {
-        setShowPrompt(false);
-        // 保存到 localStorage，30天内不再显示
+        setIsVisible(false);
+        // 保存用户选择，30天内不再显示
         localStorage.setItem('pwa-install-dismissed', Date.now().toString());
     };
 
-    // 检查是否已经 dismissed
-    useEffect(() => {
-        const dismissed = localStorage.getItem('pwa-install-dismissed');
-        if (dismissed) {
-            const dismissedTime = parseInt(dismissed);
-            const thirtyDays = 30 * 24 * 60 * 60 * 1000;
-
-            if (Date.now() - dismissedTime < thirtyDays) {
-                setShowPrompt(false);
-            }
+    const handleUpdate = () => {
+        if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+            navigator.serviceWorker.controller.postMessage({type: 'SKIP_WAITING'});
+            window.location.reload();
         }
-    }, []);
+    };
 
-    if (!showPrompt || !deferredPrompt) return null;
+    // 检查是否应该显示
+    const dismissedTime = localStorage.getItem('pwa-install-dismissed');
+    const shouldShow = showPrompt &&
+        isInstallable &&
+        !isInstalled &&
+        isVisible &&
+        (!dismissedTime || Date.now() - parseInt(dismissedTime) > 30 * 24 * 60 * 60 * 1000);
+
+    if (!shouldShow && !isOffline && !updateAvailable) {
+        return null;
+    }
 
     return (
-        <div className="fixed bottom-4 right-4 z-50 max-w-sm w-full">
-            <div
-                className="bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 p-4 animate-slide-up">
-                <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                        <div className="flex items-center space-x-3">
-                            <div className="flex-shrink-0">
-                                <div
-                                    className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
-                                    <Download className="w-6 h-6 text-white"/>
-                                </div>
-                            </div>
-                            <div className="flex-1">
-                                <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
-                                    安装 FastBlog
-                                </h3>
-                                <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                                    添加到主屏幕，获得更好的体验
-                                </p>
-                            </div>
+        <div className="fixed bottom-4 right-4 z-50 space-y-2 max-w-sm">
+            {/* 离线提示 */}
+            {isOffline && (
+                <Card className="bg-yellow-50 dark:bg-yellow-900/20 border-yellow-200 dark:border-yellow-800">
+                    <CardContent className="p-4 flex items-center gap-3">
+                        <WifiOff className="h-5 w-5 text-yellow-600"/>
+                        <div className="flex-1">
+                            <p className="text-sm font-medium">离线模式</p>
+                            <p className="text-xs text-muted-foreground">部分内容可能不可用</p>
                         </div>
+                    </CardContent>
+                </Card>
+            )}
 
-                        <div className="mt-3 flex space-x-2">
-                            <button
-                                onClick={handleInstall}
-                                className="flex-1 px-3 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-md transition-colors"
-                            >
-                                立即安装
-                            </button>
-                            <button
+            {/* 更新提示 */}
+            {updateAvailable && (
+                <Card className="bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800">
+                    <CardContent className="p-4 flex items-center gap-3">
+                        <RefreshCw className="h-5 w-5 text-blue-600"/>
+                        <div className="flex-1">
+                            <p className="text-sm font-medium">新版本可用</p>
+                            <p className="text-xs text-muted-foreground">点击刷新以获取最新功能</p>
+                        </div>
+                        <Button size="sm" onClick={handleUpdate}>
+                            刷新
+                        </Button>
+                    </CardContent>
+                </Card>
+            )}
+
+            {/* 安装提示 */}
+            {shouldShow && (
+                <Card className="shadow-lg animate-in slide-in-from-bottom-4">
+                    <CardHeader className="pb-3">
+                        <div className="flex items-start justify-between">
+                            <div className="flex items-center gap-2">
+                                <Smartphone className="h-5 w-5 text-primary"/>
+                                <CardTitle className="text-base">安装 FastBlog</CardTitle>
+                            </div>
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-6 w-6 p-0"
                                 onClick={handleDismiss}
-                                className="px-3 py-2 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-md transition-colors"
                             >
-                                稍后
-                            </button>
+                                <X className="h-4 w-4"/>
+                            </Button>
                         </div>
-                    </div>
+                        <CardDescription>
+                            将 FastBlog 添加到桌面，获得更好的体验
+                        </CardDescription>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                        <div className="flex gap-2 text-xs text-muted-foreground">
+                            <Badge variant="secondary" className="gap-1">
+                                <Wifi className="h-3 w-3"/>
+                                离线访问
+                            </Badge>
+                            <Badge variant="secondary" className="gap-1">
+                                <Bell className="h-3 w-3"/>
+                                推送通知
+                            </Badge>
+                            <Badge variant="secondary" className="gap-1">
+                                <Smartphone className="h-3 w-3"/>
+                                原生体验
+                            </Badge>
+                        </div>
 
-                    <button
-                        onClick={handleDismiss}
-                        className="ml-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
-                    >
-                        <X className="w-4 h-4"/>
-                    </button>
-                </div>
-            </div>
+                        <div className="flex gap-2">
+                            <Button onClick={handleInstall} className="flex-1 gap-2">
+                                <Download className="h-4 w-4"/>
+                                立即安装
+                            </Button>
+                            <Button variant="outline" onClick={handleDismiss}>
+                                稍后再说
+                            </Button>
+                        </div>
+                    </CardContent>
+                </Card>
+            )}
         </div>
     );
 }

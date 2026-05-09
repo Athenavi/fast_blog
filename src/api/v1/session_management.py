@@ -3,13 +3,14 @@
 提供会话查看、远程注销、设备管理等功能
 """
 
-from fastapi import APIRouter, Depends, Query, Body, Request
 from typing import Optional
 
-from src.auth.auth_deps import get_current_active_user, admin_required as admin_required_api
+from fastapi import APIRouter, Depends, Body, Request
+
 from shared.models.user import User as UserModel
-from shared.utils.response import ApiResponse
 from shared.services.session_management_service import session_management_service
+from src.api.v1.responses import ApiResponse
+from src.auth.auth_deps import get_current_active_user, admin_required as admin_required_api
 
 router = APIRouter(prefix="/sessions", tags=["sessions"])
 

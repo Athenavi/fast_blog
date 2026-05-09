@@ -27,7 +27,7 @@ def _import_modules():
     modules = {}
     # 所有需要导入的模块名称
     module_names = [
-        "articles", "home", "responses", "users", "blog", "category_ext",
+        "articles", "home", "responses", "users", "category_ext",
         "category_management", "admin_settings", "user_management", "user_settings",
         "media", "notifications", "misc", "comment_config", "comments",
         "session_management", "cache_management", "two_factor_auth", "article_revisions",
@@ -91,7 +91,6 @@ def _include_routers():
     router_configs = [
         ("articles", True, "/articles"),
         ("users", True, ""),
-        ("blog", True, "/blog"),
         ("category_ext", True, ""),
         ("category_management", True, ""),
         ("admin_settings", True, ""),

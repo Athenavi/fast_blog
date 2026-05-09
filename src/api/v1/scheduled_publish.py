@@ -1,13 +1,14 @@
 """
 文章定时发布 API
 """
+from datetime import datetime
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
-from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.utils.database import get_db
 from shared.services.scheduled_publish import create_scheduled_publish_service
+from src.utils.database.main import get_async_session
 
 router = APIRouter(prefix="/scheduled-publish", tags=["scheduled-publish"])
 
@@ -21,7 +22,7 @@ class ScheduleArticleRequest(BaseModel):
 @router.post("/schedule")
 async def schedule_article(
         request: ScheduleArticleRequest,
-        db: AsyncSession = Depends(get_db)
+        db: AsyncSession = Depends(get_async_session)
 ):
     """
     设置文章定时发布
@@ -58,7 +59,7 @@ async def schedule_article(
 @router.post("/cancel/{article_id}")
 async def cancel_scheduled_publish(
         article_id: int,
-        db: AsyncSession = Depends(get_db)
+        db: AsyncSession = Depends(get_async_session)
 ):
     """
     取消文章定时发布
@@ -86,7 +87,7 @@ async def cancel_scheduled_publish(
 
 @router.post("/publish-due")
 async def publish_due_articles(
-        db: AsyncSession = Depends(get_db)
+        db: AsyncSession = Depends(get_async_session)
 ):
     """
     发布所有到期的定时文章
@@ -110,7 +111,7 @@ async def publish_due_articles(
 async def get_scheduled_articles(
         limit: int = Query(50, ge=1, le=200, description="返回数量"),
         offset: int = Query(0, ge=0, description="偏移量"),
-        db: AsyncSession = Depends(get_db)
+        db: AsyncSession = Depends(get_async_session)
 ):
     """
     获取待发布的文章列表
@@ -139,7 +140,7 @@ async def get_scheduled_articles(
 @router.get("/upcoming")
 async def get_upcoming_publishes(
         hours: int = Query(24, ge=1, le=168, description="小时数"),
-        db: AsyncSession = Depends(get_db)
+        db: AsyncSession = Depends(get_async_session)
 ):
     """
     获取即将发布的文章
