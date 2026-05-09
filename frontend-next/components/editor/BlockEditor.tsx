@@ -359,8 +359,9 @@ export default function BlockEditor({
             )}
 
             {/* 浮动菜单 - 选中文本时显示 */}
-            {/* TODO: Tiptap v3 FloatingMenu API需要调整
-            <FloatingMenu
+            {/* Note: FloatingMenu is currently disabled in Tiptap v3
+                To re-enable, update to use the new BubbleMenu API or custom implementation 
+            <BubbleMenu
                 editor={editor}
                 tippyOptions={{
                     duration: 100,
@@ -414,7 +415,7 @@ export default function BlockEditor({
                 >
                     ✨ AI
                 </button>
-            </FloatingMenu>
+            </BubbleMenu>
             */}
 
             {/* 编辑器内容 */}

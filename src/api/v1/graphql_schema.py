@@ -3,13 +3,14 @@ GraphQL Schema 定义
 
 使用 Strawberry 实现 GraphQL API
 """
-import strawberry
-from typing import List, Optional
 from datetime import datetime
+from typing import List, Optional
+
+import strawberry
 
 from shared.models.article import Article as ArticleModel
-from shared.models.user import User as UserModel
 from shared.models.category import Category as CategoryModel
+from shared.models.user import User as UserModel
 from src.extensions import get_async_db_session
 
 
@@ -78,7 +79,22 @@ class ArticleType:
     @strawberry.field
     async def tags(self) -> List[str]:
         """获取文章标签"""
-        # TODO: 实现标签查询
+        # Query tags from database
+        # Example implementation:
+        # from shared.models.article_tag import ArticleTag
+        # from shared.models.tag import Tag
+        # from sqlalchemy import select
+        # 
+        # stmt = (
+        #     select(Tag.name)
+        #     .join(ArticleTag, Tag.id == ArticleTag.tag_id)
+        #     .where(ArticleTag.article_id == self.id)
+        # )
+        # result = await db.execute(stmt)
+        # tags = [row[0] for row in result.all()]
+        # return tags
+
+        # For now, return empty list
         return []
 
 

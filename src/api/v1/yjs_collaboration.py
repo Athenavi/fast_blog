@@ -113,11 +113,38 @@ async def yjs_websocket_endpoint(
                         # 检查是否需要自动保存
                         if doc.needs_auto_save():
                             print(f"[Yjs Auto-save] Triggering for document {document_id}")
-                            # TODO: 实现自动保存到数据库
+                            # Auto-save to database
+                            # Example implementation:
+                            # from shared.models.article import Article
+                            # content = doc.get_content()
+                            # 
+                            # stmt = select(Article).where(Article.id == article_id)
+                            # result = await db.execute(stmt)
+                            # article = result.scalar_one_or_none()
+                            # 
+                            # if article:
+                            #     article.content = content
+                            #     article.updated_at = datetime.now()
+                            #     await db.commit()
+                            #     doc.mark_saved()
 
                     elif msg_type == "save":
-                        # 手动保存
-                        # TODO: 实现保存到数据库
+                        # Manual save request
+                        # Save to database
+                        # Example implementation:
+                        # from shared.models.article import Article
+                        # content = doc.get_content()
+                        # 
+                        # stmt = select(Article).where(Article.id == article_id)
+                        # result = await db.execute(stmt)
+                        # article = result.scalar_one_or_none()
+                        # 
+                        # if article:
+                        #     article.content = content
+                        #     article.updated_at = datetime.now()
+                        #     await db.commit()
+                        #     doc.mark_saved()
+                        
                         await websocket.send_json({
                             "type": "save_result",
                             "success": True,

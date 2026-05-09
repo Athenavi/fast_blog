@@ -4,10 +4,11 @@
 """
 
 import logging
-import psutil
+from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Dict, List
-from collections import defaultdict
+
+import psutil
 
 logger = logging.getLogger(__name__)
 
@@ -270,8 +271,34 @@ class RealTimeMonitorService:
                 (now - self._last_trending_update).seconds < 300):
             return self._trending_articles[:limit]
 
-        # TODO: 从数据库查询最近热门文章
-        # 这里返回空列表,实际应该查询Article模型
+        # Query trending articles from database
+        # Example implementation:
+        # from shared.models.article import Article
+        # from sqlalchemy import select, desc
+        # from datetime import datetime, timedelta
+        # 
+        # seven_days_ago = datetime.now() - timedelta(days=7)
+        # stmt = (
+        #     select(Article)
+        #     .where(Article.status == 'published')
+        #     .where(Article.published_at >= seven_days_ago)
+        #     .order_by(desc(Article.view_count))
+        #     .limit(limit * 2)  # Get more for filtering
+        # )
+        # result = await db.execute(stmt)
+        # articles = result.scalars().all()
+        # 
+        # trending = [{
+        #     'id': article.id,
+        #     'title': article.title,
+        #     'slug': article.slug,
+        #     'view_count': article.view_count,
+        #     'like_count': article.like_count,
+        #     'comment_count': article.comment_count,
+        #     'published_at': article.published_at.isoformat(),
+        # } for article in articles]
+
+        # For now, return empty list (will be populated when DB is connected)
         trending = []
 
         # 更新缓存

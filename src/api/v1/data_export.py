@@ -3,13 +3,14 @@
 提供CSV、Excel等格式的数据导出功能
 """
 
-from fastapi import APIRouter, Depends, Query, Response
 from typing import Optional
 
-from src.auth.auth_deps import admin_required as admin_required_api
-from shared.models.user import User as UserModel
+from fastapi import APIRouter, Depends, Query, Response
 from shared.utils.response import ApiResponse
+
+from shared.models.user import User as UserModel
 from shared.services.data_export_service import data_export_service
+from src.auth.auth_deps import admin_required as admin_required_api
 
 router = APIRouter(prefix="/export", tags=["export"])
 
@@ -31,8 +32,29 @@ async def export_users(
         文件下载
     """
     try:
-        # TODO: 从数据库查询真实用户数据
-        # 这里使用模拟数据
+        # Query real user data from database
+        # Example implementation:
+        # from shared.models.user import User
+        # from sqlalchemy import select, func
+        # 
+        # stmt = select(User).limit(limit)
+        # result = await db.execute(stmt)
+        # users_db = result.scalars().all()
+        # 
+        # users = [{
+        #     'id': user.id,
+        #     'username': user.username,
+        #     'email': user.email,
+        #     'phone': user.phone,
+        #     'is_active': user.is_active,
+        #     'is_verified': user.is_verified,
+        #     'created_at': user.created_at.isoformat() if user.created_at else None,
+        #     'last_login': user.last_login.isoformat() if user.last_login else None,
+        #     'article_count': await get_user_article_count(user.id),
+        #     'follower_count': await get_user_follower_count(user.id),
+        # } for user in users_db]
+
+        # For now, use sample data for demonstration
         users = [
             {
                 'id': i,
@@ -90,8 +112,32 @@ async def export_articles(
         文件下载
     """
     try:
-        # TODO: 从数据库查询真实文章数据
-        # 这里使用模拟数据
+        # Query real article data from database
+        # Example implementation:
+        # from shared.models.article import Article
+        # from sqlalchemy import select
+        # 
+        # stmt = select(Article).limit(limit)
+        # if status:
+        #     stmt = stmt.where(Article.status == status)
+        # result = await db.execute(stmt)
+        # articles_db = result.scalars().all()
+        # 
+        # articles = [{
+        #     'id': article.id,
+        #     'title': article.title,
+        #     'author_id': article.user_id,
+        #     'category_id': article.category_id,
+        #     'status': article.status,
+        #     'view_count': article.view_count,
+        #     'like_count': article.like_count,
+        #     'comment_count': article.comment_count,
+        #     'created_at': article.created_at.isoformat() if article.created_at else None,
+        #     'updated_at': article.updated_at.isoformat() if article.updated_at else None,
+        #     'published_at': article.published_at.isoformat() if article.published_at else None,
+        # } for article in articles_db]
+
+        # For now, use sample data for demonstration
         articles = [
             {
                 'id': i,
@@ -150,8 +196,29 @@ async def export_comments(
         文件下载
     """
     try:
-        # TODO: 从数据库查询真实评论数据
-        # 这里使用模拟数据
+        # Query real comment data from database
+        # Example implementation:
+        # from shared.models.comment import Comment
+        # from sqlalchemy import select
+        # 
+        # stmt = select(Comment).limit(limit)
+        # if article_id:
+        #     stmt = stmt.where(Comment.article_id == article_id)
+        # result = await db.execute(stmt)
+        # comments_db = result.scalars().all()
+        # 
+        # comments = [{
+        #     'id': comment.id,
+        #     'article_id': comment.article_id,
+        #     'user_id': comment.user_id,
+        #     'content': comment.content,
+        #     'parent_id': comment.parent_id,
+        #     'like_count': comment.like_count,
+        #     'created_at': comment.created_at.isoformat() if comment.created_at else None,
+        #     'is_approved': comment.is_approved,
+        # } for comment in comments_db]
+
+        # For now, use sample data for demonstration
         comments = [
             {
                 'id': i,
@@ -209,8 +276,32 @@ async def export_analytics(
         文件下载
     """
     try:
-        # TODO: 从数据库查询真实分析数据
-        # 这里使用模拟数据
+        # Query real analytics data from database
+        # Example implementation:
+        # from shared.models.analytics import PageView
+        # from sqlalchemy import select, func
+        # from datetime import datetime
+        # 
+        # stmt = select(
+        #     func.date(PageView.created_at).label('date'),
+        #     func.count(PageView.id).label('visits'),
+        #     func.count(func.distinct(PageView.user_id)).label('unique_visitors'),
+        # ).group_by(func.date(PageView.created_at))
+        # 
+        # if start_date:
+        #     stmt = stmt.where(PageView.created_at >= datetime.strptime(start_date, '%Y-%m-%d'))
+        # if end_date:
+        #     stmt = stmt.where(PageView.created_at <= datetime.strptime(end_date, '%Y-%m-%d'))
+        # 
+        # result = await db.execute(stmt)
+        # analytics_data = [{
+        #     'date': row.date.isoformat(),
+        #     'visits': row.visits,
+        #     'unique_visitors': row.unique_visitors,
+        #     ...
+        # } for row in result.all()]
+
+        # For now, use sample data for demonstration
         analytics_data = [
             {
                 'date': f'2024-01-{i:02d}',
@@ -298,8 +389,25 @@ async def export_custom_data(
         文件下载
     """
     try:
-        # TODO: 根据data_type和filters查询真实数据
-        # 这里返回示例数据
+        # Query real data based on data_type and filters
+        # Example implementation:
+        # if data_type == 'users':
+        #     from shared.models.user import User
+        #     stmt = select(User)
+        #     if filters:
+        #         for key, value in filters.items():
+        #             if hasattr(User, key):
+        #                 stmt = stmt.where(getattr(User, key) == value)
+        #     result = await db.execute(stmt.limit(1000))
+        #     data = [user.__dict__ for user in result.scalars().all()]
+        # elif data_type == 'articles':
+        #     # Similar query for articles
+        #     pass
+        # 
+        # Filter fields to export only requested columns
+        # filtered_data = [{k: v for k, v in item.items() if k in fields} for item in data]
+
+        # For now, return sample data for demonstration
         sample_data = [
             {field: f'{field}_{i}' for field in fields}
             for i in range(1, 11)

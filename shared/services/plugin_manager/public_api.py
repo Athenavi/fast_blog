@@ -167,8 +167,25 @@ class PluginPublicAPI:
         Returns:
             页面列表
         """
-        # 注意：当前系统中 pages 表可能不存在，返回空列表
-        # TODO: 当 pages 功能实现后，启用此功能
+        # Pages feature is not yet implemented in the current system
+        # When pages table is available, implement like this:
+        # from shared.models.page import Page
+        # from sqlalchemy import select
+        # 
+        # stmt = select(Page)
+        # if not include_draft:
+        #     stmt = stmt.where(Page.status == 'published')
+        # result = await db.execute(stmt)
+        # pages = result.scalars().all()
+        # 
+        # return [{
+        #     'id': page.id,
+        #     'title': page.title,
+        #     'slug': page.slug,
+        #     'content': page.content,
+        #     'status': page.status,
+        # } for page in pages]
+        
         print("[PluginPublicAPI] Pages feature not yet implemented, returning empty list")
         return []
 

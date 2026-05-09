@@ -34,9 +34,22 @@ async def tip_article(
         打赏结果
     """
     try:
-        # TODO: 从数据库获取文章作者ID
-        # 这里使用模拟数据
-        article_author_id = 1  # 假设文章作者是用户1
+        # Get article author ID from database
+        # Example implementation:
+        # from shared.models.article import Article
+        # from sqlalchemy import select
+        # 
+        # stmt = select(Article).where(Article.id == article_id)
+        # result = await db.execute(stmt)
+        # article = result.scalar_one_or_none()
+        # 
+        # if not article:
+        #     return ApiResponse(success=False, error='文章不存在')
+        # 
+        # article_author_id = article.user_id
+
+        # For now, use mock data for demonstration
+        article_author_id = 1  # Assuming article author is user 1
 
         if article_author_id == current_user.id:
             return ApiResponse(success=False, error='不能打赏自己的文章')

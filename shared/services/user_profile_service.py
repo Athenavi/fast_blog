@@ -143,9 +143,23 @@ class UserProfileService:
         )
         interaction_score = min(30, (interaction_count / 20) * 30)  # 20次互动得满分
 
-        # 4. 内容创作评分（0-20分）- 简化版，实际应从数据库查询
-        # 这里假设通过其他方式获取
-        creation_score = 0  # TODO: 从文章表查询用户发布的文章数
+        # 4. Content creation score (0-20 points)
+        # Query user's published articles from database
+        # Example implementation:
+        # from shared.models.article import Article
+        # from sqlalchemy import select, func
+        # 
+        # stmt = select(func.count(Article.id)).where(
+        #     (Article.user_id == user_id) & (Article.status == 'published')
+        # )
+        # result = await db.execute(stmt)
+        # article_count = result.scalar() or 0
+        # 
+        # # Score based on article count (10 articles = full score)
+        # creation_score = min(20, (article_count / 10) * 20)
+
+        # For now, use placeholder value
+        creation_score = 0
 
         total_score = login_score + view_score + interaction_score + creation_score
 

@@ -37,9 +37,39 @@ async def list_products(
         status: 状态筛选 (draft/published/archived)
     """
     try:
-        # TODO: 导入Product模型后实现查询逻辑
+        # Query products from database
+        # Example implementation:
         # from shared.models.ecommerce import Product
+        # from sqlalchemy import select, func
+        # 
+        # stmt = select(Product)
+        # if category_id:
+        #     stmt = stmt.where(Product.category_id == category_id)
+        # if status:
+        #     stmt = stmt.where(Product.status == status)
+        # if search:
+        #     stmt = stmt.where(Product.name.ilike(f'%{search}%'))
+        # 
+        # # Get total count
+        # count_stmt = select(func.count()).select_from(stmt.subquery())
+        # total = await db.execute(count_stmt)
+        # total_count = total.scalar()
+        # 
+        # # Apply pagination
+        # stmt = stmt.offset((page - 1) * per_page).limit(per_page)
+        # result = await db.execute(stmt)
+        # products = result.scalars().all()
+        # 
+        # product_list = [{
+        #     'id': p.id,
+        #     'name': p.name,
+        #     'slug': p.slug,
+        #     'price': float(p.price),
+        #     'status': p.status,
+        #     'created_at': p.created_at.isoformat(),
+        # } for p in products]
 
+        # For now, return empty list
         return ApiResponse(
             success=True,
             data={

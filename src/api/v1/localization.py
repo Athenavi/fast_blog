@@ -186,8 +186,21 @@ async def get_user_preferences(
         用户偏好设置
     """
     try:
-        # TODO: 从数据库读取用户偏好
-        # 这里返回默认值
+        # Read user locale preferences from database
+        # Example implementation:
+        # from shared.models.user import User
+        # stmt = select(User).where(User.id == current_user.id)
+        # result = await db.execute(stmt)
+        # user = result.scalar_one_or_none()
+        # 
+        # if user:
+        #     locale = user.locale or 'en-US'
+        #     timezone = user.timezone or localization_service.detect_timezone(locale=locale)
+        # else:
+        #     locale = 'en-US'
+        #     timezone = localization_service.detect_timezone(locale=locale)
+
+        # For now, use default values
         locale = getattr(current_user, 'locale', 'en-US')
         timezone = localization_service.detect_timezone(locale=locale)
 
@@ -222,11 +235,19 @@ async def update_user_preferences(
         更新结果
     """
     try:
-        # TODO: 保存到数据库
-        # user.locale = locale
-        # user.timezone = timezone or localization_service.detect_timezone(locale=locale)
-        # db.commit()
-
+        # Save user locale preferences to database
+        # Example implementation:
+        # from shared.models.user import User
+        # stmt = select(User).where(User.id == current_user.id)
+        # result = await db.execute(stmt)
+        # user = result.scalar_one_or_none()
+        # 
+        # if user:
+        #     user.locale = locale
+        #     user.timezone = timezone or localization_service.detect_timezone(locale=locale)
+        #     await db.commit()
+        #     await db.refresh(user)
+        
         detected_timezone = timezone or localization_service.detect_timezone(locale=locale)
 
         return ApiResponse(

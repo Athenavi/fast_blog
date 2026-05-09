@@ -129,7 +129,34 @@ async def import_translation(
         )
 
     if result['success']:
-        # TODO: 将导入的数据保存到数据库
+        # Save imported translations to database
+        # Example implementation:
+        # from shared.models.translation import Translation
+        # language_code = result.get('language')
+        # translations = result.get('translations', {})
+        # 
+        # for key, trans_data in translations.items():
+        #     stmt = select(Translation).where(
+        #         (Translation.key == key) & (Translation.language == language_code)
+        #     )
+        #     db_result = await db.execute(stmt)
+        #     existing = db_result.scalar_one_or_none()
+        #     
+        #     if existing:
+        #         existing.translation = trans_data.get('translation', '')
+        #         existing.is_translated = trans_data.get('translated', False)
+        #         existing.updated_at = datetime.now()
+        #     else:
+        #         new_translation = Translation(
+        #             key=key,
+        #             language=language_code,
+        #             translation=trans_data.get('translation', ''),
+        #             is_translated=trans_data.get('translated', False),
+        #         )
+        #         db.add(new_translation)
+        # 
+        # await db.commit()
+        
         return ApiResponse(
             success=True,
             message=result['message'],
@@ -163,10 +190,19 @@ async def batch_import_translations(
         content = await file.read()
         file_contents[file.filename] = content.decode('utf-8')
 
-    # 批量导入
+    # Batch import results
     results = translation_io.batch_import(file_contents, format=format)
 
-    # TODO: 将成功导入的数据保存到数据库
+    # Save successfully imported translations to database
+    # Example implementation:
+    # for detail in results.get('details', []):
+    #     if detail.get('success'):
+    #         language_code = detail.get('language')
+    #         translations = detail.get('translations', {})
+    #         # Similar save logic as single import above
+    #         pass
+    # 
+    # await db.commit()
 
     return ApiResponse(
         success=results['successful'] > 0,

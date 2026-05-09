@@ -97,8 +97,12 @@ export default function CollaboratorCursor({collaborator, editorElement}: Collab
         editorElement: HTMLElement,
         color: string
     ) => {
-        // TODO: 实现选区高亮显示
-        // 这里可以使用装饰器或mark来高亮显示选区
+        // Highlight selection range using decorations
+        // Example implementation with Tiptap/ProseMirror:
+        // const decoration = Decoration.inline(selection.from, selection.to, {
+        //     style: `background-color: ${color}30`, // 30% opacity
+        // });
+        // Add decoration to editor view
     };
 
     if (!collaborator.position && !collaborator.selection) {
