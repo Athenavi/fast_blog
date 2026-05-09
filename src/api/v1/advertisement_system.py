@@ -3,14 +3,14 @@
 提供广告位管理、广告投放、统计等功能
 """
 
-from fastapi import APIRouter, Depends, Query, Body
 from datetime import datetime
-from typing import Optional
 
-from src.auth.auth_deps import get_current_active_user, admin_required as admin_required_api
-from shared.models.user import User as UserModel
+from fastapi import APIRouter, Depends, Query, Body
 from shared.utils.response import ApiResponse
+
+from shared.models.user import User as UserModel
 from shared.services.advertisement_system import advertisement_system
+from src.auth.auth_deps import admin_required_api
 
 router = APIRouter(prefix="/ads", tags=["advertisements"])
 
@@ -18,7 +18,7 @@ router = APIRouter(prefix="/ads", tags=["advertisements"])
 @router.get("/slots", summary="获取所有广告位")
 async def get_ad_slots():
     """
-    获取系统中定义的所有广告位
+    获取所有可用的广告位信息
     
     Returns:
         广告位列表
@@ -37,79 +37,19 @@ async def get_ad_slots():
         return ApiResponse(success=False, error=f"获取广告位失败: {str(e)}")
 
 
-@router.get("/slot/{slot_id}/ads", summary="获取广告位的广告")
-async def get_slot_ads(
-        slot_id: str,
-):
-    """
-    获取指定广告位的可用广告(用于前端展示)
-    
-    Args:
-        slot_id: 广告位ID
-        
-    Returns:
-        广告列表
-    """
-    try:
-        ads = advertisement_system.get_slot_ads(slot_id)
-
-        # 记录展示
-        for ad in ads:
-            advertisement_system.record_impression(ad['ad_id'])
-
-        return ApiResponse(
-            success=True,
-            data={
-                'slot_id': slot_id,
-                'ads': ads,
-                'count': len(ads),
-            }
-        )
-    except Exception as e:
-        return ApiResponse(success=False, error=f"获取广告失败: {str(e)}")
-
-
-@router.post("/click", summary="记录广告点击")
-async def record_ad_click(
-        ad_id: str = Body(..., embed=True, description="广告ID"),
-        cost_per_click: float = Body(0, description="每次点击费用"),
-):
-    """
-    记录广告点击(前端调用)
-    
-    Args:
-        ad_id: 广告ID
-        cost_per_click: 每次点击费用
-        
-    Returns:
-        操作结果
-    """
-    try:
-        advertisement_system.record_click(ad_id, cost_per_click)
-
-        return ApiResponse(
-            success=True,
-            message='点击已记录'
-        )
-    except Exception as e:
-        return ApiResponse(success=False, error=f"记录失败: {str(e)}")
-
-
-# 管理员接口
-
-@router.post("/admin/create", summary="创建广告")
+@router.post("/create", summary="创建广告")
 async def create_ad(
         title: str = Body(..., description="广告标题"),
         slot_id: str = Body(..., description="广告位ID"),
         ad_type: str = Body('image', enum=['image', 'html', 'adsense', 'baidu'], description="广告类型"),
         content: str = Body('', description="广告内容"),
-        image_url: Optional[str] = Body(None, description="图片URL"),
-        link_url: Optional[str] = Body(None, description="跳转链接"),
-        html_code: Optional[str] = Body(None, description="HTML代码"),
-        start_date: Optional[str] = Body(None, description="开始时间(ISO格式)"),
-        end_date: Optional[str] = Body(None, description="结束时间(ISO格式)"),
-        priority: int = Body(5, ge=1, le=10, description="优先级(1-10)"),
-        budget: Optional[float] = Body(None, description="预算上限"),
+        image_url: str = Body(None, description="图片URL"),
+        link_url: str = Body(None, description="跳转链接"),
+        html_code: str = Body(None, description="HTML代码"),
+        start_date: str = Body(None, description="开始时间(ISO格式)"),
+        end_date: str = Body(None, description="结束时间(ISO格式)"),
+        priority: int = Body(5, ge=1, le=10, description="优先级"),
+        budget: float = Body(None, description="预算上限"),
         current_user: UserModel = Depends(admin_required_api)
 ):
     """
@@ -125,7 +65,7 @@ async def create_ad(
         html_code: HTML代码
         start_date: 开始时间
         end_date: 结束时间
-        priority: 优先级
+        priority: 优先级(1-10)
         budget: 预算上限
         
     Returns:
@@ -153,25 +93,29 @@ async def create_ad(
         return ApiResponse(
             success=True,
             message='广告创建成功',
-            data=ad
+            data={
+                'ad_id': ad['ad_id'],
+                'title': ad['title'],
+                'slot_id': ad['slot_id'],
+            }
         )
     except ValueError as e:
         return ApiResponse(success=False, error=str(e))
     except Exception as e:
-        return ApiResponse(success=False, error=f"创建失败: {str(e)}")
+        return ApiResponse(success=False, error=f"创建广告失败: {str(e)}")
 
 
-@router.get("/admin/list", summary="获取广告列表")
-async def get_ad_list(
-        slot_id: Optional[str] = Query(None, description="广告位过滤"),
-        status: Optional[str] = Query(None, enum=['active', 'paused', 'expired'], description="状态过滤"),
+@router.get("/list", summary="获取广告列表")
+async def get_ads(
+        slot_id: str = Query(None, description="广告位ID过滤"),
+        status: str = Query(None, enum=['active', 'paused', 'expired'], description="状态过滤"),
         current_user: UserModel = Depends(admin_required_api)
 ):
     """
-    获取广告列表(管理员)
+    获取广告列表
     
     Args:
-        slot_id: 广告位过滤
+        slot_id: 广告位ID过滤
         status: 状态过滤
         
     Returns:
@@ -194,10 +138,10 @@ async def get_ad_list(
             }
         )
     except Exception as e:
-        return ApiResponse(success=False, error=f"获取列表失败: {str(e)}")
+        return ApiResponse(success=False, error=f"获取广告列表失败: {str(e)}")
 
 
-@router.post("/admin/{ad_id}/pause", summary="暂停广告")
+@router.post("/{ad_id}/pause", summary="暂停广告")
 async def pause_ad(
         ad_id: str,
         current_user: UserModel = Depends(admin_required_api)
@@ -222,10 +166,10 @@ async def pause_ad(
         else:
             return ApiResponse(success=False, error='广告不存在')
     except Exception as e:
-        return ApiResponse(success=False, error=f"操作失败: {str(e)}")
+        return ApiResponse(success=False, error=f"暂停广告失败: {str(e)}")
 
 
-@router.post("/admin/{ad_id}/activate", summary="激活广告")
+@router.post("/{ad_id}/activate", summary="激活广告")
 async def activate_ad(
         ad_id: str,
         current_user: UserModel = Depends(admin_required_api)
@@ -250,10 +194,10 @@ async def activate_ad(
         else:
             return ApiResponse(success=False, error='广告不存在')
     except Exception as e:
-        return ApiResponse(success=False, error=f"操作失败: {str(e)}")
+        return ApiResponse(success=False, error=f"激活广告失败: {str(e)}")
 
 
-@router.delete("/admin/{ad_id}", summary="删除广告")
+@router.delete("/{ad_id}", summary="删除广告")
 async def delete_ad(
         ad_id: str,
         current_user: UserModel = Depends(admin_required_api)
@@ -278,10 +222,10 @@ async def delete_ad(
         else:
             return ApiResponse(success=False, error='广告不存在')
     except Exception as e:
-        return ApiResponse(success=False, error=f"删除失败: {str(e)}")
+        return ApiResponse(success=False, error=f"删除广告失败: {str(e)}")
 
 
-@router.get("/admin/{ad_id}/stats", summary="获取广告统计")
+@router.get("/{ad_id}/stats", summary="获取广告统计")
 async def get_ad_stats(
         ad_id: str,
         current_user: UserModel = Depends(admin_required_api)
@@ -306,26 +250,146 @@ async def get_ad_stats(
         return ApiResponse(success=False, error=f"获取统计失败: {str(e)}")
 
 
-@router.get("/admin/slot/{slot_id}/stats", summary="获取广告位统计")
-async def get_slot_stats(
-        slot_id: str,
+# ==================== 广告联盟配置 API ====================
+
+@router.post("/network/configure", summary="配置广告联盟")
+async def configure_ad_network(
+        network: str = Body(..., enum=['adsense', 'baidu'], description="广告联盟名称"),
+        config: dict = Body(..., description="配置信息"),
         current_user: UserModel = Depends(admin_required_api)
 ):
     """
-    获取广告位统计数据
+    配置广告联盟（AdSense/百度）
+    
+    Args:
+        network: 广告联盟名称
+        config: 配置信息
+        
+    Returns:
+        配置结果
+    """
+    try:
+        success = advertisement_system.configure_ad_network(network, config)
+
+        if success:
+            return ApiResponse(
+                success=True,
+                message=f'{network} 配置成功'
+            )
+        else:
+            return ApiResponse(success=False, error='不支持的广告联盟')
+    except Exception as e:
+        return ApiResponse(success=False, error=f"配置失败: {str(e)}")
+
+
+@router.get("/network/{network}/config", summary="获取广告联盟配置")
+async def get_ad_network_config(
+        network: str,
+        current_user: UserModel = Depends(admin_required_api)
+):
+    """
+    获取广告联盟配置
+    
+    Args:
+        network: 广告联盟名称
+        
+    Returns:
+        配置信息
+    """
+    try:
+        config = advertisement_system.get_ad_network_config(network)
+
+        return ApiResponse(
+            success=True,
+            data=config
+        )
+    except Exception as e:
+        return ApiResponse(success=False, error=f"获取配置失败: {str(e)}")
+
+
+@router.get("/network/adsense/code", summary="生成AdSense代码")
+async def generate_adsense_code(
+        slot_id: str = Query(..., description="广告位ID"),
+        ad_format: str = Query('auto', enum=['auto', 'display', 'article', 'match_content'], description="广告格式"),
+        current_user: UserModel = Depends(admin_required_api)
+):
+    """
+    生成 Google AdSense 广告代码
+    
+    Args:
+        slot_id: 广告位ID
+        ad_format: 广告格式
+        
+    Returns:
+        HTML代码
+    """
+    try:
+        code = advertisement_system.generate_adsense_code(slot_id, ad_format)
+        
+        return ApiResponse(
+            success=True,
+            data={
+                'code': code,
+                'slot_id': slot_id,
+            }
+        )
+    except Exception as e:
+        return ApiResponse(success=False, error=f"生成代码失败: {str(e)}")
+
+
+@router.get("/network/baidu/code", summary="生成百度联盟代码")
+async def generate_baidu_code(
+        slot_id: str = Query(..., description="广告位ID"),
+        current_user: UserModel = Depends(admin_required_api)
+):
+    """
+    生成百度联盟广告代码
     
     Args:
         slot_id: 广告位ID
         
     Returns:
-        统计数据
+        HTML代码
     """
     try:
-        stats = advertisement_system.get_slot_stats(slot_id)
+        code = advertisement_system.generate_baidu_code(slot_id)
 
         return ApiResponse(
             success=True,
-            data=stats
+            data={
+                'code': code,
+                'slot_id': slot_id,
+            }
         )
     except Exception as e:
-        return ApiResponse(success=False, error=f"获取统计失败: {str(e)}")
+        return ApiResponse(success=False, error=f"生成代码失败: {str(e)}")
+
+
+@router.get("/revenue/report", summary="获取收益报表")
+async def get_revenue_report(
+        start_date: str = Query(None, description="开始日期(ISO格式)"),
+        end_date: str = Query(None, description="结束日期(ISO格式)"),
+        current_user: UserModel = Depends(admin_required_api)
+):
+    """
+    获取广告收益报表
+    
+    Args:
+        start_date: 开始日期
+        end_date: 结束日期
+        
+    Returns:
+        收益统计数据
+    """
+    try:
+        parsed_start = datetime.fromisoformat(start_date) if start_date else None
+        parsed_end = datetime.fromisoformat(end_date) if end_date else None
+
+        report = advertisement_system.get_revenue_report(parsed_start, parsed_end)
+
+        return ApiResponse(
+            success=True,
+            data=report
+        )
+    except Exception as e:
+        return ApiResponse(success=False, error=f"获取报表失败: {str(e)}")

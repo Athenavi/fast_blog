@@ -4,9 +4,9 @@
 """
 
 import logging
+from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
-from collections import defaultdict
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +33,21 @@ class TippingSystem:
         # 最小/最大打赏金额
         self.min_amount = 1
         self.max_amount = 10000
+
+        # 提现记录 {withdrawal_id: withdrawal_info}
+        self._withdrawals = {}
+
+        # 用户提现记录 {user_id: [withdrawal_id, ...]}
+        self._user_withdrawals = defaultdict(list)
+
+        # 提现ID计数器
+        self._withdrawal_counter = 0
+
+        # 最低提现金额
+        self.min_withdrawal_amount = 50
+
+        # 提现手续费比例 (0-1)
+        self.withdrawal_fee_rate = 0.02  # 2%
 
     def create_tip(self, from_user_id: int, to_user_id: int,
                    article_id: int, amount: float,
@@ -319,6 +334,194 @@ class TippingSystem:
                 })
 
         return recent_tips
+
+    def create_withdrawal(self, user_id: int, amount: float,
+                          payment_method: str = 'bank_transfer',
+                          account_info: Optional[Dict] = None) -> Dict:
+        """
+        创建提现申请
+        
+        Args:
+            user_id: 用户ID
+            amount: 提现金额
+            payment_method: 支付方式(bank_transfer/wechat/alipay)
+            account_info: 账户信息
+            
+        Returns:
+            提现记录
+        """
+        # 验证最低提现金额
+        if amount < self.min_withdrawal_amount:
+            raise ValueError(f"Minimum withdrawal amount is {self.min_withdrawal_amount}")
+
+        # 获取用户可提现余额
+        stats = self.get_user_tip_stats(user_id)
+        available_balance = stats['total_amount']
+
+        # 检查是否有足够的余额
+        if amount > available_balance:
+            raise ValueError(f"Insufficient balance. Available: {available_balance}, Requested: {amount}")
+
+        # 计算手续费
+        fee = amount * self.withdrawal_fee_rate
+        actual_amount = amount - fee
+
+        # 生成提现ID
+        self._withdrawal_counter += 1
+        withdrawal_id = f"wd_{self._withdrawal_counter}_{int(datetime.now().timestamp())}"
+
+        # 创建提现记录
+        now = datetime.now()
+        withdrawal = {
+            'withdrawal_id': withdrawal_id,
+            'user_id': user_id,
+            'amount': amount,
+            'fee': fee,
+            'actual_amount': actual_amount,
+            'payment_method': payment_method,
+            'account_info': account_info or {},
+            'status': 'pending',  # pending/processing/completed/rejected
+            'created_at': now,
+            'processed_at': None,
+            'admin_note': '',
+        }
+
+        # 存储记录
+        self._withdrawals[withdrawal_id] = withdrawal
+        self._user_withdrawals[user_id].append(withdrawal_id)
+
+        logger.info(f"User {user_id} requested withdrawal of {amount} (fee: {fee})")
+
+        return withdrawal
+
+    def get_user_withdrawals(self, user_id: int, limit: int = 50) -> List[Dict]:
+        """
+        获取用户的提现记录
+        
+        Args:
+            user_id: 用户ID
+            limit: 返回数量
+            
+        Returns:
+            提现记录列表
+        """
+        withdrawal_ids = self._user_withdrawals.get(user_id, [])
+        withdrawals = []
+
+        for wd_id in withdrawal_ids[-limit:]:
+            wd = self._withdrawals.get(wd_id)
+            if wd:
+                withdrawals.append({
+                    'withdrawal_id': wd['withdrawal_id'],
+                    'amount': wd['amount'],
+                    'fee': wd['fee'],
+                    'actual_amount': wd['actual_amount'],
+                    'payment_method': wd['payment_method'],
+                    'status': wd['status'],
+                    'created_at': wd['created_at'].isoformat(),
+                    'processed_at': wd['processed_at'].isoformat() if wd['processed_at'] else None,
+                    'admin_note': wd['admin_note'],
+                })
+
+        # 按时间倒序
+        withdrawals.sort(key=lambda x: x['created_at'], reverse=True)
+
+        return withdrawals
+
+    def get_user_available_balance(self, user_id: int) -> Dict:
+        """
+        获取用户可提现余额
+        
+        Args:
+            user_id: 用户ID
+            
+        Returns:
+            余额信息
+        """
+        stats = self.get_user_tip_stats(user_id)
+        total_earned = stats['total_amount']
+
+        # 计算已提现金额
+        withdrawal_ids = self._user_withdrawals.get(user_id, [])
+        total_withdrawn = 0
+        pending_withdrawal = 0
+
+        for wd_id in withdrawal_ids:
+            wd = self._withdrawals.get(wd_id)
+            if wd:
+                if wd['status'] in ['completed', 'processing']:
+                    total_withdrawn += wd['amount']
+                elif wd['status'] == 'pending':
+                    pending_withdrawal += wd['amount']
+
+        available_balance = total_earned - total_withdrawn - pending_withdrawal
+
+        return {
+            'total_earned': total_earned,
+            'total_withdrawn': total_withdrawn,
+            'pending_withdrawal': pending_withdrawal,
+            'available_balance': max(0, available_balance),
+            'min_withdrawal_amount': self.min_withdrawal_amount,
+            'withdrawal_fee_rate': self.withdrawal_fee_rate,
+        }
+
+    def process_withdrawal(self, withdrawal_id: str, status: str = 'completed',
+                           admin_note: str = '') -> bool:
+        """
+        处理提现申请（管理员操作）
+        
+        Args:
+            withdrawal_id: 提现ID
+            status: 新状态(completed/rejected)
+            admin_note: 管理员备注
+            
+        Returns:
+            是否成功
+        """
+        withdrawal = self._withdrawals.get(withdrawal_id)
+
+        if not withdrawal:
+            return False
+
+        if withdrawal['status'] != 'pending':
+            return False
+
+        # 更新状态
+        withdrawal['status'] = status
+        withdrawal['processed_at'] = datetime.now()
+        withdrawal['admin_note'] = admin_note
+
+        logger.info(f"Withdrawal {withdrawal_id} {status} by admin: {admin_note}")
+        return True
+
+    def cancel_withdrawal(self, withdrawal_id: str, user_id: int) -> bool:
+        """
+        取消提现申请（用户操作，仅限pending状态）
+        
+        Args:
+            withdrawal_id: 提现ID
+            user_id: 用户ID
+            
+        Returns:
+            是否成功
+        """
+        withdrawal = self._withdrawals.get(withdrawal_id)
+
+        if not withdrawal:
+            return False
+
+        if withdrawal['user_id'] != user_id:
+            return False
+
+        if withdrawal['status'] != 'pending':
+            return False
+
+        # 更新状态
+        withdrawal['status'] = 'cancelled'
+        withdrawal['processed_at'] = datetime.now()
+
+        logger.info(f"User {user_id} cancelled withdrawal {withdrawal_id}")
+        return True
 
 
 # 全局实例

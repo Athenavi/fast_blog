@@ -4,11 +4,11 @@
 """
 
 from fastapi import APIRouter, Depends, Query, Body
-
-from src.auth.auth_deps import get_current_active_user
-from shared.models.user import User as UserModel
 from shared.utils.response import ApiResponse
+
+from shared.models.user import User as UserModel
 from shared.services.tipping_system import tipping_system
+from src.auth.auth_deps import get_current_active_user
 
 router = APIRouter(prefix="/tips", tags=["tips"])
 
@@ -260,3 +260,162 @@ async def refund_tip(
             return ApiResponse(success=False, error='退款失败(打赏不存在或已退款)')
     except Exception as e:
         return ApiResponse(success=False, error=f"退款失败: {str(e)}")
+
+
+# ==================== 提现相关 API ====================
+
+@router.get("/balance", summary="获取可提现余额")
+async def get_available_balance(
+        current_user: UserModel = Depends(get_current_active_user)
+):
+    """
+    获取当前用户的可提现余额信息
+    
+    Returns:
+        余额信息
+    """
+    try:
+        balance_info = tipping_system.get_user_available_balance(current_user.id)
+
+        return ApiResponse(
+            success=True,
+            data=balance_info
+        )
+    except Exception as e:
+        return ApiResponse(success=False, error=f"获取余额失败: {str(e)}")
+
+
+@router.post("/withdraw", summary="申请提现")
+async def request_withdrawal(
+        amount: float = Body(..., ge=1, description="提现金额"),
+        payment_method: str = Body('bank_transfer', enum=['bank_transfer', 'wechat', 'alipay'], description="支付方式"),
+        account_info: dict = Body({}, description="账户信息"),
+        current_user: UserModel = Depends(get_current_active_user)
+):
+    """
+    申请提现
+    
+    Args:
+        amount: 提现金额
+        payment_method: 支付方式(bank_transfer/wechat/alipay)
+        account_info: 账户信息(银行卡号、微信账号等)
+        
+    Returns:
+        提现申请结果
+    """
+    try:
+        withdrawal = tipping_system.create_withdrawal(
+            user_id=current_user.id,
+            amount=amount,
+            payment_method=payment_method,
+            account_info=account_info,
+        )
+
+        return ApiResponse(
+            success=True,
+            message='提现申请已提交',
+            data={
+                'withdrawal_id': withdrawal['withdrawal_id'],
+                'amount': withdrawal['amount'],
+                'fee': withdrawal['fee'],
+                'actual_amount': withdrawal['actual_amount'],
+                'status': withdrawal['status'],
+            }
+        )
+    except ValueError as e:
+        return ApiResponse(success=False, error=str(e))
+    except Exception as e:
+        return ApiResponse(success=False, error=f"提现申请失败: {str(e)}")
+
+
+@router.get("/my-withdrawals", summary="获取我的提现记录")
+async def get_my_withdrawals(
+        limit: int = Query(50, ge=1, le=200, description="返回数量"),
+        current_user: UserModel = Depends(get_current_active_user)
+):
+    """
+    获取当前用户的提现记录
+    
+    Args:
+        limit: 返回数量(1-200)
+        
+    Returns:
+        提现记录列表
+    """
+    try:
+        withdrawals = tipping_system.get_user_withdrawals(current_user.id, limit=limit)
+
+        return ApiResponse(
+            success=True,
+            data={
+                'withdrawals': withdrawals,
+                'count': len(withdrawals),
+            }
+        )
+    except Exception as e:
+        return ApiResponse(success=False, error=f"获取提现记录失败: {str(e)}")
+
+
+@router.post("/cancel-withdrawal/{withdrawal_id}", summary="取消提现申请")
+async def cancel_withdrawal(
+        withdrawal_id: str,
+        current_user: UserModel = Depends(get_current_active_user)
+):
+    """
+    取消提现申请（仅限pending状态）
+    
+    Args:
+        withdrawal_id: 提现ID
+        
+    Returns:
+        取消结果
+    """
+    try:
+        success = tipping_system.cancel_withdrawal(withdrawal_id, current_user.id)
+
+        if success:
+            return ApiResponse(
+                success=True,
+                message='提现申请已取消'
+            )
+        else:
+            return ApiResponse(success=False, error='取消失败(提现不存在或状态不允许取消)')
+    except Exception as e:
+        return ApiResponse(success=False, error=f"取消失败: {str(e)}")
+
+
+@router.post("/admin/process-withdrawal", summary="处理提现申请（管理员）")
+async def admin_process_withdrawal(
+        withdrawal_id: str = Body(..., description="提现ID"),
+        status: str = Body('completed', enum=['completed', 'rejected'], description="处理结果"),
+        admin_note: str = Body('', description="管理员备注"),
+        current_user: UserModel = Depends(get_current_active_user)
+):
+    """
+    管理员处理提现申请
+    
+    Args:
+        withdrawal_id: 提现ID
+        status: 处理结果(completed/rejected)
+        admin_note: 管理员备注
+        
+    Returns:
+        处理结果
+    """
+    try:
+        # TODO: 添加管理员权限检查
+        success = tipping_system.process_withdrawal(
+            withdrawal_id=withdrawal_id,
+            status=status,
+            admin_note=admin_note,
+        )
+
+        if success:
+            return ApiResponse(
+                success=True,
+                message=f'提现申请已{"通过" if status == "completed" else "拒绝"}'
+            )
+        else:
+            return ApiResponse(success=False, error='处理失败(提现不存在或状态不允许处理)')
+    except Exception as e:
+        return ApiResponse(success=False, error=f"处理失败: {str(e)}")

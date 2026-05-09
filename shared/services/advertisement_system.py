@@ -66,6 +66,19 @@ class AdvertisementSystem:
         # 广告ID计数器
         self._ad_counter = 0
 
+        # 广告联盟配置
+        self._ad_network_configs = {
+            'adsense': {
+                'enabled': False,
+                'publisher_id': '',  # Google AdSense Publisher ID
+                'client_id': '',  # Ad Client ID
+            },
+            'baidu': {
+                'enabled': False,
+                'union_id': '',  # 百度联盟ID
+            },
+        }
+
     def create_ad(self, title: str, slot_id: str, ad_type: str,
                   content: str, image_url: str = None,
                   link_url: str = None, html_code: str = None,
@@ -353,6 +366,133 @@ class AdvertisementSystem:
             if ad['status'] == 'active' and ad['end_date'] < now:
                 ad['status'] = 'expired'
                 logger.info(f"Ad {ad['ad_id']} expired")
+
+    def configure_ad_network(self, network: str, config: Dict) -> bool:
+        """
+        配置广告联盟
+        
+        Args:
+            network: 广告联盟名称(adsense/baidu)
+            config: 配置信息
+            
+        Returns:
+            是否成功
+        """
+        if network not in self._ad_network_configs:
+            return False
+
+        self._ad_network_configs[network].update(config)
+        logger.info(f"Configured ad network: {network}")
+        return True
+
+    def get_ad_network_config(self, network: str) -> Dict:
+        """
+        获取广告联盟配置
+        
+        Args:
+            network: 广告联盟名称
+            
+        Returns:
+            配置信息
+        """
+        return self._ad_network_configs.get(network, {})
+
+    def generate_adsense_code(self, slot_id: str, ad_format: str = 'auto') -> str:
+        """
+        生成 Google AdSense 广告代码
+        
+        Args:
+            slot_id: 广告位ID
+            ad_format: 广告格式(auto/display/article/match_content)
+            
+        Returns:
+            AdSense HTML代码
+        """
+        config = self._ad_network_configs.get('adsense', {})
+
+        if not config.get('enabled') or not config.get('publisher_id'):
+            return '<!-- AdSense not configured -->'
+
+        # AdSense 标准代码模板
+        adsense_code = f"""
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"></script>
+<!-- {self._ad_slots.get(slot_id, {}).get('name', 'Ad')} -->
+<ins class="adsbygoogle"
+     style="display:block"
+     data-ad-client="{config.get('client_id', '')}"
+     data-ad-slot="AD_SLOT_ID"
+     data-ad-format="{ad_format}"
+     data-full-width-responsive="true"></ins>
+<script>
+     (adsbygoogle = window.adsbygoogle || []).push({{}});
+</script>
+        """
+
+        return adsense_code.strip()
+
+    def generate_baidu_code(self, slot_id: str) -> str:
+        """
+        生成百度联盟广告代码
+        
+        Args:
+            slot_id: 广告位ID
+            
+        Returns:
+            百度联盟HTML代码
+        """
+        config = self._ad_network_configs.get('baidu', {})
+
+        if not config.get('enabled') or not config.get('union_id'):
+            return '<!-- Baidu Union not configured -->'
+
+        # 百度联盟标准代码模板
+        baidu_code = f"""
+<script type="text/javascript">
+    var cpro_id = "{config.get('union_id', '')}";
+</script>
+<script type="text/javascript" src="https://cpro.baidustatic.com/cpro/ui/cm.js"></script>
+        """
+
+        return baidu_code.strip()
+
+    def get_revenue_report(self, start_date: datetime = None,
+                           end_date: datetime = None) -> Dict:
+        """
+        获取收益报表
+        
+        Args:
+            start_date: 开始日期
+            end_date: 结束日期
+            
+        Returns:
+            收益统计数据
+        """
+        total_impressions = 0
+        total_clicks = 0
+        total_revenue = 0
+
+        for ad_id, stats in self._ad_stats.items():
+            ad = self._ads.get(ad_id)
+            if ad:
+                # TODO: 根据时间范围过滤
+                total_impressions += stats['impressions']
+                total_clicks += stats['clicks']
+                total_revenue += ad.get('spent', 0)
+
+        ctr = (total_clicks / total_impressions * 100) if total_impressions > 0 else 0
+        ecpm = (total_revenue / total_impressions * 1000) if total_impressions > 0 else 0
+
+        return {
+            'total_impressions': total_impressions,
+            'total_clicks': total_clicks,
+            'total_revenue': total_revenue,
+            'ctr': round(ctr, 2),
+            'ecpm': round(ecpm, 2),  # 每千次展示收益
+            'period': {
+                'start': start_date.isoformat() if start_date else None,
+                'end': end_date.isoformat() if end_date else None,
+            }
+        }
 
 
 # 全局实例

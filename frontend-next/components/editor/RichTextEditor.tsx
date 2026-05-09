@@ -1,6 +1,6 @@
 'use client';
 
-import React, {useCallback, useEffect, useState} from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {EditorContent, useEditor} from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Link from '@tiptap/extension-link';
@@ -21,10 +21,13 @@ import Placeholder from '@tiptap/extension-placeholder';
 import Typography from '@tiptap/extension-typography';
 import Dropcursor from '@tiptap/extension-dropcursor';
 import Gapcursor from '@tiptap/extension-gapcursor';
+import FontFamily from '@tiptap/extension-font-family';
+import {LineHeight} from '@/lib/tiptap-extensions/LineHeight';
 import {common, createLowlight} from 'lowlight';
 import MediaSelectorModal from '@/components/ui/MediaSelectorModal';
 import type {MediaFile} from '@/lib/api';
 import {getMediaUrlSync} from '@/lib/media-url';
+import {useToast} from '@/hooks/use-toast';
 
 // 创建语法高亮
 const lowlight = createLowlight(common);
@@ -50,9 +53,11 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                                                            mode = 'wysiwyg',
                                                            showPreview = false
                                                        }) => {
+    const {toast} = useToast();
     const [showMediaSelector, setShowMediaSelector] = useState(false);
     const [mediaType, setMediaType] = useState<'image' | 'video' | 'all'>('image');
     const [editorMode, setEditorMode] = useState<'visual' | 'code'>(mode === 'markdown' ? 'code' : 'visual');
+    const editorRef = useRef<HTMLDivElement>(null);
 
     const editor = useEditor({
         immediatelyRender: false, // 避免SSR水合不匹配
@@ -102,12 +107,51 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
             Typography, // 自动转换特殊字符
             Dropcursor, // 拖拽指示器
             Gapcursor, // 间隙光标
+            FontFamily, // 字体选择
+            LineHeight.configure({ // 行距
+                types: ['heading', 'paragraph'],
+                defaultLineHeight: 'normal',
+            }),
         ],
         content: value,
         editable: !disabled,
         editorProps: {
             attributes: {
                 class: `prose prose-sm sm:prose lg:prose-lg xl:prose-xl focus:outline-none min-h-[${minHeight}] max-h-[${maxHeight}] overflow-y-auto p-4`,
+            },
+            handleDrop: (view, event, slice, moved) => {
+                // 处理拖拽事件
+                if (!moved && event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files.length > 0) {
+                    event.preventDefault();
+                    const files = Array.from(event.dataTransfer.files);
+
+                    files.forEach(file => {
+                        if (file.type.startsWith('image/')) {
+                            const reader = new FileReader();
+                            reader.onload = (e) => {
+                                const result = e.target?.result as string;
+                                if (editor && result) {
+                                    editor.chain().focus().setImage({src: result}).run();
+                                }
+                            };
+                            reader.readAsDataURL(file);
+                        } else if (file.type.startsWith('video/')) {
+                            const url = URL.createObjectURL(file);
+                            if (editor) {
+                                const videoHtml = `<video controls src="${url}"></video>`;
+                                editor.chain().focus().insertContent(videoHtml).run();
+                            }
+                        }
+                    });
+
+                    toast({
+                        title: '插入成功',
+                        description: `已插入 ${files.length} 个文件`,
+                    });
+
+                    return true;
+                }
+                return false;
             },
         },
         onUpdate: ({editor}) => {
@@ -351,6 +395,69 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({
                               d="M21 10h-10a8 8 0 00-8 8v2M21 10l-6 6m6-6l-6-6"/>
                     </svg>
                 </ToolbarButton>
+
+                <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1"/>
+
+                {/* 字体选择 */}
+                <select
+                    onChange={(e) => editor.chain().focus().setFontFamily(e.target.value).run()}
+                    value={editor.getAttributes('textStyle').fontFamily || ''}
+                    className="px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800"
+                    title="字体"
+                >
+                    <option value="">默认字体</option>
+                    <option value="Arial">Arial</option>
+                    <option value="Times New Roman">Times New Roman</option>
+                    <option value="Courier New">Courier New</option>
+                    <option value="Georgia">Georgia</option>
+                    <option value="Verdana">Verdana</option>
+                    <option value="Microsoft YaHei">微软雅黑</option>
+                    <option value="SimSun">宋体</option>
+                    <option value="SimHei">黑体</option>
+                </select>
+
+                {/* 字号选择 */}
+                <select
+                    onChange={(e) => {
+                        const size = e.target.value;
+                        if (size) {
+                            editor.chain().focus().setMark('textStyle', {fontSize: size + 'px'}).run();
+                        }
+                    }}
+                    className="px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 w-20"
+                    title="字号"
+                >
+                    <option value="">默认</option>
+                    <option value="12">12px</option>
+                    <option value="14">14px</option>
+                    <option value="16">16px</option>
+                    <option value="18">18px</option>
+                    <option value="20">20px</option>
+                    <option value="24">24px</option>
+                    <option value="28">28px</option>
+                    <option value="32">32px</option>
+                    <option value="36">36px</option>
+                </select>
+
+                {/* 行距选择 */}
+                <select
+                    onChange={(e) => {
+                        const lineHeight = e.target.value;
+                        if (lineHeight) {
+                            editor.chain().focus().setLineHeight(lineHeight).run();
+                        }
+                    }}
+                    className="px-2 py-1 text-sm border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-800 w-20"
+                    title="行距"
+                >
+                    <option value="">默认</option>
+                    <option value="1">1.0</option>
+                    <option value="1.15">1.15</option>
+                    <option value="1.5">1.5</option>
+                    <option value="2">2.0</option>
+                    <option value="2.5">2.5</option>
+                    <option value="3">3.0</option>
+                </select>
 
                 <div className="w-px h-6 bg-gray-300 dark:bg-gray-600 mx-1"/>
 
