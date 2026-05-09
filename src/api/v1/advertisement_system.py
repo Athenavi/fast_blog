@@ -6,11 +6,11 @@
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, Query, Body
-from shared.utils.response import ApiResponse
 
 from shared.models.user import User as UserModel
 from shared.services.advertisement_system import advertisement_system
-from src.auth.auth_deps import admin_required_api
+from src.api.v1.responses import ApiResponse
+from src.auth.auth_deps import admin_required
 
 router = APIRouter(prefix="/ads", tags=["advertisements"])
 
@@ -50,7 +50,7 @@ async def create_ad(
         end_date: str = Body(None, description="结束时间(ISO格式)"),
         priority: int = Body(5, ge=1, le=10, description="优先级"),
         budget: float = Body(None, description="预算上限"),
-        current_user: UserModel = Depends(admin_required_api)
+        current_user: UserModel = Depends(admin_required)
 ):
     """
     创建新广告
@@ -109,7 +109,7 @@ async def create_ad(
 async def get_ads(
         slot_id: str = Query(None, description="广告位ID过滤"),
         status: str = Query(None, enum=['active', 'paused', 'expired'], description="状态过滤"),
-        current_user: UserModel = Depends(admin_required_api)
+        current_user: UserModel = Depends(admin_required)
 ):
     """
     获取广告列表
@@ -144,7 +144,7 @@ async def get_ads(
 @router.post("/{ad_id}/pause", summary="暂停广告")
 async def pause_ad(
         ad_id: str,
-        current_user: UserModel = Depends(admin_required_api)
+        current_user: UserModel = Depends(admin_required)
 ):
     """
     暂停指定广告
@@ -172,7 +172,7 @@ async def pause_ad(
 @router.post("/{ad_id}/activate", summary="激活广告")
 async def activate_ad(
         ad_id: str,
-        current_user: UserModel = Depends(admin_required_api)
+        current_user: UserModel = Depends(admin_required)
 ):
     """
     激活指定广告
@@ -200,7 +200,7 @@ async def activate_ad(
 @router.delete("/{ad_id}", summary="删除广告")
 async def delete_ad(
         ad_id: str,
-        current_user: UserModel = Depends(admin_required_api)
+        current_user: UserModel = Depends(admin_required)
 ):
     """
     删除指定广告
@@ -228,7 +228,7 @@ async def delete_ad(
 @router.get("/{ad_id}/stats", summary="获取广告统计")
 async def get_ad_stats(
         ad_id: str,
-        current_user: UserModel = Depends(admin_required_api)
+        current_user: UserModel = Depends(admin_required)
 ):
     """
     获取广告统计数据
@@ -256,7 +256,7 @@ async def get_ad_stats(
 async def configure_ad_network(
         network: str = Body(..., enum=['adsense', 'baidu'], description="广告联盟名称"),
         config: dict = Body(..., description="配置信息"),
-        current_user: UserModel = Depends(admin_required_api)
+        current_user: UserModel = Depends(admin_required)
 ):
     """
     配置广告联盟（AdSense/百度）
@@ -285,7 +285,7 @@ async def configure_ad_network(
 @router.get("/network/{network}/config", summary="获取广告联盟配置")
 async def get_ad_network_config(
         network: str,
-        current_user: UserModel = Depends(admin_required_api)
+        current_user: UserModel = Depends(admin_required)
 ):
     """
     获取广告联盟配置
@@ -311,7 +311,7 @@ async def get_ad_network_config(
 async def generate_adsense_code(
         slot_id: str = Query(..., description="广告位ID"),
         ad_format: str = Query('auto', enum=['auto', 'display', 'article', 'match_content'], description="广告格式"),
-        current_user: UserModel = Depends(admin_required_api)
+        current_user: UserModel = Depends(admin_required)
 ):
     """
     生成 Google AdSense 广告代码
@@ -340,7 +340,7 @@ async def generate_adsense_code(
 @router.get("/network/baidu/code", summary="生成百度联盟代码")
 async def generate_baidu_code(
         slot_id: str = Query(..., description="广告位ID"),
-        current_user: UserModel = Depends(admin_required_api)
+        current_user: UserModel = Depends(admin_required)
 ):
     """
     生成百度联盟广告代码
@@ -369,7 +369,7 @@ async def generate_baidu_code(
 async def get_revenue_report(
         start_date: str = Query(None, description="开始日期(ISO格式)"),
         end_date: str = Query(None, description="结束日期(ISO格式)"),
-        current_user: UserModel = Depends(admin_required_api)
+        current_user: UserModel = Depends(admin_required)
 ):
     """
     获取广告收益报表

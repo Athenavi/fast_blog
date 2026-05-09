@@ -213,7 +213,7 @@ async def get_cdn_stats(
 @router.get("/integration-code", summary="集成代码", description="获取CDN集成代码示例")
 async def get_integration_code(
         provider: str = Query(..., description="CDN提供商"),
-        framework: str = Query('html', regex='^(html|react|vue|django)$', description="框架类型"),
+        framework: str = Query('html', pattern='^(html|react|vue|django)$', description="框架类型"),
         current_user=Depends(jwt_required),
 ):
     """获取集成代码"""

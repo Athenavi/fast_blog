@@ -19,7 +19,7 @@ router = APIRouter()
 @router.get("/export/{language_code}", summary="导出翻译", description="导出指定语言的翻译文件")
 async def export_translation(
         language_code: str,
-        format: str = Query('json', regex='^(json|yaml|po)$', description="导出格式"),
+        format: str = Query('json', pattern='^(json|yaml|po)$', description="导出格式"),
         current_user=Depends(jwt_required),
 ):
     """导出翻译"""
@@ -148,7 +148,7 @@ async def import_translation(
 @router.post("/import/batch", summary="批量导入", description="批量导入多个翻译文件")
 async def batch_import_translations(
         files: List[UploadFile] = File(..., description="翻译文件列表"),
-        format: str = Query('json', regex='^(json|yaml|po)$', description="文件格式"),
+        format: str = Query('json', pattern='^(json|yaml|po)$', description="文件格式"),
         current_user=Depends(jwt_required),
 ):
     """批量导入"""

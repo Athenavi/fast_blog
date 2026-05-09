@@ -105,7 +105,7 @@ async def backup_full(
 
 @router.get("/list", summary="列出备份", description="获取备份列表")
 async def list_backups(
-        backup_type: Optional[str] = Query(None, regex='^(database|files|full)$', description="备份类型过滤"),
+        backup_type: Optional[str] = Query(None, pattern='^(database|files|full)$', description="备份类型过滤"),
         limit: int = Query(50, ge=1, le=200, description="返回数量限制"),
         current_user=Depends(jwt_required),
 ):

@@ -1,13 +1,12 @@
 """
 数据分析 API
 """
-from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.utils.database import get_db
 from shared.services.analytics import create_analytics_service
+from src.utils.database.main import get_async_session
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
 
@@ -15,7 +14,7 @@ router = APIRouter(prefix="/analytics", tags=["analytics"])
 @router.get("/overview")
 async def get_overview_stats(
         days: int = Query(30, ge=1, le=365, description="统计天数"),
-        db: AsyncSession = Depends(get_db)
+        db: AsyncSession = Depends(get_async_session)
 ):
     """
     获取概览统计数据
@@ -42,7 +41,7 @@ async def get_overview_stats(
 @router.get("/article-views-trend")
 async def get_article_views_trend(
         days: int = Query(30, ge=1, le=365, description="统计天数"),
-        db: AsyncSession = Depends(get_db)
+        db: AsyncSession = Depends(get_async_session)
 ):
     """
     获取文章浏览量趋势
@@ -70,7 +69,7 @@ async def get_article_views_trend(
 async def get_popular_articles(
         limit: int = Query(10, ge=1, le=100, description="返回数量"),
         days: int = Query(7, ge=1, le=365, description="统计天数"),
-        db: AsyncSession = Depends(get_db)
+        db: AsyncSession = Depends(get_async_session)
 ):
     """
     获取热门文章
@@ -97,7 +96,7 @@ async def get_popular_articles(
 
 @router.get("/category-distribution")
 async def get_category_distribution(
-        db: AsyncSession = Depends(get_db)
+        db: AsyncSession = Depends(get_async_session)
 ):
     """
     获取分类分布
@@ -123,7 +122,7 @@ async def get_category_distribution(
 @router.get("/user-activity")
 async def get_user_activity(
         days: int = Query(30, ge=1, le=365, description="统计天数"),
-        db: AsyncSession = Depends(get_db)
+        db: AsyncSession = Depends(get_async_session)
 ):
     """
     获取用户活动统计
@@ -150,7 +149,7 @@ async def get_user_activity(
 @router.get("/content-performance")
 async def get_content_performance(
         days: int = Query(30, ge=1, le=365, description="统计天数"),
-        db: AsyncSession = Depends(get_db)
+        db: AsyncSession = Depends(get_async_session)
 ):
     """
     获取内容表现分析
@@ -177,7 +176,7 @@ async def get_content_performance(
 @router.get("/traffic-sources")
 async def get_traffic_sources(
         days: int = Query(30, ge=1, le=365, description="统计天数"),
-        db: AsyncSession = Depends(get_db)
+        db: AsyncSession = Depends(get_async_session)
 ):
     """
     获取流量来源分析
@@ -204,7 +203,7 @@ async def get_traffic_sources(
 @router.get("/device-stats")
 async def get_device_stats(
         days: int = Query(30, ge=1, le=365, description="统计天数"),
-        db: AsyncSession = Depends(get_db)
+        db: AsyncSession = Depends(get_async_session)
 ):
     """
     获取设备统计

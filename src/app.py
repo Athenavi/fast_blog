@@ -75,7 +75,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         from src.utils.database.unified_manager import db_manager
 
         publish_scheduler = init_publish_scheduler(
-            db_manager.get_async_session_factory,
+            db_manager.async_session_factory,
             check_interval=60  # 每60秒检查一次
         )
         await start_scheduler()

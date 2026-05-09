@@ -7,8 +7,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.utils.database import get_db
 from shared.services.membership import create_membership_service
+from src.utils.database.main import get_async_session
 
 router = APIRouter(prefix="/membership", tags=["membership"])
 
@@ -23,7 +23,7 @@ class CreateSubscriptionRequest(BaseModel):
 @router.get("/status")
 async def get_vip_status(
         user_id: int = Query(..., description="用户ID"),
-        db: AsyncSession = Depends(get_db)
+        db: AsyncSession = Depends(get_async_session)
 ):
     """
     获取用户 VIP 状态
@@ -52,7 +52,7 @@ async def check_content_access(
         user_id: int = Query(..., description="用户ID"),
         article_id: int = Query(..., description="文章ID"),
         required_level: int = Query(0, ge=0, le=10, description="所需VIP等级"),
-        db: AsyncSession = Depends(get_db)
+        db: AsyncSession = Depends(get_async_session)
 ):
     """
     检查内容访问权限
@@ -82,7 +82,7 @@ async def check_content_access(
 async def create_subscription(
         request: CreateSubscriptionRequest,
         user_id: int = Query(..., description="用户ID"),
-        db: AsyncSession = Depends(get_db)
+        db: AsyncSession = Depends(get_async_session)
 ):
     """
     创建订阅
@@ -118,7 +118,7 @@ async def create_subscription(
 async def cancel_subscription(
         subscription_id: int,
         user_id: int = Query(..., description="用户ID"),
-        db: AsyncSession = Depends(get_db)
+        db: AsyncSession = Depends(get_async_session)
 ):
     """
     取消订阅
@@ -147,7 +147,7 @@ async def cancel_subscription(
 
 @router.get("/plans")
 async def get_available_plans(
-        db: AsyncSession = Depends(get_db)
+        db: AsyncSession = Depends(get_async_session)
 ):
     """
     获取可用套餐列表
@@ -173,7 +173,7 @@ async def get_available_plans(
 @router.get("/subscriptions")
 async def get_user_subscriptions(
         user_id: int = Query(..., description="用户ID"),
-        db: AsyncSession = Depends(get_db)
+        db: AsyncSession = Depends(get_async_session)
 ):
     """
     获取用户订阅历史
