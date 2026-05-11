@@ -886,7 +886,7 @@ const MessagesPage = () => {
                       className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
                       placeholder="请输入群聊名称"
                   />
-              </div>
+                </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
@@ -900,6 +900,7 @@ const MessagesPage = () => {
                       rows={3}
                   />
                 </div>
+              </div>
 
               <div className="flex gap-2 mt-6">
                 <button
