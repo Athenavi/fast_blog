@@ -1,5 +1,7 @@
 fastapi
 jinja2
+mdit-py-plugins
+pygments
 uvicorn[standard]
 python-dotenv
 sqlalchemy
@@ -54,3 +56,8 @@ sentry-sdk[fastapi]
 
 # Meilisearch 全文搜索引擎
 meilisearch-python-sdk
+
+
+python-magic
+libmagic
+humanize

@@ -1,13 +1,113 @@
 'use client';
 
 import React, {useEffect, useState} from 'react';
-import {FaEdit, FaFolder, FaPlus, FaRedo, FaSearch, FaTrash} from 'react-icons/fa';
+import {FaBars, FaEdit, FaFolder, FaPlus, FaRedo, FaSearch, FaTrash} from 'react-icons/fa';
 import {type Category, CategoryService} from '@/lib/api';
+import {closestCenter, DndContext, KeyboardSensor, PointerSensor, useSensor, useSensors,} from '@dnd-kit/core';
+import {
+    arrayMove,
+    SortableContext,
+    sortableKeyboardCoordinates,
+    useSortable,
+    verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import {CSS} from '@dnd-kit/utilities';
 
 interface CategoryWithCounts {
     category: Category;
     article_count: number;
     subscriber_count: number;
+}
+
+// 可排序的分类行组件
+function SortableCategoryRow({
+                                 item,
+                                 index,
+                                 onEdit,
+                                 onDelete,
+                                 formatDate,
+                             }: {
+    item: CategoryWithCounts;
+    index: number;
+    onEdit: (category: Category) => void;
+    onDelete: (id: number, name: string) => void;
+    formatDate: (dateString?: string) => string;
+}) {
+    const {
+        attributes,
+        listeners,
+        setNodeRef,
+        transform,
+        transition,
+        isDragging,
+    } = useSortable({
+        id: item.category.id,
+    });
+
+    const style = {
+        transform: CSS.Transform.toString(transform),
+        transition,
+        opacity: isDragging ? 0.5 : 1,
+    };
+
+    return (
+        <tr
+            ref={setNodeRef}
+            style={style}
+            className={`hover:bg-gray-50 transition-colors ${isDragging ? 'bg-blue-50' : ''}`}
+        >
+            <td className="px-6 py-4 whitespace-nowrap">
+                <div className="flex items-center">
+                    {/* 拖拽手柄 */}
+                    <button
+                        {...attributes}
+                        {...listeners}
+                        className="mr-3 cursor-move text-gray-400 hover:text-gray-600 p-1"
+                        title="拖拽排序"
+                    >
+                        <FaBars/>
+                    </button>
+                    <div
+                        className="flex-shrink-0 h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
+                        <FaFolder/>
+                    </div>
+                    <div className="ml-4">
+                        <div className="text-sm font-medium text-gray-900">{item.category.name}</div>
+                    </div>
+                </div>
+            </td>
+            <td className="px-6 py-4">
+                <div className="text-sm text-gray-700 max-w-xs truncate">
+                    {item.category.description || '暂无描述'}
+                </div>
+            </td>
+            <td className="px-6 py-4 whitespace-nowrap">
+                <div className="text-sm text-gray-900">{item.article_count}</div>
+            </td>
+            <td className="px-6 py-4 whitespace-nowrap">
+                <div className="text-sm text-gray-900">{item.subscriber_count}</div>
+            </td>
+            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                {item.category.created_at ? formatDate(item.category.created_at) : 'N/A'}
+            </td>
+            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                <div className="flex space-x-2">
+                    <button
+                        onClick={() => onEdit(item.category)}
+                        className="text-blue-600 hover:text-blue-700"
+                    >
+                        <FaEdit/>
+                    </button>
+                    <button
+                        onClick={() => onDelete(item.category.id, item.category.name)}
+                        className="text-red-600 hover:text-red-700"
+                    >
+                        <FaTrash/>
+                    </button>
+                </div>
+            </td>
+        </tr>
+    );
 }
 
 const CategoryManagement = () => {
@@ -27,6 +127,15 @@ const CategoryManagement = () => {
     const [deleteCategoryName, setDeleteCategoryName] = useState('');
 
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [isSorting, setIsSorting] = useState(false); // 是否正在保存排序
+
+    // 配置拖拽传感器
+    const sensors = useSensors(
+        useSensor(PointerSensor),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
+    );
 
     // 加载分类数据
     useEffect(() => {
@@ -99,6 +208,53 @@ const CategoryManagement = () => {
     const handleReset = () => {
         setSearchQuery('');
         setCurrentPage(1);
+    };
+
+    // 处理拖拽结束
+    const handleDragEnd = async (event: any) => {
+        const {active, over} = event;
+
+        if (active.id !== over.id) {
+            // 获取旧索引和新索引
+            const oldIndex = categories.findIndex((item) => item.category.id === active.id);
+            const newIndex = categories.findIndex((item) => item.category.id === over.id);
+
+            // 更新本地状态（立即响应）
+            const newCategories = arrayMove(categories, oldIndex, newIndex);
+            setCategories(newCategories);
+
+            // 准备排序数据（根据新顺序设置 sort_order）
+            const orders = newCategories.map((item, index) => ({
+                id: item.category.id,
+                sort_order: index,
+            }));
+
+            // 保存到后端
+            setIsSorting(true);
+            try {
+                const response = await fetch('/api/v1/batch/categories/update-sort', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({orders}),
+                });
+
+                const result = await response.json();
+
+                if (!result.success) {
+                    console.error('Failed to save sort order:', result.detail || result.message);
+                    // 如果失败，恢复原来的顺序
+                    loadCategories();
+                }
+            } catch (error) {
+                console.error('Error saving sort order:', error);
+                // 如果失败，恢复原来的顺序
+                loadCategories();
+            } finally {
+                setIsSorting(false);
+            }
+        }
     };
 
     const goToPage = (page: number) => {
@@ -246,6 +402,18 @@ const CategoryManagement = () => {
                             <FaPlus className="mr-2"/>
                             新建分类
                         </button>
+                        {isSorting && (
+                            <span className="text-sm text-blue-600 flex items-center">
+                                <svg className="animate-spin -ml-1 mr-2 h-4 w-4 text-blue-600"
+                                     xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor"
+                                            strokeWidth="4"></circle>
+                                    <path className="opacity-75" fill="currentColor"
+                                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                                </svg>
+                                保存排序中...
+                            </span>
+                        )}
                     </div>
                     <div className="flex items-center gap-4">
                         <div className="relative flex-1 md:w-64">
@@ -298,92 +466,71 @@ const CategoryManagement = () => {
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
-                        <table className="min-w-full divide-y divide-gray-200">
-                            <thead className="bg-gray-50">
-                            <tr>
-                                <th scope="col"
-                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    分类名称
-                                </th>
-                                <th scope="col"
-                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    描述
-                                </th>
-                                <th scope="col"
-                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    文章数量
-                                </th>
-                                <th scope="col"
-                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    订阅数量
-                                </th>
-                                <th scope="col"
-                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    创建时间
-                                </th>
-                                <th scope="col"
-                                    className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                                    操作
-                                </th>
-                            </tr>
-                            </thead>
-                            <tbody className="bg-white divide-y divide-gray-200">
-                            {categories.length > 0 ? (
-                                categories.map((item: CategoryWithCounts, index: number) => (
-                                    <tr key={item.category.id} className="hover:bg-gray-50 transition-colors">
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="flex items-center">
-                                                <div
-                                                    className="flex-shrink-0 h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600">
-                                                    <FaFolder/>
-                                                </div>
-                                                <div className="ml-4">
-                                                    <div
-                                                        className="text-sm font-medium text-gray-900">{item.category.name}</div>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="text-sm text-gray-700 max-w-xs truncate">
-                                                {item.category.description || '暂无描述'}
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm text-gray-900">{item.article_count}</div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap">
-                                            <div className="text-sm text-gray-900">{item.subscriber_count}</div>
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            {item.category.created_at ? formatDate(item.category.created_at) : 'N/A'}
-                                        </td>
-                                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                            <div className="flex space-x-2">
-                                                <button
-                                                    onClick={() => handleEditCategory(item.category)}
-                                                    className="text-blue-600 hover:text-blue-700"
-                                                >
-                                                    <FaEdit/>
-                                                </button>
-                                                <button
-                                                    onClick={() => handleDeleteClick(item.category.id, item.category.name)}
-                                                    className="text-red-600 hover:text-red-700"
-                                                >
-                                                    <FaTrash/>
-                                                </button>
-                                            </div>
+                        <DndContext
+                            sensors={sensors}
+                            collisionDetection={closestCenter}
+                            onDragEnd={handleDragEnd}
+                        >
+                            <table className="min-w-full divide-y divide-gray-200">
+                                <thead className="bg-gray-50">
+                                <tr>
+                                    <th scope="col"
+                                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        排序
+                                    </th>
+                                    <th scope="col"
+                                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        分类名称
+                                    </th>
+                                    <th scope="col"
+                                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        描述
+                                    </th>
+                                    <th scope="col"
+                                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        文章数量
+                                    </th>
+                                    <th scope="col"
+                                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        订阅数量
+                                    </th>
+                                    <th scope="col"
+                                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        创建时间
+                                    </th>
+                                    <th scope="col"
+                                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                                        操作
+                                    </th>
+                                </tr>
+                                </thead>
+                                <tbody className="bg-white divide-y divide-gray-200">
+                                {categories.length > 0 ? (
+                                    <SortableContext
+                                        items={categories.map((item) => item.category.id)}
+                                        strategy={verticalListSortingStrategy}
+                                    >
+                                        {categories.map((item: CategoryWithCounts, index: number) => (
+                                            <SortableCategoryRow
+                                                key={item.category.id}
+                                                item={item}
+                                                index={index}
+                                                onEdit={handleEditCategory}
+                                                onDelete={handleDeleteClick}
+                                                formatDate={formatDate}
+                                            />
+                                        ))}
+                                    </SortableContext>
+                                ) : (
+                                    <tr>
+                                        <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
+                                            没有找到分类
                                         </td>
                                     </tr>
-                                ))
-                            ) : (
-                                <tr>
-                                    <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
-                                        没有找到分类
-                                    </td>
-                                </tr>
-                            )}
-                            </tbody>
-                        </table>
+                                )}
+                                </tbody>
+                            </table>
+                        </DndContext>
                     </div>
                 )}
 

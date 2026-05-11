@@ -6,7 +6,13 @@ import shutil
 import uuid
 from typing import List, Optional, Union
 
-import magic
+try:
+    import magic
+
+    HAS_MAGIC = True
+except ImportError:
+    HAS_MAGIC = False
+    magic = None
 from fastapi import Depends, UploadFile
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -58,9 +64,13 @@ class FileProcessor:
     def _get_mime_type(self, file_data: bytes, filename: str) -> str:
         """获取文件的MIME类型"""
         try:
-            mime_type = magic.from_buffer(file_data, mime=True)
-            logger.debug(f"[DEBUG] Magic 检测到 MIME 类型: {mime_type} (文件: {filename})")
-            return mime_type
+            if HAS_MAGIC and magic:
+                mime_type = magic.from_buffer(file_data, mime=True)
+                logger.debug(f"[DEBUG] Magic 检测到 MIME 类型: {mime_type} (文件: {filename})")
+                return mime_type
+            else:
+                logger.warning(f"[WARN] Magic 库不可用，使用扩展名推断")
+                raise Exception("Magic library not available")
         except Exception as e:
             logger.warning(f"[WARN] Magic 库失败，使用扩展名推断: {e}")
             # 如果magic库失败，使用扩展名推断
