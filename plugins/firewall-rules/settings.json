@@ -1,0 +1,17 @@
+{
+  "enable_firewall": false,
+  "enable_rate_limit": true,
+  "rate_limit_requests": 100,
+  "rate_limit_window": 60,
+  "enable_ip_blacklist": true,
+  "enable_ip_whitelist": true,
+  "enable_geo_blocking": false,
+  "blocked_countries": [],
+  "enable_auto_ban": true,
+  "auto_ban_threshold": 50,
+  "auto_ban_duration": 3600,
+  "enable_sql_injection_protection": true,
+  "enable_xss_protection": true,
+  "enable_path_traversal_protection": true,
+  "log_blocked_requests": true
+}

@@ -1,0 +1,33 @@
+version: '3.8'
+
+services:
+  # Meilisearch 搜索引擎
+  meilisearch:
+    image: getmeili/meilisearch:latest
+    container_name: fastblog-meilisearch
+    ports:
+      - "7700:7700"
+    volumes:
+      - ./meili_data:/meili_data
+    environment:
+      - MEILI_NO_ANALYTICS=true
+      - MEILI_ENV=production
+      # 可选：设置主密钥（生产环境建议启用）
+      # - MEILI_MASTER_KEY=your-secret-key-here
+    restart: unless-stopped
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:7700/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - fastblog-network
+
+networks:
+  fastblog-network:
+    driver: bridge
+
+volumes:
+  meili_data:
+    driver: local

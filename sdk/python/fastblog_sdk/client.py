@@ -1,0 +1,312 @@
+"""
+FastBlog API Python SDK Client
+提供同步和异步客户端实现
+"""
+
+from typing import Optional, Dict, Any, List
+
+import requests
+
+
+class FastBlogClient:
+    """FastBlog API 同步客户端"""
+
+    def __init__(self, base_url: str = "http://localhost:9421/api/v1", token: Optional[str] = None):
+        """
+        初始化客户端
+        
+        Args:
+            base_url: API 基础 URL
+            token: JWT Token（可选）
+        """
+        self.base_url = base_url.rstrip('/')
+        self.token = token
+        self.session = requests.Session()
+
+        if token:
+            self.session.headers.update({
+                'Authorization': f'Bearer {token}'
+            })
+
+    def _request(self, method: str, endpoint: str, **kwargs) -> Dict[str, Any]:
+        """
+        发送 HTTP 请求
+        
+        Args:
+            method: HTTP 方法
+            endpoint: API 端点
+            **kwargs: 请求参数
+            
+        Returns:
+            响应数据
+        """
+        url = f"{self.base_url}{endpoint}"
+        response = self.session.request(method, url, **kwargs)
+        response.raise_for_status()
+        return response.json()
+
+    # ==================== 认证相关 ====================
+
+    def login(self, email: str, password: str) -> Dict[str, Any]:
+        """
+        用户登录
+        
+        Args:
+            email: 邮箱
+            password: 密码
+            
+        Returns:
+            包含 token 的响应
+        """
+        response = self._request('POST', '/auth/login', json={
+            'email': email,
+            'password': password
+        })
+
+        if response.get('success'):
+            self.token = response['data']['token']
+            self.session.headers.update({
+                'Authorization': f'Bearer {self.token}'
+            })
+
+        return response
+
+    def logout(self) -> Dict[str, Any]:
+        """用户登出"""
+        response = self._request('POST', '/auth/logout')
+        self.token = None
+        self.session.headers.pop('Authorization', None)
+        return response
+
+    def register(self, email: str, password: str, username: str) -> Dict[str, Any]:
+        """
+        用户注册
+        
+        Args:
+            email: 邮箱
+            password: 密码
+            username: 用户名
+            
+        Returns:
+            注册结果
+        """
+        return self._request('POST', '/auth/register', json={
+            'email': email,
+            'password': password,
+            'username': username
+        })
+
+    # ==================== 文章相关 ====================
+
+    def get_articles(self, page: int = 1, per_page: int = 10, **params) -> Dict[str, Any]:
+        """
+        获取文章列表
+        
+        Args:
+            page: 页码
+            per_page: 每页数量
+            **params: 其他查询参数
+            
+        Returns:
+            文章列表
+        """
+        params.update({'page': page, 'per_page': per_page})
+        return self._request('GET', '/articles', params=params)
+
+    def get_article(self, article_id: int) -> Dict[str, Any]:
+        """
+        获取单篇文章
+        
+        Args:
+            article_id: 文章ID
+            
+        Returns:
+            文章详情
+        """
+        return self._request('GET', f'/articles/{article_id}')
+
+    def create_article(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        创建文章
+        
+        Args:
+            data: 文章数据
+            
+        Returns:
+            创建的文章
+        """
+        return self._request('POST', '/articles', json=data)
+
+    def update_article(self, article_id: int, data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        更新文章
+        
+        Args:
+            article_id: 文章ID
+            data: 更新数据
+            
+        Returns:
+            更新后的文章
+        """
+        return self._request('PUT', f'/articles/{article_id}', json=data)
+
+    def delete_article(self, article_id: int) -> Dict[str, Any]:
+        """
+        删除文章
+        
+        Args:
+            article_id: 文章ID
+            
+        Returns:
+            删除结果
+        """
+        return self._request('DELETE', f'/articles/{article_id}')
+
+    # ==================== 分类相关 ====================
+
+    def get_categories(self) -> Dict[str, Any]:
+        """获取分类列表"""
+        return self._request('GET', '/categories')
+
+    def create_category(self, name: str, slug: str, description: str = '') -> Dict[str, Any]:
+        """
+        创建分类
+        
+        Args:
+            name: 分类名称
+            slug: 分类别名
+            description: 分类描述
+            
+        Returns:
+            创建的分类
+        """
+        return self._request('POST', '/categories', json={
+            'name': name,
+            'slug': slug,
+            'description': description
+        })
+
+    # ==================== 用户相关 ====================
+
+    def get_current_user(self) -> Dict[str, Any]:
+        """获取当前用户信息"""
+        return self._request('GET', '/user/profile')
+
+    def update_profile(self, data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        更新用户资料
+        
+        Args:
+            data: 更新数据
+            
+        Returns:
+            更新后的用户信息
+        """
+        return self._request('PUT', '/user/profile', json=data)
+
+    # ==================== 媒体相关 ====================
+
+    def upload_media(self, file_path: str) -> Dict[str, Any]:
+        """
+        上传媒体文件
+        
+        Args:
+            file_path: 文件路径
+            
+        Returns:
+            上传的媒体信息
+        """
+        with open(file_path, 'rb') as f:
+            files = {'file': f}
+            return self._request('POST', '/media/upload', files=files)
+
+    # ==================== 仪表板相关 ====================
+
+    def get_dashboard_stats(self) -> Dict[str, Any]:
+        """获取仪表板统计数据"""
+        return self._request('GET', '/dashboard/stats')
+
+    # ==================== SEO 追踪相关 ====================
+
+    def get_seo_traffic(self, days: int = 30) -> Dict[str, Any]:
+        """
+        获取 SEO 流量数据
+        
+        Args:
+            days: 统计天数
+            
+        Returns:
+            SEO 流量数据
+        """
+        return self._request('GET', '/seo-tracking/search-traffic', params={'days': days})
+
+    def get_top_keywords(self, limit: int = 20, days: int = 30) -> Dict[str, Any]:
+        """
+        获取热门关键词
+        
+        Args:
+            limit: 返回数量
+            days: 统计天数
+            
+        Returns:
+            关键词列表
+        """
+        return self._request('GET', '/seo-tracking/top-keywords', params={
+            'limit': limit,
+            'days': days
+        })
+
+    # ==================== 报表相关 ====================
+
+    def get_content_report(self, days: int = 30) -> Dict[str, Any]:
+        """
+        获取内容报表
+        
+        Args:
+            days: 统计天数
+            
+        Returns:
+            内容报表
+        """
+        return self._request('GET', '/reports/content', params={'days': days})
+
+    def get_custom_report(self, metrics: List[str], days: int = 30) -> Dict[str, Any]:
+        """
+        获取自定义报表
+        
+        Args:
+            metrics: 指标列表
+            days: 统计天数
+            
+        Returns:
+            自定义报表
+        """
+        return self._request('POST', '/reports/custom', json={
+            'metrics': metrics,
+            'days': days
+        })
+
+    def close(self):
+        """关闭会话"""
+        self.session.close()
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
+
+# 异步客户端将在后续实现
+class AsyncFastBlogClient:
+    """FastBlog API 异步客户端（占位符）"""
+
+    def __init__(self, base_url: str = "http://localhost:9421/api/v1", token: Optional[str] = None):
+        """
+        初始化异步客户端
+        
+        Args:
+            base_url: API 基础 URL
+            token: JWT Token（可选）
+        """
+        raise NotImplementedError("AsyncFastBlogClient 尚未实现，请使用 FastBlogClient")
