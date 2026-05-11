@@ -1,7 +1,7 @@
 """
 Django ORM 抽象基类定义
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-11 09:33:58
+生成时间：2026-05-11 10:10:47
 """
 
 from django.db import models
@@ -2962,3 +2962,68 @@ class UserRevenueStatsMixin(models.Model):
         # 注意：请在具体模型类中设置 db_table = get_table_name("user_revenue_stats")
 
 
+class ChatGroupMixin(models.Model):
+    """群聊会话模型 Mixin"""
+
+    # 群聊 ID
+    id = models.BigAutoField(
+        '群聊 ID', primary_key=True)
+    # 群聊名称
+    name = models.CharField(
+        '群聊名称', max_length=255)
+    # 群聊描述
+    description = models.CharField(
+        '群聊描述', max_length=255, blank=True, null=True)
+    # 群聊头像 URL
+    avatar = models.CharField(
+        '群聊头像 URL', max_length=255, blank=True, null=True)
+    # 创建者
+    creator = models.IntegerField(
+        '创建者 (暂为 IntegerField，等待 User 模型实现)', )
+    # 成员数量
+    member_count = models.BigIntegerField(
+        '成员数量', default=0)
+    # 最后消息时间
+    last_message_at = models.DateTimeField(
+        '最后消息时间', blank=True, null=True)
+    # 是否激活
+    is_active = models.BooleanField(
+        '是否激活', default=True)
+
+    class Meta:
+        abstract = True
+        app_label = 'generated'
+        verbose_name = '群聊会话模型'
+        # 注意：请在具体模型类中设置 db_table = get_table_name("chat_groups")
+
+
+class ChatGroupMemberMixin(models.Model):
+    """群聊成员关系模型 Mixin"""
+
+    # 成员关系 ID
+    id = models.BigAutoField(
+        '成员关系 ID', primary_key=True)
+    # 群聊 ID
+    group = models.IntegerField(
+        '群聊 ID (暂为 IntegerField，等待 ChatGroup 模型实现)', )
+    # 用户 ID
+    user = models.IntegerField(
+        '用户 ID (暂为 IntegerField，等待 User 模型实现)', )
+    # 角色 (owner/admin/member)
+    role = models.CharField(
+        '角色 (owner/admin/member)', max_length=50, default='member')
+    # 加入时间
+    joined_at = models.DateTimeField(
+        '加入时间')
+    # 最后阅读时间
+    last_read_at = models.DateTimeField(
+        '最后阅读时间', blank=True, null=True)
+    # 是否静音
+    is_muted = models.BooleanField(
+        '是否静音', default=False)
+
+    class Meta:
+        abstract = True
+        app_label = 'generated'
+        verbose_name = '群聊成员关系模型'
+        # 注意：请在具体模型类中设置 db_table = get_table_name("chat_group_members")

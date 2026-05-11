@@ -1,16 +1,12 @@
 """
 FastAPI 路由文件
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-11 09:33:58
+生成时间：2026-05-11 10:10:47
 """
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Depends, Query
 
 from src.api.v1.responses import ApiResponse
-
-from fastapi import APIRouter, Depends, Form, Query, Path
-from src.api.v1.responses import ApiResponse
-from src.auth import jwt_required_dependency as jwt_required
 
 # 导入依赖
 

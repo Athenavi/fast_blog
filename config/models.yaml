@@ -4301,3 +4301,111 @@ models:
         columns: [ user_id ]
         unique: true
         comment: "用户ID唯一索引"
+
+  ChatGroup:
+    description: 群聊会话模型
+    properties:
+      id:
+        type: bigint
+        description: 群聊 ID
+      name:
+        type: string
+        maxLength: 255
+        description: 群聊名称
+      description:
+        type: string
+        nullable: true
+        description: 群聊描述
+      avatar:
+        type: string
+        nullable: true
+        description: 群聊头像 URL
+      creator:
+        type: bigint
+        description: 创建者
+        foreignKey: User
+      member_count:
+        type: bigint
+        default: 0
+        readOnly: true
+        description: 成员数量
+      last_message_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: 最后消息时间
+      is_active:
+        type: boolean
+        default: true
+        description: 是否激活
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    orm: true
+    table: chat_groups
+    indexes:
+      - name: idx_chat_groups_creator
+        columns: [ creator ]
+        comment: "创建者索引"
+      - name: idx_chat_groups_created_at
+        columns: [ created_at ]
+        order: DESC
+        comment: "创建时间索引"
+      - name: idx_chat_groups_is_active
+        columns: [ is_active ]
+        comment: "激活状态索引"
+
+  ChatGroupMember:
+    description: 群聊成员关系模型
+    properties:
+      id:
+        type: bigint
+        description: 成员关系 ID
+      group:
+        type: bigint
+        description: 群聊 ID
+        foreignKey: ChatGroup
+      user:
+        type: bigint
+        description: 用户 ID
+        foreignKey: User
+      role:
+        type: string
+        maxLength: 50
+        default: member
+        enum:
+          - owner
+          - admin
+          - member
+        description: 角色 (owner/admin/member)
+      joined_at:
+        type: string
+        format: date-time
+        description: 加入时间
+      last_read_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: "最后阅读时间"
+      is_muted:
+        type: boolean
+        default: false
+        description: 是否静音
+    orm: true
+    table: chat_group_members
+    indexes:
+      - name: idx_chat_group_members_group
+        columns: [ group ]
+        comment: "群聊ID索引"
+      - name: idx_chat_group_members_user
+        columns: [ user ]
+        comment: "用户ID索引"
+      - name: idx_chat_group_members_unique
+        columns: [ group, user ]
+        unique: true
+        comment: "群聊-用户唯一索引"
