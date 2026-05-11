@@ -4566,3 +4566,62 @@ models:
         columns: [ generated_at ]
         order: DESC
         comment: "生成时间索引"
+
+  ArticleAnnotation:
+    description: 文章批注模型（支持协作编辑时的评论和批注）
+    properties:
+      id:
+        type: bigint
+        description: 批注 ID
+      article:
+        type: bigint
+        description: 文章 ID
+        foreignKey: Article
+      user:
+        type: bigint
+        description: 创建者
+        foreignKey: User
+      parent:
+        type: bigint
+        nullable: true
+        description: 父批注 ID（用于回复）
+        foreignKey: ArticleAnnotation
+      content:
+        type: text
+        description: 批注内容
+      position:
+        type: text
+        nullable: true
+        description: 批注位置（JSON格式，包含start/end等）
+      selection_text:
+        type: string
+        maxLength: 500
+        nullable: true
+        description: 选中的文本片段
+      is_resolved:
+        type: boolean
+        default: false
+        description: 是否已解决
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    orm: true
+    table: article_annotations
+    indexes:
+      - name: idx_article_annotations_article
+        columns: [ article ]
+        comment: "文章ID索引"
+      - name: idx_article_annotations_user
+        columns: [ user ]
+        comment: "用户ID索引"
+      - name: idx_article_annotations_parent
+        columns: [ parent ]
+        comment: "父批注ID索引"
+      - name: idx_article_annotations_resolved
+        columns: [ is_resolved ]
+        comment: "解决状态索引"

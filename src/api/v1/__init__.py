@@ -44,6 +44,12 @@ def _import_modules():
         "share_stats",  # 分享统计
         "user_blocks",  # 用户屏蔽
         "sensitive_words",  # 敏感词管理
+        "article_annotations",  # 文章批注
+        "chat",  # 聊天功能
+        "cache_optimization",  # 缓存优化
+        "query_optimization_api",  # 查询优化
+        "lazy_load_optimization",  # 懒加载优化
+        "code_splitting_optimization",  # 代码分割优化
     ]
 
     for name in module_names:
@@ -75,6 +81,12 @@ __all__ = [
     "share_stats",  # 分享统计
     "user_blocks",  # 用户屏蔽
     "sensitive_words",  # 敏感词管理
+    "article_annotations",  # 文章批注
+    "chat",  # 聊天功能
+    "cache_optimization",  # 缓存优化
+    "query_optimization_api",  # 查询优化
+    "lazy_load_optimization",  # 懒加载优化
+    "code_splitting_optimization",  # 代码分割优化
 ]
 
 api_v1_router = APIRouter(prefix="/api/v1", tags=["api-v1"])
@@ -139,6 +151,12 @@ def _include_routers():
         ("share_stats", True, "/shares"),  # 分享统计
         ("user_blocks", True, "/blocks"),  # 用户屏蔽
         ("sensitive_words", True, "/sensitive-words"),  # 敏感词管理
+        ("article_annotations", True, "/annotations"),  # 文章批注
+        ("chat", True, "/chat"),  # 聊天功能
+        ("cache_optimization", True, "/cache-optimization"),  # 缓存优化
+        ("query_optimization_api", True, "/query-optimization"),  # 查询优化
+        ("lazy_load_optimization", True, "/lazy-load"),  # 懒加载优化
+        ("code_splitting_optimization", True, "/code-splitting"),  # 代码分割优化
     ]
 
     for name, required, prefix in router_configs:

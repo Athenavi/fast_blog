@@ -1,7 +1,7 @@
 """
 Django ORM 抽象基类定义
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-11 11:42:42
+生成时间：2026-05-11 11:48:34
 """
 
 from django.db import models
@@ -3142,3 +3142,38 @@ class ReportHistoryMixin(models.Model):
         # 注意：请在具体模型类中设置 db_table = get_table_name("report_history")
 
 
+class ArticleAnnotationMixin(models.Model):
+    """文章批注模型（支持协作编辑时的评论和批注） Mixin"""
+
+    # 批注 ID
+    id = models.BigAutoField(
+        '批注 ID', primary_key=True)
+    # 文章 ID
+    article = models.IntegerField(
+        '文章 ID (暂为 IntegerField，等待 Article 模型实现)', )
+    # 创建者
+    user = models.IntegerField(
+        '创建者 (暂为 IntegerField，等待 User 模型实现)', )
+    # 父批注 ID(用于回复)
+    parent = models.ForeignKey(
+        'self',
+        on_delete=models.CASCADE,
+        verbose_name='父批注 ID(用于回复)', null=True, blank=True)
+    # 批注内容
+    content = models.TextField(
+        '批注内容')
+    # 批注位置(JSON格式，包含start/end等)
+    position = models.TextField(
+        '批注位置(JSON格式，包含start/end等)', blank=True, null=True)
+    # 选中的文本片段
+    selection_text = models.CharField(
+        '选中的文本片段', max_length=500, blank=True, null=True)
+    # 是否已解决
+    is_resolved = models.BooleanField(
+        '是否已解决', default=False)
+
+    class Meta:
+        abstract = True
+        app_label = 'generated'
+        verbose_name = '文章批注模型（支持协作编辑时的评论和批注）'
+        # 注意：请在具体模型类中设置 db_table = get_table_name("article_annotations")

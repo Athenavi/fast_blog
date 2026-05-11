@@ -1,7 +1,7 @@
 /**
  * API 类型定义
  * 由 routes.yaml 自动生成 - 请勿手动修改
- * 生成时间：2026-05-11 11:42:42
+ * 生成时间：2026-05-11 11:48:34
  */
 
 export interface User {
@@ -1061,6 +1061,19 @@ export interface ReportHistory {
     content: any;
     format: string;
     generated_at: string;
+}
+
+export interface ArticleAnnotation {
+    id: any;
+    article: any;
+    user: any;
+    parent?: any;
+    content: any;
+    position?: any;
+    selection_text?: string;
+    is_resolved: boolean;
+    created_at: string;
+    updated_at: string;
 }
 
 
