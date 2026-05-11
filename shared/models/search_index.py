@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - SearchIndex
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-09 17:27:45
+生成时间：2026-05-11 09:33:58
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
@@ -9,9 +9,11 @@ from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateT
 from . import Base  # 使用统一的 Base
 
 
+
 class SearchIndex(Base):
     """搜索索引状态模型模型"""
     __tablename__ = 'search_index'
+
 
     __table_args__ = (
         Index('idx_search_index_article', 'article_id', unique=True),
@@ -19,11 +21,14 @@ class SearchIndex(Base):
         Index('idx_search_index_last_indexed', 'last_indexed_at'),
     )
 
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='索引记录ID')
 
     article_id = Column(BigInteger, ForeignKey('articles.id'), doc='文章ID')
 
+
     indexed = Column(Boolean, default=False, doc='是否已索引')
+
 
     last_indexed_at = Column(DateTime, nullable=True, doc='最后索引时间')
 
@@ -32,6 +37,7 @@ class SearchIndex(Base):
     created_at = Column(DateTime, doc='创建时间')
 
     updated_at = Column(DateTime, doc='更新时间')
+
 
     def to_dict(self, exclude_sensitive=True):
         """转换为字典
@@ -59,3 +65,5 @@ class SearchIndex(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<SearchIndex id={self.id}>'
+
+

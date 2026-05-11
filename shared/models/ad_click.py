@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - AdClick
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-09 17:27:45
+生成时间：2026-05-11 09:33:58
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
@@ -14,24 +14,30 @@ class AdClick(Base):
     """广告点击记录模型模型"""
     __tablename__ = 'ad_clicks'
 
+
     __table_args__ = (
         Index('idx_ad_clicks_ad_id', 'ad_id'),
         Index('idx_ad_clicks_clicked_at', 'clicked_at'),
     )
 
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='点击记录 ID')
 
     ad_id = Column(BigInteger, ForeignKey('ads.id'), doc='广告ID')
 
+
     user_id = Column(BigInteger, nullable=True, doc='用户ID (如果已登录)')
+
 
     ip_address = Column(String(45), nullable=True, doc='IP地址')
 
     user_agent = Column(Text, nullable=True, doc='用户代理')
 
+
     referrer = Column(String(500), nullable=True, doc='来源页面')
 
     clicked_at = Column(DateTime, doc='点击时间')
+
 
     def to_dict(self, exclude_sensitive=True):
         """转换为字典
@@ -59,3 +65,5 @@ class AdClick(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<AdClick id={self.id}>'
+
+

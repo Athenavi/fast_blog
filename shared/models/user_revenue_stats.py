@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - UserRevenueStats
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-09 17:27:45
+生成时间：2026-05-11 09:33:58
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Numeric, Index
@@ -14,25 +14,33 @@ class UserRevenueStats(Base):
     """用户收益统计模型模型"""
     __tablename__ = 'user_revenue_stats'
 
+
     __table_args__ = (
         Index('idx_user_revenue_stats_user_id', 'user_id', unique=True),
     )
+
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='统计 ID')
 
     user_id = Column(BigInteger, doc='用户ID')
 
+
     total_earnings = Column(Numeric(10, 2), default=0, doc='总收益')
+
 
     total_paid = Column(Numeric(10, 2), default=0, doc='已支付金额')
 
+
     pending_earnings = Column(Numeric(10, 2), default=0, doc='待结算收益')
 
+
     available_balance = Column(Numeric(10, 2), default=0, doc='可用余额')
+
 
     last_payout_at = Column(DateTime, nullable=True, doc='最后提现时间')
 
     updated_at = Column(DateTime, doc='更新时间')
+
 
     def to_dict(self, exclude_sensitive=True):
         """转换为字典
@@ -61,3 +69,5 @@ class UserRevenueStats(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<UserRevenueStats id={self.id}>'
+
+

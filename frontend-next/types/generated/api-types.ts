@@ -1,7 +1,7 @@
 /**
  * API 类型定义
  * 由 routes.yaml 自动生成 - 请勿手动修改
- * 生成时间：2026-05-09 17:27:45
+ * 生成时间：2026-05-11 09:33:58
  */
 
 export interface User {
@@ -78,6 +78,7 @@ export interface Article {
     post_type: string;
     is_sticky: boolean;
     sticky_until?: string;
+    sort_order: any;
     created_at: string;
     updated_at: string;
 }

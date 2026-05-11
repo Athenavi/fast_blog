@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - AdPlacement
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-09 17:27:45
+生成时间：2026-05-11 09:33:58
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Index
@@ -14,10 +14,12 @@ class AdPlacement(Base):
     """广告位模型模型"""
     __tablename__ = 'ad_placements'
 
+
     __table_args__ = (
         Index('idx_ad_placements_code', 'code', unique=True),
         Index('idx_ad_placements_is_active', 'is_active'),
     )
+
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='广告位 ID')
 
@@ -27,17 +29,22 @@ class AdPlacement(Base):
 
     description = Column(Text, nullable=True, doc='广告位描述')
 
+
     position = Column(String(50), nullable=True, doc='广告位置 (header, sidebar, footer, content等)')
 
     width = Column(Integer, nullable=True, doc='广告位宽度')
 
+
     height = Column(Integer, nullable=True, doc='广告位高度')
 
+
     is_active = Column(Boolean, default=True, doc='是否激活')
+
 
     created_at = Column(DateTime, doc='创建时间')
 
     updated_at = Column(DateTime, doc='更新时间')
+
 
     def to_dict(self, exclude_sensitive=True):
         """转换为字典
@@ -68,3 +75,5 @@ class AdPlacement(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<AdPlacement id={self.id}>'
+
+

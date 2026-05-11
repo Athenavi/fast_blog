@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - PayoutRequest
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-09 17:27:45
+生成时间：2026-05-11 09:33:58
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Numeric, Index
@@ -14,17 +14,21 @@ class PayoutRequest(Base):
     """提现申请模型模型"""
     __tablename__ = 'payout_requests'
 
+
     __table_args__ = (
         Index('idx_payout_requests_user_id', 'user_id'),
         Index('idx_payout_requests_status', 'status'),
         Index('idx_payout_requests_created_at', 'created_at'),
     )
 
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='提现申请 ID')
 
     user_id = Column(BigInteger, doc='用户ID')
 
+
     amount = Column(Numeric(10, 2), doc='提现金额')
+
 
     payment_method = Column(String(50), nullable=True, doc='支付方式: alipay, wechat, bank_transfer')
 
@@ -36,13 +40,16 @@ class PayoutRequest(Base):
 
     admin_notes = Column(Text, nullable=True, doc='管理员备注')
 
+
     processed_by = Column(BigInteger, nullable=True, doc='处理人ID')
+
 
     processed_at = Column(DateTime, nullable=True, doc='处理时间')
 
     created_at = Column(DateTime, doc='创建时间')
 
     updated_at = Column(DateTime, doc='更新时间')
+
 
     def to_dict(self, exclude_sensitive=True):
         """转换为字典
@@ -75,3 +82,5 @@ class PayoutRequest(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<PayoutRequest id={self.id}>'
+
+

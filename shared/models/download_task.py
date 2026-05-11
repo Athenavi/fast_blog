@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - DownloadTask
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-09 17:27:45
+生成时间：2026-05-11 09:33:58
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
@@ -9,9 +9,11 @@ from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateT
 from . import Base  # 使用统一的 Base
 
 
+
 class DownloadTask(Base):
     """外部资源下载任务模型模型"""
     __tablename__ = 'download_tasks'
+
 
     __table_args__ = (
         Index('idx_download_tasks_user', 'user_id'),
@@ -20,9 +22,11 @@ class DownloadTask(Base):
         Index('idx_download_tasks_created', 'created_at'),
     )
 
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='任务ID')
 
     user_id = Column(BigInteger, ForeignKey('users.id'), doc='用户ID')
+
 
     source_url = Column(String(2048), nullable=True, doc='源URL地址')
 
@@ -32,21 +36,29 @@ class DownloadTask(Base):
 
     total_size = Column(BigInteger, nullable=True, doc='文件总大小(字节)')
 
+
     downloaded_size = Column(BigInteger, default=0, doc='已下载大小(字节)')
 
+
     progress = Column(Integer, default=0, doc='下载进度(0-100)')
+
 
     status = Column(String(50), default='pending', doc='任务状态')
 
     error_message = Column(Text, nullable=True, doc='错误信息')
 
+
     media_id = Column(BigInteger, ForeignKey('media.id'), nullable=True, doc='关联的媒体ID')
+
 
     retry_count = Column(BigInteger, default=0, doc='重试次数')
 
+
     max_retries = Column(BigInteger, default=3, doc='最大重试次数')
 
+
     priority = Column(BigInteger, default=0, doc='优先级(数字越小优先级越高)')
+
 
     created_at = Column(DateTime, doc='创建时间')
 
@@ -55,6 +67,7 @@ class DownloadTask(Base):
     started_at = Column(DateTime, nullable=True, doc='开始下载时间')
 
     completed_at = Column(DateTime, nullable=True, doc='完成时间')
+
 
     def to_dict(self, exclude_sensitive=True):
         """转换为字典
@@ -93,3 +106,5 @@ class DownloadTask(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<DownloadTask id={self.id}>'
+
+

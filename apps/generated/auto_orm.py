@@ -1,7 +1,7 @@
 """
 Django ORM 抽象基类定义
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-09 17:27:45
+生成时间：2026-05-11 09:33:58
 """
 
 from django.db import models
@@ -293,6 +293,9 @@ class ArticleMixin(models.Model):
     # 置顶过期时间(可选，过期后自动取消置顶)
     sticky_until = models.DateTimeField(
         '置顶过期时间(可选，过期后自动取消置顶)', blank=True, null=True)
+    # 排序顺序(用于拖拽排序)
+    sort_order = models.BigIntegerField(
+        '排序顺序(用于拖拽排序)', default=0)
 
     class Meta:
         abstract = True
@@ -1041,15 +1044,16 @@ class UploadChunkMixin(models.Model):
         # 注意：请在具体模型类中设置 db_table = get_table_name("upload_chunks")
 
 
+
 class DownloadTaskMixin(models.Model):
     """外部资源下载任务模型 Mixin"""
 
     # 任务ID
     id = models.BigAutoField(
-        '任务ID', primary_key=True)
+        '任务ID'        , primary_key=True)
     # 用户ID
     user_id = models.IntegerField(
-        '用户ID (暂为 IntegerField，等待 User 模型实现)', )
+        '用户ID (暂为 IntegerField，等待 User 模型实现)',)
     # 源URL地址
     source_url = models.CharField(
         '源URL地址', max_length=2048)
@@ -1076,7 +1080,7 @@ class DownloadTaskMixin(models.Model):
         '错误信息', blank=True, null=True)
     # 关联的媒体ID
     media_id = models.IntegerField(
-        '关联的媒体ID (暂为 IntegerField，等待 Media 模型实现)', null=True, blank=True)
+        '关联的媒体ID (暂为 IntegerField，等待 Media 模型实现)',null=True, blank=True)
     # 重试次数
     retry_count = models.BigIntegerField(
         '重试次数', default=0)
@@ -1228,18 +1232,19 @@ class SearchHistoryMixin(models.Model):
         # 注意：请在具体模型类中设置 db_table = get_table_name("search_history")
 
 
+
 class SearchIndexMixin(models.Model):
     """搜索索引状态模型 Mixin"""
 
     # 索引记录ID
     id = models.BigAutoField(
-        '索引记录ID', primary_key=True)
+        '索引记录ID'        , primary_key=True)
     # 文章ID
     article_id = models.IntegerField(
-        '文章ID (暂为 IntegerField，等待 Article 模型实现)', )
+        '文章ID (暂为 IntegerField，等待 Article 模型实现)',)
     # 是否已索引
     indexed = models.BooleanField(
-        '是否已索引', default=False)
+        '是否已索引',default=False)
     # 最后索引时间
     last_indexed_at = models.DateTimeField(
         '最后索引时间', blank=True, null=True)
@@ -2639,7 +2644,7 @@ class AdPlacementMixin(models.Model):
 
     # 广告位 ID
     id = models.BigAutoField(
-        '广告位 ID', primary_key=True)
+        '广告位 ID'        , primary_key=True)
     # 广告位名称
     name = models.CharField(
         '广告位名称', max_length=100)
@@ -2660,7 +2665,7 @@ class AdPlacementMixin(models.Model):
         '广告位高度', blank=True, null=True)
     # 是否激活
     is_active = models.BooleanField(
-        '是否激活', default=True)
+        '是否激活',default=True)
 
     class Meta:
         abstract = True
@@ -2675,7 +2680,7 @@ class AdMixin(models.Model):
 
     # 广告 ID
     id = models.BigAutoField(
-        '广告 ID', primary_key=True)
+        '广告 ID'        , primary_key=True)
     # 广告标题
     title = models.CharField(
         '广告标题', max_length=200)
@@ -2696,7 +2701,7 @@ class AdMixin(models.Model):
         '广告类型: html, image, google_adsense, baidu_union', max_length=20, default='html')
     # 广告位ID
     placement_id = models.IntegerField(
-        '广告位ID (暂为 IntegerField，等待 AdPlacement 模型实现)', null=True, blank=True)
+        '广告位ID (暂为 IntegerField，等待 AdPlacement 模型实现)',null=True, blank=True)
     # 广告开始时间
     start_date = models.DateTimeField(
         '广告开始时间', blank=True, null=True)
@@ -2720,7 +2725,7 @@ class AdMixin(models.Model):
         '每千次展示费用', max_digits=10, decimal_places=2, blank=True, null=True)
     # 是否激活
     is_active = models.BooleanField(
-        '是否激活', default=True)
+        '是否激活',default=True)
     # 优先级 (数字越大优先级越高)
     priority = models.IntegerField(
         '优先级 (数字越大优先级越高)', default=0)
@@ -2747,10 +2752,10 @@ class AdClickMixin(models.Model):
 
     # 点击记录 ID
     id = models.BigAutoField(
-        '点击记录 ID', primary_key=True)
+        '点击记录 ID'        , primary_key=True)
     # 广告ID
     ad_id = models.IntegerField(
-        '广告ID (暂为 IntegerField，等待 Ad 模型实现)', )
+        '广告ID (暂为 IntegerField，等待 Ad 模型实现)',)
     # 用户ID (如果已登录)
     user_id = models.BigIntegerField(
         '用户ID (如果已登录)', blank=True, null=True)
@@ -2780,10 +2785,10 @@ class AdImpressionMixin(models.Model):
 
     # 展示记录 ID
     id = models.BigAutoField(
-        '展示记录 ID', primary_key=True)
+        '展示记录 ID'        , primary_key=True)
     # 广告ID
     ad_id = models.IntegerField(
-        '广告ID (暂为 IntegerField，等待 Ad 模型实现)', )
+        '广告ID (暂为 IntegerField，等待 Ad 模型实现)',)
     # 用户ID (如果已登录)
     user_id = models.BigIntegerField(
         '用户ID (如果已登录)', blank=True, null=True)
@@ -2813,7 +2818,7 @@ class RevenueRecordMixin(models.Model):
 
     # 收益记录 ID
     id = models.BigAutoField(
-        '收益记录 ID', primary_key=True)
+        '收益记录 ID'        , primary_key=True)
     # 用户ID (创作者)
     user_id = models.BigIntegerField(
         '用户ID (创作者)')
@@ -2849,12 +2854,13 @@ class RevenueRecordMixin(models.Model):
         # 注意：请在具体模型类中设置 db_table = get_table_name("revenue_records")
 
 
+
 class RevenueSharingConfigMixin(models.Model):
     """收益分成配置模型 Mixin"""
 
     # 配置 ID
     id = models.BigAutoField(
-        '配置 ID', primary_key=True)
+        '配置 ID'        , primary_key=True)
     # 收益类型
     revenue_type = models.CharField(
         '收益类型', max_length=50, unique=True)
@@ -2869,7 +2875,7 @@ class RevenueSharingConfigMixin(models.Model):
         '最低提现金额', max_digits=10, decimal_places=2, default=100.0)
     # 是否激活
     is_active = models.BooleanField(
-        '是否激活', default=True)
+        '是否激活',default=True)
     # 配置描述
     description = models.TextField(
         '配置描述', blank=True, null=True)
@@ -2881,12 +2887,13 @@ class RevenueSharingConfigMixin(models.Model):
         # 注意：请在具体模型类中设置 db_table = get_table_name("revenue_sharing_configs")
 
 
+
 class PayoutRequestMixin(models.Model):
     """提现申请模型 Mixin"""
 
     # 提现申请 ID
     id = models.BigAutoField(
-        '提现申请 ID', primary_key=True)
+        '提现申请 ID'        , primary_key=True)
     # 用户ID
     user_id = models.BigIntegerField(
         '用户ID')
@@ -2922,12 +2929,13 @@ class PayoutRequestMixin(models.Model):
         # 注意：请在具体模型类中设置 db_table = get_table_name("payout_requests")
 
 
+
 class UserRevenueStatsMixin(models.Model):
     """用户收益统计模型 Mixin"""
 
     # 统计 ID
     id = models.BigAutoField(
-        '统计 ID', primary_key=True)
+        '统计 ID'        , primary_key=True)
     # 用户ID
     user_id = models.BigIntegerField(
         '用户ID', unique=True)
@@ -2952,3 +2960,5 @@ class UserRevenueStatsMixin(models.Model):
         app_label = 'generated'
         verbose_name = '用户收益统计模型'
         # 注意：请在具体模型类中设置 db_table = get_table_name("user_revenue_stats")
+
+

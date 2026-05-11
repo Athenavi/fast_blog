@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - RevenueSharingConfig
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-09 17:27:45
+生成时间：2026-05-11 09:33:58
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Numeric, Index
@@ -14,9 +14,11 @@ class RevenueSharingConfig(Base):
     """收益分成配置模型模型"""
     __tablename__ = 'revenue_sharing_configs'
 
+
     __table_args__ = (
         Index('idx_revenue_sharing_configs_type', 'revenue_type', unique=True),
     )
+
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='配置 ID')
 
@@ -24,17 +26,23 @@ class RevenueSharingConfig(Base):
 
     platform_percentage = Column(Numeric(10, 2), default=30.0, doc='平台分成百分比')
 
+
     creator_percentage = Column(Numeric(10, 2), default=70.0, doc='创作者分成百分比')
+
 
     min_payout_amount = Column(Numeric(10, 2), default=100.0, doc='最低提现金额')
 
+
     is_active = Column(Boolean, default=True, doc='是否激活')
 
+
     description = Column(Text, nullable=True, doc='配置描述')
+
 
     created_at = Column(DateTime, doc='创建时间')
 
     updated_at = Column(DateTime, doc='更新时间')
+
 
     def to_dict(self, exclude_sensitive=True):
         """转换为字典
@@ -64,3 +72,5 @@ class RevenueSharingConfig(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<RevenueSharingConfig id={self.id}>'
+
+

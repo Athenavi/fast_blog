@@ -354,6 +354,11 @@ models:
         format: date-time
         nullable: true
         description: 置顶过期时间（可选，过期后自动取消置顶）
+      sort_order:
+        type: bigint
+        default: 0
+        description: 排序顺序（用于拖拽排序）
+        index: true
       created_at:
         type: string
         format: date-time

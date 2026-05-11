@@ -58,7 +58,7 @@ class BatchOperationService:
             if user and not getattr(user, 'is_superuser', False):
                 stmt = select(Article).where(
                     Article.id.in_(article_ids),
-                    Article.user_id == user.id
+                    Article.user == user.id
                 )
                 result = await self.db.execute(stmt)
                 allowed_articles = result.scalars().all()
@@ -144,7 +144,7 @@ class BatchOperationService:
             if user and not getattr(user, 'is_superuser', False):
                 stmt = select(Article).where(
                     Article.id.in_(article_ids),
-                    Article.user_id == user.id
+                    Article.user == user.id
                 )
                 result = await self.db.execute(stmt)
                 allowed_articles = result.scalars().all()
@@ -224,7 +224,7 @@ class BatchOperationService:
             if user and not getattr(user, 'is_superuser', False):
                 stmt = select(Article).where(
                     Article.id.in_(article_ids),
-                    Article.user_id == user.id
+                    Article.user == user.id
                 )
                 result = await self.db.execute(stmt)
                 allowed_articles = result.scalars().all()
@@ -241,7 +241,7 @@ class BatchOperationService:
                 update(Article)
                 .where(Article.id.in_(article_ids))
                 .values(
-                    category_id=category_id,
+                    category=category_id,
                     updated_at=datetime.now()
                 )
             )
@@ -302,7 +302,7 @@ class BatchOperationService:
             if user and not getattr(user, 'is_superuser', False):
                 stmt = select(Article).where(
                     Article.id.in_(article_ids),
-                    Article.user_id == user.id
+                    Article.user == user.id
                 )
                 result = await self.db.execute(stmt)
                 allowed_articles = result.scalars().all()
@@ -317,7 +317,7 @@ class BatchOperationService:
 
             # 获取所有文章
             result = await self.db.execute(
-                select(Article.id, Article.tags).where(
+                select(Article.id, Article.tags_list).where(
                     Article.id.in_(article_ids)
                 )
             )
@@ -339,7 +339,7 @@ class BatchOperationService:
                     update(Article)
                     .where(Article.id == article_id)
                     .values(
-                        tags=json.dumps(current_tags, ensure_ascii=False),
+                        tags_list=';'.join(current_tags),
                         updated_at=datetime.now()
                     )
                 )
@@ -748,6 +748,132 @@ class BatchOperationService:
             return {
                 'success': False,
                 'message': f'更新状态失败: {str(e)}',
+            }
+
+    async def batch_update_categories_sort(
+            self,
+            category_orders: List[Dict[str, int]],
+            operator_id: Optional[int] = None
+    ) -> Dict:
+        """
+        批量更新分类排序
+        
+        Args:
+            category_orders: 分类排序列表，每个元素包含 {id: 分类ID, sort_order: 排序值}
+            operator_id: 操作者ID
+            
+        Returns:
+            操作结果
+        """
+        from shared.models.category import Category
+
+        if not category_orders:
+            return {'success': False, 'message': '没有提供排序数据'}
+
+        try:
+            updated_count = 0
+
+            for item in category_orders:
+                category_id = item.get('id')
+                sort_order = item.get('sort_order')
+
+                if category_id is None or sort_order is None:
+                    continue
+
+                result = await self.db.execute(
+                    update(Category)
+                    .where(Category.id == category_id)
+                    .values(
+                        sort_order=sort_order,
+                        updated_at=datetime.now()
+                    )
+                )
+
+                if result.rowcount > 0:
+                    updated_count += 1
+
+            await self.db.commit()
+
+            # 记录操作日志
+            self._log_operation(
+                'batch_update_categories_sort',
+                {'category_orders': category_orders, 'count': updated_count},
+                operator_id
+            )
+
+            return {
+                'success': True,
+                'message': f'成功更新 {updated_count} 个分类的排序',
+                'updated_count': updated_count,
+            }
+        except Exception as e:
+            await self.db.rollback()
+            return {
+                'success': False,
+                'message': f'更新排序失败: {str(e)}',
+            }
+
+    async def batch_update_articles_sort(
+            self,
+            article_orders: List[Dict[str, int]],
+            operator_id: Optional[int] = None
+    ) -> Dict:
+        """
+        批量更新文章排序
+        
+        Args:
+            article_orders: 文章排序列表，每个元素包含 {id: 文章ID, sort_order: 排序值}
+            operator_id: 操作者ID
+            
+        Returns:
+            操作结果
+        """
+        from shared.models.article import Article
+
+        if not article_orders:
+            return {'success': False, 'message': '没有提供排序数据'}
+
+        try:
+            updated_count = 0
+
+            for item in article_orders:
+                article_id = item.get('id')
+                sort_order = item.get('sort_order')
+
+                if article_id is None or sort_order is None:
+                    continue
+
+                result = await self.db.execute(
+                    update(Article)
+                    .where(Article.id == article_id)
+                    .values(
+                        sort_order=sort_order,
+                        updated_at=datetime.now()
+                    )
+                )
+
+                if result.rowcount > 0:
+                    updated_count += 1
+
+            await self.db.commit()
+
+            # 记录操作日志
+            self._log_operation(
+                'batch_update_articles_sort',
+                {'article_orders': article_orders, 'count': updated_count},
+                operator_id
+            )
+
+            return {
+                'success': True,
+                'message': f'成功更新 {updated_count} 个文章的排序',
+                'updated_count': updated_count,
+            }
+        except Exception as e:
+            await self.db.rollback()
+            return {
+                'success': False,
+                'message': f'更新排序失败: {str(e)}',
             }
 
     def _log_operation(

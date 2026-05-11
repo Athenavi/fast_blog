@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - Ad
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-09 17:27:45
+生成时间：2026-05-11 09:33:58
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Numeric, ForeignKey, Index
@@ -14,6 +14,7 @@ class Ad(Base):
     """广告模型模型"""
     __tablename__ = 'ads'
 
+
     __table_args__ = (
         Index('idx_ads_placement_id', 'placement_id'),
         Index('idx_ads_is_active', 'is_active'),
@@ -21,11 +22,13 @@ class Ad(Base):
         Index('idx_ads_priority', 'priority'),
     )
 
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='广告 ID')
 
     title = Column(String(200), nullable=True, doc='广告标题')
 
     content = Column(Text, nullable=True, doc='广告内容 (HTML/JavaScript代码)')
+
 
     image_url = Column(String(500), nullable=True, doc='广告图片URL')
 
@@ -37,23 +40,31 @@ class Ad(Base):
 
     placement_id = Column(BigInteger, ForeignKey('ad_placements.id'), nullable=True, doc='广告位ID')
 
+
     start_date = Column(DateTime, nullable=True, doc='广告开始时间')
 
     end_date = Column(DateTime, nullable=True, doc='广告结束时间')
 
     click_count = Column(BigInteger, default=0, doc='点击次数')
 
+
     impression_count = Column(BigInteger, default=0, doc='展示次数')
+
 
     budget = Column(Numeric(10, 2), nullable=True, doc='广告预算')
 
+
     cost_per_click = Column(Numeric(10, 2), nullable=True, doc='每次点击费用')
+
 
     cost_per_impression = Column(Numeric(10, 2), nullable=True, doc='每千次展示费用')
 
+
     is_active = Column(Boolean, default=True, doc='是否激活')
 
+
     priority = Column(Integer, default=0, doc='优先级 (数字越大优先级越高)')
+
 
     target_audience = Column(String(100), default='all', doc='目标受众 (all, registered, vip等)')
 
@@ -64,6 +75,7 @@ class Ad(Base):
     created_at = Column(DateTime, doc='创建时间')
 
     updated_at = Column(DateTime, doc='更新时间')
+
 
     def to_dict(self, exclude_sensitive=True):
         """转换为字典
@@ -106,3 +118,5 @@ class Ad(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<Ad id={self.id}>'
+
+

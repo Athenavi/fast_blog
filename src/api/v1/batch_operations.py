@@ -53,6 +53,11 @@ class BatchUpdateStockRequest(BaseModel):
     operation: str = "set"  # set, add, subtract
 
 
+class BatchUpdateSortRequest(BaseModel):
+    """批量更新排序请求"""
+    orders: List[dict]  # [{id: int, sort_order: int}, ...]
+
+
 @router.post("/articles/delete", summary="批量删除文章")
 async def batch_delete_articles(
         request: BatchDeleteRequest,
@@ -424,6 +429,78 @@ async def batch_update_product_status(
             status=request.status,
             operator_id=current_user.id,
             user=current_user
+        )
+
+        if not result['success']:
+            raise HTTPException(status_code=400, detail=result['message'])
+
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/articles/update-sort", summary="批量更新文章排序")
+async def batch_update_articles_sort(
+        request: BatchUpdateSortRequest,
+        current_user: User = Depends(jwt_required),
+        db: AsyncSession = Depends(get_async_db_session)
+):
+    """
+    批量更新文章排序（用于拖拽排序）
+    
+    **权限要求**: 需要登录
+    
+    Args:
+        request: 更新请求，包含文章排序列表 [{id: 文章ID, sort_order: 排序值}, ...]
+        current_user: 当前用户
+        db: 数据库会话
+        
+    Returns:
+        操作结果，包含更新数量和消息
+    """
+    try:
+        service = create_batch_service(db)
+        result = await service.batch_update_articles_sort(
+            article_orders=request.orders,
+            operator_id=current_user.id
+        )
+
+        if not result['success']:
+            raise HTTPException(status_code=400, detail=result['message'])
+
+        return result
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/categories/update-sort", summary="批量更新分类排序")
+async def batch_update_categories_sort(
+        request: BatchUpdateSortRequest,
+        current_user: User = Depends(jwt_required),
+        db: AsyncSession = Depends(get_async_db_session)
+):
+    """
+    批量更新分类排序（用于拖拽排序）
+    
+    **权限要求**: 需要登录，管理员权限
+    
+    Args:
+        request: 更新请求，包含分类排序列表 [{id: 分类ID, sort_order: 排序值}, ...]
+        current_user: 当前用户
+        db: 数据库会话
+        
+    Returns:
+        操作结果，包含更新数量和消息
+    """
+    try:
+        service = create_batch_service(db)
+        result = await service.batch_update_categories_sort(
+            category_orders=request.orders,
+            operator_id=current_user.id
         )
 
         if not result['success']:

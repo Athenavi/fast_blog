@@ -1,12 +1,13 @@
 """
 SQLAlchemy 模型定义 - VIPSubscription
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-09 17:27:45
+生成时间：2026-05-11 09:33:58
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Numeric, ForeignKey
 
 from . import Base  # 使用统一的 Base
+
 
 
 class VIPSubscription(Base):
