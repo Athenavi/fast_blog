@@ -1,7 +1,7 @@
 /**
  * API 类型定义
  * 由 routes.yaml 自动生成 - 请勿手动修改
- * 生成时间：2026-05-11 11:48:34
+ * 生成时间：2026-05-11 15:21:29
  */
 
 export interface User {
@@ -1074,6 +1074,30 @@ export interface ArticleAnnotation {
     is_resolved: boolean;
     created_at: string;
     updated_at: string;
+}
+
+export interface Webhook {
+    id: any;
+    name: string;
+    url: string;
+    secret?: string;
+    events: any;
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface WebhookDelivery {
+    id: any;
+    webhook: any;
+    event: string;
+    payload: any;
+    response_status?: number;
+    response_body?: any;
+    success: boolean;
+    retry_count: number;
+    next_retry_at?: string;
+    created_at: string;
 }
 
 

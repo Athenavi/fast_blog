@@ -75,6 +75,8 @@ from .chat_group_invite import ChatGroupInvite
 from .scheduled_report import ScheduledReport
 from .report_history import ReportHistory
 from .article_annotation import ArticleAnnotation
+from .webhook import Webhook
+from .webhook_delivery import WebhookDelivery
 
 # ==================== 自动生成的导入 - 由 routes.yaml 管理 ====================
 # 此部分由脚本自动生成 - 请勿手动修改
@@ -153,6 +155,8 @@ __all__ = [
     'ChatGroupInvite',
     'ScheduledReport',
     'ReportHistory',
-    'ArticleAnnotation'
+    'ArticleAnnotation',
+    'Webhook',
+    'WebhookDelivery'
 ]
 # ============================================================================

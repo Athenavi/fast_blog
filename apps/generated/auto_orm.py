@@ -1,7 +1,7 @@
 """
 Django ORM 抽象基类定义
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-11 11:48:34
+生成时间：2026-05-11 15:21:29
 """
 
 from django.db import models
@@ -3142,6 +3142,7 @@ class ReportHistoryMixin(models.Model):
         # 注意：请在具体模型类中设置 db_table = get_table_name("report_history")
 
 
+
 class ArticleAnnotationMixin(models.Model):
     """文章批注模型（支持协作编辑时的评论和批注） Mixin"""
 
@@ -3177,3 +3178,70 @@ class ArticleAnnotationMixin(models.Model):
         app_label = 'generated'
         verbose_name = '文章批注模型（支持协作编辑时的评论和批注）'
         # 注意：请在具体模型类中设置 db_table = get_table_name("article_annotations")
+
+
+class WebhookMixin(models.Model):
+    """Webhook配置模型 Mixin"""
+
+    # Webhook ID
+    id = models.BigAutoField(
+        'Webhook ID', primary_key=True)
+    # Webhook名称
+    name = models.CharField(
+        'Webhook名称', max_length=255)
+    # Webhook URL
+    url = models.CharField(
+        'Webhook URL', max_length=2048)
+    # 签名密钥(用于HMAC验证)
+    secret = models.CharField(
+        '签名密钥(用于HMAC验证)', max_length=255, blank=True, null=True)
+    # 订阅的事件列表(JSON数组)
+    events = models.TextField(
+        '订阅的事件列表(JSON数组)')
+    # 是否激活
+    is_active = models.BooleanField(
+        '是否激活', default=True)
+
+    class Meta:
+        abstract = True
+        app_label = 'generated'
+        verbose_name = 'Webhook配置模型'
+        # 注意：请在具体模型类中设置 db_table = get_table_name("webhooks")
+
+
+class WebhookDeliveryMixin(models.Model):
+    """Webhook投递记录模型 Mixin"""
+
+    # 投递记录ID
+    id = models.BigAutoField(
+        '投递记录ID', primary_key=True)
+    # Webhook ID
+    webhook = models.IntegerField(
+        'Webhook ID (暂为 IntegerField，等待 Webhook 模型实现)', )
+    # 事件类型
+    event = models.CharField(
+        '事件类型', max_length=100)
+    # 请求payload(JSON)
+    payload = models.TextField(
+        '请求payload(JSON)')
+    # 响应状态码
+    response_status = models.IntegerField(
+        '响应状态码', blank=True, null=True)
+    # 响应内容
+    response_body = models.TextField(
+        '响应内容', blank=True, null=True)
+    # 是否成功
+    success = models.BooleanField(
+        '是否成功', default=False)
+    # 重试次数
+    retry_count = models.IntegerField(
+        '重试次数', default=0)
+    # 下次重试时间
+    next_retry_at = models.DateTimeField(
+        '下次重试时间', blank=True, null=True)
+
+    class Meta:
+        abstract = True
+        app_label = 'generated'
+        verbose_name = 'Webhook投递记录模型'
+        # 注意：请在具体模型类中设置 db_table = get_table_name("webhook_deliveries")

@@ -1,347 +1,396 @@
 """
-Webhook 系统
-提供事件驱动的通知机制,允许外部服务订阅系统事件
-"""
+Webhook服务
 
+功能：
+1. Webhook配置管理
+2. 事件触发和投递
+3. HMAC签名验证
+4. 重试机制
+5. 投递记录追踪
+"""
 import asyncio
 import hashlib
 import hmac
 import json
-from dataclasses import dataclass
-from datetime import datetime
-from typing import Dict, List, Any, Optional
+import time
+from datetime import datetime, timedelta
+from typing import Dict, List, Optional, Any
+import logging
 
 import aiohttp
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
+from shared.models.webhook import Webhook
+from shared.models.webhook_delivery import WebhookDelivery
 
-@dataclass
-class WebhookEvent:
-    """Webhook 事件"""
-    event_type: str  # 事件类型,如 'article.published'
-    payload: Dict[str, Any]  # 事件数据
-    timestamp: datetime  # 事件时间戳
-    delivery_id: str  # 投递ID(用于追踪)
-
-
-@dataclass
-class WebhookSubscription:
-    """Webhook 订阅"""
-    id: int
-    url: str  # 回调URL
-    events: List[str]  # 订阅的事件类型列表
-    secret: str  # 签名密钥
-    active: bool = True  # 是否激活
-    created_at: Optional[datetime] = None
-    last_delivery_at: Optional[datetime] = None
-    failure_count: int = 0  # 连续失败次数
+logger = logging.getLogger(__name__)
 
 
 class WebhookService:
     """
-    Webhook 服务
+    Webhook服务
     
-    功能:
-    1. 事件注册和触发
-    2. Webhook订阅管理
-    3. 异步事件投递
-    4. 重试机制
-    5. 签名验证
-    6. 投递日志
+    功能：
+    1. 创建和管理Webhook配置
+    2. 触发事件并投递到订阅的URL
+    3. HMAC签名验证
+    4. 自动重试失败的投递
+    5. 投递历史记录
     """
 
-    def __init__(self):
-        # 注册的订阅
-        self.subscriptions: Dict[int, WebhookSubscription] = {}
-
-        # 事件处理器映射
-        self.event_handlers: Dict[str, List] = {}
-
-        # 投递日志
-        self.delivery_logs: List[Dict[str, Any]] = []
-
-        # 最大重试次数
+    def __init__(self, db: AsyncSession):
+        self.db = db
         self.max_retries = 3
+        self.retry_delay = 60  # 秒
+        self.timeout = 30  # 请求超时（秒）
 
-        # 重试间隔(秒)
-        self.retry_delay = 60
-
-    def register_subscription(self, subscription: WebhookSubscription) -> int:
+    async def create_webhook(self, name: str, url: str, events: List[str],
+                             secret: Optional[str] = None) -> Webhook:
         """
-        注册Webhook订阅
+        创建Webhook
         
         Args:
-            subscription: 订阅对象
+            name: Webhook名称
+            url: Webhook URL
+            events: 订阅的事件列表
+            secret: 签名密钥（可选）
             
         Returns:
-            订阅ID
+            创建的Webhook对象
         """
-        sub_id = subscription.id or len(self.subscriptions) + 1
-        subscription.id = sub_id
-        subscription.created_at = datetime.now()
-        self.subscriptions[sub_id] = subscription
+        webhook = Webhook(
+            name=name,
+            url=url,
+            events=json.dumps(events),
+            secret=secret,
+            is_active=True,
+            created_at=datetime.now(),
+            updated_at=datetime.now()
+        )
 
-        return sub_id
+        self.db.add(webhook)
+        await self.db.commit()
+        await self.db.refresh(webhook)
 
-    def unregister_subscription(self, subscription_id: int) -> bool:
+        logger.info(f"Created webhook: {name} ({url})")
+        return webhook
+
+    async def update_webhook(self, webhook_id: int, **kwargs) -> Optional[Webhook]:
         """
-        取消Webhook订阅
+        更新Webhook
         
         Args:
-            subscription_id: 订阅ID
+            webhook_id: Webhook ID
+            **kwargs: 要更新的字段
             
         Returns:
-            是否成功
+            更新后的Webhook对象
         """
-        if subscription_id in self.subscriptions:
-            del self.subscriptions[subscription_id]
-            return True
-        return False
+        result = await self.db.execute(
+            select(Webhook).where(Webhook.id == webhook_id)
+        )
+        webhook = result.scalar_one_or_none()
 
-    def trigger_event(self, event_type: str, payload: Dict[str, Any]) -> str:
+        if not webhook:
+            return None
+
+        for key, value in kwargs.items():
+            if hasattr(webhook, key):
+                if key == 'events' and isinstance(value, list):
+                    value = json.dumps(value)
+                setattr(webhook, key, value)
+
+        webhook.updated_at = datetime.now()
+        await self.db.commit()
+        await self.db.refresh(webhook)
+
+        logger.info(f"Updated webhook: {webhook_id}")
+        return webhook
+
+    async def delete_webhook(self, webhook_id: int) -> bool:
         """
-        触发事件
+        删除Webhook
         
         Args:
-            event_type: 事件类型
+            webhook_id: Webhook ID
+            
+        Returns:
+            是否删除成功
+        """
+        result = await self.db.execute(
+            select(Webhook).where(Webhook.id == webhook_id)
+        )
+        webhook = result.scalar_one_or_none()
+
+        if not webhook:
+            return False
+
+        await self.db.delete(webhook)
+        await self.db.commit()
+
+        logger.info(f"Deleted webhook: {webhook_id}")
+        return True
+
+    async def trigger_event(self, event: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        触发事件并投递到所有订阅的Webhook
+        
+        Args:
+            event: 事件类型
             payload: 事件数据
             
         Returns:
-            投递ID
+            投递结果统计
         """
-        import uuid
-
-        delivery_id = str(uuid.uuid4())
-        event = WebhookEvent(
-            event_type=event_type,
-            payload=payload,
-            timestamp=datetime.now(),
-            delivery_id=delivery_id,
+        # 查询订阅了该事件的活跃Webhook
+        result = await self.db.execute(
+            select(Webhook).where(
+                Webhook.is_active == True
+            )
         )
+        webhooks = result.scalars().all()
 
-        # 异步投递 - 检查事件循环是否可用
-        try:
-            loop = asyncio.get_running_loop()
-            asyncio.create_task(self._deliver_event(event))
-        except RuntimeError:
-            # 没有运行的事件循环，跳过投递
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.debug("No running event loop, skipping webhook delivery")
+        matched_webhooks = []
+        for webhook in webhooks:
+            events = json.loads(webhook.events)
+            if event in events or '*' in events:
+                matched_webhooks.append(webhook)
 
-        return delivery_id
+        logger.info(f"Triggering event '{event}' to {len(matched_webhooks)} webhooks")
 
-    async def _deliver_event(self, event: WebhookEvent):
-        """
-        投递事件到所有匹配的订阅
-        
-        Args:
-            event: 事件对象
-        """
-        # 找到匹配该事件的订阅
-        matching_subscriptions = [
-            sub for sub in self.subscriptions.values()
-            if sub.active and event.event_type in sub.events
-        ]
+        # 异步投递到所有匹配的Webhook
+        tasks = []
+        for webhook in matched_webhooks:
+            task = self._deliver_webhook(webhook, event, payload)
+            tasks.append(task)
 
-        if not matching_subscriptions:
-            return
+        results = await asyncio.gather(*tasks, return_exceptions=True)
 
-        # 并行投递到所有订阅
-        tasks = [
-            self._deliver_to_subscription(event, sub)
-            for sub in matching_subscriptions
-        ]
+        success_count = sum(1 for r in results if isinstance(r, dict) and r.get('success'))
+        failed_count = len(results) - success_count
 
-        await asyncio.gather(*tasks, return_exceptions=True)
-
-    async def _deliver_to_subscription(self, event: WebhookEvent, subscription: WebhookSubscription):
-        """
-        投递事件到单个订阅
-        
-        Args:
-            event: 事件对象
-            subscription: 订阅对象
-        """
-        delivery_attempt = {
-            'delivery_id': event.delivery_id,
-            'subscription_id': subscription.id,
-            'event_type': event.event_type,
-            'url': subscription.url,
-            'timestamp': event.timestamp.isoformat(),
-            'success': False,
-            'attempts': 0,
-            'error': None,
+        return {
+            'event': event,
+            'total_webhooks': len(matched_webhooks),
+            'success_count': success_count,
+            'failed_count': failed_count
         }
 
-        for attempt in range(1, self.max_retries + 1):
-            try:
-                delivery_attempt['attempts'] = attempt
+    async def _deliver_webhook(self, webhook: Webhook, event: str,
+                               payload: Dict[str, Any],
+                               retry_count: int = 0) -> Dict[str, Any]:
+        """
+        投递Webhook
+        
+        Args:
+            webhook: Webhook对象
+            event: 事件类型
+            payload: 事件数据
+            retry_count: 当前重试次数
+            
+        Returns:
+            投递结果
+        """
+        delivery = WebhookDelivery(
+            webhook=webhook.id,
+            event=event,
+            payload=json.dumps(payload),
+            retry_count=retry_count,
+            created_at=datetime.now()
+        )
 
-                # 准备请求数据
-                payload = {
-                    'event': event.event_type,
-                    'timestamp': event.timestamp.isoformat(),
-                    'delivery_id': event.delivery_id,
-                    'data': event.payload,
-                }
+        try:
+            # 准备请求数据
+            headers = {
+                'Content-Type': 'application/json',
+                'X-Webhook-Event': event,
+                'X-Webhook-Delivery-ID': str(delivery.id),
+            }
 
-                # 生成签名
-                signature = self._generate_signature(
-                    json.dumps(payload, separators=(',', ':')),
-                    subscription.secret
-                )
+            # 添加HMAC签名
+            if webhook.secret:
+                signature = self._generate_signature(webhook.secret, payload)
+                headers['X-Webhook-Signature'] = signature
 
-                # 发送HTTP请求
-                async with aiohttp.ClientSession() as session:
-                    headers = {
-                        'Content-Type': 'application/json',
-                        'X-Webhook-Signature': signature,
-                        'X-Webhook-Event': event.event_type,
-                        'X-Webhook-Delivery-ID': event.delivery_id,
-                    }
+            # 发送HTTP请求
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                        webhook.url,
+                        json=payload,
+                        headers=headers,
+                        timeout=aiohttp.ClientTimeout(total=self.timeout)
+                ) as response:
+                    response_body = await response.text()
 
-                    timeout = aiohttp.ClientTimeout(total=30)
-                    async with session.post(
-                            subscription.url,
-                            json=payload,
-                            headers=headers,
-                            timeout=timeout
-                    ) as response:
-                        if response.status == 200:
-                            delivery_attempt['success'] = True
-                            delivery_attempt['response_status'] = response.status
-                            subscription.last_delivery_at = datetime.now()
-                            subscription.failure_count = 0
+                    delivery.response_status = response.status
+                    delivery.response_body = response_body[:10000]  # 限制长度
+                    delivery.success = 200 <= response.status < 300
 
-                            print(f"[Webhook] Delivered {event.event_type} to {subscription.url}")
-                            break
-                        else:
-                            delivery_attempt['error'] = f"HTTP {response.status}"
-                            print(f"[Webhook] Failed to deliver: HTTP {response.status}")
+            # 保存投递记录
+            self.db.add(delivery)
+            await self.db.commit()
 
-            except Exception as e:
-                delivery_attempt['error'] = str(e)
-                print(f"[Webhook] Delivery error: {str(e)}")
+            if delivery.success:
+                logger.info(f"Webhook delivered successfully: {webhook.id} -> {webhook.url}")
+            else:
+                logger.warning(f"Webhook delivery failed: {webhook.id} (status: {delivery.response_status})")
 
-            # 如果不是最后一次尝试,等待后重试
-            if attempt < self.max_retries and not delivery_attempt['success']:
-                await asyncio.sleep(self.retry_delay)
+                # 安排重试
+                if retry_count < self.max_retries:
+                    await self._schedule_retry(delivery, webhook, event, payload, retry_count)
 
-        # 记录投递日志
-        if not delivery_attempt['success']:
-            subscription.failure_count += 1
+            return {
+                'success': delivery.success,
+                'delivery_id': delivery.id,
+                'status_code': delivery.response_status
+            }
 
-            # 如果连续失败太多,禁用订阅
-            if subscription.failure_count >= 10:
-                subscription.active = False
-                print(f"[Webhook] Disabled subscription {subscription.id} due to too many failures")
+        except Exception as e:
+            logger.error(f"Webhook delivery error: {webhook.id} - {str(e)}")
 
-        self.delivery_logs.append(delivery_attempt)
+            delivery.success = False
+            delivery.response_body = str(e)[:10000]
 
-    def _generate_signature(self, payload: str, secret: str) -> str:
+            self.db.add(delivery)
+            await self.db.commit()
+
+            # 安排重试
+            if retry_count < self.max_retries:
+                await self._schedule_retry(delivery, webhook, event, payload, retry_count)
+
+            return {
+                'success': False,
+                'delivery_id': delivery.id,
+                'error': str(e)
+            }
+
+    async def _schedule_retry(self, delivery: WebhookDelivery, webhook: Webhook,
+                              event: str, payload: Dict[str, Any],
+                              retry_count: int):
+        """
+        安排重试
+        
+        Args:
+            delivery: 投递记录
+            webhook: Webhook对象
+            event: 事件类型
+            payload: 事件数据
+            retry_count: 当前重试次数
+        """
+        next_retry_at = datetime.now() + timedelta(seconds=self.retry_delay * (retry_count + 1))
+
+        # 更新投递记录
+        delivery.next_retry_at = next_retry_at
+        await self.db.commit()
+
+        logger.info(f"Scheduled retry for delivery {delivery.id} at {next_retry_at}")
+
+        # 异步等待后重试
+        async def delayed_retry():
+            await asyncio.sleep(self.retry_delay * (retry_count + 1))
+            await self._deliver_webhook(webhook, event, payload, retry_count + 1)
+
+        asyncio.create_task(delayed_retry())
+
+    def _generate_signature(self, secret: str, payload: Dict[str, Any]) -> str:
         """
         生成HMAC签名
         
         Args:
-            payload: 请求体
             secret: 密钥
+            payload: 载荷数据
             
         Returns:
-            HMAC SHA256签名
+            HMAC签名字符串
         """
-        return hmac.new(
+        payload_str = json.dumps(payload, separators=(',', ':'))
+        signature = hmac.new(
             secret.encode('utf-8'),
-            payload.encode('utf-8'),
+            payload_str.encode('utf-8'),
             hashlib.sha256
         ).hexdigest()
 
-    def verify_signature(self, payload: str, signature: str, secret: str) -> bool:
+        return f"sha256={signature}"
+
+    def verify_signature(self, secret: str, payload: Dict[str, Any],
+                         signature: str) -> bool:
         """
-        验证签名
+        验证HMAC签名
         
         Args:
-            payload: 请求体
-            signature: 签名
             secret: 密钥
+            payload: 载荷数据
+            signature: 签名字符串
             
         Returns:
             签名是否有效
         """
-        expected_signature = self._generate_signature(payload, secret)
+        expected_signature = self._generate_signature(secret, payload)
         return hmac.compare_digest(signature, expected_signature)
 
-    def get_delivery_logs(self, delivery_id: Optional[str] = None, limit: int = 100) -> List[Dict[str, Any]]:
+    async def get_webhook_deliveries(self, webhook_id: int,
+                                     limit: int = 50,
+                                     offset: int = 0) -> List[WebhookDelivery]:
         """
-        获取投递日志
+        获取Webhook投递记录
         
         Args:
-            delivery_id: 投递ID(可选)
+            webhook_id: Webhook ID
             limit: 返回数量限制
+            offset: 偏移量
             
         Returns:
-            投递日志列表
+            投递记录列表
         """
-        logs = self.delivery_logs
+        result = await self.db.execute(
+            select(WebhookDelivery)
+            .where(WebhookDelivery.webhook == webhook_id)
+            .order_by(WebhookDelivery.created_at.desc())
+            .offset(offset)
+            .limit(limit)
+        )
 
-        if delivery_id:
-            logs = [log for log in logs if log['delivery_id'] == delivery_id]
+        return result.scalars().all()
 
-        # 按时间倒序
-        logs = sorted(logs, key=lambda x: x['timestamp'], reverse=True)
-
-        return logs[:limit]
-
-    def get_subscription_stats(self, subscription_id: int) -> Dict[str, Any]:
+    async def get_delivery_stats(self, webhook_id: int) -> Dict[str, Any]:
         """
-        获取订阅统计信息
+        获取Webhook投递统计
         
         Args:
-            subscription_id: 订阅ID
+            webhook_id: Webhook ID
             
         Returns:
             统计信息
         """
-        subscription = self.subscriptions.get(subscription_id)
-        if not subscription:
-            return {}
+        result = await self.db.execute(
+            select(WebhookDelivery).where(WebhookDelivery.webhook == webhook_id)
+        )
+        deliveries = result.scalars().all()
 
-        # 计算统计数据
-        logs = [
-            log for log in self.delivery_logs
-            if log['subscription_id'] == subscription_id
-        ]
-
-        total_deliveries = len(logs)
-        successful_deliveries = sum(1 for log in logs if log['success'])
-        failed_deliveries = total_deliveries - successful_deliveries
-
+        total = len(deliveries)
+        success = sum(1 for d in deliveries if d.success)
+        failed = total - success
+        
         return {
-            'subscription_id': subscription_id,
-            'url': subscription.url,
-            'active': subscription.active,
-            'events': subscription.events,
-            'total_deliveries': total_deliveries,
-            'successful_deliveries': successful_deliveries,
-            'failed_deliveries': failed_deliveries,
-            'failure_count': subscription.failure_count,
-            'last_delivery_at': subscription.last_delivery_at.isoformat() if subscription.last_delivery_at else None,
+            'total': total,
+            'success': success,
+            'failed': failed,
+            'success_rate': success / total if total > 0 else 0
         }
 
 
-# 全局Webhook服务实例
-webhook_service = WebhookService()
-
-
-# 便捷函数
-def trigger_webhook(event_type: str, payload: Dict[str, Any]) -> str:
-    """
-    触发Webhook事件(便捷函数)
-    
-    Args:
-        event_type: 事件类型
-        payload: 事件数据
-        
-    Returns:
-        投递ID
-    """
-    return webhook_service.trigger_event(event_type, payload)
+# 常见事件类型
+WEBHOOK_EVENTS = {
+    'article.published': '文章发布',
+    'article.updated': '文章更新',
+    'article.deleted': '文章删除',
+    'comment.created': '评论创建',
+    'comment.approved': '评论审核通过',
+    'user.registered': '用户注册',
+    'user.login': '用户登录',
+    'media.uploaded': '媒体上传',
+    'order.created': '订单创建',
+    'order.completed': '订单完成',
+    '*': '所有事件',
+}

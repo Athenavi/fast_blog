@@ -50,6 +50,9 @@ def _import_modules():
         "query_optimization_api",  # 查询优化
         "lazy_load_optimization",  # 懒加载优化
         "code_splitting_optimization",  # 代码分割优化
+        "static_site_generation",  # 静态页面生成
+        "incremental_static_regeneration",  # 增量静态再生成
+        "cdn_distribution",  # CDN智能分发
     ]
 
     for name in module_names:
@@ -87,6 +90,9 @@ __all__ = [
     "query_optimization_api",  # 查询优化
     "lazy_load_optimization",  # 懒加载优化
     "code_splitting_optimization",  # 代码分割优化
+    "static_site_generation",  # 静态页面生成
+    "incremental_static_regeneration",  # 增量静态再生成
+    "cdn_distribution",  # CDN智能分发
 ]
 
 api_v1_router = APIRouter(prefix="/api/v1", tags=["api-v1"])
@@ -157,6 +163,9 @@ def _include_routers():
         ("query_optimization_api", True, "/query-optimization"),  # 查询优化
         ("lazy_load_optimization", True, "/lazy-load"),  # 懒加载优化
         ("code_splitting_optimization", True, "/code-splitting"),  # 代码分割优化
+        ("static_site_generation", True, "/static-site"),  # 静态页面生成
+        ("incremental_static_regeneration", True, "/isr"),  # 增量静态再生成
+        ("cdn_distribution", True, "/cdn"),  # CDN智能分发
     ]
 
     for name, required, prefix in router_configs:

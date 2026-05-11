@@ -1,10 +1,10 @@
 """
 SQLAlchemy 模型定义 - ChatGroup
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-11 11:48:34
+生成时间：2026-05-11 15:21:29
 """
 
-from sqlalchemy import Column, BigInteger, String, Boolean, DateTime, ForeignKey, Index
+from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
 
 from . import Base  # 使用统一的 Base
 
