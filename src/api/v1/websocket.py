@@ -331,3 +331,263 @@ async def collaborate_websocket(
                 })
             except Exception as e:
                 print(f"Error broadcasting to {cid}: {e}")
+
+
+# 群聊连接管理
+class ChatGroupManager:
+    """群聊 WebSocket 管理器"""
+
+    def __init__(self):
+        self.groups: dict[int, dict] = {}  # group_id -> {"clients": {client_id: websocket}}
+
+    async def join_group(self, group_id: int, client_id: str, websocket: WebSocket, user_id: int):
+        """加入群聊"""
+        if group_id not in self.groups:
+            self.groups[group_id] = {"clients": {}}
+
+        self.groups[group_id]["clients"][client_id] = {
+            "websocket": websocket,
+            "user_id": user_id
+        }
+
+        # 广播用户加入消息
+        await self.broadcast_to_group(group_id, {
+            'type': 'user_joined',
+            'user_id': user_id,
+            'client_id': client_id,
+            'online_count': len(self.groups[group_id]["clients"])
+        }, exclude=client_id)
+
+    async def leave_group(self, group_id: int, client_id: str):
+        """离开群聊"""
+        if group_id in self.groups and client_id in self.groups[group_id]["clients"]:
+            del self.groups[group_id]["clients"][client_id]
+
+            # 广播用户离开消息
+            await self.broadcast_to_group(group_id, {
+                'type': 'user_left',
+                'client_id': client_id,
+                'online_count': len(self.groups[group_id]["clients"])
+            })
+
+            # 如果群聊没有客户端了，清理
+            if not self.groups[group_id]["clients"]:
+                del self.groups[group_id]
+
+    async def broadcast_to_group(self, group_id: int, message: dict, exclude: str = None):
+        """向群聊广播消息"""
+        if group_id not in self.groups:
+            return
+
+        disconnected = []
+        for client_id, client_info in self.groups[group_id]["clients"].items():
+            if client_id == exclude:
+                continue
+            try:
+                await client_info["websocket"].send_json(message)
+            except Exception as e:
+                print(f"[ChatGroup] Error broadcasting to {client_id}: {e}")
+                disconnected.append(client_id)
+
+        # 清理断开的连接
+        for client_id in disconnected:
+            await self.leave_group(group_id, client_id)
+
+    async def send_message_to_group(self, group_id: int, message_data: dict, sender_id: int):
+        """发送消息到群聊"""
+        await self.broadcast_to_group(group_id, {
+            'type': 'new_message',
+            'message': message_data,
+            'sender_id': sender_id
+        })
+
+
+# 全局群聊管理器实例
+chat_group_manager = ChatGroupManager()
+
+
+@router.websocket("/chat/{group_id}")
+async def chat_websocket(
+        websocket: WebSocket,
+        group_id: int,
+        token: Optional[str] = Query(None, description="认证token")
+):
+    """
+    群聊 WebSocket
+    
+    Args:
+        websocket: WebSocket 连接
+        group_id: 群聊 ID
+        token: 认证token
+    """
+    # 验证用户身份
+    user_id = None
+
+    if token:
+        try:
+            payload = jwt.decode(
+                token,
+                settings.SECRET_KEY,
+                algorithms=["HS256"]
+            )
+            user_id = payload.get('sub') or payload.get('user_id')
+            if user_id:
+                user_id = int(user_id)
+        except Exception as e:
+            print(f"[ChatGroup] Token verification failed: {e}")
+
+    if not user_id:
+        await websocket.close(code=4003, reason="Authentication required")
+        return
+
+    # 验证用户是否是群聊成员
+    try:
+        from shared.models.chat_group_member import ChatGroupMember
+        from sqlalchemy import select
+        from src.utils.database.unified_manager import db_manager
+
+        async with db_manager.get_session() as db_session:
+            stmt = select(ChatGroupMember).where(
+                (ChatGroupMember.group == group_id) &
+                (ChatGroupMember.user == user_id)
+            )
+            result = await db_session.execute(stmt)
+            member = result.scalar_one_or_none()
+
+            if not member:
+                await websocket.close(code=4003, reason="Not a member of this group")
+                return
+    except Exception as e:
+        print(f"[ChatGroup] Failed to verify membership: {e}")
+        await websocket.close(code=500, reason="Internal error")
+        return
+
+    # 接受连接
+    await websocket.accept()
+
+    # 生成客户端ID
+    import uuid
+    client_id = f"user_{user_id}_{uuid.uuid4().hex[:8]}"
+
+    # 加入群聊
+    await chat_group_manager.join_group(group_id, client_id, websocket, user_id)
+
+    print(f"[ChatGroup] User {user_id} joined group {group_id} as {client_id}")
+
+    try:
+        while True:
+            data = await websocket.receive_json()
+            op_type = data.get('type')
+
+            if op_type == 'send_message':
+                # 处理发送消息
+                content = data.get('content', '')
+                message_type = data.get('message_type', 'text')
+                attachment_url = data.get('attachment_url')
+                parent_message = data.get('parent_message')
+
+                if not content:
+                    await websocket.send_json({
+                        'type': 'error',
+                        'message': 'Content is required'
+                    })
+                    continue
+
+                # 创建消息记录
+                try:
+                    from shared.models.private_message import PrivateMessage
+                    from datetime import datetime
+                    from src.utils.database.unified_manager import db_manager
+
+                    async with db_manager.get_session() as db_session:
+                        new_message = PrivateMessage(
+                            sender=user_id,
+                            recipient=None,  # 群聊不需要recipient
+                            group=group_id,
+                            content=content,
+                            message_type=message_type,
+                            attachment_url=attachment_url,
+                            parent_message=parent_message,
+                            created_at=datetime.now(),
+                            updated_at=datetime.now()
+                        )
+                        db_session.add(new_message)
+                        await db_session.commit()
+                        await db_session.refresh(new_message)
+
+                        message_data = new_message.to_dict()
+
+                        # 更新群聊的最后消息时间
+                        from shared.models.chat_group import ChatGroup
+                        from sqlalchemy import update
+
+                        update_stmt = (
+                            update(ChatGroup)
+                            .where(ChatGroup.id == group_id)
+                            .values(
+                                last_message_at=datetime.now(),
+                                updated_at=datetime.now()
+                            )
+                        )
+                        await db_session.execute(update_stmt)
+                        await db_session.commit()
+
+                    # 广播消息到群聊
+                    await chat_group_manager.send_message_to_group(
+                        group_id, message_data, user_id
+                    )
+
+                except Exception as e:
+                    print(f"[ChatGroup] Failed to save message: {e}")
+                    import traceback
+                    traceback.print_exc()
+                    await websocket.send_json({
+                        'type': 'error',
+                        'message': 'Failed to send message'
+                    })
+
+            elif op_type == 'typing':
+                # 处理正在输入状态
+                await chat_group_manager.broadcast_to_group(
+                    group_id,
+                    {
+                        'type': 'user_typing',
+                        'user_id': user_id,
+                        'client_id': client_id
+                    },
+                    exclude=client_id
+                )
+
+            elif op_type == 'read':
+                # 处理已读状态
+                message_ids = data.get('message_ids', [])
+                if message_ids:
+                    try:
+                        from shared.models.private_message import PrivateMessage
+                        from datetime import datetime
+                        from sqlalchemy import update
+                        from src.utils.database.unified_manager import db_manager
+
+                        async with db_manager.get_session() as db_session:
+                            update_stmt = (
+                                update(PrivateMessage)
+                                .where(PrivateMessage.id.in_(message_ids))
+                                .values(
+                                    is_read=True,
+                                    read_at=datetime.now()
+                                )
+                            )
+                            await db_session.execute(update_stmt)
+                            await db_session.commit()
+                    except Exception as e:
+                        print(f"[ChatGroup] Failed to mark messages as read: {e}")
+
+    except WebSocketDisconnect:
+        print(f"[ChatGroup] User {user_id} disconnected from group {group_id}")
+        await chat_group_manager.leave_group(group_id, client_id)
+
+    except Exception as e:
+        print(f"[ChatGroup] Error: {e}")
+        import traceback
+        traceback.print_exc()
+        await chat_group_manager.leave_group(group_id, client_id)

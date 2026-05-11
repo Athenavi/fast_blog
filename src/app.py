@@ -888,6 +888,14 @@ curl -X POST "http://localhost:9421/api/v1/media/upload" \
         except ImportError as e:
             print(f"Warning: WebSocket API could not be loaded: {e}")
 
+        # Chat Groups 群聊管理 API
+        try:
+            from src.api.v1.chat_groups import router as chat_groups_router
+            app.include_router(chat_groups_router, prefix='/api/v1', tags=['chat-groups'])
+            print(f"{worker_info} [OK] Chat Groups API 已加载")
+        except ImportError as e:
+            print(f"Warning: Chat Groups API could not be loaded: {e}")
+
         # Collaboration 实时协作编辑 API
         try:
             from src.api.v1.collaboration import router as collaboration_router
