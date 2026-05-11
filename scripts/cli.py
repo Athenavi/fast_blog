@@ -593,43 +593,60 @@ def db_backup(args):
     import os
     from datetime import datetime
 
-    backup_dir = Path("backups/database")
-    backup_dir.mkdir(parents=True, exist_ok=True)
-
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    backup_file = backup_dir / f"db_backup_{timestamp}.sql"
-
-    print(f"💾 Backing up database to: {backup_file}")
+    print("📦 开始备份数据库...")
 
     try:
-        # 读取 .env 文件获取数据库配置
-        env_file = Path(".env")
-        if not env_file.exists():
-            print("❌ .env file not found")
+        # 获取数据库配置
+        db_host = os.getenv('DB_HOST', 'localhost')
+        db_port = os.getenv('DB_PORT', '5432')
+        db_user = os.getenv('DB_USER', 'postgres')
+        db_name = os.getenv('DB_NAME', 'fast_blog')
+        db_password = os.getenv('DB_PASSWORD', '')
+
+        # 创建备份目录
+        backup_dir = Path('backups/database')
+        backup_dir.mkdir(parents=True, exist_ok=True)
+
+        # 生成备份文件名
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        backup_file = backup_dir / f"{db_name}_{timestamp}.sql"
+
+        # 设置环境变量（密码）
+        env = os.environ.copy()
+        if db_password:
+            env['PGPASSWORD'] = db_password
+
+        # 执行 pg_dump
+        cmd = [
+            'pg_dump',
+            '-h', db_host,
+            '-p', db_port,
+            '-U', db_user,
+            '-F', 'c',  # 自定义格式
+            '-f', str(backup_file),
+            db_name
+        ]
+
+        print(f"   主机: {db_host}:{db_port}")
+        print(f"   数据库: {db_name}")
+        print(f"   备份文件: {backup_file}")
+
+        result = subprocess.run(cmd, env=env, capture_output=True, text=True)
+
+        if result.returncode == 0:
+            file_size = backup_file.stat().st_size
+            print(f"✅ 数据库备份成功!")
+            print(f"   文件大小: {file_size / 1024 / 1024:.2f} MB")
+        else:
+            print(f"❌ 备份失败: {result.stderr}")
             sys.exit(1)
 
-        # 简单实现：使用 pg_dump (PostgreSQL)
-        # 实际应该从 DATABASE_URL 解析配置
-        database_url = os.getenv('DATABASE_URL', '')
-
-        if 'postgresql' in database_url:
-            # PostgreSQL 备份
-            cmd = f"pg_dump {database_url} > {backup_file}"
-            result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
-
-            if result.returncode == 0:
-                print(f"✅ Database backup completed: {backup_file}")
-                file_size = backup_file.stat().st_size
-                print(f"   Size: {file_size / 1024:.2f} KB")
-            else:
-                print(f"❌ Backup failed: {result.stderr}")
-                sys.exit(1)
-        else:
-            print("⚠️  Only PostgreSQL backup is supported currently")
-            print("   Please manually backup your database")
-
+    except FileNotFoundError:
+        print("❌ 错误: 未找到 pg_dump 命令")
+        print("   请确保 PostgreSQL 客户端工具已安装并在 PATH 中")
+        sys.exit(1)
     except Exception as e:
-        print(f"❌ Error backing up database: {e}")
+        print(f"❌ 备份失败: {str(e)}")
         sys.exit(1)
 
 
@@ -637,60 +654,104 @@ def db_restore(args):
     """数据库恢复"""
     backup_file = args.file
 
-    print(f"🔄 Restoring database from: {backup_file}")
+    backup_path = Path(backup_file)
 
-    if not Path(backup_file).exists():
-        print(f"❌ Backup file not found: {backup_file}")
+    if not backup_path.exists():
+        print(f"❌ 错误: 备份文件不存在: {backup_file}")
         sys.exit(1)
 
+    print(f"🔄 开始恢复数据库...")
+    print(f"   备份文件: {backup_file}")
+    
     try:
         import os
-        database_url = os.getenv('DATABASE_URL', '')
 
-        if 'postgresql' in database_url:
-            # PostgreSQL 恢复
-            cmd = f"psql {database_url} < {backup_file}"
-            result = subprocess.run(cmd, shell=True, capture_output=True, text=True)
+        # 获取数据库配置
+        db_host = os.getenv('DB_HOST', 'localhost')
+        db_port = os.getenv('DB_PORT', '5432')
+        db_user = os.getenv('DB_USER', 'postgres')
+        db_name = os.getenv('DB_NAME', 'fast_blog')
+        db_password = os.getenv('DB_PASSWORD', '')
 
-            if result.returncode == 0:
-                print(f"✅ Database restored successfully")
-            else:
-                print(f"❌ Restore failed: {result.stderr}")
-                sys.exit(1)
+        # 确认操作
+        confirm = input(f"⚠️  警告: 这将覆盖数据库 '{db_name}' 的所有数据!\n继续? (yes/no): ")
+        if confirm.lower() != 'yes':
+            print("❌ 操作已取消")
+            sys.exit(0)
+
+        # 设置环境变量
+        env = os.environ.copy()
+        if db_password:
+            env['PGPASSWORD'] = db_password
+
+        # 先删除现有数据库并重新创建
+        print("   正在重置数据库...")
+        drop_cmd = ['dropdb', '-h', db_host, '-p', db_port, '-U', db_user, '--if-exists', db_name]
+        subprocess.run(drop_cmd, env=env, check=True, capture_output=True)
+
+        create_cmd = ['createdb', '-h', db_host, '-p', db_port, '-U', db_user, db_name]
+        subprocess.run(create_cmd, env=env, check=True, capture_output=True)
+
+        # 恢复数据库
+        print("   正在恢复数据...")
+        restore_cmd = [
+            'pg_restore',
+            '-h', db_host,
+            '-p', db_port,
+            '-U', db_user,
+            '-d', db_name,
+            '--no-owner',
+            '--no-privileges',
+            str(backup_path)
+        ]
+
+        result = subprocess.run(restore_cmd, env=env, capture_output=True, text=True)
+
+        if result.returncode == 0:
+            print("✅ 数据库恢复成功!")
         else:
-            print("⚠️  Only PostgreSQL restore is supported currently")
+            print(f"❌ 恢复失败: {result.stderr}")
+            sys.exit(1)
 
+    except FileNotFoundError:
+        print("❌ 错误: 未找到 PostgreSQL 客户端工具")
+        print("   请确保 pg_restore, dropdb, createdb 在 PATH 中")
+        sys.exit(1)
+    except subprocess.CalledProcessError as e:
+        print(f"❌ 命令执行失败: {e}")
+        sys.exit(1)
     except Exception as e:
-        print(f"❌ Error restoring database: {e}")
+        print(f"❌ 恢复失败: {str(e)}")
         sys.exit(1)
 
 
 def db_migrate(args):
     """数据库迁移"""
-    print("🔄 Running database migrations...")
-
+    print("🔄 运行数据库迁移...")
+    
     try:
-        # 运行 Alembic 迁移
+        import sys
+        # 使用 Alembic 进行迁移
         result = subprocess.run(
-            ["alembic", "upgrade", "head"],
+            [sys.executable, '-m', 'alembic', 'upgrade', 'head'],
             capture_output=True,
             text=True
         )
 
         if result.returncode == 0:
-            print("✅ Migrations completed successfully")
+            print("✅ 迁移成功!")
             if result.stdout:
                 print(result.stdout)
         else:
-            print(f"❌ Migration failed:")
+            print(f"❌ 迁移失败:")
             print(result.stderr)
             sys.exit(1)
 
     except FileNotFoundError:
-        print("❌ Alembic not found. Install with: pip install alembic")
+        print("❌ Alembic 未找到。安装命令: pip install alembic")
         sys.exit(1)
     except Exception as e:
-        print(f"❌ Error running migrations: {e}")
+        print(f"❌ 迁移失败: {str(e)}")
         sys.exit(1)
 
 

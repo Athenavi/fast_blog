@@ -1,0 +1,259 @@
+version: '3.8'
+
+services:
+  # PostgreSQL数据库
+  postgres:
+    image: postgres:15-alpine
+    container_name: fastblog-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-fastblog}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-fastblog_password}
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --lc-collate=C --lc-ctype=C"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backups/database:/backups
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    networks:
+      - fastblog-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-fastblog}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '2.0'
+          memory: 2G
+        reservations:
+          cpus: '0.5'
+          memory: 512M
+
+  # Redis缓存
+  redis:
+    image: redis:7-alpine
+    container_name: fastblog-redis
+    restart: unless-stopped
+    command: >
+      redis-server
+      --maxmemory ${REDIS_MAX_MEMORY:-256mb}
+      --maxmemory-policy allkeys-lru
+      --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    networks:
+      - fastblog-network
+    healthcheck:
+      test: [ "CMD", "redis-cli", "ping" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+
+  # Meilisearch搜索引擎（可选）
+  meilisearch:
+    image: getmeili/meilisearch:v1.5
+    container_name: fastblog-meilisearch
+    restart: unless-stopped
+    environment:
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY:-fastblog_master_key}
+      MEILI_ENV: ${MEILI_ENV:-production}
+    volumes:
+      - meilisearch_data:/meili_data
+    ports:
+      - "${MEILI_PORT:-7700}:7700"
+    networks:
+      - fastblog-network
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:7700/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 1G
+        reservations:
+          cpus: '0.25'
+          memory: 256M
+    profiles:
+      - search
+
+  # FastBlog主应用
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: fastblog-app
+    restart: unless-stopped
+    environment:
+      # 数据库配置
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-fastblog}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-fastblog_password}
+      
+      # Redis配置
+      REDIS_URL: redis://redis:6379/0
+      
+      # Meilisearch配置
+      MEILISEARCH_URL: http://meilisearch:7700
+      MEILISEARCH_KEY: ${MEILI_MASTER_KEY:-fastblog_master_key}
+      
+      # 应用配置
+      HOST: 0.0.0.0
+      PORT: 9421
+      DEBUG: ${DEBUG:-false}
+      SECRET_KEY: ${SECRET_KEY:-change-this-to-a-random-secret-key}
+      
+      # 备份配置
+      BACKUP_DIR: /app/backups
+      
+      # 翻译配置
+      TRANSLATIONS_DIR: /app/translations
+      
+      # OAuth配置（可选）
+      GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:-}
+      GOOGLE_OAUTH_CLIENT_SECRET: ${GOOGLE_OAUTH_CLIENT_SECRET:-}
+      GITHUB_OAUTH_CLIENT_ID: ${GITHUB_OAUTH_CLIENT_ID:-}
+      GITHUB_OAUTH_CLIENT_SECRET: ${GITHUB_OAUTH_CLIENT_SECRET:-}
+      MICROSOFT_OAUTH_CLIENT_ID: ${MICROSOFT_OAUTH_CLIENT_ID:-}
+      MICROSOFT_OAUTH_CLIENT_SECRET: ${MICROSOFT_OAUTH_CLIENT_SECRET:-}
+      
+      # LDAP配置（可选）
+      LDAP_SERVER: ${LDAP_SERVER:-}
+      LDAP_PORT: ${LDAP_PORT:-389}
+      LDAP_BASE_DN: ${LDAP_BASE_DN:-}
+      LDAP_BIND_DN: ${LDAP_BIND_DN:-}
+      LDAP_BIND_PASSWORD: ${LDAP_BIND_PASSWORD:-}
+      
+      # SAML配置（可选）
+      SAML_ENTITY_ID: ${SAML_ENTITY_ID:-}
+      SAML_ACS_URL: ${SAML_ACS_URL:-}
+      SAML_IDP_METADATA_URL: ${SAML_IDP_METADATA_URL:-}
+    volumes:
+      - ./media:/app/media
+      - ./upload_chunks:/app/upload_chunks
+      - ./static:/app/static
+      - ./themes:/app/themes
+      - ./plugins:/app/plugins
+      - ./translations:/app/translations
+      - ./backups:/app/backups
+      - ./logs:/app/logs
+      - ./storage:/app/storage
+    ports:
+      - "${APP_PORT:-9421}:9421"
+    networks:
+      - fastblog-network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      meilisearch:
+        condition: service_healthy
+        optional: true
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9421/api/v1/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    deploy:
+      resources:
+        limits:
+          cpus: '4.0'
+          memory: 4G
+        reservations:
+          cpus: '1.0'
+          memory: 1G
+
+  # Nginx反向代理（可选）
+  nginx:
+    image: nginx:alpine
+    container_name: fastblog-nginx
+    restart: unless-stopped
+    ports:
+      - "${NGINX_HTTP_PORT:-80}:80"
+      - "${NGINX_HTTPS_PORT:-443}:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+      - ./ssl:/etc/nginx/ssl:ro
+      - nginx_cache:/var/cache/nginx
+    networks:
+      - fastblog-network
+    depends_on:
+      - app
+    profiles:
+      - proxy
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+
+  # 定时任务备份（可选）
+  backup-scheduler:
+    image: alpine:latest
+    container_name: fastblog-backup-scheduler
+    restart: unless-stopped
+    volumes:
+      - ./backups:/backups
+      - ./scripts/backup.sh:/backup.sh:ro
+    environment:
+      BACKUP_SCHEDULE: ${BACKUP_SCHEDULE:-0 2 * * *}  # 每天凌晨2点
+      BACKUP_RETENTION_DAYS: ${BACKUP_RETENTION_DAYS:-30}
+    entrypoint: [ "/bin/sh", "-c" ]
+    command:
+      - |
+        apk add --no-cache curl postgresql-client
+        echo "$$BACKUP_SCHEDULE /backup.sh" > /crontab
+        crontab /crontab
+        cron -f
+    networks:
+      - fastblog-network
+    profiles:
+      - backup
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 256M
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  meilisearch_data:
+    driver: local
+  nginx_cache:
+    driver: local
+
+networks:
+  fastblog-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.28.0.0/16

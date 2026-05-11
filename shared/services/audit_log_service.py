@@ -1,260 +1,388 @@
 """
 审计日志服务
-
-记录所有管理操作，包括CRUD操作、用户登录、配置更改等
-支持日志搜索和导出功能
+记录系统中的关键操作和事件，用于安全审计和合规性检查
 """
-
 import json
+import logging
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Dict, Any, Optional, List
+from enum import Enum
 
-from sqlalchemy import desc, select
+from sqlalchemy import Column, Integer, String, DateTime, Text, Index
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.future import select
 
-from shared.models.user_activity import UserActivity
+logger = logging.getLogger(__name__)
+
+Base = declarative_base()
+
+
+class AuditLogAction(Enum):
+    """审计操作类型"""
+    LOGIN = "login"
+    LOGOUT = "logout"
+    CREATE = "create"
+    UPDATE = "update"
+    DELETE = "delete"
+    VIEW = "view"
+    EXPORT = "export"
+    IMPORT = "import"
+    CONFIG_CHANGE = "config_change"
+    PERMISSION_CHANGE = "permission_change"
+    SECURITY_EVENT = "security_event"
+
+
+class AuditLogLevel(Enum):
+    """审计日志级别"""
+    INFO = "info"
+    WARNING = "warning"
+    ERROR = "error"
+    CRITICAL = "critical"
+
+
+class AuditLogModel(Base):
+    """审计日志数据库模型"""
+    __tablename__ = 'audit_logs'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, nullable=True, index=True)
+    user_name = Column(String(255), nullable=True)
+    action = Column(String(50), nullable=False, index=True)
+    level = Column(String(20), nullable=False, index=True)
+    resource_type = Column(String(100), nullable=True, index=True)
+    resource_id = Column(String(100), nullable=True, index=True)
+    ip_address = Column(String(45), nullable=True)
+    user_agent = Column(Text, nullable=True)
+    description = Column(Text, nullable=True)
+    details = Column(Text, nullable=True)  # JSON格式的详细信息
+    created_at = Column(DateTime, default=datetime.utcnow, index=True)
+
+    # 创建索引以提高查询性能
+    __table_args__ = (
+        Index('idx_audit_logs_user_action_time', 'user_id', 'action', 'created_at'),
+        Index('idx_audit_logs_level_time', 'level', 'created_at'),
+        Index('idx_audit_logs_resource', 'resource_type', 'resource_id'),
+    )
 
 
 class AuditLogService:
-    """审计日志服务"""
+    """
+    审计日志服务
+    
+    功能:
+    1. 操作日志记录
+    2. 登录日志记录
+    3. 数据变更追踪
+    4. 日志查询和过滤
+    5. 日志导出
+    """
 
-    # 活动类型常量
-    ACTIVITY_TYPES = {
-        'LOGIN': '用户登录',
-        'LOGOUT': '用户登出',
-        'CREATE': '创建资源',
-        'UPDATE': '更新资源',
-        'DELETE': '删除资源',
-        'CONFIG_CHANGE': '配置更改',
-        'PLUGIN_ACTIVATE': '激活插件',
-        'PLUGIN_DEACTIVATE': '停用插件',
-        'THEME_CHANGE': '更换主题',
-        'USER_CREATE': '创建用户',
-        'USER_UPDATE': '更新用户',
-        'USER_DELETE': '删除用户',
-        'ARTICLE_CREATE': '创建文章',
-        'ARTICLE_UPDATE': '更新文章',
-        'ARTICLE_DELETE': '删除文章',
-        'ARTICLE_PUBLISH': '发布文章',
-        'CATEGORY_CREATE': '创建分类',
-        'CATEGORY_UPDATE': '更新分类',
-        'CATEGORY_DELETE': '删除分类',
-    }
+    def __init__(self):
+        self.enabled = True
+        self.retention_days = 90  # 默认保留90天日志
 
-    # 目标类型常量
-    TARGET_TYPES = {
-        'user': '用户',
-        'article': '文章',
-        'category': '分类',
-        'tag': '标签',
-        'media': '媒体',
-        'page': '页面',
-        'comment': '评论',
-        'plugin': '插件',
-        'theme': '主题',
-        'setting': '设置',
-        'menu': '菜单',
-        'widget': '小部件',
-    }
-
-    def __init__(self, db: AsyncSession):
-        self.db = db
-
-    async def log_activity(
-            self,
-            user_id: int,
-            activity_type: str,
-            target_type: Optional[str] = None,
-            target_id: Optional[int] = None,
-            details: Optional[Dict[str, Any]] = None,
-            ip_address: Optional[str] = None,
-            user_agent: Optional[str] = None,
-    ) -> UserActivity:
+    async def initialize(self, db: AsyncSession):
         """
-        记录用户活动
+        初始化审计日志服务
         
         Args:
+            db: 数据库会话
+        """
+        # 确保表已创建
+        from sqlalchemy import create_engine
+        from sqlalchemy.orm import sessionmaker
+
+        # 注意：在实际应用中，表创建可能在数据库初始化时完成
+        pass
+
+    async def log_action(
+            self,
+            db: AsyncSession,
+            user_id: Optional[int],
+            user_name: Optional[str],
+            action: AuditLogAction,
+            resource_type: Optional[str] = None,
+            resource_id: Optional[str] = None,
+            description: Optional[str] = None,
+            details: Optional[Dict[str, Any]] = None,
+            level: AuditLogLevel = AuditLogLevel.INFO,
+            ip_address: Optional[str] = None,
+            user_agent: Optional[str] = None
+    ):
+        """
+        记录审计日志
+        
+        Args:
+            db: 数据库会话
             user_id: 用户ID
-            activity_type: 活动类型
-            target_type: 目标类型
-            target_id: 目标ID
-            details: 活动详情（字典）
+            user_name: 用户名
+            action: 操作类型
+            resource_type: 资源类型
+            resource_id: 资源ID
+            description: 操作描述
+            details: 详细信息
+            level: 日志级别
             ip_address: IP地址
             user_agent: 用户代理
-        
-        Returns:
-            创建的活动记录
         """
-        # 序列化详情
-        details_json = json.dumps(details, ensure_ascii=False, default=str) if details else None
+        if not self.enabled:
+            return
 
-        activity = UserActivity(
-            user=user_id,
-            activity_type=activity_type,
-            target_type=target_type,
-            target_id=target_id,
-            details=details_json,
-            ip_address=ip_address,
-            user_agent=user_agent,
-            created_at=datetime.now(),
-        )
+        try:
+            # 创建审计日志记录
+            audit_log = AuditLogModel(
+                user_id=user_id,
+                user_name=user_name,
+                action=action.value,
+                level=level.value,
+                resource_type=resource_type,
+                resource_id=resource_id,
+                ip_address=ip_address,
+                user_agent=user_agent,
+                description=description,
+                details=json.dumps(details, ensure_ascii=False) if details else None,
+                created_at=datetime.utcnow()
+            )
 
-        self.db.add(activity)
-        await self.db.flush()
+            # 添加到数据库
+            db.add(audit_log)
+            await db.commit()
 
-        return activity
+            logger.info(f"Audit log recorded: {action.value} by {user_name or user_id}")
 
-    async def get_activities(
+        except Exception as e:
+            logger.error(f"Failed to record audit log: {e}")
+            # 即使记录失败也不影响主业务流程
+            await db.rollback()
+
+    async def get_logs(
             self,
-            page: int = 1,
-            per_page: int = 20,
+            db: AsyncSession,
             user_id: Optional[int] = None,
-            activity_type: Optional[str] = None,
-            target_type: Optional[str] = None,
+            action: Optional[AuditLogAction] = None,
+            level: Optional[AuditLogLevel] = None,
+            resource_type: Optional[str] = None,
+            resource_id: Optional[str] = None,
+            ip_address: Optional[str] = None,
             start_date: Optional[datetime] = None,
             end_date: Optional[datetime] = None,
-            search_keyword: Optional[str] = None,
-    ) -> tuple[List[UserActivity], int]:
+            page: int = 1,
+            per_page: int = 50
+    ) -> Dict[str, Any]:
         """
-        获取活动日志列表
+        查询审计日志
         
         Args:
-            page: 页码
-            per_page: 每页数量
+            db: 数据库会话
             user_id: 用户ID过滤
-            activity_type: 活动类型过滤
-            target_type: 目标类型过滤
+            action: 操作类型过滤
+            level: 日志级别过滤
+            resource_type: 资源类型过滤
+            resource_id: 资源ID过滤
+            ip_address: IP地址过滤
             start_date: 开始日期
             end_date: 结束日期
-            search_keyword: 搜索关键词
-        
+            page: 页码
+            per_page: 每页数量
+            
         Returns:
-            (活动列表, 总数) 元组
+            日志列表和分页信息
         """
-        query = select(UserActivity)
+        try:
+            query = select(AuditLogModel).order_by(AuditLogModel.created_at.desc())
+
+            # 应用过滤条件
+            if user_id:
+                query = query.where(AuditLogModel.user_id == user_id)
+
+            if action:
+                query = query.where(AuditLogModel.action == action.value)
+
+            if level:
+                query = query.where(AuditLogModel.level == level.value)
+
+            if resource_type:
+                query = query.where(AuditLogModel.resource_type == resource_type)
+
+            if resource_id:
+                query = query.where(AuditLogModel.resource_id == resource_id)
+
+            if ip_address:
+                query = query.where(AuditLogModel.ip_address == ip_address)
+
+            if start_date:
+                query = query.where(AuditLogModel.created_at >= start_date)
+
+            if end_date:
+                query = query.where(AuditLogModel.created_at <= end_date)
+
+            # 计算总数
+            count_query = select(func.count()).select_from(query.subquery())
+            total = await db.execute(count_query)
+            total_count = total.scalar()
+
+            # 应用分页
+            offset = (page - 1) * per_page
+            query = query.offset(offset).limit(per_page)
+
+            result = await db.execute(query)
+            logs = result.scalars().all()
+
+            return {
+                'logs': [
+                    {
+                        'id': log.id,
+                        'user_id': log.user_id,
+                        'user_name': log.user_name,
+                        'action': log.action,
+                        'level': log.level,
+                        'resource_type': log.resource_type,
+                        'resource_id': log.resource_id,
+                        'ip_address': log.ip_address,
+                        'user_agent': log.user_agent,
+                        'description': log.description,
+                        'details': json.loads(log.details) if log.details else None,
+                        'created_at': log.created_at.isoformat()
+                    }
+                    for log in logs
+                ],
+                'pagination': {
+                    'current_page': page,
+                    'per_page': per_page,
+                    'total': total_count,
+                    'total_pages': (total_count + per_page - 1) // per_page
+                }
+            }
+
+        except Exception as e:
+            logger.error(f"Failed to query audit logs: {e}")
+            raise
+
+    async def export_logs(
+            self,
+            db: AsyncSession,
+            output_format: str = 'json',
+            **filters
+    ) -> str:
+        """
+        导出审计日志
+        
+        Args:
+            db: 数据库会话
+            output_format: 输出格式 ('json', 'csv', 'excel')
+            **filters: 过滤条件
+            
+        Returns:
+            导出的数据
+        """
+        # 获取所有符合条件的日志（不分页）
+        all_logs_query = select(AuditLogModel).order_by(AuditLogModel.created_at.desc())
 
         # 应用过滤条件
-        if user_id:
-            query = query.where(UserActivity.user == user_id)
+        if filters.get('user_id'):
+            all_logs_query = all_logs_query.where(AuditLogModel.user_id == filters['user_id'])
+        if filters.get('action'):
+            all_logs_query = all_logs_query.where(AuditLogModel.action == filters['action'].value)
+        if filters.get('level'):
+            all_logs_query = all_logs_query.where(AuditLogModel.level == filters['level'].value)
+        if filters.get('resource_type'):
+            all_logs_query = all_logs_query.where(AuditLogModel.resource_type == filters['resource_type'])
+        if filters.get('resource_id'):
+            all_logs_query = all_logs_query.where(AuditLogModel.resource_id == filters['resource_id'])
+        if filters.get('ip_address'):
+            all_logs_query = all_logs_query.where(AuditLogModel.ip_address == filters['ip_address'])
+        if filters.get('start_date'):
+            all_logs_query = all_logs_query.where(AuditLogModel.created_at >= filters['start_date'])
+        if filters.get('end_date'):
+            all_logs_query = all_logs_query.where(AuditLogModel.created_at <= filters['end_date'])
 
-        if activity_type:
-            query = query.where(UserActivity.activity_type == activity_type)
+        result = await db.execute(all_logs_query)
+        logs = result.scalars().all()
 
-        if target_type:
-            query = query.where(UserActivity.target_type == target_type)
+        if output_format.lower() == 'json':
+            import json as json_module
+            logs_data = [
+                {
+                    'id': log.id,
+                    'user_id': log.user_id,
+                    'user_name': log.user_name,
+                    'action': log.action,
+                    'level': log.level,
+                    'resource_type': log.resource_type,
+                    'resource_id': log.resource_id,
+                    'ip_address': log.ip_address,
+                    'user_agent': log.user_agent,
+                    'description': log.description,
+                    'details': json.loads(log.details) if log.details else None,
+                    'created_at': log.created_at.isoformat()
+                }
+                for log in logs
+            ]
+            return json_module.dumps(logs_data, ensure_ascii=False, indent=2)
 
-        if start_date:
-            query = query.where(UserActivity.created_at >= start_date)
+        elif output_format.lower() == 'csv':
+            import io
+            import csv
 
-        if end_date:
-            query = query.where(UserActivity.created_at <= end_date)
+            output = io.StringIO()
+            writer = csv.writer(output)
 
-        if search_keyword:
-            # 在详情中搜索
-            query = query.where(UserActivity.details.contains(search_keyword))
+            # 写入CSV头部
+            writer.writerow([
+                'ID', 'User ID', 'User Name', 'Action', 'Level', 'Resource Type',
+                'Resource ID', 'IP Address', 'User Agent', 'Description', 'Details', 'Created At'
+            ])
 
-        # 获取总数
-        count_query = select(UserActivity).select_from(UserActivity)
-        if user_id:
-            count_query = count_query.where(UserActivity.user == user_id)
-        if activity_type:
-            count_query = count_query.where(UserActivity.activity_type == activity_type)
-        if target_type:
-            count_query = count_query.where(UserActivity.target_type == target_type)
-        if start_date:
-            count_query = count_query.where(UserActivity.created_at >= start_date)
-        if end_date:
-            count_query = count_query.where(UserActivity.created_at <= end_date)
-        if search_keyword:
-            count_query = count_query.where(UserActivity.details.contains(search_keyword))
+            # 写入数据行
+            for log in logs:
+                writer.writerow([
+                    log.id,
+                    log.user_id,
+                    log.user_name,
+                    log.action,
+                    log.level,
+                    log.resource_type,
+                    log.resource_id,
+                    log.ip_address,
+                    log.user_agent,
+                    log.description,
+                    log.details,
+                    log.created_at.isoformat()
+                ])
 
-        total_result = await self.db.execute(
-            select(UserActivity).select_from(count_query.subquery()).with_only_columns(UserActivity.id.count()))
-        total = total_result.scalar() or 0
+            return output.getvalue()
 
-        # 分页和排序
-        offset = (page - 1) * per_page
-        query = query.order_by(desc(UserActivity.created_at)).offset(offset).limit(per_page)
+        else:
+            raise ValueError(f"Unsupported export format: {output_format}")
 
-        result = await self.db.execute(query)
-        activities = result.scalars().all()
-
-        return list(activities), total
-
-    async def get_activity_detail(self, activity_id: int) -> Optional[UserActivity]:
+    async def cleanup_old_logs(self, db: AsyncSession, days: int = None):
         """
-        获取活动详情
+        清理旧的审计日志
         
         Args:
-            activity_id: 活动ID
-        
-        Returns:
-            活动记录或None
+            db: 数据库会话
+            days: 保留天数，默认使用实例配置
         """
-        query = select(UserActivity).where(UserActivity.id == activity_id)
-        result = await self.db.execute(query)
-        return result.scalar_one_or_none()
+        retention_days = days or self.retention_days
+        cutoff_date = datetime.utcnow() - timedelta(days=retention_days)
 
-    async def delete_old_activities(self, days: int = 90) -> int:
-        """
-        删除旧的活动记录
-        
-        Args:
-            days: 保留天数
-        
-        Returns:
-            删除的记录数
-        """
-        from datetime import timedelta
+        try:
+            from sqlalchemy import delete
 
-        cutoff_date = datetime.now() - timedelta(days=days)
+            stmt = delete(AuditLogModel).where(AuditLogModel.created_at < cutoff_date)
+            result = await db.execute(stmt)
+            await db.commit()
 
-        # 先统计要删除的数量
-        count_query = select(UserActivity).where(UserActivity.created_at < cutoff_date)
-        count_result = await self.db.execute(count_query)
-        activities_to_delete = count_result.scalars().all()
-        deleted_count = len(activities_to_delete)
+            logger.info(f"Cleaned up {result.rowcount} old audit logs")
 
-        # 执行删除
-        from sqlalchemy import delete
-        delete_stmt = delete(UserActivity).where(UserActivity.created_at < cutoff_date)
-        await self.db.execute(delete_stmt)
-
-        return deleted_count
-
-    def format_activity_for_display(self, activity: UserActivity) -> Dict[str, Any]:
-        """
-        格式化活动记录用于显示
-        
-        Args:
-            activity: 活动记录
-        
-        Returns:
-            格式化的字典
-        """
-        # 解析详情
-        details = {}
-        if activity.details:
-            try:
-                details = json.loads(activity.details)
-            except json.JSONDecodeError:
-                details = {'raw': activity.details}
-
-        return {
-            'id': activity.id,
-            'user_id': activity.user,
-            'activity_type': activity.activity_type,
-            'activity_type_label': self.ACTIVITY_TYPES.get(activity.activity_type, activity.activity_type),
-            'target_type': activity.target_type,
-            'target_type_label': self.TARGET_TYPES.get(activity.target_type,
-                                                       activity.target_type) if activity.target_type else None,
-            'target_id': activity.target_id,
-            'details': details,
-            'ip_address': activity.ip_address,
-            'user_agent': activity.user_agent,
-            'created_at': activity.created_at.isoformat() if activity.created_at else None,
-        }
+        except Exception as e:
+            logger.error(f"Failed to clean up old audit logs: {e}")
+            await db.rollback()
 
 
-# 导出
-__all__ = ['AuditLogService']
+# 全局实例
+from sqlalchemy.sql.functions import func
+from datetime import timedelta
+
+audit_log_service = AuditLogService()

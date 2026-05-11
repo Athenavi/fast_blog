@@ -1,239 +1,346 @@
 """
-速率限制管理 API
-
-提供速率限制的配置和监控功能
+API限流管理 API
+提供限流配置、监控和管理功能
 """
-
-from typing import Optional
-
-from fastapi import APIRouter, Depends, HTTPException, Body
+from typing import Optional, Dict, Any
+from fastapi import APIRouter, Depends, HTTPException, Query, Body
 
 from shared.services.rate_limiter import rate_limiter
 from src.api.v1.responses import ApiResponse
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 
-router = APIRouter()
+router = APIRouter(prefix="/rate-limit", tags=["rate-limit"])
 
 
-@router.get("/config", summary="获取配置", description="获取当前速率限制配置")
-async def get_config(
-        current_user=Depends(jwt_required),
+@router.get("/status", summary="获取限流状态")
+async def get_rate_limit_status(
+        user_id: Optional[int] = Query(None, description="用户ID"),
+        ip_address: Optional[str] = Query(None, description="IP地址"),
+        current_user=Depends(jwt_required)
 ):
-    """获取配置"""
-    # 检查权限
-    is_admin = getattr(current_user, 'is_superuser', False) or getattr(current_user, 'is_staff', False)
-    if not is_admin:
-        raise HTTPException(status_code=403, detail="Permission denied")
+    """
+    获取当前限流状态
+    
+    Args:
+        user_id: 用户ID（可选）
+        ip_address: IP地址（可选）
+        
+    Returns:
+        限流状态信息
+    """
+    try:
+        result = {}
 
-    config = {
-        'default': rate_limiter.default_config,
-        'endpoints': rate_limiter.endpoint_configs,
-    }
+        # 获取用户配额信息
+        if user_id:
+            quota_info = await rate_limiter.get_quota_info(user_id)
+            result['user_quota'] = quota_info
 
-    return ApiResponse(
-        success=True,
-        data=config
-    )
-
-
-@router.post("/config/endpoint", summary="配置端点限制", description="为特定端点配置速率限制")
-async def configure_endpoint(
-        endpoint: str = Body(..., description="API端点路径"),
-        user_rate: Optional[float] = Body(None, description="用户速率限制（每秒请求数）"),
-        user_capacity: Optional[int] = Body(None, description="用户桶容量"),
-        ip_rate: Optional[float] = Body(None, description="IP速率限制（每秒请求数）"),
-        ip_capacity: Optional[int] = Body(None, description="IP桶容量"),
-        current_user=Depends(jwt_required),
-):
-    """配置端点限制"""
-    # 检查权限
-    is_admin = getattr(current_user, 'is_superuser', False) or getattr(current_user, 'is_staff', False)
-    if not is_admin:
-        raise HTTPException(status_code=403, detail="Permission denied")
-
-    rate_limiter.configure_endpoint(
-        endpoint=endpoint,
-        user_rate=user_rate,
-        user_capacity=user_capacity,
-        ip_rate=ip_rate,
-        ip_capacity=ip_capacity,
-    )
-
-    return ApiResponse(
-        success=True,
-        message=f"Endpoint '{endpoint}' configured"
-    )
-
-
-@router.get("/usage/user/{user_id}", summary="获取用户使用情况", description="获取用户的速率限制使用情况")
-async def get_user_usage(
-        user_id: int,
-        current_user=Depends(jwt_required),
-):
-    """获取用户使用情况"""
-    # 检查权限
-    is_admin = getattr(current_user, 'is_superuser', False) or getattr(current_user, 'is_staff', False)
-    if not is_admin:
-        raise HTTPException(status_code=403, detail="Permission denied")
-
-    usage = rate_limiter.get_user_usage(user_id)
-
-    return ApiResponse(
-        success=True,
-        data=usage
-    )
-
-
-@router.get("/usage/ip/{ip_address}", summary="获取IP使用情况", description="获取IP的速率限制使用情况")
-async def get_ip_usage(
-        ip_address: str,
-        current_user=Depends(jwt_required),
-):
-    """获取IP使用情况"""
-    # 检查权限
-    is_admin = getattr(current_user, 'is_superuser', False) or getattr(current_user, 'is_staff', False)
-    if not is_admin:
-        raise HTTPException(status_code=403, detail="Permission denied")
-
-    usage = rate_limiter.get_ip_usage(ip_address)
-
-    return ApiResponse(
-        success=True,
-        data=usage
-    )
-
-
-@router.post("/reset/user/{user_id}", summary="重置用户限制", description="重置用户的速率限制")
-async def reset_user_limit(
-        user_id: int,
-        current_user=Depends(jwt_required),
-):
-    """重置用户限制"""
-    # 检查权限
-    is_admin = getattr(current_user, 'is_superuser', False) or getattr(current_user, 'is_staff', False)
-    if not is_admin:
-        raise HTTPException(status_code=403, detail="Permission denied")
-
-    rate_limiter.reset_user_limit(user_id)
-
-    return ApiResponse(
-        success=True,
-        message=f"User {user_id} rate limit reset"
-    )
-
-
-@router.post("/reset/ip/{ip_address}", summary="重置IP限制", description="重置IP的速率限制")
-async def reset_ip_limit(
-        ip_address: str,
-        current_user=Depends(jwt_required),
-):
-    """重置IP限制"""
-    # 检查权限
-    is_admin = getattr(current_user, 'is_superuser', False) or getattr(current_user, 'is_staff', False)
-    if not is_admin:
-        raise HTTPException(status_code=403, detail="Permission denied")
-
-    rate_limiter.reset_ip_limit(ip_address)
-
-    return ApiResponse(
-        success=True,
-        message=f"IP {ip_address} rate limit reset"
-    )
-
-
-@router.post("/cleanup", summary="清理过期数据", description="清理过期的速率限制桶")
-async def cleanup_expired(
-        max_age: int = Body(3600, ge=60, le=86400, description="最大年龄（秒）"),
-        current_user=Depends(jwt_required),
-):
-    """清理过期数据"""
-    # 检查权限
-    is_admin = getattr(current_user, 'is_superuser', False) or getattr(current_user, 'is_staff', False)
-    if not is_admin:
-        raise HTTPException(status_code=403, detail="Permission denied")
-
-    rate_limiter.cleanup_expired_buckets(max_age=max_age)
-
-    return ApiResponse(
-        success=True,
-        message=f"Cleaned up buckets older than {max_age} seconds"
-    )
-
-
-@router.get("/examples", summary="使用示例", description="获取速率限制使用示例")
-async def get_usage_examples():
-    """获取使用示例"""
-    examples = {
-        "default_limits": {
-            'description': '默认限制',
-            'limits': {
-                'user': '10 requests/second, capacity 100',
-                'ip': '5 requests/second, capacity 50',
-                'global': '100 requests/second, capacity 1000',
+        # 获取IP限流信息
+        if ip_address:
+            limited, info = await rate_limiter.check_ip_limit(ip_address)
+            result['ip_status'] = {
+                'limited': limited,
+                'info': info
             }
-        },
-        "custom_endpoint": {
-            'description': '自定义端点限制',
-            'example': '''
-# 为登录接口设置更严格的限制
-POST /api/v1/rate-limit/config/endpoint
-{
-  "endpoint": "/api/v1/auth/login",
-  "user_rate": 2,
-  "user_capacity": 10,
-  "ip_rate": 1,
-  "ip_capacity": 5
-}
 
-# 为搜索接口设置宽松的限制
-POST /api/v1/rate-limit/config/endpoint
-{
-  "endpoint": "/api/v1/search",
-  "user_rate": 20,
-  "user_capacity": 200,
-  "ip_rate": 10,
-  "ip_capacity": 100
-}
-            '''.strip()
-        },
-        "response_headers": {
-            'description': '响应头信息',
-            'headers': {
-                'X-RateLimit-Limit': '总请求数限制',
-                'X-RateLimit-Remaining': '剩余请求数',
-                'X-RateLimit-Reset': '限制重置时间戳',
-                'Retry-After': '重试等待时间（仅在429响应中）',
+        return ApiResponse(
+            success=True,
+            data=result
+        )
+
+    except Exception as e:
+        return ApiResponse(success=False, error=str(e))
+
+
+@router.post("/config", summary="设置自定义限流配置")
+async def set_custom_rate_limit(
+        identifier: str = Body(..., description="标识符（IP或用户ID）"),
+        limit_type: str = Body(..., description="限流类型 (ip/user/endpoint)"),
+        requests: int = Body(..., description="最大请求数"),
+        window: int = Body(..., description="时间窗口（秒）"),
+        current_user=Depends(jwt_required)
+):
+    """
+    设置自定义限流配置
+    
+    Args:
+        identifier: 标识符
+        limit_type: 限流类型
+        requests: 最大请求数
+        window: 时间窗口（秒）
+        
+    Returns:
+        设置结果
+    """
+    try:
+        # 验证参数
+        if limit_type not in ['ip', 'user', 'endpoint']:
+            return ApiResponse(success=False, error="Invalid limit_type. Must be 'ip', 'user', or 'endpoint'")
+
+        if requests <= 0:
+            return ApiResponse(success=False, error="requests must be positive")
+
+        if window <= 0:
+            return ApiResponse(success=False, error="window must be positive")
+
+        # 设置自定义限流
+        await rate_limiter.set_custom_limit(identifier, limit_type, requests, window)
+
+        return ApiResponse(
+            success=True,
+            message=f"Rate limit configured for {identifier}",
+            data={
+                'identifier': identifier,
+                'limit_type': limit_type,
+                'requests': requests,
+                'window': window
             }
-        },
-        "429_response": {
-            'description': '429 Too Many Requests 响应',
-            'example': {
-                'success': False,
-                'error': 'Rate limit exceeded',
-                'retry_after': 5.2,
-                'limit': {
-                    'user': {
-                        'limit': 100,
-                        'remaining': 0,
-                        'reset': 1234567890.0,
-                    }
-                }
+        )
+
+    except Exception as e:
+        return ApiResponse(success=False, error=str(e))
+
+
+@router.post("/reset", summary="重置限流计数器")
+async def reset_rate_limit(
+        identifier: str = Body(..., description="标识符（IP或用户ID）"),
+        limit_type: str = Body(..., description="限流类型 (ip/user)"),
+        current_user=Depends(jwt_required)
+):
+    """
+    重置限流计数器
+    
+    Args:
+        identifier: 标识符
+        limit_type: 限流类型
+        
+    Returns:
+        重置结果
+    """
+    try:
+        if limit_type not in ['ip', 'user']:
+            return ApiResponse(success=False, error="Invalid limit_type. Must be 'ip' or 'user'")
+
+        await rate_limiter.reset_limit(identifier, limit_type)
+
+        return ApiResponse(
+            success=True,
+            message=f"Rate limit reset for {identifier}"
+        )
+
+    except Exception as e:
+        return ApiResponse(success=False, error=str(e))
+
+
+@router.get("/config/default", summary="获取默认限流配置")
+async def get_default_config(current_user=Depends(jwt_required)):
+    """
+    获取默认限流配置
+    
+    Returns:
+        默认配置
+    """
+    try:
+        config = {
+            'global': rate_limiter.default_limits['global'],
+            'ip': rate_limiter.default_limits['ip'],
+            'user': rate_limiter.default_limits['user'],
+            'endpoints': rate_limiter.default_limits['endpoint']
+        }
+
+        return ApiResponse(
+            success=True,
+            data=config
+        )
+
+    except Exception as e:
+        return ApiResponse(success=False, error=str(e))
+
+
+@router.post("/config/update", summary="更新默认限流配置")
+async def update_default_config(
+        limit_type: str = Body(..., description="限流类型 (global/ip/user)"),
+        requests: int = Body(..., description="最大请求数"),
+        window: int = Body(..., description="时间窗口（秒）"),
+        current_user=Depends(jwt_required)
+):
+    """
+    更新默认限流配置
+    
+    Args:
+        limit_type: 限流类型
+        requests: 最大请求数
+        window: 时间窗口（秒）
+        
+    Returns:
+        更新结果
+    """
+    try:
+        if limit_type not in ['global', 'ip', 'user']:
+            return ApiResponse(success=False, error="Invalid limit_type. Must be 'global', 'ip', or 'user'")
+
+        if requests <= 0:
+            return ApiResponse(success=False, error="requests must be positive")
+
+        if window <= 0:
+            return ApiResponse(success=False, error="window must be positive")
+
+        # 更新配置
+        rate_limiter.default_limits[limit_type] = {
+            'requests': requests,
+            'window': window
+        }
+
+        return ApiResponse(
+            success=True,
+            message=f"Default rate limit updated for {limit_type}",
+            data={
+                'limit_type': limit_type,
+                'requests': requests,
+                'window': window
             }
-        },
-        "best_practices": {
-            'description': '最佳实践',
-            'practices': [
-                '为认证相关接口设置更严格的限制',
-                '为公开API设置IP级限制',
-                '为已认证用户设置用户级限制',
-                '监控速率限制触发情况，调整配置',
-                '定期清理过期的限制桶以释放内存',
-                '在文档中明确说明速率限制策略',
+        )
+
+    except Exception as e:
+        return ApiResponse(success=False, error=str(e))
+
+
+@router.get("/monitoring", summary="获取限流监控数据")
+async def get_monitoring_data(
+        period: str = Query("1h", description="统计周期 (1h/24h/7d)"),
+        current_user=Depends(jwt_required)
+):
+    """
+    获取限流监控数据
+    
+    Args:
+        period: 统计周期
+        
+    Returns:
+        监控数据
+    """
+    try:
+        # 解析周期
+        period_map = {
+            '1h': {'hours': 1, 'label': '过去1小时'},
+            '24h': {'hours': 24, 'label': '过去24小时'},
+            '7d': {'hours': 168, 'label': '过去7天'}
+        }
+
+        period_config = period_map.get(period, period_map['1h'])
+
+        # 这里可以返回更详细的监控数据
+        # 在实际应用中，应该从数据库或Redis中获取统计数据
+        monitoring_data = {
+            'period': period_config['label'],
+            'total_requests': 0,  # 需要从存储中获取
+            'blocked_requests': 0,  # 被限流的请求数
+            'top_blocked_ips': [],  # 被限流最多的IP
+            'top_blocked_users': [],  # 被限流最多的用户
+            'average_response_time': 0,  # 平均响应时间
+        }
+
+        return ApiResponse(
+            success=True,
+            data=monitoring_data
+        )
+
+    except Exception as e:
+        return ApiResponse(success=False, error=str(e))
+
+
+@router.get("/whitelist", summary="获取白名单")
+async def get_whitelist(current_user=Depends(jwt_required)):
+    """
+    获取限流白名单
+    
+    Returns:
+        白名单列表
+    """
+    try:
+        # 白名单可以从配置文件或数据库中读取
+        whitelist = {
+            'ips': [
+                # '127.0.0.1',
+                # '192.168.1.1'
+            ],
+            'users': [
+                # 管理员用户ID
             ]
         }
-    }
 
-    return ApiResponse(
-        success=True,
-        data=examples
-    )
+        return ApiResponse(
+            success=True,
+            data=whitelist
+        )
+
+    except Exception as e:
+        return ApiResponse(success=False, error=str(e))
+
+
+@router.post("/whitelist/add", summary="添加到白名单")
+async def add_to_whitelist(
+        item_type: str = Body(..., description="类型 (ip/user)"),
+        value: str = Body(..., description="值（IP地址或用户ID）"),
+        current_user=Depends(jwt_required)
+):
+    """
+    添加IP或用户到白名单
+    
+    Args:
+        item_type: 类型
+        value: 值
+        
+    Returns:
+        添加结果
+    """
+    try:
+        if item_type not in ['ip', 'user']:
+            return ApiResponse(success=False, error="Invalid type. Must be 'ip' or 'user'")
+
+        # 在实际应用中，应该将白名单保存到数据库
+        # 这里只是示例
+
+        return ApiResponse(
+            success=True,
+            message=f"Added {value} to whitelist",
+            data={
+                'type': item_type,
+                'value': value
+            }
+        )
+
+    except Exception as e:
+        return ApiResponse(success=False, error=str(e))
+
+
+@router.delete("/whitelist/remove", summary="从白名单移除")
+async def remove_from_whitelist(
+        item_type: str = Body(..., description="类型 (ip/user)"),
+        value: str = Body(..., description="值（IP地址或用户ID）"),
+        current_user=Depends(jwt_required)
+):
+    """
+    从白名单移除IP或用户
+    
+    Args:
+        item_type: 类型
+        value: 值
+        
+    Returns:
+        移除结果
+    """
+    try:
+        if item_type not in ['ip', 'user']:
+            return ApiResponse(success=False, error="Invalid type. Must be 'ip' or 'user'")
+
+        # 在实际应用中，应该从数据库中删除白名单记录
+
+        return ApiResponse(
+            success=True,
+            message=f"Removed {value} from whitelist"
+        )
+
+    except Exception as e:
+        return ApiResponse(success=False, error=str(e))

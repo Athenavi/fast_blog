@@ -4,6 +4,7 @@ import logging
 import os
 import shutil
 import uuid
+from pathlib import Path
 from typing import List, Optional, Union
 
 try:
@@ -20,6 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.models import FileHash, Media, UploadChunk, UploadTask
 from src.extensions import get_async_db_session as get_async_db
 from src.utils.storage import s3_storage
+from src.utils.image.video_processor import video_processor
 
 logger = logging.getLogger(__name__)
 
@@ -255,8 +257,125 @@ class FileProcessor:
         # 构建文件URL（使用 media_id）
         new_media.file_url = f"/api/v1/media/{new_media.id}"
         await db.flush()  # 再次刷新以保存 file_url
+
+        # 如果是视频文件，异步处理视频（转码、生成缩略图等）
+        if file_type == 'video':
+            asyncio.create_task(
+                self._process_video_after_upload(new_media, file_hash_record)
+            )
         
         return new_media
+
+    async def _process_video_after_upload(self, media: Media, file_hash: FileHash):
+        """
+        视频上传后处理：生成缩略图、转码等
+        
+        Args:
+            media: 媒体记录
+            file_hash: 文件哈希记录
+        """
+        try:
+            from datetime import datetime
+            import tempfile
+
+            logger.info(f"开始处理视频文件: {media.filename}")
+
+            # 获取文件路径
+            file_path = file_hash.storage_path
+
+            # 创建临时目录用于处理
+            with tempfile.TemporaryDirectory() as temp_dir:
+                # 下载文件到临时目录
+                local_video_path = os.path.join(temp_dir, media.filename)
+                file_data = s3_storage.read_file(file_path)
+
+                if not file_data:
+                    logger.error(f"无法读取视频文件: {file_path}")
+                    return
+
+                # 保存到本地临时文件
+                with open(local_video_path, 'wb') as f:
+                    f.write(file_data)
+
+                # 1. 获取视频信息
+                video_info = video_processor.get_video_info(local_video_path)
+                if video_info:
+                    logger.info(f"视频信息: {video_info}")
+
+                    # 更新媒体记录的宽度和高度
+                    from sqlalchemy import update
+                    from src.extensions import get_async_db_session
+
+                    async with get_async_db_session()() as db:
+                        stmt = update(Media).where(
+                            Media.id == media.id
+                        ).values(
+                            width=video_info['width'],
+                            height=video_info['height'],
+                            duration=int(video_info['duration']),
+                            updated_at=datetime.now()
+                        )
+                        await db.execute(stmt)
+                        await db.commit()
+
+                # 2. 生成缩略图
+                thumbnail_filename = f"{Path(media.filename).stem}_thumb.jpg"
+                thumbnail_local_path = os.path.join(temp_dir, thumbnail_filename)
+
+                thumbnail_success = video_processor.create_thumbnail(
+                    video_path=local_video_path,
+                    thumbnail_path=thumbnail_local_path,
+                    time=1.0,  # 从第1秒提取
+                    width=320,
+                    quality=85
+                )
+
+                if thumbnail_success and os.path.exists(thumbnail_local_path):
+                    # 上传缩略图到存储
+                    with open(thumbnail_local_path, 'rb') as f:
+                        thumbnail_data = f.read()
+
+                    thumbnail_hash = hashlib.sha256(thumbnail_data).hexdigest()
+                    thumbnail_storage_path = s3_storage.save_file(
+                        thumbnail_hash,
+                        thumbnail_data,
+                        thumbnail_filename
+                    )
+
+                    # 更新媒体记录的缩略图信息
+                    async with get_async_db_session()() as db:
+                        stmt = update(Media).where(
+                            Media.id == media.id
+                        ).values(
+                            thumbnail_path=thumbnail_storage_path,
+                            thumbnail_url=f"/api/v1/media/thumbnail/{media.id}",
+                            updated_at=datetime.now()
+                        )
+                        await db.execute(stmt)
+                        await db.commit()
+
+                    logger.info(f"视频缩略图生成成功: {thumbnail_storage_path}")
+
+                # 3. 生成多种分辨率版本（可选，根据配置）
+                # 这里可以根据系统配置决定是否启用多分辨率转码
+                # 暂时注释掉，避免大量占用存储空间
+                # resolutions_dir = os.path.join(temp_dir, "resolutions")
+                # os.makedirs(resolutions_dir, exist_ok=True)
+                # 
+                # resolution_results = video_processor.generate_multiple_resolutions(
+                #     input_path=local_video_path,
+                #     output_dir=resolutions_dir
+                # )
+                # 
+                # for res_result in resolution_results:
+                #     if res_result.get('success'):
+                #         # 上传每个分辨率版本
+                #         pass
+
+            logger.info(f"视频处理完成: {media.filename}")
+
+        except Exception as e:
+            logger.error(f"视频后处理失败: {str(e)}", exc_info=True)
 
 
 class ChunkedUploadProcessor:

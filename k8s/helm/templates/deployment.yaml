@@ -1,0 +1,88 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: { { include "fastblog.fullname" . } }
+  labels:
+    { { - include "fastblog.labels" . | nindent 4 } }
+spec:
+  { { - if not .Values.autoscaling.enabled } }
+  replicas: { { .Values.replicaCount } }
+  { { - end } }
+  selector:
+    matchLabels:
+      { { - include "fastblog.selectorLabels" . | nindent 6 } }
+  template:
+    metadata:
+      annotations:
+        checksum/config: { { include (print $.Template.BasePath "/configmap.yaml") . | sha256sum } }
+      labels:
+        { { - include "fastblog.selectorLabels" . | nindent 8 } }
+    spec:
+      serviceAccountName: { { include "fastblog.serviceAccountName" . } }
+      securityContext:
+        { { - toYaml .Values.podSecurityContext | nindent 8 } }
+      containers:
+        - name: { { .Chart.Name } }
+          securityContext:
+            { { - toYaml .Values.securityContext | nindent 12 } }
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag | default .Chart.AppVersion }}"
+          imagePullPolicy: { { .Values.image.pullPolicy } }
+          ports:
+            - name: http
+              containerPort: 9421
+              protocol: TCP
+          livenessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /api/v1/health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          envFrom:
+            - configMapRef:
+                name: { { include "fastblog.fullname" . } }-config
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          volumeMounts:
+            - name: media
+              mountPath: /app/media
+            - name: storage
+              mountPath: /app/storage
+            - name: backups
+              mountPath: /app/backups
+            - name: logs
+              mountPath: /app/logs
+      volumes:
+        - name: media
+          persistentVolumeClaim:
+            claimName: { { include "fastblog.fullname" . } }-media
+        - name: storage
+        persistentVolumeClaim:
+          claimName: { { include "fastblog.fullname" . } }-storage
+        - name: backups
+        persistentVolumeClaim:
+          claimName: { { include "fastblog.fullname" . } }-backups
+        - name: logs
+        persistentVolumeClaim:
+          claimName: { { include "fastblog.fullname" . } }-logs
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      { { - end } }
+      { { - with .Values.affinity } }
+      affinity:
+        { { - toYaml . | nindent 8 } }
+      { { - end } }
+      { { - with .Values.tolerations } }
+      tolerations:
+        { { - toYaml . | nindent 8 } }
+      { { - end } }

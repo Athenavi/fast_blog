@@ -3,11 +3,12 @@
 """
 import logging
 from decimal import Decimal
+from pathlib import Path
 from typing import Optional
 
 import humanize
 from fastapi import APIRouter, Depends, Query, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse, StreamingResponse, Response
 from sqlalchemy import select, func, case
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -320,3 +321,66 @@ async def get_all_tags(
         return ApiResponse(success=True, data={"tags": tags})
     except Exception as e:
         return ApiResponse(success=False, error=str(e))
+
+
+# ---------- 视频缩略图 ----------
+@router.get("/thumbnail/{media_id}")
+async def get_video_thumbnail(
+        media_id: int,
+        db: AsyncSession = Depends(get_async_db),
+        current_user=Depends(jwt_required)
+):
+    """
+    获取视频缩略图
+    
+    Args:
+        media_id: 媒体文件ID
+    
+    Returns:
+        缩略图文件或404
+    """
+    try:
+        # 查询媒体记录
+        query = select(Media).where(Media.id == media_id)
+        result = await db.execute(query)
+        media = result.scalar_one_or_none()
+
+        if not media:
+            return JSONResponse(
+                content={"success": False, "error": "媒体文件不存在"},
+                status_code=404
+            )
+
+        # 检查是否有缩略图
+        if not media.thumbnail_path:
+            return JSONResponse(
+                content={"success": False, "error": "缩略图不存在"},
+                status_code=404
+            )
+
+        # 从存储中读取缩略图
+        from src.utils.storage.s3_storage import s3_storage
+        thumbnail_data = s3_storage.read_file(media.thumbnail_path)
+
+        if not thumbnail_data:
+            return JSONResponse(
+                content={"success": False, "error": "无法读取缩略图"},
+                status_code=404
+            )
+
+        # 返回缩略图
+        return Response(
+            content=thumbnail_data,
+            media_type='image/jpeg',
+            headers={
+                'Cache-Control': 'public, max-age=86400',  # 缓存1天
+                'Content-Disposition': f'inline; filename="{Path(media.thumbnail_path).name}"'
+            }
+        )
+
+    except Exception as e:
+        logger.error(f"获取视频缩略图失败: {str(e)}", exc_info=True)
+        return JSONResponse(
+            content={"success": False, "error": str(e)},
+            status_code=500
+        )

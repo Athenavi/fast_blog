@@ -167,6 +167,10 @@ class BaseConfig:
     MAX_CACHE_TIMESTAMP = 7200
     USER_FREE_STORAGE_LIMIT = 0.5 * 1024 * 1024 * 1024  # 512MB 用户免费空间限制
     RATELIMIT_DEFAULT = "10/second"
+
+    # FFmpeg 配置（视频处理）
+    FFMPEG_PATH = os.environ.get('FFMPEG_PATH', 'ffmpeg')
+    FFPROBE_PATH = os.environ.get('FFPROBE_PATH', 'ffprobe')
     # 邮件配置
     MAIL_SERVER = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')  # 默认使用 Gmail SMTP
     MAIL_PORT = int(os.environ.get('MAIL_PORT', 587))

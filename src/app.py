@@ -1113,6 +1113,70 @@ curl -X POST "http://localhost:9421/api/v1/media/upload" \
         except ImportError as e:
             print(f"Warning: Content Approval API could not be loaded: {e}")
 
+        # 工作流引擎 API
+        try:
+            from src.api.v1.workflow import router as workflow_router
+            app.include_router(workflow_router, prefix='/api/v1', tags=['workflows'])
+            print(f"{worker_info} [OK] Workflow Engine API 已加载")
+        except ImportError as e:
+            print(f"Warning: Workflow Engine API could not be loaded: {e}")
+
+        # 数据备份管理 API
+        try:
+            from src.api.v1.backup_management import router as backup_router
+            app.include_router(backup_router, prefix='/api/v1', tags=['backup'])
+            print(f"{worker_info} [OK] Backup Management API 已加载")
+        except ImportError as e:
+            print(f"Warning: Backup Management API could not be loaded: {e}")
+
+        # 负载均衡管理 API
+        try:
+            from src.api.v1.load_balancer import router as lb_router
+            app.include_router(lb_router, prefix='/api/v1', tags=['load-balancer'])
+            print(f"{worker_info} [OK] Load Balancer API 已加载")
+        except ImportError as e:
+            print(f"Warning: Load Balancer API could not be loaded: {e}")
+
+        # 团队协作 API
+        try:
+            from src.api.v1.team_collaboration import router as collaboration_router
+            app.include_router(collaboration_router, prefix='/api/v1', tags=['collaboration'])
+            print(f"{worker_info} [OK] Team Collaboration API 已加载")
+        except ImportError as e:
+            print(f"Warning: Team Collaboration API could not be loaded: {e}")
+
+        # 角色权限管理 API
+        try:
+            from src.api.v1.rbac import router as rbac_router
+            app.include_router(rbac_router, prefix='/api/v1', tags=['rbac'])
+            print(f"{worker_info} [OK] RBAC API 已加载")
+        except ImportError as e:
+            print(f"Warning: RBAC API could not be loaded: {e}")
+
+        # 多语言支持 API
+        try:
+            from src.api.v1.i18n import router as i18n_router
+            app.include_router(i18n_router, prefix='/api/v1', tags=['i18n'])
+            print(f"{worker_info} [OK] I18n API 已加载")
+        except ImportError as e:
+            print(f"Warning: I18n API could not be loaded: {e}")
+
+        # 多站点管理 API
+        try:
+            from src.api.v1.multisite import router as multisite_router
+            app.include_router(multisite_router, prefix='/api/v1', tags=['multisite'])
+            print(f"{worker_info} [OK] MultiSite API 已加载")
+        except ImportError as e:
+            print(f"Warning: MultiSite API could not be loaded: {e}")
+
+        # SSO单点登录 API
+        try:
+            from src.api.v1.sso import router as sso_router
+            app.include_router(sso_router, prefix='/api/v1', tags=['sso'])
+            print(f"{worker_info} [OK] SSO API 已加载")
+        except ImportError as e:
+            print(f"Warning: SSO API could not be loaded: {e}")
+
         # 团队评论 API
         try:
             from src.api.v1.team_comments import router as team_comment_router

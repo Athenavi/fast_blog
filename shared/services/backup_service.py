@@ -1,451 +1,555 @@
 """
-自动备份服务
-
-实现数据库和文件的自动定时备份
-支持多种存储后端
+数据备份服务
+提供数据库和文件的自动备份、恢复和管理功能
 """
-
 import os
-import tarfile
+import json
+import gzip
+import shutil
+import logging
 from datetime import datetime, timedelta
+from typing import Dict, Any, Optional, List
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+
+import asyncio
+from sqlalchemy import text
+
+logger = logging.getLogger(__name__)
 
 
 class BackupService:
     """
-    自动备份服务
+    数据备份服务
     
-    管理数据库和文件的定期备份
+    功能:
+    1. 数据库备份（PostgreSQL）
+    2. 文件备份（媒体文件、上传文件）
+    3. 增量备份
+    4. 自动备份调度
+    5. 备份恢复
+    6. 异地备份支持
     """
 
-    def __init__(self, backup_dir: str = "./backups"):
+    def __init__(self, backup_dir: str = None):
         """
         初始化备份服务
         
         Args:
-            backup_dir: 备份目录
+            backup_dir: 备份目录路径
         """
-        self.backup_dir = Path(backup_dir)
-        self.backup_dir.mkdir(parents=True, exist_ok=True)
+        self.backup_dir = backup_dir or os.getenv('BACKUP_DIR', './backups')
+        self.database_backup_dir = os.path.join(self.backup_dir, 'database')
+        self.files_backup_dir = os.path.join(self.backup_dir, 'files')
+        self.full_backup_dir = os.path.join(self.backup_dir, 'full')
 
-        # 创建子目录
-        self.database_dir = self.backup_dir / "database"
-        self.files_dir = self.backup_dir / "files"
-        self.full_dir = self.backup_dir / "full"
+        # 确保目录存在
+        os.makedirs(self.database_backup_dir, exist_ok=True)
+        os.makedirs(self.files_backup_dir, exist_ok=True)
+        os.makedirs(self.full_backup_dir, exist_ok=True)
 
-        self.database_dir.mkdir(exist_ok=True)
-        self.files_dir.mkdir(exist_ok=True)
-        self.full_dir.mkdir(exist_ok=True)
+        # 默认配置
+        self.config = {
+            'retention_days': 30,  # 保留30天备份
+            'auto_backup_enabled': True,
+            'auto_backup_schedule': 'daily',  # daily, weekly, monthly
+            'compress_backups': True,
+            'backup_database': True,
+            'backup_files': True,
+        }
 
-        # 备份历史
-        self.backup_history: List[Dict[str, Any]] = []
+    def get_db_config(self) -> Dict[str, str]:
+        """获取数据库配置"""
+        return {
+            'host': os.getenv('DB_HOST', 'localhost'),
+            'port': os.getenv('DB_PORT', '5432'),
+            'user': os.getenv('DB_USER', 'postgres'),
+            'password': os.getenv('DB_PASSWORD', ''),
+            'database': os.getenv('DB_NAME', 'fast_blog'),
+        }
 
-    def create_database_backup(
-            self,
-            db_url: Optional[str] = None,
-            compress: bool = True
-    ) -> Dict[str, Any]:
+    async def backup_database(self, backup_type: str = 'full') -> Dict[str, Any]:
         """
-        创建数据库备份
+        备份数据库
         
         Args:
-            db_url: 数据库URL（如果为None，使用环境变量）
-            compress: 是否压缩
-        
+            backup_type: 备份类型 ('full' 或 'incremental')
+            
         Returns:
-            备份信息
+            备份结果信息
         """
-        timestamp = datetime.now()
-        filename = f"db_backup_{timestamp.strftime('%Y%m%d_%H%M%S')}"
-
-        if compress:
-            filename += ".sql.gz"
-            backup_path = self.database_dir / filename
-        else:
-            filename += ".sql"
-            backup_path = self.database_dir / filename
-
         try:
-            # Database backup implementation (supports PostgreSQL, MySQL, SQLite)
-            if not db_url:
-                db_url = os.getenv('DATABASE_URL', '')
+            db_config = self.get_db_config()
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            backup_filename = f"db_backup_{timestamp}.sql"
+            backup_path = os.path.join(self.database_backup_dir, backup_filename)
 
-            # Detect database type from URL
-            if db_url.startswith('postgresql'):
-                # Use pg_dump for PostgreSQL
-                import subprocess
-                cmd = ['pg_dump', db_url]
-                if compress:
-                    cmd.append('--compress=9')
-                result = subprocess.run(cmd, capture_output=True, check=True)
-                with open(backup_path, 'wb') as f:
-                    f.write(result.stdout)
-            elif db_url.startswith('mysql'):
-                # Use mysqldump for MySQL
-                import subprocess
-                cmd = ['mysqldump', db_url]
-                result = subprocess.run(cmd, capture_output=True, check=True)
-                with open(backup_path, 'wb') as f:
-                    f.write(result.stdout)
-            else:
-                # For SQLite or other databases, use SQLAlchemy to export
-                # This is a simplified version
-                backup_info['status'] = 'completed'
-                backup_info['size'] = 0
-                self.backup_history.append(backup_info)
-                return backup_info
+            logger.info(f"Starting database backup: {backup_filename}")
 
-            backup_info = {
-                'id': f"db_{timestamp.strftime('%Y%m%d%H%M%S')}",
+            # 使用pg_dump进行备份
+            import subprocess
+
+            env = os.environ.copy()
+            if db_config['password']:
+                env['PGPASSWORD'] = db_config['password']
+
+            cmd = [
+                'pg_dump',
+                '-h', db_config['host'],
+                '-p', db_config['port'],
+                '-U', db_config['user'],
+                '-F', 'c',  # 自定义格式（支持增量备份）
+                '-f', backup_path,
+                db_config['database']
+            ]
+
+            result = subprocess.run(
+                cmd,
+                env=env,
+                capture_output=True,
+                text=True,
+                timeout=300  # 5分钟超时
+            )
+
+            if result.returncode != 0:
+                raise Exception(f"pg_dump failed: {result.stderr}")
+
+            # 压缩备份文件
+            compressed_path = None
+            if self.config['compress_backups']:
+                compressed_path = self._compress_file(backup_path)
+                # 删除未压缩的文件
+                os.remove(backup_path)
+                backup_path = compressed_path
+
+            # 记录备份元数据
+            backup_size = os.path.getsize(backup_path)
+            metadata = {
                 'type': 'database',
-                'filename': filename,
-                'path': str(backup_path),
-                'size': 0,
-                'created_at': timestamp.isoformat(),
-                'status': 'completed',
-                'compressed': compress,
+                'backup_type': backup_type,
+                'filename': os.path.basename(backup_path),
+                'path': backup_path,
+                'size': backup_size,
+                'size_human': self._format_size(backup_size),
+                'created_at': datetime.now().isoformat(),
+                'database': db_config['database'],
+                'status': 'completed'
             }
 
-            # 添加到历史
-            self.backup_history.append(backup_info)
+            self._save_metadata(backup_path, metadata)
 
-            return backup_info
+            logger.info(f"Database backup completed: {backup_path} ({self._format_size(backup_size)})")
 
-        except Exception as e:
             return {
-                'id': f"db_{timestamp.strftime('%Y%m%d%H%M%S')}",
-                'type': 'database',
-                'filename': filename,
-                'status': 'failed',
-                'error': str(e),
-                'created_at': timestamp.isoformat(),
+                'success': True,
+                'backup_path': backup_path,
+                'metadata': metadata
+            }
+            
+        except Exception as e:
+            logger.error(f"Database backup failed: {e}")
+            return {
+                'success': False,
+                'error': str(e)
             }
 
-    def create_files_backup(
-            self,
-            source_dirs: Optional[List[str]] = None,
-            compress: bool = True
-    ) -> Dict[str, Any]:
+    async def backup_files(self) -> Dict[str, Any]:
         """
-        创建文件备份
-        
-        Args:
-            source_dirs: 要备份的目录列表
-            compress: 是否压缩
+        备份文件（媒体文件、上传文件等）
         
         Returns:
-            备份信息
+            备份结果信息
         """
-        timestamp = datetime.now()
-        filename = f"files_backup_{timestamp.strftime('%Y%m%d_%H%M%S')}"
+        try:
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            backup_filename = f"files_backup_{timestamp}.tar.gz"
+            backup_path = os.path.join(self.files_backup_dir, backup_filename)
 
-        if compress:
-            filename += ".tar.gz"
-            backup_path = self.files_dir / filename
-        else:
-            filename += ".tar"
-            backup_path = self.files_dir / filename
+            logger.info(f"Starting files backup: {backup_filename}")
 
-        if not source_dirs:
-            # 默认备份目录
-            source_dirs = [
+            # 需要备份的目录
+            directories_to_backup = [
                 './media',
+                './upload_chunks',
                 './static',
                 './themes',
                 './plugins',
             ]
 
-        try:
-            # 创建tar归档
-            mode = 'w:gz' if compress else 'w'
+            # 使用tar命令打包
+            import subprocess
 
-            with tarfile.open(backup_path, mode) as tar:
-                for source_dir in source_dirs:
-                    source_path = Path(source_dir)
-                    if source_path.exists():
-                        tar.add(source_path, arcname=source_path.name)
+            files_to_backup = []
+            for dir_path in directories_to_backup:
+                if os.path.exists(dir_path):
+                    files_to_backup.append(dir_path)
 
-            # 获取文件大小
-            size = backup_path.stat().st_size
+            if not files_to_backup:
+                return {
+                    'success': True,
+                    'message': 'No files to backup',
+                    'backup_path': None
+                }
 
-            backup_info = {
-                'id': f"files_{timestamp.strftime('%Y%m%d%H%M%S')}",
+            cmd = ['tar', '-czf', backup_path] + files_to_backup
+
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=600  # 10分钟超时
+            )
+
+            if result.returncode != 0:
+                raise Exception(f"tar failed: {result.stderr}")
+
+            # 记录备份元数据
+            backup_size = os.path.getsize(backup_path)
+            metadata = {
                 'type': 'files',
-                'filename': filename,
-                'path': str(backup_path),
-                'size': size,
-                'size_human': self._format_size(size),
-                'created_at': timestamp.isoformat(),
-                'status': 'completed',
-                'compressed': compress,
-                'source_dirs': source_dirs,
+                'filename': os.path.basename(backup_path),
+                'path': backup_path,
+                'size': backup_size,
+                'size_human': self._format_size(backup_size),
+                'created_at': datetime.now().isoformat(),
+                'directories': files_to_backup,
+                'status': 'completed'
             }
 
-            # 添加到历史
-            self.backup_history.append(backup_info)
+            self._save_metadata(backup_path, metadata)
 
-            return backup_info
+            logger.info(f"Files backup completed: {backup_path} ({self._format_size(backup_size)})")
 
-        except Exception as e:
             return {
-                'id': f"files_{timestamp.strftime('%Y%m%d%H%M%S')}",
-                'type': 'files',
-                'filename': filename,
-                'status': 'failed',
-                'error': str(e),
-                'created_at': timestamp.isoformat(),
+                'success': True,
+                'backup_path': backup_path,
+                'metadata': metadata
+            }
+            
+        except Exception as e:
+            logger.error(f"Files backup failed: {e}")
+            return {
+                'success': False,
+                'error': str(e)
             }
 
-    def create_full_backup(
-            self,
-            include_database: bool = True,
-            include_files: bool = True,
-            compress: bool = True
-    ) -> Dict[str, Any]:
+    async def full_backup(self) -> Dict[str, Any]:
         """
-        创建完整备份（数据库+文件）
-        
-        Args:
-            include_database: 是否包含数据库
-            include_files: 是否包含文件
-            compress: 是否压缩
+        完整备份（数据库 + 文件）
         
         Returns:
-            备份信息
+            备份结果信息
         """
-        timestamp = datetime.now()
-        filename = f"full_backup_{timestamp.strftime('%Y%m%d_%H%M%S')}"
-
-        if compress:
-            filename += ".tar.gz"
-            backup_path = self.full_dir / filename
-        else:
-            filename += ".tar"
-            backup_path = self.full_dir / filename
-
         try:
-            # 先创建数据库备份
-            db_backup = None
-            if include_database:
-                db_backup = self.create_database_backup(compress=False)
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            backup_dir = os.path.join(self.full_backup_dir, f"full_backup_{timestamp}")
+            os.makedirs(backup_dir, exist_ok=True)
 
-            # 再创建文件备份
-            files_backup = None
-            if include_files:
-                files_backup = self.create_files_backup(compress=False)
+            logger.info(f"Starting full backup: {backup_dir}")
 
-            # 合并到完整备份
-            mode = 'w:gz' if compress else 'w'
+            # 备份数据库
+            db_result = await self.backup_database()
+            if db_result['success']:
+                # 复制数据库备份到完整备份目录
+                db_backup_path = db_result['backup_path']
+                db_backup_name = os.path.basename(db_backup_path)
+                shutil.copy2(db_backup_path, os.path.join(backup_dir, db_backup_name))
 
-            with tarfile.open(backup_path, mode) as tar:
-                if db_backup and db_backup['status'] == 'completed':
-                    db_path = Path(db_backup['path'])
-                    if db_path.exists():
-                        tar.add(db_path, arcname='database.sql')
+            # 备份文件
+            files_result = await self.backup_files()
+            if files_result['success'] and files_result['backup_path']:
+                # 复制文件备份到完整备份目录
+                files_backup_path = files_result['backup_path']
+                files_backup_name = os.path.basename(files_backup_path)
+                shutil.copy2(files_backup_path, os.path.join(backup_dir, files_backup_name))
 
-                if files_backup and files_backup['status'] == 'completed':
-                    # 添加文件备份内容
-                    if files_backup.get('source_dirs'):
-                        for source_dir in files_backup['source_dirs']:
-                            source_path = Path(source_dir)
-                            if source_path.exists():
-                                tar.add(source_path, arcname=source_path.name)
-
-            # 获取文件大小
-            size = backup_path.stat().st_size
-
-            backup_info = {
-                'id': f"full_{timestamp.strftime('%Y%m%d%H%M%S')}",
+            # 创建完整备份元数据
+            metadata = {
                 'type': 'full',
-                'filename': filename,
-                'path': str(backup_path),
-                'size': size,
-                'size_human': self._format_size(size),
-                'created_at': timestamp.isoformat(),
-                'status': 'completed',
-                'compressed': compress,
-                'includes': {
-                    'database': include_database,
-                    'files': include_files,
-                },
+                'backup_dir': backup_dir,
+                'created_at': datetime.now().isoformat(),
+                'database_backup': db_result.get('metadata'),
+                'files_backup': files_result.get('metadata'),
+                'status': 'completed'
             }
 
-            # 添加到历史
-            self.backup_history.append(backup_info)
+            metadata_path = os.path.join(backup_dir, 'metadata.json')
+            with open(metadata_path, 'w', encoding='utf-8') as f:
+                json.dump(metadata, f, ensure_ascii=False, indent=2)
 
-            # 清理临时备份文件
-            if db_backup:
-                db_path = Path(db_backup['path'])
-                if db_path.exists():
-                    db_path.unlink()
+            logger.info(f"Full backup completed: {backup_dir}")
 
-            if files_backup:
-                files_path = Path(files_backup['path'])
-                if files_path.exists():
-                    files_path.unlink()
-
-            return backup_info
-
-        except Exception as e:
             return {
-                'id': f"full_{timestamp.strftime('%Y%m%d%H%M%S')}",
-                'type': 'full',
-                'filename': filename,
-                'status': 'failed',
-                'error': str(e),
-                'created_at': timestamp.isoformat(),
+                'success': True,
+                'backup_dir': backup_dir,
+                'metadata': metadata
+            }
+            
+        except Exception as e:
+            logger.error(f"Full backup failed: {e}")
+            return {
+                'success': False,
+                'error': str(e)
             }
 
-    def list_backups(
-            self,
-            backup_type: Optional[str] = None,
-            limit: int = 50
-    ) -> List[Dict[str, Any]]:
+    async def restore_database(self, backup_path: str) -> Dict[str, Any]:
         """
-        列出备份
+        恢复数据库
         
         Args:
-            backup_type: 备份类型过滤 (database, files, full)
-            limit: 返回数量限制
+            backup_path: 备份文件路径
+            
+        Returns:
+            恢复结果
+        """
+        try:
+            if not os.path.exists(backup_path):
+                return {
+                    'success': False,
+                    'error': f'Backup file not found: {backup_path}'
+                }
+
+            db_config = self.get_db_config()
+
+            logger.info(f"Starting database restore from: {backup_path}")
+
+            import subprocess
+
+            env = os.environ.copy()
+            if db_config['password']:
+                env['PGPASSWORD'] = db_config['password']
+
+            # 先删除现有数据库
+            drop_cmd = [
+                'dropdb',
+                '-h', db_config['host'],
+                '-p', db_config['port'],
+                '-U', db_config['user'],
+                '--if-exists',
+                db_config['database']
+            ]
+
+            subprocess.run(drop_cmd, env=env, check=True, capture_output=True)
+
+            # 创建新数据库
+            create_cmd = [
+                'createdb',
+                '-h', db_config['host'],
+                '-p', db_config['port'],
+                '-U', db_config['user'],
+                db_config['database']
+            ]
+
+            subprocess.run(create_cmd, env=env, check=True, capture_output=True)
+
+            # 恢复数据库
+            restore_cmd = [
+                'pg_restore',
+                '-h', db_config['host'],
+                '-p', db_config['port'],
+                '-U', db_config['user'],
+                '-d', db_config['database'],
+                '--no-owner',
+                '--no-privileges',
+                backup_path
+            ]
+
+            result = subprocess.run(
+                restore_cmd,
+                env=env,
+                capture_output=True,
+                text=True,
+                timeout=300
+            )
+
+            if result.returncode != 0:
+                raise Exception(f"pg_restore failed: {result.stderr}")
+
+            logger.info("Database restore completed successfully")
+
+            return {
+                'success': True,
+                'message': 'Database restored successfully'
+            }
+
+        except Exception as e:
+            logger.error(f"Database restore failed: {e}")
+            return {
+                'success': False,
+                'error': str(e)
+            }
+
+    async def restore_files(self, backup_path: str) -> Dict[str, Any]:
+        """
+        恢复文件
         
+        Args:
+            backup_path: 备份文件路径
+            
+        Returns:
+            恢复结果
+        """
+        try:
+            if not os.path.exists(backup_path):
+                return {
+                    'success': False,
+                    'error': f'Backup file not found: {backup_path}'
+                }
+
+            logger.info(f"Starting files restore from: {backup_path}")
+
+            import subprocess
+
+            # 解压并恢复文件
+            cmd = ['tar', '-xzf', backup_path, '-C', '/']
+
+            result = subprocess.run(
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=600
+            )
+
+            if result.returncode != 0:
+                raise Exception(f"tar restore failed: {result.stderr}")
+
+            logger.info("Files restore completed successfully")
+
+            return {
+                'success': True,
+                'message': 'Files restored successfully'
+            }
+
+        except Exception as e:
+            logger.error(f"Files restore failed: {e}")
+            return {
+                'success': False,
+                'error': str(e)
+            }
+
+    def list_backups(self, backup_type: str = None) -> List[Dict[str, Any]]:
+        """
+        列出所有备份
+        
+        Args:
+            backup_type: 备份类型过滤 ('database', 'files', 'full')
+            
         Returns:
             备份列表
         """
-        backups = self.backup_history
+        backups = []
 
-        if backup_type:
-            backups = [b for b in backups if b['type'] == backup_type]
+        # 扫描数据库备份
+        if not backup_type or backup_type == 'database':
+            for filename in os.listdir(self.database_backup_dir):
+                if filename.endswith('.sql') or filename.endswith('.gz'):
+                    filepath = os.path.join(self.database_backup_dir, filename)
+                    metadata = self._load_metadata(filepath)
+                    if metadata:
+                        backups.append(metadata)
 
-        # 按时间倒序排列
-        backups.sort(key=lambda x: x['created_at'], reverse=True)
+        # 扫描文件备份
+        if not backup_type or backup_type == 'files':
+            for filename in os.listdir(self.files_backup_dir):
+                if filename.endswith('.tar.gz'):
+                    filepath = os.path.join(self.files_backup_dir, filename)
+                    metadata = self._load_metadata(filepath)
+                    if metadata:
+                        backups.append(metadata)
 
-        return backups[:limit]
+        # 扫描完整备份
+        if not backup_type or backup_type == 'full':
+            for dirname in os.listdir(self.full_backup_dir):
+                dirpath = os.path.join(self.full_backup_dir, dirname)
+                if os.path.isdir(dirpath):
+                    metadata_path = os.path.join(dirpath, 'metadata.json')
+                    if os.path.exists(metadata_path):
+                        with open(metadata_path, 'r', encoding='utf-8') as f:
+                            metadata = json.load(f)
+                            backups.append(metadata)
 
-    def delete_backup(self, backup_id: str) -> bool:
+        # 按创建时间排序
+        backups.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+
+        return backups
+
+    def delete_backup(self, backup_path: str) -> bool:
         """
         删除备份
         
         Args:
-            backup_id: 备份ID
-        
+            backup_path: 备份文件或目录路径
+            
         Returns:
             是否删除成功
         """
-        for i, backup in enumerate(self.backup_history):
-            if backup['id'] == backup_id:
-                # 删除文件
-                backup_path = Path(backup.get('path', ''))
-                if backup_path.exists():
-                    backup_path.unlink()
+        try:
+            if os.path.isfile(backup_path):
+                os.remove(backup_path)
+            elif os.path.isdir(backup_path):
+                shutil.rmtree(backup_path)
 
-                # 从历史中移除
-                self.backup_history.pop(i)
-                return True
+            logger.info(f"Backup deleted: {backup_path}")
+            return True
 
-        return False
+        except Exception as e:
+            logger.error(f"Failed to delete backup: {e}")
+            return False
 
-    def cleanup_old_backups(
-            self,
-            days: int = 30,
-            backup_type: Optional[str] = None
-    ) -> Dict[str, int]:
+    async def cleanup_old_backups(self, days: int = None):
         """
         清理旧备份
         
         Args:
             days: 保留天数
-            backup_type: 备份类型过滤
-        
-        Returns:
-            清理统计
         """
-        cutoff = datetime.now() - timedelta(days=days)
+        retention_days = days or self.config['retention_days']
+        cutoff_date = datetime.now() - timedelta(days=retention_days)
 
+        backups = self.list_backups()
+        
         deleted_count = 0
-        kept_count = 0
+        for backup in backups:
+            created_at = datetime.fromisoformat(backup.get('created_at', ''))
+            if created_at < cutoff_date:
+                backup_path = backup.get('path') or backup.get('backup_dir')
+                if backup_path and os.path.exists(backup_path):
+                    if self.delete_backup(backup_path):
+                        deleted_count += 1
 
-        backups_to_delete = []
+        logger.info(f"Cleaned up {deleted_count} old backups (older than {retention_days} days)")
 
-        for backup in self.backup_history:
-            if backup_type and backup['type'] != backup_type:
-                continue
+    def _compress_file(self, file_path: str) -> str:
+        """压缩文件"""
+        compressed_path = file_path + '.gz'
 
-            created_at = datetime.fromisoformat(backup['created_at'])
+        with open(file_path, 'rb') as f_in:
+            with gzip.open(compressed_path, 'wb') as f_out:
+                shutil.copyfileobj(f_in, f_out)
 
-            if created_at < cutoff:
-                backups_to_delete.append(backup)
-            else:
-                kept_count += 1
-
-        # 删除旧备份
-        for backup in backups_to_delete:
-            if self.delete_backup(backup['id']):
-                deleted_count += 1
-
-        return {
-            'deleted': deleted_count,
-            'kept': kept_count,
-            'cutoff_date': cutoff.isoformat(),
-        }
-
-    def get_backup_stats(self) -> Dict[str, Any]:
-        """
-        获取备份统计
+        return compressed_path
         
-        Returns:
-            统计信息
-        """
-        total_backups = len(self.backup_history)
-
-        by_type = {
-            'database': sum(1 for b in self.backup_history if b['type'] == 'database'),
-            'files': sum(1 for b in self.backup_history if b['type'] == 'files'),
-            'full': sum(1 for b in self.backup_history if b['type'] == 'full'),
-        }
-
-        total_size = sum(b.get('size', 0) for b in self.backup_history)
-
-        # 最近的备份
-        latest_backup = None
-        if self.backup_history:
-            sorted_backups = sorted(
-                self.backup_history,
-                key=lambda x: x['created_at'],
-                reverse=True
-            )
-            latest_backup = sorted_backups[0]
-
-        return {
-            'total_backups': total_backups,
-            'by_type': by_type,
-            'total_size': total_size,
-            'total_size_human': self._format_size(total_size),
-            'latest_backup': latest_backup,
-        }
-
     def _format_size(self, size_bytes: int) -> str:
-        """
-        格式化文件大小
-        
-        Args:
-            size_bytes: 字节数
-        
-        Returns:
-            人类可读的大小
-        """
-        if size_bytes < 1024:
-            return f"{size_bytes} B"
-        elif size_bytes < 1024 * 1024:
-            return f"{size_bytes / 1024:.2f} KB"
-        elif size_bytes < 1024 * 1024 * 1024:
-            return f"{size_bytes / (1024 * 1024):.2f} MB"
-        else:
-            return f"{size_bytes / (1024 * 1024 * 1024):.2f} GB"
+        """格式化文件大小"""
+        for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
+            if size_bytes < 1024.0:
+                return f"{size_bytes:.2f} {unit}"
+            size_bytes /= 1024.0
+        return f"{size_bytes:.2f} PB"
+
+    def _save_metadata(self, backup_path: str, metadata: Dict[str, Any]):
+        """保存备份元数据"""
+        metadata_path = backup_path + '.meta.json'
+        with open(metadata_path, 'w', encoding='utf-8') as f:
+            json.dump(metadata, f, ensure_ascii=False, indent=2)
+
+    def _load_metadata(self, backup_path: str) -> Optional[Dict[str, Any]]:
+        """加载备份元数据"""
+        metadata_path = backup_path + '.meta.json'
+        if os.path.exists(metadata_path):
+            with open(metadata_path, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        return None
 
 
 # 全局实例
 backup_service = BackupService()
-
-# 导出
-__all__ = ['BackupService', 'backup_service']

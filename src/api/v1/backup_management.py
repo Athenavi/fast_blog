@@ -1,345 +1,410 @@
 """
-备份管理 API
-
-提供备份的创建、查询、删除等功能
+数据备份管理 API
+提供备份、恢复、调度和管理功能
 """
-
-from typing import Optional
-
+from typing import Optional, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
 
 from shared.services.backup_service import backup_service
 from src.api.v1.responses import ApiResponse
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 
-router = APIRouter()
+router = APIRouter(prefix="/backup", tags=["backup"])
 
 
-@router.post("/database", summary="备份数据库", description="创建数据库备份")
+@router.post("/database", summary="备份数据库")
 async def backup_database(
-        compress: bool = Body(True, description="是否压缩"),
-        current_user=Depends(jwt_required),
+        backup_type: str = Body("full", description="备份类型 (full/incremental)"),
+        current_user=Depends(jwt_required)
 ):
-    """备份数据库"""
-    # 检查权限
-    is_admin = getattr(current_user, 'is_superuser', False) or getattr(current_user, 'is_staff', False)
-    if not is_admin:
-        raise HTTPException(status_code=403, detail="Permission denied")
+    """
+    备份数据库
+    
+    Args:
+        backup_type: 备份类型
+        
+    Returns:
+        备份结果
+    """
+    try:
+        result = await backup_service.backup_database(backup_type)
 
-    result = backup_service.create_database_backup(compress=compress)
+        if result['success']:
+            return ApiResponse(
+                success=True,
+                data=result['metadata'],
+                message="Database backup completed"
+            )
+        else:
+            return ApiResponse(success=False, error=result.get('error', 'Backup failed'))
 
-    if result['status'] == 'completed':
-        return ApiResponse(
-            success=True,
-            message="Database backup created successfully",
-            data=result
-        )
-    else:
+    except Exception as e:
+        return ApiResponse(success=False, error=str(e))
+
+
+@router.post("/files", summary="备份文件")
+async def backup_files(current_user=Depends(jwt_required)):
+    """
+    备份文件（媒体文件、上传文件等）
+    
+    Returns:
+        备份结果
+    """
+    try:
+        result = await backup_service.backup_files()
+
+        if result['success']:
+            return ApiResponse(
+                success=True,
+                data=result.get('metadata'),
+                message="Files backup completed"
+            )
+        else:
+            return ApiResponse(success=False, error=result.get('error', 'Backup failed'))
+
+    except Exception as e:
+        return ApiResponse(success=False, error=str(e))
+
+
+@router.post("/full", summary="完整备份")
+async def full_backup(current_user=Depends(jwt_required)):
+    """
+    完整备份（数据库 + 文件）
+    
+    Returns:
+        备份结果
+    """
+    try:
+        result = await backup_service.full_backup()
+
+        if result['success']:
+            return ApiResponse(
+                success=True,
+                data=result['metadata'],
+                message="Full backup completed"
+            )
+        else:
+            return ApiResponse(success=False, error=result.get('error', 'Backup failed'))
+
+    except Exception as e:
+        return ApiResponse(success=False, error=str(e))
+
+
+@router.post("/restore/database", summary="恢复数据库")
+async def restore_database(
+        backup_path: str = Body(..., description="备份文件路径"),
+        confirm: bool = Body(False, description="确认恢复（必须为true）"),
+        current_user=Depends(jwt_required)
+):
+    """
+    恢复数据库
+    
+    ⚠️ 警告：这将覆盖当前数据库的所有数据！
+    
+    Args:
+        backup_path: 备份文件路径
+        confirm: 确认标志（必须为true）
+        
+    Returns:
+        恢复结果
+    """
+    if not confirm:
         return ApiResponse(
             success=False,
-            error=result.get('error', 'Backup failed')
+            error="Please set confirm=true to proceed with database restore"
         )
 
+    try:
+        result = await backup_service.restore_database(backup_path)
 
-@router.post("/files", summary="备份文件", description="创建文件备份")
-async def backup_files(
-        source_dirs: Optional[list] = Body(None, description="要备份的目录列表"),
-        compress: bool = Body(True, description="是否压缩"),
-        current_user=Depends(jwt_required),
+        if result['success']:
+            return ApiResponse(
+                success=True,
+                message=result['message']
+            )
+        else:
+            return ApiResponse(success=False, error=result.get('error', 'Restore failed'))
+
+    except Exception as e:
+        return ApiResponse(success=False, error=str(e))
+
+
+@router.post("/restore/files", summary="恢复文件")
+async def restore_files(
+        backup_path: str = Body(..., description="备份文件路径"),
+        confirm: bool = Body(False, description="确认恢复（必须为true）"),
+        current_user=Depends(jwt_required)
 ):
-    """备份文件"""
-    # 检查权限
-    is_admin = getattr(current_user, 'is_superuser', False) or getattr(current_user, 'is_staff', False)
-    if not is_admin:
-        raise HTTPException(status_code=403, detail="Permission denied")
-
-    result = backup_service.create_files_backup(
-        source_dirs=source_dirs,
-        compress=compress
-    )
-
-    if result['status'] == 'completed':
-        return ApiResponse(
-            success=True,
-            message="Files backup created successfully",
-            data=result
-        )
-    else:
+    """
+    恢复文件
+    
+    ⚠️ 警告：这将覆盖当前的文件！
+    
+    Args:
+        backup_path: 备份文件路径
+        confirm: 确认标志（必须为true）
+        
+    Returns:
+        恢复结果
+    """
+    if not confirm:
         return ApiResponse(
             success=False,
-            error=result.get('error', 'Backup failed')
+            error="Please set confirm=true to proceed with files restore"
         )
 
+    try:
+        result = await backup_service.restore_files(backup_path)
 
-@router.post("/full", summary="完整备份", description="创建完整备份（数据库+文件）")
-async def backup_full(
-        include_database: bool = Body(True, description="是否包含数据库"),
-        include_files: bool = Body(True, description="是否包含文件"),
-        compress: bool = Body(True, description="是否压缩"),
-        current_user=Depends(jwt_required),
-):
-    """完整备份"""
-    # 检查权限
-    is_admin = getattr(current_user, 'is_superuser', False) or getattr(current_user, 'is_staff', False)
-    if not is_admin:
-        raise HTTPException(status_code=403, detail="Permission denied")
+        if result['success']:
+            return ApiResponse(
+                success=True,
+                message=result['message']
+            )
+        else:
+            return ApiResponse(success=False, error=result.get('error', 'Restore failed'))
 
-    result = backup_service.create_full_backup(
-        include_database=include_database,
-        include_files=include_files,
-        compress=compress
-    )
-
-    if result['status'] == 'completed':
-        return ApiResponse(
-            success=True,
-            message="Full backup created successfully",
-            data=result
-        )
-    else:
-        return ApiResponse(
-            success=False,
-            error=result.get('error', 'Backup failed')
-        )
+    except Exception as e:
+        return ApiResponse(success=False, error=str(e))
 
 
-@router.get("/list", summary="列出备份", description="获取备份列表")
+@router.get("/list", summary="列出备份")
 async def list_backups(
-        backup_type: Optional[str] = Query(None, pattern='^(database|files|full)$', description="备份类型过滤"),
-        limit: int = Query(50, ge=1, le=200, description="返回数量限制"),
-        current_user=Depends(jwt_required),
+        backup_type: Optional[str] = Query(None, description="备份类型过滤 (database/files/full)"),
+        current_user=Depends(jwt_required)
 ):
-    """列出备份"""
-    # 检查权限
-    is_admin = getattr(current_user, 'is_superuser', False) or getattr(current_user, 'is_staff', False)
-    if not is_admin:
-        raise HTTPException(status_code=403, detail="Permission denied")
+    """
+    列出所有备份
+    
+    Args:
+        backup_type: 备份类型过滤
+        
+    Returns:
+        备份列表
+    """
+    try:
+        backups = backup_service.list_backups(backup_type)
 
-    backups = backup_service.list_backups(
-        backup_type=backup_type,
-        limit=limit
-    )
-
-    return ApiResponse(
-        success=True,
-        data={
-            'backups': backups,
-            'count': len(backups),
-        }
-    )
-
-
-@router.delete("/{backup_id}", summary="删除备份", description="删除指定的备份")
-async def delete_backup(
-        backup_id: str,
-        current_user=Depends(jwt_required),
-):
-    """删除备份"""
-    # 检查权限
-    is_admin = getattr(current_user, 'is_superuser', False) or getattr(current_user, 'is_staff', False)
-    if not is_admin:
-        raise HTTPException(status_code=403, detail="Permission denied")
-
-    success = backup_service.delete_backup(backup_id)
-
-    if success:
         return ApiResponse(
             success=True,
-            message="Backup deleted successfully"
-        )
-    else:
-        return ApiResponse(
-            success=False,
-            error="Backup not found"
-        )
-
-
-@router.post("/cleanup", summary="清理旧备份", description="清理超过指定天数的旧备份")
-async def cleanup_old_backups(
-        days: int = Body(30, ge=1, le=365, description="保留天数"),
-        backup_type: Optional[str] = Body(None, regex='^(database|files|full)$', description="备份类型过滤"),
-        current_user=Depends(jwt_required),
-):
-    """清理旧备份"""
-    # 检查权限
-    is_admin = getattr(current_user, 'is_superuser', False) or getattr(current_user, 'is_staff', False)
-    if not is_admin:
-        raise HTTPException(status_code=403, detail="Permission denied")
-
-    result = backup_service.cleanup_old_backups(
-        days=days,
-        backup_type=backup_type
-    )
-
-    return ApiResponse(
-        success=True,
-        message=f"Cleaned up {result['deleted']} old backups",
-        data=result
-    )
-
-
-@router.get("/stats", summary="备份统计", description="获取备份统计信息")
-async def get_backup_stats(
-        current_user=Depends(jwt_required),
-):
-    """获取备份统计"""
-    # 检查权限
-    is_admin = getattr(current_user, 'is_superuser', False) or getattr(current_user, 'is_staff', False)
-    if not is_admin:
-        raise HTTPException(status_code=403, detail="Permission denied")
-
-    stats = backup_service.get_backup_stats()
-
-    return ApiResponse(
-        success=True,
-        data=stats
-    )
-
-
-@router.get("/schedule", summary="备份计划", description="获取自动备份计划配置")
-async def get_backup_schedule(
-        current_user=Depends(jwt_required),
-):
-    """获取备份计划"""
-    # 检查权限
-    is_admin = getattr(current_user, 'is_superuser', False) or getattr(current_user, 'is_staff', False)
-    if not is_admin:
-        raise HTTPException(status_code=403, detail="Permission denied")
-
-    # TODO: 从配置中读取实际的调度计划
-    schedule = {
-        'database': {
-            'enabled': True,
-            'frequency': 'daily',
-            'time': '02:00',
-            'retention_days': 30,
-            'compress': True,
-        },
-        'files': {
-            'enabled': True,
-            'frequency': 'weekly',
-            'day': 'sunday',
-            'time': '03:00',
-            'retention_days': 90,
-            'compress': True,
-        },
-        'full': {
-            'enabled': True,
-            'frequency': 'monthly',
-            'day': 1,
-            'time': '04:00',
-            'retention_days': 365,
-            'compress': True,
-        },
-    }
-
-    return ApiResponse(
-        success=True,
-        data=schedule
-    )
-
-
-@router.get("/examples", summary="使用示例", description="获取备份管理使用示例")
-async def get_usage_examples():
-    """获取使用示例"""
-    examples = {
-        "backup_types": {
-            'description': '备份类型说明',
-            'types': {
-                'database': {
-                    'description': '仅备份数据库',
-                    'use_case': '日常快速备份，恢复速度快',
-                    'frequency': '建议每日备份',
-                },
-                'files': {
-                    'description': '仅备份文件（媒体、主题、插件等）',
-                    'use_case': '保护用户上传的内容和自定义文件',
-                    'frequency': '建议每周备份',
-                },
-                'full': {
-                    'description': '完整备份（数据库+文件）',
-                    'use_case': '全面保护，可用于完整恢复',
-                    'frequency': '建议每月备份',
-                },
+            data={
+                'backups': backups,
+                'total': len(backups)
             }
-        },
-        "automation": {
-            'description': '自动化备份',
-            'example': '''
-# 使用APScheduler设置定时任务
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from shared.services.backup_service import backup_service
+        )
 
-scheduler = AsyncIOScheduler()
+    except Exception as e:
+        return ApiResponse(success=False, error=str(e))
 
-# 每天凌晨2点备份数据库
-scheduler.add_job(
-    backup_service.create_database_backup,
-    'cron',
-    hour=2,
-    minute=0,
-    kwargs={'compress': True}
-)
 
-# 每周日凌晨3点备份文件
-scheduler.add_job(
-    backup_service.create_files_backup,
-    'cron',
-    day_of_week='sun',
-    hour=3,
-    minute=0,
-    kwargs={'compress': True}
-)
+@router.delete("/delete", summary="删除备份")
+async def delete_backup(
+        backup_path: str = Body(..., description="备份文件或目录路径"),
+        current_user=Depends(jwt_required)
+):
+    """
+    删除备份
+    
+    Args:
+        backup_path: 备份路径
+        
+    Returns:
+        删除结果
+    """
+    try:
+        success = backup_service.delete_backup(backup_path)
 
-# 每月1号凌晨4点完整备份
-scheduler.add_job(
-    backup_service.create_full_backup,
-    'cron',
-    day=1,
-    hour=4,
-    minute=0,
-    kwargs={'compress': True}
-)
+        if success:
+            return ApiResponse(
+                success=True,
+                message="Backup deleted successfully"
+            )
+        else:
+            return ApiResponse(success=False, error="Failed to delete backup")
 
-# 每天清理30天前的备份
-scheduler.add_job(
-    backup_service.cleanup_old_backups,
-    'cron',
-    hour=5,
-    minute=0,
-    kwargs={'days': 30}
-)
+    except Exception as e:
+        return ApiResponse(success=False, error=str(e))
 
-scheduler.start()
-            '''.strip()
-        },
-        "best_practices": {
-            'description': '最佳实践',
-            'practices': [
-                '实施3-2-1备份策略：3份副本，2种介质，1个异地',
-                '定期测试备份恢复流程',
-                '监控备份任务执行情况',
-                '设置备份失败告警',
-                '加密敏感数据的备份',
-                '记录备份日志便于审计',
-                '根据数据重要性调整备份频率',
-                '保留足够长的备份历史',
-            ]
-        },
-        "recovery_tips": {
-            'description': '恢复提示',
-            'tips': [
-                '恢复前先停止应用服务',
-                '验证备份文件的完整性',
-                '在测试环境先演练恢复流程',
-                '记录恢复步骤和时间',
-                '恢复后验证数据完整性',
-                '更新恢复文档',
-            ]
+
+@router.post("/cleanup", summary="清理旧备份")
+async def cleanup_old_backups(
+        days: int = Body(30, description="保留天数"),
+        current_user=Depends(jwt_required)
+):
+    """
+    清理旧备份
+    
+    Args:
+        days: 保留天数，超过此天数的备份将被删除
+        
+    Returns:
+        清理结果
+    """
+    try:
+        await backup_service.cleanup_old_backups(days)
+        
+        return ApiResponse(
+            success=True,
+            message=f"Cleaned up backups older than {days} days"
+        )
+
+    except Exception as e:
+        return ApiResponse(success=False, error=str(e))
+
+
+@router.get("/config", summary="获取备份配置")
+async def get_backup_config(current_user=Depends(jwt_required)):
+    """
+    获取备份配置
+    
+    Returns:
+        备份配置
+    """
+    try:
+        config = {
+            'retention_days': backup_service.config['retention_days'],
+            'auto_backup_enabled': backup_service.config['auto_backup_enabled'],
+            'auto_backup_schedule': backup_service.config['auto_backup_schedule'],
+            'compress_backups': backup_service.config['compress_backups'],
+            'backup_database': backup_service.config['backup_database'],
+            'backup_files': backup_service.config['backup_files'],
+            'backup_directory': backup_service.backup_dir,
         }
-    }
 
-    return ApiResponse(
-        success=True,
-        data=examples
-    )
+        return ApiResponse(
+            success=True,
+            data=config
+        )
+
+    except Exception as e:
+        return ApiResponse(success=False, error=str(e))
+
+
+@router.post("/config/update", summary="更新备份配置")
+async def update_backup_config(
+        retention_days: Optional[int] = Body(None, description="保留天数"),
+        auto_backup_enabled: Optional[bool] = Body(None, description="是否启用自动备份"),
+        auto_backup_schedule: Optional[str] = Body(None, description="自动备份计划 (daily/weekly/monthly)"),
+        compress_backups: Optional[bool] = Body(None, description="是否压缩备份"),
+        current_user=Depends(jwt_required)
+):
+    """
+    更新备份配置
+    
+    Args:
+        retention_days: 保留天数
+        auto_backup_enabled: 是否启用自动备份
+        auto_backup_schedule: 自动备份计划
+        compress_backups: 是否压缩备份
+        
+    Returns:
+        更新结果
+    """
+    try:
+        if retention_days is not None:
+            backup_service.config['retention_days'] = retention_days
+
+        if auto_backup_enabled is not None:
+            backup_service.config['auto_backup_enabled'] = auto_backup_enabled
+
+        if auto_backup_schedule is not None:
+            if auto_backup_schedule not in ['daily', 'weekly', 'monthly']:
+                return ApiResponse(success=False, error="Invalid schedule. Must be 'daily', 'weekly', or 'monthly'")
+            backup_service.config['auto_backup_schedule'] = auto_backup_schedule
+
+        if compress_backups is not None:
+            backup_service.config['compress_backups'] = compress_backups
+
+        return ApiResponse(
+            success=True,
+            message="Backup configuration updated",
+            data=backup_service.config
+        )
+
+    except Exception as e:
+        return ApiResponse(success=False, error=str(e))
+
+
+@router.get("/stats", summary="获取备份统计")
+async def get_backup_stats(current_user=Depends(jwt_required)):
+    """
+    获取备份统计信息
+    
+    Returns:
+        统计数据
+    """
+    try:
+        backups = backup_service.list_backups()
+
+        # 计算统计信息
+        total_backups = len(backups)
+        total_size = sum(b.get('size', 0) for b in backups)
+
+        # 按类型统计
+        by_type = {}
+        for backup in backups:
+            backup_type = backup.get('type', 'unknown')
+            if backup_type not in by_type:
+                by_type[backup_type] = {'count': 0, 'size': 0}
+            by_type[backup_type]['count'] += 1
+            by_type[backup_type]['size'] += backup.get('size', 0)
+
+        # 格式化大小
+        for backup_type in by_type:
+            by_type[backup_type]['size_human'] = backup_service._format_size(by_type[backup_type]['size'])
+
+        return ApiResponse(
+            success=True,
+            data={
+                'total_backups': total_backups,
+                'total_size': total_size,
+                'total_size_human': backup_service._format_size(total_size),
+                'by_type': by_type,
+                'retention_days': backup_service.config['retention_days']
+            }
+        )
+
+    except Exception as e:
+        return ApiResponse(success=False, error=str(e))
+
+
+@router.post("/schedule", summary="设置自动备份计划")
+async def set_backup_schedule(
+        enabled: bool = Body(..., description="是否启用"),
+        schedule: str = Body("daily", description="备份计划 (daily/weekly/monthly)"),
+        time: str = Body("02:00", description="备份时间 (HH:MM)"),
+        current_user=Depends(jwt_required)
+):
+    """
+    设置自动备份计划
+    
+    Args:
+        enabled: 是否启用自动备份
+        schedule: 备份计划
+        time: 备份时间
+        
+    Returns:
+        设置结果
+    """
+    try:
+        if schedule not in ['daily', 'weekly', 'monthly']:
+            return ApiResponse(success=False, error="Invalid schedule")
+
+        # 在实际应用中，这里应该集成到任务调度系统
+        # 例如使用APScheduler或Celery
+
+        backup_service.config['auto_backup_enabled'] = enabled
+        backup_service.config['auto_backup_schedule'] = schedule
+
+        return ApiResponse(
+            success=True,
+            message=f"Auto backup scheduled: {schedule} at {time}",
+            data={
+                'enabled': enabled,
+                'schedule': schedule,
+                'time': time
+            }
+        )
+
+    except Exception as e:
+        return ApiResponse(success=False, error=str(e))

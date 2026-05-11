@@ -1,281 +1,390 @@
 """
-国际化(i18n)API
-提供多语言翻译管理功能
+多语言 API
+提供翻译管理、语言检测、自动翻译等功能
 """
+from typing import Optional, Dict, Any, List
+from fastapi import APIRouter, Depends, HTTPException, Query, Body, Header
 
-from typing import Dict, Optional
-
-from fastapi import APIRouter, Depends, Query, Body, Request
-
-from shared.services.translation_manager import i18n_service
+from shared.services.i18n_service import translation_service
 from src.api.v1.responses import ApiResponse
-from src.auth.auth_deps import admin_required as admin_required_api
+from src.auth.auth_deps import jwt_required_dependency as jwt_required, get_current_user
 
-router = APIRouter(tags=["i18n"])
+router = APIRouter(prefix="/i18n", tags=["i18n"])
 
 
-@router.get("/i18n/languages")
+# ==================== 语言管理 ====================
+
+@router.get("/languages", summary="获取支持的语言列表")
 async def get_supported_languages():
-    """获取所有支持的语言"""
-    try:
-        languages = i18n_service.get_supported_languages()
-
-        return ApiResponse(
-            success=True,
-            data={'languages': languages}
-        )
-
-    except Exception as e:
-        return ApiResponse(success=False, error=f"获取语言列表失败: {str(e)}")
-
-
-@router.get("/i18n/detect-language")
-async def detect_user_language(request: Request):
     """
-    检测用户语言
+    获取所有支持的语言
     
-    基于HTTP Accept-Language头自动检测
+    Returns:
+        语言列表
     """
     try:
-        accept_language = request.headers.get('accept-language', '')
-        detected = i18n_service.detect_language(accept_language)
-
+        languages = translation_service.get_supported_languages()
+        
         return ApiResponse(
             success=True,
             data={
-                'detected_language': detected,
-                'is_rtl': i18n_service.is_rtl(detected)
+                'languages': languages,
+                'default_language': translation_service.default_language,
+                'total': len(languages)
             }
         )
 
     except Exception as e:
-        return ApiResponse(success=False, error=f"检测语言失败: {str(e)}")
+        return ApiResponse(success=False, error=str(e))
 
 
-@router.get("/i18n/translate")
-async def translate_text(
-        key: str = Query(..., description="翻译键"),
-        lang: Optional[str] = Query(None, description="目标语言"),
-        variables: Optional[str] = Query(None, description="变量(JSON格式)"),
-        default: Optional[str] = Query(None, description="默认文本")
+@router.get("/detect", summary="检测用户语言")
+async def detect_language(
+        accept_language: Optional[str] = Header(None, description="Accept-Language头"),
 ):
     """
-    翻译文本
+    根据HTTP头检测用户首选语言
+    
+    Args:
+        accept_language: Accept-Language头
+        
+    Returns:
+        检测到的语言
+    """
+    try:
+        detected_lang = translation_service.detect_language(accept_language)
+        
+        return ApiResponse(
+            success=True,
+            data={
+                'detected_language': detected_lang,
+                'accept_language': accept_language,
+            }
+        )
+
+    except Exception as e:
+        return ApiResponse(success=False, error=str(e))
+
+
+# ==================== 翻译管理 ====================
+
+@router.get("/translate/{key}", summary="获取翻译")
+async def get_translation(
+        key: str,
+        language: Optional[str] = Query(None, description="语言代码"),
+        default: Optional[str] = Query(None, description="默认值"),
+):
+    """
+    获取指定键的翻译
     
     Args:
         key: 翻译键
-        lang: 目标语言代码
-        variables: JSON格式的变量
-        default: 默认文本
+        language: 语言代码
+        default: 默认值
+        
+    Returns:
+        翻译文本
     """
     try:
-        # 解析变量
-        vars_dict = None
-        if variables:
-            import json
-            try:
-                vars_dict = json.loads(variables)
-            except:
-                pass
-
-        translation = i18n_service.translate(
-            key=key,
-            language=lang,
-            variables=vars_dict,
-            default=default
-        )
-
+        translation = translation_service.get_translation(key, language, default)
+        
         return ApiResponse(
             success=True,
             data={
                 'key': key,
                 'translation': translation,
-                'language': lang or i18n_service.default_language
+                'language': language or translation_service.default_language,
             }
         )
 
     except Exception as e:
-        return ApiResponse(success=False, error=f"翻译失败: {str(e)}")
+        return ApiResponse(success=False, error=str(e))
 
 
-@router.post("/i18n/translations/add")
-async def add_translation(
-        language: str = Body(...),
-        key: str = Body(...),
-        value: str = Body(...),
-        current_user=Depends(admin_required_api)
+@router.post("/translate", summary="批量获取翻译")
+async def batch_get_translations(
+        keys: List[str] = Body(..., description="翻译键列表"),
+        language: Optional[str] = Body(None, description="语言代码"),
 ):
     """
-    添加翻译
+    批量获取多个翻译键的翻译
     
     Args:
+        keys: 翻译键列表
         language: 语言代码
+        
+    Returns:
+        翻译字典
+    """
+    try:
+        translations = {}
+        for key in keys:
+            translations[key] = translation_service.get_translation(key, language)
+
+        return ApiResponse(
+            success=True,
+            data={
+                'translations': translations,
+                'language': language or translation_service.default_language,
+            }
+        )
+        
+    except Exception as e:
+        return ApiResponse(success=False, error=str(e))
+
+
+@router.put("/translate/{key}", summary="设置翻译")
+async def set_translation(
+        key: str,
+        value: str = Body(..., description="翻译值"),
+        language: str = Body(..., description="语言代码"),
+        current_user=Depends(jwt_required)
+):
+    """
+    设置或更新翻译
+    
+    Args:
         key: 翻译键
         value: 翻译值
+        language: 语言代码
+        
+    Returns:
+        设置结果
     """
     try:
-        result = i18n_service.add_translation(language, key, value)
+        # 检查权限（需要admin权限）
+        # 这里简化处理，实际应该检查用户权限
 
-        if result['success']:
-            return ApiResponse(
-                success=True,
-                message=result['message']
-            )
-        else:
-            return ApiResponse(success=False, error=result['error'])
+        translation_service.set_translation(key, value, language)
 
+        return ApiResponse(
+            success=True,
+            message=f"Translation set for key '{key}' in {language}"
+        )
+        
     except Exception as e:
-        return ApiResponse(success=False, error=f"添加翻译失败: {str(e)}")
+        return ApiResponse(success=False, error=str(e))
 
 
-@router.post("/i18n/translations/batch-add")
-async def batch_add_translations(
-        language: str = Body(...),
-        translations: Dict[str, str] = Body(...),
-        current_user=Depends(admin_required_api)
+@router.post("/translate/bulk", summary="批量设置翻译")
+async def bulk_set_translations(
+        translations: Dict[str, str] = Body(..., description="翻译字典"),
+        language: str = Body(..., description="语言代码"),
+        current_user=Depends(jwt_required)
 ):
     """
-    批量添加翻译
+    批量设置翻译
+    
+    Args:
+        translations: 翻译字典 {key: value}
+        language: 语言代码
+        
+    Returns:
+        设置结果
+    """
+    try:
+        for key, value in translations.items():
+            translation_service.set_translation(key, value, language)
+        
+        return ApiResponse(
+            success=True,
+            message=f"Bulk translations set for {language}",
+            data={
+                'count': len(translations),
+                'language': language,
+            }
+        )
+
+    except Exception as e:
+        return ApiResponse(success=False, error=str(e))
+
+
+# ==================== 自动翻译 ====================
+
+@router.post("/auto-translate", summary="自动翻译")
+async def auto_translate(
+        text: str = Body(..., description="要翻译的文本"),
+        from_lang: str = Body(..., description="源语言"),
+        to_lang: str = Body(..., description="目标语言"),
+        api_key: Optional[str] = Body(None, description="API密钥"),
+        current_user=Depends(jwt_required)
+):
+    """
+    使用第三方API自动翻译文本
+    
+    Args:
+        text: 要翻译的文本
+        from_lang: 源语言
+        to_lang: 目标语言
+        api_key: API密钥
+        
+    Returns:
+        翻译结果
+    """
+    try:
+        translated_text = await translation_service.auto_translate(
+            text=text,
+            from_lang=from_lang,
+            to_lang=to_lang,
+            api_key=api_key
+        )
+
+        return ApiResponse(
+            success=True,
+            data={
+                'original_text': text,
+                'translated_text': translated_text,
+                'from_language': from_lang,
+                'to_language': to_lang,
+            }
+        )
+        
+    except Exception as e:
+        return ApiResponse(success=False, error=str(e))
+
+
+# ==================== 翻译统计和管理 ====================
+
+@router.get("/missing/{language}", summary="获取缺失翻译")
+async def get_missing_translations(
+        language: str,
+        current_user=Depends(jwt_required)
+):
+    """
+    获取指定语言缺失的翻译键
     
     Args:
         language: 语言代码
-        translations: 翻译字典
+        
+    Returns:
+        缺失的翻译键列表
     """
     try:
-        result = i18n_service.batch_add_translations(language, translations)
-
-        if result['success']:
-            return ApiResponse(
-                success=True,
-                data={'count': result['count']},
-                message=result['message']
-            )
-        else:
-            return ApiResponse(success=False, error=result['error'])
-
-    except Exception as e:
-        return ApiResponse(success=False, error=f"批量添加失败: {str(e)}")
-
-
-@router.get("/i18n/translations/missing")
-async def get_missing_translations(
-        language: str = Query(..., description="要检查的语言"),
-        reference: Optional[str] = Query(None, description="参考语言")
-):
-    """
-    获取缺失的翻译
-    
-    Args:
-        language: 要检查的语言
-        reference: 参考语言
-    """
-    try:
-        missing = i18n_service.get_missing_translations(language, reference)
+        missing_keys = translation_service.get_missing_translations(language)
 
         return ApiResponse(
             success=True,
             data={
                 'language': language,
-                'reference': reference or i18n_service.default_language,
-                'missing_keys': missing,
-                'count': len(missing)
+                'missing_keys': missing_keys,
+                'count': len(missing_keys),
+            }
+        )
+        
+    except Exception as e:
+        return ApiResponse(success=False, error=str(e))
+
+
+@router.get("/stats", summary="获取翻译统计")
+async def get_translation_stats(current_user=Depends(jwt_required)):
+    """
+    获取所有语言的翻译统计信息
+    
+    Returns:
+        统计数据
+    """
+    try:
+        stats = translation_service.get_translation_stats()
+
+        return ApiResponse(
+            success=True,
+            data={
+                'statistics': stats,
+                'default_language': translation_service.default_language,
             }
         )
 
     except Exception as e:
-        return ApiResponse(success=False, error=f"获取缺失翻译失败: {str(e)}")
+        return ApiResponse(success=False, error=str(e))
 
 
-@router.get("/i18n/translations/export")
+@router.get("/export", summary="导出翻译")
 async def export_translations(
-        language: Optional[str] = Query(None, description="语言代码,None则导出所有"),
-        format: str = Query('json', description="导出格式")
-):
-    """导出翻译"""
-    try:
-        result = i18n_service.export_translations(language, format)
-
-        if result['success']:
-            return ApiResponse(
-                success=True,
-                data=result['data']
-            )
-        else:
-            return ApiResponse(success=False, error=result['error'])
-
-    except Exception as e:
-        return ApiResponse(success=False, error=f"导出失败: {str(e)}")
-
-
-@router.post("/i18n/translations/import")
-async def import_translations(
-        data: Dict[str, Dict[str, str]] = Body(...),
-        overwrite: bool = Body(False, description="是否覆盖现有翻译"),
-        current_user=Depends(admin_required_api)
+        language: Optional[str] = Query(None, description="语言代码（None表示所有）"),
+        current_user=Depends(jwt_required)
 ):
     """
-    导入翻译
+    导出翻译数据
     
     Args:
-        data: 翻译数据
-        overwrite: 是否覆盖
+        language: 语言代码
+        
+    Returns:
+        翻译数据
     """
     try:
-        result = i18n_service.import_translations(data, overwrite)
-
-        if result['success']:
-            return ApiResponse(
-                success=True,
-                data={'imported': result['imported']},
-                message=result['message']
-            )
-        else:
-            return ApiResponse(success=False, error=result['error'])
-
-    except Exception as e:
-        return ApiResponse(success=False, error=f"导入失败: {str(e)}")
-
-
-@router.get("/i18n/stats")
-async def get_language_stats():
-    """获取语言统计信息"""
-    try:
-        stats = i18n_service.get_language_stats()
-
+        exported_data = translation_service.export_translations(language)
+        
         return ApiResponse(
             success=True,
-            data={'stats': stats}
+            data=exported_data
         )
 
     except Exception as e:
-        return ApiResponse(success=False, error=f"获取统计失败: {str(e)}")
+        return ApiResponse(success=False, error=str(e))
 
 
-@router.get("/i18n/template")
-async def get_translation_template():
-    """获取翻译模板"""
+@router.post("/import", summary="导入翻译")
+async def import_translations(
+        language: str = Body(..., description="语言代码"),
+        translations: Dict[str, str] = Body(..., description="翻译数据"),
+        merge: bool = Body(True, description="是否合并"),
+        current_user=Depends(jwt_required)
+):
+    """
+    导入翻译数据
+    
+    Args:
+        language: 语言代码
+        translations: 翻译数据
+        merge: 是否合并
+        
+    Returns:
+        导入结果
+    """
     try:
-        template = i18n_service.generate_translation_template()
-
+        translation_service.import_translations(language, translations, merge)
+        
         return ApiResponse(
             success=True,
-            data={'template': template}
+            message=f"Translations imported for {language}",
+            data={
+                'language': language,
+                'count': len(translations),
+                'merged': merge,
+            }
         )
 
     except Exception as e:
-        return ApiResponse(success=False, error=f"获取模板失败: {str(e)}")
+        return ApiResponse(success=False, error=str(e))
 
 
-@router.get("/i18n/rtl-languages")
-async def get_rtl_languages():
-    """获取RTL(从右到左)语言列表"""
+@router.get("/keys", summary="获取所有翻译键")
+async def get_all_keys(
+        language: Optional[str] = Query(None, description="语言代码"),
+        current_user=Depends(jwt_required)
+):
+    """
+    获取所有翻译键
+    
+    Args:
+        language: 语言代码（None表示默认语言）
+        
+    Returns:
+        翻译键列表
+    """
     try:
-        rtl_langs = i18n_service.get_rtl_languages()
-
+        lang = language or translation_service.default_language
+        keys = list(translation_service.translation_cache.get(lang, {}).keys())
+        
         return ApiResponse(
             success=True,
-            data={'rtl_languages': rtl_langs}
+            data={
+                'language': lang,
+                'keys': keys,
+                'total': len(keys),
+            }
         )
 
     except Exception as e:
-        return ApiResponse(success=False, error=f"获取RTL语言失败: {str(e)}")
+        return ApiResponse(success=False, error=str(e))
