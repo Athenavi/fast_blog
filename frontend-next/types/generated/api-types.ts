@@ -1,7 +1,7 @@
 /**
  * API 类型定义
  * 由 routes.yaml 自动生成 - 请勿手动修改
- * 生成时间：2026-05-11 10:10:47
+ * 生成时间：2026-05-11 10:42:22
  */
 
 export interface User {
@@ -1024,6 +1024,18 @@ export interface ChatGroupMember {
     joined_at: string;
     last_read_at?: string;
     is_muted: boolean;
+}
+
+export interface ChatGroupInvite {
+    id: any;
+    group: any;
+    invite_code: string;
+    created_by: any;
+    expires_at?: string;
+    max_uses?: any;
+    use_count: any;
+    is_active: boolean;
+    created_at: string;
 }
 
 

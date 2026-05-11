@@ -1,7 +1,7 @@
 """
 Django ORM 抽象基类定义
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-11 10:10:47
+生成时间：2026-05-11 10:42:22
 """
 
 from django.db import models
@@ -2962,6 +2962,7 @@ class UserRevenueStatsMixin(models.Model):
         # 注意：请在具体模型类中设置 db_table = get_table_name("user_revenue_stats")
 
 
+
 class ChatGroupMixin(models.Model):
     """群聊会话模型 Mixin"""
 
@@ -2997,6 +2998,7 @@ class ChatGroupMixin(models.Model):
         # 注意：请在具体模型类中设置 db_table = get_table_name("chat_groups")
 
 
+
 class ChatGroupMemberMixin(models.Model):
     """群聊成员关系模型 Mixin"""
 
@@ -3027,3 +3029,38 @@ class ChatGroupMemberMixin(models.Model):
         app_label = 'generated'
         verbose_name = '群聊成员关系模型'
         # 注意：请在具体模型类中设置 db_table = get_table_name("chat_group_members")
+
+
+class ChatGroupInviteMixin(models.Model):
+    """群聊邀请链接模型 Mixin"""
+
+    # 邀请 ID
+    id = models.BigAutoField(
+        '邀请 ID', primary_key=True)
+    # 群聊 ID
+    group = models.IntegerField(
+        '群聊 ID (暂为 IntegerField，等待 ChatGroup 模型实现)', )
+    # 邀请码(UUID)
+    invite_code = models.CharField(
+        '邀请码(UUID)', max_length=100, unique=True)
+    # 创建者
+    created_by = models.IntegerField(
+        '创建者 (暂为 IntegerField，等待 User 模型实现)', )
+    # 过期时间(null表示永久有效)
+    expires_at = models.DateTimeField(
+        '过期时间(null表示永久有效)', blank=True, null=True)
+    # 最大使用次数(null表示无限制)
+    max_uses = models.BigIntegerField(
+        '最大使用次数(null表示无限制)', blank=True, null=True)
+    # 已使用次数
+    use_count = models.BigIntegerField(
+        '已使用次数', default=0)
+    # 是否激活
+    is_active = models.BooleanField(
+        '是否激活', default=True)
+
+    class Meta:
+        abstract = True
+        app_label = 'generated'
+        verbose_name = '群聊邀请链接模型'
+        # 注意：请在具体模型类中设置 db_table = get_table_name("chat_group_invites")

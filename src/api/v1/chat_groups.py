@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.chat_group import ChatGroup
 from shared.models.chat_group_member import ChatGroupMember
+from shared.models.chat_group_invite import ChatGroupInvite
 from shared.models.user import User
 from src.api.v1.responses import ApiResponse
 from src.auth import jwt_required_dependency as jwt_required
@@ -35,7 +36,7 @@ class AddMembersRequest(BaseModel):
 @router.post("/create")
 async def create_chat_group(
         request: CreateGroupRequest,
-        current_user_id: int = Depends(jwt_required),
+        current_user: User = Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
@@ -58,7 +59,7 @@ async def create_chat_group(
         new_group = ChatGroup(
             name=request.name.strip(),
             description=request.description,
-            creator=current_user_id,
+            creator=current_user.id,  # 直接传入user_id整数
             member_count=1,  # 创建者自己
             is_active=True,
             created_at=datetime.now(),
@@ -71,7 +72,7 @@ async def create_chat_group(
         # 添加创建者为owner
         owner_member = ChatGroupMember(
             group=new_group.id,
-            user=current_user_id,
+            user=current_user.id,
             role='owner',
             joined_at=datetime.now()
         )
@@ -88,7 +89,7 @@ async def create_chat_group(
             # 过滤掉不存在的用户和重复的用户
             valid_member_ids = [
                 uid for uid in request.member_ids
-                if uid != current_user_id and uid in existing_user_ids
+                if uid != current_user.id and uid in existing_user_ids
             ]
 
             for user_id in valid_member_ids:
@@ -128,7 +129,7 @@ async def create_chat_group(
 async def get_user_groups(
         page: int = Query(1, ge=1, description="页码"),
         per_page: int = Query(20, ge=1, le=100, description="每页数量"),
-        current_user_id: int = Depends(jwt_required),
+        current_user: User = Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
@@ -143,7 +144,7 @@ async def get_user_groups(
             .join(ChatGroupMember, ChatGroup.id == ChatGroupMember.group)
             .where(
                 and_(
-                    ChatGroupMember.user == current_user_id,
+                    ChatGroupMember.user == current_user.id,
                     ChatGroup.is_active == True
                 )
             )
@@ -162,7 +163,7 @@ async def get_user_groups(
             .join(ChatGroupMember, ChatGroup.id == ChatGroupMember.group)
             .where(
                 and_(
-                    ChatGroupMember.user == current_user_id,
+                    ChatGroupMember.user == current_user.id,
                     ChatGroup.is_active == True
                 )
             )
@@ -204,7 +205,7 @@ async def get_user_groups(
 async def add_group_members(
         group_id: int,
         request: AddMembersRequest,
-        current_user_id: int = Depends(jwt_required),
+        current_user: User = Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
@@ -227,7 +228,7 @@ async def add_group_members(
         member_query = select(ChatGroupMember).where(
             and_(
                 ChatGroupMember.group == group_id,
-                ChatGroupMember.user == current_user_id
+                ChatGroupMember.user == current_user.id
             )
         )
         member_result = await db.execute(member_query)
@@ -300,7 +301,7 @@ async def add_group_members(
 async def remove_group_member(
         group_id: int,
         user_id: int = Query(..., description="要移除的用户ID"),
-        current_user_id: int = Depends(jwt_required),
+        current_user: User = Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
@@ -319,7 +320,7 @@ async def remove_group_member(
         member_query = select(ChatGroupMember).where(
             and_(
                 ChatGroupMember.group == group_id,
-                ChatGroupMember.user == current_user_id
+                ChatGroupMember.user == current_user.id
             )
         )
         member_result = await db.execute(member_query)
@@ -329,7 +330,7 @@ async def remove_group_member(
             return ApiResponse(success=False, error="您不是该群聊的成员")
 
         # 只能移除自己，或者owner/admin可以移除其他人
-        if user_id != current_user_id and current_member.role not in ['owner', 'admin']:
+        if user_id != current_user.id and current_member.role not in ['owner', 'admin']:
             return ApiResponse(success=False, error="您没有权限移除该成员")
 
         # 不能移除owner（除非是owner自己离开）
@@ -345,7 +346,7 @@ async def remove_group_member(
         if not target_member:
             return ApiResponse(success=False, error="该用户不是群聊成员")
 
-        if target_member.role == 'owner' and user_id != current_user_id:
+        if target_member.role == 'owner' and user_id != current_user.id:
             return ApiResponse(success=False, error="不能移除群主")
 
         # 移除成员
@@ -375,7 +376,7 @@ async def remove_group_member(
 @router.get("/{group_id}/members")
 async def get_group_members(
         group_id: int,
-        current_user_id: int = Depends(jwt_required),
+        current_user: User = Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
@@ -386,7 +387,7 @@ async def get_group_members(
         member_query = select(ChatGroupMember).where(
             and_(
                 ChatGroupMember.group == group_id,
-                ChatGroupMember.user == current_user_id
+                ChatGroupMember.user == current_user.id
             )
         )
         member_result = await db.execute(member_query)
@@ -430,5 +431,299 @@ async def get_group_members(
     except Exception as e:
         import traceback
         print(f"Error in get_group_members: {str(e)}")
+        print(traceback.format_exc())
+        return ApiResponse(success=False, error=str(e))
+
+
+@router.post("/{group_id}/create-invite")
+async def create_invite_link(
+        group_id: int,
+        expires_hours: Optional[int] = Query(None, description="过期时间（小时），null表示永久有效"),
+        max_uses: Optional[int] = Query(None, description="最大使用次数，null表示无限制"),
+        current_user: User = Depends(jwt_required),
+        db: AsyncSession = Depends(get_async_db)
+):
+    """
+    创建群聊邀请链接
+    
+    Args:
+        group_id: 群聊ID
+        expires_hours: 过期时间（小时）
+        max_uses: 最大使用次数
+    """
+    try:
+        # 检查群聊是否存在
+        group_query = select(ChatGroup).where(ChatGroup.id == group_id)
+        group_result = await db.execute(group_query)
+        group = group_result.scalar_one_or_none()
+
+        if not group:
+            return ApiResponse(success=False, error="群聊不存在")
+
+        # 检查当前用户是否是群聊成员且有权限
+        member_query = select(ChatGroupMember).where(
+            and_(
+                ChatGroupMember.group == group_id,
+                ChatGroupMember.user == current_user.id
+            )
+        )
+        member_result = await db.execute(member_query)
+        current_member = member_result.scalar_one_or_none()
+
+        if not current_member:
+            return ApiResponse(success=False, error="您不是该群聊的成员")
+
+        # 只有owner和admin可以创建邀请链接
+        if current_member.role not in ['owner', 'admin']:
+            return ApiResponse(success=False, error="只有群主和管理员可以创建邀请链接")
+
+        # 生成邀请码
+        import uuid
+        invite_code = str(uuid.uuid4())
+
+        # 计算过期时间
+        from datetime import timedelta
+        expires_at = None
+        if expires_hours:
+            expires_at = datetime.now() + timedelta(hours=expires_hours)
+
+        # 创建邀请记录
+        new_invite = ChatGroupInvite(
+            group=group_id,
+            invite_code=invite_code,
+            created_by=current_user.id,
+            expires_at=expires_at,
+            max_uses=max_uses,
+            use_count=0,
+            is_active=True,
+            created_at=datetime.now()
+        )
+
+        db.add(new_invite)
+        await db.commit()
+        await db.refresh(new_invite)
+
+        # 构建邀请链接
+        invite_url = f"/join-group/{invite_code}"
+
+        return ApiResponse(
+            success=True,
+            data={
+                "invite_id": new_invite.id,
+                "invite_code": invite_code,
+                "invite_url": invite_url,
+                "full_url": f"http://localhost:3000{invite_url}",  # 根据实际域名调整
+                "expires_at": new_invite.expires_at.isoformat() if new_invite.expires_at else None,
+                "max_uses": new_invite.max_uses,
+                "created_at": new_invite.created_at.isoformat()
+            },
+            message="邀请链接创建成功"
+        )
+
+    except Exception as e:
+        import traceback
+        print(f"Error in create_invite_link: {str(e)}")
+        print(traceback.format_exc())
+        return ApiResponse(success=False, error=str(e))
+
+
+@router.post("/join/{invite_code}")
+async def join_group_by_invite(
+        invite_code: str,
+        current_user: User = Depends(jwt_required),
+        db: AsyncSession = Depends(get_async_db)
+):
+    """
+    通过邀请链接加入群聊
+    
+    Args:
+        invite_code: 邀请码
+    """
+    try:
+        # 查找邀请记录
+        invite_query = select(ChatGroupInvite).where(
+            and_(
+                ChatGroupInvite.invite_code == invite_code,
+                ChatGroupInvite.is_active == True
+            )
+        )
+        invite_result = await db.execute(invite_query)
+        invite = invite_result.scalar_one_or_none()
+
+        if not invite:
+            return ApiResponse(success=False, error="邀请链接无效或已失效")
+
+        # 检查是否过期
+        if invite.expires_at and datetime.now() > invite.expires_at:
+            return ApiResponse(success=False, error="邀请链接已过期")
+
+        # 检查使用次数
+        if invite.max_uses and invite.use_count >= invite.max_uses:
+            return ApiResponse(success=False, error="邀请链接已达到最大使用次数")
+
+        # 检查用户是否已经是群聊成员
+        member_query = select(ChatGroupMember).where(
+            and_(
+                ChatGroupMember.group == invite.group,
+                ChatGroupMember.user == current_user.id
+            )
+        )
+        member_result = await db.execute(member_query)
+        existing_member = member_result.scalar_one_or_none()
+
+        if existing_member:
+            return ApiResponse(success=False, error="您已经是该群聊的成员")
+
+        # 获取群聊信息
+        group_query = select(ChatGroup).where(ChatGroup.id == invite.group)
+        group_result = await db.execute(group_query)
+        group = group_result.scalar_one_or_none()
+
+        if not group or not group.is_active:
+            return ApiResponse(success=False, error="群聊不存在或已解散")
+
+        # 添加用户到群聊
+        new_member = ChatGroupMember(
+            group=invite.group,
+            user=current_user.id,
+            role='member',
+            joined_at=datetime.now()
+        )
+        db.add(new_member)
+
+        # 更新邀请使用次数
+        invite.use_count += 1
+
+        # 更新群聊成员数量
+        group.member_count += 1
+        group.updated_at = datetime.now()
+
+        await db.commit()
+
+        return ApiResponse(
+            success=True,
+            data={
+                "group_id": group.id,
+                "group_name": group.name,
+                "member_count": group.member_count
+            },
+            message=f"成功加入群聊：{group.name}"
+        )
+
+    except Exception as e:
+        import traceback
+        print(f"Error in join_group_by_invite: {str(e)}")
+        print(traceback.format_exc())
+        return ApiResponse(success=False, error=str(e))
+
+
+@router.get("/{group_id}/invites")
+async def get_group_invites(
+        group_id: int,
+        current_user: User = Depends(jwt_required),
+        db: AsyncSession = Depends(get_async_db)
+):
+    """
+    获取群聊的所有邀请链接
+    """
+    try:
+        # 检查当前用户是否是群聊成员
+        member_query = select(ChatGroupMember).where(
+            and_(
+                ChatGroupMember.group == group_id,
+                ChatGroupMember.user == current_user.id
+            )
+        )
+        member_result = await db.execute(member_query)
+        current_member = member_result.scalar_one_or_none()
+
+        if not current_member:
+            return ApiResponse(success=False, error="您不是该群聊的成员")
+
+        # 获取所有邀请链接
+        invites_query = (
+            select(ChatGroupInvite)
+            .where(ChatGroupInvite.group == group_id)
+            .order_by(desc(ChatGroupInvite.created_at))
+        )
+
+        invites_result = await db.execute(invites_query)
+        invites = invites_result.scalars().all()
+
+        invites_data = []
+        for invite in invites:
+            invites_data.append({
+                "id": invite.id,
+                "invite_code": invite.invite_code,
+                "invite_url": f"/join-group/{invite.invite_code}",
+                "created_by": invite.created_by,
+                "expires_at": invite.expires_at.isoformat() if invite.expires_at else None,
+                "max_uses": invite.max_uses,
+                "use_count": invite.use_count,
+                "is_active": invite.is_active,
+                "created_at": invite.created_at.isoformat()
+            })
+
+        return ApiResponse(
+            success=True,
+            data=invites_data
+        )
+
+    except Exception as e:
+        import traceback
+        print(f"Error in get_group_invites: {str(e)}")
+        print(traceback.format_exc())
+        return ApiResponse(success=False, error=str(e))
+
+
+@router.post("/{group_id}/revoke-invite")
+async def revoke_invite(
+        group_id: int,
+        invite_id: int = Query(..., description="邀请ID"),
+        current_user: User = Depends(jwt_required),
+        db: AsyncSession = Depends(get_async_db)
+):
+    """
+    撤销邀请链接
+    """
+    try:
+        # 检查当前用户权限
+        member_query = select(ChatGroupMember).where(
+            and_(
+                ChatGroupMember.group == group_id,
+                ChatGroupMember.user == current_user.id
+            )
+        )
+        member_result = await db.execute(member_query)
+        current_member = member_result.scalar_one_or_none()
+
+        if not current_member or current_member.role not in ['owner', 'admin']:
+            return ApiResponse(success=False, error="您没有权限撤销邀请链接")
+
+        # 查找邀请记录
+        invite_query = select(ChatGroupInvite).where(
+            and_(
+                ChatGroupInvite.id == invite_id,
+                ChatGroupInvite.group == group_id
+            )
+        )
+        invite_result = await db.execute(invite_query)
+        invite = invite_result.scalar_one_or_none()
+
+        if not invite:
+            return ApiResponse(success=False, error="邀请链接不存在")
+
+        # 撤销邀请
+        invite.is_active = False
+        await db.commit()
+
+        return ApiResponse(
+            success=True,
+            message="邀请链接已撤销"
+        )
+
+    except Exception as e:
+        import traceback
+        print(f"Error in revoke_invite: {str(e)}")
         print(traceback.format_exc())
         return ApiResponse(success=False, error=str(e))

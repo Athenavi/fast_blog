@@ -26,7 +26,7 @@ async def send_private_message(
         message_type: str = Query("text", description="消息类型: text/image/file"),
         attachment_url: Optional[str] = Query(None, description="附件URL"),
         parent_message_id: Optional[int] = Query(None, description="父消息ID(回复)"),
-        current_user_id: int = Depends(jwt_required),
+        current_user: User = Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
@@ -151,7 +151,7 @@ async def send_private_message(
 async def get_conversations(
         page: int = Query(1, ge=1, description="页码"),
         per_page: int = Query(20, ge=1, le=100, description="每页数量"),
-        current_user_id: int = Depends(jwt_required),
+        current_user: User = Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
@@ -258,7 +258,7 @@ async def get_conversation_messages(
         user_id: int,
         page: int = Query(1, ge=1, description="页码"),
         per_page: int = Query(50, ge=1, le=100, description="每页数量"),
-        current_user_id: int = Depends(jwt_required),
+        current_user: User = Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
@@ -381,7 +381,7 @@ async def get_conversation_messages(
 @router.delete("/{message_id}")
 async def delete_message(
         message_id: int,
-        current_user_id: int = Depends(jwt_required),
+        current_user: User = Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
@@ -424,7 +424,7 @@ async def delete_message(
 @router.post("/{message_id}/recall")
 async def recall_message(
         message_id: int,
-        current_user_id: int = Depends(jwt_required),
+        current_user: User = Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
@@ -481,7 +481,7 @@ async def recall_message(
 
 @router.get("/unread/count")
 async def get_unread_count(
-        current_user_id: int = Depends(jwt_required),
+        current_user: User = Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """

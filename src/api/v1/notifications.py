@@ -16,7 +16,7 @@ router = APIRouter(prefix="/notifications", tags=["notifications"])
 @router.post("/messages/read")
 async def read_notification_api(
         nid: int = Query(..., alias="nid"),
-        current_user_id: int = Depends(jwt_required)
+        current_user: User = Depends(jwt_required)
 ):
     """
     标记通知为已读API
@@ -33,7 +33,7 @@ async def read_notification_api(
 
 @router.get("/messages")
 async def fetch_message_api(
-        current_user_id: int = Depends(jwt_required)
+        current_user: User = Depends(jwt_required)
 ):
     """
     获取用户通知API
@@ -50,7 +50,7 @@ async def fetch_message_api(
 
 @router.post("/messages/read_all")
 async def mark_all_as_read_api(
-        current_user_id: int = Depends(jwt_required)
+        current_user: User = Depends(jwt_required)
 ):
     """
     标记所有通知为已读API
@@ -69,7 +69,7 @@ async def mark_all_as_read_api(
 async def clean_notification_api(
         request: Request,
         nid: str = Query("all", alias="nid"),
-        current_user_id: int = Depends(jwt_required),
+        current_user: User = Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
@@ -98,7 +98,7 @@ async def clean_notification_api(
 @router.patch("/{notification_id}/read")
 async def mark_notification_as_read_api(
         notification_id: int,
-        current_user_id: int = Depends(jwt_required),
+        current_user: User = Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
@@ -122,7 +122,7 @@ async def mark_notification_as_read_api(
 @router.delete("/{notification_id}")
 async def delete_notification_api(
         notification_id: int,
-        current_user_id: int = Depends(jwt_required),
+        current_user: User = Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
@@ -144,7 +144,7 @@ async def delete_notification_api(
 
 @router.get("/")
 async def get_notifications_api(
-        current_user_id: int = Depends(jwt_required)
+        current_user: User = Depends(jwt_required)
 ):
     """
     获取用户通知API
@@ -177,7 +177,7 @@ async def get_notifications_api(
 
 @router.post("/read_all")
 async def mark_all_as_read_api_new(
-        current_user_id: int = Depends(jwt_required)
+        current_user: User = Depends(jwt_required)
 ):
     """
     标记所有通知为已读API

@@ -16,7 +16,7 @@ router = APIRouter(prefix="/plugins", tags=["plugins"])
 
 @router.get("")
 async def list_plugins(
-        current_user_id: int = Depends(jwt_required)
+        current_user: User = Depends(jwt_required)
 ):
     """
     获取所有已安装的插件列表
@@ -46,7 +46,7 @@ async def list_plugins(
 
 @router.post("/load")
 async def load_all_plugins(
-        current_user_id: int = Depends(jwt_required)
+        current_user: User = Depends(jwt_required)
 ):
     """
     加载所有插件
@@ -79,7 +79,7 @@ async def load_all_plugins(
 @router.post("/{plugin_slug}/activate")
 async def activate_plugin(
         plugin_slug: str,
-        current_user_id: int = Depends(jwt_required)
+        current_user: User = Depends(jwt_required)
 ):
     """
     激活插件
@@ -124,7 +124,7 @@ async def activate_plugin(
 @router.post("/{plugin_slug}/deactivate")
 async def deactivate_plugin(
         plugin_slug: str,
-        current_user_id: int = Depends(jwt_required)
+        current_user: User = Depends(jwt_required)
 ):
     """
     停用插件
@@ -165,7 +165,7 @@ async def deactivate_plugin(
 @router.get("/{plugin_slug}")
 async def get_plugin_info(
         plugin_slug: str,
-        current_user_id: int = Depends(jwt_required)
+        current_user: User = Depends(jwt_required)
 ):
     """
     获取插件详细信息
@@ -204,7 +204,7 @@ async def get_plugin_info(
 @router.get("/{plugin_slug}/settings")
 async def get_plugin_settings(
         plugin_slug: str,
-        current_user_id: int = Depends(jwt_required)
+        current_user: User = Depends(jwt_required)
 ):
     """
     获取插件设置
@@ -249,7 +249,7 @@ async def get_plugin_settings(
 async def update_plugin_settings(
         plugin_slug: str,
         request: Request,
-        current_user_id: int = Depends(jwt_required)
+        current_user: User = Depends(jwt_required)
 ):
     """
     更新插件设置
@@ -297,7 +297,7 @@ async def update_plugin_settings(
 async def execute_plugin_action(
         plugin_slug: str,
         request: Request,
-        current_user_id: int = Depends(jwt_required)
+        current_user: User = Depends(jwt_required)
 ):
     """
     执行插件自定义动作
@@ -358,7 +358,7 @@ async def execute_plugin_action(
 
 @router.get("/active")
 async def get_active_plugins(
-        current_user_id: int = Depends(jwt_required)
+        current_user: User = Depends(jwt_required)
 ):
     """
     获取所有激活的插件
@@ -388,7 +388,7 @@ async def get_active_plugins(
 @router.delete("/{plugin_slug}")
 async def uninstall_plugin(
         plugin_slug: str,
-        current_user_id: int = Depends(jwt_required),
+        current_user: User = Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
@@ -429,7 +429,7 @@ async def uninstall_plugin(
 
 @router.post("/sync-config")
 async def sync_plugin_config(
-        current_user_id: int = Depends(jwt_required)
+        current_user: User = Depends(jwt_required)
 ):
     """
     同步插件配置 - 将本地插件状态同步到数据库
@@ -608,7 +608,7 @@ async def sync_plugin_config(
 @router.post("/{plugin_slug}/hot-reload")
 async def hot_reload_plugin(
         plugin_slug: str,
-        current_user_id: int = Depends(jwt_required)
+        current_user: User = Depends(jwt_required)
 ):
     """
     热重载插件（无需重启应用）
@@ -654,7 +654,7 @@ async def hot_reload_plugin(
 @router.post("/{plugin_slug}/hot-load")
 async def hot_load_plugin(
         plugin_slug: str,
-        current_user_id: int = Depends(jwt_required)
+        current_user: User = Depends(jwt_required)
 ):
     """
     热加载新插件（运行时动态加载，无需重启）
@@ -694,7 +694,7 @@ async def hot_load_plugin(
 @router.post("/{plugin_slug}/hot-unload")
 async def hot_unload_plugin(
         plugin_slug: str,
-        current_user_id: int = Depends(jwt_required)
+        current_user: User = Depends(jwt_required)
 ):
     """
     热卸载插件（运行时动态卸载，无需重启）
@@ -733,7 +733,7 @@ async def hot_unload_plugin(
 
 @router.get("/scan-new")
 async def scan_new_plugins(
-        current_user_id: int = Depends(jwt_required)
+        current_user: User = Depends(jwt_required)
 ):
     """
     扫描新插件（发现plugins目录中未加载的插件）

@@ -19,7 +19,7 @@ router = APIRouter(prefix="/wordpress-import", tags=["wordpress-import"])
 @router.post("/parse")
 async def parse_wordpress_xml(
         file: UploadFile = File(...),
-        current_user_id: int = Depends(jwt_required)
+        current_user: User = Depends(jwt_required)
 ):
     """
     解析 WordPress XML 文件
@@ -82,7 +82,7 @@ async def import_wordpress_data(
         file: UploadFile = File(...),
         user_mapping: Optional[str] = Form(None),
         download_media: bool = Form(False),
-        current_user_id: int = Depends(jwt_required),
+        current_user: User = Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """

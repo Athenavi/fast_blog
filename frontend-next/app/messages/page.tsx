@@ -54,9 +54,11 @@ const MessagesPage = () => {
   // 模态框状态
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
+  const [showInviteModal, setShowInviteModal] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
   const [newGroupDescription, setNewGroupDescription] = useState('');
-  const [newMemberIds, setNewMemberIds] = useState('');
+  const [inviteLink, setInviteLink] = useState('');
+  const [newMemberIds, setNewMemberIds] = useState(''); // 保留用于添加成员功能
 
   // 加载消息数据
   useEffect(() => {
@@ -279,23 +281,17 @@ const MessagesPage = () => {
     }
 
     try {
-      const memberIds = newMemberIds
-          .split(',')
-          .map(id => parseInt(id.trim()))
-          .filter(id => !isNaN(id));
-
       const response = await apiClient.post('/chat-groups/create', {
         name: newGroupName.trim(),
         description: newGroupDescription.trim() || null,
-        member_ids: memberIds
+        member_ids: []  // 不再需要初始成员，通过邀请链接加入
       });
 
       if (response.success) {
-        alert('群聊创建成功！');
+        alert('群聊创建成功！您可以生成邀请链接邀请好友加入。');
         setShowCreateModal(false);
         setNewGroupName('');
         setNewGroupDescription('');
-        setNewMemberIds('');
         loadChatGroups();
       } else {
         alert(response.error || '创建失败');
@@ -304,6 +300,40 @@ const MessagesPage = () => {
       console.error('创建群聊失败:', error);
       alert('创建失败，请重试');
     }
+  };
+
+  // 生成邀请链接
+  const handleGenerateInvite = async () => {
+    if (!selectedGroup) return;
+
+    try {
+      const response = await apiClient.post(`/chat-groups/${selectedGroup.id}/create-invite`, {}, {
+        params: {
+          expires_hours: 72,  // 默认3天过期
+          max_uses: null  // 无限制使用次数
+        }
+      });
+
+      if (response.success) {
+        setInviteLink(response.data.full_url);
+        setShowInviteModal(true);
+      } else {
+        alert(response.error || '生成邀请链接失败');
+      }
+    } catch (error) {
+      console.error('生成邀请链接失败:', error);
+      alert('生成失败，请重试');
+    }
+  };
+
+  // 复制邀请链接
+  const copyInviteLink = () => {
+    navigator.clipboard.writeText(inviteLink).then(() => {
+      alert('邀请链接已复制到剪贴板！');
+    }).catch(err => {
+      console.error('复制失败:', err);
+      alert('复制失败，请手动复制');
+    });
   };
 
   // 添加成员
@@ -677,6 +707,13 @@ const MessagesPage = () => {
                   </div>
                   <div className="flex gap-2">
                     <button
+                        onClick={handleGenerateInvite}
+                        className="text-green-500 hover:text-green-600 transition-colors"
+                        title="生成邀请链接"
+                    >
+                      <FaPlus/>
+                    </button>
+                    <button
                         onClick={() => setShowAddMemberModal(true)}
                         className="text-blue-500 hover:text-blue-600 transition-colors"
                         title="添加成员"
@@ -864,21 +901,6 @@ const MessagesPage = () => {
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                    初始成员ID
-                  </label>
-                  <input
-                      type="text"
-                      value={newMemberIds}
-                      onChange={(e) => setNewMemberIds(e.target.value)}
-                      className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                      placeholder="输入用户ID，用逗号分隔（如：1,2,3）"
-                  />
-                  <p className="text-xs text-gray-500 mt-1">创建者会自动加入群聊</p>
-                </div>
-              </div>
-
               <div className="flex gap-2 mt-6">
                 <button
                     onClick={() => {
@@ -946,6 +968,50 @@ const MessagesPage = () => {
             </div>
           </div>
       )}
+
+            {/* 邀请链接模态框 */}
+            {showInviteModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                  <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
+                    <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">邀请链接</h2>
+
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                          邀请链接
+                        </label>
+                        <div className="flex gap-2">
+                          <input
+                              type="text"
+                              value={inviteLink}
+                              readOnly
+                              className="flex-1 px-3 py-2 border rounded-lg bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                          />
+                          <button
+                              onClick={copyInviteLink}
+                              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 whitespace-nowrap"
+                          >
+                            复制
+                          </button>
+                        </div>
+                        <p className="text-xs text-gray-500 mt-1">分享此链接邀请好友加入群聊</p>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-2 mt-6">
+                      <button
+                          onClick={() => {
+                            setShowInviteModal(false);
+                            setInviteLink('');
+                          }}
+                          className="w-full px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 dark:bg-gray-700 dark:text-white"
+                      >
+                        关闭
+                      </button>
+                    </div>
+                  </div>
+                </div>
+            )}
     </WithAuthProtection>
   );
 };

@@ -15,7 +15,7 @@ router = APIRouter(prefix="/webhooks", tags=["webhooks"])
 
 @router.get("")
 async def list_webhooks(
-        current_user_id: int = Depends(jwt_required),
+        current_user: User = Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
@@ -58,7 +58,7 @@ async def list_webhooks(
 @router.post("")
 async def create_webhook(
         request: Request,
-        current_user_id: int = Depends(jwt_required),
+        current_user: User = Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
@@ -121,7 +121,7 @@ async def create_webhook(
 async def update_webhook(
         subscription_id: int,
         request: Request,
-        current_user_id: int = Depends(jwt_required),
+        current_user: User = Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
@@ -181,7 +181,7 @@ async def update_webhook(
 @router.delete("/{subscription_id}")
 async def delete_webhook(
         subscription_id: int,
-        current_user_id: int = Depends(jwt_required),
+        current_user: User = Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
@@ -224,7 +224,7 @@ async def delete_webhook(
 @router.get("/{subscription_id}/stats")
 async def get_webhook_stats(
         subscription_id: int,
-        current_user_id: int = Depends(jwt_required)
+        current_user: User = Depends(jwt_required)
 ):
     """
     获取Webhook订阅统计信息
@@ -265,7 +265,7 @@ async def get_webhook_stats(
 async def get_delivery_logs(
         delivery_id: str = None,
         limit: int = 100,
-        current_user_id: int = Depends(jwt_required)
+        current_user: User = Depends(jwt_required)
 ):
     """
     获取投递日志
@@ -367,7 +367,7 @@ async def get_event_types():
 @router.post("/test/{subscription_id}")
 async def test_webhook(
         subscription_id: int,
-        current_user_id: int = Depends(jwt_required)
+        current_user: User = Depends(jwt_required)
 ):
     """
     测试Webhook订阅

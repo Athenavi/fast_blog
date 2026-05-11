@@ -4409,3 +4409,56 @@ models:
         columns: [ group, user ]
         unique: true
         comment: "群聊-用户唯一索引"
+
+  ChatGroupInvite:
+    description: 群聊邀请链接模型
+    properties:
+      id:
+        type: bigint
+        description: 邀请 ID
+      group:
+        type: bigint
+        description: 群聊 ID
+        foreignKey: ChatGroup
+      invite_code:
+        type: string
+        maxLength: 100
+        unique: true
+        index: true
+        description: 邀请码（UUID）
+      created_by:
+        type: bigint
+        description: 创建者
+        foreignKey: User
+      expires_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: 过期时间（null表示永久有效）
+      max_uses:
+        type: bigint
+        nullable: true
+        description: 最大使用次数（null表示无限制）
+      use_count:
+        type: bigint
+        default: 0
+        readOnly: true
+        description: 已使用次数
+      is_active:
+        type: boolean
+        default: true
+        description: 是否激活
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+    orm: true
+    table: chat_group_invites
+    indexes:
+      - name: idx_chat_group_invites_code
+        columns: [ invite_code ]
+        unique: true
+        comment: "邀请码唯一索引"
+      - name: idx_chat_group_invites_group
+        columns: [ group ]
+        comment: "群聊ID索引"

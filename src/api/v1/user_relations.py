@@ -25,7 +25,7 @@ followers_db = {}
 
 @router.get("/followers")
 async def get_followers(
-        current_user_id: int = Depends(jwt_required),
+        current_user: User = Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
@@ -78,7 +78,7 @@ async def get_followers(
 
 @router.get("/following")
 async def get_following(
-        current_user_id: int = Depends(jwt_required),
+        current_user: User = Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
@@ -133,7 +133,7 @@ async def get_following(
 async def get_users(
         page: int = Query(1, ge=1, description="页码"),
         per_page: int = Query(20, ge=1, le=100, description="每页数量"),
-        current_user_id: int = Depends(jwt_required),
+        current_user: User = Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
@@ -202,7 +202,7 @@ async def get_users(
 @router.post("/follow/{target_user_id}")
 async def follow_user(
         target_user_id: int,
-        current_user_id: int = Depends(jwt_required),
+        current_user: User = Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
@@ -257,7 +257,7 @@ async def follow_user(
 @router.post("/unfollow/{target_user_id}")
 async def unfollow_user(
         target_user_id: int,
-        current_user_id: int = Depends(jwt_required),
+        current_user: User = Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
@@ -300,7 +300,7 @@ async def unfollow_user(
 
 @router.get("/counts")
 async def get_relation_counts(
-        current_user_id: int = Depends(jwt_required)
+        current_user: User = Depends(jwt_required)
 ):
     """
     获取当前用户的粉丝数和关注数

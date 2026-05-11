@@ -22,7 +22,7 @@ router = APIRouter(prefix="/blocks", tags=["user-blocks"])
 async def block_user(
         blocked_user_id: int,
         reason: Optional[str] = Query(None, description="屏蔽原因"),
-        current_user_id: int = Depends(jwt_required),
+        current_user: User = Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
@@ -84,7 +84,7 @@ async def block_user(
 @router.delete("/unblock/{blocked_user_id}")
 async def unblock_user(
         blocked_user_id: int,
-        current_user_id: int = Depends(jwt_required),
+        current_user: User = Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
@@ -126,7 +126,7 @@ async def unblock_user(
 @router.get("/check/{user_id}")
 async def check_block_status(
         user_id: int,
-        current_user_id: int = Depends(jwt_required),
+        current_user: User = Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
@@ -165,7 +165,7 @@ async def check_block_status(
 async def get_blocked_users(
         page: int = Query(1, ge=1, description="页码"),
         per_page: int = Query(20, ge=1, le=100, description="每页数量"),
-        current_user_id: int = Depends(jwt_required),
+        current_user: User = Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
@@ -231,7 +231,7 @@ async def get_blocked_users(
 
 @router.get("/blocked-me")
 async def get_users_who_blocked_me(
-        current_user_id: int = Depends(jwt_required),
+        current_user: User = Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """

@@ -14,7 +14,7 @@ router = APIRouter(prefix="/theme-customizer", tags=["theme-customizer"])
 @router.get("/config/{theme_slug}")
 async def get_theme_config(
         theme_slug: str,
-        current_user_id: int = Depends(jwt_required),
+        current_user: User = Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
@@ -53,7 +53,7 @@ async def get_theme_config(
 @router.get("/custom-css/{theme_slug}")
 async def get_custom_css(
         theme_slug: str,
-        current_user_id: int = Depends(jwt_required),
+        current_user: User = Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
@@ -94,7 +94,7 @@ async def get_custom_css(
 async def update_theme_config(
         theme_slug: str,
         request: Request,
-        current_user_id: int = Depends(jwt_required),
+        current_user: User = Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
@@ -149,7 +149,7 @@ async def update_theme_config(
 @router.post("/preview/css")
 async def generate_preview_css(
         request: Request,
-        current_user_id: int = Depends(jwt_required)
+        current_user: User = Depends(jwt_required)
 ):
     """
     根据配置生成预览CSS
@@ -189,7 +189,7 @@ async def generate_preview_css(
 @router.post("/validate")
 async def validate_theme_config(
         request: Request,
-        current_user_id: int = Depends(jwt_required)
+        current_user: User = Depends(jwt_required)
 ):
     """
     验证主题配置
@@ -227,7 +227,7 @@ async def validate_theme_config(
 @router.get("/export/{theme_slug}")
 async def export_theme_config(
         theme_slug: str,
-        current_user_id: int = Depends(jwt_required)
+        current_user: User = Depends(jwt_required)
 ):
     """
     导出主题配置为JSON
@@ -267,7 +267,7 @@ async def export_theme_config(
 async def import_theme_config(
         theme_slug: str,
         request: Request,
-        current_user_id: int = Depends(jwt_required),
+        current_user: User = Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
@@ -423,7 +423,7 @@ async def get_font_presets():
 async def save_draft(
         theme_slug: str,
         request: Request,
-        current_user_id: int = Depends(jwt_required)
+        current_user: User = Depends(jwt_required)
 ):
     """
     保存配置草稿(不立即生效)
@@ -462,7 +462,7 @@ async def save_draft(
 @router.get("/draft/{theme_slug}")
 async def load_draft(
         theme_slug: str,
-        current_user_id: int = Depends(jwt_required)
+        current_user: User = Depends(jwt_required)
 ):
     """
     加载配置草稿
@@ -499,7 +499,7 @@ async def load_draft(
 @router.post("/draft/{theme_slug}/publish")
 async def publish_draft(
         theme_slug: str,
-        current_user_id: int = Depends(jwt_required),
+        current_user: User = Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
@@ -536,7 +536,7 @@ async def publish_draft(
 async def get_version_history(
         theme_slug: str,
         limit: int = 10,
-        current_user_id: int = Depends(jwt_required)
+        current_user: User = Depends(jwt_required)
 ):
     """
     获取配置版本历史
@@ -576,7 +576,7 @@ async def get_version_history(
 async def restore_version(
         theme_slug: str,
         version_id: int,
-        current_user_id: int = Depends(jwt_required),
+        current_user: User = Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
@@ -614,7 +614,7 @@ async def restore_version(
 async def save_custom_css(
         theme_slug: str,
         request: Request,
-        current_user_id: int = Depends(jwt_required),
+        current_user: User = Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
