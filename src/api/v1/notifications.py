@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.notification import Notification
+from shared.models.user import User
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 from src.notification import mark_notification_as_read, get_user_notifications, mark_all_notifications_as_read
@@ -22,7 +23,7 @@ async def read_notification_api(
     标记通知为已读API
     """
     try:
-        result = mark_notification_as_read(current_user_id, nid)
+        result = mark_notification_as_read(current_user.id, nid)
         return result
     except Exception as e:
         import traceback
@@ -39,7 +40,7 @@ async def fetch_message_api(
     获取用户通知API
     """
     try:
-        result = get_user_notifications(current_user_id)
+        result = get_user_notifications(current_user.id)
         return result
     except Exception as e:
         import traceback
@@ -56,7 +57,7 @@ async def mark_all_as_read_api(
     标记所有通知为已读API
     """
     try:
-        result = mark_all_notifications_as_read(current_user_id)
+        result = mark_all_notifications_as_read(current_user.id)
         return result
     except Exception as e:
         import traceback
@@ -78,11 +79,11 @@ async def clean_notification_api(
     try:
         from sqlalchemy import delete
         if nid == 'all':
-            stmt = delete(Notification).where(Notification.recipient_id == current_user_id)
+            stmt = delete(Notification).where(Notification.recipient_id == current_user.id)
             await db.execute(stmt)
         else:
             stmt = delete(Notification).where(
-                Notification.recipient_id == current_user_id,
+                Notification.recipient_id == current_user.id,
                 Notification.id == int(nid)
             )
             await db.execute(stmt)
@@ -107,7 +108,7 @@ async def mark_notification_as_read_api(
     try:
         from src.notification import mark_notification_as_read
         # 注意：mark_notification_as_read 函数的参数顺序是 (notification_id, user_id)
-        success = mark_notification_as_read(notification_id, current_user_id)
+        success = mark_notification_as_read(notification_id, current_user.id)
         if success:
             return {"success": True, "message": "通知已标记为已读"}
         else:
@@ -130,7 +131,7 @@ async def delete_notification_api(
     """
     try:
         from src.notification import delete_notification
-        success = delete_notification(notification_id, current_user_id)
+        success = delete_notification(notification_id, current_user.id)
         if success:
             return {"success": True, "message": "通知已删除"}
         else:
@@ -150,7 +151,7 @@ async def get_notifications_api(
     获取用户通知API
     """
     try:
-        notifications = get_user_notifications(current_user_id)
+        notifications = get_user_notifications(current_user.id)
 
         # 转换通知数据为前端期望的格式
         notification_list = []
@@ -162,9 +163,9 @@ async def get_notifications_api(
                 "date": notif.created_at.isoformat(),
                 "type": notif.type,
                 "read": notif.is_read,
-                "avatar": f"/avatars/user_{current_user_id}.jpg",  # 使用用户头像
+                "avatar": f"/avatars/user_{current_user.id}.jpg",  # 使用用户头像
                 "sender": "System",  # 系统通知
-                "recipient": current_user_id
+                "recipient": current_user.id
             })
 
         return {"success": True, "data": notification_list}
@@ -183,7 +184,7 @@ async def mark_all_as_read_api_new(
     标记所有通知为已读API
     """
     try:
-        result = mark_all_notifications_as_read(current_user_id)
+        result = mark_all_notifications_as_read(current_user.id)
         return {"success": True, "data": {"updated_count": result}}
     except Exception as e:
         import traceback

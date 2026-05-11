@@ -420,6 +420,9 @@ async def chat_websocket(
         group_id: 群聊 ID
         token: 认证token
     """
+    print(f"[ChatGroup] WebSocket connection attempt for group {group_id}")
+    print(f"[ChatGroup] Token provided: {'Yes' if token else 'No'}")
+    
     # 验证用户身份
     user_id = None
 
@@ -433,10 +436,14 @@ async def chat_websocket(
             user_id = payload.get('sub') or payload.get('user_id')
             if user_id:
                 user_id = int(user_id)
+            print(f"[ChatGroup] Token verified, user_id: {user_id}")
         except Exception as e:
             print(f"[ChatGroup] Token verification failed: {e}")
+            import traceback
+            traceback.print_exc()
 
     if not user_id:
+        print(f"[ChatGroup] Authentication failed, closing connection")
         await websocket.close(code=4003, reason="Authentication required")
         return
 

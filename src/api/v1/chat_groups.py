@@ -11,8 +11,8 @@ from sqlalchemy import select, and_, func, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.chat_group import ChatGroup
-from shared.models.chat_group_member import ChatGroupMember
 from shared.models.chat_group_invite import ChatGroupInvite
+from shared.models.chat_group_member import ChatGroupMember
 from shared.models.user import User
 from src.api.v1.responses import ApiResponse
 from src.auth import jwt_required_dependency as jwt_required
@@ -136,6 +136,7 @@ async def get_user_groups(
     获取当前用户的群聊列表
     """
     try:
+        print(f"[ChatGroup] Getting groups for user {current_user.id}")
         offset = (page - 1) * per_page
 
         # 查询用户加入的群聊
@@ -148,13 +149,19 @@ async def get_user_groups(
                     ChatGroup.is_active == True
                 )
             )
-            .order_by(desc(ChatGroup.last_message_at.nullslast()))
+            .order_by(
+                ChatGroup.last_message_at.desc().nullslast()
+            )
             .offset(offset)
             .limit(per_page)
         )
 
         result = await db.execute(query)
         groups = result.scalars().all()
+
+        print(f"[ChatGroup] Found {len(groups)} groups for user {current_user.id}")
+        for g in groups:
+            print(f"  - Group: {g.name} (id={g.id})")
 
         # 获取总数
         count_query = (

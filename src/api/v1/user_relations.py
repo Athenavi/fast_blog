@@ -3,10 +3,9 @@
 提供关注/取消关注、粉丝列表、关注列表等功能
 """
 from datetime import datetime
-from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import select, and_, or_, func, desc
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.user import User
@@ -36,7 +35,7 @@ async def get_followers(
     """
     try:
         # 从内存中获取粉丝
-        fans_dict = followers_db.get(current_user_id, {})
+        fans_dict = followers_db.get(current_user.id, {})
 
         # 构建粉丝列表
         fans_list = []
@@ -89,7 +88,7 @@ async def get_following(
     """
     try:
         # 从内存中获取关注的用户
-        following_dict = follows_db.get(current_user_id, {})
+        following_dict = follows_db.get(current_user.id, {})
 
         # 构建关注列表
         following_list = []
@@ -148,7 +147,7 @@ async def get_users(
         # 查询所有用户(排除自己)
         query = (
             select(User)
-            .where(User.id != current_user_id)
+            .where(User.id != current_user.id)
             .offset(offset)
             .limit(per_page)
         )
@@ -160,7 +159,7 @@ async def get_users(
         count_query = (
             select(func.count())
             .select_from(User)
-            .where(User.id != current_user_id)
+            .where(User.id != current_user.id)
         )
         count_result = await db.execute(count_query)
         total = count_result.scalar() or 0
@@ -177,7 +176,7 @@ async def get_users(
             })
 
         # 获取当前用户已关注的用户ID
-        following_dict = follows_db.get(current_user_id, {})
+        following_dict = follows_db.get(current_user.id, {})
         following_ids = [int(uid) for uid in following_dict.keys()]
 
         return ApiResponse(
@@ -213,7 +212,7 @@ async def follow_user(
     """
     try:
         # 不能关注自己
-        if target_user_id == current_user_id:
+        if target_user_id == current_user.id:
             return ApiResponse(success=False, error="不能关注自己")
 
         # 验证目标用户是否存在
@@ -225,19 +224,19 @@ async def follow_user(
             return ApiResponse(success=False, error="目标用户不存在")
 
         # 初始化数据结构
-        if current_user_id not in follows_db:
-            follows_db[current_user_id] = {}
+        if current_user.id not in follows_db:
+            follows_db[current_user.id] = {}
         if target_user_id not in followers_db:
             followers_db[target_user_id] = {}
 
         # 检查是否已经关注
-        if target_user_id in follows_db[current_user_id]:
+        if target_user_id in follows_db[current_user.id]:
             return ApiResponse(success=False, error="已经关注过该用户")
 
         # 添加关注关系
         current_time = datetime.now().timestamp()
-        follows_db[current_user_id][target_user_id] = current_time
-        followers_db[target_user_id][current_user_id] = current_time
+        follows_db[current_user.id][target_user_id] = current_time
+        followers_db[target_user_id][current_user.id] = current_time
 
         # TODO: 发送通知给被关注者
 
@@ -276,14 +275,14 @@ async def unfollow_user(
             return ApiResponse(success=False, error="目标用户不存在")
 
         # 检查是否已关注
-        if current_user_id not in follows_db or target_user_id not in follows_db[current_user_id]:
+        if current_user.id not in follows_db or target_user_id not in follows_db[current_user.id]:
             return ApiResponse(success=False, error="尚未关注该用户")
 
         # 移除关注关系
-        del follows_db[current_user_id][target_user_id]
+        del follows_db[current_user.id][target_user_id]
         if target_user_id in followers_db:
-            if current_user_id in followers_db[target_user_id]:
-                del followers_db[target_user_id][current_user_id]
+            if current_user.id in followers_db[target_user_id]:
+                del followers_db[target_user_id][current_user.id]
 
         return ApiResponse(
             success=True,
@@ -309,8 +308,8 @@ async def get_relation_counts(
         粉丝数和关注数
     """
     try:
-        fans_count = len(followers_db.get(current_user_id, {}))
-        following_count = len(follows_db.get(current_user_id, {}))
+        fans_count = len(followers_db.get(current_user.id, {}))
+        following_count = len(follows_db.get(current_user.id, {}))
 
         return ApiResponse(
             success=True,

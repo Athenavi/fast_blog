@@ -4,6 +4,7 @@ import React, {useEffect, useRef, useState} from 'react';
 import WithAuthProtection from '@/components/WithAuthProtection';
 import {apiClient} from '@/lib/api';
 import {FaComments, FaPaperPlane, FaPlus, FaSignOutAlt, FaUsers} from 'react-icons/fa';
+import {getAccessTokenFromCookie} from "@/lib/auth-utils";
 
 interface Message {
   id: number;
@@ -150,9 +151,14 @@ const MessagesPage = () => {
   // 加载群聊列表
   const loadChatGroups = async () => {
     try {
+      console.log('[ChatGroup] Loading chat groups...');
       const response = await apiClient.get('/chat-groups/');
+      console.log('[ChatGroup] API response:', response);
       if (response.success && response.data) {
+        console.log('[ChatGroup] Groups data:', response.data.groups);
         setChatGroups(response.data.groups || []);
+      } else {
+        console.error('[ChatGroup] Failed to load groups:', response.error);
       }
     } catch (error) {
       console.error('加载群聊列表失败:', error);
@@ -173,19 +179,21 @@ const MessagesPage = () => {
 
   // 连接到群聊WebSocket
   const connectToGroupChat = (groupId: number) => {
+    console.log('[ChatGroup] Attempting to connect to group:', groupId);
+    
     // 关闭现有连接
     if (wsRef.current) {
+      console.log('[ChatGroup] Closing existing connection');
       wsRef.current.close();
     }
 
-    // 获取token
-    const token = document.cookie
-        .split('; ')
-        .find(row => row.startsWith('access_token='))
-        ?.split('=')[1];
+    // 获取token - 尝试多种方式
+    let token = getAccessTokenFromCookie();
 
     if (!token) {
-      console.error('No authentication token found');
+      console.error('[ChatGroup] No authentication token found');
+      console.log('[ChatGroup] Available cookies:', document.cookie);
+      setWsConnected(false);
       return;
     }
 
@@ -193,11 +201,13 @@ const MessagesPage = () => {
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const wsUrl = `${protocol}//${window.location.host}/api/v1/ws/chat/${groupId}?token=${token}`;
 
+    console.log('[ChatGroup] Connecting to:', wsUrl.replace(token, '***'));
+
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
 
     ws.onopen = () => {
-      console.log('[ChatGroup] WebSocket connected');
+      console.log('[ChatGroup] WebSocket connected successfully');
       setWsConnected(true);
     };
 
@@ -226,11 +236,14 @@ const MessagesPage = () => {
 
     ws.onerror = (error) => {
       console.error('[ChatGroup] WebSocket error:', error);
+      console.error('[ChatGroup] ReadyState:', ws.readyState);
       setWsConnected(false);
     };
 
-    ws.onclose = () => {
+    ws.onclose = (event) => {
       console.log('[ChatGroup] WebSocket disconnected');
+      console.log('[ChatGroup] Close code:', event.code);
+      console.log('[ChatGroup] Close reason:', event.reason);
       setWsConnected(false);
     };
   };
