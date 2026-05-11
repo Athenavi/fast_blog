@@ -1133,3 +1133,150 @@ async def clean_expired_sticky_articles_api(
         import traceback
         print(f"Error in clean_expired_sticky_articles_api: {e}\n{traceback.format_exc()}")
         return ApiResponse(success=False, error=str(e))
+
+
+# ---------- 文章拖拽排序 ----------
+@router.post("/reorder")
+async def reorder_articles_api(
+        request: Request,
+        current_user=Depends(jwt_required),
+        db: AsyncSession = Depends(get_async_session)
+):
+    """
+    文章拖拽排序
+    
+    请求体格式：
+    {
+        "articles": [
+            {"id": 1, "sort_order": 0},
+            {"id": 2, "sort_order": 1},
+            ...
+        ]
+    }
+    """
+    try:
+        body = await request.json()
+        articles_data = body.get('articles', [])
+
+        if not articles_data:
+            return ApiResponse(success=False, error="缺少文章数据")
+
+        # 提取文章ID列表
+        article_ids = [item['id'] for item in articles_data]
+
+        # 验证权限：只能排序自己的文章，管理员可以排序所有文章
+        is_admin = getattr(current_user, 'is_superuser', False)
+
+        if is_admin:
+            query = select(Article).where(Article.id.in_(article_ids))
+        else:
+            query = select(Article).where(
+                Article.id.in_(article_ids),
+                Article.user == current_user.id
+            )
+
+        result = await db.execute(query)
+        articles = {article.id: article for article in result.scalars().all()}
+
+        # 更新排序
+        updated_count = 0
+        for item in articles_data:
+            article_id = item['id']
+            new_sort_order = item.get('sort_order', 0)
+
+            if article_id in articles:
+                articles[article_id].sort_order = new_sort_order
+                articles[article_id].updated_at = datetime.now()
+                updated_count += 1
+
+        await db.commit()
+
+        return ApiResponse(
+            success=True,
+            data={
+                "message": "排序更新成功",
+                "updated_count": updated_count
+            }
+        )
+    except Exception as e:
+        await db.rollback()
+        import traceback
+        print(f"Error in reorder_articles_api: {e}\n{traceback.format_exc()}")
+        return ApiResponse(success=False, error=str(e))
+
+
+# ---------- 文章批量操作 ----------
+@router.post("/batch-operation")
+async def batch_article_operation_api(
+        request: Request,
+        current_user=Depends(jwt_required),
+        db: AsyncSession = Depends(get_async_session)
+):
+    """
+    文章批量操作
+    
+    支持的操作：
+    - delete: 批量删除
+    - publish: 批量发布
+    - draft: 批量设为草稿
+    - feature: 批量推荐
+    - unfeature: 批量取消推荐
+    """
+    try:
+        body = await request.json()
+        operation = body.get('operation')
+        article_ids = body.get('article_ids', [])
+
+        if not operation or not article_ids:
+            return ApiResponse(success=False, error="缺少必要参数")
+
+        # 验证权限：只能操作自己的文章，管理员可以操作所有文章
+        is_admin = getattr(current_user, 'is_superuser', False)
+
+        if is_admin:
+            query = select(Article).where(Article.id.in_(article_ids))
+        else:
+            query = select(Article).where(
+                Article.id.in_(article_ids),
+                Article.user == current_user.id
+            )
+
+        result = await db.execute(query)
+        articles = result.scalars().all()
+
+        if not articles:
+            return ApiResponse(success=False, error="没有找到可操作的文章或权限不足")
+
+        updated_count = 0
+        for article in articles:
+            if operation == 'delete':
+                article.status = -1
+            elif operation == 'publish':
+                article.status = 1
+            elif operation == 'draft':
+                article.status = 0
+            elif operation == 'feature':
+                article.is_featured = True
+            elif operation == 'unfeature':
+                article.is_featured = False
+            else:
+                continue
+
+            article.updated_at = datetime.now()
+            updated_count += 1
+
+        await db.commit()
+
+        return ApiResponse(
+            success=True,
+            data={
+                "message": f"成功{updated_count}篇文章",
+                "operation": operation,
+                "updated_count": updated_count
+            }
+        )
+    except Exception as e:
+        await db.rollback()
+        import traceback
+        print(f"Error in batch_article_operation_api: {e}\n{traceback.format_exc()}")
+        return ApiResponse(success=False, error=str(e))

@@ -172,7 +172,7 @@ async def get_categories_with_stats_api(
                 .outerjoin(CategorySubscription.__table__, Category.id == CategorySubscription.category)
             )
             .group_by(Category.id)
-            .order_by(Category.name.asc())
+            .order_by(Category.sort_order.asc(), Category.name.asc())
         )
         category_stats = await db.execute(category_stats_query)
 
@@ -268,4 +268,73 @@ async def delete_category_api(
         import traceback
         print(f"Error in delete_category_api: {str(e)}")
         print(traceback.format_exc())
+        return ApiResponse(success=False, error=str(e))
+
+
+# ---------- 分类拖拽排序 ----------
+@router.post("/reorder")
+async def reorder_categories_api(
+        request: Request,
+        current_user=Depends(jwt_required),
+        db: AsyncSession = Depends(get_async_session)
+):
+    """
+    分类拖拽排序
+    
+    请求体格式：
+    {
+        "categories": [
+            {"id": 1, "sort_order": 0},
+            {"id": 2, "sort_order": 1},
+            ...
+        ]
+    }
+    """
+    try:
+        # 检查用户权限 - 只有超级用户才能排序分类
+        if not current_user.is_superuser:
+            from fastapi import HTTPException
+            from fastapi import status
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="The user doesn't have enough privileges"
+            )
+
+        body = await request.json()
+        categories_data = body.get('categories', [])
+
+        if not categories_data:
+            return ApiResponse(success=False, error="缺少分类数据")
+
+        # 提取分类ID列表
+        category_ids = [item['id'] for item in categories_data]
+
+        # 查询所有分类
+        query = select(Category).where(Category.id.in_(category_ids))
+        result = await db.execute(query)
+        categories = {category.id: category for category in result.scalars().all()}
+
+        # 更新排序
+        updated_count = 0
+        for item in categories_data:
+            category_id = item['id']
+            new_sort_order = item.get('sort_order', 0)
+
+            if category_id in categories:
+                categories[category_id].sort_order = new_sort_order
+                updated_count += 1
+
+        await db.commit()
+
+        return ApiResponse(
+            success=True,
+            data={
+                "message": "分类排序更新成功",
+                "updated_count": updated_count
+            }
+        )
+    except Exception as e:
+        await db.rollback()
+        import traceback
+        print(f"Error in reorder_categories_api: {e}\n{traceback.format_exc()}")
         return ApiResponse(success=False, error=str(e))

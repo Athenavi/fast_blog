@@ -6,6 +6,8 @@
 import logging
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import func, select
 
 logger = logging.getLogger(__name__)
 
@@ -13,7 +15,8 @@ logger = logging.getLogger(__name__)
 class ReportGenerator:
     """报表生成器"""
 
-    def __init__(self):
+    def __init__(self, db: AsyncSession = None):
+        self.db = db
         # 文章统计数据缓存
         self._article_stats = {}
 
@@ -23,7 +26,7 @@ class ReportGenerator:
         # 流量数据缓存
         self._traffic_data = {}
 
-    def generate_content_report(self, days: int = 30,
+    async def generate_content_report(self, days: int = 30,
                                 group_by: str = 'day') -> Dict:
         """
         生成内容表现报表
@@ -35,8 +38,79 @@ class ReportGenerator:
         Returns:
             内容报表数据
         """
+        if not self.db:
+            raise ValueError("Database session is required")
+
+        from shared.models.article import Article
+        from shared.models.article_view import ArticleView
+        from shared.models.comment import Comment
+        from shared.models.like import Like
+
         now = datetime.now()
         cutoff = now - timedelta(days=days)
+
+        # 总文章数
+        total_articles_result = await self.db.execute(
+            select(func.count(Article.id)).filter(
+                Article.created_at >= cutoff,
+                Article.status == 1  # 只统计已发布的文章
+            )
+        )
+        total_articles = total_articles_result.scalar() or 0
+
+        # 总浏览量
+        total_views_result = await self.db.execute(
+            select(func.count(ArticleView.id)).filter(
+                ArticleView.viewed_at >= cutoff
+            )
+        )
+        total_views = total_views_result.scalar() or 0
+
+        # 总点赞数
+        total_likes_result = await self.db.execute(
+            select(func.count(Like.id)).filter(
+                Like.created_at >= cutoff,
+                Like.like_type == 'article'
+            )
+        )
+        total_likes = total_likes_result.scalar() or 0
+
+        # 总评论数
+        total_comments_result = await self.db.execute(
+            select(func.count(Comment.id)).filter(
+                Comment.created_at >= cutoff
+            )
+        )
+        total_comments = total_comments_result.scalar() or 0
+
+        # 平均每篇文章浏览量
+        avg_views = round(total_views / total_articles, 2) if total_articles > 0 else 0
+
+        # 热门文章 Top 10
+        popular_result = await self.db.execute(
+            select(
+                Article.id,
+                Article.title,
+                func.count(ArticleView.id).label('view_count')
+            ).join(
+                ArticleView, Article.id == ArticleView.article_id, isouter=True
+            ).filter(
+                Article.created_at >= cutoff,
+                Article.status == 1
+            ).group_by(
+                Article.id, Article.title
+            ).order_by(
+                func.count(ArticleView.id).desc()
+            ).limit(10)
+        )
+
+        top_articles = []
+        for row in popular_result.all():
+            top_articles.append({
+                'id': row.id,
+                'title': row.title,
+                'views': row.view_count,
+            })
 
         report = {
             'title': f'内容表现报表 ({days}天)',
@@ -46,19 +120,16 @@ class ReportGenerator:
                 'days': days,
             },
             'summary': {
-                'total_articles': 0,
-                'total_views': 0,
-                'total_likes': 0,
-                'total_comments': 0,
-                'avg_views_per_article': 0,
+                'total_articles': total_articles,
+                'total_views': total_views,
+                'total_likes': total_likes,
+                'total_comments': total_comments,
+                'avg_views_per_article': avg_views,
             },
-            'trends': [],
-            'top_articles': [],
+            'top_articles': top_articles,
             'generated_at': now.isoformat(),
         }
 
-        # 这里应该从数据库查询真实数据
-        # 简化实现：返回示例数据结构
         return report
 
     def generate_user_activity_report(self, days: int = 30) -> Dict:

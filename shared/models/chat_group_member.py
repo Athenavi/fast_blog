@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - ChatGroupMember
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-11 10:42:22
+生成时间：2026-05-11 11:42:42
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
@@ -21,11 +21,14 @@ class ChatGroupMember(Base):
         Index('idx_chat_group_members_unique', 'group', 'user', unique=True),
     )
 
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='成员关系 ID')
 
     group = Column(BigInteger, ForeignKey('chat_groups.id'), doc='群聊 ID')
 
+
     user = Column(BigInteger, ForeignKey('users.id'), doc='用户 ID')
+
 
     role = Column(String(50), default='member', doc='角色 (owner/admin/member)')
 
@@ -34,6 +37,8 @@ class ChatGroupMember(Base):
     last_read_at = Column(DateTime, nullable=True, doc='最后阅读时间')
 
     is_muted = Column(Boolean, default=False, doc='是否静音')
+
+
 
     def to_dict(self, exclude_sensitive=True):
         """转换为字典
@@ -61,3 +66,5 @@ class ChatGroupMember(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<ChatGroupMember id={self.id}>'
+
+

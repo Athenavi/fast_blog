@@ -122,19 +122,23 @@ class ArticleQueryService:
 
         total_result = await db.execute(count_query)
         total = total_result.scalar() or 0
-        
-        # 排序逻辑：粘性文章优先，然后按创建时间降序
+
+        # 排序逻辑：粘性文章优先，然后按sort_order和创建时间排序
         if include_sticky:
             sticky_condition = ArticleQueryService._get_sticky_condition()
-            
-            # 排序：粘性文章在前，然后按创建时间降序
+
+            # 排序：粘性文章在前，然后按sort_order升序，最后按创建时间降序
             query = query.order_by(
                 desc(case((sticky_condition, 1), else_=0)),
+                Article.sort_order.asc(),
                 desc(Article.created_at)
             )
         else:
-            # 普通排序：按创建时间降序
-            query = query.order_by(desc(Article.created_at))
+            # 普通排序：按sort_order升序，然后按创建时间降序
+            query = query.order_by(
+                Article.sort_order.asc(),
+                desc(Article.created_at)
+            )
         
         # 分页
         offset = (page - 1) * per_page
@@ -169,6 +173,7 @@ class ArticleQueryService:
             Article.is_vip_only == False
         ).order_by(
             desc(case((sticky_condition, 1), else_=0)),
+            Article.sort_order.asc(),
             desc(Article.created_at)
         ).limit(limit)
         

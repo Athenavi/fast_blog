@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, Query, Body
 from shared.services.report_generator import report_generator
 from src.api.v1.responses import ApiResponse
 from src.auth.auth_deps import admin_required as admin_required_api
+from src.utils.database.main import get_async_session
 
 router = APIRouter(prefix="/reports", tags=["reports"])
 
@@ -18,7 +19,8 @@ router = APIRouter(prefix="/reports", tags=["reports"])
 async def get_content_report(
         days: int = Query(30, ge=7, le=90, description="统计天数"),
         group_by: str = Query('day', enum=['day', 'week', 'month'], description="分组方式"),
-        current_user=Depends(admin_required_api)
+        current_user=Depends(admin_required_api),
+        db=Depends(get_async_session)
 ):
     """
     获取内容表现报表
@@ -33,7 +35,9 @@ async def get_content_report(
         内容报表数据
     """
     try:
-        report = report_generator.generate_content_report(days, group_by)
+        from shared.services.report_generator import ReportGenerator
+        generator = ReportGenerator(db)
+        report = await generator.generate_content_report(days, group_by)
 
         return ApiResponse(
             success=True,
@@ -239,3 +243,112 @@ async def get_report_templates(current_user=Depends(admin_required_api)):
             'count': len(templates),
         }
     )
+
+
+@router.post("/scheduled", summary="创建定时报表任务")
+async def create_scheduled_report(
+        name: str = Body(..., description="报表名称"),
+        report_type: str = Body(..., description="报表类型"),
+        frequency: str = Body('daily', enum=['daily', 'weekly', 'monthly'], description="执行频率"),
+        metrics: Optional[List[str]] = Body(None, description="指标列表（custom类型需要）"),
+        days: int = Body(30, ge=7, le=90, description="统计天数"),
+        export_format: str = Body('json', enum=['json', 'csv'], description="导出格式"),
+        current_user=Depends(admin_required_api),
+        db = Depends(get_async_session)
+):
+    """
+    创建定时报表任务
+    
+    支持每日/每周/每月自动生成报表。
+    
+    Args:
+        name: 报表名称
+        report_type: 报表类型 (content/user-activity/traffic/custom)
+        frequency: 执行频率 (daily/weekly/monthly)
+        metrics: 指标列表（custom类型需要）
+        days: 统计天数
+        export_format: 导出格式 (json/csv)
+        
+    Returns:
+        创建的定时报表配置
+    """
+    try:
+        from shared.services.scheduled_report_service import create_scheduled_report_service
+        service = create_scheduled_report_service(db)
+        
+        config = {
+            'name': name,
+            'type': report_type,
+            'frequency': frequency,
+            'metrics': metrics or [],
+            'days': days,
+            'export_format': export_format,
+        }
+        
+        result = await service.create_scheduled_report(config)
+        
+        return ApiResponse(
+            success=True,
+            data=result
+        )
+    except Exception as e:
+        return ApiResponse(success=False, error=f"创建定时报表失败: {str(e)}")
+
+
+@router.get("/scheduled", summary="获取定时报表任务列表")
+async def get_scheduled_reports(
+        current_user=Depends(admin_required_api),
+        db = Depends(get_async_session)
+):
+    """
+    获取所有定时报表任务
+    
+    仅管理员可访问。
+    
+    Returns:
+        定时报表任务列表
+    """
+    try:
+        from shared.services.scheduled_report_service import create_scheduled_report_service
+        service = create_scheduled_report_service(db)
+        reports = await service.get_scheduled_reports()
+        
+        return ApiResponse(
+            success=True,
+            data={
+                'reports': reports,
+                'count': len(reports),
+            }
+        )
+    except Exception as e:
+        return ApiResponse(success=False, error=f"获取定时报表列表失败: {str(e)}")
+
+
+@router.post("/scheduled/{report_id}/toggle", summary="启用/禁用定时报表")
+async def toggle_scheduled_report(
+        report_id: int,
+        current_user=Depends(admin_required_api),
+        db = Depends(get_async_session)
+):
+    """
+    启用或禁用定时报表任务
+    
+    仅管理员可访问。
+    
+    Args:
+        report_id: 报表 ID
+        
+    Returns:
+        更新后的状态
+    """
+    try:
+        from shared.services.scheduled_report_service import create_scheduled_report_service
+        service = create_scheduled_report_service(db)
+        result = await service.toggle_report(report_id)
+        
+        return ApiResponse(
+            success=True,
+            data=result
+        )
+    except Exception as e:
+        return ApiResponse(success=False, error=f"切换报表状态失败: {str(e)}")

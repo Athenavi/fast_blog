@@ -22,7 +22,7 @@ import {
   type Category,
   CategoryService,
   UserManagementService
-} from '@/lib/api/index';
+} from '@/lib/api';
 import {useHotkeys} from '@/hooks/useHotkeys';
 import {KeyboardShortcutsHelp} from '@/components/KeyboardShortcutsHelp';
 
@@ -82,6 +82,12 @@ const ArticleManagementContent = () => {
   const [showDeleteModal, setShowDeleteModal] = React.useState(false);
   const [deleteArticleId, setDeleteArticleId] = React.useState<number | null>(null);
   const [deleteArticleTitle, setDeleteArticleTitle] = React.useState('');
+
+  // 批量操作相关状态
+  const [selectedArticles, setSelectedArticles] = React.useState<Set<number>>(new Set());
+  const [showBatchOperationModal, setShowBatchOperationModal] = React.useState(false);
+  const [batchOperation, setBatchOperation] = React.useState<'delete' | 'publish' | 'draft' | 'feature' | 'unfeature'>('delete');
+  const [isDragging, setIsDragging] = React.useState(false);
 
   // 键盘快捷键
   useHotkeys({
@@ -334,6 +340,101 @@ const ArticleManagementContent = () => {
       } catch (error) {
         console.error('Failed to delete article:', error);
       }
+    }
+  };
+
+  // 批量操作相关函数
+  const toggleSelectArticle = (articleId: number) => {
+    setSelectedArticles(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(articleId)) {
+        newSet.delete(articleId);
+      } else {
+        newSet.add(articleId);
+      }
+      return newSet;
+    });
+  };
+
+  const selectAllArticles = () => {
+    if (selectedArticles.size === articles.length) {
+      setSelectedArticles(new Set());
+    } else {
+      setSelectedArticles(new Set(articles.map(a => a.id)));
+    }
+  };
+
+  const handleBatchOperation = async () => {
+    if (selectedArticles.size === 0) {
+      alert('请先选择要操作的文章');
+      return;
+    }
+
+    try {
+      const response = await ArticleManagementService.batchOperation(
+          batchOperation,
+          Array.from(selectedArticles)
+      );
+
+      if (response.success) {
+        alert(`成功操作 ${response.data?.updated_count || 0} 篇文章`);
+        setSelectedArticles(new Set());
+        setShowBatchOperationModal(false);
+        await loadArticles();
+        await loadArticleStats();
+      } else {
+        alert(response.error || '批量操作失败');
+      }
+    } catch (error) {
+      console.error('Batch operation failed:', error);
+      alert('批量操作失败');
+    }
+  };
+
+  // 拖拽排序相关函数
+  const handleDragStart = (e: React.DragEvent, articleId: number) => {
+    e.dataTransfer.setData('articleId', articleId.toString());
+    setIsDragging(true);
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+  };
+
+  const handleDrop = async (e: React.DragEvent, targetArticleId: number) => {
+    e.preventDefault();
+    setIsDragging(false);
+
+    const draggedArticleId = Number(e.dataTransfer.getData('articleId'));
+    if (draggedArticleId === targetArticleId) return;
+
+    // 创建新的排序数组
+    const newArticles = [...articles];
+    const draggedIndex = newArticles.findIndex(a => a.id === draggedArticleId);
+    const targetIndex = newArticles.findIndex(a => a.id === targetArticleId);
+
+    if (draggedIndex === -1 || targetIndex === -1) return;
+
+    // 移动元素
+    const [draggedArticle] = newArticles.splice(draggedIndex, 1);
+    newArticles.splice(targetIndex, 0, draggedArticle);
+
+    // 更新sort_order
+    const updatedArticles = newArticles.map((article, index) => ({
+      id: article.id,
+      sort_order: index
+    }));
+
+    try {
+      const response = await ArticleManagementService.reorderArticles(updatedArticles);
+      if (response.success) {
+        await loadArticles();
+      } else {
+        alert(response.error || '排序失败');
+      }
+    } catch (error) {
+      console.error('Reorder failed:', error);
+      alert('排序失败');
     }
   };
 
@@ -619,6 +720,16 @@ const ArticleManagementContent = () => {
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <h3 className="text-lg font-semibold">文章列表</h3>
             <div className="flex items-center space-x-2">
+              {/* 批量操作按钮 */}
+              {selectedArticles.size > 0 && (
+                  <button
+                      onClick={() => setShowBatchOperationModal(true)}
+                      className="bg-purple-600 text-white px-3 lg:px-4 py-2 rounded-lg text-sm font-medium hover:bg-purple-700 transition-colors flex items-center space-x-2"
+                  >
+                    <span>批量操作 ({selectedArticles.size})</span>
+                  </button>
+              )}
+              
               <div className="relative">
                 <input 
                   type="text" 
@@ -664,6 +775,17 @@ const ArticleManagementContent = () => {
               <table className="w-full">
                 <thead className="bg-gray-50">
                   <tr>
+                    <th className="px-3 lg:px-6 py-3 text-left">
+                      <input
+                          type="checkbox"
+                          checked={selectedArticles.size === articles.length && articles.length > 0}
+                          onChange={selectAllArticles}
+                          className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                    </th>
+                    <th className="px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      排序
+                    </th>
                     <th className="px-3 lg:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       标题
                     </th>
@@ -690,7 +812,25 @@ const ArticleManagementContent = () => {
                 <tbody className="bg-white divide-y divide-gray-200">
                   {articles.length > 0 ? (
                     articles.map(article => (
-                      <tr key={article.id}>
+                        <tr
+                            key={article.id}
+                            draggable
+                            onDragStart={(e) => handleDragStart(e, article.id)}
+                            onDragOver={handleDragOver}
+                            onDrop={(e) => handleDrop(e, article.id)}
+                            className={isDragging ? 'opacity-50' : ''}
+                        >
+                          <td className="px-3 lg:px-6 py-4">
+                            <input
+                                type="checkbox"
+                                checked={selectedArticles.has(article.id)}
+                                onChange={() => toggleSelectArticle(article.id)}
+                                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                            />
+                          </td>
+                          <td className="px-3 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-500 cursor-move">
+                            <span className="text-gray-400 hover:text-gray-600 select-none">⋮⋮</span>
+                          </td>
                         <td className="px-3 lg:px-6 py-4">
                           <div className="flex items-start space-x-3">
                             {article.cover_image ? (
@@ -766,7 +906,7 @@ const ArticleManagementContent = () => {
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={7} className="px-3 lg:px-6 py-8 text-center text-gray-500">
+                      <td colSpan={9} className="px-3 lg:px-6 py-8 text-center text-gray-500">
                         没有找到文章
                       </td>
                     </tr>
@@ -867,6 +1007,52 @@ const ArticleManagementContent = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {/* 批量操作模态框 */}
+      {showBatchOperationModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-lg shadow-xl max-w-sm w-full transform transition-all">
+              <div className="p-6">
+                <h3 className="text-lg font-semibold mb-4">批量操作</h3>
+                <p className="text-sm text-gray-500 mb-4">
+                  已选择 {selectedArticles.size} 篇文章
+                </p>
+
+                <div className="mb-4">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    选择操作
+                  </label>
+                  <select
+                      value={batchOperation}
+                      onChange={(e) => setBatchOperation(e.target.value as any)}
+                      className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="delete">删除</option>
+                    <option value="publish">发布</option>
+                    <option value="draft">设为草稿</option>
+                    <option value="feature">推荐</option>
+                    <option value="unfeature">取消推荐</option>
+                  </select>
+                </div>
+
+                <div className="flex items-center justify-end space-x-3">
+                  <button
+                      onClick={() => setShowBatchOperationModal(false)}
+                      className="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
+                  >
+                    取消
+                  </button>
+                  <button
+                      onClick={handleBatchOperation}
+                      className="bg-purple-600 text-white px-4 py-2 text-sm rounded-lg hover:bg-purple-700"
+                  >
+                    确认
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
       )}
 
       {/* 文章创建/编辑模态框 */}

@@ -4462,3 +4462,107 @@ models:
       - name: idx_chat_group_invites_group
         columns: [ group ]
         comment: "群聊ID索引"
+
+  ScheduledReport:
+    description: 定时报表任务模型
+    properties:
+      id:
+        type: bigint
+        description: 报表 ID
+      name:
+        type: string
+        maxLength: 255
+        description: 报表名称
+      report_type:
+        type: string
+        maxLength: 50
+        description: 报表类型 (content/user-activity/traffic/custom)
+      frequency:
+        type: string
+        maxLength: 20
+        description: 执行频率 (daily/weekly/monthly)
+      metrics:
+        type: text
+        nullable: true
+        description: 指标列表（JSON格式，custom类型需要）
+      days:
+        type: integer
+        default: 30
+        description: 统计天数
+      export_format:
+        type: string
+        maxLength: 10
+        default: json
+        description: 导出格式 (json/csv)
+      is_active:
+        type: boolean
+        default: true
+        description: 是否激活
+      last_run_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: 上次执行时间
+      next_run_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: 下次执行时间
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    orm: true
+    table: scheduled_reports
+    indexes:
+      - name: idx_scheduled_reports_active
+        columns: [ is_active ]
+        comment: "激活状态索引"
+      - name: idx_scheduled_reports_next_run
+        columns: [ next_run_at ]
+        comment: "下次执行时间索引"
+
+  ReportHistory:
+    description: 报表历史记录模型
+    properties:
+      id:
+        type: bigint
+        description: 记录 ID
+      scheduled_report_id:
+        type: bigint
+        nullable: true
+        description: 关联的定时报表 ID
+        foreignKey: ScheduledReport
+      report_name:
+        type: string
+        maxLength: 255
+        description: 报表名称
+      report_type:
+        type: string
+        maxLength: 50
+        description: 报表类型
+      content:
+        type: text
+        description: 报表内容（JSON或CSV）
+      format:
+        type: string
+        maxLength: 10
+        description: 导出格式
+      generated_at:
+        type: string
+        format: date-time
+        description: 生成时间
+    orm: true
+    table: report_history
+    indexes:
+      - name: idx_report_history_scheduled
+        columns: [ scheduled_report_id ]
+        comment: "定时报表ID索引"
+      - name: idx_report_history_generated
+        columns: [ generated_at ]
+        order: DESC
+        comment: "生成时间索引"

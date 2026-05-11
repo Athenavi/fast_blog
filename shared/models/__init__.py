@@ -2,6 +2,7 @@ from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
 
+
 from .user import User
 from .article import Article
 from .category import Category
@@ -72,6 +73,8 @@ from .user_revenue_stats import UserRevenueStats
 from .chat_group import ChatGroup
 from .chat_group_member import ChatGroupMember
 from .chat_group_invite import ChatGroupInvite
+from .scheduled_report import ScheduledReport
+from .report_history import ReportHistory
 
 # ==================== 自动生成的导入 - 由 routes.yaml 管理 ====================
 # 此部分由脚本自动生成 - 请勿手动修改
@@ -147,6 +150,8 @@ __all__ = [
     'UserRevenueStats',
     'ChatGroup',
     'ChatGroupMember',
-    'ChatGroupInvite'
+    'ChatGroupInvite',
+    'ScheduledReport',
+    'ReportHistory'
 ]
 # ============================================================================

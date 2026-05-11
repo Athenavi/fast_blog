@@ -1,7 +1,7 @@
 """
 Django ORM 抽象基类定义
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-11 10:42:22
+生成时间：2026-05-11 11:42:42
 """
 
 from django.db import models
@@ -2968,7 +2968,7 @@ class ChatGroupMixin(models.Model):
 
     # 群聊 ID
     id = models.BigAutoField(
-        '群聊 ID', primary_key=True)
+        '群聊 ID'        , primary_key=True)
     # 群聊名称
     name = models.CharField(
         '群聊名称', max_length=255)
@@ -2980,7 +2980,7 @@ class ChatGroupMixin(models.Model):
         '群聊头像 URL', max_length=255, blank=True, null=True)
     # 创建者
     creator = models.IntegerField(
-        '创建者 (暂为 IntegerField，等待 User 模型实现)', )
+        '创建者 (暂为 IntegerField，等待 User 模型实现)',)
     # 成员数量
     member_count = models.BigIntegerField(
         '成员数量', default=0)
@@ -2989,7 +2989,7 @@ class ChatGroupMixin(models.Model):
         '最后消息时间', blank=True, null=True)
     # 是否激活
     is_active = models.BooleanField(
-        '是否激活', default=True)
+        '是否激活',default=True)
 
     class Meta:
         abstract = True
@@ -3004,13 +3004,13 @@ class ChatGroupMemberMixin(models.Model):
 
     # 成员关系 ID
     id = models.BigAutoField(
-        '成员关系 ID', primary_key=True)
+        '成员关系 ID'        , primary_key=True)
     # 群聊 ID
     group = models.IntegerField(
-        '群聊 ID (暂为 IntegerField，等待 ChatGroup 模型实现)', )
+        '群聊 ID (暂为 IntegerField，等待 ChatGroup 模型实现)',)
     # 用户 ID
     user = models.IntegerField(
-        '用户 ID (暂为 IntegerField，等待 User 模型实现)', )
+        '用户 ID (暂为 IntegerField，等待 User 模型实现)',)
     # 角色 (owner/admin/member)
     role = models.CharField(
         '角色 (owner/admin/member)', max_length=50, default='member')
@@ -3022,7 +3022,7 @@ class ChatGroupMemberMixin(models.Model):
         '最后阅读时间', blank=True, null=True)
     # 是否静音
     is_muted = models.BooleanField(
-        '是否静音', default=False)
+        '是否静音',default=False)
 
     class Meta:
         abstract = True
@@ -3031,21 +3031,22 @@ class ChatGroupMemberMixin(models.Model):
         # 注意：请在具体模型类中设置 db_table = get_table_name("chat_group_members")
 
 
+
 class ChatGroupInviteMixin(models.Model):
     """群聊邀请链接模型 Mixin"""
 
     # 邀请 ID
     id = models.BigAutoField(
-        '邀请 ID', primary_key=True)
+        '邀请 ID'        , primary_key=True)
     # 群聊 ID
     group = models.IntegerField(
-        '群聊 ID (暂为 IntegerField，等待 ChatGroup 模型实现)', )
+        '群聊 ID (暂为 IntegerField，等待 ChatGroup 模型实现)',)
     # 邀请码(UUID)
     invite_code = models.CharField(
         '邀请码(UUID)', max_length=100, unique=True)
     # 创建者
     created_by = models.IntegerField(
-        '创建者 (暂为 IntegerField，等待 User 模型实现)', )
+        '创建者 (暂为 IntegerField，等待 User 模型实现)',)
     # 过期时间(null表示永久有效)
     expires_at = models.DateTimeField(
         '过期时间(null表示永久有效)', blank=True, null=True)
@@ -3057,10 +3058,87 @@ class ChatGroupInviteMixin(models.Model):
         '已使用次数', default=0)
     # 是否激活
     is_active = models.BooleanField(
-        '是否激活', default=True)
+        '是否激活',default=True)
 
     class Meta:
         abstract = True
         app_label = 'generated'
         verbose_name = '群聊邀请链接模型'
         # 注意：请在具体模型类中设置 db_table = get_table_name("chat_group_invites")
+
+
+
+class ScheduledReportMixin(models.Model):
+    """定时报表任务模型 Mixin"""
+
+    # 报表 ID
+    id = models.BigAutoField(
+        '报表 ID'        , primary_key=True)
+    # 报表名称
+    name = models.CharField(
+        '报表名称', max_length=255)
+    # 报表类型 (content/user-activity/traffic/custom)
+    report_type = models.CharField(
+        '报表类型 (content/user-activity/traffic/custom)', max_length=50)
+    # 执行频率 (daily/weekly/monthly)
+    frequency = models.CharField(
+        '执行频率 (daily/weekly/monthly)', max_length=20)
+    # 指标列表(JSON格式，custom类型需要)
+    metrics = models.TextField(
+        '指标列表(JSON格式，custom类型需要)', blank=True, null=True)
+    # 统计天数
+    days = models.IntegerField(
+        '统计天数', default=30)
+    # 导出格式 (json/csv)
+    export_format = models.CharField(
+        '导出格式 (json/csv)', max_length=10, default='json')
+    # 是否激活
+    is_active = models.BooleanField(
+        '是否激活',default=True)
+    # 上次执行时间
+    last_run_at = models.DateTimeField(
+        '上次执行时间', blank=True, null=True)
+    # 下次执行时间
+    next_run_at = models.DateTimeField(
+        '下次执行时间', blank=True, null=True)
+
+    class Meta:
+        abstract = True
+        app_label = 'generated'
+        verbose_name = '定时报表任务模型'
+        # 注意：请在具体模型类中设置 db_table = get_table_name("scheduled_reports")
+
+
+
+class ReportHistoryMixin(models.Model):
+    """报表历史记录模型 Mixin"""
+
+    # 记录 ID
+    id = models.BigAutoField(
+        '记录 ID'        , primary_key=True)
+    # 关联的定时报表 ID
+    scheduled_report_id = models.IntegerField(
+        '关联的定时报表 ID (暂为 IntegerField，等待 ScheduledReport 模型实现)',null=True, blank=True)
+    # 报表名称
+    report_name = models.CharField(
+        '报表名称', max_length=255)
+    # 报表类型
+    report_type = models.CharField(
+        '报表类型', max_length=50)
+    # 报表内容(JSON或CSV)
+    content = models.TextField(
+        '报表内容(JSON或CSV)')
+    # 导出格式
+    format = models.CharField(
+        '导出格式', max_length=10)
+    # 生成时间
+    generated_at = models.DateTimeField(
+        '生成时间')
+
+    class Meta:
+        abstract = True
+        app_label = 'generated'
+        verbose_name = '报表历史记录模型'
+        # 注意：请在具体模型类中设置 db_table = get_table_name("report_history")
+
+
