@@ -3,11 +3,13 @@
 """
 import hashlib
 import logging
+from datetime import datetime
 
 from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from shared.services.notifications import webhook_service
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 from src.setting import app_config
@@ -81,7 +83,6 @@ async def upload_media_file(
         if successful:
             # 触发 Webhook 事件
             try:
-                from shared.services.webhook_service import webhook_service
                 for file_result in successful:
                     if file_result.get('data'):
                         file_data = file_result['data']

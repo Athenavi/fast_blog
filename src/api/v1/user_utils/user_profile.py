@@ -98,7 +98,6 @@ async def edit_profile(request: Request, change_type: str, user_id: int, db: Ses
             save_path.parent.mkdir(parents=True, exist_ok=True)
 
             # 直接更新数据库中的用户头像字段
-            from .user_entities import db_save_avatar
             from sqlalchemy import select
             user_query = select(User).where(User.id == user_id)
             user_result = db.execute(user_query)

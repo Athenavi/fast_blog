@@ -7,11 +7,11 @@ from typing import List, Dict, Any
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.api.v1.core.responses import ApiResponse
 from shared.models import VIPPlan, VIPSubscription
 from shared.models.article import Article
 from shared.models.user import User
 from shared.models.vip_feature import VIPFeature
-from src.api.v1.responses import ApiResponse
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 

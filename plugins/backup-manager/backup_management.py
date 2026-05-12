@@ -13,7 +13,7 @@ from shared.services.backup_manager import (
     delete_backup,
     get_database_stats
 )
-from src.api.v1.responses import ApiResponse
+from api.v1.core.responses import ApiResponse
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 

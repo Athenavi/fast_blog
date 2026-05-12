@@ -7,8 +7,8 @@ import aiohttp
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from shared.services.cover_image_service import CoverImageService
-from src.api.v1.responses import ApiResponse
+from shared.services.articles.cover_image_service import CoverImageService
+from api.v1.core.responses import ApiResponse
 
 router = APIRouter(prefix="/cover", tags=["cover-image"])
 

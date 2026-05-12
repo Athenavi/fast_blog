@@ -6,7 +6,7 @@ FastAPI 路由文件
 
 from fastapi import APIRouter, Depends, Query
 
-from src.api.v1.responses import ApiResponse
+from api.v1.core.responses import ApiResponse
 
 # 导入依赖
 

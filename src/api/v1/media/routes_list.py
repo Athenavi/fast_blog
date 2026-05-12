@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.file_hash import FileHash
 from shared.models.media import Media
-from src.api.v1.responses import ApiResponse
+from api.v1.core.responses import ApiResponse
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 from .dependencies import get_user_storage_used, get_user_storage_limit
@@ -260,7 +260,7 @@ async def get_media_statistics(
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
-    from shared.services.media_manager import media_library_service
+    from shared.services.media.media_manager import media_library_service
     try:
         result = await media_library_service.get_media_statistics(db)
         if result["success"]:

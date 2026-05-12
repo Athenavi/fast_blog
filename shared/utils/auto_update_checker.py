@@ -10,6 +10,7 @@ from datetime import datetime
 from typing import Optional, Dict
 
 import requests
+from aioitertools import asyncio
 
 logger = logging.getLogger(__name__)
 

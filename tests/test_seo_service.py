@@ -9,7 +9,7 @@ import pytest
 # 添加项目根目录到 Python 路径
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from shared.services.seo_service import SEOService
+from shared.services.seo.seo_service import SEOService
 
 
 class TestSEOService:
