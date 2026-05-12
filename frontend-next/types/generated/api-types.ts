@@ -1,7 +1,7 @@
 /**
  * API 类型定义
  * 由 routes.yaml 自动生成 - 请勿手动修改
- * 生成时间：2026-05-12 11:11:20
+ * 生成时间：2026-05-12 14:55:59
  */
 
 export interface User {
@@ -1212,6 +1212,132 @@ export interface ContentMapping {
     sync_mode: string;
     last_synced_at?: string;
     created_at: string;
+}
+
+export interface GoogleAnalyticsConfig {
+    id: any;
+    site_id?: any;
+    tracking_id: string;
+    measurement_id?: string;
+    api_secret?: string;
+    enable_page_view_tracking: boolean;
+    enable_event_tracking: boolean;
+    enable_user_behavior_analysis: boolean;
+    anonymize_ip: boolean;
+    sample_rate: number;
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface BaiduAnalyticsConfig {
+    id: any;
+    site_id?: any;
+    site_token: string;
+    api_key?: string;
+    enable_tracking: boolean;
+    enable_data_sync: boolean;
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface NotificationIntegration {
+    id: any;
+    site_id?: any;
+    platform: string;
+    webhook_url: string;
+    bot_token?: string;
+    channel_id?: string;
+    enable_new_article_notification: boolean;
+    enable_comment_notification: boolean;
+    enable_system_alert: boolean;
+    notification_template?: any;
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface EmailServiceConfig {
+    id: any;
+    site_id?: any;
+    provider: string;
+    api_key?: string;
+    smtp_host?: string;
+    smtp_port?: number;
+    smtp_username?: string;
+    smtp_password?: string;
+    from_email: string;
+    from_name?: string;
+    enable_batch_sending: boolean;
+    batch_size: number;
+    daily_limit?: number;
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface SAMLConfig {
+    id: any;
+    site_id?: any;
+    entity_id: string;
+    acs_url: string;
+    slo_url?: string;
+    idp_entity_id: string;
+    idp_sso_url: string;
+    idp_slo_url?: string;
+    idp_certificate: any;
+    sp_private_key?: any;
+    sp_certificate?: any;
+    attribute_mapping?: any;
+    enable_slo: boolean;
+    auto_provision_users: boolean;
+    default_role: string;
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface LDAPConfig {
+    id: any;
+    site_id?: any;
+    server_url: string;
+    bind_dn: string;
+    bind_password: string;
+    base_dn: string;
+    user_filter: string;
+    username_attribute: string;
+    email_attribute: string;
+    first_name_attribute: string;
+    last_name_attribute: string;
+    use_ssl: boolean;
+    verify_certificates: boolean;
+    auto_sync_users: boolean;
+    sync_interval: number;
+    default_role: string;
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface SSOProvider {
+    id: any;
+    site_id?: any;
+    provider_type: string;
+    name: string;
+    client_id: string;
+    client_secret: string;
+    authorization_url?: string;
+    token_url?: string;
+    userinfo_url?: string;
+    scope: string;
+    redirect_uri: string;
+    attribute_mapping?: any;
+    auto_provision_users: boolean;
+    default_role: string;
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
 }
 
 

@@ -1,13 +1,12 @@
 """
 SQLAlchemy 模型定义 - ReportHistory
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-12 11:11:20
+生成时间：2026-05-12 14:56:00
 """
 
-from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
+from sqlalchemy import Column, BigInteger, String, Text, DateTime, ForeignKey, Index
 
 from . import Base  # 使用统一的 Base
-
 
 
 class ReportHistory(Base):
@@ -31,6 +30,7 @@ class ReportHistory(Base):
     report_type = Column(String(50), nullable=True, doc='报表类型')
 
     content = Column(Text, nullable=False, doc='报表内容（JSON或CSV）')
+
 
     format = Column(String(10), nullable=True, doc='导出格式')
 

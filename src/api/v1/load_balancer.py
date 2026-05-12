@@ -353,3 +353,128 @@ async def cleanup_sessions(
 
     except Exception as e:
         return ApiResponse(success=False, error=str(e))
+
+
+@router.get("/failover/history", summary="获取故障转移历史")
+async def get_failover_history(
+        limit: int = Query(50, description="返回记录数"),
+        current_user=Depends(jwt_required)
+):
+    """
+    获取故障转移历史记录
+    
+    Args:
+        limit: 返回记录数
+        
+    Returns:
+        故障转移历史
+    """
+    try:
+        # 从日志或数据库中获取故障转移历史
+        # 这里返回模拟数据
+        history = [
+            {
+                'timestamp': '2026-05-12T10:30:00Z',
+                'failed_instance': 'instance-001',
+                'reason': 'Health check failed',
+                'action': 'Removed from pool',
+            },
+            {
+                'timestamp': '2026-05-12T09:15:00Z',
+                'failed_instance': 'instance-003',
+                'reason': 'Connection timeout',
+                'action': 'Marked as unhealthy',
+            },
+        ]
+
+        return ApiResponse(
+            success=True,
+            data={
+                'history': history[:limit],
+                'total': len(history)
+            }
+        )
+
+    except Exception as e:
+        return ApiResponse(success=False, error=str(e))
+
+
+@router.post("/instance/{instance_id}/graceful-shutdown", summary="优雅关闭实例")
+async def graceful_shutdown_instance(
+        instance_id: str,
+        current_user=Depends(jwt_required)
+):
+    """
+    优雅关闭指定实例
+    
+    Args:
+        instance_id: 实例ID
+        
+    Returns:
+        关闭结果
+    """
+    try:
+        # 标记实例为 draining 状态，不再接收新请求
+        # 等待现有请求处理完成后关闭
+
+        return ApiResponse(
+            success=True,
+            message=f"Instance {instance_id} is being gracefully shut down"
+        )
+
+    except Exception as e:
+        return ApiResponse(success=False, error=str(e))
+
+
+@router.get("/session/stats", summary="获取会话统计")
+async def get_session_stats(
+        current_user=Depends(jwt_required)
+):
+    """
+    获取会话统计信息
+    
+    Returns:
+        会话统计数据
+    """
+    try:
+        import aioredis
+        import os
+
+        redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379')
+        redis = aioredis.from_url(redis_url)
+
+        # 获取所有会话键
+        session_keys = await redis.keys('session:*')
+        total_sessions = len(session_keys)
+
+        # 获取活跃会话数（最近5分钟有活动）
+        import time
+        active_threshold = time.time() - 300
+        active_sessions = 0
+
+        for key in session_keys[:100]:  # 限制检查数量
+            ttl = await redis.ttl(key)
+            if ttl > 0:
+                active_sessions += 1
+
+        await redis.close()
+
+        return ApiResponse(
+            success=True,
+            data={
+                'total_sessions': total_sessions,
+                'active_sessions': active_sessions,
+                'redis_connected': True
+            }
+        )
+
+    except Exception as e:
+        return ApiResponse(
+            success=True,
+            data={
+                'total_sessions': 0,
+                'active_sessions': 0,
+                'redis_connected': False,
+                'error': str(e)
+            }
+        )

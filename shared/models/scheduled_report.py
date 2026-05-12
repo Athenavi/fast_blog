@@ -1,13 +1,12 @@
 """
 SQLAlchemy 模型定义 - ScheduledReport
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-12 11:11:20
+生成时间：2026-05-12 14:56:00
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Index
 
 from . import Base  # 使用统一的 Base
-
 
 
 class ScheduledReport(Base):
@@ -33,6 +32,7 @@ class ScheduledReport(Base):
 
 
     days = Column(Integer, default=30, doc='统计天数')
+
 
     export_format = Column(String(10), default='json', doc='导出格式 (json/csv)')
 

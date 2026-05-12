@@ -1,7 +1,7 @@
 """
 Django ORM 抽象基类定义
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-12 11:11:20
+生成时间：2026-05-12 14:55:59
 """
 
 from django.db import models
@@ -3554,6 +3554,7 @@ class SiteUserMixin(models.Model):
         # 注意：请在具体模型类中设置 db_table = get_table_name("site_users")
 
 
+
 class ContentMappingMixin(models.Model):
     """内容映射模型 Mixin"""
 
@@ -3587,3 +3588,353 @@ class ContentMappingMixin(models.Model):
         app_label = 'generated'
         verbose_name = '内容映射模型'
         # 注意：请在具体模型类中设置 db_table = get_table_name("content_mappings")
+
+
+class GoogleAnalyticsConfigMixin(models.Model):
+    """Google Analytics 配置模型 Mixin"""
+
+    # 配置 ID
+    id = models.BigAutoField(
+        '配置 ID', primary_key=True)
+    # 关联的站点 ID(为空表示全局配置)
+    site_id = models.IntegerField(
+        '关联的站点 ID(为空表示全局配置) (暂为 IntegerField，等待 Site 模型实现)', null=True, blank=True)
+    # Google Analytics Tracking ID (如 G-XXXXXXXXXX)
+    tracking_id = models.CharField(
+        'Google Analytics Tracking ID (如 G-XXXXXXXXXX)', max_length=50)
+    # GA4 Measurement ID
+    measurement_id = models.CharField(
+        'GA4 Measurement ID', max_length=50, blank=True, null=True)
+    # Google Analytics API Secret
+    api_secret = models.CharField(
+        'Google Analytics API Secret', max_length=255, blank=True, null=True)
+    # 是否启用页面浏览追踪
+    enable_page_view_tracking = models.BooleanField(
+        '是否启用页面浏览追踪', default=True)
+    # 是否启用事件追踪
+    enable_event_tracking = models.BooleanField(
+        '是否启用事件追踪', default=True)
+    # 是否启用用户行为分析
+    enable_user_behavior_analysis = models.BooleanField(
+        '是否启用用户行为分析', default=False)
+    # 是否匿名化 IP 地址
+    anonymize_ip = models.BooleanField(
+        '是否匿名化 IP 地址', default=True)
+    # 采样率(0-100)
+    sample_rate = models.DecimalField(
+        '采样率(0-100)', max_digits=10, decimal_places=2, default=100.0)
+    # 是否激活
+    is_active = models.BooleanField(
+        '是否激活', default=False)
+
+    class Meta:
+        abstract = True
+        app_label = 'generated'
+        verbose_name = 'Google Analytics 配置模型'
+        # 注意：请在具体模型类中设置 db_table = get_table_name("google_analytics_configs")
+
+
+class BaiduAnalyticsConfigMixin(models.Model):
+    """百度统计配置模型 Mixin"""
+
+    # 配置 ID
+    id = models.BigAutoField(
+        '配置 ID', primary_key=True)
+    # 关联的站点 ID(为空表示全局配置)
+    site_id = models.IntegerField(
+        '关联的站点 ID(为空表示全局配置) (暂为 IntegerField，等待 Site 模型实现)', null=True, blank=True)
+    # 百度统计 Site Token
+    site_token = models.CharField(
+        '百度统计 Site Token', max_length=100)
+    # 百度统计 API Key
+    api_key = models.CharField(
+        '百度统计 API Key', max_length=255, blank=True, null=True)
+    # 是否启用追踪
+    enable_tracking = models.BooleanField(
+        '是否启用追踪', default=True)
+    # 是否启用数据同步
+    enable_data_sync = models.BooleanField(
+        '是否启用数据同步', default=False)
+    # 是否激活
+    is_active = models.BooleanField(
+        '是否激活', default=False)
+
+    class Meta:
+        abstract = True
+        app_label = 'generated'
+        verbose_name = '百度统计配置模型'
+        # 注意：请在具体模型类中设置 db_table = get_table_name("baidu_analytics_configs")
+
+
+class NotificationIntegrationMixin(models.Model):
+    """通知集成配置模型（Slack/Discord等） Mixin"""
+
+    # 配置 ID
+    id = models.BigAutoField(
+        '配置 ID', primary_key=True)
+    # 关联的站点 ID(为空表示全局配置)
+    site_id = models.IntegerField(
+        '关联的站点 ID(为空表示全局配置) (暂为 IntegerField，等待 Site 模型实现)', null=True, blank=True)
+    # 平台类型(slack/discord/webhook)
+    platform = models.CharField(
+        '平台类型(slack/discord/webhook)', max_length=50)
+    # Webhook URL
+    webhook_url = models.CharField(
+        'Webhook URL', max_length=500)
+    # Bot Token(Discord/Slack)
+    bot_token = models.CharField(
+        'Bot Token(Discord/Slack)', max_length=255, blank=True, null=True)
+    # 频道/通道 ID
+    channel_id = models.CharField(
+        '频道/通道 ID', max_length=100, blank=True, null=True)
+    # 是否启用新文章通知
+    enable_new_article_notification = models.BooleanField(
+        '是否启用新文章通知', default=True)
+    # 是否启用评论通知
+    enable_comment_notification = models.BooleanField(
+        '是否启用评论通知', default=True)
+    # 是否启用系统告警
+    enable_system_alert = models.BooleanField(
+        '是否启用系统告警', default=True)
+    # 通知模板(JSON格式)
+    notification_template = models.TextField(
+        '通知模板(JSON格式)', blank=True, null=True)
+    # 是否激活
+    is_active = models.BooleanField(
+        '是否激活', default=False)
+
+    class Meta:
+        abstract = True
+        app_label = 'generated'
+        verbose_name = '通知集成配置模型（Slack/Discord等）'
+        # 注意：请在具体模型类中设置 db_table = get_table_name("notification_integrations")
+
+
+class EmailServiceConfigMixin(models.Model):
+    """邮件服务配置模型（SendGrid/Mailgun等） Mixin"""
+
+    # 配置 ID
+    id = models.BigAutoField(
+        '配置 ID', primary_key=True)
+    # 关联的站点 ID(为空表示全局配置)
+    site_id = models.IntegerField(
+        '关联的站点 ID(为空表示全局配置) (暂为 IntegerField，等待 Site 模型实现)', null=True, blank=True)
+    # 邮件服务提供商(sendgrid/mailgun/smtp)
+    provider = models.CharField(
+        '邮件服务提供商(sendgrid/mailgun/smtp)', max_length=50)
+    # API Key
+    api_key = models.CharField(
+        'API Key', max_length=255, blank=True, null=True)
+    # SMTP 主机
+    smtp_host = models.CharField(
+        'SMTP 主机', max_length=255, blank=True, null=True)
+    # SMTP 端口
+    smtp_port = models.IntegerField(
+        'SMTP 端口', blank=True, null=True)
+    # SMTP 用户名
+    smtp_username = models.CharField(
+        'SMTP 用户名', max_length=255, blank=True, null=True)
+    # SMTP 密码
+    smtp_password = models.CharField(
+        'SMTP 密码', max_length=255, blank=True, null=True)
+    # 发件人邮箱
+    from_email = models.CharField(
+        '发件人邮箱', max_length=255)
+    # 发件人名称
+    from_name = models.CharField(
+        '发件人名称', max_length=255, blank=True, null=True)
+    # 是否启用批量发送
+    enable_batch_sending = models.BooleanField(
+        '是否启用批量发送', default=False)
+    # 批量发送大小
+    batch_size = models.IntegerField(
+        '批量发送大小', default=50)
+    # 每日发送限制
+    daily_limit = models.IntegerField(
+        '每日发送限制', blank=True, null=True)
+    # 是否激活
+    is_active = models.BooleanField(
+        '是否激活', default=False)
+
+    class Meta:
+        abstract = True
+        app_label = 'generated'
+        verbose_name = '邮件服务配置模型（SendGrid/Mailgun等）'
+        # 注意：请在具体模型类中设置 db_table = get_table_name("email_service_configs")
+
+
+class SAMLConfigMixin(models.Model):
+    """SAML 2.0 配置模型 Mixin"""
+
+    # 配置 ID
+    id = models.BigAutoField(
+        '配置 ID', primary_key=True)
+    # 关联的站点 ID(为空表示全局配置)
+    site_id = models.IntegerField(
+        '关联的站点 ID(为空表示全局配置) (暂为 IntegerField，等待 Site 模型实现)', null=True, blank=True)
+    # SAML Entity ID (SP Identifier)
+    entity_id = models.CharField(
+        'SAML Entity ID (SP Identifier)', max_length=255)
+    # Assertion Consumer Service URL
+    acs_url = models.CharField(
+        'Assertion Consumer Service URL', max_length=500)
+    # Single Logout Service URL
+    slo_url = models.CharField(
+        'Single Logout Service URL', max_length=500, blank=True, null=True)
+    # Identity Provider Entity ID
+    idp_entity_id = models.CharField(
+        'Identity Provider Entity ID', max_length=255)
+    # IdP SSO URL
+    idp_sso_url = models.CharField(
+        'IdP SSO URL', max_length=500)
+    # IdP SLO URL
+    idp_slo_url = models.CharField(
+        'IdP SLO URL', max_length=500, blank=True, null=True)
+    # IdP X.509 Certificate (PEM格式)
+    idp_certificate = models.TextField(
+        'IdP X.509 Certificate (PEM格式)')
+    # SP Private Key (PEM格式)
+    sp_private_key = models.TextField(
+        'SP Private Key (PEM格式)', blank=True, null=True)
+    # SP Certificate (PEM格式)
+    sp_certificate = models.TextField(
+        'SP Certificate (PEM格式)', blank=True, null=True)
+    # 属性映射配置(JSON格式)
+    attribute_mapping = models.TextField(
+        '属性映射配置(JSON格式)', blank=True, null=True)
+    # 是否启用单点登出
+    enable_slo = models.BooleanField(
+        '是否启用单点登出', default=False)
+    # 是否自动创建用户
+    auto_provision_users = models.BooleanField(
+        '是否自动创建用户', default=True)
+    # 新用户默认角色
+    default_role = models.CharField(
+        '新用户默认角色', max_length=50, default='subscriber')
+    # 是否激活
+    is_active = models.BooleanField(
+        '是否激活', default=False)
+
+    class Meta:
+        abstract = True
+        app_label = 'generated'
+        verbose_name = 'SAML 2.0 配置模型'
+        # 注意：请在具体模型类中设置 db_table = get_table_name("saml_configs")
+
+
+class LDAPConfigMixin(models.Model):
+    """LDAP 配置模型 Mixin"""
+
+    # 配置 ID
+    id = models.BigAutoField(
+        '配置 ID', primary_key=True)
+    # 关联的站点 ID(为空表示全局配置)
+    site_id = models.IntegerField(
+        '关联的站点 ID(为空表示全局配置) (暂为 IntegerField，等待 Site 模型实现)', null=True, blank=True)
+    # LDAP 服务器 URL (ldap://或ldaps://)
+    server_url = models.CharField(
+        'LDAP 服务器 URL (ldap://或ldaps://)', max_length=500)
+    # Bind DN (用于查询的用户)
+    bind_dn = models.CharField(
+        'Bind DN (用于查询的用户)', max_length=255)
+    # Bind Password
+    bind_password = models.CharField(
+        'Bind Password', max_length=255)
+    # Base DN (搜索起点)
+    base_dn = models.CharField(
+        'Base DN (搜索起点)', max_length=255)
+    # 用户过滤器
+    user_filter = models.CharField(
+        '用户过滤器', max_length=255, default='(objectClass=inetOrgPerson)')
+    # 用户名属性
+    username_attribute = models.CharField(
+        '用户名属性', max_length=100, default='uid')
+    # 邮箱属性
+    email_attribute = models.CharField(
+        '邮箱属性', max_length=100, default='mail')
+    # 名字属性
+    first_name_attribute = models.CharField(
+        '名字属性', max_length=100, default='givenName')
+    # 姓氏属性
+    last_name_attribute = models.CharField(
+        '姓氏属性', max_length=100, default='sn')
+    # 是否使用 SSL/TLS
+    use_ssl = models.BooleanField(
+        '是否使用 SSL/TLS', default=False)
+    # 是否验证证书
+    verify_certificates = models.BooleanField(
+        '是否验证证书', default=True)
+    # 是否自动同步用户
+    auto_sync_users = models.BooleanField(
+        '是否自动同步用户', default=False)
+    # 同步间隔(秒)
+    sync_interval = models.IntegerField(
+        '同步间隔(秒)', default=3600)
+    # 新用户默认角色
+    default_role = models.CharField(
+        '新用户默认角色', max_length=50, default='subscriber')
+    # 是否激活
+    is_active = models.BooleanField(
+        '是否激活', default=False)
+
+    class Meta:
+        abstract = True
+        app_label = 'generated'
+        verbose_name = 'LDAP 配置模型'
+        # 注意：请在具体模型类中设置 db_table = get_table_name("ldap_configs")
+
+
+class SSOProviderMixin(models.Model):
+    """SSO 提供商配置模型 Mixin"""
+
+    # 配置 ID
+    id = models.BigAutoField(
+        '配置 ID', primary_key=True)
+    # 关联的站点 ID(为空表示全局配置)
+    site_id = models.IntegerField(
+        '关联的站点 ID(为空表示全局配置) (暂为 IntegerField，等待 Site 模型实现)', null=True, blank=True)
+    # 提供商类型(oauth2/saml/custom)
+    provider_type = models.CharField(
+        '提供商类型(oauth2/saml/custom)', max_length=50)
+    # 提供商名称
+    name = models.CharField(
+        '提供商名称', max_length=100)
+    # Client ID
+    client_id = models.CharField(
+        'Client ID', max_length=255)
+    # Client Secret
+    client_secret = models.CharField(
+        'Client Secret', max_length=255)
+    # Authorization URL
+    authorization_url = models.CharField(
+        'Authorization URL', max_length=500, blank=True, null=True)
+    # Token URL
+    token_url = models.CharField(
+        'Token URL', max_length=500, blank=True, null=True)
+    # User Info URL
+    userinfo_url = models.CharField(
+        'User Info URL', max_length=500, blank=True, null=True)
+    # OAuth Scope
+    scope = models.CharField(
+        'OAuth Scope', max_length=255, default='openid profile email')
+    # Redirect URI
+    redirect_uri = models.CharField(
+        'Redirect URI', max_length=500)
+    # 属性映射(JSON格式)
+    attribute_mapping = models.TextField(
+        '属性映射(JSON格式)', blank=True, null=True)
+    # 是否自动创建用户
+    auto_provision_users = models.BooleanField(
+        '是否自动创建用户', default=True)
+    # 新用户默认角色
+    default_role = models.CharField(
+        '新用户默认角色', max_length=50, default='subscriber')
+    # 是否激活
+    is_active = models.BooleanField(
+        '是否激活', default=False)
+
+    class Meta:
+        abstract = True
+        app_label = 'generated'
+        verbose_name = 'SSO 提供商配置模型'
+        # 注意：请在具体模型类中设置 db_table = get_table_name("sso_providers")

@@ -1,13 +1,12 @@
 """
 SQLAlchemy 模型定义 - AuditLog
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-12 11:11:20
+生成时间：2026-05-12 14:56:00
 """
 
-from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Index
+from sqlalchemy import Column, BigInteger, String, Text, DateTime, Index
 
 from . import Base  # 使用统一的 Base
-
 
 
 class AuditLog(Base):
@@ -20,6 +19,7 @@ class AuditLog(Base):
         Index('idx_audit_logs_level_time', 'level', 'created_at'),
         Index('idx_audit_logs_resource', 'resource_type', 'resource_id'),
     )
+
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='日志 ID')
 

@@ -439,6 +439,239 @@ async def sync_content(
         return ApiResponse(success=False, error=str(e))
 
 
+@router.get("/sites/{site_id}", summary="获取站点详情")
+async def get_site_detail(
+        site_id: int,
+        current_user=Depends(jwt_required),
+        db: AsyncSession = Depends(get_async_db)
+):
+    """
+    获取站点详细信息
+    
+    Args:
+        site_id: 站点ID
+        
+    Returns:
+        站点详细信息
+    """
+    try:
+        from shared.models.site import Site
+        from sqlalchemy import select
+
+        stmt = select(Site).where(Site.id == site_id)
+        result = await db.execute(stmt)
+        site = result.scalar_one_or_none()
+
+        if not site:
+            return ApiResponse(success=False, error="Site not found")
+
+        # 解析附加域名
+        additional_domains = []
+        if site.additional_domains:
+            try:
+                import json
+                additional_domains = json.loads(site.additional_domains)
+            except:
+                pass
+
+        # 解析设置
+        settings = {}
+        if site.settings:
+            try:
+                import json
+                settings = json.loads(site.settings)
+            except:
+                pass
+
+        return ApiResponse(
+            success=True,
+            data={
+                'id': site.id,
+                'name': site.name,
+                'slug': site.slug,
+                'domain': site.domain,
+                'additional_domains': additional_domains,
+                'description': site.description,
+                'logo_url': site.logo_url,
+                'favicon_url': site.favicon_url,
+                'theme': site.theme,
+                'language': site.language,
+                'timezone': site.timezone,
+                'settings': settings,
+                'is_active': site.is_active,
+                'is_default': site.is_default,
+                'created_at': site.created_at.isoformat() if site.created_at else None,
+                'updated_at': site.updated_at.isoformat() if site.updated_at else None,
+            }
+        )
+
+    except Exception as e:
+        return ApiResponse(success=False, error=str(e))
+
+
+@router.get("/sites/{site_id}/users", summary="获取站点的用户列表")
+async def get_site_users(
+        site_id: int,
+        current_user=Depends(jwt_required),
+        db: AsyncSession = Depends(get_async_db)
+):
+    """
+    获取站点的用户列表
+    
+    Args:
+        site_id: 站点ID
+        
+    Returns:
+        用户列表
+    """
+    try:
+        from shared.models.site_user import SiteUser
+        from shared.models.user import User
+        from sqlalchemy import select
+
+        stmt = (
+            select(User, SiteUser)
+            .join(SiteUser, User.id == SiteUser.user_id)
+            .where(
+                SiteUser.site_id == site_id,
+                SiteUser.is_active == True
+            )
+        )
+
+        result = await db.execute(stmt)
+        rows = result.all()
+
+        users_list = []
+        for user, site_user in rows:
+            users_list.append({
+                'id': user.id,
+                'username': user.username,
+                'email': user.email,
+                'role': site_user.role,
+                'joined_at': site_user.joined_at.isoformat() if site_user.joined_at else None,
+            })
+
+        return ApiResponse(
+            success=True,
+            data={
+                'users': users_list,
+                'total': len(users_list)
+            }
+        )
+
+    except Exception as e:
+        return ApiResponse(success=False, error=str(e))
+
+
+@router.put("/sites/{site_id}/users/{user_id}/role", summary="更新用户在站点的角色")
+async def update_user_role(
+        site_id: int,
+        user_id: int,
+        role: str = Body(..., description="新角色"),
+        current_user=Depends(jwt_required),
+        db: AsyncSession = Depends(get_async_db)
+):
+    """
+    更新用户在站点的角色
+    
+    Args:
+        site_id: 站点ID
+        user_id: 用户ID
+        role: 新角色
+        
+    Returns:
+        更新结果
+    """
+    try:
+        # 检查权限
+        has_permission = await check_admin_permission(db, current_user.id)
+        if not has_permission:
+            return ApiResponse(success=False, error="Insufficient permissions")
+
+        from shared.models.site_user import SiteUser
+        from sqlalchemy import select
+
+        stmt = select(SiteUser).where(
+            SiteUser.site_id == site_id,
+            SiteUser.user_id == user_id
+        )
+        result = await db.execute(stmt)
+        site_user = result.scalar_one_or_none()
+
+        if not site_user:
+            return ApiResponse(success=False, error="User not found in this site")
+
+        site_user.role = role
+        await db.commit()
+
+        return ApiResponse(
+            success=True,
+            message=f"User role updated to {role}"
+        )
+
+    except Exception as e:
+        return ApiResponse(success=False, error=str(e))
+
+
+@router.get("/sites/{site_id}/content-mappings", summary="获取站点的内容映射")
+async def get_content_mappings(
+        site_id: int,
+        direction: str = Query("outgoing", description="方向（outgoing/incoming）"),
+        current_user=Depends(jwt_required),
+        db: AsyncSession = Depends(get_async_db)
+):
+    """
+    获取站点的内容映射记录
+    
+    Args:
+        site_id: 站点ID
+        direction: 方向（outgoing=从该站点同步出去，incoming=从其他站点同步进来）
+        
+    Returns:
+        内容映射列表
+    """
+    try:
+        from shared.models.content_mapping import ContentMapping
+        from sqlalchemy import select
+
+        if direction == "outgoing":
+            stmt = select(ContentMapping).where(
+                ContentMapping.source_site_id == site_id
+            ).order_by(ContentMapping.created_at.desc())
+        else:
+            stmt = select(ContentMapping).where(
+                ContentMapping.target_site_id == site_id
+            ).order_by(ContentMapping.created_at.desc())
+
+        result = await db.execute(stmt)
+        mappings = result.scalars().all()
+
+        mappings_list = []
+        for mapping in mappings:
+            mappings_list.append({
+                'id': mapping.id,
+                'source_site_id': mapping.source_site_id,
+                'target_site_id': mapping.target_site_id,
+                'content_type': mapping.content_type,
+                'source_content_id': mapping.source_content_id,
+                'target_content_id': mapping.target_content_id,
+                'sync_mode': mapping.sync_mode,
+                'last_synced_at': mapping.last_synced_at.isoformat() if mapping.last_synced_at else None,
+                'created_at': mapping.created_at.isoformat() if mapping.created_at else None,
+            })
+
+        return ApiResponse(
+            success=True,
+            data={
+                'mappings': mappings_list,
+                'total': len(mappings_list)
+            }
+        )
+
+    except Exception as e:
+        return ApiResponse(success=False, error=str(e))
+
+
 # ==================== 辅助函数 ====================
 
 async def check_admin_permission(db, user_id: int) -> bool:

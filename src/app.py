@@ -1304,6 +1304,46 @@ curl -X POST "http://localhost:9421/api/v1/media/upload" \
         except ImportError as e:
             print(f"Warning: IPFS API could not be loaded: {e}")
 
+        # Google Analytics 集成 API
+        try:
+            from src.api.v1.google_analytics import router as google_analytics_router
+            app.include_router(google_analytics_router, prefix='/api/v1', tags=['google-analytics'])
+            print(f"{worker_info} [OK] Google Analytics API 已加载")
+        except ImportError as e:
+            print(f"Warning: Google Analytics API could not be loaded: {e}")
+
+        # Baidu Analytics 集成 API
+        try:
+            from src.api.v1.baidu_analytics import router as baidu_analytics_router
+            app.include_router(baidu_analytics_router, prefix='/api/v1', tags=['baidu-analytics'])
+            print(f"{worker_info} [OK] Baidu Analytics API 已加载")
+        except ImportError as e:
+            print(f"Warning: Baidu Analytics API could not be loaded: {e}")
+
+        # Notification Integration API
+        try:
+            from src.api.v1.notification_integration import router as notification_router
+            app.include_router(notification_router, prefix='/api/v1', tags=['notifications'])
+            print(f"{worker_info} [OK] Notification Integration API 已加载")
+        except ImportError as e:
+            print(f"Warning: Notification Integration API could not be loaded: {e}")
+
+        # Email Service Integration API
+        try:
+            from src.api.v1.email_service import router as email_service_router
+            app.include_router(email_service_router, prefix='/api/v1', tags=['email-service'])
+            print(f"{worker_info} [OK] Email Service Integration API 已加载")
+        except ImportError as e:
+            print(f"Warning: Email Service Integration API could not be loaded: {e}")
+
+        # Enterprise Authentication API (SAML/LDAP/SSO)
+        try:
+            from src.api.v1.enterprise_auth import router as enterprise_auth_router
+            app.include_router(enterprise_auth_router, prefix='/api/v1', tags=['enterprise-auth'])
+            print(f"{worker_info} [OK] Enterprise Authentication API 已加载")
+        except ImportError as e:
+            print(f"Warning: Enterprise Authentication API could not be loaded: {e}")
+
         env_key = f"ROUTER_PRINTED_{os.getpid()}"
 
         if not os.environ.get(env_key):

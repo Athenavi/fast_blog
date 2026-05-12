@@ -1,13 +1,12 @@
 """
 SQLAlchemy 模型定义 - Webhook
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-12 11:11:20
+生成时间：2026-05-12 14:56:00
 """
 
-from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Index
+from sqlalchemy import Column, BigInteger, String, Text, Boolean, DateTime, Index
 
 from . import Base  # 使用统一的 Base
-
 
 
 class Webhook(Base):
@@ -29,6 +28,7 @@ class Webhook(Base):
     secret = Column(String(255), nullable=True, doc='签名密钥（用于HMAC验证）')
 
     events = Column(Text, nullable=False, doc='订阅的事件列表（JSON数组）')
+
 
     is_active = Column(Boolean, default=True, doc='是否激活')
 

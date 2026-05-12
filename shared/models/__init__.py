@@ -2,8 +2,6 @@ from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
 
-
-
 from .user import User
 from .article import Article
 from .category import Category
@@ -89,6 +87,13 @@ from .approval_step import ApprovalStep
 from .site import Site
 from .site_user import SiteUser
 from .content_mapping import ContentMapping
+from .google_analytics_config import GoogleAnalyticsConfig
+from .baidu_analytics_config import BaiduAnalyticsConfig
+from .notification_integration import NotificationIntegration
+from .email_service_config import EmailServiceConfig
+from .saml_config import SAMLConfig
+from .ldap_config import LDAPConfig
+from .sso_provider import SSOProvider
 
 # ==================== 自动生成的导入 - 由 routes.yaml 管理 ====================
 # 此部分由脚本自动生成 - 请勿手动修改
@@ -179,6 +184,13 @@ __all__ = [
     'ApprovalStep',
     'Site',
     'SiteUser',
-    'ContentMapping'
+    'ContentMapping',
+    'GoogleAnalyticsConfig',
+    'BaiduAnalyticsConfig',
+    'NotificationIntegration',
+    'EmailServiceConfig',
+    'SAMLConfig',
+    'LDAPConfig',
+    'SSOProvider'
 ]
 # ============================================================================
