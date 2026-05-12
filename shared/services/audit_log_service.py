@@ -4,18 +4,17 @@
 """
 import json
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, List
 from enum import Enum
 
-from sqlalchemy import Column, Integer, String, DateTime, Text, Index
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.future import select
+from sqlalchemy.sql.functions import func
+
+from shared.models.audit_log import AuditLog
 
 logger = logging.getLogger(__name__)
-
-Base = declarative_base()
 
 
 class AuditLogAction(Enum):
@@ -41,29 +40,7 @@ class AuditLogLevel(Enum):
     CRITICAL = "critical"
 
 
-class AuditLogModel(Base):
-    """审计日志数据库模型"""
-    __tablename__ = 'audit_logs'
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    user_id = Column(Integer, nullable=True, index=True)
-    user_name = Column(String(255), nullable=True)
-    action = Column(String(50), nullable=False, index=True)
-    level = Column(String(20), nullable=False, index=True)
-    resource_type = Column(String(100), nullable=True, index=True)
-    resource_id = Column(String(100), nullable=True, index=True)
-    ip_address = Column(String(45), nullable=True)
-    user_agent = Column(Text, nullable=True)
-    description = Column(Text, nullable=True)
-    details = Column(Text, nullable=True)  # JSON格式的详细信息
-    created_at = Column(DateTime, default=datetime.utcnow, index=True)
-
-    # 创建索引以提高查询性能
-    __table_args__ = (
-        Index('idx_audit_logs_user_action_time', 'user_id', 'action', 'created_at'),
-        Index('idx_audit_logs_level_time', 'level', 'created_at'),
-        Index('idx_audit_logs_resource', 'resource_type', 'resource_id'),
-    )
 
 
 class AuditLogService:
@@ -131,7 +108,7 @@ class AuditLogService:
 
         try:
             # 创建审计日志记录
-            audit_log = AuditLogModel(
+            audit_log = AuditLog(
                 user_id=user_id,
                 user_name=user_name,
                 action=action.value,
@@ -190,32 +167,32 @@ class AuditLogService:
             日志列表和分页信息
         """
         try:
-            query = select(AuditLogModel).order_by(AuditLogModel.created_at.desc())
+            query = select(AuditLog).order_by(AuditLog.created_at.desc())
 
             # 应用过滤条件
             if user_id:
-                query = query.where(AuditLogModel.user_id == user_id)
+                query = query.where(AuditLog.user_id == user_id)
 
             if action:
-                query = query.where(AuditLogModel.action == action.value)
+                query = query.where(AuditLog.action == action.value)
 
             if level:
-                query = query.where(AuditLogModel.level == level.value)
+                query = query.where(AuditLog.level == level.value)
 
             if resource_type:
-                query = query.where(AuditLogModel.resource_type == resource_type)
+                query = query.where(AuditLog.resource_type == resource_type)
 
             if resource_id:
-                query = query.where(AuditLogModel.resource_id == resource_id)
+                query = query.where(AuditLog.resource_id == resource_id)
 
             if ip_address:
-                query = query.where(AuditLogModel.ip_address == ip_address)
+                query = query.where(AuditLog.ip_address == ip_address)
 
             if start_date:
-                query = query.where(AuditLogModel.created_at >= start_date)
+                query = query.where(AuditLog.created_at >= start_date)
 
             if end_date:
-                query = query.where(AuditLogModel.created_at <= end_date)
+                query = query.where(AuditLog.created_at <= end_date)
 
             # 计算总数
             count_query = select(func.count()).select_from(query.subquery())
@@ -277,25 +254,25 @@ class AuditLogService:
             导出的数据
         """
         # 获取所有符合条件的日志（不分页）
-        all_logs_query = select(AuditLogModel).order_by(AuditLogModel.created_at.desc())
+        all_logs_query = select(AuditLog).order_by(AuditLog.created_at.desc())
 
         # 应用过滤条件
         if filters.get('user_id'):
-            all_logs_query = all_logs_query.where(AuditLogModel.user_id == filters['user_id'])
+            all_logs_query = all_logs_query.where(AuditLog.user_id == filters['user_id'])
         if filters.get('action'):
-            all_logs_query = all_logs_query.where(AuditLogModel.action == filters['action'].value)
+            all_logs_query = all_logs_query.where(AuditLog.action == filters['action'].value)
         if filters.get('level'):
-            all_logs_query = all_logs_query.where(AuditLogModel.level == filters['level'].value)
+            all_logs_query = all_logs_query.where(AuditLog.level == filters['level'].value)
         if filters.get('resource_type'):
-            all_logs_query = all_logs_query.where(AuditLogModel.resource_type == filters['resource_type'])
+            all_logs_query = all_logs_query.where(AuditLog.resource_type == filters['resource_type'])
         if filters.get('resource_id'):
-            all_logs_query = all_logs_query.where(AuditLogModel.resource_id == filters['resource_id'])
+            all_logs_query = all_logs_query.where(AuditLog.resource_id == filters['resource_id'])
         if filters.get('ip_address'):
-            all_logs_query = all_logs_query.where(AuditLogModel.ip_address == filters['ip_address'])
+            all_logs_query = all_logs_query.where(AuditLog.ip_address == filters['ip_address'])
         if filters.get('start_date'):
-            all_logs_query = all_logs_query.where(AuditLogModel.created_at >= filters['start_date'])
+            all_logs_query = all_logs_query.where(AuditLog.created_at >= filters['start_date'])
         if filters.get('end_date'):
-            all_logs_query = all_logs_query.where(AuditLogModel.created_at <= filters['end_date'])
+            all_logs_query = all_logs_query.where(AuditLog.created_at <= filters['end_date'])
 
         result = await db.execute(all_logs_query)
         logs = result.scalars().all()
@@ -370,7 +347,7 @@ class AuditLogService:
         try:
             from sqlalchemy import delete
 
-            stmt = delete(AuditLogModel).where(AuditLogModel.created_at < cutoff_date)
+            stmt = delete(AuditLog).where(AuditLog.created_at < cutoff_date)
             result = await db.execute(stmt)
             await db.commit()
 
@@ -382,7 +359,4 @@ class AuditLogService:
 
 
 # 全局实例
-from sqlalchemy.sql.functions import func
-from datetime import timedelta
-
 audit_log_service = AuditLogService()

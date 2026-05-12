@@ -7,13 +7,15 @@ from typing import Dict, Any, Optional, List
 from datetime import datetime
 from enum import Enum
 
-from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean, ForeignKey, Index
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+from sqlalchemy.sql.functions import func
+
+from shared.models.workspace import Workspace
+from shared.models.workspace_member import WorkspaceMember
+from shared.models.task import Task
 
 logger = logging.getLogger(__name__)
-
-Base = declarative_base()
 
 
 class TeamRole(Enum):
@@ -22,81 +24,6 @@ class TeamRole(Enum):
     ADMIN = "admin"  # 管理员
     EDITOR = "editor"  # 编辑者
     VIEWER = "viewer"  # 查看者
-
-
-class Workspace(Base):
-    """团队工作区模型"""
-    __tablename__ = 'workspaces'
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(String(255), nullable=False)
-    slug = Column(String(255), unique=True, nullable=False, index=True)
-    description = Column(Text)
-    owner_id = Column(Integer, ForeignKey('users.id'), nullable=False)
-    is_active = Column(Boolean, default=True)
-    settings = Column(Text)  # JSON格式的工作区设置
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    # 关系
-    members = relationship("WorkspaceMember", back_populates="workspace")
-    tasks = relationship("Task", back_populates="workspace")
-
-    __table_args__ = (
-        Index('idx_workspaces_slug', 'slug'),
-        Index('idx_workspaces_owner', 'owner_id'),
-    )
-
-
-class WorkspaceMember(Base):
-    """工作区成员模型"""
-    __tablename__ = 'workspace_members'
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    workspace_id = Column(Integer, ForeignKey('workspaces.id'), nullable=False)
-    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
-    role = Column(String(20), nullable=False, default=TeamRole.VIEWER.value)
-    joined_at = Column(DateTime, default=datetime.utcnow)
-    is_active = Column(Boolean, default=True)
-
-    # 关系
-    workspace = relationship("Workspace", back_populates="members")
-    user = relationship("User")
-
-    __table_args__ = (
-        Index('idx_workspace_members_workspace', 'workspace_id'),
-        Index('idx_workspace_members_user', 'user_id'),
-        Index('idx_workspace_members_unique', 'workspace_id', 'user_id', unique=True),
-    )
-
-
-class Task(Base):
-    """任务模型"""
-    __tablename__ = 'tasks'
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    workspace_id = Column(Integer, ForeignKey('workspaces.id'), nullable=False)
-    title = Column(String(500), nullable=False)
-    description = Column(Text)
-    status = Column(String(20), default='pending')  # pending, in_progress, completed, cancelled
-    priority = Column(String(20), default='medium')  # low, medium, high, urgent
-    assigned_to = Column(Integer, ForeignKey('users.id'))
-    created_by = Column(Integer, ForeignKey('users.id'), nullable=False)
-    due_date = Column(DateTime)
-    completed_at = Column(DateTime)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    # 关系
-    workspace = relationship("Workspace", back_populates="tasks")
-    assignee = relationship("User", foreign_keys=[assigned_to])
-    creator = relationship("User", foreign_keys=[created_by])
-
-    __table_args__ = (
-        Index('idx_tasks_workspace', 'workspace_id'),
-        Index('idx_tasks_status', 'status'),
-        Index('idx_tasks_assigned', 'assigned_to'),
-    )
 
 
 class CollaborationService:

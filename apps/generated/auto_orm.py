@@ -1,7 +1,7 @@
 """
 Django ORM 抽象基类定义
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-11 15:21:29
+生成时间：2026-05-12 10:53:12
 """
 
 from django.db import models
@@ -2041,19 +2041,24 @@ class RoleMixin(models.Model):
         '角色 ID'        , primary_key=True)
     # 角色名称
     name = models.CharField(
-        '角色名称', max_length=100)
-    # 角色标识(唯一)
+        '角色名称', max_length=100, unique=True)
+    # 角色标识
     slug = models.CharField(
-        '角色标识(唯一)', max_length=100, unique=True)
+        '角色标识', max_length=100, unique=True)
     # 角色描述
-    description = models.CharField(
-        '角色描述', max_length=255, blank=True, null=True)
-    # 权限列表(JSON格式)
-    permissions = models.CharField(
-        '权限列表(JSON格式)', max_length=255, blank=True, null=True)
-    # 是否为系统角色(系统角色不可删除)
+    description = models.TextField(
+        '角色描述', blank=True, null=True)
+    # 是否为系统角色
     is_system = models.BooleanField(
-        '是否为系统角色(系统角色不可删除)',default=False)
+        '是否为系统角色', default=False)
+    # 父角色 ID
+    parent_id = models.ForeignKey(
+        'self',
+        on_delete=models.CASCADE,
+        verbose_name='父角色 ID', null=True, blank=True)
+    # 是否激活
+    is_active = models.BooleanField(
+        '是否激活', default=True)
 
     class Meta:
         abstract = True
@@ -2448,58 +2453,55 @@ class OrderItemMixin(models.Model):
 
 
 class SiteMixin(models.Model):
-    """站点模型（多站点支持） Mixin"""
+    """站点模型 Mixin"""
 
     # 站点 ID
     id = models.BigAutoField(
         '站点 ID'        , primary_key=True)
     # 站点名称
     name = models.CharField(
-        '站点名称', max_length=200)
+        '站点名称', max_length=255)
     # 站点标识
     slug = models.CharField(
         '站点标识', max_length=100, unique=True)
-    # 域名(如 example.com)
+    # 主域名
     domain = models.CharField(
-        '域名(如 example.com)', max_length=255, blank=True, null=True)
-    # 路径前缀(如 /site1)
-    path = models.CharField(
-        '路径前缀(如 /site1)', max_length=255, blank=True, null=True, default='/')
+        '主域名', max_length=255, unique=True)
+    # 附加域名列表(JSON格式)
+    additional_domains = models.TextField(
+        '附加域名列表(JSON格式)', blank=True, null=True)
+    # 站点描述
+    description = models.TextField(
+        '站点描述', blank=True, null=True)
+    # Logo URL
+    logo_url = models.CharField(
+        'Logo URL', max_length=500, blank=True, null=True)
+    # Favicon URL
+    favicon_url = models.CharField(
+        'Favicon URL', max_length=500, blank=True, null=True)
+    # 主题
+    theme = models.CharField(
+        '主题', max_length=100, default='default')
+    # 语言
+    language = models.CharField(
+        '语言', max_length=10, default='en')
+    # 时区
+    timezone = models.CharField(
+        '时区', max_length=50, default='UTC')
+    # 站点设置(JSON格式)
+    settings = models.TextField(
+        '站点设置(JSON格式)', blank=True, null=True)
     # 是否激活
     is_active = models.BooleanField(
         '是否激活',default=True)
     # 是否为默认站点
     is_default = models.BooleanField(
         '是否为默认站点',default=False)
-    # 站点设置(JSON格式)
-    settings = models.CharField(
-        '站点设置(JSON格式)', max_length=255, blank=True, null=True)
-    # 主题slug
-    theme = models.CharField(
-        '主题slug', max_length=100, default='default')
-    # 语言代码
-    language = models.CharField(
-        '语言代码', max_length=10, default='zh-CN')
-    # 时区
-    timezone = models.CharField(
-        '时区', max_length=50, default='Asia/Shanghai')
-    # 站点标题
-    title = models.CharField(
-        '站点标题', max_length=200, blank=True, null=True)
-    # 站点描述
-    description = models.TextField(
-        '站点描述', blank=True, null=True)
-    # 关键词
-    keywords = models.CharField(
-        '关键词', max_length=500, blank=True, null=True)
-    # 站点管理员ID
-    admin_user_id = models.BigIntegerField(
-        '站点管理员ID', blank=True, null=True)
 
     class Meta:
         abstract = True
         app_label = 'generated'
-        verbose_name = '站点模型（多站点支持）'
+        verbose_name = '站点模型'
         # 注意：请在具体模型类中设置 db_table = get_table_name("sites")
 
 
@@ -3180,6 +3182,7 @@ class ArticleAnnotationMixin(models.Model):
         # 注意：请在具体模型类中设置 db_table = get_table_name("article_annotations")
 
 
+
 class WebhookMixin(models.Model):
     """Webhook配置模型 Mixin"""
 
@@ -3207,6 +3210,7 @@ class WebhookMixin(models.Model):
         app_label = 'generated'
         verbose_name = 'Webhook配置模型'
         # 注意：请在具体模型类中设置 db_table = get_table_name("webhooks")
+
 
 
 class WebhookDeliveryMixin(models.Model):
@@ -3245,3 +3249,344 @@ class WebhookDeliveryMixin(models.Model):
         app_label = 'generated'
         verbose_name = 'Webhook投递记录模型'
         # 注意：请在具体模型类中设置 db_table = get_table_name("webhook_deliveries")
+
+
+class AuditLogMixin(models.Model):
+    """审计日志模型 Mixin"""
+
+    # 日志 ID
+    id = models.BigAutoField(
+        '日志 ID', primary_key=True)
+    # 用户 ID
+    user_id = models.BigIntegerField(
+        '用户 ID', blank=True, null=True)
+    # 用户名
+    user_name = models.CharField(
+        '用户名', max_length=255, blank=True, null=True)
+    # 操作类型
+    action = models.CharField(
+        '操作类型', max_length=50)
+    # 日志级别
+    level = models.CharField(
+        '日志级别', max_length=20)
+    # 资源类型
+    resource_type = models.CharField(
+        '资源类型', max_length=100, blank=True, null=True)
+    # 资源 ID
+    resource_id = models.CharField(
+        '资源 ID', max_length=100, blank=True, null=True)
+    # IP 地址
+    ip_address = models.CharField(
+        'IP 地址', max_length=45, blank=True, null=True)
+    # 用户代理
+    user_agent = models.TextField(
+        '用户代理', blank=True, null=True)
+    # 操作描述
+    description = models.TextField(
+        '操作描述', blank=True, null=True)
+    # 详细信息(JSON格式)
+    details = models.TextField(
+        '详细信息(JSON格式)', blank=True, null=True)
+
+    class Meta:
+        abstract = True
+        app_label = 'generated'
+        verbose_name = '审计日志模型'
+        # 注意：请在具体模型类中设置 db_table = get_table_name("audit_logs")
+
+
+class PermissionMixin(models.Model):
+    """权限模型 Mixin"""
+
+    # 权限 ID
+    id = models.BigAutoField(
+        '权限 ID', primary_key=True)
+    # 权限名称
+    name = models.CharField(
+        '权限名称', max_length=100, unique=True)
+    # 权限代码
+    code = models.CharField(
+        '权限代码', max_length=100, unique=True)
+    # 权限描述
+    description = models.TextField(
+        '权限描述', blank=True, null=True)
+    # 资源类型
+    resource_type = models.CharField(
+        '资源类型', max_length=50, blank=True, null=True)
+    # 操作类型
+    action = models.CharField(
+        '操作类型', max_length=20, blank=True, null=True)
+    # 是否激活
+    is_active = models.BooleanField(
+        '是否激活', default=True)
+
+    class Meta:
+        abstract = True
+        app_label = 'generated'
+        verbose_name = '权限模型'
+        # 注意：请在具体模型类中设置 db_table = get_table_name("permissions")
+
+
+class PermissionAuditLogMixin(models.Model):
+    """权限审计日志模型 Mixin"""
+
+    # 审计日志 ID
+    id = models.BigAutoField(
+        '审计日志 ID', primary_key=True)
+    # 用户 ID
+    user_id = models.IntegerField(
+        '用户 ID (暂为 IntegerField，等待 User 模型实现)', null=True, blank=True)
+    # 操作类型
+    action = models.CharField(
+        '操作类型', max_length=50)
+    # 资源类型
+    resource_type = models.CharField(
+        '资源类型', max_length=50, blank=True, null=True)
+    # 资源 ID
+    resource_id = models.BigIntegerField(
+        '资源 ID', blank=True, null=True)
+    # 详细信息(JSON格式)
+    details = models.TextField(
+        '详细信息(JSON格式)', blank=True, null=True)
+    # IP 地址
+    ip_address = models.CharField(
+        'IP 地址', max_length=45, blank=True, null=True)
+
+    class Meta:
+        abstract = True
+        app_label = 'generated'
+        verbose_name = '权限审计日志模型'
+        # 注意：请在具体模型类中设置 db_table = get_table_name("permission_audit_logs")
+
+
+class WorkspaceMixin(models.Model):
+    """团队工作区模型 Mixin"""
+
+    # 工作区 ID
+    id = models.BigAutoField(
+        '工作区 ID', primary_key=True)
+    # 工作区名称
+    name = models.CharField(
+        '工作区名称', max_length=255)
+    # 工作区标识
+    slug = models.CharField(
+        '工作区标识', max_length=255, unique=True)
+    # 工作区描述
+    description = models.TextField(
+        '工作区描述', blank=True, null=True)
+    # 所有者 ID
+    owner_id = models.IntegerField(
+        '所有者 ID (暂为 IntegerField，等待 User 模型实现)', )
+    # 是否激活
+    is_active = models.BooleanField(
+        '是否激活', default=True)
+    # 工作区设置(JSON格式)
+    settings = models.TextField(
+        '工作区设置(JSON格式)', blank=True, null=True)
+
+    class Meta:
+        abstract = True
+        app_label = 'generated'
+        verbose_name = '团队工作区模型'
+        # 注意：请在具体模型类中设置 db_table = get_table_name("workspaces")
+
+
+class WorkspaceMemberMixin(models.Model):
+    """工作区成员模型 Mixin"""
+
+    # 成员 ID
+    id = models.BigAutoField(
+        '成员 ID', primary_key=True)
+    # 工作区 ID
+    workspace_id = models.IntegerField(
+        '工作区 ID (暂为 IntegerField，等待 Workspace 模型实现)', )
+    # 用户 ID
+    user_id = models.IntegerField(
+        '用户 ID (暂为 IntegerField，等待 User 模型实现)', )
+    # 角色(owner/admin/editor/viewer)
+    role = models.CharField(
+        '角色(owner/admin/editor/viewer)', max_length=20, default='viewer')
+    # 加入时间
+    joined_at = models.DateTimeField(
+        '加入时间')
+    # 是否激活
+    is_active = models.BooleanField(
+        '是否激活', default=True)
+
+    class Meta:
+        abstract = True
+        app_label = 'generated'
+        verbose_name = '工作区成员模型'
+        # 注意：请在具体模型类中设置 db_table = get_table_name("workspace_members")
+
+
+class TaskMixin(models.Model):
+    """任务模型 Mixin"""
+
+    # 任务 ID
+    id = models.BigAutoField(
+        '任务 ID', primary_key=True)
+    # 工作区 ID
+    workspace_id = models.IntegerField(
+        '工作区 ID (暂为 IntegerField，等待 Workspace 模型实现)', )
+    # 任务标题
+    title = models.CharField(
+        '任务标题', max_length=500)
+    # 任务描述
+    description = models.TextField(
+        '任务描述', blank=True, null=True)
+    # 状态(pending/in_progress/completed/cancelled)
+    status = models.CharField(
+        '状态(pending/in_progress/completed/cancelled)', max_length=20, default='pending')
+    # 优先级(low/medium/high/urgent)
+    priority = models.CharField(
+        '优先级(low/medium/high/urgent)', max_length=20, default='medium')
+    # 分配给用户 ID
+    assigned_to = models.IntegerField(
+        '分配给用户 ID (暂为 IntegerField，等待 User 模型实现)', null=True, blank=True)
+    # 创建者 ID
+    created_by = models.IntegerField(
+        '创建者 ID (暂为 IntegerField，等待 User 模型实现)', )
+    # 截止日期
+    due_date = models.DateTimeField(
+        '截止日期', blank=True, null=True)
+    # 完成时间
+    completed_at = models.DateTimeField(
+        '完成时间', blank=True, null=True)
+
+    class Meta:
+        abstract = True
+        app_label = 'generated'
+        verbose_name = '任务模型'
+        # 注意：请在具体模型类中设置 db_table = get_table_name("tasks")
+
+
+class ApprovalRecordMixin(models.Model):
+    """审批记录模型 Mixin"""
+
+    # 审批记录 ID
+    id = models.BigAutoField(
+        '审批记录 ID', primary_key=True)
+    # 内容类型
+    content_type = models.CharField(
+        '内容类型', max_length=50)
+    # 内容 ID
+    content_id = models.BigIntegerField(
+        '内容 ID')
+    # 申请人 ID
+    applicant_id = models.IntegerField(
+        '申请人 ID (暂为 IntegerField，等待 User 模型实现)', )
+    # 当前审批级别
+    current_level = models.IntegerField(
+        '当前审批级别', default=1)
+    # 最大审批级别
+    max_level = models.IntegerField(
+        '最大审批级别', default=1)
+    # 状态(pending/approved/rejected/cancelled)
+    status = models.CharField(
+        '状态(pending/approved/rejected/cancelled)', max_length=20, default='pending')
+    # 完成时间
+    completed_at = models.DateTimeField(
+        '完成时间', blank=True, null=True)
+
+    class Meta:
+        abstract = True
+        app_label = 'generated'
+        verbose_name = '审批记录模型'
+        # 注意：请在具体模型类中设置 db_table = get_table_name("approval_records")
+
+
+class ApprovalStepMixin(models.Model):
+    """审批步骤模型 Mixin"""
+
+    # 审批步骤 ID
+    id = models.BigAutoField(
+        '审批步骤 ID', primary_key=True)
+    # 审批记录 ID
+    record_id = models.IntegerField(
+        '审批记录 ID (暂为 IntegerField，等待 ApprovalRecord 模型实现)', )
+    # 审批级别
+    level = models.IntegerField(
+        '审批级别')
+    # 审批人 ID
+    approver_id = models.IntegerField(
+        '审批人 ID (暂为 IntegerField，等待 User 模型实现)', null=True, blank=True)
+    # 操作(approved/rejected)
+    action = models.CharField(
+        '操作(approved/rejected)', max_length=20, blank=True, null=True)
+    # 审批意见
+    comment = models.TextField(
+        '审批意见', blank=True, null=True)
+    # 审核时间
+    reviewed_at = models.DateTimeField(
+        '审核时间', blank=True, null=True)
+
+    class Meta:
+        abstract = True
+        app_label = 'generated'
+        verbose_name = '审批步骤模型'
+        # 注意：请在具体模型类中设置 db_table = get_table_name("approval_steps")
+
+
+class SiteUserMixin(models.Model):
+    """站点用户关联模型 Mixin"""
+
+    # 关联 ID
+    id = models.BigAutoField(
+        '关联 ID', primary_key=True)
+    # 站点 ID
+    site_id = models.IntegerField(
+        '站点 ID (暂为 IntegerField，等待 Site 模型实现)', )
+    # 用户 ID
+    user_id = models.IntegerField(
+        '用户 ID (暂为 IntegerField，等待 User 模型实现)', )
+    # 在该站点的角色
+    role = models.CharField(
+        '在该站点的角色', max_length=50, default='subscriber')
+    # 是否激活
+    is_active = models.BooleanField(
+        '是否激活', default=True)
+    # 加入时间
+    joined_at = models.DateTimeField(
+        '加入时间')
+
+    class Meta:
+        abstract = True
+        app_label = 'generated'
+        verbose_name = '站点用户关联模型'
+        # 注意：请在具体模型类中设置 db_table = get_table_name("site_users")
+
+
+class ContentMappingMixin(models.Model):
+    """内容映射模型 Mixin"""
+
+    # 映射 ID
+    id = models.BigAutoField(
+        '映射 ID', primary_key=True)
+    # 源站点 ID
+    source_site_id = models.IntegerField(
+        '源站点 ID (暂为 IntegerField，等待 Site 模型实现)', )
+    # 目标站点 ID
+    target_site_id = models.IntegerField(
+        '目标站点 ID (暂为 IntegerField，等待 Site 模型实现)', )
+    # 内容类型
+    content_type = models.CharField(
+        '内容类型', max_length=50)
+    # 源内容 ID
+    source_content_id = models.BigIntegerField(
+        '源内容 ID')
+    # 目标内容 ID
+    target_content_id = models.BigIntegerField(
+        '目标内容 ID', blank=True, null=True)
+    # 同步模式(manual/auto)
+    sync_mode = models.CharField(
+        '同步模式(manual/auto)', max_length=20, default='manual')
+    # 最后同步时间
+    last_synced_at = models.DateTimeField(
+        '最后同步时间', blank=True, null=True)
+
+    class Meta:
+        abstract = True
+        app_label = 'generated'
+        verbose_name = '内容映射模型'
+        # 注意：请在具体模型类中设置 db_table = get_table_name("content_mappings")

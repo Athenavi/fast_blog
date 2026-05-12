@@ -2,100 +2,22 @@
 多站点管理服务
 提供站点配置隔离、独立域名绑定、共享用户体系和跨站点内容同步功能
 """
+import json
 import logging
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 
-from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean, ForeignKey, Index
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+from sqlalchemy import delete as sqlalchemy_delete
+
+from shared.models.site import Site
+from shared.models.site_user import SiteUser
+from shared.models.content_mapping import ContentMapping
 
 logger = logging.getLogger(__name__)
 
-Base = declarative_base()
 
-
-class Site(Base):
-    """站点模型"""
-    __tablename__ = 'sites'
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(String(255), nullable=False)
-    slug = Column(String(100), unique=True, nullable=False, index=True)
-    domain = Column(String(255), unique=True, nullable=False, index=True)  # 主域名
-    additional_domains = Column(Text)  # JSON格式的附加域名列表
-    description = Column(Text)
-    logo_url = Column(String(500))
-    favicon_url = Column(String(500))
-    theme = Column(String(100), default='default')
-    language = Column(String(10), default='en')
-    timezone = Column(String(50), default='UTC')
-
-    # 站点设置（JSON格式）
-    settings = Column(Text)
-
-    # 状态
-    is_active = Column(Boolean, default=True)
-    is_default = Column(Boolean, default=False)
-
-    # 时间戳
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    # 关系
-    site_users = relationship("SiteUser", back_populates="site")
-    content_mappings = relationship("ContentMapping", back_populates="source_site")
-
-    __table_args__ = (
-        Index('idx_sites_slug', 'slug'),
-        Index('idx_sites_domain', 'domain'),
-    )
-
-
-class SiteUser(Base):
-    """站点-用户关联模型（共享用户体系）"""
-    __tablename__ = 'site_users'
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    site_id = Column(Integer, ForeignKey('sites.id'), nullable=False)
-    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
-    role = Column(String(50), default='subscriber')  # 在该站点的角色
-    is_active = Column(Boolean, default=True)
-    joined_at = Column(DateTime, default=datetime.utcnow)
-
-    # 关系
-    site = relationship("Site", back_populates="site_users")
-    user = relationship("User")
-
-    __table_args__ = (
-        Index('idx_site_users_site', 'site_id'),
-        Index('idx_site_users_user', 'user_id'),
-        Index('idx_site_users_unique', 'site_id', 'user_id', unique=True),
-    )
-
-
-class ContentMapping(Base):
-    """内容映射模型（跨站点内容同步）"""
-    __tablename__ = 'content_mappings'
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    source_site_id = Column(Integer, ForeignKey('sites.id'), nullable=False)
-    target_site_id = Column(Integer, ForeignKey('sites.id'), nullable=False)
-    content_type = Column(String(50), nullable=False)  # article, page等
-    source_content_id = Column(Integer, nullable=False)
-    target_content_id = Column(Integer)
-    sync_mode = Column(String(20), default='manual')  # manual, auto
-    last_synced_at = Column(DateTime)
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-    # 关系
-    source_site = relationship("Site", back_populates="content_mappings", foreign_keys=[source_site_id])
-    target_site = relationship("Site", foreign_keys=[target_site_id])
-
-    __table_args__ = (
-        Index('idx_content_mapping_source', 'source_site_id', 'content_type', 'source_content_id'),
-        Index('idx_content_mapping_target', 'target_site_id', 'content_type', 'target_content_id'),
-    )
 
 
 class MultiSiteService:
@@ -212,12 +134,11 @@ class MultiSiteService:
             raise ValueError("Cannot delete default site")
 
         # 删除站点-用户关联
-        from sqlalchemy import delete
-        stmt = delete(SiteUser).where(SiteUser.site_id == site_id)
+        stmt = sqlalchemy_delete(SiteUser).where(SiteUser.site_id == site_id)
         await db.execute(stmt)
 
         # 删除内容映射
-        stmt = delete(ContentMapping).where(
+        stmt = sqlalchemy_delete(ContentMapping).where(
             (ContentMapping.source_site_id == site_id) |
             (ContentMapping.target_site_id == site_id)
         )

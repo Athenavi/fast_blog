@@ -2,101 +2,22 @@
 细粒度权限服务
 提供自定义角色、权限控制、权限继承和权限审计功能
 """
+import json
 import logging
 from typing import Dict, Any, Optional, List, Set
 from datetime import datetime
 from enum import Enum
 
-from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean, ForeignKey, Table, Index
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+
+from shared.models.permission import Permission
+from shared.models.role import Role
+from shared.models.permission_audit_log import PermissionAuditLog
 
 logger = logging.getLogger(__name__)
 
-Base = declarative_base()
 
-# 角色-权限关联表
-role_permissions = Table(
-    'role_permissions',
-    Base.metadata,
-    Column('role_id', Integer, ForeignKey('roles.id'), primary_key=True),
-    Column('permission_id', Integer, ForeignKey('permissions.id'), primary_key=True)
-)
-
-# 用户-角色关联表
-user_roles = Table(
-    'user_roles',
-    Base.metadata,
-    Column('user_id', Integer, ForeignKey('users.id'), primary_key=True),
-    Column('role_id', Integer, ForeignKey('roles.id'), primary_key=True)
-)
-
-
-class Permission(Base):
-    """权限模型"""
-    __tablename__ = 'permissions'
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(String(100), unique=True, nullable=False)  # 权限名称
-    code = Column(String(100), unique=True, nullable=False, index=True)  # 权限代码
-    description = Column(Text)
-    resource_type = Column(String(50))  # 资源类型 (article, user, category等)
-    action = Column(String(20))  # 操作 (create, read, update, delete)
-    is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-    # 关系
-    roles = relationship("Role", secondary=role_permissions, back_populates="permissions")
-
-    __table_args__ = (
-        Index('idx_permissions_code', 'code'),
-        Index('idx_permissions_resource', 'resource_type', 'action'),
-    )
-
-
-class Role(Base):
-    """角色模型"""
-    __tablename__ = 'roles'
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    name = Column(String(100), unique=True, nullable=False)
-    slug = Column(String(100), unique=True, nullable=False, index=True)
-    description = Column(Text)
-    is_system = Column(Boolean, default=False)  # 是否为系统角色（不可删除）
-    parent_id = Column(Integer, ForeignKey('roles.id'), nullable=True)  # 父角色ID（用于继承）
-    is_active = Column(Boolean, default=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-
-    # 关系
-    permissions = relationship("Permission", secondary=role_permissions, back_populates="roles")
-    parent = relationship("Role", remote_side=[id], backref="children")
-    users = relationship("User", secondary=user_roles, back_populates="roles")
-
-    __table_args__ = (
-        Index('idx_roles_slug', 'slug'),
-        Index('idx_roles_parent', 'parent_id'),
-    )
-
-
-class PermissionAuditLog(Base):
-    """权限审计日志"""
-    __tablename__ = 'permission_audit_logs'
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    user_id = Column(Integer, ForeignKey('users.id'))
-    action = Column(String(50), nullable=False)  # grant, revoke, create_role, delete_role等
-    resource_type = Column(String(50))  # role, permission
-    resource_id = Column(Integer)
-    details = Column(Text)  # JSON格式的详细信息
-    ip_address = Column(String(45))
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-    __table_args__ = (
-        Index('idx_permission_audit_user', 'user_id'),
-        Index('idx_permission_audit_action', 'action'),
-        Index('idx_permission_audit_time', 'created_at'),
-    )
 
 
 class RBACService:

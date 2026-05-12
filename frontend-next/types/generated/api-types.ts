@@ -1,7 +1,7 @@
 /**
  * API 类型定义
  * 由 routes.yaml 自动生成 - 请勿手动修改
- * 生成时间：2026-05-11 15:21:29
+ * 生成时间：2026-05-12 10:53:12
  */
 
 export interface User {
@@ -684,9 +684,10 @@ export interface Role {
     id: any;
     name: string;
     slug: string;
-    description?: string;
-    permissions?: string;
+    description?: any;
     is_system: boolean;
+    parent_id?: any;
+    is_active: boolean;
     created_at: string;
     updated_at: string;
 }
@@ -830,18 +831,17 @@ export interface Site {
     id: any;
     name: string;
     slug: string;
-    domain?: string;
-    path?: string;
-    is_active: boolean;
-    is_default: boolean;
-    settings?: any;
+    domain: string;
+    additional_domains?: any;
+    description?: any;
+    logo_url?: string;
+    favicon_url?: string;
     theme: string;
     language: string;
     timezone: string;
-    title?: string;
-    description?: any;
-    keywords?: string;
-    admin_user_id?: any;
+    settings?: any;
+    is_active: boolean;
+    is_default: boolean;
     created_at: string;
     updated_at: string;
 }
@@ -1097,6 +1097,124 @@ export interface WebhookDelivery {
     success: boolean;
     retry_count: number;
     next_retry_at?: string;
+    created_at: string;
+}
+
+export interface AuditLog {
+    id: any;
+    user_id?: any;
+    user_name?: string;
+    action: string;
+    level: string;
+    resource_type?: string;
+    resource_id?: string;
+    ip_address?: string;
+    user_agent?: any;
+    description?: any;
+    details?: any;
+    created_at: string;
+}
+
+export interface Permission {
+    id: any;
+    name: string;
+    code: string;
+    description?: any;
+    resource_type?: string;
+    action?: string;
+    is_active: boolean;
+    created_at: string;
+}
+
+export interface PermissionAuditLog {
+    id: any;
+    user_id?: any;
+    action: string;
+    resource_type?: string;
+    resource_id?: any;
+    details?: any;
+    ip_address?: string;
+    created_at: string;
+}
+
+export interface Workspace {
+    id: any;
+    name: string;
+    slug: string;
+    description?: any;
+    owner_id: any;
+    is_active: boolean;
+    settings?: any;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface WorkspaceMember {
+    id: any;
+    workspace_id: any;
+    user_id: any;
+    role: string;
+    joined_at: string;
+    is_active: boolean;
+}
+
+export interface Task {
+    id: any;
+    workspace_id: any;
+    title: string;
+    description?: any;
+    status: string;
+    priority: string;
+    assigned_to?: any;
+    created_by: any;
+    due_date?: string;
+    completed_at?: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface ApprovalRecord {
+    id: any;
+    content_type: string;
+    content_id: any;
+    applicant_id: any;
+    current_level: number;
+    max_level: number;
+    status: string;
+    created_at: string;
+    updated_at: string;
+    completed_at?: string;
+}
+
+export interface ApprovalStep {
+    id: any;
+    record_id: any;
+    level: number;
+    approver_id?: any;
+    action?: string;
+    comment?: any;
+    reviewed_at?: string;
+    created_at: string;
+}
+
+export interface SiteUser {
+    id: any;
+    site_id: any;
+    user_id: any;
+    role: string;
+    is_active: boolean;
+    joined_at: string;
+}
+
+export interface ContentMapping {
+    id: any;
+    source_site_id: any;
+    target_site_id: any;
+    content_type: string;
+    source_content_id: any;
+    target_content_id?: any;
+    sync_mode: string;
+    last_synced_at?: string;
     created_at: string;
 }
 

@@ -7,13 +7,14 @@ from typing import Dict, Any, Optional, List
 from datetime import datetime
 from enum import Enum
 
-from sqlalchemy import Column, Integer, String, DateTime, Text, Boolean, ForeignKey, Index
-from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import relationship
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+from sqlalchemy.sql.functions import func
+
+from shared.models.approval_record import ApprovalRecord
+from shared.models.approval_step import ApprovalStep
 
 logger = logging.getLogger(__name__)
-
-Base = declarative_base()
 
 
 class ApprovalStatus(Enum):
@@ -22,63 +23,6 @@ class ApprovalStatus(Enum):
     APPROVED = "approved"  # 已通过
     REJECTED = "rejected"  # 已拒绝
     CANCELLED = "cancelled"  # 已取消
-
-
-class ApprovalLevel(Enum):
-    """审批级别"""
-    LEVEL_1 = 1  # 一级审批
-    LEVEL_2 = 2  # 二级审批
-    LEVEL_3 = 3  # 三级审批
-
-
-class ApprovalRecord(Base):
-    """审批记录模型"""
-    __tablename__ = 'approval_records'
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    content_type = Column(String(50), nullable=False)  # article, comment, etc.
-    content_id = Column(Integer, nullable=False)
-    applicant_id = Column(Integer, ForeignKey('users.id'), nullable=False)
-    current_level = Column(Integer, default=1)
-    max_level = Column(Integer, default=1)
-    status = Column(String(20), default=ApprovalStatus.PENDING.value)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
-    completed_at = Column(DateTime)
-
-    # 关系
-    approvals = relationship("ApprovalStep", back_populates="record")
-    applicant = relationship("User", foreign_keys=[applicant_id])
-
-    __table_args__ = (
-        Index('idx_approval_records_content', 'content_type', 'content_id'),
-        Index('idx_approval_records_applicant', 'applicant_id'),
-        Index('idx_approval_records_status', 'status'),
-    )
-
-
-class ApprovalStep(Base):
-    """审批步骤模型"""
-    __tablename__ = 'approval_steps'
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    record_id = Column(Integer, ForeignKey('approval_records.id'), nullable=False)
-    level = Column(Integer, nullable=False)
-    approver_id = Column(Integer, ForeignKey('users.id'))
-    action = Column(String(20))  # approved, rejected
-    comment = Column(Text)
-    reviewed_at = Column(DateTime)
-    created_at = Column(DateTime, default=datetime.utcnow)
-
-    # 关系
-    record = relationship("ApprovalRecord", back_populates="approvals")
-    approver = relationship("User", foreign_keys=[approver_id])
-
-    __table_args__ = (
-        Index('idx_approval_steps_record', 'record_id'),
-        Index('idx_approval_steps_approver', 'approver_id'),
-        Index('idx_approval_steps_level', 'level'),
-    )
 
 
 class ContentApprovalService:

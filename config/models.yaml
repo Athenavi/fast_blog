@@ -4723,3 +4723,700 @@ models:
         columns: [ created_at ]
         order: DESC
         comment: "创建时间索引"
+
+  # ============================================================================
+  # 审计日志模型
+  # ============================================================================
+  AuditLog:
+    description: 审计日志模型
+    properties:
+      id:
+        type: bigint
+        description: 日志 ID
+      user_id:
+        type: bigint
+        nullable: true
+        description: 用户 ID
+        index: true
+      user_name:
+        type: string
+        maxLength: 255
+        nullable: true
+        description: 用户名
+      action:
+        type: string
+        maxLength: 50
+        description: 操作类型
+        index: true
+      level:
+        type: string
+        maxLength: 20
+        description: 日志级别
+        index: true
+      resource_type:
+        type: string
+        maxLength: 100
+        nullable: true
+        description: 资源类型
+        index: true
+      resource_id:
+        type: string
+        maxLength: 100
+        nullable: true
+        description: 资源 ID
+        index: true
+      ip_address:
+        type: string
+        maxLength: 45
+        nullable: true
+        description: IP 地址
+      user_agent:
+        type: text
+        nullable: true
+        description: 用户代理
+      description:
+        type: text
+        nullable: true
+        description: 操作描述
+      details:
+        type: text
+        nullable: true
+        description: 详细信息（JSON格式）
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+        index: true
+    orm: true
+    table: audit_logs
+    indexes:
+      - name: idx_audit_logs_user_action_time
+        columns: [ user_id, action, created_at ]
+        comment: "用户操作时间索引"
+      - name: idx_audit_logs_level_time
+        columns: [ level, created_at ]
+        comment: "级别时间索引"
+      - name: idx_audit_logs_resource
+        columns: [ resource_type, resource_id ]
+        comment: "资源索引"
+
+  # ============================================================================
+  # RBAC 权限模型
+  # ============================================================================
+  Permission:
+    description: 权限模型
+    properties:
+      id:
+        type: bigint
+        description: 权限 ID
+      name:
+        type: string
+        maxLength: 100
+        unique: true
+        description: 权限名称
+      code:
+        type: string
+        maxLength: 100
+        unique: true
+        description: 权限代码
+        index: true
+      description:
+        type: text
+        nullable: true
+        description: 权限描述
+      resource_type:
+        type: string
+        maxLength: 50
+        nullable: true
+        description: 资源类型
+      action:
+        type: string
+        maxLength: 20
+        nullable: true
+        description: 操作类型
+      is_active:
+        type: boolean
+        default: true
+        description: 是否激活
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+    orm: true
+    table: permissions
+    indexes:
+      - name: idx_permissions_code
+        columns: [ code ]
+        comment: "权限代码索引"
+      - name: idx_permissions_resource
+        columns: [ resource_type, action ]
+        comment: "资源操作索引"
+
+  Role:
+    description: 角色模型
+    properties:
+      id:
+        type: bigint
+        description: 角色 ID
+      name:
+        type: string
+        maxLength: 100
+        unique: true
+        description: 角色名称
+      slug:
+        type: string
+        maxLength: 100
+        unique: true
+        description: 角色标识
+        index: true
+      description:
+        type: text
+        nullable: true
+        description: 角色描述
+      is_system:
+        type: boolean
+        default: false
+        description: 是否为系统角色
+      parent_id:
+        type: bigint
+        nullable: true
+        description: 父角色 ID
+        foreignKey: Role
+        index: true
+      is_active:
+        type: boolean
+        default: true
+        description: 是否激活
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    orm: true
+    table: roles
+    indexes:
+      - name: idx_roles_slug
+        columns: [ slug ]
+        comment: "角色标识索引"
+      - name: idx_roles_parent
+        columns: [ parent_id ]
+        comment: "父角色索引"
+
+  PermissionAuditLog:
+    description: 权限审计日志模型
+    properties:
+      id:
+        type: bigint
+        description: 审计日志 ID
+      user_id:
+        type: bigint
+        nullable: true
+        description: 用户 ID
+        foreignKey: User
+        index: true
+      action:
+        type: string
+        maxLength: 50
+        description: 操作类型
+        index: true
+      resource_type:
+        type: string
+        maxLength: 50
+        nullable: true
+        description: 资源类型
+      resource_id:
+        type: bigint
+        nullable: true
+        description: 资源 ID
+      details:
+        type: text
+        nullable: true
+        description: 详细信息（JSON格式）
+      ip_address:
+        type: string
+        maxLength: 45
+        nullable: true
+        description: IP 地址
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+        index: true
+    orm: true
+    table: permission_audit_logs
+    indexes:
+      - name: idx_permission_audit_user
+        columns: [ user_id ]
+        comment: "用户索引"
+      - name: idx_permission_audit_action
+        columns: [ action ]
+        comment: "操作索引"
+      - name: idx_permission_audit_time
+        columns: [ created_at ]
+        comment: "时间索引"
+
+  # ============================================================================
+  # 团队协作模型
+  # ============================================================================
+  Workspace:
+    description: 团队工作区模型
+    properties:
+      id:
+        type: bigint
+        description: 工作区 ID
+      name:
+        type: string
+        maxLength: 255
+        description: 工作区名称
+      slug:
+        type: string
+        maxLength: 255
+        unique: true
+        description: 工作区标识
+        index: true
+      description:
+        type: text
+        nullable: true
+        description: 工作区描述
+      owner_id:
+        type: bigint
+        description: 所有者 ID
+        foreignKey: User
+        index: true
+      is_active:
+        type: boolean
+        default: true
+        description: 是否激活
+      settings:
+        type: text
+        nullable: true
+        description: 工作区设置（JSON格式）
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    orm: true
+    table: workspaces
+    indexes:
+      - name: idx_workspaces_slug
+        columns: [ slug ]
+        comment: "工作区标识索引"
+      - name: idx_workspaces_owner
+        columns: [ owner_id ]
+        comment: "所有者索引"
+
+  WorkspaceMember:
+    description: 工作区成员模型
+    properties:
+      id:
+        type: bigint
+        description: 成员 ID
+      workspace_id:
+        type: bigint
+        description: 工作区 ID
+        foreignKey: Workspace
+        index: true
+      user_id:
+        type: bigint
+        description: 用户 ID
+        foreignKey: User
+        index: true
+      role:
+        type: string
+        maxLength: 20
+        default: viewer
+        description: 角色（owner/admin/editor/viewer）
+      joined_at:
+        type: string
+        format: date-time
+        description: 加入时间
+      is_active:
+        type: boolean
+        default: true
+        description: 是否激活
+    orm: true
+    table: workspace_members
+    indexes:
+      - name: idx_workspace_members_workspace
+        columns: [ workspace_id ]
+        comment: "工作区索引"
+      - name: idx_workspace_members_user
+        columns: [ user_id ]
+        comment: "用户索引"
+      - name: idx_workspace_members_unique
+        columns: [ workspace_id, user_id ]
+        unique: true
+        comment: "唯一成员索引"
+
+  Task:
+    description: 任务模型
+    properties:
+      id:
+        type: bigint
+        description: 任务 ID
+      workspace_id:
+        type: bigint
+        description: 工作区 ID
+        foreignKey: Workspace
+        index: true
+      title:
+        type: string
+        maxLength: 500
+        description: 任务标题
+      description:
+        type: text
+        nullable: true
+        description: 任务描述
+      status:
+        type: string
+        maxLength: 20
+        default: pending
+        description: 状态（pending/in_progress/completed/cancelled）
+        index: true
+      priority:
+        type: string
+        maxLength: 20
+        default: medium
+        description: 优先级（low/medium/high/urgent）
+      assigned_to:
+        type: bigint
+        nullable: true
+        description: 分配给用户 ID
+        foreignKey: User
+        index: true
+      created_by:
+        type: bigint
+        description: 创建者 ID
+        foreignKey: User
+      due_date:
+        type: string
+        format: date-time
+        nullable: true
+        description: 截止日期
+      completed_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: 完成时间
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    orm: true
+    table: tasks
+    indexes:
+      - name: idx_tasks_workspace
+        columns: [ workspace_id ]
+        comment: "工作区索引"
+      - name: idx_tasks_status
+        columns: [ status ]
+        comment: "状态索引"
+      - name: idx_tasks_assigned
+        columns: [ assigned_to ]
+        comment: "分配用户索引"
+
+  # ============================================================================
+  # 内容审批模型
+  # ============================================================================
+  ApprovalRecord:
+    description: 审批记录模型
+    properties:
+      id:
+        type: bigint
+        description: 审批记录 ID
+      content_type:
+        type: string
+        maxLength: 50
+        description: 内容类型
+      content_id:
+        type: bigint
+        description: 内容 ID
+      applicant_id:
+        type: bigint
+        description: 申请人 ID
+        foreignKey: User
+        index: true
+      current_level:
+        type: integer
+        default: 1
+        description: 当前审批级别
+      max_level:
+        type: integer
+        default: 1
+        description: 最大审批级别
+      status:
+        type: string
+        maxLength: 20
+        default: pending
+        description: 状态（pending/approved/rejected/cancelled）
+        index: true
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+      completed_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: 完成时间
+    orm: true
+    table: approval_records
+    indexes:
+      - name: idx_approval_records_content
+        columns: [ content_type, content_id ]
+        comment: "内容索引"
+      - name: idx_approval_records_applicant
+        columns: [ applicant_id ]
+        comment: "申请人索引"
+      - name: idx_approval_records_status
+        columns: [ status ]
+        comment: "状态索引"
+
+  ApprovalStep:
+    description: 审批步骤模型
+    properties:
+      id:
+        type: bigint
+        description: 审批步骤 ID
+      record_id:
+        type: bigint
+        description: 审批记录 ID
+        foreignKey: ApprovalRecord
+        index: true
+      level:
+        type: integer
+        description: 审批级别
+        index: true
+      approver_id:
+        type: bigint
+        nullable: true
+        description: 审批人 ID
+        foreignKey: User
+        index: true
+      action:
+        type: string
+        maxLength: 20
+        nullable: true
+        description: 操作（approved/rejected）
+      comment:
+        type: text
+        nullable: true
+        description: 审批意见
+      reviewed_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: 审核时间
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+    orm: true
+    table: approval_steps
+    indexes:
+      - name: idx_approval_steps_record
+        columns: [ record_id ]
+        comment: "审批记录索引"
+      - name: idx_approval_steps_approver
+        columns: [ approver_id ]
+        comment: "审批人索引"
+      - name: idx_approval_steps_level
+        columns: [ level ]
+        comment: "级别索引"
+
+  # ============================================================================
+  # 多站点管理模型
+  # ============================================================================
+  Site:
+    description: 站点模型
+    properties:
+      id:
+        type: bigint
+        description: 站点 ID
+      name:
+        type: string
+        maxLength: 255
+        description: 站点名称
+      slug:
+        type: string
+        maxLength: 100
+        unique: true
+        description: 站点标识
+        index: true
+      domain:
+        type: string
+        maxLength: 255
+        unique: true
+        description: 主域名
+        index: true
+      additional_domains:
+        type: text
+        nullable: true
+        description: 附加域名列表（JSON格式）
+      description:
+        type: text
+        nullable: true
+        description: 站点描述
+      logo_url:
+        type: string
+        maxLength: 500
+        nullable: true
+        description: Logo URL
+      favicon_url:
+        type: string
+        maxLength: 500
+        nullable: true
+        description: Favicon URL
+      theme:
+        type: string
+        maxLength: 100
+        default: default
+        description: 主题
+      language:
+        type: string
+        maxLength: 10
+        default: en
+        description: 语言
+      timezone:
+        type: string
+        maxLength: 50
+        default: UTC
+        description: 时区
+      settings:
+        type: text
+        nullable: true
+        description: 站点设置（JSON格式）
+      is_active:
+        type: boolean
+        default: true
+        description: 是否激活
+      is_default:
+        type: boolean
+        default: false
+        description: 是否为默认站点
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    orm: true
+    table: sites
+    indexes:
+      - name: idx_sites_slug
+        columns: [ slug ]
+        comment: "站点标识索引"
+      - name: idx_sites_domain
+        columns: [ domain ]
+        comment: "域名索引"
+
+  SiteUser:
+    description: 站点用户关联模型
+    properties:
+      id:
+        type: bigint
+        description: 关联 ID
+      site_id:
+        type: bigint
+        description: 站点 ID
+        foreignKey: Site
+        index: true
+      user_id:
+        type: bigint
+        description: 用户 ID
+        foreignKey: User
+        index: true
+      role:
+        type: string
+        maxLength: 50
+        default: subscriber
+        description: 在该站点的角色
+      is_active:
+        type: boolean
+        default: true
+        description: 是否激活
+      joined_at:
+        type: string
+        format: date-time
+        description: 加入时间
+    orm: true
+    table: site_users
+    indexes:
+      - name: idx_site_users_site
+        columns: [ site_id ]
+        comment: "站点索引"
+      - name: idx_site_users_user
+        columns: [ user_id ]
+        comment: "用户索引"
+      - name: idx_site_users_unique
+        columns: [ site_id, user_id ]
+        unique: true
+        comment: "唯一关联索引"
+
+  ContentMapping:
+    description: 内容映射模型
+    properties:
+      id:
+        type: bigint
+        description: 映射 ID
+      source_site_id:
+        type: bigint
+        description: 源站点 ID
+        foreignKey: Site
+        index: true
+      target_site_id:
+        type: bigint
+        description: 目标站点 ID
+        foreignKey: Site
+        index: true
+      content_type:
+        type: string
+        maxLength: 50
+        description: 内容类型
+      source_content_id:
+        type: bigint
+        description: 源内容 ID
+      target_content_id:
+        type: bigint
+        nullable: true
+        description: 目标内容 ID
+      sync_mode:
+        type: string
+        maxLength: 20
+        default: manual
+        description: 同步模式（manual/auto）
+      last_synced_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: 最后同步时间
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+    orm: true
+    table: content_mappings
+    indexes:
+      - name: idx_content_mapping_source
+        columns: [ source_site_id, content_type, source_content_id ]
+        comment: "源内容索引"
+      - name: idx_content_mapping_target
+        columns: [ target_site_id, content_type, target_content_id ]
+        comment: "目标内容索引"

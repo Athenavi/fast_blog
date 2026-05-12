@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - Site
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-11 15:21:29
+生成时间：2026-05-12 10:53:12
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Index
@@ -9,51 +9,47 @@ from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateT
 from . import Base  # 使用统一的 Base
 
 
+
 class Site(Base):
-    """站点模型（多站点支持）模型"""
+    """站点模型模型"""
     __tablename__ = 'sites'
 
 
     __table_args__ = (
+        Index('idx_sites_slug', 'slug'),
         Index('idx_sites_domain', 'domain'),
-        Index('idx_sites_slug', 'slug', unique=True),
-        Index('idx_sites_is_active', 'is_active'),
-        Index('idx_sites_is_default', 'is_default'),
     )
 
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='站点 ID')
 
-    name = Column(String(200), nullable=True, doc='站点名称')
+    name = Column(String(255), nullable=True, doc='站点名称')
 
     slug = Column(String(100), unique=True, nullable=True, doc='站点标识')
 
-    domain = Column(String(255), index=True, nullable=True, doc='域名（如 example.com）')
+    domain = Column(String(255), unique=True, nullable=True, doc='主域名')
 
-    path = Column(String(255), default='/', nullable=True, doc='路径前缀（如 /site1）')
+    additional_domains = Column(Text, nullable=True, doc='附加域名列表（JSON格式）')
+
+    description = Column(Text, nullable=True, doc='站点描述')
+
+    logo_url = Column(String(500), nullable=True, doc='Logo URL')
+
+    favicon_url = Column(String(500), nullable=True, doc='Favicon URL')
+
+    theme = Column(String(100), default='default', doc='主题')
+
+    language = Column(String(10), default='en', doc='语言')
+
+    timezone = Column(String(50), default='UTC', doc='时区')
+
+    settings = Column(Text, nullable=True, doc='站点设置（JSON格式）')
+
 
     is_active = Column(Boolean, default=True, doc='是否激活')
 
 
     is_default = Column(Boolean, default=False, doc='是否为默认站点')
-
-
-    settings = Column(String(255), nullable=True, doc='站点设置（JSON格式）')
-
-    theme = Column(String(100), default='default', doc='主题slug')
-
-    language = Column(String(10), default='zh-CN', doc='语言代码')
-
-    timezone = Column(String(50), default='Asia/Shanghai', doc='时区')
-
-    title = Column(String(200), nullable=True, doc='站点标题')
-
-    description = Column(Text, nullable=True, doc='站点描述')
-
-
-    keywords = Column(String(500), nullable=True, doc='关键词')
-
-    admin_user_id = Column(BigInteger, nullable=True, doc='站点管理员ID')
 
 
     created_at = Column(DateTime, doc='创建时间')
@@ -72,17 +68,16 @@ class Site(Base):
             'name': self.name,
             'slug': self.slug,
             'domain': self.domain,
-            'path': self.path,
-            'is_active': self.is_active,
-            'is_default': self.is_default,
-            'settings': self.settings,
+            'additional_domains': self.additional_domains,
+            'description': self.description,
+            'logo_url': self.logo_url,
+            'favicon_url': self.favicon_url,
             'theme': self.theme,
             'language': self.language,
             'timezone': self.timezone,
-            'title': self.title,
-            'description': self.description,
-            'keywords': self.keywords,
-            'admin_user_id': self.admin_user_id,
+            'settings': self.settings,
+            'is_active': self.is_active,
+            'is_default': self.is_default,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }

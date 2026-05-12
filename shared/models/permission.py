@@ -1,5 +1,5 @@
 """
-SQLAlchemy 模型定义 - AdPlacement
+SQLAlchemy 模型定义 - Permission
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
 生成时间：2026-05-12 10:53:12
 """
@@ -9,41 +9,30 @@ from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateT
 from . import Base  # 使用统一的 Base
 
 
-class AdPlacement(Base):
-    """广告位模型模型"""
-    __tablename__ = 'ad_placements'
-
+class Permission(Base):
+    """权限模型模型"""
+    __tablename__ = 'permissions'
 
     __table_args__ = (
-        Index('idx_ad_placements_code', 'code', unique=True),
-        Index('idx_ad_placements_is_active', 'is_active'),
+        Index('idx_permissions_code', 'code'),
+        Index('idx_permissions_resource', 'resource_type', 'action'),
     )
 
+    id = Column(BigInteger, primary_key=True, autoincrement=True, doc='权限 ID')
 
-    id = Column(BigInteger, primary_key=True, autoincrement=True, doc='广告位 ID')
+    name = Column(String(100), unique=True, nullable=True, doc='权限名称')
 
-    name = Column(String(100), nullable=True, doc='广告位名称')
+    code = Column(String(100), unique=True, nullable=True, doc='权限代码')
 
-    code = Column(String(50), unique=True, nullable=True, doc='广告位代码')
+    description = Column(Text, nullable=True, doc='权限描述')
 
-    description = Column(Text, nullable=True, doc='广告位描述')
+    resource_type = Column(String(50), nullable=True, doc='资源类型')
 
-
-    position = Column(String(50), nullable=True, doc='广告位置 (header, sidebar, footer, content等)')
-
-    width = Column(Integer, nullable=True, doc='广告位宽度')
-
-
-    height = Column(Integer, nullable=True, doc='广告位高度')
-
+    action = Column(String(20), nullable=True, doc='操作类型')
 
     is_active = Column(Boolean, default=True, doc='是否激活')
 
-
     created_at = Column(DateTime, doc='创建时间')
-
-    updated_at = Column(DateTime, doc='更新时间')
-
 
     def to_dict(self, exclude_sensitive=True):
         """转换为字典
@@ -56,12 +45,10 @@ class AdPlacement(Base):
             'name': self.name,
             'code': self.code,
             'description': self.description,
-            'position': self.position,
-            'width': self.width,
-            'height': self.height,
+            'resource_type': self.resource_type,
+            'action': self.action,
             'is_active': self.is_active,
             'created_at': self.created_at.isoformat() if self.created_at else None,
-            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }
 
         if not exclude_sensitive:
@@ -73,6 +60,4 @@ class AdPlacement(Base):
 
     def __repr__(self):
         """字符串表示"""
-        return f'<AdPlacement id={self.id}>'
-
-
+        return f'<Permission id={self.id}>'

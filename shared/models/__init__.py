@@ -2,6 +2,7 @@ from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
 
+
 from .user import User
 from .article import Article
 from .category import Category
@@ -77,6 +78,16 @@ from .report_history import ReportHistory
 from .article_annotation import ArticleAnnotation
 from .webhook import Webhook
 from .webhook_delivery import WebhookDelivery
+from .audit_log import AuditLog
+from .permission import Permission
+from .permission_audit_log import PermissionAuditLog
+from .workspace import Workspace
+from .workspace_member import WorkspaceMember
+from .task import Task
+from .approval_record import ApprovalRecord
+from .approval_step import ApprovalStep
+from .site_user import SiteUser
+from .content_mapping import ContentMapping
 
 # ==================== 自动生成的导入 - 由 routes.yaml 管理 ====================
 # 此部分由脚本自动生成 - 请勿手动修改
@@ -157,6 +168,16 @@ __all__ = [
     'ReportHistory',
     'ArticleAnnotation',
     'Webhook',
-    'WebhookDelivery'
+    'WebhookDelivery',
+    'AuditLog',
+    'Permission',
+    'PermissionAuditLog',
+    'Workspace',
+    'WorkspaceMember',
+    'Task',
+    'ApprovalRecord',
+    'ApprovalStep',
+    'SiteUser',
+    'ContentMapping'
 ]
 # ============================================================================
