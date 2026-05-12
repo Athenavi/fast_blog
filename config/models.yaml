@@ -2808,131 +2808,6 @@ models:
       - name: idx_comments_spam_score
         columns: [ spam_score ]
         comment: "垃圾评论检测索引"
-  Role:
-    description: 角色模型
-    properties:
-      id:
-        type: bigint
-        description: 角色 ID
-      name:
-        type: string
-        maxLength: 100
-        description: 角色名称
-      slug:
-        type: string
-        maxLength: 100
-        unique: true
-        description: 角色标识（唯一）
-      description:
-        type: string
-        nullable: true
-        description: 角色描述
-      permissions:
-        type: string
-        nullable: true
-        description: 权限列表（JSON格式）
-      is_system:
-        type: boolean
-        default: false
-        description: 是否为系统角色（系统角色不可删除）
-      created_at:
-        type: string
-        format: date-time
-        description: 创建时间
-      updated_at:
-        type: string
-        format: date-time
-        description: 更新时间
-    orm: true
-    table: roles
-    indexes:
-      - name: idx_roles_slug
-        columns: [ slug ]
-        unique: true
-      - name: idx_roles_is_system
-        columns: [ is_system ]
-  Capability:
-    description: 权限能力模型
-    properties:
-      id:
-        type: bigint
-        description: 权限 ID
-      code:
-        type: string
-        maxLength: 100
-        unique: true
-        description: 权限代码（唯一标识）
-      name:
-        type: string
-        maxLength: 255
-        description: 权限名称
-      description:
-        type: string
-        nullable: true
-        description: 权限描述
-      resource_type:
-        type: string
-        nullable: true
-        maxLength: 100
-        description: 资源类型（article, user, category等）
-      action:
-        type: string
-        nullable: true
-        maxLength: 50
-        description: 操作类型（create, read, update, delete）
-      is_active:
-        type: boolean
-        default: true
-        description: 是否激活
-      created_at:
-        type: string
-        format: date-time
-        description: 创建时间
-      updated_at:
-        type: string
-        format: date-time
-        description: 更新时间
-    orm: true
-    table: capabilities
-    indexes:
-      - name: idx_capabilities_code
-        columns: [ code ]
-        unique: true
-      - name: idx_capabilities_resource
-        columns: [ resource_type, action ]
-  UserRole:
-    description: 用户角色关联模型
-    properties:
-      id:
-        type: bigint
-        description: 关联 ID
-      user_id:
-        type: bigint
-        description: 用户 ID
-        foreignKey: User
-      role_id:
-        type: bigint
-        description: 角色 ID
-        foreignKey: Role
-      assigned_by:
-        type: bigint
-        nullable: true
-        description: 分配者用户 ID
-        foreignKey: User
-      created_at:
-        type: string
-        format: date-time
-        description: 分配时间
-    orm: true
-    table: user_role_assignments
-    indexes:
-      - name: idx_user_roles_user_id
-        columns: [ user_id ]
-      - name: idx_user_roles_role_id
-        columns: [ role_id ]
-      - name: idx_user_roles_unique
-        columns: [ user_id, role_id ]
-        unique: true
   OAuthAccount:
     description: OAuth 第三方登录账号关联模型
     properties:
@@ -3487,105 +3362,6 @@ models:
       - name: idx_order_items_product
         columns: [ product_id ]
         comment: "商品索引"
-
-  Site:
-    description: 站点模型（多站点支持）
-    properties:
-      id:
-        type: bigint
-        description: 站点 ID
-      name:
-        type: string
-        maxLength: 200
-        description: 站点名称
-      slug:
-        type: string
-        maxLength: 100
-        unique: true
-        index: true
-        description: 站点标识
-      domain:
-        type: string
-        maxLength: 255
-        nullable: true
-        index: true
-        description: 域名（如 example.com）
-      path:
-        type: string
-        maxLength: 255
-        nullable: true
-        default: /
-        description: 路径前缀（如 /site1）
-      is_active:
-        type: boolean
-        default: true
-        description: 是否激活
-      is_default:
-        type: boolean
-        default: false
-        description: 是否为默认站点
-      settings:
-        type: json
-        nullable: true
-        description: 站点设置（JSON格式）
-      theme:
-        type: string
-        maxLength: 100
-        default: default
-        description: 主题slug
-      language:
-        type: string
-        maxLength: 10
-        default: zh-CN
-        description: 语言代码
-      timezone:
-        type: string
-        maxLength: 50
-        default: Asia/Shanghai
-        description: 时区
-      title:
-        type: string
-        maxLength: 200
-        nullable: true
-        description: 站点标题
-      description:
-        type: text
-        nullable: true
-        description: 站点描述
-      keywords:
-        type: string
-        maxLength: 500
-        nullable: true
-        description: 关键词
-      admin_user_id:
-        type: bigint
-        nullable: true
-        description: 站点管理员ID
-      created_at:
-        type: string
-        format: date-time
-        description: 创建时间
-      updated_at:
-        type: string
-        format: date-time
-        description: 更新时间
-    orm: true
-    table: sites
-    indexes:
-      - name: idx_sites_domain
-        columns: [ domain ]
-        comment: "域名索引"
-      - name: idx_sites_slug
-        columns: [ slug ]
-        unique: true
-        comment: "slug唯一索引"
-      - name: idx_sites_is_active
-        columns: [ is_active ]
-        comment: "激活状态索引"
-      - name: idx_sites_is_default
-        columns: [ is_default ]
-        comment: "默认站点索引"
-
   # ============================================================================
   # 内容审核系统 - 敏感词模型
   # ============================================================================
@@ -4803,55 +4579,6 @@ models:
   # ============================================================================
   # RBAC 权限模型
   # ============================================================================
-  Permission:
-    description: 权限模型
-    properties:
-      id:
-        type: bigint
-        description: 权限 ID
-      name:
-        type: string
-        maxLength: 100
-        unique: true
-        description: 权限名称
-      code:
-        type: string
-        maxLength: 100
-        unique: true
-        description: 权限代码
-        index: true
-      description:
-        type: text
-        nullable: true
-        description: 权限描述
-      resource_type:
-        type: string
-        maxLength: 50
-        nullable: true
-        description: 资源类型
-      action:
-        type: string
-        maxLength: 20
-        nullable: true
-        description: 操作类型
-      is_active:
-        type: boolean
-        default: true
-        description: 是否激活
-      created_at:
-        type: string
-        format: date-time
-        description: 创建时间
-    orm: true
-    table: permissions
-    indexes:
-      - name: idx_permissions_code
-        columns: [ code ]
-        comment: "权限代码索引"
-      - name: idx_permissions_resource
-        columns: [ resource_type, action ]
-        comment: "资源操作索引"
-
   Role:
     description: 角色模型
     properties:
@@ -4861,28 +4588,25 @@ models:
       name:
         type: string
         maxLength: 100
-        unique: true
         description: 角色名称
       slug:
         type: string
         maxLength: 100
         unique: true
-        description: 角色标识
-        index: true
+        description: 角色标识（唯一）
       description:
-        type: text
+        type: string
         nullable: true
         description: 角色描述
       is_system:
         type: boolean
         default: false
-        description: 是否为系统角色
+        description: 是否为系统角色（系统角色不可删除）
       parent_id:
         type: bigint
         nullable: true
-        description: 父角色 ID
+        description: 父角色 ID（用于权限继承）
         foreignKey: Role
-        index: true
       is_active:
         type: boolean
         default: true
@@ -4900,11 +4624,131 @@ models:
     indexes:
       - name: idx_roles_slug
         columns: [ slug ]
-        comment: "角色标识索引"
+        unique: true
+      - name: idx_roles_is_system
+        columns: [ is_system ]
       - name: idx_roles_parent
         columns: [ parent_id ]
-        comment: "父角色索引"
-
+    relationships:
+      capabilities:
+        target: Capability
+        secondary: role_capabilities
+        back_populates: roles
+  Capability:
+    description: 权限能力模型
+    properties:
+      id:
+        type: bigint
+        description: 权限 ID
+      code:
+        type: string
+        maxLength: 100
+        unique: true
+        description: 权限代码（唯一标识）
+      name:
+        type: string
+        maxLength: 255
+        description: 权限名称
+      description:
+        type: string
+        nullable: true
+        description: 权限描述
+      resource_type:
+        type: string
+        nullable: true
+        maxLength: 100
+        description: 资源类型（article, user, category等）
+      action:
+        type: string
+        nullable: true
+        maxLength: 50
+        description: 操作类型（create, read, update, delete）
+      is_active:
+        type: boolean
+        default: true
+        description: 是否激活
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    orm: true
+    table: capabilities
+    indexes:
+      - name: idx_capabilities_code
+        columns: [ code ]
+        unique: true
+      - name: idx_capabilities_resource
+        columns: [ resource_type, action ]
+    relationships:
+      roles:
+        target: Role
+        secondary: role_capabilities
+        back_populates: capabilities
+  RoleCapability:
+    description: 角色-权限能力关联模型
+    properties:
+      id:
+        type: bigint
+        description: 关联 ID
+      role_id:
+        type: bigint
+        description: 角色 ID
+        foreignKey: Role
+      capability_id:
+        type: bigint
+        description: 权限能力 ID
+        foreignKey: Capability
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+    orm: true
+    table: role_capabilities
+    indexes:
+      - name: idx_role_capabilities_role
+        columns: [ role_id ]
+      - name: idx_role_capabilities_capability
+        columns: [ capability_id ]
+      - name: idx_role_capabilities_unique
+        columns: [ role_id, capability_id ]
+        unique: true
+  UserRole:
+    description: 用户角色关联模型
+    properties:
+      id:
+        type: bigint
+        description: 关联 ID
+      user_id:
+        type: bigint
+        description: 用户 ID
+        foreignKey: User
+      role_id:
+        type: bigint
+        description: 角色 ID
+        foreignKey: Role
+      assigned_by:
+        type: bigint
+        nullable: true
+        description: 分配者用户 ID
+        foreignKey: User
+      created_at:
+        type: string
+        format: date-time
+        description: 分配时间
+    orm: true
+    table: user_role_assignments
+    indexes:
+      - name: idx_user_roles_user_id
+        columns: [ user_id ]
+      - name: idx_user_roles_role_id
+        columns: [ role_id ]
+      - name: idx_user_roles_unique
+        columns: [ user_id, role_id ]
+        unique: true
   PermissionAuditLog:
     description: 权限审计日志模型
     properties:

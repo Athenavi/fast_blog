@@ -1,7 +1,7 @@
 /**
  * API 类型定义
  * 由 routes.yaml 自动生成 - 请勿手动修改
- * 生成时间：2026-05-12 10:53:12
+ * 生成时间：2026-05-12 11:08:32
  */
 
 export interface User {
@@ -680,38 +680,6 @@ export interface Comment {
     updated_at: string;
 }
 
-export interface Role {
-    id: any;
-    name: string;
-    slug: string;
-    description?: any;
-    is_system: boolean;
-    parent_id?: any;
-    is_active: boolean;
-    created_at: string;
-    updated_at: string;
-}
-
-export interface Capability {
-    id: any;
-    code: string;
-    name: string;
-    description?: string;
-    resource_type?: string;
-    action?: string;
-    is_active: boolean;
-    created_at: string;
-    updated_at: string;
-}
-
-export interface UserRole {
-    id: any;
-    user_id: any;
-    role_id: any;
-    assigned_by?: any;
-    created_at: string;
-}
-
 export interface OAuthAccount {
     id: any;
     user_id: any;
@@ -825,25 +793,6 @@ export interface OrderItem {
     price: any;
     total: any;
     created_at: string;
-}
-
-export interface Site {
-    id: any;
-    name: string;
-    slug: string;
-    domain: string;
-    additional_domains?: any;
-    description?: any;
-    logo_url?: string;
-    favicon_url?: string;
-    theme: string;
-    language: string;
-    timezone: string;
-    settings?: any;
-    is_active: boolean;
-    is_default: boolean;
-    created_at: string;
-    updated_at: string;
 }
 
 export interface SensitiveWord {
@@ -1115,14 +1064,42 @@ export interface AuditLog {
     created_at: string;
 }
 
-export interface Permission {
+export interface Role {
     id: any;
     name: string;
+    slug: string;
+    description?: string;
+    is_system: boolean;
+    parent_id?: any;
+    is_active: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface Capability {
+    id: any;
     code: string;
-    description?: any;
+    name: string;
+    description?: string;
     resource_type?: string;
     action?: string;
     is_active: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface RoleCapability {
+    id: any;
+    role_id: any;
+    capability_id: any;
+    created_at: string;
+}
+
+export interface UserRole {
+    id: any;
+    user_id: any;
+    role_id: any;
+    assigned_by?: any;
     created_at: string;
 }
 
@@ -1195,6 +1172,25 @@ export interface ApprovalStep {
     comment?: any;
     reviewed_at?: string;
     created_at: string;
+}
+
+export interface Site {
+    id: any;
+    name: string;
+    slug: string;
+    domain: string;
+    additional_domains?: any;
+    description?: any;
+    logo_url?: string;
+    favicon_url?: string;
+    theme: string;
+    language: string;
+    timezone: string;
+    settings?: any;
+    is_active: boolean;
+    is_default: boolean;
+    created_at: string;
+    updated_at: string;
 }
 
 export interface SiteUser {

@@ -11,7 +11,7 @@ from enum import Enum
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from shared.models.permission import Permission
+from shared.models.capability import Capability
 from shared.models.role import Role
 from shared.models.permission_audit_log import PermissionAuditLog
 
@@ -91,8 +91,8 @@ class RBACService:
         """初始化系统角色和权限"""
         from sqlalchemy import select
 
-        # 创建基础权限
-        basic_permissions = [
+        # 创建基础权限（使用Capability）
+        basic_capabilities = [
             # 文章权限
             ('article:create', '创建文章', 'article', 'create'),
             ('article:read', '查看文章', 'article', 'read'),
@@ -140,18 +140,18 @@ class RBACService:
             ('theme:customize', '自定义主题', 'theme', 'customize'),
         ]
 
-        for code, desc, resource_type, action in basic_permissions:
-            stmt = select(Permission).where(Permission.code == code)
+        for code, desc, resource_type, action in basic_capabilities:
+            stmt = select(Capability).where(Capability.code == code)
             result = await db.execute(stmt)
             if not result.scalar_one_or_none():
-                perm = Permission(
+                cap = Capability(
                     name=desc,
                     code=code,
                     description=desc,
                     resource_type=resource_type,
                     action=action
                 )
-                db.add(perm)
+                db.add(cap)
 
         await db.commit()
 
@@ -169,21 +169,21 @@ class RBACService:
                 db.add(role)
                 await db.flush()
 
-                # 分配权限
+                # 分配权限（capabilities）
                 if '*' in role_data['permissions']:
                     # 超级管理员：获取所有权限
-                    all_perms_stmt = select(Permission)
-                    all_perms_result = await db.execute(all_perms_stmt)
-                    all_perms = all_perms_result.scalars().all()
-                    role.permissions = list(all_perms)
+                    all_caps_stmt = select(Capability)
+                    all_caps_result = await db.execute(all_caps_stmt)
+                    all_caps = all_caps_result.scalars().all()
+                    role.capabilities = list(all_caps)
                 else:
                     # 其他角色：获取指定权限
-                    for perm_code in role_data['permissions']:
-                        perm_stmt = select(Permission).where(Permission.code == perm_code)
-                        perm_result = await db.execute(perm_stmt)
-                        perm = perm_result.scalar_one_or_none()
-                        if perm:
-                            role.permissions.append(perm)
+                    for cap_code in role_data['permissions']:
+                        cap_stmt = select(Capability).where(Capability.code == cap_code)
+                        cap_result = await db.execute(cap_stmt)
+                        cap = cap_result.scalar_one_or_none()
+                        if cap:
+                            role.capabilities.append(cap)
 
         await db.commit()
         logger.info("System roles and permissions initialized")
@@ -225,23 +225,23 @@ class RBACService:
         db.add(role)
         await db.flush()
 
-        # 如果指定了父角色，继承其权限
+        # 如果指定了父角色，继承其权限（capabilities）
         if parent_role_id:
             parent_stmt = select(Role).where(Role.id == parent_role_id)
             parent_result = await db.execute(parent_stmt)
             parent_role = parent_result.scalar_one_or_none()
 
             if parent_role:
-                role.permissions = list(parent_role.permissions)
+                role.capabilities = list(parent_role.capabilities)
 
-        # 添加指定的权限
+        # 添加指定的权限（capabilities）
         if permission_codes:
             for code in permission_codes:
-                perm_stmt = select(Permission).where(Permission.code == code)
-                perm_result = await db.execute(perm_stmt)
-                perm = perm_result.scalar_one_or_none()
-                if perm:
-                    role.permissions.append(perm)
+                cap_stmt = select(Capability).where(Capability.code == code)
+                cap_result = await db.execute(cap_stmt)
+                cap = cap_result.scalar_one_or_none()
+                if cap:
+                    role.capabilities.append(cap)
 
         await db.commit()
         await db.refresh(role)
@@ -314,22 +314,22 @@ class RBACService:
         if not user:
             return False
 
-        # 检查用户的所有角色
+        # 检查用户的所有角色及其capabilities
         for role in user.roles:
             if not role.is_active:
                 continue
 
-            # 检查角色是否有该权限
-            for perm in role.permissions:
-                if perm.code == permission_code or perm.code == '*':
+            # 检查角色是否有该权限（capability）
+            for cap in role.capabilities:
+                if cap.code == permission_code or cap.code == '*':
                     return True
 
             # 检查父角色（权限继承）
             if role.parent:
                 parent_role = await db.get(Role, role.parent_id)
                 if parent_role and parent_role.is_active:
-                    for perm in parent_role.permissions:
-                        if perm.code == permission_code or perm.code == '*':
+                    for cap in parent_role.capabilities:
+                        if cap.code == permission_code or cap.code == '*':
                             return True
 
         return False
@@ -351,32 +351,32 @@ class RBACService:
         if not user:
             return []
 
-        permissions = set()
+        capabilities = set()
 
         for role in user.roles:
             if not role.is_active:
                 continue
 
-            for perm in role.permissions:
-                permissions.add(perm.code)
+            for cap in role.capabilities:
+                capabilities.add(cap.code)
 
             # 继承父角色权限
             if role.parent_id:
                 parent_role = await db.get(Role, role.parent_id)
                 if parent_role and parent_role.is_active:
-                    for perm in parent_role.permissions:
-                        permissions.add(perm.code)
+                    for cap in parent_role.capabilities:
+                        capabilities.add(cap.code)
 
-        return list(permissions)
+        return list(capabilities)
 
-    async def add_permission_to_role(self, db, role_id: int, permission_code: str):
+    async def add_capability_to_role(self, db, role_id: int, capability_code: str):
         """
-        为角色添加权限
+        为角色添加权限（capability）
         
         Args:
             db: 数据库会话
             role_id: 角色ID
-            permission_code: 权限代码
+            capability_code: 权限代码
         """
         from sqlalchemy import select
 
@@ -387,27 +387,27 @@ class RBACService:
         if role.is_system:
             raise ValueError("Cannot modify system role permissions")
 
-        perm_stmt = select(Permission).where(Permission.code == permission_code)
-        perm_result = await db.execute(perm_stmt)
-        perm = perm_result.scalar_one_or_none()
+        cap_stmt = select(Capability).where(Capability.code == capability_code)
+        cap_result = await db.execute(cap_stmt)
+        cap = cap_result.scalar_one_or_none()
 
-        if not perm:
-            raise ValueError(f"Permission '{permission_code}' not found")
+        if not cap:
+            raise ValueError(f"Capability '{capability_code}' not found")
 
-        if perm not in role.permissions:
-            role.permissions.append(perm)
+        if cap not in role.capabilities:
+            role.capabilities.append(cap)
             await db.commit()
 
-            logger.info(f"Permission {permission_code} added to role {role.slug}")
+            logger.info(f"Capability {capability_code} added to role {role.slug}")
 
-    async def remove_permission_from_role(self, db, role_id: int, permission_code: str):
+    async def remove_capability_from_role(self, db, role_id: int, capability_code: str):
         """
-        从角色移除权限
+        从角色移除权限（capability）
         
         Args:
             db: 数据库会话
             role_id: 角色ID
-            permission_code: 权限代码
+            capability_code: 权限代码
         """
         from sqlalchemy import select
 
@@ -418,15 +418,15 @@ class RBACService:
         if role.is_system:
             raise ValueError("Cannot modify system role permissions")
 
-        perm_stmt = select(Permission).where(Permission.code == permission_code)
-        perm_result = await db.execute(perm_stmt)
-        perm = perm_result.scalar_one_or_none()
+        cap_stmt = select(Capability).where(Capability.code == capability_code)
+        cap_result = await db.execute(cap_stmt)
+        cap = cap_result.scalar_one_or_none()
 
-        if perm and perm in role.permissions:
-            role.permissions.remove(perm)
+        if cap and cap in role.capabilities:
+            role.capabilities.remove(cap)
             await db.commit()
 
-            logger.info(f"Permission {permission_code} removed from role {role.slug}")
+            logger.info(f"Capability {capability_code} removed from role {role.slug}")
 
     async def log_permission_change(self, db, user_id: int, action: str,
                                     resource_type: str, resource_id: int,

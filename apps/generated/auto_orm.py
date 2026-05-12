@@ -1,7 +1,7 @@
 """
 Django ORM 抽象基类定义
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-12 10:53:12
+生成时间：2026-05-12 11:08:32
 """
 
 from django.db import models
@@ -2033,98 +2033,6 @@ class CommentMixin(models.Model):
 
 
 
-class RoleMixin(models.Model):
-    """角色模型 Mixin"""
-
-    # 角色 ID
-    id = models.BigAutoField(
-        '角色 ID'        , primary_key=True)
-    # 角色名称
-    name = models.CharField(
-        '角色名称', max_length=100, unique=True)
-    # 角色标识
-    slug = models.CharField(
-        '角色标识', max_length=100, unique=True)
-    # 角色描述
-    description = models.TextField(
-        '角色描述', blank=True, null=True)
-    # 是否为系统角色
-    is_system = models.BooleanField(
-        '是否为系统角色', default=False)
-    # 父角色 ID
-    parent_id = models.ForeignKey(
-        'self',
-        on_delete=models.CASCADE,
-        verbose_name='父角色 ID', null=True, blank=True)
-    # 是否激活
-    is_active = models.BooleanField(
-        '是否激活', default=True)
-
-    class Meta:
-        abstract = True
-        app_label = 'generated'
-        verbose_name = '角色模型'
-        # 注意：请在具体模型类中设置 db_table = get_table_name("roles")
-
-
-
-class CapabilityMixin(models.Model):
-    """权限能力模型 Mixin"""
-
-    # 权限 ID
-    id = models.BigAutoField(
-        '权限 ID'        , primary_key=True)
-    # 权限代码(唯一标识)
-    code = models.CharField(
-        '权限代码(唯一标识)', max_length=100, unique=True)
-    # 权限名称
-    name = models.CharField(
-        '权限名称', max_length=255)
-    # 权限描述
-    description = models.CharField(
-        '权限描述', max_length=255, blank=True, null=True)
-    # 资源类型(article, user, category等)
-    resource_type = models.CharField(
-        '资源类型(article, user, category等)', max_length=100, blank=True, null=True)
-    # 操作类型(create, read, update, delete)
-    action = models.CharField(
-        '操作类型(create, read, update, delete)', max_length=50, blank=True, null=True)
-    # 是否激活
-    is_active = models.BooleanField(
-        '是否激活',default=True)
-
-    class Meta:
-        abstract = True
-        app_label = 'generated'
-        verbose_name = '权限能力模型'
-        # 注意：请在具体模型类中设置 db_table = get_table_name("capabilities")
-
-
-
-class UserRoleMixin(models.Model):
-    """用户角色关联模型 Mixin"""
-
-    # 关联 ID
-    id = models.BigAutoField(
-        '关联 ID'        , primary_key=True)
-    # 用户 ID
-    user_id = models.IntegerField(
-        '用户 ID (暂为 IntegerField，等待 User 模型实现)',)
-    # 角色 ID
-    role_id = models.IntegerField(
-        '角色 ID (暂为 IntegerField，等待 Role 模型实现)',)
-    # 分配者用户 ID
-    assigned_by = models.IntegerField(
-        '分配者用户 ID (暂为 IntegerField，等待 User 模型实现)',null=True, blank=True)
-
-    class Meta:
-        abstract = True
-        app_label = 'generated'
-        verbose_name = '用户角色关联模型'
-        # 注意：请在具体模型类中设置 db_table = get_table_name("user_role_assignments")
-
-
-
 class OAuthAccountMixin(models.Model):
     """OAuth 第三方登录账号关联模型 Mixin"""
 
@@ -2449,60 +2357,6 @@ class OrderItemMixin(models.Model):
         app_label = 'generated'
         verbose_name = '订单项模型'
         # 注意：请在具体模型类中设置 db_table = get_table_name("order_items")
-
-
-
-class SiteMixin(models.Model):
-    """站点模型 Mixin"""
-
-    # 站点 ID
-    id = models.BigAutoField(
-        '站点 ID'        , primary_key=True)
-    # 站点名称
-    name = models.CharField(
-        '站点名称', max_length=255)
-    # 站点标识
-    slug = models.CharField(
-        '站点标识', max_length=100, unique=True)
-    # 主域名
-    domain = models.CharField(
-        '主域名', max_length=255, unique=True)
-    # 附加域名列表(JSON格式)
-    additional_domains = models.TextField(
-        '附加域名列表(JSON格式)', blank=True, null=True)
-    # 站点描述
-    description = models.TextField(
-        '站点描述', blank=True, null=True)
-    # Logo URL
-    logo_url = models.CharField(
-        'Logo URL', max_length=500, blank=True, null=True)
-    # Favicon URL
-    favicon_url = models.CharField(
-        'Favicon URL', max_length=500, blank=True, null=True)
-    # 主题
-    theme = models.CharField(
-        '主题', max_length=100, default='default')
-    # 语言
-    language = models.CharField(
-        '语言', max_length=10, default='en')
-    # 时区
-    timezone = models.CharField(
-        '时区', max_length=50, default='UTC')
-    # 站点设置(JSON格式)
-    settings = models.TextField(
-        '站点设置(JSON格式)', blank=True, null=True)
-    # 是否激活
-    is_active = models.BooleanField(
-        '是否激活',default=True)
-    # 是否为默认站点
-    is_default = models.BooleanField(
-        '是否为默认站点',default=False)
-
-    class Meta:
-        abstract = True
-        app_label = 'generated'
-        verbose_name = '站点模型'
-        # 注意：请在具体模型类中设置 db_table = get_table_name("sites")
 
 
 
@@ -3251,6 +3105,7 @@ class WebhookDeliveryMixin(models.Model):
         # 注意：请在具体模型类中设置 db_table = get_table_name("webhook_deliveries")
 
 
+
 class AuditLogMixin(models.Model):
     """审计日志模型 Mixin"""
 
@@ -3295,27 +3150,29 @@ class AuditLogMixin(models.Model):
         # 注意：请在具体模型类中设置 db_table = get_table_name("audit_logs")
 
 
-class PermissionMixin(models.Model):
-    """权限模型 Mixin"""
+class RoleMixin(models.Model):
+    """角色模型 Mixin"""
 
-    # 权限 ID
+    # 角色 ID
     id = models.BigAutoField(
-        '权限 ID', primary_key=True)
-    # 权限名称
+        '角色 ID', primary_key=True)
+    # 角色名称
     name = models.CharField(
-        '权限名称', max_length=100, unique=True)
-    # 权限代码
-    code = models.CharField(
-        '权限代码', max_length=100, unique=True)
-    # 权限描述
-    description = models.TextField(
-        '权限描述', blank=True, null=True)
-    # 资源类型
-    resource_type = models.CharField(
-        '资源类型', max_length=50, blank=True, null=True)
-    # 操作类型
-    action = models.CharField(
-        '操作类型', max_length=20, blank=True, null=True)
+        '角色名称', max_length=100)
+    # 角色标识(唯一)
+    slug = models.CharField(
+        '角色标识(唯一)', max_length=100, unique=True)
+    # 角色描述
+    description = models.CharField(
+        '角色描述', max_length=255, blank=True, null=True)
+    # 是否为系统角色(系统角色不可删除)
+    is_system = models.BooleanField(
+        '是否为系统角色(系统角色不可删除)', default=False)
+    # 父角色 ID(用于权限继承)
+    parent_id = models.ForeignKey(
+        'self',
+        on_delete=models.CASCADE,
+        verbose_name='父角色 ID(用于权限继承)', null=True, blank=True)
     # 是否激活
     is_active = models.BooleanField(
         '是否激活', default=True)
@@ -3323,8 +3180,84 @@ class PermissionMixin(models.Model):
     class Meta:
         abstract = True
         app_label = 'generated'
-        verbose_name = '权限模型'
-        # 注意：请在具体模型类中设置 db_table = get_table_name("permissions")
+        verbose_name = '角色模型'
+        # 注意：请在具体模型类中设置 db_table = get_table_name("roles")
+
+
+class CapabilityMixin(models.Model):
+    """权限能力模型 Mixin"""
+
+    # 权限 ID
+    id = models.BigAutoField(
+        '权限 ID', primary_key=True)
+    # 权限代码(唯一标识)
+    code = models.CharField(
+        '权限代码(唯一标识)', max_length=100, unique=True)
+    # 权限名称
+    name = models.CharField(
+        '权限名称', max_length=255)
+    # 权限描述
+    description = models.CharField(
+        '权限描述', max_length=255, blank=True, null=True)
+    # 资源类型(article, user, category等)
+    resource_type = models.CharField(
+        '资源类型(article, user, category等)', max_length=100, blank=True, null=True)
+    # 操作类型(create, read, update, delete)
+    action = models.CharField(
+        '操作类型(create, read, update, delete)', max_length=50, blank=True, null=True)
+    # 是否激活
+    is_active = models.BooleanField(
+        '是否激活', default=True)
+
+    class Meta:
+        abstract = True
+        app_label = 'generated'
+        verbose_name = '权限能力模型'
+        # 注意：请在具体模型类中设置 db_table = get_table_name("capabilities")
+
+
+class RoleCapabilityMixin(models.Model):
+    """角色-权限能力关联模型 Mixin"""
+
+    # 关联 ID
+    id = models.BigAutoField(
+        '关联 ID', primary_key=True)
+    # 角色 ID
+    role_id = models.IntegerField(
+        '角色 ID (暂为 IntegerField，等待 Role 模型实现)', )
+    # 权限能力 ID
+    capability_id = models.IntegerField(
+        '权限能力 ID (暂为 IntegerField，等待 Capability 模型实现)', )
+
+    class Meta:
+        abstract = True
+        app_label = 'generated'
+        verbose_name = '角色-权限能力关联模型'
+        # 注意：请在具体模型类中设置 db_table = get_table_name("role_capabilities")
+
+
+class UserRoleMixin(models.Model):
+    """用户角色关联模型 Mixin"""
+
+    # 关联 ID
+    id = models.BigAutoField(
+        '关联 ID', primary_key=True)
+    # 用户 ID
+    user_id = models.IntegerField(
+        '用户 ID (暂为 IntegerField，等待 User 模型实现)', )
+    # 角色 ID
+    role_id = models.IntegerField(
+        '角色 ID (暂为 IntegerField，等待 Role 模型实现)', )
+    # 分配者用户 ID
+    assigned_by = models.IntegerField(
+        '分配者用户 ID (暂为 IntegerField，等待 User 模型实现)', null=True, blank=True)
+
+    class Meta:
+        abstract = True
+        app_label = 'generated'
+        verbose_name = '用户角色关联模型'
+        # 注意：请在具体模型类中设置 db_table = get_table_name("user_role_assignments")
+
 
 
 class PermissionAuditLogMixin(models.Model):
@@ -3359,6 +3292,7 @@ class PermissionAuditLogMixin(models.Model):
         # 注意：请在具体模型类中设置 db_table = get_table_name("permission_audit_logs")
 
 
+
 class WorkspaceMixin(models.Model):
     """团队工作区模型 Mixin"""
 
@@ -3391,6 +3325,7 @@ class WorkspaceMixin(models.Model):
         # 注意：请在具体模型类中设置 db_table = get_table_name("workspaces")
 
 
+
 class WorkspaceMemberMixin(models.Model):
     """工作区成员模型 Mixin"""
 
@@ -3418,6 +3353,7 @@ class WorkspaceMemberMixin(models.Model):
         app_label = 'generated'
         verbose_name = '工作区成员模型'
         # 注意：请在具体模型类中设置 db_table = get_table_name("workspace_members")
+
 
 
 class TaskMixin(models.Model):
@@ -3461,6 +3397,7 @@ class TaskMixin(models.Model):
         # 注意：请在具体模型类中设置 db_table = get_table_name("tasks")
 
 
+
 class ApprovalRecordMixin(models.Model):
     """审批记录模型 Mixin"""
 
@@ -3496,6 +3433,7 @@ class ApprovalRecordMixin(models.Model):
         # 注意：请在具体模型类中设置 db_table = get_table_name("approval_records")
 
 
+
 class ApprovalStepMixin(models.Model):
     """审批步骤模型 Mixin"""
 
@@ -3526,6 +3464,60 @@ class ApprovalStepMixin(models.Model):
         app_label = 'generated'
         verbose_name = '审批步骤模型'
         # 注意：请在具体模型类中设置 db_table = get_table_name("approval_steps")
+
+
+class SiteMixin(models.Model):
+    """站点模型 Mixin"""
+
+    # 站点 ID
+    id = models.BigAutoField(
+        '站点 ID', primary_key=True)
+    # 站点名称
+    name = models.CharField(
+        '站点名称', max_length=255)
+    # 站点标识
+    slug = models.CharField(
+        '站点标识', max_length=100, unique=True)
+    # 主域名
+    domain = models.CharField(
+        '主域名', max_length=255, unique=True)
+    # 附加域名列表(JSON格式)
+    additional_domains = models.TextField(
+        '附加域名列表(JSON格式)', blank=True, null=True)
+    # 站点描述
+    description = models.TextField(
+        '站点描述', blank=True, null=True)
+    # Logo URL
+    logo_url = models.CharField(
+        'Logo URL', max_length=500, blank=True, null=True)
+    # Favicon URL
+    favicon_url = models.CharField(
+        'Favicon URL', max_length=500, blank=True, null=True)
+    # 主题
+    theme = models.CharField(
+        '主题', max_length=100, default='default')
+    # 语言
+    language = models.CharField(
+        '语言', max_length=10, default='en')
+    # 时区
+    timezone = models.CharField(
+        '时区', max_length=50, default='UTC')
+    # 站点设置(JSON格式)
+    settings = models.TextField(
+        '站点设置(JSON格式)', blank=True, null=True)
+    # 是否激活
+    is_active = models.BooleanField(
+        '是否激活', default=True)
+    # 是否为默认站点
+    is_default = models.BooleanField(
+        '是否为默认站点', default=False)
+
+    class Meta:
+        abstract = True
+        app_label = 'generated'
+        verbose_name = '站点模型'
+        # 注意：请在具体模型类中设置 db_table = get_table_name("sites")
+
 
 
 class SiteUserMixin(models.Model):

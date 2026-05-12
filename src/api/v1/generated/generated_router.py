@@ -1,7 +1,7 @@
 """
 FastAPI 路由文件
 由 routes.yaml 自动生成 - 请勿手动修改
-生成时间：2026-05-12 10:53:12
+生成时间：2026-05-12 11:08:32
 """
 
 from fastapi import APIRouter, Request

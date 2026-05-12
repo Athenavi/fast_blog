@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - ArticleAnnotation
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-12 10:53:12
+生成时间：2026-05-12 11:08:32
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
@@ -21,6 +21,7 @@ class ArticleAnnotation(Base):
         Index('idx_article_annotations_parent', 'parent'),
         Index('idx_article_annotations_resolved', 'is_resolved'),
     )
+
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='批注 ID')
 

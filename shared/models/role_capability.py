@@ -1,5 +1,5 @@
 """
-SQLAlchemy 模型定义 - SearchHistory
+SQLAlchemy 模型定义 - RoleCapability
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
 生成时间：2026-05-12 11:08:32
 """
@@ -9,30 +9,23 @@ from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateT
 from . import Base  # 使用统一的 Base
 
 
-class SearchHistory(Base):
-    """搜索历史模型模型"""
-    __tablename__ = 'search_history'
-
+class RoleCapability(Base):
+    """角色-权限能力关联模型模型"""
+    __tablename__ = 'role_capabilities'
 
     __table_args__ = (
-        Index('idx_search_history_user', 'user'),
-        Index('idx_search_history_created', 'created_at'),
-        Index('idx_search_history_keyword', 'keyword'),
+        Index('idx_role_capabilities_role', 'role_id'),
+        Index('idx_role_capabilities_capability', 'capability_id'),
+        Index('idx_role_capabilities_unique', 'role_id', 'capability_id', unique=True),
     )
 
+    id = Column(BigInteger, primary_key=True, autoincrement=True, doc='关联 ID')
 
-    id = Column(BigInteger, primary_key=True, autoincrement=True, doc='搜索历史 ID')
+    role_id = Column(BigInteger, ForeignKey('roles.id'), doc='角色 ID')
 
-    user = Column(BigInteger, ForeignKey('users.id'), doc='用户')
-
-
-    keyword = Column(String(255), nullable=True, doc='搜索关键词')
-
-    results_count = Column(BigInteger, doc='结果数量')
-
+    capability_id = Column(BigInteger, ForeignKey('capabilities.id'), doc='权限能力 ID')
 
     created_at = Column(DateTime, doc='创建时间')
-
 
     def to_dict(self, exclude_sensitive=True):
         """转换为字典
@@ -42,9 +35,8 @@ class SearchHistory(Base):
         """
         data = {
             'id': self.id,
-            'user': self.user,
-            'keyword': self.keyword,
-            'results_count': self.results_count,
+            'role_id': self.role_id,
+            'capability_id': self.capability_id,
             'created_at': self.created_at.isoformat() if self.created_at else None,
         }
 
@@ -57,6 +49,4 @@ class SearchHistory(Base):
 
     def __repr__(self):
         """字符串表示"""
-        return f'<SearchHistory id={self.id}>'
-
-
+        return f'<RoleCapability id={self.id}>'

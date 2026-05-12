@@ -1,12 +1,14 @@
 """
 SQLAlchemy 模型定义 - Capability
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-12 10:53:12
+生成时间：2026-05-12 11:08:32
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Index
+from sqlalchemy.orm import relationship
 
 from . import Base  # 使用统一的 Base
+
 
 
 class Capability(Base):
@@ -39,6 +41,8 @@ class Capability(Base):
 
     updated_at = Column(DateTime, doc='更新时间')
 
+    # 关系定义
+    roles = relationship('Role', secondary='role_capabilities', back_populates='capabilities')
 
     def to_dict(self, exclude_sensitive=True):
         """转换为字典

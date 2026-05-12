@@ -1,10 +1,11 @@
 """
 SQLAlchemy 模型定义 - Role
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-12 10:53:12
+生成时间：2026-05-12 11:08:32
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
+from sqlalchemy.orm import relationship
 
 from . import Base  # 使用统一的 Base
 
@@ -16,22 +17,24 @@ class Role(Base):
 
 
     __table_args__ = (
-        Index('idx_roles_slug', 'slug'),
+        Index('idx_roles_slug', 'slug', unique=True),
+        Index('idx_roles_is_system', 'is_system'),
         Index('idx_roles_parent', 'parent_id'),
     )
 
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='角色 ID')
 
-    name = Column(String(100), unique=True, nullable=True, doc='角色名称')
+    name = Column(String(100), nullable=True, doc='角色名称')
 
-    slug = Column(String(100), unique=True, nullable=True, doc='角色标识')
+    slug = Column(String(100), unique=True, nullable=True, doc='角色标识（唯一）')
 
-    description = Column(Text, nullable=True, doc='角色描述')
+    description = Column(String(255), nullable=True, doc='角色描述')
 
-    is_system = Column(Boolean, default=False, doc='是否为系统角色')
+    is_system = Column(Boolean, default=False, doc='是否为系统角色（系统角色不可删除）')
 
-    parent_id = Column(BigInteger, ForeignKey('roles.id'), nullable=True, doc='父角色 ID')
+    parent_id = Column(BigInteger, ForeignKey('roles.id'), nullable=True, doc='父角色 ID（用于权限继承）')
+
 
     is_active = Column(Boolean, default=True, doc='是否激活')
 
@@ -40,6 +43,8 @@ class Role(Base):
 
     updated_at = Column(DateTime, doc='更新时间')
 
+    # 关系定义
+    capabilities = relationship('Capability', secondary='role_capabilities', back_populates='roles')
 
     def to_dict(self, exclude_sensitive=True):
         """转换为字典
