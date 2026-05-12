@@ -3,6 +3,7 @@ from sqlalchemy.orm import declarative_base
 Base = declarative_base()
 
 
+
 from .user import User
 from .article import Article
 from .category import Category
@@ -46,9 +47,6 @@ from .custom_post_type import CustomPostType
 from .comment_vote import CommentVote
 from .comment_subscription import CommentSubscription
 from .comment import Comment
-from .role import Role
-from .capability import Capability
-from .user_role import UserRole
 from .o_auth_account import OAuthAccount
 from .article_seo import ArticleSEO
 from .share_stat import ShareStat
@@ -57,7 +55,6 @@ from .cart import Cart
 from .cart_item import CartItem
 from .order import Order
 from .order_item import OrderItem
-from .site import Site
 from .sensitive_word import SensitiveWord
 from .user_session import UserSession
 from .login_attempt import LoginAttempt
@@ -79,13 +76,17 @@ from .article_annotation import ArticleAnnotation
 from .webhook import Webhook
 from .webhook_delivery import WebhookDelivery
 from .audit_log import AuditLog
-from .permission import Permission
+from .role import Role
+from .capability import Capability
+from .role_capability import RoleCapability
+from .user_role import UserRole
 from .permission_audit_log import PermissionAuditLog
 from .workspace import Workspace
 from .workspace_member import WorkspaceMember
 from .task import Task
 from .approval_record import ApprovalRecord
 from .approval_step import ApprovalStep
+from .site import Site
 from .site_user import SiteUser
 from .content_mapping import ContentMapping
 
@@ -137,9 +138,6 @@ __all__ = [
     'CommentVote',
     'CommentSubscription',
     'Comment',
-    'Role',
-    'Capability',
-    'UserRole',
     'OAuthAccount',
     'ArticleSEO',
     'ShareStat',
@@ -148,7 +146,6 @@ __all__ = [
     'CartItem',
     'Order',
     'OrderItem',
-    'Site',
     'SensitiveWord',
     'UserSession',
     'LoginAttempt',
@@ -170,13 +167,17 @@ __all__ = [
     'Webhook',
     'WebhookDelivery',
     'AuditLog',
-    'Permission',
+    'Role',
+    'Capability',
+    'RoleCapability',
+    'UserRole',
     'PermissionAuditLog',
     'Workspace',
     'WorkspaceMember',
     'Task',
     'ApprovalRecord',
     'ApprovalStep',
+    'Site',
     'SiteUser',
     'ContentMapping'
 ]

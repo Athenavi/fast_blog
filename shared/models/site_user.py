@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - SiteUser
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-12 11:08:32
+生成时间：2026-05-12 11:11:20
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
@@ -13,6 +13,7 @@ from . import Base  # 使用统一的 Base
 class SiteUser(Base):
     """站点用户关联模型模型"""
     __tablename__ = 'site_users'
+
 
     __table_args__ = (
         Index('idx_site_users_site', 'site_id'),

@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - WebhookDelivery
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-12 11:08:32
+生成时间：2026-05-12 11:11:20
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
@@ -21,6 +21,7 @@ class WebhookDelivery(Base):
         Index('idx_webhook_deliveries_success', 'success'),
         Index('idx_webhook_deliveries_created', 'created_at'),
     )
+
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='投递记录ID')
 

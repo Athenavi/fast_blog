@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - ScheduledReport
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-12 11:08:32
+生成时间：2026-05-12 11:11:20
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Index
@@ -30,6 +30,7 @@ class ScheduledReport(Base):
     frequency = Column(String(20), nullable=True, doc='执行频率 (daily/weekly/monthly)')
 
     metrics = Column(Text, nullable=True, doc='指标列表（JSON格式，custom类型需要）')
+
 
     days = Column(Integer, default=30, doc='统计天数')
 
