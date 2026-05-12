@@ -8,9 +8,7 @@
 """
 import asyncio
 import logging
-from datetime import datetime
 from typing import Optional
-from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
@@ -64,6 +62,13 @@ class ScheduledPublishScheduler:
         """运行调度器主循环"""
         while self.is_running:
             try:
+                # 检查系统是否已安装
+                from shared.services.install_manager.installation_wizard import installation_wizard_service
+                if not installation_wizard_service.is_installed():
+                    logger.debug("System not installed, skipping scheduled publish check")
+                    await asyncio.sleep(self.check_interval)
+                    continue
+                
                 await self._check_and_publish()
             except Exception as e:
                 logger.error(f"Error in scheduled publish scheduler: {e}")

@@ -37,9 +37,11 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # Django 版本：不再需要数据库初始化，Django 会自动处理
 
     # 检查安装状态
+    is_installed = False
     try:
         from shared.services.install_manager import installation_wizard_service
-        if not installation_wizard_service.is_installed():
+        is_installed = installation_wizard_service.is_installed()
+        if not is_installed:
             print("\n" + "=" * 60)
             print("⚠️  系统尚未安装")
             print("👉 请启动前端进程后访问 http://localhost:3000/install 完成安装向导")
@@ -47,18 +49,23 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     except Exception as e:
         print(f"Warning: Failed to check installation status: {e}")
 
-    # 初始化统一的数据库连接管理器
-    try:
-        from src.utils.database.unified_manager import db_manager
+    # 仅在系统已安装时初始化数据库连接管理器
+    if is_installed:
+        try:
+            from src.utils.database.unified_manager import db_manager
+            print("\n" + "=" * 60)
+            print("[Database] Initializing unified database manager...")
+            db_manager.initialize()
+            print("[Database] ✅ Unified database manager initialized successfully")
+            print("=" * 60 + "\n")
+        except Exception as e:
+            print(f"\n[Database] ❌ Failed to initialize database manager: {e}")
+            import traceback
+            traceback.print_exc()
+            print("=" * 60 + "\n")
+    else:
         print("\n" + "=" * 60)
-        print("[Database] Initializing unified database manager...")
-        db_manager.initialize()
-        print("[Database] ✅ Unified database manager initialized successfully")
-        print("=" * 60 + "\n")
-    except Exception as e:
-        print(f"\n[Database] ❌ Failed to initialize database manager: {e}")
-        import traceback
-        traceback.print_exc()
+        print("[Database] Skipping database initialization (system not installed)")
         print("=" * 60 + "\n")
 
     # 初始化扩展（包括 CORS 中间件）
@@ -69,19 +76,22 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     from src.scheduler import init_scheduler
     init_scheduler(app)
 
-    # 启动定时发布调度器
-    try:
-        from shared.services.scheduler import init_scheduler as init_publish_scheduler, start_scheduler
-        from src.utils.database.unified_manager import db_manager
+    # 启动定时发布调度器（仅在系统已安装时）
+    if is_installed:
+        try:
+            from shared.services.scheduler import init_scheduler as init_publish_scheduler, start_scheduler
+            from src.utils.database.unified_manager import db_manager
 
-        publish_scheduler = init_publish_scheduler(
-            db_manager.async_session_factory,
-            check_interval=60  # 每60秒检查一次
-        )
-        await start_scheduler()
-        print("\n[ScheduledPublish] ✅ Scheduled publish scheduler started")
-    except Exception as e:
-        print(f"\n[ScheduledPublish] ⚠️ Failed to start scheduler: {e}")
+            publish_scheduler = init_publish_scheduler(
+                db_manager.async_session_factory,
+                check_interval=60  # 每60秒检查一次
+            )
+            await start_scheduler()
+            print("\n[ScheduledPublish] ✅ Scheduled publish scheduler started")
+        except Exception as e:
+            print(f"\n[ScheduledPublish] ⚠️ Failed to start scheduler: {e}")
+    else:
+        print("\n[ScheduledPublish] Skipping scheduler (system not installed)")
 
     # 初始化插件系统
     try:
@@ -103,13 +113,16 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         traceback.print_exc()
         print("=" * 60 + "\n")
 
-    # 启动外部资源下载队列处理器
-    try:
-        from shared.services.download_queue_processor import init_download_processor
-        await init_download_processor()
-        print("\n[DownloadQueue] ✅ Download queue processor started")
-    except Exception as e:
-        print(f"\n[DownloadQueue] ⚠️ Failed to start download queue processor: {e}")
+    # 启动外部资源下载队列处理器（仅在系统已安装时）
+    if is_installed:
+        try:
+            from shared.services.download_queue_processor import init_download_processor
+            await init_download_processor()
+            print("\n[DownloadQueue] ✅ Download queue processor started")
+        except Exception as e:
+            print(f"\n[DownloadQueue] ⚠️ Failed to start download queue processor: {e}")
+    else:
+        print("\n[DownloadQueue] Skipping download queue processor (system not installed)")
 
     yield
 
@@ -117,21 +130,23 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     from src.scheduler import session_scheduler
     session_scheduler.scheduler.stop()
 
-    # 关闭下载队列处理器
-    try:
-        from shared.services.download_queue_processor import shutdown_download_processor
-        await shutdown_download_processor()
-        print("\n[DownloadQueue] ✅ Download queue processor stopped")
-    except Exception as e:
-        print(f"\n[DownloadQueue] ⚠️ Error stopping download queue processor: {e}")
+    # 仅在系统已安装时关闭下载队列处理器
+    if is_installed:
+        try:
+            from shared.services.download_queue_processor import shutdown_download_processor
+            await shutdown_download_processor()
+            print("\n[DownloadQueue] ✅ Download queue processor stopped")
+        except Exception as e:
+            print(f"\n[DownloadQueue] ⚠️ Error stopping download queue processor: {e}")
 
-    # 关闭数据库连接
-    try:
-        from src.utils.database.unified_manager import db_manager
-        await db_manager.close()
-        print("\n[Database] ✅ Database connections closed")
-    except Exception as e:
-        print(f"\n[Database] ⚠️ Error closing database connections: {e}")
+    # 仅在系统已安装时关闭数据库连接
+    if is_installed:
+        try:
+            from src.utils.database.unified_manager import db_manager
+            await db_manager.close()
+            print("\n[Database] ✅ Database connections closed")
+        except Exception as e:
+            print(f"\n[Database] ⚠️ Error closing database connections: {e}")
 
 
 def create_app(config=None):

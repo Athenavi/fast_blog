@@ -49,7 +49,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         endpoint = request.url.path
 
         # 检查速率限制
-        allowed, info = rate_limiter.check_rate_limit(
+        allowed, info = await rate_limiter.check_rate_limit(
             user_id=user_id,
             ip_address=ip_address,
             endpoint=endpoint,

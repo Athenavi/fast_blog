@@ -4,11 +4,9 @@
 """
 import asyncio
 import logging
-from datetime import datetime
 from typing import Optional
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.download_task import DownloadTask
 from shared.services.resource_transfer_service import ResourceTransferService
@@ -76,6 +74,12 @@ class DownloadQueueProcessor:
     async def _process_queue(self):
         """处理下载队列"""
         try:
+            # 检查系统是否已安装
+            from shared.services.install_manager.installation_wizard import installation_wizard_service
+            if not installation_wizard_service.is_installed():
+                logger.debug("System not installed, skipping download queue processing")
+                return
+            
             # 获取待处理的任务
             async with db_manager.get_session() as db:
                 result = await db.execute(
