@@ -13,7 +13,7 @@ from src.api.v1.core.responses import ApiResponse
 from shared.models.user import User as UserModel
 from src.auth.auth_deps import admin_required as admin_required_api
 
-router = APIRouter(prefix="/export", tags=["export"])
+router = APIRouter(tags=["export"])
 
 
 @router.get("/users", summary="导出用户列表")

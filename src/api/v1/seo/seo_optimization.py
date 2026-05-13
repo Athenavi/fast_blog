@@ -10,7 +10,7 @@ from src.api.v1.core.misc import domain
 from src.api.v1.core.responses import ApiResponse
 from src.auth import jwt_required_dependency as jwt_required
 
-router = APIRouter(prefix="/seo", tags=["seo"])
+router = APIRouter(tags=["seo"])
 
 
 # ==================== SEO分析 ====================

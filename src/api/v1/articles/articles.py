@@ -10,8 +10,6 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from api.v1.core.openapi_examples import ARTICLE_LIST_EXAMPLE, ERROR_RESPONSE_EXAMPLE, ARTICLE_DETAIL_EXAMPLE, \
-    ARTICLE_CREATE_EXAMPLE
 from shared.models.article import Article
 from shared.models.article_content import ArticleContent
 from shared.models.article_i18n import ArticleI18n
@@ -24,6 +22,8 @@ from shared.services.articles.article_manager import article_query_service, pass
 from shared.services.content_management.shortcode_service import shortcode_service
 from shared.services.core.api_embed import APIEmbedService
 from shared.services.notifications import webhook_service
+from src.api.v1.core.openapi_examples import ARTICLE_LIST_EXAMPLE, ERROR_RESPONSE_EXAMPLE, ARTICLE_DETAIL_EXAMPLE, \
+    ARTICLE_CREATE_EXAMPLE
 from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import jwt_optional_dependency, jwt_required_dependency as jwt_required
 from src.setting import app_config

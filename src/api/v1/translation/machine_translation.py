@@ -8,7 +8,7 @@ from shared.services.translation.translation_manager import machine_translation_
 from src.api.v1.core.responses import ApiResponse
 from src.auth import jwt_required_dependency as jwt_required
 
-router = APIRouter(prefix="/machine-translation", tags=["machine-translation"])
+router = APIRouter(tags=["machine-translation"])
 
 
 @router.post("/translate")

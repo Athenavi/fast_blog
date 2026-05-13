@@ -8,7 +8,7 @@ from src.api.v1.core.responses import ApiResponse
 from shared.services.translation.translation_manager.translation_manager import translation_manager
 from src.auth import jwt_required_dependency as jwt_required
 
-router = APIRouter(prefix="/translations", tags=["translations"])
+router = APIRouter(tags=["translations"])
 
 
 @router.get("/locales")

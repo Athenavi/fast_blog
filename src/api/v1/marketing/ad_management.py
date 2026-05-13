@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from shared.services.marketing.ad_management_service import AdManagementService
 from src.extensions import get_db
 
-router = APIRouter(prefix="/ads", tags=["广告管理"])
+router = APIRouter(tags=["广告管理"])
 
 
 # ==================== Pydantic 模型 ====================

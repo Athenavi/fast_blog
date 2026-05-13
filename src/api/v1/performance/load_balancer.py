@@ -10,7 +10,7 @@ from shared.services.performance.load_balancer import load_balancer_service
 from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 
-router = APIRouter(prefix="/load-balancer", tags=["load-balancer"])
+router = APIRouter(tags=["load-balancer"])
 
 
 @router.get("/instances", summary="获取活动实例列表")

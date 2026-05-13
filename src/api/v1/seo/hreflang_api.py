@@ -8,7 +8,7 @@ from shared.services.seo.hreflang_generator import hreflang_generator
 from src.api.v1.core.responses import ApiResponse
 from src.auth import jwt_required_dependency as jwt_required
 
-router = APIRouter(prefix="/hreflang", tags=["hreflang"])
+router = APIRouter(tags=["hreflang"])
 
 
 @router.get("/generate")

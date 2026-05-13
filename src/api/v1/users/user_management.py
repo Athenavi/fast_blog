@@ -14,7 +14,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.v1.core.responses import ApiResponse
-from api.v1.users.user_settings import change_profiles_back
+from src.api.v1.users.user_settings import change_profiles_back
 # SQLAlchemy 模型与服务（保持不变）
 from shared.models.user import User as UserModel
 from shared.services.articles.article_manager import get_user_articles_with_pagination, get_articles_by_user_id, \
@@ -30,7 +30,7 @@ from src.setting import app_config, settings
 from src.utils.security.ip_utils import get_client_ip
 from src.utils.token_blacklist import token_blacklist
 
-router = APIRouter(prefix="/management", tags=["user-management"])
+router = APIRouter(tags=["user-management"])
 
 
 # ---------------------------------------------------------------------------
@@ -277,13 +277,31 @@ def _get_user_stats(articles_count: int = 0):
 @router.post("/auth/login", summary="用户登录")
 async def login_api(
         request: Request,
-        username: str = Form(...),
-        password: str = Form(...),
-        remember_me: Optional[str] = Form(None),  # 改为可选字符串
+        username: Optional[str] = Form(None),
+        password: Optional[str] = Form(None),
+        remember_me: Optional[str] = Form(None),
         db: AsyncSession = Depends(get_async_db),
 ):
-    """使用用户名或邮箱登录，返回 access / refresh token（PyJWT）"""
+    """使用用户名或邮箱登录，返回 access / refresh token（PyJWT）
+    
+    支持两种请求格式：
+    1. Form Data (application/x-www-form-urlencoded)
+    2. JSON (application/json)
+    """
     try:
+        # 尝试从 JSON body 中读取数据（如果 Form 数据为空）
+        if not username or not password:
+            try:
+                body = await request.json()
+                username = body.get('username') or body.get('email')
+                password = body.get('password')
+                remember_me = body.get('remember_me') or body.get('rememberMe')
+            except Exception:
+                pass
+
+        # 验证必填字段
+        if not username or not password:
+            return ApiResponse(success=False, error="缺少用户名或密码")
         # 调试日志：打印接收到的请求数据
         print(f"[Login API] Received login request:")
         print(f"  - username: {username}")
@@ -455,12 +473,30 @@ async def login_api(
 @router.post("/auth/register", summary="用户注册")
 async def register_api(
         request: Request,
-        username: str = Form(...),
-        email: str = Form(...),
-        password: str = Form(...),
+        username: Optional[str] = Form(None),
+        email: Optional[str] = Form(None),
+        password: Optional[str] = Form(None),
         db: AsyncSession = Depends(get_async_db),
 ):
-    """用户注册并返回 token"""
+    """用户注册并返回 token
+    
+    支持两种请求格式：
+    1. Form Data (application/x-www-form-urlencoded)
+    2. JSON (application/json)
+    """
+    # 尝试从 JSON body 中读取数据（如果 Form 数据为空）
+    if not username or not email or not password:
+        try:
+            body = await request.json()
+            username = username or body.get('username')
+            email = email or body.get('email')
+            password = password or body.get('password')
+        except Exception:
+            pass
+
+    # 验证必填字段
+    if not username or not email or not password:
+        return ApiResponse(success=False, error="缺少必填字段")
     # 基础校验
     if len(username) < 3:
         return ApiResponse(success=False, error="用户名至少需要 3 个字符")

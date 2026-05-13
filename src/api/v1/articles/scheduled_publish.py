@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.services.articles.scheduled_publish import create_scheduled_publish_service
 from src.utils.database.main import get_async_session
 
-router = APIRouter(prefix="/scheduled-publish", tags=["scheduled-publish"])
+router = APIRouter(tags=["scheduled-publish"])
 
 
 class ScheduleArticleRequest(BaseModel):

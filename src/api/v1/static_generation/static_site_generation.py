@@ -11,7 +11,7 @@ from src.api.v1.core.responses import ApiResponse
 from src.auth import admin_required
 from src.utils.database.unified_manager import db_manager
 
-router = APIRouter(prefix="/static-site", tags=["Static Site Generation"])
+router = APIRouter(tags=["Static Site Generation"])
 
 
 @router.post("/articles/{article_id}", summary="生成文章静态页面")

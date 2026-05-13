@@ -5,12 +5,12 @@
 
 from fastapi import APIRouter, Depends, Query, Body
 
-from extensions import get_db
 from shared.services.performance.query_optimizer import query_optimizer
 from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import admin_required
+from src.extensions import get_db
 
-router = APIRouter(prefix="/query-optimization", tags=["query-optimization"])
+router = APIRouter(tags=["query-optimization"])
 
 
 @router.get("/report", summary="获取查询优化报告")

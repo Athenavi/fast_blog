@@ -15,7 +15,7 @@ from shared.models.user import User
 from src.api.v1.core.responses import ApiResponse
 from src.utils.database.main import get_async_session
 
-router = APIRouter(prefix="/home", tags=["home"])
+router = APIRouter(tags=["home"])
 
 
 async def send_subscription_confirmation_email(email: str):

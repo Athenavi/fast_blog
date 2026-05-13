@@ -13,7 +13,7 @@ from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 
-router = APIRouter(prefix="/email-service", tags=["email-service"])
+router = APIRouter(tags=["email-service"])
 
 
 @router.get("/config/{provider}", summary="获取邮件服务配置")

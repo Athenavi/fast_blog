@@ -9,7 +9,7 @@ from src.api.v1.core.responses import ApiResponse
 from src.auth import jwt_required_page_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 
-router = APIRouter(prefix="/admin-settings", tags=["admin-settings"])
+router = APIRouter(tags=["admin-settings"])
 
 
 async def get_system_settings_dict(db: AsyncSession) -> Dict[str, str]:

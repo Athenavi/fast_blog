@@ -14,7 +14,7 @@ from src.api.v1.core.responses import ApiResponse
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 
-router = APIRouter(prefix="/media", tags=["media-enhancement"])
+router = APIRouter(tags=["media-enhancement"])
 logger = logging.getLogger(__name__)
 
 

@@ -29,7 +29,7 @@ from src.extensions import get_async_db_session as get_async_db
 router = APIRouter()
 
 
-@router.get("/dashboard/stats")
+@router.get("/stats")
 async def get_dashboard_stats(
         request: Request,
         current_user: User = Depends(admin_required_api),
@@ -85,7 +85,7 @@ async def get_dashboard_stats(
         return ApiResponse(success=False, error=str(e))
 
 
-@router.get("/dashboard/recent-articles")
+@router.get("/recent-articles")
 async def __get_recent_articles(
         request: Request,
         current_user: User = Depends(admin_required_api),
@@ -128,7 +128,7 @@ async def __get_recent_articles(
         return ApiResponse(success=False, error=str(e))
 
 
-@router.get("/dashboard/traffic")
+@router.get("/traffic")
 async def get_traffic_data(
         request: Request,
         current_user: User = Depends(admin_required_api),

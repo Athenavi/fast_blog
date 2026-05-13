@@ -13,7 +13,7 @@ from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import admin_required as admin_required_api
 from src.utils.database.main import get_async_session
 
-router = APIRouter(prefix="/reports", tags=["reports"])
+router = APIRouter(tags=["reports"])
 
 
 @router.get("/content", summary="获取内容表现报表")

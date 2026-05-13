@@ -6,11 +6,11 @@ from typing import Optional
 import jwt
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
 
-from src.api.v1.collaboration.collaboration_invites import invitations_db
 from shared.services.chat.collaboration import collaboration_service, Step
+from src.api.v1.collaboration.collaboration_invites import invitations_db
 from src.setting import settings
 
-router = APIRouter(prefix="/ws", tags=["websocket"])
+router = APIRouter(tags=["websocket"])
 
 
 def verify_token_from_cookie(cookie: str) -> Optional[int]:

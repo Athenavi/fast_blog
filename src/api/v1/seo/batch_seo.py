@@ -16,7 +16,7 @@ from shared.models.article_seo import ArticleSEO
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 
-router = APIRouter(prefix="/batch", tags=["batch-seo"])
+router = APIRouter(tags=["batch-seo"])
 
 
 class BatchSEOUpdateRequest(BaseModel):

@@ -10,7 +10,7 @@ from shared.services.advanced_features.personalized_feed_service import personal
 from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import get_current_active_user
 
-router = APIRouter(prefix="/feed", tags=["feed"])
+router = APIRouter(tags=["feed"])
 
 
 @router.get("/my-feed", summary="获取我的动态流")

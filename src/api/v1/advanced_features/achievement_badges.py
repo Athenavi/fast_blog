@@ -10,7 +10,7 @@ from shared.services.advanced_features.achievement_badge_system import achieveme
 from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import get_current_active_user, admin_required as admin_required_api
 
-router = APIRouter(prefix="/badges", tags=["badges"])
+router = APIRouter(tags=["badges"])
 
 
 @router.get("/my-badges", summary="获取我的徽章")

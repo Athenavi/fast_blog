@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.services.core.membership import create_membership_service
 from src.utils.database.main import get_async_session
 
-router = APIRouter(prefix="/membership", tags=["membership"])
+router = APIRouter(tags=["membership"])
 
 
 class CreateSubscriptionRequest(BaseModel):

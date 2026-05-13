@@ -14,7 +14,7 @@ from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import jwt_required_dependency as jwt_required, admin_required as admin_required_api
 from src.extensions import get_async_db_session as get_async_db
 
-router = APIRouter(prefix="/inventory", tags=["inventory"])
+router = APIRouter(tags=["inventory"])
 
 
 @router.get("/check/{product_id}")

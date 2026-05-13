@@ -13,7 +13,7 @@ from shared.services.chat.collaboration import collaboration_service, Collaborat
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 
-router = APIRouter(prefix="/collaboration", tags=["collaboration"])
+router = APIRouter(tags=["collaboration"])
 
 
 @router.post("/documents/{document_id}/save")

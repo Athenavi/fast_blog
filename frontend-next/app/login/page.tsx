@@ -90,7 +90,7 @@ const LoginPage = () => {
         if (!accessToken && refreshToken) {
           console.log('Access token missing but refresh token exists, attempting to refresh...');
           try {
-            const refreshResponse = await apiClient.post('/management/auth/token/refresh', {
+            const refreshResponse = await apiClient.post('/auth/token/refresh', {
               refresh: refreshToken
             });
               
@@ -112,7 +112,7 @@ const LoginPage = () => {
                   
                 console.log('Token refreshed successfully');
                 // 刷新成功后,验证新 token 并跳转
-                const profileResponse = await apiClient.get('/management/me/profile');
+                const profileResponse = await apiClient.get('/me/profile');
                   
                 if (profileResponse.success && profileResponse.data) {
                   const nextUrl = new URLSearchParams(window.location.search).get('next') || '/profile';
@@ -128,7 +128,7 @@ const LoginPage = () => {
           }
         } else if (accessToken) {
           // 如果存在访问令牌,尝试验证它
-          const response = await apiClient.get('/management/me/profile');
+          const response = await apiClient.get('/me/profile');
                   
           if (response.success && response.data) {
             // 用户已登录,重定向到主页或个人资料页
@@ -414,7 +414,7 @@ const LoginPage = () => {
 
     try {
       // 发送登录请求到后端 API - 使用表单格式（兼容 FastAPI/Django）
-      const response = await apiClient.postForm('/management/auth/login', {
+      const response = await apiClient.postForm('/auth/login', {
         username: loginForm.email,  // 使用 email 作为 username（支持邮箱或用户名登录）
         password: loginForm.password,
         remember_me: loginForm.rememberMe

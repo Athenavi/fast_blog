@@ -12,7 +12,7 @@ from shared.services.marketing.advertisement_system import advertisement_system
 from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import admin_required
 
-router = APIRouter(prefix="/ads", tags=["advertisements"])
+router = APIRouter(tags=["advertisements"])
 
 
 @router.get("/slots", summary="获取所有广告位")

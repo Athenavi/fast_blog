@@ -9,7 +9,7 @@ from shared.services.security.rate_limiter import rate_limiter
 from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 
-router = APIRouter(prefix="/rate-limit", tags=["rate-limit"])
+router = APIRouter(tags=["rate-limit"])
 
 
 @router.get("/status", summary="获取限流状态")

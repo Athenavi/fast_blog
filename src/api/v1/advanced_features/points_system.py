@@ -12,7 +12,7 @@ from shared.services.advanced_features.points_system import points_system
 from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import get_current_active_user, admin_required as admin_required_api
 
-router = APIRouter(prefix="/points", tags=["points"])
+router = APIRouter(tags=["points"])
 
 
 @router.get("/my-points", summary="获取我的积分")

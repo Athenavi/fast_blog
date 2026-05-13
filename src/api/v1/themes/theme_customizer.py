@@ -10,7 +10,7 @@ from shared.services.themes.theme_manager.theme_customizer import ThemeCustomize
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 
-router = APIRouter(prefix="/theme-customizer", tags=["theme-customizer"])
+router = APIRouter(tags=["theme-customizer"])
 
 
 @router.get("/config/{theme_slug}")

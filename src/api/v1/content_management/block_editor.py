@@ -14,7 +14,7 @@ from shared.services.content_management.block_editor_service import block_editor
 # 创建扩展服务实例
 block_extensions = create_extensions(block_editor_service)
 
-router = APIRouter(prefix="/block-editor", tags=["Block Editor"])
+router = APIRouter(tags=["Block Editor"])
 
 
 class BlockData(BaseModel):

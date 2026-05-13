@@ -9,7 +9,7 @@ from shared.services.performance.code_splitting_service import code_splitting_op
 from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import admin_required
 
-router = APIRouter(prefix="/code-splitting", tags=["code-splitting"])
+router = APIRouter(tags=["code-splitting"])
 
 
 @router.get("/analysis", summary="获取Bundle分析报告")

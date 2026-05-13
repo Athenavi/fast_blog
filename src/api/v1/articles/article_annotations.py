@@ -12,7 +12,7 @@ from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import jwt_required
 from src.utils.database.main import get_async_session
 
-router = APIRouter(prefix="/annotations", tags=["annotations"])
+router = APIRouter(tags=["annotations"])
 
 
 @router.post("/", summary="创建批注")

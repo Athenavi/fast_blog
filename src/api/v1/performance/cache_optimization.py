@@ -11,7 +11,7 @@ from shared.services.core.enhanced_cache_strategy import enhanced_cache
 from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import admin_required
 
-router = APIRouter(prefix="/cache", tags=["cache"])
+router = APIRouter(tags=["cache"])
 
 
 @router.get("/stats", summary="获取缓存统计")

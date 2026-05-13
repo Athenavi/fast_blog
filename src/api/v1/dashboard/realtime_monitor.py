@@ -11,7 +11,7 @@ from shared.services.analytics.realtime_monitor import realtime_monitor_service
 from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import admin_required as admin_required_api
 
-router = APIRouter(prefix="/monitor", tags=["monitoring"])
+router = APIRouter(tags=["monitoring"])
 
 
 @router.get("/dashboard", summary="获取监控仪表板数据")

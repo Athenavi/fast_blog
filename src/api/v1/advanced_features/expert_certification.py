@@ -10,7 +10,7 @@ from shared.services.advanced_features.expert_certification_system import expert
 from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import get_current_active_user, admin_required as admin_required_api
 
-router = APIRouter(prefix="/expert-certification", tags=["expert-certification"])
+router = APIRouter(tags=["expert-certification"])
 
 
 @router.get("/fields", summary="获取可认证领域")

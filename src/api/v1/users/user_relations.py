@@ -13,7 +13,7 @@ from shared.models.user import User
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 
-router = APIRouter(prefix="/relations", tags=["user-relations"])
+router = APIRouter(tags=["user-relations"])
 
 # 使用内存存储关注关系(生产环境应使用数据库)
 # 格式: {follower_id: {following_id: timestamp}}

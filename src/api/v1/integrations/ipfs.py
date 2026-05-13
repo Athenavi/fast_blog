@@ -10,7 +10,7 @@ from pydantic import BaseModel
 
 from shared.services.integrations.ipfs_service import ipfs_service
 
-router = APIRouter(prefix="/ipfs", tags=["IPFS"])
+router = APIRouter(tags=["IPFS"])
 
 
 class UploadTextRequest(BaseModel):

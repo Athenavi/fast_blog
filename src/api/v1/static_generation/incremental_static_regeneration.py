@@ -11,9 +11,9 @@ from src.auth import admin_required
 from shared.services.static_generation.incremental_static_regeneration import isr_service
 from shared.services.static_generation.static_site_generator import ssg_service
 from src.utils.database.unified_manager import db_manager
-from api.v1.core.responses import ApiResponse
+from src.api.v1.core.responses import ApiResponse
 
-router = APIRouter(prefix="/isr", tags=["Incremental Static Regeneration"])
+router = APIRouter(tags=["Incremental Static Regeneration"])
 
 
 @router.on_event("startup")

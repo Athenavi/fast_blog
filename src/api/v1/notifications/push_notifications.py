@@ -13,7 +13,7 @@ from shared.services.chat.web_push_service import web_push_service
 from src.api.v1.core.responses import ApiResponse
 from src.auth import get_current_active_user
 
-router = APIRouter(prefix="/push", tags=["push-notifications"])
+router = APIRouter(tags=["push-notifications"])
 
 
 class SubscriptionRequest(BaseModel):

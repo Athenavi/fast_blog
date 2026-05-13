@@ -11,7 +11,7 @@ from sqlalchemy.orm import Session
 from shared.services.ecommerce.revenue_sharing_service import RevenueSharingService
 from src.extensions import get_db
 
-router = APIRouter(prefix="/revenue", tags=["收益分成"])
+router = APIRouter(tags=["收益分成"])
 
 
 # ==================== Pydantic 模型 ====================

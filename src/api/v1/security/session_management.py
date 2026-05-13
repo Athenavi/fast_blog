@@ -12,7 +12,7 @@ from shared.services.users.session_management_service import session_management_
 from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import get_current_active_user, admin_required as admin_required_api
 
-router = APIRouter(prefix="/sessions", tags=["sessions"])
+router = APIRouter(tags=["sessions"])
 
 
 @router.get("/my-sessions", summary="获取我的活跃会话")

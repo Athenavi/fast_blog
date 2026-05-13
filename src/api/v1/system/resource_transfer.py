@@ -13,7 +13,7 @@ from shared.services.performance.resource_transfer_service import ResourceTransf
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 
-router = APIRouter(prefix="/resource-transfer", tags=["resource-transfer"])
+router = APIRouter(tags=["resource-transfer"])
 
 
 @router.post("/download", summary="创建下载任务")

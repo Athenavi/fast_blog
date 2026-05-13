@@ -172,7 +172,7 @@ async def confirm_email_back(
 
 
 # 创建API路由器
-router = APIRouter(prefix="/user-settings", tags=["user-settings"])
+router = APIRouter(tags=["user-settings"])
 
 
 @router.post("/profile/avatar", response_model_exclude_none=True)

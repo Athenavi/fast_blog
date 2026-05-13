@@ -12,7 +12,7 @@ from shared.services.content_management.block_editor_service import block_editor
 from shared.services.content_management.custom_block_framework import create_plugin_manager
 from shared.services.content_management.example_custom_blocks import ExampleBlocksPlugin
 
-router = APIRouter(prefix="/custom-blocks", tags=["Custom Blocks"])
+router = APIRouter(tags=["Custom Blocks"])
 
 # 创建全局插件管理器
 plugin_manager = create_plugin_manager(block_editor_service)

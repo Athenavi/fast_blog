@@ -15,7 +15,7 @@ from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 
-router = APIRouter(prefix="/payment", tags=["payment"])
+router = APIRouter(tags=["payment"])
 
 
 @router.post("/create")

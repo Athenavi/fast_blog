@@ -9,7 +9,7 @@ from shared.services.comments.comment_enhanced import comment_enhanced_service
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 
-router = APIRouter(prefix="/comments-enhanced", tags=["comments-enhanced"])
+router = APIRouter(tags=["comments-enhanced"])
 
 
 @router.get("/article/{article_id}")

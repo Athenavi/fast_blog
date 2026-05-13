@@ -8,7 +8,7 @@ from shared.services.content_management.custom_block_pattern import custom_block
 from src.api.v1.core.responses import ApiResponse
 from src.auth import jwt_required_dependency as jwt_required
 
-router = APIRouter(prefix="/custom-patterns", tags=["custom-patterns"])
+router = APIRouter(tags=["custom-patterns"])
 
 
 @router.post("")

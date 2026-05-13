@@ -10,7 +10,7 @@ from pydantic import BaseModel
 
 from shared.services.integrations.nft_service import nft_service
 
-router = APIRouter(prefix="/nft", tags=["NFT"])
+router = APIRouter(tags=["NFT"])
 
 
 class MintNFTRequest(BaseModel):

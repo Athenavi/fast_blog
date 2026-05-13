@@ -10,7 +10,7 @@ from fastapi import APIRouter, Query, HTTPException
 from shared.services.advanced_features.recommendation_service import recommendation_service
 from src.api.v1.core.responses import ApiResponse
 
-router = APIRouter(prefix="/recommendations", tags=["recommendations"])
+router = APIRouter(tags=["recommendations"])
 
 
 @router.get("/personalized", summary="获取个性化推荐")

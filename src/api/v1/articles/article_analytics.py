@@ -10,7 +10,7 @@ from shared.services.articles.article_analytics_service import article_analytics
 from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import get_current_active_user
 
-router = APIRouter(prefix="/article-analytics", tags=["article-analytics"])
+router = APIRouter(tags=["article-analytics"])
 
 
 @router.post("/record-view", summary="记录文章访问")

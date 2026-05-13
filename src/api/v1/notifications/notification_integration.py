@@ -8,13 +8,13 @@ from typing import Optional, Dict, Any
 from fastapi import APIRouter, Depends, Query, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.v1.system.multisite import check_admin_permission
 from shared.services.notifications.notification_integration_service import notification_integration_service
 from src.api.v1.core.responses import ApiResponse
+from src.api.v1.system.multisite import check_admin_permission
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 
-router = APIRouter(prefix="/notifications", tags=["notifications"])
+router = APIRouter(tags=["notifications"])
 
 
 @router.get("/integrations/{platform}", summary="获取通知集成配置")

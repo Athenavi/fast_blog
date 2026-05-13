@@ -7,15 +7,15 @@ from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.v1.utils.article_utils import get_articles_with_filters
 from shared.models import CategorySubscription
 from shared.models.article import Article
 from shared.models.category import Category
 from src.api.v1.core.responses import ApiResponse
+from src.api.v1.utils.article_utils import get_articles_with_filters
 from src.auth import jwt_required_dependency as jwt_required
 from src.utils.database.main import get_async_session
 
-router = APIRouter(prefix="/category", tags=["category"])
+router = APIRouter(tags=["category"])
 
 
 # 定义特定路径的路由，确保它们在动态路由之前注册

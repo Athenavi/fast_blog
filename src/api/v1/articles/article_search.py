@@ -11,7 +11,7 @@ from shared.services.articles.article_search import (article_search_service)
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 
-router = APIRouter(prefix="/search", tags=["search"])
+router = APIRouter(tags=["search"])
 
 
 @router.get("/articles")

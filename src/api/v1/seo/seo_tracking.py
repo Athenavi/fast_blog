@@ -9,7 +9,7 @@ from shared.services.seo.seo_tracker import seo_tracker
 from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import get_current_active_user, admin_required as admin_required_api
 
-router = APIRouter(prefix="/seo-tracking", tags=["seo-tracking"])
+router = APIRouter(tags=["seo-tracking"])
 
 
 @router.get("/search-traffic", summary="获取搜索引擎流量汇总")

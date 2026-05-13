@@ -13,7 +13,7 @@ from shared.services.system.batch_operations import create_batch_service
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session
 
-router = APIRouter(prefix="/batch", tags=["batch"])
+router = APIRouter(tags=["batch"])
 
 
 class BatchDeleteRequest(BaseModel):

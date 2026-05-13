@@ -14,7 +14,7 @@ from src.auth.auth_deps import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 from src.utils.security.security import Permission
 
-router = APIRouter(prefix="/rbac", tags=["rbac"])
+router = APIRouter(tags=["rbac"])
 
 
 # ==================== 角色管理 ====================

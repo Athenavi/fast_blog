@@ -11,7 +11,7 @@ from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 from src.notification import mark_notification_as_read, get_user_notifications, mark_all_notifications_as_read
 
-router = APIRouter(prefix="/notifications", tags=["notifications"])
+router = APIRouter(tags=["notifications"])
 
 
 @router.post("/messages/read")

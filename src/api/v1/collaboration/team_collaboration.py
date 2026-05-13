@@ -8,14 +8,14 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.api.v1.core.responses import ApiResponse
 from shared.models import WorkspaceMember, Workspace
 from shared.services.chat.collaboration import collaboration_service
 from shared.services.chat.collaboration_service import TeamRole
+from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import get_current_user
 from src.extensions import get_async_db_session as get_async_db
 
-router = APIRouter(prefix="/collaboration", tags=["collaboration"])
+router = APIRouter(tags=["collaboration"])
 
 
 # ==================== 工作区管理 ====================

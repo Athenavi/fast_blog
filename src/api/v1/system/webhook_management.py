@@ -15,7 +15,7 @@ from src.utils.database.unified_manager import db_manager
 from shared.models.webhook import Webhook
 from sqlalchemy import select
 
-router = APIRouter(prefix="/webhooks", tags=["Webhooks"])
+router = APIRouter(tags=["Webhooks"])
 
 
 @router.get("/", summary="获取Webhook列表")

@@ -9,7 +9,7 @@ from shared.services.system.backup_service import backup_service
 from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 
-router = APIRouter(prefix="/backup", tags=["backup"])
+router = APIRouter(tags=["backup"])
 
 
 @router.post("/database", summary="备份数据库")

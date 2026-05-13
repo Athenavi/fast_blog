@@ -5,12 +5,12 @@
 
 from fastapi import APIRouter, Depends, Query, Body
 
-from src.api.v1.core.responses import ApiResponse
 from shared.models.user import User as UserModel
 from shared.services.ecommerce.tipping_system import tipping_system
+from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import get_current_active_user
 
-router = APIRouter(prefix="/tips", tags=["tips"])
+router = APIRouter(tags=["tips"])
 
 
 @router.post("/tip-article", summary="打赏文章")

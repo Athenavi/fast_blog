@@ -13,7 +13,7 @@ from src.auth.auth_deps import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 from sqlalchemy.ext.asyncio import AsyncSession
 
-router = APIRouter(prefix="/audit-log", tags=["audit-log"])
+router = APIRouter(tags=["audit-log"])
 
 
 @router.get("/logs", summary="查询审计日志")

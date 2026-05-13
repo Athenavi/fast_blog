@@ -10,7 +10,7 @@ from shared.services.advanced_features.ai_tag_recommendation import ai_tag_servi
 from shared.services.advanced_features.ai_writing_assistant import ai_writing_assistant
 from shared.services.security.content_moderation import content_moderation_service
 
-router = APIRouter(prefix="/ai", tags=["ai"])
+router = APIRouter(tags=["ai"])
 
 
 class TagRecommendationRequest(BaseModel):

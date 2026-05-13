@@ -13,7 +13,7 @@ from shared.services.translation.localization_service import localization_servic
 from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import get_current_active_user
 
-router = APIRouter(prefix="/i18n", tags=["i18n"])
+router = APIRouter(tags=["i18n"])
 
 
 @router.get("/detect-timezone", summary="检测用户时区")

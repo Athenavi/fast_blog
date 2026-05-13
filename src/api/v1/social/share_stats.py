@@ -15,7 +15,7 @@ from src.api.v1.core.responses import ApiResponse
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 
-router = APIRouter(prefix="/shares", tags=["shares"])
+router = APIRouter(tags=["shares"])
 
 
 @router.post("/track")

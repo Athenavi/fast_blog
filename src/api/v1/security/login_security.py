@@ -12,7 +12,7 @@ from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import get_current_active_user, admin_required as admin_required_api
 from src.extensions import get_async_db_session as get_async_db
 
-router = APIRouter(prefix="/security", tags=["security"])
+router = APIRouter(tags=["security"])
 
 
 # 注意：以下旧API端点已弃用，因为登录安全服务已重构为基于数据库的异步实现

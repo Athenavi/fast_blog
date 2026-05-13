@@ -8,7 +8,7 @@ from shared.services.block_pattern_library import block_pattern_library
 from src.api.v1.core.responses import ApiResponse
 from src.auth import jwt_required_dependency as jwt_required
 
-router = APIRouter(prefix="/block-patterns", tags=["block-patterns"])
+router = APIRouter(tags=["block-patterns"])
 
 
 @router.get("")

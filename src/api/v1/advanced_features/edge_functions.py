@@ -6,7 +6,7 @@ from pydantic import BaseModel
 
 from shared.services.integrations.edge_functions import edge_functions_service
 
-router = APIRouter(prefix="/edge-functions", tags=["edge-functions"])
+router = APIRouter(tags=["edge-functions"])
 
 
 class RegisterFunctionRequest(BaseModel):

@@ -4,8 +4,7 @@
 """
 from typing import Dict, Any
 
-from shared.services.notification_service import notification_service
-
+from shared.services.notifications.notification_service import notification_service
 from shared.services.plugins.plugin_manager import BasePlugin, plugin_hooks
 
 

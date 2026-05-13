@@ -9,7 +9,7 @@ from shared.services.translation.translation import translation_service
 from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import jwt_required_dependency as jwt_required, get_current_user
 
-router = APIRouter(prefix="/i18n", tags=["i18n"])
+router = APIRouter(tags=["i18n"])
 
 
 # ==================== 语言管理 ====================

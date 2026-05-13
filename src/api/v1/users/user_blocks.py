@@ -15,7 +15,7 @@ from shared.models.user import User
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 
-router = APIRouter(prefix="/blocks", tags=["user-blocks"])
+router = APIRouter(tags=["user-blocks"])
 
 
 @router.post("/block/{blocked_user_id}")

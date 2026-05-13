@@ -13,7 +13,7 @@ from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import jwt_required
 from src.utils.database.main import get_async_session
 
-router = APIRouter(prefix="/chat", tags=["chat"])
+router = APIRouter(tags=["chat"])
 
 
 @router.get("/groups", summary="获取用户的群聊列表")

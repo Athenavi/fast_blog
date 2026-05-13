@@ -11,7 +11,7 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
 
 from shared.services.chat.yjs_collaboration import yjs_collaboration_service
 
-router = APIRouter(prefix="/collaboration/yjs", tags=["collaboration-yjs"])
+router = APIRouter(tags=["collaboration-yjs"])
 
 
 @router.websocket("/ws/{document_id}")

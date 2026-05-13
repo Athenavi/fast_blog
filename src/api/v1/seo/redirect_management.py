@@ -8,7 +8,7 @@ from shared.services.seo.redirect_manager import redirect_manager
 from src.api.v1.core.responses import ApiResponse
 from src.auth import jwt_required_dependency as jwt_required
 
-router = APIRouter(prefix="/redirects", tags=["redirects"])
+router = APIRouter(tags=["redirects"])
 
 
 @router.get("")

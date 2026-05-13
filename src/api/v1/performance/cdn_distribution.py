@@ -9,11 +9,11 @@ from typing import List
 
 from fastapi import APIRouter, Depends, Query, Body, UploadFile, File
 
-from api.v1.core.responses import ApiResponse
 from auth import admin_required
 from shared.services.performance.cdn_distributor import cdn_service
+from src.api.v1.core.responses import ApiResponse
 
-router = APIRouter(prefix="/cdn", tags=["CDN Distribution"])
+router = APIRouter(tags=["CDN Distribution"])
 
 
 @router.post("/upload", summary="上传文件到CDN")

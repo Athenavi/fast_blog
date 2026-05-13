@@ -7,7 +7,7 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.v1.core.responses import ApiResponse
-from api.v1.users.user_management import create_jwt_token
+from src.api.v1.users.user_management import create_jwt_token
 from shared.services.users.login_security_service import login_security_service
 from shared.services.users.session_management_service import session_management_service
 from shared.services.users.two_factor_auth import two_factor_auth

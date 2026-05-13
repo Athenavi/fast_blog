@@ -10,7 +10,7 @@ from pydantic import BaseModel
 from shared.services.articles.cover_image_service import CoverImageService
 from src.api.v1.core.responses import ApiResponse
 
-router = APIRouter(prefix="/cover", tags=["cover-image"])
+router = APIRouter(tags=["cover-image"])
 
 
 class ExternalImageUrlRequest(BaseModel):

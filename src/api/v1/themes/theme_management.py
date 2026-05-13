@@ -17,7 +17,7 @@ from shared.services.themes.theme_manager.theme_loader import theme_loader
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 
-router = APIRouter(prefix="/themes", tags=["themes"])
+router = APIRouter(tags=["themes"])
 
 
 @router.get("")

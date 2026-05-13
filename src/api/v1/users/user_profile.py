@@ -9,7 +9,7 @@ from src.api.v1.core.responses import ApiResponse
 from shared.services.users.user_profile_service import user_profile_service
 from src.auth.auth_deps import get_current_active_user, admin_required as admin_required_api
 
-router = APIRouter(prefix="/user-profile", tags=["user-profile"])
+router = APIRouter(tags=["user-profile"])
 
 
 @router.get("/activity/{user_id}", summary="获取用户活跃度")

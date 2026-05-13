@@ -9,7 +9,7 @@ from src.api.v1.core.responses import ApiResponse
 from shared.services.system.workflow_engine import workflow_engine
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 
-router = APIRouter(prefix="/workflows", tags=["workflows"])
+router = APIRouter(tags=["workflows"])
 
 
 @router.post("/definitions", summary="注册工作流定义")

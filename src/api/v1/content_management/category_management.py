@@ -12,7 +12,7 @@ from src.api.v1.core.responses import ApiResponse
 from src.auth import jwt_required_dependency as jwt_required
 from src.utils.database.main import get_async_session
 
-router = APIRouter(prefix="/category-management", tags=["category-management"])
+router = APIRouter(tags=["category-management"])
 
 
 @router.post("/")

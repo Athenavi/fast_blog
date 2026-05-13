@@ -9,7 +9,7 @@ from shared.services.performance.lazy_load_service import lazy_load_optimizer
 from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import admin_required
 
-router = APIRouter(prefix="/lazy-load", tags=["lazy-load"])
+router = APIRouter(tags=["lazy-load"])
 
 
 @router.post("/optimize-content", summary="优化内容中的图片")

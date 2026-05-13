@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from fastapi import APIRouter, HTTPException, Depends, Body, Request
 from pydantic import BaseModel
 
-router = APIRouter(prefix="/collaboration/invites", tags=["collaboration-invites"])
+router = APIRouter(tags=["collaboration-invites"])
 
 # 简化的邀请存储(生产环境应使用数据库)
 # 结构: {invite_id: invitation_data}

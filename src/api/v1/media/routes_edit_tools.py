@@ -10,7 +10,7 @@ from fastapi.responses import Response
 from shared.services.media.image_tool import image_processor
 from src.auth import jwt_required_dependency as jwt_required
 
-router = APIRouter(prefix="/edit", tags=["media-edit-tools"])
+router = APIRouter(tags=["media-edit-tools"])
 logger = logging.getLogger(__name__)
 
 

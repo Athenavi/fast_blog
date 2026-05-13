@@ -2,8 +2,8 @@
 全文搜索 API 端点
 提供基于 Meilisearch 的高性能搜索功能
 """
-from typing import Optional
 from datetime import datetime
+from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,7 +13,7 @@ from src.api.v1.core.responses import ApiResponse
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 
-router = APIRouter(prefix="/search", tags=["fulltext-search"])
+router = APIRouter(tags=["fulltext-search"])
 
 
 @router.get("/articles")

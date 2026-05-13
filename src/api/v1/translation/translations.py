@@ -8,7 +8,7 @@ from pydantic import BaseModel
 
 from shared.services.translation.translation import translation_service
 
-router = APIRouter(prefix="/translations", tags=["translations"])
+router = APIRouter(tags=["translations"])
 
 
 @router.get("/{locale}/{key}")

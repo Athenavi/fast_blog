@@ -116,6 +116,7 @@ ROUTE_REGISTRY = [
     ("src.api.v1.collaboration.yjs_collaboration", "/api/v1", ["yjs-collaboration"], False),
     ("src.api.v1.comments.comment_config", "/api/v1", ["comment-config"], False),
     ("src.api.v1.comments.comment_subscriptions", "/api/v1", ["comment-subscriptions"], False),
+    ("src.api.v1.comments.comments", "/api/v1/comments", ["comments"], False),
     ("src.api.v1.comments.comments_enhanced", "/api/v1", ["comments-enhanced"], False),
     ("src.api.v1.compliance.gdpr_compliance", "/api/v1", ["gdpr-compliance"], False),
     ("src.api.v1.content_management.block_editor", "/api/v1", ["block-editor"], False),
@@ -127,7 +128,7 @@ ROUTE_REGISTRY = [
     ("src.api.v1.content_management.shortcode", "/api/v1", ["shortcode"], False),
     ("src.api.v1.content_management.widgets", "/api/v1", ["widgets"], False),
     ("src.api.v1.core.misc", "/api/v1", ["misc"], False),
-    ("src.api.v1.core.system", "/api/v1", ["system"], False),
+    ("src.api.v1.core.system", "/api/v1/system", ["system"], False),
     ("src.api.v1.dashboard.analytics", "/api/v1", ["analytics"], False),
     ("src.api.v1.dashboard.realtime_monitor", "/api/v1", ["realtime-monitor"], False),
     ("src.api.v1.ecommerce.ecommerce", "/api/v1", ["ecommerce"], False),
@@ -144,18 +145,8 @@ ROUTE_REGISTRY = [
     ("src.api.v1.marketing.ad_management", "/api/v1", ["ad-management"], False),
     ("src.api.v1.marketing.advertisement_system", "/api/v1", ["advertisement-system"], False),
     ("src.api.v1.media", "/api/v1", ["media"], False),
-    ("src.api.v1.media.routes_cover", "/api/v1", ["routes-cover"], False),
-    ("src.api.v1.media.routes_cover_external", "/api/v1", ["routes-cover-external"], False),
-    ("src.api.v1.media.routes_edit", "/api/v1", ["routes-edit"], False),
-    ("src.api.v1.media.routes_edit_tools", "/api/v1", ["routes-edit-tools"], False),
-    ("src.api.v1.media.routes_enhancement", "/api/v1", ["routes-enhancement"], False),
-    ("src.api.v1.media.routes_folders", "/api/v1", ["routes-folders"], False),
-    ("src.api.v1.media.routes_list", "/api/v1", ["routes-list"], False),
-    ("src.api.v1.media.routes_stream", "/api/v1", ["routes-stream"], False),
-    ("src.api.v1.media.routes_tags", "/api/v1", ["routes-tags"], False),
-    ("src.api.v1.media.routes_upload", "/api/v1", ["routes-upload"], False),
     ("src.api.v1.notifications.email_service", "/api/v1", ["email-service"], False),
-    ("src.api.v1.notifications.notifications", "/api/v1", ["notifications"], False),
+    ("src.api.v1.notifications.notifications", "/api/v1/notifications", ["notifications"], False),
     ("src.api.v1.notifications.push_notifications", "/api/v1", ["push-notifications"], False),
     ("src.api.v1.performance.cache_management", "/api/v1", ["cache-management"], False),
     ("src.api.v1.performance.cdn_management", "/api/v1", ["cdn-management"], False),
@@ -167,8 +158,8 @@ ROUTE_REGISTRY = [
     ("src.api.v1.performance.load_balancer", "/api/v1", ["load-balancer"], False),
     ("src.api.v1.performance.localization", "/api/v1", ["localization"], False),
     ("src.api.v1.performance.object_cache", "/api/v1", ["object-cache"], False),
-    ("src.api.v1.performance.performance_monitor", "/api/v1", ["performance-monitor"], False),
-    ("src.api.v1.performance.performance_tracking", "/api/v1", ["performance-tracking"], False),
+    ("src.api.v1.performance.performance_monitor", "/api/v1/performance-monitor", ["performance-monitor"], False),
+    ("src.api.v1.performance.performance_tracking", "/api/v1/performance-tracking", ["performance-tracking"], False),
     ("src.api.v1.performance.query_monitor", "/api/v1", ["query-monitor"], False),
     ("src.api.v1.performance.query_optimization", "/api/v1", ["query-optimization"], False),
     ("src.api.v1.performance.resource_optimization", "/api/v1", ["resource-optimization"], False),
@@ -182,12 +173,13 @@ ROUTE_REGISTRY = [
     ("src.api.v1.security.security_report", "/api/v1", ["security-report"], False),
     ("src.api.v1.security.sensitive_words", "/api/v1", ["sensitive-words"], False),
     ("src.api.v1.security.session_management", "/api/v1", ["session-management"], False),
+    ("src.api.v1.security.two_factor_auth", "/api/v1/2fa", ["2fa"], False),
     ("src.api.v1.seo.batch_seo", "/api/v1", ["batch-seo"], False),
     ("src.api.v1.seo.breadcrumbs", "/api/v1", ["breadcrumbs"], False),
     ("src.api.v1.seo.hreflang_api", "/api/v1", ["hreflang-api"], False),
     ("src.api.v1.seo.internal_links", "/api/v1", ["internal-links"], False),
     ("src.api.v1.seo.redirect_management", "/api/v1", ["redirect-management"], False),
-    ("src.api.v1.seo.seo", "/api/v1", ["seo"], False),
+    ("src.api.v1.seo.seo", "/api/v1/seo", ["seo"], False),
     ("src.api.v1.seo.seo_management", "/api/v1", ["seo-management"], False),
     ("src.api.v1.seo.seo_optimization", "/api/v1", ["seo-optimization"], False),
     ("src.api.v1.seo.seo_tracking", "/api/v1", ["seo-tracking"], False),
@@ -196,7 +188,7 @@ ROUTE_REGISTRY = [
     ("src.api.v1.static_generation.page_cache", "/api/v1", ["page-cache"], False),
     ("src.api.v1.static_generation.static_site_generation", "/api/v1", ["static-site-generation"], False),
     ("src.api.v1.system.admin_settings", "/api/v1", ["admin-settings"], False),
-    ("src.api.v1.system.backup_management", "/api/v1", ["backup-management"], False),
+    ("src.api.v1.system.backup_management", "/api/v1/backup", ["backup-management"], False),
     ("src.api.v1.system.batch_operations", "/api/v1", ["batch-operations"], False),
     ("src.api.v1.system.data_export", "/api/v1", ["data-export"], False),
     ("src.api.v1.system.database_migration", "/api/v1", ["database-migration"], False),
@@ -225,6 +217,7 @@ ROUTE_REGISTRY = [
     ("src.api.v1.user_utils", "/api/v1", ["user-utils"], False),
     ("src.api.v1.user_utils.vip", "/api/v1", ["vip"], False),
     ("src.api.v1.users.user_blocks", "/api/v1", ["user-blocks"], False),
+    ("src.api.v1.users.user_management", "/api/v1", ["user-management"], False),
     ("src.api.v1.users.user_profile", "/api/v1", ["user-profile"], False),
     ("src.api.v1.users.user_relations", "/api/v1", ["user-relations"], False),
     ("src.api.v1.users.user_settings", "/api/v1", ["user-settings"], False),
@@ -373,8 +366,15 @@ def register_middleware(app: FastAPI):
                 print(f"[DEBUG] Headers: {dict(request.headers)}")
                 if request.method == "POST":
                     try:
+                        # 先读取 body
                         body = await request.body()
                         print(f"[DEBUG] Body: {body.decode('utf-8')}")
+
+                        # 重要：将 body 重新设置回 request，以便后续 endpoint 可以读取
+                        async def receive():
+                            return {"type": "http.request", "body": body}
+
+                        request._receive = receive
                     except Exception as e:
                         print(f"[DEBUG] 无法读取 body: {e}")
             response = await call_next(request)

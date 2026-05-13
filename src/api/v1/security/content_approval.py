@@ -11,7 +11,7 @@ from src.auth.auth_deps import jwt_required_dependency as jwt_required, get_curr
 from src.extensions import get_async_db_session as get_async_db
 from sqlalchemy.ext.asyncio import AsyncSession
 
-router = APIRouter(prefix="/approval", tags=["approval"])
+router = APIRouter(tags=["approval"])
 
 
 # ==================== 审批请求管理 ====================
