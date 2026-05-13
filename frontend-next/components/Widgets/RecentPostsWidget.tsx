@@ -42,7 +42,7 @@ const RecentPostsWidget: React.FC<RecentPostsWidgetProps> = ({title, config}) =>
     const loadArticles = async () => {
         try {
             const response = await apiClient.get(
-                `/api/v1/articles?page=1&per_page=${config.count || 5}&order_by=created_at&order=desc`
+                `/api/v2/articles?page=1&per_page=${config.count || 5}&order_by=created_at&order=desc`
             );
 
             if (response.success && response.data) {
@@ -70,7 +70,7 @@ const RecentPostsWidget: React.FC<RecentPostsWidgetProps> = ({title, config}) =>
         return (
             <Card>
                 <CardContent className="py-4">
-                    <div className="text-center text-gray-500">加载中...</div>
+                    <div className="text-center text-gray-500">加载�?..</div>
                 </CardContent>
             </Card>
         );
@@ -96,7 +96,7 @@ const RecentPostsWidget: React.FC<RecentPostsWidgetProps> = ({title, config}) =>
                             className="block group"
                         >
                             <div className="flex gap-3">
-                                {/* 缩略图 */}
+                                {/* 缩略�?*/}
                                 {config.show_thumbnail && article.cover_image && (
                                     <div className="flex-shrink-0 w-20 h-20 rounded overflow-hidden">
                                         <Image

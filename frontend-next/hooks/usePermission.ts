@@ -1,5 +1,5 @@
 /**
- * 权限检查 Hook - 用于前端权限验证
+ * 权限检�?Hook - 用于前端权限验证
  *
  * @example
  * ```tsx
@@ -10,8 +10,7 @@
  *   return <Button>新建文章</Button>;
  * }
  *
- * // 角色检查
- * if (hasRole('editor')) {
+ * // 角色检�? * if (hasRole('editor')) {
  *   return <EditorPanel />;
  * }
  *
@@ -38,7 +37,7 @@ interface UsePermissionReturn {
 }
 
 /**
- * 权限检查 Hook
+ * 权限检�?Hook
  *
  * @example
  * const { hasPermission, hasRole } = usePermission();
@@ -64,8 +63,7 @@ export const usePermission = (): UsePermissionReturn => {
         }
 
         try {
-            // 获取用户角色和权限
-            const response = await apiClient.get(`/api/v1/permissions/users/${user.id}/permissions`);
+            // 获取用户角色和权�?            const response = await apiClient.get(`/api/v2/permissions/users/${user.id}/permissions`);
 
             if (response.success && (response.data as any)) {
                 const data = response.data as any;
@@ -75,7 +73,7 @@ export const usePermission = (): UsePermissionReturn => {
                 // 获取用户角色
                 const userWithRole = user as any; // 临时类型断言
                 if (userWithRole.role_id) {
-                    const roleResponse = await apiClient.get(`/api/v1/admin/user/${user.id}/roles`);
+                    const roleResponse = await apiClient.get(`/api/v2/admin/user/${user.id}/roles`);
                     if (roleResponse.success && (roleResponse.data as any)) {
                         const roleData = roleResponse.data as any;
                         if (roleData.roles?.length > 0) {
@@ -95,8 +93,7 @@ export const usePermission = (): UsePermissionReturn => {
      * 检查是否有指定权限
      */
     const hasPermission = (permissionCode: string): boolean => {
-        // 超级管理员拥有所有权限
-        if (user?.is_superuser) {
+        // 超级管理员拥有所有权�?        if (user?.is_superuser) {
             return true;
         }
 
@@ -115,8 +112,7 @@ export const usePermission = (): UsePermissionReturn => {
     };
 
     /**
-     * 检查是否有所有权限
-     */
+     * 检查是否有所有权�?     */
     const hasAllPermissions = (permissionCodes: string[]): boolean => {
         if (user?.is_superuser) {
             return true;

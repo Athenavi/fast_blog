@@ -16,7 +16,7 @@ from src.extensions import get_async_db_session as get_async_db
 router = APIRouter()
 
 
-@router.get("/{article_id}/amp",
+@router.get("/{article_id}",
             summary="获取文章AMP版本",
             description="返回文章的AMP HTML页面,用于移动设备快速加载",
             response_description="返回AMP HTML或重定向")
@@ -100,7 +100,7 @@ async def get_article_amp_api(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/{article_id}/amp/validate",
+@router.get("/{article_id}/validate",
             summary="验证文章AMP",
             description="验证文章的AMP版本是否符合规范",
             response_description="返回验证结果")

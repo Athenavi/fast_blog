@@ -223,28 +223,45 @@ ROUTE_REGISTRY = [
 
 
 def register_all_routes(app: FastAPI, worker_info: str):
-    """根据配置表自动注册所有路由"""
-    for module_path, prefix, tags, required in ROUTE_REGISTRY:
-        try:
-            mod = importlib.import_module(module_path)
-            router = getattr(mod, "router", None)
-            if router is None:
-                raise AttributeError("No 'router' found")
-            if prefix:
-                app.include_router(router, prefix=prefix, tags=tags if tags else [])
-            else:
-                app.include_router(router)
-            print(f"{worker_info} [OK] {module_path.split('.')[-1]} 已加载")
-        except ImportError as e:
-            if required:
-                print(f"{worker_info} [ERROR] 必需模块加载失败: {module_path} - {e}")
-                raise
-            else:
-                print(f"{worker_info} [Warning] {module_path} 未能加载: {e}")
-        except Exception as e:
-            if required:
-                raise
-            print(f"{worker_info} [Warning] {module_path} 注册异常: {e}")
+    """注册 API v2 路由（已移除 v1）"""
+
+    # 注册 v2 路由（新规范）
+    print(f"\n{worker_info} {'=' * 60}")
+    print(f"{worker_info} 开始注册 API v2 路由...")
+    try:
+        from src.api.v2 import ROUTE_REGISTRY_V2
+        loaded_count = 0
+        failed_count = 0
+
+        for module_path, prefix, tags, required in ROUTE_REGISTRY_V2:
+            try:
+                mod = importlib.import_module(module_path)
+                router = getattr(mod, "router", None)
+                if router is None:
+                    raise AttributeError("No 'router' found")
+                if prefix:
+                    app.include_router(router, prefix=prefix, tags=tags if tags else [])
+                else:
+                    app.include_router(router)
+                loaded_count += 1
+                print(f"{worker_info} [OK] v2/{module_path.split('.')[-1]} 已加载")
+            except ImportError as e:
+                if required:
+                    print(f"{worker_info} [ERROR] v2 必需模块加载失败: {module_path} - {e}")
+                    raise
+                else:
+                    failed_count += 1
+                    print(f"{worker_info} [Warning] v2/{module_path} 未能加载: {e}")
+            except Exception as e:
+                if required:
+                    raise
+                failed_count += 1
+                print(f"{worker_info} [Warning] v2/{module_path} 注册异常: {e}")
+
+        print(f"{worker_info} ✅ API v2 路由注册完成 (成功: {loaded_count}, 失败: {failed_count})\n")
+    except ImportError as e:
+        print(f"{worker_info} [ERROR] API v2 模块未找到: {e}\n")
+        raise
 
 
 # ---------- 生命周期 ----------
@@ -333,6 +350,10 @@ async def _close_database():
 # ---------- 中间件注册 ----------
 def register_middleware(app: FastAPI):
     """统一注册所有中间件（调试、安全、缓存等）"""
+    # 获取 worker 信息（用于日志）
+    from src.setting import _get_worker_info
+    worker_info = _get_worker_info()
+    
     # CORS（从环境变量或默认值）
     from fastapi.middleware.cors import CORSMiddleware
     origins_env = os.environ.get('CORS_ORIGINS', '')

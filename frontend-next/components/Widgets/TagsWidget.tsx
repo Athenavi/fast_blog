@@ -1,7 +1,6 @@
 /**
- * 标签云 Widget
- * 显示文章标签，支持云模式和列表模式
- */
+ * 标签�?Widget
+ * 显示文章标签，支持云模式和列表模�? */
 
 'use client';
 
@@ -39,7 +38,7 @@ const TagsWidget: React.FC<TagsWidgetProps> = ({title, config}) => {
     const loadTags = async () => {
         try {
             const response = await apiClient.get(
-                `/api/v1/widgets/data/tags-cloud?count=${config.count || 20}&display_type=${config.display_type || 'cloud'}`
+                `/api/v2/widgets/data/tags-cloud?count=${config.count || 20}&display_type=${config.display_type || 'cloud'}`
             );
 
             if (response.success && response.data) {
@@ -102,8 +101,7 @@ const TagsWidget: React.FC<TagsWidgetProps> = ({title, config}) => {
                         ))}
                     </div>
                 ) : (
-                    // 云模式
-                    <div className="flex flex-wrap gap-2">
+                    // 云模�?                    <div className="flex flex-wrap gap-2">
                         {tags.map((tag) => (
                             <Link
                                 key={tag.slug}

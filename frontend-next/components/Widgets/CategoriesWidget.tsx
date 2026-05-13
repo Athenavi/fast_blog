@@ -38,7 +38,7 @@ const CategoriesWidget: React.FC<CategoriesWidgetProps> = ({title, config}) => {
     const loadCategories = async () => {
         try {
             const response = await apiClient.get(
-                `/api/v1/widgets/data/categories?show_count=${config.show_count !== false}&display_type=${config.display_type || 'list'}`
+                `/api/v2/widgets/data/categories?show_count=${config.show_count !== false}&display_type=${config.display_type || 'list'}`
             );
 
             if (response.success && response.data) {

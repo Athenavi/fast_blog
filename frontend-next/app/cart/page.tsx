@@ -1,6 +1,5 @@
 /**
- * 购物车页面
- */
+ * 购物车页�? */
 'use client';
 
 import {useEffect, useState} from 'react';
@@ -44,7 +43,7 @@ export default function CartPage() {
     const fetchCart = async () => {
         setLoading(true);
         try {
-            const response = await fetch('/api/v1/ecommerce/cart');
+            const response = await fetch('/api/v2/ecommerce/cart');
             const data: CartResponse = await response.json();
 
             if (data.success) {
@@ -62,7 +61,7 @@ export default function CartPage() {
 
         setUpdating(itemId);
         try {
-            const response = await fetch(`/api/v1/ecommerce/cart/items/${itemId}`, {
+            const response = await fetch(`/api/v2/ecommerce/cart/items/${itemId}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -83,10 +82,10 @@ export default function CartPage() {
     };
 
     const removeItem = async (itemId: number) => {
-        if (!confirm('确定要删除这个商品吗？')) return;
+        if (!confirm('确定要删除这个商品吗�?)) return;
 
         try {
-            const response = await fetch(`/api/v1/ecommerce/cart/items/${itemId}`, {
+            const response = await fetch(`/api/v2/ecommerce/cart/items/${itemId}`, {
                 method: 'DELETE',
             });
 
@@ -104,7 +103,7 @@ export default function CartPage() {
         if (!confirm('确定要清空购物车吗？')) return;
 
         try {
-            const response = await fetch('/api/v1/ecommerce/cart/clear', {
+            const response = await fetch('/api/v2/ecommerce/cart/clear', {
                 method: 'POST',
             });
 
@@ -137,13 +136,12 @@ export default function CartPage() {
         return (
             <div className="container mx-auto px-4 py-8 text-center">
                 <h1 className="text-2xl font-bold mb-4">购物车是空的</h1>
-                <p className="text-gray-500 mb-6">快去选购心仪的商品吧！</p>
+                <p className="text-gray-500 mb-6">快去选购心仪的商品吧�?/p>
                 <Link
                     href="/products"
                     className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition"
                 >
-                    去购物
-                </Link>
+                    去购�? </Link>
             </div>
         );
     }
@@ -151,12 +149,12 @@ export default function CartPage() {
     return (
         <div className="container mx-auto px-4 py-8">
             <div className="flex justify-between items-center mb-8">
-                <h1 className="text-3xl font-bold">购物车 ({cart.count})</h1>
+                <h1 className="text-3xl font-bold">购物�?({cart.count})</h1>
                 <button
                     onClick={clearCart}
                     className="text-red-600 hover:text-red-700"
                 >
-                    清空购物车
+                    清空购物�?
                 </button>
             </div>
 
@@ -194,8 +192,7 @@ export default function CartPage() {
                             href="/checkout"
                             className="block w-full bg-blue-600 text-white text-center py-3 rounded-lg font-semibold hover:bg-blue-700 transition"
                         >
-                            去结算
-                        </Link>
+                            去结�? </Link>
 
                         <Link
                             href="/products"

@@ -20,7 +20,7 @@ export default function CSSOptimizerPage() {
   const loadCacheStats = async () => {
     try {
       const token = getAccessTokenFromCookie();
-      const response = await fetch('/api/v1/css-optimizer/cache/stats', {
+        const response = await fetch('/api/v2/css-optimizer/cache/stats', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -51,7 +51,7 @@ export default function CSSOptimizerPage() {
     try {
       setLoading(true);
       const token = getAccessTokenFromCookie();
-      const response = await fetch('/api/v1/css-optimizer/extract', {
+        const response = await fetch('/api/v2/css-optimizer/extract', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -90,7 +90,7 @@ export default function CSSOptimizerPage() {
   const handleClearCache = async () => {
     try {
       const token = getAccessTokenFromCookie();
-      const response = await fetch('/api/v1/css-optimizer/cache/clear', {
+        const response = await fetch('/api/v2/css-optimizer/cache/clear', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -104,7 +104,7 @@ export default function CSSOptimizerPage() {
       const result = await response.json();
       
       if (result.success) {
-        toast.success('缓存已清除');
+          toast.success('缓存已清�?);
         setResult(null);
         loadCacheStats();
       } else {
@@ -160,7 +160,7 @@ export default function CSSOptimizerPage() {
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold tracking-tight text-gray-900">CSS优化工具</h1>
-          <p className="text-gray-600 mt-1">关键CSS提取和异步加载优化</p>
+            <p className="text-gray-600 mt-1">关键CSS提取和异步加载优�?/p>
         </div>
         <Button onClick={handleClearCache} variant="outline">
           <Trash2 className="w-4 h-4 mr-2" />
@@ -180,11 +180,11 @@ export default function CSSOptimizerPage() {
           <CardContent>
             <div className="grid grid-cols-3 gap-4">
               <div>
-                <p className="text-sm text-gray-600">缓存文件数</p>
+                  <p className="text-sm text-gray-600">缓存文件�?/p>
                 <p className="text-2xl font-bold">{cacheStats.file_count}</p>
               </div>
               <div>
-                <p className="text-sm text-gray-600">总大小</p>
+                  <p className="text-sm text-gray-600">总大�?/p>
                 <p className="text-2xl font-bold">{cacheStats.total_size_kb} KB</p>
               </div>
               <div>
@@ -217,7 +217,7 @@ export default function CSSOptimizerPage() {
               加载示例
             </Button>
             <Button onClick={handleExtract} disabled={loading}>
-              {loading ? '提取中...' : '提取关键CSS'}
+                {loading ? '提取�?..' : '提取关键CSS'}
             </Button>
           </div>
         </CardContent>
@@ -232,7 +232,7 @@ export default function CSSOptimizerPage() {
           <CardContent className="space-y-4">
             <div className="flex items-center space-x-2">
               <Badge variant={result.cached ? 'secondary' : 'default'}>
-                {result.cached ? '来自缓存' : '新生成'}
+                  {result.cached ? '来自缓存' : '新生�?}
               </Badge>
               <span className="text-sm text-gray-600">
                 Cache Key: {result.cache_key}
@@ -266,8 +266,8 @@ export default function CSSOptimizerPage() {
             <Info className="h-4 w-4" />
             <AlertTitle>什么是关键CSS?</AlertTitle>
             <AlertDescription>
-              关键CSS(Critical CSS)是指首屏(Above-the-fold)渲染所必需的CSS样式。
-              将其内联到&lt;head&gt;中可以避免FOUC(无样式内容闪烁),提升感知加载速度。
+                关键CSS(Critical CSS)是指首屏(Above-the-fold)渲染所必需的CSS样式�?
+                将其内联�?lt;head&gt;中可以避免FOUC(无样式内容闪�?,提升感知加载速度�?
             </AlertDescription>
           </Alert>
 
@@ -275,18 +275,18 @@ export default function CSSOptimizerPage() {
             <h3 className="font-semibold mb-2">优化步骤:</h3>
             <ol className="list-decimal list-inside space-y-2 text-sm text-gray-700 ml-2">
               <li>提取首屏必需的关键CSS</li>
-              <li>将关键CSS内联到&lt;style&gt;标签</li>
+                <li>将关键CSS内联�?lt;style&gt;标签</li>
               <li>使用preload异步加载完整CSS文件</li>
               <li>缓存结果以提升性能</li>
             </ol>
           </div>
 
           <div>
-            <h3 className="font-semibold mb-2">最佳实践:</h3>
+              <h3 className="font-semibold mb-2">最佳实�?</h3>
             <ul className="list-disc list-inside space-y-2 text-sm text-gray-700 ml-2">
-              <li>保持内联CSS在14KB以内(TCP初始拥塞窗口)</li>
-              <li>使用工具自动化提取(如critical, penthouse)</li>
-              <li>按页面类型分别生成(article/home/category)</li>
+                <li>保持内联CSS�?4KB以内(TCP初始拥塞窗口)</li>
+                <li>使用工具自动化提�?如critical, penthouse)</li>
+                <li>按页面类型分别生�?article/home/category)</li>
               <li>定期清理过期缓存</li>
             </ul>
           </div>

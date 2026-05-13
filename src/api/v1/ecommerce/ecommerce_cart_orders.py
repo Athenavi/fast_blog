@@ -166,7 +166,7 @@ async def create_order(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/orders")
+@router.get("")
 async def list_orders(
         page: int = Query(1, ge=1),
         per_page: int = Query(20, ge=1, le=100),
@@ -201,7 +201,7 @@ async def list_orders(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/orders/{order_id}")
+@router.get("/{order_id}")
 async def get_order(
         order_id: int,
         current_user: User = Depends(jwt_required),
@@ -221,7 +221,7 @@ async def get_order(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/orders/{order_id}/cancel")
+@router.post("/{order_id}/cancel")
 async def cancel_order(
         order_id: int,
         reason: str = Body(..., embed=True),

@@ -23,11 +23,11 @@ export default function TranslationServicePage() {
   const [showConfig, setShowConfig] = useState(false);
   const [apiKey, setApiKey] = useState('');
 
-  // 加载提供商列表
+    // 加载提供商列�?
   const loadProviders = async () => {
     try {
       const token = getAccessTokenFromCookie();
-      const response = await fetch('/api/v1/translation-service/providers', {
+        const response = await fetch('/api/v2/translation-service/providers', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -54,7 +54,7 @@ export default function TranslationServicePage() {
   // 翻译文本
   const handleTranslate = async () => {
     if (!text) {
-      toast.error('请输入要翻译的文本');
+        toast.error('请输入要翻译的文�?);
       return;
     }
 
@@ -66,7 +66,7 @@ export default function TranslationServicePage() {
     try {
       setLoading(true);
       const token = getAccessTokenFromCookie();
-      const response = await fetch('/api/v1/translation-service/translate', {
+        const response = await fetch('/api/v2/translation-service/translate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -106,7 +106,7 @@ export default function TranslationServicePage() {
     try {
       setLoading(true);
       const token = getAccessTokenFromCookie();
-      const response = await fetch('/api/v1/translation-service/detect-language', {
+        const response = await fetch('/api/v2/translation-service/detect-language', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -122,13 +122,13 @@ export default function TranslationServicePage() {
 
         if (result.success && result.data) {
             setSourceLang((result.data as any).language);
-            toast.success(`检测到语言: ${(result.data as any).language} (置信度: ${Math.round((result.data as any).confidence * 100)}%)`);
+            toast.success(`检测到语言: ${(result.data as any).language} (置信�? ${Math.round((result.data as any).confidence * 100)}%)`);
       } else {
-        toast.error(result.error || '检测失败');
+            toast.error(result.error || '检测失�?);
       }
     } catch (error) {
       console.error('Error detecting language:', error);
-      toast.error('检测失败');
+        toast.error('检测失�?);
     } finally {
       setLoading(false);
     }
@@ -143,7 +143,7 @@ export default function TranslationServicePage() {
 
     try {
       const token = getAccessTokenFromCookie();
-      const response = await fetch('/api/v1/translation-service/configure', {
+        const response = await fetch('/api/v2/translation-service/configure', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -194,10 +194,10 @@ export default function TranslationServicePage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <label className="text-sm font-medium mb-1 block">选择提供商</label>
+                <label className="text-sm font-medium mb-1 block">选择提供�?/label>
               <Select value={selectedProvider} onValueChange={setSelectedProvider}>
                 <SelectTrigger>
-                  <SelectValue placeholder="选择提供商" />
+                    <SelectValue placeholder="选择提供�? />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="google">Google Translate</SelectItem>
@@ -216,8 +216,8 @@ export default function TranslationServicePage() {
               />
               <p className="text-xs text-gray-500 mt-1">
                 {selectedProvider === 'google' 
-                  ? '从 Google Cloud Console 获取 API 密钥'
-                  : '从 DeepL Developer 获取 API 密钥'}
+                  ? '�?Google Cloud Console 获取 API 密钥'
+                  : '�?DeepL Developer 获取 API 密钥'}
               </p>
             </div>
 
@@ -226,7 +226,7 @@ export default function TranslationServicePage() {
         </Card>
       )}
 
-      {/* 提供商信息 */}
+      {/* 提供商信�?*/}
       {providers && (
         <Card>
           <CardHeader>
@@ -267,11 +267,11 @@ export default function TranslationServicePage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="auto">自动检测</SelectItem>
+                  <SelectItem value=" auto">自动检�?/SelectItem>
                   <SelectItem value="en">English</SelectItem>
                   <SelectItem value="zh-CN">中文</SelectItem>
-                  <SelectItem value="ja">日本語</SelectItem>
-                  <SelectItem value="ko">한국어</SelectItem>
+                  <SelectItem value=" ja">日本�?/SelectItem>
+                  <SelectItem value=" ko">한국�?/SelectItem>
                   <SelectItem value="ar">العربية</SelectItem>
                   <SelectItem value="he">עברית</SelectItem>
                 </SelectContent>
@@ -286,15 +286,15 @@ export default function TranslationServicePage() {
                 <SelectContent>
                   <SelectItem value="zh-CN">中文</SelectItem>
                   <SelectItem value="en">English</SelectItem>
-                  <SelectItem value="ja">日本語</SelectItem>
-                  <SelectItem value="ko">한국어</SelectItem>
+                  <SelectItem value=" ja">日本�?/SelectItem>
+                  <SelectItem value=" ko">한국�?/SelectItem>
                   <SelectItem value="ar">العربية</SelectItem>
                   <SelectItem value="he">עברית</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <label className="text-sm font-medium mb-1 block">提供商</label>
+              <label className=" text-sm font-medium mb-1 block">提供�?/label>
               <Select value={selectedProvider} onValueChange={setSelectedProvider}>
                 <SelectTrigger>
                   <SelectValue placeholder="选择" />
@@ -319,7 +319,7 @@ export default function TranslationServicePage() {
 
           <div className="flex space-x-2">
             <Button onClick={handleTranslate} disabled={loading}>
-              {loading ? '翻译中...' : '翻译'}
+              {loading ? '翻译�?..' : '翻译'}
             </Button>
             <Button onClick={handleDetectLanguage} variant="outline" disabled={loading}>
               检测语言
@@ -347,8 +347,8 @@ export default function TranslationServicePage() {
             <Info className="h-4 w-4" />
             <AlertTitle>专业翻译服务</AlertTitle>
             <AlertDescription>
-              集成Google Translate和DeepL等专业翻译API,提供高质量的机器翻译服务。
-              需要自行申请API密钥并按使用量付费。
+              集成Google Translate和DeepL等专业翻译API,提供高质量的机器翻译服务�?
+              需要自行申请API密钥并按使用量付费�?
             </AlertDescription>
           </Alert>
 
@@ -368,17 +368,17 @@ export default function TranslationServicePage() {
             <h3 className="font-semibold mb-2">使用场景:</h3>
             <ul className="list-disc list-inside space-y-2 text-sm text-gray-700 ml-2">
               <li>网站内容批量翻译</li>
-              <li>用户生成内容的实时翻译</li>
+              <li>用户生成内容的实时翻�?/li>
               <li>多语言客服支持</li>
-              <li>国际化内容管理</li>
+              <li>国际化内容管�?/li>
             </ul>
           </div>
 
           <div className="bg-blue-50 p-4 rounded-lg">
-            <h3 className="font-semibold text-blue-900 mb-2">API定价参考:</h3>
+            <h3 className=" font-semibold text-blue-900 mb-2">API定价参�?</h3>
             <ul className="text-sm text-blue-800 space-y-1">
-              <li>• Google Translate: $20 / 百万字符</li>
-              <li>• DeepL Pro: €5.49 / 月(50万字符)</li>
+              <li>�?Google Translate: $20 / 百万字符</li>
+              <li>�?DeepL Pro: �?.49 / �?50万字�?</li>
             </ul>
           </div>
         </CardContent>

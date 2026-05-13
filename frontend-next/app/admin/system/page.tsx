@@ -1,6 +1,5 @@
 /**
- * 系统管理页面 - 缓存和安全
- */
+ * 系统管理页面 - 缓存和安�? */
 
 'use client';
 
@@ -18,8 +17,8 @@ export default function SystemPage() {
     const loadSystemInfo = async () => {
         try {
             const [cacheRes, securityRes] = await Promise.all([
-                fetch('/api/v1/system/cache/stats'),
-                fetch('/api/v1/system/security/login-attempts'),
+                fetch('/api/v2/system/cache/stats'),
+                fetch('/api/v2/system/security/login-attempts'),
             ]);
 
             const cacheData = await cacheRes.json();
@@ -38,14 +37,14 @@ export default function SystemPage() {
         if (!confirm('确定要清空缓存吗?')) return;
 
         try {
-            const response = await fetch('/api/v1/system/cache/clear', {
+            const response = await fetch('/api/v2/system/cache/clear', {
                 method: 'POST',
             });
 
             const result = await response.json();
 
             if (result.success) {
-                alert('缓存已清空');
+                alert('缓存已清�?);
                 loadSystemInfo();
             } else {
                 alert(`清空失败: ${result.error}`);
@@ -57,7 +56,7 @@ export default function SystemPage() {
     };
 
     if (isLoading) {
-        return <div className="min-h-screen flex items-center justify-center">加载中...</div>;
+        return <div className="min-h-screen flex items-center justify-center">加载�?..</div>;
     }
 
     return (
@@ -65,30 +64,30 @@ export default function SystemPage() {
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                 <div className="mb-8">
                     <h1 className="text-3xl font-bold text-gray-900">系统管理</h1>
-                    <p className="mt-2 text-gray-600">监控系统性能和安全性</p>
+                    <p className="mt-2 text-gray-600">监控系统性能和安全�?/p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* 数据库迁移 */}
+                    {/* 数据库迁�?*/}
                     <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow cursor-pointer"
                          onClick={() => window.location.href = '/admin/system/migrations'}>
                         <h2 className="text-xl font-semibold mb-4 flex items-center">
                             <svg className="w-6 h-6 mr-2 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4m0 5c0 2.21-3.582 4-8 4s-8-1.79-8-4" />
                             </svg>
-                            数据库迁移
+                            数据库迁�?
                         </h2>
                         <p className="text-gray-600">管理数据库结构和版本迁移</p>
                     </div>
 
-                    {/* 站点健康检查 */}
+                    {/* 站点健康检�?*/}
                     <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow cursor-pointer"
                          onClick={() => window.location.href = '/admin/system/health'}>
                         <h2 className="text-xl font-semibold mb-4 flex items-center">
                             <svg className="w-6 h-6 mr-2 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
-                            站点健康检查
+                            站点健康检�?
                         </h2>
                         <p className="text-gray-600">检查系统运行状态和性能指标</p>
                     </div>
@@ -104,7 +103,7 @@ export default function SystemPage() {
 
                         <div className="space-y-4">
                             <div className="flex justify-between items-center">
-                                <span className="text-gray-600">缓存项目数:</span>
+                                <span className="text-gray-600">缓存项目�?</span>
                                 <span className="text-2xl font-bold text-blue-600">
                   {cacheStats?.cached_items || 0}
                 </span>
@@ -159,7 +158,7 @@ export default function SystemPage() {
                             <p className="text-lg font-semibold">FastAPI</p>
                         </div>
                         <div className="p-4 bg-gray-50 rounded">
-                            <p className="text-sm text-gray-600">数据库</p>
+                            <p className="text-sm text-gray-600">数据�?/p>
                             <p className="text-lg font-semibold">MySQL</p>
                         </div>
                         <div className="p-4 bg-gray-50 rounded">

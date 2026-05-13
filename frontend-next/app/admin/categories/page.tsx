@@ -19,8 +19,7 @@ interface CategoryWithCounts {
     subscriber_count: number;
 }
 
-// 可排序的分类行组件
-function SortableCategoryRow({
+// 可排序的分类行组�?function SortableCategoryRow({
                                  item,
                                  index,
                                  onEdit,
@@ -129,8 +128,7 @@ const CategoryManagement = () => {
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
     const [isSorting, setIsSorting] = useState(false); // 是否正在保存排序
 
-    // 配置拖拽传感器
-    const sensors = useSensors(
+    // 配置拖拽传感�?    const sensors = useSensors(
         useSensor(PointerSensor),
         useSensor(KeyboardSensor, {
             coordinateGetter: sortableKeyboardCoordinates,
@@ -148,12 +146,10 @@ const CategoryManagement = () => {
 
             const response = await CategoryService.getCategoriesWithStats({
                 page: currentPage,
-                per_page: 10 // 默认每页10条
-            });
+                per_page: 10 // 默认每页10�?            });
 
             if (response.success && response.data) {
-                // 处理后端返回的实际数据结构
-                const responseData = response.data as any;
+                // 处理后端返回的实际数据结�?                const responseData = response.data as any;
                 if (typeof responseData === 'object' && 'categories' in responseData) {
                     // 新版API格式：{ categories: [], pagination: {} }
                     setCategories(responseData.categories || []);
@@ -161,8 +157,7 @@ const CategoryManagement = () => {
                     setTotalPages(pagination?.total_pages || 1);
                     setTotalCategories(pagination?.total || 0);
                 } else if (Array.isArray(response.data)) {
-                    // 兼容旧版API格式：直接返回数组
-                    const categoriesData = response.data as any[];
+                    // 兼容旧版API格式：直接返回数�?                    const categoriesData = response.data as any[];
                     const categoriesWithCounts = categoriesData.map((category: any) => ({
                         category: category,
                         article_count: category.article_count || 0,
@@ -215,24 +210,20 @@ const CategoryManagement = () => {
         const {active, over} = event;
 
         if (active.id !== over.id) {
-            // 获取旧索引和新索引
-            const oldIndex = categories.findIndex((item) => item.category.id === active.id);
+            // 获取旧索引和新索�?            const oldIndex = categories.findIndex((item) => item.category.id === active.id);
             const newIndex = categories.findIndex((item) => item.category.id === over.id);
 
-            // 更新本地状态（立即响应）
-            const newCategories = arrayMove(categories, oldIndex, newIndex);
+            // 更新本地状态（立即响应�?            const newCategories = arrayMove(categories, oldIndex, newIndex);
             setCategories(newCategories);
 
-            // 准备排序数据（根据新顺序设置 sort_order）
-            const orders = newCategories.map((item, index) => ({
+            // 准备排序数据（根据新顺序设置 sort_order�?            const orders = newCategories.map((item, index) => ({
                 id: item.category.id,
                 sort_order: index,
             }));
 
-            // 保存到后端
-            setIsSorting(true);
+        // 保存到后�?            setIsSorting(true);
             try {
-                const response = await fetch('/api/v1/batch/categories/update-sort', {
+                const response = await fetch('/api/v2/batch/categories/update-sort', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -327,8 +318,7 @@ const CategoryManagement = () => {
                     console.error('Failed to update category:', response.error);
                 }
             } else {
-                // 创建新分类
-                const response = await CategoryService.createCategory({
+                // 创建新分�?                const response = await CategoryService.createCategory({
                     name: currentCategory.name,
                     description: currentCategory.description
                 });
@@ -343,7 +333,7 @@ const CategoryManagement = () => {
                 }
             }
         } catch (error) {
-            setErrorMessage(error instanceof Error ? error.message : '保存分类时发生未知错误');
+        setErrorMessage(error instanceof Error ? error.message : '保存分类时发生未知错�?);
             console.error('Failed to save category:', error);
         }
     };
@@ -391,7 +381,7 @@ const CategoryManagement = () => {
 
     return (
         <div className="space-y-6">
-            {/* 操作栏 */}
+            {/* 操作�?*/}
             <div className="bg-white rounded-xl shadow-sm p-6 mb-6">
                 <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                     <div className="flex items-center gap-4">
@@ -411,7 +401,7 @@ const CategoryManagement = () => {
                                     <path className="opacity-75" fill="currentColor"
                                           d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                                 </svg>
-                                保存排序中...
+                                保存排序�?..
                             </span>
                         )}
                     </div>
@@ -453,7 +443,7 @@ const CategoryManagement = () => {
                 <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
                     <h2 className="text-lg font-semibold text-gray-800">分类列表</h2>
                     <div className="text-sm text-gray-500">
-                        共 <span className="font-semibold">{totalCategories}</span> 个分类
+                        �?<span className="font-semibold">{totalCategories}</span> 个分�?
                     </div>
                 </div>
 
@@ -462,7 +452,7 @@ const CategoryManagement = () => {
                     <div className="p-8 text-center">
                         <div
                             className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                        <p className="mt-2 text-gray-500">加载中...</p>
+                        <p className="mt-2 text-gray-500">加载�?..</p>
                     </div>
                 ) : (
                     <div className="overflow-x-auto">
@@ -543,8 +533,7 @@ const CategoryManagement = () => {
                                 onClick={() => goToPage(currentPage - 1)}
                                 className="px-3 py-1 rounded border border-gray-300 text-sm text-gray-700 hover:bg-gray-50"
                             >
-                                上一页
-                            </button>
+                                上一�? </button>
                         )}
 
                         {getPageNumbers().map((page, index) => (
@@ -571,12 +560,11 @@ const CategoryManagement = () => {
                                 onClick={() => goToPage(currentPage + 1)}
                                 className="px-3 py-1 rounded border border-gray-300 text-sm text-gray-700 hover:bg-gray-50"
                             >
-                                下一页
-                            </button>
+                                下一�? </button>
                         )}
                     </div>
                     <div className="text-sm text-gray-500">
-                        显示 {categories.length} 个，共 {totalCategories} 个分类
+                        显示 {categories.length} 个，�?{totalCategories} 个分�?
                     </div>
                 </div>
             </div>
@@ -656,8 +644,7 @@ const CategoryManagement = () => {
                                         type="button"
                                         onClick={() => {
                                             setShowModal(false);
-                                            setErrorMessage(null); // 关闭模态框时清除错误信息
-                                        }}
+                                            setErrorMessage(null); // 关闭模态框时清除错误信�?                                        }}
                                         className="px-4 py-2 bg-gray-200 text-gray-700 rounded-md hover:bg-gray-300 transition-colors"
                                     >
                                         取消
@@ -692,7 +679,9 @@ const CategoryManagement = () => {
 
                             <p className="text-gray-700 mb-6">
                                 您确定要删除分类 &#34;<span
-                                className="font-medium">{deleteCategoryName}</span>&#34; 吗？此操作不可撤销。
+                                            className="font-medium">{deleteCategoryName}
+                                </span>
+                                &#34; 吗？此操作不可撤销�?
                             </p>
 
                             <div className="flex items-center justify-end space-x-3">

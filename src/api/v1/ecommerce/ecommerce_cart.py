@@ -18,7 +18,7 @@ router = APIRouter(tags=["ecommerce"])
 
 # ==================== 购物车 API ====================
 
-@router.get("/cart")
+@router.get("")
 async def get_cart(
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
@@ -76,7 +76,7 @@ async def get_cart(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/cart/items")
+@router.post("/items")
 async def add_to_cart(
         item_data: dict,
         current_user=Depends(jwt_required),
@@ -150,7 +150,7 @@ async def add_to_cart(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.put("/cart/items/{item_id}")
+@router.put("/items/{item_id}")
 async def update_cart_item(
         item_id: int,
         item_data: dict,
@@ -200,7 +200,7 @@ async def update_cart_item(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.delete("/cart/items/{item_id}")
+@router.delete("/items/{item_id}")
 async def remove_from_cart(
         item_id: int,
         current_user=Depends(jwt_required),
@@ -235,14 +235,14 @@ async def remove_from_cart(
 
 # ==================== 订单 API ====================
 
-@router.post("/orders")
+@router.post("/checkout")
 async def create_order(
         order_data: dict,
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """
-    创建订单
+    创建订单（从购物车结算）
     
     Args:
         order_data: {
@@ -348,7 +348,7 @@ async def create_order(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/orders")
+@router.get("")
 async def list_orders(
         page: int = Query(1, ge=1, description="页码"),
         per_page: int = Query(10, ge=1, le=100, description="每页数量"),

@@ -32,7 +32,7 @@ function ThemePreviewContent() {
             setLoading(true);
             setError(null);
 
-            const response = await apiClient.get<{ preview_url: string }>(`/api/v1/themes/${themeSlug}/preview`);
+            const response = await apiClient.get<{ preview_url: string }>(`/api/v2/themes/${themeSlug}/preview`);
 
             if (response.success && response.data) {
                 setPreviewUrl(response.data.preview_url);
@@ -78,7 +78,7 @@ function ThemePreviewContent() {
             <div className="min-h-screen flex items-center justify-center bg-gray-50">
                 <div className="text-center">
                     <h1 className="text-2xl font-bold text-gray-900 mb-2">主题预览</h1>
-                    <p className="text-gray-600">未指定要预览的主题</p>
+                    <p className="text-gray-600">未指定要预览的主�?/p>
                 </div>
             </div>
         );
@@ -89,7 +89,7 @@ function ThemePreviewContent() {
             <div className="min-h-screen flex items-center justify-center bg-gray-50">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                    <p className="text-gray-600">加载预览中...</p>
+                    <p className="text-gray-600">加载预览�?..</p>
                 </div>
             </div>
         );
@@ -115,7 +115,7 @@ function ThemePreviewContent() {
 
     return (
         <div className="min-h-screen bg-gray-100">
-            {/* 顶部工具栏 */}
+            {/* 顶部工具�?*/}
             <div className="bg-white border-b border-gray-200 px-6 py-4">
                 <div className="max-w-7xl mx-auto flex items-center justify-between">
                     <div className="flex items-center space-x-4">
@@ -217,7 +217,7 @@ export default function ThemePreviewPage() {
             <div className="min-h-screen flex items-center justify-center bg-gray-50">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                    <p className="text-gray-600">加载中...</p>
+                    <p className="text-gray-600">加载�?..</p>
                 </div>
             </div>
         }>

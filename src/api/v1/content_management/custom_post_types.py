@@ -40,7 +40,7 @@ class CustomPostTypeUpdate(BaseModel):
     is_active: Optional[bool] = None
 
 
-@router.get("/custom-post-types")
+@router.get("")
 async def list_custom_post_types(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
@@ -73,7 +73,7 @@ async def list_custom_post_types(
         return ApiResponse(success=False, error=f"获取列表失败: {str(e)}")
 
 
-@router.post("/custom-post-types")
+@router.post("")
 async def create_custom_post_type(
     data: CustomPostTypeCreate,
         db: AsyncSession = Depends(get_db_session)
@@ -107,7 +107,7 @@ async def create_custom_post_type(
         return ApiResponse(success=False, error=f"创建失败: {str(e)}")
 
 
-@router.get("/custom-post-types/{cpt_id}")
+@router.get("/{cpt_id}")
 async def get_custom_post_type(cpt_id: int, db: AsyncSession = Depends(get_db_session)):
     """获取自定义内容类型详情"""
     try:
@@ -124,7 +124,7 @@ async def get_custom_post_type(cpt_id: int, db: AsyncSession = Depends(get_db_se
         return ApiResponse(success=False, error=f"获取详情失败: {str(e)}")
 
 
-@router.put("/custom-post-types/{cpt_id}")
+@router.put("/{cpt_id}")
 async def update_custom_post_type(
     cpt_id: int,
     data: CustomPostTypeUpdate,
@@ -170,7 +170,7 @@ async def update_custom_post_type(
         return ApiResponse(success=False, error=f"更新失败: {str(e)}")
 
 
-@router.delete("/custom-post-types/{cpt_id}")
+@router.delete("/{cpt_id}")
 async def delete_custom_post_type(cpt_id: int, db: AsyncSession = Depends(get_db_session)):
     """删除自定义内容类型"""
     try:

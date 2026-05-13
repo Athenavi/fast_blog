@@ -27,7 +27,7 @@ export default function ScheduledPublish() {
     const fetchScheduledArticles = async () => {
         try {
             setLoading(true);
-            const response = await fetch('/api/v1/scheduled-publish/pending');
+            const response = await fetch('/api/v2/scheduled-publish/pending');
             const data = await response.json();
 
             if (data.success) {
@@ -45,7 +45,7 @@ export default function ScheduledPublish() {
 
     const handleCheckAndPublish = async () => {
         try {
-            const response = await fetch('/api/v1/scheduled-publish/check-and-publish', {
+            const response = await fetch('/api/v2/scheduled-publish/check-and-publish', {
                 method: 'POST'
             });
 
@@ -53,8 +53,8 @@ export default function ScheduledPublish() {
 
             if (data.success) {
                 toast({
-                    title: '检查完成',
-                    description: `发布了 ${data.data.published_count} 篇文章`
+                    title: '检查完�?,
+                    description: `发布�?${data.data.published_count} 篇文章`
                 });
                 fetchScheduledArticles();
             }
@@ -67,10 +67,10 @@ export default function ScheduledPublish() {
     };
 
     const handleCancelSchedule = async (articleId: number) => {
-        if (!confirm('确定要取消定时发布吗？')) return;
+        if (!confirm('确定要取消定时发布吗�?)) return;
 
         try {
-            const response = await fetch(`/api/v1/scheduled-publish/${articleId}/cancel`, {
+            const response = await fetch(`/api/v2/scheduled-publish/${articleId}/cancel`, {
                 method: 'POST'
             });
 
@@ -78,7 +78,7 @@ export default function ScheduledPublish() {
 
             if (data.success) {
                 toast({
-                    title: '已取消',
+                    title: '已取�?,
                     description: data.data.message
                 });
                 fetchScheduledArticles();
@@ -111,12 +111,11 @@ export default function ScheduledPublish() {
                 <CardHeader>
                     <CardTitle className="flex items-center">
                         <Clock className="w-5 h-5 mr-2"/>
-                        待发布文章列表
-                    </CardTitle>
+                        待发布文章列�? </CardTitle>
                 </CardHeader>
                 <CardContent>
                     {loading ? (
-                        <div className="text-center py-8">加载中...</div>
+                        <div className="text-center py-8">加载�?..</div>
                     ) : articles.length === 0 ? (
                         <div className="text-center py-8 text-muted-foreground">
                             暂无待发布的文章
@@ -127,7 +126,7 @@ export default function ScheduledPublish() {
                                 <TableRow>
                                     <TableHead>文章标题</TableHead>
                                     <TableHead>计划发布时间</TableHead>
-                                    <TableHead>状态</TableHead>
+                                    <TableHead>状�?/TableHead>
                                     <TableHead className="text-right">操作</TableHead>
                                 </TableRow>
                             </TableHeader>
@@ -139,7 +138,7 @@ export default function ScheduledPublish() {
                                             {new Date(article.scheduled_publish_at).toLocaleString('zh-CN')}
                                         </TableCell>
                                         <TableCell>
-                                            <Badge variant="secondary">待发布</Badge>
+                                            <Badge variant="secondary">待发�?/Badge>
                                         </TableCell>
                                         <TableCell className="text-right">
                                             <Button

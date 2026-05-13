@@ -90,7 +90,7 @@ export default function PerformanceOptimizationPage() {
 
     const fetchCacheStats = async () => {
         try {
-            const res = await fetch('/api/v1/cache-optimization/stats');
+            const res = await fetch('/api/v2/cache-optimization/stats');
             const data = await res.json();
             if (data.success) {
                 setCacheStats(data.data);
@@ -102,7 +102,7 @@ export default function PerformanceOptimizationPage() {
 
     const fetchQueryStats = async () => {
         try {
-            const res = await fetch('/api/v1/query-optimization/stats');
+            const res = await fetch('/api/v2/query-optimization/stats');
             const data = await res.json();
             if (data.success) {
                 setQueryStats(data.data);
@@ -114,7 +114,7 @@ export default function PerformanceOptimizationPage() {
 
     const fetchLazyLoadConfig = async () => {
         try {
-            const res = await fetch('/api/v1/lazy-load/config');
+            const res = await fetch('/api/v2/lazy-load/config');
             const data = await res.json();
             if (data.success) {
                 setLazyLoadConfig(data.data);
@@ -126,7 +126,7 @@ export default function PerformanceOptimizationPage() {
 
     const fetchCodeSplittingReport = async () => {
         try {
-            const res = await fetch('/api/v1/code-splitting/report');
+            const res = await fetch('/api/v2/code-splitting/report');
             const data = await res.json();
             if (data.success) {
                 setCodeSplittingReport(data.data);
@@ -138,7 +138,7 @@ export default function PerformanceOptimizationPage() {
 
     const fetchISRStats = async () => {
         try {
-            const res = await fetch('/api/v1/isr/stats');
+            const res = await fetch('/api/v2/isr/stats');
             const data = await res.json();
             if (data.success) {
                 setIsrStats(data.data);
@@ -150,7 +150,7 @@ export default function PerformanceOptimizationPage() {
 
     const fetchCDNStats = async () => {
         try {
-            const res = await fetch('/api/v1/cdn/stats');
+            const res = await fetch('/api/v2/cdn/stats');
             const data = await res.json();
             if (data.success) {
                 setCdnStats(data.data);
@@ -162,7 +162,7 @@ export default function PerformanceOptimizationPage() {
 
     const handleClearCache = async () => {
         try {
-            const res = await fetch('/api/v1/cache-optimization/clear', {
+            const res = await fetch('/api/v2/cache-optimization/clear', {
                 method: 'POST'
             });
             const data = await res.json();
@@ -179,7 +179,7 @@ export default function PerformanceOptimizationPage() {
 
     const handleWarmupCache = async () => {
         try {
-            const res = await fetch('/api/v1/cache-optimization/warmup', {
+            const res = await fetch('/api/v2/cache-optimization/warmup', {
                 method: 'POST'
             });
             const data = await res.json();
@@ -196,12 +196,12 @@ export default function PerformanceOptimizationPage() {
 
     const handleGenerateSSG = async () => {
         try {
-            const res = await fetch('/api/v1/static-site/articles/batch', {
+            const res = await fetch('/api/v2/static-site/articles/batch', {
                 method: 'POST'
             });
             const data = await res.json();
             if (data.success) {
-                toast.success(`静态页面生成完成，共${data.data.total}篇`);
+                toast.success(`静态页面生成完成，�?{data.data.total}篇`);
             } else {
                 toast.error(data.error || '生成失败');
             }
@@ -241,16 +241,14 @@ export default function PerformanceOptimizationPage() {
                     </TabsTrigger>
                     <TabsTrigger value="lazyload">
                         <Image className="w-4 h-4 mr-2"/>
-                        懒加载
-                    </TabsTrigger>
+                        懒加�? </TabsTrigger>
                     <TabsTrigger value="codesplit">
                         <Code className="w-4 h-4 mr-2"/>
                         代码分割
                     </TabsTrigger>
                     <TabsTrigger value="ssg">
                         <Globe className="w-4 h-4 mr-2"/>
-                        静态生成
-                    </TabsTrigger>
+                        静态生�? </TabsTrigger>
                     <TabsTrigger value="cdn">
                         <Zap className="w-4 h-4 mr-2"/>
                         CDN分发
@@ -266,15 +264,14 @@ export default function PerformanceOptimizationPage() {
                                 Redis缓存统计
                             </CardTitle>
                             <CardDescription>
-                                查看和管理Redis缓存状态
-                            </CardDescription>
+                                查看和管理Redis缓存状�? </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             {cacheStats ? (
                                 <>
                                     <div className="grid grid-cols-3 gap-4">
                                         <div className="space-y-2">
-                                            <p className="text-sm text-muted-foreground">总键数</p>
+                                            <p className="text-sm text-muted-foreground">总键�?/p>
                                             <p className="text-2xl font-bold">{cacheStats.total_keys}</p>
                                         </div>
                                         <div className="space-y-2">
@@ -282,7 +279,7 @@ export default function PerformanceOptimizationPage() {
                                             <p className="text-2xl font-bold">{cacheStats.memory_used}</p>
                                         </div>
                                         <div className="space-y-2">
-                                            <p className="text-sm text-muted-foreground">命中率</p>
+                                            <p className="text-sm text-muted-foreground">命中�?/p>
                                             <p className="text-2xl font-bold">{(cacheStats.hit_rate * 100).toFixed(1)}%</p>
                                         </div>
                                     </div>
@@ -299,7 +296,7 @@ export default function PerformanceOptimizationPage() {
                                     </div>
                                 </>
                             ) : (
-                                <p className="text-muted-foreground">加载中...</p>
+                                <p className="text-muted-foreground">加载�?..</p>
                             )}
                         </CardContent>
                     </Card>
@@ -311,8 +308,7 @@ export default function PerformanceOptimizationPage() {
                         <CardHeader>
                             <CardTitle className="flex items-center">
                                 <Database className="w-5 h-5 mr-2"/>
-                                数据库查询优化
-                            </CardTitle>
+                                数据库查询优�? </CardTitle>
                             <CardDescription>
                                 监控和优化数据库查询性能
                             </CardDescription>
@@ -337,40 +333,38 @@ export default function PerformanceOptimizationPage() {
 
                                     <div className="flex gap-2">
                                         <Button variant="outline"
-                                                onClick={() => window.open('/api/v1/query-optimization/report', '_blank')}>
+                                                onClick={() => window.open('/api/v2/query-optimization/report', '_blank')}>
                                             查看完整报告
                                         </Button>
                                     </div>
                                 </>
                             ) : (
-                                <p className="text-muted-foreground">加载中...</p>
+                                <p className="text-muted-foreground">加载�?..</p>
                             )}
                         </CardContent>
                     </Card>
                 </TabsContent>
 
-                {/* 懒加载 */}
+                {/* 懒加�?*/}
                 <TabsContent value="lazyload" className="space-y-4">
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center">
                                 <Image className="w-5 h-5 mr-2"/>
-                                图片懒加载配置
-                            </CardTitle>
+                                图片懒加载配�? </CardTitle>
                             <CardDescription>
-                                配置图片懒加载行为
-                            </CardDescription>
+                                配置图片懒加载行�? </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             {lazyLoadConfig ? (
                                 <>
                                     <div className="grid grid-cols-3 gap-4">
                                         <div className="space-y-2">
-                                            <p className="text-sm text-muted-foreground">触发阈值</p>
+                                            <p className="text-sm text-muted-foreground">触发阈�?/p>
                                             <p className="text-2xl font-bold">{lazyLoadConfig.threshold}</p>
                                         </div>
                                         <div className="space-y-2">
-                                            <p className="text-sm text-muted-foreground">占位符颜色</p>
+                                            <p className="text-sm text-muted-foreground">占位符颜�?/p>
                                             <div className="flex items-center gap-2">
                                                 <div
                                                     className="w-8 h-8 rounded border"
@@ -387,7 +381,7 @@ export default function PerformanceOptimizationPage() {
                                     </div>
                                 </>
                             ) : (
-                                <p className="text-muted-foreground">加载中...</p>
+                                <p className="text-muted-foreground">加载�?..</p>
                             )}
                         </CardContent>
                     </Card>
@@ -402,50 +396,47 @@ export default function PerformanceOptimizationPage() {
                                 代码分割分析
                             </CardTitle>
                             <CardDescription>
-                                分析和优化JavaScript包大小
-                            </CardDescription>
+                                分析和优化JavaScript包大�? </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             {codeSplittingReport ? (
                                 <>
                                     <div className="grid grid-cols-3 gap-4">
                                         <div className="space-y-2">
-                                            <p className="text-sm text-muted-foreground">总Chunk数</p>
+                                            <p className="text-sm text-muted-foreground">总Chunk�?/p>
                                             <p className="text-2xl font-bold">{codeSplittingReport.total_chunks}</p>
                                         </div>
                                         <div className="space-y-2">
-                                            <p className="text-sm text-muted-foreground">总大小</p>
+                                            <p className="text-sm text-muted-foreground">总大�?/p>
                                             <p className="text-2xl font-bold">{codeSplittingReport.total_size_kb} KB</p>
                                         </div>
                                         <div className="space-y-2">
                                             <p className="text-sm text-muted-foreground">优化建议</p>
                                             <Badge
                                                 variant={codeSplittingReport.recommendations_count > 0 ? "destructive" : "default"}>
-                                                {codeSplittingReport.recommendations_count} 条
-                                            </Badge>
+                                                {codeSplittingReport.recommendations_count} �? </Badge>
                                         </div>
                                     </div>
 
                                     <Button variant="outline"
-                                            onClick={() => window.open('/api/v1/code-splitting/recommendations', '_blank')}>
+                                            onClick={() => window.open('/api/v2/code-splitting/recommendations', '_blank')}>
                                         查看详细建议
                                     </Button>
                                 </>
                             ) : (
-                                <p className="text-muted-foreground">加载中...</p>
+                                <p className="text-muted-foreground">加载�?..</p>
                             )}
                         </CardContent>
                     </Card>
                 </TabsContent>
 
-                {/* 静态生成 */}
+                {/* 静态生�?*/}
                 <TabsContent value="ssg" className="space-y-4">
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center">
                                 <Globe className="w-5 h-5 mr-2"/>
-                                静态站点生成
-                            </CardTitle>
+                                静态站点生�? </CardTitle>
                             <CardDescription>
                                 生成和管理静态HTML页面
                             </CardDescription>
@@ -463,7 +454,7 @@ export default function PerformanceOptimizationPage() {
                                             <p className="text-2xl font-bold text-green-600">{isrStats.cache_hits}</p>
                                         </div>
                                         <div className="space-y-2">
-                                            <p className="text-sm text-muted-foreground">缓存未命中</p>
+                                            <p className="text-sm text-muted-foreground">缓存未命�?/p>
                                             <p className="text-2xl font-bold text-yellow-600">{isrStats.cache_misses}</p>
                                         </div>
                                         <div className="space-y-2">
@@ -477,13 +468,13 @@ export default function PerformanceOptimizationPage() {
                                             批量生成文章
                                         </Button>
                                         <Button variant="outline"
-                                                onClick={() => window.open('/api/v1/static-site/stats', '_blank')}>
+                                                onClick={() => window.open('/api/v2/static-site/stats', '_blank')}>
                                             查看详细统计
                                         </Button>
                                     </div>
                                 </>
                             ) : (
-                                <p className="text-muted-foreground">加载中...</p>
+                                <p className="text-muted-foreground">加载�?..</p>
                             )}
                         </CardContent>
                     </Card>
@@ -498,8 +489,7 @@ export default function PerformanceOptimizationPage() {
                                 CDN智能分发
                             </CardTitle>
                             <CardDescription>
-                                管理CDN资源和缓存策略
-                            </CardDescription>
+                                管理CDN资源和缓存策�? </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             {cdnStats ? (
@@ -518,18 +508,18 @@ export default function PerformanceOptimizationPage() {
                                             <p className="text-2xl font-bold">{cdnStats.cache_hits}</p>
                                         </div>
                                         <div className="space-y-2">
-                                            <p className="text-sm text-muted-foreground">活跃提供商</p>
+                                            <p className="text-sm text-muted-foreground">活跃提供�?/p>
                                             <p className="text-2xl font-bold">{cdnStats.active_providers}</p>
                                         </div>
                                     </div>
 
                                     <Button variant="outline"
-                                            onClick={() => window.open('/api/v1/cdn/config', '_blank')}>
+                                            onClick={() => window.open('/api/v2/cdn/config', '_blank')}>
                                         查看CDN配置
                                     </Button>
                                 </>
                             ) : (
-                                <p className="text-muted-foreground">加载中...</p>
+                                <p className="text-muted-foreground">加载�?..</p>
                             )}
                         </CardContent>
                     </Card>

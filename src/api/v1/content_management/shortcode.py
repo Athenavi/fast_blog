@@ -17,7 +17,7 @@ class ShortcodeParseRequest(BaseModel):
     content: str
 
 
-@router.post("/shortcodes/parse")
+@router.post("/parse")
 async def parse_shortcodes(request_data: ShortcodeParseRequest):
     """
     解析内容中的短代码
@@ -42,7 +42,7 @@ async def parse_shortcodes(request_data: ShortcodeParseRequest):
         return ApiResponse(success=False, error=f"解析失败: {str(e)}")
 
 
-@router.get("/shortcodes/list")
+@router.get("/list")
 async def list_shortcodes():
     """
     获取所有已注册的短代码列表
@@ -64,7 +64,7 @@ async def list_shortcodes():
         return ApiResponse(success=False, error=f"获取失败: {str(e)}")
 
 
-@router.get("/shortcodes/help/{name}")
+@router.get("/help/{name}")
 async def get_shortcode_help(name: str):
     """
     获取短代码使用说明

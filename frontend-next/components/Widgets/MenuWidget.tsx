@@ -39,7 +39,7 @@ const MenuWidget: React.FC<MenuWidgetProps> = ({title, config}) => {
     const loadMenu = async () => {
         try {
             const response = await apiClient.get(
-                `/api/v1/widgets/data/menu?slug=${config.menu_slug || 'main-menu'}`
+                `/api/v2/widgets/data/menu?slug=${config.menu_slug || 'main-menu'}`
             );
 
             if (response.success && response.data) {
@@ -74,7 +74,7 @@ const MenuWidget: React.FC<MenuWidgetProps> = ({title, config}) => {
                     </div>
                 </Link>
 
-                {/* 子菜单 */}
+                {/* 子菜�?*/}
                 {hasChildren && config.show_submenus !== false && (
                     <ul className="ml-4 mt-1 space-y-1">
                         {item.children!.map(child => renderMenuItem(child, depth + 1))}
@@ -88,7 +88,7 @@ const MenuWidget: React.FC<MenuWidgetProps> = ({title, config}) => {
         return (
             <Card>
                 <CardContent className="py-4">
-                    <div className="text-center text-gray-500">加载中...</div>
+                    <div className="text-center text-gray-500">加载�?..</div>
                 </CardContent>
             </Card>
         );

@@ -36,7 +36,7 @@ interface PluginInfo {
   settings: Record<string, any>;
 }
 
-// 包装组件以支持 Suspense
+// 包装组件以支�?Suspense
 const PluginSettingsContent = () => {
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -58,7 +58,7 @@ const PluginSettingsContent = () => {
       setLoading(true);
       
       // 获取插件信息
-      const infoResponse = await apiClient.get(`/api/v1/plugins/${pluginSlug}`);
+        const infoResponse = await apiClient.get(`/api/v2/plugins/${pluginSlug}`);
       if (infoResponse.success && infoResponse.data) {
         const pluginData = infoResponse.data as PluginInfo;
         setPlugin(pluginData);
@@ -66,7 +66,7 @@ const PluginSettingsContent = () => {
       }
 
       // 获取设置UI配置
-      const uiResponse = await apiClient.get(`/api/v1/plugins/${pluginSlug}/settings`);
+        const uiResponse = await apiClient.get(`/api/v2/plugins/${pluginSlug}/settings`);
       if (uiResponse.success && uiResponse.data) {
         const uiData = uiResponse.data as { ui?: PluginSettingsUI };
         setSettingsUI(uiData.ui || {fields: []});
@@ -83,12 +83,12 @@ const PluginSettingsContent = () => {
   const handleSaveSettings = async () => {
     try {
       setSaving(true);
-      const response = await apiClient.put(`/api/v1/plugins/${pluginSlug}/settings`, {
+        const response = await apiClient.put(`/api/v2/plugins/${pluginSlug}/settings`, {
         settings: settings
       });
 
       if (response.success) {
-        alert('设置已保存');
+          alert('设置已保�?);
         loadPluginSettings();
       } else {
         alert(response.error || '保存失败');
@@ -101,7 +101,7 @@ const PluginSettingsContent = () => {
     }
   };
 
-  // 更新设置值
+    // 更新设置�?
   const updateSetting = (key: string, value: any) => {
     setSettings(prev => ({
       ...prev,
@@ -212,7 +212,7 @@ const PluginSettingsContent = () => {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <div className="text-gray-500">加载中...</div>
+          <div className="text-gray-500">加载�?..</div>
       </div>
     );
   }
@@ -220,7 +220,7 @@ const PluginSettingsContent = () => {
   if (!plugin) {
     return (
       <div className="text-center py-8">
-        <h2 className="text-xl font-semibold text-gray-900 dark:text-white">插件不存在</h2>
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-white">插件不存�?/h2>
         <Button
           variant="outline"
           className="mt-4"
@@ -267,16 +267,16 @@ const PluginSettingsContent = () => {
               <div className="font-medium">{plugin.version}</div>
             </div>
             <div>
-              <div className="text-sm text-gray-500">作者</div>
+                <div className="text-sm text-gray-500">作�?/div>
               <div className="font-medium">{plugin.author}</div>
             </div>
             <div>
-              <div className="text-sm text-gray-500">状态</div>
+                <div className="text-sm text-gray-500">状�?/div>
               <div className="font-medium">
                 {plugin.active ? (
-                  <span className="text-green-600">已激活</span>
+                        <span className="text-green-600">已激�?/span>
                 ) : (
-                  <span className="text-gray-600">未激活</span>
+                  <span className="text-gray-600">未激�?/span>
                 )}
               </div>
             </div>
@@ -293,14 +293,14 @@ const PluginSettingsContent = () => {
         <CardHeader>
           <CardTitle>插件设置</CardTitle>
           <CardDescription>
-            配置插件的各项参数
+              配置插件的各项参�?
           </CardDescription>
         </CardHeader>
         <CardContent>
           {!settingsUI || settingsUI.fields.length === 0 ? (
             <div className="text-center py-8 text-gray-500">
               <Settings className="w-12 h-12 mx-auto mb-4 opacity-50" />
-              <p>该插件暂无可配置项</p>
+                <p>该插件暂无可配置�?/p>
             </div>
           ) : (
             <div className="space-y-6">
@@ -319,7 +319,7 @@ const PluginSettingsContent = () => {
                   {saving ? (
                     <>
                       <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      保存中...
+                        保存�?..
                     </>
                   ) : (
                     <>
@@ -342,7 +342,7 @@ const PluginSettingsPage = () => {
   return (
       <Suspense fallback={
         <div className="flex items-center justify-center h-64">
-          <div className="text-gray-500">加载中...</div>
+            <div className="text-gray-500">加载�?..</div>
         </div>
       }>
         <PluginSettingsContent/>

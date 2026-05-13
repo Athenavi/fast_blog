@@ -1,6 +1,5 @@
 /**
- * 权限管理后台 - 角色和权限配置
- */
+ * 权限管理后台 - 角色和权限配�? */
 
 'use client';
 
@@ -45,8 +44,7 @@ interface User {
 const PermissionManagement = () => {
   const [activeTab, setActiveTab] = useState('roles');
 
-  // 角色状态
-  const [roles, setRoles] = useState<Role[]>([]);
+    // 角色状�?  const [roles, setRoles] = useState<Role[]>([]);
   const [selectedRole, setSelectedRole] = useState<Role | null>(null);
   const [roleDialogOpen, setRoleDialogOpen] = useState(false);
   const [roleForm, setRoleForm] = useState({
@@ -56,19 +54,16 @@ const PermissionManagement = () => {
     permissions: [] as string[]
   });
 
-  // 权限状态
-  const [permissions, setPermissions] = useState<Permission[]>([]);
+    // 权限状�?  const [permissions, setPermissions] = useState<Permission[]>([]);
   const [permissionSearch, setPermissionSearch] = useState('');
 
-  // 用户状态
-  const [users, setUsers] = useState<User[]>([]);
+    // 用户状�?  const [users, setUsers] = useState<User[]>([]);
   const [userSearch, setUserSearch] = useState('');
   const [assignRoleDialog, setAssignRoleDialog] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [selectedRoleId, setSelectedRoleId] = useState<number | null>(null);
 
-  // 加载状态
-  const [loading, setLoading] = useState(false);
+    // 加载状�?  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     loadRoles();
@@ -79,7 +74,7 @@ const PermissionManagement = () => {
   // 加载角色列表
   const loadRoles = async () => {
     try {
-      const response = await apiClient.get('/api/v1/permissions/roles');
+        const response = await apiClient.get('/api/v2/permissions/roles');
       if (response.success && response.data) {
         setRoles((response.data as any).roles || []);
       }
@@ -91,7 +86,7 @@ const PermissionManagement = () => {
   // 加载权限列表
   const loadPermissions = async () => {
     try {
-      const response = await apiClient.get('/api/v1/permissions/list');
+        const response = await apiClient.get('/api/v2/permissions/list');
       if (response.success && response.data) {
         setPermissions((response.data as any).permissions || []);
       }
@@ -103,7 +98,7 @@ const PermissionManagement = () => {
   // 加载用户列表
   const loadUsers = async () => {
     try {
-      const response = await apiClient.get('/api/v1/users?page=1&per_page=100');
+        const response = await apiClient.get('/api/v2/users?page=1&per_page=100');
       if (response.success && response.data) {
         setUsers((response.data as any).users || []);
       }
@@ -112,8 +107,7 @@ const PermissionManagement = () => {
     }
   };
 
-  // 打开角色编辑对话框
-  const handleEditRole = (role: Role) => {
+    // 打开角色编辑对话�?  const handleEditRole = (role: Role) => {
     setSelectedRole(role);
     setRoleForm({
       name: role.name,
@@ -124,8 +118,7 @@ const PermissionManagement = () => {
     setRoleDialogOpen(true);
   };
 
-  // 打开新建角色对话框
-  const handleCreateRole = () => {
+// 打开新建角色对话�?  const handleCreateRole = () => {
     setSelectedRole(null);
     setRoleForm({
       name: '',
@@ -154,9 +147,9 @@ const PermissionManagement = () => {
 
       let response;
       if (selectedRole) {
-        response = await apiClient.put(`/api/v1/permissions/roles/${selectedRole.id}`, data);
+          response = await apiClient.put(`/api/v2/permissions/roles/${selectedRole.id}`, data);
       } else {
-        response = await apiClient.post('/api/v1/permissions/roles', data);
+          response = await apiClient.post('/api/v2/permissions/roles', data);
       }
 
       if (response.success) {
@@ -181,12 +174,12 @@ const PermissionManagement = () => {
       return;
     }
 
-    if (!confirm(`确定要删除角色 "${role.name}" 吗？`)) {
+      if (!confirm(`确定要删除角�?"${role.name}" 吗？`)) {
       return;
     }
 
     try {
-      const response = await apiClient.delete(`/api/v1/permissions/roles/${role.id}`);
+        const response = await apiClient.delete(`/api/v2/permissions/roles/${role.id}`);
       if (response.success) {
         loadRoles();
         alert('角色删除成功');
@@ -209,8 +202,7 @@ const PermissionManagement = () => {
     }));
   };
 
-  // 全选/取消全选
-  const toggleAllPermissions = () => {
+// 全�?取消全�?  const toggleAllPermissions = () => {
     const allCodes = permissions.map(p => p.code);
     const allSelected = allCodes.every(code => roleForm.permissions.includes(code));
 
@@ -220,8 +212,7 @@ const PermissionManagement = () => {
     }));
   };
 
-  // 按分类分组权限
-  const groupedPermissions = permissions.reduce((acc, perm) => {
+// 按分类分组权�?  const groupedPermissions = permissions.reduce((acc, perm) => {
     if (!acc[perm.category]) {
       acc[perm.category] = [];
     }
@@ -241,15 +232,14 @@ const PermissionManagement = () => {
       u.email.toLowerCase().includes(userSearch.toLowerCase())
   );
 
-  // 分配角色给用户
-  const handleAssignRole = async () => {
+// 分配角色给用�?  const handleAssignRole = async () => {
     if (!selectedUser || !selectedRoleId) {
-      alert('请选择用户和角色');
+        alert('请选择用户和角�?);
       return;
     }
 
     try {
-      const response = await apiClient.post('/api/v1/permissions/users/assign-role', {
+        const response = await apiClient.post('/api/v2/permissions/users/assign-role', {
         user_id: selectedUser.id,
         role_id: selectedRoleId
       });
@@ -285,7 +275,7 @@ const PermissionManagement = () => {
           </div>
         </div>
 
-        {/* 标签页 */}
+          {/* 标签�?*/}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-3">
             <TabsTrigger value="roles" className="flex items-center gap-2">
@@ -333,11 +323,10 @@ const PermissionManagement = () => {
                                 <Badge variant="secondary">系统角色</Badge>
                             )}
                             <Badge variant="outline">
-                              {role.permissions.length} 个权限
-                            </Badge>
+                                {role.permissions.length} 个权�? </Badge>
                           </div>
                           <p className="text-sm text-gray-600 dark:text-gray-400">
-                            {role.description || '无描述'}
+                              {role.description || '无描�?}
                           </p>
                           <p className="text-xs text-gray-500 mt-1">
                             标识: {role.slug}
@@ -375,7 +364,7 @@ const PermissionManagement = () => {
               <CardHeader>
                 <div>
                   <CardTitle>权限列表</CardTitle>
-                  <CardDescription>系统所有可用权限</CardDescription>
+                    <CardDescription>系统所有可用权�?/CardDescription>
                 </div>
               </CardHeader>
               <CardContent>
@@ -467,7 +456,7 @@ const PermissionManagement = () => {
                         </div>
                         <div className="flex items-center gap-3">
                           <Badge variant={user.role_name ? "default" : "outline"}>
-                            {user.role_name || '未分配'}
+                              {user.role_name || '未分�?}
                           </Badge>
                           <Button
                               size="sm"
@@ -485,7 +474,7 @@ const PermissionManagement = () => {
           </TabsContent>
         </Tabs>
 
-        {/* 角色编辑对话框 */}
+          {/* 角色编辑对话�?*/}
         <Dialog open={roleDialogOpen} onOpenChange={setRoleDialogOpen}>
           <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
             <DialogHeader>
@@ -503,7 +492,7 @@ const PermissionManagement = () => {
                       id="role-name"
                       value={roleForm.name}
                       onChange={(e) => setRoleForm({...roleForm, name: e.target.value})}
-                      placeholder="例如：内容编辑"
+                      placeholder="例如：内容编�?
                   />
                 </div>
 
@@ -523,7 +512,7 @@ const PermissionManagement = () => {
                       id="role-description"
                       value={roleForm.description}
                       onChange={(e) => setRoleForm({...roleForm, description: e.target.value})}
-                      placeholder="描述该角色的职责和权限范围"
+                      placeholder="描述该角色的职责和权限范�?
                       rows={3}
                   />
                 </div>
@@ -539,8 +528,8 @@ const PermissionManagement = () => {
                       onClick={toggleAllPermissions}
                   >
                     {permissions.every(p => roleForm.permissions.includes(p.code))
-                        ? '取消全选'
-                        : '全选'}
+                        ? '取消全�?
+                        : '全�?}
                   </Button>
                 </div>
 
@@ -586,8 +575,7 @@ const PermissionManagement = () => {
                 </div>
 
                 <div className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                  已选择 {roleForm.permissions.length} 个权限
-                </div>
+                    已选择 {roleForm.permissions.length} 个权�? </div>
               </div>
             </div>
 
@@ -596,13 +584,14 @@ const PermissionManagement = () => {
                 取消
               </Button>
               <Button onClick={handleSaveRole} disabled={loading}>
-                {loading ? '保存中...' : '保存'}
+                  {loading ? '保存�?..' : '保存'}
               </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>
 
-        {/* 分配角色对话框 */}
+{/* 分配角色对话�?*/
+}
         <Dialog open={assignRoleDialog} onOpenChange={setAssignRoleDialog}>
           <DialogContent>
             <DialogHeader>
@@ -611,7 +600,7 @@ const PermissionManagement = () => {
 
             <div className="py-4">
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
-                为用户 <strong>{selectedUser?.username}</strong> 分配角色
+                  为用�?<strong>{selectedUser?.username}</strong> 分配角色
               </p>
 
               <div className="space-y-2">

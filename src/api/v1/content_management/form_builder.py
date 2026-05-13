@@ -75,7 +75,7 @@ async def send_form_notification_email(
         traceback.print_exc()
 
 
-@router.get("/forms/field-types")
+@router.get("/field-types")
 async def get_field_types():
     """获取所有支持的字段类型"""
     try:
@@ -90,7 +90,7 @@ async def get_field_types():
         return ApiResponse(success=False, error=f"获取字段类型失败: {str(e)}")
 
 
-@router.get("/forms/templates")
+@router.get("/templates")
 async def get_form_templates():
     """获取表单模板列表"""
     try:
@@ -105,7 +105,7 @@ async def get_form_templates():
         return ApiResponse(success=False, error=f"获取模板失败: {str(e)}")
 
 
-@router.post("/forms/create")
+@router.post("/create")
 async def create_form(
         title: str = Body(...),
         description: str = Body(''),
@@ -146,7 +146,7 @@ async def create_form(
         return ApiResponse(success=False, error=f"创建表单失败: {str(e)}")
 
 
-@router.post("/forms/validate")
+@router.post("/validate")
 async def validate_form_submission(
         form_id: int = Body(...),
         submission: Dict[str, Any] = Body(...),
@@ -224,7 +224,7 @@ async def validate_form_submission(
         return ApiResponse(success=False, error=f"验证失败: {str(e)}")
 
 
-@router.get("/forms/{form_id}/html")
+@router.get("/{form_id}/html")
 async def generate_form_html(
         form_id: int,
         db: AsyncSession = Depends(get_async_db)
@@ -287,7 +287,7 @@ async def generate_form_html(
         return ApiResponse(success=False, error=f"生成HTML失败: {str(e)}")
 
 
-@router.post("/forms/{form_id}/submit")
+@router.post("/{form_id}/submit")
 async def submit_form(
         form_id: int,
         submission: Dict[str, Any] = Body(...),
@@ -377,7 +377,7 @@ async def submit_form(
         return ApiResponse(success=False, error=f"提交失败: {str(e)}")
 
 
-@router.get("/forms/{form_id}/submissions")
+@router.get("/{form_id}/submissions")
 async def get_form_submissions(
         form_id: int,
         page: int = Query(1, ge=1),
@@ -445,7 +445,7 @@ async def get_form_submissions(
         return ApiResponse(success=False, error=f"获取提交记录失败: {str(e)}")
 
 
-@router.get("/forms/{form_id}/statistics")
+@router.get("/{form_id}/statistics")
 async def get_form_statistics(
         form_id: int,
         db: AsyncSession = Depends(get_async_db),
@@ -498,7 +498,7 @@ async def get_form_statistics(
         return ApiResponse(success=False, error=f"获取统计数据失败: {str(e)}")
 
 
-@router.delete("/forms/{form_id}")
+@router.delete("/{form_id}")
 async def delete_form(
         form_id: int,
         db: AsyncSession = Depends(get_async_db),

@@ -58,7 +58,7 @@ export default function CheckoutPage() {
 
     const fetchCart = async () => {
         try {
-            const response = await fetch('/api/v1/ecommerce/cart');
+            const response = await fetch('/api/v2/ecommerce/cart');
             const data = await response.json();
 
             if (data.success) {
@@ -77,7 +77,7 @@ export default function CheckoutPage() {
 
     const fetchPaymentMethods = async () => {
         try {
-            const response = await fetch('/api/v1/payment/methods');
+            const response = await fetch('/api/v2/payment/methods');
             const data = await response.json();
 
             if (data.success) {
@@ -98,14 +98,14 @@ export default function CheckoutPage() {
         // 验证表单
         if (!shippingAddress.full_name || !shippingAddress.email || !shippingAddress.phone ||
             !shippingAddress.address_line1 || !shippingAddress.city || !shippingAddress.postal_code) {
-            alert('请填写所有必填字段');
+            alert('请填写所有必填字�?);
             return;
         }
 
         setSubmitting(true);
         try {
             // 创建订单
-            const orderResponse = await fetch('/api/v1/ecommerce/orders', {
+            const orderResponse = await fetch('/api/v2/ecommerce/orders', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -125,7 +125,7 @@ export default function CheckoutPage() {
             const orderId = orderData.data.order_id;
 
             // 创建支付
-            const paymentResponse = await fetch('/api/v1/payment/create', {
+            const paymentResponse = await fetch('/api/v2/payment/create', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -148,8 +148,7 @@ export default function CheckoutPage() {
                 } else if (paymentMethod === 'alipay' && paymentData.data.pay_url) {
                     window.location.href = paymentData.data.pay_url;
                 } else if (paymentMethod === 'wechat' && paymentData.data.code_url) {
-                    // 显示二维码
-                    alert(`微信支付二维码: ${paymentData.data.code_url}`);
+                    // 显示二维�?                    alert(`微信支付二维�? ${paymentData.data.code_url}`);
                 } else {
                     // 模拟支付成功
                     alert('订单创建成功！正在跳转到支付页面...');
@@ -250,7 +249,7 @@ export default function CheckoutPage() {
 
                                 <div className="md:col-span-2">
                                     <label className="block text-sm font-medium mb-1">
-                                        地址行1 <span className="text-red-500">*</span>
+                                        地址�? <span className="text-red-500">*</span>
                                     </label>
                                     <input
                                         type="text"
@@ -262,7 +261,7 @@ export default function CheckoutPage() {
                                 </div>
 
                                 <div className="md:col-span-2">
-                                    <label className="block text-sm font-medium mb-1">地址行2（选填）</label>
+                                    <label className="block text-sm font-medium mb-1">地址�?（选填�?/label>
                                     <input
                                         type="text"
                                         value={shippingAddress.address_line2}
@@ -285,7 +284,7 @@ export default function CheckoutPage() {
                                 </div>
 
                                 <div>
-                                    <label className="block text-sm font-medium mb-1">省份/州</label>
+                                    <label className="block text-sm font-medium mb-1">省份/�?/label>
                                     <input
                                         type="text"
                                         value={shippingAddress.state}
@@ -378,15 +377,14 @@ export default function CheckoutPage() {
                                 disabled={submitting}
                                 className="w-full mt-6 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                {submitting ? '处理中...' : '提交订单'}
+                                {submitting ? '处理�?..' : '提交订单'}
                             </button>
 
                             <Link
                                 href="/cart"
                                 className="block mt-2 text-center text-blue-600 hover:underline"
                             >
-                                返回购物车
-                            </Link>
+                                返回购物�? </Link>
                         </div>
                     </div>
                 </div>

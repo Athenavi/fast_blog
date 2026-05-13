@@ -17,7 +17,7 @@ from src.extensions import get_async_db_session as get_async_db
 router = APIRouter(tags=["widgets"])
 
 
-@router.get("/widgets/types")
+@router.get("/types")
 async def get_widget_types(category: Optional[str] = Query(None)):
     """获取小部件类型列表"""
     try:
@@ -31,7 +31,7 @@ async def get_widget_types(category: Optional[str] = Query(None)):
         return ApiResponse(success=False, error=f"获取类型失败: {str(e)}")
 
 
-@router.get("/widgets/areas")
+@router.get("/areas")
 async def get_widget_areas():
     """获取小部件区域列表"""
     try:
@@ -45,7 +45,7 @@ async def get_widget_areas():
         return ApiResponse(success=False, error=f"获取区域失败: {str(e)}")
 
 
-@router.get("/widgets/area/{area_id}")
+@router.get("/area/{area_id}")
 async def get_area_widgets(area_id: str, db: AsyncSession = Depends(get_async_db)):
     """获取指定区域的小部件"""
     try:
@@ -74,7 +74,7 @@ async def get_area_widgets(area_id: str, db: AsyncSession = Depends(get_async_db
         return ApiResponse(success=False, error=f"获取小部件失败: {str(e)}")
 
 
-@router.post("/widgets/register")
+@router.post("/register")
 async def register_widget(
         area: str = Body(...),
         widget_type: str = Body(...),
@@ -98,7 +98,7 @@ async def register_widget(
         return ApiResponse(success=False, error=f"注册失败: {str(e)}")
 
 
-@router.put("/widgets/{widget_id}/config")
+@router.put("/{widget_id}/config")
 async def update_widget_config(
         widget_id: str,
         config: Dict[str, Any] = Body(...),
@@ -116,7 +116,7 @@ async def update_widget_config(
         return ApiResponse(success=False, error=f"更新失败: {str(e)}")
 
 
-@router.post("/widgets/reorder")
+@router.post("/reorder")
 async def reorder_widgets(
         area: str = Body(...),
         widget_order: List[str] = Body(...),
@@ -134,7 +134,7 @@ async def reorder_widgets(
         return ApiResponse(success=False, error=f"排序失败: {str(e)}")
 
 
-@router.delete("/widgets/{widget_id}")
+@router.delete("/{widget_id}")
 async def remove_widget(
         widget_id: str,
         current_user=Depends(admin_required_api)
@@ -151,7 +151,7 @@ async def remove_widget(
         return ApiResponse(success=False, error=f"移除失败: {str(e)}")
 
 
-@router.post("/widgets")
+@router.post("")
 async def create_widget(
         widget_type: str = Body(...),
         area: str = Body(...),
@@ -201,7 +201,7 @@ async def create_widget(
         return ApiResponse(success=False, error=f"创建失败: {str(e)}")
 
 
-@router.put("/widgets/{widget_id}")
+@router.put("/{widget_id}")
 async def update_widget(
         widget_id: int,
         title: Optional[str] = Body(None, embed=True),
@@ -241,7 +241,7 @@ async def update_widget(
         return ApiResponse(success=False, error=f"更新失败: {str(e)}")
 
 
-@router.patch("/widgets/{widget_id}/toggle")
+@router.patch("/{widget_id}/toggle")
 async def toggle_widget(
         widget_id: int,
         is_active: bool = Body(..., embed=True),
@@ -274,7 +274,7 @@ async def toggle_widget(
         return ApiResponse(success=False, error=f"操作失败: {str(e)}")
 
 
-@router.patch("/widgets/{widget_id}/reorder")
+@router.patch("/{widget_id}/reorder")
 async def reorder_single_widget(
         widget_id: int,
         order_index: int = Body(..., embed=True),
@@ -327,7 +327,7 @@ async def reorder_single_widget(
         return ApiResponse(success=False, error=f"排序失败: {str(e)}")
 
 
-@router.post("/widgets/batch-reorder")
+@router.post("/batch-reorder")
 async def batch_reorder_widgets(
         updates: List[Dict[str, Any]] = Body(...),
         current_user=Depends(admin_required_api),

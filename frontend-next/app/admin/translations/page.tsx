@@ -40,8 +40,7 @@ const TranslationManagement = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [loading, setLoading] = useState(false);
 
-    // 编辑对话框状态
-    const [editDialogOpen, setEditDialogOpen] = useState(false);
+    // 编辑对话框状�?    const [editDialogOpen, setEditDialogOpen] = useState(false);
     const [editingKey, setEditingKey] = useState('');
     const [editingValue, setEditingValue] = useState('');
     const [newTranslationDialog, setNewTranslationDialog] = useState(false);
@@ -62,7 +61,7 @@ const TranslationManagement = () => {
     // 加载支持的语言
     const loadLanguages = async () => {
         try {
-            const response = await apiClient.get('/api/v1/i18n/languages');
+            const response = await apiClient.get('/api/v2/i18n/languages');
             if (response.success && (response.data as any)?.languages) {
                 const langs = Object.entries((response.data as any).languages).map(([code, info]: [string, any]) => ({
                     code,
@@ -78,7 +77,7 @@ const TranslationManagement = () => {
     // 加载统计信息
     const loadStats = async () => {
         try {
-            const response = await apiClient.get('/api/v1/i18n/stats');
+            const response = await apiClient.get('/api/v2/i18n/stats');
             if (response.success && (response.data as any)?.stats) {
                 setStats((response.data as any).stats);
             }
@@ -91,7 +90,7 @@ const TranslationManagement = () => {
     const loadTranslations = async (lang: string) => {
         setLoading(true);
         try {
-            const response = await apiClient.get(`/api/v1/i18n/translations/${lang}`);
+            const response = await apiClient.get(`/api/v2/i18n/translations/${lang}`);
             if (response.success && (response.data as any)?.translations) {
                 setTranslations((response.data as any).translations);
             }
@@ -105,12 +104,12 @@ const TranslationManagement = () => {
     // 添加翻译
     const handleAddTranslation = async () => {
         if (!newKey || !newValue) {
-            alert('请填写键和值');
+            alert('请填写键和�?);
             return;
         }
 
         try {
-            const response = await apiClient.post('/api/v1/i18n/translations/add', {
+            const response = await apiClient.post('/api/v2/i18n/translations/add', {
                 language: selectedLanguage,
                 key: newKey,
                 value: newValue
@@ -135,12 +134,12 @@ const TranslationManagement = () => {
     // 更新翻译
     const handleUpdateTranslation = async () => {
         if (!editingKey || !editingValue) {
-            alert('请填写翻译内容');
+            alert('请填写翻译内�?);
             return;
         }
 
         try {
-            const response = await apiClient.put('/api/v1/i18n/translations/update', {
+            const response = await apiClient.put('/api/v2/i18n/translations/update', {
                 language: selectedLanguage,
                 key: editingKey,
                 value: editingValue
@@ -166,7 +165,7 @@ const TranslationManagement = () => {
         }
 
         try {
-            const response = await apiClient.request('/api/v1/i18n/translations/delete', {
+            const response = await apiClient.request('/api/v2/i18n/translations/delete', {
                 method: 'DELETE',
                 headers: {
                     'Content-Type': 'application/json'
@@ -193,7 +192,7 @@ const TranslationManagement = () => {
     // 导出翻译
     const handleExport = async (format: 'json' | 'yaml') => {
         try {
-            const response = await apiClient.get(`/api/v1/i18n/export?language=${selectedLanguage}&format=${format}`);
+            const response = await apiClient.get(`/api/v2/i18n/export?language=${selectedLanguage}&format=${format}`);
 
             if (response.success && (response.data as any)?.content) {
                 const blob = new Blob([(response.data as any).content], {
@@ -224,7 +223,7 @@ const TranslationManagement = () => {
             const content = e.target?.result as string;
 
             try {
-                const response = await apiClient.post('/api/v1/i18n/import', {
+                const response = await apiClient.post('/api/v2/i18n/import', {
                     language: selectedLanguage,
                     content: content,
                     format: file.name.endsWith('.json') ? 'json' : 'yaml'
@@ -264,11 +263,10 @@ const TranslationManagement = () => {
             <div>
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white">翻译管理</h1>
                 <p className="text-gray-600 dark:text-gray-400 mt-1">
-                    管理系统多语言翻译，支持导入导出
-                </p>
+                    管理系统多语言翻译，支持导入导�? </p>
             </div>
 
-            {/* 标签页 */}
+            {/* 标签�?*/}
             <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="translations" className="flex items-center gap-2">
@@ -336,7 +334,7 @@ const TranslationManagement = () => {
                                 </div>
                             </div>
 
-                            {/* 搜索框 */}
+                            {/* 搜索�?*/}
                             <div className="mt-4">
                                 <div className="relative">
                                     <Search
@@ -383,12 +381,11 @@ const TranslationManagement = () => {
                         <CardHeader>
                             <CardTitle>翻译列表</CardTitle>
                             <CardDescription>
-                                共 {filteredTranslations.length} 条翻译
-                            </CardDescription>
+                                �?{filteredTranslations.length} 条翻�? </CardDescription>
                         </CardHeader>
                         <CardContent>
                             {loading ? (
-                                <div className="text-center py-8">加载中...</div>
+                                <div className="text-center py-8">加载�?..</div>
                             ) : filteredTranslations.length === 0 ? (
                                 <div className="text-center py-8 text-gray-500">
                                     <AlertCircle className="w-12 h-12 mx-auto mb-2 text-gray-300"/>
@@ -469,7 +466,7 @@ const TranslationManagement = () => {
                                             </div>
                                             <div className="flex items-center justify-between">
                                                 <span className="text-sm text-gray-600">RTL支持</span>
-                                                <span>{stat.is_rtl ? '是' : '否'}</span>
+                                                <span>{stat.is_rtl ? '�? : '�?}</span>
                                             </div>
                                         </div>
                                     </CardContent>
@@ -480,7 +477,7 @@ const TranslationManagement = () => {
                 </TabsContent>
             </Tabs>
 
-            {/* 编辑翻译对话框 */}
+            {/* 编辑翻译对话�?*/}
             <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
@@ -489,7 +486,7 @@ const TranslationManagement = () => {
 
                     <div className="space-y-4 py-4">
                         <div>
-                            <Label>翻译键</Label>
+                            <Label>翻译�?/Label>
                             <Input value={editingKey} disabled className="font-mono"/>
                         </div>
 
@@ -515,16 +512,16 @@ const TranslationManagement = () => {
                 </DialogContent>
             </Dialog>
 
-            {/* 添加翻译对话框 */}
+            {/* 添加翻译对话�?*/}
             <Dialog open={newTranslationDialog} onOpenChange={setNewTranslationDialog}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>添加新翻译</DialogTitle>
+                        <DialogTitle>添加新翻�?/DialogTitle>
                     </DialogHeader>
 
                     <div className="space-y-4 py-4">
                         <div>
-                            <Label htmlFor="new-key">翻译键</Label>
+                            <Label htmlFor="new-key">翻译�?/Label>
                             <Input
                                 id="new-key"
                                 value={newKey}

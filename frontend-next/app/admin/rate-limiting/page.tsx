@@ -69,7 +69,7 @@ export default function RateLimitingPage() {
             const token = getAccessToken();
 
             if (activeTab === 'config') {
-                const response = await fetch('/api/v1/rate-limit/config', {
+                const response = await fetch('/api/v2/rate-limit/config', {
                     headers: {'Authorization': `Bearer ${token}`},
                 });
                 if (response.ok) {
@@ -79,7 +79,7 @@ export default function RateLimitingPage() {
                     }
                 }
             } else if (activeTab === 'ips') {
-                const response = await fetch('/api/v1/rate-limit/ips', {
+                const response = await fetch('/api/v2/rate-limit/ips', {
                     headers: {'Authorization': `Bearer ${token}`},
                 });
                 if (response.ok) {
@@ -89,7 +89,7 @@ export default function RateLimitingPage() {
                     }
                 }
             } else if (activeTab === 'quotas') {
-                const response = await fetch('/api/v1/rate-limit/quotas', {
+                const response = await fetch('/api/v2/rate-limit/quotas', {
                     headers: {'Authorization': `Bearer ${token}`},
                 });
                 if (response.ok) {
@@ -115,7 +115,7 @@ export default function RateLimitingPage() {
         try {
             setSaving(true);
             const token = getAccessToken();
-            const response = await fetch('/api/v1/rate-limit/config', {
+            const response = await fetch('/api/v2/rate-limit/config', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -129,7 +129,7 @@ export default function RateLimitingPage() {
             if (data.success) {
                 toast({
                     title: '保存成功',
-                    description: '限流配置已更新',
+                    description: '限流配置已更�?,
                 });
             } else {
                 throw new Error(data.error || '保存失败');
@@ -158,7 +158,7 @@ export default function RateLimitingPage() {
 
         if (rateLimitConfig.whitelist_ips.includes(newWhitelistIP)) {
             toast({
-                title: 'IP已存在',
+                title: 'IP已存�?,
                 description: '该IP已在白名单中',
                 variant: 'destructive',
             });
@@ -191,7 +191,7 @@ export default function RateLimitingPage() {
 
         try {
             const token = getAccessToken();
-            const response = await fetch('/api/v1/rate-limit/block', {
+            const response = await fetch('/api/v2/rate-limit/block', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
@@ -225,7 +225,7 @@ export default function RateLimitingPage() {
     const unblockIP = async (ip: string) => {
         try {
             const token = getAccessToken();
-            const response = await fetch(`/api/v1/rate-limit/unblock/${ip}`, {
+            const response = await fetch(`/api/v2/rate-limit/unblock/${ip}`, {
                 method: 'POST',
                 headers: {'Authorization': `Bearer ${token}`},
             });
@@ -277,7 +277,7 @@ export default function RateLimitingPage() {
             <div className="flex items-center justify-center py-12">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
-                    <p className="text-gray-600">加载中...</p>
+                    <p className="text-gray-600">加载�?..</p>
                 </div>
             </div>
         );
@@ -288,8 +288,7 @@ export default function RateLimitingPage() {
             <div>
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white">API限流管理</h1>
                 <p className="text-gray-600 dark:text-gray-400 mt-2">
-                    配置API请求频率限制、IP封禁和用户配额管理
-                </p>
+                    配置API请求频率限制、IP封禁和用户配额管�? </p>
             </div>
 
             <Tabs value={activeTab} onValueChange={setActiveTab}>
@@ -374,7 +373,7 @@ export default function RateLimitingPage() {
                                     </div>
 
                                     <div className="space-y-4">
-                                        <Label>IP白名单</Label>
+                                        <Label>IP白名�?/Label>
                                         <div className="flex gap-2">
                                             <Input
                                                 placeholder="输入IP地址，例如：192.168.1.1"
@@ -405,7 +404,7 @@ export default function RateLimitingPage() {
 
                                     <Button onClick={saveConfig} disabled={saving}>
                                         <Save className="w-4 h-4 mr-2"/>
-                                        {saving ? '保存中...' : '保存配置'}
+                                        {saving ? '保存�?..' : '保存配置'}
                                     </Button>
                                 </>
                             )}
@@ -438,8 +437,8 @@ export default function RateLimitingPage() {
                                         <TableRow>
                                             <TableHead>IP地址</TableHead>
                                             <TableHead>请求次数</TableHead>
-                                            <TableHead>状态</TableHead>
-                                            <TableHead>封禁至</TableHead>
+                                            <TableHead>状�?/TableHead>
+                                                <TableHead>封禁�?/TableHead>
                                             <TableHead>操作</TableHead>
                                         </TableRow>
                                     </TableHeader>
@@ -457,7 +456,7 @@ export default function RateLimitingPage() {
                                                     <TableCell>{ip.requests_count}</TableCell>
                                                     <TableCell>
                                                         {ip.blocked ? (
-                                                            <Badge variant="destructive">已封禁</Badge>
+                                                                <Badge variant="destructive">已封�?/Badge>
                                                         ) : (
                                                             <Badge variant="default">正常</Badge>
                                                         )}
@@ -504,11 +503,11 @@ export default function RateLimitingPage() {
                                     <TableHeader>
                                         <TableRow>
                                             <TableHead>用户</TableHead>
-                                            <TableHead>日限额</TableHead>
-                                            <TableHead>月限额</TableHead>
+                                            <TableHead>日限�?/TableHead>
+                                                <TableHead>月限�?/TableHead>
                                             <TableHead>今日使用</TableHead>
                                             <TableHead>本月使用</TableHead>
-                                            <TableHead>使用率</TableHead>
+                                                    <TableHead>使用�?/TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>

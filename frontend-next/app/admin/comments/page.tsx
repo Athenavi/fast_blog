@@ -52,8 +52,7 @@ const CommentsManagement = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedComments, setSelectedComments] = useState<number[]>([]);
 
-    // 对话框状态
-    const [showViewDialog, setShowViewDialog] = useState(false);
+    // 对话框状�?    const [showViewDialog, setShowViewDialog] = useState(false);
     const [showApproveDialog, setShowApproveDialog] = useState(false);
     const [showRejectDialog, setShowRejectDialog] = useState(false);
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -63,12 +62,12 @@ const CommentsManagement = () => {
     const loadComments = async () => {
         setLoading(true);
         try {
-            let url = '/api/v1/admin/comments/pending';
+            let url = '/api/v2/admin/comments/pending';
 
             if (filter === 'all') {
-                url = `/api/v1/comments?page=${pagination.page}&per_page=${pagination.per_page}`;
+                url = `/api/v2/comments?page=${pagination.page}&per_page=${pagination.per_page}`;
             } else if (filter === 'approved') {
-                url = `/api/v1/comments?page=${pagination.page}&per_page=${pagination.per_page}&approved=true`;
+                url = `/api/v2/comments?page=${pagination.page}&per_page=${pagination.per_page}&approved=true`;
             }
             // pending 使用默认URL
 
@@ -76,8 +75,7 @@ const CommentsManagement = () => {
 
             if (response.success && response.data) {
                 const data = response.data as any;
-                // 处理不同的响应格式
-                if (data.comments) {
+                // 处理不同的响应格�?                if (data.comments) {
                     setComments(data.comments);
                     if (data.pagination) {
                         setPagination(data.pagination);
@@ -100,7 +98,7 @@ const CommentsManagement = () => {
     // 批准评论
     const handleApprove = async (commentId: number) => {
         try {
-            const response = await apiClient.post(`/api/v1/admin/comments/${commentId}/approve`);
+            const response = await apiClient.post(`/api/v2/admin/comments/${commentId}/approve`);
             if (response.success) {
                 loadComments();
                 setShowApproveDialog(false);
@@ -113,7 +111,7 @@ const CommentsManagement = () => {
     // 拒绝评论
     const handleReject = async (commentId: number) => {
         try {
-            const response = await apiClient.post(`/api/v1/admin/comments/${commentId}/reject`);
+            const response = await apiClient.post(`/api/v2/admin/comments/${commentId}/reject`);
             if (response.success) {
                 loadComments();
                 setShowRejectDialog(false);
@@ -126,7 +124,7 @@ const CommentsManagement = () => {
     // 删除评论
     const handleDelete = async (commentId: number) => {
         try {
-            const response = await apiClient.delete(`/api/v1/comments/${commentId}`);
+            const response = await apiClient.delete(`/api/v2/comments/${commentId}`);
             if (response.success) {
                 loadComments();
                 setShowDeleteDialog(false);
@@ -160,8 +158,7 @@ const CommentsManagement = () => {
         }
     };
 
-    // 全选/取消全选
-    const toggleSelectAll = () => {
+// 全�?取消全�?    const toggleSelectAll = () => {
         if (selectedComments.length === comments.length) {
             setSelectedComments([]);
         } else {
@@ -169,13 +166,11 @@ const CommentsManagement = () => {
         }
     };
 
-    // 格式化日期
-    const formatDate = (dateString: string) => {
+// 格式化日�?    const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleString('zh-CN');
     };
 
-    // 获取作者显示名称
-    const getAuthorName = (comment: Comment) => {
+// 获取作者显示名�?    const getAuthorName = (comment: Comment) => {
         return comment.author_name || (comment.user_id ? `用户 #${comment.user_id}` : '匿名用户');
     };
 
@@ -197,7 +192,7 @@ const CommentsManagement = () => {
                 </p>
             </div>
 
-            {/* 筛选和操作栏 */}
+            {/* 筛选和操作�?*/}
             <Card className="mb-6">
                 <CardContent className="pt-6">
                     <div className="flex flex-wrap gap-4 items-center justify-between">
@@ -212,8 +207,7 @@ const CommentsManagement = () => {
                                 variant={filter === 'pending' ? 'default' : 'outline'}
                                 onClick={() => setFilter('pending')}
                             >
-                                待审核
-                            </Button>
+                                待审�? </Button>
                             <Button
                                 variant={filter === 'approved' ? 'default' : 'outline'}
                                 onClick={() => setFilter('approved')}
@@ -261,12 +255,11 @@ const CommentsManagement = () => {
                 <CardHeader>
                     <CardTitle>评论列表</CardTitle>
                     <CardDescription>
-                        共 {pagination.total} 条评论
-                    </CardDescription>
+                        �?{pagination.total} 条评�? </CardDescription>
                 </CardHeader>
                 <CardContent>
                     {loading ? (
-                        <div className="text-center py-8 text-gray-500">加载中...</div>
+                        <div className="text-center py-8 text-gray-500">加载�?..</div>
                     ) : comments.length === 0 ? (
                         <div className="text-center py-8 text-gray-500">暂无评论</div>
                     ) : (
@@ -305,7 +298,7 @@ const CommentsManagement = () => {
                                                 </div>
                                                 <div className="flex items-center gap-2">
                                                     <Badge variant={comment.is_approved ? 'default' : 'secondary'}>
-                                                        {comment.is_approved ? '已通过' : '待审核'}
+                                                        {comment.is_approved ? '已通过' : '待审�?}
                                                     </Badge>
                                                     {comment.spam_score && comment.spam_score > 0.5 && (
                                                         <Badge variant="destructive">
@@ -396,25 +389,22 @@ const CommentsManagement = () => {
                                 onClick={() => setPagination({...pagination, page: pagination.page - 1})}
                                 disabled={pagination.page === 1}
                             >
-                                上一页
-                            </Button>
+                                上一�? </Button>
                             <span className="px-4 py-2 text-sm">
-                第 {pagination.page} / {pagination.total_pages} 页
-              </span>
+                �?{pagination.page} / {pagination.total_pages} �?              </span>
                             <Button
                                 variant="outline"
                                 size="sm"
                                 onClick={() => setPagination({...pagination, page: pagination.page + 1})}
                                 disabled={pagination.page === pagination.total_pages}
                             >
-                                下一页
-                            </Button>
+                                下一�? </Button>
                         </div>
                     )}
                 </CardContent>
             </Card>
 
-            {/* 查看评论对话框 */}
+                    {/* 查看评论对话�?*/}
             <Dialog open={showViewDialog} onOpenChange={setShowViewDialog}>
                 <DialogContent className="max-w-2xl">
                     <DialogHeader>
@@ -423,7 +413,7 @@ const CommentsManagement = () => {
                     {currentComment && (
                         <div className="space-y-4">
                             <div>
-                                <Label>作者</Label>
+                                <Label>作�?/Label>
                                 <div className="mt-1 p-3 bg-gray-50 dark:bg-gray-800 rounded">
                                     {getAuthorName(currentComment)}
                                     {currentComment.author_email && (
@@ -441,15 +431,15 @@ const CommentsManagement = () => {
 
                             <div className="grid grid-cols-2 gap-4 text-sm">
                                 <div>
-                                    <Label>状态</Label>
+                                    <Label>状�?/Label>
                                     <div className="mt-1">
                                         <Badge variant={currentComment.is_approved ? 'default' : 'secondary'}>
-                                            {currentComment.is_approved ? '已通过' : '待审核'}
+                                            {currentComment.is_approved ? '已通过' : '待审�?}
                                         </Badge>
                                     </div>
                                 </div>
                                 <div>
-                                    <Label>点赞数</Label>
+                                                <Label>点赞�?/Label>
                                     <div className="mt-1">{currentComment.likes}</div>
                                 </div>
                                 <div>
@@ -466,14 +456,13 @@ const CommentsManagement = () => {
                 </DialogContent>
             </Dialog>
 
-            {/* 批准确认对话框 */}
+                    {/* 批准确认对话�?*/}
             <Dialog open={showApproveDialog} onOpenChange={setShowApproveDialog}>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>批准评论</DialogTitle>
                         <DialogDescription>
-                            确定要批准这条评论吗？批准后将对所有用户可见。
-                        </DialogDescription>
+                            确定要批准这条评论吗？批准后将对所有用户可见�? </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setShowApproveDialog(false)}>
@@ -487,14 +476,13 @@ const CommentsManagement = () => {
                 </DialogContent>
             </Dialog>
 
-            {/* 拒绝确认对话框 */}
+                    {/* 拒绝确认对话�?*/}
             <Dialog open={showRejectDialog} onOpenChange={setShowRejectDialog}>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>拒绝评论</DialogTitle>
                         <DialogDescription>
-                            确定要拒绝这条评论吗？拒绝后评论将被标记为未通过。
-                        </DialogDescription>
+                            确定要拒绝这条评论吗？拒绝后评论将被标记为未通过�? </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setShowRejectDialog(false)}>
@@ -508,14 +496,13 @@ const CommentsManagement = () => {
                 </DialogContent>
             </Dialog>
 
-            {/* 删除确认对话框 */}
+                    {/* 删除确认对话�?*/}
             <Dialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>删除评论</DialogTitle>
                         <DialogDescription>
-                            确定要删除这条评论吗？此操作不可恢复！
-                        </DialogDescription>
+                            确定要删除这条评论吗？此操作不可恢复�? </DialogDescription>
                     </DialogHeader>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setShowDeleteDialog(false)}>

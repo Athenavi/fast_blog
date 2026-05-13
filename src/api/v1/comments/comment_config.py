@@ -16,7 +16,7 @@ from src.extensions import get_async_db_session as get_async_db
 router = APIRouter()
 
 
-@router.get("/dashboard/comment_config")
+@router.get("")
 async def get_comment_config(
         request: Request,
         current_user=Depends(jwt_required),
@@ -86,7 +86,7 @@ async def get_comment_config(
         )
 
 
-@router.post("/dashboard/comment_config")
+@router.post("")
 async def update_comment_config(
         request: Request,
         current_user=Depends(jwt_required),

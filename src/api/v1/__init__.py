@@ -72,8 +72,8 @@ async def api_check_qr_status(request: Request):
         return {"success": False, "message": "Failed to check QR code status"}
 
 
-@api_v1_router.get("/phone/scan")
-async def api_phone_scan(
+@api_v1_router.get("/phone/verify")
+async def api_phone_verify(
         request: Request,
         db: AsyncSession = Depends(get_async_db)
 ):
@@ -92,8 +92,8 @@ async def api_phone_scan(
     try:
         return await phone_scan_back(request, current_user=current_user, cache=cache)
     except Exception as e:
-        logger.error(f"Phone scan failed: {e}")
-        return {"success": False, "message": f"Failed to handle phone scan: {str(e)}"}
+        logger.error(f"Phone verify failed: {e}")
+        return {"success": False, "message": f"Failed to handle phone verification: {str(e)}"}
 
 
 # 用户名/邮箱可用性检查
@@ -316,12 +316,7 @@ async def generate_thumbnail_async(source_path: Path, thumb_path: Path, filehash
 
 
 # ------------------------------------------------------------
-# 4. 最后注册 redirect 模块（包含通配符路由，必须在所有具体路由之后）
+# 一定要最后注册通配符路由，必须在所有具体路由之后）
 # ------------------------------------------------------------
-try:
-    pass
-except Exception as e:
-    print(f"Warning: Failed to import redirect module: {e}")
-
 # 为路由自动发现系统提供统一的 router 名称
 router = api_v1_router

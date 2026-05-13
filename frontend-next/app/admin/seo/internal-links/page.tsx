@@ -27,7 +27,7 @@ export default function InternalLinksPage() {
     try {
       setLoading(true);
       const token = getAccessTokenFromCookie();
-      const response = await fetch('/api/v1/internal-links/suggest', {
+        const response = await fetch('/api/v2/internal-links/suggest', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -54,12 +54,12 @@ export default function InternalLinksPage() {
     }
   };
 
-  // 检测孤立文章
+    // 检测孤立文�?
   const handleDetectOrphans = async () => {
     try {
       setLoading(true);
       const token = getAccessTokenFromCookie();
-      const response = await fetch('/api/v1/internal-links/orphan-articles', {
+        const response = await fetch('/api/v2/internal-links/orphan-articles', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -71,11 +71,11 @@ export default function InternalLinksPage() {
             setOrphanArticles(result.data as any);
             toast.success(`发现${(result.data as any).orphan_count}篇孤立文章`);
       } else {
-        toast.error(result.error || '检测失败');
+            toast.error(result.error || '检测失�?);
       }
     } catch (error) {
       console.error('Error detecting orphans:', error);
-      toast.error('检测失败');
+        toast.error('检测失�?);
     } finally {
       setLoading(false);
     }
@@ -86,7 +86,7 @@ export default function InternalLinksPage() {
     try {
       setLoading(true);
       const token = getAccessTokenFromCookie();
-      const response = await fetch('/api/v1/internal-links/analysis', {
+        const response = await fetch('/api/v2/internal-links/analysis', {
         headers: {
           'Authorization': `Bearer ${token}`,
         },
@@ -134,13 +134,13 @@ export default function InternalLinksPage() {
               className="max-w-xs"
             />
             <Button onClick={handleGetSuggestions} disabled={loading}>
-              {loading ? '分析中...' : '获取建议'}
+                {loading ? '分析�?..' : '获取建议'}
             </Button>
           </div>
 
           {suggestions && (
             <div className="space-y-4">
-              {/* 关键词 */}
+                {/* 关键�?*/}
               {suggestions.keywords && suggestions.keywords.length > 0 && (
                 <div>
                   <h3 className="font-semibold mb-2">提取的关键词:</h3>
@@ -157,7 +157,7 @@ export default function InternalLinksPage() {
               {/* 链接密度 */}
               <div>
                 <p className="text-sm text-gray-600">链接密度: {suggestions.link_density}%</p>
-                <p className="text-xs text-gray-500">建议保持在2-5%之间</p>
+                  <p className="text-xs text-gray-500">建议保持�?-5%之间</p>
               </div>
 
               {/* 建议列表 */}
@@ -169,7 +169,7 @@ export default function InternalLinksPage() {
                       <div key={index} className="border rounded-lg p-3 bg-gray-50">
                         <div className="flex items-center justify-between mb-1">
                           <span className="font-medium">{item.title}</span>
-                          <Badge variant="secondary">相关度: {item.score}</Badge>
+                            <Badge variant="secondary">相关�? {item.score}</Badge>
                         </div>
                         <div className="flex flex-wrap gap-1">
                           {item.matched_keywords.map((kw: string, kwIndex: number) => (
@@ -188,23 +188,23 @@ export default function InternalLinksPage() {
         </CardContent>
       </Card>
 
-      {/* 孤立文章检测 */}
+        {/* 孤立文章检�?*/}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center">
             <AlertTriangle className="w-5 h-5 mr-2" />
-            孤立文章检测
+              孤立文章检�?
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <Button onClick={handleDetectOrphans} disabled={loading} variant="outline">
-            检测孤立文章
+              检测孤立文�?
           </Button>
 
           {orphanArticles && (
             <div>
               <p className="text-sm text-gray-600 mb-2">
-                发现 <strong>{orphanArticles.orphan_count}</strong> 篇孤立文章(没有被其他文章链接)
+                  发现 <strong>{orphanArticles.orphan_count}</strong> 篇孤立文�?没有被其他文章链�?
               </p>
               {orphanArticles.orphan_articles.length > 0 && (
                 <div className="space-y-1 max-h-60 overflow-y-auto">
@@ -269,28 +269,28 @@ export default function InternalLinksPage() {
         <CardContent className="space-y-4">
           <Alert>
             <Info className="h-4 w-4" />
-            <AlertTitle>内部链接的重要性</AlertTitle>
+              <AlertTitle>内部链接的重要�?/AlertTitle>
             <AlertDescription>
-              内部链接有助于搜索引擎理解网站结构,传递页面权重,提升用户体验和SEO排名。
+                内部链接有助于搜索引擎理解网站结�?传递页面权�?提升用户体验和SEO排名�?
             </AlertDescription>
           </Alert>
 
           <div>
             <h3 className="font-semibold mb-2">核心功能:</h3>
             <ul className="list-disc list-inside space-y-2 text-sm text-gray-700 ml-2">
-              <li><strong>关键词提取:</strong> 自动分析文章内容,提取核心关键词</li>
-              <li><strong>相关文章推荐:</strong> 基于关键词匹配,推荐最相关的文章</li>
-              <li><strong>孤立文章检测:</strong> 找出没有被链接的文章,优化内链结构</li>
-              <li><strong>链接密度分析:</strong> 监控每篇文章的链接数量,避免过度优化</li>
+                <li><strong>关键词提�?</strong> 自动分析文章内容,提取核心关键�?/li>
+                    <li><strong>相关文章推荐:</strong> 基于关键词匹�?推荐最相关的文�?/li>
+                        <li><strong>孤立文章检�?</strong> 找出没有被链接的文章,优化内链结构</li>
+                        <li><strong>链接密度分析:</strong> 监控每篇文章的链接数�?避免过度优化</li>
             </ul>
           </div>
 
           <div>
-            <h3 className="font-semibold mb-2">最佳实践:</h3>
+              <h3 className="font-semibold mb-2">最佳实�?</h3>
             <ul className="list-disc list-inside space-y-2 text-sm text-gray-700 ml-2">
-              <li>每篇文章保持2-5个内部链接</li>
+                <li>每篇文章保持2-5个内部链�?/li>
               <li>使用描述性锚文本(避免"点击这里")</li>
-              <li>链接到相关内容,提升用户体验</li>
+                    <li>链接到相关内�?提升用户体验</li>
               <li>定期修复断裂链接</li>
               <li>避免循环链接(A→B→A)</li>
             </ul>
@@ -299,10 +299,10 @@ export default function InternalLinksPage() {
           <div className="bg-blue-50 p-4 rounded-lg">
             <h3 className="font-semibold text-blue-900 mb-2">SEO建议:</h3>
             <ul className="text-sm text-blue-800 space-y-1">
-              <li>• 重要页面应获得更多内部链接</li>
-              <li>• 新文章应及时添加相关链接</li>
-              <li>• 定期审查孤立文章并添加链接</li>
-              <li>• 保持链接密度在2-5%之间</li>
+                <li>�?重要页面应获得更多内部链�?/li>
+                    <li>�?新文章应及时添加相关链接</li>
+                    <li>�?定期审查孤立文章并添加链�?/li>
+                        <li>�?保持链接密度�?-5%之间</li>
             </ul>
           </div>
         </CardContent>

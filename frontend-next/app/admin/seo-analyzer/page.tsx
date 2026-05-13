@@ -45,7 +45,7 @@ const SEOAnalyzerPage = () => {
     // 执行SEO分析
     const handleAnalyze = async () => {
         if (!articleData.title) {
-            setError('请至少输入文章标题');
+            setError('请至少输入文章标�?);
             return;
         }
 
@@ -53,7 +53,7 @@ const SEOAnalyzerPage = () => {
         setError(null);
 
         try {
-            const response = await apiClient.post('/api/v1/seo/analyze', articleData);
+            const response = await apiClient.post('/api/v2/seo/analyze', articleData);
 
             if (response.success && response.data) {
                 setAnalysisResult(response.data as SEOAnalysisResult);
@@ -93,8 +93,7 @@ const SEOAnalyzerPage = () => {
         }
     };
 
-    // 获取检查项背景色
-    const getStatusBgColor = (status: string) => {
+    // 获取检查项背景�?    const getStatusBgColor = (status: string) => {
         switch (status) {
             case 'pass':
                 return 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800';
@@ -114,8 +113,7 @@ const SEOAnalyzerPage = () => {
                     SEO 分析工具
                 </h1>
                 <p className="text-gray-600 dark:text-gray-400">
-                    分析文章内容的SEO质量，获取改进建议
-                </p>
+                    分析文章内容的SEO质量，获取改进建�? </p>
             </div>
 
             {/* 输入表单 */}
@@ -153,7 +151,7 @@ const SEOAnalyzerPage = () => {
                             id="excerpt"
                             value={articleData.excerpt}
                             onChange={(e) => setArticleData({...articleData, excerpt: e.target.value})}
-                            placeholder="输入文章摘要（150-160字符）"
+                            placeholder="输入文章摘要�?50-160字符�?
                             rows={3}
                         />
                     </div>
@@ -180,7 +178,7 @@ const SEOAnalyzerPage = () => {
                     </div>
 
                     <div>
-                        <Label htmlFor="tags">标签（逗号分隔）</Label>
+                        <Label htmlFor="tags">标签（逗号分隔�?/Label>
                         <Input
                             id="tags"
                             value={articleData.tags.join(', ')}
@@ -188,7 +186,7 @@ const SEOAnalyzerPage = () => {
                                 ...articleData,
                                 tags: e.target.value.split(',').map(t => t.trim()).filter(t => t)
                             })}
-                            placeholder="技术, 编程, Python"
+                            placeholder="技�? 编程, Python"
                         />
                     </div>
 
@@ -202,13 +200,12 @@ const SEOAnalyzerPage = () => {
                         {isLoading ? (
                             <>
                                 <Search className="w-4 h-4 mr-2 animate-spin"/>
-                                分析中...
+                                分析�?..
                             </>
                         ) : (
                             <>
                                 <Search className="w-4 h-4 mr-2"/>
-                                开始分析
-                            </>
+                                开始分�? </>
                         )}
                     </Button>
                 </CardContent>
@@ -217,7 +214,7 @@ const SEOAnalyzerPage = () => {
             {/* 分析结果 */}
             {analysisResult && (
                 <div className="space-y-6">
-                    {/* 总分和等级 */}
+                    {/* 总分和等�?*/}
                     <Card>
                         <CardHeader>
                             <CardTitle>SEO评分</CardTitle>
@@ -230,8 +227,7 @@ const SEOAnalyzerPage = () => {
                                         <Badge
                                             className={`${getGradeColor(analysisResult.grade)} text-white text-lg px-4 py-1`}
                                         >
-                                            {analysisResult.grade}级
-                                        </Badge>
+                                            {analysisResult.grade}�? </Badge>
                                     </div>
                                     <Progress value={analysisResult.score} className="h-3"/>
                                 </div>
@@ -271,8 +267,7 @@ const SEOAnalyzerPage = () => {
                         <CardHeader>
                             <CardTitle>检查项详情</CardTitle>
                             <CardDescription>
-                                共{analysisResult.total_checks}项检查
-                            </CardDescription>
+                                共{analysisResult.total_checks}项检�? </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-3">
                             {analysisResult.checks.map((check, index) => (
@@ -314,8 +309,7 @@ const SEOAnalyzerPage = () => {
                                     <span>改进建议</span>
                                 </CardTitle>
                                 <CardDescription>
-                                    共{analysisResult.suggestions.length}条建议
-                                </CardDescription>
+                                    共{analysisResult.suggestions.length}条建�? </CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <ul className="space-y-3">

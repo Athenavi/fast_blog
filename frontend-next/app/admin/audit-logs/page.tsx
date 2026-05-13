@@ -72,7 +72,7 @@ export default function AuditLogsPage() {
             const token = getAccessToken();
 
             if (activeTab === 'audit') {
-                const response = await fetch('/api/v1/audit-logs', {
+                const response = await fetch('/api/v2/audit-logs', {
                     headers: {'Authorization': `Bearer ${token}`},
                 });
                 if (response.ok) {
@@ -82,7 +82,7 @@ export default function AuditLogsPage() {
                     }
                 }
             } else if (activeTab === 'login') {
-                const response = await fetch('/api/v1/login-logs', {
+                const response = await fetch('/api/v2/login-logs', {
                     headers: {'Authorization': `Bearer ${token}`},
                 });
                 if (response.ok) {
@@ -92,7 +92,7 @@ export default function AuditLogsPage() {
                     }
                 }
             } else if (activeTab === 'changes') {
-                const response = await fetch('/api/v1/change-logs', {
+                const response = await fetch('/api/v2/change-logs', {
                     headers: {'Authorization': `Bearer ${token}`},
                 });
                 if (response.ok) {
@@ -126,7 +126,7 @@ export default function AuditLogsPage() {
                 date_to: dateTo,
             });
 
-            const response = await fetch(`/api/v1/audit-logs/export?${params}`, {
+            const response = await fetch(`/api/v2/audit-logs/export?${params}`, {
                 headers: {'Authorization': `Bearer ${token}`},
             });
 
@@ -183,7 +183,7 @@ export default function AuditLogsPage() {
             <div className="flex items-center justify-center py-12">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
-                    <p className="text-gray-600">加载中...</p>
+                    <p className="text-gray-600">加载�?..</p>
                 </div>
             </div>
         );
@@ -386,9 +386,9 @@ export default function AuditLogsPage() {
                                     <TableHeader>
                                         <TableRow>
                                             <TableHead>时间</TableHead>
-                                            <TableHead>用户名</TableHead>
+                                            <TableHead>用户�?/TableHead>
                                             <TableHead>IP地址</TableHead>
-                                            <TableHead>状态</TableHead>
+                                                <TableHead>状�?/TableHead>
                                             <TableHead>User Agent</TableHead>
                                         </TableRow>
                                     </TableHeader>
@@ -481,13 +481,13 @@ export default function AuditLogsPage() {
                                                         <div className="text-sm space-y-1">
                                                             {log.old_values && (
                                                                 <div className="text-red-600">
-                                                                    <span className="font-semibold">旧值:</span>{' '}
+                                                                    <span className="font-semibold">旧�?</span>{' '}
                                                                     {JSON.stringify(log.old_values)}
                                                                 </div>
                                                             )}
                                                             {log.new_values && (
                                                                 <div className="text-green-600">
-                                                                    <span className="font-semibold">新值:</span>{' '}
+                                                                    <span className="font-semibold">新�?</span>{' '}
                                                                     {JSON.stringify(log.new_values)}
                                                                 </div>
                                                             )}

@@ -16,7 +16,7 @@ router = APIRouter(tags=["multisite"])
 
 # ==================== 站点管理 ====================
 
-@router.post("/sites", summary="创建站点")
+@router.post("", summary="创建站点")
 async def create_site(
         name: str = Body(..., description="站点名称"),
         slug: str = Body(..., description="站点标识"),
@@ -74,7 +74,7 @@ async def create_site(
         return ApiResponse(success=False, error=str(e))
 
 
-@router.get("/sites", summary="获取站点列表")
+@router.get("", summary="获取站点列表")
 async def get_sites(
         include_inactive: bool = Query(False, description="是否包含非活动站点"),
         current_user=Depends(jwt_required),
@@ -122,7 +122,7 @@ async def get_sites(
         return ApiResponse(success=False, error=str(e))
 
 
-@router.put("/sites/{site_id}", summary="更新站点配置")
+@router.put("/{site_id}", summary="更新站点配置")
 async def update_site(
         site_id: int,
         updates: Dict[str, Any] = Body(..., description="更新字段"),
@@ -164,7 +164,7 @@ async def update_site(
         return ApiResponse(success=False, error=str(e))
 
 
-@router.delete("/sites/{site_id}", summary="删除站点")
+@router.delete("/{site_id}", summary="删除站点")
 async def delete_site(
         site_id: int,
         current_user=Depends(jwt_required),

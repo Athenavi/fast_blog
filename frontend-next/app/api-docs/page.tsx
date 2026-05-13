@@ -14,7 +14,7 @@ import {useToast} from '@/hooks/use-toast';
 
 export default function APIDocsPage() {
     const {toast} = useToast();
-    const [apiEndpoint, setApiEndpoint] = useState('/api/v1/articles');
+    const [apiEndpoint, setApiEndpoint] = useState('/api/v2/articles');
     const [method, setMethod] = useState('GET');
     const [headers, setHeaders] = useState('Authorization: Bearer YOUR_TOKEN\nContent-Type: application/json');
     const [body, setBody] = useState('{}');
@@ -22,16 +22,52 @@ export default function APIDocsPage() {
     const [loading, setLoading] = useState(false);
 
     const apiModules = [
-        {name: '认证授权', prefix: '/api/v1/auth', icon: '🔐', endpoints: 8},
-        {name: '文章管理', prefix: '/api/v1/articles', icon: '📝', endpoints: 15},
-        {name: '用户管理', prefix: '/api/v1/users', icon: '👤', endpoints: 12},
-        {name: '分类管理', prefix: '/api/v1/categories', icon: '📁', endpoints: 6},
-        {name: '媒体管理', prefix: '/api/v1/media', icon: '🖼️', endpoints: 10},
-        {name: '仪表板', prefix: '/api/v1/dashboard', icon: '📊', endpoints: 8},
-        {name: '插件管理', prefix: '/api/v1/plugins', icon: '🔌', endpoints: 9},
-        {name: '系统设置', prefix: '/api/v1/settings', icon: '⚙️', endpoints: 7},
-        {name: '打赏系统', prefix: '/api/v1/tips', icon: '💰', endpoints: 11},
-        {name: '广告管理', prefix: '/api/v1/ads', icon: '📢', endpoints: 12},
+        {name: '认证授权', prefix: '/api/v2/auth', icon: '🔐', endpoints: 8},
+        {name: '文章管理', prefix: '/api/v2/articles', icon: '📝', endpoints: 15},
+        {name: '用户管理', prefix: '/api/v2/users', icon: '👤', endpoints: 12},
+        {name: '分类管理', prefix: '/api/v2/categories', icon: '📁', endpoints: 6},
+        {name: '媒体管理', prefix: '/api/v2/media', icon: '🖼�?, endpoints: 10},
+        {name: '仪表�?, prefix: ' / api / v2 / dashboard', icon: '📊', endpoints: 8},
+    {
+        name: '插件管理', prefix
+    :
+        '/api/v2/plugins', icon
+    :
+        '🔌', endpoints
+    :
+        9
+    }
+,
+    {
+        name: '系统设置', prefix
+    :
+        '/api/v2/settings', icon
+    :
+        '⚙️', endpoints
+    :
+        7
+    }
+,
+    {
+        name: '打赏系统', prefix
+    :
+        '/api/v2/tips', icon
+    :
+        '💰', endpoints
+    :
+        11
+    }
+,
+    {
+        name: '广告管理', prefix
+    :
+        '/api/v2/ads', icon
+    :
+        '📢', endpoints
+    :
+        12
+    }
+,
     ];
 
     const codeExamples = {
@@ -41,14 +77,12 @@ export default function APIDocsPage() {
 BASE_URL = "http://localhost:9421/api/v1"
 TOKEN = "YOUR_ACCESS_TOKEN"
 
-# 设置请求头
-headers = {
+# 设置请求�?headers = {
     "Authorization": f"Bearer {TOKEN}",
     "Content-Type": "application/json"
 }
 
-# 示例：获取文章列表
-response = requests.get(
+# 示例：获取文章列�?response = requests.get(
     f"{BASE_URL}/articles",
     headers=headers,
     params={"page": 1, "per_page": 10}
@@ -56,7 +90,7 @@ response = requests.get(
 
 if response.status_code == 200:
     data = response.json()
-    print(f"找到 {data['data']['total']} 篇文章")
+    print(f"找到 {data['data']['total']} 篇文�?)
     for article in data['data']['items']:
         print(f"- {article['title']}")
 else:
@@ -67,8 +101,7 @@ else:
 const BASE_URL = 'http://localhost:9421/api/v1';
 const TOKEN = 'YOUR_ACCESS_TOKEN';
 
-// 示例：获取文章列表
-async function getArticles() {
+// 示例：获取文章列�?async function getArticles() {
     try {
         const response = await fetch(\`\${BASE_URL}/articles?page=1&per_page=10\`, {
             method: 'GET',
@@ -112,8 +145,7 @@ const (
     Token   = "YOUR_ACCESS_TOKEN"
 )
 
-// Article 结构体
-type Article struct {
+// Article 结构�?type Article struct {
     ID    int    \`json:"id"\`
     Title string \`json:"title"\`
 }
@@ -137,12 +169,10 @@ func main() {
         return
     }
 
-    // 设置请求头
-    req.Header.Set("Authorization", "Bearer "+Token)
+    // 设置请求�?    req.Header.Set("Authorization", "Bearer "+Token)
     req.Header.Set("Content-Type", "application/json")
 
-    // 发送请求
-    client := &http.Client{}
+    // 发送请�?    client := &http.Client{}
     resp, err := client.Do(req)
     if err != nil {
         fmt.Println("请求失败:", err)
@@ -222,8 +252,8 @@ func main() {
     const copyToClipboard = (text: string) => {
         navigator.clipboard.writeText(text);
         toast({
-            title: '已复制',
-            description: '代码已复制到剪贴板',
+            title: '已复�?,
+            description: '代码已复制到剪贴�?,
         });
     };
 
@@ -232,8 +262,7 @@ func main() {
             <div className="mb-8">
                 <h1 className="text-3xl font-bold mb-2">FastBlog API 文档</h1>
                 <p className="text-muted-foreground">
-                    现代化的博客系统 API，提供完整的博客管理功能。支持 OpenAPI 3.0 标准。
-                </p>
+                    现代化的博客系统 API，提供完整的博客管理功能。支�?OpenAPI 3.0 标准�? </p>
             </div>
 
             <Tabs defaultValue="overview" className="space-y-6">
@@ -248,14 +277,14 @@ func main() {
                 <TabsContent value="overview" className="space-y-6">
                     <Card>
                         <CardHeader>
-                            <CardTitle>快速开始</CardTitle>
+                            <CardTitle>快速开�?/CardTitle>
                             <CardDescription>了解如何使用 FastBlog API</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             <div>
                                 <h3 className="font-semibold mb-2">1. 获取访问令牌</h3>
                                 <pre className="bg-gray-100 dark:bg-gray-800 p-3 rounded text-sm">
-{`POST /api/v1/auth/login
+{`POST /api/v2/auth/login
 {
   "username": "your_username",
   "password": "your_password"
@@ -266,7 +295,7 @@ func main() {
                             <div>
                                 <h3 className="font-semibold mb-2">2. 使用令牌访问API</h3>
                                 <pre className="bg-gray-100 dark:bg-gray-800 p-3 rounded text-sm">
-{`GET /api/v1/articles
+{`GET /api/v2/articles
 Authorization: Bearer YOUR_ACCESS_TOKEN`}
                                 </pre>
                             </div>
@@ -295,7 +324,7 @@ Authorization: Bearer YOUR_ACCESS_TOKEN`}
                             </CardHeader>
                             <CardContent>
                                 <p className="text-sm text-muted-foreground mb-2">
-                                    访问 Swagger UI 查看完整的 API 文档和交互式测试
+                                    访问 Swagger UI 查看完整�?API 文档和交互式测试
                                 </p>
                                 <Badge>Swagger UI</Badge>
                             </CardContent>
@@ -307,7 +336,7 @@ Authorization: Bearer YOUR_ACCESS_TOKEN`}
                             </CardHeader>
                             <CardContent>
                                 <p className="text-sm text-muted-foreground mb-2">
-                                    在浏览器中直接测试 API 端点，无需额外工具
+                                    在浏览器中直接测�?API 端点，无需额外工具
                                 </p>
                                 <Badge>API Tester</Badge>
                             </CardContent>
@@ -319,8 +348,7 @@ Authorization: Bearer YOUR_ACCESS_TOKEN`}
                             </CardHeader>
                             <CardContent>
                                 <p className="text-sm text-muted-foreground mb-2">
-                                    Python、JavaScript、Go 等多种语言的示例代码
-                                </p>
+                                    Python、JavaScript、Go 等多种语言的示例代�? </p>
                                 <Badge>Multi-Language</Badge>
                             </CardContent>
                         </Card>
@@ -341,7 +369,7 @@ Authorization: Bearer YOUR_ACCESS_TOKEN`}
                                             </CardTitle>
                                             <CardDescription>{module.prefix}</CardDescription>
                                         </div>
-                                        <Badge variant="secondary">{module.endpoints} 个端点</Badge>
+                                        <Badge variant="secondary">{module.endpoints} 个端�?/Badge>
                                     </div>
                                 </CardHeader>
                                 <CardContent>
@@ -389,17 +417,17 @@ Authorization: Bearer YOUR_ACCESS_TOKEN`}
                                     </SelectContent>
                                 </Select>
                                 <Input
-                                    placeholder="/api/v1/articles"
+                                    placeholder="/api/v2/articles"
                                     value={apiEndpoint}
                                     onChange={(e) => setApiEndpoint(e.target.value)}
                                 />
                                 <Button onClick={handleTestRequest} disabled={loading}>
-                                    {loading ? '请求中...' : '发送'}
+                                    {loading ? '请求�?..' : '发�?}
                                 </Button>
                             </div>
 
                             <div className="space-y-2">
-                                <Label>请求头 (每行一个，格式: Key: Value)</Label>
+                                        <Label>请求�?(每行一个，格式: Key: Value)</Label>
                                 <Textarea
                                     value={headers}
                                     onChange={(e) => setHeaders(e.target.value)}
@@ -410,7 +438,7 @@ Authorization: Bearer YOUR_ACCESS_TOKEN`}
 
                             {method !== 'GET' && (
                                 <div className="space-y-2">
-                                    <Label>请求体 (JSON)</Label>
+                                    <Label>请求�?(JSON)</Label>
                                     <Textarea
                                         value={body}
                                         onChange={(e) => setBody(e.target.value)}

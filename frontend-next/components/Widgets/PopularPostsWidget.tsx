@@ -43,7 +43,7 @@ const PopularPostsWidget: React.FC<PopularPostsWidgetProps> = ({title, config}) 
     const loadArticles = async () => {
         try {
             const response = await apiClient.get(
-                `/api/v1/widgets/data/popular-posts?count=${config.count || 5}&period=${config.period || 'week'}`
+                `/api/v2/widgets/data/popular-posts?count=${config.count || 5}&period=${config.period || 'week'}`
             );
 
             if (response.success && response.data) {
@@ -118,7 +118,7 @@ const PopularPostsWidget: React.FC<PopularPostsWidgetProps> = ({title, config}) 
                                 </span>
                             </div>
 
-                            {/* 缩略图 */}
+                            {/* 缩略�?*/}
                             {config.show_thumbnail !== false && article.cover_image && (
                                 <div className="flex-shrink-0 w-16 h-16 relative rounded overflow-hidden">
                                     <Image
@@ -136,12 +136,11 @@ const PopularPostsWidget: React.FC<PopularPostsWidgetProps> = ({title, config}) 
                                     {article.title}
                                 </h3>
 
-                                {/* 浏览量 */}
+                                {/* 浏览�?*/}
                                 {config.show_views !== false && (
                                     <div className="text-xs text-gray-500 flex items-center gap-1">
                                         <Flame className="w-3 h-3"/>
-                                        {formatViews(article.views)} 次浏览
-                                    </div>
+                                        {formatViews(article.views)} 次浏�? </div>
                                 )}
                             </div>
                         </Link>
