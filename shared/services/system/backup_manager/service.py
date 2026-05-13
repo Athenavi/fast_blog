@@ -12,6 +12,8 @@ from typing import Dict, Any, List, Optional
 from sqlalchemy import select, func, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from shared.services.system.backup_manager import backup_service
+
 
 # 延迟导入以避免循环依赖
 # from shared.services.system.backup_manager import backup_service

@@ -980,6 +980,14 @@ class FastAPIToDjangoAdapter:
             # 使用统一函数获取 Depends 对象
             depends_obj = FastAPIToDjangoAdapter._get_depends_obj(param_annotation, param_default)
 
+            # 调试日志：打印参数信息
+            if param_name in ['db', 'request']:
+                print(f"\n[ADAPTER DEBUG] Parameter '{param_name}':")
+                print(f"  - annotation: {param_annotation}")
+                print(f"  - default_type: {type(param_default).__name__}")
+                print(f"  - depends_obj: {depends_obj}")
+                print(f"  - is_Depends: {isinstance(param_default, fastapi_params.Depends)}")
+
             # 优先处理具体的参数类型（Form、Query 等）
             if isinstance(param_default, fastapi_params.Form):
                 # Form 参数 - 从 POST 数据中获取

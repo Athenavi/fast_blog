@@ -505,7 +505,7 @@ class PluginManager:
         """从数据库加载插件状态"""
         try:
             from shared.models.plugin import Plugin
-            from src.extensions import get_sync_db_session
+            from src.extensions import get_sync_db
 
             print("\n[PluginManager] Loading plugin state from database...")
 

@@ -3,11 +3,10 @@
 FastAPI 应用入口点（精简版）
 """
 
-import os
-import sys
+import argparse
 import logging
 import signal
-import argparse
+import sys
 from pathlib import Path
 
 # 添加项目根目录到 Python 路径
@@ -15,21 +14,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 # 全局 FastAPI 应用实例（供外部工具使用）
 try:
-    # 确保 Django 设置在导入任何应用代码之前就已经设置
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'django_blog.settings')
-    import django
-
-    if not hasattr(django, '_setup_complete') or not django.apps.apps.ready:
-        try:
-            django.setup()
-            django._setup_complete = True
-            print("[Main] Django setup completed successfully")
-        except RuntimeError as e:
-            if "populate() isn't reentrant" not in str(e):
-                raise
-            else:
-                print("[Main] Django already initialized")
-    
     from src.app import create_app
     from src.setting import ProductionConfig
 
@@ -126,14 +110,11 @@ def main():
             sys.exit(1)
     else:  # django
         try:
-            os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'django_blog.settings')
-            sys.argv = ['manage.py', 'runserver', f'{args.host}:{args.port}', '--noreload']
-            from django.core.management import execute_from_command_line
-            execute_from_command_line(sys.argv)
+            print("V0.2起已经不再支持Django")
         except KeyboardInterrupt:
             logging.info("服务器已关闭")
         except Exception as e:
-            logging.error(f"Django 启动失败: {e}")
+            logging.error(f"V0.2起已经不再支持Django，Django 启动失败: {e}")
             sys.exit(1)
 
 

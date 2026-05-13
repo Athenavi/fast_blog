@@ -310,7 +310,7 @@ class PluginMarketService:
         """检查插件是否激活"""
         try:
             from shared.models.plugin import Plugin
-            from src.extensions import get_sync_db_session
+            from src.extensions import get_sync_db
 
             for db_session in get_sync_db_session():
                 plugin = db_session.query(Plugin).filter(Plugin.slug == plugin_slug).first()

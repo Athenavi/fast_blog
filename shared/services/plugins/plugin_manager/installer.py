@@ -226,7 +226,7 @@ class PluginInstaller:
         """
         try:
             from shared.models import Plugin
-            from src.extensions import get_sync_db_session
+            from src.extensions import get_sync_db
             from datetime import datetime
             
             plugin_dir = self.plugins_dir / plugin_slug
@@ -282,7 +282,7 @@ class PluginInstaller:
         """
         try:
             from shared.models import Plugin
-            from src.extensions import get_sync_db_session
+            from src.extensions import get_sync_db
             from datetime import datetime
             
             plugin_dir = self.plugins_dir / plugin_slug

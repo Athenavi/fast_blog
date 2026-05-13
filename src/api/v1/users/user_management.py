@@ -10,11 +10,10 @@ from typing import Optional
 import jwt
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request, status
 from jwt.exceptions import InvalidTokenError
+from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.api.v1.core.responses import ApiResponse
-from src.api.v1.users.user_settings import change_profiles_back
 # SQLAlchemy 模型与服务（保持不变）
 from shared.models.user import User as UserModel
 from shared.services.articles.article_manager import get_user_articles_with_pagination, get_articles_by_user_id, \
@@ -24,13 +23,34 @@ from shared.services.users.login_security_service import login_security_service
 from shared.services.users.session_management_service import session_management_service
 from shared.services.users.sms_verification_service import sms_verification_service
 from shared.services.users.user_manager import update_user_profile, create_user_account
+from src.api.v1.core.responses import ApiResponse
 from src.api.v1.user_utils.password_utils import update_password, validate_password_async
+from src.api.v1.users.user_settings import change_profiles_back
 from src.extensions import get_async_db_session as get_async_db
 from src.setting import app_config, settings
 from src.utils.security.ip_utils import get_client_ip
 from src.utils.token_blacklist import token_blacklist
 
 router = APIRouter(tags=["user-management"])
+
+
+# ---------------------------------------------------------------------------
+# 请求模型
+# ---------------------------------------------------------------------------
+
+class LoginRequest(BaseModel):
+    """登录请求模型（支持 JSON）"""
+    username: Optional[str] = None
+    email: Optional[str] = None
+    password: str
+    remember_me: Optional[bool] = False
+
+
+class RegisterRequest(BaseModel):
+    """注册请求模型（支持 JSON）"""
+    username: str
+    email: str
+    password: str
 
 
 # ---------------------------------------------------------------------------
@@ -277,31 +297,44 @@ def _get_user_stats(articles_count: int = 0):
 @router.post("/auth/login", summary="用户登录")
 async def login_api(
         request: Request,
-        username: Optional[str] = Form(None),
-        password: Optional[str] = Form(None),
-        remember_me: Optional[str] = Form(None),
         db: AsyncSession = Depends(get_async_db),
 ):
     """使用用户名或邮箱登录，返回 access / refresh token（PyJWT）
     
     支持两种请求格式：
-    1. Form Data (application/x-www-form-urlencoded)
-    2. JSON (application/json)
+    1. JSON (application/json) - 推荐
+    2. Form Data (application/x-www-form-urlencoded)
     """
-    try:
-        # 尝试从 JSON body 中读取数据（如果 Form 数据为空）
-        if not username or not password:
-            try:
-                body = await request.json()
-                username = body.get('username') or body.get('email')
-                password = body.get('password')
-                remember_me = body.get('remember_me') or body.get('rememberMe')
-            except Exception:
-                pass
+    # 调试：打印函数被调用的信息
+    print(f"\n[Login API DEBUG] Function called!")
+    print(f"[Login API DEBUG] Request method: {request.method}")
+    print(f"[Login API DEBUG] Request URL: {request.url}")
+    print(f"[Login API DEBUG] Request headers: {dict(request.headers)}")
 
+    try:
+        # 从请求中读取数据
+        content_type = request.headers.get('content-type', '')
+        username = None
+        password = None
+        remember_me = None
+
+        if 'application/json' in content_type:
+            # JSON 格式
+            body = await request.json()
+            username = body.get('username') or body.get('email')
+            password = body.get('password')
+            remember_me = body.get('remember_me') or body.get('rememberMe', False)
+        else:
+            # Form 格式
+            form_data = await request.form()
+            username = form_data.get('username') or form_data.get('email')
+            password = form_data.get('password')
+            remember_me = form_data.get('remember_me')
+        
         # 验证必填字段
         if not username or not password:
             return ApiResponse(success=False, error="缺少用户名或密码")
+
         # 调试日志：打印接收到的请求数据
         print(f"[Login API] Received login request:")
         print(f"  - username: {username}")
@@ -473,26 +506,32 @@ async def login_api(
 @router.post("/auth/register", summary="用户注册")
 async def register_api(
         request: Request,
-        username: Optional[str] = Form(None),
-        email: Optional[str] = Form(None),
-        password: Optional[str] = Form(None),
         db: AsyncSession = Depends(get_async_db),
 ):
     """用户注册并返回 token
     
     支持两种请求格式：
-    1. Form Data (application/x-www-form-urlencoded)
-    2. JSON (application/json)
+    1. JSON (application/json) - 推荐
+    2. Form Data (application/x-www-form-urlencoded)
     """
-    # 尝试从 JSON body 中读取数据（如果 Form 数据为空）
-    if not username or not email or not password:
-        try:
-            body = await request.json()
-            username = username or body.get('username')
-            email = email or body.get('email')
-            password = password or body.get('password')
-        except Exception:
-            pass
+    # 从请求中读取数据
+    content_type = request.headers.get('content-type', '')
+    username = None
+    email = None
+    password = None
+
+    if 'application/json' in content_type:
+        # JSON 格式
+        body = await request.json()
+        username = body.get('username')
+        email = body.get('email')
+        password = body.get('password')
+    else:
+        # Form 格式
+        form_data = await request.form()
+        username = form_data.get('username')
+        email = form_data.get('email')
+        password = form_data.get('password')
 
     # 验证必填字段
     if not username or not email or not password:

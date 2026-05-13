@@ -175,7 +175,7 @@ try:
 
 
     cache = RedisCacheWrapper(_redis_client)
-    
+
 except (redis.ConnectionError, ImportError):
     # 如果 Redis 不可用，使用简单内存缓存
     class SimpleCache:
@@ -189,11 +189,11 @@ except (redis.ConnectionError, ImportError):
                 'deletes': 0
             }
             self._fallback_mode = False  # 降级模式标志
-        
+
         def get(self, key):
             """获取缓存值，如果已过期则返回 None"""
             import time
-                
+
             # 检查是否过期
             if key in self._expiry:
                 if time.time() > self._expiry[key]:
@@ -201,36 +201,36 @@ except (redis.ConnectionError, ImportError):
                     self.delete(key)
                     self._stats['misses'] += 1
                     return None
-                
+
             value = self._cache.get(key)
             if value is not None:
                 self._stats['hits'] += 1
             else:
                 self._stats['misses'] += 1
             return value
-    
+
         def set(self, key, value, ex=None):
             """设置缓存值，ex 参数指定过期时间（秒）"""
             import time
-            
+
             # 在降级模式下不写入新缓存
             if self._fallback_mode:
                 return
-                
+
             self._cache[key] = value
             self._stats['sets'] += 1
-                
+
             # 如果指定了过期时间，记录过期时间戳
             if ex is not None and ex > 0:
                 self._expiry[key] = time.time() + ex
             elif key in self._expiry:
                 # 如果没有指定过期时间但之前有，删除过期时间记录
                 del self._expiry[key]
-        
+
         def mget(self, keys):
             """批量获取缓存值"""
             return {key: self.get(key) for key in keys}
-        
+
         def mset(self, mapping, ex=None):
             """批量设置缓存值
             
@@ -240,26 +240,26 @@ except (redis.ConnectionError, ImportError):
             """
             for key, value in mapping.items():
                 self.set(key, value, ex)
-        
+
         def delete_many(self, *keys):
             """批量删除缓存键"""
             for key in keys:
                 self.delete(key)
-        
+
         def clear(self):
             """清空所有缓存"""
             self._cache.clear()
             self._expiry.clear()
-        
+
         def get_stats(self):
             """获取缓存统计信息"""
             return {
                 **self._stats,
                 'size': len(self._cache),
-                'hit_rate': self._stats['hits'] / (self._stats['hits'] + self._stats['misses']) 
-                           if (self._stats['hits'] + self._stats['misses']) > 0 else 0
+                'hit_rate': self._stats['hits'] / (self._stats['hits'] + self._stats['misses'])
+                if (self._stats['hits'] + self._stats['misses']) > 0 else 0
             }
-        
+
         def reset_stats(self):
             """重置统计信息"""
             self._stats = {
@@ -268,7 +268,7 @@ except (redis.ConnectionError, ImportError):
                 'sets': 0,
                 'deletes': 0
             }
-        
+
         def warm_up(self, data_dict, ex=None):
             """缓存预热：批量加载数据到缓存
             
@@ -277,7 +277,7 @@ except (redis.ConnectionError, ImportError):
                 ex: 过期时间（秒）
             """
             self.mset(data_dict, ex)
-        
+
         def fallback_get(self, key, fallback_func, ex=300):
             """带降级策略的获取：如果缓存未命中，执行回调函数并缓存结果
             
@@ -290,22 +290,23 @@ except (redis.ConnectionError, ImportError):
                 缓存值或回调函数返回值
             """
             import asyncio
-            
+
             # 尝试从缓存获取
             value = self.get(key)
             if value is not None:
                 return value
-            
+
             # 缓存未命中，执行回调
             if asyncio.iscoroutinefunction(fallback_func):
                 # 如果是异步函数，需要抛出异常让调用者处理
-                raise RuntimeError("Async fallback function not supported in sync context. Use fallback_get_async instead.")
+                raise RuntimeError(
+                    "Async fallback function not supported in sync context. Use fallback_get_async instead.")
             else:
                 # 同步函数
                 value = fallback_func()
                 self.set(key, value, ex)
                 return value
-        
+
         async def fallback_get_async(self, key, fallback_func, ex=300):
             """异步版本的降级获取
             
@@ -321,24 +322,24 @@ except (redis.ConnectionError, ImportError):
             value = self.get(key)
             if value is not None:
                 return value
-            
+
             # 缓存未命中，执行异步回调
             value = await fallback_func()
             self.set(key, value, ex)
             return value
-        
+
         def enable_fallback_mode(self):
             """启用降级模式：停止写入新缓存，只读取现有缓存"""
             self._fallback_mode = True
-        
+
         def disable_fallback_mode(self):
             """禁用降级模式：恢复正常缓存操作"""
             self._fallback_mode = False
-        
+
         def is_fallback_mode(self):
             """检查是否在降级模式"""
             return self._fallback_mode
-        
+
         def delete(self, key):
             """删除缓存键"""
             self._cache.pop(key, None)
@@ -365,30 +366,30 @@ except (redis.ConnectionError, ImportError):
             简单的 memoize 装饰器实现
             :param timeout: 超时时间（秒）
             """
-        
+
             def decorator(func):
                 import asyncio
                 import functools
-        
+
                 if asyncio.iscoroutinefunction(func):
                     # 异步函数的处理
                     @functools.wraps(func)
                     async def async_wrapper(*args, **kwargs):
                         # 创建缓存键，将参数转换为字符串
                         cache_key = f"{func.__name__}:{str(args)}:{str(sorted(kwargs.items()))}"
-        
+
                         # 尝试从缓存中获取结果
                         result = self.get(cache_key)
                         if result is not None:
                             return result
-        
+
                         # 如果缓存中没有，则执行函数并将结果存储在缓存中
                         result = await func(*args, **kwargs)
                         # 在降级模式下不写入新缓存
                         if not self._fallback_mode:
                             self.set(cache_key, result, ex=timeout)
                         return result
-        
+
                     return async_wrapper
                 else:
                     # 同步函数的处理
@@ -396,21 +397,21 @@ except (redis.ConnectionError, ImportError):
                     def sync_wrapper(*args, **kwargs):
                         # 创建缓存键，将参数转换为字符串
                         cache_key = f"{func.__name__}:{str(args)}:{str(sorted(kwargs.items()))}"
-        
+
                         # 尝试从缓存中获取结果
                         result = self.get(cache_key)
                         if result is not None:
                             return result
-        
+
                         # 如果缓存中没有，则执行函数并将结果存储在缓存中
                         result = func(*args, **kwargs)
                         # 在降级模式下不写入新缓存
                         if not self._fallback_mode:
                             self.set(cache_key, result, ex=timeout)
                         return result
-        
+
                     return sync_wrapper
-        
+
             return decorator
 
         def cached(self, timeout=300, key_prefix=''):
@@ -419,30 +420,30 @@ except (redis.ConnectionError, ImportError):
             :param timeout: 超时时间（秒）
             :param key_prefix: 缓存键前缀
             """
-        
+
             def decorator(func):
                 import asyncio
                 import functools
-        
+
                 if asyncio.iscoroutinefunction(func):
                     # 异步函数的处理
                     @functools.wraps(func)
                     async def async_wrapper(*args, **kwargs):
                         # 创建缓存键
                         cache_key = f"{key_prefix}{func.__name__}:{str(args)}:{str(sorted(kwargs.items()))}"
-        
+
                         # 尝试从缓存中获取结果
                         result = self.get(cache_key)
                         if result is not None:
                             return result
-        
+
                         # 如果缓存中没有，则执行函数并将结果存储在缓存中
                         result = await func(*args, **kwargs)
                         # 在降级模式下不写入新缓存
                         if not self._fallback_mode:
                             self.set(cache_key, result, ex=timeout)
                         return result
-        
+
                     return async_wrapper
                 else:
                     # 同步函数的处理
@@ -450,21 +451,21 @@ except (redis.ConnectionError, ImportError):
                     def sync_wrapper(*args, **kwargs):
                         # 创建缓存键
                         cache_key = f"{key_prefix}{func.__name__}:{str(args)}:{str(sorted(kwargs.items()))}"
-        
+
                         # 尝试从缓存中获取结果
                         result = self.get(cache_key)
                         if result is not None:
                             return result
-        
+
                         # 如果缓存中没有，则执行函数并将结果存储在缓存中
                         result = func(*args, **kwargs)
                         # 在降级模式下不写入新缓存
                         if not self._fallback_mode:
                             self.set(cache_key, result, ex=timeout)
                         return result
-        
+
                     return sync_wrapper
-        
+
             return decorator
 
         def __call__(self, *args, **kwargs):
@@ -545,7 +546,7 @@ def _get_async_engine():
     # 返回统一管理器的实例（保持向后兼容）
     _async_engine_instance = db_manager.async_engine
     _AsyncSessionLocal_instance = db_manager.async_session_factory
-    
+
     return _async_engine_instance, _AsyncSessionLocal_instance
 
 
@@ -603,22 +604,6 @@ def get_db() -> Generator:
 # 异步便捷函数：获取异步数据库会话（使用统一管理器）
 from contextlib import asynccontextmanager
 
-async def get_async_db() -> AsyncGenerator:
-    """
-    获取异步数据库会话的便捷函数（用于 FastAPI 依赖注入）
-    
-    这是一个异步生成器，专门用于 FastAPI 的 Depends() 依赖注入。
-    如果需要在代码中直接使用，请使用 get_async_session_context()。
-    
-    使用示例（FastAPI 依赖注入）：
-        @router.get("/example")
-        async def example(db: AsyncSession = Depends(get_async_db)):
-            ...
-    """
-    # 直接使用统一管理器的 get_session 异步上下文管理器
-    async with db_manager.get_session() as session:
-        yield session
-
 
 @asynccontextmanager
 async def get_async_session_context() -> AsyncGenerator:
@@ -642,10 +627,6 @@ def get_sync_db():
     """FastAPI依赖注入：获取同步数据库会话"""
     with get_db() as session:
         yield session
-
-
-# 别名：为了兼容旧的导入名称
-get_sync_db_session = get_sync_db
 
 
 async def get_async_db_session():

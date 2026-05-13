@@ -370,7 +370,7 @@ class ArticleWorkflowPlugin(BasePlugin):
         try:
             import difflib
             from shared.models import ArticleRevision
-            from src.extensions import get_sync_db_session
+            from src.extensions import get_sync_db
 
             # 从数据库获取版朓内容
             content_v1 = None
@@ -571,7 +571,7 @@ class ArticleWorkflowPlugin(BasePlugin):
         try:
             from apps.user.models import User
             from shared.services.permission_system import permission_manager
-            from src.extensions import get_sync_db_session
+            from src.extensions import get_sync_db
 
             # 获取用户信息
             try:

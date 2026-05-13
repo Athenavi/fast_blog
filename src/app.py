@@ -14,18 +14,6 @@ from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.staticfiles import StaticFiles
 
-# ---------- Django 初始化 ----------
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'django_blog.settings')
-import django
-
-if not hasattr(django, '_setup_complete') or not django.apps.apps.ready:
-    try:
-        django.setup()
-        django._setup_complete = True
-    except RuntimeError as e:
-        if "populate() isn't reentrant" not in str(e):
-            raise
-
 
 # ---------- 工具函数 ----------
 def safe_run(func_name: str, func, *args, **kwargs):
@@ -88,7 +76,7 @@ ROUTE_REGISTRY = [
     ("src.api.v1.accessibility.amp", "/api/v1", ["amp"], False),
     ("src.api.v1.advanced_features.achievement_badges", "/api/v1", ["achievement-badges"], False),
     ("src.api.v1.advanced_features.ai_recommendations", "/api/v1", ["ai-recommendations"], False),
-    ("src.api.v1.advanced_features.edge_functions", "/api/v1", ["edge-functions"], False),
+    # edge_functions moved to end due to wildcard routes
     ("src.api.v1.advanced_features.expert_certification", "/api/v1", ["expert-certification"], False),
     ("src.api.v1.advanced_features.membership", "/api/v1", ["membership"], False),
     ("src.api.v1.advanced_features.nft", "/api/v1", ["nft"], False),
@@ -222,6 +210,8 @@ ROUTE_REGISTRY = [
     ("src.api.v1.users.user_relations", "/api/v1", ["user-relations"], False),
     ("src.api.v1.users.user_settings", "/api/v1", ["user-settings"], False),
     ("src.api.v1.utils.payment", "/api/v1", ["payment"], False),
+    # Wildcard route modules must be registered last
+    ("src.api.v1.advanced_features.edge_functions", "/api/v1", ["edge-functions"], False),
 ]
 
 

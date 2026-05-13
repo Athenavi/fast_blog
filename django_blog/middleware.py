@@ -1,15 +1,17 @@
 """
 维护模式中间件 - 拦截请求并返回维护页面
 Debug查询日志中间件 - 记录SQL查询性能
+FastAPI CSRF 豁免中间件 - 豁免 FastAPI 路由的 CSRF 检查
 """
+import logging
 import time
-from fastapi import Request, Response
-from fastapi.responses import HTMLResponse, JSONResponse
-from starlette.middleware.base import BaseHTTPMiddleware
-from shared.services.maintenance_mode import maintenance_service
+
 from django.conf import settings
 from django.db import connection
-import logging
+from fastapi import Request
+from fastapi.responses import HTMLResponse, JSONResponse
+from shared.services.maintenance_mode import maintenance_service
+from starlette.middleware.base import BaseHTTPMiddleware
 
 logger = logging.getLogger(__name__)
 
@@ -253,3 +255,23 @@ class QueryLoggingMiddleware(BaseHTTPMiddleware):
             return match.group(0).upper() + simplified[match.end():match.end()+50]
         
         return simplified[:100]
+
+
+class FastAPICsrfExemptMiddleware:
+    """
+    FastAPI CSRF 豁免中间件
+    
+    由于 FastAPI 有自己的安全机制（JWT、速率限制等），
+    不需要 Django 的 CSRF 保护。此中间件会标记所有 /api/ 路径的请求，
+    让 Django 的 CsrfViewMiddleware 跳过检查。
+    """
+
+    def __init__(self, get_response):
+        self.get_response = get_response
+
+    def __call__(self, request):
+        # 如果请求路径以 /api/ 开头，标记为 CSRF 豁免
+        if request.path.startswith('/api/'):
+            setattr(request, '_dont_enforce_csrf_checks', True)
+
+        return self.get_response(request)
