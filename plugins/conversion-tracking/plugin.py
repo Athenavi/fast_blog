@@ -8,7 +8,7 @@ import time
 from datetime import datetime, timedelta
 from typing import Dict, Any
 
-from shared.services.plugin_manager import BasePlugin, plugin_hooks
+from shared.services.plugins.plugin_manager import BasePlugin, plugin_hooks
 from shared.utils.plugin_database import plugin_db
 
 

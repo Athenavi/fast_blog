@@ -9,7 +9,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 
-from shared.services.plugin_manager import BasePlugin, plugin_hooks
+from shared.services.plugins.plugin_manager import BasePlugin, plugin_hooks
 
 
 class PostgreSQLBackupPlugin(BasePlugin):

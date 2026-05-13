@@ -3,13 +3,13 @@
 提供可视化表单构建器、表单提交管理、邮件通知和反垃圾保护功能
 """
 
-import json
 import hashlib
+import json
 import time
 from datetime import datetime
 from typing import Dict, List, Any, Optional
 
-from shared.services.plugin_manager import BasePlugin, plugin_hooks
+from shared.services.plugins.plugin_manager import BasePlugin, plugin_hooks
 
 
 class ContactFormsPlugin(BasePlugin):

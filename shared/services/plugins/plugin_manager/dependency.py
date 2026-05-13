@@ -7,7 +7,9 @@ import json
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 
-from shared.services.plugins.plugin_manager import check_version_match
+
+# 延迟导入以避免循环依赖
+# from shared.services.plugins.plugin_manager import check_version_match
 
 
 class PluginDependencyManager:
@@ -120,7 +122,8 @@ class PluginDependencyManager:
                     if dep_metadata:
                         installed_version = dep_metadata.get("version", "0.0.0")
 
-                        # 比较版本
+                        # 比较版本（延迟导入）
+                        from shared.services.plugins.plugin_manager.version_utils import check_version_match
                         if check_version_match(installed_version, dep_version):
                             satisfied_deps.append(dep_slug)
                         else:

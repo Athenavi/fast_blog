@@ -9,7 +9,7 @@ from collections import defaultdict
 from datetime import datetime
 from typing import Dict, List, Any, Optional
 
-from shared.services.plugin_manager import BasePlugin, plugin_hooks
+from shared.services.plugins.plugin_manager import BasePlugin, plugin_hooks
 
 
 class ABTestingPlugin(BasePlugin):

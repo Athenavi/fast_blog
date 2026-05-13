@@ -41,14 +41,15 @@ def safe_run(func_name: str, func, *args, **kwargs):
         return None
 
 
-async def safe_run_async(func_name: str, coro_or_func, *args, **kwargs):
+async def safe_run_async(func_name: str, func, *args, **kwargs):
     """安全执行异步初始化"""
     print(f"\n{'=' * 60}\n[{func_name}] 开始初始化...")
     try:
-        if hasattr(coro_or_func, '__await__'):
-            result = await coro_or_func(*args, **kwargs)
-        else:
-            result = coro_or_func(*args, **kwargs)
+        # 直接调用函数，如果是协程函数会自动返回协程对象
+        result = func(*args, **kwargs)
+        # 如果结果是协程，则等待它
+        if hasattr(result, '__await__'):
+            await result
         print(f"[{func_name}] ✅ 完成")
         return result
     except Exception as e:
@@ -77,82 +78,157 @@ def check_installation() -> bool:
 # 配置表：(模块路径, 前缀, 标签列表, 是否必需)
 ROUTE_REGISTRY = [
     # 核心模块（必需）
-    ("src.api.v1.users", "/api/v1/users", ["users"], True),
-    ("src.api.v1.user_management", "/api/v1", ["user-management"], True),
-    ("src.api.v1", "", [], True),  # api_v1_router 内部自带前缀
-    ("src.api.v1.category_management", "/api/v1/categories", ["categories"], True),
-    ("src.api.v1.dashboard", "/api/v1/dashboard", ["dashboard"], True),
-    ("src.api.v1.home", "/api/v1", ["home"], True),
+    ("src.api.v1.users.users", "/api/v1/users", ["users"], True),
+    ("src.api.v1.__init__", "", [], True),  # api_v1_router 内部自带前缀
+    ("src.api.v1.content_management.category_management", "/api/v1/categories", ["categories"], True),
+    ("src.api.v1.dashboard.dashboard", "/api/v1/dashboard", ["dashboard"], True),
+    ("src.api.v1.core.home", "/api/v1", ["home"], True),
     # 功能模块（可选加载，失败仅警告）
-    ("src.api.v1.batch_seo", "/api/v1/seo", ["batch-seo"], False),
-    ("src.api.v1.seo_optimization", "/api/v1", ["seo-optimization"], False),
-    ("src.api.v1.block_editor", "/api/v1", ["block-editor"], False),
-    ("src.api.v1.graphql", "/graphql", ["graphql"], False),
-    ("src.api.v1.article_search", "/api/v1", ["search"], False),
-    ("src.api.v1.fulltext_search", "/api/v1", ["fulltext-search"], False),
-    ("src.api.v1.resource_transfer", "/api/v1", ["resource-transfer"], False),
-    ("src.api.v1.ai_recommendations", "/api/v1", ["ai"], False),
-    ("src.api.v1.translations", "/api/v1", ["translations"], False),
-    ("src.api.v1.localization", "/api/v1", ["localization"], False),
-    ("src.api.v1.analytics", "/api/v1", ["analytics"], False),
-    ("src.api.v1.user_profile", "/api/v1", ["user-profile"], False),
-    ("src.api.v1.batch_operations", "/api/v1", ["batch"], False),
-    ("src.api.v1.membership", "/api/v1", ["membership"], False),
-    ("src.api.v1.websocket", "", [], False),  # WebSocket 无前缀
-    ("src.api.v1.chat_groups", "/api/v1", ["chat-groups"], False),
-    ("src.api.v1.collaboration", "/api/v1", [], False),
-    ("src.api.v1.collaboration_invites", "/api/v1", [], False),
-    ("src.api.v1.collaboration_save", "/api/v1", [], False),
-    ("src.api.v1.yjs_collaboration", "/api/v1", [], False),
-    ("src.api.v1.ecommerce_products", "/api/v1", [], False),
-    ("src.api.v1.ecommerce_cart_orders", "/api/v1", [], False),
-    ("src.api.v1.edge_functions", "/api/v1", ["edge-functions"], False),
-    ("src.api.v1.scheduled_publish", "/api/v1", ["scheduled-publish"], False),
-    ("src.api.v1.draft_preview", "/api/v1", ["draft-preview"], False),
-    ("src.api.v1.custom_blocks", "/api/v1", ["custom-blocks"], False),
-    ("src.api.v1.nft", "/api/v1", ["nft"], False),
-    ("src.api.v1.audit_log", "/api/v1/audit-log", ["audit-log"], False),
-    ("src.api.v1.query_optimization", "/api/v1/query-optimization", ["query-optimization"], False),
-    ("src.api.v1.page_cache", "/api/v1/page-cache", ["page-cache"], False),
-    ("src.api.v1.object_cache", "/api/v1/object-cache", ["object-cache"], False),
-    ("src.api.v1.resource_optimization", "/api/v1/resource-optimization", ["resource-optimization"], False),
-    ("src.api.v1.image_lazy_load", "/api/v1/image-lazy-load", ["image-lazy-load"], False),
-    ("src.api.v1.performance_monitor", "/api/v1/performance-monitor", ["performance-monitor"], False),
-    ("src.api.v1.slow_query_log", "/api/v1/slow-query", ["slow-query"], False),
-    ("src.api.v1.http2_config", "/api/v1/http2", ["http2"], False),
-    ("src.api.v1.translation_progress", "/api/v1/translation", ["translation"], False),
-    ("src.api.v1.anomaly_detection", "/api/v1/anomaly-detection", ["anomaly-detection"], False),
-    ("src.api.v1.security_alert", "/api/v1/security-alert", ["security-alert"], False),
-    ("src.api.v1.tipping_system", "/api/v1", ["tips"], False),
-    ("src.api.v1.advertisement_system", "/api/v1", ["advertisements"], False),
-    ("src.api.v1.security_report", "/api/v1/security-report", ["security-report"], False),
-    ("src.api.v1.content_approval", "/api/v1/approval", ["approval"], False),
-    ("src.api.v1.workflow", "/api/v1", ["workflows"], False),
-    ("src.api.v1.backup_management", "/api/v1/backup", ["backup"], False),
-    ("src.api.v1.load_balancer", "/api/v1", ["load-balancer"], False),
-    ("src.api.v1.team_collaboration", "/api/v1", ["collaboration"], False),
-    ("src.api.v1.rbac", "/api/v1", ["rbac"], False),
-    ("src.api.v1.i18n", "/api/v1", ["i18n"], False),
-    ("src.api.v1.multisite", "/api/v1", ["multisite"], False),
-    ("src.api.v1.sso", "/api/v1", ["sso"], False),
-    ("src.api.v1.team_comments", "/api/v1/team-comments", ["team-comments"], False),
-    ("src.api.v1.rate_limit", "/api/v1/rate-limit", ["rate-limit"], False),
-    ("src.api.v1.performance_tracking", "/api/v1/performance-tracking", ["performance-tracking"], False),
-    ("src.api.v1.translation_io", "/api/v1/translation-io", ["translation-io"], False),
-    ("src.api.v1.seo_management", "/api/v1/seo", ["seo"], False),
-    ("src.api.v1.seo_tracking", "/api/v1", ["seo-tracking"], False),
-    ("src.api.v1.report_management", "/api/v1", ["reports"], False),
-    ("src.api.v1.incremental_backup", "/api/v1", ["incremental-backup"], False),
-    ("src.api.v1.database_migration", "/api/v1", ["database-migration"], False),
-    ("src.api.v1.gdpr_compliance", "/api/v1/gdpr", ["gdpr"], False),
-    ("src.api.v1.accessibility_audit", "/api/v1/accessibility", ["accessibility"], False),
-    ("src.api.v1.cdn_management", "/api/v1/cdn", ["cdn"], False),
-    ("src.api.v1.ipfs", "/api/v1", ["ipfs"], False),
-    ("src.api.v1.google_analytics", "/api/v1", ["google-analytics"], False),
-    ("src.api.v1.baidu_analytics", "/api/v1", ["baidu-analytics"], False),
-    ("src.api.v1.notification_integration", "/api/v1", ["notifications"], False),
-    ("src.api.v1.email_service", "/api/v1", ["email-service"], False),
-    ("src.api.v1.enterprise_auth", "/api/v1", ["enterprise-auth"], False),
+    ("src.api.v1.accessibility.accessibility_audit", "/api/v1", ["accessibility-audit"], False),
+    ("src.api.v1.accessibility.amp", "/api/v1", ["amp"], False),
+    ("src.api.v1.advanced_features.achievement_badges", "/api/v1", ["achievement-badges"], False),
+    ("src.api.v1.advanced_features.ai_recommendations", "/api/v1", ["ai-recommendations"], False),
+    ("src.api.v1.advanced_features.edge_functions", "/api/v1", ["edge-functions"], False),
+    ("src.api.v1.advanced_features.expert_certification", "/api/v1", ["expert-certification"], False),
+    ("src.api.v1.advanced_features.membership", "/api/v1", ["membership"], False),
+    ("src.api.v1.advanced_features.nft", "/api/v1", ["nft"], False),
+    ("src.api.v1.advanced_features.personalized_feed", "/api/v1", ["personalized-feed"], False),
+    ("src.api.v1.advanced_features.points_system", "/api/v1", ["points-system"], False),
+    ("src.api.v1.advanced_features.recommendations", "/api/v1", ["recommendations"], False),
+    ("src.api.v1.advanced_features.tipping_system", "/api/v1", ["tipping-system"], False),
+    ("src.api.v1.advanced_features.websocket", "/api/v1", ["websocket"], False),
+    ("src.api.v1.articles.anomaly_detection", "/api/v1", ["anomaly-detection"], False),
+    ("src.api.v1.articles.article_analytics", "/api/v1", ["article-analytics"], False),
+    ("src.api.v1.articles.article_annotations", "/api/v1", ["article-annotations"], False),
+    ("src.api.v1.articles.article_password", "/api/v1", ["article-password"], False),
+    ("src.api.v1.articles.article_revisions", "/api/v1", ["article-revisions"], False),
+    ("src.api.v1.articles.article_search", "/api/v1", ["article-search"], False),
+    ("src.api.v1.articles.article_stats", "/api/v1", ["article-stats"], False),
+    ("src.api.v1.articles.draft_preview", "/api/v1", ["draft-preview"], False),
+    ("src.api.v1.articles.scheduled_publish", "/api/v1", ["scheduled-publish"], False),
+    ("src.api.v1.chat.chat", "/api/v1", ["chat"], False),
+    ("src.api.v1.chat.chat_groups", "/api/v1", ["chat-groups"], False),
+    ("src.api.v1.chat.private_messages", "/api/v1", ["private-messages"], False),
+    ("src.api.v1.collaboration.collaboration_invites", "/api/v1", ["collaboration-invites"], False),
+    ("src.api.v1.collaboration.collaboration_save", "/api/v1", ["collaboration-save"], False),
+    ("src.api.v1.collaboration.team_collaboration", "/api/v1", ["team-collaboration"], False),
+    ("src.api.v1.collaboration.team_comments", "/api/v1", ["team-comments"], False),
+    ("src.api.v1.collaboration.yjs_collaboration", "/api/v1", ["yjs-collaboration"], False),
+    ("src.api.v1.comments.comment_config", "/api/v1", ["comment-config"], False),
+    ("src.api.v1.comments.comment_subscriptions", "/api/v1", ["comment-subscriptions"], False),
+    ("src.api.v1.comments.comments_enhanced", "/api/v1", ["comments-enhanced"], False),
+    ("src.api.v1.compliance.gdpr_compliance", "/api/v1", ["gdpr-compliance"], False),
+    ("src.api.v1.content_management.block_editor", "/api/v1", ["block-editor"], False),
+    ("src.api.v1.content_management.custom_block_patterns", "/api/v1", ["custom-block-patterns"], False),
+    ("src.api.v1.content_management.custom_post_types", "/api/v1", ["custom-post-types"], False),
+    ("src.api.v1.content_management.feed", "/api/v1", ["feed"], False),
+    ("src.api.v1.content_management.form_builder", "/api/v1", ["form-builder"], False),
+    ("src.api.v1.content_management.menu_management", "/api/v1", ["menu-management"], False),
+    ("src.api.v1.content_management.shortcode", "/api/v1", ["shortcode"], False),
+    ("src.api.v1.content_management.widgets", "/api/v1", ["widgets"], False),
+    ("src.api.v1.core.misc", "/api/v1", ["misc"], False),
+    ("src.api.v1.core.system", "/api/v1", ["system"], False),
+    ("src.api.v1.dashboard.analytics", "/api/v1", ["analytics"], False),
+    ("src.api.v1.dashboard.realtime_monitor", "/api/v1", ["realtime-monitor"], False),
+    ("src.api.v1.ecommerce.ecommerce", "/api/v1", ["ecommerce"], False),
+    ("src.api.v1.ecommerce.ecommerce_cart", "/api/v1", ["ecommerce-cart"], False),
+    ("src.api.v1.ecommerce.ecommerce_cart_orders", "/api/v1", ["ecommerce-cart-orders"], False),
+    ("src.api.v1.ecommerce.ecommerce_products", "/api/v1", ["ecommerce-products"], False),
+    ("src.api.v1.ecommerce.inventory_management", "/api/v1", ["inventory-management"], False),
+    ("src.api.v1.ecommerce.revenue_sharing", "/api/v1", ["revenue-sharing"], False),
+    ("src.api.v1.integrations.baidu_analytics", "/api/v1", ["baidu-analytics"], False),
+    ("src.api.v1.integrations.ipfs", "/api/v1", ["ipfs"], False),
+    ("src.api.v1.integrations.oauth_login", "/api/v1", ["oauth-login"], False),
+    ("src.api.v1.integrations.sso", "/api/v1", ["sso"], False),
+    ("src.api.v1.integrations.wordpress_import", "/api/v1", ["wordpress-import"], False),
+    ("src.api.v1.marketing.ad_management", "/api/v1", ["ad-management"], False),
+    ("src.api.v1.marketing.advertisement_system", "/api/v1", ["advertisement-system"], False),
+    ("src.api.v1.media", "/api/v1", ["media"], False),
+    ("src.api.v1.media.routes_cover", "/api/v1", ["routes-cover"], False),
+    ("src.api.v1.media.routes_cover_external", "/api/v1", ["routes-cover-external"], False),
+    ("src.api.v1.media.routes_edit", "/api/v1", ["routes-edit"], False),
+    ("src.api.v1.media.routes_edit_tools", "/api/v1", ["routes-edit-tools"], False),
+    ("src.api.v1.media.routes_enhancement", "/api/v1", ["routes-enhancement"], False),
+    ("src.api.v1.media.routes_folders", "/api/v1", ["routes-folders"], False),
+    ("src.api.v1.media.routes_list", "/api/v1", ["routes-list"], False),
+    ("src.api.v1.media.routes_stream", "/api/v1", ["routes-stream"], False),
+    ("src.api.v1.media.routes_tags", "/api/v1", ["routes-tags"], False),
+    ("src.api.v1.media.routes_upload", "/api/v1", ["routes-upload"], False),
+    ("src.api.v1.notifications.email_service", "/api/v1", ["email-service"], False),
+    ("src.api.v1.notifications.notifications", "/api/v1", ["notifications"], False),
+    ("src.api.v1.notifications.push_notifications", "/api/v1", ["push-notifications"], False),
+    ("src.api.v1.performance.cache_management", "/api/v1", ["cache-management"], False),
+    ("src.api.v1.performance.cdn_management", "/api/v1", ["cdn-management"], False),
+    ("src.api.v1.performance.code_splitting_optimization", "/api/v1", ["code-splitting-optimization"], False),
+    ("src.api.v1.performance.css_optimizer", "/api/v1", ["css-optimizer"], False),
+    ("src.api.v1.performance.http2_config", "/api/v1", ["http2-config"], False),
+    ("src.api.v1.performance.image_lazy_load", "/api/v1", ["image-lazy-load"], False),
+    ("src.api.v1.performance.lazy_load_optimization", "/api/v1", ["lazy-load-optimization"], False),
+    ("src.api.v1.performance.load_balancer", "/api/v1", ["load-balancer"], False),
+    ("src.api.v1.performance.localization", "/api/v1", ["localization"], False),
+    ("src.api.v1.performance.object_cache", "/api/v1", ["object-cache"], False),
+    ("src.api.v1.performance.performance_monitor", "/api/v1", ["performance-monitor"], False),
+    ("src.api.v1.performance.performance_tracking", "/api/v1", ["performance-tracking"], False),
+    ("src.api.v1.performance.query_monitor", "/api/v1", ["query-monitor"], False),
+    ("src.api.v1.performance.query_optimization", "/api/v1", ["query-optimization"], False),
+    ("src.api.v1.performance.resource_optimization", "/api/v1", ["resource-optimization"], False),
+    ("src.api.v1.search.fulltext_search", "/api/v1", ["fulltext-search"], False),
+    ("src.api.v1.security.audit_log", "/api/v1", ["audit-log"], False),
+    ("src.api.v1.security.content_approval", "/api/v1", ["content-approval"], False),
+    ("src.api.v1.security.login_security", "/api/v1", ["login-security"], False),
+    ("src.api.v1.security.rate_limit", "/api/v1", ["rate-limit"], False),
+    ("src.api.v1.security.rbac", "/api/v1", ["rbac"], False),
+    ("src.api.v1.security.security_alert", "/api/v1", ["security-alert"], False),
+    ("src.api.v1.security.security_report", "/api/v1", ["security-report"], False),
+    ("src.api.v1.security.sensitive_words", "/api/v1", ["sensitive-words"], False),
+    ("src.api.v1.security.session_management", "/api/v1", ["session-management"], False),
+    ("src.api.v1.seo.batch_seo", "/api/v1", ["batch-seo"], False),
+    ("src.api.v1.seo.breadcrumbs", "/api/v1", ["breadcrumbs"], False),
+    ("src.api.v1.seo.hreflang_api", "/api/v1", ["hreflang-api"], False),
+    ("src.api.v1.seo.internal_links", "/api/v1", ["internal-links"], False),
+    ("src.api.v1.seo.redirect_management", "/api/v1", ["redirect-management"], False),
+    ("src.api.v1.seo.seo", "/api/v1", ["seo"], False),
+    ("src.api.v1.seo.seo_management", "/api/v1", ["seo-management"], False),
+    ("src.api.v1.seo.seo_optimization", "/api/v1", ["seo-optimization"], False),
+    ("src.api.v1.seo.seo_tracking", "/api/v1", ["seo-tracking"], False),
+    ("src.api.v1.seo.sitemap", "/api/v1", ["sitemap"], False),
+    ("src.api.v1.social.share_stats", "/api/v1", ["share-stats"], False),
+    ("src.api.v1.static_generation.page_cache", "/api/v1", ["page-cache"], False),
+    ("src.api.v1.static_generation.static_site_generation", "/api/v1", ["static-site-generation"], False),
+    ("src.api.v1.system.admin_settings", "/api/v1", ["admin-settings"], False),
+    ("src.api.v1.system.backup_management", "/api/v1", ["backup-management"], False),
+    ("src.api.v1.system.batch_operations", "/api/v1", ["batch-operations"], False),
+    ("src.api.v1.system.data_export", "/api/v1", ["data-export"], False),
+    ("src.api.v1.system.database_migration", "/api/v1", ["database-migration"], False),
+    ("src.api.v1.system.incremental_backup", "/api/v1", ["incremental-backup"], False),
+    ("src.api.v1.system.installation", "/api/v1", ["installation"], False),
+    ("src.api.v1.system.maintenance", "/api/v1", ["maintenance"], False),
+    ("src.api.v1.system.migrations", "/api/v1", ["migrations"], False),
+    ("src.api.v1.system.multisite", "/api/v1", ["multisite"], False),
+    ("src.api.v1.system.report_management", "/api/v1", ["report-management"], False),
+    ("src.api.v1.system.resource_transfer", "/api/v1", ["resource-transfer"], False),
+    ("src.api.v1.system.screen_options", "/api/v1", ["screen-options"], False),
+    ("src.api.v1.system.sites", "/api/v1", ["sites"], False),
+    ("src.api.v1.system.slow_query_log", "/api/v1", ["slow-query-log"], False),
+    ("src.api.v1.system.webhook_management", "/api/v1", ["webhook-management"], False),
+    ("src.api.v1.system.workflow", "/api/v1", ["workflow"], False),
+    ("src.api.v1.themes.full_site_editor", "/api/v1", ["full-site-editor"], False),
+    ("src.api.v1.themes.page_templates", "/api/v1", ["page-templates"], False),
+    ("src.api.v1.themes.template_hierarchy", "/api/v1", ["template-hierarchy"], False),
+    ("src.api.v1.themes.theme_customizer", "/api/v1", ["theme-customizer"], False),
+    ("src.api.v1.themes.theme_management", "/api/v1", ["theme-management"], False),
+    ("src.api.v1.translation.i18n", "/api/v1", ["i18n"], False),
+    ("src.api.v1.translation.translation_io", "/api/v1", ["translation-io"], False),
+    ("src.api.v1.translation.translation_progress", "/api/v1", ["translation-progress"], False),
+    ("src.api.v1.translation.translation_service", "/api/v1", ["translation-service"], False),
+    ("src.api.v1.translation.translations", "/api/v1", ["translations"], False),
+    ("src.api.v1.user_utils", "/api/v1", ["user-utils"], False),
+    ("src.api.v1.user_utils.vip", "/api/v1", ["vip"], False),
+    ("src.api.v1.users.user_blocks", "/api/v1", ["user-blocks"], False),
+    ("src.api.v1.users.user_profile", "/api/v1", ["user-profile"], False),
+    ("src.api.v1.users.user_relations", "/api/v1", ["user-relations"], False),
+    ("src.api.v1.users.user_settings", "/api/v1", ["user-settings"], False),
+    ("src.api.v1.utils.payment", "/api/v1", ["payment"], False),
 ]
 
 
@@ -193,14 +269,26 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         await safe_run_async("数据库管理器", _init_database)
 
     # 3. 扩展、调度器
-    safe_run("扩展初始化", lambda: __import__('src.extensions').init_extensions(app))
-    safe_run("调度器初始化", lambda: __import__('src.scheduler').init_scheduler(app))
+    try:
+        from src.extensions import init_extensions
+        safe_run("扩展初始化", lambda: init_extensions(app))
+    except ImportError as e:
+        print(f"[扩展初始化] ⚠️ 跳过: {e}")
+
+    try:
+        from src.scheduler import init_scheduler
+        safe_run("调度器初始化", lambda: init_scheduler(app))
+    except ImportError as e:
+        print(f"[调度器初始化] ⚠️ 跳过: {e}")
 
     if is_installed:
         await safe_run_async("定时发布调度器", _start_scheduled_publisher)
 
     # 4. 插件系统
-    safe_run("插件系统", _init_plugins)
+    try:
+        safe_run("插件系统", _init_plugins)
+    except ImportError as e:
+        print(f"[插件系统] ⚠️ 跳过: {e}")
 
     # 5. 下载队列处理器
     if is_installed:
@@ -229,8 +317,12 @@ async def _start_scheduled_publisher():
 
 
 def _init_plugins():
-    from shared.services.plugins.plugin_manager import initialize_plugins
-    return initialize_plugins()
+    try:
+        from shared.services.plugins.plugin_manager import initialize_plugins
+        return initialize_plugins()
+    except ImportError as e:
+        print(f"[插件系统] 导入失败: {e}")
+        return None
 
 
 async def _init_download_processor():

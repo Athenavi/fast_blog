@@ -13,7 +13,7 @@ import asyncio
 from typing import Dict, Any, Optional
 from datetime import datetime
 
-from shared.services.plugin_manager import BasePlugin, plugin_hooks
+from shared.services.plugins.plugin_manager import BasePlugin, plugin_hooks
 from shared.services.meilisearch_service import meilisearch_service
 from shared.utils.plugin_database import plugin_db
 

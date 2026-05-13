@@ -2,12 +2,11 @@
 第三方服务集成插件
 统一管理 Google Analytics、Baidu Analytics、Slack、Discord、SendGrid 等第三方服务
 """
-import json
 from typing import Dict, Any
-from datetime import datetime
 
-from shared.services.plugin_manager import BasePlugin, plugin_hooks
 from shared.services.notification_service import notification_service
+
+from shared.services.plugins.plugin_manager import BasePlugin, plugin_hooks
 
 
 class ThirdPartyIntegrationsPlugin(BasePlugin):

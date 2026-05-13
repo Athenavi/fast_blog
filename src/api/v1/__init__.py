@@ -7,7 +7,7 @@ from fastapi.responses import FileResponse, JSONResponse
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models.user import User
+from shared.models import User
 from src.api.v1.core.misc import logger
 from src.auth import get_current_user
 from src.extensions import cache, get_async_db_session as get_async_db
@@ -15,207 +15,8 @@ from src.setting import app_config
 from src.utils.image.processing import generate_thumbnail, get_file_mime_type
 from src.utils.security.safe import is_valid_hash
 
-
-# ------------------------------------------------------------
-# 1. 延迟导入子模块（避免循环依赖）
-# ------------------------------------------------------------
-def _import_modules():
-    """延迟导入所有子模块，返回模块字典"""
-    import importlib
-    import traceback
-
-    modules = {}
-    # 所有需要导入的模块名称
-    module_names = [
-        "articles", "home", "responses", "users", "category_ext",
-        "category_management", "admin_settings", "user_management", "user_settings",
-        "media", "notifications", "misc", "comment_config", "comments",
-        "session_management", "cache_management", "two_factor_auth", "article_revisions",
-        "scheduled_publish", "feed", "menu_management",
-        "plugin_management", "theme_management", "seo",
-        "form_builder", "i18n", "widgets",
-        "wordpress_import", "webhook_management",
-        "breadcrumbs", "maintenance", "article_password",
-        "page_templates", "comment_subscriptions", "installation", "system", "screen_options", "query_monitor", "amp",
-        "css_optimizer", "translation_memory", "translation_service", "internal_links", "migrations",
-        "template_hierarchy", "ecommerce", "ecommerce_cart",
-        "inventory_management",  # 库存管理
-        "payment_management",  # 支付管理
-        "share_stats",  # 分享统计
-        "user_blocks",  # 用户屏蔽
-        "sensitive_words",  # 敏感词管理
-        "article_annotations",  # 文章批注
-        "chat",  # 聊天功能
-        "cache_optimization",  # 缓存优化
-        "query_optimization_api",  # 查询优化
-        "lazy_load_optimization",  # 懒加载优化
-        "code_splitting_optimization",  # 代码分割优化
-        "static_site_generation",  # 静态页面生成
-        "incremental_static_regeneration",  # 增量静态再生成
-        "cdn_distribution",  # CDN智能分发
-    ]
-
-    for name in module_names:
-        try:
-            module = importlib.import_module(f".{name}", package=__name__)
-            modules[name] = module
-        except Exception as e:
-            print(f"Failed to import module {name}: {e}")
-            print(traceback.format_exc())
-            modules[name] = None  # 确保键存在
-    return modules
-
-
-# 对外暴露的模块符号（保持与原有 __all__ 一致）
-__all__ = [
-    "articles", "dashboard", "responses", "users", "category_ext",
-    "category_management", "admin_settings", "user_settings", "media",
-    "notifications", "misc", "comment_config", "comments", "session_management",
-    "cache_management",
-    "two_factor_auth", "article_revisions", "scheduled_publish", "feed", "menu_management", "plugin_management",
-    "theme_management", "seo", "form_builder",
-    "i18n", "widgets", "theme_customizer",
-    "webhook_management", "breadcrumbs",
-    "maintenance", "article_password", "page_templates", "comment_subscriptions",
-    "installation", "system", "screen_options", "query_monitor", "amp", "css_optimizer", "translation_memory",
-    "translation_service", "internal_links", "migrations", "template_hierarchy", "ecommerce", "ecommerce_cart",
-    "inventory_management",  # 库存管理
-    "payment_management",  # 支付管理
-    "share_stats",  # 分享统计
-    "user_blocks",  # 用户屏蔽
-    "sensitive_words",  # 敏感词管理
-    "article_annotations",  # 文章批注
-    "chat",  # 聊天功能
-    "cache_optimization",  # 缓存优化
-    "query_optimization_api",  # 查询优化
-    "lazy_load_optimization",  # 懒加载优化
-    "code_splitting_optimization",  # 代码分割优化
-    "static_site_generation",  # 静态页面生成
-    "incremental_static_regeneration",  # 增量静态再生成
-    "cdn_distribution",  # CDN智能分发
-]
-
 api_v1_router = APIRouter(prefix="/api/v1", tags=["api-v1"])
 
-
-# ------------------------------------------------------------
-# 2. 配置驱动的路由注册
-# ------------------------------------------------------------
-def _include_routers():
-    """使用配置驱动的方式注册所有子模块路由"""
-    modules = _import_modules()
-
-    # 路由注册配置： (模块名, 是否必须包含, prefix)
-    router_configs = [
-        ("articles", True, "/articles"),
-        ("users", True, ""),
-        ("category_ext", True, ""),
-        ("category_management", True, ""),
-        ("admin_settings", True, ""),
-        ("user_management", True, ""),
-        ("user_settings", True, ""),
-        ("media", True, "/media"),
-        ("notifications", True, ""),
-        ("misc", True, ""),
-        ("comment_config", True, ""),
-        ("comments", True, ""),
-        ("session_management", True, "/sessions"),
-        ("cache_management", True, ""),
-        ("two_factor_auth", True, ""),
-        ("article_revisions", True, ""),
-        ("scheduled_publish", True, ""),
-        ("feed", True, ""),
-        ("menu_management", True, ""),
-        ("plugin_management", True, ""),
-        ("theme_management", True, ""),
-        ("seo", True, ""),
-        ("form_builder", True, ""),
-        ("i18n", True, ""),
-        ("widgets", True, ""),
-        ("wordpress_import", True, ""),
-        ("webhook_management", True, ""),
-        ("breadcrumbs", True, "/breadcrumbs"),
-        ("maintenance", True, "/maintenance"),
-        ("article_password", True, "/articles"),
-        ("page_templates", True, "/page-templates"),
-        ("comment_subscriptions", True, "/comment-subscriptions"),
-        ("installation", True, "/install"),  # 安装向导
-        ("system", True, "/system"),
-        ("screen_options", True, "/screen-options"),  # 屏幕选项
-        ("query_monitor", True, "/query-monitor"),
-        ("amp", True, "/amp"),
-        ("css_optimizer", True, "/css-optimizer"),
-        ("translation_memory", True, "/translation-memory"),
-        ("translation_service", True, "/translation-service"),
-        ("internal_links", True, "/internal-links"),
-        ("migrations", True, "/migrations"),
-        ("template_hierarchy", True, "/template-hierarchy"),
-        ("ecommerce", True, ""),  # 商品管理
-        ("ecommerce_cart", True, ""),  # 购物车和订单
-        ("inventory_management", True, "/inventory"),  # 库存管理
-        ("payment_management", True, "/payment"),  # 支付管理
-        ("share_stats", True, "/shares"),  # 分享统计
-        ("user_blocks", True, "/blocks"),  # 用户屏蔽
-        ("sensitive_words", True, "/sensitive-words"),  # 敏感词管理
-        ("article_annotations", True, "/annotations"),  # 文章批注
-        ("chat", True, "/chat"),  # 聊天功能
-        ("cache_optimization", True, "/cache-optimization"),  # 缓存优化
-        ("query_optimization_api", True, "/query-optimization"),  # 查询优化
-        ("lazy_load_optimization", True, "/lazy-load"),  # 懒加载优化
-        ("code_splitting_optimization", True, "/code-splitting"),  # 代码分割优化
-        ("static_site_generation", True, "/static-site"),  # 静态页面生成
-        ("incremental_static_regeneration", True, "/isr"),  # 增量静态再生成
-        ("cdn_distribution", True, "/cdn"),  # CDN智能分发
-    ]
-
-    for name, required, prefix in router_configs:
-        if modules.get(name):
-            api_v1_router.include_router(modules[name].router, prefix=prefix)
-        elif required:
-            print(f"Warning: {name} module could not be imported, skipping router inclusion")
-
-    # 注册 user_management 的兼容路由器（不带 /management 前缀）
-    try:
-        from src.api.v1.user_management import compat_router
-        api_v1_router.include_router(compat_router, prefix="")
-    except ImportError as e:
-        print(f"Warning: user_management compat_router could not be imported: {e}")
-
-    # 特殊处理的 home 模块（尝试新版，失败回退旧版）
-    try:
-        import src.api.v1.home as home_module
-        api_v1_router.include_router(home_module.router)
-        # 可选：打印 worker 信息（此处省略环境变量控制以保持简洁）
-    except ImportError:
-        if modules.get("home"):
-            api_v1_router.include_router(modules["home"].router)
-            print("Warning: Using legacy home module")
-        else:
-            print("Warning: home module could not be imported, skipping")
-
-    # 单独注册的额外模块列表（这些模块未在 module_names 中统一导入）
-    extra_modules = [
-        "block_patterns",
-        "translation_management",
-        "redirect_management",
-        "oauth_login",
-        "hreflang_api",
-        "machine_translation",
-        "plugin_dependencies",
-        "custom_block_patterns",
-        "dashboard",
-    ]
-    for mod_name in extra_modules:
-        try:
-            mod = __import__(f"src.api.v1.{mod_name}", fromlist=["router"])
-            api_v1_router.include_router(mod.router)
-        except ImportError as e:
-            print(f"Failed to import {mod_name} module: {e}")
-        except Exception as e:
-            print(f"Error importing {mod_name} module: {e}")
-
-
-_include_routers()
 
 # ------------------------------------------------------------
 # 3. 自定义端点（保持原有功能不变）
@@ -521,3 +322,6 @@ try:
     pass
 except Exception as e:
     print(f"Warning: Failed to import redirect module: {e}")
+
+# 为路由自动发现系统提供统一的 router 名称
+router = api_v1_router

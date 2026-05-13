@@ -12,7 +12,7 @@
 
 from typing import Dict, List, Any
 
-from shared.services.plugin_manager import BasePlugin, plugin_hooks
+from shared.services.plugins.plugin_manager import BasePlugin, plugin_hooks
 
 
 class SocialPlugin(BasePlugin):
