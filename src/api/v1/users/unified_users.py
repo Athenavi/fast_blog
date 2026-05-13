@@ -1169,7 +1169,7 @@ async def get_user_interests(
 
 @router.get("/recommendations",
             summary="推荐用户",
-            description="获取推荐用户列表用于发现（排除当前用户）")
+            description="获取推荐用户列表用于发现其他用户（排除当前用户）。\n\n注意：此端点返回的是用户推荐，不是文章或内容推荐。")
 async def recommend_users(
         page: int = Query(1, ge=1, description="页码"),
         per_page: int = Query(20, ge=1, le=100, description="每页数量"),
