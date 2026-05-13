@@ -121,12 +121,19 @@ async def api_check_email(email: str, db: AsyncSession = Depends(get_async_db)):
         return JSONResponse({"success": False, "error": str(e)}, status_code=500)
 
 
-# 公共缩略图
-@api_v1_router.get("/thumbnail")
+# 公共缩略图（已废弃，请使用 /api/v2/media/{media_id}/thumbnail）
+@api_v1_router.get("/thumbnail", deprecated=True)
 async def public_media_thumbnail(
         request: Request,
         data: str = Query(...)
 ):
+    """
+    ⚠️ 此 API 已废弃
+    
+    请使用新的基于 media_id 的 API: GET /api/v2/media/{media_id}/thumbnail
+    
+    旧 API 使用文件 hash 作为参数，新 API 使用媒体 ID，更加 RESTful 且易于管理。
+    """
     import traceback
     from fastapi.responses import Response
     from shared.utils.logger import get_logger
@@ -240,13 +247,17 @@ async def public_media_thumbnail(
                 "Cache-Control": "public, max-age=2592000",
                 "ETag": etag,
                 "Access-Control-Allow-Origin": "*",
-                "Vary": "Origin"
+                "Vary": "Origin",
+                "X-API-Deprecated": "true",
+                "X-API-Sunset": "请使用 /api/v2/media/{media_id}/thumbnail 代替"
             }
         )
 
         response.headers["ETag"] = etag
         response.headers["Access-Control-Allow-Origin"] = "*"
         response.headers["Vary"] = "Origin"
+        response.headers["X-API-Deprecated"] = "true"
+        response.headers["X-API-Sunset"] = "请使用 /api/v2/media/{media_id}/thumbnail 代替"
 
         return response
 

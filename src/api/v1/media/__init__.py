@@ -12,6 +12,7 @@ from .routes_folders import router as folders_router
 from .routes_list import router as list_router
 from .routes_stream import router as stream_router
 from .routes_tags import router as tags_router
+from .routes_thumbnail import router as thumbnail_router
 from .routes_upload import router as upload_router
 
 router = APIRouter(prefix="/media", tags=["media"])
@@ -28,6 +29,7 @@ router.include_router(cover_router, prefix="")  # /generate-cover/{media_id}, /r
 router.include_router(cover_external_router, prefix="/cover")  # /cover/from-url - 外链图片转本地封面
 router.include_router(edit_tools_router, prefix="/edit")  # /edit/process, /edit/crop 等
 router.include_router(enhancement_router, prefix="")  # /optimize/{file_id} 等（虽然有动态参数，但有前缀）
+router.include_router(thumbnail_router, prefix="")  # /{media_id}/thumbnail - 媒体缩略图
 
 # 2. 最后注册包含根路径通配符的路由（必须放在最后！）
 router.include_router(stream_router, prefix="")  # /{media_id} - 通配符，必须最后

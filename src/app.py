@@ -152,16 +152,18 @@ ROUTE_REGISTRY = [
     ("src.api.v1.security.sensitive_words", "/api/v1/sensitive-words", ["sensitive-words"], False),
     ("src.api.v1.security.session_management", "/api/v1/admin/session", ["session-management"], False),
     ("src.api.v1.security.two_factor_auth", "/api/v1/2fa", ["2fa"], False),
-    ("src.api.v1.seo.batch_seo", "/api/v1", ["batch-seo"], False),
-    ("src.api.v1.seo.breadcrumbs", "/api/v1/breadcrumbs", ["breadcrumbs"], False),
-    ("src.api.v1.seo.hreflang_api", "/api/v1", ["hreflang-api"], False),
-    ("src.api.v1.seo.internal_links", "/api/v1", ["internal-links"], False),
-    ("src.api.v1.seo.redirect_management", "/api/v1/redirect", ["redirect-management"], False),
+    # SEO 模块已统一整合到 seo.py 中
     ("src.api.v1.seo.seo", "/api/v1/seo", ["seo"], False),
-    ("src.api.v1.seo.seo_management", "/api/v1/admin/seo", ["seo-management"], False),
-    ("src.api.v1.seo.seo_optimization", "/api/v1/seo", ["seo-optimization"], False),
-    ("src.api.v1.seo.seo_tracking", "/api/v1/seo-tracking", ["seo-tracking"], False),
-    ("src.api.v1.seo.sitemap", "/api/v1", ["sitemap"], False),
+    # 以下独立 SEO 模块已废弃，功能已合并到 seo.py
+    # ("src.api.v1.seo.batch_seo", "/api/v1", ["batch-seo"], False),
+    # ("src.api.v1.seo.breadcrumbs", "/api/v1/breadcrumbs", ["breadcrumbs"], False),
+    # ("src.api.v1.seo.hreflang_api", "/api/v1", ["hreflang-api"], False),
+    # ("src.api.v1.seo.internal_links", "/api/v1", ["internal-links"], False),
+    # ("src.api.v1.seo.redirect_management", "/api/v1/redirect", ["redirect-management"], False),
+    # ("src.api.v1.seo.seo_management", "/api/v1/admin/seo", ["seo-management"], False),
+    # ("src.api.v1.seo.seo_optimization", "/api/v1/seo", ["seo-optimization"], False),
+    # ("src.api.v1.seo.seo_tracking", "/api/v1/seo-tracking", ["seo-tracking"], False),
+    # ("src.api.v1.seo.sitemap", "/api/v1", ["sitemap"], False),
     ("src.api.v1.social.share_stats", "/api/v1", ["share-stats"], False),
     ("src.api.v1.static_generation.page_cache", "/api/v1", ["page-cache"], False),
     ("src.api.v1.static_generation.static_site_generation", "/api/v1", ["static-site-generation"], False),
@@ -433,6 +435,16 @@ def register_middleware(app: FastAPI):
         app.add_middleware(RateLimitMiddleware)
     except ImportError:
         pass
+
+    # API 版本响应头
+    class APIVersionMiddleware(BaseHTTPMiddleware):
+        async def dispatch(self, request, call_next):
+            response = await call_next(request)
+            response.headers["API-Version"] = "v2"
+            return response
+
+    app.add_middleware(APIVersionMiddleware)
+    print("[API Version] 已添加版本响应头中间件")
 
     # 多站点
     try:

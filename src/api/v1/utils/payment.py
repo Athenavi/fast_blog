@@ -14,7 +14,7 @@ from src.extensions import get_async_db_session as get_async_db
 router = APIRouter(tags=["payment"])
 
 
-@router.post("/create")
+@router.post("")
 async def create_payment(
         request: Request,
         current_user=Depends(jwt_required),

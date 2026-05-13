@@ -143,11 +143,12 @@ ROUTE_REGISTRY_V2 = [
     # ("src.api.v1.users.user_settings", "/api/v2/users/settings", ["user-settings"], False),
     # ("src.api.v1.users.user_utils", "/api/v2/users", ["user-utils"], False),
 
-    # ==================== 会员与积分 ====================
+    # ==================== 会员与积分（已统一，VIP功能已合并到membership）====================
     ("src.api.v1.advanced_features.membership", "/api/v2/membership", ["membership"], True),
+    # VIP 模块已废弃，功能已合并到 membership 模块
+    # ("src.api.v1.user_utils.vip", "/api/v2/users/vip", ["vip"], False),
     ("src.api.v1.advanced_features.points_system", "/api/v2/ext/points", ["points-system"], False),
     ("src.api.v1.advanced_features.tipping_system", "/api/v2/ext/tipping", ["tipping-system"], False),
-    ("src.api.v1.user_utils.vip", "/api/v2/users/vip", ["vip"], False),
 
     # ==================== 性能监控（合并）====================
     ("src.api.v1.performance.performance_monitor", "/api/v2/monitoring/performance", ["performance-monitor"], False),

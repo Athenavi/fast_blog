@@ -1165,18 +1165,18 @@ async def get_user_interests(
         return ApiResponse(success=False, error=f"获取兴趣标签失败: {str(e)}")
 
 
-# ==================== 用户发现 ====================
+# ==================== 用户推荐（原 discover）===================
 
-@router.get("/discover",
-            summary="发现用户",
-            description="获取所有用户列表用于发现（排除当前用户）")
-async def discover_users(
+@router.get("/recommendations",
+            summary="推荐用户",
+            description="获取推荐用户列表用于发现（排除当前用户）")
+async def recommend_users(
         page: int = Query(1, ge=1, description="页码"),
         per_page: int = Query(20, ge=1, le=100, description="每页数量"),
         current_user: User = Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
-    """获取所有用户列表(用于发现用户)"""
+    """获取推荐用户列表(用于发现用户)"""
     try:
         offset = (page - 1) * per_page
 
@@ -1228,19 +1228,9 @@ async def discover_users(
         )
     except Exception as e:
         import traceback
-        print(f"Error in discover_users: {str(e)}")
+        print(f"Error in recommend_users: {str(e)}")
         print(traceback.format_exc())
         return ApiResponse(success=False, error=str(e))
 
 
-# ==================== 登录状态检查（移到 auth 模块更合适，但暂时保留）===================
 
-@router.get('/check-login',
-            summary="检查登录状态")
-async def check_login_status(current_user=Depends(jwt_required)):
-    """检查用户登录状态"""
-    return {
-        'logged_in': True,
-        'message': 'User is logged in',
-        'user_id': current_user.id if hasattr(current_user, 'id') else None
-    }
