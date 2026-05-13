@@ -75,7 +75,7 @@ ROUTE_REGISTRY = [
     ("src.api.v1.core.home", "/api/v1", ["home"], True),
     ("src.api.v1.advanced_features.membership", "/api/v1/membership", ["membership"], True),
     ("src.api.v1.articles.anomaly_detection", "/api/v1/sys", ["anomaly-detection"], True),
-    ("src.api.v1.core.misc", "/api/v1", ["misc"], True),
+    # misc 模块已完全清理并删除，功能已迁移到对应模块
     ("src.api.v1.core.system", "/api/v1/system", ["system"], True),
     # 功能模块（可选加载，失败仅警告）
     ("src.api.v1.articles.article_analytics", "/api/v1/analytics", ["article-analytics"], False),

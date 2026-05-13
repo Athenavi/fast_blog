@@ -2,7 +2,7 @@
 文章阅读统计 API
 """
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.services.articles.article_view_stats import article_view_stats
@@ -10,41 +10,6 @@ from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 
 router = APIRouter(tags=["article-stats"])
-
-
-@router.post("/view/{article_id}")
-async def record_article_view(
-        article_id: int,
-        request: Request,
-        current_user=Depends(jwt_required),
-):
-    """
-    记录文章阅读
-    
-    Args:
-        article_id: 文章ID
-        
-    Returns:
-        记录结果
-    """
-    # 获取用户信息（如果已登录）
-    user_id = current_user.id if current_user else None
-
-    # 获取 IP
-    ip = request.client.host if request.client else None
-
-    # 记录阅读
-    recorded = await article_view_stats.record_view(
-        article_id=article_id,
-        user_id=user_id,
-        ip=ip
-    )
-
-    return {
-        "success": True,
-        "recorded": recorded,
-        "message": "View recorded" if recorded else "View skipped (anti-spam)"
-    }
 
 
 @router.get("/view/{article_id}")

@@ -33,7 +33,6 @@ FastBlog API v2 路由规范配置
 # v2 路由注册表：(模块路径, v2前缀, 标签列表, 是否必需)
 ROUTE_REGISTRY_V2 = [
     # ==================== 核心模块（必需）====================
-    ("src.api.v1.users.users", "/api/v2/users", ["users"], True),
     ("src.api.v1.core.home", "/api/v2/home", ["home"], True),
     ("src.api.v1.dashboard.dashboard", "/api/v2/dashboard", ["dashboard"], True),
     ("src.api.v1.core.system", "/api/v2/system", ["system"], True),
@@ -43,8 +42,7 @@ ROUTE_REGISTRY_V2 = [
     ("src.api.v1.articles.article_revisions", "/api/v2/articles", ["article-revisions"], False),
     ("src.api.v1.articles.article_analytics", "/api/v2/analytics/articles", ["article-analytics"], False),
     ("src.api.v1.articles.article_annotations", "/api/v2/articles/annotations", ["article-annotations"], False),
-    # article_search 已删除，使用 fulltext_search 替代
-    # ("src.api.v1.articles.article_search", "/api/v2/search/articles", ["article-search"], False),
+    ("src.api.v1.articles.article_interactions", "/api/v2/articles", ["article-interactions"], False),
     ("src.api.v1.articles.article_stats", "/api/v2/analytics/articles/stats", ["article-stats"], False),
     ("src.api.v1.articles.draft_preview", "/api/v2/articles/drafts", ["draft-preview"], False),
     ("src.api.v1.articles.scheduled_publish", "/api/v2/articles/scheduler", ["scheduled-publish"], False),
@@ -52,8 +50,12 @@ ROUTE_REGISTRY_V2 = [
     # ==================== 分类管理 ====================
     ("src.api.v1.content_management.category_management", "/api/v2/categories", ["categories"], True),
 
+    # ==================== 标签管理（新增）====================
+    ("src.api.v1.articles.tags", "/api/v2/tags", ["tags"], False),
+
     # ==================== 搜索 ====================
     ("src.api.v1.search.fulltext_search", "/api/v2/search", ["fulltext-search"], False),
+    ("src.api.v1.search.search_history", "/api/v2/search", ["search-history"], False),
 
     # ==================== 评论系统 ====================
     ("src.api.v1.comments.comments", "/api/v2/comments", ["comments"], False),
@@ -90,26 +92,29 @@ ROUTE_REGISTRY_V2 = [
     # ==================== 电商功能（已重构，删除重复端点）====================
     ("src.api.v1.ecommerce.ecommerce", "/api/v2/shop", ["ecommerce"], False),
     ("src.api.v1.ecommerce.ecommerce_cart", "/api/v2/shop/cart", ["ecommerce-cart"], False),
-    # ecommerce_cart_orders 已删除，其功能已合并到 ecommerce_cart
-    # ("src.api.v1.ecommerce.ecommerce_cart_orders", "/api/v2/shop/orders", ["ecommerce-orders"], False),
-    ("src.api.v1.ecommerce.ecommerce_products", "/api/v2/shop/products", ["ecommerce-products"], False),
+    ("src.api.v1.ecommerce.ecommerce_orders", "/api/v2/shop/orders", ["ecommerce-orders"], False),
+    # ecommerce_products 已废弃，功能合并到 ecommerce.py
+    # ("src.api.v1.ecommerce.ecommerce_products", "/api/v2/shop/products", ["ecommerce-products"], False),
     ("src.api.v1.ecommerce.inventory_management", "/api/v2/shop/inventory", ["inventory-management"], False),
     ("src.api.v1.ecommerce.revenue_sharing", "/api/v2/shop/revenue", ["revenue-sharing"], False),
 
     # ==================== 媒体管理 ====================
     ("src.api.v1.media", "/api/v2/media", ["media"], False),
+    ("src.api.v1.media.cover_upload", "/api/v2/media", ["cover-upload"], False),
 
     # ==================== SEO 优化（已合并为统一模块）====================
+    # 所有 SEO 功能已整合到 seo.py 中，通过子路由统一管理
     ("src.api.v1.seo.seo", "/api/v2/seo", ["seo"], False),
-    ("src.api.v1.seo.seo_management", "/api/v2/seo/management", ["seo-management"], False),
-    ("src.api.v1.seo.seo_optimization", "/api/v2/seo/optimization", ["seo-optimization"], False),
-    ("src.api.v1.seo.seo_tracking", "/api/v2/seo/tracking", ["seo-tracking"], False),
-    ("src.api.v1.seo.breadcrumbs", "/api/v2/seo/breadcrumbs", ["breadcrumbs"], False),
-    ("src.api.v1.seo.hreflang_api", "/api/v2/seo/hreflang", ["hreflang-api"], False),
-    ("src.api.v1.seo.internal_links", "/api/v2/seo/internal-links", ["internal-links"], False),
-    ("src.api.v1.seo.redirect_management", "/api/v2/seo/redirects", ["redirect-management"], False),
-    ("src.api.v1.seo.batch_seo", "/api/v2/seo/batch", ["batch-seo"], False),
-    ("src.api.v1.seo.sitemap", "/api/v2/seo/sitemap", ["sitemap"], False),
+    # 以下独立模块已废弃，功能已合并到 seo.py
+    # ("src.api.v1.seo.seo_management", "/api/v2/seo/management", ["seo-management"], False),
+    # ("src.api.v1.seo.seo_optimization", "/api/v2/seo/optimization", ["seo-optimization"], False),
+    # ("src.api.v1.seo.seo_tracking", "/api/v2/seo/tracking", ["seo-tracking"], False),
+    # ("src.api.v1.seo.breadcrumbs", "/api/v2/seo/breadcrumbs", ["breadcrumbs"], False),
+    # ("src.api.v1.seo.hreflang_api", "/api/v2/seo/hreflang", ["hreflang-api"], False),
+    # ("src.api.v1.seo.internal_links", "/api/v2/seo/internal-links", ["internal-links"], False),
+    # ("src.api.v1.seo.redirect_management", "/api/v2/seo/redirects", ["redirect-management"], False),
+    # ("src.api.v1.seo.batch_seo", "/api/v2/seo/batch", ["batch-seo"], False),
+    # ("src.api.v1.seo.sitemap", "/api/v2/seo/sitemap", ["sitemap"], False),
 
     # ==================== 安全与权限 ====================
     ("src.api.v1.security.audit_log", "/api/v2/security/audit-log", ["audit-log"], False),
@@ -123,13 +128,20 @@ ROUTE_REGISTRY_V2 = [
     ("src.api.v1.security.session_management", "/api/v2/security/sessions", ["session-management"], False),
     ("src.api.v1.security.two_factor_auth", "/api/v2/security/2fa", ["2fa"], False),
 
+    # ==================== 认证模块（新增）====================
+    ("src.api.v1.auth", "/api/v2/auth", ["auth"], False),
+
     # ==================== 用户管理（已合并，删除重复的关注端点）====================
-    ("src.api.v1.users.user_blocks", "/api/v2/users/blocks", ["user-blocks"], False),
+    # 所有用户功能已整合到 users/__init__.py 中，通过子路由统一管理
+    ("src.api.v1.users", "/api/v2/users", ["users"], False),
+    # user_management 保留管理员功能，路径为 /api/v2/admin/users
     ("src.api.v1.users.user_management", "/api/v2/admin/users", ["user-management"], False),
-    ("src.api.v1.users.user_profile", "/api/v2/users/profiles", ["user-profile"], False),
-    # user_relations 包含完整的关注/粉丝功能，personalized_feed 中的关注端点已删除
-    ("src.api.v1.users.user_relations", "/api/v2/users/relations", ["user-relations"], False),
-    ("src.api.v1.users.user_settings", "/api/v2/users/settings", ["user-settings"], False),
+    # 以下独立模块已废弃，功能已合并到 users/__init__.py
+    # ("src.api.v1.users.user_blocks", "/api/v2/users/blocks", ["user-blocks"], False),
+    # ("src.api.v1.users.user_profile", "/api/v2/users/profiles", ["user-profile"], False),
+    # ("src.api.v1.users.user_relations", "/api/v2/users/relations", ["user-relations"], False),
+    # ("src.api.v1.users.user_settings", "/api/v2/users/settings", ["user-settings"], False),
+    # ("src.api.v1.users.user_utils", "/api/v2/users", ["user-utils"], False),
 
     # ==================== 会员与积分 ====================
     ("src.api.v1.advanced_features.membership", "/api/v2/membership", ["membership"], True),
@@ -138,9 +150,7 @@ ROUTE_REGISTRY_V2 = [
     ("src.api.v1.user_utils.vip", "/api/v2/users/vip", ["vip"], False),
 
     # ==================== 性能监控（合并）====================
-    # performance_tracking 已合并到 performance_monitor
     ("src.api.v1.performance.performance_monitor", "/api/v2/monitoring/performance", ["performance-monitor"], False),
-    # ("src.api.v1.performance.performance_tracking", "/api/v2/monitoring/performance", ["performance-tracking"], False),  # 已合并
     ("src.api.v1.performance.query_monitor", "/api/v2/monitoring/queries", ["query-monitor"], False),
     ("src.api.v1.performance.query_optimization", "/api/v2/monitoring/queries/optimization", ["query-optimization"],
      False),
@@ -165,9 +175,7 @@ ROUTE_REGISTRY_V2 = [
      False),
 
     # ==================== 备份管理（合并）====================
-    # incremental_backup 已作为 backup 的子功能
     ("src.api.v1.system.backup_management", "/api/v2/backup", ["backup-management"], False),
-    # ("src.api.v1.system.incremental_backup", "/api/v2/backup/incremental", ["incremental-backup"], False),  # 已合并到 backup_management
 
     # ==================== 系统管理 ====================
     ("src.api.v1.system.admin_settings", "/api/v2/admin/settings", ["admin-settings"], False),
@@ -181,10 +189,11 @@ ROUTE_REGISTRY_V2 = [
     ("src.api.v1.system.report_management", "/api/v2/admin/reports", ["report-management"], False),
     ("src.api.v1.system.resource_transfer", "/api/v2/admin/resource-transfer", ["resource-transfer"], False),
     ("src.api.v1.system.screen_options", "/api/v2/admin/screen-options", ["screen-options"], False),
+    ("src.api.v1.system.version", "/api/v2/system/version", ["system-version"], False),
     ("src.api.v1.system.webhook_management", "/api/v2/admin/webhooks", ["webhook-management"], False),
     ("src.api.v1.system.workflow", "/api/v2/workflow", ["workflow"], False),
 
-    # ==================== GDPR 合规 ====================
+    # ==================== GDPR 合规（路径已优化为 RESTful 风格）====================
     ("src.api.v1.compliance.gdpr_compliance", "/api/v2/gdpr", ["gdpr-compliance"], False),
 
     # ==================== 主题管理 ====================
@@ -195,12 +204,7 @@ ROUTE_REGISTRY_V2 = [
     ("src.api.v1.themes.theme_management", "/api/v2/admin/themes", ["theme-management"], False),
 
     # ==================== 国际化与翻译（合并）====================
-    # 所有翻译功能已合并到 translations 模块
     ("src.api.v1.translation.translations", "/api/v2/translations", ["translations"], False),
-    # ("src.api.v1.translation.i18n", "/api/v2/translations", ["i18n"], False),  # 已合并
-    # ("src.api.v1.translation.translation_io", "/api/v2/translations/io", ["translation-io"], False),  # 已合并
-    # ("src.api.v1.translation.translation_progress", "/api/v2/translations/progress", ["translation-progress"], False),  # 已合并
-    # ("src.api.v1.translation.translation_service", "/api/v2/translations/service", ["translation-service"], False),  # 已合并
 
     # ==================== 第三方集成 ====================
     ("src.api.v1.integrations.baidu_analytics", "/api/v2/integrations/baidu-analytics", ["baidu-analytics"], False),
@@ -211,14 +215,12 @@ ROUTE_REGISTRY_V2 = [
 
     # ==================== 广告管理（合并）====================
     ("src.api.v1.marketing.advertisement_system", "/api/v2/ads", ["advertisement-system"], False),
-    # ad_management 将被废弃，重定向到 advertisement_system
 
     # ==================== 静态生成 ====================
     ("src.api.v1.static_generation.static_site_generation", "/api/v2/static-site", ["static-site-generation"], False),
 
     # ==================== 支付工具 ====================
     ("src.api.v1.utils.payment", "/api/v2/payments", ["payment"], False),
-    ("src.api.v1.user_utils", "/api/v2/users/utils", ["user-utils"], False),
 
     # ==================== 可访问性 ====================
     ("src.api.v1.accessibility.accessibility_audit", "/api/v2/accessibility/audit", ["accessibility-audit"], False),
@@ -237,18 +239,8 @@ ROUTE_REGISTRY_V2 = [
     ("src.api.v1.advanced_features.recommendations", "/api/v2/ext/recommendations", ["recommendations"], False),
     ("src.api.v1.advanced_features.websocket", "/api/v2/ext/websocket", ["websocket"], False),
 
-    # ==================== 其他系统模块（misc 模块已清理，功能已迁移）====================
+    # ==================== 其他系统模块（misc 模块已完全清理并删除）====================
     ("src.api.v1.articles.anomaly_detection", "/api/v2/system/anomaly-detection", ["anomaly-detection"], False),
-    # misc 模块中的功能已迁移到对应模块：
-    # - /misc/article/* → /api/v2/articles/*
-    # - /misc/user/* → /api/v2/users/*
-    # - /misc/check-email, /misc/check-username → /api/v2/auth/check-*
-    # - /misc/version/* → /api/v2/system/version
-    # - /misc/upload/cover → /api/v2/media/cover
-    # - /misc/tags/suggest → /api/v2/tags/suggest
-    # - /misc/search/history → /api/v2/search/history
-    # misc 模块暂时保留用于兼容性，后续将完全删除
-    ("src.api.v1.core.misc", "/api/v2/misc", ["misc"], False),
     ("src.api.v1.dashboard.analytics", "/api/v2/dashboard/analytics", ["analytics"], False),
     ("src.api.v1.dashboard.realtime_monitor", "/api/v2/dashboard/realtime", ["realtime-monitor"], False),
     ("src.api.v1.social.share_stats", "/api/v2/social/share-stats", ["share-stats"], False),
@@ -298,4 +290,16 @@ V1_TO_V2_REDIRECT_MAP = {
 
     # 翻译相关
     "/api/v1/i18n": "/api/v2/translations",
+
+    # misc 模块迁移重定向
+    "/api/v1/misc/tags/suggest": "/api/v2/tags/suggest",
+    "/api/v1/misc/search/history": "/api/v2/search/history",
+    "/api/v1/misc/upload/cover": "/api/v2/media/cover",
+    "/api/v1/misc/check-email": "/api/v2/auth/check-email",
+    "/api/v1/misc/check-username": "/api/v2/auth/check-username",
+    "/api/v1/misc/email-exists": "/api/v2/auth/check-email",
+    "/api/v1/misc/username-exists/{username}": "/api/v2/auth/check-username/{username}",
+    "/api/v1/misc/version/info": "/api/v2/system/version/full",
+    "/api/v1/misc/version/frontend": "/api/v2/system/version/frontend",
+    "/api/v1/misc/version/backend": "/api/v2/system/version/backend",
 }

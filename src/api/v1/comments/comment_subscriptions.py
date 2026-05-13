@@ -72,12 +72,12 @@ async def unsubscribe_from_article_api(
         return ApiResponse(success=False, error=str(e))
 
 
-@router.get("/confirm",
+@router.get("/confirm/{token}",
             summary="确认订阅",
             description="通过token确认订阅（访客）",
             response_description="返回确认结果")
 async def confirm_subscription_api(
-        token: str = Query(..., description="确认token"),
+        token: str,
         db: AsyncSession = Depends(get_async_session)
 ):
     """确认订阅"""

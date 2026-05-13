@@ -6,7 +6,6 @@ from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import Response
 
 from shared.services.seo.seo_service import seo_service
-from src.api.v1.core.misc import domain
 from src.api.v1.core.responses import ApiResponse
 from src.auth import jwt_required_dependency as jwt_required
 
@@ -114,7 +113,7 @@ async def get_sitemap():
             for p in pages
         ]
 
-        seo_service = SEOService(base_url=domain)
+        seo_service = SEOService()
         sitemap_xml = seo_service.generate_sitemap(article_list, category_list, page_list)
 
         return Response(

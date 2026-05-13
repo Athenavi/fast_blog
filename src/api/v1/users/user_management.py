@@ -24,11 +24,10 @@ from shared.services.users.session_management_service import session_management_
 from shared.services.users.sms_verification_service import sms_verification_service
 from shared.services.users.user_manager import update_user_profile, create_user_account
 from src.api.v1.core.responses import ApiResponse
-from src.api.v1.user_utils.password_utils import update_password, validate_password_async
+from src.api.v1.user_utils.password_utils import validate_password_async
 from src.api.v1.users.user_settings import change_profiles_back
 from src.extensions import get_async_db_session as get_async_db
 from src.setting import app_config, settings
-from src.utils.security.ip_utils import get_client_ip
 from src.utils.token_blacklist import token_blacklist
 
 router = APIRouter(tags=["user-management"])
@@ -974,41 +973,6 @@ async def confirm_password_api(
     from src.extensions import cache
     cache.set(f"password_change_verified_{current_user.id}", True, timeout=600)
     return ApiResponse(success=True, data={"message": "密码验证成功", "redirect_url": "/my/pw/change"})
-
-
-@router.put("/me/security/change-password")
-async def change_password_api(
-        request: Request,
-        current_user: UserModel = Depends(get_current_user),
-        db: AsyncSession = Depends(get_async_db),
-):
-    """修改密码"""
-    from utils.security.forms import ChangePasswordForm
-
-    form_data = await request.form()
-    form = ChangePasswordForm(data=dict(form_data))
-    if not form.validate():
-        errors = " ".join(e for errs in form.errors.values() for e in errs)
-        return ApiResponse(success=False, error=errors)
-
-    valid = await validate_password_async(current_user.id, form.current_password.data, db)
-    if not valid:
-        return ApiResponse(success=False, error="当前密码不正确")
-
-    ip = get_client_ip(request)
-    success = await update_password(
-        user_id=current_user.id,
-        new_password=form.new_password.data,
-        confirm_password=form.confirm_password.data,
-        ip=ip,
-        db=db,
-    )
-    if not success:
-        return ApiResponse(success=False, error="密码修改失败")
-
-    from src.extensions import cache
-    cache.delete(f"password_change_verified_{current_user.id}")
-    return ApiResponse(success=True, data={"message": "密码修改成功！现在需要重新登录。"})
 
 
 # ---------------------------------------------------------------------------

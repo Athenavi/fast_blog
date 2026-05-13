@@ -2,14 +2,15 @@
 多站点管理 API
 提供站点配置、域名绑定、用户管理和内容同步功能
 """
-from typing import Optional, Dict, Any, List
-from fastapi import APIRouter, Depends, HTTPException, Query, Body
+from typing import Optional, Dict, Any
+
+from fastapi import APIRouter, Depends, Query, Body
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.services.system.multisite_service import multisite_service
 from src.api.v1.core.responses import ApiResponse
-from src.auth.auth_deps import jwt_required_dependency as jwt_required, get_current_user
+from src.auth.auth_deps import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
-from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(tags=["multisite"])
 
@@ -200,7 +201,7 @@ async def delete_site(
 
 # ==================== 域名管理 ====================
 
-@router.post("/sites/{site_id}/domains", summary="添加附加域名")
+@router.post("/domains", summary="添加附加域名")
 async def add_domain(
         site_id: int,
         domain: str = Body(..., description="域名"),
@@ -236,7 +237,7 @@ async def add_domain(
         return ApiResponse(success=False, error=str(e))
 
 
-@router.delete("/sites/{site_id}/domains", summary="移除附加域名")
+@router.delete("/domains", summary="移除附加域名")
 async def remove_domain(
         site_id: int,
         domain: str = Body(..., description="域名"),
@@ -274,7 +275,7 @@ async def remove_domain(
 
 # ==================== 用户管理 ====================
 
-@router.post("/sites/{site_id}/users", summary="添加用户到站点")
+@router.post("/users", summary="添加用户到站点")
 async def add_user_to_site(
         site_id: int,
         user_id: int = Body(..., description="用户ID"),
@@ -312,7 +313,7 @@ async def add_user_to_site(
         return ApiResponse(success=False, error=str(e))
 
 
-@router.delete("/sites/{site_id}/users/{user_id}", summary="从站点移除用户")
+@router.delete("/users/{user_id}", summary="从站点移除用户")
 async def remove_user_from_site(
         site_id: int,
         user_id: int,
@@ -439,7 +440,7 @@ async def sync_content(
         return ApiResponse(success=False, error=str(e))
 
 
-@router.get("/sites/{site_id}", summary="获取站点详情")
+@router.get("/{site_id}", summary="获取站点详情")
 async def get_site_detail(
         site_id: int,
         current_user=Depends(jwt_required),
@@ -509,7 +510,7 @@ async def get_site_detail(
         return ApiResponse(success=False, error=str(e))
 
 
-@router.get("/sites/{site_id}/users", summary="获取站点的用户列表")
+@router.get("/{site_id}/users", summary="获取站点的用户列表")
 async def get_site_users(
         site_id: int,
         current_user=Depends(jwt_required),
@@ -563,7 +564,7 @@ async def get_site_users(
         return ApiResponse(success=False, error=str(e))
 
 
-@router.put("/sites/{site_id}/users/{user_id}/role", summary="更新用户在站点的角色")
+@router.put("/{site_id}/users/{user_id}/role", summary="更新用户在站点的角色")
 async def update_user_role(
         site_id: int,
         user_id: int,
@@ -613,7 +614,7 @@ async def update_user_role(
         return ApiResponse(success=False, error=str(e))
 
 
-@router.get("/sites/{site_id}/content-mappings", summary="获取站点的内容映射")
+@router.get("/{site_id}/content-mappings", summary="获取站点的内容映射")
 async def get_content_mappings(
         site_id: int,
         direction: str = Query("outgoing", description="方向（outgoing/incoming）"),

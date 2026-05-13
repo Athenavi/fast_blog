@@ -881,3 +881,23 @@ async def delete_blog_management_article(
         import traceback
         print(f"Error in delete_blog_management_article: {e}\n{traceback.format_exc()}")
         return ApiResponse(success=False, error=str(e))
+
+
+@router.get("/admin/dashboard")
+async def admin_dashboard(current_user: User = Depends(admin_required_api)):
+    """
+    管理员面板入口
+    
+    Returns:
+        管理员面板信息
+    """
+    return {
+        'success': True,
+        'message': '管理员面板',
+        'user': {
+            'id': current_user.id,
+            'username': current_user.username,
+            'is_staff': getattr(current_user, 'is_staff', False),
+            'is_superuser': getattr(current_user, 'is_superuser', False)
+        }
+    }

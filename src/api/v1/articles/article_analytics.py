@@ -3,7 +3,7 @@
 提供文章阅读量趋势、来源渠道、读者分布等分析功能
 """
 
-from fastapi import APIRouter, Depends, Query, Request
+from fastapi import APIRouter, Depends, Query
 
 from shared.models.user import User as UserModel
 from shared.services.articles.article_analytics_service import article_analytics_service
@@ -13,45 +13,46 @@ from src.auth.auth_deps import get_current_active_user
 router = APIRouter(tags=["article-analytics"])
 
 
-@router.post("/record-view", summary="记录文章访问")
-async def record_article_view(
-        request: Request,
-        article_id: int = Query(..., description="文章ID"),
-        read_time: int = Query(0, description="阅读时长(秒)"),
-        current_user: UserModel = Depends(get_current_active_user)
-):
-    """
-    记录文章访问(前端调用)
-    
-    Args:
-        article_id: 文章ID
-        read_time: 阅读时长(秒)
-        
-    Returns:
-        操作结果
-    """
-    try:
-        ip_address = request.client.host if request.client else None
-        referer = request.headers.get('referer', '')
-
-        # TODO: 根据IP获取地域
-        region = 'Unknown'
-
-        article_analytics_service.record_view(
-            article_id=article_id,
-            user_id=current_user.id,
-            ip_address=ip_address,
-            referer=referer,
-            read_time_seconds=read_time,
-            region=region,
-        )
-
-        return ApiResponse(
-            success=True,
-            message='访问已记录'
-        )
-    except Exception as e:
-        return ApiResponse(success=False, error=f"记录失败: {str(e)}")
+# 已废弃：此端点功能已统一到 article_interactions 中的 POST /{article_id}/view
+# @router.post("/record-view", summary="记录文章访问")
+# async def record_article_view(
+#         request: Request,
+#         article_id: int = Query(..., description="文章ID"),
+#         read_time: int = Query(0, description="阅读时长(秒)"),
+#         current_user: UserModel = Depends(get_current_active_user)
+# ):
+#     """
+#     记录文章访问(前端调用)
+#     
+#     Args:
+#         article_id: 文章ID
+#         read_time: 阅读时长(秒)
+#         
+#     Returns:
+#         操作结果
+#     """
+#     try:
+#         ip_address = request.client.host if request.client else None
+#         referer = request.headers.get('referer', '')
+#
+#         # TODO: 根据IP获取地域
+#         region = 'Unknown'
+#
+#         article_analytics_service.record_view(
+#             article_id=article_id,
+#             user_id=current_user.id,
+#             ip_address=ip_address,
+#             referer=referer,
+#             read_time_seconds=read_time,
+#             region=region,
+#         )
+#
+#         return ApiResponse(
+#             success=True,
+#             message='访问已记录'
+#         )
+#     except Exception as e:
+#         return ApiResponse(success=False, error=f"记录失败: {str(e)}")
 
 
 @router.get("/{article_id}/stats", summary="获取文章统计")

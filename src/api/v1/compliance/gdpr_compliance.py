@@ -17,7 +17,7 @@ from src.extensions import get_async_db_session as get_async_db
 router = APIRouter()
 
 
-@router.post("/export", summary="导出个人数据", description="导出用户的所有个人数据")
+@router.post("/data-export", summary="导出个人数据", description="导出用户的所有个人数据")
 async def export_personal_data(
         include_articles: bool = Body(True, description="是否包含文章"),
         include_comments: bool = Body(True, description="是否包含评论"),
@@ -48,7 +48,7 @@ async def export_personal_data(
     )
 
 
-@router.post("/delete", summary="删除个人数据", description="匿名化或删除用户数据")
+@router.post("/data-deletion", summary="删除个人数据", description="匿名化或删除用户数据")
 async def delete_personal_data(
         hard_delete: bool = Body(False, description="是否硬删除（否则匿名化）"),
         confirm: bool = Body(..., description="确认删除"),
@@ -146,7 +146,7 @@ async def get_privacy_report(
     )
 
 
-@router.get("/rights", summary="用户权利", description="获取GDPR用户权利说明")
+@router.get("/user-rights", summary="用户权利", description="获取GDPR用户权利说明")
 async def get_user_rights():
     """获取用户权利说明"""
     rights = {

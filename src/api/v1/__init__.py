@@ -3,12 +3,12 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 from fastapi import APIRouter, Request, Depends, Query, HTTPException
+from fastapi.logger import logger
 from fastapi.responses import FileResponse, JSONResponse
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models import User
-from src.api.v1.core.misc import logger
 from src.auth import get_current_user
 from src.extensions import cache, get_async_db_session as get_async_db
 from src.setting import app_config
