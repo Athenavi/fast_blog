@@ -13,13 +13,13 @@ export interface ArticleStats {
 // Article management service
 export class ArticleManagementService {
     static async getArticleStats(): Promise<ApiResponse<ArticleStats>> {
-        return apiClient.get('/blog-management/articles/stats');
+        return apiClient.get('/dashboard/blog-management/articles/stats');
     }
 
     static async getArticles(
         params?: { page?: number; per_page?: number; status?: string; search?: string; category_id?: number }
     ): Promise<ApiResponse<{ articles: Article[]; pagination: Pagination }>> {
-        const response = await apiClient.get('/blog-management/articles', params);
+        const response = await apiClient.get('/dashboard/blog-management/articles', params);
 
         // 确保返回正确的格式
         if (response.success && response.data && typeof response.data === 'object') {
@@ -62,7 +62,7 @@ export class ArticleManagementService {
     }
 
     static async deleteArticle(id: number): Promise<ApiResponse<any>> {
-        return apiClient.delete(`/blog-management/articles/${id}`);
+        return apiClient.delete(`/dashboard/blog-management/articles/${id}`);
     }
 
     // 批量操作文章
@@ -70,9 +70,28 @@ export class ArticleManagementService {
         operation: 'delete' | 'publish' | 'draft' | 'feature' | 'unfeature',
         articleIds: number[]
     ): Promise<ApiResponse<{ message: string; operation: string; updated_count: number }>> {
-        return apiClient.post('/articles/batch-operation', {
-            operation,
-            article_ids: articleIds
+        // 根据操作类型映射到不同的后端API
+        let endpoint = '';
+        switch (operation) {
+            case 'delete':
+                endpoint = '/admin/batch/articles/delete';
+                break;
+            case 'publish':
+            case 'draft':
+                endpoint = '/admin/batch/articles/update-status';
+                break;
+            case 'feature':
+            case 'unfeature':
+                // 可能需要使用其他端点，这里暂时使用update-status
+                endpoint = '/admin/batch/articles/update-status';
+                break;
+            default:
+                endpoint = '/admin/batch/articles/delete';
+        }
+
+        return apiClient.post(endpoint, {
+            article_ids: articleIds,
+            operation
         });
     }
 
@@ -80,7 +99,7 @@ export class ArticleManagementService {
     static async reorderArticles(
         articles: Array<{ id: number; sort_order: number }>
     ): Promise<ApiResponse<{ message: string; updated_count: number }>> {
-        return apiClient.post('/articles/reorder', {
+        return apiClient.post('/admin/batch/articles/update-sort', {
             articles
         });
     }

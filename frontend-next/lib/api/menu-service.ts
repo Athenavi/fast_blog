@@ -20,22 +20,27 @@ export class MenuService {
     // 从首页 API 获取动态菜单数据
     static async getMenuBySlug(slug: string = 'main'): Promise<ApiResponse<MenuData>> {
         try {
-            // 使用新的专用 API 端点获取指定菜单，添加缓存
-            const response = await cachedFetch<any>(`/home/menu/${slug}`, undefined, 10 * 60 * 1000); // 10分钟缓存
+            // 使用 /home/menus 获取所有菜单，然后过滤出指定的菜单
+            const response = await cachedFetch<any>('/home/menus', undefined, 10 * 60 * 1000); // 10分钟缓存
 
-            if (response.success && response.data) {
-                const menuData = response.data as any;
-                return {
-                    requires_auth: false,
-                    success: true,
-                    data: {
-                        id: 1, // 使用返回数据中的实际ID
-                        name: menuData.name || slug,
-                        slug: menuData.slug || slug,
-                        description: menuData.description,
-                        items: menuData.items || []
-                    }
-                };
+            if (response.success && response.data && response.data.menus) {
+                const menus = response.data.menus;
+                // 查找指定 slug 的菜单
+                const targetMenu = menus.find((menu: any) => menu.slug === slug);
+
+                if (targetMenu) {
+                    return {
+                        requires_auth: false,
+                        success: true,
+                        data: {
+                            id: targetMenu.id || 1,
+                            name: targetMenu.name || slug,
+                            slug: targetMenu.slug || slug,
+                            description: targetMenu.description,
+                            items: targetMenu.items || []
+                        }
+                    };
+                }
             }
 
             return {

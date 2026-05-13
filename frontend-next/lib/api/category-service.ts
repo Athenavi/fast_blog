@@ -15,7 +15,7 @@ export class CategoryService {
         subscribed_ids: number[];
         total_categories: number;
     }>> {
-        const response = await apiClient.get('/category/all', params); // 使用公开API
+        const response = await apiClient.get('/categories/', params); // 使用公开API
 
         // 确保返回正确的格式
         if (response.success && response.data && typeof response.data === 'object') {
@@ -101,7 +101,7 @@ export class CategoryService {
         categories: Array<{ category: Category; article_count: number; subscriber_count: number }>;
         pagination: Pagination;
     }>> {
-        const response = await apiClient.get('/category/all', params); // 认证用户使用的API
+        const response = await apiClient.get('/categories/', params); // 认证用户使用的API
 
         // 确保返回正确的格式
         if (response.success && response.data && typeof response.data === 'object') {
@@ -207,34 +207,38 @@ export class CategoryService {
         keywords?: string;
         subscribed_ids?: number[];  // 添加订阅ID数组
     }>> {
-        return apiClient.get(`/category/${name}`);
+        return apiClient.get(`/categories/${name}`);
     }
 
     static async subscribeToCategory(categoryId: number): Promise<ApiResponse<{ message: string }>> {
-        return apiClient.post('/category/subscribe', {category_id: categoryId});
+        // 后端没有直接的subscribe API，可能需要使用其他端点
+        // 暂时注释，需要根据实际需求调整
+        throw new Error('Subscribe API not implemented yet');
     }
 
     static async unsubscribeFromCategory(categoryId: number): Promise<ApiResponse<{ message: string }>> {
-        return apiClient.post('/category/unsubscribe', {category_id: categoryId});
+        // 后端没有直接的unsubscribe API，可能需要使用其他端点
+        // 暂时注释，需要根据实际需求调整
+        throw new Error('Unsubscribe API not implemented yet');
     }
 
     static async deleteCategory(deleteCategoryId: number) {
-        return apiClient.delete(`/category-management/${deleteCategoryId}`)
+        return apiClient.delete(`/categories/${deleteCategoryId}`)
     }
 
     static async updateCategory(id: number, param2: { name: string; description: string | undefined }) {
-        return apiClient.put(`/category-management/${id}`, param2)
+        return apiClient.put(`/categories/${id}`, param2)
     }
 
     static async createCategory(param: { name: string; description: string | undefined }) {
-        return apiClient.post('/category-management', param)
+        return apiClient.post('/categories/', param)
     }
 
     // 拖拽排序分类
     static async reorderCategories(
         categories: Array<{ id: number; sort_order: number }>
     ): Promise<ApiResponse<{ message: string; updated_count: number }>> {
-        return apiClient.post('/category-management/reorder', {
+        return apiClient.post('/categories/reorder', {
             categories
         });
     }

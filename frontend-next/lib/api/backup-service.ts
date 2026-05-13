@@ -19,15 +19,22 @@ export class BackupService {
         message: string;
         filename: string
     }>> {
-        return apiClient.post('/backup/create', {backup_type: type});
+        // 根据类型选择不同的后端API
+        let endpoint = '/backup/full';
+        if (type === 'database') {
+            endpoint = '/backup/database';
+        } else if (type === 'files') {
+            endpoint = '/backup/files';
+        }
+        return apiClient.post(endpoint, {backup_type: type});
     }
 
     static async deleteBackup(filename: string): Promise<ApiResponse<{ message: string }>> {
-        return apiClient.post('/backup/delete', {filename});
+        return apiClient.delete(`/backup/delete?filename=${filename}`);
     }
 
     static async downloadBackup(filename: string): Promise<Blob> {
-        const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api/v1';
+        const baseUrl = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000/api/v2';
         const response = await fetch(`${baseUrl}/backup/download/${filename}`, {
             method: 'GET',
             credentials: 'include',

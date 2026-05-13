@@ -27,17 +27,17 @@ class UserService {
      */
     async searchUsers(query: string, limit: number = 10): Promise<UserSearchResponse> {
         try {
-            // 如果查询为空，返回热门用户或最近互动的用户
+            // 如果查询为空，返回推荐用户
             if (!query || query.trim() === '') {
-                const response = await apiClient.get('/users/suggestions', {
+                const response = await apiClient.get('/users/recommendations', {
                     params: {limit},
                 });
                 return response;
             }
 
-            // 根据关键词搜索用户
-            const response = await apiClient.get('/users/search', {
-                params: {q: query, limit},
+            // 后端没有直接的 /users/search 端点，使用 /users/ 并传递搜索参数
+            const response = await apiClient.get('/users/', {
+                params: {q: query, limit, per_page: limit},
             });
 
             return response;
@@ -82,7 +82,11 @@ class UserService {
         error?: string;
     }> {
         try {
-            const response = await apiClient.get(`/users/by-username/${username}`);
+            // 后端没有直接的 /users/by-username/{username} 端点
+            // 可以使用 /users/ 并传递用户名参数进行搜索
+            const response = await apiClient.get('/users/', {
+                params: {username: username, per_page: 1}
+            });
             return response;
         } catch (error) {
             console.error('[UserService] Failed to get user by username:', error);

@@ -43,41 +43,41 @@ export interface CategoryDistribution {
 export class AnalyticsService {
     // 获取概览统计数据
     static async getOverviewStats(days: number = 30): Promise<ApiResponse<OverviewStats>> {
-        return apiClient.get(`/analytics/overview?days=${days}`);
+        return apiClient.get(`/dashboard/analytics/overview?days=${days}`);
     }
 
     // 获取文章浏览量趋势
     static async getArticleViewsTrend(days: number = 7): Promise<ApiResponse<DailyTrend[]>> {
-        return apiClient.get(`/analytics/article-views-trend?days=${days}`);
+        return apiClient.get(`/dashboard/analytics/article-views-trend?days=${days}`);
     }
 
     // 获取热门文章
     static async getPopularArticles(limit: number = 10, days: number = 7): Promise<ApiResponse<PopularArticle[]>> {
-        return apiClient.get(`/analytics/popular-articles?limit=${limit}&days=${days}`);
+        return apiClient.get(`/dashboard/analytics/popular-articles?limit=${limit}&days=${days}`);
     }
 
     // 获取分类分布
     static async getCategoryDistribution(): Promise<ApiResponse<CategoryDistribution[]>> {
-        return apiClient.get('/analytics/category-distribution');
+        return apiClient.get('/dashboard/analytics/category-distribution');
     }
 
     // 获取流量来源
     static async getTrafficSources(days: number = 30): Promise<ApiResponse<TrafficSource[]>> {
-        return apiClient.get(`/analytics/traffic-sources?days=${days}`);
+        return apiClient.get(`/dashboard/analytics/traffic-sources?days=${days}`);
     }
 
     // 获取设备统计
     static async getDeviceStats(days: number = 30): Promise<ApiResponse<DeviceStat[]>> {
-        return apiClient.get(`/analytics/device-stats?days=${days}`);
+        return apiClient.get(`/dashboard/analytics/device-stats?days=${days}`);
     }
 
     // 获取用户活动
     static async getUserActivity(days: number = 30): Promise<ApiResponse<any>> {
-        return apiClient.get(`/analytics/user-activity?days=${days}`);
+        return apiClient.get(`/dashboard/analytics/user-activity?days=${days}`);
     }
 
     // 获取内容表现
     static async getContentPerformance(days: number = 30): Promise<ApiResponse<any>> {
-        return apiClient.get(`/analytics/content-performance?days=${days}`);
+        return apiClient.get(`/dashboard/analytics/content-performance?days=${days}`);
     }
 }

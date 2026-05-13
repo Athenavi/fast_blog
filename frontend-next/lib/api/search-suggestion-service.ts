@@ -70,10 +70,12 @@ class SearchSuggestionService {
      */
     async getHotSearches(limit: number = 10): Promise<HotSearchResponse> {
         try {
-            const response = await apiClient.get('/search/hot', {
+            // 后端没有直接的 /search/hot 端点，使用 /search/stats 获取搜索统计信息
+            const response = await apiClient.get('/search/stats', {
                 params: {limit},
             });
 
+            // 如果后端返回的数据格式不同，需要进行转换
             return response;
         } catch (error) {
             console.error('[SearchSuggestionService] Failed to get hot searches:', error);

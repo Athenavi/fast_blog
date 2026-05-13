@@ -18,10 +18,10 @@ export const loadRuntimeConfig = async (): Promise<{ API_BASE_URL: string; API_P
             if (response.ok) {
                 const configText = await response.text();
                 // 动态执行配置脚本
-                const configModule = eval(configText + '; runtimeConfig');
+                const configModule = eval(configText + ' runtimeConfig');
                 runtimeApiConfig = {
                     API_BASE_URL: configModule.API_BASE_URL,
-                    API_PREFIX: configModule.API_PREFIX || '/api/v1'
+                    API_PREFIX: configModule.API_PREFIX || '/api/v2'
                 };
                 console.log('✅ 已加载运行时 API 配置:', runtimeApiConfig.API_BASE_URL);
                 return runtimeApiConfig;
@@ -34,7 +34,7 @@ export const loadRuntimeConfig = async (): Promise<{ API_BASE_URL: string; API_P
     // 默认配置（构建时配置）
     runtimeApiConfig = {
         API_BASE_URL: 'http://localhost:9421',
-        API_PREFIX: '/api/v1'  // 使用 FastAPI/Django 共享的 API 路由
+        API_PREFIX: '/api/v2'  // 使用 FastAPI/Django 共享的 API 路由
     };
 
     return runtimeApiConfig;
@@ -44,7 +44,7 @@ export const loadRuntimeConfig = async (): Promise<{ API_BASE_URL: string; API_P
 export const getConfig = (): { API_BASE_URL: string; API_PREFIX: string } => {
     const config = runtimeApiConfig || {
         API_BASE_URL: 'http://localhost:9421',
-        API_PREFIX: '/api/v1'  // 使用 FastAPI/Django 共享的 API 路由
+        API_PREFIX: '/api/v2'  // 使用 FastAPI/Django 共享的 API 路由
     };
     console.log('[Config] Current config:', config);
     return config;

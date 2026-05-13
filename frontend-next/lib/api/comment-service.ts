@@ -60,7 +60,8 @@ class CommentService {
         order: string = 'desc'
     ): Promise<CommentListResponse> {
         try {
-            const response = await apiClient.get(`/articles/${articleId}/comments`, {
+            // 使用 /comments/enhanced/article/{article_id} 端点
+            const response = await apiClient.get(`/comments/enhanced/article/${articleId}`, {
                 params: {page, per_page: perPage, sort_by: sortBy, order},
             });
 
@@ -91,7 +92,9 @@ class CommentService {
         authorEmail?: string
     ): Promise<{ success: boolean; data?: Comment; error?: string }> {
         try {
-            const response = await apiClient.post(`/articles/${articleId}/comments`, {
+            // 后端可能没有直接的创建评论端点，需要确认
+            // 暂时使用 /comments/enhanced/article/{article_id} POST 方法
+            const response = await apiClient.post(`/comments/enhanced/article/${articleId}`, {
                 content,
                 parent_id: parentId,
                 author_name: authorName,
@@ -114,7 +117,8 @@ class CommentService {
      */
     async likeComment(commentId: number): Promise<LikeCommentResponse> {
         try {
-            const response = await apiClient.post(`/comments/${commentId}/like`);
+            // 使用 /comments/enhanced/{comment_id}/like
+            const response = await apiClient.post(`/comments/enhanced/${commentId}/like`);
             return response;
         } catch (error) {
             console.error('[CommentService] Failed to like comment:', error);
@@ -133,7 +137,7 @@ class CommentService {
     async unlikeComment(commentId: number): Promise<LikeCommentResponse> {
         try {
             // 后端使用 toggle 机制，再次调用即可取消点赞
-            const response = await apiClient.post(`/comments/${commentId}/like`);
+            const response = await apiClient.post(`/comments/enhanced/${commentId}/like`);
             return response;
         } catch (error) {
             console.error('[CommentService] Failed to unlike comment:', error);
@@ -155,7 +159,8 @@ class CommentService {
         error?: string;
     }> {
         try {
-            const response = await apiClient.get(`/comments/${commentId}/vote`);
+            // 使用 /comments/enhanced/{comment_id}/vote
+            const response = await apiClient.get(`/comments/enhanced/${commentId}/vote`);
             return response;
         } catch (error) {
             console.error('[CommentService] Failed to get user vote:', error);

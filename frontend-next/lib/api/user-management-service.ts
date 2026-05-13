@@ -28,7 +28,7 @@ export class UserManagementService {
     static async getUsers(
         params?: { page?: number; per_page?: number; search?: string; role?: string }
     ): Promise<ApiResponse<UserManagementData>> {
-        const response = await apiClient.get('/user-management/users', params);
+        const response = await apiClient.get('/dashboard/user-management/users', params);
 
         // 确保返回正确的格式
         if (response.success && response.data && typeof response.data === 'object') {
@@ -77,20 +77,23 @@ export class UserManagementService {
         bio?: string;
         profile_picture?: string;
     }): Promise<ApiResponse<UserWithRoles>> {
-        return apiClient.post('/user-management/users', userData);
+        // 后端可能没有直接创建用户的端点，需要使用其他端点
+        throw new Error('Create user API not implemented yet');
     }
 
     static async updateUser(userId: number, userData: Partial<UserWithRoles>): Promise<ApiResponse<UserWithRoles>> {
-        return apiClient.put(`/user-management/users/${userId}`, userData);
+        // 后端使用 /users/{user_id} 来更新用户资料
+        return apiClient.put(`/users/${userId}`, userData);
     }
 
     static async deleteUser(userId: number): Promise<ApiResponse<{ message: string }>> {
-        return apiClient.delete(`/user-management/users/${userId}`);
+        // 后端可能没有直接删除用户的端点
+        throw new Error('Delete user API not implemented yet');
     }
 
     static async getUserById(userId: number, page: number = 1, perPage: number = 10): Promise<ApiResponse<never>> {
         try {
-            return await apiClient.get(`/users/${userId}/profile`, {page, per_page: perPage});
+            return await apiClient.get(`/users/${userId}`, {page, per_page: perPage});
         } catch (error) {
             console.error(`Error fetching user profile for user ID ${userId}:`, error);
             return {
@@ -104,6 +107,6 @@ export class UserManagementService {
 
 export class UserRoleService {
     static async assignRolesToUser(userId: number, roleIds: number[]): Promise<ApiResponse<{ message: string }>> {
-        return apiClient.put(`/management/users/${userId}/roles`, {role_ids: roleIds});
+        return apiClient.put(`/admin/users/users/${userId}/roles`, {role_ids: roleIds});
     }
 }

@@ -68,7 +68,7 @@ export const TippingService = {
      * 打赏文章
      */
     async tipArticle(articleId: number, amount: number, message?: string, paymentMethod: string = 'balance') {
-        return apiClient.post('/tips/tip-article', {
+        return apiClient.post('/ext/tipping/tip-article', {
             article_id: articleId,
             amount,
             message: message || '',
@@ -80,42 +80,42 @@ export const TippingService = {
      * 获取文章打赏记录
      */
     async getArticleTips(articleId: number, limit: number = 50) {
-        return apiClient.get(`/tips/article/${articleId}`, {params: {limit}});
+        return apiClient.get(`/ext/tipping/article/${articleId}`, {params: {limit}});
     },
 
     /**
      * 获取我收到的打赏
      */
     async getMyReceivedTips(limit: number = 100) {
-        return apiClient.get('/tips/my-received', {params: {limit}});
+        return apiClient.get('/ext/tipping/my-received', {params: {limit}});
     },
 
     /**
      * 获取我的打赏统计
      */
     async getMyTipStats() {
-        return apiClient.get('/tips/my-stats');
+        return apiClient.get('/ext/tipping/my-stats');
     },
 
     /**
      * 获取打赏排行榜
      */
     async getLeaderboard(period: string = 'all', limit: number = 100) {
-        return apiClient.get('/tips/leaderboard', {params: {period, limit}});
+        return apiClient.get('/ext/tipping/leaderboard', {params: {period, limit}});
     },
 
     /**
      * 获取预设打赏金额
      */
     async getPresetAmounts() {
-        return apiClient.get('/tips/preset-amounts');
+        return apiClient.get('/ext/tipping/preset-amounts');
     },
 
     /**
      * 获取最近打赏记录
      */
     async getRecentTips(limit: number = 20) {
-        return apiClient.get('/tips/recent', {params: {limit}});
+        return apiClient.get('/ext/tipping/recent', {params: {limit}});
     },
 
     // ==================== 提现相关 API ====================
@@ -124,14 +124,14 @@ export const TippingService = {
      * 获取可提现余额
      */
     async getBalance() {
-        return apiClient.get('/tips/balance');
+        return apiClient.get('/ext/tipping/balance');
     },
 
     /**
      * 申请提现
      */
     async requestWithdrawal(amount: number, paymentMethod: string = 'bank_transfer', accountInfo: any = {}) {
-        return apiClient.post('/tips/withdraw', {
+        return apiClient.post('/ext/tipping/withdraw', {
             amount,
             payment_method: paymentMethod,
             account_info: accountInfo,
@@ -142,21 +142,21 @@ export const TippingService = {
      * 获取我的提现记录
      */
     async getMyWithdrawals(limit: number = 50) {
-        return apiClient.get('/tips/my-withdrawals', {params: {limit}});
+        return apiClient.get('/ext/tipping/my-withdrawals', {params: {limit}});
     },
 
     /**
      * 取消提现申请
      */
     async cancelWithdrawal(withdrawalId: string) {
-        return apiClient.post(`/tips/cancel-withdrawal/${withdrawalId}`);
+        return apiClient.post(`/ext/tipping/cancel-withdrawal/${withdrawalId}`);
     },
 
     /**
      * 管理员处理提现申请
      */
     async processWithdrawal(withdrawalId: string, status: 'completed' | 'rejected', adminNote: string = '') {
-        return apiClient.post('/tips/admin/process-withdrawal', {
+        return apiClient.post('/ext/tipping/admin/process-withdrawal', {
             withdrawal_id: withdrawalId,
             status,
             admin_note: adminNote,

@@ -58,6 +58,7 @@ export class DashboardService {
     }
 
     static async getAnalyticsData(): Promise<ApiResponse<AnalyticsData>> {
-        return apiClient.get('/analytics/data');
+        // 后端没有直接的/analytics/data端点，使用overview代替
+        return apiClient.get('/dashboard/analytics/overview');
     }
 }

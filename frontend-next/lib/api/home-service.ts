@@ -119,9 +119,11 @@ export class HomeService {
 
     /**
      * 订阅邮件通知
+     * 注意：后端没有直接的/home/subscribe API，需要使用其他端点或实现新的API
      */
     static async subscribeEmail(email: string): Promise<ApiResponse<{ message: string }>> {
-        return apiClient.post('/home/subscribe', {email});
+        // 暂时使用notifications/email/send作为替代，或者需要后端添加此API
+        throw new Error('Home subscribe API not implemented yet. Please use /api/v2/notifications/email/send instead.');
     }
 
     /**

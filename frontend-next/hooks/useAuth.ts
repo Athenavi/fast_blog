@@ -42,9 +42,9 @@ export const useAuth = () => {
         setLoading(false);
         return;
       }
-      
-      // 使用 user-management 端点获取当前用户信息
-      const response: ApiResponse<any> = await apiClient.get('/management/me/profile');
+
+        // 使用 /api/v2/users/me 端点获取当前用户信息
+        const response: ApiResponse<any> = await apiClient.get('/users/me');
       
       if (response.success && response.data) {
         // 从嵌套的数据结构中提取用户信息
@@ -69,9 +69,9 @@ export const useAuth = () => {
         setUser(null);
         return null;
       }
-      
-      // 使用 user-management 端点获取当前用户信息
-      const response: ApiResponse<any> = await apiClient.get('/management/me/profile');
+
+        // 使用 /api/v2/users/me 端点获取当前用户信息
+        const response: ApiResponse<any> = await apiClient.get('/users/me');
       
       if (response.success && response.data) {
         // 从嵌套的数据结构中提取用户信息

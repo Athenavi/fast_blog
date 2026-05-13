@@ -4,5 +4,5 @@
 
 window.runtimeConfig = {
     API_BASE_URL: 'http://localhost:9421',  // Django 服务器地址
-    API_PREFIX: '/api/v1'                   // API 前缀
+    API_PREFIX: '/api/v2'                   // API 前缀
 };

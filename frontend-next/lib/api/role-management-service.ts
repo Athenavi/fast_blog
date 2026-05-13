@@ -25,19 +25,20 @@ export interface Permission {
 // Role management service
 export class RoleManagementService {
     static async getRoles(): Promise<ApiResponse<UserRole[]>> {
-        return apiClient.get('/role-management/roles');
+        return apiClient.get('/security/rbac/roles');
     }
 
     static async assignRolesToUser(userId: number, roleIds: number[]): Promise<ApiResponse<{ message: string }>> {
-        return apiClient.put(`/admin/user/${userId}/roles`, {role_ids: roleIds});
+        return apiClient.post(`/security/rbac/users/${userId}/roles`, {role_ids: roleIds});
     }
 
     static async getRolePermissionStats(): Promise<ApiResponse<Stats>> {
-        return apiClient.get('/role-management/permission-stats');
+        // 后端没有直接的 permission-stats 端点，使用 roles 端点获取统计信息
+        return apiClient.get('/security/rbac/roles');
     }
 
     static async getPermissions(): Promise<ApiResponse<Permission[]>> {
-        return apiClient.get('/role-management/permissions');
+        return apiClient.get('/security/rbac/permissions');
     }
 
     static async createPermission(param: {
@@ -48,24 +49,27 @@ export class RoleManagementService {
         action?: string;
         is_active?: boolean;
     }) {
-        return apiClient.post('/role-management/permissions', param)
+        // 后端可能没有直接创建权限的端点，需要根据实际情况调整
+        throw new Error('Create permission API not implemented yet');
     }
 
     static async deleteRole(roleId: number) {
-        return apiClient.delete(`/role-management/roles/${roleId}`)
+        return apiClient.delete(`/security/rbac/roles/${roleId}`)
     }
 
     static async deletePermission(permissionId: number) {
-        return apiClient.delete(`/role-management/permissions/${permissionId}`)
+        // 后端可能没有直接删除权限的端点
+        throw new Error('Delete permission API not implemented yet');
     }
 
     static async updateRole(id: number, param2: { name: string; description: string; permission_ids: number[] }) {
-        return apiClient.put(`/role-management/roles/${id}`, param2)
+        // 后端使用 /security/rbac/roles/{role_id}/permissions 来更新角色权限
+        return apiClient.put(`/security/rbac/roles/${id}/permissions`, {permission_ids: param2.permission_ids})
     }
 
     // 添加缺失的createRole方法
     static async createRole(param: { name: string; description: string; permission_ids: number[] }) {
-        return apiClient.post('/role-management/roles', param);
+        return apiClient.post('/security/rbac/roles', param);
     }
 
     // 添加缺失的updatePermission方法
@@ -77,6 +81,7 @@ export class RoleManagementService {
         action?: string;
         is_active?: boolean;
     }) {
-        return apiClient.put(`/role-management/permissions/${id}`, param);
+        // 后端可能没有直接更新权限的端点
+        throw new Error('Update permission API not implemented yet');
     }
 }

@@ -37,22 +37,23 @@ export interface RelationListResponse {
 
 export class RelationService {
     static async getFollowers(): Promise<ApiResponse<RelationListResponse>> {
-        return apiClient.get('/relations/followers');
+        return apiClient.get('/users/me/followers');
     }
 
     static async getFollowing(): Promise<ApiResponse<RelationListResponse>> {
-        return apiClient.get('/relations/following');
+        return apiClient.get('/users/me/following');
     }
 
     static async getUsers(): Promise<ApiResponse<UserListResponse>> {
-        return apiClient.get('/relations/users');
+        // 后端没有直接的/relations/users，使用/users/代替
+        return apiClient.get('/users/');
     }
 
     static async followUser(targetUserId: number): Promise<ApiResponse<FollowToggleResponse>> {
-        return apiClient.post(`/relations/follow/${targetUserId}`);
+        return apiClient.post(`/users/${targetUserId}/follow`);
     }
 
     static async unfollowUser(targetUserId: number): Promise<ApiResponse<FollowToggleResponse>> {
-        return apiClient.post(`/relations/unfollow/${targetUserId}`);
+        return apiClient.delete(`/users/${targetUserId}/follow`);
     }
 }

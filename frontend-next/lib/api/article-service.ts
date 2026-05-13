@@ -347,13 +347,13 @@ export interface I18nArticleVersion {
 
 export class ArticleManagementService {
     static async getArticleStats(): Promise<ApiResponse<ArticleStats>> {
-        return apiClient.get('/blog-management/articles/stats');
+        return apiClient.get('/dashboard/blog-management/articles/stats');
     }
 
     static async getArticles(
         params?: { page?: number; per_page?: number; status?: string; search?: string }
     ): Promise<ApiResponse<{ articles: Article[]; pagination: Pagination }>> {
-        const response = await apiClient.get('/blog-management/articles', params);
+        const response = await apiClient.get('/dashboard/blog-management/articles', params);
 
         // 确保返回正确的格式
         if (response.success && response.data && typeof response.data === 'object') {
@@ -396,6 +396,6 @@ export class ArticleManagementService {
     }
 
     static async deleteArticle(id: number): Promise<ApiResponse<any>> {
-        return apiClient.delete(`/blog-management/articles/${id}`);
+        return apiClient.delete(`/dashboard/blog-management/articles/${id}`);
     }
 }

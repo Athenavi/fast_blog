@@ -82,19 +82,19 @@ export interface MyVipSubscriptionResponse {
 // VIP service
 export class VIPService {
     static async getVipPlans(): Promise<ApiResponse<VIPPlansResponse>> {
-        return apiClient.get('/vip/plans');
+        return apiClient.get('/membership/plans');
     }
 
     static async getVipFeatures(): Promise<ApiResponse<VIPFeaturesResponse>> {
-        return apiClient.get('/vip/features');
+        return apiClient.get('/membership/features');
     }
 
     static async getMySubscription(): Promise<ApiResponse<MyVipSubscriptionResponse>> {
-        return apiClient.get('/vip/my-subscription');
+        return apiClient.get('/membership/my-subscription');
     }
 
     static async getPremiumContent(): Promise<ApiResponse<PremiumContentResponse>> {
-        return apiClient.get('/vip/premium-content');
+        return apiClient.get('/membership/premium-content');
     }
 }
 
@@ -121,6 +121,7 @@ export interface CreatePaymentResponse {
 // Payment service
 export class PaymentService {
     static async createPayment(data: CreatePaymentRequest): Promise<ApiResponse<CreatePaymentResponse>> {
-        return apiClient.post('/payment/create', data);
+        // 后端没有直接的/payment/create，使用membership/subscribe代替
+        return apiClient.post('/membership/subscribe', data);
     }
 }

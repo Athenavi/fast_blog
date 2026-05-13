@@ -60,46 +60,46 @@ export interface AdminSettingsData {
 
 export class AdminSettingsService {
     static async getSettings(): Promise<ApiResponse<AdminSettingsData>> {
-        return apiClient.get('/admin-settings');
+        return apiClient.get('/admin/settings/');
     }
 
     static async updateSettings(settings: Record<string, string>): Promise<ApiResponse<{ message: string }>> {
-        return apiClient.post('/admin-settings', {settings, action: 'update_settings'});
+        return apiClient.post('/admin/settings/', {settings});
     }
 
     static async createMenu(menuData: Omit<Menu, 'id' | 'created_at' | 'updated_at'>): Promise<ApiResponse<Menu>> {
-        return apiClient.post('/admin-settings/menus', menuData);
+        return apiClient.post('/admin/settings/menus', menuData);
     }
 
     static async updateMenu(menuId: number, menuData: Partial<Menu>): Promise<ApiResponse<Menu>> {
-        return apiClient.put(`/admin-settings/menus/${menuId}`, menuData);
+        return apiClient.put(`/admin/settings/menus/${menuId}`, menuData);
     }
 
     static async deleteMenu(menuId: number): Promise<ApiResponse<{ message: string }>> {
-        return apiClient.delete(`/admin-settings/menus/${menuId}`);
+        return apiClient.delete(`/admin/settings/menus/${menuId}`);
     }
 
     static async createPage(pageData: Omit<Page, 'id' | 'author' | 'created_at' | 'updated_at'>): Promise<ApiResponse<Page>> {
-        return apiClient.post('/admin-settings/pages', pageData);
+        return apiClient.post('/admin/settings/pages', pageData);
     }
 
     static async updatePage(pageId: number, pageData: Partial<Page>): Promise<ApiResponse<Page>> {
-        return apiClient.put(`/admin-settings/pages/${pageId}`, pageData);
+        return apiClient.put(`/admin/settings/pages/${pageId}`, pageData);
     }
 
     static async deletePage(pageId: number): Promise<ApiResponse<{ message: string }>> {
-        return apiClient.delete(`/admin-settings/pages/${pageId}`);
+        return apiClient.delete(`/admin/settings/pages/${pageId}`);
     }
 
     static async createMenuItem(menuItemData: Omit<MenuItem, 'id' | 'created_at' | 'updated_at'>): Promise<ApiResponse<MenuItem>> {
-        return apiClient.post('/admin-settings/menu-items', menuItemData);
+        return apiClient.post('/admin/settings/menu-items', menuItemData);
     }
 
     static async updateMenuItem(menuItemId: number, menuItemData: Partial<MenuItem>): Promise<ApiResponse<MenuItem>> {
-        return apiClient.put(`/admin-settings/menu-items/${menuItemId}`, menuItemData);
+        return apiClient.put(`/admin/settings/menu-items/${menuItemId}`, menuItemData);
     }
 
     static async deleteMenuItem(menuItemId: number): Promise<ApiResponse<{ message: string }>> {
-        return apiClient.delete(`/admin-settings/menu-items/${menuItemId}`);
+        return apiClient.delete(`/admin/settings/menu-items/${menuItemId}`);
     }
 }
