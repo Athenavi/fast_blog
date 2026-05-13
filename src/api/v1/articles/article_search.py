@@ -1,13 +1,13 @@
 """
 文章搜索 API
 """
-from typing import Optional
 from datetime import datetime
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.services.article_search import article_search_service
+from shared.services.articles.article_search import (article_search_service)
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 

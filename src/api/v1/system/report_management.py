@@ -7,8 +7,9 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, Query, Body
 
-from shared.services.system.report_generator import report_generator
-from api.v1.core.responses import ApiResponse
+from shared.services.analytics.scheduled_report_service import create_scheduled_report_service
+from shared.services.system.report_generator import report_generator, ReportGenerator
+from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import admin_required as admin_required_api
 from src.utils.database.main import get_async_session
 
@@ -35,7 +36,6 @@ async def get_content_report(
         内容报表数据
     """
     try:
-        from shared.services.report_generator import ReportGenerator
         generator = ReportGenerator(db)
         report = await generator.generate_content_report(days, group_by)
 
@@ -273,7 +273,6 @@ async def create_scheduled_report(
         创建的定时报表配置
     """
     try:
-        from shared.services.scheduled_report_service import create_scheduled_report_service
         service = create_scheduled_report_service(db)
         
         config = {
@@ -309,7 +308,6 @@ async def get_scheduled_reports(
         定时报表任务列表
     """
     try:
-        from shared.services.scheduled_report_service import create_scheduled_report_service
         service = create_scheduled_report_service(db)
         reports = await service.get_scheduled_reports()
         
@@ -342,7 +340,6 @@ async def toggle_scheduled_report(
         更新后的状态
     """
     try:
-        from shared.services.scheduled_report_service import create_scheduled_report_service
         service = create_scheduled_report_service(db)
         result = await service.toggle_report(report_id)
         

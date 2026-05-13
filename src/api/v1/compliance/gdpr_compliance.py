@@ -9,8 +9,8 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.services.gdpr_compliance import gdpr_service
-from api.v1.core.responses import ApiResponse
+from shared.services.security.gdpr_compliance import gdpr_service
+from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 

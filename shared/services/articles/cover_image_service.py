@@ -2,12 +2,10 @@
 封面图片处理服务
 负责将媒体库中的图片优化并保存到公开访问的缓存目录
 """
-import hashlib
-import logging
 from pathlib import Path
 from typing import Optional
 
-from shared.services.image_tool.image_processor import ImageProcessor
+from shared.services.media.image_tool.image_processor import ImageProcessor
 from shared.utils.logger import get_logger
 
 logger = get_logger(__name__)

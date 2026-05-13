@@ -6,8 +6,9 @@ from datetime import datetime, timedelta
 from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 
-from shared.services.audit_log_service import audit_log_service, AuditLogAction, AuditLogLevel
-from api.v1.core.responses import ApiResponse
+from shared.services.security.audit_log_service import AuditLogAction, AuditLogLevel, audit_log_service
+from shared.services.security.audit_log_service import AuditLog as AuditLogModel
+from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -299,7 +300,3 @@ async def cleanup_old_logs(
 
     except Exception as e:
         return ApiResponse(success=False, error=str(e))
-
-
-# 导入模型
-from shared.services.audit_log_service import AuditLogModel

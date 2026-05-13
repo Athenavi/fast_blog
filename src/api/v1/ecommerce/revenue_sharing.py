@@ -8,8 +8,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from extensions import get_db
 from shared.services.ecommerce.revenue_sharing_service import RevenueSharingService
+from src.extensions import get_db
 
 router = APIRouter(prefix="/revenue", tags=["收益分成"])
 

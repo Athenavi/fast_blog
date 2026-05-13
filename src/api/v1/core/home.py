@@ -12,7 +12,7 @@ from shared.models import SystemSettings
 from shared.models.article import Article
 from shared.models.category import Category
 from shared.models.user import User
-from api.v1.core.responses import ApiResponse
+from src.api.v1.core.responses import ApiResponse
 from src.utils.database.main import get_async_session
 
 router = APIRouter(prefix="/home", tags=["home"])
@@ -26,7 +26,6 @@ async def send_subscription_confirmation_email(email: str):
         email: 订阅邮箱
     """
     try:
-        from shared.services.email_service import email_service
         from datetime import datetime
         
         subject = "感谢订阅 FastBlog"
@@ -59,6 +58,7 @@ async def send_subscription_confirmation_email(email: str):
         """
         
         # 发送邮件
+        from shared.services.notifications.email_service import email_service
         email_service.send_email(
             to_email=email,
             subject=subject,

@@ -19,12 +19,12 @@
     )
 """
 
-from shared.services.theme_manager.template_loader import TemplateLoader, template_loader
-from shared.services.theme_manager.theme_customizer import ThemeCustomizerService
-from shared.services.theme_manager.theme_installer import ThemeInstaller, theme_installer
-from shared.services.theme_manager.theme_json_parser import ThemeJsonParser, theme_json_parser
-from shared.services.theme_manager.theme_loader import ThemeLoader, theme_loader
-from shared.services.theme_manager.theme_system import ThemeManager, theme_manager
+from shared.services.themes.theme_manager.template_loader import TemplateLoader, template_loader
+from shared.services.themes.theme_manager.theme_customizer import ThemeCustomizerService
+from shared.services.themes.theme_manager.theme_installer import ThemeInstaller, theme_installer
+from shared.services.themes.theme_manager.theme_json_parser import ThemeJsonParser, theme_json_parser
+from shared.services.themes.theme_manager.theme_loader import ThemeLoader, theme_loader
+from shared.services.themes.theme_manager.theme_system import ThemeManager, theme_manager
 
 __all__ = [
     # 类

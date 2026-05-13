@@ -8,8 +8,8 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Body
 
-from shared.services.image_lazy_load import image_lazy_load_service
-from api.v1.core.responses import ApiResponse
+from shared.services.performance.image_lazy_load import image_lazy_load_service
+from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 
 router = APIRouter()

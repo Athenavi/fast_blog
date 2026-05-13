@@ -4,12 +4,11 @@
 """
 
 from typing import Optional, List
-from fastapi import APIRouter, Depends, Query, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.utils.database.unified_manager import get_async_db
-from api.v1.core.responses import ApiResponse
-from shared.services.recommendation_service import recommendation_service
+from fastapi import APIRouter, Query, HTTPException
+
+from shared.services.advanced_features.recommendation_service import recommendation_service
+from src.api.v1.core.responses import ApiResponse
 
 router = APIRouter(prefix="/recommendations", tags=["recommendations"])
 

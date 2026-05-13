@@ -4,8 +4,8 @@
 
 from fastapi import APIRouter, Depends, Query, Body
 
-from shared.services.custom_block_pattern import custom_block_pattern_service
-from api.v1.core.responses import ApiResponse
+from shared.services.content_management.custom_block_pattern import custom_block_pattern_service
+from src.api.v1.core.responses import ApiResponse
 from src.auth import jwt_required_dependency as jwt_required
 
 router = APIRouter(prefix="/custom-patterns", tags=["custom-patterns"])

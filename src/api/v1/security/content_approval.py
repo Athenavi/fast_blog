@@ -5,8 +5,8 @@
 from typing import Optional, Dict, Any, List
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
 
-from shared.services.content_approval_service import content_approval_service, ApprovalStatus
-from api.v1.core.responses import ApiResponse
+from shared.services.security.content_approval_service import content_approval_service, ApprovalStatus
+from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import jwt_required_dependency as jwt_required, get_current_user
 from src.extensions import get_async_db_session as get_async_db
 from sqlalchemy.ext.asyncio import AsyncSession

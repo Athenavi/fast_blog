@@ -6,9 +6,9 @@ from typing import Optional, List
 from fastapi import APIRouter, HTTPException, Query, Body
 from pydantic import BaseModel
 
-from shared.services.ai_tag_recommendation import ai_tag_service
-from shared.services.ai_writing_assistant import ai_writing_assistant
-from shared.services.content_moderation import content_moderation_service
+from shared.services.advanced_features.ai_tag_recommendation import ai_tag_service
+from shared.services.advanced_features.ai_writing_assistant import ai_writing_assistant
+from shared.services.security.content_moderation import content_moderation_service
 
 router = APIRouter(prefix="/ai", tags=["ai"])
 

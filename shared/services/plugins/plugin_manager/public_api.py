@@ -198,7 +198,7 @@ class PluginPublicAPI:
             网站设置字典
         """
         try:
-            from shared.models.site_settings import SiteSettings
+            from shared.models import SiteSettings
 
             # 执行异步查询
             async with get_async_session_context() as db_session:

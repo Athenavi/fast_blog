@@ -14,7 +14,7 @@ from shared.models.file_hash import FileHash
 from shared.models.media import Media
 from shared.services.media.image_tool import image_editor, image_processor
 from shared.services.media.media_manager import media_library_service
-from api.v1.core.responses import ApiResponse
+from src.api.v1.core.responses import ApiResponse
 from src.api.v1.utils.storage_utils import async_file_cleanup
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db

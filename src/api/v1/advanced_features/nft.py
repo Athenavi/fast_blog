@@ -8,7 +8,7 @@ from typing import Dict
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from shared.services.nft_service import nft_service
+from shared.services.integrations.nft_service import nft_service
 
 router = APIRouter(prefix="/nft", tags=["NFT"])
 

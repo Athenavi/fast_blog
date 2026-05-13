@@ -5,7 +5,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.services.analytics import create_analytics_service
+from shared.services.articles.analytics import create_analytics_service
 from src.utils.database.main import get_async_session
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])

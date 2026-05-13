@@ -8,8 +8,8 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, Query, Body
 
 from shared.models.user import User as UserModel
-from shared.services.advertisement_system import advertisement_system
-from api.v1.core.responses import ApiResponse
+from shared.services.marketing.advertisement_system import advertisement_system
+from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import admin_required
 
 router = APIRouter(prefix="/ads", tags=["advertisements"])

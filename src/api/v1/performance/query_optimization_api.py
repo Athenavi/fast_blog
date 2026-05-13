@@ -5,8 +5,9 @@
 
 from fastapi import APIRouter, Depends, Query, Body
 
-from shared.services.query_optimizer import query_optimizer
-from api.v1.core.responses import ApiResponse
+from extensions import get_db
+from shared.services.performance.query_optimizer import query_optimizer
+from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import admin_required
 
 router = APIRouter(prefix="/query-optimization", tags=["query-optimization"])
@@ -35,7 +36,7 @@ async def get_optimization_report(current_user=Depends(admin_required)):
 async def analyze_query(
         sql_query: str = Body(..., description="SQL查询语句"),
         current_user=Depends(admin_required),
-        db=Depends(get_async_session)
+        db=Depends(get_db)
 ):
     """
     分析特定SQL查询的执行计划

@@ -2,11 +2,12 @@
 负载均衡管理 API
 提供多实例管理、健康检查、会话管理和故障转移功能
 """
-from typing import Optional, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException, Query, Body
+from typing import Optional
 
-from shared.services.load_balancer import load_balancer_service
-from api.v1.core.responses import ApiResponse
+from fastapi import APIRouter, Depends, Query, Body
+
+from shared.services.performance.load_balancer import load_balancer_service
+from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 
 router = APIRouter(prefix="/load-balancer", tags=["load-balancer"])

@@ -9,8 +9,9 @@
 5. 数据可视化支持
 """
 from datetime import datetime, timedelta
-from typing import List, Dict, Optional
-from sqlalchemy import func, and_
+from typing import List, Dict
+
+from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
@@ -78,7 +79,7 @@ class AnalyticsService:
         # 新增用户数
         new_users_result = await self.db.execute(
             select(func.count(User.id)).filter(
-                User.created_at >= cutoff_date
+                User.date_joined >= cutoff_date
             )
         )
         new_users = new_users_result.scalar()
@@ -205,7 +206,7 @@ class AnalyticsService:
                 Category.name,
                 func.count(Article.id).label('article_count')
             ).join(
-                Article, Article.category_id == Category.id
+                Article, Article.category == Category.id
             ).group_by(
                 Category.name
             ).order_by(
@@ -240,7 +241,7 @@ class AnalyticsService:
 
         # 活跃作者（发布过文章的用户）
         active_authors = await self.db.execute(
-            func.count(func.distinct(Article.author_id))
+            func.count(func.distinct(Article.user))
         ).filter(
             Article.created_at >= cutoff_date
         )
@@ -324,7 +325,6 @@ class AnalyticsService:
         Returns:
             流量来源列表
         """
-        from shared.models.article_view import ArticleView
         from sqlalchemy import select
 
         cutoff_date = datetime.now() - timedelta(days=days)

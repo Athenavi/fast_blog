@@ -5,8 +5,8 @@
 from typing import Optional, Dict, Any, List
 from fastapi import APIRouter, Depends, HTTPException, Query, Body, Header
 
-from shared.services.i18n_service import translation_service
-from api.v1.core.responses import ApiResponse
+from shared.services.translation.translation import translation_service
+from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import jwt_required_dependency as jwt_required, get_current_user
 
 router = APIRouter(prefix="/i18n", tags=["i18n"])

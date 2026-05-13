@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, Query, Body
 from sqlalchemy import select, desc, func, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.v1.core.responses import ApiResponse
+from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import jwt_required
 from src.utils.database.main import get_async_session
 

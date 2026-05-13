@@ -13,9 +13,9 @@ from shared.models.article import Article
 from shared.models.article_like import ArticleLike
 from shared.models.search_history import SearchHistory
 from shared.models.user import User
-from src.api.v1.user_settings import confirm_email_back
 from src.api.v1.user_utils.user_entities import get_avatar
 from src.api.v1.user_utils.user_profile import get_user_info
+from src.api.v1.users.user_settings import confirm_email_back
 from src.api.v1.utils.article_utils import check_apw_form, get_apw_form
 from src.auth import jwt_required_dependency as jwt_required, admin_required_api as admin_required
 from src.extensions import cache

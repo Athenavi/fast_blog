@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 
-from shared.services.plugin_manager.version_utils import check_version_match
+from shared.services.plugins.plugin_manager import check_version_match
 
 
 class PluginDependencyManager:

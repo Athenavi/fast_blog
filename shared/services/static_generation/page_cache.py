@@ -9,7 +9,7 @@
 import hashlib
 from typing import Optional, Dict, Any, Callable, Awaitable
 
-from shared.services.multi_level_cache import MultiLevelCache, multi_level_cache
+from shared.services.core.multi_level_cache import MultiLevelCache, multi_level_cache
 
 
 class PageCacheService:

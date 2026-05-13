@@ -6,8 +6,8 @@
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.services.database_url_replacer import database_url_replacer
-from api.v1.core.responses import ApiResponse
+from shared.services.system.database_url_replacer import database_url_replacer
+from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import admin_required as admin_required_api
 from src.extensions import get_async_db_session as get_async_db
 

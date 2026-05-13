@@ -6,7 +6,7 @@
 from fastapi import APIRouter, Depends, Query
 
 from shared.services.performance.code_splitting_service import code_splitting_optimizer
-from api.v1.core.responses import ApiResponse
+from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import admin_required
 
 router = APIRouter(prefix="/code-splitting", tags=["code-splitting"])

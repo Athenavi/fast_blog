@@ -10,6 +10,8 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
+from api.v1.core.openapi_examples import ARTICLE_LIST_EXAMPLE, ERROR_RESPONSE_EXAMPLE, ARTICLE_DETAIL_EXAMPLE, \
+    ARTICLE_CREATE_EXAMPLE
 from shared.models.article import Article
 from shared.models.article_content import ArticleContent
 from shared.models.article_i18n import ArticleI18n
@@ -17,12 +19,12 @@ from shared.models.article_revision import ArticleRevision
 from shared.models.category import Category
 from shared.models.user import User
 from shared.models.vip_plan import VIPPlan
-from shared.services.api_embed import APIEmbedService
-from shared.services.article_manager import article_query_service, password_protection_service
-from shared.services.shortcode_service import shortcode_service
-from src.api.v1.openapi_examples import ARTICLE_LIST_EXAMPLE, ARTICLE_DETAIL_EXAMPLE, ARTICLE_CREATE_EXAMPLE, \
-    ERROR_RESPONSE_EXAMPLE
-from api.v1.core.responses import ApiResponse
+from shared.services.articles.article_manager import article_query_service, password_protection_service, \
+    save_article_revision
+from shared.services.content_management.shortcode_service import shortcode_service
+from shared.services.core.api_embed import APIEmbedService
+from shared.services.notifications import webhook_service
+from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import jwt_optional_dependency, jwt_required_dependency as jwt_required
 from src.setting import app_config
 from src.utils.database.main import get_async_session
@@ -664,7 +666,7 @@ async def create_article_api(
 
         # 修订记录
         if form_data.get('create_revision', 'true').lower() in ('true', '1', 'yes'):
-            from shared.services.article_manager import save_article_revision
+
             try:
                 await save_article_revision(
                     db=db,
@@ -679,7 +681,7 @@ async def create_article_api(
 
         # 触发 Webhook 事件
         try:
-            from shared.services.webhook_service import webhook_service
+
             webhook_service.trigger_event(
                 'article.created',
                 {
@@ -790,7 +792,7 @@ async def update_article_api(
 
         # 修订记录
         if form_data.get('create_revision', 'true').lower() in ('true', '1', 'yes'):
-            from shared.services.article_manager import save_article_revision
+
             try:
                 await save_article_revision(
                     db=db,
@@ -805,7 +807,7 @@ async def update_article_api(
 
         # 触发 Webhook 事件
         try:
-            from shared.services.webhook_service import webhook_service
+
             webhook_service.trigger_event(
                 'article.updated',
                 {
@@ -860,7 +862,7 @@ async def delete_article_api(
 
         # 触发 Webhook 事件
         try:
-            from shared.services.webhook_service import webhook_service
+
             webhook_service.trigger_event(
                 'article.deleted',
                 {

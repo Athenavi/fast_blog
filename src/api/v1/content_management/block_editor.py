@@ -8,8 +8,8 @@ from typing import Dict, Any, List, Optional
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from shared.services.block_editor_extensions import create_extensions
-from shared.services.block_editor_service import block_editor_service
+from shared.services.content_management.block_editor_extensions import create_extensions
+from shared.services.content_management.block_editor_service import block_editor_service
 
 # 创建扩展服务实例
 block_extensions = create_extensions(block_editor_service)

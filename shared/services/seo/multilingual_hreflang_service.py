@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.article_i18n import ArticleI18n
-from shared.services.hreflang_generator import hreflang_generator
+from shared.services.seo.hreflang_generator import hreflang_generator
 
 
 class MultilingualHreflangService:

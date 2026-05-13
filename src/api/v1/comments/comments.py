@@ -10,9 +10,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.comment import Comment
 from shared.services.comments.comment_manager import comment_like_service, comment_notification_service
+from shared.services.notifications import webhook_service
+from shared.services.plugins.plugin_manager import trigger_plugin_event
 from shared.services.security.spam_filter_manager import spam_filter
 from shared.services.users.user_manager import gravatar_service
-from api.v1.core.responses import ApiResponse
+from src.api.v1.core.responses import ApiResponse
 from src.auth import jwt_required_dependency as jwt_required
 from src.auth.auth_deps import jwt_optional_dependency
 from src.extensions import get_async_db_session as get_async_db
@@ -170,7 +172,6 @@ async def create_comment(
 
                 # 触发关注插件的评论事件
                 try:
-                    from shared.services.plugin_manager.init import trigger_plugin_event
                     commenter_id = current_user.id if current_user else None
                     if commenter_id and article:
                         await trigger_plugin_event('comment_created', {
@@ -248,7 +249,6 @@ async def create_comment(
 
         # 触发 Webhook 事件
         try:
-            from shared.services.webhook_service import webhook_service
             webhook_service.trigger_event(
                 'comment.created',
                 {
@@ -480,7 +480,6 @@ async def delete_comment(
 
         # 触发 Webhook 事件
         try:
-            from shared.services.webhook_service import webhook_service
             webhook_service.trigger_event(
                 'comment.deleted',
                 {

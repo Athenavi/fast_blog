@@ -21,7 +21,7 @@ from shared.models.user import User as UserModel
 from shared.models.vip_subscription import VIPSubscription
 # 注意：避免在此处直接导入 article_service，防止循环依赖
 # article_service 的导入已移至使用位置
-from api.v1.core.responses import ApiResponse
+from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import admin_required as admin_required_api, jwt_required_dependency as jwt_required, \
     get_current_active_user
 from src.extensions import get_async_db_session as get_async_db

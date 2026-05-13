@@ -12,11 +12,10 @@ Meilisearch 全文搜索引擎集成服务
 """
 import hashlib
 import logging
-from typing import List, Dict, Optional, Any
 from datetime import datetime
+from typing import List, Dict, Optional, Any
 
 from meilisearch_python_sdk import Client
-from meilisearch_python_sdk.models.settings import MeiliSearchIndexSettings
 
 logger = logging.getLogger(__name__)
 

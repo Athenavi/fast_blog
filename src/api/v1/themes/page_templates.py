@@ -6,8 +6,8 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Path, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.services.page_template_service import page_template_service
-from api.v1.core.responses import ApiResponse
+from shared.services.themes.page_template_service import page_template_service
+from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 from src.utils.database.main import get_async_session
 

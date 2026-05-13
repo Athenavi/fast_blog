@@ -8,7 +8,7 @@ from typing import Dict, List
 from fastapi import APIRouter, HTTPException, UploadFile, File
 from pydantic import BaseModel
 
-from shared.services.ipfs_service import ipfs_service
+from shared.services.integrations.ipfs_service import ipfs_service
 
 router = APIRouter(prefix="/ipfs", tags=["IPFS"])
 

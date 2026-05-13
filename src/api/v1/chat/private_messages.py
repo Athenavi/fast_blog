@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.models.private_message import PrivateMessage
 from shared.models.user import User
 from shared.models.user_block import UserBlock
-from api.v1.core.responses import ApiResponse
+from src.api.v1.core.responses import ApiResponse
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 
@@ -49,14 +49,14 @@ async def send_private_message(
             return ApiResponse(success=False, error="接收者不存在")
 
         # 不能给自己发消息
-        if recipient_id == current_user_id:
+        if recipient_id == current_user.id:
             return ApiResponse(success=False, error="不能给自己发送消息")
 
         # 检查是否被对方屏蔽
         block_check_query = select(UserBlock).where(
             and_(
                 UserBlock.blocker == recipient_id,
-                UserBlock.blocked_user == current_user_id
+                UserBlock.blocked_user == current_user.id
             )
         )
         block_check_result = await db.execute(block_check_query)
@@ -68,7 +68,7 @@ async def send_private_message(
         # 检查是否屏蔽了对方
         my_block_query = select(UserBlock).where(
             and_(
-                UserBlock.blocker == current_user_id,
+                UserBlock.blocker == current_user.id,
                 UserBlock.blocked_user == recipient_id
             )
         )
@@ -84,12 +84,12 @@ async def send_private_message(
                 PrivateMessage.id == parent_message_id,
                 or_(
                     and_(
-                        PrivateMessage.sender == current_user_id,
+                        PrivateMessage.sender == current_user.id,
                         PrivateMessage.recipient == recipient_id
                     ),
                     and_(
                         PrivateMessage.sender == recipient_id,
-                        PrivateMessage.recipient == current_user_id
+                        PrivateMessage.recipient == current_user.id
                     )
                 )
             )
@@ -101,7 +101,7 @@ async def send_private_message(
 
         # 创建新消息
         new_message = PrivateMessage(
-            sender=current_user_id,
+            sender=current_user.id,
             recipient=recipient_id,
             content=content,
             message_type=message_type,
@@ -123,7 +123,7 @@ async def send_private_message(
         # notification = {
         #     'type': 'new_message',
         #     'message_id': new_message.id,
-        #     'sender_id': current_user_id,
+        #     'sender_id': current_user.id,
         #     'recipient_id': recipient_id,
         #     'content': content[:100],  # Preview
         #     'created_at': new_message.created_at.isoformat(),
@@ -168,7 +168,7 @@ async def get_conversations(
         subquery = (
             select(
                 func.case(
-                    (PrivateMessage.sender == current_user_id, PrivateMessage.recipient),
+                    (PrivateMessage.sender == current_user.id, PrivateMessage.recipient),
                     else_=PrivateMessage.sender
                 ).label('contact_id'),
                 func.max(PrivateMessage.created_at).label('last_message_time'),
@@ -176,7 +176,7 @@ async def get_conversations(
                     func.case(
                         (and_(
                             PrivateMessage.is_read == False,
-                            PrivateMessage.recipient == current_user_id
+                            PrivateMessage.recipient == current_user.id
                         ), 1),
                         else_=None
                     )
@@ -184,18 +184,18 @@ async def get_conversations(
             )
             .where(
                 or_(
-                    PrivateMessage.sender == current_user_id,
-                    PrivateMessage.recipient == current_user_id
+                    PrivateMessage.sender == current_user.id,
+                    PrivateMessage.recipient == current_user.id
                 ),
                 # 排除被删除的消息
                 func.case(
-                    (PrivateMessage.sender == current_user_id, PrivateMessage.is_deleted_by_sender),
+                    (PrivateMessage.sender == current_user.id, PrivateMessage.is_deleted_by_sender),
                     else_=PrivateMessage.is_deleted_by_recipient
                 ) == False
             )
             .group_by(
                 func.case(
-                    (PrivateMessage.sender == current_user_id, PrivateMessage.recipient),
+                    (PrivateMessage.sender == current_user.id, PrivateMessage.recipient),
                     else_=PrivateMessage.sender
                 )
             )
@@ -284,13 +284,13 @@ async def get_conversation_messages(
             .where(
                 or_(
                     and_(
-                        PrivateMessage.sender == current_user_id,
+                        PrivateMessage.sender == current_user.id,
                         PrivateMessage.recipient == user_id,
                         PrivateMessage.is_deleted_by_sender == False
                     ),
                     and_(
                         PrivateMessage.sender == user_id,
-                        PrivateMessage.recipient == current_user_id,
+                        PrivateMessage.recipient == current_user.id,
                         PrivateMessage.is_deleted_by_recipient == False
                     )
                 )
@@ -310,13 +310,13 @@ async def get_conversation_messages(
             .where(
                 or_(
                     and_(
-                        PrivateMessage.sender == current_user_id,
+                        PrivateMessage.sender == current_user.id,
                         PrivateMessage.recipient == user_id,
                         PrivateMessage.is_deleted_by_sender == False
                     ),
                     and_(
                         PrivateMessage.sender == user_id,
-                        PrivateMessage.recipient == current_user_id,
+                        PrivateMessage.recipient == current_user.id,
                         PrivateMessage.is_deleted_by_recipient == False
                     )
                 )
@@ -328,7 +328,7 @@ async def get_conversation_messages(
         # 标记收到的消息为已读
         unread_messages = [
             msg for msg in messages
-            if msg.recipient == current_user_id and not msg.is_read
+            if msg.recipient == current_user.id and not msg.is_read
         ]
 
         if unread_messages:
@@ -349,7 +349,7 @@ async def get_conversation_messages(
                 "attachment_url": msg.attachment_url,
                 "is_read": msg.is_read,
                 "created_at": msg.created_at.isoformat(),
-                "is_mine": msg.sender == current_user_id
+                "is_mine": msg.sender == current_user.id
             })
 
         # 反转列表,使消息按时间正序排列
@@ -400,11 +400,11 @@ async def delete_message(
             return ApiResponse(success=False, error="消息不存在")
 
         # 验证权限:只能删除自己发送或接收的消息
-        if message.sender != current_user_id and message.recipient != current_user_id:
+        if message.sender != current_user.id and message.recipient != current_user.id:
             return ApiResponse(success=False, error="无权删除此消息")
 
         # 软删除
-        if message.sender == current_user_id:
+        if message.sender == current_user.id:
             message.is_deleted_by_sender = True
         else:
             message.is_deleted_by_recipient = True
@@ -443,7 +443,7 @@ async def recall_message(
             return ApiResponse(success=False, error="消息不存在")
 
         # 只有发送者可以撤回
-        if message.sender != current_user_id:
+        if message.sender != current_user.id:
             return ApiResponse(success=False, error="只有发送者可以撤回消息")
 
         # 检查是否在2分钟内
@@ -464,7 +464,7 @@ async def recall_message(
         # notification = {
         #     'type': 'message_recalled',
         #     'message_id': message_id,
-        #     'sender_id': current_user_id,
+        #     'sender_id': current_user.id,
         #     'recipient_id': message.recipient,
         # }
         # 
@@ -492,7 +492,7 @@ async def get_unread_count(
             select(func.count())
             .select_from(PrivateMessage)
             .where(
-                PrivateMessage.recipient == current_user_id,
+                PrivateMessage.recipient == current_user.id,
                 PrivateMessage.is_read == False,
                 PrivateMessage.is_deleted_by_recipient == False
             )

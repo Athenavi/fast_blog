@@ -4,13 +4,15 @@ Google Analytics 集成 API
 提供 Google Analytics 配置管理和追踪代码生成功能
 """
 from typing import Optional, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException, Query, Body
 
-from shared.services.google_analytics_service import google_analytics_service
-from api.v1.core.responses import ApiResponse
+from fastapi import APIRouter, Depends, Query, Body
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from api.v1.system.multisite import check_admin_permission
+from shared.services.analytics.google_analytics_service import google_analytics_service
+from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
-from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(prefix="/google-analytics", tags=["google-analytics"])
 
@@ -84,7 +86,7 @@ async def create_ga_config(
     """
     try:
         # 检查权限（需要admin权限）
-        from .multisite import check_admin_permission
+
         has_permission = await check_admin_permission(db, current_user.id)
         if not has_permission:
             return ApiResponse(success=False, error="Insufficient permissions")
@@ -137,7 +139,7 @@ async def update_ga_config(
     """
     try:
         # 检查权限
-        from .multisite import check_admin_permission
+
         has_permission = await check_admin_permission(db, current_user.id)
         if not has_permission:
             return ApiResponse(success=False, error="Insufficient permissions")
@@ -176,7 +178,6 @@ async def deactivate_ga_config(
     """
     try:
         # 检查权限
-        from .multisite import check_admin_permission
         has_permission = await check_admin_permission(db, current_user.id)
         if not has_permission:
             return ApiResponse(success=False, error="Insufficient permissions")
@@ -287,7 +288,7 @@ async def get_all_configs(
     """
     try:
         # 检查权限
-        from .multisite import check_admin_permission
+
         has_permission = await check_admin_permission(db, current_user.id)
         if not has_permission:
             return ApiResponse(success=False, error="Insufficient permissions")

@@ -6,8 +6,9 @@
 import logging
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
-from sqlalchemy.ext.asyncio import AsyncSession
+
 from sqlalchemy import func, select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 logger = logging.getLogger(__name__)
 
@@ -41,10 +42,9 @@ class ReportGenerator:
         if not self.db:
             raise ValueError("Database session is required")
 
-        from shared.models.article import Article
-        from shared.models.article_view import ArticleView
-        from shared.models.comment import Comment
-        from shared.models.like import Like
+        from shared.models import Article
+        from shared.models import Comment
+        from shared.models import ArticleLike as Like
 
         now = datetime.now()
         cutoff = now - timedelta(days=days)

@@ -12,7 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.custom_post_type import CustomPostType
-from api.v1.core.responses import ApiResponse
+from src.api.v1.core.responses import ApiResponse
 from src.utils.database.unified_manager import get_db_session
 
 router = APIRouter(tags=["custom-post-types"])

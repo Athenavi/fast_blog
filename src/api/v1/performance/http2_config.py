@@ -6,8 +6,8 @@ HTTP/2 和 HTTP/3 配置 API
 
 from fastapi import APIRouter, Depends, HTTPException, Body
 
-from shared.services.http2_service import http2_service
-from api.v1.core.responses import ApiResponse
+from shared.services.performance.http2_service import http2_service
+from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 
 router = APIRouter()

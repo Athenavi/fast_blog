@@ -11,6 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.media import Media
+from shared.services.media.image_tool import image_processor
 from src.utils.upload.public_upload import FileProcessor
 
 logger = logging.getLogger(__name__)
@@ -143,7 +144,6 @@ class BatchUploadService:
             operations: List[str]
     ) -> Dict[str, Any]:
         """处理单个媒体文件"""
-        from shared.services.image_processor import image_processor
         from src.utils.storage.s3_storage import s3_storage
         import json
         

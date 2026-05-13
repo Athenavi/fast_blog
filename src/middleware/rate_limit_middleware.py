@@ -12,7 +12,7 @@ from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
 
-from shared.services.rate_limiter import rate_limiter
+from shared.services.security.rate_limiter import rate_limiter
 
 
 class RateLimitMiddleware(BaseHTTPMiddleware):

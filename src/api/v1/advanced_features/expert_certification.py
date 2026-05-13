@@ -4,10 +4,10 @@
 """
 
 from fastapi import APIRouter, Depends, Query, Body
-from api.v1.core.responses import ApiResponse
 
 from shared.models.user import User as UserModel
-from shared.services.expert_certification_system import expert_certification_system
+from shared.services.advanced_features.expert_certification_system import expert_certification_system
+from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import get_current_active_user, admin_required as admin_required_api
 
 router = APIRouter(prefix="/expert-certification", tags=["expert-certification"])

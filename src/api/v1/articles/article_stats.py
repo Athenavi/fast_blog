@@ -1,12 +1,11 @@
 """
 文章阅读统计 API
 """
-from typing import Optional
 
-from fastapi import APIRouter, Depends, Request, HTTPException
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.services.article_view_stats import article_view_stats
+from shared.services.articles.article_view_stats import article_view_stats
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 

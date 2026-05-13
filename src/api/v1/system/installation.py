@@ -8,9 +8,9 @@ from fastapi import APIRouter, Body
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
-from shared.services.install_manager.installation_wizard import installation_wizard_service
-from shared.services.install_manager.migration_service import migration_service
-from api.v1.core.responses import ApiResponse
+from shared.services.install.install_manager.installation_wizard import installation_wizard_service
+from shared.services.install.install_manager.migration_service import migration_service
+from src.api.v1.core.responses import ApiResponse
 
 router = APIRouter()
 

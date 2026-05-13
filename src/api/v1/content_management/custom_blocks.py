@@ -8,9 +8,9 @@ from typing import Dict, Any, List
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-from shared.services.block_editor_service import block_editor_service
-from shared.services.custom_block_framework import create_plugin_manager
-from shared.services.example_custom_blocks import ExampleBlocksPlugin
+from shared.services.content_management.block_editor_service import block_editor_service
+from shared.services.content_management.custom_block_framework import create_plugin_manager
+from shared.services.content_management.example_custom_blocks import ExampleBlocksPlugin
 
 router = APIRouter(prefix="/custom-blocks", tags=["Custom Blocks"])
 

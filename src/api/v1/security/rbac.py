@@ -2,14 +2,17 @@
 角色权限管理 API
 提供细粒度权限控制、自定义角色、权限继承和审计功能
 """
-from typing import Optional, Dict, Any, List
-from fastapi import APIRouter, Depends, HTTPException, Query, Body
+from typing import Optional, List
 
-from shared.services.rbac_service import rbac_service
-from api.v1.core.responses import ApiResponse
-from src.auth.auth_deps import jwt_required_dependency as jwt_required, get_current_user
-from src.extensions import get_async_db_session as get_async_db
+from fastapi import APIRouter, Depends, Query, Body
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from shared.models import PermissionAuditLog, Role
+from shared.services.security.rbac_service import rbac_service
+from src.api.v1.core.responses import ApiResponse
+from src.auth.auth_deps import jwt_required_dependency as jwt_required
+from src.extensions import get_async_db_session as get_async_db
+from src.utils.security.security import Permission
 
 router = APIRouter(prefix="/rbac", tags=["rbac"])
 
@@ -101,7 +104,6 @@ async def get_roles(
     """
     try:
         from sqlalchemy import select
-        from shared.services.rbac_service import Role
 
         query = select(Role)
         if not include_system:
@@ -162,7 +164,7 @@ async def update_role_permissions(
         role = await db.get(
             rbac_service.__class__.__module__.replace('.rbac_service', '.rbac_service').split('.')[-1] + '.Role',
             role_id)
-        from shared.services.rbac_service import Role
+
         role = await db.get(Role, role_id)
 
         if not role:
@@ -176,7 +178,6 @@ async def update_role_permissions(
 
         # 添加新权限
         from sqlalchemy import select
-        from shared.services.rbac_service import Permission
 
         for code in permission_codes:
             perm_stmt = select(Permission).where(Permission.code == code)
@@ -227,7 +228,6 @@ async def delete_role(
         if not has_permission:
             return ApiResponse(success=False, error="Insufficient permissions")
 
-        from shared.services.rbac_service import Role
         role = await db.get(Role, role_id)
 
         if not role:
@@ -280,7 +280,6 @@ async def get_permissions(
     """
     try:
         from sqlalchemy import select
-        from shared.services.rbac_service import Permission
 
         query = select(Permission).where(Permission.is_active == True)
 
@@ -496,8 +495,6 @@ async def get_audit_logs(
     """
     try:
         from sqlalchemy import select, func
-        from shared.services.rbac_service import PermissionAuditLog
-
         query = select(PermissionAuditLog)
 
         if user_id:

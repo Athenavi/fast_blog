@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.user import User as UserModel
 from shared.services.users.login_security_service import login_security_service
-from api.v1.core.responses import ApiResponse
+from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import get_current_active_user, admin_required as admin_required_api
 from src.extensions import get_async_db_session as get_async_db
 

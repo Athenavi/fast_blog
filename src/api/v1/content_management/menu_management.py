@@ -6,7 +6,7 @@
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.services.menu_service import (
+from shared.services.content_management.menu_service import (
     get_menus_list,
     get_menu_with_items,
     create_menu,
@@ -19,7 +19,7 @@ from shared.services.menu_service import (
     get_available_pages_for_menu,
     get_available_categories_for_menu
 )
-from api.v1.core.responses import ApiResponse
+from src.api.v1.core.responses import ApiResponse
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 

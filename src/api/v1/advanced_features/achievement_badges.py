@@ -5,10 +5,10 @@
 
 from fastapi import APIRouter, Depends, Query, Body
 
-from src.auth.auth_deps import get_current_active_user, admin_required as admin_required_api
 from shared.models.user import User as UserModel
-from api.v1.core.responses import ApiResponse
 from shared.services.advanced_features.achievement_badge_system import achievement_badge_system
+from src.api.v1.core.responses import ApiResponse
+from src.auth.auth_deps import get_current_active_user, admin_required as admin_required_api
 
 router = APIRouter(prefix="/badges", tags=["badges"])
 

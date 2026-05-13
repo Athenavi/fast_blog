@@ -8,8 +8,8 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
 
-from shared.services.performance_monitor import performance_monitor
-from api.v1.core.responses import ApiResponse
+from shared.services.performance.performance_monitor import performance_monitor
+from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 
 router = APIRouter()
@@ -252,7 +252,7 @@ window.addEventListener('load', () => {
         "middleware_integration": {
             "description": "中间件集成 - 自动记录API响应时间",
             "code": '''
-from shared.services.performance_monitor import performance_monitor
+from shared.services.performance.performance_monitor import performance_monitor
 import time
 
 @app.middleware("http")
@@ -277,7 +277,7 @@ async def performance_middleware(request: Request, call_next):
         "database_integration": {
             "description": "数据库集成 - 记录慢查询",
             "code": '''
-from shared.services.performance_monitor import performance_monitor
+from shared.services.performance.performance_monitor import performance_monitor
 
 # 在执行查询时记录
 start_time = time.time()

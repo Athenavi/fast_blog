@@ -3,9 +3,8 @@ Edge Functions API
 """
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
-from typing import Optional
 
-from shared.services.edge_functions import edge_functions_service
+from shared.services.integrations.edge_functions import edge_functions_service
 
 router = APIRouter(prefix="/edge-functions", tags=["edge-functions"])
 

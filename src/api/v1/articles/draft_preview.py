@@ -8,8 +8,8 @@ from fastapi import APIRouter, Depends, Body
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.services.draft_preview_service import draft_preview_service
-from api.v1.core.responses import ApiResponse
+from shared.services.articles.draft_preview_service import draft_preview_service
+from src.api.v1.core.responses import ApiResponse
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 

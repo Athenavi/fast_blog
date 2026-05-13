@@ -4,10 +4,10 @@
 """
 
 from fastapi import APIRouter, Depends, Query, Body
-from api.v1.core.responses import ApiResponse
 
 from shared.models.user import User as UserModel
-from shared.services.personalized_feed_service import personalized_feed_service
+from shared.services.advanced_features.personalized_feed_service import personalized_feed_service
+from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import get_current_active_user
 
 router = APIRouter(prefix="/feed", tags=["feed"])

@@ -6,7 +6,7 @@ from typing import Optional, Dict, Any, List
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
 
 from shared.services.system.multisite_service import multisite_service
-from api.v1.core.responses import ApiResponse
+from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import jwt_required_dependency as jwt_required, get_current_user
 from src.extensions import get_async_db_session as get_async_db
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -686,7 +686,7 @@ async def check_admin_permission(db, user_id: int) -> bool:
         是否有权限
     """
     try:
-        from shared.services.rbac_service import rbac_service
+        from shared.services.security.rbac_service import rbac_service
         return await rbac_service.check_permission(db, user_id, 'settings:update')
     except:
         return False

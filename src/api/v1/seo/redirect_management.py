@@ -4,8 +4,8 @@
 
 from fastapi import APIRouter, Depends, Query
 
-from shared.services.redirect_manager import redirect_manager
-from api.v1.core.responses import ApiResponse
+from shared.services.seo.redirect_manager import redirect_manager
+from src.api.v1.core.responses import ApiResponse
 from src.auth import jwt_required_dependency as jwt_required
 
 router = APIRouter(prefix="/redirects", tags=["redirects"])

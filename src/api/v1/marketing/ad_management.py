@@ -8,9 +8,8 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from shared.models.ad import AdPlacement
 from shared.services.marketing.ad_management_service import AdManagementService
-from src.utils.database import get_db
+from src.extensions import get_db
 
 router = APIRouter(prefix="/ads", tags=["广告管理"])
 

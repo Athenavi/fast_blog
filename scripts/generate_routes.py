@@ -408,7 +408,7 @@ class RouteGenerator:
 
         # 基础导入
         imports.add("from fastapi import APIRouter, Depends, Form, Query, Path")
-        imports.add("from api.v1.core.responses import ApiResponse")
+        imports.add("from src.api.v1.core.responses import ApiResponse")
 
         # 根据端点是否需要认证添加导入
         for endpoint in self.endpoints:

@@ -5,7 +5,8 @@
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.v1.core.responses import ApiResponse
+from shared.services.system.incremental_backup_service import incremental_backup_service
+from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import admin_required as admin_required_api
 from src.extensions import get_async_db_session as get_async_db
 
@@ -26,8 +27,6 @@ async def create_incremental_backup(
         tables: 要备份的表列表（可选，默认全部）
     """
     try:
-        from shared.services.incremental_backup_service import incremental_backup_service
-
         body = await request.json()
         base_backup_id = body.get('base_backup_id')
         tables = body.get('tables')
@@ -81,8 +80,6 @@ async def create_differential_backup(
         tables: 要备份的表列表（可选，默认全部）
     """
     try:
-        from shared.services.incremental_backup_service import incremental_backup_service
-
         body = await request.json()
         base_backup_id = body.get('base_backup_id')
         tables = body.get('tables')
@@ -135,7 +132,6 @@ async def restore_incremental_backup(
         target_backup_id: 目标备份ID
     """
     try:
-        from shared.services.incremental_backup_service import incremental_backup_service
 
         body = await request.json()
         target_backup_id = body.get('target_backup_id')
@@ -191,7 +187,6 @@ async def get_backup_statistics(
     获取备份统计信息
     """
     try:
-        from shared.services.incremental_backup_service import incremental_backup_service
 
         stats = incremental_backup_service.get_backup_statistics()
 
@@ -219,7 +214,6 @@ async def get_backup_chain(
         backup_id: 备份ID
     """
     try:
-        from shared.services.incremental_backup_service import incremental_backup_service
 
         chain = incremental_backup_service.get_backup_chain(backup_id)
 
@@ -269,7 +263,6 @@ async def cleanup_old_backups(
         keep_days: 保留天数（默认30天）
     """
     try:
-        from shared.services.incremental_backup_service import incremental_backup_service
 
         body = await request.json()
         keep_days = body.get('keep_days', 30)

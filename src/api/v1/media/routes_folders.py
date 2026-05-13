@@ -9,8 +9,8 @@ from fastapi import APIRouter, Depends, Query, Body, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.services.media_manager import media_folder_service
-from api.v1.core.responses import ApiResponse
+from shared.services.media.media_manager import media_folder_service
+from src.api.v1.core.responses import ApiResponse
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 

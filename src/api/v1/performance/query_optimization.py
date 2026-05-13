@@ -9,9 +9,9 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.services.query_monitor import query_monitor_service
-from shared.services.query_optimizer import query_optimizer
-from api.v1.core.responses import ApiResponse
+from shared.services.performance.query_monitor import query_monitor_service
+from shared.services.performance.query_optimizer import query_optimizer
+from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 
 router = APIRouter()

@@ -8,8 +8,8 @@ from typing import Optional, Dict, Any, List
 from fastapi import APIRouter, Depends, Query, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.services.email_service_integration import email_service_integration
-from api.v1.core.responses import ApiResponse
+from shared.services.notifications.email_service_integration import email_service_integration
+from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 

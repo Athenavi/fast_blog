@@ -3,14 +3,15 @@ CDN智能分发API端点
 
 提供CDN管理的REST API接口
 """
-from fastapi import APIRouter, Depends, Query, HTTPException, Body, UploadFile, File
-from typing import List
 import tempfile
 from pathlib import Path
+from typing import List
 
-from src.auth.jwt_auth import admin_required
-from shared.services.cdn_distributor import cdn_service
-from src.api.v1.response import ApiResponse
+from fastapi import APIRouter, Depends, Query, Body, UploadFile, File
+
+from api.v1.core.responses import ApiResponse
+from auth import admin_required
+from shared.services.performance.cdn_distributor import cdn_service
 
 router = APIRouter(prefix="/cdn", tags=["CDN Distribution"])
 

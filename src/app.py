@@ -8,7 +8,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import AsyncGenerator
 
-from shared.services.plugin_manager import plugin_hooks
+from shared.services.plugins.plugin_manager import plugin_hooks
 
 # 先设置 Django settings 并初始化
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'django_blog.settings')

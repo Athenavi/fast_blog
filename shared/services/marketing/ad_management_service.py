@@ -8,7 +8,7 @@ from typing import List, Optional, Dict, Any
 from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 
-from shared.models.ad import AdPlacement, Ad, AdClick, AdImpression
+from shared.models import AdPlacement, Ad, AdClick, AdImpression
 
 
 class AdManagementService:

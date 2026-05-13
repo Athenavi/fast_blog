@@ -13,6 +13,7 @@ from typing import Any, Dict, List, Optional
 from sqlalchemy import select, func, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from apps.settings.models import AdminSettings
 from shared.models.article import Article
 from shared.models.comment import Comment
 from shared.models.media import Media
@@ -409,7 +410,6 @@ class GDPRComplianceService:
 
     async def _get_user_settings(self, db: AsyncSession, user_id: int) -> Dict[str, Any]:
         """获取用户设置"""
-        from shared.models.admin_settings import AdminSettings
 
         stmt = select(AdminSettings).where(AdminSettings.user == user_id)
         result = await db.execute(stmt)
@@ -439,7 +439,6 @@ class GDPRComplianceService:
 
     async def _delete_user_settings(self, db: AsyncSession, user_id: int) -> int:
         """删除用户设置"""
-        from shared.models.admin_settings import AdminSettings
 
         stmt = delete(AdminSettings).where(AdminSettings.user == user_id)
         result = await db.execute(stmt)

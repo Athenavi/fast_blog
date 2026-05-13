@@ -8,8 +8,8 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
 
-from shared.services.performance_tracker import performance_tracker
-from api.v1.core.responses import ApiResponse
+from shared.services.performance.performance_tracker import performance_tracker
+from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 
 router = APIRouter()

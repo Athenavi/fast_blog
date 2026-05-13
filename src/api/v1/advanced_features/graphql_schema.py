@@ -68,7 +68,7 @@ class ArticleType:
         from sqlalchemy import select
 
         db = get_async_db_session()
-        stmt = select(ArticleContent).where(ArticleContent.article_id == self.id)
+        stmt = select(ArticleContent).where(ArticleContent.article == self.id)
         result = await db.execute(stmt)
         content_obj = result.scalar_one_or_none()
 
@@ -148,7 +148,7 @@ class Query:
         stmt = select(ArticleModel)
 
         if category_id:
-            stmt = stmt.where(ArticleModel.category_id == category_id)
+            stmt = stmt.where(ArticleModel.category == category_id)
 
         if status:
             stmt = stmt.where(ArticleModel.status == status)

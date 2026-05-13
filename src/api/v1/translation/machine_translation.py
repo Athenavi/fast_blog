@@ -5,7 +5,7 @@
 from fastapi import APIRouter, Depends, Query
 
 from shared.services.translation.translation_manager import machine_translation_service
-from api.v1.core.responses import ApiResponse
+from src.api.v1.core.responses import ApiResponse
 from src.auth import jwt_required_dependency as jwt_required
 
 router = APIRouter(prefix="/machine-translation", tags=["machine-translation"])

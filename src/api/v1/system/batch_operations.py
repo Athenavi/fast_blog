@@ -9,7 +9,7 @@ from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.user import User
-from shared.services.batch_operations import create_batch_service
+from shared.services.system.batch_operations import create_batch_service
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session
 

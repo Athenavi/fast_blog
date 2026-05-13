@@ -3,12 +3,13 @@
 提供系统性能、在线用户、访问量等实时数据
 """
 
-from fastapi import APIRouter, Depends, Query
 from typing import Optional
 
+from fastapi import APIRouter, Depends, Query
+
+from shared.services.analytics.realtime_monitor import realtime_monitor_service
+from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import admin_required as admin_required_api
-from api.v1.core.responses import ApiResponse
-from shared.services.realtime_monitor import realtime_monitor_service
 
 router = APIRouter(prefix="/monitor", tags=["monitoring"])
 

@@ -5,8 +5,8 @@
 from typing import Optional, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
 
-from shared.services.backup_service import backup_service
-from api.v1.core.responses import ApiResponse
+from shared.services.system.backup_service import backup_service
+from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 
 router = APIRouter(prefix="/backup", tags=["backup"])

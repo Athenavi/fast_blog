@@ -7,6 +7,7 @@
 2. 调用相应的函数触发插件钩子
 3. 插件会自动响应这些事件
 """
+from shared.services.plugins.plugin_manager import trigger_plugin_event, apply_plugin_filter
 
 
 # ============ 示例1: 在文章发布时触发事件 ============
@@ -16,7 +17,6 @@ async def example_article_publish(article_data: dict):
     
     在文章成功发布后调用此函数
     """
-    from shared.services.plugin_init import trigger_plugin_event
 
     # 触发文章发布事件
     await trigger_plugin_event('article_published', {
@@ -42,7 +42,6 @@ async def example_article_update(article_data: dict, updated_fields: list):
     
     在文章更新后调用
     """
-    from shared.services.plugin_init import trigger_plugin_event
 
     await trigger_plugin_event('article_updated', {
         'id': article_data.get('id'),
@@ -57,7 +56,6 @@ async def example_article_delete(article_id: int, article_data: dict):
     """
     文章删除示例
     """
-    from shared.services.plugin_init import trigger_plugin_event
 
     await trigger_plugin_event('article_deleted', {
         'id': article_id,
@@ -71,7 +69,6 @@ async def example_user_registered(user_data: dict):
     """
     用户注册示例
     """
-    from shared.services.plugin_init import trigger_plugin_event
 
     await trigger_plugin_event('user_registered', {
         'user_id': user_data.get('id'),
@@ -86,7 +83,6 @@ async def example_login_attempt(ip: str, username: str, success: bool):
     """
     登录尝试示例
     """
-    from shared.services.plugin_init import trigger_plugin_event
 
     await trigger_plugin_event('login_attempt', {
         'ip': ip,
@@ -103,7 +99,6 @@ def example_enhance_search(original_results: dict, query: str) -> dict:
     
     在返回搜索结果前调用,让插件可以增强结果
     """
-    from shared.services.plugin_init import apply_plugin_filter
 
     # 应用搜索过滤器
     enhanced_results = apply_plugin_filter('search_results', original_results, query=query)
@@ -118,7 +113,6 @@ def example_generate_meta_tags(page_type: str, page_data: dict) -> list:
     
     在渲染页面前调用,让SEO插件可以添加元标签
     """
-    from shared.services.plugin_init import apply_plugin_filter
 
     meta_data = {
         'page_type': page_type,
@@ -144,7 +138,6 @@ def example_sanitize_output(content: str) -> str:
     
     在输出用户生成的内容前调用
     """
-    from shared.services.plugin_init import apply_plugin_filter
 
     # 应用输出过滤器(安全插件会清理XSS)
     clean_content = apply_plugin_filter('output_content', content)
@@ -159,7 +152,6 @@ async def example_track_page_view(request_data: dict):
     
     在每个页面请求时调用
     """
-    from shared.services.plugin_init import trigger_plugin_event
 
     await trigger_plugin_event('page_view', {
         'url': request_data.get('url'),
@@ -177,7 +169,6 @@ async def example_media_uploaded(media_data: dict):
     """
     媒体上传示例
     """
-    from shared.services.plugin_init import trigger_plugin_event
 
     await trigger_plugin_event('media_uploaded', {
         'media_id': media_data.get('id'),
@@ -196,7 +187,7 @@ async def example_media_uploaded(media_data: dict):
 1. 在文章创建/发布成功后:
 
 ```python
-from shared.services.plugin_init import trigger_plugin_event
+
 
 @router.post("/articles", ...)
 async def create_article(...):
@@ -227,7 +218,7 @@ async def get_article_detail_api(...):
     # ... 获取文章逻辑 ...
     
     # 追踪页面访问
-    from shared.services.plugin_init import trigger_plugin_event
+    
     await trigger_plugin_event('page_view', {
         'url': f'/p/{article.slug}',
         'title': article.title,
@@ -248,7 +239,7 @@ async def search_articles(...):
     # ... 基础搜索逻辑 ...
     
     # 让插件增强搜索结果
-    from shared.services.plugin_init import apply_plugin_filter
+    
     search_results = apply_plugin_filter('search_results', results, query=search_query)
     
     return ApiResponse(success=True, data=search_results)

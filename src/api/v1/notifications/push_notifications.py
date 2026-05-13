@@ -4,13 +4,14 @@ Web Push 推送通知 API
 """
 
 from typing import Optional, List
-from fastapi import APIRouter, Depends, Query, HTTPException, Body, Request
+
+from fastapi import APIRouter, Depends, HTTPException, Body, Request
 from pydantic import BaseModel
 
-from src.utils.auth import get_current_active_user
 from shared.models.user import User as UserModel
-from api.v1.core.responses import ApiResponse
-from shared.services.web_push_service import web_push_service
+from shared.services.chat.web_push_service import web_push_service
+from src.api.v1.core.responses import ApiResponse
+from src.auth import get_current_active_user
 
 router = APIRouter(prefix="/push", tags=["push-notifications"])
 

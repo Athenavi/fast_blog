@@ -2,7 +2,7 @@
 国际化(i18n)辅助函数 - WordPress风格
 提供便捷的翻译函数,类似WordPress的 __(), _e(), _x() 等
 """
-from shared.services.i18n_service import i18n_service
+from shared.services.translation.translation_manager.i18n_service import i18n_service
 
 
 def __(text: str, domain: str = 'default', language: str = None) -> str:

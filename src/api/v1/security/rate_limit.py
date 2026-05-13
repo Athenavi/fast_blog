@@ -5,8 +5,8 @@ API限流管理 API
 from typing import Optional, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
 
-from shared.services.rate_limiter import rate_limiter
-from api.v1.core.responses import ApiResponse
+from shared.services.security.rate_limiter import rate_limiter
+from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 
 router = APIRouter(prefix="/rate-limit", tags=["rate-limit"])

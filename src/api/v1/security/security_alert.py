@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Body
 
 from shared.services.security.security_alert import security_alert_service, EmailAlertChannel, \
     WebhookAlertChannel
-from api.v1.core.responses import ApiResponse
+from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 
 router = APIRouter()

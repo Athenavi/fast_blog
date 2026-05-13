@@ -4,8 +4,8 @@ Hreflang 标签 API 端点
 
 from fastapi import APIRouter, Depends, Query
 
-from shared.services.hreflang_generator import hreflang_generator
-from api.v1.core.responses import ApiResponse
+from shared.services.seo.hreflang_generator import hreflang_generator
+from src.api.v1.core.responses import ApiResponse
 from src.auth import jwt_required_dependency as jwt_required
 
 router = APIRouter(prefix="/hreflang", tags=["hreflang"])

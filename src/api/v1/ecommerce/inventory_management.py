@@ -9,8 +9,8 @@ from fastapi import APIRouter, Depends, Query, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.user import User
-from shared.services.inventory_service import create_inventory_service
-from api.v1.core.responses import ApiResponse
+from shared.services.ecommerce.inventory_service import create_inventory_service
+from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import jwt_required_dependency as jwt_required, admin_required as admin_required_api
 from src.extensions import get_async_db_session as get_async_db
 

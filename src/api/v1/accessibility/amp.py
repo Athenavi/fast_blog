@@ -9,8 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.models.article import Article
 from shared.models.article_content import ArticleContent
 from shared.models.user import User
-from shared.services.amp_service import amp_service
-from api.v1.core.responses import ApiResponse
+from shared.services.advanced_features.amp_service import amp_service
+from src.api.v1.core.responses import ApiResponse
 from src.extensions import get_async_db_session as get_async_db
 
 router = APIRouter()

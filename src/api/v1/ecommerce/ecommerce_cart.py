@@ -1,14 +1,15 @@
 """
 电子商务 API - 购物车和订单管理
 """
-from typing import Optional
 from datetime import datetime
-from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func
+from typing import Optional
 
-from shared.models import Cart, CartItem, Order, OrderItem, Product, User
-from api.v1.core.responses import ApiResponse
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import select, func
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from shared.models import Cart, CartItem, Order, OrderItem, Product
+from src.api.v1.core.responses import ApiResponse
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 

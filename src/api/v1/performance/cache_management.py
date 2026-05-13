@@ -8,8 +8,8 @@ from typing import Optional, List, Dict, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Body
 
-from shared.services.multi_level_cache import multi_level_cache
-from api.v1.core.responses import ApiResponse
+from shared.services.core.multi_level_cache import multi_level_cache
+from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 
 router = APIRouter()

@@ -3,13 +3,14 @@
 提供积分查询、兑换、排行榜等功能
 """
 
-from fastapi import APIRouter, Depends, Query, Body
 from typing import Optional
 
-from src.auth.auth_deps import get_current_active_user, admin_required as admin_required_api
+from fastapi import APIRouter, Depends, Query, Body
+
 from shared.models.user import User as UserModel
-from api.v1.core.responses import ApiResponse
-from shared.services.points_system import points_system
+from shared.services.advanced_features.points_system import points_system
+from src.api.v1.core.responses import ApiResponse
+from src.auth.auth_deps import get_current_active_user, admin_required as admin_required_api
 
 router = APIRouter(prefix="/points", tags=["points"])
 

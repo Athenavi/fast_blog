@@ -5,6 +5,8 @@
 
 from pathlib import Path
 
+from shared.services.plugins.plugin_manager import plugin_hooks, plugin_manager
+
 
 def initialize_plugins():
     """
@@ -13,8 +15,6 @@ def initialize_plugins():
     在应用启动时调用此函数来加载所有插件
     """
     try:
-        from shared.services.plugin_manager.core import plugin_manager
-
         print("[PluginSystem] Initializing plugin system...")
 
         # 确保插件目录存在
@@ -54,8 +54,6 @@ async def trigger_plugin_event(event_name: str, *args, **kwargs):
         *args: 位置参数
         **kwargs: 关键字参数
     """
-    from shared.services.plugin_manager.core import plugin_hooks
-
     await plugin_hooks.do_action(event_name, *args, **kwargs)
 
 
@@ -72,6 +70,5 @@ def apply_plugin_filter(filter_name: str, value, *args, **kwargs):
     Returns:
         过滤后的值
     """
-    from shared.services.plugin_manager.core import plugin_hooks
 
     return plugin_hooks.apply_filters(filter_name, value, *args, **kwargs)

@@ -4,8 +4,8 @@
 from fastapi import APIRouter, Depends, Query, Path
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.services.breadcrumb_service import breadcrumb_service
-from api.v1.core.responses import ApiResponse
+from shared.services.seo.breadcrumb_service import breadcrumb_service
+from src.api.v1.core.responses import ApiResponse
 from src.utils.database.main import get_async_session
 
 router = APIRouter()

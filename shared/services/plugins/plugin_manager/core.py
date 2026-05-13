@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Dict, List, Any, Callable, Optional
 
 # 导入 manifest 模块
-from shared.services.plugin_manager.manifest import ManifestValidator, get_capability_description
+from shared.services.plugins.plugin_manager.manifest import ManifestValidator, get_capability_description
 
 # 导入审计日志器
 try:

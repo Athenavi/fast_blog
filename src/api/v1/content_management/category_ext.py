@@ -7,13 +7,13 @@ from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from api.v1.utils.article_utils import get_articles_with_filters
 from shared.models import CategorySubscription
 from shared.models.article import Article
 from shared.models.category import Category
-from api.v1.core.responses import ApiResponse
+from src.api.v1.core.responses import ApiResponse
 from src.auth import jwt_required_dependency as jwt_required
 from src.utils.database.main import get_async_session
-from .utils.article_utils import get_articles_with_filters
 
 router = APIRouter(prefix="/category", tags=["category"])
 

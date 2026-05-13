@@ -3,8 +3,8 @@
 演示如何创建和注册自定义块类型
 """
 
-from shared.services.block_editor_service import BlockType
-from shared.services.custom_block_framework import CustomBlockPlugin
+from shared.services.content_management.block_editor_service import BlockType
+from shared.services.content_management.custom_block_framework import CustomBlockPlugin
 
 
 class ExampleBlocksPlugin(CustomBlockPlugin):

@@ -79,7 +79,7 @@ def create_error_response(success: bool = False, error: str = None, **kwargs):
     Returns:
         dict: 错误响应字典
     """
-    from api.v1.core.responses import ApiResponse
+    from src.api.v1.core.responses import ApiResponse
     
     return ApiResponse(
         success=success,

@@ -10,6 +10,8 @@ import zipfile
 from pathlib import Path
 from typing import Dict, Any, Optional, Tuple, List
 
+from shared.services.plugins.plugin_manager import plugin_dependency_manager
+
 
 class PluginInstaller:
     """
@@ -140,8 +142,6 @@ class PluginInstaller:
             (满足标志, 消息)
         """
         try:
-            from shared.services.plugin_manager.dependency import plugin_dependency_manager
-
             plugin_slug = metadata.get('slug', '')
             result = plugin_dependency_manager.check_dependencies(
                 plugin_slug,
@@ -171,7 +171,6 @@ class PluginInstaller:
             (兼容标志, 消息)
         """
         try:
-            from shared.services.plugin_manager.dependency import plugin_dependency_manager
             from pathlib import Path
 
             # 读取当前平台版本

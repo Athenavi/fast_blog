@@ -5,9 +5,9 @@
 
 from fastapi import APIRouter, Depends, Body
 
-from api.v1.core.responses import ApiResponse
+from shared.services.performance.lazy_load_service import lazy_load_optimizer
+from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import admin_required
-from shared.services.lazy_load_service import lazy_load_optimizer
 
 router = APIRouter(prefix="/lazy-load", tags=["lazy-load"])
 

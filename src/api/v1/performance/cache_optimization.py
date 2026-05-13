@@ -7,8 +7,8 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, Body
 
-from shared.services.enhanced_cache_strategy import enhanced_cache
-from api.v1.core.responses import ApiResponse
+from shared.services.core.enhanced_cache_strategy import enhanced_cache
+from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import admin_required
 
 router = APIRouter(prefix="/cache", tags=["cache"])

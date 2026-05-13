@@ -2,7 +2,6 @@
 封面图片API路由
 提供封面图片的生成和管理功能
 """
-import logging
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,7 +10,7 @@ from shared.models.file_hash import FileHash
 from shared.models.media import Media
 from shared.services.articles.cover_image_service import cover_image_service
 from shared.utils.logger import get_logger
-from api.v1.core.responses import ApiResponse
+from src.api.v1.core.responses import ApiResponse
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 

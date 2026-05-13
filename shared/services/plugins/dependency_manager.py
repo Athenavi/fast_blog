@@ -6,7 +6,7 @@
 from pathlib import Path
 from typing import Dict, Any, List, Set, Tuple
 
-from shared.services.plugin_marketplace import plugin_marketplace
+from shared.services.plugins.plugin_manager.marketplace import plugin_marketplace
 
 
 class DependencyManager:

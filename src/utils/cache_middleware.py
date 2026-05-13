@@ -7,7 +7,7 @@ from typing import Callable
 from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from shared.services.cache_service import cache_service
+from shared.services.core.cache_service import cache_service
 
 
 class CacheMiddleware(BaseHTTPMiddleware):

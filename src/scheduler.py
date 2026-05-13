@@ -5,7 +5,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 
-from shared.services.backup_manager import BackupService
+from shared.services.system.backup_manager import BackupService
 
 # 配置日志
 logging.basicConfig()
@@ -59,7 +59,6 @@ class SessionScheduler:
         async def sync_article_views_to_db():
             """使用新的 ArticleViewStatsService 同步文章浏览量"""
             try:
-                from shared.services.article_view_stats import article_view_stats
                 from src.utils.database.unified_manager import db_manager
 
                 # 使用 async with 正确管理数据库会话
