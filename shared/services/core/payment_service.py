@@ -72,7 +72,7 @@ class PaymentService:
                 currency=currency.lower(),
                 metadata={
                     'order_id': order.id,
-                    'customer_email': order.email or '',
+                    'user_id': order.user_id or '',
                     **(metadata or {})
                 },
                 description=f"Order #{order.id}"

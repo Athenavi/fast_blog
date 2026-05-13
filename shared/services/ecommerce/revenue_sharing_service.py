@@ -7,7 +7,7 @@ from typing import List, Optional, Dict, Any
 
 from sqlalchemy.orm import Session
 
-from shared.models import RevenueSharingConfig, UserRevenueStats, PayoutRequest
+from shared.models import RevenueSharingConfig, UserRevenueStats, PayoutRequest, RevenueRecord
 
 
 class RevenueSharingService:
@@ -18,7 +18,7 @@ class RevenueSharingService:
 
     # ==================== 分成配置管理 ====================
 
-    def create_sharing_config(self, revenue_type: RevenueType,
+    def create_sharing_config(self, revenue_type: str,
                               platform_percentage: float = 30.0,
                               creator_percentage: float = 70.0,
                               min_payout_amount: float = 100.0,
@@ -37,13 +37,13 @@ class RevenueSharingService:
         self.db.refresh(config)
         return config
 
-    def get_sharing_config(self, revenue_type: RevenueType) -> Optional[RevenueSharingConfig]:
+    def get_sharing_config(self, revenue_type: str) -> Optional[RevenueSharingConfig]:
         """获取分成配置"""
         return self.db.query(RevenueSharingConfig).filter(
             RevenueSharingConfig.revenue_type == revenue_type
         ).first()
 
-    def update_sharing_config(self, revenue_type: RevenueType, **kwargs) -> Optional[RevenueSharingConfig]:
+    def update_sharing_config(self, revenue_type: str, **kwargs) -> Optional[RevenueSharingConfig]:
         """更新分成配置"""
         config = self.get_sharing_config(revenue_type)
         if not config:
@@ -60,7 +60,7 @@ class RevenueSharingService:
 
     # ==================== 收益记录管理 ====================
 
-    def record_revenue(self, user_id: int, revenue_type: RevenueType,
+    def record_revenue(self, user_id: int, revenue_type: str,
                        amount: float, description: str = None,
                        reference_id: int = None, reference_type: str = None) -> RevenueRecord:
         """记录收益"""
@@ -108,7 +108,7 @@ class RevenueSharingService:
         return record
 
     def list_user_revenues(self, user_id: int,
-                           revenue_type: RevenueType = None,
+                           revenue_type: str = None,
                            status: str = None,
                            skip: int = 0, limit: int = 100) -> List[RevenueRecord]:
         """获取用户收益列表"""
@@ -210,7 +210,7 @@ class RevenueSharingService:
             raise ValueError("可用余额不足")
 
         # 检查最低提现金额
-        config = self.get_sharing_config(RevenueType.ADVERTISEMENT)
+        config = self.get_sharing_config('advertisement')
         min_amount = config.min_payout_amount if config else 100.0
         if amount < min_amount:
             raise ValueError(f"提现金额不能低于 {min_amount}")
