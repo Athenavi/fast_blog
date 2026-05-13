@@ -12,7 +12,7 @@ from typing import Dict, List, Optional
 
 from PIL import Image
 
-from django_blog.settings import MEDIA_ROOT
+from updater.updater import base_dir
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +37,7 @@ class ImageVersionManager:
     """
 
     def __init__(self):
-        self.media_root = MEDIA_ROOT
+        self.media_root = base_dir / 'media'
 
     def generate_versions(
             self,

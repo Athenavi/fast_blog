@@ -10,7 +10,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from apps.user.models import User
+from shared.models import User
 from shared.models.article import Article
 from shared.models.article_seo import ArticleSEO
 from src.auth import jwt_required_dependency as jwt_required

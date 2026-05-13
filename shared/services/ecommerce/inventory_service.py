@@ -9,7 +9,7 @@ import logging
 from datetime import datetime
 from typing import Dict, List
 
-from sqlalchemy import select, update, func
+from sqlalchemy import select, update, func, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.product import Product

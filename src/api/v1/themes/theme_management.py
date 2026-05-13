@@ -10,10 +10,10 @@ from fastapi import APIRouter, Depends, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.services.themes.theme_manager import theme_manager
-from src.api.v1.core.responses import ApiResponse
 from shared.models.theme import Theme
+from shared.services.themes.theme_manager import theme_manager, theme_installer
 from shared.services.themes.theme_manager.theme_loader import theme_loader
+from src.api.v1.core.responses import ApiResponse
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 

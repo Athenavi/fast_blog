@@ -240,7 +240,7 @@ class PluginInstaller:
                 return False, "插件主文件不存在"
 
             # 更新数据库中的激活状态
-            for db_session in get_sync_db_session():
+            for db_session in get_sync_db():
                 plugin = db_session.query(Plugin).filter(Plugin.slug == plugin_slug).first()
 
                 if not plugin:

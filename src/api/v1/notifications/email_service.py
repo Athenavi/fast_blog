@@ -8,6 +8,7 @@ from typing import Optional, Dict, Any, List
 from fastapi import APIRouter, Depends, Query, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from api.v1.system.multisite import check_admin_permission
 from shared.services.notifications.email_service_integration import email_service_integration
 from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import jwt_required_dependency as jwt_required

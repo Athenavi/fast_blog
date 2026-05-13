@@ -3,8 +3,8 @@
 """
 
 from fastapi import APIRouter, Depends, Query
-from shared.services.block_pattern_library import block_pattern_library
 
+from shared.services.content_management.block_pattern_library import block_pattern_library
 from src.api.v1.core.responses import ApiResponse
 from src.auth import jwt_required_dependency as jwt_required
 

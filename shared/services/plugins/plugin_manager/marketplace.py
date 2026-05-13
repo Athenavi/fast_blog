@@ -312,7 +312,7 @@ class PluginMarketService:
             from shared.models.plugin import Plugin
             from src.extensions import get_sync_db
 
-            for db_session in get_sync_db_session():
+            for db_session in get_sync_db():
                 plugin = db_session.query(Plugin).filter(Plugin.slug == plugin_slug).first()
                 return plugin.is_active if plugin else False
         except Exception:

@@ -8,10 +8,7 @@ from fastapi import APIRouter, Depends, Request, Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from apps.blog.models import Article
-from apps.category.models import Category
-from apps.media.models import Media
-from apps.user.models import User
+from shared.models import Article, Category, Media, User
 from shared.models.article_i18n import ArticleI18n
 from src.extensions import get_async_db_session as get_async_db
 from src.setting import AppConfig

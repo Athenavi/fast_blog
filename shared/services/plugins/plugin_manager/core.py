@@ -509,7 +509,7 @@ class PluginManager:
 
             print("\n[PluginManager] Loading plugin state from database...")
 
-            for db_session in get_sync_db_session():
+            for db_session in get_sync_db():
                 active_plugins = db_session.query(Plugin).filter(Plugin.is_active == True).all()
                 print(f"[PluginManager] Found {len(active_plugins)} active plugins in database")
 
