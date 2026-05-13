@@ -390,7 +390,7 @@ async def get_approval_stats(
         from datetime import timedelta
         from shared.services.content_approval_service import ApprovalRecord
 
-        cutoff_date = datetime.utcnow() - timedelta(days=days)
+        cutoff_date = datetime.now() - timedelta(days=days)
 
         # 总审批数
         total_query = select(func.count()).select_from(ApprovalRecord).where(

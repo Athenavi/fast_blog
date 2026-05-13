@@ -119,7 +119,7 @@ class AuditLogService:
                 user_agent=user_agent,
                 description=description,
                 details=json.dumps(details, ensure_ascii=False) if details else None,
-                created_at=datetime.utcnow()
+                created_at=datetime.now()
             )
 
             # 添加到数据库
@@ -342,7 +342,7 @@ class AuditLogService:
             days: 保留天数，默认使用实例配置
         """
         retention_days = days or self.retention_days
-        cutoff_date = datetime.utcnow() - timedelta(days=retention_days)
+        cutoff_date = datetime.now() - timedelta(days=retention_days)
 
         try:
             from sqlalchemy import delete

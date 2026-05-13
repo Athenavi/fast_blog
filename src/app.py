@@ -8,6 +8,7 @@ from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import AsyncGenerator
 
+from shared.services.core.scheduler import start_scheduler
 from shared.services.plugins.plugin_manager import plugin_hooks
 
 # 先设置 Django settings 并初始化
@@ -39,7 +40,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # 检查安装状态
     is_installed = False
     try:
-        from shared.services.install_manager import installation_wizard_service
+        from shared.services.install.install_manager import installation_wizard_service
         is_installed = installation_wizard_service.is_installed()
         if not is_installed:
             print("\n" + "=" * 60)
@@ -79,10 +80,9 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # 启动定时发布调度器（仅在系统已安装时）
     if is_installed:
         try:
-            from shared.services.scheduler import init_scheduler as init_publish_scheduler, start_scheduler
-            from src.utils.database.unified_manager import db_manager
+            from src.utils.database.unified_manager import db_manager, init_scheduler
 
-            publish_scheduler = init_publish_scheduler(
+            init_scheduler(
                 db_manager.async_session_factory,
                 check_interval=60  # 每60秒检查一次
             )
@@ -99,7 +99,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         print("[PluginSystem] Starting plugin initialization...")
         print("=" * 60 + "\n")
 
-        from shared.services.plugin_manager import initialize_plugins
+        from shared.services.plugins.plugin_manager import initialize_plugins
         result = initialize_plugins()
 
         if result:
@@ -116,7 +116,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # 启动外部资源下载队列处理器（仅在系统已安装时）
     if is_installed:
         try:
-            from shared.services.download_queue_processor import init_download_processor
+            from shared.services.media.download_queue_processor import init_download_processor
             await init_download_processor()
             print("\n[DownloadQueue] ✅ Download queue processor started")
         except Exception as e:
@@ -133,7 +133,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # 仅在系统已安装时关闭下载队列处理器
     if is_installed:
         try:
-            from shared.services.download_queue_processor import shutdown_download_processor
+            from shared.services.media.download_queue_processor import shutdown_download_processor
             await shutdown_download_processor()
             print("\n[DownloadQueue] ✅ Download queue processor stopped")
         except Exception as e:
@@ -556,7 +556,7 @@ curl -X POST "http://localhost:9421/api/v1/media/upload" \
                         print(f"Request Body: {body.decode('utf-8')}")
                     except Exception as e:
                         print(f"Could not read body: {e}")
-                
+
                 print(f"{'=' * 80}\n")
 
             response = await call_next(request)
@@ -741,7 +741,7 @@ curl -X POST "http://localhost:9421/api/v1/media/upload" \
 
         # 检查插件系统
         try:
-            from shared.services.plugin_manager import plugin_hooks
+            from shared.services.plugins.plugin_manager import plugin_hooks
             plugin_count = len(plugin_hooks.plugins) if hasattr(plugin_hooks, 'plugins') else 0
             health_status["services"]["plugins"] = {
                 "status": "healthy",

@@ -226,7 +226,7 @@ class FullTextSearchPlugin(BasePlugin):
                 result = await session.execute(stmt)
                 index_record = result.scalar_one_or_none()
 
-                now = datetime.utcnow()
+                now = datetime.now()
 
                 if index_record:
                     # 更新现有记录

@@ -89,7 +89,7 @@ async def create_email_config(
     """
     try:
         # 检查权限
-        from .multisite import check_admin_permission
+        
         has_permission = await check_admin_permission(db, current_user.id)
         if not has_permission:
             return ApiResponse(success=False, error="Insufficient permissions")
@@ -144,7 +144,7 @@ async def update_email_config(
     """
     try:
         # 检查权限
-        from .multisite import check_admin_permission
+        
         has_permission = await check_admin_permission(db, current_user.id)
         if not has_permission:
             return ApiResponse(success=False, error="Insufficient permissions")
@@ -183,7 +183,7 @@ async def deactivate_email_config(
     """
     try:
         # 检查权限
-        from .multisite import check_admin_permission
+        
         has_permission = await check_admin_permission(db, current_user.id)
         if not has_permission:
             return ApiResponse(success=False, error="Insufficient permissions")
@@ -320,7 +320,7 @@ async def get_all_configs(
     """
     try:
         # 检查权限
-        from .multisite import check_admin_permission
+        
         has_permission = await check_admin_permission(db, current_user.id)
         if not has_permission:
             return ApiResponse(success=False, error="Insufficient permissions")

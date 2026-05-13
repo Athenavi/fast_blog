@@ -282,7 +282,7 @@ class NotificationIntegrationService:
         """发送通用 Webhook 通知"""
         payload = {
             "message": message,
-            "timestamp": datetime.utcnow().isoformat(),
+            "timestamp": datetime.now().isoformat(),
         }
 
         if title:

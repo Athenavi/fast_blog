@@ -258,7 +258,7 @@ class WordPressImportService:
         }
 
     async def import_to_database(self, parsed_data: Dict[str, Any], db_session, user_mapping: Dict[str, int] = None) -> \
-    Dict[str, Any]:
+            Dict[str, Any]:
         """
         将解析的数据导入数据库
         
@@ -307,24 +307,24 @@ class WordPressImportService:
 
             await db_session.commit()
 
-            # 2. 导入标签
-            for tag_data in parsed_data['tags']:
-                try:
-                    stmt = select(Tag).where(Tag.slug == tag_data['slug'])
-                    result = await db_session.execute(stmt)
-                    existing = result.scalar_one_or_none()
-
-                    if not existing:
-                        tag = Tag(
-                            name=tag_data['name'],
-                            slug=tag_data['slug'],
-                        )
-                        db_session.add(tag)
-                        results['imported_tags'] += 1
-                except Exception as e:
-                    results['errors'].append(f"标签导入失败: {tag_data['name']} - {str(e)}")
-
-            await db_session.commit()
+            # 2. 导入标签 本系统无tags表
+            # for tag_data in parsed_data['tags']:
+            #     try:
+            #         stmt = select(Tag).where(Tag.slug == tag_data['slug'])
+            #         result = await db_session.execute(stmt)
+            #         existing = result.scalar_one_or_none()
+            #
+            #         if not existing:
+            #             tag = Tag(
+            #                 name=tag_data['name'],
+            #                 slug=tag_data['slug'],
+            #             )
+            #             db_session.add(tag)
+            #             results['imported_tags'] += 1
+            #     except Exception as e:
+            #         results['errors'].append(f"标签导入失败: {tag_data['name']} - {str(e)}")
+            #
+            # await db_session.commit()
 
             # 3. 导入文章
             for idx, article_data in enumerate(parsed_data['articles']):
@@ -349,6 +349,7 @@ class WordPressImportService:
                         slug=article_data['slug'],
                         excerpt=article_data['excerpt'][:200] if article_data['excerpt'] else '',
                         status=self._map_status(article_data['status']),
+                        tags_list=article_data['tags'],
                         user=user_id,
                         created_at=article_data['created_at'] or datetime.now(),
                         updated_at=article_data['modified_at'] or datetime.now(),
@@ -373,14 +374,6 @@ class WordPressImportService:
                         category = result.scalar_one_or_none()
                         if category:
                             article.categories.append(category)
-
-                    # 关联标签
-                    for tag_info in article_data['tags']:
-                        stmt = select(Tag).where(Tag.slug == tag_info['slug'])
-                        result = await db_session.execute(stmt)
-                        tag = result.scalar_one_or_none()
-                        if tag:
-                            article.tags.append(tag)
 
                     # 生成 URL 重定向规则
                     old_url = article_data['link']

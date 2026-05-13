@@ -75,7 +75,7 @@ class DownloadQueueProcessor:
         """处理下载队列"""
         try:
             # 检查系统是否已安装
-            from shared.services.install_manager.installation_wizard import installation_wizard_service
+            from shared.services.install.install_manager.installation_wizard import installation_wizard_service
             if not installation_wizard_service.is_installed():
                 logger.debug("System not installed, skipping download queue processing")
                 return

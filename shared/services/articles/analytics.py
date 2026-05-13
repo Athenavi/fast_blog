@@ -104,24 +104,12 @@ class AnalyticsService:
         Returns:
             每日浏览量列表
         """
-        from shared.models.article_view import ArticleView
-        from sqlalchemy import select
+        # TODO: 需要使用一个中间件或者特殊路由来完成浏览量统计
 
         cutoff_date = datetime.now() - timedelta(days=days)
 
         # 按日期分组统计
-        result = await self.db.execute(
-            select(
-                func.date(ArticleView.viewed_at).label('date'),
-                func.count(ArticleView.id).label('views')
-            ).filter(
-                ArticleView.viewed_at >= cutoff_date
-            ).group_by(
-                func.date(ArticleView.viewed_at)
-            ).order_by(
-                func.date(ArticleView.viewed_at)
-            )
-        )
+        result = []
 
         trend_data = []
         for row in result.all():
@@ -155,29 +143,11 @@ class AnalyticsService:
         Returns:
             热门文章列表
         """
-        from shared.models.article import Article
-        from shared.models.article_view import ArticleView
-        from sqlalchemy import select
 
         cutoff_date = datetime.now() - timedelta(days=days)
 
         # 统计每篇文章的浏览量
-        result = await self.db.execute(
-            select(
-                Article.id,
-                Article.title,
-                Article.slug,
-                func.count(ArticleView.id).label('view_count')
-            ).join(
-                ArticleView, Article.id == ArticleView.article_id, isouter=True
-            ).filter(
-                Article.status == 1  # 只统计已发布的文章
-            ).group_by(
-                Article.id, Article.title, Article.slug
-            ).order_by(
-                func.count(ArticleView.id).desc()
-            ).limit(limit)
-        )
+        result = []
 
         popular_articles = []
         for row in result.all():
@@ -277,37 +247,13 @@ class AnalyticsService:
         Returns:
             内容表现数据
         """
-        from shared.models.article import Article
-        from shared.models.article_view import ArticleView
-        from shared.models.comment import Comment
-
         cutoff_date = datetime.now() - timedelta(days=days)
 
         # 平均浏览量
-        avg_views = await self.db.execute(
-            func.avg(
-                func.count(ArticleView.id)
-            )
-        ).join(
-            ArticleView, Article.id == ArticleView.article_id, isouter=True
-        ).filter(
-            Article.created_at >= cutoff_date
-        ).group_by(
-            Article.id
-        )
+        avg_views = []
 
         # 平均评论数
-        avg_comments = await self.db.execute(
-            func.avg(
-                func.count(Comment.id)
-            )
-        ).join(
-            Comment, Article.id == Comment.article_id, isouter=True
-        ).filter(
-            Article.created_at >= cutoff_date
-        ).group_by(
-            Article.id
-        )
+        avg_comments = []
 
         return {
             'avg_views_per_article': round(avg_views.scalar() or 0, 2),
@@ -325,29 +271,16 @@ class AnalyticsService:
         Returns:
             流量来源列表
         """
-        from sqlalchemy import select
 
         cutoff_date = datetime.now() - timedelta(days=days)
 
         # 按引荐来源分组
-        result = await self.db.execute(
-            select(
-                ArticleView.referrer,
-                func.count(ArticleView.id).label('count')
-            ).filter(
-                ArticleView.viewed_at >= cutoff_date,
-                ArticleView.referrer.isnot(None)
-            ).group_by(
-                ArticleView.referrer
-            ).order_by(
-                func.count(ArticleView.id).desc()
-            ).limit(10)
-        )
+        result = []
 
         sources = []
         total_count = 0
         temp_sources = []
-        
+
         for row in result.all():
             count = row.count
             total_count += count
@@ -387,22 +320,11 @@ class AnalyticsService:
         Returns:
             设备分布数据
         """
-        from shared.models.article_view import ArticleView
-        from sqlalchemy import select
 
         cutoff_date = datetime.now() - timedelta(days=days)
 
         # 按设备类型分组
-        result = await self.db.execute(
-            select(
-                ArticleView.device_type,
-                func.count(ArticleView.id).label('count')
-            ).filter(
-                ArticleView.viewed_at >= cutoff_date
-            ).group_by(
-                ArticleView.device_type
-            )
-        )
+        result = []
 
         devices = {}
         total = 0

@@ -77,7 +77,7 @@ async def create_baidu_config(
     """
     try:
         # 检查权限
-        from .multisite import check_admin_permission
+        
         has_permission = await check_admin_permission(db, current_user.id)
         if not has_permission:
             return ApiResponse(success=False, error="Insufficient permissions")
@@ -125,7 +125,7 @@ async def update_baidu_config(
     """
     try:
         # 检查权限
-        from .multisite import check_admin_permission
+        
         has_permission = await check_admin_permission(db, current_user.id)
         if not has_permission:
             return ApiResponse(success=False, error="Insufficient permissions")
@@ -164,7 +164,7 @@ async def deactivate_baidu_config(
     """
     try:
         # 检查权限
-        from .multisite import check_admin_permission
+        
         has_permission = await check_admin_permission(db, current_user.id)
         if not has_permission:
             return ApiResponse(success=False, error="Insufficient permissions")
@@ -241,7 +241,7 @@ async def get_all_configs(
     """
     try:
         # 检查权限
-        from .multisite import check_admin_permission
+        
         has_permission = await check_admin_permission(db, current_user.id)
         if not has_permission:
             return ApiResponse(success=False, error="Insufficient permissions")

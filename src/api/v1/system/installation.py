@@ -353,7 +353,7 @@ async def create_admin_user_api(
             )
 
         # 直接调用内部异步函数
-        from shared.services.install_manager.installation_wizard import installation_wizard_service as wizard
+        from shared.services.install.install_manager.installation_wizard import installation_wizard_service as wizard
 
         # 验证输入
         if not request.username or not request.email or not request.password:

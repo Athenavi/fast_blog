@@ -275,7 +275,7 @@ class RateLimiter:
             'quota_limit': max_requests,
             'remaining': max(max_requests - current_count, 0),
             'window': window,
-            'reset_time': datetime.utcnow() + timedelta(seconds=window)
+            'reset_time': datetime.now() + timedelta(seconds=window)
         }
 
     async def set_custom_limit(self, identifier: str, limit_type: str, requests: int, window: int):

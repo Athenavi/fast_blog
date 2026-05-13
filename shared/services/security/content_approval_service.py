@@ -144,13 +144,13 @@ class ContentApprovalService:
         # 更新审批步骤
         step.action = 'approved'
         step.comment = comment
-        step.reviewed_at = datetime.utcnow()
+        step.reviewed_at = datetime.now()
 
         # 检查是否是最后一级
         if record.current_level >= record.max_level:
             # 所有级别都已通过
             record.status = ApprovalStatus.APPROVED.value
-            record.completed_at = datetime.utcnow()
+            record.completed_at = datetime.now()
         else:
             # 流转到下一级
             record.current_level += 1
@@ -206,11 +206,11 @@ class ContentApprovalService:
         # 更新审批步骤
         step.action = 'rejected'
         step.comment = comment
-        step.reviewed_at = datetime.utcnow()
+        step.reviewed_at = datetime.now()
 
         # 拒绝后直接结束审批
         record.status = ApprovalStatus.REJECTED.value
-        record.completed_at = datetime.utcnow()
+        record.completed_at = datetime.now()
 
         await db.commit()
         await db.refresh(record)
@@ -247,7 +247,7 @@ class ContentApprovalService:
             raise ValueError("Only the applicant can cancel the approval")
 
         record.status = ApprovalStatus.CANCELLED.value
-        record.completed_at = datetime.utcnow()
+        record.completed_at = datetime.now()
 
         await db.commit()
         await db.refresh(record)

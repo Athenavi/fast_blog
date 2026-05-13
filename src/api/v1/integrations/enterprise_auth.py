@@ -8,6 +8,7 @@ from typing import Optional, Dict, Any
 from fastapi import APIRouter, Depends, Query, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from api.v1.system.multisite import check_admin_permission
 from shared.services.integrations.enterprise_auth_service import enterprise_auth_service
 from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
@@ -61,7 +62,6 @@ async def create_saml_config(
 ):
     """创建 SAML 2.0 配置"""
     try:
-        from .multisite import check_admin_permission
         if not await check_admin_permission(db, current_user.id):
             return ApiResponse(success=False, error="Insufficient permissions")
 
@@ -85,7 +85,7 @@ async def update_saml_config(
 ):
     """更新 SAML 配置"""
     try:
-        from .multisite import check_admin_permission
+        
         if not await check_admin_permission(db, current_user.id):
             return ApiResponse(success=False, error="Insufficient permissions")
 
@@ -103,7 +103,7 @@ async def deactivate_saml_config(
 ):
     """停用 SAML 配置"""
     try:
-        from .multisite import check_admin_permission
+        
         if not await check_admin_permission(db, current_user.id):
             return ApiResponse(success=False, error="Insufficient permissions")
 
@@ -156,7 +156,7 @@ async def create_ldap_config(
 ):
     """创建 LDAP 配置"""
     try:
-        from .multisite import check_admin_permission
+        
         if not await check_admin_permission(db, current_user.id):
             return ApiResponse(success=False, error="Insufficient permissions")
 
@@ -179,7 +179,7 @@ async def update_ldap_config(
 ):
     """更新 LDAP 配置"""
     try:
-        from .multisite import check_admin_permission
+        
         if not await check_admin_permission(db, current_user.id):
             return ApiResponse(success=False, error="Insufficient permissions")
 
@@ -197,7 +197,7 @@ async def deactivate_ldap_config(
 ):
     """停用 LDAP 配置"""
     try:
-        from .multisite import check_admin_permission
+        
         if not await check_admin_permission(db, current_user.id):
             return ApiResponse(success=False, error="Insufficient permissions")
 
@@ -215,7 +215,7 @@ async def test_ldap_connection(
 ):
     """测试 LDAP 连接"""
     try:
-        from .multisite import check_admin_permission
+        
         if not await check_admin_permission(db, current_user.id):
             return ApiResponse(success=False, error="Insufficient permissions")
 
@@ -280,7 +280,7 @@ async def create_sso_provider(
 ):
     """创建 SSO 提供商配置"""
     try:
-        from .multisite import check_admin_permission
+        
         if not await check_admin_permission(db, current_user.id):
             return ApiResponse(success=False, error="Insufficient permissions")
 
@@ -304,7 +304,7 @@ async def update_sso_provider(
 ):
     """更新 SSO 提供商配置"""
     try:
-        from .multisite import check_admin_permission
+        
         if not await check_admin_permission(db, current_user.id):
             return ApiResponse(success=False, error="Insufficient permissions")
 
@@ -322,7 +322,7 @@ async def deactivate_sso_provider(
 ):
     """停用 SSO 提供商"""
     try:
-        from .multisite import check_admin_permission
+        
         if not await check_admin_permission(db, current_user.id):
             return ApiResponse(success=False, error="Insufficient permissions")
 

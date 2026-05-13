@@ -35,7 +35,7 @@ async def send_form_notification_email(
         submission_data: 提交数据
     """
     try:
-        from shared.services.email_service import email_service
+        from shared.services.notifications.email_service import email_service
         from datetime import datetime
         
         subject = f"新表单提交: {form_title}"

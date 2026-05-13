@@ -103,9 +103,9 @@ class ExpertCertificationSystem:
 
         # 生成申请ID
         self._app_counter += 1
-        app_id = f"app_{self._app_counter}_{int(datetime.utcnow().timestamp())}"
+        app_id = f"app_{self._app_counter}_{int(datetime.now().timestamp())}"
 
-        now = datetime.utcnow()
+        now = datetime.now()
         application = {
             'application_id': app_id,
             'user_id': user_id,
@@ -146,7 +146,7 @@ class ExpertCertificationSystem:
         if app['status'] != 'pending':
             return False
 
-        now = datetime.utcnow()
+        now = datetime.now()
 
         # 更新申请状态
         app['status'] = 'approved' if approved else 'rejected'
@@ -189,7 +189,7 @@ class ExpertCertificationSystem:
             return None
 
         # 检查是否过期
-        if cert['expires_at'] < datetime.utcnow():
+        if cert['expires_at'] < datetime.now():
             cert['status'] = 'expired'
 
         field_info = self._certification_fields.get(cert['field_id'], {})
@@ -198,7 +198,7 @@ class ExpertCertificationSystem:
             **cert,
             'field_name': field_info.get('name', ''),
             'field_icon': field_info.get('icon', ''),
-            'is_valid': cert['status'] == 'approved' and cert['expires_at'] > datetime.utcnow(),
+            'is_valid': cert['status'] == 'approved' and cert['expires_at'] > datetime.now(),
         }
 
     def is_expert(self, user_id: int, field_id: str = None) -> bool:
@@ -220,7 +220,7 @@ class ExpertCertificationSystem:
         # 检查状态和有效期
         if cert['status'] != 'approved':
             return False
-        if cert['expires_at'] < datetime.utcnow():
+        if cert['expires_at'] < datetime.now():
             return False
 
         # 如果指定了领域，检查是否匹配
@@ -308,7 +308,7 @@ class ExpertCertificationSystem:
         for cert in self._certifications.values():
             if cert['status'] != 'approved':
                 continue
-            if cert['expires_at'] < datetime.utcnow():
+            if cert['expires_at'] < datetime.now():
                 continue
 
             if field_id and cert['field_id'] != field_id:
@@ -347,7 +347,7 @@ class ExpertCertificationSystem:
 
         cert = self._certifications[user_id]
         cert['status'] = 'revoked'
-        cert['revoked_at'] = datetime.utcnow()
+        cert['revoked_at'] = datetime.now()
         cert['revocation_reason'] = reason
 
         logger.info(f"Certification revoked for user {user_id}: {reason}")
@@ -367,13 +367,13 @@ class ExpertCertificationSystem:
 
         active_experts = len([
             c for c in self._certifications.values()
-            if c['status'] == 'approved' and c['expires_at'] > datetime.utcnow()
+            if c['status'] == 'approved' and c['expires_at'] > datetime.now()
         ])
 
         # 按领域统计
         field_distribution = defaultdict(int)
         for cert in self._certifications.values():
-            if cert['status'] == 'approved' and cert['expires_at'] > datetime.utcnow():
+            if cert['status'] == 'approved' and cert['expires_at'] > datetime.now():
                 field_distribution[cert['field_id']] += 1
 
         return {
@@ -400,7 +400,7 @@ class ExpertCertificationSystem:
                 c for c in self._certifications.values()
                 if c['field_id'] == field_id
                    and c['status'] == 'approved'
-                   and c['expires_at'] > datetime.utcnow()
+                   and c['expires_at'] > datetime.now()
             ])
 
             fields.append({

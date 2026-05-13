@@ -7,7 +7,7 @@ from typing import List, Optional, Dict, Any
 
 from sqlalchemy.orm import Session
 
-from shared.models import RevenueSharingConfig
+from shared.models import RevenueSharingConfig, UserRevenueStats, PayoutRequest
 
 
 class RevenueSharingService:
@@ -53,7 +53,7 @@ class RevenueSharingService:
             if hasattr(config, key):
                 setattr(config, key, value)
 
-        config.updated_at = datetime.utcnow()
+        config.updated_at = datetime.now()
         self.db.commit()
         self.db.refresh(config)
         return config
@@ -102,7 +102,7 @@ class RevenueSharingService:
             return None
 
         record.status = 'confirmed'
-        record.updated_at = datetime.utcnow()
+        record.updated_at = datetime.now()
         self.db.commit()
         self.db.refresh(record)
         return record
@@ -142,7 +142,7 @@ class RevenueSharingService:
             stats.total_earnings += earnings
             stats.pending_earnings += earnings
             stats.available_balance += earnings
-            stats.updated_at = datetime.utcnow()
+            stats.updated_at = datetime.now()
 
     def get_user_stats(self, user_id: int) -> Optional[UserRevenueStats]:
         """获取用户收益统计"""
@@ -228,7 +228,7 @@ class RevenueSharingService:
 
         # 冻结相应余额
         stats.available_balance -= amount
-        stats.updated_at = datetime.utcnow()
+        stats.updated_at = datetime.now()
 
         self.db.commit()
         self.db.refresh(payout)
@@ -243,16 +243,16 @@ class RevenueSharingService:
 
         payout.status = 'approved'
         payout.processed_by = admin_id
-        payout.processed_at = datetime.utcnow()
+        payout.processed_at = datetime.now()
         payout.admin_notes = notes
-        payout.updated_at = datetime.utcnow()
+        payout.updated_at = datetime.now()
 
         # 更新用户统计
         stats = self.get_user_stats(payout.user_id)
         stats.total_paid += payout.amount
         stats.pending_earnings -= payout.amount
-        stats.last_payout_at = datetime.utcnow()
-        stats.updated_at = datetime.utcnow()
+        stats.last_payout_at = datetime.now()
+        stats.updated_at = datetime.now()
 
         self.db.commit()
         self.db.refresh(payout)
@@ -270,9 +270,9 @@ class RevenueSharingService:
 
         payout.status = 'completed'
         payout.processed_by = admin_id
-        payout.processed_at = datetime.utcnow()
+        payout.processed_at = datetime.now()
         payout.admin_notes = notes
-        payout.updated_at = datetime.utcnow()
+        payout.updated_at = datetime.now()
 
         self.db.commit()
         self.db.refresh(payout)
@@ -287,14 +287,14 @@ class RevenueSharingService:
 
         payout.status = 'rejected'
         payout.processed_by = admin_id
-        payout.processed_at = datetime.utcnow()
+        payout.processed_at = datetime.now()
         payout.admin_notes = notes
-        payout.updated_at = datetime.utcnow()
+        payout.updated_at = datetime.now()
 
         # 退还余额
         stats = self.get_user_stats(payout.user_id)
         stats.available_balance += payout.amount
-        stats.updated_at = datetime.utcnow()
+        stats.updated_at = datetime.now()
 
         self.db.commit()
         self.db.refresh(payout)

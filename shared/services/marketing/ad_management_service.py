@@ -64,7 +64,7 @@ class AdManagementService:
             if hasattr(placement, key):
                 setattr(placement, key, value)
 
-        placement.updated_at = datetime.utcnow()
+        placement.updated_at = datetime.now()
         self.db.commit()
         self.db.refresh(placement)
         return placement
@@ -125,7 +125,7 @@ class AdManagementService:
 
         if active_only:
             query = query.filter(Ad.is_active == True)
-            now = datetime.utcnow()
+            now = datetime.now()
             query = query.filter(
                 or_(
                     Ad.start_date == None,
@@ -148,7 +148,7 @@ class AdManagementService:
         if not placement or not placement.is_active:
             return []
 
-        now = datetime.utcnow()
+        now = datetime.now()
         query = self.db.query(Ad).filter(
             Ad.placement_id == placement.id,
             Ad.is_active == True,
@@ -196,7 +196,7 @@ class AdManagementService:
             if hasattr(ad, key):
                 setattr(ad, key, value)
 
-        ad.updated_at = datetime.utcnow()
+        ad.updated_at = datetime.now()
         self.db.commit()
         self.db.refresh(ad)
         return ad

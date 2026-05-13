@@ -261,7 +261,7 @@ class ResourceTransferService:
             error_message: Optional[str] = None
     ):
         """更新任务状态"""
-        now = datetime.utcnow()
+        now = datetime.now()
 
         updates = {
             "status": status,
@@ -303,7 +303,7 @@ class ResourceTransferService:
                 total_size=total_size,
                 downloaded_size=downloaded_size,
                 progress=progress,
-                updated_at=datetime.utcnow()
+                updated_at=datetime.now()
             )
         )
         await self.db.commit()

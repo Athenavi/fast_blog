@@ -275,7 +275,7 @@ class CollaborationService:
         task.status = status
 
         if status == 'completed':
-            task.completed_at = datetime.utcnow()
+            task.completed_at = datetime.now()
 
         await db.commit()
         await db.refresh(task)

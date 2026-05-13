@@ -258,7 +258,7 @@ async def retry_task(
                 error_message=None,
                 progress=0,
                 downloaded_size=0,
-                updated_at=datetime.utcnow()
+                updated_at=datetime.now()
             )
         )
         await db.commit()

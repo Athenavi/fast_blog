@@ -214,7 +214,7 @@ async def get_audit_log_stats(
     try:
         from sqlalchemy import func, select
 
-        cutoff_date = datetime.utcnow() - timedelta(days=days)
+        cutoff_date = datetime.now() - timedelta(days=days)
 
         # 总日志数
         total_query = select(func.count()).select_from(AuditLogModel).where(

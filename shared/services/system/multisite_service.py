@@ -388,7 +388,7 @@ class MultiSiteService:
 
         if mapping:
             mapping.sync_mode = sync_mode
-            mapping.last_synced_at = datetime.utcnow()
+            mapping.last_synced_at = datetime.now()
         else:
             mapping = ContentMapping(
                 source_site_id=source_site_id,
