@@ -9,9 +9,7 @@ from fastapi.responses import PlainTextResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from apps.blog.models import Article
-from apps.category.models import Category
-from apps.user.models import User
+from shared.models import User, Article, Category
 from src.extensions import get_async_db_session as get_async_db
 from src.setting import AppConfig
 from src.utils.feed_generator import FeedItem, RSSFeedGenerator

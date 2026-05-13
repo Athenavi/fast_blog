@@ -9,6 +9,8 @@ from typing import Dict, Any, List, Optional, Tuple
 
 from PIL import Image, ExifTags
 
+from shared.models import Media
+
 # 默认缩略图尺寸配置
 DEFAULT_THUMBNAIL_SIZES = [
     ('small', (150, 150)),
@@ -75,7 +77,6 @@ class MediaService:
     def add_tags(self, media_id: int, tags: List[str]) -> bool:
         """为媒体添加标签"""
         try:
-            from apps.media.models import Media
             media = Media.objects.get(id=media_id)
             existing_tags = set(self._parse_tags(media.tags))
             existing_tags.update(tag.strip() for tag in tags if tag.strip())
@@ -89,7 +90,6 @@ class MediaService:
     def remove_tags(self, media_id: int, tags: List[str]) -> bool:
         """移除标签"""
         try:
-            from apps.media.models import Media
             media = Media.objects.get(id=media_id)
             existing_tags = set(self._parse_tags(media.tags))
             tags_to_remove = {tag.strip() for tag in tags}
@@ -104,7 +104,6 @@ class MediaService:
     def get_media_by_tag(self, tag: str) -> List[Dict[str, Any]]:
         """根据标签获取媒体"""
         try:
-            from apps.media.models import Media
 
             # 查询包含该标签的媒体
             medias = Media.objects.filter(tags__icontains=tag)
@@ -117,7 +116,6 @@ class MediaService:
     def get_all_tags(self) -> List[str]:
         """获取所有标签"""
         try:
-            from apps.media.models import Media
             medias = Media.objects.exclude(tags__isnull=True).exclude(tags='')
             all_tags = set()
             for media in medias:
@@ -130,7 +128,6 @@ class MediaService:
     def categorize_media(self, media_id: int, category: str) -> bool:
         """分类媒体"""
         try:
-            from apps.media.models import Media
 
             media = Media.objects.get(id=media_id)
             media.category = category
@@ -148,7 +145,6 @@ class MediaService:
         results = {'success': 0, 'failed': 0, 'errors': []}
 
         try:
-            from apps.media.models import Media
             import os
 
             for media_id in media_ids:

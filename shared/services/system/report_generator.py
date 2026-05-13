@@ -59,11 +59,7 @@ class ReportGenerator:
         total_articles = total_articles_result.scalar() or 0
 
         # 总浏览量
-        total_views_result = await self.db.execute(
-            select(func.count(ArticleView.id)).filter(
-                ArticleView.viewed_at >= cutoff
-            )
-        )
+        total_views_result = []
         total_views = total_views_result.scalar() or 0
 
         # 总点赞数
@@ -87,22 +83,7 @@ class ReportGenerator:
         avg_views = round(total_views / total_articles, 2) if total_articles > 0 else 0
 
         # 热门文章 Top 10
-        popular_result = await self.db.execute(
-            select(
-                Article.id,
-                Article.title,
-                func.count(ArticleView.id).label('view_count')
-            ).join(
-                ArticleView, Article.id == ArticleView.article_id, isouter=True
-            ).filter(
-                Article.created_at >= cutoff,
-                Article.status == 1
-            ).group_by(
-                Article.id, Article.title
-            ).order_by(
-                func.count(ArticleView.id).desc()
-            ).limit(10)
-        )
+        popular_result = []
 
         top_articles = []
         for row in popular_result.all():

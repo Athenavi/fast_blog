@@ -59,16 +59,12 @@ export class MediaService {
         if (params?.per_page) validParams.per_page = params.per_page;
         if (params?.folder_name) validParams.folder_name = params.folder_name;
 
-        // 注意：后端只有 /dashboard/media-management/files 端点，可能不支持所有参数
-        return apiClient.get('/dashboard/media-management/files', Object.keys(validParams).length > 0 ? validParams : undefined);
+        return apiClient.get('/media/files', Object.keys(validParams).length > 0 ? validParams : undefined);
     }
 
     static async deleteMediaFile(fileIdList: string | number[]): Promise<ApiResponse<{ message: string }>> {
-        // 注意：后端可能没有实现删除媒体文件的端点
-        // 暂时抛出错误，需要后端实现后再启用
-        throw new Error('Delete media file API not implemented in backend yet');
-        // const ids = Array.isArray(fileIdList) ? fileIdList.join(',') : fileIdList;
-        // return apiClient.delete(`/media/?file-id-list=${ids}`);
+        const ids = Array.isArray(fileIdList) ? fileIdList.join(',') : fileIdList;
+        return apiClient.delete(`/media/?file-id-list=${ids}`);
     }
 
     static async uploadMediaFile(file: File): Promise<ApiResponse<{ files?: MediaFile[], message?: string }>> {
@@ -126,10 +122,6 @@ export class MediaService {
         // 判断文件大小，决定使用哪种上传方式
         if (file.size <= MediaService.CHUNK_SIZE) {
             // 小文件直接上传
-            // 注意：后端可能没有实现 /media/upload 端点
-            // 暂时抛出错误，需要后端实现后再启用
-            throw new Error('Media upload API not implemented in backend yet. Please implement /api/v2/media/upload endpoint.');
-            /*
             const formData = new FormData();
             formData.append('file', file);
 
@@ -138,12 +130,9 @@ export class MediaService {
                 body: formData,
                 credentials: 'include',
             });
-            */
         } else {
             // 大文件使用分块上传
-            // 注意：后端可能没有实现分块上传端点
-            throw new Error('Chunked upload API not implemented in backend yet.');
-            // return this.chunkedUpload(file, MediaService.CHUNK_SIZE);
+            return this.chunkedUpload(file, MediaService.CHUNK_SIZE);
         }
     }
 
@@ -154,9 +143,6 @@ export class MediaService {
     }>> {
         if (file.size <= MediaService.CHUNK_SIZE) {
             // 小文件直接上传，使用 fetch API 和进度模拟
-            // 注意：后端可能没有实现 /media/upload 端点
-            throw new Error('Media upload API not implemented in backend yet. Please implement /api/v2/media/upload endpoint.');
-            /*
             return new Promise(async (resolve, reject) => {
                 try {
                     // 创建一个模拟进度的函数
@@ -202,12 +188,9 @@ export class MediaService {
                     reject(error);
                 }
             });
-            */
         } else {
             // 大文件使用分块上传，同时报告进度
-            // 注意：后端可能没有实现分块上传端点
-            throw new Error('Chunked upload API not implemented in backend yet.');
-            // return this.chunkedUploadWithProgress(file, MediaService.CHUNK_SIZE, onProgress);
+            return this.chunkedUploadWithProgress(file, MediaService.CHUNK_SIZE, onProgress);
         }
     }
 
@@ -220,7 +203,7 @@ export class MediaService {
         mediaIds: number[],
         folderPath: string | null
     ): Promise<ApiResponse<{ moved_count: number }>> {
-        return apiClient.post('/media/folders/move-media', {
+        return apiClient.post('/media/media/folders/move-media', {
             media_ids: mediaIds,
             folder_path: folderPath
         });
@@ -235,7 +218,7 @@ export class MediaService {
         mediaId: number,
         category: string
     ): Promise<ApiResponse<{ message: string }>> {
-        return apiClient.put(`/media/detail/${mediaId}`, {
+        return apiClient.put(`/media/media/detail/${mediaId}`, {
             category: category
         });
     }
@@ -251,7 +234,7 @@ export class MediaService {
         tags: string[],
         mode: 'replace' | 'add' = 'replace'
     ): Promise<ApiResponse<{ message: string; tags: string[] }>> {
-        return apiClient.post(`/media/${mediaId}/tags`, {
+        return apiClient.post(`/media/media/${mediaId}/tags`, {
             tags: tags,
             mode: mode
         });

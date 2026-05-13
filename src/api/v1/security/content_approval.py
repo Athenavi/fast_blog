@@ -2,14 +2,16 @@
 内容审批 API
 提供多级审批、审批意见、审批历史等功能
 """
-from typing import Optional, Dict, Any, List
-from fastapi import APIRouter, Depends, HTTPException, Query, Body
+from typing import Optional, List
 
-from shared.services.security.content_approval_service import content_approval_service, ApprovalStatus
+from fastapi import APIRouter, Depends, Query, Body
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from shared.models import ApprovalRecord
+from shared.services.security.content_approval_service import content_approval_service
 from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import jwt_required_dependency as jwt_required, get_current_user
 from src.extensions import get_async_db_session as get_async_db
-from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(tags=["approval"])
 
@@ -317,7 +319,6 @@ async def get_my_requests(
     """
     try:
         from sqlalchemy import select, func
-        from shared.services.content_approval_service import ApprovalRecord
 
         query = select(ApprovalRecord).where(
             ApprovalRecord.applicant_id == current_user.id
@@ -388,7 +389,6 @@ async def get_approval_stats(
     try:
         from sqlalchemy import select, func
         from datetime import timedelta
-        from shared.services.content_approval_service import ApprovalRecord
 
         cutoff_date = datetime.now() - timedelta(days=days)
 

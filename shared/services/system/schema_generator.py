@@ -402,16 +402,8 @@ class SchemaGenerator:
         """获取网站名称（可配置）"""
         try:
             # 尝试从系统设置中读取
-            from apps.settings.models import SystemSettings
-            from django.db import connection
-            
-            # 检查 Django 是否已配置
-            if connection.introspection.table_names():
-                setting = SystemSettings.objects.filter(
-                    setting_key='site_name'
-                ).first()
-                if setting and setting.setting_value:
-                    return setting.setting_value
+            from shared.models import SystemSetting
+            return SystemSetting.get_value("site_name")
         except Exception:
             pass
         
