@@ -69,7 +69,7 @@ async def register_function(request: RegisterFunctionRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.delete("/{function_name}")
+@router.delete("/items/{function_name}")
 async def remove_function(function_name: str):
     """
     移除 Edge Function

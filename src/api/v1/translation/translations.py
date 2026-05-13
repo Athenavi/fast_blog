@@ -1,17 +1,16 @@
 """
 翻译管理 API
 """
-from typing import Optional, Dict
+from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel
 
 from shared.services.translation.translation import translation_service
 
 router = APIRouter(tags=["translations"])
 
 
-@router.get("/{locale}/{key}")
+@router.get("/items/{locale}/{key}")
 async def get_translation(
         locale: str,
         key: str,
@@ -43,7 +42,7 @@ async def get_translation(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/{locale}/{key}")
+@router.post("/items/{locale}/{key}")
 async def set_translation(
         locale: str,
         key: str,
@@ -71,7 +70,7 @@ async def set_translation(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/{locale}")
+@router.get("/items/{locale}")
 async def get_all_translations(locale: str):
     """
     获取所有翻译

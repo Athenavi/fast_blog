@@ -84,7 +84,7 @@ async def clear_cache(
         raise HTTPException(status_code=500, detail=f"Cache clear failed: {str(e)}")
 
 
-@router.get("/{key}", summary="获取缓存值", description="从多级缓存中获取指定键的值")
+@router.get("/items/{key}", summary="获取缓存值", description="从多级缓存中获取指定键的值")
 async def get_cache_value(
         key: str,
         current_user=Depends(jwt_required),
@@ -109,7 +109,7 @@ async def get_cache_value(
     )
 
 
-@router.post("/{key}", summary="设置缓存值", description="设置缓存值到所有层级")
+@router.post("/items/{key}", summary="设置缓存值", description="设置缓存值到所有层级")
 async def set_cache_value(
         key: str,
         value: Any = Body(..., description="缓存值"),
@@ -133,7 +133,7 @@ async def set_cache_value(
         raise HTTPException(status_code=500, detail=f"Failed to set cache: {str(e)}")
 
 
-@router.delete("/{key}", summary="删除缓存值", description="从所有缓存层级删除指定键")
+@router.delete("/items/{key}", summary="删除缓存值", description="从所有缓存层级删除指定键")
 async def delete_cache_value(
         key: str,
         current_user=Depends(jwt_required),

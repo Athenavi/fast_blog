@@ -127,34 +127,6 @@ async def delete_redirect(
         return ApiResponse(success=False, error=str(e))
 
 
-@router.get("/test/{url:path}")
-async def test_redirect(
-    url: str,
-    current_user=Depends(jwt_required)
-):
-    """测试URL是否需要重定向"""
-    try:
-        redirect = redirect_manager.test_redirect(url)
-        
-        if redirect:
-            return ApiResponse(
-                success=True,
-                data={
-                    "needs_redirect": True,
-                    "redirect": redirect
-                }
-            )
-        else:
-            return ApiResponse(
-                success=True,
-                data={
-                    "needs_redirect": False
-                }
-            )
-    except Exception as e:
-        return ApiResponse(success=False, error=str(e))
-
-
 @router.post("/bulk-import")
 async def bulk_import_redirects(
     redirects_data: list,
