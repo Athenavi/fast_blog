@@ -13,7 +13,6 @@ from typing import Any, Dict, List, Optional
 from sqlalchemy import select, func, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from apps.settings.models import AdminSettings
 from shared.models.article import Article
 from shared.models.comment import Comment
 from shared.models.media import Media

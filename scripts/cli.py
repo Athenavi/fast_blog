@@ -264,6 +264,7 @@ def cmd_doctor(args):
     env_file = Path(".env")
     if not env_file.exists():
         issues.append(".env file not found. Copy from .env.example")
+        issues.append("OR ：open 前端地址/install to setup init sys")
     else:
         print("✅ .env file exists")
 
@@ -273,12 +274,6 @@ def cmd_doctor(args):
         print(f"✅ FastAPI {fastapi.__version__}")
     except ImportError:
         issues.append("FastAPI not installed")
-
-    try:
-        import django
-        print(f"✅ Django {django.get_version()}")
-    except ImportError:
-        issues.append("Django not installed")
 
     # 检查数据库连接
     print("\n" + "=" * 50)
@@ -662,7 +657,7 @@ def db_restore(args):
 
     print(f"🔄 开始恢复数据库...")
     print(f"   备份文件: {backup_file}")
-    
+
     try:
         import os
 
@@ -728,7 +723,7 @@ def db_restore(args):
 def db_migrate(args):
     """数据库迁移"""
     print("🔄 运行数据库迁移...")
-    
+
     try:
         import sys
         # 使用 Alembic 进行迁移

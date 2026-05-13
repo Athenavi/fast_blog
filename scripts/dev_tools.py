@@ -9,7 +9,7 @@ FastBlog 开发工具脚本
     
 子命令:
     - generate-shared-services: 生成共享服务模块的导入代码
-    - verify-routes: 验证 FastAPI 和 Django Ninja 路由的一致性
+    - verify-routes: 验证 FastAPI 和 Next.jsNinja 路由的一致性
     - check-all-list: 检查 __all__ 列表与导入是否一致
     - check-imports: 检查导入的函数是否存在于源文件中
 """
@@ -74,111 +74,14 @@ class SharedServicesGenerator:
         """生成 __init__.py 文件内容"""
         output = []
         output.append('"""')
-        output.append('共享 API 服务导出模块')
+        output.append('共享 API 服务导出模块（该模块已于V0.2淘汰）')
         output.append('')
-        output.append('该模块导出所有 src/api/v1 中的 API 函数，供 Django Ninja 使用。')
         output.append('这样可以在两个框架之间共享业务逻辑。')
         output.append('"""')
         output.append('')
         output.append('# ============================================================================')
         output.append('# 自动生成的 API 导出 - 根据 routes.yaml 配置')
         output.append('# ============================================================================')
-        output.append('')
-
-        # 模块路径映射
-        known_module_mapping = {
-            'articles': ('src.api.v1.articles', []),
-            'blog': ('src.api.v1.blog', []),
-            'media': ('src.api.v1.media', []),
-            'category_management': ('src.api.v1.category_management', []),
-            'user_management': ('src.api.v1.user_management', []),
-            'dashboard': ('src.api.v1.dashboard', []),
-            'admin_settings': ('src.api.v1.admin_settings', []),
-            'users': ('src.api.v1.users', []),
-            'roles': ('src.api.v1.roles', []),
-            'notifications': ('src.api.v1.notifications', []),
-            'backup': ('src.api.v1.backup', []),
-            'misc': ('src.api.v1.misc', []),
-            'home': ('src.api.v1.home', []),
-            'category_ext': ('src.api.v1.category_ext', []),
-            'comment_config': ('src.api.v1.comment_config', []),
-            'user_settings': ('src.api.v1.user_settings', []),
-            'categories': ('apps.category.views', []),
-            'settings': ('apps.settings.views', []),
-            'user': ('apps.user.views', []),
-            'profile': ('apps.user.views', []),
-            'me': ('apps.user.views', []),
-        }
-
-        # 推断路径
-        module_to_import = {}
-        for module in handlers_by_module.keys():
-            if module in known_module_mapping:
-                module_to_import[module] = known_module_mapping[module]
-            else:
-                module_name_py = module.replace('-', '_')
-                possible_paths = [
-                    f'src.api.v1.{module_name_py}',
-                    f'apps.{module_name_py}.views',
-                ]
-
-                chosen_path = None
-                for path in possible_paths:
-                    path_file = Path(path.replace('.', '/') + '.py')
-                    if path_file.exists():
-                        chosen_path = path
-                        break
-
-                if chosen_path:
-                    module_to_import[module] = (chosen_path, [])
-                else:
-                    print(f"⚠ 警告：模块 '{module}' 的源文件未找到，跳过")
-
-        # 更新 handlers
-        for module, handlers in handlers_by_module.items():
-            if module in module_to_import:
-                module_to_import[module] = (module_to_import[module][0], sorted(handlers))
-
-        # 生成导入代码
-        for module, (import_path, handlers) in sorted(module_to_import.items()):
-            if handlers:
-                output.append(f'\n# {module.replace("_", " ").title()} - {len(handlers)} 个 API')
-                output.append(f'from {import_path} import (')
-                for handler in handlers:
-                    output.append(f'    {handler},')
-                output.append(')')
-
-        output.append('')
-        output.append('# ============================================================================')
-        output.append('# 持续添加更多模块的 API...')
-        output.append('# ============================================================================')
-        output.append('')
-
-        # 生成 __all__
-        output.append('# 防止 IDE 导入优化删除未使用的导入')
-        output.append('__all__ = [')
-
-        all_imported_funcs = []
-        for module, (import_path, handlers) in sorted(module_to_import.items()):
-            if handlers:
-                all_imported_funcs.extend(handlers)
-
-        for func in sorted(all_imported_funcs):
-            output.append(f"    '{func}',")
-
-        output.append(']')
-        output.append('')
-
-        # 日志部分
-        output.append('# 初始化日志 - 标记此模块已被加载')
-        output.append('def _log_module_loaded():')
-        output.append('    """模块加载时的日志记录"""')
-        output.append('    import logging')
-        output.append('    logger = logging.getLogger(__name__)')
-        output.append(f'    logger.debug(f"Shared services module loaded with {{len(__all__)}} APIs")')
-        output.append('')
-        output.append('# 自动记录模块加载')
-        output.append('_log_module_loaded()')
 
         return output
 
@@ -202,7 +105,7 @@ class RouteVerifier:
                     raise
 
     def verify(self):
-        """验证 FastAPI 和 Django Ninja 路由的一致性"""
+        """验证 FastAPI 和 Next.jsNinja 路由的一致性"""
         from dataclasses import dataclass
         from typing import List
 

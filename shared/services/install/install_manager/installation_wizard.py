@@ -408,7 +408,7 @@ class InstallationWizardService:
                                     {
                                         'title': '欢迎使用 FastBlog',
                                         'slug': 'welcome-to-fastblog',
-                                        'content': '# 欢迎使用 FastBlog\n\n这是一个基于 FastAPI 和 Django 构建的现代化博客系统。\n\n## 特性\n\n- 🚀 高性能：基于 FastAPI 异步框架\n- 🎨 美观：现代化的 UI 设计\n- 🔌 可扩展：强大的插件系统\n- 📱 响应式：完美支持移动端\n\n开始你的博客之旅吧！',
+                                        'content': '# 欢迎使用 FastBlog\n\n这是一个基于 FastAPI 和 Next.js构建的现代化博客系统。\n\n## 特性\n\n- 🚀 高性能：基于 FastAPI 异步框架\n- 🎨 美观：现代化的 UI 设计\n- 🔌 可扩展：强大的插件系统\n- 📱 响应式：完美支持移动端\n\n开始你的博客之旅吧！',
                                         'excerpt': '欢迎使用 FastBlog 博客系统',
                                         'status': 1,
                                     },
@@ -616,9 +616,9 @@ class InstallationWizardService:
                 print("[Install] Initializing database manager for admin user creation...")
                 unified_db_manager.initialize()
 
-            # 使用 Django 的密码哈希函数（与项目其他地方保持一致）
-            from django.contrib.auth.hashers import make_password
-            hashed_password = make_password(password)
+            # 使用 Argon2 密码哈希函数
+            from src.utils.security.password_validator import hash_password
+            hashed_password = hash_password(password)
 
             async def _create_user():
                 # 使用统一管理器获取会话

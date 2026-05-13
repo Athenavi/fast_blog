@@ -198,10 +198,8 @@ ROUTE_REGISTRY = [
     ("src.api.v1.themes.theme_customizer", "/api/v1", ["theme-customizer"], False),
     ("src.api.v1.themes.theme_management", "/api/v1", ["theme-management"], False),
     ("src.api.v1.translation.i18n", "/api/v1", ["i18n"], False),
-    ("src.api.v1.translation.translation_io", "/api/v1", ["translation-io"], False),
-    ("src.api.v1.translation.translation_progress", "/api/v1", ["translation-progress"], False),
-    ("src.api.v1.translation.translation_service", "/api/v1", ["translation-service"], False),
-    ("src.api.v1.translation.translations", "/api/v1", ["translations"], False),
+    # translation_io, translation_progress, translation_service moved after user_management
+    # due to wildcard routes /{locale}/{key}
     ("src.api.v1.user_utils", "/api/v1", ["user-utils"], False),
     ("src.api.v1.user_utils.vip", "/api/v1", ["vip"], False),
     ("src.api.v1.users.user_blocks", "/api/v1", ["user-blocks"], False),
@@ -212,6 +210,11 @@ ROUTE_REGISTRY = [
     ("src.api.v1.utils.payment", "/api/v1", ["payment"], False),
     # Wildcard route modules must be registered last
     ("src.api.v1.advanced_features.edge_functions", "/api/v1", ["edge-functions"], False),
+    # Translation modules with wildcard routes /{locale}/{key}
+    ("src.api.v1.translation.translation_io", "/api/v1", ["translation-io"], False),
+    ("src.api.v1.translation.translation_progress", "/api/v1", ["translation-progress"], False),
+    ("src.api.v1.translation.translation_service", "/api/v1", ["translation-service"], False),
+    ("src.api.v1.translation.translations", "/api/v1", ["translations"], False),
 ]
 
 

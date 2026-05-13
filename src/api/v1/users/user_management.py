@@ -73,7 +73,7 @@ async def authenticate_user_with_session(
     Returns:
         验证成功返回用户对象，否则返回 None
     """
-    from django.contrib.auth.hashers import check_password as django_check_password
+    from src.utils.security.password_validator import verify_password
     
     # 尝试通过用户名或邮箱查找用户
     result = await db.execute(
@@ -85,9 +85,9 @@ async def authenticate_user_with_session(
     
     if not user or not user.password:
         return None
-    
-    # 使用 Django 的密码验证函数
-    if django_check_password(password, user.password):
+
+    # 使用统一的密码验证函数（支持 Django PBKDF2 和 bcrypt）
+    if verify_password(password, user.password):
         return user
     
     return None

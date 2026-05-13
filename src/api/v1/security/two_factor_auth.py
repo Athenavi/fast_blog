@@ -6,11 +6,11 @@ from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.api.v1.core.responses import ApiResponse
-from src.api.v1.users.user_management import create_jwt_token
 from shared.services.users.login_security_service import login_security_service
 from shared.services.users.session_management_service import session_management_service
 from shared.services.users.two_factor_auth import two_factor_auth
+from src.api.v1.core.responses import ApiResponse
+from src.api.v1.users.user_management import create_jwt_token
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 
@@ -28,7 +28,7 @@ class Verify2FALoginRequest(BaseModel):
     token: str  # TOTP或备用码
 
 
-@router.get("/2fa/setup")
+@router.get("/setup")
 async def setup_2fa(
         request: Request,
         db: AsyncSession = Depends(get_async_db),
@@ -91,7 +91,7 @@ async def setup_2fa(
         return ApiResponse(success=False, error=f"设置2FA失败: {str(e)}")
 
 
-@router.post("/2fa/enable")
+@router.post("/enable")
 async def enable_2fa(
         request_data: Enable2FARequest,
         db: AsyncSession = Depends(get_async_db),
@@ -152,7 +152,7 @@ async def enable_2fa(
         return ApiResponse(success=False, error=f"启用2FA失败: {str(e)}")
 
 
-@router.post("/2fa/disable")
+@router.post("/disable")
 async def disable_2fa(
         db: AsyncSession = Depends(get_async_db),
         current_user=Depends(jwt_required)
@@ -189,7 +189,7 @@ async def disable_2fa(
         return ApiResponse(success=False, error=f"禁用2FA失败: {str(e)}")
 
 
-@router.post("/2fa/verify-login")
+@router.post("/verify-login")
 async def verify_2fa_login(
         request: Request,
         request_data: Verify2FALoginRequest,
@@ -313,7 +313,7 @@ async def verify_2fa_login(
         return ApiResponse(success=False, error=f"2FA验证失败: {str(e)}")
 
 
-@router.post("/2fa/backup-codes/regenerate")
+@router.post("/backup-codes/regenerate")
 async def regenerate_backup_codes(
         db: AsyncSession = Depends(get_async_db),
         current_user=Depends(jwt_required)
@@ -359,7 +359,7 @@ async def regenerate_backup_codes(
         return ApiResponse(success=False, error=f"重新生成备用码失败: {str(e)}")
 
 
-@router.get("/2fa/status")
+@router.get("/status")
 async def get_2fa_status(
         db: AsyncSession = Depends(get_async_db),
         current_user=Depends(jwt_required)

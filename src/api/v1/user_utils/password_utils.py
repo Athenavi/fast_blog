@@ -81,11 +81,11 @@ async def update_password(user_id: int, new_password: str, confirm_password: str
         # 验证新密码和确认密码是否一致，并且长度是否符合要求
         if new_password == confirm_password and len(new_password) >= 6:
             try:
-                # 使用 Django 的密码哈希函数
-                from django.contrib.auth.hashers import make_password
+                # 使用统一的密码哈希函数
+                from src.utils.security.password_validator import hash_password
                 from datetime import datetime
-                
-                user.password = make_password(new_password)
+
+                user.password = hash_password(new_password)
                 
                 # 创建通知（使用不带时区的时间，匹配数据库 TIMESTAMP WITHOUT TIME ZONE）
                 now = datetime.now()
@@ -162,9 +162,9 @@ async def validate_password_async(user_id: int, password: str, db) -> bool:
         user = user_result.scalar_one_or_none()
 
     if user and user.password:
-        # 使用 Django 的密码验证函数
-        from django.contrib.auth.hashers import check_password as django_check_password
-        return django_check_password(password, user.password)
+        # 使用统一的密码验证函数
+        from src.utils.security.password_validator import verify_password
+        return verify_password(password, user.password)
     return False
 
 
@@ -184,7 +184,7 @@ def validate_password(user_id: int, password: str, db: Session) -> bool:
 
     user = db.query(User).filter_by(id=user_id).first()
     if user and user.password:
-        # 使用 Django 的密码验证函数
-        from django.contrib.auth.hashers import check_password as django_check_password
-        return django_check_password(password, user.password)
+        # 使用统一的密码验证函数
+        from src.utils.security.password_validator import verify_password
+        return verify_password(password, user.password)
     return False

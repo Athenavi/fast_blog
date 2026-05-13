@@ -9,12 +9,12 @@ import re
 from datetime import datetime, timezone
 from typing import Optional, List
 
-from django.contrib.auth.hashers import make_password, check_password
 from sqlalchemy import select, update, func
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.user import User as UserModel
+from src.utils.security.password_validator import hash_password, verify_password
 
 # 常量定义
 EMAIL_PATTERN = re.compile(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
@@ -128,8 +128,8 @@ async def create_user_account(
     Raises:
         IntegrityError: 如果用户名或邮箱已存在
     """
-    # 使用 Django 的密码哈希工具
-    hashed_password = make_password(password)
+    # 使用 Argon2 密码哈希
+    hashed_password = hash_password(password)
 
     # 准备数据（PostgreSQL TIMESTAMP WITHOUT TIME ZONE 需要不带时区的 datetime）
     now = datetime.now(timezone.utc).replace(tzinfo=None)
@@ -198,7 +198,7 @@ async def check_password_async(raw_password: str, hashed_password: str) -> bool:
     Returns:
         验证结果
     """
-    return bool(hashed_password) and check_password(raw_password, hashed_password)
+    return bool(hashed_password) and verify_password(raw_password, hashed_password)
 
 
 async def set_user_password(
@@ -221,8 +221,8 @@ async def set_user_password(
     if not user:
         return False
 
-    # 使用 Django 的密码哈希工具
-    hashed_password = make_password(new_password)
+    # 使用 Argon2 密码哈希
+    hashed_password = hash_password(new_password)
 
     await db.execute(
         update(UserModel)

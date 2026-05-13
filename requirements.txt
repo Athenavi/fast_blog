@@ -12,7 +12,6 @@ aiosqlite
 fastapi-users[sqlalchemy]
 redis
 slowapi
-bcrypt
 python-multipart
 python-jose[cryptography]
 pyJWT
@@ -38,12 +37,6 @@ mutagen  # 音频文件元数据读取（ID3标签、封面提取）
 # 更新系统依赖
 requests
 psutil
-
-django-rest-framework
-django-cors-headers
-# Django SimpleUI 主题
-django-simpleui
-
 # API测试依赖
 aiohttp
 aioboto3
@@ -61,3 +54,5 @@ meilisearch-python-sdk
 python-magic
 libmagic
 humanize
+
+argon2-cffi

@@ -39,12 +39,6 @@ class RouteGenerator:
         'category_ext': 'src.api.v1.category_ext',
         'comment_config': 'src.api.v1.comment_config',
         'user_settings': 'src.api.v1.user_settings',
-        # Django apps
-        'category': 'apps.category.views',
-        'settings': 'apps.settings.views',
-        'user': 'apps.user.views',
-        'profile': 'apps.user.views',  # profile 可能对应 apps.user
-        'me': 'apps.user.views',  # me 可能对应 apps.user
     }
 
     def __init__(self, config_path: str = None):
@@ -106,8 +100,8 @@ class RouteGenerator:
         print(f"端点数量：{len(self.endpoints)}")
         print(f"模型数量：{len(self.models)}")
 
-        # 1. 生成 Django ORM Mixins
-        self._generate_orm_mixins()
+        # 1. 生成 Django ORM Mixins（已于V0.2淘汰）
+        # self._generate_orm_mixins()
 
         # 3. 生成 FastAPI 路由
         self._generate_fastapi()
