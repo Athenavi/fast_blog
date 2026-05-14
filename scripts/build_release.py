@@ -22,6 +22,12 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
 
+# 添加项目根目录到Python路径，确保可以导入src和shared模块
+# 这对于在GitHub Actions等CI环境中运行时很重要
+project_root = Path(__file__).resolve().parent.parent
+if str(project_root) not in sys.path:
+    sys.path.insert(0, str(project_root))
+
 from src.unified_logger import default_logger as logger
 
 
