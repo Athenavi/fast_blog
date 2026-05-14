@@ -15,7 +15,7 @@ import json
 import time
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Any
-import logging
+
 
 import aiohttp
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -24,7 +24,7 @@ from sqlalchemy import select
 from shared.models.webhook import Webhook
 from shared.models.webhook_delivery import WebhookDelivery
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class WebhookService:

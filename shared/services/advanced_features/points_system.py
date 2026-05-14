@@ -3,12 +3,12 @@
 提供积分获取、消耗、排行榜等功能
 """
 
-import logging
+
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 from collections import defaultdict
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class PointsSystem:

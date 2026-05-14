@@ -3,7 +3,7 @@
 提供查询分析、慢查询检测、索引建议等功能
 """
 
-import logging
+
 import time
 from contextlib import asynccontextmanager
 from typing import Dict, List, Any
@@ -11,7 +11,7 @@ from typing import Dict, List, Any
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class QueryOptimizer:

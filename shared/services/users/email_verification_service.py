@@ -4,7 +4,7 @@
 支持SMTP邮件发送和模板渲染
 """
 
-import logging
+
 import random
 import string
 import smtplib
@@ -13,7 +13,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from typing import Optional, Dict
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class EmailVerificationService:

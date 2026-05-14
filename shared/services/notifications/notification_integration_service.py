@@ -9,7 +9,7 @@
 5. 自定义通知模板
 """
 import json
-import logging
+
 from datetime import datetime
 from typing import Optional, Dict, Any, List
 
@@ -19,7 +19,7 @@ from sqlalchemy.future import select
 
 from shared.models.notification_integration import NotificationIntegration
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class NotificationIntegrationService:

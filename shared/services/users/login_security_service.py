@@ -4,7 +4,7 @@
 """
 
 import hashlib
-import logging
+
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 
@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.login_attempt import LoginAttempt
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class LoginSecurityService:

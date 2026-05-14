@@ -7,10 +7,10 @@
 3. 任务日志记录
 """
 import asyncio
-import logging
+
 from typing import Optional
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class ScheduledPublishScheduler:

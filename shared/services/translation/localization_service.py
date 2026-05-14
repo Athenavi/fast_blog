@@ -3,13 +3,13 @@
 提供时区检测、日期格式化、货币符号等功能
 """
 
-import logging
+
 from datetime import datetime, timezone
 from typing import Dict, List
 
 import pytz
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class LocalizationService:

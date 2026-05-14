@@ -4,7 +4,7 @@
 """
 
 import hashlib
-import logging
+
 from datetime import datetime, timezone
 from typing import Optional, Dict, Any
 
@@ -15,7 +15,7 @@ from shared.models.article import Article
 from shared.models.article_content import ArticleContent
 from shared.models.article_revision import ArticleRevision
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 def calculate_revision_hash(

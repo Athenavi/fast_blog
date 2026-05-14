@@ -3,11 +3,11 @@ Web Push 推送通知服务
 支持浏览器推送通知功能
 """
 
-import logging
+
 from datetime import datetime
 from typing import Dict, List
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class WebPushService:

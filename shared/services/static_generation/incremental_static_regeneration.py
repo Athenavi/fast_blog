@@ -13,12 +13,12 @@
 """
 import asyncio
 import hashlib
-import logging
+
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, Optional, Any, Callable
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class ISRPage:

@@ -8,7 +8,7 @@ Google Analytics 集成服务
 4. 用户行为分析
 5. 数据同步（可选）
 """
-import logging
+
 from typing import Optional, Dict, Any, List
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,7 +16,7 @@ from sqlalchemy.future import select
 
 from shared.models.google_analytics_config import GoogleAnalyticsConfig
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class GoogleAnalyticsService:

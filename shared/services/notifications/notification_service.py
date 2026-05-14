@@ -3,7 +3,7 @@
 支持 Slack、Discord、Email 等通知渠道
 """
 import json
-import logging
+
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 
@@ -14,7 +14,7 @@ try:
 except ImportError:
     HAS_AIOHTTP = False
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class NotificationService:

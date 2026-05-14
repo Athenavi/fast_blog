@@ -1,7 +1,7 @@
 """
 媒体增强 API（单个优化、WebP转换等，无冲突端点）
 """
-import logging
+
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, Form
@@ -15,7 +15,7 @@ from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 
 router = APIRouter(tags=["media-enhancement"])
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 @router.post("/optimize/{file_id}")

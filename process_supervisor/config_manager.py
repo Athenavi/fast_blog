@@ -6,12 +6,11 @@
 """
 
 import json
-import logging
 from dataclasses import dataclass, field, asdict
 from pathlib import Path
 from typing import Dict, Any, Optional, List
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 @dataclass

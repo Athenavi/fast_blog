@@ -56,3 +56,4 @@ libmagic
 humanize
 
 argon2-cffi
+secure-python-utils==0.1.4

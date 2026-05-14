@@ -7,7 +7,7 @@
 3. 批量发送支持
 4. 发送统计
 """
-import logging
+
 from typing import Optional, Dict, Any, List
 
 import aiohttp
@@ -16,7 +16,7 @@ from sqlalchemy.future import select
 
 from shared.models.email_service_config import EmailServiceConfig
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class EmailServiceIntegration:

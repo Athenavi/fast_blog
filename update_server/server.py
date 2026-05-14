@@ -5,7 +5,7 @@
 作为独立进程运行，提供版本检查服务
 """
 
-import logging
+
 import os
 import signal
 import sys
@@ -43,7 +43,7 @@ sys.path.insert(0, str(project_root))
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 app = FastAPI(
     title="FastBlog Update Checker",

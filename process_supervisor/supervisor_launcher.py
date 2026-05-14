@@ -5,7 +5,7 @@ FastBlog 进程监督器启动器
 统一管理所有子进程的生命周期
 """
 
-import logging
+
 import signal
 import sys
 import time
@@ -26,7 +26,7 @@ logging.basicConfig(
         logging.StreamHandler(sys.stdout)
     ]
 )
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class SupervisedLauncher:

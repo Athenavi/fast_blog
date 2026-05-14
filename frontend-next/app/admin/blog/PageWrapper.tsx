@@ -89,6 +89,9 @@ const ArticleManagementContent = () => {
   const [batchOperation, setBatchOperation] = React.useState<'delete' | 'publish' | 'draft' | 'feature' | 'unfeature'>('delete');
   const [isDragging, setIsDragging] = React.useState(false);
 
+  // 搜索防抖定时器
+  const searchTimerRef = React.useRef<NodeJS.Timeout | null>(null);
+
   // 键盘快捷键
   useHotkeys({
     'ctrl+k': () => {
@@ -117,10 +120,20 @@ const ArticleManagementContent = () => {
     setCurrentPage(1); // 重置到第一页
   };
 
-  // 处理搜索变化
+  // 处理搜索变化（带防抖）
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setSearchQuery(e.target.value);
-    setCurrentPage(1); // 重置到第一页
+    const value = e.target.value;
+    setSearchQuery(value);
+
+    // 清除之前的定时器
+    if (searchTimerRef.current) {
+      clearTimeout(searchTimerRef.current);
+    }
+
+    // 设置新的定时器，500ms 后才更新页码并触发请求
+    searchTimerRef.current = setTimeout(() => {
+      setCurrentPage(1); // 重置到第一页
+    }, 500);
   };
 
   // 处理每页显示数量变化
@@ -246,21 +259,32 @@ const ArticleManagementContent = () => {
     }
   };
 
-  // 初始化加载数据
+  // 初始化加载数据 - 只在组件挂载时加载一次分类、作者和统计数据
   React.useEffect(() => {
-    loadArticles();
-    loadArticleStats();
     loadCategories();
     loadAuthors();
+    loadArticleStats();
     
     // 检查URL参数是否要求自动执行某个功能
-      const autoRun = searchParams?.get('autoRun');
+    const autoRun = searchParams?.get('autoRun');
     if (autoRun) {
       // 等待数据加载完成后执行相应功能
       setTimeout(() => {
         executeAutoRun(autoRun);
       }, 100);
     }
+
+    // 清理函数：组件卸载时清除定时器
+    return () => {
+      if (searchTimerRef.current) {
+        clearTimeout(searchTimerRef.current);
+      }
+    };
+  }, []); // 空依赖数组，只在挂载时执行
+
+  // 当筛选条件或分页变化时，只重新加载文章列表
+  React.useEffect(() => {
+    loadArticles();
   }, [currentPage, perPage, searchQuery, statusFilter, categoryFilter, authorFilter]);
   
   // 根据autoRun参数执行相应功能

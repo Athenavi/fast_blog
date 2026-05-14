@@ -3,14 +3,14 @@
 支持定期自动生成报表并保存
 """
 
-import logging
+
 import json
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class ScheduledReportService:

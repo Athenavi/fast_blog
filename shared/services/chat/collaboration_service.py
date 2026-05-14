@@ -2,7 +2,7 @@
 团队协作服务
 提供团队工作区、成员管理、协作编辑和任务分配功能
 """
-import logging
+
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 from enum import Enum
@@ -15,7 +15,7 @@ from shared.models.workspace import Workspace
 from shared.models.workspace_member import WorkspaceMember
 from shared.models.task import Task
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class TeamRole(Enum):

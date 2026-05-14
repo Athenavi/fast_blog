@@ -2,7 +2,7 @@
 搜索历史 API
 提供用户搜索历史的查询功能
 """
-import logging
+
 
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy import select, desc
@@ -12,7 +12,7 @@ from shared.models.search_history import SearchHistory
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 router = APIRouter(tags=["search-history"])
 

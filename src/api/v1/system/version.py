@@ -2,11 +2,11 @@
 版本管理 API
 提供系统版本信息查询功能
 """
-import logging
+
 
 from fastapi import APIRouter
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 router = APIRouter(tags=["system-version"])
 

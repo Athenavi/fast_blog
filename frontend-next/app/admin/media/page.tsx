@@ -78,7 +78,7 @@ export default function ModernMediaLibraryPage() {
 
     // API配置
     const [apiBaseUrl, setApiBaseUrl] = useState('http://localhost:9421');
-    const [apiPrefix, setApiPrefix] = useState('/api/v1');
+    const [apiPrefix, setApiPrefix] = useState('/api/v2');
 
     // 加载API配置
     useEffect(() => {

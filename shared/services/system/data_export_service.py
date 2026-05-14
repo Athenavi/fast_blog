@@ -5,11 +5,11 @@
 
 import csv
 import io
-import logging
+
 from datetime import datetime
 from typing import Dict, List, Optional
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class DataExportService:

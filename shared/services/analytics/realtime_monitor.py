@@ -3,14 +3,14 @@
 提供系统性能、在线用户、访问量等实时监控数据
 """
 
-import logging
+
 from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Dict, List
 
 import psutil
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class RealTimeMonitorService:

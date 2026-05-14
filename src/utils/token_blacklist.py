@@ -2,11 +2,11 @@
 Redis Token 黑名单管理
 实现 JWT Token 的黑名单机制，支持 Token 撤销
 """
-import logging
+
 import os
 from datetime import datetime
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class RedisTokenBlacklist:

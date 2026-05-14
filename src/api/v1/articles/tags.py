@@ -2,7 +2,7 @@
 标签建议 API
 提供标签自动补全功能
 """
-import logging
+
 
 from fastapi import APIRouter, Query
 
@@ -10,7 +10,7 @@ from shared.models.article import Article
 from src.extensions import cache, get_async_db_session as get_async_db
 from src.utils.filters import f2list
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 router = APIRouter(tags=["tags"])
 

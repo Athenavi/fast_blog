@@ -3,10 +3,10 @@
 支持从音频文件中提取封面图片（ID3标签）
 """
 import io
-import logging
+
 from typing import Optional, Tuple
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 def extract_audio_cover(audio_path: str) -> Optional[bytes]:

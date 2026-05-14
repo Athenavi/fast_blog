@@ -146,8 +146,8 @@ async def get_articles_with_filters(filters: List, db: AsyncSession, page: int, 
 
     except Exception as e:
         # 在FastAPI中使用logging而不是current_app.logger
-        import logging
-        logger = logging.getLogger(__name__)
+
+        from src.unified_logger import default_logger as logger
         logger.error(f"Database error: {e}")
         raise
 
@@ -164,10 +164,10 @@ def set_article_password(aid: int, passwd: str, db: Session):
     Returns:
         bool: 设置成功返回True，否则返回False
     """
-    import logging
+
     from datetime import datetime, timezone
 
-    logger = logging.getLogger(__name__)
+    from src.unified_logger import default_logger as logger
     try:
         # 查询是否存在该aid的记录
         article_content_query = select(ArticleContent).where(ArticleContent.aid == aid)
@@ -202,9 +202,8 @@ def get_article_password(aid: int, db: Session):
     Returns:
         str or None: 返回密码或None
     """
-    import logging
 
-    logger = logging.getLogger(__name__)
+    from src.unified_logger import default_logger as logger
     try:
         # 查询密码
         article_content_query = select(ArticleContent).where(ArticleContent.article == aid)
@@ -296,8 +295,8 @@ def check_apw_form(aid: int, new_password: str, db: Session):
     Returns:
         str: HTML响应
     """
-    import logging
-    logger = logging.getLogger(__name__)
+
+    from src.unified_logger import default_logger as logger
     try:
         # 验证密码格式
         if not re.match(r'^(?=.*[A-Za-z])(?=.*\\d).{4,}$', new_password):

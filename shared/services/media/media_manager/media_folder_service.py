@@ -2,7 +2,7 @@
 媒体文件夹服务
 提供文件夹的 CRUD 操作和树形结构管理
 """
-import logging
+
 import re
 from datetime import datetime
 from typing import List, Dict, Any, Optional
@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.models.media import Media
 from shared.models.media_folder import MediaFolder
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 # 文件夹名称验证配置
 MAX_FOLDER_NAME_LENGTH = 255

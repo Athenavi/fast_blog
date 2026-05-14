@@ -3,7 +3,7 @@
 提供内容审核和敏感词检测功能
 """
 
-import logging
+
 from datetime import datetime
 from typing import List, Dict, Optional, Tuple
 
@@ -12,7 +12,7 @@ from sqlalchemy import select, func
 from shared.models.sensitive_word import SensitiveWord
 from src.utils.database.unified_manager import db_manager
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class SensitiveWordService:

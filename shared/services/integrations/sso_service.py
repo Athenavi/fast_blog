@@ -4,11 +4,11 @@ SSO单点登录服务
 """
 import os
 import json
-import logging
+
 from typing import Dict, Any, Optional, List
 from datetime import datetime, timedelta
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class SSOService:

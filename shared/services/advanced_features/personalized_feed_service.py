@@ -3,12 +3,12 @@
 提供基于关注的个性化内容推荐和动态流
 """
 
-import logging
+
 from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Dict, List
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class PersonalizedFeedService:

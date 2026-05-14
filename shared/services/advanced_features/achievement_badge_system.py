@@ -3,14 +3,13 @@
 提供徽章获取、展示、进度追踪等功能
 """
 
-import logging
+
 from collections import defaultdict
 from datetime import datetime
 from typing import Dict, List, Optional
 
 from shared.services.advanced_features.points_system import points_system
-
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class AchievementBadgeSystem:

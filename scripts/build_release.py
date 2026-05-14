@@ -9,7 +9,7 @@ FastBlog 发布构建脚本
 import argparse
 import hashlib
 import json
-import logging
+
 import os
 import platform
 import re
@@ -28,7 +28,7 @@ logging.basicConfig(
     level=logging.INFO,
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 def get_current_version():

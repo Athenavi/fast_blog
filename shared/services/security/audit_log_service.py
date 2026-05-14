@@ -3,7 +3,7 @@
 记录系统中的关键操作和事件，用于安全审计和合规性检查
 """
 import json
-import logging
+
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, List
 from enum import Enum
@@ -14,7 +14,7 @@ from sqlalchemy.sql.functions import func
 
 from shared.models.audit_log import AuditLog
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class AuditLogAction(Enum):

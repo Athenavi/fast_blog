@@ -104,8 +104,8 @@ async def get_home_data(
 
         return ApiResponse(success=True, data=data)
     except Exception as e:
-        import logging
-        logger = logging.getLogger(__name__)
+
+        from src.unified_logger import default_logger as logger
         logger.error(f"获取首页数据失败：{str(e)}")
         # 返回简化数据而不是错误
         return ApiResponse(success=True, data={
@@ -149,8 +149,8 @@ async def get_home_config(db: AsyncSession = Depends(get_async_session)):
                     config_dict[key] = item.setting_value
             except Exception as key_error:
                 # 单个配置项查询失败不影响其他配置
-                import logging
-                logger = logging.getLogger(__name__)
+
+                from src.unified_logger import default_logger as logger
                 logger.warning(f"获取配置项 {key} 失败：{str(key_error)}")
                 continue
 
@@ -178,8 +178,8 @@ async def get_home_config(db: AsyncSession = Depends(get_async_session)):
 
         return ApiResponse(success=True, data=config)
     except Exception as e:
-        import logging
-        logger = logging.getLogger(__name__)
+
+        from src.unified_logger import default_logger as logger
         logger.error(f"获取首页配置失败: {str(e)}")
         # 返回默认配置作为回退
         default_config = {
@@ -443,8 +443,8 @@ async def search_home_articles(
             "pagination": pagination
         })
     except Exception as e:
-        import logging
-        logger = logging.getLogger(__name__)
+
+        from src.unified_logger import default_logger as logger
         logger.error(f"搜索接口错误：{str(e)}")
         return ApiResponse(success=False, error="搜索服务暂时不可用")
 
@@ -475,8 +475,8 @@ async def _get_featured_articles(db: AsyncSession, limit: int) -> list:
         
         return [_format_article_with_category(article, categories_dict) for article in articles]
     except Exception as e:
-        import logging
-        logger = logging.getLogger(__name__)
+
+        from src.unified_logger import default_logger as logger
         logger.warning(f"获取特色文章失败：{str(e)}")
         return []
 
@@ -505,8 +505,8 @@ async def _get_recent_articles_simple(db: AsyncSession, limit: int) -> list:
         
         return [_format_article_with_category(article, categories_dict) for article in articles]
     except Exception as e:
-        import logging
-        logger = logging.getLogger(__name__)
+
+        from src.unified_logger import default_logger as logger
         logger.warning(f"获取最新文章失败：{str(e)}")
         return []
 
@@ -535,8 +535,8 @@ async def _get_popular_articles(db: AsyncSession, limit: int) -> list:
         
         return [_format_article_with_category(article, categories_dict) for article in articles]
     except Exception as e:
-        import logging
-        logger = logging.getLogger(__name__)
+
+        from src.unified_logger import default_logger as logger
         logger.warning(f"获取热门文章失败：{str(e)}")
         return []
 
@@ -564,8 +564,8 @@ async def _get_categories(db: AsyncSession, limit: int) -> list:
             "article_count": article_count or 0
         } for cat, article_count in categories_with_count]
     except Exception as e:
-        import logging
-        logger = logging.getLogger(__name__)
+
+        from src.unified_logger import default_logger as logger
         logger.warning(f"获取分类失败：{str(e)}")
         return []
 
@@ -594,8 +594,8 @@ async def _get_site_stats(db: AsyncSession) -> Dict[str, Any]:
             "totalViews": int(total_views)
         }
     except Exception as e:
-        import logging
-        logger = logging.getLogger(__name__)
+
+        from src.unified_logger import default_logger as logger
         logger.warning(f"获取网站统计失败: {str(e)}")
         return {
             "totalArticles": 0,

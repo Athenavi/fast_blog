@@ -2,7 +2,7 @@
 FastBlog 应用入口
 """
 import importlib
-import logging
+
 import os
 import traceback
 from contextlib import asynccontextmanager
@@ -355,7 +355,7 @@ def register_middleware(app: FastAPI):
     # 获取 worker 信息（用于日志）
     from src.setting import _get_worker_info
     worker_info = _get_worker_info()
-    
+
     # CORS（从环境变量或默认值）
     from fastapi.middleware.cors import CORSMiddleware
     origins_env = os.environ.get('CORS_ORIGINS', '')
@@ -422,19 +422,15 @@ def register_middleware(app: FastAPI):
     except ImportError:
         pass
 
-    # 安全中间件
+    # 安全中间件（不包含速率限制）
     try:
         from src.auth.security_middleware import create_security_middleware_stack
-        create_security_middleware_stack(app, rate_limit_requests=100, rate_limit_window=60)
+        # 注意：这里不再传递速率限制参数，因为我们将使用装饰器方式
+        create_security_middleware_stack(app)
     except ImportError:
         pass
 
-    # 速率限制
-    try:
-        from src.middleware.rate_limit_middleware import RateLimitMiddleware
-        app.add_middleware(RateLimitMiddleware)
-    except ImportError:
-        pass
+    # 速率限制已移除全局中间件，改为在特定路由上使用装饰器
 
     # API 版本响应头
     class APIVersionMiddleware(BaseHTTPMiddleware):
@@ -523,7 +519,8 @@ def register_error_handlers(app: FastAPI):
 
     @app.exception_handler(Exception)
     async def general_exception_handler(request: Request, exc: Exception):
-        logging.getLogger(__name__).error(f"General error: {exc}")
+        from src.unified_logger import default_logger as logger
+        logger.getLogger(__name__).error(f"General error: {exc}")
         if any(kw in str(exc).lower() for kw in ["not found", "no result", "does not exist"]):
             from src.error import error
             return error(404, "Page Not Found")

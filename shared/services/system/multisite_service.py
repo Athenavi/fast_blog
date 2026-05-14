@@ -3,7 +3,7 @@
 提供站点配置隔离、独立域名绑定、共享用户体系和跨站点内容同步功能
 """
 import json
-import logging
+
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 
@@ -15,7 +15,7 @@ from shared.models.site import Site
 from shared.models.site_user import SiteUser
 from shared.models.content_mapping import ContentMapping
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 

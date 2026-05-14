@@ -6,12 +6,12 @@
 """
 
 import json
-import logging
+
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class UpdateHistoryManager:

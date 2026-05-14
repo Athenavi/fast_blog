@@ -3,13 +3,13 @@
 基于用户行为和内容相似度的文章推荐服务
 """
 
-import logging
+
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 from collections import defaultdict, Counter
 import math
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class RecommendationService:

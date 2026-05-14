@@ -4,7 +4,7 @@
 支持多种支付网关：Stripe、PayPal、支付宝、微信支付
 """
 import json
-import logging
+
 from datetime import datetime
 from decimal import Decimal
 from typing import Dict, Optional
@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.order import Order
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class PaymentService:

@@ -2,7 +2,7 @@
 内容审批服务
 提供多级审批、审批意见、审批历史和自动流转功能
 """
-import logging
+
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 from enum import Enum
@@ -14,7 +14,7 @@ from sqlalchemy.sql.functions import func
 from shared.models.approval_record import ApprovalRecord
 from shared.models.approval_step import ApprovalStep
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class ApprovalStatus(Enum):

@@ -1,8 +1,8 @@
-import logging
+
 
 from fastapi.responses import HTMLResponse
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 def error(status_code, message):

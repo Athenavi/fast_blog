@@ -2,7 +2,7 @@
 媒体封面上传 API
 提供文章封面图片上传功能
 """
-import logging
+
 
 from fastapi import APIRouter, Depends, Request, UploadFile
 from fastapi.responses import JSONResponse
@@ -13,7 +13,7 @@ from src.extensions import get_async_db_session as get_async_db
 from src.setting import app_config
 from src.utils.upload.public_upload import FileProcessor, process_single_file
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 router = APIRouter(tags=["media-cover"])
 

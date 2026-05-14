@@ -3,12 +3,12 @@
 提供领域专家申请、审核、认证标识等功能
 """
 
-import logging
+
 from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class ExpertCertificationSystem:

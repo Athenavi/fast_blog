@@ -5,7 +5,6 @@
 提供 RESTful API 用于监控和管理进程
 """
 
-import logging
 from typing import Dict, Optional
 
 try:
@@ -17,8 +16,6 @@ try:
 except ImportError:
     HAS_FASTAPI = False
     logging.warning("FastAPI 未安装，Web 管理界面将不可用")
-
-logger = logging.getLogger(__name__)
 
 # 创建 FastAPI 应用
 if HAS_FASTAPI:

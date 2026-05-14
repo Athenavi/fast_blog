@@ -3,13 +3,13 @@
 提供会话追踪、设备管理、远程注销等功能
 """
 
-import logging
+
 import hashlib
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 from collections import defaultdict
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class SessionManagementService:

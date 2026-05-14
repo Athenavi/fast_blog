@@ -6,7 +6,7 @@ import os
 import json
 import gzip
 import shutil
-import logging
+
 from datetime import datetime, timedelta
 from typing import Dict, Any, Optional, List
 from pathlib import Path
@@ -14,7 +14,7 @@ from pathlib import Path
 import asyncio
 from sqlalchemy import text
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class BackupService:

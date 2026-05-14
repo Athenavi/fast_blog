@@ -4,12 +4,12 @@
 """
 
 import hashlib
-import logging
+
 import secrets
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class DraftPreviewService:

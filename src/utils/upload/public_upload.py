@@ -1,6 +1,6 @@
 import asyncio
 import hashlib
-import logging
+
 import os
 import shutil
 import uuid
@@ -23,7 +23,7 @@ from src.extensions import get_async_db_session as get_async_db
 from src.utils.storage import s3_storage
 from src.utils.image.video_processor import video_processor
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class FileProcessor:
@@ -564,7 +564,7 @@ class ChunkedUploadProcessor:
 
         except Exception as e:
             await db.rollback()
-            import logging
+
             logging.getLogger(__name__).error(f"分块上传失败: {str(e)}")
             return {'success': False, 'error': str(e)}
 
@@ -683,7 +683,7 @@ class ChunkedUploadProcessor:
 
         except Exception as e:
             await db.rollback()
-            import logging
+
             logging.getLogger(__name__).error(f"完成上传失败: {str(e)}")
             return {'success': False, 'error': str(e)}
 
@@ -841,7 +841,7 @@ async def process_single_file(processor: FileProcessor, file_data: bytes,
 
     except Exception as e:
         await db.rollback()
-        import logging
+
         logging.getLogger(__name__).error(f"文件处理失败: {str(e)}")
         return {'success': False, 'error': str(e)}
 

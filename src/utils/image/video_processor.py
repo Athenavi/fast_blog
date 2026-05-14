@@ -3,13 +3,13 @@
 支持视频转码、缩略图提取等功能
 需要安装ffmpeg才能使用
 """
-import logging
+
 import os
 import subprocess
 from pathlib import Path
 from typing import Optional, Dict, Any, List
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class VideoProcessor:

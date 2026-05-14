@@ -10,7 +10,7 @@ FastBlog 独立更新器
 
 import argparse
 import json
-import logging
+
 import os
 import shutil
 import sys
@@ -46,7 +46,7 @@ logging.basicConfig(
         logging.StreamHandler(sys.stdout)
     ]
 )
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class FastBlogUpdater:

@@ -352,6 +352,6 @@ async def get_sso_config(current_user=Depends(jwt_required)):
 
 
 # 导入logger
-import logging
 
-logger = logging.getLogger(__name__)
+
+from src.unified_logger import default_logger as logger

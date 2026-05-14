@@ -3,12 +3,12 @@
 提供文章阅读量趋势、来源渠道、读者分布等分析功能
 """
 
-import logging
+
 from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Dict, List
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class ArticleAnalyticsService:

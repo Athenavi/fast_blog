@@ -3,12 +3,12 @@
 追踪页面浏览、停留时间、点击事件等用户行为数据
 """
 
-import logging
+
 from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class UserBehaviorTracker:

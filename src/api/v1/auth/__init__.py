@@ -3,7 +3,7 @@
 包含用户名/邮箱检查、登录状态检查、登录、注册、登出、token刷新、邮箱/短信验证等功能
 """
 import json
-import logging
+
 import re
 import uuid
 from datetime import datetime, timedelta, timezone
@@ -29,7 +29,7 @@ from src.extensions import get_async_db_session as get_async_db
 from src.setting import settings
 from src.utils.token_blacklist import token_blacklist
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 router = APIRouter(tags=["auth"])
 

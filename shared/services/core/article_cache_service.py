@@ -1,12 +1,12 @@
 """
 文章缓存服务 - 为文章列表和详情提供缓存支持
 """
-import logging
+
 from typing import Optional, Dict, Any, List
 
 from src.services.redis_service import redis_service
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class ArticleCacheService:

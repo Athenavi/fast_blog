@@ -1,7 +1,7 @@
 """
 图片编辑工具 API（不操作数据库，直接处理上传文件）
 """
-import logging
+
 from typing import Dict, Any, Optional
 
 from fastapi import APIRouter, Depends, UploadFile, File, Body, HTTPException
@@ -11,7 +11,7 @@ from shared.services.media.image_tool import image_processor
 from src.auth import jwt_required_dependency as jwt_required
 
 router = APIRouter(tags=["media-edit-tools"])
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 @router.post("/process")

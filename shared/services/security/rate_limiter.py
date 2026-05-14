@@ -3,7 +3,7 @@ API限流服务
 提供请求频率限制、IP限流、用户配额等功能
 """
 import time
-import logging
+
 from typing import Dict, Any, Optional, Tuple
 from datetime import datetime, timedelta
 from collections import defaultdict
@@ -11,7 +11,7 @@ from collections import defaultdict
 import redis.asyncio as redis
 from fastapi import Request, HTTPException
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class RateLimiter:

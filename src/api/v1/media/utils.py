@@ -1,7 +1,7 @@
 """
 媒体包工具函数
 """
-import logging
+
 import tempfile
 from pathlib import Path
 from typing import Optional
@@ -14,7 +14,7 @@ from fastapi.responses import FileResponse, StreamingResponse, Response
 
 from src.setting import app_config
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 PREVIEWABLE_TYPES = {
     'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',

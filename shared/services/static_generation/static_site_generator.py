@@ -14,7 +14,7 @@ import os
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Optional, Any
-import logging
+
 import json
 
 from jinja2 import Environment, FileSystemLoader
@@ -23,7 +23,7 @@ from shared.models.category import Category
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class StaticSiteGenerator:

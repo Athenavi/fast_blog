@@ -1,6 +1,6 @@
 """扩展模块，初始化FastAPI兼容的扩展实例"""
 import json
-import logging
+
 import os
 from contextlib import contextmanager
 from typing import Generator, AsyncGenerator
@@ -9,6 +9,7 @@ import redis
 from slowapi import _rate_limit_exceeded_handler, Limiter
 from slowapi.util import get_remote_address
 from sqlalchemy.ext.declarative import declarative_base
+from src.unified_logger import default_logger as logger
 
 # 初始化 Sentry 错误追踪
 try:
@@ -23,13 +24,13 @@ try:
             traces_sample_rate=float(os.getenv("SENTRY_TRACES_SAMPLE_RATE", "1.0")),
             environment=os.getenv("ENVIRONMENT", "development"),
         )
-        logging.info("Sentry initialized successfully")
+        logger.info("Sentry initialized successfully")
     else:
-        logging.info("Sentry DSN not configured, skipping Sentry initialization")
+        logger.info("Sentry DSN not configured, skipping Sentry initialization")
 except ImportError:
-    logging.warning("sentry-sdk not installed, skipping Sentry initialization")
+    logger.warning("sentry-sdk not installed, skipping Sentry initialization")
 except Exception as e:
-    logging.error(f"Failed to initialize Sentry: {e}")
+    logger.error(f"Failed to initialize Sentry: {e}")
 
 # 创建SQLAlchemy基类
 Base = declarative_base()

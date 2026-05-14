@@ -3,7 +3,7 @@
 提供现代化的媒体管理功能
 """
 
-import logging
+
 from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Any, Optional
@@ -11,7 +11,7 @@ from typing import Dict, List, Any, Optional
 from sqlalchemy import select, func, desc, asc
 from sqlalchemy.ext.asyncio import AsyncSession
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class MediaLibraryService:

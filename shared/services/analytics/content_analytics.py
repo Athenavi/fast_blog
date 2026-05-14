@@ -3,12 +3,12 @@
 追踪文章阅读量、分享数、转化率等内容相关指标
 """
 
-import logging
+
 from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class ContentAnalytics:

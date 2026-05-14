@@ -3,7 +3,7 @@
 
 提供 XSS 过滤、CSRF 保护、速率限制等安全功能
 """
-import logging
+
 import re
 import time
 from collections import defaultdict
@@ -12,6 +12,7 @@ from typing import Dict
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
+from src.unified_logger import default_logger as logger
 
 
 class XSSFilterMiddleware(BaseHTTPMiddleware):
@@ -104,8 +105,7 @@ class XSSFilterMiddleware(BaseHTTPMiddleware):
         self.enable_logging = enable_logging
         self.strict_mode = strict_mode
         if enable_logging:
-            import logging
-            self.logger = logging.getLogger(__name__)
+            logger.info("XSSFilterMiddleware initialized")
 
     async def dispatch(self, request: Request, call_next):
         # 检查是否在排除列表中
@@ -238,12 +238,11 @@ class XSSFilterMiddleware(BaseHTTPMiddleware):
         if not self.enable_logging:
             return
 
-        import logging
         client_ip = request.client.host if request.client else 'unknown'
         pattern = result.get('pattern', 'unknown')
         severity = result.get('severity', 'medium')
 
-        log_level = logging.WARNING if severity in ['high', 'critical'] else logging.INFO
+        log_level = logger.WARNING if severity in ['high', 'critical'] else logger.INFO
         message = (
             f"XSS attempt detected from {client_ip}\n"
             f"  Method: {request.method}\n"
@@ -253,7 +252,7 @@ class XSSFilterMiddleware(BaseHTTPMiddleware):
             f"  Severity: {severity}"
         )
 
-        self.logger.log(log_level, message)
+        logger.log(log_level, message)
 
 
 class CSRFProtectionMiddleware(BaseHTTPMiddleware):
@@ -524,8 +523,7 @@ class SQLInjectionFilterMiddleware(BaseHTTPMiddleware):
         super().__init__(app)
         self.enable_logging = enable_logging
         if enable_logging:
-            import logging
-            self.logger = logging.getLogger(__name__)
+            logger.info("SQL注入过滤器已启动")
 
     async def dispatch(self, request: Request, call_next):
         # 检查是否在排除列表中
@@ -587,7 +585,7 @@ class SQLInjectionFilterMiddleware(BaseHTTPMiddleware):
         pattern = result.get('pattern', 'unknown')
         is_critical = result.get('is_critical', False)
 
-        log_level = logging.WARNING if is_critical else logging.INFO
+        log_level = logger.WARNING if is_critical else logger.INFO
         message = (
             f"SQL Injection attempt detected from {client_ip}\n"
             f"  Method: {request.method}\n"
@@ -597,7 +595,7 @@ class SQLInjectionFilterMiddleware(BaseHTTPMiddleware):
             f"  Critical: {is_critical}"
         )
 
-        self.logger.log(log_level, message)
+        logger.log(log_level, message)
 
     def _check_sql_injection(self, data) -> dict:
         """
@@ -644,14 +642,12 @@ class SQLInjectionFilterMiddleware(BaseHTTPMiddleware):
         }
 
 
-def create_security_middleware_stack(app, rate_limit_requests: int = 100, rate_limit_window: int = 60):
+def create_security_middleware_stack(app):
     """
-    创建安全中间件栈
+    创建安全中间件栈（不包含速率限制）
     
     Args:
         app: FastAPI 应用
-        rate_limit_requests: 速率限制请求数
-        rate_limit_window: 速率限制时间窗口（秒）
         
     Returns:
         添加了安全中间件的应用
@@ -667,11 +663,6 @@ def create_security_middleware_stack(app, rate_limit_requests: int = 100, rate_l
     # 3. CSRF 保护
     app.add_middleware(CSRFProtectionMiddleware)
 
-    # 4. 速率限制（最内层，最先执行）
-    app.add_middleware(
-        RateLimiterMiddleware,
-        max_requests=rate_limit_requests,
-        window_seconds=rate_limit_window
-    )
+    # 注意：速率限制已移除，改为在特定路由上使用装饰器方式
 
     return app

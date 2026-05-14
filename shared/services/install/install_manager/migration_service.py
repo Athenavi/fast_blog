@@ -3,13 +3,13 @@
 参考 Django migrations 和 Flask-Migrate 的设计
 """
 import asyncio
-import logging
+
 import subprocess
 import sys
 from pathlib import Path
 from typing import AsyncGenerator, Dict, Any
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class DatabaseMigrationService:

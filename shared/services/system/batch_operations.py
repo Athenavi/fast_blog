@@ -8,14 +8,14 @@
 4. 批量添加标签
 5. 操作日志记录
 """
-import logging
+
 from datetime import datetime
 from typing import List, Dict, Optional
 
 from sqlalchemy import update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class BatchOperationService:

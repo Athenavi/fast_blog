@@ -3,7 +3,7 @@
 提供多实例部署、健康检查、会话共享和故障转移功能
 """
 import json
-import logging
+
 import os
 from datetime import datetime
 from typing import Dict, Any, Optional, List
@@ -17,7 +17,7 @@ try:
 except ImportError:
     HAS_REDIS = False
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class LoadBalancerService:

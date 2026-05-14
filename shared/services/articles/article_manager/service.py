@@ -5,7 +5,7 @@
 确保与 FastAPI 的异步架构保持一致。
 """
 
-import logging
+
 from datetime import datetime, timezone
 from typing import Optional, List, Tuple
 
@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.models.article import Article
 from shared.models.article_content import ArticleContent
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 async def get_article_by_id(db: AsyncSession, article_id: int) -> Optional[Article]:

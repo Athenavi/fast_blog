@@ -11,13 +11,13 @@ Meilisearch 全文搜索引擎集成服务
 7. 增量索引更新
 """
 import hashlib
-import logging
+
 from datetime import datetime
 from typing import List, Dict, Optional, Any
 
 from meilisearch_python_sdk import Client
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class MeilisearchService:

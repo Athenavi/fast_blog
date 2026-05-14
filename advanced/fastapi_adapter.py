@@ -30,7 +30,6 @@ FastAPI 到 Django 的适配器层
 
 import asyncio
 import atexit
-import logging
 import os
 import re
 import sys
@@ -41,12 +40,12 @@ from typing import get_origin, get_args, Annotated
 # 将 src 目录添加到 Python 路径
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
+# 使用统一的日志系统
+from src.unified_logger import default_logger as logger
+
 from django.http import JsonResponse, HttpResponse
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.http import Http404 as DjangoHttp404
-
-# 配置日志
-logger = logging.getLogger(__name__)
 
 # 安全配置 - 请求体大小限制（10MB，可通过环境变量覆盖）
 MAX_BODY_SIZE = int(os.getenv('FASTAPI_ADAPTER_MAX_BODY_SIZE', 10 * 1024 * 1024))

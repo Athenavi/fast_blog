@@ -3,13 +3,13 @@ SEO 效果追踪服务
 追踪搜索引擎流量、关键词排名、自然搜索表现等
 """
 
-import logging
+
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 from urllib.parse import urlparse, parse_qs
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class SEOTracker:

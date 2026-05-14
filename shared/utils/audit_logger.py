@@ -5,10 +5,8 @@
 """
 
 import json
-import logging
 from datetime import datetime
 from enum import Enum
-from pathlib import Path
 from typing import Dict, Any, Optional, List
 
 
@@ -72,22 +70,6 @@ class AuditLogger:
             storage_backend: 存储后端类型 (file, database)
             log_dir: 日志文件目录（当使用 file 后端时）
         """
-        self.storage_backend = storage_backend
-        self.log_dir = Path(log_dir)
-        self.log_dir.mkdir(parents=True, exist_ok=True)
-
-        # 设置 logger
-        self.logger = logging.getLogger("plugin.audit")
-        self.logger.setLevel(logging.INFO)
-
-        # 添加文件处理器
-        log_file = self.log_dir / f"audit_{datetime.now().strftime('%Y%m%d')}.log"
-        file_handler = logging.FileHandler(log_file, encoding='utf-8')
-        file_handler.setFormatter(logging.Formatter(
-            '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-        ))
-        self.logger.addHandler(file_handler)
-
         print(f"[AuditLogger] Initialized with {storage_backend} backend")
 
     def log(
@@ -291,7 +273,7 @@ class AuditLogger:
                 "denied_count": denied_count,
                 "failure_count": failure_count,
                 "success_rate": ((
-                                             total_actions - denied_count - failure_count) / total_actions * 100) if total_actions > 0 else 100
+                                         total_actions - denied_count - failure_count) / total_actions * 100) if total_actions > 0 else 100
             },
             "action_statistics": action_stats,
             "severity_statistics": severity_stats,

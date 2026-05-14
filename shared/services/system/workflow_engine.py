@@ -3,12 +3,12 @@
 提供可视化的工作流设计、执行和监控功能
 """
 import json
-import logging
+
 from typing import Dict, Any, List, Optional
 from datetime import datetime
 from enum import Enum
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class WorkflowStatus(Enum):

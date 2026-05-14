@@ -5,7 +5,7 @@
 基于现有 Product 模型的 stock 字段实现
 """
 import json
-import logging
+
 from datetime import datetime
 from typing import Dict, List
 
@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.product import Product
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class InventoryService:

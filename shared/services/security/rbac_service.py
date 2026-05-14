@@ -3,7 +3,7 @@
 提供自定义角色、权限控制、权限继承和权限审计功能
 """
 import json
-import logging
+
 from typing import Dict, Any, Optional, List, Set
 from datetime import datetime
 from enum import Enum
@@ -15,7 +15,7 @@ from shared.models.capability import Capability
 from shared.models.role import Role
 from shared.models.permission_audit_log import PermissionAuditLog
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 

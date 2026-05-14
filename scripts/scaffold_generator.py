@@ -112,10 +112,10 @@ class PluginScaffold(ScaffoldGenerator):
 
 A plugin for FastBlog that provides additional functionality.
 '''
-import logging
+
 from typing import Dict, Any
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class {class_name}Plugin(BasePlugin):

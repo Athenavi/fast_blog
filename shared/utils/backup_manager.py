@@ -7,7 +7,7 @@
 
 import hashlib
 import json
-import logging
+
 import shutil
 from datetime import datetime
 from pathlib import Path
@@ -16,7 +16,7 @@ from typing import Dict, List, Optional
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class BackupManager:

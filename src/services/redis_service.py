@@ -3,13 +3,13 @@ Redis 缓存服务
 提供异步 Redis 操作和缓存管理
 """
 import json
-import logging
+
 from datetime import timedelta
 from typing import Optional, Any, Union
 
 import redis.asyncio as aioredis
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class RedisService:

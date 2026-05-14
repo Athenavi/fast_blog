@@ -2,7 +2,7 @@
 媒体上传（普通上传、分块上传）
 """
 import hashlib
-import logging
+
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, Request
@@ -16,7 +16,7 @@ from src.setting import app_config
 from src.utils.upload.public_upload import ChunkedUploadProcessor, FileProcessor, process_single_file
 
 router = APIRouter()
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 # ---------- 普通上传 ----------

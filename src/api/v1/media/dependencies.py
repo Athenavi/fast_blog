@@ -1,7 +1,7 @@
 """
 媒体包依赖项
 """
-import logging
+
 
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,7 +12,7 @@ from shared.models.user import User
 from src.extensions import cache
 from src.setting import BaseConfig
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 async def get_user_storage_used(user_id: int, db: AsyncSession):

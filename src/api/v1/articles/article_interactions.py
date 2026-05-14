@@ -2,7 +2,7 @@
 文章互动 API
 提供文章点赞、浏览记录等功能
 """
-import logging
+
 
 from fastapi import APIRouter, Depends, Request, HTTPException
 from sqlalchemy import select
@@ -13,7 +13,7 @@ from shared.models.article_like import ArticleLike
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import cache, get_async_db_session as get_async_db
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 router = APIRouter(tags=["article-interactions"])
 

@@ -2,7 +2,7 @@
 日志工具模块
 提供统一的日志记录功能
 """
-import logging
+
 import sys
 
 

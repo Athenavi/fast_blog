@@ -2,10 +2,10 @@
 统一异常处理工具
 提供安全的异常处理机制，避免暴露内部敏感信息
 """
-import logging
+
 import traceback
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class SafeException(Exception):

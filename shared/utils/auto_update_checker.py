@@ -5,14 +5,14 @@
 检查 GitHub Releases 和本地更新包
 """
 
-import logging
+
 from datetime import datetime
 from typing import Optional, Dict
 
 import requests
 from aioitertools import asyncio
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class AutoUpdateChecker:

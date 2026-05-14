@@ -3,14 +3,14 @@
 提供基础的数据报表生成和分析功能
 """
 
-import logging
+
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class ReportGenerator:

@@ -4,7 +4,7 @@
 """
 import asyncio
 import hashlib
-import logging
+
 import os
 from datetime import datetime
 from pathlib import Path
@@ -18,7 +18,7 @@ from shared.models.download_task import DownloadTask
 from shared.models.media import Media
 from shared.models.file_hash import FileHash
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class ResourceTransferService:

@@ -5,7 +5,7 @@ FastBlog 进程监督器 Web 管理界面启动器
 独立运行的 Web 管理服务器
 """
 
-import logging
+
 import sys
 from pathlib import Path
 
@@ -23,7 +23,7 @@ try:
         level=logging.INFO,
         format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     )
-    logger = logging.getLogger(__name__)
+    from src.unified_logger import default_logger as logger
 
 
     def main():

@@ -3,7 +3,7 @@
 自动拦截并记录所有HTTP请求的性能指标
 """
 
-import logging
+
 import time
 from typing import Callable
 
@@ -12,7 +12,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 
 from shared.services.performance.performance_monitor import performance_monitor
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class PerformanceMonitoringMiddleware(BaseHTTPMiddleware):

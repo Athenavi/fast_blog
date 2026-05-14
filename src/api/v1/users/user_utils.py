@@ -2,13 +2,13 @@
 用户工具 API
 提供用户登录状态检查等辅助功能
 """
-import logging
+
 
 from fastapi import APIRouter, Depends
 
 from src.auth import jwt_required_dependency as jwt_required
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 router = APIRouter(tags=["user-utils"])
 

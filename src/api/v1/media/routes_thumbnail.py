@@ -1,7 +1,7 @@
 """
 媒体缩略图路由 - 提供基于 media_id 的缩略图访问
 """
-import logging
+
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -15,7 +15,7 @@ from src.extensions import get_async_db_session as get_async_db
 from src.utils.image.processing import generate_thumbnail as sync_generate_thumbnail
 
 router = APIRouter()
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 @router.get("/{media_id}/thumbnail")

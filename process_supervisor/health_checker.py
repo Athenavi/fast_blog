@@ -5,7 +5,7 @@
 提供三层健康检查机制：进程存活、端口监听、HTTP 端点
 """
 
-import logging
+
 import socket
 import time
 from dataclasses import dataclass
@@ -19,7 +19,7 @@ except ImportError:
     REQUESTS_AVAILABLE = False
     logging.warning("requests 库未安装，HTTP 健康检查将不可用")
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class HealthStatus(Enum):

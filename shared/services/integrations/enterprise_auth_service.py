@@ -6,7 +6,7 @@
 2. LDAP 集成和用户同步
 3. SSO 单点登录支持
 """
-import logging
+
 from typing import Optional, Dict, Any, List
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -16,7 +16,7 @@ from shared.models.ldap_config import LDAPConfig
 from shared.models.saml_config import SAMLConfig
 from shared.models.sso_provider import SSOProvider
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class EnterpriseAuthService:

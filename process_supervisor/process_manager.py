@@ -6,7 +6,7 @@
 功能：配置加载、健康检查、智能重启、详细日志
 """
 
-import logging
+
 import os
 import subprocess
 import threading
@@ -15,12 +15,11 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Dict, List, Optional, Any
 
+from src.unified_logger import default_logger as logger
 from .config_manager import ProcessConfig, get_config_manager
 from .health_checker import (
     HealthChecker, HealthStatus
 )
-
-logger = logging.getLogger(__name__)
 
 
 class ProcessStatus(Enum):

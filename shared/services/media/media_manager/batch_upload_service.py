@@ -4,7 +4,7 @@
 """
 
 import asyncio
-import logging
+
 from typing import List, Dict, Any, Optional
 
 from sqlalchemy import select
@@ -14,7 +14,7 @@ from shared.models.media import Media
 from shared.services.media.image_tool import image_processor
 from src.utils.upload.public_upload import FileProcessor
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 # 默认配置
 DEFAULT_MAX_CONCURRENT = 5

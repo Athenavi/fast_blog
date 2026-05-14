@@ -5,12 +5,12 @@
 """
 
 import io
-import logging
+
 from typing import Dict, Any, Tuple
 
 from PIL import Image, ImageOps, ExifTags, ImageFilter
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 # MIME 类型映射
 MIME_TYPES = {

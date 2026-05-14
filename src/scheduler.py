@@ -1,4 +1,4 @@
-import logging
+
 from pathlib import Path
 
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -10,7 +10,7 @@ from shared.services.system.backup_manager import BackupService
 
 # 配置日志
 logging.basicConfig()
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 logger.setLevel(logging.INFO)
 
 

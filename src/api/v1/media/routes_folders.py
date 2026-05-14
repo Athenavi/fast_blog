@@ -2,7 +2,7 @@
 媒体文件夹 API 路由
 提供文件夹的 CRUD 操作和媒体文件管理
 """
-import logging
+
 from typing import Optional, List
 
 from fastapi import APIRouter, Depends, Query, Body, Request
@@ -15,7 +15,7 @@ from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 
 router = APIRouter(tags=["media-folders"])
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 # ---------- 获取文件夹树 ----------

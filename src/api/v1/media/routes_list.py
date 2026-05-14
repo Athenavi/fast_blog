@@ -1,7 +1,7 @@
 """
 媒体列表、统计、分类、标签查询
 """
-import logging
+
 from decimal import Decimal
 from pathlib import Path
 from typing import Optional
@@ -21,7 +21,7 @@ from .dependencies import get_user_storage_used, get_user_storage_limit
 from .utils import convert_storage_size
 
 router = APIRouter()
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 # ---------- 列表 ----------

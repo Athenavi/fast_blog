@@ -4,13 +4,13 @@
 支持多种SMS服务商集成
 """
 
-import logging
+
 import random
 import string
 from datetime import datetime, timedelta
 from typing import Optional, Dict
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class SMSVerificationService:

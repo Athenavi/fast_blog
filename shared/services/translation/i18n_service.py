@@ -4,12 +4,12 @@
 """
 import os
 import json
-import logging
+
 from typing import Dict, Any, Optional, List
 from datetime import datetime
 from pathlib import Path
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class TranslationService:

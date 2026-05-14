@@ -4,7 +4,6 @@ FastAPI 应用入口点（精简版）
 """
 
 import argparse
-import logging
 import signal
 import sys
 from pathlib import Path
@@ -25,7 +24,8 @@ except Exception as e:
     traceback.print_exc()
     app = None
 
-from src.logger_config import init_optimized_logger
+# 使用统一的日志系统
+from src.unified_logger import default_logger as logger
 
 
 def parse_arguments():
@@ -41,7 +41,7 @@ def parse_arguments():
 
 def setup_signal_handlers():
     def handler(signum, frame):
-        logging.info(f"收到信号 {signum}，正在退出...")
+        logger.info(f"收到信号 {signum}，正在退出...")
         sys.exit(0)
 
     signal.signal(signal.SIGINT, handler)
@@ -54,11 +54,11 @@ def run_supervisor_mode():
         supervisor = SupervisedLauncher()
         supervisor.setup_signal_handlers()
         if not supervisor.start_system():
-            logging.error("监督器启动失败")
+            logger.error("监督器启动失败")
             sys.exit(1)
         supervisor.monitor_system()
     except Exception as e:
-        logging.error(f"监督器运行异常: {e}")
+        logger.error(f"监督器运行异常: {e}")
         sys.exit(1)
 
 
@@ -70,14 +70,10 @@ def main():
         run_supervisor_mode()
         return
 
-    # 初始化日志
-    logger = init_optimized_logger()
-    if not logger:
-        logging.error("日志系统初始化失败")
-        sys.exit(1)
+    # 日志系统已由 unified_logger 初始化，无需再次初始化
 
     # 简要输出启动信息
-    logging.info(f"启动 {args.backend.upper()} 后端，端口 {args.port}，环境 {args.env}")
+    logger.info(f"启动 {args.backend.upper()} 后端，端口 {args.port}，环境 {args.env}")
 
     # 选择配置并启动
     from src.setting import get_config_by_env
@@ -89,11 +85,11 @@ def main():
             # 使用应用实例而不是工厂函数
             from src.app import app as fastapi_app
             if fastapi_app is None:
-                logging.error("FastAPI 应用实例创建失败")
+                logger.error("FastAPI 应用实例创建失败")
                 sys.exit(1)
-            
-            logging.info(f"FastAPI 应用已加载，准备启动服务器...")
-            logging.info(f"服务器地址: http://{args.host}:{args.port}")
+
+            logger.info(f"FastAPI 应用已加载，准备启动服务器...")
+            logger.info(f"服务器地址: http://{args.host}:{args.port}")
             
             uvicorn.run(
                 fastapi_app,
@@ -104,17 +100,17 @@ def main():
                 workers=1,  # 使用单 worker 避免多进程问题
             )
         except KeyboardInterrupt:
-            logging.info("服务器已关闭")
+            logger.info("服务器已关闭")
         except Exception as e:
-            logging.error(f"FastAPI 启动失败: {e}")
+            logger.error(f"FastAPI 启动失败: {e}")
             sys.exit(1)
     else:  # django
         try:
             print("V0.2起已经不再支持Django")
         except KeyboardInterrupt:
-            logging.info("服务器已关闭")
+            logger.info("服务器已关闭")
         except Exception as e:
-            logging.error(f"V0.2起已经不再支持Django，Django 启动失败: {e}")
+            logger.error(f"V0.2起已经不再支持Django，Django 启动失败: {e}")
             sys.exit(1)
 
 

@@ -1,7 +1,7 @@
 """
 媒体编辑：删除、更新、批量优化等
 """
-import logging
+
 import os
 from threading import Thread
 
@@ -20,7 +20,7 @@ from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 
 router = APIRouter()
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 # ---------- 批量删除（查询参数） ----------

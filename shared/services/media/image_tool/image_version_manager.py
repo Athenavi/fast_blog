@@ -3,7 +3,7 @@
 负责生成多种尺寸的图片版本并管理原图备份
 """
 
-import logging
+
 import os
 import shutil
 from datetime import datetime
@@ -14,7 +14,7 @@ from PIL import Image
 
 from updater.updater import base_dir
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 # 预定义的尺寸配置
 SIZE_PRESETS = {

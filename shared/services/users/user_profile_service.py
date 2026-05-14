@@ -3,12 +3,12 @@
 提供用户活跃度分级、兴趣标签提取、流失预警等功能
 """
 
-import logging
+
 from collections import Counter, defaultdict
 from datetime import datetime, timedelta
 from typing import Dict, List
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class UserProfileService:

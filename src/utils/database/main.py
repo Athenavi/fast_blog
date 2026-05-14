@@ -1,5 +1,5 @@
 import importlib
-import logging
+
 import sys
 from contextlib import contextmanager
 from pathlib import Path
@@ -14,7 +14,7 @@ from sqlalchemy.pool import QueuePool
 # 导入统一管理器
 from src.utils.database.unified_manager import db_manager as unified_db_manager
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 Base = declarative_base()
 _models_imported = False  # 防止重复导入模型
 

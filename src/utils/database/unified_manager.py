@@ -7,14 +7,14 @@
 3. 正确的会话生命周期管理
 4. Windows + asyncpg 兼容性处理
 """
-import logging
+
 import sys
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class UnifiedDatabaseManager:

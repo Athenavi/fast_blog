@@ -3,7 +3,7 @@
 定期检查并处理待处理的下载任务
 """
 import asyncio
-import logging
+
 from typing import Optional
 
 from sqlalchemy import select
@@ -12,7 +12,7 @@ from shared.models import DownloadTask
 from shared.services.performance.resource_transfer_service import ResourceTransferService
 from src.utils.database.unified_manager import db_manager
 
-logger = logging.getLogger(__name__)
+from src.unified_logger import default_logger as logger
 
 
 class DownloadQueueProcessor:
