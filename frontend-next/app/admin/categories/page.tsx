@@ -232,11 +232,12 @@ const CategoryManagement = () => {
             // 保存到后端
             setIsSorting(true);
             try {
-                const response = await fetch('/api/v2/batch/categories/update-sort', {
+                const response = await fetch('/api/v2/admin/batch/categories/update-sort', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                     },
+                    credentials: 'include',
                     body: JSON.stringify({orders}),
                 });
 
@@ -690,7 +691,7 @@ const CategoryManagement = () => {
 
                             <p className="text-gray-700 mb-6">
                                 您确定要删除分类 &#34;<span
-                                            className="font-medium">{deleteCategoryName}
+                                className="font-medium">{deleteCategoryName}
                                 </span>
                                 &#34; 吗？此操作不可撤销。
                             </p>

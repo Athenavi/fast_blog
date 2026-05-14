@@ -238,7 +238,7 @@ export class CategoryService {
     static async reorderCategories(
         categories: Array<{ id: number; sort_order: number }>
     ): Promise<ApiResponse<{ message: string; updated_count: number }>> {
-        return apiClient.post('/categories/reorder', {
+        return apiClient.put('/categories/reorder', {
             categories
         });
     }
