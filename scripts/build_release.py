@@ -28,6 +28,10 @@ project_root = Path(__file__).resolve().parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
+# 确保logs目录存在（unified_logger模块导入时需要）
+logs_dir = project_root / "logs"
+logs_dir.mkdir(parents=True, exist_ok=True)
+
 from src.unified_logger import default_logger as logger
 
 
