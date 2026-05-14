@@ -9,7 +9,6 @@ FastBlog 发布构建脚本
 import argparse
 import hashlib
 import json
-
 import os
 import platform
 import re
@@ -23,11 +22,6 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
 
-# 配置日志
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s'
-)
 from src.unified_logger import default_logger as logger
 
 
@@ -658,9 +652,6 @@ def main():
     parser.add_argument('--verbose', action='store_true', help='详细输出')
 
     args = parser.parse_args()
-
-    if args.verbose:
-        logging.getLogger().setLevel(logging.DEBUG)
 
     builder = ReleaseBuilder(args.version, args.output)
     result = builder.build()
