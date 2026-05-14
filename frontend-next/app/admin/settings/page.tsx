@@ -131,7 +131,7 @@ const SettingsPage = () => {
   };
 
   // Handlers for menu management
-  const handleAddMenu = () => {
+    const handleAddMenu = async () => {
     setSelectedMenu(null);
     setMenuModalOpen(true);
   };
@@ -274,7 +274,7 @@ const SettingsPage = () => {
   };
 
   // Handlers for page management
-  const handleAddPage = () => {
+    const handleAddPage = async () => {
     setSelectedPage(null);
     setPageModalOpen(true);
   };

@@ -196,7 +196,7 @@ export default function EmailMarketingPage() {
                                     {subscribers.map((sub) => (
                                         <tr key={sub.id} className="border-b hover:bg-gray-50 dark:hover:bg-gray-800">
                                             <td className="p-2">{sub.email}</td>
-                                            <td className="p-2">{sub.name || '-'}</td>
+                                            <td className="p-2">{sub.name || ''}</td>
                                             <td className="p-2">
                                                 <Badge variant={sub.status === 'active' ? 'default' : 'secondary'}>
                                                     {sub.status}

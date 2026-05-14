@@ -125,13 +125,13 @@ export function ArticleRevisionsPage() {
         setPreviewDialogOpen(true);
     };
 
-    // 开始比较模�?
+    // 开始比较模'
     const handleStartCompare = (revisionId: number) => {
         if (!compareFrom) {
             setCompareFrom(revisionId);
             toast({
-                title: '已选择第一个版�?,
-                description: '请选择要比较的第二个版�?
+                title: '已选择第一个版',
+                description: '请选择要比较的第二个版'
             });
         } else {
             setCompareTo(revisionId);
@@ -167,14 +167,14 @@ export function ArticleRevisionsPage() {
     };
 
     // 取消比较模式
-    const handleCancelCompare = () => {
+    const handleCancelCompare = async () => {
         setComparisonMode(false);
         setCompareFrom(null);
         setCompareTo(null);
         setComparisonResult(null);
     };
 
-    // 打开回滚确认对话�?
+    // 打开回滚确认对话'
     const handleRollbackClick = (revision: Revision) => {
         setRevisionToRollback(revision);
         setRollbackDialogOpen(true);
@@ -200,7 +200,7 @@ export function ArticleRevisionsPage() {
                 setRevisionToRollback(null);
                 fetchRevisions(); // 刷新列表
 
-                // 延迟跳转到编辑页�?
+                // 延迟跳转到编辑页'
                 setTimeout(() => {
                     router.push(`/my/posts/edit?id=${articleId}`);
                 }, 1500);
@@ -220,7 +220,7 @@ export function ArticleRevisionsPage() {
         }
     };
 
-    // 格式化日�?
+    // 格式化日'
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);
         return date.toLocaleString('zh-CN', {
@@ -232,15 +232,15 @@ export function ArticleRevisionsPage() {
         });
     };
 
-    // 获取状态文�?
+    // 获取状态文'
     const getStatusText = (status: number) => {
         switch (status) {
             case 0:
                 return '草稿';
             case 1:
-                return '已发�?;
+                return '已发';
             case -1:
-                return '已删�?;
+                return '已删';
             default:
                 return '未知';
         }
@@ -253,7 +253,7 @@ export function ArticleRevisionsPage() {
                     <CardHeader>
                         <CardTitle className="flex items-center">
                             <AlertCircle className="w-5 h-5 mr-2 text-yellow-500"/>
-                            未指定文�?
+                            未指定文'
                         </CardTitle>
                     </CardHeader>
                     <CardContent>
@@ -280,13 +280,13 @@ export function ArticleRevisionsPage() {
                             文章修订历史
                         </h1>
                         <p className="text-muted-foreground mt-2">
-                            查看、比较和恢复文章的历史版�?
+                            查看、比较和恢复文章的历史版'
                         </p>
                     </div>
                     <div className="flex gap-2">
                         {comparisonMode && (
                             <Button variant="outline" onClick={handleCancelCompare}>
-                                退出比较模�?
+                                退出比较模'
                             </Button>
                         )}
                         <Button variant="outline" onClick={() => router.push(`/my/posts/edit?id=${articleId}`)}>
@@ -303,8 +303,8 @@ export function ArticleRevisionsPage() {
                         <div className="flex items-center">
                             <GitCompare className="w-5 h-5 mr-2 text-blue-600"/>
                             <span className="text-sm">
-                                已选择版本 #{revisions.find(r => r.id === compareFrom)?.revision_number}�?
-                                请选择另一个版本进行比�?
+                                已选择版本 #{revisions.find(r => r.id === compareFrom)?.revision_number}'
+                                请选择另一个版本进行比'
                             </span>
                         </div>
                     </CardContent>
@@ -320,7 +320,7 @@ export function ArticleRevisionsPage() {
                             版本对比结果
                         </CardTitle>
                         <CardDescription>
-                            比较版本 #{comparisonResult.revision1.revision_number} �?
+                            比较版本 #{comparisonResult.revision1.revision_number} '
                             #{comparisonResult.revision2.revision_number}
                         </CardDescription>
                     </CardHeader>
@@ -332,12 +332,12 @@ export function ArticleRevisionsPage() {
                                         <h4 className="font-semibold mb-2 capitalize">{diff.field}</h4>
                                         <div className="grid grid-cols-2 gap-4">
                                             <div className="bg-red-50 dark:bg-red-950 p-3 rounded">
-                                                <div className="text-xs text-red-600 mb-1">旧版�?/div>
-                                                    <div className="text-sm break-all">{diff.old_value || '(�?'}</div>
+                                                <div className="text-xs text-red-600 mb-1">旧版</div>
+                                                <div className="text-sm break-all">{diff.old_value || '(空)'}</div>
                                             </div>
                                             <div className="bg-green-50 dark:bg-green-950 p-3 rounded">
-                                                <div className="text-xs text-green-600 mb-1">新版�?/div>
-                                                    <div className="text-sm break-all">{diff.new_value || '(�?'}</div>
+                                                <div className="text-xs text-green-600 mb-1">新版</div>
+                                                <div className="text-sm break-all">{diff.new_value || '(空)'}</div>
                                             </div>
                                         </div>
                                     </div>
@@ -358,7 +358,7 @@ export function ArticleRevisionsPage() {
                 <CardHeader>
                     <CardTitle>修订版本列表</CardTitle>
                     <CardDescription>
-                        �?{revisions.length} 个版�?
+                        '{revisions.length} 个版本'
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -366,13 +366,13 @@ export function ArticleRevisionsPage() {
                         <div className="text-center py-12">
                             <div
                                 className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500 mb-2"/>
-                            <p className="text-muted-foreground">加载�?..</p>
+                            <p className="text-muted-foreground">加载中...</p>
                         </div>
                     ) : revisions.length === 0 ? (
                         <div className="text-center py-12 text-muted-foreground">
                             <History className="w-12 h-12 mx-auto mb-4 opacity-50"/>
                             <p>暂无修订记录</p>
-                            <p className="text-sm mt-2">文章的每次修改都会自动保存修订版�?/p>
+                            <p className="text-sm mt-2">文章的每次修改都会自动保存修订版</p>
                         </div>
                     ) : (
                         <div className="space-y-4">
@@ -397,7 +397,7 @@ export function ArticleRevisionsPage() {
                                                 {revision.is_featured && (
                                                     <Badge variant="outline"
                                                            className="text-yellow-600 border-yellow-600">
-                                                        精�?
+                                                        精选
                                                     </Badge>
                                                 )}
                                             </div>
@@ -473,7 +473,7 @@ export function ArticleRevisionsPage() {
                 </CardContent>
             </Card>
 
-            {/* 预览对话�?*/}
+            {/* 预览对话框*/}
             <Dialog open={previewDialogOpen} onOpenChange={setPreviewDialogOpen}>
                 <DialogContent className="max-w-4xl max-h-[80vh]">
                     <DialogHeader>
@@ -521,7 +521,7 @@ export function ArticleRevisionsPage() {
                 </DialogContent>
             </Dialog>
 
-            {/* 回滚确认对话�?*/}
+            {/* 回滚确认对话框*/}
             <Dialog open={rollbackDialogOpen} onOpenChange={setRollbackDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
@@ -545,8 +545,8 @@ export function ArticleRevisionsPage() {
                                             警告
                                         </h4>
                                         <p className="text-sm text-orange-800 dark:text-orange-200">
-                                            回滚后，当前文章内容将被替换为历史版本�?
-                                            系统会自动创建一个新的修订版本记录此次回滚操作�?
+                                            回滚后，当前文章内容将被替换为历史版本'
+                                            系统会自动创建一个新的修订版本记录此次回滚操作'
                                         </p>
                                     </div>
                                 </div>
@@ -554,20 +554,20 @@ export function ArticleRevisionsPage() {
 
                             <div className="space-y-2">
                                 <div className="text-sm">
-                                    <span className="font-medium">目标版本�?/span>
+                                    <span className="font-medium">目标版本</span>
                                     <Badge>v{revisionToRollback.revision_number}</Badge>
                                 </div>
                                 <div className="text-sm">
-                                    <span className="font-medium">标题�?/span>
+                                    <span className="font-medium">标题</span>
                                     {revisionToRollback.title}
                                 </div>
                                 <div className="text-sm">
-                                    <span className="font-medium">创建时间�?/span>
+                                    <span className="font-medium">创建时间</span>
                                     {formatDate(revisionToRollback.created_at)}
                                 </div>
                                 {revisionToRollback.change_summary && (
                                     <div className="text-sm">
-                                        <span className="font-medium">变更说明�?/span>
+                                        <span className="font-medium">变更说明</span>
                                         {revisionToRollback.change_summary}
                                     </div>
                                 )}
@@ -590,10 +590,10 @@ export function ArticleRevisionsPage() {
     );
 }
 
-// 包装组件，提�?Suspense boundary
+// 包装组件，提'Suspense boundary
 function ArticleRevisionsPageWithSuspense() {
     return (
-        <Suspense fallback={<div className="p-8 text-center">加载�?..</div>}>
+        <Suspense fallback={<div className="p-8 text-center">加载'..</div>}>
             <ArticleRevisionsPage/>
         </Suspense>
     );

@@ -1,5 +1,5 @@
 /**
- * Widget管理后台 - 支持Widget配置、排序、启�?禁用
+ * Widget管理后台 - 支持Widget配置、排序、启'禁用
  */
 
 'use client';
@@ -67,7 +67,8 @@ interface WidgetArea {
     max_widgets: number | null;
 }
 
-// 可排序的 Widget 项组�?const SortableWidgetItem = ({
+// 可排序的 Widget 项组'
+const SortableWidgetItem = ({
     widget,
     widgetType,
     areaWidgets,
@@ -118,7 +119,7 @@ interface WidgetArea {
                 <GripVertical className="w-5 h-5 text-gray-400"/>
             </div>
 
-            {/* Widget图标和信�?*/}
+            {/* Widget图标和信息*/}
             <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2">
                     <span className="text-xl">{widgetType?.icon || '📦'}</span>
@@ -166,7 +167,7 @@ interface WidgetArea {
                     disabled={areaWidgets.indexOf(widget) === 0}
                     title="上移"
                 >
-                    �? </Button>
+                    ↑ </Button>
                 <Button
                     variant="ghost"
                     size="sm"
@@ -174,7 +175,7 @@ interface WidgetArea {
                     disabled={areaWidgets.indexOf(widget) === areaWidgets.length - 1}
                     title="下移"
                 >
-                    �? </Button>
+                    ↓ </Button>
                 <Button
                     variant="ghost"
                     size="sm"
@@ -188,13 +189,14 @@ interface WidgetArea {
     );
 };
 
-const WidgetManagement = () => {
+const WidgetManagement = async () => {
     const [widgetTypes, setWidgetTypes] = useState<Record<string, WidgetType>>({});
     const [widgetAreas, setWidgetAreas] = useState<Record<string, WidgetArea>>({});
     const [widgets, setWidgets] = useState<WidgetInstance[]>([]);
     const [loading, setLoading] = useState(true);
 
-    // 对话框状�?    const [showConfigDialog, setShowConfigDialog] = useState(false);
+    // 对话框状态
+    const [showConfigDialog, setShowConfigDialog] = useState(false);
     const [showPreviewDialog, setShowPreviewDialog] = useState(false);
     const [currentWidget, setCurrentWidget] = useState<WidgetInstance | null>(null);
     const [configForm, setConfigForm] = useState<Record<string, any>>({});
@@ -217,7 +219,8 @@ const WidgetManagement = () => {
                 const response = await apiClient.get(`/api/v2/widgets/area/${area}`);
                 if (response.success && response.data) {
                     const widgets = (response.data as any).widgets || [];
-                    // 解析 config 字段（JSON 字符�?-> 对象�?                    const parsedWidgets = widgets.map((w: any) => ({
+                    // 解析 config 字段（JSON 字符串-> 对象）
+                    const parsedWidgets = widgets.map((w: any) => ({
                         ...w,
                         config: typeof w.config === 'string' ? JSON.parse(w.config) : w.config
                     }));
@@ -227,7 +230,8 @@ const WidgetManagement = () => {
 
             setWidgets(allWidgets);
 
-        // Widget类型和区域信息从后端获取或使用默认�?            setWidgetTypes(getDefaultWidgetTypes());
+            // Widget类型和区域信息从后端获取或使用默认值
+            setWidgetTypes(getDefaultWidgetTypes());
             setWidgetAreas(getDefaultWidgetAreas());
         } catch (error: any) {
             console.error('Failed to load widgets:', error);
@@ -239,7 +243,7 @@ const WidgetManagement = () => {
     // 获取默认Widget类型（如果API未实现）
     const getDefaultWidgetTypes = (): Record<string, WidgetType> => ({
         recent_posts: {
-            name: '最新文�?,
+            name: '最新文章',
             description: '显示最近发布的文章列表',
             icon: '📝',
             category: 'content',
@@ -253,14 +257,14 @@ const WidgetManagement = () => {
             default_config: {show_count: true, hierarchical: true}
         },
         tags: {
-            name: '标签�?,
-            description: '显示热门标签�?,
-            icon: '🏷�?,
+            name: '标签',
+            description: '显示热门标签',
+            icon: '🏷',
             category: 'navigation',
             default_config: {count: 20, display_type: 'cloud'}
         },
         search: {
-            name: '搜索�?,
+            name: '搜索',
             description: '站内搜索功能',
             icon: '🔍',
             category: 'utility',
@@ -268,7 +272,7 @@ const WidgetManagement = () => {
         },
         archives: {
             name: '文章归档',
-            description: '按月份显示文章归�?,
+            description: '按月份显示文章归档',
             icon: '📅',
             category: 'navigation',
             default_config: {type: 'monthly', show_count: true}
@@ -288,8 +292,8 @@ const WidgetManagement = () => {
             default_config: {button_text: '订阅'}
         },
         advertisement: {
-            name: '广告�?,
-            description: '自定义广告内�?,
+            name: '广告',
+            description: '自定义广告内',
             icon: '📢',
             category: 'monetization',
             default_config: {content: '', link: ''}
@@ -302,7 +306,7 @@ const WidgetManagement = () => {
             default_config: {html_content: ''}
         },
         recent_comments: {
-            name: '最新评�?,
+            name: '最新评',
             description: '显示最近的评论',
             icon: '💬',
             category: 'content',
@@ -320,25 +324,32 @@ const WidgetManagement = () => {
     // 获取默认Widget区域
     const getDefaultWidgetAreas = (): Record<string, WidgetArea> => ({
         sidebar_primary: {
-            name: '主边�?, description: '网站右侧边栏', max_widgets: null},
+            name: '主边', description: '网站右侧边栏', max_widgets: null
+        },
             sidebar_secondary: {
-                name: '次边�?, description: '网站左侧边栏', max_widgets: null},
+                name: '次边', description: '网站左侧边栏', max_widgets: null
+            },
                 footer_1: {
-                    name: '页脚区域1', description: '页脚第一�?, max_widgets: 5},
+                    name: '页脚区域1', description: '页脚第一', max_widgets: 5
+                },
                     footer_2: {
-                        name: '页脚区域2', description: '页脚第二�?, max_widgets: 5},
+                        name: '页脚区域2', description: '页脚第二', max_widgets: 5
+                    },
                         footer_3: {
-                            name: '页脚区域3', description: '页脚第三�?, max_widgets: 5},
+                            name: '页脚区域3', description: '页脚第三', max_widgets: 5
+                        },
         header_top: {name: '顶部区域', description: '网站顶部横幅', max_widgets: 3}
     });
 
-// 打开配置对话�?    const handleOpenConfig = (widget: WidgetInstance) => {
+// 打开配置对话
+    const handleOpenConfig = (widget: WidgetInstance) => {
         setCurrentWidget(widget);
         setConfigForm({...widget.config});
         setShowConfigDialog(true);
     };
 
-// 打开预览对话�?    const handleOpenPreview = async (widget: WidgetInstance) => {
+// 打开预览对话
+    const handleOpenPreview = async (widget: WidgetInstance) => {
         setCurrentWidget(widget);
         try {
             const response = await apiClient.get(`/api/v2/widgets/render/${widget.id}`);
@@ -399,7 +410,8 @@ const WidgetManagement = () => {
         }
     };
 
-// 添加Widget到区�?    const handleAddWidget = async (area: string, widgetType: string) => {
+// 添加Widget到区
+    const handleAddWidget = async (area: string, widgetType: string) => {
         const widgetTypeInfo = widgetTypes[widgetType];
         if (!widgetTypeInfo) return;
 
@@ -530,21 +542,23 @@ const WidgetManagement = () => {
 
         if (!over || active.id === over.id) return;
 
-        // 找到对应�?widget
+        // 找到对应'widget
         const activeWidget = widgets.find(w => w.id === active.id);
         const overWidget = widgets.find(w => w.id === over.id);
 
         if (!activeWidget || !overWidget) return;
 
-        // 确保只在同一区域内拖�?        if (activeWidget.area !== overWidget.area) return;
+        // 确保只在同一区域内拖'        if (activeWidget.area !== overWidget.area) return;
 
         const areaWidgets = getWidgetsByArea(activeWidget.area);
         const oldIndex = areaWidgets.findIndex(w => w.id === activeWidget.id);
         const newIndex = areaWidgets.findIndex(w => w.id === overWidget.id);
 
-        // 更新本地状�?        const newOrderWidgets = arrayMove(areaWidgets, oldIndex, newIndex);
+        // 更新本地状态
+        const newOrderWidgets = arrayMove(areaWidgets, oldIndex, newIndex);
 
-        // 准备批量更新的数�?        const updates = newOrderWidgets.map((widget, index) => ({
+        // 准备批量更新的数据
+        const updates = newOrderWidgets.map((widget, index) => ({
             id: widget.id,
             order_index: index
         }));
@@ -563,7 +577,8 @@ const WidgetManagement = () => {
         }
     };
 
-// 设置拖拽传感�?    const sensors = useSensors(
+// 设置拖拽传感
+    const sensors = useSensors(
         useSensor(PointerSensor),
         useSensor(KeyboardSensor, {
             coordinateGetter: sortableKeyboardCoordinates,
@@ -577,11 +592,11 @@ const WidgetManagement = () => {
                     Widget 管理
                 </h1>
                 <p className="text-gray-600 dark:text-gray-400">
-                    配置和管理网站的小部�? </p>
+                    配置和管理网站的小部件 </p>
             </div>
 
             {loading ? (
-                <div className="text-center py-8">加载�?..</div>
+                <div className="text-center py-8">加载中...</div>
             ) : (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {Object.entries(widgetAreas).map(([areaKey, areaInfo]) => {
@@ -593,7 +608,7 @@ const WidgetManagement = () => {
                                     <CardTitle className="flex items-center justify-between">
                                         <span>{areaInfo.name}</span>
                                         <Badge variant="secondary">
-                                            {areaWidgets.length} �?Widget
+                                            {areaWidgets.length} 'Widget
                                         </Badge>
                                     </CardTitle>
                                     <CardDescription>{areaInfo.description}</CardDescription>
@@ -675,7 +690,7 @@ const WidgetManagement = () => {
                 </div>
             )}
 
-            {/* 配置对话�?*/}
+            {/* 配置对话框 */}
             <Dialog open={showConfigDialog} onOpenChange={setShowConfigDialog}>
                 <DialogContent className="max-w-2xl">
                     <DialogHeader>
@@ -699,7 +714,7 @@ const WidgetManagement = () => {
                             />
                         </div>
 
-                        {/* 动态配置字�?*/}
+                        {/* 动态配置字段 */}
                         {currentWidget && Object.entries(configForm).map(([key, value]) =>
                             renderConfigField(key, value)
                         )}
@@ -717,7 +732,7 @@ const WidgetManagement = () => {
                 </DialogContent>
             </Dialog>
 
-            {/* 预览对话�?*/}
+            {/* 预览对话框 */}
             <Dialog open={showPreviewDialog} onOpenChange={setShowPreviewDialog}>
                 <DialogContent className="max-w-3xl">
                     <DialogHeader>

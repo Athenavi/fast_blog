@@ -137,7 +137,7 @@ const FormBuilder = () => {
 
     // 自动生成slug
     const generateSlug = (title: string) => {
-        return title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '');
+        return title.toLowerCase().replace(/[^a-z0-9]+/g, '').replace(/(^-|-$)/g, '');
     };
 
     // 渲染预览

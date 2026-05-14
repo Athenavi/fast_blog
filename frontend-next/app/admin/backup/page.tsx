@@ -79,7 +79,8 @@ export default function BackupManagement() {
         encrypt: true,
     });
 
-    // 恢复对话框状�?    const [showRestoreDialog, setShowRestoreDialog] = useState(false);
+    // 恢复对话框状
+    const [showRestoreDialog, setShowRestoreDialog] = useState(false);
     const [selectedBackup, setSelectedBackup] = useState<string>('');
     const [restoreOptions, setRestoreOptions] = useState({
         articles: true,
@@ -175,7 +176,7 @@ export default function BackupManagement() {
             if (data.success) {
                 toast({
                     title: '保存成功',
-                    description: '备份调度配置已更�?,
+                    description: '备份调度配置已更新',
                 });
             } else {
                 throw new Error(data.error || '保存失败');
@@ -210,7 +211,7 @@ export default function BackupManagement() {
             if (data.success) {
                 toast({
                     title: '保存成功',
-                    description: '异地备份配置已更�?,
+                    description: '异地备份配置已更新',
                 });
             } else {
                 throw new Error(data.error || '保存失败');
@@ -259,7 +260,7 @@ export default function BackupManagement() {
         }
     };
 
-    const getAccessToken = () => {
+    const getAccessToken = async () => {
         if (typeof document !== 'undefined') {
             const match = document.cookie.match(/access_token=([^;]+)/);
             return match ? match[1] : '';
@@ -297,7 +298,7 @@ export default function BackupManagement() {
   };
 
     const handleDelete = async (filename: string) => {
-        if (!confirm('确定要删除这个备份吗�?)) return;
+        if (!confirm('确定要删除这个备份吗')) return;
 
     try {
         const response = await fetch(`/api/v2/backup/${filename}`, {
@@ -321,7 +322,8 @@ export default function BackupManagement() {
     }
   };
 
-    // 打开恢复对话�?    const openRestoreDialog = (filename: string) => {
+    // 打开恢复对话框
+    const openRestoreDialog = (filename: string) => {
         setSelectedBackup(filename);
         setShowRestoreDialog(true);
     };
@@ -458,7 +460,7 @@ export default function BackupManagement() {
             </CardHeader>
             <CardContent>
           {loading ? (
-              <div className="text-center py-8">加载�?..</div>
+              <div className="text-center py-8">加载中...</div>
           ) : backups.length === 0 ? (
               <div className="text-center py-8 text-muted-foreground">
                   暂无备份文件
@@ -467,10 +469,10 @@ export default function BackupManagement() {
               <Table>
                   <TableHeader>
                       <TableRow>
-                          <TableHead>文件�?/TableHead>
+                          <TableHead>文件</TableHead>
                           <TableHead>大小</TableHead>
                           <TableHead>类型</TableHead>
-                              <TableHead>文章�?/TableHead>
+                          <TableHead>文章</TableHead>
                           <TableHead>创建时间</TableHead>
                           <TableHead className="text-right">操作</TableHead>
                       </TableRow>
@@ -571,7 +573,7 @@ export default function BackupManagement() {
 
                                 {schedule.frequency === 'weekly' && (
                                     <div className="space-y-2">
-                                        <Label>选择星期�?/Label>
+                                        <Label>选择星期</Label>
                                         <Select
                                             value={String(schedule.day_of_week || 1)}
                                             onValueChange={(value) =>
@@ -583,12 +585,12 @@ export default function BackupManagement() {
                                             </SelectTrigger>
                                             <SelectContent>
                                                 <SelectItem value="1">星期一</SelectItem>
-                                                <SelectItem value="2">星期�?/SelectItem>
-                                                    <SelectItem value="3">星期�?/SelectItem>
-                                                        <SelectItem value="4">星期�?/SelectItem>
-                                                            <SelectItem value="5">星期�?/SelectItem>
-                                                                <SelectItem value="6">星期�?/SelectItem>
-                                                                    <SelectItem value="0">星期�?/SelectItem>
+                                                <SelectItem value="2">星期二</SelectItem>
+                                                <SelectItem value="3">星期三</SelectItem>
+                                                <SelectItem value="4">星期四</SelectItem>
+                                                <SelectItem value="5">星期五</SelectItem>
+                                                <SelectItem value="6">星期六</SelectItem>
+                                                <SelectItem value="0">星期日</SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </div>
@@ -596,7 +598,7 @@ export default function BackupManagement() {
 
                                 {schedule.frequency === 'monthly' && (
                                     <div className="space-y-2">
-                                        <Label>选择日期�?-31�?/Label>
+                                        <Label>选择日期(1-31)</Label>
                                         <Input
                                             type="number"
                                             min="1"
@@ -626,7 +628,7 @@ export default function BackupManagement() {
 
                                 <Button onClick={saveSchedule} disabled={saving}>
                                     <Save className="w-4 h-4 mr-2"/>
-                                    {saving ? '保存�?..' : '保存配置'}
+                                    {saving ? '保存' : '保存配置'}
                                 </Button>
                             </>
                         )}
@@ -733,7 +735,7 @@ export default function BackupManagement() {
                                             />
                                         </div>
                                         <div className="space-y-2">
-                                            <Label>用户�?/Label>
+                                            <Label>用户</Label>
                                             <Input
                                                 placeholder="ftpuser"
                                                 value={remoteConfig.ftp_user || ''}
@@ -770,7 +772,7 @@ export default function BackupManagement() {
                                 <div className="flex gap-2">
                                     <Button onClick={saveRemoteConfig} disabled={saving}>
                                         <Save className="w-4 h-4 mr-2"/>
-                                        {saving ? '保存�?..' : '保存配置'}
+                                        {saving ? '保存' : '保存配置'}
                                     </Button>
                                     <Button variant="outline" onClick={testRemoteConnection}>
                                         测试连接
@@ -783,24 +785,24 @@ export default function BackupManagement() {
             </TabsContent>
         </Tabs>
 
-        {/* 恢复备份对话�?*/}
+        {/* 恢复备份对话'*/}
         <Dialog open={showRestoreDialog} onOpenChange={setShowRestoreDialog}>
             <DialogContent className="max-w-md">
                 <DialogHeader>
                     <DialogTitle>恢复备份</DialogTitle>
                     <DialogDescription>
-                        从备份文�?{selectedBackup} 恢复数据
+                        从备份文'{selectedBackup} 恢复数据
                     </DialogDescription>
                 </DialogHeader>
 
                 <div className="py-4 space-y-4">
                     <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                         <p className="text-sm text-yellow-800">
-                            ⚠️ 警告：恢复操作将覆盖现有数据，请谨慎操作�? </p>
+                            ⚠️ 警告：恢复操作将覆盖现有数据，请谨慎操作' </p>
                     </div>
 
                     <div className="space-y-3">
-                        <Label>选择要恢复的数据类型�?/Label>
+                        <Label>选择要恢复的数据类型</Label>
 
                         <div className="flex items-center space-x-2">
                             <Checkbox
@@ -864,7 +866,7 @@ export default function BackupManagement() {
                         取消
                     </Button>
                     <Button onClick={handleRestore} disabled={restoring}>
-                        {restoring ? '恢复�?..' : '确认恢复'}
+                        {restoring ? '恢复' : '确认恢复'}
                     </Button>
                 </DialogFooter>
             </DialogContent>

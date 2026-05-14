@@ -356,7 +356,7 @@ const ArticleManagementContent = () => {
     });
   };
 
-  const selectAllArticles = () => {
+    const selectAllArticles = async () => {
     if (selectedArticles.size === articles.length) {
       setSelectedArticles(new Set());
     } else {
@@ -870,10 +870,10 @@ const ArticleManagementContent = () => {
                           </div>
                         </td>
                         <td className="px-3 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden sm:table-cell">
-                          {article.author ? article.author.username : '-'}
+                            {article.author ? article.author.username : ''}
                         </td>
                         <td className="px-3 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">
-                          {article.category ? article.category.name : '-'}
+                            {article.category ? article.category.name : ''}
                         </td>
                         <td className="px-3 lg:px-6 py-4 whitespace-nowrap">
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeColor(article.status)}`}>

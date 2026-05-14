@@ -1,5 +1,5 @@
 /**
- * 主题管理后台 - 支持主题预览、激活、上传、配�?
+ * 主题管理后台 - 支持主题预览、激活、上传、配置
  */
 
 'use client';
@@ -38,14 +38,14 @@ interface Theme {
   updated_at?: string;
 }
 
-const ThemeManagement = () => {
+const ThemeManagement = async () => {
   const [themes, setThemes] = useState<Theme[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-    // 对话框状�?
+  // 对话框状态
   const [showPreviewDialog, setShowPreviewDialog] = useState(false);
   const [showConfigDialog, setShowConfigDialog] = useState(false);
   const [currentTheme, setCurrentTheme] = useState<Theme | null>(null);
@@ -66,7 +66,7 @@ const ThemeManagement = () => {
       }
     } catch (err: any) {
       console.error('Failed to load themes:', err);
-      setError('加载主题失败');
+      setError('加载主题失失败');
     } finally {
       setLoading(false);
     }
@@ -78,7 +78,7 @@ const ThemeManagement = () => {
     if (!file) return;
 
     if (!file.name.endsWith('.zip')) {
-      setError('只支持ZIP格式的主题包');
+      setError('只支持ZIP格式的主题钱包');
       return;
     }
 
@@ -95,11 +95,11 @@ const ThemeManagement = () => {
         loadThemes();
         alert('主题上传成功');
       } else {
-        setError(response.error || '上传失败');
+        setError(response.error || '上传失失败');
       }
     } catch (err: any) {
       console.error('Failed to upload theme:', err);
-      setError(err.message || '上传失败');
+      setError(err.message || '上传失失败');
     } finally {
       setUploading(false);
       // 清空input
@@ -109,7 +109,7 @@ const ThemeManagement = () => {
 
   // 检查并修复主题
   const handleScanAndFix = async () => {
-      if (!confirm('确定要扫描主题目录并修复数据库记录吗？\n这将添加所有在文件系统中存在但未在数据库中的主题�?)) {
+    if (!confirm('确定要扫描主题目录并修复数据库记录吗？\n这将添加所有在文件系统中存在但未在数据库中的主题')) {
       return;
     }
 
@@ -140,17 +140,17 @@ const ThemeManagement = () => {
     }
   };
 
-// 激活主�?
+// 激活主题
   const handleActivate = async (theme: Theme) => {
-      if (!confirm(`确定要激活主�?"${theme.name}" 吗？`)) return;
+    if (!confirm(`确定要激活主题"${theme.name}" 吗？`)) return;
 
     try {
-        console.log('[ThemeManagement] 开始激活主�?', theme.slug);
+      console.log('[ThemeManagement] 开始激活主题:', theme.slug);
       let response;
 
       if (!theme.is_installed && theme.id === null) {
         // 未安装的主题，先安装
-          console.log('[ThemeManagement] 主题未安装，先安�?..');
+        console.log('[ThemeManagement] 主题未安装，先安装...');
           response = await apiClient.post('/api/v2/themes/install', {
           slug: theme.slug
         });
@@ -160,31 +160,31 @@ const ThemeManagement = () => {
           return;
         }
 
-          console.log('[ThemeManagement] 安装成功，重新加载主题列�?);
+        console.log('[ThemeManagement] 安装成功，重新加载主题列表');
         await loadThemes();
       }
 
-        // 激活主�?
+      // 激活主题
         console.log('[ThemeManagement] 调用激活API:', `/api/v2/themes/${theme.slug}/activate`);
         response = await apiClient.post(`/api/v2/themes/${theme.slug}/activate`);
         console.log('[ThemeManagement] API响应:', response);
 
       if (response.success) {
-          console.log('[ThemeManagement] 激活成功，重新加载主题列表');
+        console.log('[ThemeManagement] 激活成功，重新加载主题列列表');
         await loadThemes();
       } else {
-          console.error('[ThemeManagement] 激活失�?', response.error);
-          setError(response.error || '激活失�?);
+        console.error('[ThemeManagement] 激活失败:', response.error);
+        setError(response.error || '激活失败');
       }
     } catch (err: any) {
-        console.error('[ThemeManagement] 激活主题异�?', err);
-        setError(err.message || '激活失�?);
+      console.error('[ThemeManagement] 激活主题异常:', err);
+      setError(err.message || '激活失败');
     }
   };
 
-// 停用主题（切换到默认主题�?
+// 停用主题（切换到默认主题）
   const handleDeactivate = async (theme: Theme) => {
-      if (!confirm(`确定要停用主�?"${theme.name}" 吗？将切换到默认主题。`)) return;
+    if (!confirm(`确定要停用主题"${theme.name}" 吗？将切换到默认主题。`)) return;
 
     try {
         const response = await apiClient.post(`/api/v2/themes/${theme.slug}/deactivate`);
@@ -203,11 +203,11 @@ const ThemeManagement = () => {
   // 删除主题
   const handleDelete = async (theme: Theme) => {
     if (!theme.id) {
-        setError('该主题未安装，无法删�?);
+      setError('该主题未安装，无法删除');
       return;
     }
 
-      if (!confirm(`确定要删除主�?"${theme.name}" 吗？此操作不可恢复！`)) return;
+    if (!confirm(`确定要删除主题"${theme.name}" 吗？此操作不可恢复！`)) return;
 
     try {
         const response = await apiClient.delete(`/api/v2/themes/${theme.id}`);
@@ -242,7 +242,7 @@ const ThemeManagement = () => {
       return 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAwIiBoZWlnaHQ9IjMwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjNmNGY2Ii8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxOCIgZmlsbD0iIzljYTNhZiIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPuaXoOazleWKoOi9veWbvueJhzwvdGV4dD48L3N2Zz4=';
     }
 
-      // 如果是相对路径，转换为绝对路�?
+    // 如果是相对路径，转换为绝对路径
     if (theme.screenshot.startsWith('/')) {
       return theme.screenshot;
     }
@@ -273,7 +273,7 @@ const ThemeManagement = () => {
               {scanning ? (
                 <>
                   <Upload className="w-4 h-4 mr-2 animate-spin"/>
-                    扫描�?..
+                  扫描中...
                 </>
               ) : (
                 <>
@@ -297,7 +297,7 @@ const ThemeManagement = () => {
                 {uploading ? (
                     <>
                       <Upload className="w-4 h-4 mr-2 animate-spin"/>
-                        上传�?..
+                      上传中...
                     </>
                 ) : (
                     <>
@@ -327,7 +327,7 @@ const ThemeManagement = () => {
 
         {/* 主题列表 */}
         {loading ? (
-            <div className="text-center py-8">加载�?..</div>
+            <div className="text-center py-8">加载中...</div>
         ) : themes.length === 0 ? (
             <Card>
               <CardContent className="py-12 text-center">
@@ -336,7 +336,7 @@ const ThemeManagement = () => {
                   暂无主题
                 </h3>
                 <p className="text-gray-500 mb-4">
-                    上传一个主题包开始使�?
+                  上传一个主题包开始使用
                 </p>
                 <label htmlFor="theme-upload">
                   <Button className="cursor-pointer">
@@ -368,7 +368,7 @@ const ThemeManagement = () => {
                           }}
                       />
 
-                        {/* 激活状态徽�?*/}
+                      {/* 激活状态徽章*/}
                       {theme.is_active && (
                           <Badge className="absolute top-2 right-2 bg-green-500 hover:bg-green-600">
                             <Check className="w-3 h-3 mr-1"/>
@@ -412,10 +412,10 @@ const ThemeManagement = () => {
 
                     <CardContent className="pb-3">
                       <p className="text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
-                        {theme.description || '暂无描述'}
+                        {theme.description || '暂无描描述'}
                       </p>
 
-                        {/* 支持的标�?*/}
+                      {/* 支持的标签*/}
                       {theme.supports && theme.supports.length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-2">
                             {theme.supports.slice(0, 3).map((tag, index) => (
@@ -440,7 +440,7 @@ const ThemeManagement = () => {
                               className="flex-1"
                               onClick={() => handleActivate(theme)}
                           >
-                              {theme.is_installed ? '激�? : '安装并激�?}
+                            {theme.is_installed ? '激活' : '安装并激活'}
                           </Button>
                       ) : (
                           <Button
@@ -478,7 +478,7 @@ const ThemeManagement = () => {
             </div>
         )}
 
-          {/* 预览对话�?*/}
+        {/* 预览对话框*/}
         <Dialog open={showPreviewDialog} onOpenChange={setShowPreviewDialog}>
           <DialogContent className="max-w-4xl">
             <DialogHeader>
@@ -512,7 +512,7 @@ const ThemeManagement = () => {
           </DialogContent>
         </Dialog>
 
-          {/* 配置对话�?*/}
+        {/* 配置对话框*/}
         <Dialog open={showConfigDialog} onOpenChange={setShowConfigDialog}>
           <DialogContent className="max-w-2xl">
             <DialogHeader>
@@ -526,15 +526,15 @@ const ThemeManagement = () => {
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <h3 className="font-semibold text-blue-900 mb-2">🎨 可视化主题定制器</h3>
                 <p className="text-sm text-blue-800 mb-3">
-                    使用我们的可视化定制器来调整颜色、字体、布局等所有主题设置，并实时预览效果�?
+                  使用我们的可视化定制器来调整颜色、字体、布局等所有主题设置，并实时预览效果。
                 </p>
                 <ul className="text-sm text-blue-700 space-y-1 list-disc list-inside">
-                    <li>实时预览 - 所见即所�?/li>
+                  <li>实时预览 - 所见即所得</li>
                   <li>颜色方案 - 预设配色和自定义颜色</li>
-                        <li>字体排版 - 多种字体选择和字号调�?/li>
-                            <li>布局定制 - 侧边栏位置、内容宽�?/li>
-                                <li>CSS编辑�?- 高级用户自定义样�?/li>
-                                    <li>版本历史 - 保存和恢复配�?/li>
+                  <li>字体排版 - 多种字体选择和字号调整</li>
+                  <li>布局定制 - 侧边栏位置、内容宽度</li>
+                  <li>CSS编辑 - 高级用户自定义样式</li>
+                  <li>版本历史 - 保存和恢复配置</li>
                 </ul>
               </div>
 
@@ -552,7 +552,7 @@ const ThemeManagement = () => {
                     }}
                     className="flex-1"
                 >
-                    打开定制�?
+                  打开定制器
                 </Button>
               </div>
             </div>

@@ -38,10 +38,10 @@ export default function NFTCollectionPage() {
                 // 自动加载 NFT
                 loadUserNFTs(accounts[0]);
             } catch (err: any) {
-                setError(err.message || '连接钱包失败');
+                setError(err.message || '连接钱包失失败');
             }
         } else {
-            setError('请安�?MetaMask 或其�?Web3 钱包扩展');
+            setError('请安装MetaMask 或其他Web3 钱包扩展');
         }
     };
 
@@ -62,7 +62,7 @@ export default function NFTCollectionPage() {
                 setNfts(data.data.nfts);
             }
         } catch (err: any) {
-            setError(err.message || '加载失败');
+            setError(err.message || '加载失失败');
         } finally {
             setLoading(false);
         }
@@ -76,7 +76,7 @@ export default function NFTCollectionPage() {
                     NFT 收藏
                 </h1>
                 <p className="text-gray-600 dark:text-gray-400">
-                    查看和管理您拥有的文�?NFT
+                    查看和管理您拥有的文章NFT
                 </p>
             </div>
 
@@ -85,7 +85,7 @@ export default function NFTCollectionPage() {
                 <CardHeader>
                     <CardTitle>连接钱包</CardTitle>
                     <CardDescription>
-                        连接您的 Web3 钱包以查�?NFT 收藏
+                        连接您的 Web3 钱包以查看NFT 收藏
                     </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -106,7 +106,7 @@ export default function NFTCollectionPage() {
 
                     <div className="flex gap-2">
                         <Input
-                            placeholder="0x... 或点击连接钱�?
+                            placeholder="0x... 或点击连接钱包"
                             value={walletAddress}
                             onChange={(e) => setWalletAddress(e.target.value)}
                         />
@@ -122,10 +122,10 @@ export default function NFTCollectionPage() {
                             {loading ? (
                                 <>
                                     <Loader2 className="w-4 h-4 mr-2 animate-spin"/>
-                                    加载�?..
+                                    加载中...
                                 </>
                             ) : (
-                                '加载 NFT'
+                                '加载 NFT？
                             )}
                         </Button>
                     </div>
@@ -156,7 +156,7 @@ export default function NFTCollectionPage() {
                                 <CardContent className="space-y-3">
                                     <div className="text-sm space-y-1">
                                         <div className="flex justify-between">
-                                            <span className=" text-gray-600 dark:text-gray-400">铸造时�?</span>
+                                            <span className=" text-gray-600 dark:text-gray-400">铸造时间</span>
                                             <span className="text-xs">
                                                 {new Date(nft.minted_at).toLocaleDateString('zh-CN')}
                                             </span>
@@ -202,7 +202,7 @@ export default function NFTCollectionPage() {
                         <Wallet className="w-16 h-16 mx-auto text-gray-300 mb-4"/>
                         <p className="text-gray-500">暂无 NFT 收藏</p>
                         <p className="text-sm text-gray-400 mt-2">
-                            浏览文章并铸�?NFT 来开始您的收�?                        </p>
+                            浏览文章并铸造NFT 来开始您的收藏 </p>
                         <Button className="mt-4" asChild>
                             <Link href="/articles">浏览文章</Link>
                         </Button>
@@ -214,14 +214,14 @@ export default function NFTCollectionPage() {
             <Card className="mt-8 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
                 <CardContent className="pt-6">
                     <h3 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">
-                        💡 什么是 NFT�?                    </h3>
+                        💡 什么是 NFT？ </h3>
                     <p className="text-sm text-blue-800 dark:text-blue-200">
-                        NFT（非同质化代币）是区块链上的唯一数字资产。将文章铸造为 NFT 可以�?                    </p>
+                        NFT（非同质化代币）是区块链上的唯一数字资产。将文章铸造为 NFT 可以： </p>
                     <ul className="list-disc list-inside text-sm text-blue-800 dark:text-blue-200 mt-2 space-y-1">
-                        <li>证明文章的所有权和真实�?/li>
-                        <li>在区块链上永久保存创作记�?/li>
+                        <li>证明文章的所有权和真实性</li>
+                        <li>在区块链上永久保存创作记录</li>
                         <li>支持内容的交易和收藏</li>
-                        <li>获得去中心化的内容认�?/li>
+                        <li>获得去中心化的内容认证</li>
                     </ul>
                 </CardContent>
             </Card>

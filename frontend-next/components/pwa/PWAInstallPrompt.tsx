@@ -39,7 +39,7 @@ export default function PWAInstallPrompt() {
         };
 
         // 监听 appinstalled 事件
-        const handleAppInstalled = () => {
+        const handleAppInstalled = async () => {
             console.log('[PWA] App installed successfully');
             setIsInstalled(true);
             setShowPrompt(false);

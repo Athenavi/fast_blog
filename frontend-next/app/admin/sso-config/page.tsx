@@ -9,7 +9,7 @@ import {Switch} from '@/components/ui/switch';
 import {Badge} from '@/components/ui/badge';
 import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/components/ui/tabs';
 import {useToast} from '@/hooks/use-toast';
-import {CheckCircle2, Github, Lock, Save, Shield, Users} from 'lucide-react';
+import {CheckCircle2, GitBranch, Lock, Save, Shield, Users} from 'lucide-react';
 
 interface OAuthConfig {
     enabled: boolean;
@@ -167,7 +167,7 @@ export default function SSOConfigPage() {
             if (data.success) {
                 toast({
                     title: '保存成功',
-                    description: 'SAML配置已保�?,
+                    description: 'SAML配置已保',
                 });
             } else {
                 throw new Error(data.error || '保存失败');
@@ -203,7 +203,7 @@ export default function SSOConfigPage() {
             if (data.success) {
                 toast({
                     title: '保存成功',
-                    description: 'LDAP配置已保�?,
+                    description: 'LDAP配置已保',
                 });
             } else {
                 throw new Error(data.error || '保存失败');
@@ -280,7 +280,7 @@ export default function SSOConfigPage() {
             <div className="flex items-center justify-center py-12">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
-                    <p className="text-gray-600">加载�?..</p>
+                    <p className="text-gray-600">加载'..</p>
                 </div>
             </div>
         );
@@ -328,7 +328,7 @@ export default function SSOConfigPage() {
                                 {ssoConfig.google_oauth.enabled && (
                                     <Badge variant="default" className="bg-green-600">
                                         <CheckCircle2 className="w-3 h-3 mr-1"/>
-                                        已启�? </Badge>
+                                        已启' </Badge>
                                 )}
                             </div>
                         </CardHeader>
@@ -431,7 +431,7 @@ export default function SSOConfigPage() {
                                             disabled={saving}
                                         >
                                             <Save className="w-4 h-4 mr-2"/>
-                                            {saving ? '保存�?..' : '保存配置'}
+                                            {saving ? '保存' : '保存配置'}
                                         </Button>
                                         <Button
                                             variant="outline"
@@ -459,7 +459,7 @@ export default function SSOConfigPage() {
                                 {ssoConfig.github_oauth.enabled && (
                                     <Badge variant="default" className="bg-green-600">
                                         <CheckCircle2 className="w-3 h-3 mr-1"/>
-                                        已启�? </Badge>
+                                        已启' </Badge>
                                 )}
                             </div>
                         </CardHeader>
@@ -523,7 +523,7 @@ export default function SSOConfigPage() {
                                             disabled={saving}
                                         >
                                             <Save className="w-4 h-4 mr-2"/>
-                                            {saving ? '保存�?..' : '保存配置'}
+                                            {saving ? '保存' : '保存配置'}
                                         </Button>
                                         <Button
                                             variant="outline"
@@ -553,7 +553,7 @@ export default function SSOConfigPage() {
                                 {ssoConfig.microsoft_oauth.enabled && (
                                     <Badge variant="default" className="bg-green-600">
                                         <CheckCircle2 className="w-3 h-3 mr-1"/>
-                                        已启�? </Badge>
+                                        已启' </Badge>
                                 )}
                             </div>
                         </CardHeader>
@@ -617,7 +617,7 @@ export default function SSOConfigPage() {
                                             disabled={saving}
                                         >
                                             <Save className="w-4 h-4 mr-2"/>
-                                            {saving ? '保存�?..' : '保存配置'}
+                                            {saving ? '保存' : '保存配置'}
                                         </Button>
                                         <Button
                                             variant="outline"
@@ -640,13 +640,13 @@ export default function SSOConfigPage() {
                                     <Shield className="w-10 h-10 text-purple-600"/>
                                     <div>
                                         <CardTitle>SAML 2.0</CardTitle>
-                                        <CardDescription>企业级单点登录协�?/CardDescription>
+                                        <CardDescription>企业级单点登录协</CardDescription>
                                     </div>
                                 </div>
                                 {ssoConfig.saml.enabled && (
                                     <Badge variant="default" className="bg-green-600">
                                         <CheckCircle2 className="w-3 h-3 mr-1"/>
-                                        已启�? </Badge>
+                                        已启' </Badge>
                                 )}
                             </div>
                         </CardHeader>
@@ -725,7 +725,7 @@ export default function SSOConfigPage() {
                                     <div className="flex gap-2">
                                         <Button onClick={saveSAMLConfig} disabled={saving}>
                                             <Save className="w-4 h-4 mr-2"/>
-                                            {saving ? '保存�?..' : '保存配置'}
+                                            {saving ? '保存' : '保存配置'}
                                         </Button>
                                         <Button
                                             variant="outline"
@@ -754,7 +754,7 @@ export default function SSOConfigPage() {
                                 {ssoConfig.ldap.enabled && (
                                     <Badge variant="default" className="bg-green-600">
                                         <CheckCircle2 className="w-3 h-3 mr-1"/>
-                                        已启�? </Badge>
+                                        已启' </Badge>
                                 )}
                             </div>
                         </CardHeader>
@@ -850,7 +850,7 @@ export default function SSOConfigPage() {
 
                                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                         <div className="space-y-2">
-                                            <Label htmlFor="ldap-username-attr">用户名属�?/Label>
+                                            <Label htmlFor="ldap-username-attr">用户名属</Label>
                                             <Input
                                                 id="ldap-username-attr"
                                                 value={ssoConfig.ldap.username_attribute || ''}
@@ -867,7 +867,7 @@ export default function SSOConfigPage() {
                                         </div>
 
                                         <div className="space-y-2">
-                                            <Label htmlFor="ldap-email-attr">邮箱属�?/Label>
+                                            <Label htmlFor="ldap-email-attr">邮箱属</Label>
                                             <Input
                                                 id="ldap-email-attr"
                                                 value={ssoConfig.ldap.email_attribute || ''}
@@ -887,7 +887,7 @@ export default function SSOConfigPage() {
                                     <div className="flex gap-2">
                                         <Button onClick={saveLDAPConfig} disabled={saving}>
                                             <Save className="w-4 h-4 mr-2"/>
-                                            {saving ? '保存�?..' : '保存配置'}
+                                            {saving ? '保存' : '保存配置'}
                                         </Button>
                                         <Button
                                             variant="outline"

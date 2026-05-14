@@ -162,7 +162,7 @@ export default function ArticleRevisionsSidebar({
     }, [isOpen, articleId]);
 
     // 检查本地草稿
-    const checkLocalDraft = () => {
+    const checkLocalDraft = async () => {
         if (!articleId) return;
         const draft = draftService.getDraft(articleId);
         setLocalDraft(draft);
@@ -327,7 +327,7 @@ export default function ArticleRevisionsSidebar({
     };
 
     // 开始执行比较
-    const handleStartComparison = () => {
+    const handleStartComparison = async () => {
         console.log('🔵 点击开始比较按钮', 'compareFrom:', compareFrom, 'compareTo:', compareTo);
 
         if (!compareFrom || !compareTo) {
@@ -555,7 +555,7 @@ export default function ArticleRevisionsSidebar({
     };
 
     // 删除本地草稿
-    const handleDeleteLocalDraft = () => {
+    const handleDeleteLocalDraft = async () => {
         if (!articleId) return;
 
         draftService.deleteDraft(articleId);

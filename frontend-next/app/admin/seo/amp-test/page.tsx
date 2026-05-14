@@ -83,7 +83,7 @@ export default function AMPTestPage() {
       {/* 标题 */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-gray-900">AMP支持测试</h1>
-          <p className="text-gray-600 mt-1">Accelerated Mobile Pages - 加速移动页�?/p>
+          <p className="text-gray-600 mt-1">Accelerated Mobile Pages - 加速移动页</p>
       </div>
 
       {/* AMP信息 */}
@@ -95,9 +95,9 @@ export default function AMPTestPage() {
           <CardContent>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                  <p className="text-sm text-gray-600">状�?/p>
+                  <p className="text-sm text-gray-600">状</p>
                 <Badge variant={ampInfo.enabled ? 'default' : 'secondary'}>
-                    {ampInfo.enabled ? '已启�? : '未启�?}
+                    {ampInfo.enabled ? '已启' : '未启'}
                 </Badge>
               </div>
               <div>
@@ -105,7 +105,7 @@ export default function AMPTestPage() {
                 <p className="font-medium">{ampInfo.css_limit_kb} KB</p>
               </div>
               <div>
-                  <p className="text-sm text-gray-600">支持的组�?/p>
+                  <p className="text-sm text-gray-600">支持的组</p>
                 <div className="flex flex-wrap gap-2 mt-1">
                   {ampInfo.supported_components.map((comp: string) => (
                     <Badge key={comp} variant="outline">{comp}</Badge>
@@ -143,7 +143,7 @@ export default function AMPTestPage() {
               className="max-w-xs"
             />
             <Button onClick={validateArticle} disabled={loading}>
-                {loading ? '验证�?..' : '验证AMP'}
+                {loading ? '验证中...' : '验证AMP'}
             </Button>
             <Button onClick={viewAmpPage} variant="outline">
               查看AMP页面
@@ -199,7 +199,7 @@ export default function AMPTestPage() {
                   <CheckCircle className="h-4 w-4 text-green-600" />
                   <AlertTitle className="text-green-800">完美!</AlertTitle>
                   <AlertDescription className="text-green-700">
-                      AMP页面符合所有规范要�?
+                      AMP页面符合所有规范要求
                   </AlertDescription>
                 </Alert>
               )}
@@ -215,27 +215,27 @@ export default function AMPTestPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-gray-700">
-              <strong>AMP (Accelerated Mobile Pages)</strong> 是由Google主导的开源项�?旨在提升移动设备的网页加载速度�?
+              <strong>AMP (Accelerated Mobile Pages)</strong> 是由Google主导的开源项目，旨在提升移动设备的网页加载速度。
           </p>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="bg-blue-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-blue-900 mb-2">核心特�?/h3>
+                <h3 className="font-semibold text-blue-900 mb-2">核心特性</h3>
               <ul className="list-disc list-inside space-y-1 text-sm text-blue-800">
-                  <li>极速加�?通常&lt;1�?</li>
+                  <li>极速加载，通常&lt;1秒</li>
                 <li>预渲染和缓存</li>
                 <li>简化的HTML/CSS/JS</li>
-                  <li>移动端优�?/li>
+                  <li>移动端优化</li>
               </ul>
             </div>
             
             <div className="bg-green-50 p-4 rounded-lg">
-                <h3 className="font-semibold text-green-900 mb-2">技术限�?/h3>
+                <h3 className="font-semibold text-green-900 mb-2">技术限制</h3>
               <ul className="list-disc list-inside space-y-1 text-sm text-green-800">
                 <li>CSS限制50KB以内</li>
                 <li>禁止自定义JavaScript</li>
                 <li>图片必须使用&lt;amp-img&gt;</li>
-                  <li>内联样式有限�?/li>
+                  <li>内联样式有限</li>
               </ul>
             </div>
           </div>
@@ -243,9 +243,9 @@ export default function AMPTestPage() {
           <div className="bg-gray-50 p-4 rounded-lg">
             <h3 className="font-semibold text-gray-900 mb-2">SEO优势</h3>
             <ul className="list-disc list-inside space-y-1 text-sm text-gray-700">
-                <li>Google搜索结果中的AMP标识�?/li>
+                <li>Google搜索结果中的AMP标识</li>
               <li>更快的加载速度提升用户体验</li>
-                    <li>降低跳出�?提高停留时间</li>
+                <li>降低跳出率，提高停留时间</li>
               <li>Top Stories轮播展示机会</li>
             </ul>
           </div>
@@ -255,9 +255,9 @@ export default function AMPTestPage() {
             <ol className="list-decimal list-inside space-y-1 text-sm text-gray-700 ml-2">
                 <li>访问文章AMP版本: <code
                     className="bg-gray-100 px-2 py-1 rounded">/api/v2/amp/&#123;article_id&#125;/amp</code></li>
-                <li>在规范页面添加链�? <code className="bg-gray-100 px-2 py-1 rounded">&lt;link rel="amphtml"
+                <li>在规范页面添加链接: <code className="bg-gray-100 px-2 py-1 rounded">&lt;link rel="amphtml"
                     href="..."&gt;</code></li>
-                <li>使用验证工具检查合规�?/li>
+                <li>使用验证工具检查合规性</li>
               <li>提交到Google Search Console</li>
             </ol>
           </div>

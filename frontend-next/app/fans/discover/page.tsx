@@ -5,7 +5,7 @@ import Link from 'next/link';
 import WithAuthProtection from '@/components/WithAuthProtection';
 import {RelationService, UserRelation} from "@/lib/api/user-relation-services";
 
-const DiscoverUsersPage = () => {
+const DiscoverUsersPage = async () => {
   const [users, setUsers] = useState<UserRelation[]>([]);
   const [followingIds, setFollowingIds] = useState<number[]>([]);
   const [loading, setLoading] = useState<boolean>(true);

@@ -1,6 +1,6 @@
 /**
- * 标签�?Widget
- * 显示文章标签，支持云模式和列表模�? */
+ * 标签'Widget
+ * 显示文章标签，支持云模式和列表模' */
 
 'use client';
 
@@ -101,7 +101,7 @@ const TagsWidget: React.FC<TagsWidgetProps> = ({title, config}) => {
                         ))}
                     </div>
                 ) : (
-                    // 云模�?                    <div className="flex flex-wrap gap-2">
+                    // 云模'                    <div className="flex flex-wrap gap-2">
                         {tags.map((tag) => (
                             <Link
                                 key={tag.slug}

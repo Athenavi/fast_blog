@@ -39,9 +39,9 @@ const addHeadingIds = (contentElement: HTMLElement) => {
       const text = h.textContent || '';
       let baseId = text
           .toLowerCase()
-          .replace(/[\s\u4e00-\u9fa5]+/g, '-') // 将空格和中文替换为连字符
+          .replace(/[\s\u4e00-\u9fa5]+/g, '') // 将空格和中文替换为连字符
           .replace(/[^a-z0-9-]/g, '') // 移除特殊字符
-          .replace(/-+/g, '-') // 合并多个连字符
+          .replace(/-+/g, '') // 合并多个连字符
           .replace(/^-|-$/g, ''); // 移除首尾连字符
 
       // 如果生成的 ID 为空，使用默认值

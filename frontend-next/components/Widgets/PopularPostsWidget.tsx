@@ -118,7 +118,7 @@ const PopularPostsWidget: React.FC<PopularPostsWidgetProps> = ({title, config}) 
                                 </span>
                             </div>
 
-                            {/* 缩略�?*/}
+                            {/* 缩略'*/}
                             {config.show_thumbnail !== false && article.cover_image && (
                                 <div className="flex-shrink-0 w-16 h-16 relative rounded overflow-hidden">
                                     <Image
@@ -136,11 +136,11 @@ const PopularPostsWidget: React.FC<PopularPostsWidgetProps> = ({title, config}) 
                                     {article.title}
                                 </h3>
 
-                                {/* 浏览�?*/}
+                                {/* 浏览'*/}
                                 {config.show_views !== false && (
                                     <div className="text-xs text-gray-500 flex items-center gap-1">
                                         <Flame className="w-3 h-3"/>
-                                        {formatViews(article.views)} 次浏�? </div>
+                                        {formatViews(article.views)} 次浏' </div>
                                 )}
                             </div>
                         </Link>

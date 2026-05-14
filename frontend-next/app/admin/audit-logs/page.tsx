@@ -183,7 +183,7 @@ export default function AuditLogsPage() {
             <div className="flex items-center justify-center py-12">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
-                    <p className="text-gray-600">加载�?..</p>
+                    <p className="text-gray-600">加载'..</p>
                 </div>
             </div>
         );
@@ -354,10 +354,10 @@ export default function AuditLogsPage() {
                                                         {log.resource_id && ` #${log.resource_id}`}
                                                     </TableCell>
                                                     <TableCell className="font-mono text-sm">
-                                                        {log.ip_address || '-'}
+                                                        {log.ip_address || ''}
                                                     </TableCell>
                                                     <TableCell className="max-w-xs truncate">
-                                                        {log.details || '-'}
+                                                        {log.details || ''}
                                                     </TableCell>
                                                 </TableRow>
                                             ))
@@ -386,9 +386,9 @@ export default function AuditLogsPage() {
                                     <TableHeader>
                                         <TableRow>
                                             <TableHead>时间</TableHead>
-                                            <TableHead>用户�?/TableHead>
+                                            <TableHead>用户</TableHead>
                                             <TableHead>IP地址</TableHead>
-                                                <TableHead>状�?/TableHead>
+                                            <TableHead>状</TableHead>
                                             <TableHead>User Agent</TableHead>
                                         </TableRow>
                                     </TableHeader>
@@ -419,7 +419,7 @@ export default function AuditLogsPage() {
                                                         )}
                                                     </TableCell>
                                                     <TableCell className="max-w-xs truncate text-sm text-gray-500">
-                                                        {log.user_agent || '-'}
+                                                        {log.user_agent || ''}
                                                     </TableCell>
                                                 </TableRow>
                                             ))
@@ -481,13 +481,13 @@ export default function AuditLogsPage() {
                                                         <div className="text-sm space-y-1">
                                                             {log.old_values && (
                                                                 <div className="text-red-600">
-                                                                    <span className="font-semibold">旧�?</span>{' '}
+                                                                    <span className="font-semibold">旧'</span>{' '}
                                                                     {JSON.stringify(log.old_values)}
                                                                 </div>
                                                             )}
                                                             {log.new_values && (
                                                                 <div className="text-green-600">
-                                                                    <span className="font-semibold">新�?</span>{' '}
+                                                                    <span className="font-semibold">新'</span>{' '}
                                                                     {JSON.stringify(log.new_values)}
                                                                 </div>
                                                             )}

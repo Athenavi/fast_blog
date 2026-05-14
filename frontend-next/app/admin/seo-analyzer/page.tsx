@@ -29,7 +29,7 @@ interface SEOAnalysisResult {
     failures: number;
 }
 
-const SEOAnalyzerPage = () => {
+const SEOAnalyzerPage = async () => {
     const [articleData, setArticleData] = useState({
         title: '',
         excerpt: '',
@@ -45,7 +45,7 @@ const SEOAnalyzerPage = () => {
     // 执行SEO分析
     const handleAnalyze = async () => {
         if (!articleData.title) {
-            setError('请至少输入文章标�?);
+            setError('请至少输入文章标标题);
             return;
         }
 
@@ -58,10 +58,10 @@ const SEOAnalyzerPage = () => {
             if (response.success && response.data) {
                 setAnalysisResult(response.data as SEOAnalysisResult);
             } else {
-                setError(response.error || '分析失败');
+                setError(response.error || '分析失失败');
             }
         } catch (err: any) {
-            setError(err.message || '网络请求失败');
+            setError(err.message || '网络请求失失败');
         } finally {
             setIsLoading(false);
         }
@@ -93,7 +93,8 @@ const SEOAnalyzerPage = () => {
         }
     };
 
-    // 获取检查项背景�?    const getStatusBgColor = (status: string) => {
+    // 获取检查项背景
+    const getStatusBgColor = (status: string) => {
         switch (status) {
             case 'pass':
                 return 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800';
@@ -113,7 +114,7 @@ const SEOAnalyzerPage = () => {
                     SEO 分析工具
                 </h1>
                 <p className="text-gray-600 dark:text-gray-400">
-                    分析文章内容的SEO质量，获取改进建�? </p>
+                    分析文章内容的SEO质量，获取改进建议 </p>
             </div>
 
             {/* 输入表单 */}
@@ -151,7 +152,7 @@ const SEOAnalyzerPage = () => {
                             id="excerpt"
                             value={articleData.excerpt}
                             onChange={(e) => setArticleData({...articleData, excerpt: e.target.value})}
-                            placeholder="输入文章摘要�?50-160字符�?
+                            placeholder="输入文章摘要'50-160字符)
                             rows={3}
                         />
                     </div>
@@ -178,7 +179,7 @@ const SEOAnalyzerPage = () => {
                     </div>
 
                     <div>
-                        <Label htmlFor="tags">标签（逗号分隔�?/Label>
+                        <Label htmlFor="tags">标签（逗号分隔</Label>
                         <Input
                             id="tags"
                             value={articleData.tags.join(', ')}
@@ -186,7 +187,7 @@ const SEOAnalyzerPage = () => {
                                 ...articleData,
                                 tags: e.target.value.split(',').map(t => t.trim()).filter(t => t)
                             })}
-                            placeholder="技�? 编程, Python"
+                            placeholder="技术、编程, Python"
                         />
                     </div>
 
@@ -200,12 +201,12 @@ const SEOAnalyzerPage = () => {
                         {isLoading ? (
                             <>
                                 <Search className="w-4 h-4 mr-2 animate-spin"/>
-                                分析�?..
+                                分析中...
                             </>
                         ) : (
                             <>
                                 <Search className="w-4 h-4 mr-2"/>
-                                开始分�? </>
+                                开始分析 </>
                         )}
                     </Button>
                 </CardContent>
@@ -214,7 +215,7 @@ const SEOAnalyzerPage = () => {
             {/* 分析结果 */}
             {analysisResult && (
                 <div className="space-y-6">
-                    {/* 总分和等�?*/}
+                    {/* 总分和等级*/}
                     <Card>
                         <CardHeader>
                             <CardTitle>SEO评分</CardTitle>
@@ -227,7 +228,7 @@ const SEOAnalyzerPage = () => {
                                         <Badge
                                             className={`${getGradeColor(analysisResult.grade)} text-white text-lg px-4 py-1`}
                                         >
-                                            {analysisResult.grade}�? </Badge>
+                                            {analysisResult.grade} </Badge>
                                     </div>
                                     <Progress value={analysisResult.score} className="h-3"/>
                                 </div>
@@ -267,7 +268,7 @@ const SEOAnalyzerPage = () => {
                         <CardHeader>
                             <CardTitle>检查项详情</CardTitle>
                             <CardDescription>
-                                共{analysisResult.total_checks}项检�? </CardDescription>
+                                共{analysisResult.total_checks}项检查 </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-3">
                             {analysisResult.checks.map((check, index) => (
@@ -291,8 +292,8 @@ const SEOAnalyzerPage = () => {
                                                     check.status === 'warning' ? 'secondary' : 'destructive'
                                             }
                                         >
-                                            {check.status === 'pass' ? '通过' :
-                                                check.status === 'warning' ? '警告' : '失败'}
+                                            {check.status === 'pass' ? '通过期 :
+                                                check.status === 'warning' ? '警告' : '失失败}
                                         </Badge>
                                     </div>
                                 </div>
@@ -309,7 +310,7 @@ const SEOAnalyzerPage = () => {
                                     <span>改进建议</span>
                                 </CardTitle>
                                 <CardDescription>
-                                    共{analysisResult.suggestions.length}条建�? </CardDescription>
+                                    共{analysisResult.suggestions.length}条建议 </CardDescription>
                             </CardHeader>
                             <CardContent>
                                 <ul className="space-y-3">

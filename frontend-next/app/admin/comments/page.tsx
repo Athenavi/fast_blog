@@ -52,7 +52,8 @@ const CommentsManagement = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedComments, setSelectedComments] = useState<number[]>([]);
 
-    // 对话框状�?    const [showViewDialog, setShowViewDialog] = useState(false);
+    // 对话框状态
+    const [showViewDialog, setShowViewDialog] = useState(false);
     const [showApproveDialog, setShowApproveDialog] = useState(false);
     const [showRejectDialog, setShowRejectDialog] = useState(false);
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -75,7 +76,8 @@ const CommentsManagement = () => {
 
             if (response.success && response.data) {
                 const data = response.data as any;
-                // 处理不同的响应格�?                if (data.comments) {
+                // 处理不同的响应格式
+                if (data.comments) {
                     setComments(data.comments);
                     if (data.pagination) {
                         setPagination(data.pagination);
@@ -158,7 +160,8 @@ const CommentsManagement = () => {
         }
     };
 
-// 全�?取消全�?    const toggleSelectAll = () => {
+// 全选/取消全选
+    const toggleSelectAll = () => {
         if (selectedComments.length === comments.length) {
             setSelectedComments([]);
         } else {
@@ -166,11 +169,13 @@ const CommentsManagement = () => {
         }
     };
 
-// 格式化日�?    const formatDate = (dateString: string) => {
+// 格式化日期
+    const formatDate = (dateString: string) => {
         return new Date(dateString).toLocaleString('zh-CN');
     };
 
-// 获取作者显示名�?    const getAuthorName = (comment: Comment) => {
+// 获取作者显示名称
+    const getAuthorName = (comment: Comment) => {
         return comment.author_name || (comment.user_id ? `用户 #${comment.user_id}` : '匿名用户');
     };
 
@@ -192,7 +197,7 @@ const CommentsManagement = () => {
                 </p>
             </div>
 
-            {/* 筛选和操作�?*/}
+            {/* 筛选和操作栏 */}
             <Card className="mb-6">
                 <CardContent className="pt-6">
                     <div className="flex flex-wrap gap-4 items-center justify-between">

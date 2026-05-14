@@ -5,7 +5,7 @@ import Link from 'next/link';
 import WithAuthProtection from '@/components/WithAuthProtection';
 import {RelationService, RelationWithDate} from "@/lib/api/user-relation-services";
 
-const FansPage = () => {
+const FansPage = async () => {
     const [fansList, setFansList] = useState<RelationWithDate[]>([]);
     const [fansCount, setFansCount] = useState<number>(0);
     const [loading, setLoading] = useState<boolean>(true);

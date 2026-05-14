@@ -22,12 +22,13 @@ export interface AIRequest {
 export class AIWritingService {
     private apiUrl: string;
 
-    constructor(apiUrl: string = '/api/v2/ai') {
+    constructor(apiUrl: string = '/api/v1/ai') {
         this.apiUrl = apiUrl;
     }
 
     /**
-     * 文本补全 - 根据上下文预测下一段内�?     */
+     * 文本补全 - 根据上下文预测下一段内容
+     */
     async completeText(context: string, maxLength: number = 200): Promise<string> {
         try {
             const response = await fetch(`${this.apiUrl}/complete`, {
@@ -89,7 +90,8 @@ export class AIWritingService {
     }
 
     /**
-     * 扩展文本 - 基于简短描述生成详细内�?     */
+     * 扩展文本 - 基于简短描述生成详细内容
+     */
     async expandText(prompt: string, targetLength: number = 500): Promise<string> {
         try {
             const response = await fetch(`${this.apiUrl}/expand`, {
@@ -203,36 +205,37 @@ export class AIWritingService {
         }
     }
 
-    // 模拟数据（用于演示和测试�?    private mockCompletion(context: string): string {
+    // 模拟数据（用于演示和测试）
+    private mockCompletion(context: string): string {
         const completions = [
-        ' 这是一个很好的观点，我们可以进一步探�?..',
+            ' 这是一个很好的观点，我们可以进一步探讨...',
             ' 根据最新的研究数据显示...',
-        ' 在实际应用中，我们需要注意以下几�?..',
+            ' 在实际应用中，我们需要注意以下几点...',
             ' 这个技术的应用前景非常广阔...',
         ];
         return completions[Math.floor(Math.random() * completions.length)];
     }
 
     private mockRewrite(text: string): string {
-    return `【重写版本�?{text}（更加专业和流畅的表达方式）`;
+        return `【重写版本】${text}（更加专业和流畅的表达方式）`;
     }
 
     private mockExpand(prompt: string): string {
-    return `${prompt}\n\n详细展开的内容：\n1. 第一点详细说�?..\n2. 第二点详细说�?..\n3. 第三点详细说�?..\n\n总结：这是一个非常重要的主题。`;
+        return `${prompt}\n\n详细展开的内容：\n1. 第一点详细说明...\n2. 第二点详细说明...\n3. 第三点详细说明...\n\n总结：这是一个非常重要的主题。`;
     }
 
     private mockSummarize(text: string): string {
-    const sentences = text.split(/[。！�?!?]/).filter(s => s.trim());
-    return sentences.slice(0, 2).join('�?) + '�?;
+        const sentences = text.split(/[。！？.!?]/).filter(s => s.trim());
+        return sentences.slice(0, 2).join('。') + '。';
     }
 
     private mockGenerateTitles(content: string, count: number): string[] {
         const baseTitles = [
-            '深入解析：如何掌握这项技�?,
-            '完全指南：从零开始学�?,
-            '专家分享：最佳实践与技�?,
+            '深入解析：如何掌握这项技能',
+            '完全指南：从零开始学习',
+            '专家分享：最佳实践与技巧',
             '终极教程：一步步教你实现',
-            '核心要点：你需要知道的一�?,
+            '核心要点：你需要知道的一切',
         ];
         return baseTitles.slice(0, count);
     }

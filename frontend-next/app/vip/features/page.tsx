@@ -4,7 +4,7 @@ import React, {useEffect, useState} from 'react';
 import {type VIPFeature, VIPService} from '@/lib/api';
 import Link from 'next/link';
 
-const VIPFeaturesPage = () => {
+const VIPFeaturesPage = async () => {
   const [featuresByLevel, setFeaturesByLevel] = useState<Record<number, VIPFeature[]>>({});
   const [features, setFeatures] = useState<VIPFeature[]>([]);
   const [loading, setLoading] = useState<boolean>(true);

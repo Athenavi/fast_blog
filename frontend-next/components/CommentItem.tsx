@@ -74,12 +74,12 @@ const CommentItem: React.FC<CommentItemProps> = ({
     }, [comment.id]);
 
     // 获取作者名称
-    const getAuthorName = () => {
+    const getAuthorName = async () => {
         return comment.username || comment.author_name || '匿名用户';
     };
 
     // 获取头像
-    const getAvatarUrl = () => {
+    const getAvatarUrl = async () => {
         return comment.avatar_url || `https://api.dicebear.com/7.x/identicon/svg?seed=${comment.id}`;
     };
 

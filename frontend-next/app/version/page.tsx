@@ -8,7 +8,7 @@ import {Badge} from '@/components/ui/badge';
 import {Button} from '@/components/ui/button';
 import {Skeleton} from '@/components/ui/skeleton';
 
-const VersionPage = () => {
+const VersionPage = async () => {
   const [versionData, setVersionData] = useState<FullVersionData | null>(null);
   const [summary, setSummary] = useState<VersionSummary | null>(null);
   const [loading, setLoading] = useState(true);

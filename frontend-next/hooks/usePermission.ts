@@ -84,11 +84,8 @@ export const usePermission = (): UsePermissionReturn => {
         }
     };
 
-    /**
-     * 妫€鏌ユ槸鍚︽湁鎸囧畾鏉冮檺
-     */
     const hasPermission = (permissionCode: string): boolean => {
-        // 瓒呯骇绠＄悊鍛樻嫢鏈夋墍鏈夋潈闄?        if (user?.is_superuser) {
+        if (user?.is_superuser) {
             return true;
         }
 

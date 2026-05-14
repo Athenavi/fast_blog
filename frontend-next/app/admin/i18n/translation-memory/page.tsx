@@ -51,7 +51,7 @@ export default function TranslationMemoryPage() {
   // 添加翻译
   const handleAddTranslation = async () => {
     if (!sourceText || !targetText) {
-      toast.error('请填写原文和译文');
+        toast.error('请填写原文和译文本);
       return;
     }
 
@@ -76,17 +76,17 @@ export default function TranslationMemoryPage() {
       const result = await response.json();
       
       if (result.success) {
-          toast.success('翻译已添加到记忆�?);
+          toast.success('翻译已添加到记忆');
         setSourceText('');
         setTargetText('');
         setContext('');
         loadStats();
       } else {
-        toast.error(result.error || '添加失败');
+          toast.error(result.error || '添加失失败');
       }
     } catch (error) {
       console.error('Error adding translation:', error);
-      toast.error('添加失败');
+        toast.error('添加失失败');
     } finally {
       setLoading(false);
     }
@@ -95,7 +95,7 @@ export default function TranslationMemoryPage() {
   // 获取建议
   const handleGetSuggestions = async () => {
     if (!searchText) {
-        toast.error('请输入要搜索的文�?);
+        toast.error('请输入要搜索的文本');
       return;
     }
 
@@ -120,11 +120,11 @@ export default function TranslationMemoryPage() {
             setSuggestions((result.data as any).suggestions);
             toast.success(`找到${(result.data as any).count}条建议`);
       } else {
-        toast.error(result.error || '查询失败');
+            toast.error(result.error || '查询失失败');
       }
     } catch (error) {
       console.error('Error getting suggestions:', error);
-      toast.error('查询失败');
+        toast.error('查询失失败');
     } finally {
       setLoading(false);
     }
@@ -154,13 +154,13 @@ export default function TranslationMemoryPage() {
       }
     } catch (error) {
       console.error('Error exporting:', error);
-      toast.error('导出失败');
+        toast.error('导出失失败');
     }
   };
 
   // 清除记忆
   const handleClear = async () => {
-      if (!confirm('确定要清除所有翻译记忆吗?此操作不可恢�?')) {
+      if (!confirm('确定要清除所有翻译记忆吗?此操作不可恢复？')) {
       return;
     }
 
@@ -178,15 +178,15 @@ export default function TranslationMemoryPage() {
       const result = await response.json();
       
       if (result.success) {
-          toast.success('已清除所有翻译记�?);
+          toast.success('已清除所有翻译记录');
         setSuggestions([]);
         loadStats();
       } else {
-        toast.error(result.error || '清除失败');
+          toast.error(result.error || '清除失失败');
       }
     } catch (error) {
       console.error('Error clearing:', error);
-      toast.error('清除失败');
+        toast.error('清除失失败');
     }
   };
 
@@ -226,7 +226,7 @@ export default function TranslationMemoryPage() {
                 <p className="text-2xl font-bold">{stats.total_entries}</p>
               </div>
               <div>
-                  <p className="text-sm text-gray-600">语言对数�?/p>
+                  <p className="text-sm text-gray-600">语言对数</p>
                 <p className="text-2xl font-bold">{stats.language_pairs}</p>
               </div>
               <div>
@@ -239,11 +239,11 @@ export default function TranslationMemoryPage() {
 
             {stats.pairs_detail && stats.pairs_detail.length > 0 && (
               <div className="mt-4">
-                  <p className="text-sm font-semibold mb-2">语言对详�?</p>
+                  <p className="text-sm font-semibold mb-2">语言对详情</p>
                 <div className="flex flex-wrap gap-2">
                   {stats.pairs_detail.map((pair: any, index: number) => (
                     <Badge key={index} variant="outline">
-                        {pair.source_lang} �?{pair.target_lang}: {pair.entry_count}�?
+                        {pair.source_lang} '{pair.target_lang}: {pair.entry_count}'
                     </Badge>
                   ))}
                 </div>
@@ -269,8 +269,8 @@ export default function TranslationMemoryPage() {
                 <SelectContent>
                   <SelectItem value="en">English</SelectItem>
                   <SelectItem value="zh-CN">中文</SelectItem>
-                    <SelectItem value="ja">日本�?/SelectItem>
-                        <SelectItem value="ko">한국�?/SelectItem>
+                    <SelectItem value="ja">日本語</SelectItem>
+                    <SelectItem value="ko">한국어</SelectItem>
                   <SelectItem value="ar">العربية</SelectItem>
                   <SelectItem value="he">עברית</SelectItem>
                 </SelectContent>
@@ -285,8 +285,8 @@ export default function TranslationMemoryPage() {
                 <SelectContent>
                   <SelectItem value="zh-CN">中文</SelectItem>
                   <SelectItem value="en">English</SelectItem>
-                    <SelectItem value="ja">日本�?/SelectItem>
-                        <SelectItem value="ko">한국�?/SelectItem>
+                    <SelectItem value="ja">日本語</SelectItem>
+                    <SelectItem value="ko">한국어</SelectItem>
                   <SelectItem value="ar">العربية</SelectItem>
                   <SelectItem value="he">עברית</SelectItem>
                 </SelectContent>
@@ -315,7 +315,7 @@ export default function TranslationMemoryPage() {
           </div>
 
           <div>
-              <label className="text-sm font-medium mb-1 block">上下�?可�?</label>
+              <label className="text-sm font-medium mb-1 block">上下文(可选)</label>
             <Input
               placeholder="例如: greeting, button, menu..."
               value={context}
@@ -324,7 +324,7 @@ export default function TranslationMemoryPage() {
           </div>
 
           <Button onClick={handleAddTranslation} disabled={loading}>
-              {loading ? '添加�?..' : '添加到记忆库'}
+              {loading ? '添加中...' : '添加到记忆库'}
           </Button>
         </CardContent>
       </Card>
@@ -344,7 +344,7 @@ export default function TranslationMemoryPage() {
                 onChange={(e) => setSearchText(e.target.value)}
               />
               <Button onClick={handleGetSuggestions} disabled={loading}>
-                  {loading ? '搜索�?..' : '搜索'}
+                  {loading ? '搜索' : '搜索'}
               </Button>
             </div>
           </div>
@@ -356,7 +356,7 @@ export default function TranslationMemoryPage() {
                 <div key={index} className="border rounded-lg p-3 bg-gray-50">
                   <div className="flex items-center justify-between mb-2">
                     <Badge variant={suggestion.similarity >= 0.9 ? 'default' : 'secondary'}>
-                        相似�? {Math.round(suggestion.similarity * 100)}%
+                        相似度 {Math.round(suggestion.similarity * 100)}%
                     </Badge>
                     <span className="text-xs text-gray-500">
                       使用次数: {suggestion.usage_count}
@@ -366,7 +366,7 @@ export default function TranslationMemoryPage() {
                     <p className="text-sm"><strong>原文:</strong> {suggestion.source}</p>
                     <p className="text-sm"><strong>译文:</strong> {suggestion.target}</p>
                     {suggestion.context && (
-                        <p className="text-xs text-gray-600">上下�? {suggestion.context}</p>
+                        <p className="text-xs text-gray-600">上下文 {suggestion.context}</p>
                     )}
                   </div>
                 </div>
@@ -386,28 +386,28 @@ export default function TranslationMemoryPage() {
             <Info className="h-4 w-4" />
             <AlertTitle>什么是翻译记忆?</AlertTitle>
             <AlertDescription>
-                翻译记忆(Translation Memory)是一种存储原�?译文对的技术�?
-                当翻译新内容�?系统会自动查找相似的已有翻译,提高翻译效率和一致性�?
+                翻译记忆(Translation Memory)是一种存储原文-译文对的技术，
+                当翻译新内容时，系统会自动查找相似的已有翻译，提高翻译效率和一致性。
             </AlertDescription>
           </Alert>
 
           <div>
             <h3 className="font-semibold mb-2">核心功能:</h3>
             <ul className="list-disc list-inside space-y-2 text-sm text-gray-700 ml-2">
-                <li><strong>存储管理:</strong> 保存原文-译文�?支持多语言�?/li>
-                    <li><strong>相似度匹�?</strong> 使用Levenshtein算法计算文本相似�?/li>
+                <li><strong>存储管理:</strong> 保存原文-译文对，支持多语言</li>
+                <li><strong>相似度匹配:</strong> 使用Levenshtein算法计算文本相似度</li>
               <li><strong>自动建议:</strong> 翻译时自动推荐相似的历史翻译</li>
-                        <li><strong>导入导出:</strong> 支持JSON格式的数据交�?/li>
-                            <li><strong>上下文支�?</strong> 可记录翻译的使用场景</li>
+                <li><strong>导入导出:</strong> 支持JSON格式的数据交换</li>
+                <li><strong>上下文支持:</strong> 可记录翻译的使用场景</li>
             </ul>
           </div>
 
           <div>
             <h3 className="font-semibold mb-2">使用场景:</h3>
             <ul className="list-disc list-inside space-y-2 text-sm text-gray-700 ml-2">
-                <li>网站国际�?i18n)翻译管理</li>
+                <li>网站国际化(i18n)翻译管理</li>
               <li>多语言内容同步</li>
-                <li>术语一致性维�?/li>
+                <li>术语一致性维护</li>
               <li>翻译团队协作</li>
             </ul>
           </div>

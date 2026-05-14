@@ -117,7 +117,7 @@ export default function RoleManagementPage() {
     }
   };
 
-  const handleAddPermission = () => {
+    const handleAddPermission = async () => {
     setFormData({name: '', description: '', code: '', resource_type: '', action: '', is_active: true});
     setIsEditing(false);
     setCurrentItem(null);
@@ -330,7 +330,7 @@ export default function RoleManagementPage() {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-500">总角色数</p>
                 <p className="text-2xl font-semibold text-gray-900">
-                  {stats ? stats.total_roles : '-'}
+                    {stats ? stats.total_roles : ''}
                 </p>
               </div>
             </div>
@@ -348,7 +348,7 @@ export default function RoleManagementPage() {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-500">总权限数</p>
                 <p className="text-2xl font-semibold text-gray-900">
-                  {stats ? stats.total_permissions : '-'}
+                    {stats ? stats.total_permissions : ''}
                 </p>
               </div>
             </div>
@@ -366,7 +366,7 @@ export default function RoleManagementPage() {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-500">用户角色分配</p>
                 <p className="text-2xl font-semibold text-gray-900">
-                  {stats ? stats.total_user_roles : '-'}
+                    {stats ? stats.total_user_roles : ''}
                 </p>
               </div>
             </div>
@@ -384,7 +384,7 @@ export default function RoleManagementPage() {
               <div className="ml-4">
                 <p className="text-sm font-medium text-gray-500">角色权限分配</p>
                 <p className="text-2xl font-semibold text-gray-900">
-                  {stats ? stats.total_role_permissions : '-'}
+                    {stats ? stats.total_role_permissions : ''}
                 </p>
               </div>
             </div>
@@ -525,7 +525,7 @@ export default function RoleManagementPage() {
                           <div className="text-sm font-medium text-gray-900">{permission.code}</div>
                         </TableCell>
                         <TableCell>
-                          <div className="text-sm text-gray-900">{permission.name || '-'}</div>
+                            <div className="text-sm text-gray-900">{permission.name || ''}</div>
                         </TableCell>
                         <TableCell>
                           {permission.resource_type ? (

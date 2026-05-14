@@ -5,7 +5,7 @@ import {useSearchParams} from 'next/navigation';
 import {type CreatePaymentRequest, PaymentService, type VIPPlan, VIPService} from '@/lib/api';
 import Link from 'next/link';
 
-const VipPaymentPage = () => {
+const VipPaymentPage = async () => {
   const searchParams = useSearchParams();
   const planId = searchParams?.get('planId');
   

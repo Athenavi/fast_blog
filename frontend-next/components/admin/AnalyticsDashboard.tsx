@@ -66,14 +66,14 @@ export default function AnalyticsDashboard() {
     };
 
     if (loading) {
-        return <div className="p-8 text-center">加载�?..</div>;
+        return <div className="p-8 text-center">加载'..</div>;
     }
 
     return (
         <div className="space-y-6 p-6">
             <div>
                 <h1 className="text-3xl font-bold tracking-tight">数据分析</h1>
-                <p className="text-muted-foreground">网站性能和用户行为分�?/p>
+                <p className="text-muted-foreground">网站性能和用户行为分</p>
             </div>
 
             {/* 概览统计卡片 */}
@@ -85,7 +85,7 @@ export default function AnalyticsDashboard() {
                     <CardContent>
                         <div className="text-2xl font-bold">{overview?.total_articles || 0}</div>
                         <p className="text-xs text-muted-foreground">
-                            +{overview?.new_articles || 0} �?0�? </p>
+                            +{overview?.new_articles || 0} '0' </p>
                     </CardContent>
                 </Card>
 
@@ -96,7 +96,7 @@ export default function AnalyticsDashboard() {
                     <CardContent>
                         <div className="text-2xl font-bold">{overview?.total_comments || 0}</div>
                         <p className="text-xs text-muted-foreground">
-                            +{overview?.new_comments || 0} �?0�? </p>
+                            +{overview?.new_comments || 0} '0' </p>
                     </CardContent>
                 </Card>
 
@@ -107,7 +107,7 @@ export default function AnalyticsDashboard() {
                     <CardContent>
                         <div className="text-2xl font-bold">{overview?.total_users || 0}</div>
                         <p className="text-xs text-muted-foreground">
-                            +{overview?.new_users || 0} �?0�? </p>
+                            +{overview?.new_users || 0} '0' </p>
                     </CardContent>
                 </Card>
             </div>
@@ -123,7 +123,7 @@ export default function AnalyticsDashboard() {
                             label: item.date,
                             value: item.views,
                         }))}
-                        title="每日浏览�?
+                        title="每日浏览'
                     />
                 </CardContent>
             </Card>
@@ -131,7 +131,7 @@ export default function AnalyticsDashboard() {
             {/* 热门文章列表 */}
             <Card>
                 <CardHeader>
-                    <CardTitle>热门文章�?天）</CardTitle>
+                    <CardTitle>热门文章'天）</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-4">
@@ -148,7 +148,7 @@ export default function AnalyticsDashboard() {
                                 </div>
                                 <div className="text-right">
                                     <p className="font-bold">{article.view_count}</p>
-                                    <p className=" text-xs text-muted-foreground">次浏�?/p>
+                                    <p className=" text-xs text-muted-foreground">次浏</p>
                                 </div>
                             </div>
                         ))}

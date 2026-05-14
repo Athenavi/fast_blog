@@ -1,5 +1,5 @@
 /**
- * 实时监控仪表�? * 显示在线用户、访问量、系统健康等实时数据
+ * 实时监控仪列表 * 显示在线用户、访问量、系统健康等实时数据
  */
 
 'use client';
@@ -89,7 +89,8 @@ export default function RealtimeMonitorDashboard() {
     const [lastUpdate, setLastUpdate] = useState<Date | null>(null);
     const [autoRefresh, setAutoRefresh] = useState(true);
 
-    // 加载仪表板数�?    const loadDashboard = async () => {
+    // 加载仪表板数据
+    const loadDashboard = async () => {
         try {
             setLoading(true);
             const response = await apiClient.get('/api/v2/monitor/dashboard');
@@ -116,7 +117,7 @@ export default function RealtimeMonitorDashboard() {
 
         const interval = setInterval(() => {
             loadDashboard();
-        }, 10000); // �?0秒刷�?
+        }, 10000); // 10秒刷新
         return () => clearInterval(interval);
     }, [autoRefresh]);
 
@@ -178,12 +179,12 @@ export default function RealtimeMonitorDashboard() {
 
     return (
         <div className="space-y-6">
-            {/* 标题�?*/}
+            {/* 标题*/}
             <div className="flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold">实时监控仪表�?/h1>
+                    <h1 className="text-3xl font-bold">实时监控仪表</h1>
                     <p className="text-gray-600 dark:text-gray-400 mt-1">
-                        {lastUpdate && `最后更�? ${lastUpdate.toLocaleTimeString()}`}
+                        {lastUpdate && `最后更新 ${lastUpdate.toLocaleTimeString()}`}
                     </p>
                 </div>
                 <div className="flex gap-2">
@@ -193,7 +194,7 @@ export default function RealtimeMonitorDashboard() {
                         onClick={() => setAutoRefresh(!autoRefresh)}
                     >
                         <Activity className="w-4 h-4 mr-2"/>
-                        {autoRefresh ? '自动刷新�? : '开启自动刷�?}
+                        {autoRefresh ? '自动刷新' : '开启自动刷新'}
                     </Button>
                     <Button variant="outline" size="sm" onClick={loadDashboard}>
                         <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`}/>
@@ -247,7 +248,7 @@ export default function RealtimeMonitorDashboard() {
                     <CardContent>
                         <div className="text-3xl font-bold">{data.visits.realtime_5min}</div>
                         <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
-                            最�?分钟
+                            最近5分钟
                         </p>
                     </CardContent>
                 </Card>
@@ -264,22 +265,22 @@ export default function RealtimeMonitorDashboard() {
                         <div className="flex items-center gap-2">
                             {getHealthIcon(data.system_health.overall_status)}
                             <Badge className={getHealthColor(data.system_health.overall_status)}>
-                                {data.system_health.overall_status === 'healthy' ? '正常' :
+                                {data.system_health.overall_status === 'healthy' ? '正异常 :
                                     data.system_health.overall_status === 'warning' ? '警告' : '严重'}
                             </Badge>
                         </div>
                         <p className="text-xs text-gray-600 dark:text-gray-400 mt-2">
-                            {data.system_health.issues.length} 个问�? </p>
+                            {data.system_health.issues.length}个问题 </p>
                     </CardContent>
                 </Card>
             </div>
 
             {/* 系统资源使用 */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                {/* CPU使用�?*/}
+                {/* CPU使用*/}
                 <Card>
                     <CardHeader>
-                        <CardTitle>CPU 使用�?/CardTitle>
+                        <CardTitle>CPU 使用</CardTitle>
                         <CardDescription>{data.system_health.metrics.cpu.count} 核心</CardDescription>
                     </CardHeader>
                     <CardContent>
@@ -290,10 +291,10 @@ export default function RealtimeMonitorDashboard() {
                     </CardContent>
                 </Card>
 
-                {/* 内存使用�?*/}
+                {/* 内存使使用*/}
                 <Card>
                     <CardHeader>
-                        <CardTitle>内存使用�?/CardTitle>
+                        <CardTitle>内存使用</CardTitle>
                         <CardDescription>
                             {formatBytes(data.system_health.metrics.memory.used)} / {formatBytes(data.system_health.metrics.memory.total)}
                         </CardDescription>
@@ -306,10 +307,10 @@ export default function RealtimeMonitorDashboard() {
                     </CardContent>
                 </Card>
 
-                {/* 磁盘使用�?*/}
+                {/* 磁盘使使用*/}
                 <Card>
                     <CardHeader>
-                        <CardTitle>磁盘使用�?/CardTitle>
+                        <CardTitle>磁盘使用</CardTitle>
                         <CardDescription>
                             {formatBytes(data.system_health.metrics.disk.used)} / {formatBytes(data.system_health.metrics.disk.total)}
                         </CardDescription>
@@ -353,7 +354,7 @@ export default function RealtimeMonitorDashboard() {
             <Card>
                 <CardHeader>
                     <CardTitle>热门访问端点</CardTitle>
-                    <CardDescription>最�?0分钟的API访问统计</CardDescription>
+                    <CardDescription>最'0分钟的API访问统计</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-2">
@@ -361,7 +362,7 @@ export default function RealtimeMonitorDashboard() {
                             <div key={index}
                                  className="flex items-center justify-between p-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded">
                                 <code className="text-sm">{endpoint.endpoint}</code>
-                                <Badge variant="secondary">{endpoint.visits} �?/Badge>
+                                <Badge variant="secondary">{endpoint.visits} </Badge>
                             </div>
                         ))}
                         {data.visits.popular_endpoints.length === 0 && (
@@ -375,7 +376,7 @@ export default function RealtimeMonitorDashboard() {
             <Card>
                 <CardHeader>
                     <CardTitle>在线用户列表</CardTitle>
-                    <CardDescription>最�?分钟有活动的用户</CardDescription>
+                    <CardDescription>最近5分钟有活动的用户</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-2 max-h-96 overflow-y-auto">

@@ -23,7 +23,7 @@ import {
     X
 } from 'lucide-react';
 
-const MyArticlesPage = () => {
+const MyArticlesPage = async () => {
     const router = useRouter();
     const [articles, setArticles] = useState<Article[]>([]);
     const [loading, setLoading] = useState(true);

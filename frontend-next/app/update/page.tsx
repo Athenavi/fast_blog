@@ -139,7 +139,7 @@ const UpdatePage = () => {
   };
 
   // 隐藏通知
-  const hideToast = () => {
+    const hideToast = async () => {
     setToast(prev => ({ ...prev, show: false }));
   };
 
@@ -187,7 +187,7 @@ const UpdatePage = () => {
   // 不再需要轮询更新状态
 
   // 获取基础API URL
-  const getApiBaseUrl = () => {
+    const getApiBaseUrl = async () => {
     if (typeof window !== 'undefined') {
       const protocol = window.location.protocol;
       const hostname = window.location.hostname;

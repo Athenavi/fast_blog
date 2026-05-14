@@ -4,7 +4,7 @@ import {useEffect, useState} from 'react';
 import {type PremiumArticle, VIPService} from '@/lib/api/index';
 import Link from 'next/link';
 
-const VipPremiumContentPage = () => {
+const VipPremiumContentPage = async () => {
   const [activeStatus, setActiveStatus] = useState<boolean>(false);
   const [currentVipLevel, setCurrentVipLevel] = useState<number>(0);
   const [articles, setArticles] = useState<PremiumArticle[]>([]);

@@ -85,7 +85,7 @@ export const PerformanceMonitor: React.FC<{ enabled?: boolean }> = ({enabled = t
             sendToAnalytics(metricsData);
         };
 
-        // 等待页面完全加载后收集指�?        if (document.readyState === 'complete') {
+        // 等待页面完全加载后收集指'        if (document.readyState === 'complete') {
             setTimeout(collectMetrics, 0);
         } else {
             window.addEventListener('load', collectMetrics);
@@ -93,7 +93,8 @@ export const PerformanceMonitor: React.FC<{ enabled?: boolean }> = ({enabled = t
         }
     }, [enabled]);
 
-// 发送性能数据到分析服�?    const sendToAnalytics = (metrics: PerformanceMetrics) => {
+// 发送性能数据到分析服
+const sendToAnalytics = (metrics: PerformanceMetrics) => {
         // 这里可以集成你的分析服务
         // 例如：Google Analytics, Mixpanel, 或自定义端点
         if (navigator.sendBeacon) {
@@ -153,11 +154,11 @@ export const PerformanceMonitor: React.FC<{ enabled?: boolean }> = ({enabled = t
     );
 };
 
-// 性能报告触发器组�?export const PerformanceReportTrigger: React.FC = () => {
+// 性能报告触发器组'export const PerformanceReportTrigger: React.FC = () => {
     const [showReport, setShowReport] = useState(false);
 
     useEffect(() => {
-        // �?Ctrl+Shift+P 显示性能报告
+        // 'Ctrl+Shift+P 显示性能报告
         const handleKeyPress = (e: KeyboardEvent) => {
             if (e.ctrlKey && e.shiftKey && e.key === 'P') {
                 setShowReport(prev => !prev);

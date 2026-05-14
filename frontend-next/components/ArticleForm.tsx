@@ -225,8 +225,8 @@ const ArticleForm: React.FC<ArticleFormProps> = ({
     return title
         .toLowerCase()
         .trim()
-        .replace(/[\s\u3000]+/g, '-')
-        .replace(/[^\w-]+/g, '-')
+        .replace(/[\s\u3000]+/g, '')
+        .replace(/[^\w-]+/g, '')
         .replace(/^-+|-+$/g, '');
   }, []);
 

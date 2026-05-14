@@ -4,7 +4,7 @@ import React, {useEffect, useState} from 'react';
 import {VIPService, type VIPSubscription} from '@/lib/api/index';
 import Link from 'next/link';
 
-const MySubscriptionPage = () => {
+const MySubscriptionPage = async () => {
   const [activeSubscription, setActiveSubscription] = useState<VIPSubscription | undefined>();
   const [subscriptionHistory, setSubscriptionHistory] = useState<VIPSubscription[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -156,9 +156,9 @@ const MySubscriptionPage = () => {
                         </td>
                         <td className="px-4 py-3">{formatDate(subscription.starts_at)}</td>
                         <td className="px-4 py-3">
-                          {subscription.expires_at ? formatDate(subscription.expires_at) : '-'}
+                            {subscription.expires_at ? formatDate(subscription.expires_at) : ''}
                         </td>
-                        <td className="px-4 py-3">¥{subscription.payment_amount || '-'}</td>
+                          <td className="px-4 py-3">¥{subscription.payment_amount || ''}</td>
                       </tr>
                     ))}
                   </tbody>

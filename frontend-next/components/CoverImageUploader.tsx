@@ -124,7 +124,7 @@ const CoverImageUploader: React.FC<CoverImageUploaderProps> = ({
     };
 
     // 移除封面图片
-    const handleRemoveCover = () => {
+    const handleRemoveCover = async () => {
         onChange('');
         setValidationStatus(null);
         setValidationMessage('');

@@ -161,7 +161,7 @@ export default function IntegrationsPage() {
             <div className="flex items-center justify-center py-12">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
-                    <p className="text-gray-600">加载�?..</p>
+                    <p className="text-gray-600">加载'..</p>
                 </div>
             </div>
         );
@@ -170,9 +170,9 @@ export default function IntegrationsPage() {
     return (
         <div className="space-y-6">
             <div>
-                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">第三方服务集�?/h1>
+                <h1 className="text-3xl font-bold text-gray-900 dark:text-white">第三方服务集</h1>
                 <p className="text-gray-600 dark:text-gray-400 mt-2">
-                    配置和管理外部服务集成，包括分析工具、通知服务和邮件服�? </p>
+                    配置和管理外部服务集成，包括分析工具、通知服务和邮件服' </p>
             </div>
 
             <Tabs defaultValue="analytics" className="space-y-6">
@@ -199,13 +199,13 @@ export default function IntegrationsPage() {
                                     <Globe className="w-5 h-5 text-blue-600"/>
                                     <div>
                                         <CardTitle>Google Analytics</CardTitle>
-                                        <CardDescription>追踪网站访问数据和用户行�?/CardDescription>
+                                        <CardDescription>追踪网站访问数据和用户行</CardDescription>
                                     </div>
                                 </div>
                                 {integrations.google_analytics.enabled && (
                                     <Badge variant="default" className="bg-green-600">
                                         <CheckCircle2 className="w-3 h-3 mr-1"/>
-                                        已启�? </Badge>
+                                        已启' </Badge>
                                 )}
                             </div>
                         </CardHeader>
@@ -250,7 +250,7 @@ export default function IntegrationsPage() {
                                             disabled={saving}
                                         >
                                             <Save className="w-4 h-4 mr-2"/>
-                                            {saving ? '保存�?..' : '保存配置'}
+                                            {saving ? '保存' : '保存配置'}
                                         </Button>
                                         <Button
                                             variant="outline"
@@ -278,7 +278,7 @@ export default function IntegrationsPage() {
                                 {integrations.baidu_analytics.enabled && (
                                     <Badge variant="default" className="bg-green-600">
                                         <CheckCircle2 className="w-3 h-3 mr-1"/>
-                                        已启�? </Badge>
+                                        已启' </Badge>
                                 )}
                             </div>
                         </CardHeader>
@@ -303,7 +303,7 @@ export default function IntegrationsPage() {
                                         <Label htmlFor="baidu-tracking-id">站点 ID</Label>
                                         <Input
                                             id="baidu-tracking-id"
-                                            placeholder="例如�?2345678"
+                                            placeholder="例如'2345678"
                                             value={integrations.baidu_analytics.tracking_id || ''}
                                             onChange={(e) =>
                                                 setIntegrations({
@@ -323,7 +323,7 @@ export default function IntegrationsPage() {
                                             disabled={saving}
                                         >
                                             <Save className="w-4 h-4 mr-2"/>
-                                            {saving ? '保存�?..' : '保存配置'}
+                                            {saving ? '保存' : '保存配置'}
                                         </Button>
                                         <Button
                                             variant="outline"
@@ -347,13 +347,13 @@ export default function IntegrationsPage() {
                                     <MessageSquare className="w-5 h-5 text-purple-600"/>
                                     <div>
                                         <CardTitle>Slack</CardTitle>
-                                        <CardDescription>发送通知�?Slack 频道</CardDescription>
+                                        <CardDescription>发送通知'Slack 频道</CardDescription>
                                     </div>
                                 </div>
                                 {integrations.slack.enabled && (
                                     <Badge variant="default" className="bg-green-600">
                                         <CheckCircle2 className="w-3 h-3 mr-1"/>
-                                        已启�? </Badge>
+                                        已启' </Badge>
                                 )}
                             </div>
                         </CardHeader>
@@ -395,14 +395,14 @@ export default function IntegrationsPage() {
                                             disabled={saving}
                                         >
                                             <Save className="w-4 h-4 mr-2"/>
-                                            {saving ? '保存�?..' : '保存配置'}
+                                            {saving ? '保存' : '保存配置'}
                                         </Button>
                                         <Button
                                             variant="outline"
                                             onClick={() => testIntegration('slack')}
                                         >
                                             <TestTube className="w-4 h-4 mr-2"/>
-                                            发送测试消�? </Button>
+                                            发送测试消' </Button>
                                     </div>
                                 </>
                             )}
@@ -416,13 +416,13 @@ export default function IntegrationsPage() {
                                     <MessageSquare className="w-5 h-5 text-indigo-600"/>
                                     <div>
                                         <CardTitle>Discord</CardTitle>
-                                        <CardDescription>发送通知�?Discord 服务�?/CardDescription>
+                                        <CardDescription>发送通知'Discord 服务</CardDescription>
                                     </div>
                                 </div>
                                 {integrations.discord.enabled && (
                                     <Badge variant="default" className="bg-green-600">
                                         <CheckCircle2 className="w-3 h-3 mr-1"/>
-                                        已启�? </Badge>
+                                        已启' </Badge>
                                 )}
                             </div>
                         </CardHeader>
@@ -464,14 +464,14 @@ export default function IntegrationsPage() {
                                             disabled={saving}
                                         >
                                             <Save className="w-4 h-4 mr-2"/>
-                                            {saving ? '保存�?..' : '保存配置'}
+                                            {saving ? '保存' : '保存配置'}
                                         </Button>
                                         <Button
                                             variant="outline"
                                             onClick={() => testIntegration('discord')}
                                         >
                                             <TestTube className="w-4 h-4 mr-2"/>
-                                            发送测试消�? </Button>
+                                            发送测试消' </Button>
                                     </div>
                                 </>
                             )}
@@ -487,13 +487,13 @@ export default function IntegrationsPage() {
                                     <Mail className="w-5 h-5 text-orange-600"/>
                                     <div>
                                         <CardTitle>SendGrid</CardTitle>
-                                        <CardDescription>专业的邮件发送服�?/CardDescription>
+                                        <CardDescription>专业的邮件发送服</CardDescription>
                                     </div>
                                 </div>
                                 {integrations.sendgrid.enabled && (
                                     <Badge variant="default" className="bg-green-600">
                                         <CheckCircle2 className="w-3 h-3 mr-1"/>
-                                        已启�? </Badge>
+                                        已启' </Badge>
                                 )}
                             </div>
                         </CardHeader>
@@ -536,14 +536,14 @@ export default function IntegrationsPage() {
                                             disabled={saving}
                                         >
                                             <Save className="w-4 h-4 mr-2"/>
-                                            {saving ? '保存�?..' : '保存配置'}
+                                            {saving ? '保存' : '保存配置'}
                                         </Button>
                                         <Button
                                             variant="outline"
                                             onClick={() => testIntegration('sendgrid')}
                                         >
                                             <TestTube className="w-4 h-4 mr-2"/>
-                                            发送测试邮�? </Button>
+                                            发送测试邮' </Button>
                                     </div>
                                 </>
                             )}
@@ -557,13 +557,13 @@ export default function IntegrationsPage() {
                                     <Mail className="w-5 h-5 text-teal-600"/>
                                     <div>
                                         <CardTitle>Mailgun</CardTitle>
-                                        <CardDescription>强大的邮件发�?API 服务</CardDescription>
+                                        <CardDescription>强大的邮件发'API 服务</CardDescription>
                                     </div>
                                 </div>
                                 {integrations.mailgun.enabled && (
                                     <Badge variant="default" className="bg-green-600">
                                         <CheckCircle2 className="w-3 h-3 mr-1"/>
-                                        已启�? </Badge>
+                                        已启' </Badge>
                                 )}
                             </div>
                         </CardHeader>
@@ -627,14 +627,14 @@ export default function IntegrationsPage() {
                                             disabled={saving}
                                         >
                                             <Save className="w-4 h-4 mr-2"/>
-                                            {saving ? '保存�?..' : '保存配置'}
+                                            {saving ? '保存' : '保存配置'}
                                         </Button>
                                         <Button
                                             variant="outline"
                                             onClick={() => testIntegration('mailgun')}
                                         >
                                             <TestTube className="w-4 h-4 mr-2"/>
-                                            发送测试邮�? </Button>
+                                            发送测试邮' </Button>
                                     </div>
                                 </>
                             )}

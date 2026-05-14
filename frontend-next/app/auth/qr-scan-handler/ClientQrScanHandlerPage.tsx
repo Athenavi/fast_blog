@@ -4,7 +4,7 @@ import {useEffect} from 'react';
 import {useRouter, useSearchParams} from 'next/navigation';
 import {apiClient} from '@/lib/api';
 
-const QrScanHandlerPage = () => {
+const QrScanHandlerPage = async () => {
   const router = useRouter();
   const searchParams = useSearchParams();
     const loginToken = searchParams?.get('login_token');

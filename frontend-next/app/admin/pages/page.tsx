@@ -129,7 +129,7 @@ export default function PagesManagement() {
     };
 
     const handleDelete = async (pageId: number) => {
-        if (!confirm('确定要删除这个页面吗�?)) return;
+        if (!confirm('确定要删除这个页面吗')) return;
 
         try {
             const response = await fetch(`/api/v2/pages/${pageId}`, {
@@ -197,7 +197,7 @@ export default function PagesManagement() {
         <div className="space-y-6">
             <div className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-3xl font-bold">静态页面管�?/h1>
+                    <h1 className="text-3xl font-bold">静态页面管理</h1>
                     <p className="text-muted-foreground mt-1">
                         管理网站的静态页面，如关于、联系我们等
                     </p>
@@ -214,7 +214,7 @@ export default function PagesManagement() {
                         <DialogHeader>
                             <DialogTitle>{editingPage ? '编辑页面' : '新建页面'}</DialogTitle>
                             <DialogDescription>
-                                {editingPage ? '修改页面信息' : '创建一个新的静态页�?}
+                                {editingPage ? '修改页面信息' : '创建一个新的静态页面'}
                             </DialogDescription>
                         </DialogHeader>
 
@@ -254,7 +254,7 @@ export default function PagesManagement() {
 
                             <div className="grid grid-cols-2 gap-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="status">状�?/Label>
+                                    <Label htmlFor="status">状态</Label>
                                     <Select
                                         value={formData.status.toString()}
                                         onValueChange={(value) => setFormData({...formData, status: parseInt(value)})}
@@ -264,7 +264,7 @@ export default function PagesManagement() {
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="0">草稿</SelectItem>
-                                            <SelectItem value="1">已发�?/SelectItem>
+                                            <SelectItem value="1">已发布</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
@@ -303,17 +303,17 @@ export default function PagesManagement() {
                 </CardHeader>
                 <CardContent>
                     {loading ? (
-                        <div className="text-center py-8">加载�?..</div>
+                        <div className="text-center py-8">加载中...</div>
                     ) : pages.length === 0 ? (
                         <div className="text-center py-8 text-muted-foreground">
-                            暂无页面，点击右上角创建新页�? </div>
+                            暂无页面，点击右上角创建新页面 </div>
                     ) : (
                         <Table>
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>标题</TableHead>
                                     <TableHead>Slug</TableHead>
-                                    <TableHead>状�?/TableHead>
+                                    <TableHead>状态</TableHead>
                                     <TableHead>排序</TableHead>
                                     <TableHead>创建时间</TableHead>
                                     <TableHead className="text-right">操作</TableHead>
@@ -326,12 +326,12 @@ export default function PagesManagement() {
                                         <TableCell>{page.slug}</TableCell>
                                         <TableCell>
                                             <Badge variant={page.status === 1 ? 'default' : 'secondary'}>
-                                                {page.status === 1 ? '已发�? : '草稿'}
+                                                {page.status === 1 ? '已发' : '草稿'}
                                             </Badge>
                                         </TableCell>
                                         <TableCell>{page.order_index}</TableCell>
                                         <TableCell>
-                                            {page.created_at ? new Date(page.created_at).toLocaleDateString('zh-CN') : '-'}
+                                            {page.created_at ? new Date(page.created_at).toLocaleDateString('zh-CN') : ''}
                                         </TableCell>
                                         <TableCell className="text-right space-x-2">
                                             <Button

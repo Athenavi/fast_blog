@@ -114,7 +114,7 @@ export default function VideoTranscodePage() {
             if (data.success) {
                 toast({
                     title: '保存成功',
-                    description: '视频转码配置已更�?,
+                    description: '视频转码配置已更新',
                 });
             } else {
                 throw new Error(data.error || '保存失败');
@@ -147,8 +147,8 @@ export default function VideoTranscodePage() {
 
             if (data.success) {
                 toast({
-                    title: '转码任务已启�?,
-                    description: '视频转码正在进行�?,
+                    title: '转码任务已启动',
+                    description: '视频转码正在进行',
                 });
                 loadData();
             } else {
@@ -165,7 +165,7 @@ export default function VideoTranscodePage() {
     };
 
     const deleteTask = async (taskId: number) => {
-        if (!confirm('确定要删除这个转码任务吗�?)) return;
+        if (!confirm('确定要删除这个转码任务吗')) return;
 
         try {
             const token = getAccessToken();
@@ -179,7 +179,7 @@ export default function VideoTranscodePage() {
             if (data.success) {
                 toast({
                     title: '删除成功',
-                    description: '转码任务已删�?,
+                    description: '转码任务已删除',
                 });
                 loadData();
             }
@@ -220,9 +220,9 @@ export default function VideoTranscodePage() {
 
     const getStatusBadge = (status: string) => {
         const badges = {
-            pending: <Badge variant="secondary"><Clock className="w-3 h-3 mr-1"/>等待�?/Badge>,
-                processing: <Badge className="bg-blue-600"><RefreshCw className="w-3 h-3 mr-1 animate-spin"/>处理�?/Badge>,
-                    completed: <Badge className="bg-green-600"><CheckCircle2 className="w-3 h-3 mr-1"/>已完�?/Badge>,
+            pending: <Badge variant="secondary"><Clock className="w-3 h-3 mr-1"/>等待</Badge>,
+            processing: <Badge className="bg-blue-600"><RefreshCw className="w-3 h-3 mr-1 animate-spin"/>处理</Badge>,
+            completed: <Badge className="bg-green-600"><CheckCircle2 className="w-3 h-3 mr-1"/>已完</Badge>,
             failed: <Badge variant="destructive">失败</Badge>,
         };
         return badges[status as keyof typeof badges];
@@ -233,7 +233,7 @@ export default function VideoTranscodePage() {
             <div className="flex items-center justify-center py-12">
                 <div className="text-center">
                     <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto mb-4"></div>
-                            <p className="text-gray-600">加载�?..</p>
+                    <p className="text-gray-600">加载中...</p>
                 </div>
             </div>
         );
@@ -255,7 +255,7 @@ export default function VideoTranscodePage() {
                         <Settings className="w-6 h-6 text-blue-600"/>
                         <div>
                             <CardTitle>转码配置</CardTitle>
-                            <CardDescription>设置视频转码的默认参�?/CardDescription>
+                            <CardDescription>设置视频转码的默认参数</CardDescription>
                         </div>
                     </div>
                 </CardHeader>
@@ -274,7 +274,7 @@ export default function VideoTranscodePage() {
                     {config.enabled && (
                         <>
                             <div className="flex items-center justify-between">
-                                <Label htmlFor="auto-transcode">上传后自动转�?/Label>
+                                <Label htmlFor="auto-transcode">上传后自动转码</Label>
                                 <Switch
                                     id="auto-transcode"
                                     checked={config.auto_transcode}
@@ -285,7 +285,7 @@ export default function VideoTranscodePage() {
                             </div>
 
                             <div className="space-y-2">
-                                <Label>输出分辨�?/Label>
+                                <Label>输出分辨率</Label>
                                 <div className="flex flex-wrap gap-2">
                                     {['360p', '480p', '720p', '1080p', '4k'].map((res) => (
                                         <Badge
@@ -336,14 +336,14 @@ export default function VideoTranscodePage() {
                                         </SelectTrigger>
                                         <SelectContent>
                                             <SelectItem value="low">低（文件小）</SelectItem>
-                                            <SelectItem value="medium">中（平衡�?/SelectItem>
+                                            <SelectItem value="medium">中（平衡）</SelectItem>
                                             <SelectItem value="high">高（文件大）</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label>最大文件大小（MB�?/Label>
+                                    <Label>最大文件大小（MB）</Label>
                                     <Input
                                         type="number"
                                         value={config.max_file_size_mb}
@@ -358,7 +358,7 @@ export default function VideoTranscodePage() {
                             </div>
 
                             <div className="flex items-center justify-between">
-                                <Label htmlFor="generate-thumbnail">生成缩略�?/Label>
+                                <Label htmlFor="generate-thumbnail">生成缩略图</Label>
                                 <Switch
                                     id="generate-thumbnail"
                                     checked={config.generate_thumbnail}
@@ -370,7 +370,7 @@ export default function VideoTranscodePage() {
 
                             {config.generate_thumbnail && (
                                 <div className="space-y-2">
-                                    <Label>缩略图时间点（秒�?/Label>
+                                    <Label>缩略图时间点（秒）</Label>
                                     <Input
                                         type="number"
                                         min="0"
@@ -387,7 +387,7 @@ export default function VideoTranscodePage() {
 
                             <Button onClick={saveConfig} disabled={saving}>
                                 <Save className="w-4 h-4 mr-2"/>
-                                {saving ? '保存�?..' : '保存配置'}
+                                {saving ? '保存' : '保存配置'}
                             </Button>
                         </>
                     )}
@@ -402,7 +402,7 @@ export default function VideoTranscodePage() {
                             <Film className="w-6 h-6 text-purple-600"/>
                             <div>
                                 <CardTitle>转码任务</CardTitle>
-                                <CardDescription>查看和管理视频转码任�?/CardDescription>
+                                <CardDescription>查看和管理视频转码任务</CardDescription>
                             </div>
                         </div>
                         <Button variant="outline" size="sm" onClick={loadData}>
@@ -416,10 +416,10 @@ export default function VideoTranscodePage() {
                         <Table>
                             <TableHeader>
                                 <TableRow>
-                                    <TableHead>文件�?/TableHead>
-                                        <TableHead>状�?/TableHead>
+                                    <TableHead>文件</TableHead>
+                                    <TableHead>状态</TableHead>
                                     <TableHead>进度</TableHead>
-                                            <TableHead>输出分辨�?/TableHead>
+                                    <TableHead>输出分辨率</TableHead>
                                     <TableHead>创建时间</TableHead>
                                     <TableHead>操作</TableHead>
                                 </TableRow>

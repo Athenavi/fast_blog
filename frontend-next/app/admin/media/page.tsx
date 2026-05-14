@@ -247,7 +247,7 @@ export default function ModernMediaLibraryPage() {
         );
     };
 
-    const selectAll = () => {
+    const selectAll = async () => {
         if (selectedItems.length === media.length) {
             setSelectedItems([]);
         } else {
@@ -412,7 +412,7 @@ export default function ModernMediaLibraryPage() {
     };
 
     // 添加标签
-    const handleAddSingleTag = () => {
+    const handleAddSingleTag = async () => {
         const tag = newSingleTag.trim();
         if (tag && !singleTags.includes(tag)) {
             setSingleTags([...singleTags, tag]);
@@ -475,7 +475,7 @@ export default function ModernMediaLibraryPage() {
     };
 
     // 重置过滤器
-    const resetFilters = () => {
+    const resetFilters = async () => {
         setSearchQuery('');
         setMediaType('');
         setDateFrom('');

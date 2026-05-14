@@ -109,7 +109,7 @@ export default function ProductsPage() {
                         onChange={(e) => setSortBy(e.target.value)}
                         className="px-4 py-2 border rounded-lg"
                     >
-                        <option value="created_at">最新上�?/option>
+                        <option value="created_at">最新上架</option>
                         <option value="price">价格</option>
                         <option value="name">名称</option>
                     </select>
@@ -118,7 +118,7 @@ export default function ProductsPage() {
                         onClick={() => setOrder(order === 'asc' ? 'desc' : 'asc')}
                         className="px-4 py-2 border rounded-lg hover:bg-gray-100"
                     >
-                        {order === 'asc' ? '�?升序' : '�?降序'}
+                        {order === 'asc' ? '升序' : '降序'}
                     </button>
                 </div>
             </div>
@@ -154,18 +154,18 @@ export default function ProductsPage() {
                                 disabled={page === 1}
                                 className="px-4 py-2 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
                             >
-                                上一�?
+                                上一页
                             </button>
 
                             <span className="px-4 py-2">
-                �?{page} / {totalPages} �?              </span>
+                {page} / {totalPages}              </span>
 
                             <button
                                 onClick={() => setPage(Math.min(totalPages, page + 1))}
                                 disabled={page === totalPages}
                                 className="px-4 py-2 border rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-100"
                             >
-                                下一�?
+                                下一页
                             </button>
                         </div>
                     )}
@@ -231,7 +231,7 @@ function ProductCard({product}: { product: Product }) {
 
                     {product.stock > 0 && product.stock <= 10 && (
                         <p className="text-sm text-orange-500 mt-2">
-                            仅剩 {product.stock} �? </p>
+                            仅剩 {product.stock} 件 </p>
                     )}
                 </div>
             </div>

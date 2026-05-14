@@ -1,5 +1,5 @@
 /**
- * 可视化菜单编辑器 - 支持拖拽排序、嵌套菜单、实时预�? */
+ * 可视化菜单编辑器 - 支持拖拽排序、嵌套菜单、实时预' */
 
 'use client';
 
@@ -59,7 +59,8 @@ interface Menu {
   items?: MenuItem[];
 }
 
-// 可排序的菜单项组�?interface SortableMenuItemProps {
+// 可排序的菜单项组件
+interface SortableMenuItemProps {
   item: MenuItem;
   depth: number;
   onEdit: (item: MenuItem) => void;
@@ -99,12 +100,12 @@ const SortableMenuItem: React.FC<SortableMenuItemProps> = ({
           <GripVertical className="w-5 h-5 text-gray-400"/>
         </div>
 
-          {/* 菜单项信�?*/}
+        {/* 菜单项信息*/}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2">
             <span className="font-medium truncate">{item.title}</span>
             {item.target === '_blank' && (
-                <Badge variant="outline" className="text-xs">新窗�?/Badge>
+                <Badge variant="outline" className="text-xs">新窗口</Badge>
             )}
           </div>
           <div className="text-xs text-gray-500 truncate">{item.url}</div>
@@ -116,7 +117,7 @@ const SortableMenuItem: React.FC<SortableMenuItemProps> = ({
               variant="ghost"
               size="sm"
               onClick={() => onAddChild(item.id)}
-              title="添加子菜�?
+              title="添加子菜单"
           >
             <Plus className="w-4 h-4"/>
           </Button>
@@ -148,7 +149,8 @@ const MenuEditor = () => {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // 对话框状�?  const [showItemDialog, setShowItemDialog] = useState(false);
+  // 对话框状态
+  const [showItemDialog, setShowItemDialog] = useState(false);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
   const [itemForm, setItemForm] = useState({
     title: '',
@@ -157,7 +159,8 @@ const MenuEditor = () => {
     parent_id: null as number | null
   });
 
-  // dnd-kit传感�?  const sensors = useSensors(
+  // dnd-kit传感器
+  const sensors = useSensors(
       useSensor(PointerSensor),
       useSensor(KeyboardSensor, {
         coordinateGetter: sortableKeyboardCoordinates,
@@ -220,7 +223,8 @@ const MenuEditor = () => {
 
       setMenuItems(updatedItems);
 
-      // 保存到后�?      try {
+      // 保存到后端
+      try {
         await apiClient.put(`/api/v2/menus/${selectedMenu?.id}/reorder`, {
           items: updatedItems.map(item => ({
             id: item.id,
@@ -233,7 +237,8 @@ const MenuEditor = () => {
     }
   };
 
-  // 打开添加/编辑对话�?  const handleOpenDialog = (item?: MenuItem, parentId?: number) => {
+  // 打开添加/编辑对话框
+  const handleOpenDialog = (item?: MenuItem, parentId?: number) => {
     if (item) {
       setEditingItem(item);
       setItemForm({
@@ -254,7 +259,8 @@ const MenuEditor = () => {
     setShowItemDialog(true);
   };
 
-  // 保存菜单�?  const handleSaveItem = async () => {
+  // 保存菜单项
+  const handleSaveItem = async () => {
     if (!selectedMenu) return;
 
     try {
@@ -283,7 +289,8 @@ const MenuEditor = () => {
     }
   };
 
-  // 删除菜单�?  const handleDeleteItem = async (itemId: number) => {
+  // 删除菜单项
+  const handleDeleteItem = async (itemId: number) => {
     if (!confirm('确定要删除这个菜单项吗？')) return;
 
     try {
@@ -322,7 +329,8 @@ const MenuEditor = () => {
     return rootItems;
   };
 
-  // 递归渲染菜单�?  const renderMenuItems = (items: MenuItem[], depth: number = 0) => {
+  // 递归渲染菜单项
+  const renderMenuItems = (items: MenuItem[], depth: number = 0) => {
     return items.map(item => (
         <div key={item.id}>
           <SortableMenuItem
@@ -347,13 +355,13 @@ const MenuEditor = () => {
       <div className="container mx-auto px-4 py-8 max-w-7xl">
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
-            菜单编辑�?          </h1>
+            菜单编辑器 </h1>
           <p className="text-gray-600 dark:text-gray-400">
-            拖拽排序和管理网站菜�?          </p>
+            拖拽排序和管理网站菜单 </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* 左侧：菜单列�?*/}
+          {/* 左侧：菜单列表*/}
           <Card className="lg:col-span-1">
             <CardHeader>
               <CardTitle>菜单列表</CardTitle>
@@ -378,7 +386,7 @@ const MenuEditor = () => {
             </CardContent>
           </Card>
 
-          {/* 右侧：菜单项编辑�?*/}
+          {/* 右侧：菜单项编辑器*/}
           <Card className="lg:col-span-3">
             <CardHeader>
               <div className="flex items-center justify-between">
@@ -388,15 +396,15 @@ const MenuEditor = () => {
                 </div>
                 <Button onClick={() => handleOpenDialog()}>
                   <Plus className="w-4 h-4 mr-2"/>
-                  添加菜单�?                </Button>
+                  添加菜单项 </Button>
               </div>
             </CardHeader>
             <CardContent>
               {loading ? (
-                  <div className=" text-center py-8">加载�?..</div>
+                  <div className=" text-center py-8">加载中...</div>
               ) : !selectedMenu ? (
                   <div className="text-center py-8 text-gray-500">
-                    请从左侧选择一个菜�?                  </div>
+                    请从左侧选择一个菜单 </div>
               ) : menuItems.length === 0 ? (
                   <div className="text-center py-8 text-gray-500">
                     暂无菜单项，点击上方按钮添加
@@ -424,10 +432,10 @@ const MenuEditor = () => {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>
-                {editingItem ? '编辑菜单�? : '添加菜单�?}
+                {editingItem ? '编辑菜单' : '添加菜单'}
               </DialogTitle>
               <DialogDescription>
-                {itemForm.parent_id ? '添加子菜单项' : '添加顶级菜单�?}
+                {itemForm.parent_id ? '添加子菜单项' : '添加顶级菜单'}
               </DialogDescription>
             </DialogHeader>
 
@@ -463,7 +471,7 @@ const MenuEditor = () => {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="_self">当前窗口</SelectItem>
-                      <SelectItem value="_blank">新窗�?/SelectItem>
+                    <SelectItem value="_blank">新窗口</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

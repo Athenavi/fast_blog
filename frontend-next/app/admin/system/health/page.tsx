@@ -44,7 +44,7 @@ export default function SiteHealthPage() {
       });
 
       if (!response.ok) {
-          throw new Error('获取健康检查数据失�?);
+          throw new Error('获取健康检查数据失');
       }
 
       const result = await response.json();
@@ -55,7 +55,7 @@ export default function SiteHealthPage() {
       }
     } catch (error) {
       console.error('Error fetching health data:', error);
-        toast.error('获取健康检查数据失�?);
+        toast.error('获取健康检查数据失');
     } finally {
       setLoading(false);
     }
@@ -89,7 +89,7 @@ export default function SiteHealthPage() {
       window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
 
-        toast.success('报告已下�?);
+        toast.success('报告已下');
     } catch (error) {
       console.error('Error downloading report:', error);
       toast.error('下载报告失败');
@@ -141,7 +141,7 @@ export default function SiteHealthPage() {
   if (!healthData) {
     return (
       <div className="text-center py-12">
-          <p className="text-gray-600">无法加载健康检查数�?/p>
+          <p className="text-gray-600">无法加载健康检查数</p>
         <Button onClick={fetchHealthData} className="mt-4">
           <RefreshCw className="w-4 h-4 mr-2" />
           重试
@@ -155,10 +155,10 @@ export default function SiteHealthPage() {
 
   return (
     <div className="space-y-6">
-        {/* 标题和操�?*/}
+        {/* 标题和操'*/}
       <div className="flex justify-between items-center">
         <div>
-            <h1 className="text-2xl font-bold tracking-tight text-gray-900">站点健康检�?/h1>
+            <h1 className="text-2xl font-bold tracking-tight text-gray-900">站点健康检</h1>
           <p className="text-gray-600 mt-1">检查系统配置、安全性和性能</p>
         </div>
         <div className="flex space-x-2">
@@ -168,7 +168,7 @@ export default function SiteHealthPage() {
           </Button>
           <Button onClick={fetchHealthData}>
             <RefreshCw className="w-4 h-4 mr-2" />
-              重新检�?
+              重新检'
           </Button>
         </div>
       </div>
@@ -192,12 +192,12 @@ export default function SiteHealthPage() {
                 }
               >
                 {healthData.status === 'good' ? '良好' :
-                    healthData.status === 'warning' ? '需要关�? : '严重问题'}
+                    healthData.status === 'warning' ? '需要关' : '严重问题'}
               </Badge>
             </div>
             <Progress value={healthData.overall_score} className="h-3" />
             <p className="text-sm text-gray-600">
-                检查时�? {new Date(healthData.timestamp).toLocaleString('zh-CN')}
+                检查时' {new Date(healthData.timestamp).toLocaleString('zh-CN')}
             </p>
           </div>
         </CardContent>
@@ -209,7 +209,7 @@ export default function SiteHealthPage() {
           <CardHeader>
             <CardTitle className="capitalize">
               {category === 'system' ? '系统信息' :
-                  category === 'database' ? '数据�? :
+                  category === 'database' ? '数据' :
                category === 'storage' ? '存储' :
                category === 'security' ? '安全' :
                category === 'performance' ? '性能' : category}

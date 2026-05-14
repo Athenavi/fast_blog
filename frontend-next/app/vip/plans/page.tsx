@@ -21,7 +21,7 @@ interface Feature {
   required_level: number;
 }
 
-const VipPlansPage = () => {
+const VipPlansPage = async () => {
   const router = useRouter();
   const [plans, setPlans] = useState<VipPlan[]>([]);
   const [features, setFeatures] = useState<Feature[]>([]);

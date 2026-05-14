@@ -60,7 +60,7 @@ export default function CustomBlockManager() {
         }
     };
 
-    // 激�?停用插件
+    // 激'停用插件
     const togglePlugin = async (pluginName: string, isActive: boolean) => {
         try {
             const endpoint = isActive ? 'deactivate' : 'activate';
@@ -88,7 +88,7 @@ export default function CustomBlockManager() {
     // 分类图标映射
     const categoryIcons: Record<string, string> = {
         text: '📝',
-        media: '🖼�?,
+        media: '🖼',
         layout: '📐',
         widget: '🧩',
         embed: '🔗'
@@ -100,7 +100,7 @@ export default function CustomBlockManager() {
                 <div className="text-center">
                     <div
                         className="inline-block animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500 mb-2"></div>
-                    <p className="text-gray-600 dark:text-gray-400">加载�?..</p>
+                    <p className="text-gray-600 dark:text-gray-400">加载'..</p>
                 </div>
             </div>
         );
@@ -113,7 +113,7 @@ export default function CustomBlockManager() {
                 <Card>
                     <CardHeader className="pb-2">
                         <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">
-                            总块�? </CardTitle>
+                            总块' </CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="text-3xl font-bold">{blocks.length}</div>
@@ -145,10 +145,10 @@ export default function CustomBlockManager() {
                 </Card>
             </div>
 
-            {/* 标签�?*/}
+            {/* 标签'*/}
             <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="blocks">块类�?({blocks.length})</TabsTrigger>
+                    <TabsTrigger value="blocks">块类'({blocks.length})</TabsTrigger>
                     <TabsTrigger value="plugins">插件管理 ({plugins.length})</TabsTrigger>
                 </TabsList>
 
@@ -192,7 +192,7 @@ export default function CustomBlockManager() {
 
                                             {Object.keys(block.attributes).length > 0 && (
                                                 <div className="text-xs text-gray-500 dark:text-gray-500">
-                                                    <div className="font-medium mb-1">属�?</div>
+                                                    <div className="font-medium mb-1">属'</div>
                                                     <div className="flex flex-wrap gap-1">
                                                         {Object.keys(block.attributes).slice(0, 3).map(attr => (
                                                             <Badge key={attr} variant="outline" className="text-xs">
@@ -215,7 +215,7 @@ export default function CustomBlockManager() {
                     ))}
                 </TabsContent>
 
-                {/* 插件管理标签�?*/}
+                {/* 插件管理标签'*/}
                 <TabsContent value="plugins" className="space-y-4">
                     {plugins.map((plugin) => (
                         <Card key={plugin.name}>
@@ -231,7 +231,7 @@ export default function CustomBlockManager() {
                                         </CardDescription>
                                         {plugin.author && (
                                             <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">
-                                                作�? {plugin.author}
+                                                作' {plugin.author}
                                             </p>
                                         )}
                                     </div>
@@ -240,18 +240,18 @@ export default function CustomBlockManager() {
                                         size="sm"
                                         onClick={() => togglePlugin(plugin.name, plugin.is_active)}
                                     >
-                                        {plugin.is_active ? '停用' : '激�?}
+                                        {plugin.is_active ? '停用' : '激'}
                                     </Button>
                                 </div>
                             </CardHeader>
                             <CardContent>
                                 <div className="flex items-center gap-4 text-sm">
                                     <div className="flex items-center gap-1">
-                                            <span className="text-gray-600 dark:text-gray-400">块数�?</span>
+                                        <span className="text-gray-600 dark:text-gray-400">块数'</span>
                                         <Badge variant="secondary">{plugin.blocks_count}</Badge>
                                     </div>
                                     <div className="flex items-center gap-1">
-                                        <span className="text-gray-600 dark:text-gray-400">状�?</span>
+                                        <span className="text-gray-600 dark:text-gray-400">状'</span>
                                         <Badge variant={plugin.is_active ? "default" : "outline"}>
                                             {plugin.is_active ? '活跃' : '停用'}
                                         </Badge>
@@ -275,21 +275,21 @@ export default function CustomBlockManager() {
             <Card className="bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800">
                 <CardContent className="pt-6">
                     <h4 className="font-semibold text-blue-900 dark:text-blue-100 mb-2">
-                        💡 如何创建自定义块插件�? </h4>
+                        💡 如何创建自定义块插件' </h4>
                     <ol className="list-decimal list-inside space-y-2 text-sm text-blue-800 dark:text-blue-200">
                         <li>继承 <code
-                            className="bg-white dark:bg-gray-800 px-2 py-1 rounded">CustomBlockPlugin</code> �?
+                            className="bg-white dark:bg-gray-800 px-2 py-1 rounded">CustomBlockPlugin</code> '
                         </li>
                         <li>实现 <code
-                            className="bg-white dark:bg-gray-800 px-2 py-1 rounded">register_blocks()</code> 方法注册块类�?
+                            className="bg-white dark:bg-gray-800 px-2 py-1 rounded">register_blocks()</code> 方法注册块类'
                         </li>
                         <li>可选：实现 <code
-                            className="bg-white dark:bg-gray-800 px-2 py-1 rounded">render_{'{block_name}'}</code> 方法自定义渲�?
+                            className="bg-white dark:bg-gray-800 px-2 py-1 rounded">render_{'{block_name}'}</code> 方法自定义渲'
                         </li>
-                        <li>将插件文件放�?<code
+                        <li>将插件文件放'<code
                             className="bg-white dark:bg-gray-800 px-2 py-1 rounded">shared/services/</code> 目录
                         </li>
-                        <li>�?API 中导入并加载插件</li>
+                        <li>'API 中导入并加载插件</li>
                     </ol>
                 </CardContent>
             </Card>

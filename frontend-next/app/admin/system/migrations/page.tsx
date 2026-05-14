@@ -16,7 +16,7 @@ export default function MigrationsPage() {
   const [rollbackVersion, setRollbackVersion] = useState('');
   const [loading, setLoading] = useState(false);
 
-    // 加载迁移状�?
+    // 加载迁移状'
   const loadStatus = async () => {
     try {
       const token = getAccessTokenFromCookie();
@@ -76,7 +76,7 @@ export default function MigrationsPage() {
   // 创建迁移文件
   const handleCreateMigration = async () => {
     if (!migrationName) {
-        toast.error('请填写迁移描�?);
+        toast.error('请填写迁移描');
       return;
     }
 
@@ -97,7 +97,7 @@ export default function MigrationsPage() {
       const result = await response.json();
       
       if (result.success) {
-          toast.success(result.message || '迁移文件已创�?);
+          toast.success(result.message || '迁移文件已创');
         setMigrationName('');
         loadStatus();
       } else {
@@ -112,11 +112,11 @@ export default function MigrationsPage() {
   // 回滚迁移
   const handleRollback = async () => {
     if (!rollbackVersion) {
-        toast.error('请输入回滚步�?);
+        toast.error('请输入回滚步');
       return;
     }
 
-      if (!confirm(`确定要回滚最�?${rollbackVersion} 个迁移吗?`)) {
+      if (!confirm(`确定要回滚最'${rollbackVersion} 个迁移吗?`)) {
       return;
     }
 
@@ -152,18 +152,18 @@ export default function MigrationsPage() {
     <div className="space-y-6">
       {/* 标题 */}
       <div>
-          <h1 className="text-2xl font-bold tracking-tight text-gray-900">数据库迁移管�?/h1>
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900">数据库迁移管</h1>
         <p className="text-gray-600 mt-1">Database Migrations - 管理和执行数据库结构变更</p>
       </div>
 
-        {/* 当前状�?*/}
+        {/* 当前状'*/}
       {status && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <span className="flex items-center">
                 <Info className="w-5 h-5 mr-2" />
-                迁移状�?
+                迁移状'
               </span>
               <Button onClick={loadStatus} variant="outline" size="sm">
                 <RefreshCw className="w-4 h-4 mr-2" />
@@ -178,11 +178,11 @@ export default function MigrationsPage() {
                 <p className="text-2xl font-bold">{status.current_version}</p>
               </div>
               <div>
-                  <p className="text-sm text-gray-600">已应用迁�?/p>
+                  <p className="text-sm text-gray-600">已应用迁</p>
                 <p className="text-2xl font-bold">{status.applied_count}</p>
               </div>
               <div>
-                  <p className="text-sm text-gray-600">待处理迁�?/p>
+                  <p className="text-sm text-gray-600">待处理迁</p>
                 <Badge variant={status.pending_count > 0 ? 'default' : 'secondary'} className="text-lg">
                   {status.pending_count}
                 </Badge>
@@ -191,7 +191,7 @@ export default function MigrationsPage() {
 
             {status.pending_migrations.length > 0 && (
               <div className="mb-4">
-                  <p className="text-sm font-semibold mb-2">待处理迁�?</p>
+                  <p className="text-sm font-semibold mb-2">待处理迁'</p>
                 <div className="space-y-1">
                   {status.pending_migrations.map((m: any) => (
                     <div key={m.version} className="text-sm p-2 bg-yellow-50 rounded flex justify-between">
@@ -205,7 +205,7 @@ export default function MigrationsPage() {
 
             {status.applied_migrations.length > 0 && (
               <div>
-                  <p className="text-sm font-semibold mb-2">已应用迁�?</p>
+                  <p className="text-sm font-semibold mb-2">已应用迁'</p>
                 <div className="flex flex-wrap gap-2">
                   {status.applied_migrations.map((v: number) => (
                     <Badge key={v} variant="outline">v{v}</Badge>
@@ -227,12 +227,12 @@ export default function MigrationsPage() {
             <Info className="h-4 w-4" />
             <AlertTitle>注意事项</AlertTitle>
             <AlertDescription>
-                执行迁移将自动运行所有待处理的数据库变更脚本。请确保已备份数据库�?
+                执行迁移将自动运行所有待处理的数据库变更脚本。请确保已备份数据库'
             </AlertDescription>
           </Alert>
 
           <Button onClick={handleApplyMigrations} disabled={loading || (status?.pending_count === 0)}>
-              {loading ? '执行�?..' : '执行所有待处理迁移'}
+              {loading ? '执行' : '执行所有待处理迁移'}
           </Button>
         </CardContent>
       </Card>
@@ -261,7 +261,7 @@ export default function MigrationsPage() {
             <Info className="h-4 w-4" />
             <AlertTitle>Alembic 说明</AlertTitle>
             <AlertDescription>
-                使用 Alembic 自动生成迁移脚本。创建后需�?alembic_migrations/versions/ 目录编辑生成的文件�?
+                使用 Alembic 自动生成迁移脚本。创建后需'alembic_migrations/versions/ 目录编辑生成的文件'
             </AlertDescription>
           </Alert>
         </CardContent>
@@ -280,7 +280,7 @@ export default function MigrationsPage() {
             <Info className="h-4 w-4" />
             <AlertTitle>警告</AlertTitle>
             <AlertDescription>
-                回滚操作不可�?请谨慎使用。建议先备份数据库�?
+                回滚操作不可'请谨慎使用。建议先备份数据库'
             </AlertDescription>
           </Alert>
 
@@ -309,10 +309,10 @@ export default function MigrationsPage() {
             <h3 className="font-semibold mb-2">Alembic 工作流程:</h3>
             <ol className="list-decimal list-inside space-y-2 text-sm text-gray-700 ml-2">
               <li><strong>创建迁移:</strong> 填写描述,生成 Alembic 迁移文件</li>
-                <li><strong>编辑迁移:</strong> �?alembic_migrations/versions/ 目录找到生成的文�?编写 upgrade/downgrade
+                <li><strong>编辑迁移:</strong> 'alembic_migrations/versions/ 目录找到生成的文'编写 upgrade/downgrade
                     函数
                 </li>
-                <li><strong>执行迁移:</strong> 点击“执行所有待处理迁移”按�?alembic upgrade head)</li>
+                <li><strong>执行迁移:</strong> 点击“执行所有待处理迁移”按'alembic upgrade head)</li>
               <li><strong>验证结果:</strong> 检查数据库变更是否正确应用</li>
             </ol>
           </div>
@@ -332,19 +332,19 @@ def upgrade():
     
 
 def downgrade():
-    # 回滚:删除�?
+    # 回滚:删除'
     op.drop_column('users', 'avatar')`}
             </pre>
           </div>
 
           <div className="bg-blue-50 p-4 rounded-lg">
-              <h3 className="font-semibold text-blue-900 mb-2">最佳实�?</h3>
+              <h3 className="font-semibold text-blue-900 mb-2">最佳实'</h3>
             <ul className="text-sm text-blue-800 space-y-1">
-                <li>�?每个迁移只做一件事(添加�?修改�?插入数据)</li>
-                <li>�?始终提供downgrade函数以支持回�?/li>
-                    <li>�?迁移文件名使用序号前缀(001_, 002_...)</li>
-                    <li>�?执行前务必备份数据库</li>
-                    <li>�?在生产环境执行前先测�?/li>
+                <li>'每个迁移只做一件事(添加'修改'插入数据)</li>
+                <li>'始终提供downgrade函数以支持回</li>
+                <li>'迁移文件名使用序号前缀(001_, 002_...)</li>
+                <li>'执行前务必备份数据库</li>
+                <li>'在生产环境执行前先测</li>
             </ul>
           </div>
         </CardContent>

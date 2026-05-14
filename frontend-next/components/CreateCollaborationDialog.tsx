@@ -40,10 +40,11 @@ export function CreateCollaborationDialog({
     const [invitation, setInvitation] = useState<Invitation | null>(null);
     const [copied, setCopied] = useState(false);
 
-    // 创建邀�?    const handleCreateInvitation = React.useCallback(async () => {
+    // 创建邀请
+    const handleCreateInvitation = React.useCallback(async () => {
         setLoading(true);
         try {
-            // 直接使用完整 URL，避�?apiFetch 重复添加前缀
+            // 直接使用完整 URL，避免 apiFetch 重复添加前缀
             const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:9421';
             const url = `${baseUrl}/api/v2/collaboration/invites/create`;
 
@@ -54,7 +55,7 @@ export function CreateCollaborationDialog({
                 },
                 credentials: 'include',
                 body: JSON.stringify({
-                    article_id: articleId || parseInt(documentId.replace('article-', '')),
+                    article_id: articleId || parseInt(documentId.replace('article', '')),
                     permission,
                     expire_hours: expireHours,
                     max_users: maxUsers,
@@ -77,7 +78,8 @@ export function CreateCollaborationDialog({
 
                 console.error('API Error Response:', errorData);
 
-                // 处理不同类型的错误响�?                let errorMessage = `创建邀请失�?(HTTP ${response.status})`;
+                // 处理不同类型的错误响应
+                let errorMessage = `创建邀请失败 (HTTP ${response.status})`;
                 if (errorData.detail) {
                     if (typeof errorData.detail === 'string') {
                         errorMessage = errorData.detail;
@@ -97,7 +99,7 @@ export function CreateCollaborationDialog({
             setInvitation(data);
         } catch (error) {
             console.error('Create invitation error:', error);
-            alert(`创建邀请失�? ${error instanceof Error ? error.message : '未知错误'}`);
+            alert(`创建邀请失败: ${error instanceof Error ? error.message : '未知错误'}`);
         } finally {
             setLoading(false);
         }
@@ -116,17 +118,19 @@ export function CreateCollaborationDialog({
         }
     };
 
-// 重置状�?    const handleReset = () => {
+// 重置状态
+    const handleReset = () => {
         setInvitation(null);
         setCopied(false);
     };
 
-// 格式化过期时�?    const formatExpiry = (expiresAt: string) => {
+// 格式化过期时间
+    const formatExpiry = (expiresAt: string) => {
         const date = new Date(expiresAt);
         const now = new Date();
         const diffHours = Math.round((date.getTime() - now.getTime()) / (1000 * 60 * 60));
 
-if (diffHours < 0) return '已过�?;
+        if (diffHours < 0) return '已过';
         if (diffHours < 24) return `${diffHours}小时后过期`;
         return `${Math.round(diffHours / 24)}天后过期`;
     };
@@ -143,15 +147,16 @@ if (diffHours < 0) return '已过�?;
                         创建协作文档
                     </DialogTitle>
                     <DialogDescription>
-                        {articleTitle ? `为文�?${articleTitle}"创建协作会话` : '创建一个新的协作文�?}
+                        {articleTitle ? `为文章 "${articleTitle}" 创建协作会话` : '创建一个新的协作文档'}
                     </DialogDescription>
                 </DialogHeader>
 
                 {!invitation ? (
-                            // 创建邀请表�?                    <div className="space-y-4 py-4">
+                    // 创建邀请表单
+                    <div className="space-y-4 py-4">
                         <div className="grid grid-cols-2 gap-4">
                             <div className="space-y-2">
-                            <Label htmlFor="maxUsers">最大协作人�?/Label>
+                                <Label htmlFor="maxUsers">最大协作人数</Label>
                                 <Select
                                     value={maxUsers.toString()}
                                     onValueChange={(v) => setMaxUsers(parseInt(v))}
@@ -160,16 +165,16 @@ if (diffHours < 0) return '已过�?;
                                         <SelectValue/>
                                     </SelectTrigger>
                                     <SelectContent>
-                                        <SelectItem value="2">2�?/SelectItem>
-                                            <SelectItem value="3">3�?/SelectItem>
-                                                <SelectItem value="5">5�?/SelectItem>
-                                                    <SelectItem value="10">10�?/SelectItem>
+                                        <SelectItem value="2">2人</SelectItem>
+                                        <SelectItem value="3">3人</SelectItem>
+                                        <SelectItem value="5">5人</SelectItem>
+                                        <SelectItem value="10">10人</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="expireHours">链接有效�?/Label>
+                                <Label htmlFor="expireHours">链接有效期</Label>
                                 <Select
                                     value={expireHours.toString()}
                                     onValueChange={(v) => setExpireHours(parseInt(v))}
@@ -180,8 +185,8 @@ if (diffHours < 0) return '已过�?;
                                     <SelectContent>
                                         <SelectItem value="1">1小时</SelectItem>
                                         <SelectItem value="24">24小时</SelectItem>
-                                        <SelectItem value="72">3�?/SelectItem>
-                                            <SelectItem value="168">7�?/SelectItem>
+                                        <SelectItem value="72">3天</SelectItem>
+                                        <SelectItem value="168">7天</SelectItem>
                                     </SelectContent>
                                 </Select>
                             </div>
@@ -194,8 +199,8 @@ if (diffHours < 0) return '已过�?;
                                     <SelectValue/>
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="edit">可编�?/SelectItem>
-                                        <SelectItem value="view">仅查�?/SelectItem>
+                                    <SelectItem value="edit">可编辑</SelectItem>
+                                    <SelectItem value="view">仅查看</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -204,18 +209,18 @@ if (diffHours < 0) return '已过�?;
                             disabled={loading}
                             className="w-full"
                         >
-                            {loading ? '创建�?..' : '生成邀请链�?}
+                            {loading ? '创建' : '生成邀请链'}
                         </Button>
                     </div>
                 ) : (
-                                // 显示邀请链�?                    <div className="space-y-4 py-4">
+                    <div className="space-y-4 py-4">
                         <div className="bg-green-50 border border-green-200 rounded-lg p-4">
                             <div className="flex items-start gap-3">
                                 <CheckCircle className="w-5 h-5 text-green-600 mt-0.5"/>
                                 <div className="flex-1">
                                     <h4 className="font-semibold text-green-800 mb-1">邀请链接已生成</h4>
                                     <p className="text-sm text-green-700 mb-3">
-                                将此链接分享给协作者，最�?{invitation.max_users} 人可同时参与
+                                        将此链接分享给协作者，最'{invitation.max_users} 人可同时参与
                                     </p>
 
                                     <div className="flex items-center gap-2">
@@ -242,9 +247,9 @@ if (diffHours < 0) return '已过�?;
 
                         <div className="grid grid-cols-2 gap-3 text-sm">
                             <div className="bg-gray-50 p-3 rounded-lg">
-                                <span className="text-gray-500">权限�?/span>
+                                <span className="text-gray-500">权限</span>
                                 <span className="font-medium">
-                                    {invitation.permission === 'edit' ? '可编�? : '仅查�?}
+                                    {invitation.permission === 'edit' ? '可编' : '仅查'}
                                 </span>
                             </div>
                             <div className="bg-gray-50 p-3 rounded-lg">

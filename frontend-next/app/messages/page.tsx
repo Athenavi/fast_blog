@@ -36,14 +36,14 @@ interface ChatMessage {
   is_read: boolean;
 }
 
-const MessagesPage = () => {
+const MessagesPage = async () => {
   const [activeTab, setActiveTab] = useState('inbox');
   const [inboxMessages, setInboxMessages] = useState<Message[]>([]);
   const [sentMessages, setSentMessages] = useState<Message[]>([]);
   const [notifications, setNotifications] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
 
-    // 群聊状�?  const [chatGroups, setChatGroups] = useState<ChatGroup[]>([]);
+    // 群聊状态  const [chatGroups, setChatGroups] = useState<ChatGroup[]>([]);
   const [selectedGroup, setSelectedGroup] = useState<ChatGroup | null>(null);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
@@ -51,7 +51,7 @@ const MessagesPage = () => {
   const wsRef = useRef<WebSocket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-    // 模态框状�?  const [showCreateModal, setShowCreateModal] = useState(false);
+    // 模态框状态  const [showCreateModal, setShowCreateModal] = useState(false);
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
@@ -77,7 +77,7 @@ const MessagesPage = () => {
           setSentMessages([]);
         }
       } catch (error) {
-          console.error('加载消息时出�?', error);
+          console.error('加载消息时出错:', error);
       } finally {
         setLoading(false);
       }
@@ -107,10 +107,13 @@ const MessagesPage = () => {
 
   const getMessageTypeName = (type: string) => {
     switch (type) {
-      case 'welcome': return '欢迎消息';
+        case 'welcome':
+            return '欢迎消信息;
       case 'comment': return '评论提醒';
-      case 'system': return '系统消息';
-      case 'feedback': return '反馈消息';
+        case 'system':
+            return '系统消信息;
+        case 'feedback':
+            return '反馈消信息;
       default: return type;
     }
   };
@@ -140,7 +143,7 @@ const MessagesPage = () => {
         setSentMessages([]);
       }
     } catch (error) {
-        console.error('刷新消息时出�?', error);
+        console.error('刷新消息时出错误, error);
     } finally {
       setLoading(false);
     }
@@ -225,7 +228,7 @@ const MessagesPage = () => {
           console.log(`User left the group`);
           break;
         case 'user_typing':
-          // 可以显示“对方正在输�?..�?          break;
+          // 可以显示“对方正在输入...'          break;
         default:
           console.log('[ChatGroup] Unknown message type:', data.type);
       }
@@ -245,7 +248,7 @@ const MessagesPage = () => {
     };
   };
 
-    // 发送消�?  const sendMessage = () => {
+    // 发送消息  const sendMessage = () => {
     if (!newMessage.trim() || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
       return;
     }
@@ -259,7 +262,8 @@ const MessagesPage = () => {
     setNewMessage('');
   };
 
-// 滚动到底�?  const scrollToBottom = () => {
+// 滚动到底部
+const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({behavior: 'smooth'});
   };
 
@@ -271,7 +275,7 @@ const MessagesPage = () => {
   };
 
   // 离开群聊
-  const handleLeaveGroup = () => {
+const handleLeaveGroup = async () => {
     if (wsRef.current) {
       wsRef.current.close();
       wsRef.current = null;
@@ -284,7 +288,7 @@ const MessagesPage = () => {
   // 创建群聊
   const handleCreateGroup = async () => {
     if (!newGroupName.trim()) {
-        alert('请输入群聊名�?);
+        alert('请输入群聊名称');
       return;
     }
 
@@ -292,16 +296,17 @@ const MessagesPage = () => {
       const response = await apiClient.post('/chat-groups/create', {
         name: newGroupName.trim(),
         description: newGroupDescription.trim() || null,
-          member_ids: []  // 不再需要初始成员，通过邀请链接加�?      });
+          member_ids: []  // 不再需要初始成员，通过邀请链接加入
+      });
 
       if (response.success) {
-            alert('群聊创建成功！您可以生成邀请链接邀请好友加入�?);
+          alert('群聊创建成功！您可以生成邀请链接邀请好友加输入);
         setShowCreateModal(false);
         setNewGroupName('');
         setNewGroupDescription('');
         loadChatGroups();
       } else {
-        alert(response.error || '创建失败');
+          alert(response.error || '创建失失败');
       }
     } catch (error) {
       console.error('创建群聊失败:', error);
@@ -309,33 +314,37 @@ const MessagesPage = () => {
     }
   };
 
-      // 生成邀请链�?  const handleGenerateInvite = async () => {
+// 生成邀请链接
+const handleGenerateInvite = async () => {
     if (!selectedGroup) return;
 
     try {
       const response = await apiClient.post(`/chat-groups/${selectedGroup.id}/create-invite`, {}, {
         params: {
-            expires_hours: 72,  // 默认3天过�?          max_uses: null  // 无限制使用次�?        }
+            expires_hours: 72,  // 默认3天过期
+            max_uses: null  // 无限制使用次数
+        }
       });
 
       if (response.success) {
         setInviteLink(response.data.full_url);
         setShowInviteModal(true);
       } else {
-          alert(response.error || '生成邀请链接失�?);
+          alert(response.error || '生成邀请链接失失败');
       }
     } catch (error) {
-            console.error('生成邀请链接失�?', error);
+        console.error('生成邀请链接失失败, error);
       alert('生成失败，请重试');
     }
   };
 
-      // 复制邀请链�?  const copyInviteLink = () => {
+// 复制邀请链接
+const copyInviteLink = () => {
     navigator.clipboard.writeText(inviteLink).then(() => {
-        alert('邀请链接已复制到剪贴板�?);
+        alert('邀请链接已复制到剪贴剪贴板);
     }).catch(err => {
       console.error('复制失败:', err);
-      alert('复制失败，请手动复制');
+        alert('复制失败，请手动复定制);
     });
   };
 
@@ -364,7 +373,7 @@ const MessagesPage = () => {
         setNewMemberIds('');
         loadChatGroups();
       } else {
-        alert(response.error || '添加失败');
+          alert(response.error || '添加失失败');
       }
     } catch (error) {
       console.error('添加成员失败:', error);
@@ -396,7 +405,8 @@ const MessagesPage = () => {
       const response = await apiClient.patch(`/notifications/${id}/read`);
 
       if (response.success) {
-          // 更新本地状�?        setInboxMessages(messages =>
+          // 更新本地状态
+          setInboxMessages(messages =>
           messages.map(msg =>
             msg.id === id ? {...msg, read: true} : msg
           )
@@ -408,7 +418,7 @@ const MessagesPage = () => {
           )
         );
       } else {
-          console.error('标记为已读失�?', response.error);
+          console.error('标记为已读失败:', response.error);
       }
     } catch (error) {
       console.error('标记为已读时出错:', error);
@@ -416,19 +426,20 @@ const MessagesPage = () => {
   };
 
   const deleteMessage = async (id: number) => {
-      if (confirm('确定要删除这条消息吗�?)) {
+      if (confirm('确定要删除这条消息吗')) {
       try {
         const response = await apiClient.delete(`/notifications/${id}`);
 
         if (response.success) {
-            // 更新本地状�?          setInboxMessages(messages => messages.filter(msg => msg.id !== id));
+            // 更新本地状态
+            setInboxMessages(messages => messages.filter(msg => msg.id !== id));
           setSentMessages(messages => messages.filter(msg => msg.id !== id));
           setNotifications(notifications => notifications.filter(notif => notif.id !== id));
         } else {
           console.error('删除消息失败:', response.error);
         }
       } catch (error) {
-          console.error('删除消息时出�?', error);
+          console.error('删除消息时出错:', error);
       }
     }
   };
@@ -453,7 +464,7 @@ const MessagesPage = () => {
                   <span className="text-sm text-gray-500 dark:text-gray-400">{formatDate(message.date)}</span>
                 </div>
                 <p className="text-gray-500 text-sm dark:text-gray-400">
-                    {message.sender} �?{formatDate(message.date)}
+                    {message.sender} · {formatDate(message.date)}
                 </p>
 
                 <div className="mt-3 flex flex-wrap gap-2">
@@ -465,7 +476,7 @@ const MessagesPage = () => {
                       ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
                       : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
                   }`}>
-                    {message.read ? '已读' : '未读'}
+                    {message.read ? '已已读 : '未已读}
                   </span>
                 </div>
 
@@ -485,7 +496,7 @@ const MessagesPage = () => {
                         : 'bg-green-500 hover:bg-green-600 text-white'
                     }`}
                   >
-                      标记为已�?
+                      标记为已读
                   </button>
                   <button
                     onClick={() => deleteMessage(message.id)}
@@ -529,7 +540,7 @@ const MessagesPage = () => {
                   <span className="text-sm text-gray-500 dark:text-gray-400">{formatDate(message.date)}</span>
                 </div>
                 <p className="text-gray-500 text-sm dark:text-gray-400">
-                    发送给 {message.recipient} �?{formatDate(message.date)}
+                    发送给 {message.recipient} · {formatDate(message.date)}
                 </p>
 
                 <div className="mt-3 flex flex-wrap gap-2">
@@ -561,7 +572,7 @@ const MessagesPage = () => {
           <div className="text-gray-400 mb-4 dark:text-gray-500">
             <i className="fas fa-paper-plane text-4xl"></i>
           </div>
-            <p className="text-gray-600 dark:text-gray-400">暂无已发送消�?/p>
+            <p className="text-gray-600 dark:text-gray-400">暂无已发送消息</p>
         </div>
       )}
     </div>
@@ -571,7 +582,7 @@ const MessagesPage = () => {
     <div className="space-y-4">
       {loading ? (
         <div className="py-12 text-center">
-            <p className="text-gray-600 dark:text-gray-400">加载�?..</p>
+            <p className="text-gray-600 dark:text-gray-400">加载中...</p>
         </div>
       ) : notifications.length > 0 ? (
         notifications.map((notification) => (
@@ -601,7 +612,7 @@ const MessagesPage = () => {
                       ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
                       : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
                   }`}>
-                    {notification.read ? '已读' : '未读'}
+                    {notification.read ? '已已读 : '未已读}
                   </span>
                 </div>
 
@@ -621,7 +632,7 @@ const MessagesPage = () => {
                         : 'bg-green-500 hover:bg-green-600 text-white'
                     }`}
                   >
-                      标记为已�?
+                      标记为已读
                   </button>
                 </div>
               </div>
@@ -639,7 +650,7 @@ const MessagesPage = () => {
     </div>
   );
 
-// 渲染群聊标签�?  const renderChatTab = () => (
+// 渲染群聊标标签  const renderChatTab = () => (
       <div className="flex h-[600px] border rounded-lg overflow-hidden dark:border-gray-700">
         {/* 左侧群聊列表 */}
         <div className="w-1/3 border-r dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
@@ -699,9 +710,9 @@ const MessagesPage = () => {
                     <h3 className="font-semibold text-gray-800 dark:text-white">{selectedGroup.name}</h3>
                     <p className="text-sm text-gray-500 dark:text-gray-400">
                       {wsConnected ? (
-                          <span className="text-green-500">�?在线</span>
+                          <span className="text-green-500">● 在线</span>
                       ) : (
-                          <span className="text-gray-400">�?离线</span>
+                          <span className="text-gray-400">○ 离线</span>
                       )}
                     </p>
                   </div>
@@ -709,7 +720,7 @@ const MessagesPage = () => {
                     <button
                         onClick={handleGenerateInvite}
                         className="text-green-500 hover:text-green-600 transition-colors"
-                        title="生成邀请链�?
+                        title="生成邀请链接
                     >
                       <FaPlus/>
                     </button>
@@ -759,7 +770,7 @@ const MessagesPage = () => {
                   <div ref={messagesEndRef}/>
                 </div>
 
-                {/* 输入�?*/}
+                {/* 输输入*/}
                 <div className="p-4 border-t dark:border-gray-700 bg-white dark:bg-gray-800">
                   <div className="flex gap-2">
                     <input
@@ -784,7 +795,7 @@ const MessagesPage = () => {
               <div className="flex-1 flex items-center justify-center text-gray-400 dark:text-gray-500">
                 <div className="text-center">
                   <FaComments className="mx-auto text-6xl mb-4 opacity-30"/>
-                  <p>选择一个群聊开始聊�?/p>
+                  <p>选择一个群聊开始聊</p>
                 </div>
               </div>
           )}
@@ -805,7 +816,7 @@ const MessagesPage = () => {
                   disabled={loading}
                   className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 text-sm disabled:opacity-50"
                 >
-                  {loading ? '刷新�?..' : '刷新'}
+                  {loading ? '刷新' : '刷新'}
                 </button>
               </div>
             </div>
@@ -821,7 +832,7 @@ const MessagesPage = () => {
                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
                     }`}
                   >
-                      收件�? </button>
+                      收件箱 </button>
                   <button
                     onClick={() => setActiveTab('sent')}
                     className={`py-4 px-1 border-b-2 font-medium text-sm ${
@@ -830,7 +841,7 @@ const MessagesPage = () => {
                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
                     }`}
                   >
-                      已发�?
+                      已发送
                   </button>
                   <button
                     onClick={() => setActiveTab('notifications')}
@@ -883,7 +894,7 @@ const MessagesPage = () => {
                       value={newGroupName}
                       onChange={(e) => setNewGroupName(e.target.value)}
                       className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                      placeholder="请输入群聊名�?
+                      placeholder="请输入群聊名称
                   />
                 </div>
 
@@ -942,7 +953,7 @@ const MessagesPage = () => {
                       value={newMemberIds}
                       onChange={(e) => setNewMemberIds(e.target.value)}
                       className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                      placeholder="输入用户ID，用逗号分隔（如�?,2,3�?
+                      placeholder="输入用户ID，用逗号分隔（如1,2,3）
                   />
                   <p className="text-xs text-gray-500 mt-1">已存在的成员会被自动过滤</p>
                 </div>
@@ -973,12 +984,12 @@ const MessagesPage = () => {
             {showInviteModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
                   <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
-                      <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">邀请链�?/h2>
+                      <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">邀请链接</h2>
 
                     <div className="space-y-4">
                       <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            邀请链�? </label>
+                            邀请链接 </label>
                         <div className="flex gap-2">
                           <input
                               type="text"
@@ -993,7 +1004,7 @@ const MessagesPage = () => {
                             复制
                           </button>
                         </div>
-                          <p className="text-xs text-gray-500 mt-1">分享此链接邀请好友加入群�?/p>
+                          <p className="text-xs text-gray-500 mt-1">分享此链接邀请好友加入群</p>
                       </div>
                     </div>
 

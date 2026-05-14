@@ -68,7 +68,7 @@ const PageManagementTab: React.FC<PageManagementTabProps> = ({
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    {page.updated_at ? new Date(page.updated_at).toLocaleDateString() : '-'}
+                      {page.updated_at ? new Date(page.updated_at).toLocaleDateString() : ''}
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">

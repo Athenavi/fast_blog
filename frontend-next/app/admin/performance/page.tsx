@@ -201,7 +201,7 @@ export default function PerformanceOptimizationPage() {
             });
             const data = await res.json();
             if (data.success) {
-                toast.success(`静态页面生成完成，�?{data.data.total}篇`);
+                toast.success(`静态页面生成完成，'{data.data.total}篇`);
             } else {
                 toast.error(data.error || '生成失败');
             }
@@ -241,14 +241,14 @@ export default function PerformanceOptimizationPage() {
                     </TabsTrigger>
                     <TabsTrigger value="lazyload">
                         <Image className="w-4 h-4 mr-2"/>
-                        懒加�? </TabsTrigger>
+                        懒加' </TabsTrigger>
                     <TabsTrigger value="codesplit">
                         <Code className="w-4 h-4 mr-2"/>
                         代码分割
                     </TabsTrigger>
                     <TabsTrigger value="ssg">
                         <Globe className="w-4 h-4 mr-2"/>
-                        静态生�? </TabsTrigger>
+                        静态生' </TabsTrigger>
                     <TabsTrigger value="cdn">
                         <Zap className="w-4 h-4 mr-2"/>
                         CDN分发
@@ -264,14 +264,14 @@ export default function PerformanceOptimizationPage() {
                                 Redis缓存统计
                             </CardTitle>
                             <CardDescription>
-                                查看和管理Redis缓存状�? </CardDescription>
+                                查看和管理Redis缓存状' </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             {cacheStats ? (
                                 <>
                                     <div className="grid grid-cols-3 gap-4">
                                         <div className="space-y-2">
-                                            <p className="text-sm text-muted-foreground">总键�?/p>
+                                            <p className="text-sm text-muted-foreground">总键</p>
                                             <p className="text-2xl font-bold">{cacheStats.total_keys}</p>
                                         </div>
                                         <div className="space-y-2">
@@ -279,7 +279,7 @@ export default function PerformanceOptimizationPage() {
                                             <p className="text-2xl font-bold">{cacheStats.memory_used}</p>
                                         </div>
                                         <div className="space-y-2">
-                                            <p className="text-sm text-muted-foreground">命中�?/p>
+                                            <p className="text-sm text-muted-foreground">命中</p>
                                             <p className="text-2xl font-bold">{(cacheStats.hit_rate * 100).toFixed(1)}%</p>
                                         </div>
                                     </div>
@@ -296,7 +296,7 @@ export default function PerformanceOptimizationPage() {
                                     </div>
                                 </>
                             ) : (
-                                <p className="text-muted-foreground">加载�?..</p>
+                                <p className="text-muted-foreground">加载'..</p>
                             )}
                         </CardContent>
                     </Card>
@@ -308,7 +308,7 @@ export default function PerformanceOptimizationPage() {
                         <CardHeader>
                             <CardTitle className="flex items-center">
                                 <Database className="w-5 h-5 mr-2"/>
-                                数据库查询优�? </CardTitle>
+                                数据库查询优' </CardTitle>
                             <CardDescription>
                                 监控和优化数据库查询性能
                             </CardDescription>
@@ -339,32 +339,32 @@ export default function PerformanceOptimizationPage() {
                                     </div>
                                 </>
                             ) : (
-                                <p className="text-muted-foreground">加载�?..</p>
+                                <p className="text-muted-foreground">加载'..</p>
                             )}
                         </CardContent>
                     </Card>
                 </TabsContent>
 
-                {/* 懒加�?*/}
+                {/* 懒加'*/}
                 <TabsContent value="lazyload" className="space-y-4">
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center">
                                 <Image className="w-5 h-5 mr-2"/>
-                                图片懒加载配�? </CardTitle>
+                                图片懒加载配' </CardTitle>
                             <CardDescription>
-                                配置图片懒加载行�? </CardDescription>
+                                配置图片懒加载行' </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             {lazyLoadConfig ? (
                                 <>
                                     <div className="grid grid-cols-3 gap-4">
                                         <div className="space-y-2">
-                                            <p className="text-sm text-muted-foreground">触发阈�?/p>
+                                            <p className="text-sm text-muted-foreground">触发阈</p>
                                             <p className="text-2xl font-bold">{lazyLoadConfig.threshold}</p>
                                         </div>
                                         <div className="space-y-2">
-                                            <p className="text-sm text-muted-foreground">占位符颜�?/p>
+                                            <p className="text-sm text-muted-foreground">占位符颜</p>
                                             <div className="flex items-center gap-2">
                                                 <div
                                                     className="w-8 h-8 rounded border"
@@ -381,7 +381,7 @@ export default function PerformanceOptimizationPage() {
                                     </div>
                                 </>
                             ) : (
-                                <p className="text-muted-foreground">加载�?..</p>
+                                <p className="text-muted-foreground">加载'..</p>
                             )}
                         </CardContent>
                     </Card>
@@ -396,25 +396,25 @@ export default function PerformanceOptimizationPage() {
                                 代码分割分析
                             </CardTitle>
                             <CardDescription>
-                                分析和优化JavaScript包大�? </CardDescription>
+                                分析和优化JavaScript包大' </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             {codeSplittingReport ? (
                                 <>
                                     <div className="grid grid-cols-3 gap-4">
                                         <div className="space-y-2">
-                                            <p className="text-sm text-muted-foreground">总Chunk�?/p>
+                                            <p className="text-sm text-muted-foreground">总Chunk</p>
                                             <p className="text-2xl font-bold">{codeSplittingReport.total_chunks}</p>
                                         </div>
                                         <div className="space-y-2">
-                                            <p className="text-sm text-muted-foreground">总大�?/p>
+                                            <p className="text-sm text-muted-foreground">总大</p>
                                             <p className="text-2xl font-bold">{codeSplittingReport.total_size_kb} KB</p>
                                         </div>
                                         <div className="space-y-2">
                                             <p className="text-sm text-muted-foreground">优化建议</p>
                                             <Badge
                                                 variant={codeSplittingReport.recommendations_count > 0 ? "destructive" : "default"}>
-                                                {codeSplittingReport.recommendations_count} �? </Badge>
+                                                {codeSplittingReport.recommendations_count} ' </Badge>
                                         </div>
                                     </div>
 
@@ -424,19 +424,19 @@ export default function PerformanceOptimizationPage() {
                                     </Button>
                                 </>
                             ) : (
-                                <p className="text-muted-foreground">加载�?..</p>
+                                <p className="text-muted-foreground">加载'..</p>
                             )}
                         </CardContent>
                     </Card>
                 </TabsContent>
 
-                {/* 静态生�?*/}
+                {/* 静态生'*/}
                 <TabsContent value="ssg" className="space-y-4">
                     <Card>
                         <CardHeader>
                             <CardTitle className="flex items-center">
                                 <Globe className="w-5 h-5 mr-2"/>
-                                静态站点生�? </CardTitle>
+                                静态站点生' </CardTitle>
                             <CardDescription>
                                 生成和管理静态HTML页面
                             </CardDescription>
@@ -454,7 +454,7 @@ export default function PerformanceOptimizationPage() {
                                             <p className="text-2xl font-bold text-green-600">{isrStats.cache_hits}</p>
                                         </div>
                                         <div className="space-y-2">
-                                            <p className="text-sm text-muted-foreground">缓存未命�?/p>
+                                            <p className="text-sm text-muted-foreground">缓存未命</p>
                                             <p className="text-2xl font-bold text-yellow-600">{isrStats.cache_misses}</p>
                                         </div>
                                         <div className="space-y-2">
@@ -474,7 +474,7 @@ export default function PerformanceOptimizationPage() {
                                     </div>
                                 </>
                             ) : (
-                                <p className="text-muted-foreground">加载�?..</p>
+                                <p className="text-muted-foreground">加载'..</p>
                             )}
                         </CardContent>
                     </Card>
@@ -489,7 +489,7 @@ export default function PerformanceOptimizationPage() {
                                 CDN智能分发
                             </CardTitle>
                             <CardDescription>
-                                管理CDN资源和缓存策�? </CardDescription>
+                                管理CDN资源和缓存策' </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
                             {cdnStats ? (
@@ -508,7 +508,7 @@ export default function PerformanceOptimizationPage() {
                                             <p className="text-2xl font-bold">{cdnStats.cache_hits}</p>
                                         </div>
                                         <div className="space-y-2">
-                                            <p className="text-sm text-muted-foreground">活跃提供�?/p>
+                                            <p className="text-sm text-muted-foreground">活跃提供</p>
                                             <p className="text-2xl font-bold">{cdnStats.active_providers}</p>
                                         </div>
                                     </div>
@@ -519,7 +519,7 @@ export default function PerformanceOptimizationPage() {
                                     </Button>
                                 </>
                             ) : (
-                                <p className="text-muted-foreground">加载�?..</p>
+                                <p className="text-muted-foreground">加载'..</p>
                             )}
                         </CardContent>
                     </Card>

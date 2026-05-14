@@ -203,7 +203,7 @@ const MediaGrid: React.FC<MediaGridProps> = ({
   };
 
   // 打开批量移动对话框
-  const handleOpenMoveDialog = () => {
+    const handleOpenMoveDialog = async () => {
     if (selectedItems.length === 0) return;
     loadFolders();
     setTargetFolderPath(null);
@@ -317,7 +317,7 @@ const MediaGrid: React.FC<MediaGridProps> = ({
   };
 
   // 批量删除
-  const handleBatchDeleteClick = () => {
+    const handleBatchDeleteClick = async () => {
     if (selectedItems.length === 0) return;
     if (confirm(`确定要删除选中的 ${selectedItems.length} 个文件吗？此操作不可恢复！`)) {
       onBatchDelete && onBatchDelete(selectedItems);
@@ -354,7 +354,7 @@ const MediaGrid: React.FC<MediaGridProps> = ({
   };
 
   // 添加标签
-  const handleAddTag = () => {
+    const handleAddTag = async () => {
     const tag = newTag.trim();
     if (!tag) return;
     

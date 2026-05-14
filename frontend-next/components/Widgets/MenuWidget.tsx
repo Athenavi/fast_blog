@@ -74,7 +74,7 @@ const MenuWidget: React.FC<MenuWidgetProps> = ({title, config}) => {
                     </div>
                 </Link>
 
-                {/* 子菜�?*/}
+                {/* 子菜'*/}
                 {hasChildren && config.show_submenus !== false && (
                     <ul className="ml-4 mt-1 space-y-1">
                         {item.children!.map(child => renderMenuItem(child, depth + 1))}
@@ -88,7 +88,7 @@ const MenuWidget: React.FC<MenuWidgetProps> = ({title, config}) => {
         return (
             <Card>
                 <CardContent className="py-4">
-                    <div className="text-center text-gray-500">加载�?..</div>
+                    <div className="text-center text-gray-500">加载'..</div>
                 </CardContent>
             </Card>
         );

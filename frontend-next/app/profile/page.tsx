@@ -37,7 +37,7 @@ const staggerContainer = {
     }
 };
 
-const ProfilePage = () => {
+const ProfilePage = async () => {
     const router = useRouter();
     const [userData, setUserData] = useState<UserProfileResponse | null>(null);
     const [loading, setLoading] = useState(true);

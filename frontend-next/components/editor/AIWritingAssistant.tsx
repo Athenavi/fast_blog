@@ -30,7 +30,7 @@ const aiFeatures: AIFeature[] = [
         id: 'continue',
         name: '智能续写',
         icon: <Sparkles className="w-4 h-4"/>,
-        description: '基于上下文智能续写内�?,
+        description: '基于上下文智能续写内容',
         endpoint: '/api/v2/ai/writing/continue',
         method: 'POST',
     },
@@ -38,13 +38,13 @@ const aiFeatures: AIFeature[] = [
         id: 'polish',
         name: '文本润色',
         icon: <PenTool className="w-4 h-4"/>,
-        description: '优化文本表达，提升可读�?,
+        description: '优化文本表达，提升可读',
         endpoint: '/api/v2/ai/writing/polish',
         method: 'POST',
     },
     {
         id: 'grammar',
-        name: '语法检�?,
+        name: '语法检',
         icon: <CheckCircle2 className="w-4 h-4"/>,
         description: '检测并修正语法错误',
         endpoint: '/api/v2/ai/writing/check-grammar',
@@ -70,7 +70,7 @@ const aiFeatures: AIFeature[] = [
         id: 'style-concise',
         name: '精简内容',
         icon: <ListChecks className="w-4 h-4"/>,
-        description: '去除冗余，使内容更简�?,
+        description: '去除冗余，使内容更简',
         endpoint: '/api/v2/ai/writing/transform-style',
         method: 'POST',
     },
@@ -105,7 +105,8 @@ export default function AIWritingAssistant({
             const apiUrl = `${config.API_BASE_URL}${feature.endpoint}`;
 
             if (feature.id === 'continue') {
-                // 智能续写 - 使用光标前的文本作为上下�?                const textBeforeCursor = getTextBeforeCursor(fullText, cursorPosition);
+                // 智能续写 - 使用光标前的文本作为上下文
+                const textBeforeCursor = getTextBeforeCursor(fullText, cursorPosition);
                 response = await fetch(apiUrl, {
                     method: feature.method,
                     headers: {'Content-Type': 'application/json'},
@@ -115,7 +116,8 @@ export default function AIWritingAssistant({
                     }),
                 });
 
-                // 检查响应状�?                if (!response.ok) {
+                // 检查响应状态
+                if (!response.ok) {
                     const errorText = await response.text();
                     console.error('API Error:', response.status, errorText);
                     throw new Error(`API 请求失败 (${response.status}): ${errorText.substring(0, 200)}`);
@@ -127,7 +129,8 @@ export default function AIWritingAssistant({
                     setResult(data.data.continuation);
                 }
             } else if (feature.id === 'grammar') {
-            // 语法检�?                const requestBody = {
+                // 语法检查
+                const requestBody = {
                     text: selectedText || fullText,
                 };
                 console.log('[AI Assistant] Grammar check request:', requestBody);
@@ -148,7 +151,7 @@ export default function AIWritingAssistant({
 
                 if (data.success) {
                     setIssues(data.data.issues || []);
-                    setResult(data.data.issues?.length === 0 ? '�?未发现语法问�? : `发现 ${data.data.count} 个问题`);
+                    setResult(data.data.issues?.length === 0 ? '✓ 未发现语法问题' : `发现 ${data.data.count} 个问题`);
                 }
             } else if (feature.id.startsWith('style-')) {
                 // 风格转换
@@ -179,7 +182,8 @@ export default function AIWritingAssistant({
                     setResult(data.data.transformed);
                 }
             } else {
-        // 其他功能（如润色�?                const requestBody = {
+                // 其他功能（如润色）
+                const requestBody = {
                     text: selectedText || fullText,
                 };
                 console.log('[AI Assistant] Polish request:', requestBody);
@@ -235,8 +239,8 @@ export default function AIWritingAssistant({
     const copyToClipboard = useCallback(() => {
         navigator.clipboard.writeText(result);
         toast({
-            title: '已复�?,
-            description: '结果已复制到剪贴�?,
+            title: '已复制',
+            description: '结果已复制到剪贴板',
         });
     }, [result, toast]);
 
@@ -248,14 +252,16 @@ export default function AIWritingAssistant({
         }
     }, [result, onInsert, onClose]);
 
-// 替换选中的文�?    const replaceSelection = useCallback(() => {
+    // 替换选中的文本
+    const replaceSelection = useCallback(() => {
         if (result && selectedText) {
             onInsert(result);
             onClose();
         }
     }, [result, selectedText, onInsert, onClose]);
 
-// 滚动到结果区�?    useEffect(() => {
+    // 滚动到结果区域
+    useEffect(() => {
         if (result && resultRef.current) {
             resultRef.current.scrollIntoView({behavior: 'smooth'});
         }
@@ -303,11 +309,11 @@ export default function AIWritingAssistant({
                     ))}
                 </div>
 
-                {/* 加载状�?*/}
+                {/* 加载状态 */}
                 {loading && (
                     <div className="flex items-center justify-center py-8">
                         <Loader2 className="w-6 h-6 animate-spin text-purple-500 mr-2"/>
-                        <span className="text-sm text-muted-foreground">AI 正在处理�?..</span>
+                        <span className="text-sm text-muted-foreground">AI 正在处理中...</span>
                     </div>
                 )}
 
@@ -350,7 +356,7 @@ export default function AIWritingAssistant({
                             </div>
                         </div>
 
-                        {/* 语法检查结�?*/}
+                        {/* 语法检查结果 */}
                         {issues.length > 0 && (
                             <ScrollArea className="h-48 rounded-md border p-3">
                                 <div className="space-y-2">
@@ -388,9 +394,9 @@ export default function AIWritingAssistant({
                 {!result && !loading && issues.length === 0 && (
                     <div className="text-center py-8 text-muted-foreground text-sm">
                         <Wand2 className="w-8 h-8 mx-auto mb-2 opacity-50"/>
-                        <p>选择一个功能开始使�?AI 写作助手</p>
+                        <p>选择一个功能开始使用 AI 写作助手</p>
                         {selectedText && (
-                            <p className="text-xs mt-1">已选中 {selectedText.length} 个字�?/p>
+                            <p className="text-xs mt-1">已选中 {selectedText.length} 个字符</p>
                         )}
                     </div>
                 )}

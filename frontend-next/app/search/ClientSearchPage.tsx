@@ -16,7 +16,7 @@ interface SearchResult {
   article?: Article;
 }
 
-const ClientSearchPage = () => {
+const ClientSearchPage = async () => {
   const searchParams = useSearchParams();
   const [searchKeyword, setSearchKeyword] = useState('');
   const [searchResults, setSearchResults] = useState<SearchResult[]>([]);

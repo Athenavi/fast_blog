@@ -1,6 +1,3 @@
-/**
- * 权限管理后台 - 角色和权限配�? */
-
 'use client';
 
 import React, {useEffect, useState} from 'react';

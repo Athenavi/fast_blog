@@ -355,14 +355,14 @@ const MediaPageContent = () => {
     };
 
     // 打开批量移动对话框
-    const openMoveDialog = () => {
+    const openMoveDialog = async () => {
         if (selectedItems.length === 0) return;
         loadFolders();
         setMoveDialogOpen(true);
     };
 
     // 切换上传区块折叠状态
-    const toggleUploadArea = () => {
+    const toggleUploadArea = async () => {
         const newState = !uploadAreaCollapsed;
         setUploadAreaCollapsed(newState);
         // 保存到 localStorage
@@ -370,7 +370,7 @@ const MediaPageContent = () => {
     };
 
     // 切换侧边栏折叠状态
-    const toggleSidebar = () => {
+    const toggleSidebar = async () => {
         const newState = !sidebarCollapsed;
         setSidebarCollapsed(newState);
         // 保存到 localStorage
@@ -426,7 +426,7 @@ const MediaPageContent = () => {
 
         // 解析 draggableId 获取媒体文件 ID
         // draggableId 格式: "media-{id}"
-        const mediaId = parseInt(draggableId.replace('media-', ''));
+        const mediaId = parseInt(draggableId.replace('media', ''));
 
         // 解析 destination.droppableId 获取文件夹路径
         // droppableId 格式: "folder-root" (根目录) 或 "folder-{path}" (子文件夹)
@@ -435,9 +435,9 @@ const MediaPageContent = () => {
         if (destination.droppableId === 'folder-root') {
             // 拖拽到根目录
             folderPath = null;
-        } else if (destination.droppableId.startsWith('folder-')) {
+        } else if (destination.droppableId.startsWith('folder')) {
             // 拖拽到子文件夹
-            folderPath = destination.droppableId.replace('folder-', '');
+            folderPath = destination.droppableId.replace('folder', '');
         }
 
         console.log('📦 移动文件:', {mediaId, folderPath});

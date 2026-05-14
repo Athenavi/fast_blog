@@ -101,7 +101,7 @@ const ContributePage = () => {
         if (name === 'contribute_slug') {
             setFormData(prev => ({
                 ...prev,
-                contribute_slug: value.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-')
+                contribute_slug: value.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '')
             }));
         }
     };

@@ -315,7 +315,7 @@ const LoginPage = () => {
     // 开始轮询二维码状态，每3秒检查一次
     const interval = setInterval(async () => {
       try {
-        console.log('[QR Polling] --- Polling cycle started ---');
+          console.log('[QR Polling] --- Polling cycle started --');
         const success = await checkQRStatus();
         console.log('[QR Polling] Check result - success:', success, ', current status:', qrStatusRef.current);
         // 使用 ref 获取最新状态值
@@ -338,7 +338,7 @@ const LoginPage = () => {
   };
 
   // 停止二维码状态轮询
-  const stopQRPolling = () => {
+    const stopQRPolling = async () => {
     setQrPolling(false);
   };
 
@@ -381,7 +381,7 @@ const LoginPage = () => {
   useEffect(() => {
     let timer: NodeJS.Timeout;
 
-    const handleCountdown = () => {
+      const handleCountdown = async () => {
       if (activeMethod === 'qr' && countdown > 0 && qrStatus !== 'confirmed') {
         timer = setTimeout(() => {
           setCountdown(prev => prev - 1);

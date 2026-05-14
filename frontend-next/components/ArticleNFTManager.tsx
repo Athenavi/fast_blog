@@ -58,7 +58,7 @@ export default function ArticleNFTManager({articleId, articleTitle}: ArticleNFTM
         }
     };
 
-    // 铸�?NFT
+    // 铸'NFT
     const handleMint = async () => {
         if (!walletAddress) {
             setError('请输入钱包地址');
@@ -94,7 +94,7 @@ export default function ArticleNFTManager({articleId, articleTitle}: ArticleNFTM
                 setShowMintDialog(false);
                 loadNFTInfo();
             } else {
-                setError(data.detail || 'NFT 铸造失�?);
+                setError(data.detail || 'NFT 铸造失');
             }
         } catch (err: any) {
             setError(err.message || '网络错误');
@@ -105,8 +105,8 @@ export default function ArticleNFTManager({articleId, articleTitle}: ArticleNFTM
 
     // 连接钱包（模拟）
     const connectWallet = async () => {
-        // 在实际实现中，这里应该使�?web3.js �?ethers.js 连接真实钱包
-        // 这里仅作为演�?
+        // 在实际实现中，这里应该使'web3.js 'ethers.js 连接真实钱包
+        // 这里仅作为演'
         if (typeof window !== 'undefined' && (window as any).ethereum) {
             try {
                 const accounts = await (window as any).ethereum.request({
@@ -118,12 +118,12 @@ export default function ArticleNFTManager({articleId, articleTitle}: ArticleNFTM
                 setError(err.message || '连接钱包失败');
             }
         } else {
-            // 如果没有安装 MetaMask，提示用�?            setError('请安�?MetaMask 或其�?Web3 钱包扩展');
+            // 如果没有安装 MetaMask，提示用'            setError('请安'MetaMask 或其'Web3 钱包扩展');
         }
     };
 
     if (nftInfo) {
-        // 已铸�?NFT
+        // 已铸'NFT
         return (
             <Card
                 className="border-green-200 dark:border-green-800 bg-gradient-to-br from-green-50 to-emerald-50 dark:from-green-950 dark:to-emerald-950">
@@ -131,7 +131,7 @@ export default function ArticleNFTManager({articleId, articleTitle}: ArticleNFTM
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-2">
                             <CheckCircle className="w-5 h-5 text-green-600"/>
-                            <CardTitle className="text-lg">NFT 已铸�?/CardTitle>
+                            <CardTitle className="text-lg">NFT 已铸</CardTitle>
                         </div>
                         <Badge variant="default" className="bg-green-600">
                             {nftInfo.network}
@@ -152,11 +152,11 @@ export default function ArticleNFTManager({articleId, articleTitle}: ArticleNFTM
                             <p className="font-mono text-xs break-all">{nftInfo.contract_address}</p>
                         </div>
                         <div>
-                            <Label className="text-xs text-gray-500">所有�?/Label>
+                            <Label className="text-xs text-gray-500">所有</Label>
                             <p className="font-mono text-xs break-all">{nftInfo.owner_address}</p>
                         </div>
                         <div>
-                            <Label className="text-xs text-gray-500">铸造时�?/Label>
+                            <Label className="text-xs text-gray-500">铸造时</Label>
                             <p className="text-xs">{new Date(nftInfo.minted_at).toLocaleString('zh-CN')}</p>
                         </div>
                     </div>
@@ -168,24 +168,24 @@ export default function ArticleNFTManager({articleId, articleTitle}: ArticleNFTM
                             onClick={() => window.open(nftInfo.opensea_url, '_blank')}
                         >
                             <ExternalLink className="w-4 h-4 mr-2"/>
-                            �?OpenSea 上查�? </Button>
+                            'OpenSea 上查' </Button>
                     )}
                 </CardContent>
             </Card>
         );
     }
 
-    // 未铸�?NFT
+    // 未铸'NFT
     return (
         <>
             <Card>
                 <CardHeader>
                     <CardTitle className="text-lg flex items-center gap-2">
                         <Wallet className="w-5 h-5"/>
-                        铸�?NFT
+                        铸'NFT
                     </CardTitle>
                     <CardDescription>
-                        将文�?"{articleTitle}" 铸造为 NFT，获得区块链上的所有权证明
+                        将文'"{articleTitle}" 铸造为 NFT，获得区块链上的所有权证明
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -219,20 +219,20 @@ export default function ArticleNFTManager({articleId, articleTitle}: ArticleNFTM
                             </Button>
                         </div>
                         <p className="text-xs text-gray-500">
-                            支持 MetaMask、WalletConnect 等主流钱�? </p>
+                            支持 MetaMask、WalletConnect 等主流钱' </p>
                     </div>
 
                     <Dialog open={showMintDialog} onOpenChange={setShowMintDialog}>
                         <DialogTrigger asChild>
                             <Button className="w-full" disabled={!walletAddress}>
-                                铸�?NFT
+                                铸'NFT
                             </Button>
                         </DialogTrigger>
                         <DialogContent>
                             <DialogHeader>
-                                <DialogTitle>确认铸�?NFT</DialogTitle>
+                                <DialogTitle>确认铸'NFT</DialogTitle>
                                 <DialogDescription>
-                                    这将把文�?"{articleTitle}" 铸造为 NFT
+                                    这将把文'"{articleTitle}" 铸造为 NFT
                                 </DialogDescription>
                             </DialogHeader>
 
@@ -243,7 +243,7 @@ export default function ArticleNFTManager({articleId, articleTitle}: ArticleNFTM
                                         <span className="font-mono">{articleId}</span>
                                     </div>
                                     <div className="flex justify-between">
-                                        <span className="text-gray-600 dark:text-gray-400">所有�?</span>
+                                        <span className="text-gray-600 dark:text-gray-400">所有'</span>
                                         <span className="font-mono text-xs">{walletAddress}</span>
                                     </div>
                                     <div className="flex justify-between">
@@ -254,7 +254,7 @@ export default function ArticleNFTManager({articleId, articleTitle}: ArticleNFTM
 
                                 <Alert>
                                     <AlertDescription>
-                                        ⚠️ 当前为演示模式，不会真正消�?Gas 费用
+                                        ⚠️ 当前为演示模式，不会真正消'Gas 费用
                                     </AlertDescription>
                                 </Alert>
                             </div>
@@ -274,7 +274,7 @@ export default function ArticleNFTManager({articleId, articleTitle}: ArticleNFTM
                                             铸造中...
                                         </>
                                     ) : (
-                                        '确认铸�?
+                                        '确认铸'
                                     )}
                                 </Button>
                             </div>

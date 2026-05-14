@@ -20,15 +20,17 @@ interface PrerequisiteCheck {
 }
 
 /**
- * 一键安装向�? */
+ * 一键安装向' */
 const InstallationWizard: React.FC = () => {
     const [currentStep, setCurrentStep] = useState<InstallStep>('prerequisites');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
 
-    // 前置检查结�?    const [prerequisites, setPrerequisites] = useState<PrerequisiteCheck | null>(null);
+    // 前置检查结果
+    const [prerequisites, setPrerequisites] = useState<PrerequisiteCheck | null>(null);
 
-    // 数据库配�?    const [dbConfig, setDbConfig] = useState({
+    // 数据库配置
+    const [dbConfig, setDbConfig] = useState({
         db_type: 'postgresql',
         host: 'localhost',
         port: '5432',
@@ -37,9 +39,9 @@ const InstallationWizard: React.FC = () => {
         password: ''
     });
 
-// 数据库配置摘要（用于确认�?    const [dbConfigSummary, setDbConfigSummary] = useState<any>(null);
+    const [dbConfigSummary, setDbConfigSummary] = useState<any>(null);
 
-// 管理员配�?    const [adminConfig, setAdminConfig] = useState({
+    const [adminConfig, setAdminConfig] = useState({
         username: '',
         email: '',
         password: '',
@@ -61,7 +63,8 @@ const InstallationWizard: React.FC = () => {
     // 迁移日志
     const [migrationLogs, setMigrationLogs] = useState<Array<{ type: string; message: string; timestamp: number }>>([]);
 
-// 检查前置条�?    const checkPrerequisites = async () => {
+// 检查前置条件
+    const checkPrerequisites = async () => {
         setLoading(true);
         setError('');
         
@@ -72,29 +75,31 @@ const InstallationWizard: React.FC = () => {
                 setPrerequisites(response.data as PrerequisiteCheck);
                 setCurrentStep('database');
             } else {
-                setError(response.error || '检查失�?);
+                setError(response.error || '检查失败');
             }
         } catch (err) {
-            setError('检查前置条件失�?);
+            setError('检查前置条件失败');
         } finally {
             setLoading(false);
         }
     };
 
-// 配置数据�?    const configureDatabase = async () => {
+// 配置数据库
+    const configureDatabase = async () => {
         setLoading(true);
         setError('');
 
         // 验证必要字段
         if (!dbConfig.host || !dbConfig.port || !dbConfig.username || !dbConfig.database) {
-            setError('请填写所有必填字�?);
+            setError('请填写所有必填字段');
             setLoading(false);
             return;
         }
 
-// 确保端口是有效数�?        const port = parseInt(dbConfig.port);
+// 确保端口是有效数字
+        const port = parseInt(dbConfig.port);
         if (isNaN(port) || port < 1 || port > 65535) {
-            setError('端口号必须是 1-65535 之间的数�?);
+            setError('端口号必须是 1-65535 之间的数字');
             setLoading(false);
             return;
         }
@@ -113,7 +118,7 @@ const InstallationWizard: React.FC = () => {
                 setError(response.error || '配置失败');
             }
         } catch (err) {
-            setError('配置数据库失�?);
+            setError('配置数据库失败');
         } finally {
             setLoading(false);
         }
@@ -147,7 +152,8 @@ const InstallationWizard: React.FC = () => {
                         eventSource.close();
 
                         if (data.type === 'success') {
-                            // 迁移成功，进入下一�?                            console.log('[Install] Migration successful, moving to admin step');
+                            // 迁移成功，进入下一步
+                            console.log('[Install] Migration successful, moving to admin step');
                             setTimeout(() => {
                                 setCurrentStep('admin');
                                 setLoading(false);
@@ -166,7 +172,7 @@ const InstallationWizard: React.FC = () => {
             eventSource.onerror = (error) => {
                 console.error('[Install] SSE 连接错误:', error);
                 eventSource.close();
-                setError('迁移日志流连接失�?);
+                setError('迁移日志流连接失败');
                 setLoading(false);
             };
 
@@ -177,9 +183,10 @@ const InstallationWizard: React.FC = () => {
         }
     };
 
-// 创建管理�?    const createAdmin = async () => {
+// 创建管理员
+    const createAdmin = async () => {
         if (adminConfig.password !== adminConfig.password_confirm) {
-            setError('两次输入的密码不一�?);
+            setError('两次输入的密码不一致');
             return;
         }
         
@@ -195,7 +202,7 @@ const InstallationWizard: React.FC = () => {
                 setError(response.error || '创建失败');
             }
         } catch (err) {
-            setError('创建管理员失�?);
+            setError('创建管理员失败');
         } finally {
             setLoading(false);
         }
@@ -227,7 +234,8 @@ const InstallationWizard: React.FC = () => {
         setError('');
         
         try {
-            // 完成安装（后端会自动导入示例数据�?            const response = await apiClient.post('/api/v2/install/complete', {
+            // 完成安装（后端会自动导入示例数据）
+            const response = await apiClient.post('/api/v2/install/complete', {
                 import_sample_data: importSampleData,
                 import_articles: true,
                 import_categories: true
@@ -245,12 +253,13 @@ const InstallationWizard: React.FC = () => {
         }
     };
 
-// 渲染步骤指示�?    const renderStepIndicator = () => {
+// 渲染步骤指示器
+    const renderStepIndicator = () => {
         const steps = [
-            {key: 'prerequisites', label: '前置检�?},
-            {key: 'database', label: '数据库配�?},
-            {key: 'confirm-database', label: '确认数据�?},
-            {key: 'admin', label: '管理员账�?},
+            {key: 'prerequisites', label: '前置检查'},
+            {key: 'database', label: '数据库配置'},
+            {key: 'confirm-database', label: '确认数据库'},
+            {key: 'admin', label: '管理员账户'},
             {key: 'site', label: '站点信息'},
             {key: 'sample-data', label: '示例数据'},
             {key: 'complete', label: '完成'}
@@ -277,16 +286,17 @@ const InstallationWizard: React.FC = () => {
         );
     };
 
-// 渲染前置检查步�?    const renderPrerequisitesStep = () => (
+// 渲染前置检查步骤
+    const renderPrerequisitesStep = () => (
         <Card>
             <CardHeader>
-                <CardTitle>系统前置检�?/CardTitle>
-                    <CardDescription>检查系统环境是否满足安装要�?/CardDescription>
+                <CardTitle>系统前置检查</CardTitle>
+                <CardDescription>检查系统环境是否满足安装要求</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                 <Button onClick={checkPrerequisites} disabled={loading} className="w-full">
                     {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin"/> : null}
-                    开始检�? </Button>
+                    开始检查 </Button>
                 
                 {prerequisites && (
                     <div className="space-y-2">
@@ -337,18 +347,18 @@ const InstallationWizard: React.FC = () => {
         </Card>
     );
 
-// 其他步骤的渲�?..
+// 其他步骤的渲'..
     const renderDatabaseStep = () => (
         <Card>
             <CardHeader>
-                <CardTitle>数据库配�?/CardTitle>
-                    <CardDescription>配置 PostgreSQL 数据库连接信�?/CardDescription>
+                <CardTitle>数据库配</CardTitle>
+                <CardDescription>配置 PostgreSQL 数据库连接信</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                 <Alert>
                     <CheckCircle2 className="w-4 h-4"/>
                     <AlertDescription>
-                        系统仅支�?PostgreSQL 数据库。请确保已安装并运行 PostgreSQL 18+�? </AlertDescription>
+                        系统仅支持PostgreSQL 数据库。请确保已安装并运行 PostgreSQL 18+ </AlertDescription>
                 </Alert>
 
                 <div className="space-y-2">
@@ -370,7 +380,7 @@ const InstallationWizard: React.FC = () => {
                 </div>
 
                 <div className="space-y-2">
-                    <Label>用户�?/Label>
+                    <Label>用户名</Label>
                     <Input
                         value={dbConfig.username}
                         onChange={(e) => setDbConfig({...dbConfig, username: e.target.value})}
@@ -396,10 +406,10 @@ const InstallationWizard: React.FC = () => {
                 
                 <div className="flex gap-2">
                     <Button variant="outline" onClick={() => setCurrentStep('prerequisites')}>
-                        <ArrowLeft className="w-4 h-4 mr-2"/> 上一�? </Button>
+                        <ArrowLeft className="w-4 h-4 mr-2"/> 上一步 </Button>
                     <Button onClick={configureDatabase} disabled={loading} className="flex-1">
                         {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin"/> : null}
-                        下一�? </Button>
+                        下一步 </Button>
                 </div>
             </CardContent>
         </Card>
@@ -409,12 +419,12 @@ const InstallationWizard: React.FC = () => {
     const renderAdminStep = () => (
         <Card>
             <CardHeader>
-                <CardTitle>创建管理员账�?/CardTitle>
-                    <CardDescription>设置超级管理员账�?/CardDescription>
+                <CardTitle>创建管理员账户</CardTitle>
+                <CardDescription>设置超级管理员账户</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                 <div className="space-y-2">
-                    <Label>用户�?/Label>
+                    <Label>用户名</Label>
                     <Input value={adminConfig.username} onChange={(e) => setAdminConfig({...adminConfig, username: e.target.value})}/>
                 </div>
                 <div className="space-y-2">
@@ -431,9 +441,9 @@ const InstallationWizard: React.FC = () => {
                 </div>
                 <div className="flex gap-2">
                     <Button variant="outline" onClick={() => setCurrentStep('confirm-database')}><ArrowLeft
-                        className="w-4 h-4 mr-2"/> 上一�?/Button>
+                        className="w-4 h-4 mr-2"/> 上一步</Button>
                         <Button onClick={createAdmin} disabled={loading} className="flex-1">{loading ?
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin"/> : null}下一�?/Button>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin"/> : null}下一步</Button>
                 </div>
             </CardContent>
         </Card>
@@ -442,8 +452,8 @@ const InstallationWizard: React.FC = () => {
     const renderConfirmDatabaseStep = () => (
         <Card>
             <CardHeader>
-                <CardTitle>确认数据库配�?/CardTitle>
-                    <CardDescription>请确认以下数据库配置信息，确认后将自动初始化数据�?/CardDescription>
+                <CardTitle>确认数据库配置</CardTitle>
+                <CardDescription>请确认以下数据库配置信息，确认后将自动初始化数据</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                 {dbConfigSummary && (
@@ -458,7 +468,7 @@ const InstallationWizard: React.FC = () => {
                                 <p className="font-mono">{dbConfigSummary.port}</p>
                             </div>
                             <div>
-                                <span className="text-sm text-gray-500">数据�?</span>
+                                <span className="text-sm text-gray-500">数据库</span>
                                 <p className="font-mono">{dbConfigSummary.database}</p>
                             </div>
                             <div>
@@ -472,8 +482,8 @@ const InstallationWizard: React.FC = () => {
                 <Alert>
                     <CheckCircle2 className="w-4 h-4"/>
                     <AlertDescription>
-                        点击“确认并初始化”后，系统将测试数据库连接并创建所有必需的表�?
-                        此过程可能需要几秒钟时间�? </AlertDescription>
+                        点击“确认并初始化”后，系统将测试数据库连接并创建所有必需的表。
+                        此过程可能需要几秒钟时间。 </AlertDescription>
                 </Alert>
 
                 {/* 迁移日志显示 */}
@@ -537,9 +547,9 @@ const InstallationWizard: React.FC = () => {
                 </div>
                 <div className="flex gap-2">
                     <Button variant="outline" onClick={() => setCurrentStep('admin')}><ArrowLeft
-                        className="w-4 h-4 mr-2"/> 上一�?/Button>
+                        className="w-4 h-4 mr-2"/> 上一步</Button>
                         <Button onClick={configureSite} disabled={loading} className="flex-1">{loading ?
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin"/> : null}下一�?/Button>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin"/> : null}下一步</Button>
                 </div>
             </CardContent>
         </Card>
@@ -549,7 +559,7 @@ const InstallationWizard: React.FC = () => {
         <Card>
             <CardHeader>
                 <CardTitle>导入示例数据</CardTitle>
-                <CardDescription>可�?导入示例文章和分类以便快速体�?/CardDescription>
+                <CardDescription>可以选择导入示例文章和分类以便快速体验</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                 <div className="flex items-center space-x-2">
@@ -560,11 +570,11 @@ const InstallationWizard: React.FC = () => {
                         onChange={(e) => setImportSampleData(e.target.checked)}
                         className="w-4 h-4"
                     />
-                    <Label htmlFor="import-sample">导入示例数据(5个分�?10篇文�?</Label>
+                    <Label htmlFor="import-sample">导入示例数据(5个分类，10篇文章)</Label>
                 </div>
                 <div className="flex gap-2">
                     <Button variant="outline" onClick={() => setCurrentStep('site')}><ArrowLeft
-                        className="w-4 h-4 mr-2"/> 上一�?/Button>
+                        className="w-4 h-4 mr-2"/> 上一步</Button>
                     <Button onClick={completeInstallation} disabled={loading} className="flex-1">
                         {loading ? <Loader2 className="w-4 h-4 mr-2 animate-spin"/> : null}
                         完成安装
@@ -588,7 +598,8 @@ const InstallationWizard: React.FC = () => {
         </Card>
     );
 
-// 主渲�?    return (
+// 主渲染
+    return (
         <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 dark:from-gray-900 dark:to-gray-800 py-12 px-4">
             <div className="max-w-3xl mx-auto">
                 <h1 className="text-4xl font-bold text-center mb-8 text-gray-900 dark:text-white">

@@ -40,7 +40,7 @@ const Footer = () => {
             </Link>
           </div>
 
-            {/* 语言切换�?*/}
+            {/* 语言切换'*/}
           <div className="mt-6 flex justify-center">
             <LanguageSwitcher />
           </div>

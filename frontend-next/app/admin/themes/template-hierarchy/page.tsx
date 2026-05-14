@@ -107,7 +107,7 @@ export default function TemplateHierarchyPage() {
       {/* 标题 */}
       <div>
         <h1 className="text-2xl font-bold tracking-tight text-gray-900">主题模板层级系统</h1>
-          <p className="text-gray-600 mt-1">Template Hierarchy - WordPress风格的智能模板查�?/p>
+          <p className="text-gray-600 mt-1">Template Hierarchy - WordPress风格的智能模板查</p>
       </div>
 
       {/* 模板层级说明 */}
@@ -165,7 +165,7 @@ export default function TemplateHierarchyPage() {
                 <Badge key={tpl} variant="outline">{tpl}.html</Badge>
               ))}
             </div>
-              <p className="text-sm text-gray-600 mt-2">�?{templates.count} 个模板文�?/p>
+              <p className="text-sm text-gray-600 mt-2">'{templates.count} 个模板文</p>
           </CardContent>
         </Card>
       )}
@@ -214,7 +214,7 @@ export default function TemplateHierarchyPage() {
           </div>
 
           <Button onClick={handleResolveArticle} disabled={loading}>
-              {loading ? '解析�?..' : '解析模板'}
+              {loading ? '解析' : '解析模板'}
           </Button>
 
           {resolvedTemplate && (
@@ -243,17 +243,17 @@ export default function TemplateHierarchyPage() {
             <Info className="h-4 w-4" />
             <AlertTitle>什么是模板层级?</AlertTitle>
             <AlertDescription>
-                模板层级(Template Hierarchy)是WordPress的核心特�?允许根据页面类型自动选择最合适的模板文件�?
-                FastBlog实现了相同的机制,让主题开发更灵活�?
+                模板层级(Template Hierarchy)是WordPress的核心特'允许根据页面类型自动选择最合适的模板文件'
+                FastBlog实现了相同的机制,让主题开发更灵活'
             </AlertDescription>
           </Alert>
 
           <div>
             <h3 className="font-semibold mb-2">工作原理:</h3>
             <ol className="list-decimal list-inside space-y-2 text-sm text-gray-700 ml-2">
-                <li>系统根据当前页面类型(文章/页面/归档�?确定查找范围</li>
+                <li>系统根据当前页面类型(文章/页面/归档'确定查找范围</li>
               <li>按优先级从高到低尝试匹配模板文件</li>
-                <li>找到第一个存在的模板即使�?/li>
+                <li>找到第一个存在的模板即使</li>
               <li>如果都不存在,回退到index.html</li>
             </ol>
           </div>
@@ -261,21 +261,21 @@ export default function TemplateHierarchyPage() {
           <div>
             <h3 className="font-semibold mb-2">示例场景:</h3>
             <ul className="list-disc list-inside space-y-2 text-sm text-gray-700 ml-2">
-                <li>访问文章 /hello-world �?查找 single-post-hello-world.html �?single-post.html �?single.html
-                    �?index.html
+                <li>访问文章 /hello-world '查找 single-post-hello-world.html 'single-post.html 'single.html
+                    'index.html
                 </li>
-                <li>访问分类 /category/news �?查找 category-news.html �?category.html �?archive.html �?index.html</li>
-                <li>访问作者页 /author/1 �?查找 author-1.html �?author.html �?archive.html �?index.html</li>
+                <li>访问分类 /category/news '查找 category-news.html 'category.html 'archive.html 'index.html</li>
+                <li>访问作者页 /author/1 '查找 author-1.html 'author.html 'archive.html 'index.html</li>
             </ul>
           </div>
 
           <div className="bg-blue-50 p-4 rounded-lg">
-              <h3 className="font-semibold text-blue-900 mb-2">主题开发建�?</h3>
+              <h3 className="font-semibold text-blue-900 mb-2">主题开发建'</h3>
             <ul className="text-sm text-blue-800 space-y-1">
-                <li>�?至少提供 index.html 作为兜底模板</li>
-                <li>�?为常用页面类型提供专用模�?single.html, page.html�?</li>
-                <li>�?使用特定slug的模板定制特殊页�?page-about.html)</li>
-                <li>�?保持模板命名规范,便于维护</li>
+                <li>'至少提供 index.html 作为兜底模板</li>
+                <li>'为常用页面类型提供专用模'single.html, page.html'</li>
+                <li>'使用特定slug的模板定制特殊页'page-about.html)</li>
+                <li>'保持模板命名规范,便于维护</li>
             </ul>
           </div>
         </CardContent>

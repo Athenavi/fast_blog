@@ -26,8 +26,8 @@ export default function APIDocsPage() {
         {name: '文章管理', prefix: '/api/v2/articles', icon: '📝', endpoints: 15},
         {name: '用户管理', prefix: '/api/v2/users', icon: '👤', endpoints: 12},
         {name: '分类管理', prefix: '/api/v2/categories', icon: '📁', endpoints: 6},
-        {name: '媒体管理', prefix: '/api/v2/media', icon: '🖼�?, endpoints: 10},
-        {name: '仪表�?, prefix: ' / api / v2 / dashboard', icon: '📊', endpoints: 8},
+        {name: '媒体管理', prefix: '/api/v2/media', icon: '🖼', endpoints: 10},
+        {name: '仪表', prefix: ' / api / v2 / dashboard', icon: '📊', endpoints: 8},
     {
         name: '插件管理', prefix
     :
@@ -77,12 +77,12 @@ export default function APIDocsPage() {
 BASE_URL = "http://localhost:9421/api/v1"
 TOKEN = "YOUR_ACCESS_TOKEN"
 
-# 设置请求�?headers = {
+# 设置请求'headers = {
     "Authorization": f"Bearer {TOKEN}",
     "Content-Type": "application/json"
 }
 
-# 示例：获取文章列�?response = requests.get(
+# 示例：获取文章列'response = requests.get(
     f"{BASE_URL}/articles",
     headers=headers,
     params={"page": 1, "per_page": 10}
@@ -90,7 +90,7 @@ TOKEN = "YOUR_ACCESS_TOKEN"
 
 if response.status_code == 200:
     data = response.json()
-    print(f"找到 {data['data']['total']} 篇文�?)
+    print(f"找到 {data['data']['total']} 篇文')
     for article in data['data']['items']:
         print(f"- {article['title']}")
 else:
@@ -101,7 +101,7 @@ else:
 const BASE_URL = 'http://localhost:9421/api/v1';
 const TOKEN = 'YOUR_ACCESS_TOKEN';
 
-// 示例：获取文章列�?async function getArticles() {
+// 示例：获取文章列'async function getArticles() {
     try {
         const response = await fetch(\`\${BASE_URL}/articles?page=1&per_page=10\`, {
             method: 'GET',
@@ -145,7 +145,7 @@ const (
     Token   = "YOUR_ACCESS_TOKEN"
 )
 
-// Article 结构�?type Article struct {
+// Article 结构'type Article struct {
     ID    int    \`json:"id"\`
     Title string \`json:"title"\`
 }
@@ -169,10 +169,10 @@ func main() {
         return
     }
 
-    // 设置请求�?    req.Header.Set("Authorization", "Bearer "+Token)
+    // 设置请求'    req.Header.Set("Authorization", "Bearer "+Token)
     req.Header.Set("Content-Type", "application/json")
 
-    // 发送请�?    client := &http.Client{}
+    // 发送请'    client := &http.Client{}
     resp, err := client.Do(req)
     if err != nil {
         fmt.Println("请求失败:", err)
@@ -252,8 +252,8 @@ func main() {
     const copyToClipboard = (text: string) => {
         navigator.clipboard.writeText(text);
         toast({
-            title: '已复�?,
-            description: '代码已复制到剪贴�?,
+            title: '已复',
+            description: '代码已复制到剪贴',
         });
     };
 
@@ -262,7 +262,7 @@ func main() {
             <div className="mb-8">
                 <h1 className="text-3xl font-bold mb-2">FastBlog API 文档</h1>
                 <p className="text-muted-foreground">
-                    现代化的博客系统 API，提供完整的博客管理功能。支�?OpenAPI 3.0 标准�? </p>
+                    现代化的博客系统 API，提供完整的博客管理功能。支'OpenAPI 3.0 标准' </p>
             </div>
 
             <Tabs defaultValue="overview" className="space-y-6">
@@ -277,7 +277,7 @@ func main() {
                 <TabsContent value="overview" className="space-y-6">
                     <Card>
                         <CardHeader>
-                            <CardTitle>快速开�?/CardTitle>
+                            <CardTitle>快速开</CardTitle>
                             <CardDescription>了解如何使用 FastBlog API</CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4">
@@ -324,7 +324,7 @@ Authorization: Bearer YOUR_ACCESS_TOKEN`}
                             </CardHeader>
                             <CardContent>
                                 <p className="text-sm text-muted-foreground mb-2">
-                                    访问 Swagger UI 查看完整�?API 文档和交互式测试
+                                    访问 Swagger UI 查看完整'API 文档和交互式测试
                                 </p>
                                 <Badge>Swagger UI</Badge>
                             </CardContent>
@@ -336,7 +336,7 @@ Authorization: Bearer YOUR_ACCESS_TOKEN`}
                             </CardHeader>
                             <CardContent>
                                 <p className="text-sm text-muted-foreground mb-2">
-                                    在浏览器中直接测�?API 端点，无需额外工具
+                                    在浏览器中直接测'API 端点，无需额外工具
                                 </p>
                                 <Badge>API Tester</Badge>
                             </CardContent>
@@ -348,7 +348,7 @@ Authorization: Bearer YOUR_ACCESS_TOKEN`}
                             </CardHeader>
                             <CardContent>
                                 <p className="text-sm text-muted-foreground mb-2">
-                                    Python、JavaScript、Go 等多种语言的示例代�? </p>
+                                    Python、JavaScript、Go 等多种语言的示例代' </p>
                                 <Badge>Multi-Language</Badge>
                             </CardContent>
                         </Card>
@@ -369,7 +369,7 @@ Authorization: Bearer YOUR_ACCESS_TOKEN`}
                                             </CardTitle>
                                             <CardDescription>{module.prefix}</CardDescription>
                                         </div>
-                                        <Badge variant="secondary">{module.endpoints} 个端�?/Badge>
+                                        <Badge variant="secondary">{module.endpoints} 个端</Badge>
                                     </div>
                                 </CardHeader>
                                 <CardContent>
@@ -422,12 +422,12 @@ Authorization: Bearer YOUR_ACCESS_TOKEN`}
                                     onChange={(e) => setApiEndpoint(e.target.value)}
                                 />
                                 <Button onClick={handleTestRequest} disabled={loading}>
-                                    {loading ? '请求�?..' : '发�?}
+                                    {loading ? '请求' : '发'}
                                 </Button>
                             </div>
 
                             <div className="space-y-2">
-                                        <Label>请求�?(每行一个，格式: Key: Value)</Label>
+                                <Label>请求'(每行一个，格式: Key: Value)</Label>
                                 <Textarea
                                     value={headers}
                                     onChange={(e) => setHeaders(e.target.value)}
@@ -438,7 +438,7 @@ Authorization: Bearer YOUR_ACCESS_TOKEN`}
 
                             {method !== 'GET' && (
                                 <div className="space-y-2">
-                                    <Label>请求�?(JSON)</Label>
+                                    <Label>请求'(JSON)</Label>
                                     <Textarea
                                         value={body}
                                         onChange={(e) => setBody(e.target.value)}

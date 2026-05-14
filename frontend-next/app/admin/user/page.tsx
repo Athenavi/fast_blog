@@ -883,7 +883,7 @@ wangwu,wang@example.com,123456,编辑;VIP用户,另一个用户</pre>
                     )}
                     {visibleColumns.includes('date_joined') && (
                         <TableCell className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {user.created_at ? new Date(user.created_at).toLocaleDateString('zh-CN') : '-'}
+                            {user.created_at ? new Date(user.created_at).toLocaleDateString('zh-CN') : ''}
                         </TableCell>
                     )}
                     {visibleColumns.includes('media_count') && (

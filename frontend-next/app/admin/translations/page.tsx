@@ -40,7 +40,8 @@ const TranslationManagement = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [loading, setLoading] = useState(false);
 
-    // 编辑对话框状�?    const [editDialogOpen, setEditDialogOpen] = useState(false);
+    // 编辑对话框状
+    const [editDialogOpen, setEditDialogOpen] = useState(false);
     const [editingKey, setEditingKey] = useState('');
     const [editingValue, setEditingValue] = useState('');
     const [newTranslationDialog, setNewTranslationDialog] = useState(false);
@@ -104,7 +105,7 @@ const TranslationManagement = () => {
     // 添加翻译
     const handleAddTranslation = async () => {
         if (!newKey || !newValue) {
-            alert('请填写键和�?);
+            alert('请填写键和');
             return;
         }
 
@@ -134,7 +135,7 @@ const TranslationManagement = () => {
     // 更新翻译
     const handleUpdateTranslation = async () => {
         if (!editingKey || !editingValue) {
-            alert('请填写翻译内�?);
+            alert('请填写翻译内容');
             return;
         }
 
@@ -263,10 +264,10 @@ const TranslationManagement = () => {
             <div>
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white">翻译管理</h1>
                 <p className="text-gray-600 dark:text-gray-400 mt-1">
-                    管理系统多语言翻译，支持导入导�? </p>
+                    管理系统多语言翻译，支持导入导出 </p>
             </div>
 
-            {/* 标签�?*/}
+            {/* 标签页*/}
             <Tabs value={activeTab} onValueChange={setActiveTab}>
                 <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="translations" className="flex items-center gap-2">
@@ -334,7 +335,7 @@ const TranslationManagement = () => {
                                 </div>
                             </div>
 
-                            {/* 搜索�?*/}
+                            {/* 搜索'*/}
                             <div className="mt-4">
                                 <div className="relative">
                                     <Search
@@ -381,11 +382,11 @@ const TranslationManagement = () => {
                         <CardHeader>
                             <CardTitle>翻译列表</CardTitle>
                             <CardDescription>
-                                �?{filteredTranslations.length} 条翻�? </CardDescription>
+                                '{filteredTranslations.length} 条翻' </CardDescription>
                         </CardHeader>
                         <CardContent>
                             {loading ? (
-                                <div className="text-center py-8">加载�?..</div>
+                                <div className="text-center py-8">加载'..</div>
                             ) : filteredTranslations.length === 0 ? (
                                 <div className="text-center py-8 text-gray-500">
                                     <AlertCircle className="w-12 h-12 mx-auto mb-2 text-gray-300"/>
@@ -466,7 +467,7 @@ const TranslationManagement = () => {
                                             </div>
                                             <div className="flex items-center justify-between">
                                                 <span className="text-sm text-gray-600">RTL支持</span>
-                                                <span>{stat.is_rtl ? '�? : '�?}</span>
+                                                <span>{stat.is_rtl ? '' : ''}</span>
                                             </div>
                                         </div>
                                     </CardContent>
@@ -477,7 +478,7 @@ const TranslationManagement = () => {
                 </TabsContent>
             </Tabs>
 
-            {/* 编辑翻译对话�?*/}
+            {/* 编辑翻译对话'*/}
             <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
                 <DialogContent>
                     <DialogHeader>
@@ -486,7 +487,7 @@ const TranslationManagement = () => {
 
                     <div className="space-y-4 py-4">
                         <div>
-                            <Label>翻译�?/Label>
+                            <Label>翻译</Label>
                             <Input value={editingKey} disabled className="font-mono"/>
                         </div>
 
@@ -512,16 +513,16 @@ const TranslationManagement = () => {
                 </DialogContent>
             </Dialog>
 
-            {/* 添加翻译对话�?*/}
+            {/* 添加翻译对话框*/}
             <Dialog open={newTranslationDialog} onOpenChange={setNewTranslationDialog}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>添加新翻�?/DialogTitle>
+                        <DialogTitle>添加新翻译</DialogTitle>
                     </DialogHeader>
 
                     <div className="space-y-4 py-4">
                         <div>
-                            <Label htmlFor="new-key">翻译�?/Label>
+                            <Label htmlFor="new-key">翻译</Label>
                             <Input
                                 id="new-key"
                                 value={newKey}

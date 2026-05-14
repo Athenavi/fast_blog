@@ -23,7 +23,7 @@ export default function TranslationServicePage() {
   const [showConfig, setShowConfig] = useState(false);
   const [apiKey, setApiKey] = useState('');
 
-    // 加载提供商列�?
+  // 加载提供商列表
   const loadProviders = async () => {
     try {
       const token = getAccessTokenFromCookie();
@@ -54,7 +54,7 @@ export default function TranslationServicePage() {
   // 翻译文本
   const handleTranslate = async () => {
     if (!text) {
-        toast.error('请输入要翻译的文�?);
+      toast.error('请输入要翻译的文本');
       return;
     }
 
@@ -86,11 +86,11 @@ export default function TranslationServicePage() {
             setTranslatedText((result.data as any).translated_text);
         toast.success('翻译完成');
       } else {
-        toast.error(result.error || '翻译失败');
+          toast.error(result.error || '翻译失失败');
       }
     } catch (error) {
       console.error('Error translating:', error);
-      toast.error('翻译失败');
+      toast.error('翻译失失败');
     } finally {
       setLoading(false);
     }
@@ -122,13 +122,13 @@ export default function TranslationServicePage() {
 
         if (result.success && result.data) {
             setSourceLang((result.data as any).language);
-            toast.success(`检测到语言: ${(result.data as any).language} (置信�? ${Math.round((result.data as any).confidence * 100)}%)`);
+          toast.success(`检测到语言: ${(result.data as any).language} (置信度 ${Math.round((result.data as any).confidence * 100)}%)`);
       } else {
-            toast.error(result.error || '检测失�?);
+          toast.error(result.error || '检测失失败');
       }
     } catch (error) {
       console.error('Error detecting language:', error);
-        toast.error('检测失�?);
+      toast.error('检测失失败');
     } finally {
       setLoading(false);
     }
@@ -164,11 +164,11 @@ export default function TranslationServicePage() {
         setApiKey('');
         loadProviders();
       } else {
-        toast.error(result.error || '配置失败');
+        toast.error(result.error || '配置失失败');
       }
     } catch (error) {
       console.error('Error configuring:', error);
-      toast.error('配置失败');
+      toast.error('配置失失败');
     }
   };
 
@@ -194,10 +194,10 @@ export default function TranslationServicePage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-                <label className="text-sm font-medium mb-1 block">选择提供�?/label>
+              <label className="text-sm font-medium mb-1 block">选择提供商</Label>
               <Select value={selectedProvider} onValueChange={setSelectedProvider}>
                 <SelectTrigger>
-                    <SelectValue placeholder="选择提供�? />
+                  <SelectValue placeholder="选择提供商"/>
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="google">Google Translate</SelectItem>
@@ -215,9 +215,9 @@ export default function TranslationServicePage() {
                 onChange={(e) => setApiKey(e.target.value)}
               />
               <p className="text-xs text-gray-500 mt-1">
-                {selectedProvider === 'google' 
-                  ? '�?Google Cloud Console 获取 API 密钥'
-                  : '�?DeepL Developer 获取 API 密钥'}
+                {selectedProvider === 'google'
+                    ? '从Google Cloud Console 获取 API 密钥'
+                    : '从DeepL Developer 获取 API 密钥'}
               </p>
             </div>
 
@@ -226,7 +226,7 @@ export default function TranslationServicePage() {
         </Card>
       )}
 
-      {/* 提供商信�?*/}
+      {/* 提供商信息*/}
       {providers && (
         <Card>
           <CardHeader>
@@ -267,11 +267,11 @@ export default function TranslationServicePage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value=" auto">自动检�?/SelectItem>
+                  <SelectItem value="auto">自动检测</SelectItem>
                   <SelectItem value="en">English</SelectItem>
                   <SelectItem value="zh-CN">中文</SelectItem>
-                  <SelectItem value=" ja">日本�?/SelectItem>
-                  <SelectItem value=" ko">한국�?/SelectItem>
+                  <SelectItem value="ja">日本語</SelectItem>
+                  <SelectItem value="ko">한국어</SelectItem>
                   <SelectItem value="ar">العربية</SelectItem>
                   <SelectItem value="he">עברית</SelectItem>
                 </SelectContent>
@@ -286,15 +286,15 @@ export default function TranslationServicePage() {
                 <SelectContent>
                   <SelectItem value="zh-CN">中文</SelectItem>
                   <SelectItem value="en">English</SelectItem>
-                  <SelectItem value=" ja">日本�?/SelectItem>
-                  <SelectItem value=" ko">한국�?/SelectItem>
+                  <SelectItem value="ja">日本語</SelectItem>
+                  <SelectItem value="ko">한국어</SelectItem>
                   <SelectItem value="ar">العربية</SelectItem>
                   <SelectItem value="he">עברית</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <label className=" text-sm font-medium mb-1 block">提供�?/label>
+              <label className="text-sm font-medium mb-1 block">提供商</Label>
               <Select value={selectedProvider} onValueChange={setSelectedProvider}>
                 <SelectTrigger>
                   <SelectValue placeholder="选择" />
@@ -319,7 +319,7 @@ export default function TranslationServicePage() {
 
           <div className="flex space-x-2">
             <Button onClick={handleTranslate} disabled={loading}>
-              {loading ? '翻译�?..' : '翻译'}
+              {loading ? '翻译中...' : '翻译'}
             </Button>
             <Button onClick={handleDetectLanguage} variant="outline" disabled={loading}>
               检测语言
@@ -347,8 +347,8 @@ export default function TranslationServicePage() {
             <Info className="h-4 w-4" />
             <AlertTitle>专业翻译服务</AlertTitle>
             <AlertDescription>
-              集成Google Translate和DeepL等专业翻译API,提供高质量的机器翻译服务�?
-              需要自行申请API密钥并按使用量付费�?
+              集成Google Translate和DeepL等专业翻译API,提供高质量的机器翻译服务。
+              需要自行申请API密钥并按使用量付费。
             </AlertDescription>
           </Alert>
 
@@ -368,17 +368,17 @@ export default function TranslationServicePage() {
             <h3 className="font-semibold mb-2">使用场景:</h3>
             <ul className="list-disc list-inside space-y-2 text-sm text-gray-700 ml-2">
               <li>网站内容批量翻译</li>
-              <li>用户生成内容的实时翻�?/li>
+              <li>用户生成内容的实时翻译</li>
               <li>多语言客服支持</li>
-              <li>国际化内容管�?/li>
+              <li>国际化内容管理</li>
             </ul>
           </div>
 
           <div className="bg-blue-50 p-4 rounded-lg">
-            <h3 className=" font-semibold text-blue-900 mb-2">API定价参�?</h3>
+            <h3 className=" font-semibold text-blue-900 mb-2">API定价参考</h3>
             <ul className="text-sm text-blue-800 space-y-1">
-              <li>�?Google Translate: $20 / 百万字符</li>
-              <li>�?DeepL Pro: �?.49 / �?50万字�?</li>
+              <li>• Google Translate: $20 / 百万字符</li>
+              <li>• DeepL Pro: 价格请咨询官方</li>
             </ul>
           </div>
         </CardContent>

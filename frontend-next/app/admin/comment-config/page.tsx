@@ -203,7 +203,7 @@ export default function CommentConfigPage() {
     };
 
     // 清除预览
-    const clearPreview = () => {
+    const clearPreview = async () => {
         setTestResult(null);
     };
 
