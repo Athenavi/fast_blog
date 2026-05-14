@@ -1,4 +1,4 @@
-
+import logging
 from pathlib import Path
 
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -6,7 +6,7 @@ from apscheduler.triggers.cron import CronTrigger
 from apscheduler.triggers.interval import IntervalTrigger
 
 from shared.services.articles.article_view_stats import article_view_stats
-from shared.services.system.backup_manager import BackupService
+from shared.services.system.backup_manager.service import BackupService
 
 # 配置日志
 logging.basicConfig()

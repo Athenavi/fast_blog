@@ -1,6 +1,5 @@
 """扩展模块，初始化FastAPI兼容的扩展实例"""
 import json
-
 import os
 from contextlib import contextmanager
 from typing import Generator, AsyncGenerator
@@ -9,6 +8,7 @@ import redis
 from slowapi import _rate_limit_exceeded_handler, Limiter
 from slowapi.util import get_remote_address
 from sqlalchemy.ext.declarative import declarative_base
+
 from src.unified_logger import default_logger as logger
 
 # 初始化 Sentry 错误追踪
@@ -565,8 +565,8 @@ def init_extensions(app):
 
     # 如果数据库URL为 None（安装向导模式），跳过数据库初始化
     if not database_url:
-        logging.warning("Database URL is not configured. Skipping database initialization.")
-        logging.warning("This is normal during installation wizard.")
+        print("Database URL is not configured. Skipping database initialization.")
+        print("This is normal during installation wizard.")
         return
 
     # 【重要】不再创建独立的引擎和会话工厂
@@ -575,14 +575,14 @@ def init_extensions(app):
     engine = db_manager.async_engine.sync_engine if hasattr(db_manager.async_engine, 'sync_engine') else None
     SessionLocal = None  # 同步会话工厂已完全废弃
 
-    logging.info("Using unified database manager (created in lifespan event)")
+    print("Using unified database manager (created in lifespan event)")
 
     # 限流中间件
     try:
         app.state.limiter = Limiter(key_func=get_remote_address)
         app.add_exception_handler(429, _rate_limit_exceeded_handler)
     except Exception as e:
-        logging.warning(f"Failed to initialize rate limiter: {e}")
+        print(f"Failed to initialize rate limiter: {e}")
 
     # 【移除】不再在这里创建表，由 Alembic 迁移管理
     # Base.metadata.create_all(bind=engine)  # 已删除

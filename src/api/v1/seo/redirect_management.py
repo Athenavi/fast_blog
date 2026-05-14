@@ -11,7 +11,7 @@ from src.auth import jwt_required_dependency as jwt_required
 router = APIRouter(tags=["redirects"])
 
 
-@router.get("")
+@router.get("/", summary="获取所有重定向规则")
 async def list_redirects(
     enabled_only: bool = Query(False, description="只显示启用的"),
     page: int = Query(1, description="页码"),
@@ -34,7 +34,7 @@ async def list_redirects(
         return ApiResponse(success=False, error=str(e))
 
 
-@router.post("")
+@router.post("/", summary="创建重定向规则")
 async def create_redirect(
     source_url: str = Query(..., description="源URL"),
     target_url: str = Query(..., description="目标URL"),
