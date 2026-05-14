@@ -36,14 +36,15 @@ interface ChatMessage {
   is_read: boolean;
 }
 
-const MessagesPage = async () => {
+export default function MessagesPage() {
   const [activeTab, setActiveTab] = useState('inbox');
   const [inboxMessages, setInboxMessages] = useState<Message[]>([]);
   const [sentMessages, setSentMessages] = useState<Message[]>([]);
   const [notifications, setNotifications] = useState<Message[]>([]);
   const [loading, setLoading] = useState(true);
 
-    // 群聊状态  const [chatGroups, setChatGroups] = useState<ChatGroup[]>([]);
+  // 群聊状态
+  const [chatGroups, setChatGroups] = useState<ChatGroup[]>([]);
   const [selectedGroup, setSelectedGroup] = useState<ChatGroup | null>(null);
   const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
@@ -51,7 +52,8 @@ const MessagesPage = async () => {
   const wsRef = useRef<WebSocket | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-    // 模态框状态  const [showCreateModal, setShowCreateModal] = useState(false);
+  // 模态框状态
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [newGroupName, setNewGroupName] = useState('');
@@ -77,7 +79,7 @@ const MessagesPage = async () => {
           setSentMessages([]);
         }
       } catch (error) {
-          console.error('加载消息时出错:', error);
+        console.error('加载消息时出错:', error);
       } finally {
         setLoading(false);
       }
@@ -107,24 +109,31 @@ const MessagesPage = async () => {
 
   const getMessageTypeName = (type: string) => {
     switch (type) {
-        case 'welcome':
-            return '欢迎消信息;
-      case 'comment': return '评论提醒';
-        case 'system':
-            return '系统消信息;
-        case 'feedback':
-            return '反馈消信息;
-      default: return type;
+      case 'welcome':
+        return '欢迎消息';
+      case 'comment':
+        return '评论提醒';
+      case 'system':
+        return '系统消息';
+      case 'feedback':
+        return '反馈消息';
+      default:
+        return type;
     }
   };
 
   const getNotificationIcon = (type: string) => {
     switch (type) {
-      case 'follow': return '👥';
-      case 'publish': return '📝';
-      case 'comment': return '💬';
-      case 'like': return '❤️';
-      default: return '🔔';
+      case 'follow':
+        return '👥';
+      case 'publish':
+        return '📝';
+      case 'comment':
+        return '💬';
+      case 'like':
+        return '❤️';
+      default:
+        return '🔔';
     }
   };
 
@@ -143,7 +152,7 @@ const MessagesPage = async () => {
         setSentMessages([]);
       }
     } catch (error) {
-        console.error('刷新消息时出错误, error);
+      console.error('刷新消息时出错误', error);
     } finally {
       setLoading(false);
     }
@@ -181,7 +190,7 @@ const MessagesPage = async () => {
   // 连接到群聊WebSocket
   const connectToGroupChat = (groupId: number) => {
     console.log('[ChatGroup] Attempting to connect to group:', groupId);
-    
+
     // 关闭现有连接
     if (wsRef.current) {
       console.log('[ChatGroup] Closing existing connection');
@@ -200,7 +209,7 @@ const MessagesPage = async () => {
 
     // 建立WebSocket连接
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const wsUrl = `${protocol}//${window.location.host}/api/v2/ws/chat/${groupId}?token=${token}`;
+    const wsUrl = `${protocol}//${window.location.host}/api/v2/ws/chat/${groupId}?token=${token}`;
 
     console.log('[ChatGroup] Connecting to:', wsUrl.replace(token, '***'));
 
@@ -228,7 +237,8 @@ const MessagesPage = async () => {
           console.log(`User left the group`);
           break;
         case 'user_typing':
-          // 可以显示“对方正在输入...'          break;
+          // 可以显示“对方正在输入...”
+          break;
         default:
           console.log('[ChatGroup] Unknown message type:', data.type);
       }
@@ -248,7 +258,8 @@ const MessagesPage = async () => {
     };
   };
 
-    // 发送消息  const sendMessage = () => {
+  // 发送消息
+  const sendMessage = () => {
     if (!newMessage.trim() || !wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
       return;
     }
@@ -262,8 +273,8 @@ const MessagesPage = async () => {
     setNewMessage('');
   };
 
-// 滚动到底部
-const scrollToBottom = () => {
+  // 滚动到底部
+  const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({behavior: 'smooth'});
   };
 
@@ -275,7 +286,7 @@ const scrollToBottom = () => {
   };
 
   // 离开群聊
-const handleLeaveGroup = async () => {
+  const handleLeaveGroup = async () => {
     if (wsRef.current) {
       wsRef.current.close();
       wsRef.current = null;
@@ -288,7 +299,7 @@ const handleLeaveGroup = async () => {
   // 创建群聊
   const handleCreateGroup = async () => {
     if (!newGroupName.trim()) {
-        alert('请输入群聊名称');
+      alert('请输入群聊名称');
       return;
     }
 
@@ -296,17 +307,17 @@ const handleLeaveGroup = async () => {
       const response = await apiClient.post('/chat-groups/create', {
         name: newGroupName.trim(),
         description: newGroupDescription.trim() || null,
-          member_ids: []  // 不再需要初始成员，通过邀请链接加入
+        member_ids: []  // 不再需要初始成员，通过邀请链接加入
       });
 
       if (response.success) {
-          alert('群聊创建成功！您可以生成邀请链接邀请好友加输入);
+        alert('群聊创建成功！您可以生成邀请链接邀请好友加入');
         setShowCreateModal(false);
         setNewGroupName('');
         setNewGroupDescription('');
         loadChatGroups();
       } else {
-          alert(response.error || '创建失失败');
+        alert(response.error || '创建失败');
       }
     } catch (error) {
       console.error('创建群聊失败:', error);
@@ -314,15 +325,15 @@ const handleLeaveGroup = async () => {
     }
   };
 
-// 生成邀请链接
-const handleGenerateInvite = async () => {
+  // 生成邀请链接
+  const handleGenerateInvite = async () => {
     if (!selectedGroup) return;
 
     try {
       const response = await apiClient.post(`/chat-groups/${selectedGroup.id}/create-invite`, {}, {
         params: {
-            expires_hours: 72,  // 默认3天过期
-            max_uses: null  // 无限制使用次数
+          expires_hours: 72,  // 默认3天过期
+          max_uses: null  // 无限制使用次数
         }
       });
 
@@ -330,21 +341,21 @@ const handleGenerateInvite = async () => {
         setInviteLink(response.data.full_url);
         setShowInviteModal(true);
       } else {
-          alert(response.error || '生成邀请链接失失败');
+        alert(response.error || '生成邀请链接失败');
       }
     } catch (error) {
-        console.error('生成邀请链接失失败, error);
+      console.error('生成邀请链接失败', error);
       alert('生成失败，请重试');
     }
   };
 
-// 复制邀请链接
-const copyInviteLink = () => {
+  // 复制邀请链接
+  const copyInviteLink = () => {
     navigator.clipboard.writeText(inviteLink).then(() => {
-        alert('邀请链接已复制到剪贴剪贴板);
+      alert('邀请链接已复制到剪贴板');
     }).catch(err => {
       console.error('复制失败:', err);
-        alert('复制失败，请手动复定制);
+      alert('复制失败，请手动复制');
     });
   };
 
@@ -373,7 +384,7 @@ const copyInviteLink = () => {
         setNewMemberIds('');
         loadChatGroups();
       } else {
-          alert(response.error || '添加失失败');
+        alert(response.error || '添加失败');
       }
     } catch (error) {
       console.error('添加成员失败:', error);
@@ -405,20 +416,20 @@ const copyInviteLink = () => {
       const response = await apiClient.patch(`/notifications/${id}/read`);
 
       if (response.success) {
-          // 更新本地状态
-          setInboxMessages(messages =>
+        // 更新本地状态
+        setInboxMessages(messages =>
           messages.map(msg =>
-            msg.id === id ? {...msg, read: true} : msg
+              msg.id === id ? {...msg, read: true} : msg
           )
         );
 
         setNotifications(notifications =>
           notifications.map(notif =>
-            notif.id === id ? {...notif, read: true} : notif
+              notif.id === id ? {...notif, read: true} : notif
           )
         );
       } else {
-          console.error('标记为已读失败:', response.error);
+        console.error('标记为已读失败:', response.error);
       }
     } catch (error) {
       console.error('标记为已读时出错:', error);
@@ -426,231 +437,238 @@ const copyInviteLink = () => {
   };
 
   const deleteMessage = async (id: number) => {
-      if (confirm('确定要删除这条消息吗')) {
+    if (confirm('确定要删除这条消息吗')) {
       try {
         const response = await apiClient.delete(`/notifications/${id}`);
 
         if (response.success) {
-            // 更新本地状态
-            setInboxMessages(messages => messages.filter(msg => msg.id !== id));
+          // 更新本地状态
+          setInboxMessages(messages => messages.filter(msg => msg.id !== id));
           setSentMessages(messages => messages.filter(msg => msg.id !== id));
           setNotifications(notifications => notifications.filter(notif => notif.id !== id));
         } else {
           console.error('删除消息失败:', response.error);
         }
       } catch (error) {
-          console.error('删除消息时出错:', error);
+        console.error('删除消息时出错:', error);
       }
     }
   };
 
-  const renderInboxTab = () => (
-    <div className="space-y-4">
-      {inboxMessages.length > 0 ? (
-        inboxMessages.map((message) => (
-          <div
-            key={message.id}
-            className="border rounded-lg p-4 hover:bg-gray-50 transition-colors dark:border-gray-700 dark:hover:bg-gray-800"
-          >
-            <div className="flex items-start gap-4">
-              <img
-                src={message.avatar || 'https://via.placeholder.com/48'}
-                alt="头像"
-                className="w-12 h-12 rounded-full object-cover"
-              />
-              <div className="flex-1">
-                <div className="flex justify-between">
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-white">{message.title}</h3>
-                  <span className="text-sm text-gray-500 dark:text-gray-400">{formatDate(message.date)}</span>
-                </div>
-                <p className="text-gray-500 text-sm dark:text-gray-400">
+  const renderInboxTab = () => {
+    return (
+        <div className="space-y-4">
+          {inboxMessages.length > 0 ? (
+              inboxMessages.map((message) => (
+                  <div
+                      key={message.id}
+                      className="border rounded-lg p-4 hover:bg-gray-50 transition-colors dark:border-gray-700 dark:hover:bg-gray-800"
+                  >
+                    <div className="flex items-start gap-4">
+                      <img
+                          src={message.avatar || 'https://via.placeholder.com/48'}
+                          alt="头像"
+                          className="w-12 h-12 rounded-full object-cover"
+                      />
+                      <div className="flex-1">
+                        <div className="flex justify-between">
+                          <h3 className="text-lg font-medium text-gray-900 dark:text-white">{message.title}</h3>
+                          <span
+                              className="text-sm text-gray-500 dark:text-gray-400">{formatDate(message.date)}</span>
+                        </div>
+                        <p className="text-gray-500 text-sm dark:text-gray-400">
                     {message.sender} · {formatDate(message.date)}
-                </p>
+                        </p>
 
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${getMessageType(message.type)}`}>
-                    {getMessageTypeName(message.type)}
-                  </span>
-                  <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${
-                    message.read 
-                      ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
-                      : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                  }`}>
-                    {message.read ? '已已读 : '未已读}
-                  </span>
-                </div>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                    <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${getMessageType(message.type)}`}>
+                      {getMessageTypeName(message.type)}
+                    </span>
+                          <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${message.read
+                              ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                              : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                          }`}>
+                      {message.read ? '已读' : '未读'}
+                    </span>
+                        </div>
 
-                <div className="mt-4 flex space-x-3">
-                  <button
-                    onClick={() => viewMessage(message.id)}
-                    className="text-sm bg-blue-500 hover:bg-blue-600 text-white py-1.5 px-3 rounded"
-                  >
-                    查看详情
-                  </button>
-                  <button
-                    onClick={() => markAsRead(message.id)}
-                    disabled={message.read}
-                    className={`text-sm py-1.5 px-3 rounded ${
-                      message.read
-                        ? 'bg-gray-200 text-gray-500 cursor-not-allowed dark:bg-gray-700'
-                        : 'bg-green-500 hover:bg-green-600 text-white'
-                    }`}
-                  >
+                        <div className="mt-4 flex space-x-3">
+                          <button
+                              onClick={() => viewMessage(message.id)}
+                              className="text-sm bg-blue-500 hover:bg-blue-600 text-white py-1.5 px-3 rounded"
+                          >
+                            查看详情
+                          </button>
+                          <button
+                              onClick={() => markAsRead(message.id)}
+                              disabled={message.read}
+                              className={`text-sm py-1.5 px-3 rounded ${message.read
+                                  ? 'bg-gray-200 text-gray-500 cursor-not-allowed dark:bg-gray-700'
+                                  : 'bg-green-500 hover:bg-green-600 text-white'
+                              }`}
+                          >
                       标记为已读
-                  </button>
-                  <button
-                    onClick={() => deleteMessage(message.id)}
-                    className="text-sm bg-red-500 hover:bg-red-600 text-white py-1.5 px-3 rounded"
-                  >
-                    删除
-                  </button>
+                          </button>
+                          <button
+                              onClick={() => deleteMessage(message.id)}
+                              className="text-sm bg-red-500 hover:bg-red-600 text-white py-1.5 px-3 rounded"
+                          >
+                            删除
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+              ))
+          ) : (
+              <div className="py-12 text-center">
+                <div className="text-gray-400 mb-4 dark:text-gray-500">
+                  <i className="fas fa-envelope-open-text text-4xl"></i>
                 </div>
+                <p className="text-gray-600 dark:text-gray-400">暂无消息</p>
               </div>
-            </div>
-          </div>
-        ))
-      ) : (
-        <div className="py-12 text-center">
-          <div className="text-gray-400 mb-4 dark:text-gray-500">
-            <i className="fas fa-envelope-open-text text-4xl"></i>
-          </div>
-          <p className="text-gray-600 dark:text-gray-400">暂无消息</p>
+          )}
         </div>
-      )}
-    </div>
-  );
+    );
+  };
 
-  const renderSentTab = () => (
-    <div className="space-y-4">
-      {sentMessages.length > 0 ? (
-        sentMessages.map((message) => (
-          <div
-            key={message.id}
-            className="border rounded-lg p-4 hover:bg-gray-50 transition-colors dark:border-gray-700 dark:hover:bg-gray-800"
-          >
-            <div className="flex items-start gap-4">
-              <img
-                src={message.avatar || 'https://via.placeholder.com/48'}
-                alt="头像"
-                className="w-12 h-12 rounded-full object-cover"
-              />
-              <div className="flex-1">
-                <div className="flex justify-between">
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-white">{message.title}</h3>
-                  <span className="text-sm text-gray-500 dark:text-gray-400">{formatDate(message.date)}</span>
-                </div>
-                <p className="text-gray-500 text-sm dark:text-gray-400">
+  const renderSentTab = () => {
+    return (
+        <div className="space-y-4">
+          {sentMessages.length > 0 ? (
+              sentMessages.map((message) => (
+                  <div
+                      key={message.id}
+                      className="border rounded-lg p-4 hover:bg-gray-50 transition-colors dark:border-gray-700 dark:hover:bg-gray-800"
+                  >
+                    <div className="flex items-start gap-4">
+                      <img
+                          src={message.avatar || 'https://via.placeholder.com/48'}
+                          alt="头像"
+                          className="w-12 h-12 rounded-full object-cover"
+                      />
+                      <div className="flex-1">
+                        <div className="flex justify-between">
+                          <h3 className="text-lg font-medium text-gray-900 dark:text-white">{message.title}</h3>
+                          <span
+                              className="text-sm text-gray-500 dark:text-gray-400">{formatDate(message.date)}</span>
+                        </div>
+                        <p className="text-gray-500 text-sm dark:text-gray-400">
                     发送给 {message.recipient} · {formatDate(message.date)}
-                </p>
+                        </p>
 
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${getMessageType(message.type)}`}>
-                    {getMessageTypeName(message.type)}
-                  </span>
-                </div>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                    <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${getMessageType(message.type)}`}>
+                      {getMessageTypeName(message.type)}
+                    </span>
+                        </div>
 
-                <div className="mt-4 flex space-x-3">
-                  <button
-                    onClick={() => viewMessage(message.id)}
-                    className="text-sm bg-blue-500 hover:bg-blue-600 text-white py-1.5 px-3 rounded"
-                  >
-                    查看详情
-                  </button>
-                  <button
-                    onClick={() => deleteMessage(message.id)}
-                    className="text-sm bg-red-500 hover:bg-red-600 text-white py-1.5 px-3 rounded"
-                  >
-                    删除
-                  </button>
+                        <div className="mt-4 flex space-x-3">
+                          <button
+                              onClick={() => viewMessage(message.id)}
+                              className="text-sm bg-blue-500 hover:bg-blue-600 text-white py-1.5 px-3 rounded"
+                          >
+                            查看详情
+                          </button>
+                          <button
+                              onClick={() => deleteMessage(message.id)}
+                              className="text-sm bg-red-500 hover:bg-red-600 text-white py-1.5 px-3 rounded"
+                          >
+                            删除
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+              ))
+          ) : (
+              <div className="py-12 text-center">
+                <div className="text-gray-400 mb-4 dark:text-gray-500">
+                  <i className="fas fa-paper-plane text-4xl"></i>
                 </div>
-              </div>
-            </div>
-          </div>
-        ))
-      ) : (
-        <div className="py-12 text-center">
-          <div className="text-gray-400 mb-4 dark:text-gray-500">
-            <i className="fas fa-paper-plane text-4xl"></i>
-          </div>
             <p className="text-gray-600 dark:text-gray-400">暂无已发送消息</p>
+              </div>
+          )}
         </div>
-      )}
-    </div>
-  );
+    );
+  };
 
-  const renderNotificationsTab = () => (
-    <div className="space-y-4">
-      {loading ? (
-        <div className="py-12 text-center">
+  const renderNotificationsTab = () => {
+    return (
+        <div className="space-y-4">
+          {loading ? (
+              <div className="py-12 text-center">
             <p className="text-gray-600 dark:text-gray-400">加载中...</p>
-        </div>
-      ) : notifications.length > 0 ? (
-        notifications.map((notification) => (
-          <div
-            key={notification.id}
-            className="border rounded-lg p-4 hover:bg-gray-50 transition-colors dark:border-gray-700 dark:hover:bg-gray-800"
-          >
-            <div className="flex items-start gap-4">
-              <div className="text-2xl">
-                {getNotificationIcon(notification.type)}
               </div>
-              <div className="flex-1">
-                <div className="flex justify-between">
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-white">{notification.title}</h3>
-                  <span className="text-sm text-gray-500 dark:text-gray-400">{formatDate(notification.date)}</span>
-                </div>
-
-                {notification.content && (
-                  <p className="text-gray-600 mt-2 dark:text-gray-300">
-                    {notification.content}
-                  </p>
-                )}
-
-                <div className="mt-3 flex flex-wrap gap-2">
-                  <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${
-                    notification.read 
-                      ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200' 
-                      : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
-                  }`}>
-                    {notification.read ? '已已读 : '未已读}
-                  </span>
-                </div>
-
-                <div className="mt-4 flex space-x-3">
-                  <button
-                    onClick={() => viewNotification(notification.id)}
-                    className="text-sm bg-blue-500 hover:bg-blue-600 text-white py-1.5 px-3 rounded"
+          ) : notifications.length > 0 ? (
+              notifications.map((notification) => (
+                  <div
+                      key={notification.id}
+                      className="border rounded-lg p-4 hover:bg-gray-50 transition-colors dark:border-gray-700 dark:hover:bg-gray-800"
                   >
-                    查看详情
-                  </button>
-                  <button
-                    onClick={() => markAsRead(notification.id)}
-                    disabled={notification.read}
-                    className={`text-sm py-1.5 px-3 rounded ${
-                      notification.read
-                        ? 'bg-gray-200 text-gray-500 cursor-not-allowed dark:bg-gray-700'
-                        : 'bg-green-500 hover:bg-green-600 text-white'
-                    }`}
-                  >
+                    <div className="flex items-start gap-4">
+                      <div className="text-2xl">
+                        {getNotificationIcon(notification.type)}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex justify-between">
+                          <h3 className="text-lg font-medium text-gray-900 dark:text-white">{notification.title}</h3>
+                          <span
+                              className="text-sm text-gray-500 dark:text-gray-400">{formatDate(notification.date)}</span>
+                        </div>
+
+                        {notification.content && (
+                            <p className="text-gray-600 mt-2 dark:text-gray-300">
+                              {notification.content}
+                            </p>
+                        )}
+
+                        <div className="mt-3 flex flex-wrap gap-2">
+                    <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${notification.read
+                        ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+                        : 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
+                    }`}>
+                      {notification.read ? '已读' : '未读'}
+                    </span>
+                        </div>
+
+                        <div className="mt-4 flex space-x-3">
+                          <button
+                              onClick={() => viewNotification(notification.id)}
+                              className="text-sm bg-blue-500 hover:bg-blue-600 text-white py-1.5 px-3 rounded"
+                          >
+                            查看详情
+                          </button>
+                          <button
+                              onClick={() => markAsRead(notification.id)}
+                              disabled={notification.read}
+                              className={`text-sm py-1.5 px-3 rounded ${notification.read
+                                  ? 'bg-gray-200 text-gray-500 cursor-not-allowed dark:bg-gray-700'
+                                  : 'bg-green-500 hover:bg-green-600 text-white'
+                              }`}
+                          >
                       标记为已读
-                  </button>
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+              ))
+          ) : (
+              <div className="py-12 text-center">
+                <div className="text-gray-400 mb-4 dark:text-gray-500">
+                  <i className="fas fa-bell text-4xl"></i>
                 </div>
+                <p className="text-gray-600 dark:text-gray-400">暂无通知</p>
               </div>
-            </div>
-          </div>
-        ))
-      ) : (
-        <div className="py-12 text-center">
-          <div className="text-gray-400 mb-4 dark:text-gray-500">
-            <i className="fas fa-bell text-4xl"></i>
-          </div>
-          <p className="text-gray-600 dark:text-gray-400">暂无通知</p>
+          )}
         </div>
-      )}
-    </div>
-  );
+    );
+  };
 
-// 渲染群聊标标签  const renderChatTab = () => (
+  // 渲染群聊标签
+  const renderChatTab = () => {
+    return (
       <div className="flex h-[600px] border rounded-lg overflow-hidden dark:border-gray-700">
         {/* 左侧群聊列表 */}
         <div className="w-1/3 border-r dark:border-gray-700 bg-gray-50 dark:bg-gray-800">
@@ -672,8 +690,7 @@ const copyInviteLink = () => {
                     <div
                         key={group.id}
                         onClick={() => handleSelectGroup(group)}
-                        className={`p-4 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${
-                            selectedGroup?.id === group.id ? 'bg-blue-50 dark:bg-blue-900' : ''
+                        className={`p-4 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors ${selectedGroup?.id === group.id ? 'bg-blue-50 dark:bg-blue-900' : ''
                         }`}
                     >
                       <div className="flex items-center gap-3">
@@ -720,7 +737,7 @@ const copyInviteLink = () => {
                     <button
                         onClick={handleGenerateInvite}
                         className="text-green-500 hover:text-green-600 transition-colors"
-                        title="生成邀请链接
+                        title="生成邀请链接"
                     >
                       <FaPlus/>
                     </button>
@@ -749,15 +766,13 @@ const copyInviteLink = () => {
                           className={`flex ${msg.sender === 1 ? 'justify-end' : 'justify-start'}`}
                       >
                         <div
-                            className={`max-w-[70%] rounded-lg px-4 py-2 ${
-                                msg.sender === 1
-                                    ? 'bg-blue-500 text-white'
-                                    : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow'
+                            className={`max-w-[70%] rounded-lg px-4 py-2 ${msg.sender === 1
+                                ? 'bg-blue-500 text-white'
+                                : 'bg-white dark:bg-gray-800 text-gray-900 dark:text-white shadow'
                             }`}
                         >
                           <p className="text-sm">{msg.content}</p>
-                          <p className={`text-xs mt-1 ${
-                              msg.sender === 1 ? 'text-blue-100' : 'text-gray-500 dark:text-gray-400'
+                          <p className={`text-xs mt-1 ${msg.sender === 1 ? 'text-blue-100' : 'text-gray-500 dark:text-gray-400'
                           }`}>
                             {new Date(msg.created_at).toLocaleTimeString('zh-CN', {
                               hour: '2-digit',
@@ -770,7 +785,7 @@ const copyInviteLink = () => {
                   <div ref={messagesEndRef}/>
                 </div>
 
-                {/* 输输入*/}
+                {/* 输入框 */}
                 <div className="p-4 border-t dark:border-gray-700 bg-white dark:bg-gray-800">
                   <div className="flex gap-2">
                     <input
@@ -795,13 +810,14 @@ const copyInviteLink = () => {
               <div className="flex-1 flex items-center justify-center text-gray-400 dark:text-gray-500">
                 <div className="text-center">
                   <FaComments className="mx-auto text-6xl mb-4 opacity-30"/>
-                  <p>选择一个群聊开始聊</p>
+                  <p>选择一个群聊开始聊天</p>
                 </div>
               </div>
           )}
         </div>
-    </div>
-  );
+      </div>
+    );
+  };
 
   return (
     <WithAuthProtection loadingMessage="正在加载消息...">
@@ -826,27 +842,25 @@ const copyInviteLink = () => {
                 <nav className="-mb-px flex space-x-8">
                   <button
                     onClick={() => setActiveTab('inbox')}
-                    className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                      activeTab === 'inbox'
+                    className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'inbox'
                         ? 'border-blue-500 text-blue-600 dark:text-blue-400'
                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
                     }`}
                   >
-                      收件箱 </button>
+                    收件箱
+                  </button>
                   <button
                     onClick={() => setActiveTab('sent')}
-                    className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                      activeTab === 'sent'
+                    className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'sent'
                         ? 'border-blue-500 text-blue-600 dark:text-blue-400'
                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
                     }`}
                   >
-                      已发送
+                    已发送
                   </button>
                   <button
                     onClick={() => setActiveTab('notifications')}
-                    className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                      activeTab === 'notifications'
+                    className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'notifications'
                         ? 'border-blue-500 text-blue-600 dark:text-blue-400'
                         : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
                     }`}
@@ -855,10 +869,9 @@ const copyInviteLink = () => {
                   </button>
                   <button
                       onClick={() => setActiveTab('chat')}
-                      className={`py-4 px-1 border-b-2 font-medium text-sm ${
-                          activeTab === 'chat'
-                              ? 'border-blue-500 text-blue-600 dark:text-blue-400'
-                              : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
+                      className={`py-4 px-1 border-b-2 font-medium text-sm ${activeTab === 'chat'
+                          ? 'border-blue-500 text-blue-600 dark:text-blue-400'
+                          : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300 dark:text-gray-400 dark:hover:text-gray-300'
                       }`}
                   >
                     <FaComments className="inline mr-1"/>
@@ -894,7 +907,7 @@ const copyInviteLink = () => {
                       value={newGroupName}
                       onChange={(e) => setNewGroupName(e.target.value)}
                       className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                      placeholder="请输入群聊名称
+                      placeholder="请输入群聊名称"
                   />
                 </div>
 
@@ -953,7 +966,7 @@ const copyInviteLink = () => {
                       value={newMemberIds}
                       onChange={(e) => setNewMemberIds(e.target.value)}
                       className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                      placeholder="输入用户ID，用逗号分隔（如1,2,3）
+                      placeholder="输入用户ID，用逗号分隔（如1,2,3）"
                   />
                   <p className="text-xs text-gray-500 mt-1">已存在的成员会被自动过滤</p>
                 </div>
@@ -980,50 +993,49 @@ const copyInviteLink = () => {
           </div>
       )}
 
-            {/* 邀请链接模态框 */}
-            {showInviteModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                  <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
-                      <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">邀请链接</h2>
+      {/* 邀请链接模态框 */}
+      {showInviteModal && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
+              <h2 className="text-xl font-bold mb-4 text-gray-900 dark:text-white">邀请链接</h2>
 
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            邀请链接 </label>
-                        <div className="flex gap-2">
-                          <input
-                              type="text"
-                              value={inviteLink}
-                              readOnly
-                              className="flex-1 px-3 py-2 border rounded-lg bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
-                          />
-                          <button
-                              onClick={copyInviteLink}
-                              className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 whitespace-nowrap"
-                          >
-                            复制
-                          </button>
-                        </div>
-                          <p className="text-xs text-gray-500 mt-1">分享此链接邀请好友加入群</p>
-                      </div>
-                    </div>
-
-                    <div className="flex gap-2 mt-6">
-                      <button
-                          onClick={() => {
-                            setShowInviteModal(false);
-                            setInviteLink('');
-                          }}
-                          className="w-full px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 dark:bg-gray-700 dark:text-white"
-                      >
-                        关闭
-                      </button>
-                    </div>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                    邀请链接
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                        type="text"
+                        value={inviteLink}
+                        readOnly
+                        className="flex-1 px-3 py-2 border rounded-lg bg-gray-50 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
+                    />
+                    <button
+                        onClick={copyInviteLink}
+                        className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 whitespace-nowrap"
+                    >
+                      复制
+                    </button>
                   </div>
+                  <p className="text-xs text-gray-500 mt-1">分享此链接邀请好友加入群聊</p>
                 </div>
-            )}
+              </div>
+
+              <div className="flex gap-2 mt-6">
+                <button
+                    onClick={() => {
+                      setShowInviteModal(false);
+                      setInviteLink('');
+                    }}
+                    className="w-full px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 dark:bg-gray-700 dark:text-white"
+                >
+                  关闭
+                </button>
+              </div>
+            </div>
+          </div>
+      )}
     </WithAuthProtection>
   );
-};
-
-export default MessagesPage;
+}

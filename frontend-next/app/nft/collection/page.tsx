@@ -125,7 +125,7 @@ export default function NFTCollectionPage() {
                                     加载中...
                                 </>
                             ) : (
-                                '加载 NFT？
+                                '加载 NFT'
                             )}
                         </Button>
                     </div>

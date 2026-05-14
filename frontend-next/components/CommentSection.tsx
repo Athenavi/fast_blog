@@ -102,7 +102,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({articleId}) => {
             );
 
             if (response.success && response.data) {
-                const data = response.data as any;
+                const data = response.data as { comments?: Comment[]; total?: number; total_pages?: number };
                 const newComments = data.comments || [];
                 const total = data.total || 0;
 
@@ -113,7 +113,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({articleId}) => {
                 }
 
                 setTotalComments(total);
-                setHasMore(pageNum < data.total_pages);
+                setHasMore(pageNum < (data.total_pages || 0));
             }
         } catch (err: any) {
             console.error('Failed to load comments:', err);

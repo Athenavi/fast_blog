@@ -31,7 +31,7 @@ interface InvitationInfo {
 export default function CollaborationRoomPage() {
   return (
       <AuthProtected>
-          <Suspense fallback={<LoadingState message="加载协作文档�?.."/>}>
+        <Suspense fallback={<LoadingState message="加载协作文档中..."/>}>
           <CollaborationRoomContent/>
         </Suspense>
       </AuthProtected>
@@ -57,7 +57,7 @@ function CollaborationRoomContent() {
 
     if (!currentInviteId) {
       if (isMounted) {
-          setError('无效的邀请链�?);
+        setError('无效的邀请链接');
         setLoading(false);
       }
       return;
@@ -73,19 +73,19 @@ function CollaborationRoomContent() {
         if (!response.ok) {
           if (response.status === 404) throw new Error('邀请不存在或已撤销');
           if (response.status === 410) throw new Error('邀请已过期');
-            throw new Error('获取邀请信息失�?);
+          throw new Error('获取邀请信息失败');
         }
 
         const data = await response.json();
         if (data.success && isMounted) {
           setInvitation(data.data);
         } else if (isMounted) {
-            throw new Error('无效的邀请数�?);
+          throw new Error('无效的邀请数据');
         }
       } catch (err) {
         if (isMounted) {
           console.error('Fetch invitation error:', err);
-            setError(err instanceof Error ? err.message : '加载邀请失�?);
+          setError(err instanceof Error ? err.message : '加载邀请失败');
         }
       } finally {
         if (isMounted) setLoading(false);
@@ -109,22 +109,22 @@ function CollaborationRoomContent() {
         credentials: 'include',
       });
 
-        if (!response.ok) throw new Error('接受邀请失�?);
+      if (!response.ok) throw new Error('接受邀请失败');
 
       const data = await response.json();
       if (data.success) {
         router.push(`/collaboration/room?invite=${currentInviteId}&accepted=true`);
       } else {
-          alert(data.error || '接受邀请失�?);
+        alert(data.error || '接受邀请失败');
       }
     } catch (err) {
       console.error('Accept invitation error:', err);
-        alert('接受邀请失败，请重�?);
+      alert('接受邀请失败，请重试');
     }
   };
 
   if (loading) {
-      return <LoadingState message="加载协作文档�?.."/>;
+    return <LoadingState message="加载协作文档中..."/>;
   }
 
   if (error) {
@@ -148,32 +148,33 @@ function CollaborationRoomContent() {
     return <ErrorState error="邀请信息不存在"/>;
   }
 
-    // 未接受邀请：显示邀请卡�?  if (!accepted) {
+  // 未接受邀请：显示邀请卡片
+  if (!accepted) {
     return (
         <div className="container mx-auto py-8 px-4">
           <Card className="max-w-md mx-auto">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <FileText className="w-5 h-5"/>
-                  协作邀�? </CardTitle>
+                协作邀请 </CardTitle>
               <CardDescription>
-                  您被邀请参与文档协�? </CardDescription>
+                您被邀请参与文档协作 </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="bg-blue-50 p-4 rounded-lg space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">文档ID�?/span>
+                  <span className="text-gray-600">文档ID：</span>
                   <span className="font-medium">{invitation.document_id}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">权限�?/span>
+                  <span className="text-gray-600">权限：</span>
                   <Badge variant={invitation.permission === 'edit' ? 'default' : 'secondary'}>
-                    {invitation.permission === 'edit' ? '可编�? : '仅查�?}
+                    {invitation.permission === 'edit' ? '可编辑' : '仅查看'}
                   </Badge>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">人数限制�?/span>
-                  <span className="font-medium">{invitation.current_users}/{invitation.max_users} �?/span>
+                  <span className="text-gray-600">人数限制：</span>
+                  <span className="font-medium">{invitation.current_users}/{invitation.max_users} 人</span>
                 </div>
               </div>
 
@@ -199,7 +200,8 @@ function CollaborationRoomContent() {
     );
   }
 
-// 已接受：显示协作编辑�?  return (
+// 已接受：显示协作编辑器
+  return (
       <div className="min-h-screen bg-gray-50">
         <div className="bg-white border-b shadow-sm">
           <div className="container mx-auto px-4 py-3 flex items-center justify-between">
@@ -220,7 +222,7 @@ function CollaborationRoomContent() {
             <div className="flex items-center gap-2">
               <Badge variant="secondary" className="gap-1">
                 <Users className="w-3 h-3"/>
-                  {invitation.permission === 'edit' ? '可编�? : '仅查�?}
+                {invitation.permission === 'edit' ? '可编辑' : '仅查看'}
               </Badge>
             </div>
           </div>

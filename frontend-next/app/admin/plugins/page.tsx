@@ -81,7 +81,8 @@ const PluginMarketplace = () => {
     }
   };
 
-    // 加载已安装插�?  const loadInstalledPlugins = async () => {
+  // 加载已安装插件
+  const loadInstalledPlugins = async () => {
     try {
         const response = await apiClient.get('/api/v2/plugins');
       if (response.success && response.data) {
@@ -94,7 +95,7 @@ const PluginMarketplace = () => {
 
   // 安装插件
   const handleInstallPlugin = async (plugin: Plugin) => {
-      if (!confirm(`确定要安装插�?"${plugin.name}" 吗？`)) {
+    if (!confirm(`确定要安装插件"${plugin.name}" 吗？`)) {
       return;
     }
 
@@ -119,7 +120,7 @@ const PluginMarketplace = () => {
     }
   };
 
-// 激�?停用插件
+// 激活停用插件
   const handleTogglePlugin = async (plugin: Plugin) => {
     try {
       const endpoint = plugin.is_active
@@ -130,9 +131,7 @@ const PluginMarketplace = () => {
 
       if (response.success) {
         loadInstalledPlugins();
-          alert(plugin.is_active ? '插件已停�? : '插件已激�?
-      )
-          ;
+        alert(plugin.is_active ? '插件已停用' : '插件已激活');
       } else {
         alert(response.error || '操作失败');
       }
@@ -144,7 +143,7 @@ const PluginMarketplace = () => {
 
   // 卸载插件
   const handleUninstallPlugin = async (plugin: Plugin) => {
-      if (!confirm(`确定要卸载插�?"${plugin.name}" 吗？此操作不可恢复。`)) {
+    if (!confirm(`确定要卸载插件"${plugin.name}" 吗？此操作不可恢复。`)) {
       return;
     }
 
@@ -154,7 +153,7 @@ const PluginMarketplace = () => {
       if (response.success) {
         loadInstalledPlugins();
         loadPlugins();
-          alert('插件已卸�?);
+        alert('插件已卸载');
       } else {
         alert(response.error || '卸载失败');
       }
@@ -166,7 +165,7 @@ const PluginMarketplace = () => {
 
   // 同步插件配置
   const handleSyncConfig = async () => {
-      if (!confirm('确定要同步插件配置吗？\n\n此操作将：\n1. 扫描本地 plugins 目录\n2. 读取 plugin_state.json\n3. 同步状态到数据�?)) {
+    if (!confirm('确定要同步插件配置吗？\n\n此操作将：\n1. 扫描本地 plugins 目录\n2. 读取 plugin_state.json\n3. 同步状态到数据库')) {
       return;
     }
 
@@ -191,7 +190,7 @@ const PluginMarketplace = () => {
             `更新记录: ${data.updated}\n` +
             `设置同步: ${data.settings_synced || 0}\n` +
             `本地插件: ${data.total_local_plugins}\n` +
-            `数据库插�? ${data.total_db_plugins}`
+            `数据库插件: ${data.total_db_plugins}`
         );
       } else {
         alert(response.error || '同步失败');
@@ -214,9 +213,11 @@ const PluginMarketplace = () => {
     return matchesSearch && matchesCategory;
   });
 
-// 获取所有分�?  const categories = ['all', ...Array.from(new Set(plugins.map(p => p.category)))];
+// 获取所有分类
+  const categories = ['all', ...Array.from(new Set(plugins.map(p => p.category)))];
 
-// 格式化日�?  const formatDate = (dateString: string) => {
+// 格式化日期
+  const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('zh-CN');
   };
@@ -240,12 +241,12 @@ const PluginMarketplace = () => {
 
   return (
       <div className="space-y-6">
-          {/* 页面标题和操作按�?*/}
+        {/* 页面标题和操作按钮 */}
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 dark:text-white">插件市场</h1>
             <p className="text-gray-600 dark:text-gray-400 mt-1">
-                浏览、安装和管理插件，扩展系统功�? </p>
+              浏览、安装和管理插件，扩展系统功能 </p>
           </div>
           <Button
               onClick={handleSyncConfig}
@@ -255,7 +256,7 @@ const PluginMarketplace = () => {
             {syncingConfig ? (
                 <>
                   <RefreshCw className="w-4 h-4 animate-spin"/>
-                    同步�?..
+                  同步中..
                 </>
             ) : (
                 <>
@@ -308,7 +309,7 @@ const PluginMarketplace = () => {
                         </div>
                       </div>
                       <div>
-                          <div className="text-gray-600 dark:text-gray-400">数据库插�?/div>
+                        <div className="text-gray-600 dark:text-gray-400">数据库插件</div>
                         <div className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                           {syncResult.total_db_plugins}
                         </div>
@@ -328,7 +329,7 @@ const PluginMarketplace = () => {
             </Card>
         )}
 
-          {/* 标签�?*/}
+        {/* 标签页 */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="browse" className="flex items-center gap-2">
@@ -337,13 +338,13 @@ const PluginMarketplace = () => {
             </TabsTrigger>
             <TabsTrigger value="installed" className="flex items-center gap-2">
               <Check className="w-4 h-4"/>
-                已安�?({installedPlugins.length})
+              已安装({installedPlugins.length})
             </TabsTrigger>
           </TabsList>
 
           {/* 浏览插件 */}
           <TabsContent value="browse" className="space-y-4">
-              {/* 搜索和过�?*/}
+            {/* 搜索和过滤 */}
             <Card>
               <CardContent className="pt-6">
                 <div className="flex flex-col md:flex-row gap-4">
@@ -420,7 +421,7 @@ const PluginMarketplace = () => {
 
                       {plugin.requires_version && (
                           <div className="text-xs text-gray-500">
-                              需要版�? {plugin.requires_version}
+                            需要版本 {plugin.requires_version}
                           </div>
                       )}
                     </CardContent>
@@ -428,7 +429,7 @@ const PluginMarketplace = () => {
                       {plugin.is_installed ? (
                           <Badge variant="default" className="w-full justify-center">
                             <Check className="w-4 h-4 mr-2"/>
-                              已安�? </Badge>
+                            已安装 </Badge>
                       ) : (
                           <Button
                               className="w-full"
@@ -438,7 +439,7 @@ const PluginMarketplace = () => {
                             {installingPlugin === plugin.id ? (
                                 <>
                                   <RefreshCw className="w-4 h-4 mr-2 animate-spin"/>
-                                    安装�?..
+                                  安装中..
                                 </>
                             ) : (
                                 <>
@@ -457,13 +458,13 @@ const PluginMarketplace = () => {
                 <Card>
                   <CardContent className="py-12 text-center">
                     <Package className="w-16 h-16 mx-auto text-gray-300 mb-4"/>
-                      <p className="text-gray-500">没有找到匹配的插�?/p>
+                    <p className="text-gray-500">没有找到匹配的插件</p>
                   </CardContent>
                 </Card>
             )}
           </TabsContent>
 
-            {/* 已安装插�?*/}
+          {/* 已安装插件 */}
           <TabsContent value="installed" className="space-y-4">
             <div className="grid grid-cols-1 gap-4">
               {installedPlugins.map((plugin) => (
@@ -484,7 +485,7 @@ const PluginMarketplace = () => {
                                 {plugin.name}
                               </h3>
                               <Badge variant={plugin.is_active ? "default" : "secondary"}>
-                                  {plugin.is_active ? '已激�? : '已停�?}
+                                {plugin.is_active ? '已激活' : '已停用'}
                               </Badge>
                             </div>
                             <p className="text-sm text-gray-600 dark:text-gray-400">
@@ -492,7 +493,7 @@ const PluginMarketplace = () => {
                             </p>
                             <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
                               <span>版本: {plugin.version}</span>
-                                <span>作�? {plugin.author}</span>
+                              <span>作者 {plugin.author}</span>
                             </div>
                           </div>
                         </div>
@@ -511,7 +512,7 @@ const PluginMarketplace = () => {
                             ) : (
                                 <>
                                   <Zap className="w-4 h-4 mr-2"/>
-                                    激�? </>
+                                  激活 </>
                             )}
                           </Button>
                           <Button
@@ -542,7 +543,7 @@ const PluginMarketplace = () => {
                 <Card>
                   <CardContent className="py-12 text-center">
                     <Package className="w-16 h-16 mx-auto text-gray-300 mb-4"/>
-                      <p className="text-gray-500 mb-4">还没有安装任何插�?/p>
+                    <p className="text-gray-500 mb-4">还没有安装任何插件</p>
                     <Button onClick={() => setActiveTab('browse')}>
                       浏览插件市场
                     </Button>

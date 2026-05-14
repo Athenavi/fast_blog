@@ -123,7 +123,7 @@ export default function AnalyticsDashboard() {
                             label: item.date,
                             value: item.views,
                         }))}
-                        title="每日浏览'
+                        title="每日浏览"
                     />
                 </CardContent>
             </Card>
@@ -131,7 +131,7 @@ export default function AnalyticsDashboard() {
             {/* 热门文章列表 */}
             <Card>
                 <CardHeader>
-                    <CardTitle>热门文章'天）</CardTitle>
+                    <CardTitle>热门文章天</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-4">

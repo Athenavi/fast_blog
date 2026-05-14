@@ -82,7 +82,13 @@ export default function BackupManagement() {
     // 恢复对话框状
     const [showRestoreDialog, setShowRestoreDialog] = useState(false);
     const [selectedBackup, setSelectedBackup] = useState<string>('');
-    const [restoreOptions, setRestoreOptions] = useState({
+    const [restoreOptions, setRestoreOptions] = useState<{
+        articles: boolean;
+        categories: boolean;
+        pages: boolean;
+        menus: boolean;
+        users: boolean;
+    }>({
         articles: true,
         categories: true,
         pages: true,

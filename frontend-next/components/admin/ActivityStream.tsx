@@ -60,8 +60,8 @@ export default function ActivityStream() {
             }
 
             // 处理待审核评论
-            if (commentsRes.success && commentsRes.data?.comments) {
-                commentsRes.data.comments.forEach((comment: any) => {
+            if (commentsRes.success && (commentsRes.data as any)?.comments) {
+                (commentsRes.data as any).comments.forEach((comment: any) => {
                     activityList.push({
                         id: `comment-${comment.id}`,
                         type: 'comment',
@@ -75,8 +75,8 @@ export default function ActivityStream() {
             }
 
             // 处理通知
-            if (notificationsRes.success && notificationsRes.data?.notifications) {
-                notificationsRes.data.notifications.forEach((notif: any) => {
+            if (notificationsRes.success && (notificationsRes.data as any)?.notifications) {
+                (notificationsRes.data as any).notifications.forEach((notif: any) => {
                     activityList.push({
                         id: `notification-${notif.id}`,
                         type: 'notification',

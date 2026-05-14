@@ -40,14 +40,14 @@ export default function TodoReminders() {
             // 1. 检查待审核评论
             try {
                 const commentsRes = await apiClient.get('/comments/admin/pending', {page: 1, per_page: 1});
-                if (commentsRes.success && commentsRes.data?.total > 0) {
+                if (commentsRes.success && (commentsRes.data as any)?.total > 0) {
                     todoList.push({
                         id: 'pending-comments',
                         type: 'comment',
                         title: '待审核评论',
-                        description: `${commentsRes.data.total} 条评论等待审核`,
+                        description: `${(commentsRes.data as any).total} 条评论等待审核`,
                         priority: 'high',
-                        count: commentsRes.data.total,
+                        count: (commentsRes.data as any).total,
                         actionUrl: '/admin/comments',
                         actionText: '去审核',
                         icon: <MessageSquare className="h-4 w-4 text-yellow-500"/>
@@ -61,7 +61,7 @@ export default function TodoReminders() {
             try {
                 const backupRes = await apiClient.get('/backup/status').catch(() => ({success: false, data: null}));
                 if (backupRes.success && backupRes.data) {
-                    const lastBackup = backupRes.data.last_backup;
+                    const lastBackup = (backupRes.data as any).last_backup;
                     if (lastBackup) {
                         const daysSinceBackup = Math.floor(
                             (Date.now() - new Date(lastBackup).getTime()) / (1000 * 60 * 60 * 24)
@@ -111,7 +111,7 @@ export default function TodoReminders() {
             try {
                 const seoRes = await apiClient.get('/seo/audit/summary').catch(() => ({success: false, data: null}));
                 if (seoRes.success && seoRes.data) {
-                    const issues = seoRes.data.issues || [];
+                    const issues = (seoRes.data as any).issues || [];
                     if (issues.length > 0) {
                         todoList.push({
                             id: 'seo-issues',
@@ -133,14 +133,14 @@ export default function TodoReminders() {
             // 4. 系统更新检查
             try {
                 const updateRes = await apiClient.get('/system/updates').catch(() => ({success: false, data: null}));
-                if (updateRes.success && updateRes.data?.available_updates > 0) {
+                if (updateRes.success && (updateRes.data as any)?.available_updates > 0) {
                     todoList.push({
                         id: 'system-updates',
                         type: 'update',
                         title: '系统更新可用',
-                        description: `${updateRes.data.available_updates} 个更新可用`,
+                        description: `${(updateRes.data as any).available_updates} 个更新可用`,
                         priority: 'medium',
-                        count: updateRes.data.available_updates,
+                        count: (updateRes.data as any).available_updates,
                         actionUrl: '/admin/updates',
                         actionText: '查看更新',
                         icon: <ExternalLink className="h-4 w-4 text-purple-500"/>

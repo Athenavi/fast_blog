@@ -773,7 +773,8 @@ const MediaGrid: React.FC<MediaGridProps> = ({
                                           if (parent) {
                                               const iconDiv = document.createElement('div');
                                               iconDiv.className = 'h-10 w-10 flex items-center justify-center bg-gray-100 rounded';
-                                              iconDiv.innerHTML = getFileIcon(media.mime_type).outerHTML || '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-file w-8 h-8 text-gray-400"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>';
+                                            const iconElement = getFileIcon(media.mime_type);
+                                            iconDiv.innerHTML = (iconElement as HTMLElement).outerHTML || '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-file w-8 h-8 text-gray-400"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>';
                                               parent.appendChild(iconDiv);
                                           }
                                       }

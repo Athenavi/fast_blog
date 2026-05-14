@@ -101,7 +101,8 @@ const TagsWidget: React.FC<TagsWidgetProps> = ({title, config}) => {
                         ))}
                     </div>
                 ) : (
-                    // 云模'                    <div className="flex flex-wrap gap-2">
+                    // 云模式
+                    <div className="flex flex-wrap gap-2">
                         {tags.map((tag) => (
                             <Link
                                 key={tag.slug}

@@ -194,7 +194,7 @@ export default function TranslationServicePage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <label className="text-sm font-medium mb-1 block">选择提供商</Label>
+              <label className="text-sm font-medium mb-1 block">选择提供商</label>
               <Select value={selectedProvider} onValueChange={setSelectedProvider}>
                 <SelectTrigger>
                   <SelectValue placeholder="选择提供商"/>
@@ -294,7 +294,7 @@ export default function TranslationServicePage() {
               </Select>
             </div>
             <div>
-              <label className="text-sm font-medium mb-1 block">提供商</Label>
+              <label className="text-sm font-medium mb-1 block">提供商</label>
               <Select value={selectedProvider} onValueChange={setSelectedProvider}>
                 <SelectTrigger>
                   <SelectValue placeholder="选择" />

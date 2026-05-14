@@ -45,7 +45,7 @@ const SEOAnalyzerPage = async () => {
     // 执行SEO分析
     const handleAnalyze = async () => {
         if (!articleData.title) {
-            setError('请至少输入文章标标题);
+            setError('请至少输入文章标题');
             return;
         }
 
@@ -152,7 +152,7 @@ const SEOAnalyzerPage = async () => {
                             id="excerpt"
                             value={articleData.excerpt}
                             onChange={(e) => setArticleData({...articleData, excerpt: e.target.value})}
-                            placeholder="输入文章摘要'50-160字符)
+                            placeholder="输入文章摘要(50-160字符)"
                             rows={3}
                         />
                     </div>
@@ -292,8 +292,8 @@ const SEOAnalyzerPage = async () => {
                                                     check.status === 'warning' ? 'secondary' : 'destructive'
                                             }
                                         >
-                                            {check.status === 'pass' ? '通过期 :
-                                                check.status === 'warning' ? '警告' : '失失败}
+                                            {check.status === 'pass' ? '通过' :
+                                                check.status === 'warning' ? '警告' : '失败'}
                                         </Badge>
                                     </div>
                                 </div>
