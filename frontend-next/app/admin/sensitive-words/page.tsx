@@ -308,7 +308,7 @@ const SensitiveWordsManagement = () => {
             replace: 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200',
             warn: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200'
         };
-        const labels = {block: '拦截', replace: '替换', warn: '警告'};
+        const labels = {block: '拦截', replace: '替换文本', warn: '警告'};
         return (
             <Badge className={colors[action as keyof typeof colors]}>
                 {labels[action as keyof typeof labels]}
@@ -326,7 +326,7 @@ const SensitiveWordsManagement = () => {
             <div className="mb-8">
                 <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2 flex items-center">
                     <Shield className="w-8 h-8 mr-3 text-purple-600"/>
-                    敏感词管' </h1>
+                    敏感词管理</h1>
                 <p className="text-gray-600 dark:text-gray-400">
                     管理和配置内容审核的敏感词库
                 </p>
@@ -382,17 +382,17 @@ const SensitiveWordsManagement = () => {
                 </div>
             )}
 
-            {/* 操作'*/}
+            {/* 操作栏 */}
             <Card className="mb-6">
                 <CardContent className="pt-6">
                     <div className="flex flex-wrap gap-4 items-end">
                         <div className="flex-1 min-w-[200px]">
-                            <Label>搜索关键</Label>
+                            <Label>搜索关键词</Label>
                             <div className="relative mt-1">
                                 <Search
                                     className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400"/>
                                 <Input
-                                    placeholder="搜索敏感'.."
+                                    placeholder="搜索敏感词.."
                                     value={keywordSearch}
                                     onChange={(e) => setKeywordSearch(e.target.value)}
                                     className="pl-10"
@@ -493,7 +493,7 @@ const SensitiveWordsManagement = () => {
                                         <td className="py-3 px-4">
                                             <Badge
                                                 className={word.is_active ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
-                                                {word.is_active ? '激活' : '停使用}
+                                                {word.is_active ? '激活' : '停用'}
                                             </Badge>
                                         </td>
                                         <td className="py-3 px-4 text-sm text-gray-600 dark:text-gray-400">
@@ -641,9 +641,9 @@ const SensitiveWordsManagement = () => {
             <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>编辑敏感'/DialogTitle>
+                        <DialogTitle>编辑敏感词</DialogTitle>
                         <DialogDescription>
-                            修改敏感词配置 </DialogDescription>
+                            修改敏感词配置。</DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4 py-4">
                         <div>
@@ -660,9 +660,9 @@ const SensitiveWordsManagement = () => {
                                     <SelectValue/>
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="1">'- 警告</SelectItem>
-                                    <SelectItem value="2">'- 替换</SelectItem>
-                                    <SelectItem value="3">'- 拦截</SelectItem>
+                                    <SelectItem value="1">低 - 警告</SelectItem>
+                                    <SelectItem value="2">中 - 替换</SelectItem>
+                                    <SelectItem value="3">高 - 拦截</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -688,7 +688,7 @@ const SensitiveWordsManagement = () => {
                                 <Input
                                     value={formData.replacement}
                                     onChange={(e) => setFormData({...formData, replacement: e.target.value})}
-                                    placeholder="当检测到时的替换'
+                                    placeholder="当检测到时的替换文本
                                     className="mt-1"
                                 />
                             </div>
@@ -742,7 +742,7 @@ const SensitiveWordsManagement = () => {
             <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
                 <DialogContent className="max-w-2xl">
                     <DialogHeader>
-                        <DialogTitle>批量导入敏感'/DialogTitle>
+                        <DialogTitle>批量导入敏感词</DialogTitle>
                         <DialogDescription>
                             每行一个敏感词，格式：敏感'级别,处理方式,分类
                         </DialogDescription>

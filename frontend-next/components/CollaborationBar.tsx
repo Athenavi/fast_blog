@@ -130,7 +130,9 @@ export default function CollaborationBar({
     const currentUser: CollaborativeUser = {
         id: userId,
         name: userName,
-        color: generateUserColor()
+        color: generateUserColor(),
+        cursor: undefined,
+        selection: undefined
     };
 
     // 所有在线用户（包括当前用户）

@@ -51,7 +51,7 @@ export default function TranslationMemoryPage() {
   // 添加翻译
   const handleAddTranslation = async () => {
     if (!sourceText || !targetText) {
-        toast.error('请填写原文和译文本);
+      toast.error('请填写原文和译文');
       return;
     }
 
@@ -82,11 +82,11 @@ export default function TranslationMemoryPage() {
         setContext('');
         loadStats();
       } else {
-          toast.error(result.error || '添加失失败');
+        toast.error(result.error || '添加失败');
       }
     } catch (error) {
       console.error('Error adding translation:', error);
-        toast.error('添加失失败');
+      toast.error('添加失败');
     } finally {
       setLoading(false);
     }
@@ -120,11 +120,11 @@ export default function TranslationMemoryPage() {
             setSuggestions((result.data as any).suggestions);
             toast.success(`找到${(result.data as any).count}条建议`);
       } else {
-            toast.error(result.error || '查询失失败');
+          toast.error(result.error || '查询失败');
       }
     } catch (error) {
       console.error('Error getting suggestions:', error);
-        toast.error('查询失失败');
+      toast.error('查询失败');
     } finally {
       setLoading(false);
     }
@@ -154,7 +154,7 @@ export default function TranslationMemoryPage() {
       }
     } catch (error) {
       console.error('Error exporting:', error);
-        toast.error('导出失失败');
+      toast.error('导出失败');
     }
   };
 
@@ -182,11 +182,11 @@ export default function TranslationMemoryPage() {
         setSuggestions([]);
         loadStats();
       } else {
-          toast.error(result.error || '清除失失败');
+        toast.error(result.error || '清除失败');
       }
     } catch (error) {
       console.error('Error clearing:', error);
-        toast.error('清除失失败');
+      toast.error('清除失败');
     }
   };
 
@@ -243,7 +243,7 @@ export default function TranslationMemoryPage() {
                 <div className="flex flex-wrap gap-2">
                   {stats.pairs_detail.map((pair: any, index: number) => (
                     <Badge key={index} variant="outline">
-                        {pair.source_lang} '{pair.target_lang}: {pair.entry_count}'
+                      {pair.source_lang} → {pair.target_lang}: {pair.entry_count}
                     </Badge>
                   ))}
                 </div>

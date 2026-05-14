@@ -30,8 +30,9 @@ import {
 } from 'lucide-react';
 import {useToast} from '@/hooks/use-toast';
 import {apiClient} from '@/lib/api/base-client';
-import {draftService, LocalDraft} from '@/lib/draft-service';
-import {computeDiff, formatDiffAsHtml, exportDiffAsText, exportDiffAsMarkdown, getDiffSummary} from '@/lib/diff-utils';
+import type {LocalDraft} from '@/lib/draft-service';
+import {draftService} from '@/lib/draft-service';
+import {computeDiff, exportDiffAsMarkdown, exportDiffAsText, formatDiffAsHtml, getDiffSummary} from '@/lib/diff-utils';
 
 interface Revision {
     id: number;

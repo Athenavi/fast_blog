@@ -60,8 +60,8 @@ export default function ActivityStream() {
             }
 
             // 处理待审核评论
-            if (commentsRes.success && commentsRes.data?.comments) {
-                commentsRes.data.comments.forEach((comment: any) => {
+            if (commentsRes.success && (commentsRes.data as any)?.comments) {
+                (commentsRes.data as any).comments.forEach((comment: any) => {
                     activityList.push({
                         id: `comment-${comment.id}`,
                         type: 'comment',

@@ -8,7 +8,17 @@
 import React from 'react';
 import Link from 'next/link';
 import {Card, CardContent} from '@/components/ui/card';
-import {Facebook, Github, Globe, Instagram, Linkedin, Mail, Rss, Twitter, Youtube} from 'lucide-react';
+import {
+    Github,
+    Globe,
+    Instagram,
+    Link as FacebookIcon,
+    Linkedin as LinkedinIcon,
+    Mail,
+    Rss,
+    Twitter as TwitterIcon,
+    Youtube
+} from 'lucide-react';
 
 interface SocialLink {
     platform: string;
@@ -29,10 +39,10 @@ interface SocialLinksWidgetProps {
 // 平台图标映射
 const platformIcons: Record<string, React.ElementType> = {
     github: Github,
-    twitter: Twitter,
-    facebook: Facebook,
+    twitter: TwitterIcon,
+    facebook: FacebookIcon,
     instagram: Instagram,
-    linkedin: Linkedin,
+    linkedin: LinkedinIcon,
     youtube: Youtube,
     email: Mail,
     rss: Rss,

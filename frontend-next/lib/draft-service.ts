@@ -158,3 +158,12 @@ class DraftService {
 // 导出单例实例
 export const draftService = new DraftService();
 export default draftService;
+
+// 导出类型定义以支持外部使用
+export interface LocalDraft {
+    data: DraftData;
+    savedAt: string;
+    articleId?: number;
+    title?: string;
+    excerpt?: string;
+}

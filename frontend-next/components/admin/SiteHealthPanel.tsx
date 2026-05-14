@@ -41,7 +41,7 @@ export default function SiteHealthPanel() {
             // 获取系统信息
             const systemRes = await apiClient.get('/system/info').catch(() => ({success: false, data: null}));
             if (systemRes.success && systemRes.data) {
-                setSystemInfo(systemRes.data);
+                setSystemInfo(systemRes.data as any);
             }
 
             // 获取站点健康检查
@@ -50,8 +50,8 @@ export default function SiteHealthPanel() {
             const checks: HealthCheck[] = [];
 
             // Python版本检查
-            if (systemRes.success && systemRes.data?.python_version) {
-                const version = systemRes.data.python_version;
+            if (systemRes.success && (systemRes.data as any)?.python_version) {
+                const version = (systemRes.data as any).python_version;
                 const [major, minor] = version.split('.').map(Number);
 
                 if (major >= 3 && minor >= 9) {
@@ -72,8 +72,8 @@ export default function SiteHealthPanel() {
             }
 
             // 数据库状态检查
-            if (healthRes.success && healthRes.data?.checks) {
-                const healthData = healthRes.data;
+            if (healthRes.success && (healthRes.data as any)?.checks) {
+                const healthData = healthRes.data as any;
                 const dbChecks = healthData.checks.database || [];
                 const systemChecks = healthData.checks.system || [];
                 const storageChecks = healthData.checks.storage || [];

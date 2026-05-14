@@ -515,7 +515,7 @@ export default function ModernMediaLibraryPage() {
                 setEditorDialogOpen(false);
                 loadMedia();
             } else {
-                const error = await response.json();
+                const error = await response.json() as any;
                 alert(`保存失败: ${error.detail || '未知错误'}`);
             }
         } catch (error) {

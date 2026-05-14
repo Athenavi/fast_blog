@@ -36,7 +36,7 @@ export function CommentInput({ onSubmit, placeholder = '发表评论...' }: Comm
       userService.searchUsers(mentionQuery, 10)
           .then(result => {
             if (result.success && result.data) {
-              setUsers(result.data.users);
+                setUsers((result.data as any).users || []);
             }
           })
           .catch(error => {

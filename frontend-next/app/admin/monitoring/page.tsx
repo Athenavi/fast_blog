@@ -9,16 +9,7 @@ import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/compo
 import {Badge} from '@/components/ui/badge';
 import {Button} from '@/components/ui/button';
 import {Progress} from '@/components/ui/progress';
-import {
-    Users,
-    Activity,
-    Server,
-    TrendingUp,
-    RefreshCw,
-    AlertCircle,
-    CheckCircle,
-    AlertTriangle
-} from 'lucide-react';
+import {Activity, AlertCircle, AlertTriangle, CheckCircle, RefreshCw, Server, TrendingUp, Users} from 'lucide-react';
 import apiClient from '@/lib/api-client';
 
 interface OnlineUser {
@@ -265,7 +256,7 @@ export default function RealtimeMonitorDashboard() {
                         <div className="flex items-center gap-2">
                             {getHealthIcon(data.system_health.overall_status)}
                             <Badge className={getHealthColor(data.system_health.overall_status)}>
-                                {data.system_health.overall_status === 'healthy' ? '正异常 :
+                                {data.system_health.overall_status === 'healthy' ? '正常' :
                                     data.system_health.overall_status === 'warning' ? '警告' : '严重'}
                             </Badge>
                         </div>
@@ -354,7 +345,7 @@ export default function RealtimeMonitorDashboard() {
             <Card>
                 <CardHeader>
                     <CardTitle>热门访问端点</CardTitle>
-                    <CardDescription>最'0分钟的API访问统计</CardDescription>
+                    <CardDescription>最近10分钟的API访问统计</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <div className="space-y-2">

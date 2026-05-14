@@ -1,9 +1,9 @@
 'use client';
 
-import {useState, useEffect} from 'react';
+import {useEffect, useState} from 'react';
 import Link from 'next/link';
 import {usePathname} from 'next/navigation';
-import {Home, Compass, PlusSquare, MessageSquare, User} from 'lucide-react';
+import {Compass, Home, MessageSquare, PlusSquare, User} from 'lucide-react';
 
 /**
  * 移动端底部导航栏
@@ -38,21 +38,21 @@ const MobileBottomNav = () => {
             label: '首页',
             icon: Home,
             href: '/',
-            active: pathname === '/' || pathname.startsWith('/articles'),
+            active: pathname === '/' || (pathname && pathname.startsWith('/articles')),
         },
         {
             id: 'discover',
             label: '发现',
             icon: Compass,
             href: '/explore',
-            active: pathname.startsWith('/explore') || pathname.startsWith('/fans/discover'),
+            active: (pathname && pathname.startsWith('/explore')) || (pathname && pathname.startsWith('/fans/discover')),
         },
         {
             id: 'create',
             label: '发布',
             icon: PlusSquare,
             href: '/contribute',
-            active: pathname.startsWith('/contribute') || pathname.startsWith('/admin/blog'),
+            active: (pathname && pathname.startsWith('/contribute')) || (pathname && pathname.startsWith('/admin/blog')),
             isAction: true, // 特殊动作按钮
         },
         {
@@ -60,7 +60,7 @@ const MobileBottomNav = () => {
             label: '消息',
             icon: MessageSquare,
             href: '/messages',
-            active: pathname.startsWith('/messages'),
+            active: pathname && pathname.startsWith('/messages'),
             badge: 0, // 未读消息数
         },
         {
@@ -68,7 +68,7 @@ const MobileBottomNav = () => {
             label: '我的',
             icon: User,
             href: '/profile',
-            active: pathname.startsWith('/profile') || pathname.startsWith('/settings'),
+            active: (pathname && pathname.startsWith('/profile')) || (pathname && pathname.startsWith('/settings')),
         },
     ];
 
