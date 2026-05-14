@@ -137,7 +137,7 @@ async def update_category_api(
         return ApiResponse(success=False, error=str(e))
 
 
-@router.get("/")
+@router.get("")
 async def get_categories_with_stats_api(
         current_user=Depends(jwt_required),
         page: int = 1,

@@ -204,7 +204,13 @@ const ArticleManagementContent = () => {
         // 确保response.data有正确的结构
             const responseData = response.data as any;
             if (typeof responseData === 'object' && 'categories' in responseData) {
-                setCategories(responseData.categories || []);
+              // API 返回的结构是 [{ category: {...}, article_count: 0, ... }]
+              // 需要提取出 category 对象
+              const categoriesData = responseData.categories || [];
+              const extractedCategories = categoriesData.map((item: any) => {
+                return item.category || item;
+              });
+              setCategories(extractedCategories);
         } else {
           // 如果没有按预期格式返回，则直接使用数据
           setCategories(Array.isArray(response.data) ? response.data : []);
@@ -356,7 +362,7 @@ const ArticleManagementContent = () => {
     });
   };
 
-    const selectAllArticles = async () => {
+  const selectAllArticles = () => {
     if (selectedArticles.size === articles.length) {
       setSelectedArticles(new Set());
     } else {
@@ -673,11 +679,15 @@ const ArticleManagementContent = () => {
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">全部分类</option>
-              {Array.isArray(categories) && categories.map(category => (
-                <option key={category.id} value={category.id.toString()}>
-                  {category.name}
-                </option>
-              ))}
+              {Array.isArray(categories) && categories.map((category, index) => {
+                // 确保 category.id 存在且不是 undefined
+                const categoryId = category.id ?? `category-${index}`;
+                return (
+                    <option key={categoryId} value={categoryId.toString()}>
+                      {category.name || '未命名分类'}
+                    </option>
+                );
+              })}
             </select>
           </div>
 
@@ -689,11 +699,15 @@ const ArticleManagementContent = () => {
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               <option value="">全部作者</option>
-              {Array.isArray(authors) && authors.map(author => (
-                <option key={author.id} value={author.id.toString()}>
-                  {author.username}
-                </option>
-              ))}
+              {Array.isArray(authors) && authors.map((author, index) => {
+                // 确保 author.id 存在且不是 undefined
+                const authorId = author.id ?? `author-${index}`;
+                return (
+                    <option key={authorId} value={authorId.toString()}>
+                      {author.username || '未知用户'}
+                    </option>
+                );
+              })}
             </select>
           </div>
 
@@ -870,10 +884,10 @@ const ArticleManagementContent = () => {
                           </div>
                         </td>
                         <td className="px-3 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden sm:table-cell">
-                            {article.author ? article.author.username : ''}
+                          {article.author ? article.author.username : '-'}
                         </td>
                         <td className="px-3 lg:px-6 py-4 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">
-                            {article.category ? article.category.name : ''}
+                          {article.category ? article.category.name : '-'}
                         </td>
                         <td className="px-3 lg:px-6 py-4 whitespace-nowrap">
                           <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusBadgeColor(article.status)}`}>

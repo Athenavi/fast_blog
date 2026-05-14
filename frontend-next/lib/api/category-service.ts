@@ -15,7 +15,7 @@ export class CategoryService {
         subscribed_ids: number[];
         total_categories: number;
     }>> {
-        const response = await apiClient.get('/categories/', params); // 使用公开API
+        const response = await apiClient.get('/categories', params); // 使用公开API
 
         // 确保返回正确的格式
         if (response.success && response.data && typeof response.data === 'object') {
