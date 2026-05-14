@@ -5,7 +5,7 @@
 
 from pathlib import Path
 
-from shared.services.plugins.plugin_manager import plugin_hooks, plugin_manager
+from shared.services.plugins.plugin_manager.core import plugin_hooks, plugin_manager
 
 
 def initialize_plugins():

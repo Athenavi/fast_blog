@@ -7,11 +7,8 @@ import json
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 
-from shared.services.plugins.plugin_manager import check_version_match
-
-
 # 延迟导入以避免循环依赖
-# from shared.services.plugins.plugin_manager import check_version_match
+from shared.services.plugins.plugin_manager.version_utils import check_version_match
 
 
 class PluginDependencyManager:

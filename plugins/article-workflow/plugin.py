@@ -7,7 +7,7 @@ from datetime import datetime
 from enum import Enum
 from typing import Dict, List, Any, Optional
 
-from shared.services.plugins.plugin_manager import BasePlugin, plugin_hooks
+from shared.services.plugins.plugin_manager.core import BasePlugin, plugin_hooks
 
 
 class ApprovalStatus(str, Enum):

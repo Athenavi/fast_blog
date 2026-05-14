@@ -9,13 +9,12 @@
 4. 搜索结果高亮
 5. 搜索统计和分析
 """
-import asyncio
-from typing import Dict, Any, Optional
 from datetime import datetime
+from typing import Dict, Any, Optional
 
-from shared.services.plugins.plugin_manager import BasePlugin, plugin_hooks
 from shared.services.meilisearch_service import meilisearch_service
-from shared.utils.plugin_database import plugin_db
+
+from shared.services.plugins.plugin_manager.core import BasePlugin, plugin_hooks
 
 
 class FullTextSearchPlugin(BasePlugin):

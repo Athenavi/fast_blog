@@ -112,7 +112,7 @@ const LoginPage = () => {
                   
                 console.log('Token refreshed successfully');
                 // 刷新成功后,验证新 token 并跳转
-                const profileResponse = await apiClient.get('/me/profile');
+                const profileResponse = await apiClient.get('/me');
                   
                 if (profileResponse.success && profileResponse.data) {
                   const nextUrl = new URLSearchParams(window.location.search).get('next') || '/profile';
@@ -128,7 +128,7 @@ const LoginPage = () => {
           }
         } else if (accessToken) {
           // 如果存在访问令牌,尝试验证它
-          const response = await apiClient.get('/me/profile');
+          const response = await apiClient.get('/me');
                   
           if (response.success && response.data) {
             // 用户已登录,重定向到主页或个人资料页
@@ -517,7 +517,7 @@ const LoginPage = () => {
     setErrorMessage('');
 
     try {
-      const response = await apiClient.post('/2fa/verify-login', {
+      const response = await apiClient.post('/security/2fa/verify-login', {
         user_id: userId,
         token: twoFACode
       });

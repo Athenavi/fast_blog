@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models import User
-from shared.services.plugins.plugin_manager import plugin_manager
+from shared.services.plugins.plugin_manager.core import plugin_manager
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 

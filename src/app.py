@@ -327,7 +327,7 @@ async def _start_scheduled_publisher():
 
 def _init_plugins():
     try:
-        from shared.services.plugins.plugin_manager import initialize_plugins
+        from shared.services.plugins.plugin_manager.init import initialize_plugins
         return initialize_plugins()
     except ImportError as e:
         print(f"[插件系统] 导入失败: {e}")
@@ -498,7 +498,7 @@ def register_error_handlers(app: FastAPI):
     @app.exception_handler(404)
     async def custom_404_handler(request: Request, exc: HTTPException):
         try:
-            from shared.services.plugins.plugin_manager import plugin_hooks
+            from shared.services.plugins.plugin_manager.core import plugin_hooks
             error_data = {
                 'url': str(request.url),
                 'ip': request.client.host if request.client else '',

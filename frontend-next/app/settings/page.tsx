@@ -88,7 +88,7 @@ const SettingsPage = () => {
         const loadUserProfile = async () => {
             try {
                 setLoading(true);
-                const response = await apiClient.get('/users/me/profile');
+                const response = await apiClient.get('/users/me');
 
                 if (response.success && response.data) {
                     let userData = (response.data as any).user || response.data;
@@ -152,7 +152,7 @@ const SettingsPage = () => {
     useEffect(() => {
         const load2FAStatus = async () => {
             try {
-                const response = await apiClient.get('/2fa/status');
+                const response = await apiClient.get('/security/2fa/status');
                 if (response.success && response.data) {
                     setTwoFactorEnabled(response.data.is_2fa_enabled || false);
                 }
@@ -241,7 +241,7 @@ const SettingsPage = () => {
 
         try {
             setSaving(true);
-            const response = await apiClient.put('/user-settings/profiles', {
+            const response = await apiClient.put('/users/me', {
                 change_type: 'username',
                 form_data: {username: profileForm.username},
             });
@@ -263,7 +263,7 @@ const SettingsPage = () => {
     const updateBio = async () => {
         try {
             setSaving(true);
-            const response = await apiClient.put('/user-settings/profiles', {
+            const response = await apiClient.put('/users/me', {
                 change_type: 'bio',
                 form_data: {bio: profileForm.bio}
             });
@@ -285,7 +285,7 @@ const SettingsPage = () => {
     const updateLocale = async () => {
         try {
             setSaving(true);
-            const response = await apiClient.put('/user-settings/profiles', {
+            const response = await apiClient.put('/users/me', {
                 change_type: 'locale',
                 locale: profileForm.locale,
             });
@@ -307,7 +307,7 @@ const SettingsPage = () => {
     const updatePrivacy = async () => {
         try {
             setSaving(true);
-            const response = await apiClient.put('/user-settings/profiles', {
+            const response = await apiClient.put('/users/me', {
                 change_type: 'privacy',
                 profile_private: profileForm.profilePrivate,
             });
@@ -347,9 +347,9 @@ const SettingsPage = () => {
             formData.append('confirm_password', passwordForm.confirmPassword);
 
             const response = await fetch(
-                `${apiConfig.API_BASE_URL}${apiConfig.API_PREFIX}/users/me/security/change-password`,
+                `${apiConfig.API_BASE_URL}${apiConfig.API_PREFIX}/users/me/change-password`,
                 {
-                    method: 'PUT',
+                    method: 'POST',
                     body: formData,
                     credentials: 'include',
                 }
@@ -377,7 +377,7 @@ const SettingsPage = () => {
     const setup2FA = async () => {
         try {
             console.log('[2FA Setup] Starting 2FA setup...');
-            const response = await apiClient.get('/2fa/setup');
+            const response = await apiClient.get('/security/2fa/setup');
             console.log('[2FA Setup] Response:', response);
 
             if (response.success && response.data) {
@@ -405,7 +405,7 @@ const SettingsPage = () => {
 
         try {
             setSaving(true);
-            const response = await apiClient.post('/2fa/enable', {
+            const response = await apiClient.post('/security/2fa/enable', {
                 totp_token: verificationCode
             });
 
@@ -432,7 +432,7 @@ const SettingsPage = () => {
 
         try {
             setSaving(true);
-            const response = await apiClient.post('/2fa/disable');
+            const response = await apiClient.post('/security/2fa/disable');
 
             if (response.success) {
                 setTwoFactorEnabled(false);
@@ -453,7 +453,7 @@ const SettingsPage = () => {
 
     const regenerateBackupCodes = async () => {
         try {
-            const response = await apiClient.post('/2fa/backup-codes/regenerate');
+            const response = await apiClient.post('/security/2fa/backup-codes/regenerate');
             if (response.success) {
                 setBackupCodes(response.data.backup_codes || []);
                 alert('备用码已重新生成，请保存新备用码');

@@ -501,7 +501,7 @@ def _trigger_article_event(event_name: str, data: dict):
     """
     try:
         import asyncio
-        from shared.services.plugins.plugin_manager import trigger_plugin_event
+        from shared.services.plugins.plugin_manager.init import trigger_plugin_event
 
         # 检查是否有运行的事件循环
         try:

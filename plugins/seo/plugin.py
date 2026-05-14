@@ -17,7 +17,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 
-from shared.services.plugins.plugin_manager import BasePlugin, plugin_hooks
+from shared.services.plugins.plugin_manager.core import BasePlugin, plugin_hooks
 
 
 class SEOPlugin(BasePlugin):

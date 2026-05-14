@@ -4,7 +4,7 @@
 
 from fastapi import APIRouter, Depends, Query
 
-from shared.services.plugins.plugin_manager import plugin_dependency_manager
+from shared.services.plugins.plugin_manager.dependency import plugin_dependency_manager
 from src.api.v1.core.responses import ApiResponse
 from src.auth import jwt_required_dependency as jwt_required
 

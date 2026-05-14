@@ -13,7 +13,7 @@
 from datetime import datetime
 from typing import Dict, List, Any
 
-from shared.services.plugins.plugin_manager import BasePlugin, plugin_hooks
+from shared.services.plugins.plugin_manager.core import BasePlugin, plugin_hooks
 
 
 class EmailPlugin(BasePlugin):

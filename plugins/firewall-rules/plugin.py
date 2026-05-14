@@ -3,17 +3,16 @@
 Web应用防火墙，提供IP黑名单、访问频率限制等安全功能
 """
 
-import re
-import time
 import os
-import gzip
+import re
 import shutil
+import time
 from collections import defaultdict
 from datetime import datetime
-from typing import Dict, List, Any, Set
 from pathlib import Path
+from typing import Dict, List, Any, Set
 
-from shared.services.plugins.plugin_manager import BasePlugin, plugin_hooks
+from shared.services.plugins.plugin_manager.core import BasePlugin, plugin_hooks
 
 
 class FirewallRulesPlugin(BasePlugin):

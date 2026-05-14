@@ -7,7 +7,7 @@
 2. 调用相应的函数触发插件钩子
 3. 插件会自动响应这些事件
 """
-from shared.services.plugins.plugin_manager import trigger_plugin_event, apply_plugin_filter
+from shared.services.plugins.plugin_manager.init import trigger_plugin_event, apply_plugin_filter
 
 
 # ============ 示例1: 在文章发布时触发事件 ============

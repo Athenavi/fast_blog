@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.models.comment import Comment
 from shared.services.comments.comment_manager import comment_like_service, comment_notification_service
 from shared.services.notifications import webhook_service
-from shared.services.plugins.plugin_manager import trigger_plugin_event
+from shared.services.plugins.plugin_manager.init import trigger_plugin_event
 from shared.services.security.spam_filter_manager import spam_filter
 from shared.services.users.user_manager import gravatar_service
 from src.api.v1.core.responses import ApiResponse

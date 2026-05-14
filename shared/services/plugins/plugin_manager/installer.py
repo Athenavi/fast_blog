@@ -10,7 +10,7 @@ import zipfile
 from pathlib import Path
 from typing import Dict, Any, Optional, Tuple, List
 
-from shared.services.plugins.plugin_manager import plugin_dependency_manager
+from shared.services.plugins.plugin_manager.dependency import plugin_dependency_manager
 
 
 class PluginInstaller:
