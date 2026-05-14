@@ -23,7 +23,7 @@ import {
     X
 } from 'lucide-react';
 
-const MyArticlesPage = async () => {
+const MyArticlesPage = () => {
     const router = useRouter();
     const [articles, setArticles] = useState<Article[]>([]);
     const [loading, setLoading] = useState(true);
@@ -122,7 +122,7 @@ const MyArticlesPage = async () => {
                 params.hidden = filterHidden;
             }
 
-            const response = await apiClient.get('/my/articles', params);
+            const response = await apiClient.get('/dashboard/my/articles', params);
 
             if (response.success && response.data) {
                 let articlesData: Article[] = [];

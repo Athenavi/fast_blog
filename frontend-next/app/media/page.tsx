@@ -1,6 +1,6 @@
 'use client';
 
-import React, {Suspense, useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import React, {Suspense, useCallback, useEffect, useRef, useState} from 'react';
 import {DragDropContext, DropResult} from '@hello-pangea/dnd';
 import {MediaFile, MediaResponse, MediaService} from '@/lib/api';
 import {useMediaUpload} from '@/hooks/useMediaUpload';
@@ -17,26 +17,18 @@ import {Dialog, DialogContent, DialogTitle} from '@/components/ui/dialog';
 import {useRouter, useSearchParams} from 'next/navigation';
 import {motion} from 'framer-motion';
 import {
-    Image as ImageIcon,
-    Video,
-    Music,
-    FileText,
-    Grid3X3,
-    List,
-    Upload,
-    Search,
-    Filter,
-    Trash2,
-    Edit,
-    Eye,
-    Download,
-    Copy,
-    FolderOpen,
-    HardDrive,
-    FolderInput,
     ChevronLeft,
     ChevronRight,
-    Menu as MenuIcon
+    FileText,
+    FolderInput,
+    FolderOpen,
+    Grid3X3,
+    Image as ImageIcon,
+    List,
+    Menu as MenuIcon,
+    Music,
+    Trash2,
+    Video
 } from 'lucide-react';
 import dynamic from "next/dynamic";
 
@@ -426,7 +418,7 @@ const MediaPageContent = () => {
 
         // 解析 draggableId 获取媒体文件 ID
         // draggableId 格式: "media-{id}"
-        const mediaId = parseInt(draggableId.replace('media', ''));
+        const mediaId = parseInt(draggableId.replace('media-', ''));
 
         // 解析 destination.droppableId 获取文件夹路径
         // droppableId 格式: "folder-root" (根目录) 或 "folder-{path}" (子文件夹)
@@ -435,9 +427,9 @@ const MediaPageContent = () => {
         if (destination.droppableId === 'folder-root') {
             // 拖拽到根目录
             folderPath = null;
-        } else if (destination.droppableId.startsWith('folder')) {
+        } else if (destination.droppableId.startsWith('folder-')) {
             // 拖拽到子文件夹
-            folderPath = destination.droppableId.replace('folder', '');
+            folderPath = destination.droppableId.replace('folder-', '');
         }
 
         console.log('📦 移动文件:', {mediaId, folderPath});

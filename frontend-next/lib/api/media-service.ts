@@ -203,7 +203,7 @@ export class MediaService {
         mediaIds: number[],
         folderPath: string | null
     ): Promise<ApiResponse<{ moved_count: number }>> {
-        return apiClient.post('/media/media/folders/move-media', {
+        return apiClient.post('/media/folders/move-media', {
             media_ids: mediaIds,
             folder_path: folderPath
         });
@@ -218,7 +218,7 @@ export class MediaService {
         mediaId: number,
         category: string
     ): Promise<ApiResponse<{ message: string }>> {
-        return apiClient.put(`/media/media/detail/${mediaId}`, {
+        return apiClient.put(`/media/detail/${mediaId}`, {
             category: category
         });
     }
@@ -234,7 +234,7 @@ export class MediaService {
         tags: string[],
         mode: 'replace' | 'add' = 'replace'
     ): Promise<ApiResponse<{ message: string; tags: string[] }>> {
-        return apiClient.post(`/media/media/${mediaId}/tags`, {
+        return apiClient.post(`/media/${mediaId}/tags`, {
             tags: tags,
             mode: mode
         });

@@ -98,9 +98,9 @@ class CommentService {
         authorEmail?: string
     ): Promise<{ success: boolean; data?: Comment; error?: string }> {
         try {
-            // 后端可能没有直接的创建评论端点，需要确认
-            // 暂时使用 /comments/enhanced/article/{article_id} POST 方法
-            const response = await apiClient.post<Comment>(`/comments/enhanced/article/${articleId}`, {
+            // 使用 /comments/ POST 方法创建评论
+            const response = await apiClient.post<Comment>('/comments/', {
+                article_id: articleId,
                 content,
                 parent_id: parentId,
                 author_name: authorName,

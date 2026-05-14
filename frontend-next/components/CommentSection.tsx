@@ -98,7 +98,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({articleId}) => {
         try {
             setLoading(true);
             const response = await apiClient.get<{ comments?: Comment[]; total?: number; total_pages?: number }>(
-                `/api/v2/articles/${articleId}/comments`,
+                `/api/v2/comments/enhanced/article/${articleId}`,
                 {page: pageNum, per_page: perPage}
             );
 
@@ -147,7 +147,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({articleId}) => {
             setSubmitting(true);
             setError(null);
 
-            const response = await apiClient.post('/api/v2/comments', {
+            const response = await apiClient.post('/api/v2/comments/', {
                 article_id: articleId,
                 content: content,
                 parent_id: formData.parent_id,

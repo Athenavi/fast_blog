@@ -47,7 +47,7 @@ class UpdateCommentRequest(BaseModel):
     content: str
 
 
-@router.post("/comments")
+@router.post("/")
 async def create_comment(
         request: Request,
         comment_data: CreateCommentRequest,
@@ -313,7 +313,7 @@ async def get_comment(
         return ApiResponse(success=False, error=f"获取评论失败: {str(e)}")
 
 
-@router.get("/articles/{article_id}/comments")
+@router.get("/article/{article_id}")
 async def get_article_comments(
         article_id: int,
         page: int = 1,
@@ -417,7 +417,7 @@ async def get_article_comments(
         return ApiResponse(success=False, error=f"获取评论列表失败: {str(e)}")
 
 
-@router.put("/comments/{comment_id}")
+@router.put("/{comment_id}")
 async def update_comment(
         comment_id: int,
         update_data: UpdateCommentRequest,
@@ -454,7 +454,7 @@ async def update_comment(
         return ApiResponse(success=False, error=f"更新评论失败: {str(e)}")
 
 
-@router.delete("/comments/{comment_id}")
+@router.delete("/{comment_id}")
 async def delete_comment(
         comment_id: int,
         db: AsyncSession = Depends(get_async_db),
@@ -798,7 +798,7 @@ async def update_spam_filter_config(
         return ApiResponse(success=False, error=f"更新配置失败: {str(e)}")
 
 
-@router.post("/comments/{comment_id}/like")
+@router.post("/{comment_id}/like")
 async def like_comment(
         comment_id: int,
         db: AsyncSession = Depends(get_async_db),
@@ -830,7 +830,7 @@ async def like_comment(
         return ApiResponse(success=False, error=f"操作失败: {str(e)}")
 
 
-@router.get("/comments/{comment_id}/likes")
+@router.get("/{comment_id}/likes")
 async def get_comment_likes(
         comment_id: int,
         db: AsyncSession = Depends(get_async_db)
@@ -859,7 +859,7 @@ async def get_comment_likes(
         return ApiResponse(success=False, error=f"获取失败: {str(e)}")
 
 
-@router.get("/comments/{comment_id}/like/status")
+@router.get("/{comment_id}/like/status")
 async def check_like_status(
         comment_id: int,
         current_user=Depends(jwt_required)

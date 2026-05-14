@@ -15,7 +15,7 @@ from .routes_tags import router as tags_router
 from .routes_thumbnail import router as thumbnail_router
 from .routes_upload import router as upload_router
 
-router = APIRouter(prefix="/media", tags=["media"])
+router = APIRouter(tags=["media"])
 
 # 按顺序包含子路由
 # 注意：具体路径的路由必须先于通配符路由注册，避免路径冲突

@@ -38,6 +38,7 @@ ROUTE_REGISTRY_V2 = [
     ("src.api.v1.core.system", "/api/v2/system", ["system"], True),
 
     # ==================== 文章核心 ====================
+    ("src.api.v1.articles.articles", "/api/v2/articles", ["articles"], True),
     ("src.api.v1.articles.article_password", "/api/v2/articles", ["article-password"], False),
     ("src.api.v1.articles.article_revisions", "/api/v2/articles", ["article-revisions"], False),
     ("src.api.v1.articles.article_analytics", "/api/v2/analytics/articles", ["article-analytics"], False),
