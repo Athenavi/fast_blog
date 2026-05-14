@@ -4,6 +4,7 @@
  */
 
 import apiClient from '../api-client';
+import type {ApiResponse} from '@/lib/api/base-types';
 
 export interface UserSuggestion {
     id: number;
@@ -25,14 +26,14 @@ class UserService {
      * @param query - 搜索关键词
      * @param limit - 返回数量限制
      */
-    async searchUsers(query: string, limit: number = 10): Promise<UserSearchResponse> {
+    async searchUsers(query: string, limit: number = 10): Promise<ApiResponse<{ users: UserSuggestion[] }>> {
         try {
             // 如果查询为空，返回推荐用户
             if (!query || query.trim() === '') {
                 const response = await apiClient.get('/users/recommendations', {
                     params: {limit},
                 });
-                return response;
+                return response as ApiResponse<{ users: UserSuggestion[] }>;
             }
 
             // 后端没有直接的 /users/search 端点，使用 /users/ 并传递搜索参数
@@ -40,7 +41,7 @@ class UserService {
                 params: {q: query, limit, per_page: limit},
             });
 
-            return response;
+            return response as ApiResponse<{ users: UserSuggestion[] }>;
         } catch (error) {
             console.error('[UserService] Failed to search users:', error);
             return {
@@ -55,14 +56,10 @@ class UserService {
      * 获取用户详细信息
      * @param userId - 用户ID
      */
-    async getUserById(userId: number): Promise<{
-        success: boolean;
-        data?: UserSuggestion;
-        error?: string;
-    }> {
+    async getUserById(userId: number): Promise<ApiResponse<UserSuggestion>> {
         try {
             const response = await apiClient.get(`/users/${userId}`);
-            return response;
+            return response as ApiResponse<UserSuggestion>;
         } catch (error) {
             console.error('[UserService] Failed to get user:', error);
             return {
@@ -76,18 +73,14 @@ class UserService {
      * 根据用户名获取用户
      * @param username - 用户名
      */
-    async getUserByUsername(username: string): Promise<{
-        success: boolean;
-        data?: UserSuggestion;
-        error?: string;
-    }> {
+    async getUserByUsername(username: string): Promise<ApiResponse<UserSuggestion>> {
         try {
             // 后端没有直接的 /users/by-username/{username} 端点
             // 可以使用 /users/ 并传递用户名参数进行搜索
             const response = await apiClient.get('/users/', {
                 params: {username: username, per_page: 1}
             });
-            return response;
+            return response as ApiResponse<UserSuggestion>;
         } catch (error) {
             console.error('[UserService] Failed to get user by username:', error);
             return {

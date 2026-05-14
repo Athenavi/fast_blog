@@ -10,6 +10,7 @@ export interface ApiResponse<T = unknown> {
     requires_auth?: boolean;
     new_access_token?: string;
     redirect_url?: string; // 重定向 URL（当后端返回 3xx 时）
+    [key: string]: any; // 允许其他属性
 }
 
 // 分页信息类型

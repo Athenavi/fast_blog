@@ -15,7 +15,7 @@ export class BackupService {
         return apiClient.get('/backup/list');
     }
 
-    static async createBackup(type: 'schema' | 'data' | 'all'): Promise<ApiResponse<{
+    static async createBackup(type: 'schema' | 'data' | 'all' | 'database' | 'files'): Promise<ApiResponse<{
         message: string;
         filename: string
     }>> {

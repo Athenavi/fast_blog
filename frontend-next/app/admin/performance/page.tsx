@@ -1,24 +1,12 @@
 'use client';
 
-import {useState, useEffect} from 'react';
+import {useEffect, useState} from 'react';
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card';
 import {Button} from '@/components/ui/button';
 import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/components/ui/tabs';
 import {Badge} from '@/components/ui/badge';
 import {Progress} from '@/components/ui/progress';
-import {
-    Zap,
-    Database,
-    Image,
-    Code,
-    Globe,
-    RefreshCw,
-    Activity,
-    Server,
-    Cpu,
-    HardDrive,
-    TrendingUp
-} from 'lucide-react';
+import {Code, Database, Globe, Image, RefreshCw, Server, Zap} from 'lucide-react';
 import {toast} from 'sonner';
 
 interface CacheStats {
@@ -49,6 +37,7 @@ interface CodeSplittingReport {
 
 interface ISRStats {
     total_pages: number;
+    active_pages?: number;
     cache_hits: number;
     cache_misses: number;
     background_revalidations: number;

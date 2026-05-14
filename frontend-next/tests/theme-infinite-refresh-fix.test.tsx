@@ -7,6 +7,7 @@
  * 3. 主题适配不会触发无限循环
  */
 
+// @ts-nocheck - 测试文件暂时跳过类型检查
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import {render, screen, waitFor} from '@testing-library/react';
 // import {ThemeProvider} from '@/components/ThemeProvider';

@@ -1,19 +1,8 @@
 'use client';
 
 import React, {useState} from 'react';
-import {
-    BookOpen,
-    Check,
-    Copy,
-    Link as FacebookIcon,
-    Linkedin,
-    Mail,
-    MessageCircle,
-    Send,
-    Share2,
-    Twitter,
-    Zap
-} from 'lucide-react';
+import {BookOpen, Check, Copy, Link as FacebookIcon, Mail, MessageCircle, Send, Share2, Zap} from 'lucide-react';
+import {FaLinkedin, FaTwitter} from 'react-icons/fa';
 
 interface SocialShareProps {
     url: string;
@@ -54,13 +43,13 @@ const platformConfigs: Record<SocialPlatform, PlatformConfig> = {
     },
     twitter: {
         name: 'Twitter',
-        icon: Twitter,
+        icon: FaTwitter as any,
         color: '#1DA1F2',
         shareUrl: (url, title) => `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(title)}`,
     },
     linkedin: {
         name: 'LinkedIn',
-        icon: Linkedin,
+        icon: FaLinkedin as any,
         color: '#0A66C2',
         shareUrl: (url, title, description) => 
             `https://www.linkedin.com/shareArticle?mini=true&url=${encodeURIComponent(url)}&title=${encodeURIComponent(title)}&summary=${encodeURIComponent(description || '')}`,

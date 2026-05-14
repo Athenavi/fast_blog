@@ -136,7 +136,7 @@ const refreshAccessToken = async (): Promise<string | null> => {
 };
 
 // 核心请求方法
-const request = async <T>(
+const request = async <T = any>(
     path: string,
     options: RequestInit = {}
 ): Promise<ApiResponse<T>> => {

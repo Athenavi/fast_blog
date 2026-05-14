@@ -511,8 +511,8 @@ export default function ThemeCustomizerPage() {
             }
 
             // 合并配置
-            const newConfig = {...config};
-            if (template.colors) newConfig.colors = {...newConfig.colors, ...template.colors};
+            const newConfig: ThemeConfig = {...config};
+            if (template.colors) newConfig.colors = {...newConfig.colors, ...template.colors} as any;
             if (template.fonts) newConfig.fonts = {...newConfig.fonts, ...template.fonts};
             if (template.layout) newConfig.layout = {...newConfig.layout, ...template.layout};
 

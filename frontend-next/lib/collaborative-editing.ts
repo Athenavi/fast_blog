@@ -4,7 +4,7 @@
  */
 
 export interface CollaborativeUser {
-    id: string;
+    id: string | number;
     name: string;
     color: string;
     cursor?: {

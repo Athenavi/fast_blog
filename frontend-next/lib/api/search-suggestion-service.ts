@@ -4,6 +4,7 @@
  */
 
 import apiClient from '../api-client';
+import type {ApiResponse} from '@/lib/api/base-types';
 
 export interface SearchSuggestion {
     id: number;
@@ -40,7 +41,7 @@ class SearchSuggestionService {
      * @param query - 搜索关键词
      * @param limit - 返回数量限制
      */
-    async getSuggestions(query: string, limit: number = 10): Promise<SearchSuggestionsResponse> {
+    async getSuggestions(query: string, limit: number = 10): Promise<ApiResponse<{ suggestions: SearchSuggestion[] }>> {
         try {
             if (!query || query.trim() === '') {
                 return {
@@ -53,7 +54,7 @@ class SearchSuggestionService {
                 params: {q: query, limit},
             });
 
-            return response;
+            return response as ApiResponse<{ suggestions: SearchSuggestion[] }>;
         } catch (error) {
             console.error('[SearchSuggestionService] Failed to get suggestions:', error);
             return {
@@ -68,7 +69,7 @@ class SearchSuggestionService {
      * 获取热门搜索
      * @param limit - 返回数量限制
      */
-    async getHotSearches(limit: number = 10): Promise<HotSearchResponse> {
+    async getHotSearches(limit: number = 10): Promise<ApiResponse<{ hot_searches: HotSearch[] }>> {
         try {
             // 后端没有直接的 /search/hot 端点，使用 /search/stats 获取搜索统计信息
             const response = await apiClient.get('/search/stats', {
@@ -76,7 +77,7 @@ class SearchSuggestionService {
             });
 
             // 如果后端返回的数据格式不同，需要进行转换
-            return response;
+            return response as ApiResponse<{ hot_searches: HotSearch[] }>;
         } catch (error) {
             console.error('[SearchSuggestionService] Failed to get hot searches:', error);
             return {
