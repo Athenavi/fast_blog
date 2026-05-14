@@ -10,7 +10,6 @@ FastBlog 独立更新器
 
 import argparse
 import json
-
 import os
 import shutil
 import sys
@@ -37,15 +36,6 @@ except Exception as e:
     print(f"警告：无法导入更新历史管理器：{e}")
     add_update_history = None
 
-# 配置日志
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler('logs/updater.log', encoding='utf-8'),
-        logging.StreamHandler(sys.stdout)
-    ]
-)
 from src.unified_logger import default_logger as logger
 
 
