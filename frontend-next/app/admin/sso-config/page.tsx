@@ -10,6 +10,7 @@ import {Badge} from '@/components/ui/badge';
 import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/components/ui/tabs';
 import {useToast} from '@/hooks/use-toast';
 import {CheckCircle2, Lock, Save, Shield, Users} from 'lucide-react';
+import {FaGithub} from 'react-icons/fa';
 
 interface OAuthConfig {
     enabled: boolean;
@@ -450,7 +451,7 @@ export default function SSOConfigPage() {
                         <CardHeader>
                             <div className="flex items-center justify-between">
                                 <div className="flex items-center gap-3">
-                                    <GithubIcon className="w-10 h-10"/>
+                                    <FaGithub className="w-10 h-10"/>
                                     <div>
                                         <CardTitle>GitHub OAuth</CardTitle>
                                         <CardDescription>使用GitHub账号登录</CardDescription>

@@ -112,8 +112,23 @@ export default function ThemeCustomizerPage() {
             setLoading(true);
             const response = await apiClient.get(`/theme-customizer/config/${themeSlug}`);
 
-            if (response.success) {
-                setConfig((response.data as any).config as ThemeConfig);
+            if (response.success && response.data) {
+                const configData = (response.data as any).config;
+                if (configData) {
+                    // 确保 colors 字段存在且完整
+                    const safeConfig: ThemeConfig = {
+                        ...configData,
+                        colors: {
+                            primary: configData.colors?.primary || '#000000',
+                            secondary: configData.colors?.secondary || '#666666',
+                            accent: configData.colors?.accent || '#ff0000',
+                            background: configData.colors?.background || '#ffffff',
+                            foreground: configData.colors?.foreground || '#000000',
+                            ...configData.colors,
+                        },
+                    };
+                    setConfig(safeConfig);
+                }
             }
         } catch (error) {
             console.error('Failed to load theme config:', error);

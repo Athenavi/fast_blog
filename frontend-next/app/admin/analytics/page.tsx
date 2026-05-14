@@ -1,6 +1,6 @@
 'use client';
 
-import React, {useState, useEffect} from 'react';
+import React, {useEffect, useState} from 'react';
 import {Card, CardContent, CardDescription, CardHeader, CardTitle} from '@/components/ui/card';
 import {Tabs, TabsContent, TabsList, TabsTrigger} from '@/components/ui/tabs';
 import {Badge} from '@/components/ui/badge';
@@ -23,11 +23,11 @@ import {
 import {Clock, Eye, Globe, MousePointer, Smartphone, TrendingUp, Users} from 'lucide-react';
 import {
     AnalyticsService,
-    OverviewStats,
     DailyTrend,
-    TrafficSource,
     DeviceStat,
-    PopularArticle
+    OverviewStats,
+    PopularArticle,
+    TrafficSource
 } from '@/lib/api/analytics-service';
 
 export default function AnalyticsDashboardPage() {
@@ -330,21 +330,12 @@ export default function AnalyticsDashboardPage() {
                             </CardHeader>
                             <CardContent>
                                 <div className="relative h-64 bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden">
-                                    {mockData.heatmap.clicks.map((click, index) => (
-                                        <div
-                                            key={index}
-                                            className="absolute rounded-full bg-red-500 opacity-50"
-                                            style={{
-                                                left: `${click.x}%`,
-                                                top: `${click.y}%`,
-                                                width: `${click.intensity * 10}px`,
-                                                height: `${click.intensity * 10}px`,
-                                                transform: 'translate(-50%, -50%)',
-                                            }}
-                                        />
-                                    ))}
+                                    {/* TODO: 实现真实的热力图数据 */}
+                                    <div className="flex items-center justify-center h-full text-muted-foreground">
+                                        点击热力图功能开发中
+                                    </div>
                                     <div className="absolute bottom-2 right-2 text-xs text-muted-foreground">
-                                        平均滚动深度: {mockData.heatmap.scrollDepth}%
+                                        平均滚动深度: 待实现
                                     </div>
                                 </div>
                             </CardContent>

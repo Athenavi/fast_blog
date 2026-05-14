@@ -48,7 +48,7 @@ export function GlobalShortcuts({enabled = true}: GlobalShortcutsProps) {
             const modals = document.querySelectorAll('[role="dialog"], .modal, [data-state="open"]');
             if (modals.length > 0) {
                 // 触发最近打开的模态框的关闭按钮
-                const lastModal = modals[modals.length - 1] as HTMLElement;
+                const lastModal = modals[modals.length - 1] as unknown as HTMLElement;
                 const closeButton = lastModal.querySelector('button[aria-label="Close"], button[data-state="close"]') as HTMLButtonElement;
                 if (closeButton) {
                     closeButton.click();

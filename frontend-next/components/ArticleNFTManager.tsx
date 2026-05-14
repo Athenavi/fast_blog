@@ -94,7 +94,7 @@ export default function ArticleNFTManager({articleId, articleTitle}: ArticleNFTM
                 setShowMintDialog(false);
                 loadNFTInfo();
             } else {
-                setError(data.detail || 'NFT 铸造失');
+                setError((data as any).detail || (data as any).message || 'NFT 铸造失败');
             }
         } catch (err: any) {
             setError(err.message || '网络错误');

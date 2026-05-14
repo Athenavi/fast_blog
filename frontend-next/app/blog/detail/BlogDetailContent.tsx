@@ -33,7 +33,7 @@ const addHeadingIds = (contentElement: HTMLElement) => {
   const idCounts: Record<string, number> = {};
 
   headings.forEach((heading) => {
-    const h = heading as HTMLElement;
+      const h = heading as unknown as HTMLElement;
     if (!h.id) {
       // 从标题文本生成 ID
       const text = h.textContent || '';

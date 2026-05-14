@@ -40,6 +40,9 @@ interface CodeMirrorInstance {
     setCursor: (line: number, ch: number) => void;
     focus: () => void;
     getValue: () => string;
+    getWrapperElement: () => HTMLElement;
+    getSelection: () => string;
+    replaceSelection: (text: string) => void;
 }
 
 // SimpleMDE 编辑器类型

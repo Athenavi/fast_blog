@@ -68,7 +68,7 @@ export const AdvertisementService = {
      * 获取所有广告位
      */
     async getAdSlots() {
-        return apiClient.get('/ads/slots');
+        return apiClient.get<{ slots: AdSlot[] }>('/ads/slots');
     },
 
     /**
@@ -97,7 +97,7 @@ export const AdvertisementService = {
         const params: any = {};
         if (slotId) params.slot_id = slotId;
         if (status) params.status = status;
-        return apiClient.get('/ads/list', {params});
+        return apiClient.get<{ ads: Ad[] }>('/ads/list', {params});
     },
 
     /**
@@ -169,6 +169,6 @@ export const AdvertisementService = {
         const params: any = {};
         if (startDate) params.start_date = startDate;
         if (endDate) params.end_date = endDate;
-        return apiClient.get('/ads/revenue/report', {params});
+        return apiClient.get<RevenueReport>('/ads/revenue/report', {params});
     },
 };

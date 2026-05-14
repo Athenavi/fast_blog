@@ -80,14 +80,14 @@ export function CreateCollaborationDialog({
 
                 // 处理不同类型的错误响应
                 let errorMessage = `创建邀请失败 (HTTP ${response.status})`;
-                if (errorData.detail) {
-                    if (typeof errorData.detail === 'string') {
-                        errorMessage = errorData.detail;
-                    } else if (Array.isArray(errorData.detail)) {
+                if ((errorData as any).detail) {
+                    if (typeof (errorData as any).detail === 'string') {
+                        errorMessage = (errorData as any).detail;
+                    } else if (Array.isArray((errorData as any).detail)) {
                         // Pydantic 验证错误
-                        errorMessage = errorData.detail.map((e: any) => `${e.loc?.join('.')}: ${e.msg}`).join(', ');
+                        errorMessage = (errorData as any).detail.map((e: any) => `${e.loc?.join('.')}: ${e.msg}`).join(', ');
                     } else {
-                        errorMessage = JSON.stringify(errorData.detail);
+                        errorMessage = JSON.stringify((errorData as any).detail);
                     }
                 } else if (errorText) {
                     errorMessage = errorText.substring(0, 200);

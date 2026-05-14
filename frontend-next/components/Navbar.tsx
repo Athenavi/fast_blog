@@ -59,7 +59,7 @@ const Navbar: React.FC<NavbarProps> = ({
     // 点击外部关闭下拉菜单
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
-            const target = event.target as HTMLElement;
+            const target = event.target as unknown as HTMLElement;
             if (!target.closest('.user-menu-container')) {
                 setIsUserMenuOpen(false);
             }

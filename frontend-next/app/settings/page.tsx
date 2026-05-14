@@ -88,7 +88,7 @@ const SettingsPage = () => {
         const loadUserProfile = async () => {
             try {
                 setLoading(true);
-                const response = await apiClient.get('/management/me/profile');
+                const response = await apiClient.get('/users/me/profile');
 
                 if (response.success && response.data) {
                     let userData = (response.data as any).user || response.data;

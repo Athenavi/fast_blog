@@ -97,12 +97,13 @@ const CommentSection: React.FC<CommentSectionProps> = ({articleId}) => {
     const loadComments = async (pageNum: number = 1, append: boolean = false) => {
         try {
             setLoading(true);
-            const response = await apiClient.get(
-                `/api/v2/articles/${articleId}/comments?page=${pageNum}&per_page=${perPage}`
+            const response = await apiClient.get<{ comments?: Comment[]; total?: number; total_pages?: number }>(
+                `/api/v2/articles/${articleId}/comments`,
+                {page: pageNum, per_page: perPage}
             );
 
             if (response.success && response.data) {
-                const data = response.data as { comments?: Comment[]; total?: number; total_pages?: number };
+                const data = response.data;
                 const newComments = data.comments || [];
                 const total = data.total || 0;
 
@@ -133,7 +134,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({articleId}) => {
     // 提交评论
     const handleSubmit = async (content: string) => {
         if (!isLoggedIn && (!formData.author_name || !formData.author_email)) {
-            setError('请先填写姓名和邮');
+            setError('请先填写姓名和邮箱');
             // 滚动到表单顶部以显示错误
             const formElement = document.getElementById('comment-form-container');
             if (formElement) {
@@ -168,12 +169,12 @@ const CommentSection: React.FC<CommentSectionProps> = ({articleId}) => {
                             });
                         } catch (err) {
                             console.error('Failed to subscribe to comments:', err);
-                            // 订阅失败不影响评论提'
+                            // 订阅失败不影响评论提交
                         }
                     }
                 }
 
-                // 清空回复状'
+                // 清空回复状态
                 setFormData(prev => ({
                     ...prev,
                     parent_id: null
@@ -224,7 +225,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({articleId}) => {
             const response = await apiClient.post(`/api/v2/comments/${commentId}/like`);
 
             if (response.success) {
-                // 更新本地状'
+                // 更新本地状态
                 setComments(prev => updateCommentLikes(prev, commentId, 1));
             }
         } catch (err: any) {
@@ -232,7 +233,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({articleId}) => {
         }
     };
 
-    // 递归更新评论点赞'
+    // 递归更新评论点赞数
     const updateCommentLikes = (comments: Comment[], commentId: number, increment: number): Comment[] => {
         return comments.map(comment => {
             if (comment.id === commentId) {
@@ -248,7 +249,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({articleId}) => {
         });
     };
 
-    // 将平铺的评论转换为树形结'
+    // 将平铺的评论转换为树形结构
     const buildCommentTree = (comments: Comment[]): Comment[] => {
         const commentMap = new Map<number, Comment>();
         const rootComments: Comment[] = [];
@@ -275,7 +276,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({articleId}) => {
         return rootComments;
     };
 
-    // 格式化日'
+    // 格式化日期
     const formatDate = (dateString: string) => {
         const date = new Date(dateString);
         const now = new Date();
@@ -330,7 +331,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({articleId}) => {
                         </Alert>
                     )}
 
-                    {/* 访客信息（未登录用户'*/}
+                    {/* 访客信息（未登录用户） */}
                     {!isLoggedIn && (
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
@@ -390,7 +391,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({articleId}) => {
                             className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500 border-gray-300"
                         />
                         <label htmlFor="subscribe-comments" className="text-sm text-gray-700 dark:text-gray-300 cursor-pointer">
-                            有人回复时邮件通知'
+                            有人回复时邮件通知
                         </label>
                     </div>
                 </CardContent>
@@ -398,7 +399,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({articleId}) => {
 
             {/* 评论列表 */}
             {loading && comments.length === 0 ? (
-                <div className="text-center py-8 text-gray-500">加载'..</div>
+                <div className="text-center py-8 text-gray-500">加载中...</div>
             ) : comments.length === 0 ? (
                 <Card>
                     <CardContent className="py-8 text-center text-gray-500">
@@ -427,7 +428,7 @@ const CommentSection: React.FC<CommentSectionProps> = ({articleId}) => {
                                 onClick={handleLoadMore}
                                 disabled={loading}
                             >
-                                {loading ? '加载' : '加载更多评论'}
+                                {loading ? '加载中' : '加载更多评论'}
                             </Button>
                         </div>
                     )}

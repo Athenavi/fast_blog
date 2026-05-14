@@ -16,7 +16,7 @@ const ArticleForm = dynamic(
     }
 );
 
-const CreateArticlePage = async () => {
+const CreateArticlePage = () => {
     const router = useRouter();
     const [categories, setCategories] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);

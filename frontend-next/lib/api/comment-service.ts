@@ -61,11 +61,17 @@ class CommentService {
     ): Promise<CommentListResponse> {
         try {
             // 使用 /comments/enhanced/article/{article_id} 端点
-            const response = await apiClient.get(`/comments/enhanced/article/${articleId}`, {
-                params: {page, per_page: perPage, sort_by: sortBy, order},
-            });
+            const response = await apiClient.get<{
+                comments: Comment[];
+                total: number;
+                page: number;
+                per_page: number
+            }>(
+                `/comments/enhanced/article/${articleId}`,
+                {page, per_page: perPage, sort_by: sortBy, order}
+            );
 
-            return response;
+            return response as CommentListResponse;
         } catch (error) {
             console.error('[CommentService] Failed to get comments:', error);
             return {
@@ -94,14 +100,14 @@ class CommentService {
         try {
             // 后端可能没有直接的创建评论端点，需要确认
             // 暂时使用 /comments/enhanced/article/{article_id} POST 方法
-            const response = await apiClient.post(`/comments/enhanced/article/${articleId}`, {
+            const response = await apiClient.post<Comment>(`/comments/enhanced/article/${articleId}`, {
                 content,
                 parent_id: parentId,
                 author_name: authorName,
                 author_email: authorEmail,
             });
 
-            return response;
+            return response as { success: boolean; data?: Comment; error?: string };
         } catch (error) {
             console.error('[CommentService] Failed to create comment:', error);
             return {
@@ -118,8 +124,10 @@ class CommentService {
     async likeComment(commentId: number): Promise<LikeCommentResponse> {
         try {
             // 使用 /comments/enhanced/{comment_id}/like
-            const response = await apiClient.post(`/comments/enhanced/${commentId}/like`);
-            return response;
+            const response = await apiClient.post<{ action: 'liked' | 'unliked'; likes: number }>(
+                `/comments/enhanced/${commentId}/like`
+            );
+            return response as LikeCommentResponse;
         } catch (error) {
             console.error('[CommentService] Failed to like comment:', error);
             return {
@@ -137,8 +145,10 @@ class CommentService {
     async unlikeComment(commentId: number): Promise<LikeCommentResponse> {
         try {
             // 后端使用 toggle 机制，再次调用即可取消点赞
-            const response = await apiClient.post(`/comments/enhanced/${commentId}/like`);
-            return response;
+            const response = await apiClient.post<{ action: 'liked' | 'unliked'; likes: number }>(
+                `/comments/enhanced/${commentId}/like`
+            );
+            return response as LikeCommentResponse;
         } catch (error) {
             console.error('[CommentService] Failed to unlike comment:', error);
             return {
@@ -160,8 +170,10 @@ class CommentService {
     }> {
         try {
             // 使用 /comments/enhanced/{comment_id}/vote
-            const response = await apiClient.get(`/comments/enhanced/${commentId}/vote`);
-            return response;
+            const response = await apiClient.get<{ vote_type: 'like' | 'dislike' | null }>(
+                `/comments/enhanced/${commentId}/vote`
+            );
+            return response as { success: boolean; data?: { vote_type: 'like' | 'dislike' | null }; error?: string };
         } catch (error) {
             console.error('[CommentService] Failed to get user vote:', error);
             return {
@@ -182,7 +194,7 @@ class CommentService {
     }> {
         try {
             const response = await apiClient.delete(`/comments/${commentId}`);
-            return response;
+            return response as { success: boolean; error?: string };
         } catch (error) {
             console.error('[CommentService] Failed to delete comment:', error);
             return {
@@ -202,10 +214,10 @@ class CommentService {
         content: string
     ): Promise<{ success: boolean; data?: Comment; error?: string }> {
         try {
-            const response = await apiClient.put(`/comments/${commentId}`, {
+            const response = await apiClient.put<Comment>(`/comments/${commentId}`, {
                 content,
             });
-            return response;
+            return response as { success: boolean; data?: Comment; error?: string };
         } catch (error) {
             console.error('[CommentService] Failed to update comment:', error);
             return {

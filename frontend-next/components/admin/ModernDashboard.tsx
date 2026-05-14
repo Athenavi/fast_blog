@@ -27,6 +27,15 @@ import TodoReminders from './TodoReminders';
 import PerformanceCharts from './PerformanceCharts';
 import apiClient from '@/lib/api-client';
 
+interface DashboardStats {
+    articles?: number;
+    visitors?: number;
+    users?: number;
+    comments?: number;
+    likes?: number;
+    new_users?: number;
+}
+
 interface StatsCard {
     title: string;
     value: string | number;
@@ -47,7 +56,7 @@ export default function ModernDashboard() {
     const fetchDashboardStats = async () => {
         try {
             console.log('[ModernDashboard] Fetching dashboard stats...');
-            const response = await apiClient.get('/dashboard/stats');
+            const response = await apiClient.get<DashboardStats>('/dashboard/stats');
             console.log('[ModernDashboard] Dashboard stats response:', response);
 
             if (response.success && response.data) {
@@ -96,7 +105,7 @@ export default function ModernDashboard() {
                         description: '本周',
                     },
                 ]);
-                console.log('[ModernDashboard] Stats set successfully:', stats.length, 'cards');
+                console.log('[ModernDashboard] Stats set successfully');
             } else {
                 console.error('[ModernDashboard] Failed to fetch stats:', response.error);
                 // 设置默认值
@@ -132,7 +141,13 @@ export default function ModernDashboard() {
         try {
             console.log('[ModernDashboard] Fetching popular articles...');
             // 修正API路径：analytics router已经注册在 /api/v1 前缀下
-            const response = await apiClient.get('/popular-articles', {limit: 5, days: 7});
+            const response = await apiClient.get<Array<{
+                id?: number;
+                title: string;
+                slug?: string;
+                view_count?: number;
+                views?: number
+            }>>('/popular-articles', {limit: 5, days: 7});
             console.log('[ModernDashboard] Popular articles response:', response);
 
             if (response.success && response.data) {

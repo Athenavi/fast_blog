@@ -243,7 +243,7 @@ const CategoryManagement = () => {
                 const result = await response.json();
 
                 if (!result.success) {
-                    console.error('Failed to save sort order:', (result as any).detail || result.message);
+                    console.error('Failed to save sort order:', (result as any).detail || (result as any).message || 'Unknown error');
                     // 如果失败，恢复原来的顺序
                     loadCategories();
                 }

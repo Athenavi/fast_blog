@@ -37,7 +37,7 @@ const staggerContainer = {
     }
 };
 
-const ProfilePage = async () => {
+const ProfilePage = () => {
     const router = useRouter();
     const [userData, setUserData] = useState<UserProfileResponse | null>(null);
     const [loading, setLoading] = useState(true);
@@ -110,7 +110,7 @@ const ProfilePage = async () => {
         async function fetchUserProfile() {
             try {
                 setLoading(true);
-                const response = await apiClient.get<UserProfileResponse>('/management/me/profile');
+                const response = await apiClient.get<UserProfileResponse>('/users/me');
 
                 if (!response.success || !response.data) {
                     if (response.requires_auth || response.error?.includes('401')) {
@@ -163,6 +163,7 @@ const ProfilePage = async () => {
 
     const user = userData.user;
     const recentArticles = userData.recent_articles || [];
+    const stats = userData.stats || {articles_count: 0, followers_count: 0, following_count: 0};
 
     return (
         <WithAuthProtection loadingMessage="正在加载用户资料...">
@@ -301,19 +302,19 @@ const ProfilePage = async () => {
                             className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8 pt-8 border-t border-gray-200 dark:border-gray-800">
                             <div className="text-center">
                                 <div className="text-3xl font-black text-gray-900 dark:text-white">
-                                    {userData.stats.articles_count}
+                                    {stats.articles_count}
                                 </div>
                                 <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">文章</div>
                             </div>
                             <div className="text-center">
                                 <div className="text-3xl font-black text-gray-900 dark:text-white">
-                                    {userData.stats.followers_count}
+                                    {stats.followers_count}
                                 </div>
                                 <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">粉丝</div>
                             </div>
                             <div className="text-center">
                                 <div className="text-3xl font-black text-gray-900 dark:text-white">
-                                    {userData.stats.following_count}
+                                    {stats.following_count}
                                 </div>
                                 <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">关注</div>
                             </div>

@@ -516,7 +516,7 @@ export default function ModernMediaLibraryPage() {
                 loadMedia();
             } else {
                 const error = await response.json() as any;
-                alert(`保存失败: ${error.detail || '未知错误'}`);
+                alert(`保存失败: ${(error as any).detail || (error as any).message || '未知错误'}`);
             }
         } catch (error) {
             console.error('保存图片失败:', error);

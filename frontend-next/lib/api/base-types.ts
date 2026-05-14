@@ -1,7 +1,7 @@
 // 基础API响应类型定义
 
 // 基础响应类型
-export interface ApiResponse<T> {
+export interface ApiResponse<T = unknown> {
     pagination?: Pagination;
     success: boolean;
     data?: T;

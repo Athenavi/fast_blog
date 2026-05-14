@@ -16,7 +16,7 @@ class DatabaseMigrationService:
     """数据库迁移服务"""
 
     def __init__(self):
-        self.project_root = Path(__file__).parent.parent.parent.parent
+        self.project_root = Path(__file__).parent.parent.parent.parent.parent
         self.alembic_dir = self.project_root / "alembic_migrations"
 
     async def run_migration(self) -> AsyncGenerator[Dict[str, Any], None]:

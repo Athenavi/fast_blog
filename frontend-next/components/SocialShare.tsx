@@ -6,12 +6,12 @@ import {
     Check,
     Copy,
     Link as FacebookIcon,
-    Linkedin as LinkedinIcon,
+    Linkedin,
     Mail,
     MessageCircle,
     Send,
     Share2,
-    Twitter as TwitterIcon,
+    Twitter,
     Zap
 } from 'lucide-react';
 
@@ -54,13 +54,13 @@ const platformConfigs: Record<SocialPlatform, PlatformConfig> = {
     },
     twitter: {
         name: 'Twitter',
-        icon: TwitterIcon,
+        icon: Twitter,
         color: '#1DA1F2',
         shareUrl: (url, title) => `https://twitter.com/intent/tweet?url=${encodeURIComponent(url)}&text=${encodeURIComponent(title)}`,
     },
     linkedin: {
         name: 'LinkedIn',
-        icon: LinkedinIcon,
+        icon: Linkedin,
         color: '#0A66C2',
         shareUrl: (url, title, description) => 
             `https://www.linkedin.com/shareArticle?mini=true&url=${encodeURIComponent(url)}&title=${encodeURIComponent(title)}&summary=${encodeURIComponent(description || '')}`,

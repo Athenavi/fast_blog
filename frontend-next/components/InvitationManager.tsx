@@ -78,7 +78,7 @@ export function InvitationManager({documentId}: InvitationManagerProps) {
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({}));
                 console.error('Error response:', errorData);
-                throw new Error(errorData.detail || 'Failed to create invitation');
+                throw new Error((errorData as any).detail || (errorData as any).message || 'Failed to create invitation');
             }
 
             const data = await response.json();
