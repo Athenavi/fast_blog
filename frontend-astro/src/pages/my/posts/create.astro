@@ -1,0 +1,9 @@
+---
+// 创建文章
+import Layout from '@/layouts/Layout.astro';
+import ArticleEditorPage from '@/components/pages/my/ArticleEditorPage';
+---
+
+<Layout title="创建文章 - FastBlog">
+  <ArticleEditorPage mode="create" client:load />
+</Layout>
