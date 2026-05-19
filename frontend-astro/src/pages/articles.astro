@@ -1,0 +1,163 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { ArticleService } from '../lib/services/article';
+import type { Article, PaginatedResponse } from '../lib/types';
+
+// 获取 URL 参数
+const url = new URL(Astro.request.url);
+const page = parseInt(url.searchParams.get('page') || '1');
+const perPage = parseInt(url.searchParams.get('per_page') || '12');
+const search = url.searchParams.get('search') || '';
+const categoryId = url.searchParams.get('category_id');
+
+// 获取文章数据
+let articles: Article[] = [];
+let pagination = {
+  current_page: page,
+  total_pages: 1,
+  has_next: false,
+  has_prev: false,
+  per_page: perPage,
+  total: 0
+};
+
+try {
+  const params: any = { page, per_page: perPage };
+  if (search) params.search = search;
+  if (categoryId) params.category_id = parseInt(categoryId);
+
+  const response = await ArticleService.getArticles(params);
+  
+  if (response.success && response.data) {
+    articles = response.data.data || [];
+    pagination = response.data.pagination || pagination;
+  }
+} catch (error) {
+  console.error('Failed to fetch articles:', error);
+}
+---
+
+<BaseLayout title="文章列表 - FastBlog" description="浏览所有精彩文章">
+  <div class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800">
+    <!-- Header -->
+    <header class="bg-white dark:bg-gray-800 shadow-sm sticky top-0 z-50">
+      <div class="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center justify-between h-16">
+          <a href="/" class="flex items-center gap-2 text-xl font-bold text-blue-600 dark:text-blue-400">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+            </svg>
+            <span>FastBlog</span>
+          </a>
+
+          <nav class="flex items-center gap-6">
+            <a href="/" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">首页</a>
+            <a href="/articles" class="text-blue-600 dark:text-blue-400 font-medium">文章</a>
+            <a href="/categories" class="text-gray-600 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400 transition-colors">分类</a>
+          </nav>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      <div class="mb-8">
+        <h1 class="text-4xl font-black text-gray-900 dark:text-white mb-4">
+          {search ? `搜索结果: "${search}"` : '全部文章'}
+        </h1>
+        <p class="text-gray-600 dark:text-gray-400">
+          共 {pagination.total} 篇文章
+        </p>
+      </div>
+
+      <!-- Articles Grid -->
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {articles.map((article, index) => (
+          <article class="animate-fade-in-up group relative bg-white dark:bg-gray-900 rounded-2xl overflow-hidden border border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 transition-all hover:shadow-xl"
+                   style={`animation-delay: ${index * 0.05}s`}>
+            <a href={`/blog/detail?slug=${article.slug}`} class="block">
+              {article.cover_image && (
+                <div class="relative aspect-video overflow-hidden">
+                  <img src={article.cover_image} alt={article.title} class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" loading="lazy" />
+                  <div class="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                </div>
+              )}
+
+              <div class="p-6">
+                {article.tags && article.tags.length > 0 && (
+                  <div class="flex items-center gap-2 mb-3">
+                    <span class="px-3 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-xs font-medium rounded-full">
+                      {article.tags[0]}
+                    </span>
+                  </div>
+                )}
+
+                <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-3 line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                  {article.title}
+                </h3>
+
+                <p class="text-gray-600 dark:text-gray-400 text-sm mb-4 line-clamp-2">
+                  {article.excerpt || article.summary || '暂无摘要'}
+                </p>
+
+                <div class="flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
+                  <span class="flex items-center gap-1">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    {article.created_at ? new Date(article.created_at).toLocaleDateString('zh-CN') : ''}
+                  </span>
+
+                  <div class="flex items-center gap-3">
+                    <span class="flex items-center gap-1">
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                      </svg>
+                      {article.views || 0}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </a>
+          </article>
+        ))}
+      </div>
+
+      {articles.length === 0 && (
+        <div class="text-center py-20">
+          <div class="text-6xl mb-4">📝</div>
+          <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2">暂无文章</h2>
+          <p class="text-gray-600 dark:text-gray-400">
+            {search ? '没有找到匹配的文章' : '还没有发布任何文章'}
+          </p>
+        </div>
+      )}
+
+      <!-- Pagination -->
+      {pagination.total_pages > 1 && (
+        <div class="mt-12 flex items-center justify-center gap-2">
+          {pagination.has_prev && (
+            <a 
+              href={`?page=${pagination.current_page - 1}${search ? `&search=${search}` : ''}${categoryId ? `&category_id=${categoryId}` : ''}`}
+              class="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+              上一页
+            </a>
+          )}
+
+          <span class="px-4 py-2 text-gray-600 dark:text-gray-400">
+            第 {pagination.current_page} / {pagination.total_pages} 页
+          </span>
+
+          {pagination.has_next && (
+            <a 
+              href={`?page=${pagination.current_page + 1}${search ? `&search=${search}` : ''}${categoryId ? `&category_id=${categoryId}` : ''}`}
+              class="px-4 py-2 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
+              下一页
+            </a>
+          )}
+        </div>
+      )}
+    </main>
+  </div>
+</BaseLayout>

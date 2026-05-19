@@ -1,0 +1,59 @@
+fastapi
+jinja2
+mdit-py-plugins
+pygments
+uvicorn[standard]
+python-dotenv
+sqlalchemy
+httpx-oauth
+asyncpg
+aiomysql
+aiosqlite
+fastapi-users[sqlalchemy]
+redis
+slowapi
+python-multipart
+python-jose[cryptography]
+pyJWT
+cachetools
+httpx
+# PostgreSQL 异步驱动
+psycopg2-binary
+# linux libmagic
+# windows python-magic-bin
+fastapi-cors
+tokenizer
+apscheduler
+wtforms
+pydantic
+openapi-spec-validator
+fastapi-versioning
+alembic
+opencv-python
+pyotp  # TOTP双因素认证
+qrcode[pil]  # QR码生成
+mutagen  # 音频文件元数据读取（ID3标签、封面提取）
+
+# 更新系统依赖
+requests
+psutil
+# API测试依赖
+aiohttp
+aioboto3
+
+mdit-py-toc
+mdit-py-emoji
+
+# 错误追踪和监控
+sentry-sdk[fastapi]
+
+# Meilisearch 全文搜索引擎
+meilisearch-python-sdk
+
+
+python-magic
+libmagic
+humanize
+
+argon2-cffi
+secure-python-utils==0.1.4

@@ -1,0 +1,12 @@
+---
+// 用户管理
+import Layout from '@/layouts/Layout.astro';
+import AdminUsers from '@/components/pages/admin/AdminUsers';
+---
+
+<Layout title="用户管理 - 后台管理 - FastBlog">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">用户管理</h1>
+    <AdminUsers client:load />
+  </div>
+</Layout>

@@ -1,0 +1,12 @@
+---
+// 角色权限管理
+import Layout from '@/layouts/Layout.astro';
+import AdminRoles from '@/components/pages/admin/AdminRoles';
+---
+
+<Layout title="角色管理 - 后台管理 - FastBlog">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">角色与权限</h1>
+    <AdminRoles client:load />
+  </div>
+</Layout>

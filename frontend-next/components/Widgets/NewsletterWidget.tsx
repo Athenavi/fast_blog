@@ -1,0 +1,3 @@
+export default function NewsletterWidget() {
+    return <div>Newsletter</div>;
+}

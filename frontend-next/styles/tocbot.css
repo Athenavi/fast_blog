@@ -1,0 +1,138 @@
+/* Tocbot 样式 */
+.toc {
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+.js-toc {
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+  padding-right: 8px;
+  min-height: 100px;
+}
+
+/* 确保目录容器能够正确自适应高度 */
+.sticky {
+  position: -webkit-sticky;
+  position: sticky;
+  top: 1rem;
+}
+
+/* 防止目录区域过高 */
+@media (min-height: 800px) {
+  .js-toc {
+    max-height: 600px;
+  }
+}
+
+@media (min-height: 600px) and (max-height: 799px) {
+  .js-toc {
+    max-height: 400px;
+  }
+}
+
+@media (max-height: 599px) {
+  .js-toc {
+    max-height: 300px;
+  }
+}
+
+.js-toc::-webkit-scrollbar {
+  width: 6px;
+}
+
+.js-toc::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 3px;
+}
+
+.js-toc::-webkit-scrollbar-thumb {
+  background: #c1c1c1;
+  border-radius: 3px;
+}
+
+.js-toc::-webkit-scrollbar-thumb:hover {
+  background: #a8a8a8;
+}
+
+.toc-list {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
+
+.toc-list-item {
+  margin: 0;
+  padding: 0;
+}
+
+.toc-link {
+  display: block;
+  padding: 4px 0;
+  color: #6b7280;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  border-radius: 4px;
+  margin-bottom: 2px;
+}
+
+.toc-link:hover {
+  color: #3b82f6;
+  background-color: #eff6ff;
+  padding-left: 8px;
+}
+
+.is-active-link {
+  color: #3b82f6;
+  font-weight: 600;
+  background-color: #dbeafe;
+  padding-left: 8px;
+  border-left: 2px solid #3b82f6;
+}
+
+/* 层级缩进 */
+.toc-list .toc-list {
+  padding-left: 16px;
+}
+
+.toc-list .toc-list .toc-list {
+  padding-left: 24px;
+}
+
+.toc-list .toc-list .toc-list .toc-list {
+  padding-left: 32px;
+}
+
+/* 响应式调整 */
+@media (max-width: 768px) {
+  .js-toc {
+    max-height: 300px;
+  }
+  
+  .toc-link {
+    padding: 6px 0;
+    font-size: 0.8125rem;
+  }
+}
+
+/* 深色模式支持 */
+.dark .toc-link {
+  color: #9ca3af;
+}
+
+.dark .toc-link:hover {
+  color: #60a5fa;
+  background-color: #1e293b;
+}
+
+.dark .is-active-link {
+  color: #60a5fa;
+  background-color: #334155;
+  border-left-color: #60a5fa;
+}
+
+/* 固定定位样式 */
+.is-position-fixed {
+  position: fixed;
+  top: 20px;
+}

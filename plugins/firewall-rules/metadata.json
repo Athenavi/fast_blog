@@ -1,0 +1,13 @@
+{
+  "name": "Firewall Rules",
+  "slug": "firewall-rules",
+  "version": "1.0.0",
+  "description": "防火墙规则管理，IP 黑白名单、请求频率限制、恶意请求拦截",
+  "author": "FastBlog Team",
+  "category": "security",
+  "tags": ["firewall", "security", "protection"],
+  "requires": ">=0.0.2.0",
+  "tested_up_to": "0.0.2.0",
+  "icon": "🛡️",
+  "price": "free"
+}

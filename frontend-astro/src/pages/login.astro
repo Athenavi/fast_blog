@@ -1,0 +1,11 @@
+---
+// 登录页
+import Layout from '@/layouts/Layout.astro';
+import LoginPage from '@/components/pages/LoginPage';
+---
+
+<Layout title="登录 - FastBlog">
+  <div class="min-h-[80vh] flex items-center justify-center px-4">
+    <LoginPage client:load />
+  </div>
+</Layout>

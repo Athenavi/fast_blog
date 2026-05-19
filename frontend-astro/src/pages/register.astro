@@ -1,0 +1,11 @@
+---
+// 注册页
+import Layout from '@/layouts/Layout.astro';
+import RegisterPage from '@/components/pages/RegisterPage';
+---
+
+<Layout title="注册 - FastBlog">
+  <div class="min-h-[80vh] flex items-center justify-center px-4">
+    <RegisterPage client:load />
+  </div>
+</Layout>

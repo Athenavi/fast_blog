@@ -1,0 +1,12 @@
+---
+// 分类管理
+import Layout from '@/layouts/Layout.astro';
+import AdminCategories from '@/components/pages/admin/AdminCategories';
+---
+
+<Layout title="分类管理 - 后台管理 - FastBlog">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">分类管理</h1>
+    <AdminCategories client:load />
+  </div>
+</Layout>

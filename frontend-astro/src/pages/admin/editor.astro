@@ -1,0 +1,11 @@
+---
+// 文章编辑器
+import Layout from '@/layouts/Layout.astro';
+import ArticleEditor from '@/components/pages/admin/ArticleEditor';
+---
+
+<Layout title="编辑文章 - 后台管理 - FastBlog">
+  <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <ArticleEditor client:load />
+  </div>
+</Layout>

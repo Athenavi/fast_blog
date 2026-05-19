@@ -1,0 +1,12 @@
+---
+// 管理后台 - 仪表盘
+import Layout from '@/layouts/Layout.astro';
+import AdminDashboard from '@/components/pages/admin/AdminDashboard';
+---
+
+<Layout title="仪表盘 - 后台管理 - FastBlog">
+  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">仪表盘</h1>
+    <AdminDashboard client:load />
+  </div>
+</Layout>

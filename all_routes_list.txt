@@ -1,0 +1,1799 @@
+============================================================================================================================================
+系统所有注册路由列表
+============================================================================================================================================
+
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: fastapi.applications
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]     1. /docs                                                                            [HEAD,GET  ] -> swagger_ui_html
+[S]     2. /docs/oauth2-redirect                                                            [HEAD,GET  ] -> swagger_ui_redirect
+[S]     3. /openapi.json                                                                    [HEAD,GET  ] -> openapi
+[S]     4. /redoc                                                                           [HEAD,GET  ] -> redoc_html
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.accessibility.accessibility_audit
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]     5. /api/v2/accessibility/audit                                                      [POST      ] -> audit_page
+[S]     6. /api/v2/accessibility/audit/batch                                                [POST      ] -> audit_batch
+[S]     7. /api/v2/accessibility/audit/checklist                                            [GET       ] -> get_accessibility_checklist
+[S]     8. /api/v2/accessibility/audit/examples                                             [GET       ] -> get_usage_examples
+[S]     9. /api/v2/accessibility/audit/guidelines                                           [GET       ] -> get_wcag_guidelines
+[S]    10. /api/v2/accessibility/audit/tools                                                [GET       ] -> get_accessibility_tools
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.accessibility.accessibility_optimizer_api
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]    11. /api/v2/accessibility/optimizer/accessibility-optimizer/aria/suggestions         [POST      ] -> generate_aria_suggestions
+[S]    12. /api/v2/accessibility/optimizer/accessibility-optimizer/audit/comprehensive      [POST      ] -> run_comprehensive_audit
+[S]    13. /api/v2/accessibility/optimizer/accessibility-optimizer/best-practices           [GET       ] -> get_best_practices
+[S]    14. /api/v2/accessibility/optimizer/accessibility-optimizer/checklist                [GET       ] -> get_accessibility_checklist
+[S]    15. /api/v2/accessibility/optimizer/accessibility-optimizer/contrast/check           [POST      ] -> check_color_contrast
+[W]    16. /api/v2/accessibility/optimizer/accessibility-optimizer/fix-template/{violation_type} [GET       ] -> get_fix_template
+[S]    17. /api/v2/accessibility/optimizer/accessibility-optimizer/guide                    [GET       ] -> get_accessibility_guide
+[S]    18. /api/v2/accessibility/optimizer/accessibility-optimizer/keyboard/test            [POST      ] -> test_keyboard_navigation
+[S]    19. /api/v2/accessibility/optimizer/accessibility-optimizer/tools                    [GET       ] -> get_accessibility_tools
+[S]    20. /api/v2/accessibility/optimizer/accessibility-optimizer/wcag-guidelines          [GET       ] -> get_wcag_guidelines
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.accessibility.amp
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]    21. /api/v2/amp/info                                                                 [GET       ] -> amp_info_api
+[W]    22. /api/v2/amp/{article_id}                                                         [GET       ] -> get_article_amp_api
+[W]    23. /api/v2/amp/{article_id}/validate                                                [GET       ] -> validate_article_amp_api
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.advanced_features.achievement_badges
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]    24. /api/v2/ext/badges/admin/award                                                   [POST      ] -> admin_award_badge
+[S]    25. /api/v2/ext/badges/admin/stats                                                   [GET       ] -> get_badge_system_stats
+[S]    26. /api/v2/ext/badges/available                                                     [GET       ] -> get_available_badges
+[S]    27. /api/v2/ext/badges/categories                                                    [GET       ] -> get_badge_categories
+[S]    28. /api/v2/ext/badges/check-and-award                                               [POST      ] -> check_and_award_badges
+[W]    29. /api/v2/ext/badges/details/{badge_key}                                           [GET       ] -> get_badge_details
+[S]    30. /api/v2/ext/badges/my-badges                                                     [GET       ] -> get_my_badges
+[W]    31. /api/v2/ext/badges/progress/{badge_key}                                          [GET       ] -> get_badge_progress
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.advanced_features.ai_recommendations
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]    32. /api/v2/ext/ai-recommendations/analyze-sentiment                                 [GET       ] -> analyze_sentiment
+[S]    33. /api/v2/ext/ai-recommendations/extract-summary                                   [GET       ] -> extract_summary
+[S]    34. /api/v2/ext/ai-recommendations/moderate-content                                  [POST      ] -> moderate_content
+[S]    35. /api/v2/ext/ai-recommendations/recommend-tags                                    [POST      ] -> recommend_tags
+[S]    36. /api/v2/ext/ai-recommendations/writing/check-grammar                             [POST      ] -> check_grammar
+[S]    37. /api/v2/ext/ai-recommendations/writing/continue                                  [POST      ] -> smart_continue
+[S]    38. /api/v2/ext/ai-recommendations/writing/generate-titles                           [POST      ] -> generate_titles
+[S]    39. /api/v2/ext/ai-recommendations/writing/polish                                    [POST      ] -> polish_text
+[S]    40. /api/v2/ext/ai-recommendations/writing/transform-style                           [POST      ] -> transform_style
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.advanced_features.edge_functions
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]    41. /api/v2/ext/edge-functions/generate/cloudflare                                   [POST      ] -> generate_cloudflare_worker
+[S]    42. /api/v2/ext/edge-functions/generate/vercel                                       [POST      ] -> generate_vercel_edge_functions
+[W]    43. /api/v2/ext/edge-functions/items/{function_name}                                 [DELETE    ] -> remove_function
+[S]    44. /api/v2/ext/edge-functions/list                                                  [GET       ] -> list_functions
+[S]    45. /api/v2/ext/edge-functions/register                                              [POST      ] -> register_function
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.advanced_features.expert_certification
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[W]    46. /api/v2/ext/expert-certification/admin/application/{application_id}              [GET       ] -> get_application_details
+[S]    47. /api/v2/ext/expert-certification/admin/pending-applications                      [GET       ] -> get_pending_applications
+[S]    48. /api/v2/ext/expert-certification/admin/review                                    [POST      ] -> review_application
+[S]    49. /api/v2/ext/expert-certification/admin/revoke                                    [POST      ] -> revoke_certification
+[S]    50. /api/v2/ext/expert-certification/admin/stats                                     [GET       ] -> get_certification_stats
+[S]    51. /api/v2/ext/expert-certification/apply                                           [POST      ] -> apply_certification
+[W]    52. /api/v2/ext/expert-certification/check-expert/{user_id}                          [GET       ] -> check_expert
+[S]    53. /api/v2/ext/expert-certification/experts                                         [GET       ] -> get_certified_experts
+[S]    54. /api/v2/ext/expert-certification/fields                                          [GET       ] -> get_available_fields
+[S]    55. /api/v2/ext/expert-certification/my-status                                       [GET       ] -> get_my_certification_status
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.advanced_features.membership
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[W]    56. /api/v2/membership/cancel/{subscription_id}                                      [POST      ] -> cancel_subscription
+[S]    57. /api/v2/membership/check-access                                                  [GET       ] -> check_content_access
+[S]    58. /api/v2/membership/features                                                      [GET       ] -> get_vip_features
+[S]    59. /api/v2/membership/my-subscription                                               [GET       ] -> get_my_subscription
+[S]    60. /api/v2/membership/plans                                                         [GET       ] -> get_available_plans
+[S]    61. /api/v2/membership/premium-content                                               [GET       ] -> get_premium_content
+[S]    62. /api/v2/membership/status                                                        [GET       ] -> get_vip_status
+[S]    63. /api/v2/membership/subscribe                                                     [POST      ] -> create_subscription
+[S]    64. /api/v2/membership/subscriptions                                                 [GET       ] -> get_user_subscriptions
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.advanced_features.nft
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]    65. /api/v2/ext/nft/configure                                                        [POST      ] -> configure_nft_service
+[W]    66. /api/v2/ext/nft/metadata/{article_id}                                            [GET       ] -> get_nft_metadata
+[S]    67. /api/v2/ext/nft/mint                                                             [POST      ] -> mint_nft
+[S]    68. /api/v2/ext/nft/transfer                                                         [POST      ] -> transfer_nft
+[W]    69. /api/v2/ext/nft/user/{wallet_address}                                            [GET       ] -> get_user_nfts
+[S]    70. /api/v2/ext/nft/verify                                                           [POST      ] -> verify_ownership
+[W]    71. /api/v2/ext/nft/{article_id}                                                     [GET       ] -> get_nft_info
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.advanced_features.personalized_feed
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]    72. /api/v2/ext/personalized-feed/my-feed                                            [GET       ] -> get_my_feed
+[S]    73. /api/v2/ext/personalized-feed/simulate/article-published                         [POST      ] -> simulate_article_published
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.advanced_features.points_system
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]    74. /api/v2/ext/points/admin/add-points                                              [POST      ] -> admin_add_points
+[S]    75. /api/v2/ext/points/admin/deduct-points                                           [POST      ] -> admin_deduct_points
+[S]    76. /api/v2/ext/points/admin/stats                                                   [GET       ] -> get_system_stats
+[S]    77. /api/v2/ext/points/exchange                                                      [POST      ] -> exchange_points
+[S]    78. /api/v2/ext/points/exchange-rules                                                [GET       ] -> get_exchange_rules
+[S]    79. /api/v2/ext/points/leaderboard                                                   [GET       ] -> get_leaderboard
+[S]    80. /api/v2/ext/points/my-history                                                    [GET       ] -> get_my_history
+[S]    81. /api/v2/ext/points/my-points                                                     [GET       ] -> get_my_points
+[S]    82. /api/v2/ext/points/my-stats                                                      [GET       ] -> get_my_stats
+[S]    83. /api/v2/ext/points/points-rules                                                  [GET       ] -> get_points_rules
+[S]    84. /api/v2/ext/points/record-action                                                 [POST      ] -> record_action
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.advanced_features.recommendations
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]    85. /api/v2/ext/recommendations/personalized                                         [GET       ] -> get_personalized_recommendations
+[S]    86. /api/v2/ext/recommendations/rising-stars                                         [GET       ] -> get_rising_stars
+[W]    87. /api/v2/ext/recommendations/similar/{article_id}                                 [GET       ] -> get_similar_articles
+[S]    88. /api/v2/ext/recommendations/track-action                                         [POST      ] -> track_user_action
+[S]    89. /api/v2/ext/recommendations/trending                                             [GET       ] -> get_trending_articles
+[S]    90. /api/v2/ext/recommendations/update-article-features                              [POST      ] -> update_article_features
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.advanced_features.tipping_system
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]    91. /api/v2/ext/tipping/admin/process-withdrawal                                     [POST      ] -> admin_process_withdrawal
+[W]    92. /api/v2/ext/tipping/article/{article_id}                                         [GET       ] -> get_article_tips
+[S]    93. /api/v2/ext/tipping/balance                                                      [GET       ] -> get_available_balance
+[W]    94. /api/v2/ext/tipping/cancel-withdrawal/{withdrawal_id}                            [POST      ] -> cancel_withdrawal
+[S]    95. /api/v2/ext/tipping/leaderboard                                                  [GET       ] -> get_tipping_leaderboard
+[S]    96. /api/v2/ext/tipping/my-received                                                  [GET       ] -> get_my_received_tips
+[S]    97. /api/v2/ext/tipping/my-stats                                                     [GET       ] -> get_my_tip_stats
+[S]    98. /api/v2/ext/tipping/my-withdrawals                                               [GET       ] -> get_my_withdrawals
+[S]    99. /api/v2/ext/tipping/preset-amounts                                               [GET       ] -> get_preset_amounts
+[S]   100. /api/v2/ext/tipping/recent                                                       [GET       ] -> get_recent_tips
+[S]   101. /api/v2/ext/tipping/refund                                                       [POST      ] -> refund_tip
+[S]   102. /api/v2/ext/tipping/tip-article                                                  [POST      ] -> tip_article
+[S]   103. /api/v2/ext/tipping/withdraw                                                     [POST      ] -> request_withdrawal
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.advanced_features.websocket
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[W]   104. /api/v2/ext/websocket/chat/{group_id}                                            [N/A       ] -> chat_websocket
+[W]   105. /api/v2/ext/websocket/collaborate/{invite_id}                                    [N/A       ] -> collaborate_websocket
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.ai.content_creator_api
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   106. /api/v2/ai/content/ai-content/analyze-keyword-density                            [POST      ] -> analyze_keyword_density
+[S]   107. /api/v2/ai/content/ai-content/check-readability                                  [POST      ] -> check_readability
+[S]   108. /api/v2/ai/content/ai-content/expand-paragraph                                   [POST      ] -> expand_paragraph
+[S]   109. /api/v2/ai/content/ai-content/extract-keywords                                   [POST      ] -> extract_keywords
+[S]   110. /api/v2/ai/content/ai-content/full-seo-analysis                                  [POST      ] -> full_seo_analysis
+[S]   111. /api/v2/ai/content/ai-content/generate-meta-description                          [POST      ] -> generate_meta_description
+[S]   112. /api/v2/ai/content/ai-content/generate-outline                                   [POST      ] -> generate_outline
+[S]   113. /api/v2/ai/content/ai-content/guide                                              [GET       ] -> get_ai_content_guide
+[S]   114. /api/v2/ai/content/ai-content/history                                            [GET       ] -> get_generation_history
+[S]   115. /api/v2/ai/content/ai-content/optimize-title                                     [POST      ] -> optimize_title
+[S]   116. /api/v2/ai/content/ai-content/suggest-internal-links                             [POST      ] -> suggest_internal_links
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.ai.skills_api
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[W]   117. /api/v2/ai/skills/ai-skills/activate/{skill_name}                                [POST      ] -> activate_skill
+[S]   118. /api/v2/ai/skills/ai-skills/categories                                           [GET       ] -> get_skill_categories
+[W]   119. /api/v2/ai/skills/ai-skills/deactivate/{skill_name}                              [POST      ] -> deactivate_skill
+[W]   120. /api/v2/ai/skills/ai-skills/execute/{skill_name}                                 [POST      ] -> execute_skill
+[S]   121. /api/v2/ai/skills/ai-skills/guide                                                [GET       ] -> get_skills_guide
+[W]   122. /api/v2/ai/skills/ai-skills/info/{skill_name}                                    [GET       ] -> get_skill_info
+[S]   123. /api/v2/ai/skills/ai-skills/list                                                 [GET       ] -> list_skills
+[S]   124. /api/v2/ai/skills/ai-skills/templates                                            [GET       ] -> get_skill_templates
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.articles.anomaly_detection
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   125. /api/v2/system/anomaly-detection/anomalies                                       [GET       ] -> get_anomalies
+[S]   126. /api/v2/system/anomaly-detection/config                                          [POST      ] -> update_config
+[S]   127. /api/v2/system/anomaly-detection/examples                                        [GET       ] -> get_usage_examples
+[S]   128. /api/v2/system/anomaly-detection/record-activity                                 [POST      ] -> record_user_activity
+[S]   129. /api/v2/system/anomaly-detection/record-login                                    [POST      ] -> record_login_attempt
+[S]   130. /api/v2/system/anomaly-detection/statistics                                      [GET       ] -> get_statistics
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.articles.article_analytics
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   131. /api/v2/analytics/articles/top-articles                                          [GET       ] -> get_top_articles
+[W]   132. /api/v2/analytics/articles/{article_id}/full-report                              [GET       ] -> get_full_analytics_report
+[W]   133. /api/v2/analytics/articles/{article_id}/regions                                  [GET       ] -> get_reader_regions
+[W]   134. /api/v2/analytics/articles/{article_id}/sources                                  [GET       ] -> get_traffic_sources
+[W]   135. /api/v2/analytics/articles/{article_id}/stats                                    [GET       ] -> get_article_stats
+[W]   136. /api/v2/analytics/articles/{article_id}/trend                                    [GET       ] -> get_views_trend
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.articles.article_annotations
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   137. /api/v2/articles/annotations/                                                    [POST      ] -> create_annotation
+[W]   138. /api/v2/articles/annotations/article/{article_id}                                [GET       ] -> get_article_annotations
+[W]   139. /api/v2/articles/annotations/{annotation_id}                                     [PUT       ] -> update_annotation
+[W]   140. /api/v2/articles/annotations/{annotation_id}                                     [DELETE    ] -> delete_annotation
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.articles.article_interactions
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[W]   141. /api/v2/articles/{article_id}/like                                               [POST      ] -> like_article
+[W]   142. /api/v2/articles/{article_id}/view                                               [POST      ] -> record_article_view
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.articles.article_password
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[W]   143. /api/v2/articles/{article_id}/access                                             [GET       ] -> check_article_access_api
+[W]   144. /api/v2/articles/{article_id}/password                                           [POST      ] -> set_article_password_api
+[W]   145. /api/v2/articles/{article_id}/verify                                             [POST      ] -> verify_article_password_api
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.articles.article_revisions
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   146. /api/v2/articles/revisions/compare                                               [GET       ] -> compare_article_revisions
+[W]   147. /api/v2/articles/revisions/{revision_id}                                         [GET       ] -> get_revision
+[W]   148. /api/v2/articles/{article_id}/revisions                                          [POST      ] -> create_article_revision
+[W]   149. /api/v2/articles/{article_id}/revisions                                          [GET       ] -> list_article_revisions
+[W]   150. /api/v2/articles/{article_id}/revisions/sync                                     [POST      ] -> sync_article_revisions
+[W]   151. /api/v2/articles/{article_id}/revisions/{revision_id}                            [DELETE    ] -> delete_article_revision
+[W]   152. /api/v2/articles/{article_id}/revisions/{revision_id}/rollback                   [POST      ] -> rollback_article
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.articles.article_stats
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[W]   153. /api/v2/analytics/articles/stats/reset/{article_id}                              [DELETE    ] -> reset_article_views
+[S]   154. /api/v2/analytics/articles/stats/sync-all                                        [POST      ] -> sync_all_article_views
+[W]   155. /api/v2/analytics/articles/stats/sync/{article_id}                               [POST      ] -> sync_article_views
+[S]   156. /api/v2/analytics/articles/stats/top-articles                                    [GET       ] -> get_top_articles
+[W]   157. /api/v2/analytics/articles/stats/view/{article_id}                               [GET       ] -> get_article_views
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.articles.articles
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   158. /api/v2/articles                                                                 [GET       ] -> get_articles_api
+[S]   159. /api/v2/articles                                                                 [POST      ] -> create_article_api
+[S]   160. /api/v2/articles/admin/clean-expired-sticky                                      [POST      ] -> clean_expired_sticky_articles_api
+[S]   161. /api/v2/articles/batch-operation                                                 [POST      ] -> batch_article_operation_api
+[W]   162. /api/v2/articles/contribute/{article_id}                                         [GET       ] -> get_contribute_info_api
+[W]   163. /api/v2/articles/contribute/{article_id}                                         [POST      ] -> submit_contribution_api
+[S]   164. /api/v2/articles/detail                                                          [GET       ] -> get_article_detail_by_query_api
+[W]   165. /api/v2/articles/edit/{article_id}                                               [GET       ] -> get_edit_article_api
+[S]   166. /api/v2/articles/featured                                                        [GET       ] -> get_featured_articles_api
+[S]   167. /api/v2/articles/home/articles                                                   [GET       ] -> get_home_articles_api
+[S]   168. /api/v2/articles/new                                                             [GET       ] -> get_new_article_form_api
+[W]   169. /api/v2/articles/p/{slug}                                                        [GET       ] -> get_article_by_slug_api
+[S]   170. /api/v2/articles/reorder                                                         [POST      ] -> reorder_articles_api
+[W]   171. /api/v2/articles/tag/{tag_name}                                                  [GET       ] -> get_articles_by_tag_api
+[W]   172. /api/v2/articles/user/{user_id}                                                  [GET       ] -> get_user_articles_api
+[W]   173. /api/v2/articles/user/{user_id}/stats                                            [GET       ] -> get_user_articles_stats_api
+[W]   174. /api/v2/articles/{article_id}                                                    [GET       ] -> get_article_detail_api
+[W]   175. /api/v2/articles/{article_id}                                                    [PUT       ] -> update_article_api
+[W]   176. /api/v2/articles/{article_id}                                                    [DELETE    ] -> delete_article_api
+[W]   177. /api/v2/articles/{article_id}.html                                               [GET       ] -> get_article_by_id_html_api
+[W]   178. /api/v2/articles/{article_id}/raw                                                [GET       ] -> get_article_raw_content_api
+[W]   179. /api/v2/articles/{article_id}/sticky                                             [POST      ] -> toggle_article_sticky_api
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.articles.draft_preview
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   180. /api/v2/articles/drafts/cleanup                                                  [POST      ] -> cleanup_expired_tokens
+[S]   181. /api/v2/articles/drafts/generate                                                 [POST      ] -> generate_preview_link
+[S]   182. /api/v2/articles/drafts/revoke                                                   [POST      ] -> revoke_preview_link
+[W]   183. /api/v2/articles/drafts/stats/{token}                                            [GET       ] -> get_preview_stats
+[S]   184. /api/v2/articles/drafts/validate                                                 [POST      ] -> validate_preview_link
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.articles.scheduled_publish
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[W]   185. /api/v2/articles/scheduler/cancel/{article_id}                                   [POST      ] -> cancel_scheduled_publish
+[S]   186. /api/v2/articles/scheduler/list                                                  [GET       ] -> get_scheduled_articles
+[S]   187. /api/v2/articles/scheduler/publish-due                                           [POST      ] -> publish_due_articles
+[S]   188. /api/v2/articles/scheduler/schedule                                              [POST      ] -> schedule_article
+[S]   189. /api/v2/articles/scheduler/upcoming                                              [GET       ] -> get_upcoming_publishes
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.articles.tags
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   190. /api/v2/tags/suggest                                                             [GET       ] -> suggest_tags
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.auth
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   191. /api/v2/auth/check-email                                                         [GET       ] -> check_email
+[S]   192. /api/v2/auth/check-username                                                      [GET       ] -> check_username
+[S]   193. /api/v2/auth/email/send-code                                                     [POST      ] -> send_email_verification_code
+[S]   194. /api/v2/auth/email/verify-code                                                   [POST      ] -> verify_email_code
+[S]   195. /api/v2/auth/login                                                               [POST      ] -> login_api
+[S]   196. /api/v2/auth/logout                                                              [POST      ] -> logout_api
+[S]   197. /api/v2/auth/register                                                            [POST      ] -> register_api
+[S]   198. /api/v2/auth/sms/send-code                                                       [POST      ] -> send_sms_verification_code
+[S]   199. /api/v2/auth/sms/verify-code                                                     [POST      ] -> verify_sms_code
+[S]   200. /api/v2/auth/status                                                              [GET       ] -> check_login_status
+[S]   201. /api/v2/auth/token/refresh                                                       [POST      ] -> refresh_token_api
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.block_editor.block_editor_api
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   202. /api/v2/block-editor/block-editor/block-types                                    [GET       ] -> list_block_types
+[S]   203. /api/v2/block-editor/block-editor/convert/from-portable-text                     [POST      ] -> convert_from_portable_text
+[S]   204. /api/v2/block-editor/block-editor/convert/to-portable-text                       [POST      ] -> convert_to_portable_text
+[S]   205. /api/v2/block-editor/block-editor/create-block                                   [POST      ] -> create_block
+[S]   206. /api/v2/block-editor/block-editor/guide                                          [GET       ] -> get_block_editor_guide
+[S]   207. /api/v2/block-editor/block-editor/history/redo                                   [POST      ] -> redo
+[S]   208. /api/v2/block-editor/block-editor/history/save                                   [POST      ] -> save_history_state
+[S]   209. /api/v2/block-editor/block-editor/history/status                                 [GET       ] -> get_history_status
+[S]   210. /api/v2/block-editor/block-editor/history/undo                                   [POST      ] -> undo
+[S]   211. /api/v2/block-editor/block-editor/render-block                                   [POST      ] -> render_single_block
+[S]   212. /api/v2/block-editor/block-editor/render-document                                [POST      ] -> render_document
+[S]   213. /api/v2/block-editor/block-editor/validate-block                                 [POST      ] -> validate_block
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.chat.chat
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   214. /api/v2/chats/groups                                                             [GET       ] -> get_user_groups
+[W]   215. /api/v2/chats/groups/{group_id}/messages                                         [GET       ] -> get_group_messages
+[W]   216. /api/v2/chats/messages/{message_id}/read                                         [POST      ] -> mark_message_read
+[W]   217. /api/v2/chats/private/{user_id}                                                  [GET       ] -> get_private_messages
+[W]   218. /api/v2/chats/private/{user_id}/send                                             [POST      ] -> send_private_message
+[S]   219. /api/v2/chats/unread-count                                                       [GET       ] -> get_unread_count
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.chat.chat_groups
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   220. /api/v2/chats/groups/                                                            [GET       ] -> get_user_groups
+[S]   221. /api/v2/chats/groups/create                                                      [POST      ] -> create_chat_group
+[W]   222. /api/v2/chats/groups/join/{invite_code}                                          [POST      ] -> join_group_by_invite
+[W]   223. /api/v2/chats/groups/{group_id}/add-members                                      [POST      ] -> add_group_members
+[W]   224. /api/v2/chats/groups/{group_id}/create-invite                                    [POST      ] -> create_invite_link
+[W]   225. /api/v2/chats/groups/{group_id}/invites                                          [GET       ] -> get_group_invites
+[W]   226. /api/v2/chats/groups/{group_id}/members                                          [GET       ] -> get_group_members
+[W]   227. /api/v2/chats/groups/{group_id}/remove-member                                    [POST      ] -> remove_group_member
+[W]   228. /api/v2/chats/groups/{group_id}/revoke-invite                                    [POST      ] -> revoke_invite
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.chat.private_messages
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[W]   229. /api/v2/messages/private/conversation/{user_id}                                  [GET       ] -> get_conversation_messages
+[S]   230. /api/v2/messages/private/conversations                                           [GET       ] -> get_conversations
+[S]   231. /api/v2/messages/private/send                                                    [POST      ] -> send_private_message
+[S]   232. /api/v2/messages/private/unread/count                                            [GET       ] -> get_unread_count
+[W]   233. /api/v2/messages/private/{message_id}                                            [DELETE    ] -> delete_message
+[W]   234. /api/v2/messages/private/{message_id}/recall                                     [POST      ] -> recall_message
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.collaboration.collaboration_invites
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   235. /api/v2/collaboration/invites/create                                             [POST      ] -> create_invitation
+[W]   236. /api/v2/collaboration/invites/document/{document_id}/active                      [GET       ] -> get_active_invitations
+[W]   237. /api/v2/collaboration/invites/{invite_id}                                        [GET       ] -> get_invitation
+[W]   238. /api/v2/collaboration/invites/{invite_id}                                        [DELETE    ] -> revoke_invitation
+[W]   239. /api/v2/collaboration/invites/{invite_id}/accept                                 [POST      ] -> accept_invitation
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.collaboration.collaboration_save
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[W]   240. /api/v2/collaboration/documents/{document_id}/save                               [POST      ] -> save_collaborative_document
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.collaboration.team_collaboration
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[W]   241. /api/v2/collaboration/team/tasks/{task_id}/status                                [PUT       ] -> update_task_status
+[S]   242. /api/v2/collaboration/team/workspaces                                            [POST      ] -> create_workspace
+[S]   243. /api/v2/collaboration/team/workspaces                                            [GET       ] -> get_my_workspaces
+[W]   244. /api/v2/collaboration/team/workspaces/{workspace_id}/members                     [POST      ] -> add_member
+[W]   245. /api/v2/collaboration/team/workspaces/{workspace_id}/members                     [GET       ] -> get_members
+[W]   246. /api/v2/collaboration/team/workspaces/{workspace_id}/members/{user_id}           [DELETE    ] -> remove_member
+[W]   247. /api/v2/collaboration/team/workspaces/{workspace_id}/members/{user_id}/role      [PUT       ] -> update_member_role
+[W]   248. /api/v2/collaboration/team/workspaces/{workspace_id}/tasks                       [POST      ] -> create_task
+[W]   249. /api/v2/collaboration/team/workspaces/{workspace_id}/tasks                       [GET       ] -> get_tasks
+[W]   250. /api/v2/collaboration/team/workspaces/{workspace_slug}                           [GET       ] -> get_workspace
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.collaboration.team_comments
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   251. /api/v2/collaboration/comments/comment                                           [POST      ] -> create_comment
+[W]   252. /api/v2/collaboration/comments/comment/{comment_id}                              [PUT       ] -> update_comment
+[W]   253. /api/v2/collaboration/comments/comment/{comment_id}                              [DELETE    ] -> delete_comment
+[W]   254. /api/v2/collaboration/comments/comment/{comment_id}/resolve                      [POST      ] -> resolve_comment
+[W]   255. /api/v2/collaboration/comments/content/{content_type}/{content_id}               [GET       ] -> get_content_comments
+[S]   256. /api/v2/collaboration/comments/examples                                          [GET       ] -> get_usage_examples
+[S]   257. /api/v2/collaboration/comments/mentions                                          [GET       ] -> get_mentions
+[S]   258. /api/v2/collaboration/comments/statistics                                        [GET       ] -> get_statistics
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.collaboration.yjs_collaboration
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   259. /api/v2/collaboration/yjs/documents                                              [GET       ] -> list_yjs_documents
+[W]   260. /api/v2/collaboration/yjs/ws/{document_id}                                       [N/A       ] -> yjs_websocket_endpoint
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.comments.comment_config
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   261. /api/v2/comments/config                                                          [GET       ] -> get_comment_config
+[S]   262. /api/v2/comments/config                                                          [POST      ] -> update_comment_config
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.comments.comment_subscriptions
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[W]   263. /api/v2/comments/subscriptions/article/{article_id}/subscribers                  [GET       ] -> get_article_subscribers_api
+[W]   264. /api/v2/comments/subscriptions/confirm/{token}                                   [GET       ] -> confirm_subscription_api
+[S]   265. /api/v2/comments/subscriptions/my-subscriptions                                  [GET       ] -> get_my_subscriptions_api
+[S]   266. /api/v2/comments/subscriptions/subscribe                                         [POST      ] -> subscribe_to_article_api
+[S]   267. /api/v2/comments/subscriptions/unsubscribe                                       [POST      ] -> unsubscribe_from_article_api
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.comments.comments
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   268. /api/v2/comments/                                                                [POST      ] -> create_comment
+[S]   269. /api/v2/comments/admin/comments/pending                                          [GET       ] -> get_pending_comments
+[W]   270. /api/v2/comments/admin/comments/{comment_id}/approve                             [POST      ] -> approve_comment
+[W]   271. /api/v2/comments/admin/comments/{comment_id}/reject                              [POST      ] -> reject_comment
+[S]   272. /api/v2/comments/admin/spam-filter/blacklist                                     [POST      ] -> add_ip_to_blacklist
+[W]   273. /api/v2/comments/admin/spam-filter/blacklist/{ip_address}                        [DELETE    ] -> remove_ip_from_blacklist
+[S]   274. /api/v2/comments/admin/spam-filter/config                                        [PUT       ] -> update_spam_filter_config
+[S]   275. /api/v2/comments/admin/spam-filter/whitelist                                     [POST      ] -> add_ip_to_whitelist
+[W]   276. /api/v2/comments/admin/spam-filter/whitelist/{ip_address}                        [DELETE    ] -> remove_ip_from_whitelist
+[W]   277. /api/v2/comments/article/{article_id}                                            [GET       ] -> get_article_comments
+[W]   278. /api/v2/comments/comments/{comment_id}                                           [GET       ] -> get_comment
+[S]   279. /api/v2/comments/notifications/comments                                          [GET       ] -> get_comment_notifications
+[S]   280. /api/v2/comments/notifications/preferences                                       [GET       ] -> get_notification_preferences
+[S]   281. /api/v2/comments/notifications/preferences                                       [PUT       ] -> update_notification_preferences
+[S]   282. /api/v2/comments/spam-filter/stats                                               [GET       ] -> get_spam_filter_stats
+[W]   283. /api/v2/comments/{comment_id}                                                    [PUT       ] -> update_comment
+[W]   284. /api/v2/comments/{comment_id}                                                    [DELETE    ] -> delete_comment
+[W]   285. /api/v2/comments/{comment_id}/like                                               [POST      ] -> like_comment
+[W]   286. /api/v2/comments/{comment_id}/like/status                                        [GET       ] -> check_like_status
+[W]   287. /api/v2/comments/{comment_id}/likes                                              [GET       ] -> get_comment_likes
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.comments.comments_enhanced
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[W]   288. /api/v2/comments/enhanced/article/{article_id}                                   [GET       ] -> get_article_comments
+[W]   289. /api/v2/comments/enhanced/{comment_id}/dislike                                   [POST      ] -> dislike_comment
+[W]   290. /api/v2/comments/enhanced/{comment_id}/like                                      [POST      ] -> like_comment
+[W]   291. /api/v2/comments/enhanced/{comment_id}/notify-reply                              [POST      ] -> notify_comment_reply
+[W]   292. /api/v2/comments/enhanced/{comment_id}/vote                                      [GET       ] -> get_user_vote
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.compliance.gdpr_compliance
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   293. /api/v2/gdpr/compliance-checklist                                                [GET       ] -> get_compliance_checklist
+[S]   294. /api/v2/gdpr/consent                                                             [POST      ] -> record_consent
+[S]   295. /api/v2/gdpr/consent                                                             [GET       ] -> get_consents
+[S]   296. /api/v2/gdpr/consent/withdraw                                                    [POST      ] -> withdraw_consent
+[S]   297. /api/v2/gdpr/data-deletion                                                       [POST      ] -> delete_personal_data
+[S]   298. /api/v2/gdpr/data-export                                                         [POST      ] -> export_personal_data
+[S]   299. /api/v2/gdpr/examples                                                            [GET       ] -> get_usage_examples
+[S]   300. /api/v2/gdpr/privacy-report                                                      [GET       ] -> get_privacy_report
+[S]   301. /api/v2/gdpr/user-rights                                                         [GET       ] -> get_user_rights
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.content_management.block_editor
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   302. /api/v2/cms/blocks/block-categories                                              [GET       ] -> get_block_categories
+[S]   303. /api/v2/cms/blocks/block-types                                                   [GET       ] -> get_block_types
+[S]   304. /api/v2/cms/blocks/convert-type                                                  [POST      ] -> convert_block_type
+[S]   305. /api/v2/cms/blocks/convert/html-to-blocks                                        [POST      ] -> convert_html_to_blocks
+[S]   306. /api/v2/cms/blocks/duplicate                                                     [POST      ] -> duplicate_block
+[S]   307. /api/v2/cms/blocks/example                                                       [GET       ] -> get_example_blocks
+[S]   308. /api/v2/cms/blocks/export                                                        [POST      ] -> export_blocks
+[S]   309. /api/v2/cms/blocks/import                                                        [POST      ] -> import_blocks
+[S]   310. /api/v2/cms/blocks/merge                                                         [POST      ] -> merge_blocks
+[S]   311. /api/v2/cms/blocks/render                                                        [POST      ] -> render_blocks
+[S]   312. /api/v2/cms/blocks/split                                                         [POST      ] -> split_block
+[S]   313. /api/v2/cms/blocks/statistics                                                    [POST      ] -> get_statistics
+[S]   314. /api/v2/cms/blocks/validate                                                      [POST      ] -> validate_block
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.content_management.category_management
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   315. /api/v2/categories                                                               [GET       ] -> get_categories_with_stats_api
+[S]   316. /api/v2/categories/                                                              [POST      ] -> create_category_api
+[S]   317. /api/v2/categories/reorder                                                       [POST      ] -> reorder_categories_api
+[W]   318. /api/v2/categories/{category_id}                                                 [PUT       ] -> update_category_api
+[W]   319. /api/v2/categories/{category_id}                                                 [DELETE    ] -> delete_category_api
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.content_management.custom_block_patterns
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   320. /api/v2/cms/patterns                                                             [POST      ] -> create_custom_pattern
+[S]   321. /api/v2/cms/patterns                                                             [GET       ] -> list_user_patterns
+[W]   322. /api/v2/cms/patterns/{pattern_id}                                                [GET       ] -> get_pattern_detail
+[W]   323. /api/v2/cms/patterns/{pattern_id}                                                [PUT       ] -> update_pattern
+[W]   324. /api/v2/cms/patterns/{pattern_id}                                                [DELETE    ] -> delete_pattern
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.content_management.custom_post_types
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   325. /api/v2/cms/post-types                                                           [GET       ] -> list_custom_post_types
+[S]   326. /api/v2/cms/post-types                                                           [POST      ] -> create_custom_post_type
+[W]   327. /api/v2/cms/post-types/{cpt_id}                                                  [GET       ] -> get_custom_post_type
+[W]   328. /api/v2/cms/post-types/{cpt_id}                                                  [PUT       ] -> update_custom_post_type
+[W]   329. /api/v2/cms/post-types/{cpt_id}                                                  [DELETE    ] -> delete_custom_post_type
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.content_management.feed
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   330. /api/v2/feed/atom                                                                [GET       ] -> get_atom_feed
+[W]   331. /api/v2/feed/author/{user_id}/feed                                               [GET       ] -> get_author_feed
+[W]   332. /api/v2/feed/category/{slug}/feed                                                [GET       ] -> get_category_feed
+[S]   333. /api/v2/feed/feed                                                                [GET       ] -> get_rss_feed
+[S]   334. /api/v2/feed/feed/atom                                                           [GET       ] -> get_atom_feed
+[S]   335. /api/v2/feed/feed/rss                                                            [GET       ] -> get_rss_feed
+[S]   336. /api/v2/feed/rss                                                                 [GET       ] -> get_rss_feed
+[W]   337. /api/v2/feed/tag/{name}/feed                                                     [GET       ] -> get_tag_feed
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.content_management.form_builder
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   338. /api/v2/cms/forms/create                                                         [POST      ] -> create_form
+[S]   339. /api/v2/cms/forms/field-types                                                    [GET       ] -> get_field_types
+[S]   340. /api/v2/cms/forms/templates                                                      [GET       ] -> get_form_templates
+[S]   341. /api/v2/cms/forms/validate                                                       [POST      ] -> validate_form_submission
+[W]   342. /api/v2/cms/forms/{form_id}                                                      [DELETE    ] -> delete_form
+[W]   343. /api/v2/cms/forms/{form_id}/html                                                 [GET       ] -> generate_form_html
+[W]   344. /api/v2/cms/forms/{form_id}/statistics                                           [GET       ] -> get_form_statistics
+[W]   345. /api/v2/cms/forms/{form_id}/submissions                                          [GET       ] -> get_form_submissions
+[W]   346. /api/v2/cms/forms/{form_id}/submit                                               [POST      ] -> submit_form
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.content_management.menu_management
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   347. /api/v2/cms/menus                                                                [GET       ] -> list_menus
+[S]   348. /api/v2/cms/menus                                                                [POST      ] -> create_new_menu
+[S]   349. /api/v2/cms/menus/available/categories                                           [GET       ] -> get_available_categories
+[S]   350. /api/v2/cms/menus/available/pages                                                [GET       ] -> get_available_pages
+[W]   351. /api/v2/cms/menus/items/{item_id}                                                [PUT       ] -> update_menu_item_detail
+[W]   352. /api/v2/cms/menus/items/{item_id}                                                [DELETE    ] -> delete_menu_item_detail
+[W]   353. /api/v2/cms/menus/{menu_id}                                                      [GET       ] -> get_menu_detail
+[W]   354. /api/v2/cms/menus/{menu_id}                                                      [PUT       ] -> update_existing_menu
+[W]   355. /api/v2/cms/menus/{menu_id}                                                      [DELETE    ] -> delete_existing_menu
+[W]   356. /api/v2/cms/menus/{menu_id}/items                                                [POST      ] -> add_item_to_menu
+[W]   357. /api/v2/cms/menus/{menu_id}/reorder                                              [POST      ] -> reorder_menu
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.content_management.shortcode
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[W]   358. /api/v2/cms/shortcodes/help/{name}                                               [GET       ] -> get_shortcode_help
+[S]   359. /api/v2/cms/shortcodes/list                                                      [GET       ] -> list_shortcodes
+[S]   360. /api/v2/cms/shortcodes/parse                                                     [POST      ] -> parse_shortcodes
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.content_management.widgets
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   361. /api/v2/cms/widgets                                                              [POST      ] -> create_widget
+[W]   362. /api/v2/cms/widgets/area/{area_id}                                               [GET       ] -> get_area_widgets
+[S]   363. /api/v2/cms/widgets/areas                                                        [GET       ] -> get_widget_areas
+[S]   364. /api/v2/cms/widgets/batch-reorder                                                [POST      ] -> batch_reorder_widgets
+[S]   365. /api/v2/cms/widgets/register                                                     [POST      ] -> register_widget
+[S]   366. /api/v2/cms/widgets/reorder                                                      [POST      ] -> reorder_widgets
+[S]   367. /api/v2/cms/widgets/types                                                        [GET       ] -> get_widget_types
+[S]   368. /api/v2/cms/widgets/widgets/data/archives                                        [GET       ] -> get_archives_data
+[S]   369. /api/v2/cms/widgets/widgets/data/categories                                      [GET       ] -> get_categories_data
+[S]   370. /api/v2/cms/widgets/widgets/data/menu                                            [GET       ] -> get_menu_data
+[S]   371. /api/v2/cms/widgets/widgets/data/popular-posts                                   [GET       ] -> get_popular_posts_data
+[S]   372. /api/v2/cms/widgets/widgets/data/recent-comments                                 [GET       ] -> get_recent_comments_data
+[S]   373. /api/v2/cms/widgets/widgets/data/recent-posts                                    [GET       ] -> get_recent_posts_data
+[S]   374. /api/v2/cms/widgets/widgets/data/tags-cloud                                      [GET       ] -> get_tags_cloud_data
+[W]   375. /api/v2/cms/widgets/widgets/render/{widget_id}                                   [GET       ] -> render_widget
+[W]   376. /api/v2/cms/widgets/{widget_id}                                                  [DELETE    ] -> remove_widget
+[W]   377. /api/v2/cms/widgets/{widget_id}                                                  [PUT       ] -> update_widget
+[W]   378. /api/v2/cms/widgets/{widget_id}/config                                           [PUT       ] -> update_widget_config
+[W]   379. /api/v2/cms/widgets/{widget_id}/reorder                                          [PATCH     ] -> reorder_single_widget
+[W]   380. /api/v2/cms/widgets/{widget_id}/toggle                                           [PATCH     ] -> toggle_widget
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.core.home
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   381. /api/v2/home/articles                                                            [GET       ] -> get_home_articles_api
+[S]   382. /api/v2/home/categories                                                          [GET       ] -> get_home_categories
+[S]   383. /api/v2/home/config                                                              [GET       ] -> get_home_config
+[S]   384. /api/v2/home/data                                                                [GET       ] -> get_home_data
+[S]   385. /api/v2/home/featured                                                            [GET       ] -> get_featured_articles
+[S]   386. /api/v2/home/menus                                                               [GET       ] -> get_home_menus
+[S]   387. /api/v2/home/popular                                                             [GET       ] -> get_popular_articles
+[S]   388. /api/v2/home/recent                                                              [GET       ] -> get_recent_articles
+[S]   389. /api/v2/home/search                                                              [GET       ] -> search_home_articles
+[S]   390. /api/v2/home/stats                                                               [GET       ] -> get_home_stats
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.core.system
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   391. /api/v2/system/health                                                            [GET       ] -> site_health_check_api
+[S]   392. /api/v2/system/info                                                              [GET       ] -> system_info_api
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.dashboard.analytics
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   393. /api/v2/dashboard/analytics/article-views-trend                                  [GET       ] -> get_article_views_trend
+[S]   394. /api/v2/dashboard/analytics/category-distribution                                [GET       ] -> get_category_distribution
+[S]   395. /api/v2/dashboard/analytics/content-performance                                  [GET       ] -> get_content_performance
+[S]   396. /api/v2/dashboard/analytics/device-stats                                         [GET       ] -> get_device_stats
+[S]   397. /api/v2/dashboard/analytics/overview                                             [GET       ] -> get_overview_stats
+[S]   398. /api/v2/dashboard/analytics/popular-articles                                     [GET       ] -> get_popular_articles
+[S]   399. /api/v2/dashboard/analytics/traffic-sources                                      [GET       ] -> get_traffic_sources
+[S]   400. /api/v2/dashboard/analytics/user-activity                                        [GET       ] -> get_user_activity
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.dashboard.dashboard
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   401. /api/v2/dashboard/admin/dashboard                                                [GET       ] -> admin_dashboard
+[S]   402. /api/v2/dashboard/blog-management/articles                                       [GET       ] -> get_blog_management_articles
+[S]   403. /api/v2/dashboard/blog-management/articles/stats                                 [GET       ] -> get_blog_management_articles_stats
+[W]   404. /api/v2/dashboard/blog-management/articles/{article_id}                          [DELETE    ] -> delete_blog_management_article
+[S]   405. /api/v2/dashboard/media-management/files                                         [GET       ] -> get_media_management_files
+[S]   406. /api/v2/dashboard/my/articles                                                    [GET       ] -> get_my_articles
+[S]   407. /api/v2/dashboard/my/messages                                                    [GET       ] -> get_my_messages
+[S]   408. /api/v2/dashboard/recent-articles                                                [GET       ] -> __get_recent_articles
+[S]   409. /api/v2/dashboard/stats                                                          [GET       ] -> get_dashboard_stats
+[S]   410. /api/v2/dashboard/system-settings                                                [GET       ] -> get_system_settings
+[S]   411. /api/v2/dashboard/system-settings                                                [POST      ] -> update_system_settings
+[S]   412. /api/v2/dashboard/traffic                                                        [GET       ] -> get_traffic_data
+[S]   413. /api/v2/dashboard/user-management/users                                          [GET       ] -> get_users
+[S]   414. /api/v2/dashboard/vip-management                                                 [GET       ] -> get_vip_management_data
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.dashboard.realtime_monitor
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   415. /api/v2/dashboard/realtime/dashboard                                             [GET       ] -> get_monitor_dashboard
+[S]   416. /api/v2/dashboard/realtime/health                                                [GET       ] -> get_health_status
+[S]   417. /api/v2/dashboard/realtime/online-users                                          [GET       ] -> get_online_users
+[S]   418. /api/v2/dashboard/realtime/record-activity                                       [POST      ] -> record_user_activity
+[S]   419. /api/v2/dashboard/realtime/record-page-view                                      [POST      ] -> record_page_view
+[S]   420. /api/v2/dashboard/realtime/system-metrics                                        [GET       ] -> get_system_metrics
+[S]   421. /api/v2/dashboard/realtime/trending-articles                                     [GET       ] -> get_trending_articles
+[S]   422. /api/v2/dashboard/realtime/visits/popular-endpoints                              [GET       ] -> get_popular_endpoints
+[S]   423. /api/v2/dashboard/realtime/visits/realtime                                       [GET       ] -> get_realtime_visits
+[S]   424. /api/v2/dashboard/realtime/visits/today                                          [GET       ] -> get_today_visits
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.ecommerce.ecommerce
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   425. /api/v2/shop/                                                                    [GET       ] -> list_products
+[S]   426. /api/v2/shop/                                                                    [POST      ] -> create_product
+[W]   427. /api/v2/shop/{product_id}                                                        [GET       ] -> get_product
+[W]   428. /api/v2/shop/{product_id}                                                        [PUT       ] -> update_product
+[W]   429. /api/v2/shop/{product_id}                                                        [DELETE    ] -> delete_product
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.ecommerce.ecommerce_cart
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   430. /api/v2/shop/cart                                                                [GET       ] -> get_cart
+[S]   431. /api/v2/shop/cart/items                                                          [POST      ] -> add_to_cart
+[W]   432. /api/v2/shop/cart/items/{item_id}                                                [PUT       ] -> update_cart_item
+[W]   433. /api/v2/shop/cart/items/{item_id}                                                [DELETE    ] -> remove_from_cart
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.ecommerce.ecommerce_orders
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   434. /api/v2/shop/orders/                                                             [GET       ] -> list_orders
+[W]   435. /api/v2/shop/orders/{order_id}                                                   [GET       ] -> get_order
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.ecommerce.inventory_management
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   436. /api/v2/shop/inventory/adjust                                                    [POST      ] -> adjust_product_inventory
+[W]   437. /api/v2/shop/inventory/check/{product_id}                                        [GET       ] -> check_product_inventory
+[S]   438. /api/v2/shop/inventory/deduct                                                    [POST      ] -> deduct_product_inventory
+[S]   439. /api/v2/shop/inventory/low-stock                                                 [GET       ] -> get_low_stock_products
+[S]   440. /api/v2/shop/inventory/report                                                    [GET       ] -> get_inventory_report
+[S]   441. /api/v2/shop/inventory/restore                                                   [POST      ] -> restore_product_inventory
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.ecommerce.revenue_sharing
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   442. /api/v2/shop/revenue/configs                                                     [GET       ] -> list_sharing_configs
+[W]   443. /api/v2/shop/revenue/configs/{revenue_type}                                      [PUT       ] -> update_sharing_config
+[S]   444. /api/v2/shop/revenue/payouts                                                     [POST      ] -> create_payout_request
+[S]   445. /api/v2/shop/revenue/payouts                                                     [GET       ] -> list_payout_requests
+[W]   446. /api/v2/shop/revenue/payouts/{payout_id}/approve                                 [POST      ] -> approve_payout
+[W]   447. /api/v2/shop/revenue/payouts/{payout_id}/complete                                [POST      ] -> complete_payout
+[W]   448. /api/v2/shop/revenue/payouts/{payout_id}/reject                                  [POST      ] -> reject_payout
+[S]   449. /api/v2/shop/revenue/records                                                     [POST      ] -> create_revenue_record
+[S]   450. /api/v2/shop/revenue/records                                                     [GET       ] -> list_revenue_records
+[S]   451. /api/v2/shop/revenue/stats/platform                                              [GET       ] -> get_platform_stats
+[W]   452. /api/v2/shop/revenue/stats/{user_id}                                             [GET       ] -> get_user_stats
+[W]   453. /api/v2/shop/revenue/summary/{user_id}                                           [GET       ] -> get_revenue_summary
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.integrations.baidu_analytics
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   454. /api/v2/integrations/baidu-analytics/config                                      [GET       ] -> get_baidu_config
+[S]   455. /api/v2/integrations/baidu-analytics/config                                      [POST      ] -> create_baidu_config
+[W]   456. /api/v2/integrations/baidu-analytics/config/{config_id}                          [PUT       ] -> update_baidu_config
+[W]   457. /api/v2/integrations/baidu-analytics/config/{config_id}                          [DELETE    ] -> deactivate_baidu_config
+[S]   458. /api/v2/integrations/baidu-analytics/configs                                     [GET       ] -> get_all_configs
+[S]   459. /api/v2/integrations/baidu-analytics/tracking-code                               [GET       ] -> get_tracking_code
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.integrations.ipfs
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   460. /api/v2/integrations/ipfs/configure                                              [POST      ] -> configure_ipfs
+[W]   461. /api/v2/integrations/ipfs/download/{cid}                                         [GET       ] -> download_file
+[W]   462. /api/v2/integrations/ipfs/file/{cid}                                             [GET       ] -> get_file_info
+[W]   463. /api/v2/integrations/ipfs/file/{cid}                                             [DELETE    ] -> delete_file
+[S]   464. /api/v2/integrations/ipfs/files                                                  [GET       ] -> list_files
+[W]   465. /api/v2/integrations/ipfs/pin/{cid}                                              [POST      ] -> pin_file
+[W]   466. /api/v2/integrations/ipfs/unpin/{cid}                                            [POST      ] -> unpin_file
+[S]   467. /api/v2/integrations/ipfs/upload/article                                         [POST      ] -> upload_article
+[S]   468. /api/v2/integrations/ipfs/upload/file                                            [POST      ] -> upload_file
+[S]   469. /api/v2/integrations/ipfs/upload/text                                            [POST      ] -> upload_text
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.integrations.oauth_login
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[W]   470. /api/v2/integrations/oauth/authorize/{provider}                                  [GET       ] -> authorize
+[S]   471. /api/v2/integrations/oauth/bind-account                                          [POST      ] -> bind_oauth_account
+[W]   472. /api/v2/integrations/oauth/callback/{provider}                                   [GET       ] -> oauth_callback
+[S]   473. /api/v2/integrations/oauth/linked-accounts                                       [GET       ] -> get_linked_accounts
+[S]   474. /api/v2/integrations/oauth/providers                                             [GET       ] -> list_oauth_providers
+[S]   475. /api/v2/integrations/oauth/unbind-account                                        [POST      ] -> unbind_oauth_account
+[W]   476. /api/v2/integrations/oauth/unlink/{provider}                                     [POST      ] -> unlink_oauth_account
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.integrations.sso
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   477. /api/v2/integrations/sso/config                                                  [GET       ] -> get_sso_config
+[S]   478. /api/v2/integrations/sso/ldap/authenticate                                       [POST      ] -> ldap_authenticate
+[S]   479. /api/v2/integrations/sso/oauth/providers                                         [GET       ] -> get_oauth_providers
+[W]   480. /api/v2/integrations/sso/oauth/{provider}/authorize                              [GET       ] -> oauth_authorize
+[W]   481. /api/v2/integrations/sso/oauth/{provider}/callback                               [POST      ] -> oauth_callback
+[S]   482. /api/v2/integrations/sso/saml/acs                                                [POST      ] -> saml_acs
+[S]   483. /api/v2/integrations/sso/saml/login                                              [GET       ] -> saml_login
+[S]   484. /api/v2/integrations/sso/session/create                                          [POST      ] -> create_sso_session
+[S]   485. /api/v2/integrations/sso/session/validate                                        [POST      ] -> validate_sso_token
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.integrations.wordpress_import
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   486. /api/v2/integrations/wordpress-import/import                                     [POST      ] -> import_wordpress_data
+[S]   487. /api/v2/integrations/wordpress-import/parse                                      [POST      ] -> parse_wordpress_xml
+[S]   488. /api/v2/integrations/wordpress-import/template                                   [GET       ] -> get_import_template
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.marketing.advertisement_system
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   489. /api/v2/ads/create                                                               [POST      ] -> create_ad
+[S]   490. /api/v2/ads/list                                                                 [GET       ] -> get_ads
+[S]   491. /api/v2/ads/network/adsense/code                                                 [GET       ] -> generate_adsense_code
+[S]   492. /api/v2/ads/network/baidu/code                                                   [GET       ] -> generate_baidu_code
+[S]   493. /api/v2/ads/network/configure                                                    [POST      ] -> configure_ad_network
+[W]   494. /api/v2/ads/network/{network}/config                                             [GET       ] -> get_ad_network_config
+[S]   495. /api/v2/ads/revenue/report                                                       [GET       ] -> get_revenue_report
+[S]   496. /api/v2/ads/slots                                                                [GET       ] -> get_ad_slots
+[W]   497. /api/v2/ads/{ad_id}                                                              [DELETE    ] -> delete_ad
+[W]   498. /api/v2/ads/{ad_id}/activate                                                     [POST      ] -> activate_ad
+[W]   499. /api/v2/ads/{ad_id}/pause                                                        [POST      ] -> pause_ad
+[W]   500. /api/v2/ads/{ad_id}/stats                                                        [GET       ] -> get_ad_stats
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.mcp.mcp_api
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   501. /api/v2/mcp/mcp/guide                                                            [GET       ] -> get_mcp_guide
+[S]   502. /api/v2/mcp/mcp/handle                                                           [POST      ] -> handle_mcp_request
+[S]   503. /api/v2/mcp/mcp/info                                                             [GET       ] -> get_server_info
+[S]   504. /api/v2/mcp/mcp/prompts                                                          [GET       ] -> list_prompts
+[S]   505. /api/v2/mcp/mcp/resources                                                        [GET       ] -> list_resources
+[S]   506. /api/v2/mcp/mcp/test-connection                                                  [POST      ] -> test_connection
+[S]   507. /api/v2/mcp/mcp/tools                                                            [GET       ] -> list_tools
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.media.cover_upload
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   508. /api/v2/media/cover                                                              [POST      ] -> upload_cover
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.media.routes_cover
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[W]   509. /api/v2/media/generate-cover/{media_id}                                          [POST      ] -> generate_cover_url
+[W]   510. /api/v2/media/remove-cover/{media_id}                                            [DELETE    ] -> remove_cover
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.media.routes_cover_external
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   511. /api/v2/media/cover/from-url                                                     [POST      ] -> generate_cover_from_external_url
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.media.routes_edit
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   512. /api/v2/media/                                                                   [DELETE    ] -> delete_user_media_api
+[S]   513. /api/v2/media/batch-categorize                                                   [POST      ] -> batch_categorize_media
+[S]   514. /api/v2/media/batch-delete                                                       [POST      ] -> batch_delete_media
+[S]   515. /api/v2/media/batch-tags                                                         [POST      ] -> batch_update_tags
+[S]   516. /api/v2/media/batch-update                                                       [POST      ] -> batch_update_metadata
+[S]   517. /api/v2/media/batch/optimize                                                     [POST      ] -> batch_optimize_images
+[W]   518. /api/v2/media/detail/{media_id}                                                  [GET       ] -> get_media_detail
+[W]   519. /api/v2/media/detail/{media_id}                                                  [PUT       ] -> update_media
+[W]   520. /api/v2/media/detail/{media_id}                                                  [DELETE    ] -> delete_media
+[S]   521. /api/v2/media/edit                                                               [POST      ] -> edit_image
+[S]   522. /api/v2/media/storage/stats                                                      [GET       ] -> get_storage_stats
+[W]   523. /api/v2/media/{media_id}/edit                                                    [POST      ] -> upload_edited_image
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.media.routes_edit_tools
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   524. /api/v2/media/edit/crop                                                          [POST      ] -> crop_image
+[S]   525. /api/v2/media/edit/info                                                          [POST      ] -> get_image_info
+[S]   526. /api/v2/media/edit/process                                                       [POST      ] -> process_image
+[S]   527. /api/v2/media/edit/resize                                                        [POST      ] -> resize_image
+[S]   528. /api/v2/media/edit/rotate                                                        [POST      ] -> rotate_image
+[S]   529. /api/v2/media/edit/thumbnail                                                     [POST      ] -> create_thumbnail
+[S]   530. /api/v2/media/edit/validate                                                      [POST      ] -> validate_image
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.media.routes_enhancement
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[W]   531. /api/v2/media/convert-webp/{file_id}                                             [POST      ] -> convert_to_webp_endpoint
+[W]   532. /api/v2/media/optimize/{file_id}                                                 [POST      ] -> optimize_media_file
+[W]   533. /api/v2/media/stats/{file_id}                                                    [GET       ] -> get_media_stats
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.media.routes_folders
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   534. /api/v2/media/folders/                                                           [POST      ] -> create_folder
+[S]   535. /api/v2/media/folders/copy-media                                                 [POST      ] -> copy_media_to_folder
+[S]   536. /api/v2/media/folders/list                                                       [GET       ] -> get_folder_list
+[S]   537. /api/v2/media/folders/move-media                                                 [POST      ] -> move_media_to_folder
+[S]   538. /api/v2/media/folders/tree                                                       [GET       ] -> get_folder_tree
+[W]   539. /api/v2/media/folders/{folder_id}                                                [GET       ] -> get_folder_detail
+[W]   540. /api/v2/media/folders/{folder_id}                                                [PUT       ] -> update_folder
+[W]   541. /api/v2/media/folders/{folder_id}                                                [DELETE    ] -> delete_folder
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.media.routes_list
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   542. /api/v2/media/categories                                                         [GET       ] -> get_categories
+[S]   543. /api/v2/media/files                                                              [GET       ] -> list_media
+[S]   544. /api/v2/media/statistics                                                         [GET       ] -> get_media_statistics
+[S]   545. /api/v2/media/tags                                                               [GET       ] -> get_all_tags
+[W]   546. /api/v2/media/thumbnail/{media_id}                                               [GET       ] -> get_video_thumbnail
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.media.routes_stream
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[W]   547. /api/v2/media/cover/{filename}                                                   [GET       ] -> get_cover_image
+[W]   548. /api/v2/media/{media_id}                                                         [GET       ] -> get_media_file_by_id
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.media.routes_tags
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[W]   549. /api/v2/media/{media_id}/exif                                                    [GET       ] -> get_exif_data
+[W]   550. /api/v2/media/{media_id}/remove-exif                                             [POST      ] -> remove_exif
+[W]   551. /api/v2/media/{media_id}/tags                                                    [POST      ] -> update_media_tags
+[W]   552. /api/v2/media/{media_id}/tags                                                    [DELETE    ] -> remove_tags
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.media.routes_thumbnail
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[W]   553. /api/v2/media/{media_id}/thumbnail                                               [GET       ] -> get_media_thumbnail
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.media.routes_upload
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   554. /api/v2/media/upload                                                             [POST      ] -> upload_media_file
+[S]   555. /api/v2/media/upload/chunked/cancel                                              [POST      ] -> chunked_upload_cancel
+[S]   556. /api/v2/media/upload/chunked/chunk                                               [POST      ] -> chunked_upload_chunk
+[S]   557. /api/v2/media/upload/chunked/chunks                                              [GET       ] -> chunked_upload_chunks
+[S]   558. /api/v2/media/upload/chunked/complete                                            [POST      ] -> chunked_upload_complete
+[S]   559. /api/v2/media/upload/chunked/init                                                [POST      ] -> chunked_upload_init
+[S]   560. /api/v2/media/upload/chunked/progress                                            [GET       ] -> chunked_upload_progress
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.membership.subscription_management_api
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   561. /api/v2/membership/subscription/subscription-management/auto-renewal/process     [POST      ] -> process_auto_renewal
+[S]   562. /api/v2/membership/subscription/subscription-management/auto-renewal/setup       [POST      ] -> setup_auto_renewal
+[W]   563. /api/v2/membership/subscription/subscription-management/benefits/{level}         [GET       ] -> get_member_benefits
+[S]   564. /api/v2/membership/subscription/subscription-management/comparison               [GET       ] -> get_plan_comparison
+[S]   565. /api/v2/membership/subscription/subscription-management/downgrade                [POST      ] -> downgrade_subscription
+[S]   566. /api/v2/membership/subscription/subscription-management/guide                    [GET       ] -> get_subscription_guide
+[S]   567. /api/v2/membership/subscription/subscription-management/points/calculate         [GET       ] -> calculate_points
+[S]   568. /api/v2/membership/subscription/subscription-management/referral/generate        [POST      ] -> generate_referral_code
+[S]   569. /api/v2/membership/subscription/subscription-management/referral/reward          [POST      ] -> process_referral_reward
+[S]   570. /api/v2/membership/subscription/subscription-management/trial/activate           [POST      ] -> activate_trial
+[S]   571. /api/v2/membership/subscription/subscription-management/trial/eligibility        [GET       ] -> check_trial_eligibility
+[S]   572. /api/v2/membership/subscription/subscription-management/upgrade                  [POST      ] -> upgrade_subscription
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.nlp.nlp_content_api
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   573. /api/v2/nlp/nlp/batch/execute                                                    [POST      ] -> execute_batch_operation
+[S]   574. /api/v2/nlp/nlp/batch/history                                                    [GET       ] -> get_batch_history
+[W]   575. /api/v2/nlp/nlp/batch/rollback/{operation_id}                                    [POST      ] -> rollback_batch_operation
+[S]   576. /api/v2/nlp/nlp/examples                                                         [GET       ] -> get_command_examples
+[S]   577. /api/v2/nlp/nlp/execute                                                          [POST      ] -> execute_nlp_command
+[S]   578. /api/v2/nlp/nlp/guide                                                            [GET       ] -> get_nlp_guide
+[S]   579. /api/v2/nlp/nlp/parse                                                            [POST      ] -> parse_command
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.notifications.email_service
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[W]   580. /api/v2/notifications/email/config/{config_id}                                   [PUT       ] -> update_email_config
+[W]   581. /api/v2/notifications/email/config/{config_id}                                   [DELETE    ] -> deactivate_email_config
+[W]   582. /api/v2/notifications/email/config/{provider}                                    [GET       ] -> get_email_config
+[W]   583. /api/v2/notifications/email/config/{provider}                                    [POST      ] -> create_email_config
+[S]   584. /api/v2/notifications/email/configs                                              [GET       ] -> get_all_configs
+[S]   585. /api/v2/notifications/email/send                                                 [POST      ] -> send_email
+[S]   586. /api/v2/notifications/email/send-batch                                           [POST      ] -> send_batch_emails
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.notifications.notifications
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   587. /api/v2/notifications/                                                           [GET       ] -> get_notifications_api
+[S]   588. /api/v2/notifications/messages                                                   [GET       ] -> fetch_message_api
+[S]   589. /api/v2/notifications/messages/clean                                             [DELETE    ] -> clean_notification_api
+[S]   590. /api/v2/notifications/messages/read                                              [POST      ] -> read_notification_api
+[S]   591. /api/v2/notifications/messages/read_all                                          [POST      ] -> mark_all_as_read_api
+[S]   592. /api/v2/notifications/read_all                                                   [POST      ] -> mark_all_as_read_api_new
+[W]   593. /api/v2/notifications/{notification_id}                                          [DELETE    ] -> delete_notification_api
+[W]   594. /api/v2/notifications/{notification_id}/read                                     [PATCH     ] -> mark_notification_as_read_api
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.notifications.push_notifications
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   595. /api/v2/notifications/push/send-notification                                     [POST      ] -> send_push_notification
+[S]   596. /api/v2/notifications/push/send-to-users                                         [POST      ] -> send_push_to_users
+[S]   597. /api/v2/notifications/push/stats                                                 [GET       ] -> get_push_stats
+[S]   598. /api/v2/notifications/push/subscribe                                             [POST      ] -> subscribe_push
+[S]   599. /api/v2/notifications/push/subscription-status                                   [GET       ] -> get_subscription_status
+[S]   600. /api/v2/notifications/push/unsubscribe                                           [POST      ] -> unsubscribe_push
+[S]   601. /api/v2/notifications/push/vapid-public-key                                      [GET       ] -> get_vapid_public_key
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.payment.payment_api
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   602. /api/v2/payment/payment/create-order                                             [POST      ] -> create_order
+[S]   603. /api/v2/payment/payment/guide                                                    [GET       ] -> get_payment_guide
+[S]   604. /api/v2/payment/payment/methods                                                  [GET       ] -> get_payment_methods
+[W]   605. /api/v2/payment/payment/order/{order_id}                                         [GET       ] -> get_order
+[W]   606. /api/v2/payment/payment/pay/{order_id}                                           [POST      ] -> process_payment
+[W]   607. /api/v2/payment/payment/refund/{order_id}                                        [POST      ] -> refund_order
+[S]   608. /api/v2/payment/payment/webhook/alipay                                           [POST      ] -> alipay_webhook
+[S]   609. /api/v2/payment/payment/webhook/paypal                                           [POST      ] -> paypal_webhook
+[S]   610. /api/v2/payment/payment/webhook/stripe                                           [POST      ] -> stripe_webhook
+[S]   611. /api/v2/payment/payment/webhook/wechat                                           [POST      ] -> wechat_webhook
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.performance.cache_management
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   612. /api/v2/cache/clear                                                              [DELETE    ] -> clear_cache
+[S]   613. /api/v2/cache/config                                                             [POST      ] -> update_cache_config
+[W]   614. /api/v2/cache/items/{key}                                                        [GET       ] -> get_cache_value
+[W]   615. /api/v2/cache/items/{key}                                                        [POST      ] -> set_cache_value
+[W]   616. /api/v2/cache/items/{key}                                                        [DELETE    ] -> delete_cache_value
+[S]   617. /api/v2/cache/stats                                                              [GET       ] -> get_cache_stats
+[S]   618. /api/v2/cache/warmup                                                             [POST      ] -> warmup_cache
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.performance.cdn_management
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   619. /api/v2/cdn/config                                                               [GET       ] -> get_cdn_config
+[S]   620. /api/v2/cdn/configure/aliyun                                                     [POST      ] -> configure_aliyun_cdn
+[S]   621. /api/v2/cdn/configure/aws-cloudfront                                             [POST      ] -> configure_aws_cloudfront
+[S]   622. /api/v2/cdn/configure/cloudflare                                                 [POST      ] -> configure_cloudflare
+[S]   623. /api/v2/cdn/configure/custom                                                     [POST      ] -> configure_custom_cdn
+[S]   624. /api/v2/cdn/examples                                                             [GET       ] -> get_usage_examples
+[S]   625. /api/v2/cdn/integration-code                                                     [GET       ] -> get_integration_code
+[S]   626. /api/v2/cdn/providers                                                            [GET       ] -> get_supported_providers
+[S]   627. /api/v2/cdn/purge-cache                                                          [POST      ] -> purge_cache
+[S]   628. /api/v2/cdn/stats                                                                [GET       ] -> get_cdn_stats
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.performance.code_splitting_optimization
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   629. /api/v2/optimization/code-splitting/analysis                                     [GET       ] -> get_bundle_analysis
+[S]   630. /api/v2/optimization/code-splitting/analyze                                      [POST      ] -> reanalyze_bundle
+[S]   631. /api/v2/optimization/code-splitting/config                                       [GET       ] -> get_config
+[S]   632. /api/v2/optimization/code-splitting/dynamic-imports                              [GET       ] -> get_dynamic_import_map
+[S]   633. /api/v2/optimization/code-splitting/prefetch-hints                               [GET       ] -> get_prefetch_hints
+[S]   634. /api/v2/optimization/code-splitting/recommendations                              [GET       ] -> get_split_recommendations
+[S]   635. /api/v2/optimization/code-splitting/report                                       [GET       ] -> get_optimization_report
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.performance.css_optimizer
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   636. /api/v2/optimization/css/cache/clear                                             [POST      ] -> clear_css_cache_api
+[S]   637. /api/v2/optimization/css/cache/stats                                             [GET       ] -> css_cache_stats_api
+[S]   638. /api/v2/optimization/css/extract                                                 [POST      ] -> extract_critical_css_api
+[S]   639. /api/v2/optimization/css/info                                                    [GET       ] -> css_optimization_info_api
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.performance.http2_config
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   640. /api/v2/cdn/http2/apache-config                                                  [GET       ] -> get_apache_config
+[S]   641. /api/v2/cdn/http2/best-practices                                                 [GET       ] -> get_best_practices
+[S]   642. /api/v2/cdn/http2/check-support                                                  [GET       ] -> check_support
+[S]   643. /api/v2/cdn/http2/config                                                         [GET       ] -> get_http2_config
+[S]   644. /api/v2/cdn/http2/config                                                         [POST      ] -> update_http2_config
+[S]   645. /api/v2/cdn/http2/examples                                                       [GET       ] -> get_usage_examples
+[S]   646. /api/v2/cdn/http2/nginx-config                                                   [GET       ] -> get_nginx_config
+[S]   647. /api/v2/cdn/http2/suggestions                                                    [GET       ] -> get_optimization_suggestions
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.performance.image_lazy_load
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   648. /api/v2/optimization/lazy-load/best-practices                                    [GET       ] -> get_best_practices
+[S]   649. /api/v2/optimization/lazy-load/config                                            [GET       ] -> get_lazy_load_config
+[S]   650. /api/v2/optimization/lazy-load/config                                            [POST      ] -> update_lazy_load_config
+[S]   651. /api/v2/optimization/lazy-load/examples                                          [GET       ] -> get_usage_examples
+[S]   652. /api/v2/optimization/lazy-load/generate-lazy-image                               [POST      ] -> generate_lazy_image
+[S]   653. /api/v2/optimization/lazy-load/generate-progressive-image                        [POST      ] -> generate_progressive_image
+[S]   654. /api/v2/optimization/lazy-load/get-css                                           [GET       ] -> get_lazy_load_css
+[S]   655. /api/v2/optimization/lazy-load/get-script                                        [GET       ] -> get_lazy_load_script
+[S]   656. /api/v2/optimization/lazy-load/inject-to-html                                    [POST      ] -> inject_to_html
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.performance.lazy_load_optimization
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   657. /api/v2/optimization/lazy-load/config                                            [GET       ] -> get_config
+[S]   658. /api/v2/optimization/lazy-load/image-tag                                         [GET       ] -> generate_lazy_image
+[S]   659. /api/v2/optimization/lazy-load/optimize-content                                  [POST      ] -> optimize_content
+[S]   660. /api/v2/optimization/lazy-load/placeholder-svg                                   [GET       ] -> generate_placeholder
+[S]   661. /api/v2/optimization/lazy-load/responsive-image                                  [GET       ] -> generate_responsive_image
+[S]   662. /api/v2/optimization/lazy-load/script                                            [GET       ] -> get_lazy_load_script
+[S]   663. /api/v2/optimization/lazy-load/styles                                            [GET       ] -> get_lazy_load_styles
+[S]   664. /api/v2/optimization/lazy-load/update-config                                     [POST      ] -> update_config
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.performance.load_balancer
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   665. /api/v2/cdn/load-balancer/config                                                 [GET       ] -> get_config
+[S]   666. /api/v2/cdn/load-balancer/config/update                                          [POST      ] -> update_config
+[S]   667. /api/v2/cdn/load-balancer/failover/history                                       [GET       ] -> get_failover_history
+[S]   668. /api/v2/cdn/load-balancer/instance/deregister                                    [POST      ] -> deregister_instance
+[S]   669. /api/v2/cdn/load-balancer/instance/select                                        [POST      ] -> select_next_instance
+[W]   670. /api/v2/cdn/load-balancer/instance/{instance_id}/graceful-shutdown               [POST      ] -> graceful_shutdown_instance
+[W]   671. /api/v2/cdn/load-balancer/instance/{instance_id}/health                          [GET       ] -> check_instance_health
+[S]   672. /api/v2/cdn/load-balancer/instances                                              [GET       ] -> get_active_instances
+[S]   673. /api/v2/cdn/load-balancer/monitoring                                             [GET       ] -> get_monitoring_data
+[S]   674. /api/v2/cdn/load-balancer/session/cleanup                                        [POST      ] -> cleanup_sessions
+[S]   675. /api/v2/cdn/load-balancer/session/stats                                          [GET       ] -> get_session_stats
+[W]   676. /api/v2/cdn/load-balancer/session/{session_id}                                   [GET       ] -> get_session
+[W]   677. /api/v2/cdn/load-balancer/session/{session_id}                                   [DELETE    ] -> delete_session
+[S]   678. /api/v2/cdn/load-balancer/stats                                                  [GET       ] -> get_cluster_stats
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.performance.object_cache
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   679. /api/v2/cache/object/config                                                      [POST      ] -> update_cache_config
+[S]   680. /api/v2/cache/object/examples                                                    [GET       ] -> get_usage_examples
+[S]   681. /api/v2/cache/object/invalidate-tag                                              [POST      ] -> invalidate_by_tag
+[S]   682. /api/v2/cache/object/invalidate-tags                                             [POST      ] -> invalidate_by_tags
+[S]   683. /api/v2/cache/object/stats                                                       [GET       ] -> get_object_cache_stats
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.performance.page_cache
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   684. /api/v2/cache/page/clear-all                                                     [POST      ] -> clear_all_page_cache
+[S]   685. /api/v2/cache/page/config                                                        [POST      ] -> update_cache_config
+[S]   686. /api/v2/cache/page/examples                                                      [GET       ] -> get_cache_examples
+[S]   687. /api/v2/cache/page/info                                                          [GET       ] -> get_cache_info
+[S]   688. /api/v2/cache/page/invalidate                                                    [POST      ] -> invalidate_page_cache
+[S]   689. /api/v2/cache/page/invalidate-pattern                                            [POST      ] -> invalidate_pattern_cache
+[S]   690. /api/v2/cache/page/stats                                                         [GET       ] -> get_page_cache_stats
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.performance.performance_monitor
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   691. /api/v2/monitoring/performance/api-stats                                         [GET       ] -> get_api_stats
+[S]   692. /api/v2/monitoring/performance/dashboard                                         [GET       ] -> get_performance_dashboard
+[S]   693. /api/v2/monitoring/performance/db-query-stats                                    [GET       ] -> get_db_query_stats
+[S]   694. /api/v2/monitoring/performance/examples                                          [GET       ] -> get_usage_examples
+[S]   695. /api/v2/monitoring/performance/health-check                                      [GET       ] -> health_check
+[S]   696. /api/v2/monitoring/performance/page-load-stats                                   [GET       ] -> get_page_load_stats
+[S]   697. /api/v2/monitoring/performance/recommendations                                   [GET       ] -> get_recommendations
+[S]   698. /api/v2/monitoring/performance/record-api-response                               [POST      ] -> record_api_response
+[S]   699. /api/v2/monitoring/performance/record-db-query                                   [POST      ] -> record_db_query
+[S]   700. /api/v2/monitoring/performance/record-page-load                                  [POST      ] -> record_page_load
+[S]   701. /api/v2/monitoring/performance/server-metrics                                    [GET       ] -> get_server_metrics
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.performance.query_monitor
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   702. /api/v2/monitoring/queries/analysis                                              [GET       ] -> query_analysis_api
+[S]   703. /api/v2/monitoring/queries/recommendations                                       [GET       ] -> optimization_recommendations_api
+[S]   704. /api/v2/monitoring/queries/summary                                               [GET       ] -> query_summary_api
+[S]   705. /api/v2/monitoring/queries/test-query                                            [POST      ] -> test_query_api
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.performance.query_optimization
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   706. /api/v2/monitoring/queries/optimization/analysis                                 [GET       ] -> analyze_queries
+[S]   707. /api/v2/monitoring/queries/optimization/monitor/stats                            [GET       ] -> get_query_stats
+[S]   708. /api/v2/monitoring/queries/optimization/optimize/article-query                   [POST      ] -> optimize_article_query
+[S]   709. /api/v2/monitoring/queries/optimization/recommendations                          [GET       ] -> get_optimization_recommendations
+[S]   710. /api/v2/monitoring/queries/optimization/reset-monitor                            [POST      ] -> reset_query_monitor
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.performance.resource_optimization
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   711. /api/v2/optimization/resources/best-practices                                    [GET       ] -> get_best_practices
+[S]   712. /api/v2/optimization/resources/clear-cache                                       [POST      ] -> clear_optimization_cache
+[S]   713. /api/v2/optimization/resources/examples                                          [GET       ] -> get_usage_examples
+[S]   714. /api/v2/optimization/resources/manifest                                          [GET       ] -> get_resource_manifest
+[S]   715. /api/v2/optimization/resources/optimize                                          [POST      ] -> batch_optimize_resources
+[S]   716. /api/v2/optimization/resources/optimize-css                                      [POST      ] -> optimize_css
+[S]   717. /api/v2/optimization/resources/optimize-js                                       [POST      ] -> optimize_js
+[S]   718. /api/v2/optimization/resources/stats                                             [GET       ] -> get_resource_stats
+[S]   719. /api/v2/optimization/resources/versioned-url                                     [GET       ] -> get_versioned_url
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.performance.slow_query_log
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   720. /api/v2/monitoring/queries/slow/clear                                            [POST      ] -> clear_logs
+[S]   721. /api/v2/monitoring/queries/slow/config                                           [POST      ] -> update_config
+[S]   722. /api/v2/monitoring/queries/slow/examples                                         [GET       ] -> get_usage_examples
+[S]   723. /api/v2/monitoring/queries/slow/logs                                             [GET       ] -> get_slow_query_logs
+[S]   724. /api/v2/monitoring/queries/slow/record                                           [POST      ] -> record_query
+[S]   725. /api/v2/monitoring/queries/slow/statistics                                       [GET       ] -> get_statistics
+[S]   726. /api/v2/monitoring/queries/slow/suggestions                                      [GET       ] -> get_optimization_suggestions
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.plugins.plugin_management
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   727. /api/v2/plugins                                                                  [GET       ] -> list_plugins
+[S]   728. /api/v2/plugins/active                                                           [GET       ] -> get_active_plugins
+[S]   729. /api/v2/plugins/load                                                             [POST      ] -> load_all_plugins
+[S]   730. /api/v2/plugins/scan-new                                                         [GET       ] -> scan_new_plugins
+[S]   731. /api/v2/plugins/sync-config                                                      [POST      ] -> sync_plugin_config
+[W]   732. /api/v2/plugins/{plugin_slug}                                                    [GET       ] -> get_plugin_info
+[W]   733. /api/v2/plugins/{plugin_slug}                                                    [DELETE    ] -> uninstall_plugin
+[W]   734. /api/v2/plugins/{plugin_slug}/action                                             [POST      ] -> execute_plugin_action
+[W]   735. /api/v2/plugins/{plugin_slug}/activate                                           [POST      ] -> activate_plugin
+[W]   736. /api/v2/plugins/{plugin_slug}/deactivate                                         [POST      ] -> deactivate_plugin
+[W]   737. /api/v2/plugins/{plugin_slug}/hot-load                                           [POST      ] -> hot_load_plugin
+[W]   738. /api/v2/plugins/{plugin_slug}/hot-reload                                         [POST      ] -> hot_reload_plugin
+[W]   739. /api/v2/plugins/{plugin_slug}/hot-unload                                         [POST      ] -> hot_unload_plugin
+[W]   740. /api/v2/plugins/{plugin_slug}/settings                                           [GET       ] -> get_plugin_settings
+[W]   741. /api/v2/plugins/{plugin_slug}/settings                                           [PUT       ] -> update_plugin_settings
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.plugins.plugin_permissions
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   742. /api/v2/plugins/permissions/plugin-permissions/audit-logs                        [GET       ] -> get_audit_logs
+[S]   743. /api/v2/plugins/permissions/plugin-permissions/available-capabilities            [GET       ] -> get_available_capabilities
+[S]   744. /api/v2/plugins/permissions/plugin-permissions/check                             [POST      ] -> check_plugin_permission
+[S]   745. /api/v2/plugins/permissions/plugin-permissions/clear-old-logs                    [POST      ] -> clear_old_logs
+[S]   746. /api/v2/plugins/permissions/plugin-permissions/guide                             [GET       ] -> get_permissions_guide
+[S]   747. /api/v2/plugins/permissions/plugin-permissions/statistics                        [GET       ] -> get_permission_statistics
+[S]   748. /api/v2/plugins/permissions/plugin-permissions/validate-capabilities             [POST      ] -> validate_plugin_capabilities
+[W]   749. /api/v2/plugins/permissions/plugin-permissions/{plugin_slug}/detect-anomalies    [POST      ] -> detect_plugin_anomalies
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.plugins.plugin_sandbox_api
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   750. /api/v2/plugin-sandbox/plugin-sandbox/active-plugins                             [GET       ] -> get_active_plugins
+[S]   751. /api/v2/plugin-sandbox/plugin-sandbox/config                                     [GET       ] -> get_sandbox_config
+[S]   752. /api/v2/plugin-sandbox/plugin-sandbox/execute                                    [POST      ] -> execute_plugin
+[S]   753. /api/v2/plugin-sandbox/plugin-sandbox/guide                                      [GET       ] -> get_sandbox_guide
+[S]   754. /api/v2/plugin-sandbox/plugin-sandbox/history                                    [GET       ] -> get_execution_history
+[W]   755. /api/v2/plugin-sandbox/plugin-sandbox/ipc/receive/{plugin_id}                    [GET       ] -> receive_ipc_message
+[S]   756. /api/v2/plugin-sandbox/plugin-sandbox/ipc/send                                   [POST      ] -> send_ipc_message
+[W]   757. /api/v2/plugin-sandbox/plugin-sandbox/terminate/{plugin_id}                      [POST      ] -> terminate_plugin
+[S]   758. /api/v2/plugin-sandbox/plugin-sandbox/validate                                   [POST      ] -> validate_plugin_code
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.plugins.plugin_security_audit_api
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   759. /api/v2/plugin-audit/plugin-audit/audit-history                                  [GET       ] -> get_audit_history
+[S]   760. /api/v2/plugin-audit/plugin-audit/behavior-report                                [GET       ] -> get_behavior_report
+[S]   761. /api/v2/plugin-audit/plugin-audit/common-vulnerabilities                         [GET       ] -> get_common_vulnerabilities
+[S]   762. /api/v2/plugin-audit/plugin-audit/full-audit                                     [POST      ] -> run_full_audit
+[S]   763. /api/v2/plugin-audit/plugin-audit/scan-dependencies                              [POST      ] -> scan_dependencies
+[S]   764. /api/v2/plugin-audit/plugin-audit/security-guidelines                            [GET       ] -> get_security_guidelines
+[S]   765. /api/v2/plugin-audit/plugin-audit/static-analysis                                [POST      ] -> run_static_analysis
+[S]   766. /api/v2/plugin-audit/plugin-audit/track-api-call                                 [POST      ] -> track_api_call
+[S]   767. /api/v2/plugin-audit/plugin-audit/track-network-request                          [POST      ] -> track_network_request
+[S]   768. /api/v2/plugin-audit/plugin-audit/track-resource-usage                           [POST      ] -> track_resource_usage
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.search.fulltext_search
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   769. /api/v2/search/articles                                                          [GET       ] -> search_articles
+[S]   770. /api/v2/search/rebuild-index                                                     [POST      ] -> rebuild_search_index
+[S]   771. /api/v2/search/stats                                                             [GET       ] -> get_search_stats
+[S]   772. /api/v2/search/suggestions                                                       [GET       ] -> get_search_suggestions
+[W]   773. /api/v2/search/sync-article/{article_id}                                         [POST      ] -> sync_article_to_index
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.search.search_history
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   774. /api/v2/search/history                                                           [GET       ] -> get_search_history
+[S]   775. /api/v2/search/history                                                           [DELETE    ] -> clear_search_history
+[W]   776. /api/v2/search/history/{item_id}                                                 [DELETE    ] -> delete_search_history_item
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.security.audit_log
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   777. /api/v2/security/audit-log/cleanup                                               [POST      ] -> cleanup_old_logs
+[S]   778. /api/v2/security/audit-log/export                                                [GET       ] -> export_audit_logs
+[S]   779. /api/v2/security/audit-log/logs                                                  [GET       ] -> get_audit_logs
+[S]   780. /api/v2/security/audit-log/stats                                                 [GET       ] -> get_audit_log_stats
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.security.content_approval
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   781. /api/v2/security/approval/my-requests                                            [GET       ] -> get_my_requests
+[S]   782. /api/v2/security/approval/pending                                                [GET       ] -> get_pending_approvals
+[S]   783. /api/v2/security/approval/request                                                [POST      ] -> create_approval_request
+[S]   784. /api/v2/security/approval/stats                                                  [GET       ] -> get_approval_stats
+[W]   785. /api/v2/security/approval/status/{content_type}/{content_id}                     [GET       ] -> check_approval_status
+[W]   786. /api/v2/security/approval/{record_id}/approve                                    [POST      ] -> approve_step
+[W]   787. /api/v2/security/approval/{record_id}/cancel                                     [POST      ] -> cancel_approval
+[W]   788. /api/v2/security/approval/{record_id}/history                                    [GET       ] -> get_approval_history
+[W]   789. /api/v2/security/approval/{record_id}/reject                                     [POST      ] -> reject_step
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.security.login_security
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   790. /api/v2/security/login/admin/locked-users                                        [GET       ] -> get_locked_users
+[W]   791. /api/v2/security/login/admin/user-history/{username}                             [GET       ] -> admin_get_user_history
+[W]   792. /api/v2/security/login/admin/user-stats/{username}                               [GET       ] -> admin_get_user_stats
+[S]   793. /api/v2/security/login/my-history                                                [GET       ] -> get_my_login_history
+[S]   794. /api/v2/security/login/my-stats                                                  [GET       ] -> get_my_security_stats
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.security.rate_limit
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   795. /api/v2/security/rate-limit/config                                               [POST      ] -> set_custom_rate_limit
+[S]   796. /api/v2/security/rate-limit/config/default                                       [GET       ] -> get_default_config
+[S]   797. /api/v2/security/rate-limit/config/update                                        [POST      ] -> update_default_config
+[S]   798. /api/v2/security/rate-limit/monitoring                                           [GET       ] -> get_monitoring_data
+[S]   799. /api/v2/security/rate-limit/reset                                                [POST      ] -> reset_rate_limit
+[S]   800. /api/v2/security/rate-limit/status                                               [GET       ] -> get_rate_limit_status
+[S]   801. /api/v2/security/rate-limit/whitelist                                            [GET       ] -> get_whitelist
+[S]   802. /api/v2/security/rate-limit/whitelist/add                                        [POST      ] -> add_to_whitelist
+[S]   803. /api/v2/security/rate-limit/whitelist/remove                                     [DELETE    ] -> remove_from_whitelist
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.security.rbac
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   804. /api/v2/security/rbac/audit-logs                                                 [GET       ] -> get_audit_logs
+[S]   805. /api/v2/security/rbac/check-permission                                           [POST      ] -> check_permission
+[S]   806. /api/v2/security/rbac/permissions                                                [GET       ] -> get_permissions
+[S]   807. /api/v2/security/rbac/roles                                                      [POST      ] -> create_role
+[S]   808. /api/v2/security/rbac/roles                                                      [GET       ] -> get_roles
+[W]   809. /api/v2/security/rbac/roles/{role_id}                                            [DELETE    ] -> delete_role
+[W]   810. /api/v2/security/rbac/roles/{role_id}/permissions                                [PUT       ] -> update_role_permissions
+[W]   811. /api/v2/security/rbac/users/{user_id}/permissions                                [GET       ] -> get_user_permissions
+[W]   812. /api/v2/security/rbac/users/{user_id}/roles                                      [POST      ] -> assign_role_to_user
+[W]   813. /api/v2/security/rbac/users/{user_id}/roles/{role_id}                            [DELETE    ] -> remove_role_from_user
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.security.security_alert
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   814. /api/v2/security/alerts/channel/email                                            [POST      ] -> add_email_channel
+[S]   815. /api/v2/security/alerts/channel/webhook                                          [POST      ] -> add_webhook_channel
+[W]   816. /api/v2/security/alerts/channel/{channel_id}                                     [DELETE    ] -> remove_channel
+[S]   817. /api/v2/security/alerts/config/rate-limit                                        [POST      ] -> update_rate_limit
+[S]   818. /api/v2/security/alerts/examples                                                 [GET       ] -> get_usage_examples
+[S]   819. /api/v2/security/alerts/history                                                  [GET       ] -> get_alert_history
+[S]   820. /api/v2/security/alerts/rule                                                     [POST      ] -> add_rule
+[S]   821. /api/v2/security/alerts/send                                                     [POST      ] -> send_alert
+[S]   822. /api/v2/security/alerts/statistics                                               [GET       ] -> get_statistics
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.security.security_report
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   823. /api/v2/security/reports/daily                                                   [GET       ] -> generate_daily_report
+[S]   824. /api/v2/security/reports/examples                                                [GET       ] -> get_usage_examples
+[S]   825. /api/v2/security/reports/history                                                 [GET       ] -> get_report_history
+[S]   826. /api/v2/security/reports/monthly                                                 [GET       ] -> generate_monthly_report
+[S]   827. /api/v2/security/reports/weekly                                                  [GET       ] -> generate_weekly_report
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.security.sensitive_words
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   828. /api/v2/security/sensitive-words/                                                [POST      ] -> create_sensitive_word
+[S]   829. /api/v2/security/sensitive-words/                                                [GET       ] -> list_sensitive_words
+[S]   830. /api/v2/security/sensitive-words/batch-import                                    [POST      ] -> batch_import_sensitive_words
+[S]   831. /api/v2/security/sensitive-words/refresh-cache                                   [POST      ] -> refresh_sensitive_word_cache
+[S]   832. /api/v2/security/sensitive-words/statistics                                      [GET       ] -> get_sensitive_word_statistics
+[S]   833. /api/v2/security/sensitive-words/test                                            [POST      ] -> test_endpoint
+[W]   834. /api/v2/security/sensitive-words/{word_id}                                       [GET       ] -> get_sensitive_word
+[W]   835. /api/v2/security/sensitive-words/{word_id}                                       [PUT       ] -> update_sensitive_word
+[W]   836. /api/v2/security/sensitive-words/{word_id}                                       [DELETE    ] -> delete_sensitive_word
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.security.session_management
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   837. /api/v2/security/sessions/admin/revoke                                           [POST      ] -> admin_revoke_session
+[S]   838. /api/v2/security/sessions/admin/stats                                            [GET       ] -> admin_get_session_stats
+[W]   839. /api/v2/security/sessions/admin/user-sessions/{user_id}                          [GET       ] -> admin_get_user_sessions
+[S]   840. /api/v2/security/sessions/my-sessions                                            [GET       ] -> get_my_sessions
+[S]   841. /api/v2/security/sessions/revoke                                                 [POST      ] -> revoke_session
+[S]   842. /api/v2/security/sessions/revoke-all                                             [POST      ] -> revoke_all_sessions
+[S]   843. /api/v2/security/sessions/security-alerts                                        [GET       ] -> get_security_alerts
+[S]   844. /api/v2/security/sessions/stats                                                  [GET       ] -> get_session_stats
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.security.two_factor_auth
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   845. /api/v2/security/2fa/backup-codes/regenerate                                     [POST      ] -> regenerate_backup_codes
+[S]   846. /api/v2/security/2fa/disable                                                     [POST      ] -> disable_2fa
+[S]   847. /api/v2/security/2fa/enable                                                      [POST      ] -> enable_2fa
+[S]   848. /api/v2/security/2fa/setup                                                       [GET       ] -> setup_2fa
+[S]   849. /api/v2/security/2fa/status                                                      [GET       ] -> get_2fa_status
+[S]   850. /api/v2/security/2fa/verify-login                                                [POST      ] -> verify_2fa_login
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.social.share_stats
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   851. /api/v2/social/share-stats/platform-stats                                        [GET       ] -> get_platform_statistics
+[S]   852. /api/v2/social/share-stats/ranking                                               [GET       ] -> get_share_ranking
+[W]   853. /api/v2/social/share-stats/stats/{article_id}                                    [GET       ] -> get_article_share_stats
+[S]   854. /api/v2/social/share-stats/track                                                 [POST      ] -> track_share
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.static_generation.static_site_generation
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   855. /api/v2/static-site/articles/batch                                               [POST      ] -> generate_all_articles
+[W]   856. /api/v2/static-site/articles/{article_id}                                        [POST      ] -> generate_article_page
+[W]   857. /api/v2/static-site/categories/{category_id}                                     [POST      ] -> generate_category_page
+[S]   858. /api/v2/static-site/clean                                                        [DELETE    ] -> clean_old_files
+[S]   859. /api/v2/static-site/config                                                       [GET       ] -> get_config
+[S]   860. /api/v2/static-site/homepage                                                     [POST      ] -> generate_homepage
+[S]   861. /api/v2/static-site/stats                                                        [GET       ] -> get_generation_stats
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.system.admin_settings
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   862. /api/v2/admin/settings/                                                          [GET       ] -> get_settings
+[S]   863. /api/v2/admin/settings/                                                          [POST      ] -> update_settings
+[S]   864. /api/v2/admin/settings/menu-items                                                [POST      ] -> create_menu_item
+[W]   865. /api/v2/admin/settings/menu-items/{menu_item_id}                                 [PUT       ] -> update_menu_item
+[W]   866. /api/v2/admin/settings/menu-items/{menu_item_id}                                 [DELETE    ] -> delete_menu_item
+[S]   867. /api/v2/admin/settings/menus                                                     [POST      ] -> create_menu
+[W]   868. /api/v2/admin/settings/menus/{menu_id}                                           [PUT       ] -> update_menu
+[W]   869. /api/v2/admin/settings/menus/{menu_id}                                           [DELETE    ] -> delete_menu
+[S]   870. /api/v2/admin/settings/pages                                                     [POST      ] -> create_page
+[W]   871. /api/v2/admin/settings/pages/{page_id}                                           [PUT       ] -> update_page
+[W]   872. /api/v2/admin/settings/pages/{page_id}                                           [DELETE    ] -> delete_page
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.system.backup_management
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   873. /api/v2/backup/cleanup                                                           [POST      ] -> cleanup_old_backups
+[S]   874. /api/v2/backup/config                                                            [GET       ] -> get_backup_config
+[S]   875. /api/v2/backup/config/update                                                     [POST      ] -> update_backup_config
+[S]   876. /api/v2/backup/database                                                          [POST      ] -> backup_database
+[S]   877. /api/v2/backup/delete                                                            [DELETE    ] -> delete_backup
+[S]   878. /api/v2/backup/files                                                             [POST      ] -> backup_files
+[S]   879. /api/v2/backup/full                                                              [POST      ] -> full_backup
+[S]   880. /api/v2/backup/list                                                              [GET       ] -> list_backups
+[S]   881. /api/v2/backup/restore/database                                                  [POST      ] -> restore_database
+[S]   882. /api/v2/backup/restore/files                                                     [POST      ] -> restore_files
+[S]   883. /api/v2/backup/schedule                                                          [POST      ] -> set_backup_schedule
+[S]   884. /api/v2/backup/stats                                                             [GET       ] -> get_backup_stats
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.system.batch_operations
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   885. /api/v2/admin/batch/articles/add-tags                                            [POST      ] -> batch_add_tags
+[S]   886. /api/v2/admin/batch/articles/delete                                              [POST      ] -> batch_delete_articles
+[S]   887. /api/v2/admin/batch/articles/move-category                                       [POST      ] -> batch_move_to_category
+[S]   888. /api/v2/admin/batch/articles/update-sort                                         [POST      ] -> batch_update_articles_sort
+[S]   889. /api/v2/admin/batch/articles/update-status                                       [POST      ] -> batch_update_article_status
+[S]   890. /api/v2/admin/batch/categories/update-sort                                       [POST      ] -> batch_update_categories_sort
+[S]   891. /api/v2/admin/batch/comments/delete                                              [POST      ] -> batch_delete_comments
+[S]   892. /api/v2/admin/batch/comments/update-status                                       [POST      ] -> batch_update_comment_status
+[S]   893. /api/v2/admin/batch/products/delete                                              [POST      ] -> batch_delete_products
+[S]   894. /api/v2/admin/batch/products/update-price                                        [POST      ] -> batch_update_product_price
+[S]   895. /api/v2/admin/batch/products/update-status                                       [POST      ] -> batch_update_product_status
+[S]   896. /api/v2/admin/batch/products/update-stock                                        [POST      ] -> batch_update_product_stock
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.system.data_export
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   897. /api/v2/gdpr/export/analytics                                                    [GET       ] -> export_analytics
+[S]   898. /api/v2/gdpr/export/articles                                                     [GET       ] -> export_articles
+[S]   899. /api/v2/gdpr/export/comments                                                     [GET       ] -> export_comments
+[S]   900. /api/v2/gdpr/export/custom                                                       [POST      ] -> export_custom_data
+[S]   901. /api/v2/gdpr/export/templates                                                    [GET       ] -> get_export_templates
+[S]   902. /api/v2/gdpr/export/users                                                        [GET       ] -> export_users
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.system.database_migration
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   903. /api/v2/admin/database/migrations/url-replace/common-patterns                    [GET       ] -> get_common_patterns
+[S]   904. /api/v2/admin/database/migrations/url-replace/execute                            [POST      ] -> execute_url_replace
+[S]   905. /api/v2/admin/database/migrations/url-replace/preview                            [POST      ] -> preview_url_replace
+[S]   906. /api/v2/admin/database/migrations/url-replace/validate                           [POST      ] -> validate_url_replace
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.system.installation
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   907. /api/v2/install/check-database                                                   [POST      ] -> check_database_connection_api
+[S]   908. /api/v2/install/complete                                                         [POST      ] -> complete_installation_api
+[S]   909. /api/v2/install/configure-database                                               [POST      ] -> configure_database_api
+[S]   910. /api/v2/install/configure-site                                                   [POST      ] -> configure_site_settings_api
+[S]   911. /api/v2/install/confirm-database-and-migrate                                     [POST      ] -> confirm_database_and_migrate_api
+[S]   912. /api/v2/install/create-admin                                                     [POST      ] -> create_admin_user_api
+[S]   913. /api/v2/install/import-sample-data                                               [POST      ] -> import_sample_data_api
+[S]   914. /api/v2/install/migration/stream                                                 [GET       ] -> stream_migration_logs
+[S]   915. /api/v2/install/prerequisites                                                    [GET       ] -> check_prerequisites_api
+[S]   916. /api/v2/install/reset                                                            [POST      ] -> reset_installation_api
+[S]   917. /api/v2/install/status                                                           [GET       ] -> get_installation_status_api
+[S]   918. /api/v2/install/steps                                                            [GET       ] -> get_installation_steps_api
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.system.maintenance
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   919. /api/v2/admin/maintenance/disable                                                [POST      ] -> disable_maintenance_api
+[S]   920. /api/v2/admin/maintenance/enable                                                 [POST      ] -> enable_maintenance_api
+[S]   921. /api/v2/admin/maintenance/message                                                [PUT       ] -> update_message_api
+[S]   922. /api/v2/admin/maintenance/schedule                                               [POST      ] -> schedule_maintenance_api
+[S]   923. /api/v2/admin/maintenance/status                                                 [GET       ] -> get_maintenance_status_api
+[S]   924. /api/v2/admin/maintenance/whitelist/add                                          [POST      ] -> add_whitelist_ip_api
+[S]   925. /api/v2/admin/maintenance/whitelist/remove                                       [POST      ] -> remove_whitelist_ip_api
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.system.migrations
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   926. /api/v2/admin/migrations/apply                                                   [POST      ] -> apply_migrations_api
+[S]   927. /api/v2/admin/migrations/create                                                  [POST      ] -> create_migration_api
+[S]   928. /api/v2/admin/migrations/info                                                    [GET       ] -> migration_info_api
+[S]   929. /api/v2/admin/migrations/rollback                                                [POST      ] -> rollback_migration_api
+[S]   930. /api/v2/admin/migrations/status                                                  [GET       ] -> migration_status_api
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.system.multisite
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   931. /api/v2/sites                                                                    [POST      ] -> create_site
+[S]   932. /api/v2/sites                                                                    [GET       ] -> get_sites
+[S]   933. /api/v2/sites/domains                                                            [POST      ] -> add_domain
+[S]   934. /api/v2/sites/domains                                                            [DELETE    ] -> remove_domain
+[S]   935. /api/v2/sites/sync                                                               [POST      ] -> sync_content
+[S]   936. /api/v2/sites/users                                                              [POST      ] -> add_user_to_site
+[W]   937. /api/v2/sites/users/{user_id}                                                    [DELETE    ] -> remove_user_from_site
+[W]   938. /api/v2/sites/users/{user_id}/sites                                              [GET       ] -> get_user_sites
+[W]   939. /api/v2/sites/{site_id}                                                          [PUT       ] -> update_site
+[W]   940. /api/v2/sites/{site_id}                                                          [DELETE    ] -> delete_site
+[W]   941. /api/v2/sites/{site_id}                                                          [GET       ] -> get_site_detail
+[W]   942. /api/v2/sites/{site_id}/content-mappings                                         [GET       ] -> get_content_mappings
+[W]   943. /api/v2/sites/{site_id}/users                                                    [GET       ] -> get_site_users
+[W]   944. /api/v2/sites/{site_id}/users/{user_id}/role                                     [PUT       ] -> update_user_role
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.system.report_management
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   945. /api/v2/admin/reports/content                                                    [GET       ] -> get_content_report
+[S]   946. /api/v2/admin/reports/custom                                                     [POST      ] -> generate_custom_report
+[S]   947. /api/v2/admin/reports/export                                                     [POST      ] -> export_report
+[S]   948. /api/v2/admin/reports/scheduled                                                  [POST      ] -> create_scheduled_report
+[S]   949. /api/v2/admin/reports/scheduled                                                  [GET       ] -> get_scheduled_reports
+[W]   950. /api/v2/admin/reports/scheduled/{report_id}/toggle                               [POST      ] -> toggle_scheduled_report
+[S]   951. /api/v2/admin/reports/templates                                                  [GET       ] -> get_report_templates
+[S]   952. /api/v2/admin/reports/traffic                                                    [GET       ] -> get_traffic_report
+[S]   953. /api/v2/admin/reports/user-activity                                              [GET       ] -> get_user_activity_report
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.system.resource_transfer
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   954. /api/v2/admin/resource-transfer/download                                         [POST      ] -> create_download_task
+[S]   955. /api/v2/admin/resource-transfer/download/batch                                   [POST      ] -> create_batch_download_tasks
+[S]   956. /api/v2/admin/resource-transfer/process-queue                                    [POST      ] -> process_download_queue
+[S]   957. /api/v2/admin/resource-transfer/stats                                            [GET       ] -> get_download_stats
+[S]   958. /api/v2/admin/resource-transfer/tasks                                            [GET       ] -> get_download_tasks
+[W]   959. /api/v2/admin/resource-transfer/tasks/{task_id}                                  [GET       ] -> get_task_detail
+[W]   960. /api/v2/admin/resource-transfer/tasks/{task_id}/cancel                           [POST      ] -> cancel_task
+[W]   961. /api/v2/admin/resource-transfer/tasks/{task_id}/retry                            [POST      ] -> retry_task
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.system.screen_options
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   962. /api/v2/admin/screen-options/options                                             [GET       ] -> get_screen_options_api
+[S]   963. /api/v2/admin/screen-options/options                                             [POST      ] -> save_screen_option_api
+[S]   964. /api/v2/admin/screen-options/options                                             [DELETE    ] -> delete_screen_option_api
+[S]   965. /api/v2/admin/screen-options/options/batch                                       [POST      ] -> batch_save_screen_options_api
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.system.version
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   966. /api/v2/system/version/backend                                                   [GET       ] -> get_backend_version
+[S]   967. /api/v2/system/version/frontend                                                  [GET       ] -> get_frontend_version
+[S]   968. /api/v2/system/version/full                                                      [GET       ] -> get_version_info
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.system.webhook_management
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   969. /api/v2/admin/webhooks/                                                          [GET       ] -> list_webhooks
+[S]   970. /api/v2/admin/webhooks/                                                          [POST      ] -> create_webhook
+[S]   971. /api/v2/admin/webhooks/events                                                    [GET       ] -> get_supported_events
+[S]   972. /api/v2/admin/webhooks/trigger                                                   [POST      ] -> trigger_event
+[W]   973. /api/v2/admin/webhooks/{webhook_id}                                              [PUT       ] -> update_webhook
+[W]   974. /api/v2/admin/webhooks/{webhook_id}                                              [DELETE    ] -> delete_webhook
+[W]   975. /api/v2/admin/webhooks/{webhook_id}/deliveries                                   [GET       ] -> get_deliveries
+[W]   976. /api/v2/admin/webhooks/{webhook_id}/stats                                        [GET       ] -> get_delivery_stats
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.system.workflow
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   977. /api/v2/workflow/definitions                                                     [POST      ] -> register_workflow
+[W]   978. /api/v2/workflow/definitions/{workflow_id}                                       [GET       ] -> get_workflow_definition
+[S]   979. /api/v2/workflow/examples                                                        [GET       ] -> get_workflow_examples
+[S]   980. /api/v2/workflow/instances                                                       [POST      ] -> create_workflow_instance
+[W]   981. /api/v2/workflow/instances/{instance_id}                                         [GET       ] -> get_workflow_instance
+[W]   982. /api/v2/workflow/instances/{instance_id}/cancel                                  [POST      ] -> cancel_workflow_instance
+[W]   983. /api/v2/workflow/instances/{instance_id}/execute                                 [POST      ] -> execute_workflow_instance
+[W]   984. /api/v2/workflow/instances/{instance_id}/history                                 [GET       ] -> get_execution_history
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.templates.template_api
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   985. /api/v2/templates/templates/categories                                           [GET       ] -> get_template_categories
+[W]   986. /api/v2/templates/templates/detail/{template_id}                                 [GET       ] -> get_template_detail
+[S]   987. /api/v2/templates/templates/guide                                                [GET       ] -> get_templates_guide
+[S]   988. /api/v2/templates/templates/list                                                 [GET       ] -> list_templates
+[S]   989. /api/v2/templates/templates/popular                                              [GET       ] -> get_popular_templates
+[W]   990. /api/v2/templates/templates/preview/{template_id}                                [GET       ] -> preview_template
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.themes.child_themes
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   991. /api/v2/themes/child-themes/child-themes/create                                  [POST      ] -> create_child_theme
+[S]   992. /api/v2/themes/child-themes/child-themes/examples                                [GET       ] -> get_child_theme_examples
+[S]   993. /api/v2/themes/child-themes/child-themes/guide                                   [GET       ] -> get_child_theme_guide
+[S]   994. /api/v2/themes/child-themes/child-themes/list                                    [GET       ] -> list_child_themes
+[W]   995. /api/v2/themes/child-themes/child-themes/{child_slug}/hierarchy                  [GET       ] -> get_theme_hierarchy
+[W]   996. /api/v2/themes/child-themes/child-themes/{child_slug}/parent                     [GET       ] -> get_parent_theme_info
+[W]   997. /api/v2/themes/child-themes/child-themes/{child_slug}/templates/{template_name}  [GET       ] -> resolve_template
+[W]   998. /api/v2/themes/child-themes/child-themes/{child_slug}/validate                   [POST      ] -> validate_child_theme
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.themes.full_site_editor
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]   999. /api/v2/themes/editor/dashboard                                                  [GET       ] -> get_fse_dashboard
+[S]  1000. /api/v2/themes/editor/global-styles                                              [GET       ] -> get_global_styles
+[S]  1001. /api/v2/themes/editor/global-styles                                              [POST      ] -> save_global_styles
+[S]  1002. /api/v2/themes/editor/global-styles/css                                          [GET       ] -> generate_css
+[S]  1003. /api/v2/themes/editor/menus                                                      [GET       ] -> list_menus
+[W]  1004. /api/v2/themes/editor/menus/{menu_location}                                      [GET       ] -> get_menu
+[W]  1005. /api/v2/themes/editor/menus/{menu_location}                                      [POST      ] -> save_menu
+[W]  1006. /api/v2/themes/editor/menus/{menu_location}/items                                [POST      ] -> add_menu_item
+[W]  1007. /api/v2/themes/editor/menus/{menu_location}/items/{item_index}                   [DELETE    ] -> remove_menu_item
+[S]  1008. /api/v2/themes/editor/templates                                                  [GET       ] -> list_templates
+[W]  1009. /api/v2/themes/editor/templates/{template_type}                                  [GET       ] -> get_template
+[W]  1010. /api/v2/themes/editor/templates/{template_type}                                  [POST      ] -> save_template
+[W]  1011. /api/v2/themes/editor/templates/{template_type}                                  [DELETE    ] -> reset_template
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.themes.page_templates
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]  1012. /api/v2/themes/templates/available                                               [GET       ] -> get_available_templates_api
+[W]  1013. /api/v2/themes/templates/preview/{theme_slug}/{template_slug}                    [GET       ] -> get_template_preview_api
+[W]  1014. /api/v2/themes/templates/{page_id}/template                                      [GET       ] -> get_page_template_api
+[W]  1015. /api/v2/themes/templates/{page_id}/template                                      [POST      ] -> set_page_template_api
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.themes.template_hierarchy
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]  1016. /api/v2/themes/hierarchy/hierarchy                                               [GET       ] -> template_hierarchy_info_api
+[S]  1017. /api/v2/themes/hierarchy/resolve/archive                                         [POST      ] -> resolve_archive_template_api
+[S]  1018. /api/v2/themes/hierarchy/resolve/article                                         [POST      ] -> resolve_article_template_api
+[S]  1019. /api/v2/themes/hierarchy/resolve/page                                            [POST      ] -> resolve_page_template_api
+[W]  1020. /api/v2/themes/hierarchy/templates/{theme}                                       [GET       ] -> get_available_templates_api
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.themes.theme_customizer
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[W]  1021. /api/v2/themes/customizer/config/{theme_slug}                                    [GET       ] -> get_theme_config
+[W]  1022. /api/v2/themes/customizer/config/{theme_slug}                                    [PUT       ] -> update_theme_config
+[W]  1023. /api/v2/themes/customizer/custom-css/{theme_slug}                                [GET       ] -> get_custom_css
+[W]  1024. /api/v2/themes/customizer/custom-css/{theme_slug}                                [PUT       ] -> save_custom_css
+[W]  1025. /api/v2/themes/customizer/draft/{theme_slug}                                     [POST      ] -> save_draft
+[W]  1026. /api/v2/themes/customizer/draft/{theme_slug}                                     [GET       ] -> load_draft
+[W]  1027. /api/v2/themes/customizer/draft/{theme_slug}/publish                             [POST      ] -> publish_draft
+[W]  1028. /api/v2/themes/customizer/export/{theme_slug}                                    [GET       ] -> export_theme_config
+[S]  1029. /api/v2/themes/customizer/font-presets                                           [GET       ] -> get_font_presets
+[W]  1030. /api/v2/themes/customizer/history/{theme_slug}                                   [GET       ] -> get_version_history
+[W]  1031. /api/v2/themes/customizer/history/{theme_slug}/restore/{version_id}              [POST      ] -> restore_version
+[W]  1032. /api/v2/themes/customizer/import/{theme_slug}                                    [POST      ] -> import_theme_config
+[S]  1033. /api/v2/themes/customizer/presets                                                [GET       ] -> get_color_presets
+[S]  1034. /api/v2/themes/customizer/preview/css                                            [POST      ] -> generate_preview_css
+[S]  1035. /api/v2/themes/customizer/validate                                               [POST      ] -> validate_theme_config
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.themes.theme_management
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]  1036. /api/v2/admin/themes                                                             [GET       ] -> list_themes
+[S]  1037. /api/v2/admin/themes/active                                                      [GET       ] -> get_active_theme
+[S]  1038. /api/v2/admin/themes/active/config                                               [GET       ] -> get_active_theme_config
+[S]  1039. /api/v2/admin/themes/install                                                     [POST      ] -> install_theme
+[S]  1040. /api/v2/admin/themes/scan-and-fix                                                [POST      ] -> scan_and_fix_themes
+[S]  1041. /api/v2/admin/themes/upload                                                      [POST      ] -> upload_theme
+[S]  1042. /api/v2/admin/themes/validate                                                    [POST      ] -> validate_theme
+[W]  1043. /api/v2/admin/themes/{theme_slug}                                                [DELETE    ] -> uninstall_theme
+[W]  1044. /api/v2/admin/themes/{theme_slug}/activate                                       [POST      ] -> activate_theme
+[W]  1045. /api/v2/admin/themes/{theme_slug}/deactivate                                     [POST      ] -> deactivate_theme
+[W]  1046. /api/v2/admin/themes/{theme_slug}/generate-screenshot                            [POST      ] -> generate_theme_screenshot
+[W]  1047. /api/v2/admin/themes/{theme_slug}/preview                                        [GET       ] -> preview_theme
+[W]  1048. /api/v2/admin/themes/{theme_slug}/settings                                       [GET       ] -> get_theme_settings
+[W]  1049. /api/v2/admin/themes/{theme_slug}/settings                                       [POST      ] -> update_theme_settings
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.themes.visual_customizer_api
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]  1050. /api/v2/themes/visual-customizer/visual-customizer/animation-options             [GET       ] -> get_animation_options
+[W]  1051. /api/v2/themes/visual-customizer/visual-customizer/apply-preset/{preset_id}      [POST      ] -> apply_color_preset
+[S]  1052. /api/v2/themes/visual-customizer/visual-customizer/color-presets                 [GET       ] -> get_color_presets
+[S]  1053. /api/v2/themes/visual-customizer/visual-customizer/css-variables                 [POST      ] -> generate_css_variables
+[S]  1054. /api/v2/themes/visual-customizer/visual-customizer/device-previews               [GET       ] -> get_device_preview_sizes
+[S]  1055. /api/v2/themes/visual-customizer/visual-customizer/export                        [POST      ] -> export_config
+[S]  1056. /api/v2/themes/visual-customizer/visual-customizer/font-options                  [GET       ] -> get_font_options
+[S]  1057. /api/v2/themes/visual-customizer/visual-customizer/guide                         [GET       ] -> get_customizer_guide
+[W]  1058. /api/v2/themes/visual-customizer/visual-customizer/history/{theme_slug}          [GET       ] -> get_config_history
+[S]  1059. /api/v2/themes/visual-customizer/visual-customizer/import                        [POST      ] -> import_config
+[S]  1060. /api/v2/themes/visual-customizer/visual-customizer/layout-options                [GET       ] -> get_layout_options
+[S]  1061. /api/v2/themes/visual-customizer/visual-customizer/preview                       [POST      ] -> generate_preview
+[W]  1062. /api/v2/themes/visual-customizer/visual-customizer/restore-version/{filename}    [POST      ] -> restore_config_version
+[S]  1063. /api/v2/themes/visual-customizer/visual-customizer/save-version                  [POST      ] -> save_config_version
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.translation.translations
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]  1064. /api/v2/translations/export                                                      [GET       ] -> export_translations
+[W]  1065. /api/v2/translations/items/{locale}                                              [GET       ] -> get_all_translations
+[W]  1066. /api/v2/translations/items/{locale}/{key}                                        [GET       ] -> get_translation
+[W]  1067. /api/v2/translations/items/{locale}/{key}                                        [POST      ] -> set_translation
+[W]  1068. /api/v2/translations/missing/{locale}                                            [GET       ] -> get_missing_translations
+[S]  1069. /api/v2/translations/progress                                                    [GET       ] -> get_translation_progress
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.users.unified_users
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]  1070. /api/v2/users/                                                                   [GET       ] -> get_users_list_api
+[S]  1071. /api/v2/users/download-sample-csv                                                [GET       ] -> download_sample_csv_api
+[S]  1072. /api/v2/users/export-csv                                                         [GET       ] -> export_users_csv_api
+[S]  1073. /api/v2/users/import-csv                                                         [POST      ] -> import_users_csv_api
+[S]  1074. /api/v2/users/me                                                                 [GET       ] -> get_current_user_api
+[S]  1075. /api/v2/users/me                                                                 [PUT       ] -> update_current_user_profile_api
+[S]  1076. /api/v2/users/me/avatar                                                          [POST      ] -> update_avatar_api
+[W]  1077. /api/v2/users/me/block/{user_id}                                                 [POST      ] -> block_user
+[W]  1078. /api/v2/users/me/block/{user_id}                                                 [DELETE    ] -> unblock_user
+[S]  1079. /api/v2/users/me/blocked                                                         [GET       ] -> get_blocked_users
+[S]  1080. /api/v2/users/me/change-password                                                 [POST      ] -> change_password_api
+[S]  1081. /api/v2/users/me/followers                                                       [GET       ] -> get_followers
+[S]  1082. /api/v2/users/me/following                                                       [GET       ] -> get_following
+[S]  1083. /api/v2/users/me/settings                                                        [GET       ] -> get_user_settings_api
+[S]  1084. /api/v2/users/me/settings                                                        [PUT       ] -> update_user_settings_api
+[S]  1085. /api/v2/users/recommendations                                                    [GET       ] -> recommend_users
+[W]  1086. /api/v2/users/{user_id}                                                          [GET       ] -> get_user_profile_api
+[W]  1087. /api/v2/users/{user_id}/activity                                                 [GET       ] -> get_user_activity
+[W]  1088. /api/v2/users/{user_id}/follow                                                   [POST      ] -> follow_user
+[W]  1089. /api/v2/users/{user_id}/follow                                                   [DELETE    ] -> unfollow_user
+[W]  1090. /api/v2/users/{user_id}/followers                                                [GET       ] -> get_user_followers
+[W]  1091. /api/v2/users/{user_id}/following                                                [GET       ] -> get_user_following
+[W]  1092. /api/v2/users/{user_id}/interests                                                [GET       ] -> get_user_interests
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.users.user_management
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]  1093. /api/v2/admin/users/setting/profiles                                             [PUT       ] -> update_setting_profiles
+[W]  1094. /api/v2/admin/users/users/{user_id}/roles                                        [PUT       ] -> assign_roles_to_user
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.users.user_settings
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]  1095. /api/v2/users/settings/profile/avatar                                            [POST      ] -> update_avatar_api
+[S]  1096. /api/v2/users/settings/profiles                                                  [PUT       ] -> update_setting_profiles
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v1.utils.payment
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]  1097. /api/v2/payments                                                                 [POST      ] -> create_payment
+[S]  1098. /api/v2/payments/alipay/notify                                                   [POST      ] -> alipay_notify
+[S]  1099. /api/v2/payments/wechat/notify                                                   [POST      ] -> wechat_notify
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v3.mobile.articles
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]  1100. /api/v3/articles/list                                                            [GET       ] -> get_mobile_articles_list
+[S]  1101. /api/v3/articles/search                                                          [GET       ] -> search_mobile_articles
+[W]  1102. /api/v3/articles/{article_id}                                                    [GET       ] -> get_mobile_article_detail
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v3.mobile.auth
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]  1103. /api/v3/auth/login                                                               [POST      ] -> mobile_login
+[S]  1104. /api/v3/auth/register                                                            [POST      ] -> mobile_register
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v3.mobile.categories
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]  1105. /api/v3/categories/list                                                          [GET       ] -> get_mobile_categories
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v3.mobile.comments
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]  1106. /api/v3/comments/                                                                [POST      ] -> create_mobile_comment
+[W]  1107. /api/v3/comments/article/{article_id}                                            [GET       ] -> get_mobile_article_comments
+[W]  1108. /api/v3/comments/{comment_id}/like                                               [POST      ] -> like_mobile_comment
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v3.mobile.media
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]  1109. /api/v3/media/upload/article-cover                                               [POST      ] -> upload_article_cover
+[S]  1110. /api/v3/media/upload/image                                                       [POST      ] -> upload_mobile_image
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.api.v3.mobile.users
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]  1111. /api/v3/users/profile                                                            [GET       ] -> get_mobile_user_profile
+[S]  1112. /api/v3/users/profile                                                            [PUT       ] -> update_mobile_user_profile
+[S]  1113. /api/v3/users/stats                                                              [GET       ] -> get_mobile_user_stats
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: src.app
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]  1114. /health                                                                          [GET       ] -> health_check
+[W]  1115. /{full_path:path}                                                                [GET       ] -> spa_fallback
+[W]  1116. /{path:path}                                                                     [DELETE    ] -> catch_all
+[W]  1117. /{path:path}                                                                     [PUT       ] -> catch_all
+[W]  1118. /{path:path}                                                                     [POST      ] -> catch_all
+[W]  1119. /{path:path}                                                                     [GET       ] -> catch_all
+
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+模块: unknown
+────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
+[S]  1120. /local-storage                                                                   [N/A       ] -> N/A
+[S]  1121. /static                                                                          [N/A       ] -> N/A
+[S]  1122. /storage/objects                                                                 [N/A       ] -> N/A
+[S]  1123. /themes                                                                          [N/A       ] -> N/A
+
+============================================================================================================================================
+路由统计:
+  总路由数:     1123
+  具体路由:     793
+  通配符路由:   330
+  通配符占比:   29.4%
+============================================================================================================================================
+
+按模块统计路由数量:
+----------------------------------------------------------------------------------------------------
+    23 个路由 ( 14 具体 +   9 通配符,  39.1%) - src.api.v1.users.unified_users
+    22 个路由 (  9 具体 +  13 通配符,  59.1%) - src.api.v1.articles.articles
+    20 个路由 (  9 具体 +  11 通配符,  55.0%) - src.api.v1.comments.comments
+    20 个路由 ( 13 具体 +   7 通配符,  35.0%) - src.api.v1.content_management.widgets
+    15 个路由 (  5 具体 +  10 通配符,  66.7%) - src.api.v1.plugins.plugin_management
+    15 个路由 (  4 具体 +  11 通配符,  73.3%) - src.api.v1.themes.theme_customizer
+    14 个路由 ( 13 具体 +   1 通配符,   7.1%) - src.api.v1.dashboard.dashboard
+    14 个路由 ( 10 具体 +   4 通配符,  28.6%) - src.api.v1.performance.load_balancer
+    14 个路由 (  6 具体 +   8 通配符,  57.1%) - src.api.v1.system.multisite
+    14 个路由 (  7 具体 +   7 通配符,  50.0%) - src.api.v1.themes.theme_management
+    14 个路由 ( 11 具体 +   3 通配符,  21.4%) - src.api.v1.themes.visual_customizer_api
+    13 个路由 ( 11 具体 +   2 通配符,  15.4%) - src.api.v1.advanced_features.tipping_system
+    13 个路由 ( 13 具体 +   0 通配符,   0.0%) - src.api.v1.content_management.block_editor
+    13 个路由 (  6 具体 +   7 通配符,  53.8%) - src.api.v1.themes.full_site_editor
+    12 个路由 ( 12 具体 +   0 通配符,   0.0%) - src.api.v1.block_editor.block_editor_api
+    12 个路由 (  6 具体 +   6 通配符,  50.0%) - src.api.v1.ecommerce.revenue_sharing
+    12 个路由 (  7 具体 +   5 通配符,  41.7%) - src.api.v1.marketing.advertisement_system
+    12 个路由 (  8 具体 +   4 通配符,  33.3%) - src.api.v1.media.routes_edit
+    12 个路由 ( 11 具体 +   1 通配符,   8.3%) - src.api.v1.membership.subscription_management_api
+    12 个路由 ( 12 具体 +   0 通配符,   0.0%) - src.api.v1.system.backup_management
+    12 个路由 ( 12 具体 +   0 通配符,   0.0%) - src.api.v1.system.batch_operations
+    12 个路由 ( 12 具体 +   0 通配符,   0.0%) - src.api.v1.system.installation
+    11 个路由 ( 11 具体 +   0 通配符,   0.0%) - src.api.v1.advanced_features.points_system
+    11 个路由 ( 11 具体 +   0 通配符,   0.0%) - src.api.v1.ai.content_creator_api
+    11 个路由 ( 11 具体 +   0 通配符,   0.0%) - src.api.v1.auth
+    11 个路由 (  4 具体 +   7 通配符,  63.6%) - src.api.v1.content_management.menu_management
+    11 个路由 ( 11 具体 +   0 通配符,   0.0%) - src.api.v1.performance.performance_monitor
+    11 个路由 (  5 具体 +   6 通配符,  54.5%) - src.api.v1.system.admin_settings
+    10 个路由 (  9 具体 +   1 通配符,  10.0%) - src.api.v1.accessibility.accessibility_optimizer_api
+    10 个路由 (  8 具体 +   2 通配符,  20.0%) - src.api.v1.advanced_features.expert_certification
+  ... 还有 126 个模块
+
+============================================================================================================================================
+说明:
+  [S] 具体路由 - 固定路径，不会与其他路由冲突
+  [W] 通配符路由 - 包含 {{placeholder}}，可能拦截其他路由
+============================================================================================================================================

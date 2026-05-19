@@ -1,0 +1,13 @@
+{
+  "name": "404 Monitor",
+  "slug": "404-monitor",
+  "version": "1.0.0",
+  "description": "监控和统计网站 404 错误，提供修复建议和热门 404 页面分析",
+  "author": "FastBlog Team",
+  "category": "seo",
+  "tags": ["404", "monitoring", "seo"],
+  "requires": ">=0.0.2.0",
+  "tested_up_to": "0.0.2.0",
+  "icon": "⚠️",
+  "price": "free"
+}

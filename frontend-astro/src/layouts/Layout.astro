@@ -1,0 +1,45 @@
+---
+// 根布局 — Astro 替代 Next.js 的 app/layout.tsx
+import '@/styles/globals.css';
+import '@/styles/rtl.css';
+import Navbar from '@/components/Navbar';
+import Footer from '@/components/Footer';
+import {GlobalShortcuts} from '@/components/GlobalShortcuts';
+import MobileGestures from '@/components/MobileGestures';
+import MobileBottomNav from '@/components/MobileBottomNav';
+
+export interface Props {
+  title?: string;
+  description?: string;
+  dir?: 'ltr' | 'rtl';
+  lang?: string;
+}
+
+const {title = 'FastBlog', description = 'A modern blog platform', dir = 'ltr', lang = 'zh-CN'} = Astro.props;
+---
+
+<html lang={lang} dir={dir} suppressHydrationWarning>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="theme-color" content="#3b82f6" />
+    <slot name="head" />
+  </head>
+  <body class="antialiased" suppressHydrationWarning>
+    <Navbar client:load />
+    <GlobalShortcuts client:load />
+    <MobileGestures client:load />
+    
+    <main class="min-h-screen pt-16">
+      <slot />
+    </main>
+
+    <Footer client:load />
+    <MobileBottomNav client:load />
+
+    <slot name="scripts" />
+  </body>
+</html>
