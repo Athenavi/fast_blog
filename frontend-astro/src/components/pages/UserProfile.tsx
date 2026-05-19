@@ -152,23 +152,33 @@ const UserProfile: React.FC = () => {
           <motion.div variants={fadeInUp} initial="initial" animate="animate" className="bg-white dark:bg-gray-900 rounded-2xl border p-8">
             <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">个人信息</h2>
             <div className="space-y-6">
-              {[
-                {icon: Mail, color:'blue', label:'邮箱', value: u.email},
-                {icon: MapPin, color:'purple', label:'位置', value: u.location||'未设置'},
-                {icon: LinkIcon, color:'green', label:'网站', value: u.website, link: true},
-                {icon: Lock, color:'orange', label:'隐私设置', value: u.profile_private?'私密账户':'公开账户'},
-              ].map(item => {
-                const Icon = item.icon;
-                return (<div key={item.label} className="flex items-start gap-4">
-                  <div className={`w-10 h-10 bg-${item.color}-50 dark:bg-${item.color}-900/20 rounded-xl flex items-center justify-center flex-shrink-0`}>
-                    <Icon className={`w-5 h-5 text-${item.color}-600 dark:text-${item.color}-400`}/>
-                  </div>
-                  <div className="flex-1"><div className="text-sm text-gray-500 dark:text-gray-400 mb-1">{item.label}</div>
-                    {item.link && item.value !== '未设置' ? <a href={item.value} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline">{item.value}</a> :
-                    <div className="text-gray-900 dark:text-white">{item.value}</div>}
-                  </div>
-                </div>);
-              })}
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <Mail className="w-5 h-5 text-blue-600 dark:text-blue-400"/>
+                </div>
+                <div className="flex-1"><div className="text-sm text-gray-500 dark:text-gray-400 mb-1">邮箱</div><div className="text-gray-900 dark:text-white">{u.email}</div></div>
+              </div>
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 bg-purple-50 dark:bg-purple-900/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <MapPin className="w-5 h-5 text-purple-600 dark:text-purple-400"/>
+                </div>
+                <div className="flex-1"><div className="text-sm text-gray-500 dark:text-gray-400 mb-1">位置</div><div className="text-gray-900 dark:text-white">{u.location||'未设置'}</div></div>
+              </div>
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 bg-green-50 dark:bg-green-900/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <LinkIcon className="w-5 h-5 text-green-600 dark:text-green-400"/>
+                </div>
+                <div className="flex-1"><div className="text-sm text-gray-500 dark:text-gray-400 mb-1">网站</div>
+                  {u.website ? <a href={u.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline">{u.website}</a> :
+                  <div className="text-gray-900 dark:text-white">未设置</div>}
+                </div>
+              </div>
+              <div className="flex items-start gap-4">
+                <div className="w-10 h-10 bg-orange-50 dark:bg-orange-900/20 rounded-xl flex items-center justify-center flex-shrink-0">
+                  <Lock className="w-5 h-5 text-orange-600 dark:text-orange-400"/>
+                </div>
+                <div className="flex-1"><div className="text-sm text-gray-500 dark:text-gray-400 mb-1">隐私设置</div><div className="text-gray-900 dark:text-white">{u.profile_private?'私密账户':'公开账户'}</div></div>
+              </div>
             </div>
           </motion.div>
         )}
