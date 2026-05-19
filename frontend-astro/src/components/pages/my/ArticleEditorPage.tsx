@@ -7,8 +7,9 @@ import {z} from 'zod';
 import {zodResolver} from '@hookform/resolvers/zod';
 import {apiClient, CategoryService} from '@/lib/api';
 import type {Category} from '@/lib/api/base-types';
-import {Save, ArrowLeft, X} from 'lucide-react';
+import {Save, ArrowLeft, X, History} from 'lucide-react';
 import {QueryProvider} from '@/components/QueryProvider';
+import RevisionsSidebar from '@/components/editor/RevisionsSidebar';
 
 // Lazy-loaded editor (avoids loading Tiptap in main chunk)
 const RichEditor = React.lazy(() => import('@/components/editor/RichEditor'));
@@ -84,8 +85,8 @@ const CoverInput: React.FC<{value: string; onChange: (v: string) => void}> = ({v
 const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
   const qc = useQueryClient();
   const [saving, setSaving] = useState(false);
-  const [autoSaveTimer, setAutoSaveTimer] = useState<NodeJS.Timeout | null>(null);
   const [lastSaved, setLastSaved] = useState<number | null>(null);
+  const [showRevisions, setShowRevisions] = useState(false);
   const draftLoaded = useRef(false);
 
   const articleId = useMemo(() => {
@@ -203,7 +204,12 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
             <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{mode === 'create' ? '创建文章' : '编辑文章'}</h1>
             {lastSaved && <span className="text-xs text-gray-400">草稿已自动保存</span>}
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            {mode === 'edit' && articleId && (
+              <button onClick={() => setShowRevisions(true)} className="px-3 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors flex items-center gap-1.5">
+                <History className="w-4 h-4"/><span className="hidden sm:inline">版本</span>
+              </button>
+            )}
             <button onClick={draft} disabled={saving} className="px-4 py-2.5 border border-gray-300 dark:border-gray-600 rounded-xl text-sm font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
               <Save className="w-4 h-4 inline mr-1.5"/>{saving ? '保存中...' : '存草稿'}
             </button>
@@ -253,6 +259,21 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
             </div>
           </div>
         </form>
+
+        {/* Revisions Sidebar */}
+        {mode === 'edit' && articleId && (
+          <RevisionsSidebar
+            articleId={articleId}
+            open={showRevisions}
+            onClose={() => setShowRevisions(false)}
+            onRestore={(content, title, excerpt) => {
+              setContent(content);
+              setValue('title', title);
+              setValue('excerpt', excerpt);
+              setShowRevisions(false);
+            }}
+          />
+        )}
       </div>
     </div>
   );
