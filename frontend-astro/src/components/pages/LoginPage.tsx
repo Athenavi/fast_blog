@@ -78,7 +78,8 @@ const LoginPage: React.FC = () => {
         const next = new URLSearchParams(window.location.search).get('next') || '/profile';
         setTimeout(() => window.location.href = next, 300);
       } else {
-        setError(res.error || res.message || '登录失败');
+        console.warn('[Login] Login failed, backend response:', JSON.stringify(res));
+        setError(res.error || res.message || (res as any).detail || '用户名或密码错误');
       }
     } catch (err: any) {
       setError(err.status === 401 ? '用户名或密码错误' : (err.message || '登录错误'));
