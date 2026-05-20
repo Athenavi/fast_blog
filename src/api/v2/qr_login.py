@@ -11,7 +11,7 @@ from fastapi import APIRouter, Request
 from fastapi.logger import logger
 from src.extensions import cache
 
-router = APIRouter(prefix="/api/v2/auth/qr", tags=["qr-login"])
+router = APIRouter(tags=["qr-login"])
 
 
 @router.get("/generate")
