@@ -156,6 +156,7 @@ function Settings() {
 
         {/* Security */}
         {tab===1 && <div className="space-y-5 pb-12">
+          {/* Password */}
           <div className="bg-white/70 dark:bg-gray-900/70 backdrop-blur-sm rounded-xl border border-gray-100 dark:border-gray-800 p-5">
             <p className="font-medium text-gray-900 dark:text-white mb-3">修改密码</p>
             <div className="space-y-2 max-w-sm">
@@ -164,6 +165,34 @@ function Settings() {
               <input type="password" value={pw.con} onChange={e=>setPw(p=>({...p,con:e.target.value}))} placeholder="确认密码" className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"/>
               <button onClick={changePw} disabled={busy} className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50">{busy?'...':'更新密码'}</button>
             </div>
+          </div>
+
+          {/* 2FA */}
+          <div className="bg-white/70 dark:bg-gray-900/70 backdrop-blur-sm rounded-xl border border-gray-100 dark:border-gray-800 p-5">
+            <div className="flex items-center justify-between mb-3">
+              <div><p className="font-medium text-gray-900 dark:text-white">双重验证</p><p className="text-xs text-gray-500 mt-0.5">{fa ? '已启用 ✓' : '增加账户安全性'}</p></div>
+              {fa ? (
+                <button onClick={disable2FA} className="px-3 py-1.5 bg-red-50 dark:bg-red-900/20 text-red-600 text-sm rounded-lg hover:bg-red-100">禁用</button>
+              ) : (
+                <button onClick={setup2FA} disabled={busy} className="px-3 py-1.5 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50">启用</button>
+              )}
+            </div>
+            {qr && (
+              <div className="mt-4 space-y-3 border-t border-gray-100 dark:border-gray-800 pt-4">
+                <img src={qr} alt="2FA QR" className="w-36 h-36 mx-auto rounded-lg"/>
+                {secret && <p className="text-center text-xs text-gray-500">密钥: <code className="bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 rounded text-xs font-mono">{secret}</code></p>}
+                <div className="flex gap-2 max-w-xs mx-auto">
+                  <input type="text" value={vc} onChange={e=>setVc(e.target.value.replace(/\D/g,'').slice(0,6))} placeholder="000000" className="flex-1 text-center text-lg tracking-widest px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white font-mono"/>
+                  <button onClick={enable2FA} className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 shrink-0">验证</button>
+                </div>
+              </div>
+            )}
+            {codes.length > 0 && (
+              <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-xl border-t border-yellow-100 dark:border-yellow-900/30">
+                <p className="text-xs font-medium text-yellow-800 dark:text-yellow-200 mb-1.5">备用码（请妥善保存）</p>
+                <div className="grid grid-cols-2 gap-1 text-xs font-mono text-yellow-700 dark:text-yellow-300">{codes.map(c => <span key={c}>{c}</span>)}</div>
+              </div>
+            )}
           </div>
         </div>}
 
