@@ -95,7 +95,7 @@ const MyPostsPageInner: React.FC = () => {
   );
 };
 
-const MyPostsPage: React.FC = () => (
+const MyPostsPageWrapper: React.FC = () => (
   <AuthGuard><QueryProvider><MyPostsPageInner /></QueryProvider></AuthGuard>
 );
-export default MyPostsPage;
+export default MyPostsPageWrapper;
