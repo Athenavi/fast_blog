@@ -1,7 +1,7 @@
 'use client';
 
 import React, {useState} from 'react';
-import {BarChart3, FileText, FolderTree, Image, Users, Shield, Settings, ChevronLeft, Menu, LogOut, MessageSquare, Puzzle, Database, TrendingUp, ScrollText, Server, AlertTriangle} from 'lucide-react';
+import {BarChart3, FileText, FolderTree, Image, Users, Shield, Settings, ChevronLeft, Menu, LogOut, MessageSquare, Puzzle, Database, TrendingUp, ScrollText, Server, AlertTriangle, Crown} from 'lucide-react';
 
 const nav = [
   {label: '仪表盘', href: '/admin', icon: BarChart3},
@@ -17,6 +17,7 @@ const nav = [
   {label: '数据分析', href: '/admin/analytics', icon: TrendingUp},
   {label: '审计日志', href: '/admin/audit-logs', icon: ScrollText},
   {label: '系统信息', href: '/admin/system', icon: Server},
+  {label: 'VIP 管理', href: '/admin/vip', icon: Crown},
   {label: '系统设置', href: '/admin/settings', icon: Settings},
 ];
 
