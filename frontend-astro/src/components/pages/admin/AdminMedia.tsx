@@ -6,14 +6,14 @@ import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {apiClient} from '@/lib/api/base-client';
-import {Image, FileText, Music, Video, Trash2} from 'lucide-react';
+import {FileText, Image, Music, Trash2, Video} from 'lucide-react';
 
 function AdminMediaInner() {
   const [page, setPage] = useState(1);
   const {data, isLoading} = useQuery({
     queryKey: ['admin-media', page],
     queryFn: async () => {
-      const res = await apiClient.get<any>('/media/files/list', {page, per_page: 20});
+        const res = await apiClient.get<any>('/api/v2/media/files/list', {page, per_page: 20});
       return res.success && res.data ? res.data : {files: [], total: 0};
     },
   });

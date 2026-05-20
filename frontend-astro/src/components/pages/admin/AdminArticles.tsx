@@ -1,12 +1,12 @@
 'use client';
 
 import React, {useState} from 'react';
-import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {apiClient} from '@/lib/api/base-client';
-import {Edit, Trash2, Plus, Search, Eye} from 'lucide-react';
+import {Edit, Eye, Plus, Search, Trash2} from 'lucide-react';
 
 function ArticlesInner() {
   const qc = useQueryClient();
@@ -16,13 +16,17 @@ function ArticlesInner() {
   const {data, isLoading} = useQuery({
     queryKey: ['admin-articles', page, search],
     queryFn: async () => {
-      const res = await apiClient.get('/dashboard/blog-management/articles', {page, per_page: 15, q: search || undefined});
+      const res = await apiClient.get('/api/v2/dashboard/blog-management/articles', {
+        page,
+        per_page: 15,
+        q: search || undefined
+      });
       return res.success && res.data ? (res.data as any) : {articles: [], total: 0};
     },
   });
 
   const delMut = useMutation({
-    mutationFn: (id: number) => apiClient.delete(`/dashboard/blog-management/view?slug=id`),
+    mutationFn: (id: number) => apiClient.delete(`/api/v2/articles/${id}`),
     onSuccess: () => qc.invalidateQueries({queryKey: ['admin-articles']}),
   });
 
@@ -64,7 +68,9 @@ function ArticlesInner() {
                 <td className="px-5 py-4 text-sm text-gray-500 hidden md:table-cell">{a.views || 0}</td>
                 <td className="px-5 py-4 text-right">
                   <a href={`/my/posts/edit?id=${a.id}`} className="p-1.5 inline-block text-gray-400 hover:text-blue-600 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20"><Edit className="w-4 h-4"/></a>
-                  <a href={`/view?slug=a.slug`} target="_blank" className="p-1.5 inline-block text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20"><Eye className="w-4 h-4"/></a>
+                  <a href={`/view?slug=${a.slug}`} target="_blank"
+                     className="p-1.5 inline-block text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20"><Eye
+                      className="w-4 h-4"/></a>
                   <button onClick={() => {if(confirm('确认删除？')) delMut.mutate(a.id);}} className="p-1.5 inline-block text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"><Trash2 className="w-4 h-4"/></button>
                 </td>
               </tr>

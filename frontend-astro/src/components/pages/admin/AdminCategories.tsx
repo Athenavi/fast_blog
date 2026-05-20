@@ -1,12 +1,12 @@
 'use client';
 
 import React, {useState} from 'react';
-import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {apiClient} from '@/lib/api/base-client';
-import {Edit, Trash2, Plus, X} from 'lucide-react';
+import {Edit, Trash2} from 'lucide-react';
 
 function CategoriesInner() {
   const qc = useQueryClient();
@@ -17,7 +17,7 @@ function CategoriesInner() {
   const {data: cats, isLoading} = useQuery({
     queryKey: ['admin-categories'],
     queryFn: async () => {
-      const res = await apiClient.get('/dashboard/content/categories');
+      const res = await apiClient.get('/api/v2/categories');
       return res.success && res.data ? (Array.isArray(res.data) ? res.data : res.data.categories || []) : [];
     },
   });
@@ -25,14 +25,14 @@ function CategoriesInner() {
   const saveMut = useMutation({
     mutationFn: async () => {
       const body = {name, slug: slug || undefined};
-      if (editing) return apiClient.put(`/dashboard/content/categories/${editing.id}`, body);
-      return apiClient.post('/dashboard/content/categories', body);
+      if (editing) return apiClient.put(`/api/v2/categories/${editing.id}`, body);
+      return apiClient.post('/api/v2/categories', body);
     },
     onSuccess: () => { qc.invalidateQueries({queryKey: ['admin-categories']}); setEditing(null); setName(''); setSlug(''); },
   });
 
   const delMut = useMutation({
-    mutationFn: (id: number) => apiClient.delete(`/dashboard/content/categories/${id}`),
+    mutationFn: (id: number) => apiClient.delete(`/api/v2/categories/${id}`),
     onSuccess: () => qc.invalidateQueries({queryKey: ['admin-categories']}),
   });
 
