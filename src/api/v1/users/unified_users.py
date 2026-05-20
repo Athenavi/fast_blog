@@ -24,7 +24,7 @@ from shared.services.users.user_manager import user_csv_service
 # 导入核心依赖
 from src.api.v1.core.responses import ApiResponse
 from src.api.v1.user_utils.password_utils import validate_password_async, update_password
-from src.api.v1.user_utils.user_entities import check_user_conflict, change_username, db_save_bio, \
+from src.api.v1.user_utils.user_entities import check_user_conflict, check_user_conflict_async, change_username, db_save_bio, \
     save_uploaded_avatar
 from src.auth.auth_deps import admin_required as admin_required_api, jwt_required_dependency as jwt_required, \
     get_current_active_user
