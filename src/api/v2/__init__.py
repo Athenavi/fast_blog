@@ -168,8 +168,6 @@ ROUTE_REGISTRY_V2 = [
 
     # ==================== CDN 与优化 ====================
     ("src.api.v1.performance.cdn_management", "/api/v2/cdn", ["cdn-management"], False),
-    ("src.api.v1.performance.code_splitting_optimization", "/api/v2/optimization/code-splitting", ["code-splitting"],
-     False),
     ("src.api.v1.performance.css_optimizer", "/api/v2/optimization/css", ["css-optimizer"], False),
     ("src.api.v1.performance.http2_config", "/api/v2/cdn/http2", ["http2-config"], False),
     ("src.api.v1.performance.image_lazy_load", "/api/v2/optimization/lazy-load", ["image-lazy-load"], False),
@@ -201,14 +199,7 @@ ROUTE_REGISTRY_V2 = [
     # ==================== GDPR 合规（路径已优化为 RESTful 风格）====================
     ("src.api.v1.compliance.gdpr_compliance", "/api/v2/gdpr", ["gdpr-compliance"], False),
 
-    # ==================== 主题管理 ====================
-    ("src.api.v1.themes.child_themes", "/api/v2/themes/child-themes", ["child-themes"], False),
-    ("src.api.v1.themes.page_templates", "/api/v2/themes/templates", ["page-templates"], False),
-    ("src.api.v1.themes.full_site_editor", "/api/v2/themes/editor", ["full-site-editor"], False),
-    ("src.api.v1.themes.template_hierarchy", "/api/v2/themes/hierarchy", ["template-hierarchy"], False),
-    ("src.api.v1.themes.theme_customizer", "/api/v2/themes/customizer", ["theme-customizer"], False),
-    ("src.api.v1.themes.visual_customizer_api", "/api/v2/themes/visual-customizer", ["visual-customizer"], False),
-    ("src.api.v1.themes.theme_management", "/api/v2/admin/themes", ["theme-management"], False),
+    # ==================== 主题管理（移除） ====================
 
     # ==================== 插件管理 ====================
     ("src.api.v1.plugins.plugin_management", "/api/v2/plugins", ["plugins"], False),
