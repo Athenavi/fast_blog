@@ -3,7 +3,6 @@
 import Layout from '@/layouts/Layout.astro';
 import {apiClient} from '@/lib/api/base-client';
 import type {Article} from '@/lib/api/base-types';
-import BlogDetailClient from '@/components/pages/BlogDetailClient';
 
 export async function getStaticPaths() {
   return [];
@@ -18,21 +17,37 @@ let fetchError: string | null = null;
 
 if (querySlug) {
   try {
-    const res = await apiClient.get(`/articles/p/${querySlug}`);
+      const apiUrl = `/articles/p/${querySlug}`;
+      console.log(`[Blog Detail] Fetching article from: ${apiUrl}`);
+      const res = await apiClient.get(apiUrl);
+      console.log('[Blog Detail] API response success:', res.success);
     if (res.success && res.data) {
       const d = res.data as any;
       article = d.article || d;
+        console.log('[Blog Detail] Article loaded:', article?.title);
     } else {
       fetchError = res.error || '文章不存在';
+        console.error('[Blog Detail] API returned error:', fetchError, 'Response:', JSON.stringify(res));
     }
-  } catch {
+  } catch (err) {
     fetchError = '加载失败';
+      console.error('[Blog Detail] Exception:', err);
   }
+} else {
+    console.log('[Blog Detail] No slug provided, querySlug is empty');
 }
 ---
 
 <Layout title={article ? `${article.title} - FastBlog` : '文章详情 - FastBlog'}>
-  {
+    <!-- Debug Info (remove in production) -->
+    <div class="fixed top-4 right-4 bg-yellow-100 dark:bg-yellow-900 p-4 rounded-lg text-xs z-50 max-w-md">
+        <p><strong>Debug Info:</strong></p>
+        <p>querySlug: {querySlug || '(empty)'}</p>
+        <p>article: {article ? article.title : '(null)'}</p>
+        <p>fetchError: {fetchError || '(none)'}</p>
+    </div>
+
+    {
     article ? (
       <article class="min-h-screen bg-white dark:bg-gray-950 pt-20">
         <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-12 max-w-4xl">
