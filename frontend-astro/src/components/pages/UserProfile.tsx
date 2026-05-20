@@ -79,7 +79,7 @@ function Profile() {
             {arts.length===0 ? (
               <div className="text-center py-16 text-gray-400"><FileText className="w-10 h-10 mx-auto mb-3 opacity-40"/><p className="text-sm">还没有文章</p><a href="/admin/editor" className="inline-block mt-3 text-sm text-blue-600 hover:underline"><Edit3 className="w-4 h-4 inline mr-1"/>开始写作</a></div>
             ) : arts.map(a => (
-              <a key={a.id} href={`/article-detail?slug=a.slug`}
+              <a key={a.id} href={`/view?slug=a.slug`}
                 className="block bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-4 hover:border-gray-200 dark:hover:border-gray-700 transition-all hover:shadow-sm">
                 <div className="flex gap-4">
                   {a.cover_image && <img src={a.cover_image} alt="" className="hidden sm:block w-28 h-20 rounded-lg object-cover shrink-0"/>}

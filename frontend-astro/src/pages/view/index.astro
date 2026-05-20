@@ -1,0 +1,13 @@
+---
+// 文章详情页 - 固定路由，?slug= 参数
+import Layout from '@/layouts/Layout.astro';
+import ArticleDetail from '@/components/pages/ArticleDetail';
+
+const slug = Astro.url.searchParams.get('slug') || '';
+---
+
+<Layout title="文章详情 - FastBlog">
+  <main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-20">
+    {slug ? <ArticleDetail slug={slug} client:load /> : <p class="text-center text-gray-500 py-20">缺少文章参数</p>}
+  </main>
+</Layout>

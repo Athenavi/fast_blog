@@ -101,13 +101,13 @@ export default function ModernHomePage() {
             <div className="lg:col-span-2">
               {f.tags?.[0] && <span className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider">{f.tags[0]}</span>}
               <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mt-2 mb-4 leading-tight">
-                <a href={`/article-detail?slug=f.slug`} className="hover:text-blue-600 transition-colors">{f.title}</a>
+                <a href={`/view?slug=f.slug`} className="hover:text-blue-600 transition-colors">{f.title}</a>
               </h2>
               <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed mb-6 line-clamp-3">{f.excerpt||f.summary||'...'}</p>
               <div className="flex items-center gap-4 text-xs text-gray-400">
                 {f.created_at && <span className="flex items-center gap-1"><Calendar className="w-3.5 h-3.5"/>{new Date(f.created_at).toLocaleDateString('zh-CN')}</span>}
                 <span className="flex items-center gap-1"><Eye className="w-3.5 h-3.5"/>{f.views||0}</span>
-                <a href={`/article-detail?slug=f.slug`} className="ml-auto text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1">阅读全文 <ChevronRight className="w-3.5 h-3.5"/></a>
+                <a href={`/view?slug=f.slug`} className="ml-auto text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1">阅读全文 <ChevronRight className="w-3.5 h-3.5"/></a>
               </div>
             </div>
           </div>
@@ -115,7 +115,7 @@ export default function ModernHomePage() {
           {fSub.length > 0 && (
             <div className="grid sm:grid-cols-3 gap-4 mt-6">
               {fSub.map(a => (
-                <a key={a.id} href={`/article-detail?slug=a.slug`} className="group p-4 rounded-xl border border-gray-100 dark:border-gray-800 hover:border-gray-200 dark:hover:border-gray-700 transition-all">
+                <a key={a.id} href={`/view?slug=a.slug`} className="group p-4 rounded-xl border border-gray-100 dark:border-gray-800 hover:border-gray-200 dark:hover:border-gray-700 transition-all">
                   <p className="text-xs text-blue-600 mb-1 font-medium uppercase tracking-wider">{a.tags?.[0]||'精选'}</p>
                   <h3 className="font-semibold text-gray-900 dark:text-white text-sm line-clamp-2 group-hover:text-blue-600 transition-colors">{a.title}</h3>
                   <p className="text-xs text-gray-400 mt-2 flex items-center gap-1"><Eye className="w-3 h-3"/>{a.views||0}</p>
@@ -135,7 +135,7 @@ export default function ModernHomePage() {
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {recent.slice(0, 4).map(a => (
-              <a key={a.id} href={`/article-detail?slug=a.slug`} className="group bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden hover:border-gray-200 dark:hover:border-gray-700 transition-all hover:shadow-sm">
+              <a key={a.id} href={`/view?slug=a.slug`} className="group bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 overflow-hidden hover:border-gray-200 dark:hover:border-gray-700 transition-all hover:shadow-sm">
                 <div className="aspect-[16/10] bg-gray-50 dark:bg-gray-800 overflow-hidden">
                   {a.cover_image ? <img src={a.cover_image} alt="" className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform duration-500"/> :
                     <div className="w-full h-full flex items-center justify-center text-3xl text-gray-200 dark:text-gray-700">📄</div>}
@@ -162,7 +162,7 @@ export default function ModernHomePage() {
           <div className="flex items-center justify-between mb-5"><h2 className="text-xl font-bold text-gray-900 dark:text-white">热门文章</h2><a href="/articles" className="text-sm text-blue-600 font-medium">更多</a></div>
           <div className="space-y-3">
             {popular.slice(0, 5).map((a, i) => (
-              <a key={a.id} href={`/article-detail?slug=a.slug`} className="flex items-center gap-4 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group">
+              <a key={a.id} href={`/view?slug=a.slug`} className="flex items-center gap-4 p-3 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800/50 transition-colors group">
                 <span className="text-2xl font-bold text-gray-200 dark:text-gray-700 w-8 shrink-0">{String(i+1).padStart(2,'0')}</span>
                 <div className="flex-1 min-w-0"><h3 className="font-medium text-sm text-gray-900 dark:text-white line-clamp-1 group-hover:text-blue-600 transition-colors">{a.title}</h3><p className="text-xs text-gray-400 mt-0.5"><Eye className="w-3 h-3 inline mr-0.5"/>{a.views||0} 阅读</p></div>
               </a>
