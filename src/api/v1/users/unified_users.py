@@ -417,14 +417,14 @@ async def update_current_user_profile_api(
                         return ApiResponse(success=False, error='Cannot change username more than once a week')
 
                     # 检查用户名冲突
-                    if check_user_conflict('username', data[field], db):
+                    if await check_user_conflict_async('username', data[field], db):
                         return ApiResponse(success=False, error='Username already exists')
 
                     await change_username(user.id, data[field], db)
                     cache.set(f'limit_username_lock_{user.id}', True, ex=604800)
                 elif field == 'email':
                     # 检查邮箱冲突
-                    if check_user_conflict('email', data[field], db):
+                    if await check_user_conflict_async('email', data[field], db):
                         return ApiResponse(success=False, error='Email already exists')
                     # 请求邮箱变更
                     await request_email_change(user.id, cache, app_config.domain, data[field])

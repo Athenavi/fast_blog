@@ -96,7 +96,7 @@ function Settings() {
   const enable2FA = async () => { if(vc.length!==6){alert('输入6位验证码');return;} const r = await apiClient.post('/security/2fa/enable',{totp_token:vc}); if(r.success){setFa(true);setQr('');setCodes((r.data as any)?.backup_codes||[]);} };
   const disable2FA = async () => { if(!confirm('禁用2FA？'))return; const r = await apiClient.post('/security/2fa/disable'); if(r.success){setFa(false);setQr('');setSecret('');setCodes([]);} };
 
-  const loadS = async () => { const r = await apiClient.get('/sessions'); if(r.success&&r.data) setSessions((r.data as any).sessions||[]); };
+  const loadS = async () => { const r = await apiClient.get('/security/sessions/my-sessions'); if(r.success&&r.data) setSessions((r.data as any).sessions||(r.data as any).data?.sessions||[]); };
   useEffect(()=>{if(tab===3)loadS();},[tab]);
 
   const logout = () => { document.cookie='access_token=;path=/;expires=Thu,01 Jan 1970 00:00:00 UTC'; window.location.href='/login'; };
