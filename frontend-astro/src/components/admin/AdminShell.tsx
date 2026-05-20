@@ -1,7 +1,7 @@
 'use client';
 
 import React, {useState} from 'react';
-import {BarChart3, FileText, FolderTree, Image, Users, Shield, Settings, ChevronLeft, Menu, LogOut, MessageSquare, Puzzle, Database, TrendingUp, ScrollText, Server, AlertTriangle, Crown, Newspaper, Bell, GitBranch, Brain, Globe, Radio, Eye, Handshake} from 'lucide-react';
+import {BarChart3, FileText, FolderTree, Image, Users, Shield, Settings, ChevronLeft, Menu, LogOut, MessageSquare, Puzzle, Database, TrendingUp, ScrollText, Server, AlertTriangle, Crown, Newspaper, Bell, GitBranch, Brain, Globe, Radio, Eye, Handshake, Award, Coins, Diamond, PenLine, Star, Medal} from 'lucide-react';
 
 const nav = [
   {label: '仪表盘', href: '/admin', icon: BarChart3},
@@ -27,6 +27,14 @@ const nav = [
   {label: 'CDN 管理', href: '/admin/cdn', icon: Radio},
   {label: '无障碍', href: '/admin/accessibility', icon: Eye},
   {label: 'GDPR 合规', href: '/admin/gdpr', icon: Shield},
+  {sep:'扩展功能'},
+  {label: '徽章系统', href: '/admin/ext/badges', icon: Award},
+  {label: '积分系统', href: '/admin/ext/points', icon: Coins},
+  {label: '打赏系统', href: '/admin/ext/tipping', icon: Diamond},
+  {label: 'AI 写作', href: '/admin/ext/ai-writing', icon: PenLine},
+  {label: '专家认证', href: '/admin/ext/certification', icon: Medal},
+  {label: 'NFT 管理', href: '/admin/ext/nft', icon: Diamond},
+  {label: '推荐系统', href: '/admin/ext/recommendations', icon: Star},
   {label: '系统设置', href: '/admin/settings', icon: Settings},
 ];
 
@@ -45,8 +53,9 @@ export const AdminShell: React.FC<{title: string; children: React.ReactNode; act
           <button onClick={() => setCollapsed(!collapsed)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400"><ChevronLeft className={`w-4 h-4 transition-transform ${collapsed ? 'rotate-180' : ''}`}/></button>
         </div>
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-          {nav.map(item => {
-            const Icon = item.icon;
+          {nav.map((item,i) => {
+            if ('sep' in item) return <div key={`sep-${i}`} className={`pt-3 pb-1 text-xs font-semibold text-gray-400 uppercase tracking-wider ${collapsed ? 'text-center text-[10px]' : 'px-3'}`}>{collapsed ? '··' : item.sep}</div>;
+            const Icon = item.icon!;
             const active = isActive(item.href);
             return (
               <a key={item.href} href={item.href}
@@ -69,8 +78,9 @@ export const AdminShell: React.FC<{title: string; children: React.ReactNode; act
       <aside className={`fixed inset-y-0 left-0 z-50 w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 transform transition-transform lg:hidden ${mobileOpen ? 'translate-x-0' : '-translate-x-full'}`}>
         <div className="flex items-center justify-between h-14 px-4 border-b"><span className="font-bold">FastBlog</span><button onClick={() => setMobileOpen(false)} className="p-1.5 rounded-lg hover:bg-gray-100"><Menu className="w-5 h-5"/></button></div>
         <nav className="p-3 space-y-1">
-          {nav.map(item => {
-            const Icon = item.icon;
+          {nav.map((item,i) => {
+            if ('sep' in item) return <div key={`sep-${i}`} className="pt-3 pb-1 px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">{item.sep}</div>;
+            const Icon = item.icon!;
             return (
               <a key={item.href} href={item.href} onClick={() => setMobileOpen(false)}
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium ${isActive(item.href) ? 'bg-blue-50 text-blue-700' : 'text-gray-600 hover:bg-gray-100'}`}>
