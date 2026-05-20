@@ -26,7 +26,7 @@ function Profile() {
         let url = u.avatar_url || u.avatar || '';
         if (url && !url.startsWith('http')) {
           const c = await import('@/lib/config').then(m => m.getConfig());
-          url = url.startsWith('/') ? `${c.API_BASE_URL}${url}` : `${c.API_BASE_URL}/static/avatar/${url}.png`;
+          url = url.startsWith('/') ? `${c.API_BASE_URL}${url}` : `${c.API_BASE_URL}/static/avatar/${url}.webp`;
         }
         setAv(url || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.username||'U')}&background=random`);
       } catch {} finally {}
@@ -49,7 +49,7 @@ function Profile() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 -mt-20 relative z-10">
         {/* Avatar + Name — floating card */}
         <div className="flex flex-col sm:flex-row items-center sm:items-end gap-5 mb-8">
-          <img src={av} alt="" className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl border-4 border-white dark:border-gray-900 shadow-xl object-cover bg-white"/>
+          <img src={av} alt="" className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl border-4 border-white dark:border-gray-900 shadow-xl object-cover bg-white" onError={e=>{(e.target as HTMLImageElement).src=`https://ui-avatars.com/api/?name=${encodeURIComponent(u.username||'U')}&background=random`}}/>
           <div className="text-center sm:text-left flex-1">
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">{u.display_name||u.username}</h1>
             <p className="text-gray-500">@{u.username}</p>
