@@ -22,8 +22,8 @@ if ($LASTEXITCODE -ne 0) {
 Write-Host "✅ 依赖安装成功" -ForegroundColor Green
 Write-Host ""
 
-Write-Host "🔨 步骤 2: 构建 Next.js Web 应用..." -ForegroundColor Yellow
-cd ..\frontend-next
+Write-Host "🔨 步骤 2: 构建 Astro Web 应用..." -ForegroundColor Yellow
+cd ..\frontend-astro
 npm run build
 
 if ($LASTEXITCODE -ne 0) {

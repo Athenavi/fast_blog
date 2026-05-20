@@ -4,7 +4,7 @@
   "description": "FastBlog Mobile App using Capacitor",
   "main": "index.js",
   "scripts": {
-    "build:web": "cd ../frontend-next && npm run build",
+    "build:web": "cd ../frontend-astro && npm run build",
     "sync": "cap sync",
     "android": "cap open android",
     "ios": "cap open ios",
