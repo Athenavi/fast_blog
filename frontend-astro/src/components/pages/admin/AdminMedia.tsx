@@ -13,11 +13,20 @@ function AdminMediaInner() {
   const {data, isLoading} = useQuery({
     queryKey: ['admin-media', page],
     queryFn: async () => {
-        const res = await apiClient.get<any>('/api/v2/media/files/list', {page, per_page: 20});
-      return res.success && res.data ? res.data : {files: [], total: 0};
+      const res = await apiClient.get<any>('/api/v2/dashboard/media-management/files', {page, per_page: 20});
+      if (!res.success || !res.data) return {files: [], total: 0};
+
+      // 后端返回格式可能是 data.files 或 data.media_items
+      const files = Array.isArray(res.data.files) ? res.data.files :
+          Array.isArray(res.data.media_items) ? res.data.media_items :
+              Array.isArray(res.data) ? res.data : [];
+      const pagination = res.pagination || {};
+      const total = pagination.total || files.length;
+
+      return {files, total};
     },
   });
-  const files = Array.isArray(data?.files) ? data.files : data?.media_items || [];
+  const files = data?.files || [];
 
   const getIcon = (mime: string) => mime?.startsWith('video/') ? Video : mime?.startsWith('audio/') ? Music : FileText;
 

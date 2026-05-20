@@ -21,7 +21,14 @@ function ArticlesInner() {
         per_page: 15,
         q: search || undefined
       });
-      return res.success && res.data ? (res.data as any) : {articles: [], total: 0};
+      if (!res.success || !res.data) return {articles: [], total: 0};
+
+      // 后端返回的 data 是数组，pagination 在根级别
+      const articles = Array.isArray(res.data) ? res.data : [];
+      const pagination = (res as any).pagination || {};
+      const total = pagination.total || articles.length;
+
+      return {articles, total};
     },
   });
 

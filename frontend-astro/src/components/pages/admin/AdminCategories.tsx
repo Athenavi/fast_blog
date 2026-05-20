@@ -18,7 +18,16 @@ function CategoriesInner() {
     queryKey: ['admin-categories'],
     queryFn: async () => {
       const res = await apiClient.get('/api/v2/categories');
-      return res.success && res.data ? (Array.isArray(res.data) ? res.data : res.data.categories || []) : [];
+      if (!res.success || !res.data) return [];
+
+      // 后端返回格式：{categories: [{category: {...}, article_count: 0}]}
+      const categoriesData = (res.data as any).categories || [];
+
+      // 转换为前端期望的格式
+      return categoriesData.map((item: any) => ({
+        ...item.category,
+        article_count: item.article_count || 0
+      }));
     },
   });
 
