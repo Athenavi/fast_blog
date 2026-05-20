@@ -26,7 +26,7 @@ function MyPostsInner() {
   });
 
   const delMut = useMutation({
-    mutationFn: (id: number) => apiClient.delete(`/dashboard/blog-management/articles/${id}`),
+    mutationFn: (id: number) => apiClient.delete(`/dashboard/blog-management/article-detail?slug=id`),
     onSuccess: () => qc.invalidateQueries({queryKey: ['my-posts']}),
   });
 
@@ -75,7 +75,7 @@ function MyPostsInner() {
                     {a.hidden && <Lock className="w-3 h-3 text-gray-400"/>}
                   </div>
                   <div className="flex items-center gap-2">
-                    <a href={`/articles/${a.slug}`} className="font-semibold text-gray-900 dark:text-white text-sm hover:text-blue-600 truncate">{a.title||'无标题'}</a>
+                    <a href={`/article-detail?slug=a.slug`} className="font-semibold text-gray-900 dark:text-white text-sm hover:text-blue-600 truncate">{a.title||'无标题'}</a>
                   </div>
                   {(a.excerpt||a.summary) && <p className="text-xs text-gray-500 mt-1 line-clamp-1">{a.excerpt||a.summary}</p>}
                   <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-400">

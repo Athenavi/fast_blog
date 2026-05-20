@@ -22,7 +22,7 @@ function ArticlesInner() {
   });
 
   const delMut = useMutation({
-    mutationFn: (id: number) => apiClient.delete(`/dashboard/blog-management/articles/${id}`),
+    mutationFn: (id: number) => apiClient.delete(`/dashboard/blog-management/article-detail?slug=id`),
     onSuccess: () => qc.invalidateQueries({queryKey: ['admin-articles']}),
   });
 
@@ -64,7 +64,7 @@ function ArticlesInner() {
                 <td className="px-5 py-4 text-sm text-gray-500 hidden md:table-cell">{a.views || 0}</td>
                 <td className="px-5 py-4 text-right">
                   <a href={`/my/posts/edit?id=${a.id}`} className="p-1.5 inline-block text-gray-400 hover:text-blue-600 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20"><Edit className="w-4 h-4"/></a>
-                  <a href={`/articles/${a.slug}`} target="_blank" className="p-1.5 inline-block text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20"><Eye className="w-4 h-4"/></a>
+                  <a href={`/article-detail?slug=a.slug`} target="_blank" className="p-1.5 inline-block text-gray-400 hover:text-green-600 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20"><Eye className="w-4 h-4"/></a>
                   <button onClick={() => {if(confirm('确认删除？')) delMut.mutate(a.id);}} className="p-1.5 inline-block text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"><Trash2 className="w-4 h-4"/></button>
                 </td>
               </tr>

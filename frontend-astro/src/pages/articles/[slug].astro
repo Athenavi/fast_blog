@@ -1,26 +1,20 @@
 ---
-// 文章详情页（静态模式 - 取所有 slug 预生成）
+// 文章详情页客户端路由（静态部署兼容）
+// 使用 ?slug=xxx 参数而非预生成动态路由
 import Layout from '@/layouts/Layout.astro';
 import ArticleDetail from '@/components/pages/ArticleDetail';
 
 export async function getStaticPaths() {
-  try {
-    const res = await fetch('http://localhost:9421/api/v2/home/articles');
-    const json = await res.json();
-    const articles = json?.data?.articles || json?.articles || json?.data || [];
-    if (!Array.isArray(articles)) return [{ params: { slug: '_placeholder' } }];
-    const paths = articles.map((a: any) => ({ params: { slug: a.slug || a.id + '' } }));
-    return paths.length > 0 ? paths : [{ params: { slug: '_placeholder' } }];
-  } catch {
-    return [{ params: { slug: '_placeholder' } }];
-  }
+  // Build a placeholder page; the React component reads slug from URL
+  return [{ params: { slug: '_' } }];
 }
 
 const {slug = ''} = Astro.params;
+const articleSlug = slug && slug !== '_' ? slug : Astro.url.searchParams.get('slug') || '';
 ---
 
 <Layout title="文章详情 - FastBlog">
   <main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-20">
-    <ArticleDetail slug={slug} client:load />
+    {articleSlug ? <ArticleDetail slug={articleSlug} client:load /> : <p class="text-center text-gray-500 py-20">文章不存在</p>}
   </main>
 </Layout>
