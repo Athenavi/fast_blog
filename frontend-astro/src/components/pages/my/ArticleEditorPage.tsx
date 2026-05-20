@@ -7,7 +7,7 @@ import {z} from 'zod';
 import {zodResolver} from '@hookform/resolvers/zod';
 import {apiClient, CategoryService} from '@/lib/api';
 import type {Category} from '@/lib/api/base-types';
-import {Save, ArrowLeft, X, History, Settings2, Bold, Italic, Heading1, Heading2, List, Quote, Image, Link, Sparkles} from 'lucide-react';
+import {Save, ArrowLeft, X, History, Settings2, Bold, Italic, Heading1, Heading2, List, Quote, Image, Link, Sparkles, Eye, Tag, FolderTree, FileText, Hash} from 'lucide-react';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AuthGuard} from '@/components/AuthGuard';
 import RevisionsSidebar from '@/components/editor/RevisionsSidebar';
