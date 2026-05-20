@@ -1,15 +1,22 @@
 'use client';
 
 import React, {useState} from 'react';
-import {BarChart3, FileText, FolderTree, Image, Users, Shield, Settings, PenSquare, ChevronLeft, Menu, LogOut} from 'lucide-react';
+import {BarChart3, FileText, FolderTree, Image, Users, Shield, Settings, ChevronLeft, Menu, LogOut, MessageSquare, Puzzle, Database, TrendingUp, ScrollText, Server, AlertTriangle} from 'lucide-react';
 
 const nav = [
   {label: '仪表盘', href: '/admin', icon: BarChart3},
   {label: '文章管理', href: '/admin/articles', icon: FileText},
   {label: '分类管理', href: '/admin/categories', icon: FolderTree},
   {label: '媒体库', href: '/admin/media', icon: Image},
+  {label: '评论管理', href: '/admin/comments', icon: MessageSquare},
   {label: '用户管理', href: '/admin/users', icon: Users},
   {label: '角色权限', href: '/admin/roles', icon: Shield},
+  {label: '插件管理', href: '/admin/plugins', icon: Puzzle},
+  {label: '备份管理', href: '/admin/backup', icon: Database},
+  {label: '敏感词', href: '/admin/sensitive-words', icon: AlertTriangle},
+  {label: '数据分析', href: '/admin/analytics', icon: TrendingUp},
+  {label: '审计日志', href: '/admin/audit-logs', icon: ScrollText},
+  {label: '系统信息', href: '/admin/system', icon: Server},
   {label: '系统设置', href: '/admin/settings', icon: Settings},
 ];
 
