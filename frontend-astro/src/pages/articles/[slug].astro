@@ -1,19 +1,17 @@
 ---
-// 文章详情页 — 支持静态生成
+// 文章详情页 — 客户端渲染
 import Layout from '@/layouts/Layout.astro';
 import ArticleDetail from '@/components/pages/ArticleDetail';
 
 export async function getStaticPaths() {
-  // 在 build 时从 API 获取文章列表生成静态路径
-  // return [{ params: { slug: 'hello-world' } }];
   return [];
 }
 
 const {slug = ''} = Astro.params;
 ---
 
-<Layout title={`文章 - FastBlog`}>
-  <article class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+<Layout title="文章详情 - FastBlog">
+  <main class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pt-20">
     <ArticleDetail slug={slug} client:load />
-  </article>
+  </main>
 </Layout>
