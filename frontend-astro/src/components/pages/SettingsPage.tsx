@@ -4,6 +4,7 @@ import React, {useEffect, useRef, useState} from 'react';
 import {apiClient} from '@/lib/api';
 import {useDarkMode} from '@/lib/dark-mode-manager';
 import {getAccessTokenFromCookie} from '@/lib/auth-utils';
+import {AuthGuard} from '@/components/AuthGuard';
 import {motion} from 'framer-motion';
 import {Bell, Camera, Laptop, LogOut, Moon, Palette, Save, Shield, Sun, Upload, User} from 'lucide-react';
 
@@ -299,4 +300,5 @@ const SettingsPage: React.FC = () => {
   );
 };
 
-export default SettingsPage;
+const SettingsPageGuard: React.FC = () => <AuthGuard><SettingsPage /></AuthGuard>;
+export default SettingsPageGuard;

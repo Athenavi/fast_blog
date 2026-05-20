@@ -3,6 +3,7 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {MediaService, apiClient} from '@/lib/api';
 import type {MediaFile, MediaResponse} from '@/lib/api';
+import {AuthGuard} from '@/components/AuthGuard';
 import {motion} from 'framer-motion';
 import {
   ChevronDown, ChevronLeft, ChevronRight, FileText, FolderPlus, FolderOpen, FolderClosed, Grid3X3,
@@ -343,4 +344,5 @@ const MediaPage: React.FC = () => {
   );
 };
 
-export default MediaPage;
+const MediaPageGuard: React.FC = () => <AuthGuard><MediaPage /></AuthGuard>;
+export default MediaPageGuard;

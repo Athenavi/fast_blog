@@ -6,6 +6,7 @@ import {apiClient} from '@/lib/api';
 import type {Article} from '@/lib/api/base-types';
 import {Edit, Eye, Plus, Search, Trash2, Lock, Calendar} from 'lucide-react';
 import {QueryProvider} from '@/components/QueryProvider';
+import {AuthGuard} from '@/components/AuthGuard';
 
 const MyPostsPageInner: React.FC = () => {
   const [page, setPage] = useState(1);
@@ -95,6 +96,6 @@ const MyPostsPageInner: React.FC = () => {
 };
 
 const MyPostsPage: React.FC = () => (
-  <QueryProvider><MyPostsPageInner /></QueryProvider>
+  <AuthGuard><QueryProvider><MyPostsPageInner /></QueryProvider></AuthGuard>
 );
 export default MyPostsPage;

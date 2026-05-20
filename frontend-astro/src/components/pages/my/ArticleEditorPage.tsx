@@ -9,6 +9,7 @@ import {apiClient, CategoryService} from '@/lib/api';
 import type {Category} from '@/lib/api/base-types';
 import {Save, ArrowLeft, X, History, Settings2, Eye, EyeOff, Tag, FolderTree, Image, FileText, Hash} from 'lucide-react';
 import {QueryProvider} from '@/components/QueryProvider';
+import {AuthGuard} from '@/components/AuthGuard';
 import RevisionsSidebar from '@/components/editor/RevisionsSidebar';
 
 const RichEditor = React.lazy(() => import('@/components/editor/RichEditor'));
@@ -244,6 +245,6 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
 };
 
 const ArticleEditorPage: React.FC<Props> = (props) => (
-  <QueryProvider><ArticleEditorPageInner {...props} /></QueryProvider>
+  <AuthGuard><QueryProvider><ArticleEditorPageInner {...props} /></QueryProvider></AuthGuard>
 );
 export default ArticleEditorPage;

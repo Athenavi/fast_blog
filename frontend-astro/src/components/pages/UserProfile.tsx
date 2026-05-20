@@ -2,6 +2,7 @@
 
 import React, {useEffect, useState} from 'react';
 import {apiClient} from '@/lib/api';
+import {AuthGuard} from '@/components/AuthGuard';
 import {motion} from 'framer-motion';
 import {
   Calendar, Edit3, Eye, FileText, Heart, Link as LinkIcon, Lock, Mail, MapPin, Settings, UserPlus, Users
@@ -188,4 +189,5 @@ const UserProfile: React.FC = () => {
   );
 };
 
-export default UserProfile;
+const UserProfileGuard: React.FC = () => <AuthGuard><UserProfile /></AuthGuard>;
+export default UserProfileGuard;
