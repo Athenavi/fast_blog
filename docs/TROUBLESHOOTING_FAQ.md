@@ -211,11 +211,11 @@ curl http://localhost:9421/api/v1/health
 
 # 2. 检查 CORS 配置
 # 确保 .env 中包含前端域名
-CORS_ORIGINS=http://localhost:3000
+CORS_ORIGINS=http://localhost:4321
 
 # 3. 检查 API 地址配置
-# frontend-next/config.js
-export const API_URL = 'http://localhost:9421'
+# frontend-astro/.env
+PUBLIC_API_BASE_URL=http://localhost:9421
 ```
 
 ### Q10: 静态文件 404
@@ -240,7 +240,7 @@ sudo nginx -t
 sudo systemctl restart nginx
 ```
 
-### Q11: Next.js 构建失败
+### Q11: Astro 构建失败
 
 **症状**:
 ```
@@ -251,7 +251,7 @@ Error: Build failed with errors
 
 ```bash
 # 1. 清除缓存
-rm -rf .next node_modules/.cache
+rm -rf .astro dist node_modules/.cache
 
 # 2. 重新安装依赖
 npm install
@@ -383,7 +383,7 @@ docker-compose up -d
 # 本地环境
 git pull
 pip install -r requirements.txt
-cd frontend-next && npm install
+cd frontend-astro && npm install
 npm run build
 ```
 

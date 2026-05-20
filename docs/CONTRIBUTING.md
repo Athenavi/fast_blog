@@ -25,7 +25,7 @@ git checkout -b feature/your-feature
 
 # 3. 开发测试
 pip install -r requirements.txt
-cd frontend-next && npm install
+cd frontend-astro && npm install
 
 # 4. 提交更改
 git add .
@@ -56,7 +56,7 @@ black src/
 flake8 src/
 
 # 前端检查
-cd frontend-next
+cd frontend-astro
 npm run lint
 ```
 

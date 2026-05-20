@@ -13,7 +13,7 @@
 
 ### 软件依赖
 
-- Python 3.9+
+- Python 3.14+
 - PostgreSQL 17+
 - Redis 7+
 - Nginx 1.18+
@@ -75,9 +75,9 @@ server {
         add_header Cache-Control "public, immutable";
     }
     
-    # 前端静态文件
+    # 前端静态文件（Astro 构建输出）
     location / {
-        root /opt/fastblog/frontend-next/out;
+        root /opt/fastblog/frontend-astro/dist;
         try_files $uri $uri/ /index.html;
         expires 1h;
     }

@@ -55,7 +55,7 @@ REDIS_URL=redis://localhost:6379/0
 SECRET_KEY=your-secret-key-here
 
 # CORS 配置
-CORS_ORIGINS=http://localhost:3000,http://localhost:9421
+CORS_ORIGINS=http://localhost:4321,http://localhost:9421
 
 # 后端模式
 BACKEND_MODE=fastapi  # 或 django
@@ -83,36 +83,37 @@ python main.py --backend fastapi
 python main.py --backend django
 ```
 
-### 前端部署
+### 前端部署（Astro）
 
 ```bash
 # 进入前端目录
-cd frontend-next
+cd frontend-astro
 
 # 安装依赖
 npm install
 
 # 配置环境变量
-cp config.example.js config.js
+cp .env.example .env
+# 编辑 .env 文件，配置 API_BASE_URL
 
 # 开发模式
 npm run dev
 
 # 生产构建
 npm run build
-npm start
+npm run preview
 ```
 
 ## 🔧 常用命令速查
 
-### 前端命令
+### 前端命令（Astro）
 
 ```bash
-cd frontend-next
+cd frontend-astro
 
-npm run dev              # 开发服务器
+npm run dev              # 开发服务器 (http://localhost:4321)
 npm run build            # 生产构建
-npm run start            # 启动生产服务器
+npm run preview          # 预览生产构建
 npm run lint             # 代码检查
 ```
 
@@ -148,11 +149,11 @@ echo $DATABASE_URL
 ```bash
 # 检查 CORS 配置
 # 确保 .env 中包含前端域名
-CORS_ORIGINS=http://localhost:3000
+CORS_ORIGINS=http://localhost:4321
 
 # 检查 API 地址配置
-# frontend-next/config.js
-export const API_URL = 'http://localhost:9421'
+# frontend-astro/.env
+PUBLIC_API_BASE_URL=http://localhost:9421
 ```
 
 ## 📚 下一步

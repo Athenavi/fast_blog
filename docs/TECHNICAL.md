@@ -1,6 +1,6 @@
 # FastBlog 技术架构
 
-**Python**: 3.9+ | **FastAPI**: 0.100+ | **Django**: 4.2+ | **Next.js**: 16
+**Python**: 3.14+ | **FastAPI**: 0.136+ | **Django**: 6.0+ | **Astro**: 5.x
 
 ## 🏗️ 系统架构
 
@@ -68,18 +68,25 @@ apps/ (Django)
 ### 前端
 
 ```
-frontend-next/
-├── app/              # 页面路由
-├── components/       # UI 组件
-├── hooks/            # 自定义 Hooks
-└── lib/              # 工具库
+frontend-astro/
+├── src/
+│   ├── components/     # React/Vue 组件（岛屿）
+│   ├── layouts/        # Astro 布局组件
+│   ├── pages/          # 页面路由
+│   └── styles/         # 全局样式
+├── public/             # 静态资源
+└── astro.config.mjs    # Astro 配置
 ```
 
 ## 🔧 技术栈
 
 ### 前端
 
-- Next.js 16 / TypeScript / TailwindCSS 4
+- **框架**: Astro 5.x (岛屿架构)
+- **UI 框架**: React 19 / Vue 3 (可选，用于交互岛屿)
+- **样式**: TailwindCSS 3.x
+- **状态管理**: SWR / TanStack Query
+- **图标**: Lucide Icons
 
 ### 后端
 
@@ -112,7 +119,13 @@ frontend-next/
 - SupervisedLauncher: 主启动器
 - ProcessSupervisor: 生命周期管理
 
-### 3. 业务功能
+### 3. 前端架构
+
+- Astro 岛屿架构：零 JavaScript 默认策略
+- 静态生成 + 按需 hydration
+- 极致性能和 SEO 优化
+
+### 4. 业务功能
 - 文章/用户/评论/媒体管理
 - 插件系统 (Hook 机制)
 - 主题系统 (自定义配置)

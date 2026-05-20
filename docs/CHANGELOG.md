@@ -5,33 +5,27 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且此项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
-## [未发布]
+## [0.3.26.0520] - 2026-05-20
+
+### 新增
+
+- 🚀 **Astro 前端重构** - 将前端从 Next.js 迁移到 Astro
+  - 采用岛屿架构（Islands Architecture）
+  - 零 JavaScript 默认策略，极致性能
+  - 静态生成 + 按需 hydration
+  - Core Web Vitals 显著改善
+  - 更好的 SEO 和首屏加载速度
 
 ### 优化
 
 - 📝 **文档彻底重构** - 全面清理和精简项目文档
   - 删除重复内容：API示例文件（api_examples.*）已合并到API参考文档
+  - 删除过时文档：FFMPEG安装指南、Meilisearch快速开始、资源转存说明
   - 精简QUICK_START.md和DEPLOYMENT_GUIDE.md，去除大量重复内容
-  - 更新所有技术栈版本信息（Python 3.9+, FastAPI 0.100+, Django 4.2+, PostgreSQL 14+）
+  - 更新所有技术栈版本信息（Python 3.14+, FastAPI 0.136+, Django 6.0+, Astro 5.x）
   - 修正过时的版本号和技术描述
   - 简化文档结构，提高可读性
-  - 从28个文档精简到核心文档集
-
----
-
-## [0.0.2.1] - 2026-05-02
-
-### 优化
-
-- 📝 **文档深度精简** - 大幅精简和优化项目文档结构
-  - 删除过时文档：GraphQL指南、WordPress导入指南、多站点指南
-  - 删除重复文档：API示例、文章搜索、文章统计、评论增强、PWA指南
-  - 删除专项文档：日志系统、系统监控、安全加固、SQL注入防护、数据库索引优化
-  - 删除运维文档：速率限制、速率监控、插件数据库管理、配置指南、数据库管理
-  - 合并API文档：将API示例整合到API参考文档中
-  - 简化根目录README，去除重复内容
-  - 更新文档索引，保持简洁清晰
-  - 从28个文档精简到10个核心文档（减少64%）
+  - 从多个文档精简到核心文档集
 
 ---
 
