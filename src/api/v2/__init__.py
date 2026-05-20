@@ -131,6 +131,7 @@ ROUTE_REGISTRY_V2 = [
 
     # ==================== 认证模块（新增）====================
     ("src.api.v1.auth", "/api/v2/auth", ["auth"], False),
+    ("src.api.v2.qr_login", "/api/v2/auth/qr", ["qr-login"], False),
 
     # ==================== 用户管理（已合并，删除重复的关注端点）====================
     # 所有用户功能已整合到 users/__init__.py 中，通过子路由统一管理
