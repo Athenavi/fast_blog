@@ -4,9 +4,10 @@ import React, {useEffect, useState} from 'react';
 import {apiClient} from '@/lib/api/base-client';
 import type {Article} from '@/lib/api/base-types';
 
-interface Props { slug: string; }
+interface Props { slug?: string; }
 
-const ArticleDetail: React.FC<Props> = ({slug}) => {
+const ArticleDetail: React.FC<Props> = ({slug: propSlug}) => {
+  const slug = propSlug || (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('slug') : '') || '';
   const [article, setArticle] = useState<Article | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
