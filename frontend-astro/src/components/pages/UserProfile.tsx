@@ -16,9 +16,12 @@ function Profile() {
   useEffect(() => {
     (async () => {
       try {
-        const r = await apiClient.get<ProfileData>('/users/me');
+        const r = await apiClient.get('/users/me');
         if (!r.success || !r.data) return;
-        setData(r.data);
+        // 后端可能返回 {user:...} 或直接返回用户数据
+        const raw = r.data as any;
+        const normalized: ProfileData = raw.user ? raw : {user: raw, recent_articles: raw.recent_articles||[], stats: raw.stats};
+        setData(normalized);
         const u = r.data.user;
         let url = u.avatar_url || u.avatar || '';
         if (url && !url.startsWith('http')) {
@@ -30,7 +33,7 @@ function Profile() {
     })();
   }, []);
 
-  if (!data) return (
+  if (!data?.user) return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50 dark:from-gray-950 dark:to-gray-900">
       <div className="animate-spin w-8 h-8 border-[3px] border-blue-500 border-t-transparent rounded-full"/>
     </div>
