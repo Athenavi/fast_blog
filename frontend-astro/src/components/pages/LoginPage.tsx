@@ -16,11 +16,6 @@ function setCookie(name: string, value: string, maxAgeSec: number) {
   document.cookie = `${name}=${value}; path=/; max-age=${maxAgeSec}; SameSite=Lax`;
 }
 
-let QRCode: any = null;
-if (typeof window !== 'undefined') {
-  import('qrcode').then(m => QRCode = m);
-}
-
 export default function LoginPage() {
   const [mode, setMode] = useState<'password'|'qrcode'>('password');
   const [u, setU] = useState('');
