@@ -3,10 +3,10 @@
 import React, {useState} from 'react';
 import {useQuery, useMutation} from '@tanstack/react-query';
 import {apiClient} from '@/lib/api';
-import {History, RotateCcw, Clock, User, FileText, X, GitCompare} from 'lucide-react';
+import {History, RotateCcw, Clock, User, FileText, X, GitCompare, ChevronRight} from 'lucide-react';
 
 interface Revision {id:number;revision_number:number;title:string;excerpt:string;content:string;change_summary:string|null;created_at:string;author?:{username:string};}
-interface Props {articleId:number|string;open:boolean;onClose:()=>void;onRestore:(c:string,t:string,e:string)=>void;}
+interface Props {articleId:number|string;open:boolean;onClose:()=>void;onCollapse?:()=>void;onRestore:(c:string,t:string,e:string)=>void;}
 
 const RevisionsSidebar: React.FC<Props> = ({articleId,open,onClose,onRestore}) => {
   const [selected, setSelected] = useState<Revision|null>(null);
@@ -29,6 +29,8 @@ const RevisionsSidebar: React.FC<Props> = ({articleId,open,onClose,onRestore}) =
 
   return (
     <div className="fixed inset-y-0 right-0 z-[60] w-[32rem] bg-white dark:bg-gray-900 border-l border-gray-200 dark:border-gray-800 shadow-2xl flex flex-col">
+      {/* Collapse tab at waist */}
+      <button onClick={onCollapse} className="absolute left-0 top-1/2 -translate-x-full -translate-y-1/2 w-6 h-12 bg-white dark:bg-gray-900 border border-r-0 border-gray-200 dark:border-gray-800 rounded-l-lg flex items-center justify-center hover:bg-gray-50 dark:hover:bg-gray-800 cursor-pointer z-[61] shadow-sm" title="收起"><ChevronRight className="w-4 h-4 text-gray-400"/></button>
       {/* Header */}
       <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shrink-0 z-10">
         <div className="flex items-center gap-2"><History className="w-5 h-5 text-gray-600 dark:text-gray-300"/><h2 className="font-bold text-gray-900 dark:text-white">版本历史</h2></div>
