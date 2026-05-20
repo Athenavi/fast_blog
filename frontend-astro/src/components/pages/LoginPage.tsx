@@ -37,24 +37,19 @@ export default function LoginPage() {
   useEffect(() => { return () => { cancelRef.current = true; if (pollRef.current) clearTimeout(pollRef.current); }; }, []);
 
   // ═══ QR Login Generator ═══
-  const qrFetch = async (path: string, params?: Record<string, string>) => {
-    const config = await import('@/lib/config').then(m => m.getConfig());
-    const url = new URL(`${config.API_BASE_URL}/api/v1${path}`);
-    if (params) Object.entries(params).forEach(([k,v]) => url.searchParams.set(k, v));
-    const res = await fetch(url.toString());
-    return res.json();
-  };
-
   const generateQR = async () => {
     setErr(''); setQrStatus('loading'); setQrImg(''); cancelRef.current = false;
+    const token = 'qr_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10);
+    setQrToken(token);
+    const loginUrl = `${window.location.origin}/mobile-login?login_token=${token}`;
     try {
-      const data = await qrFetch('/qr/generate', {callback_domain: window.location.origin + '/'});
-      if (!data.success) { setErr(data.message||'生成二维码失败'); setQrStatus('idle'); return; }
-      setQrImg(data.qr_code||'');
-      setQrToken(data.token||'');
+      const mod = await import('qrcode');
+      const dataUrl = await mod.toDataURL(loginUrl, {width:280,margin:2,color:{dark:'#1e40af',light:'#ffffff'}});
+      setQrImg(dataUrl);
       setQrStatus('ready');
-      if (data.token) pollQR(data.token);
-    } catch { setErr('网络错误'); setQrStatus('idle'); }
+      // Poll backend for confirmation
+      pollQR(token);
+    } catch { setErr('生成二维码失败'); setQrStatus('idle'); }
   };
 
   const pollQR = (token: string) => {
@@ -62,8 +57,10 @@ export default function LoginPage() {
     pollRef.current = setTimeout(async () => {
       if (cancelRef.current) return;
       try {
-        const data = await qrFetch('/qr/status', {token});
-        if (data.success) {
+        const config = await import('@/lib/config').then(m => m.getConfig());
+        const res = await fetch(`${config.API_BASE_URL}/api/v1/qr/status?token=${token}`);
+        const data = res.ok ? await res.json() : {success: false, status: 'pending'};
+        if (data.success && data.status) {
           const st = data.status;
           if (st === 'success') {
             setQrStatus('success');

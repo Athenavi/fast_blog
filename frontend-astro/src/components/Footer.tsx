@@ -8,14 +8,10 @@
 import React from 'react';
 import {Rss} from 'lucide-react';
 import LanguageSwitcher from './LanguageSwitcher';
-import {useDarkMode} from '@/lib/dark-mode-manager';
 
 const Footer = () => {
-    const {theme} = useDarkMode();
-
     return (
-        <footer className="border-t border-gray-200 dark:border-gray-700 py-8"
-                style={{backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff', borderColor: theme === 'dark' ? '#374151' : '#e5e7eb'}}>
+        <footer className="border-t border-gray-200 dark:border-gray-700 py-8 bg-white dark:bg-gray-900">
             <div className="container mx-auto px-4">
                 <div className="text-center text-gray-600 dark:text-gray-400">
                     <div className="mt-4 flex justify-center items-center gap-4">
