@@ -25,12 +25,6 @@ from typing import Dict, List, Optional
 project_root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(project_root))
 
-# 确保 logs 目录存在（logger 模块依赖）
-logs_dir = project_root / "logs"
-logs_dir.mkdir(parents=True, exist_ok=True)
-
-from src.unified_logger import default_logger as logger
-
 
 # ---------- 版本信息工具 ----------
 def get_current_version() -> str:
@@ -118,7 +112,7 @@ class ReleaseBuilder:
         self.build_temp = Path(tempfile.mkdtemp(prefix="fastblog_build_"))
         self.release_dir = self.output_dir / f"fastblog-v{version}"
         self.release_dir.mkdir(parents=True, exist_ok=True)
-        logger.info(f"构建版本 {version} → {self.release_dir}")
+        print(f"构建版本 {version} → {self.release_dir}")
 
     @staticmethod
     def get_file_hash(file_path: Path) -> str:
@@ -139,7 +133,7 @@ class ReleaseBuilder:
         return [dst]
 
     def copy_backend_files(self) -> List[Path]:
-        logger.info("复制后端文件...")
+        print("复制后端文件...")
         files = []
         backend_dirs = [
             "src", "apps", "django_blog", "shared", "config",
@@ -150,7 +144,7 @@ class ReleaseBuilder:
             src_dir = self.project_root / d
             if src_dir.exists():
                 files.extend(self._copy_tree_collecting(src_dir, self.release_dir / d))
-                logger.info(f"已复制目录: {d}")
+                print(f"已复制目录: {d}")
 
         backend_root_files = [
             "main.py", "requirements.txt", "version.txt",
@@ -163,10 +157,10 @@ class ReleaseBuilder:
         return files
 
     def build_frontend(self) -> List[Path]:
-        logger.info("构建前端 (Astro)...")
+        print("构建前端 (Astro)...")
         frontend_dir = self.project_root / "frontend-astro"
         if not frontend_dir.exists():
-            logger.warning("frontend-astro 目录不存在，跳过前端构建")
+            print("WARNING: frontend-astro 目录不存在，跳过前端构建")
             return []
 
         try:
@@ -177,9 +171,9 @@ class ReleaseBuilder:
                 encoding="utf-8", errors="replace"
             )
             if result.returncode != 0:
-                logger.error(f"前端构建失败: {result.stderr}")
+                print(f"ERROR: 前端构建失败: {result.stderr}")
                 return []
-            logger.info("前端构建完成")
+            print("前端构建完成")
 
             files = []
             dist_src = frontend_dir / "dist"
@@ -197,16 +191,16 @@ class ReleaseBuilder:
                 if src.exists():
                     dst = self.release_dir / "frontend-astro" / fname
                     files.extend(self._copy_file_collecting(src, dst))
-            logger.info(f"已收集 {len(files)} 个前端文件")
+            print(f"已收集 {len(files)} 个前端文件")
             return files
         except subprocess.TimeoutExpired:
-            logger.error("前端构建超时")
+            print("ERROR: 前端构建超时")
         except Exception as e:
-            logger.error(f"前端构建异常: {e}")
+            print(f"ERROR: 前端构建异常: {e}")
         return []
 
     def create_startup_scripts(self) -> List[Path]:
-        logger.info("创建启动脚本...")
+        print("创建启动脚本...")
         win_script = self.release_dir / "start.bat"
         win_script.write_text(
             f"@echo off\ncd /d \"%~dp0\"\npython main.py\npause\n",
@@ -221,14 +215,14 @@ class ReleaseBuilder:
         return [win_script, unix_script]
 
     def create_checksums(self, all_files: List[Path]) -> Path:
-        logger.info("创建校验和文件...")
+        print("创建校验和文件...")
         checksums = {}
         for f in all_files:
             try:
                 rel = f.relative_to(self.release_dir).as_posix()
                 checksums[rel] = self.get_file_hash(f)
             except Exception as e:
-                logger.warning(f"哈希计算失败 {f}: {e}")
+                print(f"WARNING: 哈希计算失败 {f}: {e}")
 
         checksum_file = self.release_dir / "CHECKSUMS.json"
         checksum_file.write_text(json.dumps(checksums, indent=2, ensure_ascii=False), encoding="utf-8")
@@ -260,7 +254,7 @@ class ReleaseBuilder:
                 except subprocess.CalledProcessError:
                     continue
             if not current_tag:
-                logger.warning(f"未找到版本标签 {possible_tags}")
+                print(f"WARNING: 未找到版本标签 {possible_tags}")
                 return commits
 
             prev_tag = ""
@@ -293,7 +287,7 @@ class ReleaseBuilder:
                         parsed["body"] = body.strip()
                         commits.append(parsed)
         except Exception as e:
-            logger.warning(f"Git 信息获取失败: {e}")
+            print(f"WARNING: Git 信息获取失败: {e}")
         return commits
 
     def _format_commit_entry(self, c: Dict) -> str:
@@ -306,7 +300,7 @@ class ReleaseBuilder:
         return entry
 
     def create_release_notes(self) -> Path:
-        logger.info("生成发布说明...")
+        print("生成发布说明...")
         commits = self.get_commits_since_last_tag()
         features, fixes, perfs, docs, breaking = [], [], [], [], []
         for c in commits:
@@ -363,14 +357,14 @@ class ReleaseBuilder:
         return notes_path
 
     def create_zip_package(self) -> Path:
-        logger.info("打包 ZIP...")
+        print("打包 ZIP...")
         zip_path = self.output_dir / f"fastblog-v{self.version}.zip"
         with zipfile.ZipFile(zip_path, "w", zipfile.ZIP_DEFLATED) as zf:
             for f in self.release_dir.rglob("*"):
                 if f.is_file():
                     arcname = f.relative_to(self.output_dir)
                     zf.write(f, arcname)
-        logger.info(f"ZIP 已创建: {zip_path} ({zip_path.stat().st_size / 1024 / 1024:.2f} MB)")
+        print(f"ZIP 已创建: {zip_path} ({zip_path.stat().st_size / 1024 / 1024:.2f} MB)")
         return zip_path
 
     def build(self) -> Dict:
@@ -403,10 +397,10 @@ class ReleaseBuilder:
                 "build_time_seconds": round(elapsed, 2),
                 "release_dir": str(self.release_dir)
             }
-            logger.info(f"构建完成，耗时 {elapsed:.2f}s")
+            print(f"构建完成，耗时 {elapsed:.2f}s")
             return result
         except Exception as e:
-            logger.error(f"构建失败: {e}")
+            print(f"ERROR: 构建失败: {e}")
             return {"success": False, "error": str(e)}
         finally:
             shutil.rmtree(self.build_temp, ignore_errors=True)
@@ -430,7 +424,7 @@ class UpdatePackageBuilder:
             if res.returncode == 0:
                 return [f.strip() for f in res.stdout.split("\n") if f.strip()]
         except Exception as e:
-            logger.error(f"获取变更文件失败: {e}")
+            print(f"ERROR: 获取变更文件失败: {e}")
         return []
 
     def collect_update_files(self, changed_files: List[str]) -> List[Path]:
@@ -450,7 +444,7 @@ class UpdatePackageBuilder:
         return files
 
     def create_update_package(self, base_version: Optional[str] = None) -> Optional[Path]:
-        logger.info("创建增量更新包...")
+        print("创建增量更新包...")
         if not base_version:
             try:
                 vf = self.project_root / "version.txt"
@@ -500,7 +494,7 @@ class UpdatePackageBuilder:
         (self.output_dir / f"update_{self.version}.sha256").write_text(
             f"{sha.hexdigest()}  update_{self.version}.zip\n", encoding="utf-8"
         )
-        logger.info(f"增量包已创建: {zip_path}")
+        print(f"增量包已创建: {zip_path}")
         return zip_path
 
     def cleanup(self):
