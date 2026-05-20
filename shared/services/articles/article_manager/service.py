@@ -14,7 +14,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.article import Article
 from shared.models.article_content import ArticleContent
-
 from src.unified_logger import default_logger as logger
 
 
@@ -356,8 +355,8 @@ async def delete_article(db: AsyncSession, article_id: int) -> bool:
     await db.execute(
         delete(ArticleRevision).where(ArticleRevision.article_id == article_id)
     )
-    
-    # 删除文章内容
+
+    # 删除文章内容 - 使用 delete 语句确保完全删除
     await db.execute(
         delete(ArticleContent).where(ArticleContent.article == article_id)
     )

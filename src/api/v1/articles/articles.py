@@ -6,7 +6,7 @@ from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request
-from sqlalchemy import func, select
+from sqlalchemy import func, select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -871,11 +871,10 @@ async def delete_article_api(
         for revision in revisions_result.scalars().all():
             await db.delete(revision)
 
-        # 级联删除内容
-        content_query = select(ArticleContent).where(ArticleContent.article == article_id)
-        content_result = await db.execute(content_query)
-        for content in content_result.scalars().all():
-            await db.delete(content)
+        # 级联删除内容 - 使用 delete 语句确保完全删除
+        await db.execute(
+            delete(ArticleContent).where(ArticleContent.article == article_id)
+        )
 
         await db.delete(article)
         await db.commit()
