@@ -75,11 +75,8 @@ async def save_uploaded_avatar(file: UploadFile, user_id: int, db):
         avatar_dir.mkdir(parents=True, exist_ok=True)
 
         # 确定文件扩展名
-        file_ext = Path(file.filename).suffix.lower()
-        if file_ext not in ['.jpg', '.jpeg', '.png', '.webp', '.gif']:
-            file_ext = '.webp'  # 默认扩展名
-
-        avatar_filename = f"{avatar_uuid}{file_ext}"
+        # 始终使用 .webp 扩展名保存
+        avatar_filename = f"{avatar_uuid}.webp"
         avatar_path = avatar_dir / avatar_filename
 
         # 读取并保存文件
