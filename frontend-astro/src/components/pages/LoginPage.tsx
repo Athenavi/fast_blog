@@ -37,34 +37,38 @@ export default function LoginPage() {
   useEffect(() => { return () => { cancelRef.current = true; if (pollRef.current) clearTimeout(pollRef.current); }; }, []);
 
   // ═══ QR Login Generator ═══
+  const qrFetch = async (path: string, params?: Record<string, string>) => {
+    const config = await import('@/lib/config').then(m => m.getConfig());
+    const url = new URL(`${config.API_BASE_URL}/api/v1${path}`);
+    if (params) Object.entries(params).forEach(([k,v]) => url.searchParams.set(k, v));
+    const res = await fetch(url.toString());
+    return res.json();
+  };
+
   const generateQR = async () => {
     setErr(''); setQrStatus('loading'); setQrImg(''); cancelRef.current = false;
     try {
-      const r = await apiClient.get('/auth/qr/generate', {callback_domain: window.location.origin + '/'});
-      if (!r.success) { setErr(r.error||'生成二维码失败'); setQrStatus('idle'); return; }
-      const d = r.data as any;
-      setQrImg(d.qr_code||'');
-      setQrToken(d.token||'');
+      const data = await qrFetch('/qr/generate', {callback_domain: window.location.origin + '/'});
+      if (!data.success) { setErr(data.message||'生成二维码失败'); setQrStatus('idle'); return; }
+      setQrImg(data.qr_code||'');
+      setQrToken(data.token||'');
       setQrStatus('ready');
-      // Start polling
-      if (d.token) pollQR(d.token);
+      if (data.token) pollQR(data.token);
     } catch { setErr('网络错误'); setQrStatus('idle'); }
   };
 
-  // ═══ QR Polling ═══
   const pollQR = (token: string) => {
     if (cancelRef.current) return;
     pollRef.current = setTimeout(async () => {
       if (cancelRef.current) return;
       try {
-        const r = await apiClient.get('/auth/qr/status', {token});
-        if (r.success && r.data) {
-          const st = (r.data as any).status;
+        const data = await qrFetch('/qr/status', {token});
+        if (data.success) {
+          const st = data.status;
           if (st === 'success') {
             setQrStatus('success');
-            const refreshToken = (r.data as any).refresh_token;
+            const refreshToken = data.refresh_token;
             if (refreshToken) setCookie('refresh_token', refreshToken, 604800);
-            // Fetch user info and redirect
             const userR = await apiClient.get('/users/me');
             if (userR.success && userR.data) {
               const accessR = await apiClient.post('/auth/token/refresh', {refresh: refreshToken});
@@ -74,19 +78,15 @@ export default function LoginPage() {
                 return;
               }
             }
-            setErr('扫码成功，获取令牌失败');
-            setQrStatus('idle');
-            return;
+            setErr('扫码成功，获取令牌失败'); setQrStatus('idle'); return;
           } else if (st === 'expired') {
-            setQrStatus('expired'); setErr('二维码已过期，请重新生成');
-            return;
+            setQrStatus('expired'); setErr('二维码已过期，请重新生成'); return;
           } else {
             setQrStatus('pending');
-            pollQR(token); // continue polling
+            pollQR(token);
           }
         } else {
-          setErr(r.error||'状态查询失败');
-          setQrStatus('idle');
+          setErr(data.message||'状态查询失败'); setQrStatus('idle');
         }
       } catch {
         if (!cancelRef.current) pollQR(token);
@@ -126,7 +126,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-950 dark:to-gray-900 p-4">
-      <div className="w-full max-w-md">
+      <div className="w-full max-w-lg">
         <div className="text-center mb-8">
           <div className="w-14 h-14 mx-auto mb-4 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-200/50 dark:shadow-blue-900/30">
             <LogIn className="w-7 h-7 text-white"/>
