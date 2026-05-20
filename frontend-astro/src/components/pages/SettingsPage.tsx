@@ -53,8 +53,14 @@ function Settings() {
     })();
   }, []);
 
-  const save = async (body: any) => { setBusy(true); const r = await apiClient.put('/users/me', body); if(!r.success) alert(r.error||'失败'); setBusy(false); };
-  const put = (field: string, extra: any) => save({change_type:field, ...extra});
+  const save = async (field: string, value: any) => {
+    setBusy(true);
+    try {
+      const r = await apiClient.put('/users/me', {[field]: value});
+      if(!r.success) alert(r.error||'保存失败');
+    } catch { alert('网络错误'); }
+    setBusy(false);
+  };
 
   const uploadAv = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0]; if(!f) return;
@@ -66,7 +72,7 @@ function Settings() {
       const c = await import('@/lib/config').then(m => m.getConfig());
       const t = getAccessTokenFromCookie();
       const h:any = {}; if(t) h['Authorization']=`Bearer ${t}`;
-      const r = await fetch(`${c.API_BASE_URL}${c.API_PREFIX}/users/settings/profile/avatar`,{method:'POST',body:fd,credentials:'include',headers:h});
+      const r = await fetch(`${c.API_BASE_URL}${c.API_PREFIX}/users/me/avatar`,{method:'POST',body:fd,credentials:'include',headers:h});
       const d = await r.json();
       if(r.ok && d.success) { const rd = new FileReader(); rd.onload = e2 => setAv(e2.target?.result as string); rd.readAsDataURL(f); }
       else alert(d.error||'上传失败');
@@ -134,22 +140,22 @@ function Settings() {
           {/* Username */}
           <div className="bg-white/70 dark:bg-gray-900/70 backdrop-blur-sm rounded-xl border border-gray-100 dark:border-gray-800 p-5">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">用户名</label>
-            <div className="flex gap-2"><input value={un} onChange={e=>setUn(e.target.value)} className="flex-1 px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"/><button onClick={()=>put('username',{form_data:{username:un}})} disabled={busy} className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50 shrink-0">{busy?'...':'保存'}</button></div>
+            <div className="flex gap-2"><input value={un} onChange={e=>setUn(e.target.value)} className="flex-1 px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"/><button onClick={()=>save('username',un)} disabled={busy} className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50 shrink-0">{busy?'...':'保存'}</button></div>
           </div>
           {/* Bio */}
           <div className="bg-white/70 dark:bg-gray-900/70 backdrop-blur-sm rounded-xl border border-gray-100 dark:border-gray-800 p-5">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">简介</label>
             <textarea value={bio} onChange={e=>setBio(e.target.value)} rows={2} className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white resize-none mb-2"/>
-            <button onClick={()=>put('bio',{form_data:{bio}})} disabled={busy} className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50">{busy?'...':'保存'}</button>
+            <button onClick={()=>save('bio',bio)} disabled={busy} className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50">{busy?'...':'保存'}</button>
           </div>
           {/* Locale + Privacy */}
           <div className="bg-white/70 dark:bg-gray-900/70 backdrop-blur-sm rounded-xl border border-gray-100 dark:border-gray-800 p-5 flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-2"><label className="text-sm text-gray-600 dark:text-gray-400">语言</label>
-              <select value={loc} onChange={e=>{setLoc(e.target.value);put('locale',{locale:e.target.value})}} className="px-3 py-2 border border-gray-200 rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
+              <select value={loc} onChange={e=>{setLoc(e.target.value);save('locale',e.target.value)}} className="px-3 py-2 border border-gray-200 rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <option value="zh_CN">中文</option><option value="en_US">English</option>
               </select></div>
             <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300 cursor-pointer ml-auto">
-              <input type="checkbox" checked={priv} onChange={e=>{setPriv(e.target.checked);put('privacy',{profile_private:e.target.checked})}} className="h-4 w-4 text-blue-600 rounded"/>私密资料
+              <input type="checkbox" checked={priv} onChange={e=>{setPriv(e.target.checked);save('privacy',e.target.checked)}} className="h-4 w-4 text-blue-600 rounded"/>私密资料
             </label>
           </div>
         </div>}
