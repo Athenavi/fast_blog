@@ -57,8 +57,8 @@ export default function LoginPage() {
     pollRef.current = setTimeout(async () => {
       if (cancelRef.current) return;
       try {
-        const config = await import('@/lib/config').then(m => m.getConfig());
-        const res = await fetch(`${config.API_BASE_URL}/api/v1/qr/status?token=${token}`);
+        const cfg = await import('@/lib/config').then(m => m.getConfig());
+        const res = await fetch(`${cfg.API_BASE_URL}/api/v1/qr/status?token=${token}`);
         const data = res.ok ? await res.json() : {success: false, status: 'pending'};
         if (data.success && data.status) {
           const st = data.status;
@@ -123,7 +123,7 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-950 dark:to-gray-900 p-4">
-      <div className="w-full max-w-lg">
+      <div className="w-full max-w-xl">
         <div className="text-center mb-8">
           <div className="w-14 h-14 mx-auto mb-4 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-200/50 dark:shadow-blue-900/30">
             <LogIn className="w-7 h-7 text-white"/>
