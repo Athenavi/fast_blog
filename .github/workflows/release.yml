@@ -61,7 +61,7 @@ jobs:
     - name: Install frontend dependencies
       working-directory: frontend-astro
       run: |
-        npm ci
+        npm ci --legacy-peer-deps
 
     - name: Run tests
       run: |
