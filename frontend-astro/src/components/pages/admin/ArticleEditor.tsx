@@ -1,14 +1,41 @@
 'use client';
 
-import React from 'react';
+import React, {useState} from 'react';
+import {useQuery, useMutation} from '@tanstack/react-query';
+import {AuthGuard} from '@/components/AuthGuard';
+import {QueryProvider} from '@/components/QueryProvider';
+import {AdminShell} from '@/components/admin/AdminShell';
+import {apiClient} from '@/lib/api/base-client';
+import {Save} from 'lucide-react';
 
-const ArticleEditor: React.FC = () => {
+const RichEditor = React.lazy(() => import('@/components/editor/RichEditor'));
+
+function EditorInner() {
+  const [content, setContent] = useState('');
+
+  const submitMut = useMutation({
+    mutationFn: async () => {
+      const fd = new FormData();
+      fd.append('title', 'New Article');
+      fd.append('content', content);
+      return apiClient.request('/articles', {method: 'POST', body: fd});
+    },
+    onSuccess: (res) => { if (res.success) alert('文章已创建'); },
+  });
+
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
-      <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-6">文章编辑器</h2>
-      <p className="text-gray-500">编辑器组件将在后续迭代中接入 Tiptap</p>
-    </div>
+    <AdminShell title="写文章" actions={
+      <button onClick={() => submitMut.mutate()} disabled={submitMut.isPending} className="px-4 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg flex items-center gap-1.5"><Save className="w-4 h-4"/>{submitMut.isPending ? '发布中...' : '发布'}</button>
+    }>
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <React.Suspense fallback={<div className="h-[60vh] animate-pulse bg-gray-50 dark:bg-gray-800"/>}>
+          <RichEditor value={content} onChange={setContent} />
+        </React.Suspense>
+      </div>
+    </AdminShell>
   );
-};
+}
 
-export default ArticleEditor;
+export default function ArticleEditor() {
+  return <AuthGuard><QueryProvider><EditorInner /></QueryProvider></AuthGuard>;
+}

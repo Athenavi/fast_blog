@@ -1,12 +1,9 @@
 ---
-// 文章管理列表
-import Layout from '@/layouts/Layout.astro';
 import AdminArticles from '@/components/pages/admin/AdminArticles';
 ---
 
-<Layout title="文章管理 - 后台管理 - FastBlog">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-    <h1 class="text-2xl font-bold text-gray-900 dark:text-white mb-6">文章管理</h1>
-    <AdminArticles client:load />
-  </div>
-</Layout>
+<!doctype html>
+<html lang="zh-CN">
+  <head><meta charset="utf-8"/><meta name="viewport" content="width=device-width,initial-scale=1"/><title>文章管理 - FastBlog</title><link rel="stylesheet" href="/src/styles/globals.css"/></head>
+  <body><AdminArticles client:load /></body>
+</html>
