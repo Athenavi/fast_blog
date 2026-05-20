@@ -7,31 +7,23 @@ import type {Article} from '@/lib/api/base-types';
 interface Props { slug?: string; }
 
 const ArticleDetail: React.FC<Props> = ({slug: propSlug}) => {
-  const [slug, setSlug] = useState<string>(propSlug || '');
   const [article, setArticle] = useState<Article | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
   useEffect(() => {
-    console.log('[ArticleDetail] Component mounted with propSlug:', propSlug);
-    // 如果 propSlug 为空，尝试从 URL 获取
-    if (!propSlug && typeof window !== 'undefined') {
-      const urlSlug = new URLSearchParams(window.location.search).get('slug');
-      console.log('[ArticleDetail] Got slug from URL:', urlSlug);
-      if (urlSlug) {
-        setSlug(urlSlug);
-      }
-    }
-  }, [propSlug]);
+    // 获取 slug：优先使用 prop，其次从 URL 获取
+    const slug = propSlug || (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('slug') : '') || '';
 
-  useEffect(() => {
-    console.log('[ArticleDetail] useEffect triggered with slug:', slug);
-    if (!slug) {
+    console.log('[ArticleDetail] Component mounted, slug:', slug);
+
+    if (!slug) { 
       console.log('[ArticleDetail] No slug available, showing error');
       setError('缺少文章参数');
       setLoading(false);
-      return;
+      return; 
     }
+
     console.log('[ArticleDetail] Loading article with slug:', slug);
     (async () => {
       try {
@@ -52,7 +44,7 @@ const ArticleDetail: React.FC<Props> = ({slug: propSlug}) => {
         setLoading(false);
       }
     })();
-  }, [slug]);
+  }, [propSlug]);
 
   if (loading) return <div className="min-h-[50vh] flex items-center justify-center"><div className="animate-spin w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full"/></div>;
   if (error || !article) return (
