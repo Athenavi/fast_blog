@@ -1,3 +1,0 @@
-export default function TextWidget() {
-    return <div>Text</div>;
-}
