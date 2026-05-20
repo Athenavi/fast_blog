@@ -1,7 +1,7 @@
 'use client';
 
 import React, {useState} from 'react';
-import {BarChart3, FileText, FolderTree, Image, Users, Shield, Settings, ChevronLeft, Menu, LogOut, MessageSquare, Puzzle, Database, TrendingUp, ScrollText, Server, AlertTriangle, Crown} from 'lucide-react';
+import {BarChart3, FileText, FolderTree, Image, Users, Shield, Settings, ChevronLeft, Menu, LogOut, MessageSquare, Puzzle, Database, TrendingUp, ScrollText, Server, AlertTriangle, Crown, Newspaper, Bell, GitBranch, Brain, Globe, Radio, Eye, Handshake} from 'lucide-react';
 
 const nav = [
   {label: '仪表盘', href: '/admin', icon: BarChart3},
@@ -18,6 +18,15 @@ const nav = [
   {label: '审计日志', href: '/admin/audit-logs', icon: ScrollText},
   {label: '系统信息', href: '/admin/system', icon: Server},
   {label: 'VIP 管理', href: '/admin/vip', icon: Crown},
+  {label: '广告管理', href: '/admin/ads', icon: Newspaper},
+  {label: '模板管理', href: '/admin/templates', icon: GitBranch},
+  {label: '通知管理', href: '/admin/notifications', icon: Bell},
+  {label: '协作管理', href: '/admin/collaboration', icon: Handshake},
+  {label: '集成管理', href: '/admin/integrations', icon: Globe},
+  {label: 'AI 工具', href: '/admin/ai', icon: Brain},
+  {label: 'CDN 管理', href: '/admin/cdn', icon: Radio},
+  {label: '无障碍', href: '/admin/accessibility', icon: Eye},
+  {label: 'GDPR 合规', href: '/admin/gdpr', icon: Shield},
   {label: '系统设置', href: '/admin/settings', icon: Settings},
 ];
 
