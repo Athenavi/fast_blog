@@ -58,6 +58,7 @@ export default defineConfig({
         '@': '/src',
       },
     },
+
   },
 
   i18n: {
