@@ -3,191 +3,118 @@
 import React, {useEffect, useState} from 'react';
 import {apiClient} from '@/lib/api';
 import {AuthGuard} from '@/components/AuthGuard';
-import {motion} from 'framer-motion';
-import {
-  Calendar, Edit3, Eye, FileText, Heart, Link as LinkIcon, Lock, Mail, MapPin, Settings, UserPlus, Users
-} from 'lucide-react';
+import {Calendar, Eye, Heart, Link as LinkIcon, Mail, MapPin, Lock, FileText, Settings, Edit3} from 'lucide-react';
 
-const fadeInUp = {initial: {opacity:0,y:20}, animate: {opacity:1,y:0}, transition: {duration:0.5}};
-const staggerContainer = {animate: {transition: {staggerChildren:0.1}}};
+interface Article {id:number;title:string;slug:string;excerpt?:string;cover_image?:string;views:number;likes:number;created_at:string;tags?:string[];}
+interface ProfileData {user:{id:number;username:string;display_name?:string;email:string;bio?:string;location?:string;website?:string;avatar?:string;avatar_url?:string;profile_private:boolean;created_at:string;};recent_articles?:Article[];stats?:{articles_count:number;followers_count:number;following_count:number;};}
 
-interface ArticleItem { id: number; title: string; slug: string; excerpt?: string; cover_image?: string; views: number; likes: number; created_at: string; tags?: string[]; }
-interface UserData { id: number; username: string; display_name?: string; email: string; bio?: string; location?: string; website?: string; locale?: string; avatar?: string; avatar_url?: string; profile_private: boolean; created_at: string; }
-interface ProfileResponse { user: UserData; recent_articles?: ArticleItem[]; stats?: { articles_count: number; followers_count: number; following_count: number; }; }
-
-const UserProfile: React.FC = () => {
-  const [data, setData] = useState<ProfileResponse|null>(null);
-  const [loading, setLoading] = useState(true);
-  const [avatarUrl, setAvatarUrl] = useState('');
-  const [tab, setTab] = useState<'articles'|'about'>('articles');
+function Profile() {
+  const [data, setData] = useState<ProfileData|null>(null);
+  const [av, setAv] = useState('');
+  const [tab, setTab] = useState(0);
 
   useEffect(() => {
     (async () => {
       try {
-        const res = await apiClient.get<ProfileResponse>('/users/me');
-        if (!res.success || !res.data) return;
-        const p = res.data;
-        const u = p.user;
-        setData(p);
-        let av = u.avatar_url || u.avatar || '';
-        if (av && !av.startsWith('http')) {
-          const config = await import('@/lib/config').then(m => m.getConfig());
-          av = av.startsWith('/') ? `${config.API_BASE_URL}${av}` : `${config.API_BASE_URL}/static/avatar/${av}.png`;
+        const r = await apiClient.get<ProfileData>('/users/me');
+        if (!r.success || !r.data) return;
+        setData(r.data);
+        const u = r.data.user;
+        let url = u.avatar_url || u.avatar || '';
+        if (url && !url.startsWith('http')) {
+          const c = await import('@/lib/config').then(m => m.getConfig());
+          url = url.startsWith('/') ? `${c.API_BASE_URL}${url}` : `${c.API_BASE_URL}/static/avatar/${url}.png`;
         }
-        setAvatarUrl(av || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.username||'User')}&background=random`);
-      } catch {} finally { setLoading(false); }
+        setAv(url || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.username||'U')}&background=random`);
+      } catch {} finally {}
     })();
   }, []);
 
-  if (loading) return <div className="min-h-screen flex items-center justify-center"><div className="animate-spin w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full"/></div>;
-  if (!data) return <div className="min-h-screen flex items-center justify-center text-gray-500">请先登录</div>;
-
-  const u = data.user;
-  const articles = data.recent_articles || [];
-  const stats = data.stats || {articles_count:0, followers_count:0, following_count:0};
-
-  return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 pt-16">
-      {/* Cover */}
-      <div className="relative h-64 bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 overflow-hidden">
-        <div className="absolute inset-0 opacity-20">
-          <div className="absolute top-0 left-0 w-96 h-96 bg-white rounded-full blur-3xl -translate-x-1/2 -translate-y-1/2"/>
-          <div className="absolute bottom-0 right-0 w-96 h-96 bg-white rounded-full blur-3xl translate-x-1/2 translate-y-1/2"/>
-        </div>
-        <div className="absolute inset-0 opacity-10" style={{backgroundImage:'radial-gradient(circle at 1px 1px, white 1px, transparent 0)', backgroundSize:'40px 40px'}}/>
-      </div>
-
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 -mt-32 relative z-10">
-        {/* Profile card */}
-        <motion.div variants={fadeInUp} initial="initial" animate="animate"
-          className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800 p-8 mb-8">
-          <div className="flex flex-col lg:flex-row gap-8">
-            <div className="flex-shrink-0">
-              <div className="relative">
-                <div className="w-32 h-32 rounded-2xl overflow-hidden border-4 border-white dark:border-gray-900 shadow-lg">
-                  <img src={avatarUrl} alt={u.username} className="w-full h-full object-cover"
-                    onError={e => {(e.target as HTMLImageElement).src=`https://ui-avatars.com/api/?name=${encodeURIComponent(u.username||'U')}&background=random`}} />
-                </div>
-                <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-green-500 border-4 border-white dark:border-gray-900 rounded-full"/>
-              </div>
-            </div>
-
-            <div className="flex-1">
-              <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
-                <div>
-                  <h1 className="text-3xl font-black text-gray-900 dark:text-white mb-1">{u.display_name || u.username}</h1>
-                  <p className="text-lg text-gray-500 dark:text-gray-400 mb-4">@{u.username}</p>
-                  {u.bio && <p className="text-gray-700 dark:text-gray-300 mb-4 max-w-2xl">{u.bio}</p>}
-                  <div className="flex flex-wrap items-center gap-4 text-sm text-gray-600 dark:text-gray-400">
-                    {u.location && <span className="flex items-center gap-1.5"><MapPin className="w-4 h-4"/>{u.location}</span>}
-                    {u.website && <span className="flex items-center gap-1.5"><LinkIcon className="w-4 h-4"/><a href={u.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline">{u.website.replace(/^https?:\/\//,'')}</a></span>}
-                    <span className="flex items-center gap-1.5"><Calendar className="w-4 h-4"/>加入于 {u.created_at ? new Date(u.created_at).toLocaleDateString('zh-CN',{year:'numeric',month:'long'}) : ''}</span>
-                  </div>
-                </div>
-                <div className="flex gap-3">
-                  <a href="/settings" className="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-900 dark:text-white font-medium rounded-xl transition-colors"><Settings className="w-4 h-4"/><span className="hidden sm:inline">编辑资料</span></a>
-                  <button className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-colors"><UserPlus className="w-4 h-4"/><span className="hidden sm:inline">关注</span></button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Stats */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8 pt-8 border-t border-gray-200 dark:border-gray-800">
-            <div className="text-center"><div className="text-3xl font-black text-gray-900 dark:text-white">{stats.articles_count}</div><div className="text-sm text-gray-500 mt-1">文章</div></div>
-            <div className="text-center"><div className="text-3xl font-black text-gray-900 dark:text-white">{stats.followers_count}</div><div className="text-sm text-gray-500 mt-1">粉丝</div></div>
-            <div className="text-center"><div className="text-3xl font-black text-gray-900 dark:text-white">{stats.following_count}</div><div className="text-sm text-gray-500 mt-1">关注</div></div>
-            <div className="text-center"><div className="text-3xl font-black text-gray-900 dark:text-white">{articles.reduce((s,a)=>s+(a.views||0),0)}</div><div className="text-sm text-gray-500 mt-1">总浏览</div></div>
-          </div>
-        </motion.div>
-
-        {/* Tabs */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 mb-8">
-          <div className="flex border-b border-gray-200 dark:border-gray-800">
-            {(['articles','about'] as const).map(t => (
-              <button key={t} onClick={()=>setTab(t)}
-                className={`flex-1 px-6 py-4 font-medium transition-colors ${tab===t ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400' : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'}`}>
-                <div className="flex items-center justify-center gap-2">
-                  {t==='articles' ? <FileText className="w-5 h-5"/> : <Users className="w-5 h-5"/>}
-                  <span>{t==='articles' ? '文章' : '关于'}</span>
-                  <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-800 rounded-full text-xs">{(t==='articles' ? articles : 1).length}</span>
-                </div>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Articles tab */}
-        {tab === 'articles' && (
-          <motion.div variants={staggerContainer} initial="initial" animate="animate" className="space-y-4">
-            {articles.length > 0 ? articles.map((article,i) => (
-              <motion.a key={article.id} variants={fadeInUp} href={`/articles/${article.slug}`}
-                className="block group bg-white dark:bg-gray-900 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-800 hover:border-gray-300 dark:hover:border-gray-700 transition-all hover:shadow-lg">
-                <div className="p-6"><div className="flex gap-6">
-                  {article.cover_image && <div className="hidden sm:block relative w-40 h-28 flex-shrink-0 rounded-xl overflow-hidden"><img src={article.cover_image} alt={article.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"/></div>}
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 line-clamp-2 group-hover:text-blue-600 transition-colors">{article.title}</h3>
-                    <p className="text-gray-600 dark:text-gray-400 text-sm mb-4 line-clamp-2">{article.excerpt||'暂无摘要'}</p>
-                    <div className="flex flex-wrap items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
-                      <span className="flex items-center gap-1.5"><Calendar className="w-4 h-4"/>{article.created_at ? new Date(article.created_at).toLocaleDateString('zh-CN') : ''}</span>
-                      <span className="flex items-center gap-1.5"><Eye className="w-4 h-4"/>{article.views||0}</span>
-                      <span className="flex items-center gap-1.5"><Heart className="w-4 h-4"/>{article.likes||0}</span>
-                    </div>
-                    {article.tags && article.tags.length > 0 && <div className="flex flex-wrap gap-2 mt-4">{article.tags.slice(0,3).map(t=><span key={t} className="px-3 py-1 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-xs font-medium rounded-full">#{t}</span>)}{article.tags.length>3 && <span className="text-xs text-gray-400">+{article.tags.length-3}</span>}</div>}
-                  </div>
-                </div></div>
-              </motion.a>
-            )) : (
-              <motion.div variants={fadeInUp} className="bg-white dark:bg-gray-900 rounded-2xl border p-12 text-center">
-                <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4"/>
-                <h3 className="text-xl font-semibold text-gray-900 dark:text-white mb-2">暂无文章</h3>
-                <p className="text-gray-600 dark:text-gray-400 mb-6">开始创作你的第一篇文章吧</p>
-                <a href="/admin/editor" className="inline-flex items-center gap-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-colors"><Edit3 className="w-5 h-5"/>创建文章</a>
-              </motion.div>
-            )}
-          </motion.div>
-        )}
-
-        {/* About tab */}
-        {tab === 'about' && (
-          <motion.div variants={fadeInUp} initial="initial" animate="animate" className="bg-white dark:bg-gray-900 rounded-2xl border p-8">
-            <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6">个人信息</h2>
-            <div className="space-y-6">
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 bg-blue-50 dark:bg-blue-900/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <Mail className="w-5 h-5 text-blue-600 dark:text-blue-400"/>
-                </div>
-                <div className="flex-1"><div className="text-sm text-gray-500 dark:text-gray-400 mb-1">邮箱</div><div className="text-gray-900 dark:text-white">{u.email}</div></div>
-              </div>
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 bg-purple-50 dark:bg-purple-900/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <MapPin className="w-5 h-5 text-purple-600 dark:text-purple-400"/>
-                </div>
-                <div className="flex-1"><div className="text-sm text-gray-500 dark:text-gray-400 mb-1">位置</div><div className="text-gray-900 dark:text-white">{u.location||'未设置'}</div></div>
-              </div>
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 bg-green-50 dark:bg-green-900/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <LinkIcon className="w-5 h-5 text-green-600 dark:text-green-400"/>
-                </div>
-                <div className="flex-1"><div className="text-sm text-gray-500 dark:text-gray-400 mb-1">网站</div>
-                  {u.website ? <a href={u.website} target="_blank" rel="noopener noreferrer" className="text-blue-600 dark:text-blue-400 hover:underline">{u.website}</a> :
-                  <div className="text-gray-900 dark:text-white">未设置</div>}
-                </div>
-              </div>
-              <div className="flex items-start gap-4">
-                <div className="w-10 h-10 bg-orange-50 dark:bg-orange-900/20 rounded-xl flex items-center justify-center flex-shrink-0">
-                  <Lock className="w-5 h-5 text-orange-600 dark:text-orange-400"/>
-                </div>
-                <div className="flex-1"><div className="text-sm text-gray-500 dark:text-gray-400 mb-1">隐私设置</div><div className="text-gray-900 dark:text-white">{u.profile_private?'私密账户':'公开账户'}</div></div>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </div>
-      <div className="h-20"/>
+  if (!data) return (
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 to-blue-50 dark:from-gray-950 dark:to-gray-900">
+      <div className="animate-spin w-8 h-8 border-[3px] border-blue-500 border-t-transparent rounded-full"/>
     </div>
   );
-};
 
-const UserProfileGuard: React.FC = () => <AuthGuard><UserProfile /></AuthGuard>;
-export default UserProfileGuard;
+  const u = data.user, arts = data.recent_articles||[], st = data.stats||{articles_count:0,followers_count:0,following_count:0};
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-gray-950 dark:to-gray-900">
+      {/* Cover — minimal gradient */}
+      <div className="h-48 lg:h-56 bg-gradient-to-r from-blue-500/20 via-purple-500/10 to-pink-500/20 dark:from-blue-900/20 dark:via-purple-900/10 dark:to-pink-900/20"/>
+
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 -mt-20 relative z-10">
+        {/* Avatar + Name — floating card */}
+        <div className="flex flex-col sm:flex-row items-center sm:items-end gap-5 mb-8">
+          <img src={av} alt="" className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl border-4 border-white dark:border-gray-900 shadow-xl object-cover bg-white"/>
+          <div className="text-center sm:text-left flex-1">
+            <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">{u.display_name||u.username}</h1>
+            <p className="text-gray-500">@{u.username}</p>
+            {u.bio && <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 max-w-lg">{u.bio}</p>}
+          </div>
+          <a href="/settings" className="shrink-0 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm transition-colors"><Settings className="w-4 h-4 inline mr-1 -mt-0.5"/>编辑</a>
+        </div>
+
+        {/* Stats row */}
+        <div className="flex gap-6 sm:gap-10 mb-8 text-center sm:text-left">
+          <div><p className="text-xl font-bold text-gray-900 dark:text-white">{st.articles_count}</p><p className="text-xs text-gray-500">文章</p></div>
+          <div><p className="text-xl font-bold text-gray-900 dark:text-white">{st.followers_count}</p><p className="text-xs text-gray-500">粉丝</p></div>
+          <div><p className="text-xl font-bold text-gray-900 dark:text-white">{st.following_count}</p><p className="text-xs text-gray-500">关注</p></div>
+          <div><p className="text-xl font-bold text-gray-900 dark:text-white">{arts.reduce((s,a)=>s+(a.views||0),0)}</p><p className="text-xs text-gray-500">浏览</p></div>
+        </div>
+
+        {/* Tabs */}
+        <div className="flex gap-1 mb-6 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl p-1 border border-gray-200/60 dark:border-gray-700/60 w-fit">
+          {['近期文章','个人信息'].map((l,i) => (
+            <button key={l} onClick={()=>setTab(i)} className={`px-5 py-2 rounded-lg text-sm font-medium transition-all ${tab===i ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}>{l}</button>
+          ))}
+        </div>
+
+        {/* Articles */}
+        {tab===0 && (
+          <div className="space-y-3 pb-12">
+            {arts.length===0 ? (
+              <div className="text-center py-16 text-gray-400"><FileText className="w-10 h-10 mx-auto mb-3 opacity-40"/><p className="text-sm">还没有文章</p><a href="/admin/editor" className="inline-block mt-3 text-sm text-blue-600 hover:underline"><Edit3 className="w-4 h-4 inline mr-1"/>开始写作</a></div>
+            ) : arts.map(a => (
+              <a key={a.id} href={`/articles/${a.slug}`}
+                className="block bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-4 hover:border-gray-200 dark:hover:border-gray-700 transition-all hover:shadow-sm">
+                <div className="flex gap-4">
+                  {a.cover_image && <img src={a.cover_image} alt="" className="hidden sm:block w-28 h-20 rounded-lg object-cover shrink-0"/>}
+                  <div className="min-w-0 flex-1">
+                    <h3 className="font-semibold text-gray-900 dark:text-white truncate">{a.title}</h3>
+                    <p className="text-xs text-gray-500 mt-1 line-clamp-1">{a.excerpt||''}</p>
+                    <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
+                      <span><Calendar className="w-3 h-3 inline mr-0.5"/>{a.created_at ? new Date(a.created_at).toLocaleDateString('zh-CN') : ''}</span>
+                      <span><Eye className="w-3 h-3 inline mr-0.5"/>{a.views||0}</span>
+                      <span><Heart className="w-3 h-3 inline mr-0.5"/>{a.likes||0}</span>
+                    </div>
+                  </div>
+                </div>
+              </a>
+            ))}
+          </div>
+        )}
+
+        {/* About */}
+        {tab===1 && (
+          <div className="bg-white/70 dark:bg-gray-900/70 backdrop-blur-sm rounded-xl border border-gray-100 dark:border-gray-800 p-6 pb-12 space-y-4">
+            {[
+              {icon:Mail, label:'邮箱', value:u.email},
+              {icon:MapPin, label:'位置', value:u.location||'未设置'},
+              {icon:LinkIcon, label:'网站', value:u.website, link:true},
+              {icon:Lock, label:'隐私', value:u.profile_private?'私密':'公开'},
+            ].map(({icon:Icon,label,value,link}) => (
+              <div key={label} className="flex items-center gap-3 text-sm">
+                <Icon className="w-4 h-4 text-gray-400 shrink-0"/>
+                <span className="text-gray-500 w-12">{label}</span>
+                {link && value!=='未设置' ? <a href={value} target="_blank" rel="noopener" className="text-blue-600 hover:underline truncate">{value}</a> : <span className="text-gray-900 dark:text-white">{value}</span>}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+export default function UserProfileGuard() { return <AuthGuard><Profile/></AuthGuard>; }
