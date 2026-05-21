@@ -1,7 +1,7 @@
 /**
  * API 客户端
  * 由 routes.yaml 自动生成 - 请勿手动修改
- * 生成时间：2026-05-21 08:51:04
+ * 生成时间：2026-05-21 11:04:30
  */
 
 import {ApiResponse} from './api-types';
@@ -147,7 +147,7 @@ export async function get_users_list_api(
 // ========== Admin 模块 ==========
 
 /**
- *
+ * 
  * 
  */
 export async function get_settings(): Promise<ApiResponse<any>> {
@@ -160,7 +160,7 @@ export async function get_settings(): Promise<ApiResponse<any>> {
 }
 
 /**
- *
+ * 
  * 
  */
 export async function update_settings(): Promise<ApiResponse<any>> {
@@ -173,7 +173,7 @@ export async function update_settings(): Promise<ApiResponse<any>> {
 }
 
 /**
- *
+ * 
  * 
  */
 export async function create_menu(): Promise<ApiResponse<any>> {
@@ -186,7 +186,7 @@ export async function create_menu(): Promise<ApiResponse<any>> {
 }
 
 /**
- *
+ * 
  * 
  */
 export async function update_menu(
@@ -203,7 +203,7 @@ export async function update_menu(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function delete_menu(
@@ -220,7 +220,7 @@ export async function delete_menu(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function create_page(): Promise<ApiResponse<any>> {
@@ -233,7 +233,7 @@ export async function create_page(): Promise<ApiResponse<any>> {
 }
 
 /**
- *
+ * 
  * 
  */
 export async function update_page(
@@ -250,7 +250,7 @@ export async function update_page(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function delete_page(
@@ -267,7 +267,7 @@ export async function delete_page(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function create_menu_item(): Promise<ApiResponse<any>> {
@@ -280,7 +280,7 @@ export async function create_menu_item(): Promise<ApiResponse<any>> {
 }
 
 /**
- *
+ * 
  * 
  */
 export async function update_menu_item(
@@ -297,7 +297,7 @@ export async function update_menu_item(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function delete_menu_item(
@@ -314,7 +314,7 @@ export async function delete_menu_item(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function admin_dashboard(): Promise<ApiResponse<any>> {
@@ -327,7 +327,7 @@ export async function admin_dashboard(): Promise<ApiResponse<any>> {
 }
 
 /**
- *
+ * 
  * 
  */
 export async function list_backups(): Promise<ApiResponse<any>> {
@@ -340,7 +340,7 @@ export async function list_backups(): Promise<ApiResponse<any>> {
 }
 
 /**
- *
+ * 
  * 
  */
 export async function create_backup(): Promise<ApiResponse<any>> {
@@ -353,7 +353,7 @@ export async function create_backup(): Promise<ApiResponse<any>> {
 }
 
 /**
- *
+ * 
  * 
  */
 export async function delete_backup(): Promise<ApiResponse<any>> {
@@ -366,7 +366,7 @@ export async function delete_backup(): Promise<ApiResponse<any>> {
 }
 
 /**
- *
+ * 
  * 
  */
 export async function download_backup(
@@ -383,7 +383,7 @@ export async function download_backup(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function admin_roles_search(
@@ -402,7 +402,7 @@ export async function admin_roles_search(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function create_role(): Promise<ApiResponse<any>> {
@@ -415,7 +415,7 @@ export async function create_role(): Promise<ApiResponse<any>> {
 }
 
 /**
- *
+ * 
  * 
  */
 export async function admin_role_detail(
@@ -432,7 +432,7 @@ export async function admin_role_detail(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function update_role(
@@ -449,7 +449,7 @@ export async function update_role(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function delete_role(
@@ -466,7 +466,7 @@ export async function delete_role(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function get_permissions(
@@ -485,7 +485,7 @@ export async function get_permissions(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function create_permission(): Promise<ApiResponse<any>> {
@@ -498,7 +498,7 @@ export async function create_permission(): Promise<ApiResponse<any>> {
 }
 
 /**
- *
+ * 
  * 
  */
 export async function update_permission(
@@ -515,7 +515,7 @@ export async function update_permission(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function delete_permission(
@@ -532,7 +532,7 @@ export async function delete_permission(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function get_user_roles(
@@ -549,7 +549,7 @@ export async function get_user_roles(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function update_user_roles(
@@ -566,7 +566,7 @@ export async function update_user_roles(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function get_admin_role_permission_stats(): Promise<ApiResponse<any>> {
@@ -579,7 +579,7 @@ export async function get_admin_role_permission_stats(): Promise<ApiResponse<any
 }
 
 /**
- *
+ * 
  * 
  */
 export async function get_system_settings(): Promise<ApiResponse<any>> {
@@ -592,7 +592,7 @@ export async function get_system_settings(): Promise<ApiResponse<any>> {
 }
 
 /**
- *
+ * 
  * 
  */
 export async function update_system_settings(): Promise<ApiResponse<any>> {
@@ -607,7 +607,7 @@ export async function update_system_settings(): Promise<ApiResponse<any>> {
 // ========== Article 模块 ==========
 
 /**
- *
+ * 
  * 
  */
 export async function update_article_status(
@@ -625,7 +625,7 @@ export async function update_article_status(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function get_password_form(
@@ -640,7 +640,7 @@ export async function get_password_form(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function api_update_article_password(
@@ -655,7 +655,7 @@ export async function api_update_article_password(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function like_article(
@@ -673,7 +673,7 @@ export async function like_article(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function record_article_view(
@@ -1079,7 +1079,7 @@ export async function get_user_articles_stats_api(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function get_article_by_slug_api(
@@ -1096,7 +1096,7 @@ export async function get_article_by_slug_api(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function get_article_by_id_api(
@@ -1113,7 +1113,7 @@ export async function get_article_by_id_api(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function get_articles_by_tag_api(
@@ -1130,7 +1130,7 @@ export async function get_articles_by_tag_api(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function get_featured_articles_api(): Promise<ApiResponse<any>> {
@@ -1143,7 +1143,7 @@ export async function get_featured_articles_api(): Promise<ApiResponse<any>> {
 }
 
 /**
- *
+ * 
  * 
  */
 export async function get_contribute_info_api(
@@ -1160,7 +1160,7 @@ export async function get_contribute_info_api(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function submit_contribution_api(
@@ -1177,7 +1177,7 @@ export async function submit_contribution_api(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function get_edit_article_api(
@@ -1194,7 +1194,7 @@ export async function get_edit_article_api(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function get_new_article_form_api(): Promise<ApiResponse<any>> {
@@ -1207,7 +1207,7 @@ export async function get_new_article_form_api(): Promise<ApiResponse<any>> {
 }
 
 /**
- *
+ * 
  * 
  */
 export async function update_article_via_blog_api(
@@ -1224,7 +1224,7 @@ export async function update_article_via_blog_api(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function create_article_via_blog_api(): Promise<ApiResponse<any>> {
@@ -1237,7 +1237,7 @@ export async function create_article_via_blog_api(): Promise<ApiResponse<any>> {
 }
 
 /**
- *
+ * 
  * 
  */
 export async function api_blog_i18n_content(
@@ -1257,7 +1257,7 @@ export async function api_blog_i18n_content(
 // ========== Auth 模块 ==========
 
 /**
- *
+ * 
  * 
  */
 export async function update_avatar_api(
@@ -1274,7 +1274,7 @@ export async function update_avatar_api(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function update_user_setting_profiles(): Promise<ApiResponse<any>> {
@@ -1337,7 +1337,7 @@ export async function logout_api(): Promise<ApiResponse<any>> {
 }
 
 /**
- *
+ * 
  * 
  */
 export async function get_user_management_users(
@@ -1415,7 +1415,7 @@ export async function export_data(): Promise<ApiResponse<any>> {
 // ========== Blog-Management 模块 ==========
 
 /**
- *
+ * 
  * 
  */
 export async function get_blog_management_articles(
@@ -1436,7 +1436,7 @@ export async function get_blog_management_articles(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function get_blog_management_articles_stats(): Promise<ApiResponse<any>> {
@@ -1449,7 +1449,7 @@ export async function get_blog_management_articles_stats(): Promise<ApiResponse<
 }
 
 /**
- *
+ * 
  * 
  */
 export async function delete_blog_management_article(
@@ -1468,7 +1468,7 @@ export async function delete_blog_management_article(
 // ========== Categories 模块 ==========
 
 /**
- *
+ * 
  * 
  */
 export async function get_all_categories_api(
@@ -1485,7 +1485,7 @@ export async function get_all_categories_api(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function get_public_categories_api(
@@ -1502,7 +1502,7 @@ export async function get_public_categories_api(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function get_category_by_name_api(
@@ -1520,7 +1520,7 @@ export async function get_category_by_name_api(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function get_all_categories_root_api(
@@ -1537,7 +1537,7 @@ export async function get_all_categories_root_api(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function subscribe_category_api(): Promise<ApiResponse<any>> {
@@ -1550,7 +1550,7 @@ export async function subscribe_category_api(): Promise<ApiResponse<any>> {
 }
 
 /**
- *
+ * 
  * 
  */
 export async function unsubscribe_category_api(): Promise<ApiResponse<any>> {
@@ -1563,7 +1563,7 @@ export async function unsubscribe_category_api(): Promise<ApiResponse<any>> {
 }
 
 /**
- *
+ * 
  * 
  */
 export async function create_category_api(): Promise<ApiResponse<any>> {
@@ -1576,7 +1576,7 @@ export async function create_category_api(): Promise<ApiResponse<any>> {
 }
 
 /**
- *
+ * 
  * 
  */
 export async function update_category_api(
@@ -1593,7 +1593,7 @@ export async function update_category_api(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function get_categories_with_stats_api(
@@ -1611,7 +1611,7 @@ export async function get_categories_with_stats_api(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function delete_category_api(
@@ -1630,7 +1630,7 @@ export async function delete_category_api(
 // ========== Change-Email 模块 ==========
 
 /**
- *
+ * 
  * 
  */
 export async function confirm_email_change(
@@ -1650,7 +1650,7 @@ export async function confirm_email_change(
 // ========== Check-Email 模块 ==========
 
 /**
- *
+ * 
  * 
  */
 export async function check_email(
@@ -1686,7 +1686,7 @@ export async function api_check_email(
 // ========== Check-Username 模块 ==========
 
 /**
- *
+ * 
  * 
  */
 export async function check_username(
@@ -1740,7 +1740,7 @@ export async function get_home_articles_api(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function get_home_data(
@@ -1760,7 +1760,7 @@ export async function get_home_data(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function get_home_config(): Promise<ApiResponse<any>> {
@@ -1773,7 +1773,7 @@ export async function get_home_config(): Promise<ApiResponse<any>> {
 }
 
 /**
- *
+ * 
  * 
  */
 export async function get_featured_articles(
@@ -1790,7 +1790,7 @@ export async function get_featured_articles(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function get_recent_articles(
@@ -1809,7 +1809,7 @@ export async function get_recent_articles(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function get_popular_articles(
@@ -1827,7 +1827,7 @@ export async function get_popular_articles(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function get_home_categories(
@@ -1844,7 +1844,7 @@ export async function get_home_categories(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function get_home_stats(): Promise<ApiResponse<any>> {
@@ -1857,7 +1857,7 @@ export async function get_home_stats(): Promise<ApiResponse<any>> {
 }
 
 /**
- *
+ * 
  * 
  */
 export async function get_home_menus(): Promise<ApiResponse<any>> {
@@ -1870,7 +1870,7 @@ export async function get_home_menus(): Promise<ApiResponse<any>> {
 }
 
 /**
- *
+ * 
  * 
  */
 export async function subscribe_email(
@@ -1887,7 +1887,7 @@ export async function subscribe_email(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function search_home_articles(
@@ -1906,7 +1906,7 @@ export async function search_home_articles(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function get_comment_config(): Promise<ApiResponse<any>> {
@@ -1919,7 +1919,7 @@ export async function get_comment_config(): Promise<ApiResponse<any>> {
 }
 
 /**
- *
+ * 
  * 
  */
 export async function update_comment_config(): Promise<ApiResponse<any>> {
@@ -1932,7 +1932,7 @@ export async function update_comment_config(): Promise<ApiResponse<any>> {
 }
 
 /**
- *
+ * 
  * 
  */
 export async function get_dashboard_stats(): Promise<ApiResponse<any>> {
@@ -1945,7 +1945,7 @@ export async function get_dashboard_stats(): Promise<ApiResponse<any>> {
 }
 
 /**
- *
+ * 
  * 
  */
 export async function __get_recent_articles(): Promise<ApiResponse<any>> {
@@ -1958,7 +1958,7 @@ export async function __get_recent_articles(): Promise<ApiResponse<any>> {
 }
 
 /**
- *
+ * 
  * 
  */
 export async function get_traffic_data(): Promise<ApiResponse<any>> {
@@ -1973,7 +1973,7 @@ export async function get_traffic_data(): Promise<ApiResponse<any>> {
 // ========== Email-Exists 模块 ==========
 
 /**
- *
+ * 
  * 
  */
 export async function email_exists_back(
@@ -2106,7 +2106,7 @@ export async function logout_management_api(): Promise<ApiResponse<any>> {
 }
 
 /**
- *
+ * 
  * 
  */
 export async function get_management_me_profile_api(): Promise<ApiResponse<any>> {
@@ -2119,7 +2119,7 @@ export async function get_management_me_profile_api(): Promise<ApiResponse<any>>
 }
 
 /**
- *
+ * 
  * 
  */
 export async function get_user_profile_api(
@@ -2136,7 +2136,7 @@ export async function get_user_profile_api(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function update_management_me_profile_api(): Promise<ApiResponse<any>> {
@@ -2149,7 +2149,7 @@ export async function update_management_me_profile_api(): Promise<ApiResponse<an
 }
 
 /**
- *
+ * 
  * 
  */
 export async function confirm_password_form_api(): Promise<ApiResponse<any>> {
@@ -2162,7 +2162,7 @@ export async function confirm_password_form_api(): Promise<ApiResponse<any>> {
 }
 
 /**
- *
+ * 
  * 
  */
 export async function confirm_password_api(): Promise<ApiResponse<any>> {
@@ -2175,7 +2175,7 @@ export async function confirm_password_api(): Promise<ApiResponse<any>> {
 }
 
 /**
- *
+ * 
  * 
  */
 export async function change_password_form_api(): Promise<ApiResponse<any>> {
@@ -2188,7 +2188,7 @@ export async function change_password_form_api(): Promise<ApiResponse<any>> {
 }
 
 /**
- *
+ * 
  * 
  */
 export async function change_password_api(): Promise<ApiResponse<any>> {
@@ -2201,7 +2201,7 @@ export async function change_password_api(): Promise<ApiResponse<any>> {
 }
 
 /**
- *
+ * 
  * 
  */
 export async function update_setting_profiles(): Promise<ApiResponse<any>> {
@@ -2214,7 +2214,7 @@ export async function update_setting_profiles(): Promise<ApiResponse<any>> {
 }
 
 /**
- *
+ * 
  * 
  */
 export async function get_users(
@@ -2250,7 +2250,7 @@ export async function get_current_user_api(): Promise<ApiResponse<any>> {
 // ========== Media 模块 ==========
 
 /**
- *
+ * 
  * 
  */
 export async function get_user_media_api(
@@ -2269,7 +2269,7 @@ export async function get_user_media_api(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function get_media_file_by_id(
@@ -2288,7 +2288,7 @@ export async function get_media_file_by_id(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function delete_user_media_api(
@@ -2306,7 +2306,7 @@ export async function delete_user_media_api(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function upload_media_file(
@@ -2323,7 +2323,7 @@ export async function upload_media_file(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function chunked_upload_init(
@@ -2340,7 +2340,7 @@ export async function chunked_upload_init(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function chunked_upload_chunk(
@@ -2357,7 +2357,7 @@ export async function chunked_upload_chunk(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function chunked_upload_complete(
@@ -2374,7 +2374,7 @@ export async function chunked_upload_complete(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function chunked_upload_progress(
@@ -2391,7 +2391,7 @@ export async function chunked_upload_progress(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function chunked_upload_chunks(
@@ -2408,7 +2408,7 @@ export async function chunked_upload_chunks(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function chunked_upload_cancel(
@@ -2425,7 +2425,7 @@ export async function chunked_upload_cancel(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function get_media_management_files(
@@ -2605,7 +2605,7 @@ export async function get_available_categories(): Promise<ApiResponse<any>> {
 // ========== Misc 模块 ==========
 
 /**
- *
+ * 
  * 
  */
 export async function list_all_routes(): Promise<ApiResponse<any>> {
@@ -2618,7 +2618,7 @@ export async function list_all_routes(): Promise<ApiResponse<any>> {
 }
 
 /**
- *
+ * 
  * 
  */
 export async function get_version_info(): Promise<ApiResponse<any>> {
@@ -2631,7 +2631,7 @@ export async function get_version_info(): Promise<ApiResponse<any>> {
 }
 
 /**
- *
+ * 
  * 
  */
 export async function get_frontend_version(): Promise<ApiResponse<any>> {
@@ -2644,7 +2644,7 @@ export async function get_frontend_version(): Promise<ApiResponse<any>> {
 }
 
 /**
- *
+ * 
  * 
  */
 export async function get_backend_version(): Promise<ApiResponse<any>> {
@@ -2659,7 +2659,7 @@ export async function get_backend_version(): Promise<ApiResponse<any>> {
 // ========== My 模块 ==========
 
 /**
- *
+ * 
  * 
  */
 export async function get_my_articles(
@@ -2678,7 +2678,7 @@ export async function get_my_articles(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function get_my_messages(): Promise<ApiResponse<any>> {
@@ -2693,7 +2693,7 @@ export async function get_my_messages(): Promise<ApiResponse<any>> {
 // ========== Notifications 模块 ==========
 
 /**
- *
+ * 
  * 
  */
 export async function read_notification_api(
@@ -2710,7 +2710,7 @@ export async function read_notification_api(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function fetch_message_api(): Promise<ApiResponse<any>> {
@@ -2723,7 +2723,7 @@ export async function fetch_message_api(): Promise<ApiResponse<any>> {
 }
 
 /**
- *
+ * 
  * 
  */
 export async function mark_all_as_read_api(): Promise<ApiResponse<any>> {
@@ -2736,7 +2736,7 @@ export async function mark_all_as_read_api(): Promise<ApiResponse<any>> {
 }
 
 /**
- *
+ * 
  * 
  */
 export async function clean_notification_api(
@@ -2753,7 +2753,7 @@ export async function clean_notification_api(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function mark_notification_as_read_api(
@@ -2770,7 +2770,7 @@ export async function mark_notification_as_read_api(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function delete_notification_api(
@@ -2787,7 +2787,7 @@ export async function delete_notification_api(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function get_notifications_api(): Promise<ApiResponse<any>> {
@@ -2800,7 +2800,7 @@ export async function get_notifications_api(): Promise<ApiResponse<any>> {
 }
 
 /**
- *
+ * 
  * 
  */
 export async function mark_all_as_read_api_new(): Promise<ApiResponse<any>> {
@@ -3150,7 +3150,7 @@ export async function api_check_qr_status(): Promise<ApiResponse<any>> {
 // ========== Roles 模块 ==========
 
 /**
- *
+ * 
  * 
  */
 export async function get_role_permission_stats(): Promise<ApiResponse<any>> {
@@ -3163,7 +3163,7 @@ export async function get_role_permission_stats(): Promise<ApiResponse<any>> {
 }
 
 /**
- *
+ * 
  * 
  */
 export async function get_role_management_roles(): Promise<ApiResponse<any>> {
@@ -3176,7 +3176,7 @@ export async function get_role_management_roles(): Promise<ApiResponse<any>> {
 }
 
 /**
- *
+ * 
  * 
  */
 export async function get_role_management_permissions(): Promise<ApiResponse<any>> {
@@ -3189,7 +3189,7 @@ export async function get_role_management_permissions(): Promise<ApiResponse<any
 }
 
 /**
- *
+ * 
  * 
  */
 export async function create_role_for_management(): Promise<ApiResponse<any>> {
@@ -3202,7 +3202,7 @@ export async function create_role_for_management(): Promise<ApiResponse<any>> {
 }
 
 /**
- *
+ * 
  * 
  */
 export async function update_role_for_management(
@@ -3219,7 +3219,7 @@ export async function update_role_for_management(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function delete_role_for_management(
@@ -3236,7 +3236,7 @@ export async function delete_role_for_management(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function create_permission_for_management(): Promise<ApiResponse<any>> {
@@ -3249,7 +3249,7 @@ export async function create_permission_for_management(): Promise<ApiResponse<an
 }
 
 /**
- *
+ * 
  * 
  */
 export async function update_permission_for_management(
@@ -3266,7 +3266,7 @@ export async function update_permission_for_management(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function delete_permission_for_management(
@@ -3333,7 +3333,7 @@ export async function cancel_article_schedule(
 // ========== Search 模块 ==========
 
 /**
- *
+ * 
  * 
  */
 export async function get_search_history(): Promise<ApiResponse<any>> {
@@ -3348,7 +3348,7 @@ export async function get_search_history(): Promise<ApiResponse<any>> {
 // ========== Tags 模块 ==========
 
 /**
- *
+ * 
  * 
  */
 export async function suggest_tags(
@@ -3468,7 +3468,7 @@ export async function get_active_theme(): Promise<ApiResponse<any>> {
 // ========== Thumbnail 模块 ==========
 
 /**
- *
+ * 
  * 
  */
 export async function public_media_thumbnail(
@@ -3487,7 +3487,7 @@ export async function public_media_thumbnail(
 // ========== Upload 模块 ==========
 
 /**
- *
+ * 
  * 
  */
 export async function upload_cover(
@@ -3506,7 +3506,7 @@ export async function upload_cover(
 // ========== User 模块 ==========
 
 /**
- *
+ * 
  * 
  */
 export async function api_user_avatar(
@@ -3523,7 +3523,7 @@ export async function api_user_avatar(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function api_user_bio(
@@ -3540,7 +3540,7 @@ export async function api_user_bio(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function api_user_profile_endpoint(
@@ -3557,7 +3557,7 @@ export async function api_user_profile_endpoint(
 }
 
 /**
- *
+ * 
  * 
  */
 export async function check_login_status(): Promise<ApiResponse<any>> {
@@ -3572,7 +3572,7 @@ export async function check_login_status(): Promise<ApiResponse<any>> {
 // ========== Username-Exists 模块 ==========
 
 /**
- *
+ * 
  * 
  */
 export async function username_exists(
@@ -3591,7 +3591,7 @@ export async function username_exists(
 // ========== Vip-Management 模块 ==========
 
 /**
- *
+ * 
  * 
  */
 export async function get_vip_management_data(): Promise<ApiResponse<any>> {

@@ -1,13 +1,12 @@
 """
 SQLAlchemy 模型定义 - EmailServiceConfig
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-21 08:51:05
+生成时间：2026-05-21 11:04:30
 """
 
-from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
+from sqlalchemy import Column, Integer, BigInteger, String, Boolean, DateTime, ForeignKey, Index
 
 from . import Base  # 使用统一的 Base
-
 
 
 class EmailServiceConfig(Base):
@@ -19,6 +18,7 @@ class EmailServiceConfig(Base):
         Index('idx_email_provider', 'provider'),
         Index('idx_email_site', 'site_id'),
     )
+
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='配置 ID')
 

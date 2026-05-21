@@ -1,13 +1,12 @@
 """
 SQLAlchemy 模型定义 - AuditLog
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-21 08:51:05
+生成时间：2026-05-21 11:04:30
 """
 
-from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Index
+from sqlalchemy import Column, BigInteger, String, Text, DateTime, Index
 
 from . import Base  # 使用统一的 Base
-
 
 
 class AuditLog(Base):
@@ -40,6 +39,7 @@ class AuditLog(Base):
     ip_address = Column(String(45), nullable=True, doc='IP 地址')
 
     user_agent = Column(Text, nullable=True, doc='用户代理')
+
 
     description = Column(Text, nullable=True, doc='操作描述')
 

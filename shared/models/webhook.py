@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - Webhook
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-21 08:51:05
+生成时间：2026-05-21 11:04:30
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Index
@@ -37,6 +37,7 @@ class Webhook(Base):
     created_at = Column(DateTime, doc='创建时间')
 
     updated_at = Column(DateTime, doc='更新时间')
+
 
     def to_dict(self, exclude_sensitive=True):
         """转换为字典

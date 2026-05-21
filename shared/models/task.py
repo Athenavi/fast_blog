@@ -1,13 +1,12 @@
 """
 SQLAlchemy 模型定义 - Task
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-21 08:51:05
+生成时间：2026-05-21 11:04:30
 """
 
-from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
+from sqlalchemy import Column, BigInteger, String, Text, DateTime, ForeignKey, Index
 
 from . import Base  # 使用统一的 Base
-
 
 
 class Task(Base):
@@ -30,6 +29,7 @@ class Task(Base):
     title = Column(String(500), nullable=True, doc='任务标题')
 
     description = Column(Text, nullable=True, doc='任务描述')
+
 
     status = Column(String(20), index=True, default='pending', doc='状态（pending/in_progress/completed/cancelled）')
 

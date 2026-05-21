@@ -1,13 +1,12 @@
 """
 SQLAlchemy 模型定义 - OrderItem
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-21 08:51:05
+生成时间：2026-05-21 11:04:30
 """
 
-from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Numeric, ForeignKey, Index
+from sqlalchemy import Column, Integer, BigInteger, String, Text, DateTime, Numeric, ForeignKey, Index
 
 from . import Base  # 使用统一的 Base
-
 
 
 class OrderItem(Base):
@@ -25,7 +24,9 @@ class OrderItem(Base):
 
     order = Column(BigInteger, ForeignKey('orders.id'), doc='订单')
 
+
     product_id = Column(BigInteger, nullable=True, doc='产品ID')
+
 
     product_name = Column(String(255), nullable=True, doc='产品名称')
 
@@ -35,7 +36,7 @@ class OrderItem(Base):
 
     total_price = Column(Numeric(10, 2), doc='总价')
 
-    metadata = Column(Text, nullable=True, doc='附加信息 (JSON格式)')
+    extra_metadata = Column('metadata', Text, nullable=True, doc='附加信息 (JSON格式)')
 
 
     created_at = Column(DateTime, doc='创建时间')
@@ -57,7 +58,7 @@ class OrderItem(Base):
             'quantity': self.quantity,
             'unit_price': self.unit_price,
             'total_price': self.total_price,
-            'metadata': self.metadata,
+            'extra_metadata': self.extra_metadata,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }

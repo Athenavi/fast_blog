@@ -3349,6 +3349,10 @@ models:
       total:
         type: number
         description: 小计
+      extra_metadata:
+        type: text
+        nullable: true
+        description: 附加信息 (JSON格式)
       created_at:
         type: string
         format: date-time

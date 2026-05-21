@@ -1,18 +1,18 @@
 """
 SQLAlchemy 模型定义 - PaymentTransaction
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-21 08:51:05
+生成时间：2026-05-21 11:04:30
 """
 
-from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Numeric, ForeignKey, Index
+from sqlalchemy import Column, BigInteger, String, Text, DateTime, Numeric, ForeignKey, Index
 
 from . import Base  # 使用统一的 Base
-
 
 
 class PaymentTransaction(Base):
     """支付交易记录模型模型"""
     __tablename__ = 'payment_transactions'
+
 
     __table_args__ = (
         Index('idx_payment_transaction_user', 'user'),
@@ -21,9 +21,11 @@ class PaymentTransaction(Base):
         Index('idx_payment_transaction_created', 'created_at'),
     )
 
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='交易 ID')
 
     user = Column(BigInteger, ForeignKey('users.id'), doc='用户')
+
 
     order_id = Column(String(100), nullable=True, doc='订单ID')
 
@@ -39,7 +41,8 @@ class PaymentTransaction(Base):
 
     payment_method = Column(String(50), nullable=True, doc='支付方式')
 
-    metadata = Column(Text, nullable=True, doc='附加元数据 (JSON格式)')
+    extra_metadata = Column('metadata', Text, nullable=True, doc='附加元数据 (JSON格式)')
+
 
     created_at = Column(DateTime, doc='创建时间')
 
@@ -61,7 +64,7 @@ class PaymentTransaction(Base):
             'status': self.status,
             'transaction_id': self.transaction_id,
             'payment_method': self.payment_method,
-            'metadata': self.metadata,
+            'extra_metadata': self.extra_metadata,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }

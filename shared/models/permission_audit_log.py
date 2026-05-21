@@ -1,13 +1,12 @@
 """
 SQLAlchemy 模型定义 - PermissionAuditLog
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-21 08:51:05
+生成时间：2026-05-21 11:04:30
 """
 
-from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
+from sqlalchemy import Column, BigInteger, String, Text, DateTime, ForeignKey, Index
 
 from . import Base  # 使用统一的 Base
-
 
 
 class PermissionAuditLog(Base):
@@ -32,6 +31,7 @@ class PermissionAuditLog(Base):
     resource_type = Column(String(50), nullable=True, doc='资源类型')
 
     resource_id = Column(BigInteger, nullable=True, doc='资源 ID')
+
 
     details = Column(Text, nullable=True, doc='详细信息（JSON格式）')
 
