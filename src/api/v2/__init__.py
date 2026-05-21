@@ -90,14 +90,17 @@ ROUTE_REGISTRY_V2 = [
     ("src.api.v1.content_management.widgets", "/api/v2/cms/widgets", ["widgets"], False),
     ("src.api.v1.content_management.feed", "/api/v2/feed", ["feed"], False),
 
-    # ==================== 电商功能（已重构，删除重复端点）====================
-    ("src.api.v1.ecommerce.ecommerce", "/api/v2/shop", ["ecommerce"], False),
-    ("src.api.v1.ecommerce.ecommerce_cart", "/api/v2/shop/cart", ["ecommerce-cart"], False),
-    ("src.api.v1.ecommerce.ecommerce_orders", "/api/v2/shop/orders", ["ecommerce-orders"], False),
+    # ==================== 电商功能（V2 聚合路由器）====================
+    # V2 Ecommerce 模块采用包级别聚合模式，所有子模块通过 __init__.py 统一注册
+    ("src.api.v2.ecommerce", "/api/v2/shop", ["ecommerce-v2"], True),
+    # V1 ecommerce 各子模块已废弃，功能已迁移到 V2 聚合路由器
+    # ("src.api.v1.ecommerce.ecommerce", "/api/v2/shop", ["ecommerce"], False),
+    # ("src.api.v1.ecommerce.ecommerce_cart", "/api/v2/shop/cart", ["ecommerce-cart"], False),
+    # ("src.api.v1.ecommerce.ecommerce_orders", "/api/v2/shop/orders", ["ecommerce-orders"], False),
     # ecommerce_products 已废弃，功能合并到 ecommerce.py
     # ("src.api.v1.ecommerce.ecommerce_products", "/api/v2/shop/products", ["ecommerce-products"], False),
-    ("src.api.v1.ecommerce.inventory_management", "/api/v2/shop/inventory", ["inventory-management"], False),
-    ("src.api.v1.ecommerce.revenue_sharing", "/api/v2/shop/revenue", ["revenue-sharing"], False),
+    # ("src.api.v1.ecommerce.inventory_management", "/api/v2/shop/inventory", ["inventory-management"], False),
+    # ("src.api.v1.ecommerce.revenue_sharing", "/api/v2/shop/revenue", ["revenue-sharing"], False),
 
     # ==================== 媒体管理 ====================
     ("src.api.v1.media", "/api/v2/media", ["media"], False),

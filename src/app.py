@@ -62,8 +62,10 @@ def check_installation() -> bool:
 
 
 # ---------- 路由自动发现 ----------
-# 配置表：(模块路径, 前缀, 标签列表, 是否必需)
-ROUTE_REGISTRY = [
+# 注意：为了更好的兼容性保留 旧的 V1 路由注册表，已废弃，新功能请在V2中开发
+# 当前系统使用 src/api/v2/__init__.py 中的 ROUTE_REGISTRY_V2
+# 此处的配置仅作为历史参考，不应再使用
+ROUTE_REGISTRY_DEPRECATED = [
     # 核心模块（必需）
     ("src.api.v1.articles.article_password", "/api/v1", ["article-password"], True),
     ("src.api.v1.articles.article_revisions", "/api/v1", ["article-revisions"], True),
@@ -107,13 +109,9 @@ ROUTE_REGISTRY = [
     ("src.api.v1.content_management.widgets", "/api/v1", ["widgets"], False),
     ("src.api.v1.dashboard.analytics", "/api/v1", ["analytics"], False),
     ("src.api.v1.dashboard.realtime_monitor", "/api/v1", ["realtime-monitor"], False),
-    # Ecommerce
-    ("src.api.v1.ecommerce.ecommerce", "/api/v1/shop", ["ecommerce"], False),
-    ("src.api.v1.ecommerce.ecommerce_cart", "/api/v1/shop", ["ecommerce-cart"], False),
-    ("src.api.v1.ecommerce.ecommerce_cart_orders", "/api/v1/shop", ["ecommerce-cart-orders"], False),
-    ("src.api.v1.ecommerce.ecommerce_products", "/api/v1/shop", ["ecommerce-products"], False),
-    ("src.api.v1.ecommerce.inventory_management", "/api/v1/admin/shop", ["inventory-management"], False),
-    ("src.api.v1.ecommerce.revenue_sharing", "/api/v1/shop", ["revenue-sharing"], False),
+    # Ecommerce - 已迁移到 V2 聚合路由器 src.api.v2.ecommerce
+    ("src.api.v2.ecommerce", "/api/v2/shop", ["ecommerce"], False),
+    # Ecommerce - 已迁移到 V2 聚合路由器 src.api.v2.ecommerce
     ("src.api.v1.integrations.baidu_analytics", "/api/v1/analytics/baidu", ["baidu-analytics"], False),
     ("src.api.v1.integrations.ipfs", "/api/v1/ipfs", ["ipfs"], False),
     ("src.api.v1.integrations.oauth_login", "/api/v1/oauth", ["oauth-login"], False),
@@ -154,17 +152,8 @@ ROUTE_REGISTRY = [
     ("src.api.v1.security.session_management", "/api/v1/admin/session", ["session-management"], False),
     ("src.api.v1.security.two_factor_auth", "/api/v1/2fa", ["2fa"], False),
     # SEO 模块已统一整合到 seo.py 中
-    ("src.api.v1.seo.seo", "/api/v1/seo", ["seo"], False),
-    # 以下独立 SEO 模块已废弃，功能已合并到 seo.py
-    # ("src.api.v1.seo.batch_seo", "/api/v1", ["batch-seo"], False),
-    # ("src.api.v1.seo.breadcrumbs", "/api/v1/breadcrumbs", ["breadcrumbs"], False),
-    # ("src.api.v1.seo.hreflang_api", "/api/v1", ["hreflang-api"], False),
-    # ("src.api.v1.seo.internal_links", "/api/v1", ["internal-links"], False),
-    # ("src.api.v1.seo.redirect_management", "/api/v1/redirect", ["redirect-management"], False),
-    # ("src.api.v1.seo.seo_management", "/api/v1/admin/seo", ["seo-management"], False),
-    # ("src.api.v1.seo.seo_optimization", "/api/v1/seo", ["seo-optimization"], False),
-    # ("src.api.v1.seo.seo_tracking", "/api/v1/seo-tracking", ["seo-tracking"], False),
-    # ("src.api.v1.seo.sitemap", "/api/v1", ["sitemap"], False),
+    ("src.api.v1.seo.seo", "/api/v2/seo", ["seo"], False),
+    # SEO 模块已统一整合到 seo.py 中
     ("src.api.v1.social.share_stats", "/api/v1", ["share-stats"], False),
     ("src.api.v1.static_generation.page_cache", "/api/v1", ["page-cache"], False),
     ("src.api.v1.static_generation.static_site_generation", "/api/v1", ["static-site-generation"], False),
