@@ -169,6 +169,8 @@ ROUTE_REGISTRY_V2 = [
 
     # ==================== CDN 与优化 ====================
     ("src.api.v1.performance.cdn_management", "/api/v2/cdn", ["cdn-management"], False),
+    # V2 新增 CDN 优化配置
+    ("src.api.v2.performance.cdn_optimization", "/api/v2/cdn/optimization", ["cdn-optimization-v2"], False),
     ("src.api.v1.performance.css_optimizer", "/api/v2/optimization/css", ["css-optimizer"], False),
     ("src.api.v1.performance.http2_config", "/api/v2/cdn/http2", ["http2-config"], False),
     ("src.api.v1.performance.image_lazy_load", "/api/v2/optimization/lazy-load", ["image-lazy-load"], False),
@@ -180,9 +182,13 @@ ROUTE_REGISTRY_V2 = [
 
     # ==================== 备份管理（合并）====================
     ("src.api.v1.system.backup_management", "/api/v2/backup", ["backup-management"], False),
+    # V2 新增备份管理
+    ("src.api.v2.system.backup_management", "/api/v2/backup", ["backup-v2"], False),
 
     # ==================== 系统管理 ====================
     ("src.api.v1.system.admin_settings", "/api/v2/admin/settings", ["admin-settings"], False),
+    # V2 新增区域化部署指南
+    ("src.api.v2.deployment.regional_deployment", "/api/v2/deployment", ["regional-deployment"], False),
     ("src.api.v1.system.batch_operations", "/api/v2/admin/batch", ["batch-operations"], False),
     ("src.api.v1.system.data_export", "/api/v2/gdpr/export", ["data-export"], False),
     ("src.api.v1.system.database_migration", "/api/v2/admin/database/migrations", ["database-migration"], False),
@@ -199,6 +205,8 @@ ROUTE_REGISTRY_V2 = [
 
     # ==================== GDPR 合规（路径已优化为 RESTful 风格）====================
     ("src.api.v1.compliance.gdpr_compliance", "/api/v2/gdpr", ["gdpr-compliance"], False),
+    # V2 新增完整合规性管理
+    ("src.api.v2.compliance.compliance_api", "/api/v2/compliance", ["compliance-management-v2"], False),
 
     # ==================== 主题管理（移除） ====================
 
@@ -214,7 +222,10 @@ ROUTE_REGISTRY_V2 = [
     ("src.api.v1.integrations.ipfs", "/api/v2/integrations/ipfs", ["ipfs"], False),
     ("src.api.v1.integrations.oauth_login", "/api/v2/integrations/oauth", ["oauth-login"], False),
     ("src.api.v1.integrations.sso", "/api/v2/integrations/sso", ["sso"], False),
-    ("src.api.v1.integrations.wordpress_import", "/api/v2/integrations/wordpress-import", ["wordpress-import"], False),
+    # ("src.api.v1.integrations.wordpress_import", "/api/v2/integrations/wordpress-import", ["wordpress-import"], False),
+    # V2 新增迁移工具
+    ("src.api.v2.integrations.wordpress_migration", "/api/v2/integrations/wordpress", ["wordpress-migration"], False),
+    ("src.api.v2.integrations.halo_migration", "/api/v2/integrations/halo", ["halo-migration"], False),
 
     # ==================== 广告管理（合并）====================
     ("src.api.v1.marketing.advertisement_system", "/api/v2/ads", ["advertisement-system"], False),
@@ -230,6 +241,8 @@ ROUTE_REGISTRY_V2 = [
     ("src.api.v1.accessibility.accessibility_optimizer_api", "/api/v2/accessibility/optimizer",
      ["accessibility-optimizer"], False),
     ("src.api.v1.accessibility.amp", "/api/v2/amp", ["amp"], False),
+    # V2 新增无障碍支持
+    ("src.api.v2.system.accessibility", "/api/v2/accessibility", ["accessibility-v2"], False),
 
     # ==================== 高级扩展功能（已删除 personalized_feed 中的重复关注端点）====================
     ("src.api.v1.mcp.mcp_api", "/api/v2/mcp", ["mcp-server"], False),

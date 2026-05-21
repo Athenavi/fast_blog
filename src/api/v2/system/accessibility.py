@@ -3,14 +3,13 @@
 提供 WCAG 2.1 标准的无障碍功能
 """
 from typing import Optional
+
 from fastapi import APIRouter, Depends
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.user import User
 from shared.services.system.accessibility_service import AccessibilityService
-from src.auth.jwt_auth import jwt_required_dependency as jwt_required
-from src.extensions import get_async_db_session as get_async_db
-from src.api.v2.utils.response import ApiResponse
+from src.api.v1.core.responses import ApiResponse
+from src.auth import jwt_required_dependency as jwt_required
 
 router = APIRouter(prefix="/accessibility", tags=["Accessibility"])
 
@@ -193,11 +192,11 @@ async def get_aria_labels(element_type: str):
             data={
                 'element_type': element_type,
                 'aria_attributes': aria_labels,
-                'example': f'<div {" ".join([f\'{k}="{v}"\' for k, v in aria_labels.items()])}></div>'
-                }
-                )
+                'example': '<div ' + ' '.join([f'{k}="{v}"' for k, v in aria_labels.items()]) + '></div>'
+            }
+        )
 
-        except Exception as e:
+    except Exception as e:
         return ApiResponse(
             success=False,
             error=f"获取 ARIA 标签失败: {str(e)}"

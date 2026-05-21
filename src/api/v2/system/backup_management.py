@@ -2,15 +2,14 @@
 备份管理 API - V2 版本
 提供自动化的数据库和文件备份、恢复功能
 """
-from typing import Optional, List
+from typing import Optional
+
 from fastapi import APIRouter, Depends, BackgroundTasks
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.user import User
 from shared.services.system.backup_service import BackupService
-from src.auth.jwt_auth import jwt_required_dependency as jwt_required
-from src.extensions import get_async_db_session as get_async_db
-from src.api.v2.utils.response import ApiResponse
+from src.api.v1.core.responses import ApiResponse
+from src.auth import jwt_required_dependency as jwt_required
 
 router = APIRouter(prefix="/backup", tags=["Backup Management"])
 

@@ -2,15 +2,16 @@
 Halo 博客迁移 API - V2 版本
 提供完整的 Halo 博客内容迁移功能
 """
-from typing import Optional, Dict, Any
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from typing import Optional
+
+from fastapi import APIRouter, Depends, BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.user import User
 from shared.services.integrations.halo_import import HaloImportService
-from src.auth.jwt_auth import jwt_required_dependency as jwt_required
+from src.api.v1.core.responses import ApiResponse
+from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
-from src.api.v2.utils.response import ApiResponse
 
 router = APIRouter(prefix="/halo", tags=["Halo Migration"])
 
