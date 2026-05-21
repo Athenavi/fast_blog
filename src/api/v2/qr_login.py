@@ -60,3 +60,41 @@ async def v2_phone_confirm(request: Request):
     except Exception as e:
         logger.error(f"Phone confirm failed: {e}")
         return {"success": False, "message": "确认失败"}
+
+
+"""
+   # === QR Login endpoints (direct mount, bypasses router issues) ===
+    @app.get('/api/v1/qr/generate')
+    async def qr_generate_direct(request: Request):
+        from src.api.v1.user_utils.qrlogin_utils import qr_login
+        from src.setting import app_config
+        try:
+            sv = app_config.SYSTEM.SYS_VERSION
+            ge = app_config.SYSTEM.GLOBAL_ENCODING
+            domain = request.query_params.get('callback_domain', '')
+            return await qr_login(request, sv, ge, domain, cache)
+        except Exception as e:
+            from fastapi.logger import logger
+            logger.error(f'QR gen failed: {e}')
+            return {'success': False, 'message': str(e)}
+
+    @app.get('/api/v1/qr/status')
+    async def qr_status_direct(request: Request):
+        from src.api.v1.user_utils.qrlogin_utils import check_qr_login_back
+        try:
+            return await check_qr_login_back(request, cache)
+        except Exception as e:
+            return {'success': False, 'message': str(e)}
+
+    @app.post('/api/v1/qr/confirm')
+    async def qr_confirm_direct(request: Request):
+        from src.api.v1.user_utils.qrlogin_utils import phone_scan_back
+        from src.auth import get_current_user
+        try:
+            data = await request.json()
+            from fastapi import Request as FastAPIRequest
+            current_user = await get_current_user(request, None)
+            return await phone_scan_back(request, current_user, cache)
+        except Exception as e:
+            return {'success': False, 'requires_auth': True, 'message': '请先登录'}
+"""

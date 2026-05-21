@@ -5,7 +5,6 @@
 from fastapi import APIRouter
 
 from src.api.v1.users.unified_users import router as user_router
-from src.api.v1.users.user_management import router as user_management_router
 from src.api.v1.users.user_settings import router as user_settings_router
 
 # 创建聚合路由器
