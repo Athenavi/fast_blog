@@ -34,19 +34,28 @@ FastBlog API v2 路由规范配置
 ROUTE_REGISTRY_V2 = [
     # ==================== 核心模块（必需）====================
     ("src.api.v1.core.home", "/api/v2/home", ["home"], True),
-    ("src.api.v1.dashboard.dashboard", "/api/v2/dashboard", ["dashboard"], True),
+    # ==================== 仪表板（V2 聚合路由器）====================
+    # V2 Dashboard 模块采用包级别聚合模式，所有子模块通过 __init__.py 统一注册
+    ("src.api.v2.dashboard", "/api/v2/dashboard", ["dashboard-v2"], True),
+    # V1 dashboard 各子模块已废弃，功能已迁移到 V2 聚合路由器
+    # ("src.api.v1.dashboard.dashboard", "/api/v2/dashboard", ["dashboard"], True),
+    # ("src.api.v1.dashboard.analytics", "/api/v2/dashboard/analytics", ["analytics"], False),
+    # ("src.api.v1.dashboard.realtime_monitor", "/api/v2/dashboard/realtime", ["realtime-monitor"], False),
     ("src.api.v1.core.system", "/api/v2/system", ["system"], True),
 
-    # ==================== 文章核心 ====================
-    ("src.api.v1.articles.articles", "/api/v2/articles", ["articles"], True),
-    ("src.api.v1.articles.article_password", "/api/v2/articles", ["article-password"], False),
-    ("src.api.v1.articles.article_revisions", "/api/v2/articles", ["article-revisions"], False),
-    ("src.api.v1.articles.article_analytics", "/api/v2/analytics/articles", ["article-analytics"], False),
-    ("src.api.v1.articles.article_annotations", "/api/v2/articles/annotations", ["article-annotations"], False),
-    ("src.api.v1.articles.article_interactions", "/api/v2/articles", ["article-interactions"], False),
-    ("src.api.v1.articles.article_stats", "/api/v2/analytics/articles/stats", ["article-stats"], False),
-    ("src.api.v1.articles.draft_preview", "/api/v2/articles/drafts", ["draft-preview"], False),
-    ("src.api.v1.articles.scheduled_publish", "/api/v2/articles/scheduler", ["scheduled-publish"], False),
+    # ==================== 文章核心（V2 聚合路由器）====================
+    # V2 Articles 模块采用包级别聚合模式，所有子模块通过 __init__.py 统一注册
+    ("src.api.v2.articles", "/api/v2/articles", ["articles-v2"], True),
+    # V1 articles 各子模块已废弃，功能已迁移到 V2 聚合路由器
+    # ("src.api.v1.articles.articles", "/api/v2/articles", ["articles"], True),
+    # ("src.api.v1.articles.article_password", "/api/v2/articles", ["article-password"], False),
+    # ("src.api.v1.articles.article_revisions", "/api/v2/articles", ["article-revisions"], False),
+    # ("src.api.v1.articles.article_analytics", "/api/v2/analytics/articles", ["article-analytics"], False),
+    # ("src.api.v1.articles.article_annotations", "/api/v2/articles/annotations", ["article-annotations"], False),
+    # ("src.api.v1.articles.article_interactions", "/api/v2/articles", ["article-interactions"], False),
+    # ("src.api.v1.articles.article_stats", "/api/v2/analytics/articles/stats", ["article-stats"], False),
+    # ("src.api.v1.articles.draft_preview", "/api/v2/articles/drafts", ["draft-preview"], False),
+    # ("src.api.v1.articles.scheduled_publish", "/api/v2/articles/scheduler", ["scheduled-publish"], False),
 
     # ==================== 分类管理 ====================
     ("src.api.v1.content_management.category_management", "/api/v2/categories", ["categories"], True),
@@ -54,41 +63,60 @@ ROUTE_REGISTRY_V2 = [
     # ==================== 标签管理（新增）====================
     ("src.api.v1.articles.tags", "/api/v2/tags", ["tags"], False),
 
-    # ==================== 搜索 ====================
-    ("src.api.v1.search.fulltext_search", "/api/v2/search", ["fulltext-search"], False),
-    ("src.api.v1.search.search_history", "/api/v2/search", ["search-history"], False),
+    # ==================== 搜索（V2 聚合路由器）====================
+    # V2 Search 模块采用包级别聚合模式，所有子模块通过 __init__.py 统一注册
+    ("src.api.v2.search", "/api/v2/search", ["search-v2"], True),
+    # V1 search 各子模块已废弃，功能已迁移到 V2 聚合路由器
+    # ("src.api.v1.search.fulltext_search", "/api/v2/search", ["fulltext-search"], False),
+    # ("src.api.v1.search.search_history", "/api/v2/search", ["search-history"], False),
 
-    # ==================== 评论系统 ====================
-    ("src.api.v1.comments.comments", "/api/v2/comments", ["comments"], False),
-    ("src.api.v1.comments.comments_enhanced", "/api/v2/comments/enhanced", ["comments-enhanced"], False),
-    ("src.api.v1.comments.comment_config", "/api/v2/comments/config", ["comment-config"], False),
-    ("src.api.v1.comments.comment_subscriptions", "/api/v2/comments/subscriptions", ["comment-subscriptions"], False),
+    # ==================== 评论系统（V2 聚合路由器）====================
+    # V2 Comments 模块采用包级别聚合模式，所有子模块通过 __init__.py 统一注册
+    ("src.api.v2.comments", "/api/v2/comments", ["comments-v2"], True),
+    # V1 comments 各子模块已废弃，功能已迁移到 V2 聚合路由器
+    # ("src.api.v1.comments.comments", "/api/v2/comments", ["comments"], False),
+    # ("src.api.v1.comments.comments_enhanced", "/api/v2/comments/enhanced", ["comments-enhanced"], False),
+    # ("src.api.v1.comments.comment_config", "/api/v2/comments/config", ["comment-config"], False),
+    # ("src.api.v1.comments.comment_subscriptions", "/api/v2/comments/subscriptions", ["comment-subscriptions"], False),
 
-    # ==================== 聊天与消息 ====================
-    ("src.api.v1.chat.chat", "/api/v2/chats", ["chat"], False),
-    ("src.api.v1.chat.chat_groups", "/api/v2/chats/groups", ["chat-groups"], False),
-    ("src.api.v1.chat.private_messages", "/api/v2/messages/private", ["private-messages"], False),
-    ("src.api.v1.notifications.notifications", "/api/v2/notifications", ["notifications"], False),
-    ("src.api.v1.notifications.email_service", "/api/v2/notifications/email", ["email-service"], False),
-    ("src.api.v1.notifications.push_notifications", "/api/v2/notifications/push", ["push-notifications"], False),
+    # ==================== 聊天与消息（V2 聚合路由器）====================
+    # V2 Chat 模块采用包级别聚合模式，所有子模块通过 __init__.py 统一注册
+    ("src.api.v2.chat", "/api/v2/chats", ["chat-v2"], True),
+    # V1 chat 各子模块已废弃，功能已迁移到 V2 聚合路由器
+    # ("src.api.v1.chat.chat", "/api/v2/chats", ["chat"], False),
+    # ("src.api.v1.chat.chat_groups", "/api/v2/chats/groups", ["chat-groups"], False),
+    # ("src.api.v1.chat.private_messages", "/api/v2/messages/private", ["private-messages"], False),
 
-    # ==================== 协作功能 ====================
-    ("src.api.v1.collaboration.collaboration_invites", "/api/v2/collaboration/invites", ["collaboration-invites"],
-     False),
-    ("src.api.v1.collaboration.collaboration_save", "/api/v2/collaboration", ["collaboration-save"], False),
-    ("src.api.v1.collaboration.team_collaboration", "/api/v2/collaboration/team", ["team-collaboration"], False),
-    ("src.api.v1.collaboration.team_comments", "/api/v2/collaboration/comments", ["team-comments"], False),
-    ("src.api.v1.collaboration.yjs_collaboration", "/api/v2/collaboration/yjs", ["yjs-collaboration"], False),
+    # ==================== 通知消息（V2 聚合路由器）====================
+    # V2 Notifications 模块采用包级别聚合模式，所有子模块通过 __init__.py 统一注册
+    ("src.api.v2.notifications", "/api/v2/notifications", ["notifications-v2"], True),
+    # V1 notifications 各子模块已废弃，功能已迁移到 V2 聚合路由器
+    # ("src.api.v1.notifications.notifications", "/api/v2/notifications", ["notifications"], False),
+    # ("src.api.v1.notifications.email_service", "/api/v2/notifications/email", ["email-service"], False),
+    # ("src.api.v1.notifications.push_notifications", "/api/v2/notifications/push", ["push-notifications"], False),
 
-    # ==================== CMS 内容管理 ====================
-    ("src.api.v1.content_management.block_editor", "/api/v2/cms/blocks", ["block-editor"], False),
-    ("src.api.v1.content_management.custom_block_patterns", "/api/v2/cms/patterns", ["custom-block-patterns"], False),
-    ("src.api.v1.content_management.custom_post_types", "/api/v2/cms/post-types", ["custom-post-types"], False),
-    ("src.api.v1.content_management.form_builder", "/api/v2/cms/forms", ["form-builder"], False),
-    ("src.api.v1.content_management.menu_management", "/api/v2/cms/menus", ["menu-management"], False),
-    ("src.api.v1.content_management.shortcode", "/api/v2/cms/shortcodes", ["shortcode"], False),
-    ("src.api.v1.content_management.widgets", "/api/v2/cms/widgets", ["widgets"], False),
-    ("src.api.v1.content_management.feed", "/api/v2/feed", ["feed"], False),
+    # ==================== 协作功能（V2 聚合路由器）====================
+    # V2 Collaboration 模块采用包级别聚合模式，所有子模块通过 __init__.py 统一注册
+    ("src.api.v2.collaboration", "/api/v2/collaboration", ["collaboration-v2"], True),
+    # V1 collaboration 各子模块已废弃，功能已迁移到 V2 聚合路由器
+    # ("src.api.v1.collaboration.collaboration_invites", "/api/v2/collaboration/invites", ["collaboration-invites"], False),
+    # ("src.api.v1.collaboration.collaboration_save", "/api/v2/collaboration", ["collaboration-save"], False),
+    # ("src.api.v1.collaboration.team_collaboration", "/api/v2/collaboration/team", ["team-collaboration"], False),
+    # ("src.api.v1.collaboration.team_comments", "/api/v2/collaboration/comments", ["team-comments"], False),
+    # ("src.api.v1.collaboration.yjs_collaboration", "/api/v2/collaboration/yjs", ["yjs-collaboration"], False),
+
+    # ==================== CMS 内容管理（V2 聚合路由器）====================
+    # V2 Content Management 模块采用包级别聚合模式，所有子模块通过 __init__.py 统一注册
+    ("src.api.v2.content_management", "/api/v2/cms", ["cms-v2"], True),
+    # V1 content_management 各子模块已废弃，功能已迁移到 V2 聚合路由器
+    # ("src.api.v1.content_management.block_editor", "/api/v2/cms/blocks", ["block-editor"], False),
+    # ("src.api.v1.content_management.custom_block_patterns", "/api/v2/cms/patterns", ["custom-block-patterns"], False),
+    # ("src.api.v1.content_management.custom_post_types", "/api/v2/cms/post-types", ["custom-post-types"], False),
+    # ("src.api.v1.content_management.form_builder", "/api/v2/cms/forms", ["form-builder"], False),
+    # ("src.api.v1.content_management.menu_management", "/api/v2/cms/menus", ["menu-management"], False),
+    # ("src.api.v1.content_management.shortcode", "/api/v2/cms/shortcodes", ["shortcode"], False),
+    # ("src.api.v1.content_management.widgets", "/api/v2/cms/widgets", ["widgets"], False),
+    # ("src.api.v1.content_management.feed", "/api/v2/feed", ["feed"], False),
 
     # ==================== 电商功能（V2 聚合路由器）====================
     # V2 Ecommerce 模块采用包级别聚合模式，所有子模块通过 __init__.py 统一注册
@@ -112,17 +140,20 @@ ROUTE_REGISTRY_V2 = [
     # V1 SEO 已废弃，功能已迁移到 V2
     # ("src.api.v1.seo.seo", "/api/v2/seo", ["seo"], False),
 
-    # ==================== 安全与权限 ====================
-    ("src.api.v1.security.audit_log", "/api/v2/security/audit-log", ["audit-log"], False),
-    ("src.api.v1.security.content_approval", "/api/v2/security/approval", ["content-approval"], False),
-    ("src.api.v1.security.login_security", "/api/v2/security/login", ["login-security"], False),
-    ("src.api.v1.security.rate_limit", "/api/v2/security/rate-limit", ["rate-limit"], False),
-    ("src.api.v1.security.rbac", "/api/v2/security/rbac", ["rbac"], False),
-    ("src.api.v1.security.security_alert", "/api/v2/security/alerts", ["security-alert"], False),
-    ("src.api.v1.security.security_report", "/api/v2/security/reports", ["security-report"], False),
-    ("src.api.v1.security.sensitive_words", "/api/v2/security/sensitive-words", ["sensitive-words"], False),
-    ("src.api.v1.security.session_management", "/api/v2/security/sessions", ["session-management"], False),
-    ("src.api.v1.security.two_factor_auth", "/api/v2/security/2fa", ["2fa"], False),
+    # ==================== 安全与权限（V2 聚合路由器）====================
+    # V2 Security 模块采用包级别聚合模式，所有子模块通过 __init__.py 统一注册
+    ("src.api.v2.security", "/api/v2/security", ["security-v2"], True),
+    # V1 security 各子模块已废弃，功能已迁移到 V2 聚合路由器
+    # ("src.api.v1.security.audit_log", "/api/v2/security/audit-log", ["audit-log"], False),
+    # ("src.api.v1.security.content_approval", "/api/v2/security/approval", ["content-approval"], False),
+    # ("src.api.v1.security.login_security", "/api/v2/security/login", ["login-security"], False),
+    # ("src.api.v1.security.rate_limit", "/api/v2/security/rate-limit", ["rate-limit"], False),
+    # ("src.api.v1.security.rbac", "/api/v2/security/rbac", ["rbac"], False),
+    # ("src.api.v1.security.security_alert", "/api/v2/security/alerts", ["security-alert"], False),
+    # ("src.api.v1.security.security_report", "/api/v2/security/reports", ["security-report"], False),
+    # ("src.api.v1.security.sensitive_words", "/api/v2/security/sensitive-words", ["sensitive-words"], False),
+    # ("src.api.v1.security.session_management", "/api/v2/security/sessions", ["session-management"], False),
+    # ("src.api.v1.security.two_factor_auth", "/api/v2/security/2fa", ["2fa"], False),
 
     # ==================== 认证模块（新增）====================
     ("src.api.v1.auth", "/api/v2/auth", ["auth"], False),
@@ -177,23 +208,24 @@ ROUTE_REGISTRY_V2 = [
     # ("src.api.v1.system.backup_management", "/api/v2/backup", ["backup-management"], False),
     ("src.api.v2.system.backup_management", "/api/v2/backup", ["backup-v2"], True),
 
-    # ==================== 系统管理 ====================
-    ("src.api.v1.system.admin_settings", "/api/v2/admin/settings", ["admin-settings"], False),
-    # V2 新增区域化部署指南
-    ("src.api.v2.deployment.regional_deployment", "/api/v2/deployment", ["regional-deployment"], False),
-    ("src.api.v1.system.batch_operations", "/api/v2/admin/batch", ["batch-operations"], False),
-    ("src.api.v1.system.data_export", "/api/v2/gdpr/export", ["data-export"], False),
-    ("src.api.v1.system.database_migration", "/api/v2/admin/database/migrations", ["database-migration"], False),
-    ("src.api.v1.system.installation", "/api/v2/install", ["installation"], False),
-    ("src.api.v1.system.maintenance", "/api/v2/admin/maintenance", ["maintenance"], False),
-    ("src.api.v1.system.migrations", "/api/v2/admin/migrations", ["migrations"], False),
-    ("src.api.v1.system.multisite", "/api/v2/sites", ["multisite"], False),
-    ("src.api.v1.system.report_management", "/api/v2/admin/reports", ["report-management"], False),
-    ("src.api.v1.system.resource_transfer", "/api/v2/admin/resource-transfer", ["resource-transfer"], False),
-    ("src.api.v1.system.screen_options", "/api/v2/admin/screen-options", ["screen-options"], False),
-    ("src.api.v1.system.version", "/api/v2/system/version", ["system-version"], False),
-    ("src.api.v1.system.webhook_management", "/api/v2/admin/webhooks", ["webhook-management"], False),
-    ("src.api.v1.system.workflow", "/api/v2/workflow", ["workflow"], False),
+    # ==================== 系统管理（V2 聚合路由器）====================
+    # V2 System 模块采用包级别聚合模式，所有子模块通过 __init__.py 统一注册
+    ("src.api.v2.system", "/api/v2/system", ["system-v2"], True),
+    # V1 system 各子模块已废弃，功能已迁移到 V2 聚合路由器
+    # ("src.api.v1.system.admin_settings", "/api/v2/admin/settings", ["admin-settings"], False),
+    # ("src.api.v1.system.batch_operations", "/api/v2/admin/batch", ["batch-operations"], False),
+    # ("src.api.v1.system.data_export", "/api/v2/gdpr/export", ["data-export"], False),
+    # ("src.api.v1.system.database_migration", "/api/v2/admin/database/migrations", ["database-migration"], False),
+    # ("src.api.v1.system.installation", "/api/v2/install", ["installation"], False),
+    # ("src.api.v1.system.maintenance", "/api/v2/admin/maintenance", ["maintenance"], False),
+    # ("src.api.v1.system.migrations", "/api/v2/admin/migrations", ["migrations"], False),
+    # ("src.api.v1.system.multisite", "/api/v2/sites", ["multisite"], False),
+    # ("src.api.v1.system.report_management", "/api/v2/admin/reports", ["report-management"], False),
+    # ("src.api.v1.system.resource_transfer", "/api/v2/admin/resource-transfer", ["resource-transfer"], False),
+    # ("src.api.v1.system.screen_options", "/api/v2/admin/screen-options", ["screen-options"], False),
+    # ("src.api.v1.system.version", "/api/v2/system/version", ["system-version"], False),
+    # ("src.api.v1.system.webhook_management", "/api/v2/admin/webhooks", ["webhook-management"], False),
+    # ("src.api.v1.system.workflow", "/api/v2/workflow", ["workflow"], False),
 
     # ==================== GDPR 合规（V2 完整版）====================
     # V1 gdpr_compliance 已废弃，功能已整合到 V2 compliance_api
@@ -202,69 +234,81 @@ ROUTE_REGISTRY_V2 = [
 
     # ==================== 主题管理（移除） ====================
 
-    # ==================== 插件管理 ====================
-    ("src.api.v1.plugins.plugin_management", "/api/v2/plugins", ["plugins"], False),
-    ("src.api.v1.plugins.plugin_permissions", "/api/v2/plugins/permissions", ["plugin-permissions"], False),
+    # ==================== 插件管理（V2 聚合路由器）====================
+    # V2 Plugins 模块采用包级别聚合模式，所有子模块通过 __init__.py 统一注册
+    ("src.api.v2.plugins", "/api/v2/plugins", ["plugins-v2"], True),
+    # V1 plugins 各子模块已废弃，功能已迁移到 V2 聚合路由器
+    # ("src.api.v1.plugins.plugin_management", "/api/v2/plugins", ["plugins"], False),
+    # ("src.api.v1.plugins.plugin_permissions", "/api/v2/plugins/permissions", ["plugin-permissions"], False),
 
-    # ==================== 国际化与翻译（合并）====================
-    ("src.api.v1.translation.translations", "/api/v2/translations", ["translations"], False),
+    # ==================== 翻译（V2 聚合路由器）====================
+    # V2 Translation 模块采用包级别聚合模式，所有子模块通过 __init__.py 统一注册
+    ("src.api.v2.translation", "/api/v2/i18n", ["translation-v2"], True),
+    # V1 translation 各子模块已废弃，功能已迁移到 V2 聚合路由器
+    # ("src.api.v1.translation.translations", "/api/v2/translations", ["translations"], False),
 
-    # ==================== 第三方集成 ====================
-    ("src.api.v1.integrations.baidu_analytics", "/api/v2/integrations/baidu-analytics", ["baidu-analytics"], False),
-    ("src.api.v1.integrations.ipfs", "/api/v2/integrations/ipfs", ["ipfs"], False),
-    ("src.api.v1.integrations.oauth_login", "/api/v2/integrations/oauth", ["oauth-login"], False),
-    ("src.api.v1.integrations.sso", "/api/v2/integrations/sso", ["sso"], False),
-    # ("src.api.v1.integrations.wordpress_import", "/api/v2/integrations/wordpress-import", ["wordpress-import"], False),
+    # ==================== 第三方集成（V2 聚合路由器）====================
+    # V2 Integrations 模块采用包级别聚合模式，所有子模块通过 __init__.py 统一注册
+    ("src.api.v2.integrations", "/api/v2/integrations", ["integrations-v2"], True),
+    # V1 integrations 各子模块已废弃，功能已迁移到 V2 聚合路由器
+    # ("src.api.v1.integrations.baidu_analytics", "/api/v2/integrations/baidu-analytics", ["baidu-analytics"], False),
+    # ("src.api.v1.integrations.ipfs", "/api/v2/integrations/ipfs", ["ipfs"], False),
+    # ("src.api.v1.integrations.oauth_login", "/api/v2/integrations/oauth", ["oauth-login"], False),
+    # ("src.api.v1.integrations.sso", "/api/v2/integrations/sso", ["sso"], False),
     # V2 新增迁移工具
-    ("src.api.v2.integrations.wordpress_migration", "/api/v2/integrations/wordpress", ["wordpress-migration"], False),
-    ("src.api.v2.integrations.halo_migration", "/api/v2/integrations/halo", ["halo-migration"], False),
+    # ("src.api.v2.integrations.wordpress_migration", "/api/v2/integrations/wordpress", ["wordpress-migration"], False),
+    # ("src.api.v2.integrations.halo_migration", "/api/v2/integrations/halo", ["halo-migration"], False),
 
-    # ==================== 广告管理（合并）====================
-    ("src.api.v1.marketing.advertisement_system", "/api/v2/ads", ["advertisement-system"], False),
+    # ==================== 广告管理（V2 聚合路由器）====================
+    # V2 Marketing 模块采用包级别聚合模式，所有子模块通过 __init__.py 统一注册
+    ("src.api.v2.marketing", "/api/v2/ads", ["marketing-v2"], True),
+    # V1 marketing 各子模块已废弃，功能已迁移到 V2 聚合路由器
+    # ("src.api.v1.marketing.advertisement_system", "/api/v2/ads", ["advertisement-system"], False),
 
-    # ==================== 静态生成 ====================
-    ("src.api.v1.static_generation.static_site_generation", "/api/v2/static-site", ["static-site-generation"], False),
+    # ==================== 静态生成（V2 聚合路由器）====================
+    # V2 Static Generation 模块采用包级别聚合模式，所有子模块通过 __init__.py 统一注册
+    ("src.api.v2.static_generation", "/api/v2/static-site", ["static-generation-v2"], True),
+    # V1 static_generation 各子模块已废弃，功能已迁移到 V2 聚合路由器
+    # ("src.api.v1.static_generation.static_site_generation", "/api/v2/static-site", ["static-site-generation"], False),
 
     # ==================== 支付工具 ====================
     ("src.api.v1.utils.payment", "/api/v2/payments", ["payment"], False),
 
-    # ==================== 可访问性 ====================
-    ("src.api.v1.accessibility.accessibility_audit", "/api/v2/accessibility/audit", ["accessibility-audit"], False),
-    ("src.api.v1.accessibility.accessibility_optimizer_api", "/api/v2/accessibility/optimizer",
-     ["accessibility-optimizer"], False),
-    ("src.api.v1.accessibility.amp", "/api/v2/amp", ["amp"], False),
+    # ==================== 可访问性（V2 聚合路由器）====================
+    # V2 Accessibility 模块采用包级别聚合模式，所有子模块通过 __init__.py 统一注册
+    ("src.api.v2.accessibility", "/api/v2/accessibility", ["accessibility-v2"], True),
+    # V1 accessibility 各子模块已废弃，功能已迁移到 V2 聚合路由器
+    # ("src.api.v1.accessibility.accessibility_audit", "/api/v2/accessibility/audit", ["accessibility-audit"], False),
+    # ("src.api.v1.accessibility.accessibility_optimizer_api", "/api/v2/accessibility/optimizer", ["accessibility-optimizer"], False),
+    # ("src.api.v1.accessibility.amp", "/api/v2/amp", ["amp"], False),
     # V2 新增无障碍支持
-    ("src.api.v2.system.accessibility", "/api/v2/accessibility", ["accessibility-v2"], False),
+    # ("src.api.v2.system.accessibility", "/api/v2/accessibility", ["accessibility-v2"], False),
 
-    # ==================== 高级扩展功能（已删除 personalized_feed 中的重复关注端点）====================
-    ("src.api.v1.mcp.mcp_api", "/api/v2/mcp", ["mcp-server"], False),
-    ("src.api.v1.ai.skills_api", "/api/v2/ai/skills", ["ai-skills"], False),
-    ("src.api.v1.ai.content_creator_api", "/api/v2/ai/content", ["ai-content-creation"], False),
-    ("src.api.v1.nlp.nlp_content_api", "/api/v2/nlp", ["nlp-content"], False),
-    ("src.api.v1.plugins.plugin_sandbox_api", "/api/v2/plugin-sandbox", ["plugin-sandbox"], False),
-    ("src.api.v1.plugins.plugin_security_audit_api", "/api/v2/plugin-audit", ["plugin-security-audit"], False),
-    ("src.api.v1.block_editor.block_editor_api", "/api/v2/block-editor", ["block-editor"], False),
-    ("src.api.v1.templates.template_api", "/api/v2/templates", ["template-library"], False),
-    ("src.api.v1.payment.payment_api", "/api/v2/payment", ["payment-gateway"], False),
-    ("src.api.v1.migration.astro_evaluation_api", "/api/v2/migration/astro", ["astro-evaluation"], False),
-    ("src.api.v1.advanced_features.achievement_badges", "/api/v2/ext/badges", ["achievement-badges"], False),
-    ("src.api.v1.advanced_features.ai_recommendations", "/api/v2/ext/ai-recommendations", ["ai-recommendations"],
-     False),
-    ("src.api.v1.advanced_features.edge_functions", "/api/v2/ext/edge-functions", ["edge-functions"], False),
-    ("src.api.v1.advanced_features.expert_certification", "/api/v2/ext/expert-certification", ["expert-certification"],
-     False),
-    ("src.api.v1.advanced_features.nft", "/api/v2/ext/nft", ["nft"], False),
-    # personalized_feed 仅保留 feed 生成功能，关注功能已统一到 user_relations
-    ("src.api.v1.advanced_features.personalized_feed", "/api/v2/ext/personalized-feed", ["personalized-feed"], False),
-    ("src.api.v1.advanced_features.recommendations", "/api/v2/ext/recommendations", ["recommendations"], False),
-    ("src.api.v1.advanced_features.websocket", "/api/v2/ext/websocket", ["websocket"], False),
+    # ==================== 高级扩展功能（V2 聚合路由器）====================
+    # V2 Advanced Features 模块采用包级别聚合模式，所有子模块通过 __init__.py 统一注册
+    ("src.api.v2.advanced_features", "/api/v2/ext", ["advanced-features-v2"], True),
+    # V1 advanced_features 各子模块已废弃，功能已迁移到 V2 聚合路由器
+    # ("src.api.v1.advanced_features.achievement_badges", "/api/v2/ext/badges", ["achievement-badges"], False),
+    # ("src.api.v1.advanced_features.ai_recommendations", "/api/v2/ext/ai-recommendations", ["ai-recommendations"], False),
+    # ("src.api.v1.advanced_features.edge_functions", "/api/v2/ext/edge-functions", ["edge-functions"], False),
+    # ("src.api.v1.advanced_features.expert_certification", "/api/v2/ext/expert-certification", ["expert-certification"], False),
+    # ("src.api.v1.advanced_features.nft", "/api/v2/ext/nft", ["nft"], False),
+    # ("src.api.v1.advanced_features.personalized_feed", "/api/v2/ext/personalized-feed", ["personalized-feed"], False),
+    # ("src.api.v1.advanced_features.points_system", "/api/v2/ext/points", ["points-system"], False),
+    # ("src.api.v1.advanced_features.recommendations", "/api/v2/ext/recommendations", ["recommendations"], False),
+    # ("src.api.v1.advanced_features.tipping_system", "/api/v2/ext/tipping", ["tipping-system"], False),
+    # ("src.api.v1.advanced_features.websocket", "/api/v2/ext/websocket", ["websocket"], False),
 
     # ==================== 其他系统模块（misc 模块已完全清理并删除）====================
     ("src.api.v1.analytics.site_analytics_api", "/api/v2/analytics/site", ["site-analytics"], False),
     ("src.api.v1.articles.anomaly_detection", "/api/v2/system/anomaly-detection", ["anomaly-detection"], False),
     ("src.api.v1.dashboard.analytics", "/api/v2/dashboard/analytics", ["analytics"], False),
     ("src.api.v1.dashboard.realtime_monitor", "/api/v2/dashboard/realtime", ["realtime-monitor"], False),
-    ("src.api.v1.social.share_stats", "/api/v2/social/share-stats", ["share-stats"], False),
+    # ==================== 社交（V2 聚合路由器）====================
+    # V2 Social 模块采用包级别聚合模式，所有子模块通过 __init__.py 统一注册
+    ("src.api.v2.social", "/api/v2/social", ["social-v2"], True),
+    # V1 social 各子模块已废弃，功能已迁移到 V2 聚合路由器
+    # ("src.api.v1.social.share_stats", "/api/v2/social/share-stats", ["share-stats"], False),
 ]
 
 # v1 到 v2 的路径映射表（用于自动重定向）
