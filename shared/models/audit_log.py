@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - AuditLog
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-21 08:12:22
+生成时间：2026-05-21 08:51:05
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Index
@@ -25,6 +25,7 @@ class AuditLog(Base):
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='日志 ID')
 
     user_id = Column(BigInteger, index=True, nullable=True, doc='用户 ID')
+
 
     user_name = Column(String(255), nullable=True, doc='用户名')
 

@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - SSOProvider
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-21 08:12:22
+生成时间：2026-05-21 08:51:05
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
@@ -13,6 +13,7 @@ from . import Base  # 使用统一的 Base
 class SSOProvider(Base):
     """SSO 提供商配置模型模型"""
     __tablename__ = 'sso_providers'
+
 
     __table_args__ = (
         Index('idx_sso_provider_type', 'provider_type'),

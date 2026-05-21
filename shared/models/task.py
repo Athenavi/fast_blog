@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - Task
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-21 08:12:22
+生成时间：2026-05-21 08:51:05
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
@@ -25,6 +25,7 @@ class Task(Base):
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='任务 ID')
 
     workspace_id = Column(BigInteger, ForeignKey('workspaces.id'), doc='工作区 ID')
+
 
     title = Column(String(500), nullable=True, doc='任务标题')
 

@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - ApprovalRecord
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-21 08:12:22
+生成时间：2026-05-21 08:51:05
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
@@ -27,6 +27,7 @@ class ApprovalRecord(Base):
     content_type = Column(String(50), nullable=True, doc='内容类型')
 
     content_id = Column(BigInteger, doc='内容 ID')
+
 
     applicant_id = Column(BigInteger, ForeignKey('users.id'), doc='申请人 ID')
 

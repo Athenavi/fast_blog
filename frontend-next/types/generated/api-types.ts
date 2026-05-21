@@ -1,7 +1,7 @@
 /**
  * API 类型定义
  * 由 routes.yaml 自动生成 - 请勿手动修改
- * 生成时间：2026-05-21 08:12:22
+ * 生成时间：2026-05-21 08:51:04
  */
 
 export interface User {
@@ -1395,6 +1395,131 @@ export interface TaxConfig {
     updated_at: string;
 }
 
+export interface EnterpriseLicense {
+    id: any;
+    license_key: string;
+    license_type: string;
+    company_name: string;
+    contact_email: string;
+    max_sites: number;
+    features?: any;
+    valid_from: string;
+    valid_until?: string;
+    is_active: boolean;
+    support_level: string;
+    sla_enabled: boolean;
+    sla_uptime_guarantee?: number;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface SupportTicket {
+    id: any;
+    ticket_number: string;
+    user_id: any;
+    license_id?: any;
+    subject: string;
+    description: any;
+    priority: string;
+    status: string;
+    category: string;
+    assigned_to?: any;
+    resolved_at?: string;
+    closed_at?: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface SupportTicketReply {
+    id: any;
+    ticket_id: any;
+    user_id: any;
+    content: any;
+    is_staff: boolean;
+    attachments?: any;
+    created_at: string;
+}
+
+export interface DeploymentScript {
+    id: any;
+    name: string;
+    script_type: string;
+    content: any;
+    version: string;
+    description?: any;
+    parameters?: any;
+    is_active: boolean;
+    created_by?: any;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface DeploymentLog {
+    id: any;
+    script_id: any;
+    user_id?: any;
+    status: string;
+    output?: any;
+    error_message?: any;
+    started_at?: string;
+    completed_at?: string;
+    created_at: string;
+}
+
+export interface MonitoringAlert {
+    id: any;
+    alert_type: string;
+    severity: string;
+    title: string;
+    message: any;
+    source?: string;
+    metric_name?: string;
+    metric_value?: any;
+    threshold?: any;
+    is_resolved: boolean;
+    resolved_at?: string;
+    notified_users?: any;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface MonitoringMetric {
+    id: any;
+    metric_name: string;
+    metric_value: any;
+    metric_type: string;
+    labels?: any;
+    timestamp: string;
+    site_id?: any;
+}
+
+export interface MigrationTask {
+    id: any;
+    task_name: string;
+    source_platform: string;
+    status: string;
+    config?: any;
+    progress: number;
+    total_items: any;
+    migrated_items: any;
+    error_message?: any;
+    started_at?: string;
+    completed_at?: string;
+    created_by: any;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface MigrationLog {
+    id: any;
+    task_id: any;
+    log_level: string;
+    message: any;
+    item_type?: string;
+    item_id?: any;
+    created_at: string;
+}
+
 
 // 通用响应类型
 export interface ApiResponse<T = any> {
@@ -1410,168 +1535,131 @@ export interface Get_users_list_apiParams {
     per_page?: number;
     search?: string;
 }
-
 export interface Update_menuParams {
     menu_id: number;
 }
-
 export interface Delete_menuParams {
     menu_id: number;
 }
-
 export interface Update_pageParams {
     page_id: number;
 }
-
 export interface Delete_pageParams {
     page_id: number;
 }
-
 export interface Update_menu_itemParams {
     menu_item_id: number;
 }
-
 export interface Delete_menu_itemParams {
     menu_item_id: number;
 }
-
 export interface Download_backupParams {
     filename: string;
 }
-
 export interface Admin_roles_searchParams {
     page?: number;
     per_page?: number;
     search?: string;
 }
-
 export interface Admin_role_detailParams {
     role_id: number;
 }
-
 export interface Update_roleParams {
     role_id: number;
 }
-
 export interface Delete_roleParams {
     role_id: number;
 }
-
 export interface Get_permissionsParams {
     page?: number;
     per_page?: number;
     search?: string;
 }
-
 export interface Update_permissionParams {
     permission_id: number;
 }
-
 export interface Delete_permissionParams {
     permission_id: number;
 }
-
 export interface Get_user_rolesParams {
     user_id: number;
 }
-
 export interface Update_user_rolesParams {
     user_id: number;
 }
-
 export interface Update_article_statusParams {
     article_id: number;
     current_user_obj?: string;
 }
-
 export interface Get_password_formParams {
     aid: number;
 }
-
 export interface Api_update_article_passwordParams {
     aid: number;
 }
-
 export interface Like_articleParams {
     article_id: number;
     current_user_obj?: string;
 }
-
 export interface Record_article_viewParams {
     article_id: number;
 }
-
 export interface Create_article_revisionParams {
     article_id: number;
     change_summary?: string;
 }
-
 export interface List_article_revisionsParams {
     article_id: number;
     page?: number;
     per_page?: number;
 }
-
 export interface Get_revisionParams {
     revision_id: number;
 }
-
 export interface Rollback_articleParams {
     article_id: number;
     revision_id: number;
 }
-
 export interface Compare_article_revisionsParams {
     revision1_id: number;
     revision2_id: number;
 }
-
 export interface Save_article_draftParams {
     article_id: number;
 }
-
 export interface Sync_article_revisionsParams {
     article_id: number;
 }
-
 export interface Delete_article_revisionParams {
     article_id: number;
     revision_id: number;
 }
-
 export interface Create_article_revisionParams {
     article_id: number;
 }
-
 export interface List_article_revisionsParams {
     article_id: number;
     page?: number;
     per_page?: number;
 }
-
 export interface Get_revisionParams {
     revision_id: number;
 }
-
 export interface Rollback_articleParams {
     article_id: number;
     revision_id: number;
 }
-
 export interface Compare_article_revisionsParams {
     revision1_id: number;
     revision2_id: number;
 }
-
 export interface Sync_article_revisionsParams {
     article_id: number;
 }
-
 export interface Delete_article_revisionParams {
     article_id: number;
     revision_id: number;
 }
-
 export interface Get_articles_apiParams {
     page?: number;
     per_page?: number;
@@ -1580,93 +1668,73 @@ export interface Get_articles_apiParams {
     user_id?: number;
     status?: string;
 }
-
 export interface Get_article_detail_apiParams {
     article_id: number;
 }
-
 export interface Get_article_raw_content_apiParams {
     article_id: number;
 }
-
 export interface Update_article_apiParams {
     article_id: number;
 }
-
 export interface Delete_article_apiParams {
     article_id: number;
 }
-
 export interface Get_user_articles_apiParams {
     user_id: number;
     page?: number;
     per_page?: number;
 }
-
 export interface Get_user_articles_stats_apiParams {
     user_id: number;
 }
-
 export interface Get_article_by_slug_apiParams {
     slug: string;
 }
-
 export interface Get_article_by_id_apiParams {
     article_id: number;
 }
-
 export interface Get_articles_by_tag_apiParams {
     tag_name: string;
 }
-
 export interface Get_contribute_info_apiParams {
     article_id: number;
 }
-
 export interface Submit_contribution_apiParams {
     article_id: number;
 }
-
 export interface Get_edit_article_apiParams {
     article_id: number;
 }
-
 export interface Update_article_via_blog_apiParams {
     article_id: number;
 }
-
 export interface Api_blog_i18n_contentParams {
     aid: number;
     iso: string;
 }
-
 export interface Update_avatar_apiParams {
     file: string;
 }
-
 export interface Login_apiParams {
     username: string;
     password: string;
     remember_me?: boolean;
 }
-
 export interface Register_apiParams {
     username: string;
     email: string;
     password: string;
 }
-
 export interface Get_user_management_usersParams {
     page?: number;
     per_page?: number;
     role?: string;
     search?: string;
 }
-
 export interface Delete_backup_fileParams {
     backup_filename: string;
 }
-
 export interface Get_blog_management_articlesParams {
     page?: number;
     per_page?: number;
@@ -1674,347 +1742,269 @@ export interface Get_blog_management_articlesParams {
     search?: string;
     category_id?: number;
 }
-
 export interface Delete_blog_management_articleParams {
     article_id: number;
 }
-
 export interface Get_all_categories_apiParams {
     page?: number;
 }
-
 export interface Get_public_categories_apiParams {
     page?: number;
 }
-
 export interface Get_category_by_name_apiParams {
     name: string;
     page?: number;
 }
-
 export interface Get_all_categories_root_apiParams {
     page?: number;
 }
-
 export interface Update_category_apiParams {
     category_id: number;
 }
-
 export interface Get_categories_with_stats_apiParams {
     page?: number;
     per_page?: number;
 }
-
 export interface Delete_category_apiParams {
     category_id: number;
 }
-
 export interface Confirm_email_changeParams {
     token: string;
     current_user_obj?: string;
 }
-
 export interface Check_emailParams {
     email: string;
 }
-
 export interface Api_check_emailParams {
     email: string;
 }
-
 export interface Check_usernameParams {
     username: string;
 }
-
 export interface Api_check_usernameParams {
     username: string;
 }
-
 export interface Get_home_articles_apiParams {
     page?: number;
     per_page?: number;
 }
-
 export interface Get_home_dataParams {
     limit_featured?: number;
     limit_popular?: number;
     limit_recent?: number;
     limit_categories?: number;
 }
-
 export interface Get_featured_articlesParams {
     limit?: number;
 }
-
 export interface Get_recent_articlesParams {
     page?: number;
     per_page?: number;
     category_id?: number;
 }
-
 export interface Get_popular_articlesParams {
     limit?: number;
     days?: number;
 }
-
 export interface Get_home_categoriesParams {
     limit?: number;
 }
-
 export interface Subscribe_emailParams {
     email: string;
 }
-
 export interface Search_home_articlesParams {
     q: string;
     page?: number;
     per_page?: number;
 }
-
 export interface Email_exists_backParams {
     email: string;
 }
-
 export interface Get_rss_feedParams {
     limit?: number;
     category_id?: number;
 }
-
 export interface Get_atom_feedParams {
     limit?: number;
     category_id?: number;
 }
-
 export interface Login_management_apiParams {
     username: string;
     password: string;
     remember_me?: boolean;
 }
-
 export interface Register_management_apiParams {
     username: string;
     email: string;
     password: string;
 }
-
 export interface Get_user_profile_apiParams {
     user_id: number;
 }
-
 export interface Get_usersParams {
     page?: number;
     per_page?: number;
     search?: string;
 }
-
 export interface Get_user_media_apiParams {
     current_user_obj?: string;
     media_type?: string;
     page?: number;
 }
-
 export interface Get_media_file_by_idParams {
     media_id: number;
     range_header?: string;
     current_user_obj?: string;
 }
-
 export interface Delete_user_media_apiParams {
     current_user_obj?: string;
     file_id_list: string;
 }
-
 export interface Upload_media_fileParams {
     current_user_obj?: string;
 }
-
 export interface Chunked_upload_initParams {
     current_user_obj?: string;
 }
-
 export interface Chunked_upload_chunkParams {
     current_user_obj?: string;
 }
-
 export interface Chunked_upload_completeParams {
     current_user_obj?: string;
 }
-
 export interface Chunked_upload_progressParams {
     current_user_obj?: string;
 }
-
 export interface Chunked_upload_chunksParams {
     current_user_obj?: string;
 }
-
 export interface Chunked_upload_cancelParams {
     current_user_obj?: string;
 }
-
 export interface Get_media_management_filesParams {
     page?: number;
     per_page?: number;
     file_type?: string;
 }
-
 export interface Get_menu_detailParams {
     menu_id: number;
 }
-
 export interface Update_existing_menuParams {
     menu_id: number;
 }
-
 export interface Delete_existing_menuParams {
     menu_id: number;
 }
-
 export interface Add_item_to_menuParams {
     menu_id: number;
 }
-
 export interface Update_menu_item_detailParams {
     item_id: number;
 }
-
 export interface Delete_menu_item_detailParams {
     item_id: number;
 }
-
 export interface Reorder_menuParams {
     menu_id: number;
 }
-
 export interface Get_my_articlesParams {
     page?: number;
     per_page?: number;
     status?: string;
 }
-
 export interface Read_notification_apiParams {
     nid: number;
 }
-
 export interface Clean_notification_apiParams {
     nid?: string;
 }
-
 export interface Mark_notification_as_read_apiParams {
     notification_id: number;
 }
-
 export interface Delete_notification_apiParams {
     notification_id: number;
 }
-
 export interface List_pagesParams {
     page?: number;
     per_page?: number;
     status?: number;
 }
-
 export interface Get_page_detailParams {
     slug: string;
 }
-
 export interface Update_existing_pageParams {
     page_id: number;
 }
-
 export interface Delete_existing_pageParams {
     page_id: number;
 }
-
 export interface Assign_user_roleParams {
     user_id: number;
 }
-
 export interface Get_user_permissionsParams {
     user_id: number;
 }
-
 export interface Activate_pluginParams {
     plugin_id: number;
 }
-
 export interface Deactivate_pluginParams {
     plugin_id: number;
 }
-
 export interface Uninstall_pluginParams {
     plugin_id: number;
 }
-
 export interface Update_plugin_settingsParams {
     plugin_id: number;
 }
-
 export interface Update_role_for_managementParams {
     role_id: number;
 }
-
 export interface Delete_role_for_managementParams {
     role_id: number;
 }
-
 export interface Update_permission_for_managementParams {
     permission_id: number;
 }
-
 export interface Delete_permission_for_managementParams {
     permission_id: number;
 }
-
 export interface List_scheduled_articlesParams {
     page?: number;
     per_page?: number;
 }
-
 export interface Cancel_article_scheduleParams {
     article_id: number;
 }
-
 export interface Suggest_tagsParams {
     query?: string;
 }
-
 export interface Activate_themeParams {
     theme_id: number;
 }
-
 export interface Preview_themeParams {
     theme_id: number;
 }
-
 export interface Update_theme_settingsParams {
     theme_id: number;
 }
-
 export interface Uninstall_themeParams {
     theme_id: number;
 }
-
 export interface Public_media_thumbnailParams {
     data: string;
 }
-
 export interface Upload_coverParams {
     current_user_obj?: string;
 }
-
 export interface Api_user_avatarParams {
     user_id?: number;
 }
-
 export interface Api_user_bioParams {
     user_id: number;
 }
-
 export interface Api_user_profile_endpointParams {
     user_id: number;
 }
-
 export interface Username_existsParams {
     username: string;
 }
