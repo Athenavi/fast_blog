@@ -5801,3 +5801,410 @@ models:
       - name: idx_sso_provider_site
         columns: [ site_id ]
         comment: "站点索引"
+
+  PaymentGateway:
+    description: 支付网关配置模型
+    properties:
+      id:
+        type: bigint
+        description: 支付网关 ID
+      name:
+        type: string
+        maxLength: 100
+        description: 支付网关名称
+      provider:
+        type: string
+        maxLength: 50
+        description: 提供商类型 (stripe, paypal, alipay, wechat, crypto)
+      config_data:
+        type: text
+        nullable: true
+        description: 配置数据 (JSON格式)
+      is_active:
+        type: boolean
+        default: false
+        description: 是否激活
+      supported_currencies:
+        type: string
+        maxLength: 255
+        default: USD,CNY
+        description: 支持的货币列表 (逗号分隔)
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    orm: true
+    table: payment_gateways
+    indexes:
+      - name: idx_payment_gateway_provider
+        columns: [ provider ]
+        comment: "提供商索引"
+      - name: idx_payment_gateway_active
+        columns: [ is_active ]
+        comment: "激活状态索引"
+
+  PaymentTransaction:
+    description: 支付交易记录模型
+    properties:
+      id:
+        type: bigint
+        description: 交易 ID
+      user:
+        type: bigint
+        description: 用户
+        foreignKey: User
+      order_id:
+        type: string
+        maxLength: 100
+        description: 订单ID
+      gateway:
+        type: bigint
+        description: 支付网关
+        foreignKey: PaymentGateway
+      amount:
+        type: number
+        description: 金额
+      currency:
+        type: string
+        maxLength: 3
+        default: USD
+        description: 货币类型
+      status:
+        type: string
+        maxLength: 20
+        enum:
+          - pending
+          - completed
+          - failed
+          - refunded
+          - cancelled
+        default: pending
+        description: 交易状态
+      transaction_id:
+        type: string
+        maxLength: 100
+        nullable: true
+        description: 第三方支付交易ID
+      payment_method:
+        type: string
+        maxLength: 50
+        nullable: true
+        description: 支付方式
+      metadata:
+        type: text
+        nullable: true
+        description: 附加元数据 (JSON格式)
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    orm: true
+    table: payment_transactions
+    indexes:
+      - name: idx_payment_transaction_user
+        columns: [ user ]
+        comment: "用户交易索引"
+      - name: idx_payment_transaction_order
+        columns: [ order_id ]
+        comment: "订单索引"
+      - name: idx_payment_transaction_status
+        columns: [ status ]
+        comment: "状态索引"
+      - name: idx_payment_transaction_created
+        columns: [ created_at ]
+        order: DESC
+        comment: "创建时间索引"
+
+  CryptoPayment:
+    description: 加密货币支付模型
+    properties:
+      id:
+        type: bigint
+        description: 加密支付 ID
+      transaction:
+        type: bigint
+        description: 关联的交易记录
+        foreignKey: PaymentTransaction
+      wallet_address:
+        type: string
+        maxLength: 255
+        description: 钱包地址
+      blockchain:
+        type: string
+        maxLength: 50
+        description: 区块链网络 (ethereum, bitcoin, etc.)
+      token_symbol:
+        type: string
+        maxLength: 10
+        description: 代币符号 (ETH, BTC, USDT, etc.)
+      tx_hash:
+        type: string
+        maxLength: 255
+        nullable: true
+        description: 区块链交易哈希
+      confirmations:
+        type: integer
+        default: 0
+        description: 确认数
+      required_confirmations:
+        type: integer
+        default: 6
+        description: 所需确认数
+      exchange_rate:
+        type: number
+        nullable: true
+        description: 兑换汇率
+      crypto_amount:
+        type: number
+        nullable: true
+        description: 加密货币金额
+      status:
+        type: string
+        maxLength: 20
+        enum:
+          - waiting_payment
+          - detecting
+          - confirmed
+          - completed
+          - failed
+          - expired
+        default: waiting_payment
+        description: 支付状态
+      expires_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: 支付过期时间
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    orm: true
+    table: crypto_payments
+    indexes:
+      - name: idx_crypto_payment_transaction
+        columns: [ transaction ]
+        comment: "交易关联索引"
+      - name: idx_crypto_payment_wallet
+        columns: [ wallet_address ]
+        comment: "钱包地址索引"
+      - name: idx_crypto_payment_tx_hash
+        columns: [ tx_hash ]
+        unique: true
+        nullable: true
+        comment: "交易哈希唯一索引"
+      - name: idx_crypto_payment_status
+        columns: [ status ]
+        comment: "状态索引"
+
+  TaxConfig:
+    description: 税务配置模型
+    properties:
+      id:
+        type: bigint
+        description: 税务配置 ID
+      country:
+        type: string
+        maxLength: 2
+        description: 国家代码 (ISO 3166-1 alpha-2)
+      region:
+        type: string
+        maxLength: 100
+        nullable: true
+        description: 地区/州/省
+      tax_type:
+        type: string
+        maxLength: 50
+        description: 税种类型 (VAT, GST, Sales Tax, etc.)
+      rate:
+        type: number
+        description: 税率 (百分比)
+      description:
+        type: string
+        maxLength: 255
+        nullable: true
+        description: 描述
+      is_active:
+        type: boolean
+        default: true
+        description: 是否激活
+      effective_from:
+        type: string
+        format: date-time
+        description: 生效日期
+      effective_to:
+        type: string
+        format: date-time
+        nullable: true
+        description: 失效日期
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    orm: true
+    table: tax_configs
+    indexes:
+      - name: idx_tax_config_country
+        columns: [ country ]
+        comment: "国家索引"
+      - name: idx_tax_config_region
+        columns: [ region ]
+        comment: "地区索引"
+      - name: idx_tax_config_active
+        columns: [ is_active ]
+        comment: "激活状态索引"
+      - name: idx_tax_config_effective_dates
+        columns: [ effective_from, effective_to ]
+        comment: "生效日期索引"
+
+  Order:
+    description: 订单模型
+    properties:
+      id:
+        type: bigint
+        description: 订单 ID
+      user:
+        type: bigint
+        description: 用户
+        foreignKey: User
+      order_number:
+        type: string
+        maxLength: 50
+        unique: true
+        description: 订单编号
+      status:
+        type: string
+        maxLength: 20
+        enum:
+          - pending
+          - processing
+          - completed
+          - cancelled
+          - refunded
+        default: pending
+        description: 订单状态
+      total_amount:
+        type: number
+        description: 总金额
+      currency:
+        type: string
+        maxLength: 3
+        default: USD
+        description: 货币类型
+      tax_amount:
+        type: number
+        default: 0
+        description: 税额
+      shipping_address:
+        type: text
+        nullable: true
+        description: 收货地址 (JSON格式)
+      billing_address:
+        type: text
+        nullable: true
+        description: 账单地址 (JSON格式)
+      notes:
+        type: text
+        nullable: true
+        description: 订单备注
+      payment_gateway:
+        type: bigint
+        nullable: true
+        description: 支付网关
+        foreignKey: PaymentGateway
+      paid_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: 支付完成时间
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    orm: true
+    table: orders
+    indexes:
+      - name: idx_order_user
+        columns: [ user ]
+        comment: "用户订单索引"
+      - name: idx_order_number
+        columns: [ order_number ]
+        unique: true
+        comment: "订单号唯一索引"
+      - name: idx_order_status
+        columns: [ status ]
+        comment: "状态索引"
+      - name: idx_order_created
+        columns: [ created_at ]
+        order: DESC
+        comment: "创建时间索引"
+
+  OrderItem:
+    description: 订单项模型
+    properties:
+      id:
+        type: bigint
+        description: 订单项 ID
+      order:
+        type: bigint
+        description: 订单
+        foreignKey: Order
+      product_id:
+        type: bigint
+        nullable: true
+        description: 产品ID
+      product_name:
+        type: string
+        maxLength: 255
+        description: 产品名称
+      quantity:
+        type: integer
+        default: 1
+        description: 数量
+      unit_price:
+        type: number
+        description: 单价
+      total_price:
+        type: number
+        description: 总价
+      metadata:
+        type: text
+        nullable: true
+        description: 附加信息 (JSON格式)
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    orm: true
+    table: order_items
+    indexes:
+      - name: idx_order_item_order
+        columns: [ order ]
+        comment: "订单索引"
+      - name: idx_order_item_product
+        columns: [ product_id ]
+        comment: "产品索引"

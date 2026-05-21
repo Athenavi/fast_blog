@@ -2,6 +2,7 @@ from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
 
+
 from .user import User
 from .article import Article
 from .category import Category
@@ -94,6 +95,10 @@ from .email_service_config import EmailServiceConfig
 from .saml_config import SAMLConfig
 from .ldap_config import LDAPConfig
 from .sso_provider import SSOProvider
+from .payment_gateway import PaymentGateway
+from .payment_transaction import PaymentTransaction
+from .crypto_payment import CryptoPayment
+from .tax_config import TaxConfig
 
 # ==================== 自动生成的导入 - 由 routes.yaml 管理 ====================
 # 此部分由脚本自动生成 - 请勿手动修改
@@ -191,6 +196,10 @@ __all__ = [
     'EmailServiceConfig',
     'SAMLConfig',
     'LDAPConfig',
-    'SSOProvider'
+    'SSOProvider',
+    'PaymentGateway',
+    'PaymentTransaction',
+    'CryptoPayment',
+    'TaxConfig'
 ]
 # ============================================================================

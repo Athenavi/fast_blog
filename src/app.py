@@ -290,6 +290,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     if is_installed:
         await safe_run_async("数据库管理器", _init_database)
 
+    # 2.5 懒加载系统初始化
+    try:
+        from src.utils.lazy_loader import init_lazy_loading
+        safe_run("懒加载系统", init_lazy_loading)
+    except ImportError as e:
+        print(f"[懒加载系统] ⚠️ 跳过: {e}")
+
     # 3. 扩展、调度器
     try:
         from src.extensions import init_extensions
@@ -461,6 +468,14 @@ def register_middleware(app: FastAPI):
 
     app.add_middleware(APIVersionMiddleware)
     print("[API Version] 已添加版本响应头中间件")
+
+    # 性能监控中间件
+    try:
+        from src.middleware.performance_monitor import PerformanceMonitoringMiddleware
+        app.add_middleware(PerformanceMonitoringMiddleware)
+        print("[Performance Monitor] 已添加性能监控中间件")
+    except ImportError as e:
+        print(f"[Performance Monitor] 加载失败: {e}")
 
     # 多站点
     try:

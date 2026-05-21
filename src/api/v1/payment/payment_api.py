@@ -8,6 +8,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Body
 
+from shared.services.payment import unified_payment_service
 from shared.services.payment.payment_gateway import (
     payment_manager,
     PaymentMethod,
@@ -344,3 +345,550 @@ async def get_payment_guide(current_user=Depends(jwt_required)):
         success=True,
         data=guide
     )
+
+
+# ==================== 加密货币支付 API ====================
+
+@router.post("/crypto/create")
+async def create_crypto_payment(
+        order_id: str = Body(..., description="订单ID"),
+        blockchain: str = Body(..., description="区块链网络 (ethereum, bitcoin, polygon, bsc, solana)"),
+        token_symbol: str = Body(..., description="代币符号 (ETH, BTC, USDT, USDC)"),
+        current_user=Depends(jwt_required)
+):
+    """
+    创建加密货币支付
+    
+    生成加密货币支付地址和二维码
+    """
+    try:
+        result = await unified_payment_service.create_crypto_payment(
+            order_id=order_id,
+            blockchain=blockchain,
+            token_symbol=token_symbol,
+        )
+
+        return ApiResponse(
+            success=result.get("success", False),
+            data=result,
+        )
+    except Exception as e:
+        return ApiResponse(
+            success=False,
+            error=str(e),
+        )
+
+
+@router.get("/crypto/status/{order_id}")
+async def check_crypto_payment_status(
+        order_id: str,
+        current_user=Depends(jwt_required)
+):
+    """
+    检查加密货币支付状态
+    
+    查询支付确认数和状态
+    """
+    try:
+        result = await unified_payment_service.check_crypto_payment_status(order_id)
+
+        return ApiResponse(
+            success=result.get("success", False),
+            data=result,
+        )
+    except Exception as e:
+        return ApiResponse(
+            success=False,
+            error=str(e),
+        )
+
+
+# ==================== x402微支付 API ====================
+
+@router.post("/x402/channel/create")
+async def create_x402_channel(
+        sender_address: str = Body(..., description="发送方钱包地址"),
+        receiver_address: str = Body(..., description="接收方钱包地址"),
+        amount: float = Body(..., description="金额"),
+        blockchain: str = Body(..., description="区块链网络"),
+        current_user=Depends(jwt_required)
+):
+    """
+    创建x402支付通道
+    
+    用于微支付场景
+    """
+    try:
+        result = await unified_payment_service.create_payment_channel(
+            sender_address=sender_address,
+            receiver_address=receiver_address,
+            amount=amount,
+            blockchain=blockchain,
+        )
+
+        return ApiResponse(
+            success=result.get("success", False),
+            data=result,
+        )
+    except Exception as e:
+        return ApiResponse(
+            success=False,
+            error=str(e),
+        )
+
+
+@router.post("/x402/payment")
+async def process_x402_payment(
+        channel_id: str = Body(..., description="通道ID"),
+        amount: float = Body(..., description="支付金额"),
+        signature: str = Body(..., description="签名"),
+        current_user=Depends(jwt_required)
+):
+    """
+    处理x402微支付
+    
+    通过支付通道进行微支付
+    """
+    try:
+        result = await unified_payment_service.process_micro_payment(
+            channel_id=channel_id,
+            amount=amount,
+            signature=signature,
+        )
+
+        return ApiResponse(
+            success=result.get("success", False),
+            data=result,
+        )
+    except Exception as e:
+        return ApiResponse(
+            success=False,
+            error=str(e),
+        )
+
+
+# ==================== NFT验证 API ====================
+
+@router.post("/nft/verify")
+async def verify_nft_ownership(
+        wallet_address: str = Body(..., description="钱包地址"),
+        contract_address: str = Body(..., description="NFT合约地址"),
+        token_id: int = Body(None, description="Token ID（可选）"),
+        current_user=Depends(jwt_required)
+):
+    """
+    验证NFT所有权
+    
+    用于NFT门票和内容解锁
+    """
+    try:
+        result = await unified_payment_service.verify_nft_ownership(
+            wallet_address=wallet_address,
+            contract_address=contract_address,
+            token_id=token_id,
+        )
+
+        return ApiResponse(
+            success=result.get("success", False),
+            data=result,
+        )
+    except Exception as e:
+        return ApiResponse(
+            success=False,
+            error=str(e),
+        )
+
+
+# ==================== 税务计算 API ====================
+
+@router.post("/tax/calculate")
+async def calculate_tax(
+        amount: float = Body(..., description="金额"),
+        country_code: str = Body(..., description="国家代码"),
+        region_code: str = Body(None, description="地区代码"),
+        has_vat_number: bool = Body(False, description="是否有VAT号"),
+        vat_number: str = Body(None, description="VAT号"),
+        current_user=Depends(jwt_required)
+):
+    """
+    计算税务
+    
+    根据地区和税种计算税额
+    """
+    try:
+        result = unified_payment_service.calculate_tax(
+            amount=amount,
+            country_code=country_code,
+            region_code=region_code,
+            has_vat_number=has_vat_number,
+            vat_number=vat_number,
+        )
+
+        return ApiResponse(
+            success=True,
+            data=result,
+        )
+    except Exception as e:
+        return ApiResponse(
+            success=False,
+            error=str(e),
+        )
+
+
+@router.get("/compliance/check")
+async def check_compliance(current_user=Depends(jwt_required)):
+    """
+    检查合规性
+    
+    检查GDPR和PCI DSS合规状态
+    """
+    try:
+        result = unified_payment_service.check_compliance()
+
+        return ApiResponse(
+            success=True,
+            data=result,
+        )
+    except Exception as e:
+        return ApiResponse(
+            success=False,
+            error=str(e),
+        )
+
+
+@router.get("/privacy-policy")
+async def get_privacy_policy(current_user=Depends(jwt_required)):
+    """
+    获取隐私政策模板
+    """
+    try:
+        company_info = {
+            "name": "FastBlog",
+            "contact_email": "privacy@fastblog.com",
+            "address": "123 Main St, City, Country",
+        }
+
+        policy = unified_payment_service.generate_privacy_policy(company_info)
+
+        return ApiResponse(
+            success=True,
+            data={"policy": policy},
+        )
+    except Exception as e:
+        return ApiResponse(
+            success=False,
+            error=str(e),
+        )
+
+
+@router.get("/cookie-consent")
+async def get_cookie_consent(current_user=Depends(jwt_required)):
+    """
+    获取Cookie同意弹窗HTML
+    """
+    try:
+        html = unified_payment_service.get_cookie_consent_html()
+
+        return ApiResponse(
+            success=True,
+            data={"html": html},
+        )
+    except Exception as e:
+        return ApiResponse(
+            success=False,
+            error=str(e),
+        )
+
+
+# ==================== 购物车 API ====================
+
+@router.post("/cart/add")
+async def add_to_cart(
+        product_id: int = Body(..., description="产品ID"),
+        product_name: str = Body(..., description="产品名称"),
+        unit_price: float = Body(..., description="单价"),
+        quantity: int = Body(1, description="数量"),
+        current_user=Depends(jwt_required)
+):
+    """
+    添加商品到购物车
+    """
+    try:
+        result = unified_payment_service.add_to_cart(
+            user_id=current_user.id,
+            product_id=product_id,
+            product_name=product_name,
+            unit_price=unit_price,
+            quantity=quantity,
+        )
+
+        return ApiResponse(
+            success=result.get("success", False),
+            data=result,
+        )
+    except Exception as e:
+        return ApiResponse(
+            success=False,
+            error=str(e),
+        )
+
+
+@router.delete("/cart/remove/{product_id}")
+async def remove_from_cart(
+        product_id: int,
+        current_user=Depends(jwt_required)
+):
+    """
+    从购物车移除商品
+    """
+    try:
+        result = unified_payment_service.remove_from_cart(
+            user_id=current_user.id,
+            product_id=product_id,
+        )
+
+        return ApiResponse(
+            success=result.get("success", False),
+            data=result,
+        )
+    except Exception as e:
+        return ApiResponse(
+            success=False,
+            error=str(e),
+        )
+
+
+@router.put("/cart/update")
+async def update_cart_quantity(
+        product_id: int = Body(..., description="产品ID"),
+        quantity: int = Body(..., description="数量"),
+        current_user=Depends(jwt_required)
+):
+    """
+    更新购物车商品数量
+    """
+    try:
+        result = unified_payment_service.update_cart_quantity(
+            user_id=current_user.id,
+            product_id=product_id,
+            quantity=quantity,
+        )
+
+        return ApiResponse(
+            success=result.get("success", False),
+            data=result,
+        )
+    except Exception as e:
+        return ApiResponse(
+            success=False,
+            error=str(e),
+        )
+
+
+@router.get("/cart")
+async def get_cart(current_user=Depends(jwt_required)):
+    """
+    获取购物车
+    """
+    try:
+        result = unified_payment_service.get_cart(current_user.id)
+
+        return ApiResponse(
+            success=result.get("success", False),
+            data=result,
+        )
+    except Exception as e:
+        return ApiResponse(
+            success=False,
+            error=str(e),
+        )
+
+
+@router.post("/cart/checkout")
+async def checkout_from_cart(
+        currency: str = Body("USD", description="货币类型"),
+        shipping_address: dict = Body(None, description="收货地址"),
+        billing_address: dict = Body(None, description="账单地址"),
+        notes: str = Body("", description="备注"),
+        current_user=Depends(jwt_required)
+):
+    """
+    从购物车结算
+    
+    创建订单并清空购物车
+    """
+    try:
+        result = unified_payment_service.checkout_from_cart(
+            user_id=current_user.id,
+            currency=currency,
+            shipping_address=shipping_address,
+            billing_address=billing_address,
+            notes=notes,
+        )
+
+        return ApiResponse(
+            success=result.get("success", False),
+            data=result,
+        )
+    except Exception as e:
+        return ApiResponse(
+            success=False,
+            error=str(e),
+        )
+
+
+# ==================== 订单管理 API ====================
+
+@router.post("/order/create")
+async def create_order(
+        items: list = Body(..., description="商品列表"),
+        currency: str = Body("USD", description="货币类型"),
+        shipping_address: dict = Body(None, description="收货地址"),
+        billing_address: dict = Body(None, description="账单地址"),
+        notes: str = Body("", description="备注"),
+        current_user=Depends(jwt_required)
+):
+    """
+    创建订单
+    
+    直接创建订单（不使用购物车）
+    """
+    try:
+        result = unified_payment_service.create_order(
+            user_id=current_user.id,
+            items=items,
+            currency=currency,
+            shipping_address=shipping_address,
+            billing_address=billing_address,
+            notes=notes,
+        )
+
+        return ApiResponse(
+            success=result.get("success", False),
+            data=result,
+        )
+    except Exception as e:
+        return ApiResponse(
+            success=False,
+            error=str(e),
+        )
+
+
+@router.get("/order/{order_id}")
+async def get_order_detail(
+        order_id: str,
+        current_user=Depends(jwt_required)
+):
+    """
+    获取订单详情
+    """
+    try:
+        result = unified_payment_service.get_order(order_id)
+
+        return ApiResponse(
+            success=result.get("success", False),
+            data=result,
+        )
+    except Exception as e:
+        return ApiResponse(
+            success=False,
+            error=str(e),
+        )
+
+
+@router.get("/orders")
+async def get_user_orders(
+        status: str = Body(None, description="订单状态过滤"),
+        current_user=Depends(jwt_required)
+):
+    """
+    获取用户订单列表
+    """
+    try:
+        result = unified_payment_service.get_user_orders(
+            user_id=current_user.id,
+            status=status,
+        )
+
+        return ApiResponse(
+            success=result.get("success", False),
+            data=result,
+        )
+    except Exception as e:
+        return ApiResponse(
+            success=False,
+            error=str(e),
+        )
+
+
+@router.post("/order/{order_id}/cancel")
+async def cancel_order(
+        order_id: str,
+        reason: str = Body("", description="取消原因"),
+        current_user=Depends(jwt_required)
+):
+    """
+    取消订单
+    """
+    try:
+        result = unified_payment_service.cancel_order(
+            order_id=order_id,
+            reason=reason,
+        )
+
+        return ApiResponse(
+            success=result.get("success", False),
+            data=result,
+        )
+    except Exception as e:
+        return ApiResponse(
+            success=False,
+            error=str(e),
+        )
+
+
+@router.post("/order/{order_id}/refund")
+async def refund_order(
+        order_id: str,
+        amount: float = Body(None, description="退款金额（可选，默认全额）"),
+        current_user=Depends(jwt_required)
+):
+    """
+    退款
+    """
+    try:
+        result = unified_payment_service.refund_order(
+            order_id=order_id,
+            amount=amount,
+        )
+
+        return ApiResponse(
+            success=result.get("success", False),
+            data=result,
+        )
+    except Exception as e:
+        return ApiResponse(
+            success=False,
+            error=str(e),
+        )
+
+
+@router.get("/orders/statistics")
+async def get_order_statistics(current_user=Depends(jwt_required)):
+    """
+    获取订单统计信息
+    """
+    try:
+        result = unified_payment_service.get_order_statistics(
+            user_id=current_user.id,
+        )
+
+        return ApiResponse(
+            success=result.get("success", False),
+            data=result,
+        )
+    except Exception as e:
+        return ApiResponse(
+            success=False,
+            error=str(e),
+        )

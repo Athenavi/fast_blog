@@ -1,13 +1,12 @@
 """
 SQLAlchemy 模型定义 - UploadTask
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-12 14:56:00
+生成时间：2026-05-21 08:12:22
 """
 
+from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime
 import uuid
 from datetime import datetime
-
-from sqlalchemy import Column, BigInteger, String, DateTime
 
 from . import Base  # 使用统一的 Base
 
