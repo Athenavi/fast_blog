@@ -19,7 +19,7 @@ router = APIRouter(tags=["articles"])
 
 # 按顺序包含子路由
 router.include_router(article_password_router, prefix="")  # - 文章密码
-router.include_router(article_revisions_router, prefix="/revisions")  # /revisions/* - 文章修订
+router.include_router(article_revisions_router, prefix="")  # /revisions/* - 文章修订
 
 router.include_router(article_analytics_router, prefix="/analytics")  # /analytics/*
 router.include_router(article_annotations_router, prefix="/annotations")  # /article-annotations/*

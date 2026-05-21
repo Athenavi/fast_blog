@@ -188,18 +188,20 @@ async def list_backups(
         )
 
 
-@router.post("/restore/database", summary="恢复数据库")
-async def restore_database(
+@router.post("/restore", summary="恢复备份")
+async def restore_backup(
         backup_file: str,
+        backup_type: str = 'database',
         current_user: User = Depends(jwt_required)
 ):
     """
-    从备份文件恢复数据库
+    从备份文件恢复
     
-    ⚠️ 警告: 此操作会覆盖当前数据库，请谨慎使用！
+    ⚠️ 警告: 此操作会覆盖当前数据，请谨慎使用！
     
     参数:
     - backup_file: 备份文件路径或文件名
+    - backup_type: 恢复类型 ('database' 或 'files')
     """
     # 检查权限
     if not current_user.is_admin():
@@ -209,55 +211,23 @@ async def restore_database(
         )
 
     try:
-        result = await backup_service.restore_database(backup_file)
-
-        if result['success']:
-            return ApiResponse(
-                success=True,
-                data=result.get('metadata', {}),
-                message="数据库恢复成功"
-            )
+        if backup_type == 'database':
+            result = await backup_service.restore_database(backup_file)
+            message = "数据库恢复成功"
+        elif backup_type == 'files':
+            result = await backup_service.restore_files(backup_file)
+            message = "文件恢复成功"
         else:
             return ApiResponse(
                 success=False,
-                error=result.get('error', '恢复失败')
+                error=f"不支持的恢复类型: {backup_type}"
             )
-
-    except Exception as e:
-        return ApiResponse(
-            success=False,
-            error=f"恢复失败: {str(e)}"
-        )
-
-
-@router.post("/restore/files", summary="恢复文件")
-async def restore_files(
-        backup_file: str,
-        current_user: User = Depends(jwt_required)
-):
-    """
-    从备份文件恢复文件
-    
-    ⚠️ 警告: 此操作会覆盖当前文件，请谨慎使用！
-    
-    参数:
-    - backup_file: 备份文件路径或文件名
-    """
-    # 检查权限
-    if not current_user.is_admin():
-        return ApiResponse(
-            success=False,
-            error="需要管理员权限"
-        )
-
-    try:
-        result = await backup_service.restore_files(backup_file)
 
         if result['success']:
             return ApiResponse(
                 success=True,
                 data=result.get('metadata', {}),
-                message="文件恢复成功"
+                message=message
             )
         else:
             return ApiResponse(

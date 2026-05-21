@@ -194,7 +194,7 @@ async def list_article_revisions(
         return ApiResponse(success=False, error=str(e))
 
 
-@router.get("/compare")
+@router.get("/revisions/compare")
 async def compare_article_revisions(
         revision1_id: int = Query(..., description="第一个修订ID"),
         revision2_id: int = Query(..., description="第二个修订ID"),

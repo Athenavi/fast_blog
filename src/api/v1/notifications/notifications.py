@@ -174,20 +174,3 @@ async def get_notifications_api(
         print(f"Error in get_notifications_api: {str(e)}")
         print(traceback.format_exc())
         return JSONResponse({"success": False, "error": str(e)}, status_code=500)
-
-
-@router.post("/read_all")
-async def mark_all_as_read_api_new(
-        current_user: User = Depends(jwt_required)
-):
-    """
-    标记所有通知为已读API
-    """
-    try:
-        result = await mark_all_notifications_as_read(current_user.id)
-        return {"success": True, "data": {"updated_count": result}}
-    except Exception as e:
-        import traceback
-        print(f"Error in mark_all_as_read_api_new: {str(e)}")
-        print(traceback.format_exc())
-        return JSONResponse({"success": False, "error": str(e)}, status_code=500)

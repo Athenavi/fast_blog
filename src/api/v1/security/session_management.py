@@ -181,7 +181,7 @@ async def get_session_stats(
 
 # 管理员接口
 
-@router.get("/admin/user-sessions/{user_id}", summary="查看用户会话(管理员)")
+@router.get("/user-sessions/{user_id}", summary="查看用户会话(管理员)")
 async def admin_get_user_sessions(
         user_id: int,
         current_user: UserModel = Depends(admin_required_api)
@@ -208,58 +208,3 @@ async def admin_get_user_sessions(
         )
     except Exception as e:
         return ApiResponse(success=False, error=f"获取会话失败: {str(e)}")
-
-
-@router.post("/admin/revoke", summary="强制注销用户会话(管理员)")
-async def admin_revoke_session(
-        user_id: int = Body(..., description="目标用户ID"),
-        session_id: str = Body(..., description="会话ID"),
-        current_user: UserModel = Depends(admin_required_api)
-):
-    """
-    管理员强制注销指定用户的会话
-    
-    Args:
-        user_id: 目标用户ID
-        session_id: 会话ID
-        
-    Returns:
-        操作结果
-    """
-    try:
-        success = session_management_service.revoke_session(user_id, session_id)
-
-        if success:
-            return ApiResponse(
-                success=True,
-                message=f'已注销用户 {user_id} 的会话',
-                data={
-                    'user_id': user_id,
-                    'session_id': session_id,
-                }
-            )
-        else:
-            return ApiResponse(success=False, error='会话不存在或已失效')
-    except Exception as e:
-        return ApiResponse(success=False, error=f"注销失败: {str(e)}")
-
-
-@router.get("/admin/stats", summary="获取系统会话统计(管理员)")
-async def admin_get_session_stats(
-        current_user: UserModel = Depends(admin_required_api)
-):
-    """
-    获取系统整体会话统计
-    
-    Returns:
-        统计数据
-    """
-    try:
-        stats = session_management_service.get_session_stats()
-
-        return ApiResponse(
-            success=True,
-            data=stats
-        )
-    except Exception as e:
-        return ApiResponse(success=False, error=f"获取统计失败: {str(e)}")

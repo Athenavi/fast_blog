@@ -97,16 +97,6 @@ ROUTE_REGISTRY_V2 = [
     # ==================== 用户管理（V2 聚合路由器）====================
     # V2 Users 模块采用包级别聚合模式，所有子模块通过 __init__.py 统一注册
     ("src.api.v2.users", "/api/v2", ["users-v2"], True),
-    # user_management 保留管理员功能，路径为 /api/v2/admin/users
-    ("src.api.v1.users.user_management", "/api/v2/admin/users", ["user-management"], False),
-    # user_settings 包含头像上传等功能
-    ("src.api.v1.users.user_settings", "/api/v2/users/settings", ["user-settings"], False),
-
-    # ==================== 会员与积分（已统一，VIP功能已合并到membership）====================
-    ("src.api.v1.advanced_features.membership", "/api/v2/membership", ["membership"], True),
-    ("src.api.v1.advanced_features.points_system", "/api/v2/ext/points", ["points-system"], False),
-    ("src.api.v1.advanced_features.tipping_system", "/api/v2/ext/tipping", ["tipping-system"], False),
-
     # ==================== 性能监控与优化（V2 聚合路由器）====================
     # V2 Performance 模块采用包级别聚合模式，所有子模块通过 __init__.py 统一注册
     ("src.api.v2.performance", "/api/v2/performance", ["performance-v2"], True),

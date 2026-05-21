@@ -9,8 +9,8 @@ from typing import List, Optional, Dict, Any
 from fastapi import APIRouter, Depends, Query, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.api.v1.core.responses import ApiResponse
 from shared.services.widgets.widget_manager import widget_service
+from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import admin_required as admin_required_api
 from src.extensions import get_async_db_session as get_async_db
 
@@ -366,7 +366,7 @@ async def batch_reorder_widgets(
         return ApiResponse(success=False, error=f"批量排序失败: {str(e)}")
 
 
-@router.get("/widgets/render/{widget_id}")
+@router.get("/render/{widget_id}")
 async def render_widget(widget_id: int, db: AsyncSession = Depends(get_async_db)):
     """渲染小部件为HTML"""
     try:
@@ -413,7 +413,7 @@ async def render_widget(widget_id: int, db: AsyncSession = Depends(get_async_db)
 
 # ==================== Widget 数据获取 API ====================
 
-@router.get("/widgets/data/recent-posts")
+@router.get("/data/recent-posts")
 async def get_recent_posts_data(
         count: int = Query(5, description="文章数量"),
         show_thumbnail: bool = Query(True, description="是否显示缩略图"),
@@ -439,7 +439,7 @@ async def get_recent_posts_data(
         return ApiResponse(success=False, error=f"获取失败: {str(e)}")
 
 
-@router.get("/widgets/data/recent-comments")
+@router.get("/data/recent-comments")
 async def get_recent_comments_data(
         count: int = Query(5, description="评论数量"),
         show_avatar: bool = Query(True, description="是否显示头像"),
@@ -463,7 +463,7 @@ async def get_recent_comments_data(
         return ApiResponse(success=False, error=f"获取失败: {str(e)}")
 
 
-@router.get("/widgets/data/tags-cloud")
+@router.get("/data/tags-cloud")
 async def get_tags_cloud_data(
         count: int = Query(20, description="标签数量"),
         display_type: str = Query('cloud', description="显示类型 (cloud 或 list)"),
@@ -487,7 +487,7 @@ async def get_tags_cloud_data(
         return ApiResponse(success=False, error=f"获取失败: {str(e)}")
 
 
-@router.get("/widgets/data/categories")
+@router.get("/data/categories")
 async def get_categories_data(
         show_count: bool = Query(True, description="是否显示文章数"),
         hierarchical: bool = Query(True, description="是否层级显示"),
@@ -511,7 +511,7 @@ async def get_categories_data(
         return ApiResponse(success=False, error=f"获取失败: {str(e)}")
 
 
-@router.get("/widgets/data/archives")
+@router.get("/data/archives")
 async def get_archives_data(
         archive_type: str = Query('monthly', description="归档类型 (monthly 或 yearly)"),
         show_count: bool = Query(True, description="是否显示文章数"),
@@ -535,7 +535,7 @@ async def get_archives_data(
         return ApiResponse(success=False, error=f"获取失败: {str(e)}")
 
 
-@router.get("/widgets/data/popular-posts")
+@router.get("/data/popular-posts")
 async def get_popular_posts_data(
         count: int = Query(5, description="文章数量"),
         period: str = Query('week', description="时间周期 (day, week, month, all)"),
@@ -559,7 +559,7 @@ async def get_popular_posts_data(
         return ApiResponse(success=False, error=f"获取失败: {str(e)}")
 
 
-@router.get("/widgets/data/menu")
+@router.get("/data/menu")
 async def get_menu_data(
         slug: str = Query('main-menu', description="菜单slug"),
         db: AsyncSession = Depends(get_async_db)

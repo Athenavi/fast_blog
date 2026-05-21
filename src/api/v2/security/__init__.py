@@ -21,7 +21,7 @@ from src.api.v2.security.anomaly_detection import router as anomaly_detection_ro
 router = APIRouter(tags=["security"])
 
 # 按顺序包含子路由
-router.include_router(anomaly_detection_router, prefix="/sys")  # /sys/* - 异常检测
+router.include_router(anomaly_detection_router, prefix="")  # /* - 异常检测
 router.include_router(sensitive_words_router, prefix="/sensitive-words")  # /sensitive-words/*
 router.include_router(content_approval_router, prefix="/content-approval")  # /content-approval/*
 router.include_router(session_management_router, prefix="/admin/session")  # /admin/session/*

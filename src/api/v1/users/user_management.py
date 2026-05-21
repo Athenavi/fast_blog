@@ -6,81 +6,21 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 import jwt
-from fastapi import APIRouter, Depends, HTTPException, Request, status
+from fastapi import Depends, HTTPException, Request, status
 from jwt.exceptions import InvalidTokenError
-from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 # SQLAlchemy 模型与服务（保持不变）
 from shared.models.user import User as UserModel
-from src.api.v1.core.responses import ApiResponse
-from src.api.v1.users.user_settings import change_profiles_back
 from src.extensions import get_async_db_session as get_async_db
-from src.setting import app_config, settings
+from src.setting import settings
 from src.utils.token_blacklist import token_blacklist
-
-router = APIRouter(tags=["user-management"])
-
-
-# ---------------------------------------------------------------------------
-# 请求模型
-# ---------------------------------------------------------------------------
-
-class LoginRequest(BaseModel):
-    """登录请求模型（支持 JSON）"""
-    username: Optional[str] = None
-    email: Optional[str] = None
-    password: str
-    remember_me: Optional[bool] = False
-
-
-class RegisterRequest(BaseModel):
-    """注册请求模型（支持 JSON）"""
-    username: str
-    email: str
-    password: str
 
 
 # ---------------------------------------------------------------------------
 # JWT 工具函数
 # ---------------------------------------------------------------------------
-
-async def authenticate_user_with_session(
-    username_or_email: str,
-    password: str,
-    db: AsyncSession,
-) -> Optional[UserModel]:
-    """
-    验证用户凭据（用户名/邮箱 + 密码）
-    
-    Args:
-        username_or_email: 用户名或邮箱
-        password: 明文密码
-        db: 数据库会话
-        
-    Returns:
-        验证成功返回用户对象，否则返回 None
-    """
-    from src.utils.security.password_validator import verify_password
-    
-    # 尝试通过用户名或邮箱查找用户
-    result = await db.execute(
-        select(UserModel).where(
-            (UserModel.username == username_or_email) | (UserModel.email == username_or_email)
-        )
-    )
-    user = result.scalar_one_or_none()
-    
-    if not user or not user.password:
-        return None
-
-    # 使用统一的密码验证函数（支持 Django PBKDF2 和 bcrypt）
-    if verify_password(password, user.password):
-        return user
-    
-    return None
-
 
 def create_jwt_token(
         subject: str,
@@ -124,7 +64,7 @@ def decode_jwt_token(token: str) -> dict:
                 detail="Token has been revoked",
                 headers={"WWW-Authenticate": "Bearer"},
             )
-        
+
         return payload
     except InvalidTokenError as e:
         raise HTTPException(
@@ -277,66 +217,3 @@ def _create_user_response(user):
 
 def _get_user_stats(articles_count: int = 0):
     return {"articles_count": articles_count, "followers_count": 0, "following_count": 0}
-
-
-# ---------------------------------------------------------------------------
-# 管理员用户管理 API
-# ---------------------------------------------------------------------------
-
-
-# ---------------------------------------------------------------------------
-# 设置与角色管理 API
-# ---------------------------------------------------------------------------
-
-@router.put("/setting/profiles", deprecated=True)
-async def update_setting_profiles(
-        request: Request,
-        current_user: UserModel = Depends(get_current_user),
-        db: AsyncSession = Depends(get_async_db),
-):
-    """
-    更新用户设置（头像等）
-    
-    ⚠️ 已废弃：请使用 /users/me/settings 或 /users/me/avatar 代替
-    管理员可以通过普通用户接口进行设置更新（需权限控制）
-    """
-    from src.extensions import cache
-    result = await change_profiles_back(
-        request=request,
-        user_id=current_user.id,
-        cache_instance=cache,
-        domain=app_config.domain,
-        db=db,
-    )
-    return result
-
-
-@router.put("/users/{user_id}/roles")
-async def assign_roles_to_user(
-        user_id: int,
-        request: Request,
-        current_user: UserModel = Depends(get_current_user),
-        db: AsyncSession = Depends(get_async_db),
-):
-    """管理员为用户分配角色"""
-    if not current_user.is_superuser:
-        raise HTTPException(status_code=403, detail="权限不足")
-
-    body = await request.json()
-    role_ids = body.get("role_ids", [])
-
-    user = await db.get(UserModel, user_id)
-    if not user:
-        return ApiResponse(success=False, error="用户不存在")
-
-    from shared.models.user_role import UserRole
-    # 清除原有角色
-    await db.execute(UserRole.__table__.delete().where(UserRole.user_id == user_id))
-    # 添加新角色
-    for rid in role_ids:
-        db.add(UserRole(user_id=user_id, role_id=rid, assigned_by=current_user.id, created_at=datetime.now()))
-    await db.commit()
-    return ApiResponse(success=True, message="角色分配成功")
-
-
-

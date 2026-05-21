@@ -63,7 +63,6 @@ async def get_feed_items(
 
 
 @router.get("/feed")
-@router.get("/feed/rss")
 @router.get("/rss")
 async def get_rss_feed(
         request: Request,
@@ -125,7 +124,6 @@ async def get_rss_feed(
     )
 
 
-@router.get("/feed/atom")
 @router.get("/atom")
 async def get_atom_feed(
         request: Request,

@@ -33,7 +33,7 @@ class AddMembersRequest(BaseModel):
     member_ids: List[int]
 
 
-@router.post("/create")
+@router.post("/")
 async def create_chat_group(
         request: CreateGroupRequest,
         current_user: User = Depends(jwt_required),
@@ -208,7 +208,7 @@ async def get_user_groups(
         return ApiResponse(success=False, error=str(e))
 
 
-@router.post("/{group_id}/add-members")
+@router.post("/{group_id}/members")
 async def add_group_members(
         group_id: int,
         request: AddMembersRequest,
@@ -304,10 +304,10 @@ async def add_group_members(
         return ApiResponse(success=False, error=str(e))
 
 
-@router.post("/{group_id}/remove-member")
+@router.delete("/{group_id}/members/{user_id}")
 async def remove_group_member(
         group_id: int,
-        user_id: int = Query(..., description="要移除的用户ID"),
+        user_id: int,
         current_user: User = Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):

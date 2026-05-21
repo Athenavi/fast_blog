@@ -70,7 +70,7 @@ class InvitationResponse(BaseModel):
     current_users: int
 
 
-@router.post("/create", response_model=InvitationResponse)
+@router.post("/", response_model=InvitationResponse)
 async def create_invitation(request: CreateInvitationRequest = Body(...),
                             current_user: dict = Depends(get_current_user)):
     """
