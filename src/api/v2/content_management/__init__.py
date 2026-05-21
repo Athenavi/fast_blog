@@ -25,6 +25,6 @@ router.include_router(menu_management_router, prefix="/admin/menu")  # /admin/me
 router.include_router(custom_block_patterns_router, prefix="/pattern")  # /pattern/*
 router.include_router(block_editor_router, prefix="/editor")  # /editor/* - 块编辑器
 router.include_router(custom_post_types_router, prefix="/post-types")  # /post-types/* - 自定义文章类型
-router.include_router(feed_router, prefix="/feed")  # /feed/* - RSS/Atom Feed
+router.include_router(feed_router, prefix="")  # RSS/Atom Feed
 router.include_router(shortcode_router, prefix="/shortcodes")  # /shortcodes/* - 短代码
 router.include_router(widgets_router, prefix="/widgets")  # /widgets/* - 小部件

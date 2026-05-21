@@ -104,8 +104,6 @@ ROUTE_REGISTRY_V2 = [
 
     # ==================== 会员与积分（已统一，VIP功能已合并到membership）====================
     ("src.api.v1.advanced_features.membership", "/api/v2/membership", ["membership"], True),
-    ("src.api.v1.membership.subscription_management_api", "/api/v2/membership/subscription",
-     ["subscription-management"], False),
     ("src.api.v1.advanced_features.points_system", "/api/v2/ext/points", ["points-system"], False),
     ("src.api.v1.advanced_features.tipping_system", "/api/v2/ext/tipping", ["tipping-system"], False),
 
@@ -134,7 +132,7 @@ ROUTE_REGISTRY_V2 = [
 
     # ==================== 翻译（V2 聚合路由器）====================
     # V2 Translation 模块采用包级别聚合模式，所有子模块通过 __init__.py 统一注册
-    ("src.api.v2.translation", "/api/v2/", ["translation-v2"], True),
+    ("src.api.v2.translation", "/api/v2", ["translation-v2"], True),
     # V1 translation 各子模块已废弃，功能已迁移到 V2 聚合路由器
 
     # ==================== 第三方集成（V2 聚合路由器）====================
@@ -170,8 +168,6 @@ ROUTE_REGISTRY_V2 = [
     # ==================== 其他系统模块（misc 模块已完全清理并删除）====================
     ("src.api.v1.analytics.site_analytics_api", "/api/v2/analytics/site", ["site-analytics"], False),
     ("src.api.v1.articles.anomaly_detection", "/api/v2/system/anomaly-detection", ["anomaly-detection"], False),
-    ("src.api.v1.dashboard.analytics", "/api/v2/dashboard/analytics", ["analytics"], False),
-    ("src.api.v1.dashboard.realtime_monitor", "/api/v2/dashboard/realtime", ["realtime-monitor"], False),
     # ==================== 社交（V2 聚合路由器）====================
     # V2 Social 模块采用包级别聚合模式，所有子模块通过 __init__.py 统一注册
     ("src.api.v2.social", "/api/v2/social", ["social-v2"], True)

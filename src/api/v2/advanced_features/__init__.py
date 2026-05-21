@@ -22,13 +22,13 @@ router = APIRouter(tags=["advanced-features"])
 
 # 按顺序包含子路由
 router.include_router(membership_router, prefix="/membership")  # /ext/membership/*
-router.include_router(edge_functions_router, prefix="/edge—func")  # /ext/edge—func/*
+router.include_router(edge_functions_router, prefix="/edge-func")  # /ext/edge-func/*
 router.include_router(achievement_badges_router, prefix="/badges")  # /ext/badges/*
 router.include_router(ai_recommendations_router, prefix="/ai-recommendations")  # /ext/ai-recommendations/*
 router.include_router(expert_certification_router, prefix="/expert-certification")  # /ext/expert-certification/*
 router.include_router(nft_router, prefix="/nft")  # /ext/nft/*
 router.include_router(personalized_feed_router, prefix="/personalized-feed")  # /ext/personalized-feed/*
-router.include_router(points_system_router, prefix="/point-system")  # /ext/point-system/*
+router.include_router(points_system_router, prefix="/points")  # /ext/points/*
 router.include_router(recommendations_router, prefix="/recommendations")  # /ext/recommendations/*
-router.include_router(tipping_system_router, prefix="/tipping-system")  # /ext/tipping-system/*
+router.include_router(tipping_system_router, prefix="/tipping")  # /ext/tipping/*
 router.include_router(websocket_router, prefix="/ws")  # /ext/ws/*

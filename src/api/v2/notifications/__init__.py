@@ -13,6 +13,6 @@ from src.api.v1.notifications.push_notifications import router as push_notificat
 router = APIRouter(tags=["notifications"])
 
 # 按顺序包含子路由
-router.include_router(notifications_router, prefix="/for")  # /notifications/* - 主要通知功能
+router.include_router(notifications_router, prefix="")  # /notifications/* - 主要通知功能
 router.include_router(email_service_router, prefix="/email")  # /email/* - 邮件服务
 router.include_router(push_notifications_router, prefix="/push")  # /push/* - 推送通知

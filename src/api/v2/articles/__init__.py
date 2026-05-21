@@ -4,7 +4,6 @@
 """
 from fastapi import APIRouter
 
-from src.api.v1.articles.anomaly_detection import router as anomaly_detection_router
 from src.api.v1.articles.article_analytics import router as article_analytics_router
 from src.api.v1.articles.article_annotations import router as article_annotations_router
 # 导入V1的articles子模块
@@ -19,9 +18,9 @@ from src.api.v1.articles.scheduled_publish import router as scheduled_publish_ro
 router = APIRouter(tags=["articles"])
 
 # 按顺序包含子路由
-router.include_router(article_password_router, prefix="/password")  # /password/* - 文章密码
+router.include_router(article_password_router, prefix="")  # - 文章密码
 router.include_router(article_revisions_router, prefix="/revisions")  # /revisions/* - 文章修订
-router.include_router(anomaly_detection_router, prefix="/sys")  # /sys/* - 异常检测
+
 router.include_router(article_analytics_router, prefix="/analytics")  # /analytics/*
 router.include_router(article_annotations_router, prefix="/annotations")  # /article-annotations/*
 router.include_router(article_search_router, prefix="/search")  # /search/*

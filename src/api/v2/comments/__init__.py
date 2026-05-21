@@ -14,7 +14,7 @@ from src.api.v1.comments.comments_enhanced import router as comments_enhanced_ro
 router = APIRouter(tags=["comments"])
 
 # 按顺序包含子路由
-router.include_router(comments_router, prefix="/V1")  # /comments/* - 主要评论功能
-router.include_router(comments_enhanced_router, prefix="/V2")  # /comment-plus/* - 增强评论
+router.include_router(comments_router, prefix="/normal")  # /normal/* - 主要评论功能
+router.include_router(comments_enhanced_router, prefix="/plus")  # /plus/* - 增强评论
 router.include_router(comment_config_router, prefix="/config")  # /config/* - 评论配置
 router.include_router(comment_subscriptions_router, prefix="/subscriptions")  # /subscriptions/* - 评论订阅

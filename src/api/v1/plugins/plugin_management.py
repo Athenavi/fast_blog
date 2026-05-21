@@ -15,7 +15,7 @@ from src.extensions import get_async_db_session as get_async_db
 router = APIRouter(tags=["plugins"])
 
 
-@router.get("")
+@router.get("/")
 async def list_plugins(
         current_user: User = Depends(jwt_required)
 ):

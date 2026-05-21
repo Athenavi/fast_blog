@@ -12,7 +12,7 @@ from src.extensions import get_async_db_session as get_async_db
 router = APIRouter(tags=["article-stats"])
 
 
-@router.get("/view/{article_id}")
+@router.get("/{article_id}")
 async def get_article_views(
         article_id: int,
         current_user=Depends(jwt_required),
