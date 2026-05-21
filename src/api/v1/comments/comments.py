@@ -32,7 +32,7 @@ class CreateCommentRequest(BaseModel):
     author_name: Optional[str] = None
     author_email: Optional[str] = None
     author_url: Optional[str] = None
-    
+
     # 蜜罐字段(前端隐藏,正常用户不会填写)
     website_url: Optional[str] = None
     phone_field: Optional[str] = None
@@ -263,7 +263,7 @@ async def create_comment(
             )
         except Exception as webhook_err:
             print(f"Webhook trigger failed: {webhook_err}")
-        
+
         return ApiResponse(
             success=True,
             data={
@@ -318,38 +318,47 @@ async def get_article_comments(
         article_id: int,
         page: int = 1,
         per_page: int = 20,
-        sort_by: str = 'created_at',  # created_at | likes
-        order: str = 'desc',  # asc | desc
+        sort_by: str = 'latest',  # latest | oldest | popular
+        order: str = 'desc',  # asc | desc (仅用于兼容)
+        tree: bool = False,  # 是否返回树形结构
         db: AsyncSession = Depends(get_async_db)
 ):
-    """获取文章的所有已审核评论
+    """获取文章的评论
     
     Args:
         article_id: 文章ID
         page: 页码
         per_page: 每页数量
-        sort_by: 排序方式 (created_at-时间, likes-热度)
-        order: 排序方向 (asc-升序, desc-降序)
+        sort_by: 排序方式 (latest-最新, oldest-最早, popular-最热)
+        order: 排序方向 (asc-升序, desc-降序) - 仅用于向后兼容
+        tree: 是否返回树形结构（嵌套回复）
     """
     try:
         from sqlalchemy import select, func
         from shared.models.user import User
 
         # 验证排序参数
-        valid_sort_fields = ['created_at', 'likes']
+        valid_sort_fields = ['latest', 'oldest', 'popular', 'created_at', 'likes']
         if sort_by not in valid_sort_fields:
-            sort_by = 'created_at'
+            sort_by = 'latest'
 
-        valid_orders = ['asc', 'desc']
-        if order not in valid_orders:
-            order = 'desc'
+        # 映射排序字段
+        sort_field_map = {
+            'latest': Comment.created_at,
+            'oldest': Comment.created_at,
+            'popular': Comment.likes,
+            'created_at': Comment.created_at,
+            'likes': Comment.likes
+        }
+        sort_field = sort_field_map.get(sort_by, Comment.created_at)
 
-        # 构建排序表达式
-        sort_field = getattr(Comment, sort_by)
-        if order == 'desc':
-            sort_expression = sort_field.desc()
-        else:
+        # 确定排序方向
+        if sort_by == 'oldest':
             sort_expression = sort_field.asc()
+        elif sort_by == 'popular':
+            sort_expression = sort_field.desc()
+        else:  # latest
+            sort_expression = sort_field.desc()
 
         # 查询已审核的评论
         query = (
@@ -400,18 +409,35 @@ async def get_article_comments(
 
             comments_data.append(comment_dict)
 
-        return ApiResponse(
-            success=True,
-            data={
-                "comments": comments_data,
-                "total": total,
-                "page": page,
-                "per_page": per_page,
-                "total_pages": (total + per_page - 1) // per_page,
-                "sort_by": sort_by,
-                "order": order
-            }
-        )
+        # 如果请求树形结构，构建树
+        if tree:
+            tree_data = _build_comment_tree(comments_data)
+            return ApiResponse(
+                success=True,
+                data={
+                    "comments": tree_data,
+                    "total": total,
+                    "page": page,
+                    "per_page": per_page,
+                    "total_pages": (total + per_page - 1) // per_page,
+                    "sort_by": sort_by,
+                    "tree": True
+                }
+            )
+        else:
+            return ApiResponse(
+                success=True,
+                data={
+                    "comments": comments_data,
+                    "total": total,
+                    "page": page,
+                    "per_page": per_page,
+                    "total_pages": (total + per_page - 1) // per_page,
+                    "sort_by": sort_by,
+                    "order": order,
+                    "tree": False
+                }
+            )
 
     except Exception as e:
         return ApiResponse(success=False, error=f"获取评论列表失败: {str(e)}")
@@ -491,7 +517,7 @@ async def delete_comment(
             )
         except Exception as webhook_err:
             print(f"Webhook trigger failed: {webhook_err}")
-        
+
         return ApiResponse(
             success=True,
             message="评论删除成功"
@@ -504,7 +530,7 @@ async def delete_comment(
 
 # ==================== 管理员评论审核API ====================
 
-@router.get("/admin/comments/pending")
+@router.get("/pending")
 async def get_pending_comments(
         page: int = 1,
         per_page: int = 20,
@@ -554,7 +580,7 @@ async def get_pending_comments(
         return ApiResponse(success=False, error=f"获取待审核评论失败: {str(e)}")
 
 
-@router.post("/admin/comments/{comment_id}/approve")
+@router.post("/{comment_id}/approve")
 async def approve_comment(
         comment_id: int,
         db: AsyncSession = Depends(get_async_db),
@@ -622,7 +648,7 @@ async def approve_comment(
         return ApiResponse(success=False, error=f"审核评论失败: {str(e)}")
 
 
-@router.post("/admin/comments/{comment_id}/reject")
+@router.post("/{comment_id}/reject")
 async def reject_comment(
         comment_id: int,
         db: AsyncSession = Depends(get_async_db),
@@ -801,32 +827,167 @@ async def update_spam_filter_config(
 @router.post("/{comment_id}/like")
 async def like_comment(
         comment_id: int,
+        request: Request,
         db: AsyncSession = Depends(get_async_db),
         current_user=Depends(jwt_required)
 ):
     """
-    点赞/取消点赞评论
+    点赞/取消点赞评论（增强版）
+    
+    支持：
+    - 首次点赞
+    - 取消点赞
+    - 从反对改为点赞
     
     Args:
         comment_id: 评论ID
     """
     try:
-        result = await comment_like_service.toggle_like(
-            db=db,
-            user_id=current_user.id,
-            comment_id=comment_id
+        from shared.models.comment_vote import CommentVote
+        from sqlalchemy import select
+        from datetime import datetime
+
+        # 检查评论是否存在
+        stmt = select(Comment).where(Comment.id == comment_id)
+        result = await db.execute(stmt)
+        comment = result.scalar_one_or_none()
+
+        if not comment:
+            return ApiResponse(success=False, error="评论不存在")
+
+        # 检查是否已经投票
+        stmt = select(CommentVote).where(
+            CommentVote.comment_id == comment_id,
+            CommentVote.user == current_user.id
+        )
+        result = await db.execute(stmt)
+        existing_vote = result.scalar_one_or_none()
+
+        if existing_vote:
+            if existing_vote.vote_type == 1:
+                # 已经点赞，取消点赞
+                await db.delete(existing_vote)
+                comment.likes = max(0, comment.likes - 1)
+                action = 'unliked'
+                message = '已取消点赞'
+            else:
+                # 之前是反对，改为点赞
+                existing_vote.vote_type = 1
+                comment.likes += 1
+                action = 'liked'
+                message = '点赞成功'
+        else:
+            # 新建点赞
+            vote = CommentVote(
+                comment_id=comment_id,
+                user=current_user.id,
+                vote_type=1,
+                ip_address=request.client.host if request.client else None,
+                created_at=datetime.now()
+            )
+            db.add(vote)
+            comment.likes += 1
+            action = 'liked'
+            message = '点赞成功'
+
+        await db.commit()
+        await db.refresh(comment)
+
+        return ApiResponse(
+            success=True,
+            data={
+                'action': action,
+                'likes': comment.likes,
+                'vote_type': 1 if action == 'liked' else None
+            },
+            message=message
         )
 
-        if result['success']:
-            return ApiResponse(
-                success=True,
-                data=result,
-                message=result['message']
-            )
+    except Exception as e:
+        await db.rollback()
+        return ApiResponse(success=False, error=f"操作失败: {str(e)}")
+
+
+@router.post("/{comment_id}/dislike")
+async def dislike_comment(
+        comment_id: int,
+        request: Request,
+        db: AsyncSession = Depends(get_async_db),
+        current_user=Depends(jwt_required)
+):
+    """
+    反对/取消反对评论
+    
+    支持：
+    - 首次反对
+    - 取消反对
+    - 从点赞改为反对
+    
+    Args:
+        comment_id: 评论ID
+    """
+    try:
+        from shared.models.comment_vote import CommentVote
+        from sqlalchemy import select
+        from datetime import datetime
+
+        # 检查评论是否存在
+        stmt = select(Comment).where(Comment.id == comment_id)
+        result = await db.execute(stmt)
+        comment = result.scalar_one_or_none()
+
+        if not comment:
+            return ApiResponse(success=False, error="评论不存在")
+
+        # 检查是否已经投票
+        stmt = select(CommentVote).where(
+            CommentVote.comment_id == comment_id,
+            CommentVote.user == current_user.id
+        )
+        result = await db.execute(stmt)
+        existing_vote = result.scalar_one_or_none()
+
+        if existing_vote:
+            if existing_vote.vote_type == -1:
+                # 已经反对，取消反对
+                await db.delete(existing_vote)
+                action = 'undisliked'
+                message = '已取消反对'
+            else:
+                # 之前是点赞，改为反对
+                existing_vote.vote_type = -1
+                comment.likes = max(0, comment.likes - 1)
+                action = 'disliked'
+                message = '已反对'
         else:
-            return ApiResponse(success=False, error=result['error'])
+            # 新建反对
+            vote = CommentVote(
+                comment_id=comment_id,
+                user=current_user.id,
+                vote_type=-1,
+                ip_address=request.client.host if request.client else None,
+                created_at=datetime.now()
+            )
+            db.add(vote)
+            comment.likes = max(0, comment.likes - 1)
+            action = 'disliked'
+            message = '已反对'
+
+        await db.commit()
+        await db.refresh(comment)
+
+        return ApiResponse(
+            success=True,
+            data={
+                'action': action,
+                'likes': comment.likes,
+                'vote_type': -1 if action == 'disliked' else None
+            },
+            message=message
+        )
 
     except Exception as e:
+        await db.rollback()
         return ApiResponse(success=False, error=f"操作失败: {str(e)}")
 
 
@@ -859,33 +1020,147 @@ async def get_comment_likes(
         return ApiResponse(success=False, error=f"获取失败: {str(e)}")
 
 
-@router.get("/{comment_id}/like/status")
-async def check_like_status(
+@router.get("/{comment_id}/vote")
+async def get_user_vote(
         comment_id: int,
+        db: AsyncSession = Depends(get_async_db),
         current_user=Depends(jwt_required)
 ):
     """
-    检查当前用户是否已点赞某条评论
+    获取用户对评论的投票状态
     
     Args:
         comment_id: 评论ID
+        
+    Returns:
+        vote_type: 1 (赞) | -1 (踩) | null
     """
     try:
-        is_liked = await comment_like_service.check_user_like(
-            user_id=current_user.id,
-            comment_id=comment_id
+        from shared.models.comment_vote import CommentVote
+        from sqlalchemy import select
+
+        stmt = select(CommentVote).where(
+            CommentVote.comment_id == comment_id,
+            CommentVote.user == current_user.id
         )
+        result = await db.execute(stmt)
+        vote = result.scalar_one_or_none()
+
+        vote_type = vote.vote_type if vote else None
 
         return ApiResponse(
             success=True,
             data={
                 "comment_id": comment_id,
-                "is_liked": is_liked
+                "vote_type": vote_type
             }
         )
 
     except Exception as e:
-        return ApiResponse(success=False, error=f"检查失败: {str(e)}")
+        return ApiResponse(success=False, error=f"获取失败: {str(e)}")
+
+
+@router.post("/{comment_id}/notify-reply")
+async def notify_comment_reply(
+        comment_id: int,
+        db: AsyncSession = Depends(get_async_db),
+        current_user=Depends(jwt_required)
+):
+    """
+    通知评论被回复（通常在创建回复评论后调用）
+    
+    Args:
+        comment_id: 新评论ID
+        
+    Returns:
+        通知结果
+    """
+    try:
+        from shared.models.notification import Notification
+        from sqlalchemy import select
+
+        # 获取新评论
+        stmt = select(Comment).where(Comment.id == comment_id)
+        result = await db.execute(stmt)
+        new_comment = result.scalar_one_or_none()
+
+        if not new_comment or not new_comment.parent_id:
+            return ApiResponse(success=False, error="不是回复评论")
+
+        # 获取父评论
+        stmt = select(Comment).where(Comment.id == new_comment.parent_id)
+        result = await db.execute(stmt)
+        parent_comment = result.scalar_one_or_none()
+
+        if not parent_comment or not parent_comment.user_id:
+            return ApiResponse(success=False, error="父评论没有用户")
+
+        # 如果是自己回复自己，不发送通知
+        if parent_comment.user_id == new_comment.user_id:
+            return ApiResponse(success=False, error="自己回复自己")
+
+        # 创建通知
+        notification = Notification(
+            user_id=parent_comment.user_id,
+            type='comment_reply',
+            title='有人回复了你的评论',
+            content=f'{new_comment.author_name or "匿名用户"} 回复了你的评论',
+            related_id=new_comment.id,
+            related_type='comment',
+            is_read=False
+        )
+
+        db.add(notification)
+        await db.commit()
+
+        return ApiResponse(
+            success=True,
+            data={
+                'notification_id': notification.id
+            },
+            message="通知已发送"
+        )
+
+    except Exception as e:
+        await db.rollback()
+        return ApiResponse(success=False, error=f"通知失败: {str(e)}")
+
+
+# ==================== 辅助函数 ====================
+
+def _build_comment_tree(comments: list) -> list:
+    """
+    构建评论树形结构
+    
+    Args:
+        comments: 评论列表（字典格式）
+        
+    Returns:
+        树形结构的评论列表
+    """
+    # 转换为字典并添加 children 字段
+    comment_map = {}
+    for comment in comments:
+        comment_dict = comment.copy() if isinstance(comment, dict) else comment.to_dict()
+        comment_dict['children'] = []
+        comment_dict['depth'] = 0
+        comment_map[comment_dict['id']] = comment_dict
+
+    # 构建树
+    root_comments = []
+    for comment_dict in comment_map.values():
+        parent_id = comment_dict.get('parent_id')
+
+        if parent_id is None or parent_id not in comment_map:
+            # 根评论
+            root_comments.append(comment_dict)
+        else:
+            # 子评论，添加到父评论的 children
+            parent = comment_map[parent_id]
+            comment_dict['depth'] = parent['depth'] + 1
+            parent['children'].append(comment_dict)
+
+    return root_comments
 
 
 @router.get("/notifications/comments")
