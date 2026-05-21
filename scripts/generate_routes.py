@@ -537,6 +537,15 @@ class RouteGenerator:
     def _convert_properties_to_fields(self, properties: Dict, model_name: str = None,
                                       all_models: Dict = None, table_prefix: str = '') -> Dict:
         """从 API properties 转换为 SQLAlchemy fields，支持完整配置"""
+        # SQLAlchemy 保留字列表
+        RESERVED_NAMES = {
+            'metadata', 'registry', 'declarative_base', 'Base',
+            'query', 'session', 'mapper', 'column_property',
+            'composite', 'synonym', 'relationship', 'backref',
+            'validate', 'reconstructor', 'declared_attr',
+            'hybrid_property', 'hybrid_method', 'AssociationProxy'
+        }
+        
         fields = {}
         first_integer_field = None  # 用于无 id 且未明确声明自增的主键自动设置递增
 
@@ -546,11 +555,21 @@ class RouteGenerator:
         for prop_name, prop_def in properties.items():
             raw_type = prop_def.get('type', 'string')
             field_type = self._map_property_type_to_sqlalchemy(raw_type)
+            
+            # 检查是否为保留字，如果是则重命名
+            python_field_name = prop_name
+            db_column_name = None
+            if prop_name.lower() in RESERVED_NAMES:
+                # 在字段名前添加前缀以避免冲突
+                python_field_name = f"extra_{prop_name}"
+                db_column_name = prop_name  # 数据库列名保持原样
 
             field_info = {
                 'type': field_type,
                 'description': prop_def.get('description', prop_name),
                 'doc': prop_def.get('description', prop_name),
+                'python_name': python_field_name,  # Python 属性名
+                'db_column': db_column_name,  # 数据库列名（如果需要）
             }
 
             # 特殊处理：string + date-time 格式 -> datetime
@@ -605,7 +624,7 @@ class RouteGenerator:
                 if model_name and fk_model_name == model_name:
                     field_info['is_self_reference'] = True
 
-            fields[prop_name] = field_info
+            fields[python_field_name] = field_info
 
         return fields
 
