@@ -24,15 +24,15 @@ router = APIRouter(tags=["seo"])
 
 # 包含所有 SEO 子路由
 # 注意：子路由的前缀将在 v2 注册时通过主路由前缀 /api/v2/seo 统一管理
-router.include_router(sitemap_router)
-router.include_router(breadcrumbs_router)
-router.include_router(hreflang_router)
-router.include_router(internal_links_router)
-router.include_router(redirect_router)
-router.include_router(seo_management_router)
-router.include_router(seo_optimization_router)
-router.include_router(seo_tracking_router)
-router.include_router(batch_seo_router)
-router.include_router(content_quality_router)
-router.include_router(schema_generator_router)
-router.include_router(seo_dashboard_router)
+router.include_router(sitemap_router, prefix="/sitemap")  # /sitemap/* - 站点地图
+router.include_router(breadcrumbs_router, prefix="/breadcrumbs")  # /breadcrumbs/* - 面包屑
+router.include_router(hreflang_router, prefix="/hreflang")  # /hreflang/* - hreflang标签
+router.include_router(internal_links_router, prefix="/internal-links")  # /internal-links/* - 内部链接
+router.include_router(redirect_router, prefix="/redirects")  # /redirects/* - 重定向管理
+router.include_router(seo_management_router, prefix="/management")  # /management/* - SEO管理
+router.include_router(seo_optimization_router, prefix="/opt")  # /optimization/* - SEO优化
+router.include_router(seo_tracking_router, prefix="/tracking")  # /tracking/* - SEO追踪
+router.include_router(batch_seo_router, prefix="/batch")  # /batch/* - 批量SEO
+router.include_router(content_quality_router, prefix="/content-quality")  # /content-quality/* - 内容质量
+router.include_router(schema_generator_router, prefix="/schema")  # /schema/* - Schema生成
+router.include_router(seo_dashboard_router, prefix="/dashboard")  # /dashboard/* - SEO仪表板

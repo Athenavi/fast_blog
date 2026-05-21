@@ -16,9 +16,8 @@ from src.api.v1.ecommerce.revenue_sharing import router as revenue_sharing_route
 router = APIRouter(tags=["ecommerce-v2"])
 
 # 包含所有电商子路由
-# 注意：子路由的前缀将在 v2 注册时通过主路由前缀 /api/v2/shop 统一管理
-router.include_router(ecommerce_router)
-router.include_router(ecommerce_cart_router)
-router.include_router(ecommerce_orders_router)
-router.include_router(inventory_management_router)
-router.include_router(revenue_sharing_router)
+router.include_router(ecommerce_router, prefix="/products")  # /products/* - 商品管理
+router.include_router(ecommerce_cart_router, prefix="/cart")  # /cart/* - 购物车
+router.include_router(ecommerce_orders_router, prefix="/orders")  # /orders/* - 订单管理
+router.include_router(inventory_management_router, prefix="/inventory")  # /inventory/* - 库存管理
+router.include_router(revenue_sharing_router, prefix="/revenue")  # /revenue/* - 收益分成

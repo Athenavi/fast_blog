@@ -13,6 +13,6 @@ from src.api.v1.dashboard.realtime_monitor import router as realtime_monitor_rou
 router = APIRouter(tags=["dashboard"])
 
 # 按顺序包含子路由
-router.include_router(dashboard_router, prefix="/dashboard")  # /dashboard/* - 主要仪表板功能
-router.include_router(analytics_router, prefix="")  # 分析
-router.include_router(realtime_monitor_router, prefix="")  # 实时监控
+router.include_router(dashboard_router, prefix="/for")  # /dashboard/* - 主要仪表板功能
+router.include_router(analytics_router, prefix="/analytics")  # /analytics/* - 分析
+router.include_router(realtime_monitor_router, prefix="/monitor")  # /monitor/* - 实时监控

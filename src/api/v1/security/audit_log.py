@@ -4,14 +4,15 @@
 """
 from datetime import datetime, timedelta
 from typing import Optional
-from fastapi import APIRouter, Depends, HTTPException, Query
 
-from shared.services.security.audit_log_service import AuditLogAction, AuditLogLevel, audit_log_service
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from shared.services.security.audit_log_service import AuditLog as AuditLogModel
+from shared.services.security.audit_log_service import AuditLogAction, AuditLogLevel, audit_log_service
 from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
-from sqlalchemy.ext.asyncio import AsyncSession
 
 router = APIRouter(tags=["audit-log"])
 
@@ -107,7 +108,7 @@ async def get_audit_logs(
 
 @router.get("/export", summary="导出审计日志")
 async def export_audit_logs(
-        format: str = Query("json", regex="^(json|csv)$", description="导出格式 (json或csv)"),
+        format: str = Query("json", pattern="^(json|csv)$", description="导出格式 (json或csv)"),
         user_id: Optional[int] = Query(None, description="用户ID过滤"),
         action: Optional[str] = Query(None, description="操作类型过滤"),
         level: Optional[str] = Query(None, description="日志级别过滤"),

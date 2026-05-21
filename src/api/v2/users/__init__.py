@@ -14,4 +14,4 @@ router = APIRouter(tags=["users"])
 # 按顺序包含子路由
 router.include_router(user_router, prefix="/users")
 router.include_router(user_management_router, prefix="/admin/user")  # /admin/user/*
-router.include_router(user_settings_router, prefix="")  # 用户设置
+router.include_router(user_settings_router, prefix="/settings")  # /settings/* - 用户设置

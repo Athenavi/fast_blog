@@ -12,5 +12,5 @@ from src.api.v1.accessibility.amp import router as amp_router
 router = APIRouter(tags=["accessibility"])
 
 # 按顺序包含子路由
-router.include_router(accessibility_audit_router, prefix="/accessibility-audit")  # /accessibility-audit/*
+router.include_router(accessibility_audit_router, prefix="/audit")  # /accessibility-audit/*
 router.include_router(amp_router, prefix="/amp")  # /amp/*

@@ -8,7 +8,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.models.user import User
 from src.api.v1.user_utils.user_entities import check_user_conflict, change_username, bind_email, db_save_bio, \
     save_uploaded_avatar
-# from src.api.v1.user_utils.user_profile import edit_profile
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 from src.utils.security.safe import valid_language_codes
@@ -160,7 +159,7 @@ async def change_profiles_back(
 
     else:
         # 调用编辑配置文件函数
-        return await edit_profile(request, change_type, user_id, db)
+        return await update_setting_profiles(request, change_type, user_id, db)
 
 
 async def confirm_email_back(

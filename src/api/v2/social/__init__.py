@@ -11,4 +11,4 @@ from src.api.v1.social.share_stats import router as share_stats_router
 router = APIRouter(tags=["social"])
 
 # 包含子路由
-router.include_router(share_stats_router, prefix="")  # 分享统计
+router.include_router(share_stats_router, prefix="/shares")  # /shares/* - 分享统计

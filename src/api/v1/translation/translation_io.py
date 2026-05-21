@@ -9,8 +9,8 @@ from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Body, UploadFile, File
 
-from src.api.v1.core.responses import ApiResponse
 from shared.services.translation.translation_io import translation_io
+from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 
 router = APIRouter()
@@ -64,7 +64,7 @@ async def export_translation(
 
 @router.post("/export/all", summary="批量导出", description="批量导出所有语言的翻译文件")
 async def export_all_translations(
-        format: str = Body('json', regex='^(json|yaml|po)$', description="导出格式"),
+        format: str = Body('json', pattern='^(json|yaml|po)$', description="导出格式"),
         current_user=Depends(jwt_required),
 ):
     """批量导出"""

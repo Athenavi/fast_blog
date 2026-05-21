@@ -12,5 +12,5 @@ from src.api.v1.plugins.plugin_management import router as plugin_management_rou
 router = APIRouter(tags=["plugins"])
 
 # 按顺序包含子路由
-router.include_router(plugin_management_router, prefix="/plugins")  # /plugins/* - 主要插件管理
+router.include_router(plugin_management_router, prefix="/for")  # /plugins/* - 主要插件管理
 router.include_router(article_rating_router, prefix="/plugins/article-rating")  # /plugins/article-rating/*

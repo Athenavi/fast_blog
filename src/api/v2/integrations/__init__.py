@@ -19,4 +19,4 @@ router.include_router(baidu_analytics_router, prefix="/analytics/baidu")  # /ana
 router.include_router(ipfs_router, prefix="/ipfs")  # /ipfs/*
 router.include_router(oauth_login_router, prefix="/oauth")  # /oauth/*
 router.include_router(wordpress_import_router, prefix="/wordpress")  # /wordpress/*
-router.include_router(sso_router, prefix="")  # SSO单点登录
+router.include_router(sso_router, prefix="/sso")  # /sso/* - SSO单点登录

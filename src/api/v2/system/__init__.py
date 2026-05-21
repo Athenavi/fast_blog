@@ -24,18 +24,18 @@ from src.api.v1.system.workflow import router as workflow_router
 router = APIRouter(tags=["system"])
 
 # 按顺序包含子路由
-router.include_router(admin_settings_router, prefix="/admin-settings")  # /admin-settings/*
+router.include_router(admin_settings_router, prefix="/settings")  # /admin-settings/*
 router.include_router(database_migration_router,
-                      prefix="/admin/db/database-migration")  # /admin/db/database-migration/*
-router.include_router(report_management_router, prefix="/admin/report")  # /admin/report/*
-router.include_router(webhook_management_router, prefix="/admin/webhook")  # /admin/webhook/*
+                      prefix="/db/database-migration")  # /db/database-migration/*
+router.include_router(report_management_router, prefix="/report")  # /report/*
+router.include_router(webhook_management_router, prefix="/webhook")  # /webhook/*
 router.include_router(incremental_backup_router, prefix="/backup-plus")  # /backup-plus/*
-router.include_router(batch_operations_router, prefix="")  # 批量操作
-router.include_router(data_export_router, prefix="")  # 数据导出
-router.include_router(installation_router, prefix="")  # 安装
-router.include_router(maintenance_router, prefix="")  # 维护
-router.include_router(migrations_router, prefix="")  # 迁移
-router.include_router(multisite_router, prefix="")  # 多站点
-router.include_router(resource_transfer_router, prefix="")  # 资源转移
-router.include_router(screen_options_router, prefix="")  # 屏幕选项
-router.include_router(workflow_router, prefix="")  # 工作流
+router.include_router(batch_operations_router, prefix="/batch")  # /batch/* - 批量操作
+router.include_router(data_export_router, prefix="/export")  # /export/* - 数据导出
+router.include_router(installation_router, prefix="/install")  # /install/* - 安装
+router.include_router(maintenance_router, prefix="/maintenance")  # /maintenance/* - 维护
+router.include_router(migrations_router, prefix="/migrations")  # /migrations/* - 迁移
+router.include_router(multisite_router, prefix="/multisite")  # /multisite/* - 多站点
+router.include_router(resource_transfer_router, prefix="/transfer")  # /transfer/* - 资源转移
+router.include_router(screen_options_router, prefix="/screen-options")  # /screen-options/* - 屏幕选项
+router.include_router(workflow_router, prefix="/workflow")  # /workflow/* - 工作流

@@ -15,8 +15,8 @@ from src.api.v1.translation.translations import router as translations_router
 router = APIRouter(tags=["i18n"])
 
 # 所有子模块都使用相同的/i18n前缀，按顺序包含
-router.include_router(i18n_router, prefix="")
-router.include_router(translation_io_router, prefix="")
-router.include_router(translation_progress_router, prefix="")
-router.include_router(translation_service_router, prefix="")
-router.include_router(translations_router, prefix="")
+router.include_router(i18n_router, prefix="/i18n")  # /i18n/* - 国际化
+router.include_router(translation_io_router, prefix="/io")  # /io/* - 翻译导入导出
+router.include_router(translation_progress_router, prefix="/progress")  # /progress/* - 翻译进度
+router.include_router(translation_service_router, prefix="/service")  # /service/* - 翻译服务
+router.include_router(translations_router, prefix="/translations")  # /translations/* - 翻译管理

@@ -11,4 +11,4 @@ from src.api.v1.search.fulltext_search import router as fulltext_search_router
 router = APIRouter(tags=["search"])
 
 # 包含子路由
-router.include_router(fulltext_search_router, prefix="")  # 全文搜索
+router.include_router(fulltext_search_router, prefix="/fulltext")  # /fulltext/* - 全文搜索

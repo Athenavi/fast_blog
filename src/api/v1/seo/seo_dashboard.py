@@ -10,14 +10,14 @@ SEO 分析仪表盘 API
 from datetime import datetime
 from typing import List, Optional, Dict
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Body
 from pydantic import BaseModel, Field
 
 from shared.services.seo.seo_analyzer import seo_analyzer
 from src.api.v1.core.responses import ApiResponse
 from src.api.v1.users.user_management import jwt_required
 
-router = APIRouter(prefix="/dashboard", tags=["SEO Dashboard"])
+router = APIRouter(tags=["SEO Dashboard"])
 
 
 # ==================== 请求模型 ====================
@@ -380,7 +380,7 @@ async def generate_seo_report(
 
 @router.post("/bulk-check")
 async def bulk_seo_check(
-        urls: List[str] = Field(..., description="要检查的 URL 列表", max_items=100),
+        urls: List[str] = Body(..., embed=True, description="要检查的 URL 列表", max_items=100),
         current_user=Depends(jwt_required)
 ):
     """

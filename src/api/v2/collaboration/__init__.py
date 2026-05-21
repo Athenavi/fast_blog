@@ -15,8 +15,8 @@ from src.api.v1.collaboration.yjs_collaboration import router as yjs_collaborati
 router = APIRouter(tags=["collaboration"])
 
 # 按顺序包含子路由
-router.include_router(collaboration_invites_router, prefix="/collaboration-invites")  # /collaboration-invites/*
+router.include_router(collaboration_invites_router, prefix="/invites")  # /collaboration-invites/*
 router.include_router(collaboration_save_router, prefix="/collaboration")  # /collaboration/*
 router.include_router(team_collaboration_router, prefix="/admin/team")  # /admin/team/*
 router.include_router(team_comments_router, prefix="/team/comments")  # /team/comments/*
-router.include_router(yjs_collaboration_router, prefix="")  # Yjs协作（根路径）
+router.include_router(yjs_collaboration_router, prefix="/yjs")  # /yjs/* - Yjs实时协作
