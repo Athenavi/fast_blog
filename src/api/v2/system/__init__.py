@@ -3,8 +3,6 @@
 整合V1的system相关模块
 """
 from fastapi import APIRouter
-from src.api.v1.system.backup_management import router as backup_management_router
-from src.api.v1.system.slow_query_log import router as slow_query_log_router
 
 # 导入V1的system子模块
 from src.api.v1.system.admin_settings import router as admin_settings_router
@@ -27,11 +25,9 @@ router = APIRouter(tags=["system"])
 
 # 按顺序包含子路由
 router.include_router(admin_settings_router, prefix="/admin-settings")  # /admin-settings/*
-router.include_router(backup_management_router, prefix="/admin/backup")  # /admin/backup/*
 router.include_router(database_migration_router,
                       prefix="/admin/db/database-migration")  # /admin/db/database-migration/*
 router.include_router(report_management_router, prefix="/admin/report")  # /admin/report/*
-router.include_router(slow_query_log_router, prefix="/admin/slow-query-log")  # /admin/slow-query-log/*
 router.include_router(webhook_management_router, prefix="/admin/webhook")  # /admin/webhook/*
 router.include_router(incremental_backup_router, prefix="/backup-plus")  # /backup-plus/*
 router.include_router(batch_operations_router, prefix="")  # 批量操作

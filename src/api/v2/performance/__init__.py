@@ -3,8 +3,6 @@
 整合V1的performance相关模块
 """
 from fastapi import APIRouter
-from src.api.v1.performance.cdn_management import router as cdn_management_router
-from src.api.v1.performance.code_splitting_optimization import router as code_splitting_router
 
 # 导入V1的performance子模块
 from src.api.v1.performance.cache_management import router as cache_management_router
@@ -26,10 +24,8 @@ router = APIRouter(tags=["performance"])
 
 # 按顺序包含子路由
 router.include_router(cache_management_router, prefix="/admin/caches")  # /admin/caches/*
-router.include_router(cdn_management_router, prefix="/admin/cdn")  # /admin/cdn/*
 router.include_router(performance_monitor_router, prefix="/performance-monitor")  # /performance-monitor/*
 router.include_router(performance_tracking_router, prefix="/performance-tracking")  # /performance-tracking/*
-router.include_router(code_splitting_router, prefix="")  # 代码分割优化
 router.include_router(css_optimizer_router, prefix="")  # CSS优化
 router.include_router(http2_config_router, prefix="")  # HTTP2配置
 router.include_router(image_lazy_load_router, prefix="")  # 图片懒加载

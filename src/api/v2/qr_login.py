@@ -9,6 +9,7 @@ FastBlog API v2 二维码登录
 
 from fastapi import APIRouter, Request
 from fastapi.logger import logger
+
 from src.extensions import cache
 
 router = APIRouter(tags=["qr-login"])
@@ -45,9 +46,7 @@ async def v2_phone_confirm(request: Request):
     """手机端扫码后确认登录"""
     from src.api.v1.user_utils.qrlogin_utils import phone_scan_back
     from src.auth import get_current_user
-    from src.extensions import get_async_db_session as get_async_db
-    from fastapi import Depends, HTTPException
-    from sqlalchemy.ext.asyncio import AsyncSession
+    from fastapi import HTTPException
 
     db = request.state.db if hasattr(request.state, 'db') else None
     try:
