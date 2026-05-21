@@ -103,19 +103,11 @@ ROUTE_REGISTRY_V2 = [
     ("src.api.v1.media", "/api/v2/media", ["media"], False),
     ("src.api.v1.media.cover_upload", "/api/v2/media", ["cover-upload"], False),
 
-    # ==================== SEO 优化（已合并为统一模块）====================
-    # 所有 SEO 功能已整合到 seo.py 中，通过子路由统一管理
-    ("src.api.v1.seo.seo", "/api/v2/seo", ["seo"], False),
-    # 以下独立模块已废弃，功能已合并到 seo.py
-    # ("src.api.v1.seo.seo_management", "/api/v2/seo/management", ["seo-management"], False),
-    # ("src.api.v1.seo.seo_optimization", "/api/v2/seo/optimization", ["seo-optimization"], False),
-    # ("src.api.v1.seo.seo_tracking", "/api/v2/seo/tracking", ["seo-tracking"], False),
-    # ("src.api.v1.seo.breadcrumbs", "/api/v2/seo/breadcrumbs", ["breadcrumbs"], False),
-    # ("src.api.v1.seo.hreflang_api", "/api/v2/seo/hreflang", ["hreflang-api"], False),
-    # ("src.api.v1.seo.internal_links", "/api/v2/seo/internal-links", ["internal-links"], False),
-    # ("src.api.v1.seo.redirect_management", "/api/v2/seo/redirects", ["redirect-management"], False),
-    # ("src.api.v1.seo.batch_seo", "/api/v2/seo/batch", ["batch-seo"], False),
-    # ("src.api.v1.seo.sitemap", "/api/v2/seo/sitemap", ["sitemap"], False),
+    # ==================== SEO 优化（V2 聚合路由器）====================
+    # V2 SEO 模块采用包级别聚合模式，所有子模块通过 __init__.py 统一注册
+    ("src.api.v2.seo", "/api/v2/seo", ["seo-v2"], True),
+    # V1 SEO 已废弃，功能已迁移到 V2
+    # ("src.api.v1.seo.seo", "/api/v2/seo", ["seo"], False),
 
     # ==================== 安全与权限 ====================
     ("src.api.v1.security.audit_log", "/api/v2/security/audit-log", ["audit-log"], False),
@@ -133,14 +125,16 @@ ROUTE_REGISTRY_V2 = [
     ("src.api.v1.auth", "/api/v2/auth", ["auth"], False),
     ("src.api.v2.qr_login", "/api/v2/auth/qr", ["qr-login"], False),
 
-    # ==================== 用户管理（已合并，删除重复的关注端点）====================
-    # 所有用户功能已整合到 users/__init__.py 中，通过子路由统一管理
-    ("src.api.v1.users", "/api/v2/users", ["users"], False),
+    # ==================== 用户管理（V2 聚合路由器）====================
+    # V2 Users 模块采用包级别聚合模式，所有子模块通过 __init__.py 统一注册
+    ("src.api.v2.users", "/api/v2/users", ["users-v2"], True),
     # user_management 保留管理员功能，路径为 /api/v2/admin/users
     ("src.api.v1.users.user_management", "/api/v2/admin/users", ["user-management"], False),
     # user_settings 包含头像上传等功能
     ("src.api.v1.users.user_settings", "/api/v2/users/settings", ["user-settings"], False),
-    # 以下独立模块已废弃，功能已合并到 users/__init__.py
+    # V1 users 主模块已废弃，功能已迁移到 V2
+    # ("src.api.v1.users", "/api/v2/users", ["users"], False),
+    # 以下独立模块已废弃，功能已合并到 unified_users.py
     # ("src.api.v1.users.user_blocks", "/api/v2/users/blocks", ["user-blocks"], False),
     # ("src.api.v1.users.user_profile", "/api/v2/users/profiles", ["user-profile"], False),
     # ("src.api.v1.users.user_relations", "/api/v2/users/relations", ["user-relations"], False),
@@ -155,35 +149,30 @@ ROUTE_REGISTRY_V2 = [
     ("src.api.v1.advanced_features.points_system", "/api/v2/ext/points", ["points-system"], False),
     ("src.api.v1.advanced_features.tipping_system", "/api/v2/ext/tipping", ["tipping-system"], False),
 
-    # ==================== 性能监控（合并）====================
-    ("src.api.v1.performance.performance_monitor", "/api/v2/monitoring/performance", ["performance-monitor"], False),
-    ("src.api.v1.performance.query_monitor", "/api/v2/monitoring/queries", ["query-monitor"], False),
-    ("src.api.v1.performance.query_optimization", "/api/v2/monitoring/queries/optimization", ["query-optimization"],
-     False),
-    ("src.api.v1.performance.slow_query_log", "/api/v2/monitoring/queries/slow", ["slow-query-log"], False),
+    # ==================== 性能监控与优化（V2 聚合路由器）====================
+    # V2 Performance 模块采用包级别聚合模式，所有子模块通过 __init__.py 统一注册
+    ("src.api.v2.performance", "/api/v2/performance", ["performance-v2"], True),
+    # V1 performance 各子模块已废弃，功能已迁移到 V2 聚合路由器
+    # ("src.api.v1.performance.performance_monitor", "/api/v2/monitoring/performance", ["performance-monitor"], False),
+    # ("src.api.v1.performance.query_monitor", "/api/v2/monitoring/queries", ["query-monitor"], False),
+    # ("src.api.v1.performance.query_optimization", "/api/v2/monitoring/queries/optimization", ["query-optimization"], False),
+    # ("src.api.v1.performance.slow_query_log", "/api/v2/monitoring/queries/slow", ["slow-query-log"], False),
+    # ("src.api.v1.performance.cache_management", "/api/v2/cache", ["cache-management"], False),
+    # ("src.api.v1.performance.object_cache", "/api/v2/cache/object", ["object-cache"], False),
+    # ("src.api.v1.performance.page_cache", "/api/v2/cache/page", ["page-cache"], False),
+    # ("src.api.v1.performance.cdn_management", "/api/v2/cdn", ["cdn-management"], False),
+    # ("src.api.v2.performance.cdn_optimization", "/api/v2/cdn/optimization", ["cdn-optimization-v2"], True),
+    # ("src.api.v1.performance.css_optimizer", "/api/v2/optimization/css", ["css-optimizer"], False),
+    # ("src.api.v1.performance.http2_config", "/api/v2/cdn/http2", ["http2-config"], False),
+    # ("src.api.v1.performance.image_lazy_load", "/api/v2/optimization/lazy-load", ["image-lazy-load"], False),
+    # ("src.api.v1.performance.lazy_load_optimization", "/api/v2/optimization/lazy-load", ["lazy-load-optimization"], False),
+    # ("src.api.v1.performance.load_balancer", "/api/v2/cdn/load-balancer", ["load-balancer"], False),
+    # ("src.api.v1.performance.resource_optimization", "/api/v2/optimization/resources", ["resource-optimization"], False),
 
-    # ==================== 缓存管理（合并）====================
-    ("src.api.v1.performance.cache_management", "/api/v2/cache", ["cache-management"], False),
-    ("src.api.v1.performance.object_cache", "/api/v2/cache/object", ["object-cache"], False),
-    ("src.api.v1.performance.page_cache", "/api/v2/cache/page", ["page-cache"], False),
-
-    # ==================== CDN 与优化 ====================
-    ("src.api.v1.performance.cdn_management", "/api/v2/cdn", ["cdn-management"], False),
-    # V2 新增 CDN 优化配置
-    ("src.api.v2.performance.cdn_optimization", "/api/v2/cdn/optimization", ["cdn-optimization-v2"], False),
-    ("src.api.v1.performance.css_optimizer", "/api/v2/optimization/css", ["css-optimizer"], False),
-    ("src.api.v1.performance.http2_config", "/api/v2/cdn/http2", ["http2-config"], False),
-    ("src.api.v1.performance.image_lazy_load", "/api/v2/optimization/lazy-load", ["image-lazy-load"], False),
-    ("src.api.v1.performance.lazy_load_optimization", "/api/v2/optimization/lazy-load", ["lazy-load-optimization"],
-     False),
-    ("src.api.v1.performance.load_balancer", "/api/v2/cdn/load-balancer", ["load-balancer"], False),
-    ("src.api.v1.performance.resource_optimization", "/api/v2/optimization/resources", ["resource-optimization"],
-     False),
-
-    # ==================== 备份管理（合并）====================
-    ("src.api.v1.system.backup_management", "/api/v2/backup", ["backup-management"], False),
-    # V2 新增备份管理
-    ("src.api.v2.system.backup_management", "/api/v2/backup", ["backup-v2"], False),
+    # ==================== 备份管理（V2 完整版）====================
+    # V1 backup_management 已废弃，功能已整合到 V2
+    # ("src.api.v1.system.backup_management", "/api/v2/backup", ["backup-management"], False),
+    ("src.api.v2.system.backup_management", "/api/v2/backup", ["backup-v2"], True),
 
     # ==================== 系统管理 ====================
     ("src.api.v1.system.admin_settings", "/api/v2/admin/settings", ["admin-settings"], False),
@@ -203,10 +192,10 @@ ROUTE_REGISTRY_V2 = [
     ("src.api.v1.system.webhook_management", "/api/v2/admin/webhooks", ["webhook-management"], False),
     ("src.api.v1.system.workflow", "/api/v2/workflow", ["workflow"], False),
 
-    # ==================== GDPR 合规（路径已优化为 RESTful 风格）====================
-    ("src.api.v1.compliance.gdpr_compliance", "/api/v2/gdpr", ["gdpr-compliance"], False),
-    # V2 新增完整合规性管理
-    ("src.api.v2.compliance.compliance_api", "/api/v2/compliance", ["compliance-management-v2"], False),
+    # ==================== GDPR 合规（V2 完整版）====================
+    # V1 gdpr_compliance 已废弃，功能已整合到 V2 compliance_api
+    # ("src.api.v1.compliance.gdpr_compliance", "/api/v2/gdpr", ["gdpr-compliance"], False),
+    ("src.api.v2.compliance.compliance_api", "/api/v2/compliance", ["compliance-management-v2"], True),
 
     # ==================== 主题管理（移除） ====================
 

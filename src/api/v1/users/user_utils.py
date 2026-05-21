@@ -8,8 +8,6 @@ from fastapi import APIRouter, Depends
 
 from src.auth import jwt_required_dependency as jwt_required
 
-from src.unified_logger import default_logger as logger
-
 router = APIRouter(tags=["user-utils"])
 
 
