@@ -372,7 +372,7 @@ class ThemeBuilderSkill(BaseSkill):
             success=True,
             data={
                 "css": css_code,
-                "preview_url": "/themes/preview/custom",
+                "preview_url": "/assets/themes/preview/custom",
             },
             message="Theme styles generated"
         )

@@ -160,69 +160,6 @@ async def optimize_js(
     )
 
 
-@router.get("/examples", summary="使用示例", description="获取资源优化使用示例")
-async def get_usage_examples():
-    """获取使用示例"""
-    examples = {
-        "batch_optimization": {
-            "description": "批量优化所有资源",
-            "code": '''
-from shared.services.resource_optimizer import resource_optimizer
-
-# 优化CSS和JS
-stats = resource_optimizer.batch_optimize(
-    file_types=['css', 'js'],
-    minify=True
-)
-
-# 优化图片
-stats = resource_optimizer.batch_optimize(
-    file_types=['png', 'jpg', 'jpeg'],
-    image_quality=85
-)
-            '''.strip()
-        },
-        "versioned_urls": {
-            "description": "使用带版本号的URL",
-            "code": '''
-from shared.services.resource_optimizer import resource_optimizer
-
-# 在模板中使用
-css_url = resource_optimizer.get_versioned_url("/static/css/style.css")
-# 返回: /static/css/style.css?v=a1b2c3d4
-
-js_url = resource_optimizer.get_versioned_url("/static/js/app.js")
-# 返回: /static/js/app.js?v=e5f6g7h8
-            '''.strip()
-        },
-        "cdn_integration": {
-            "description": "CDN集成建议",
-            "recommendations": [
-                "将优化后的资源上传到CDN",
-                "使用版本号URL确保缓存失效",
-                "设置合适的Cache-Control头",
-                "启用CDN的Gzip/Brotli压缩",
-                "使用HTTP/2提升加载性能",
-            ]
-        },
-        "optimization_tips": {
-            "description": "优化建议",
-            "tips": [
-                "CSS: 移除未使用的样式，合并小文件",
-                "JS: 使用代码分割，延迟加载非关键脚本",
-                "图片: 使用WebP格式，实现懒加载",
-                "字体: 使用font-display: swap，预加载关键字体",
-                "HTML: 启用Gzip压缩，最小化DOM大小",
-            ]
-        }
-    }
-
-    return ApiResponse(
-        success=True,
-        data=examples
-    )
-
-
 @router.get("/best-practices", summary="最佳实践", description="获取资源优化最佳实践")
 async def get_best_practices():
     """获取最佳实践"""

@@ -314,7 +314,6 @@
 [W]   186. /api/v2/collaboration/team/comments/comment/{comment_id}                         [DELETE    ] -> delete_comment
 [W]   187. /api/v2/collaboration/team/comments/comment/{comment_id}/resolve                 [POST      ] -> resolve_comment
 [W]   188. /api/v2/collaboration/team/comments/content/{content_type}/{content_id}          [GET       ] -> get_content_comments
-[S]   189. /api/v2/collaboration/team/comments/examples                                     [GET       ] -> get_usage_examples
 [S]   190. /api/v2/collaboration/team/comments/mentions                                     [GET       ] -> get_mentions
 [S]   191. /api/v2/collaboration/team/comments/statistics                                   [GET       ] -> get_statistics
 

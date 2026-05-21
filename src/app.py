@@ -513,11 +513,22 @@ def register_error_handlers(app: FastAPI):
 
     @app.get('/{full_path:path}', response_class=HTMLResponse)
     async def spa_fallback(request: Request, full_path: str):
-        excluded = ['api', 'static', 'local-storage', 'storage', 'shared', 'thumbnail',
-                    'login', 'register', 'auth', 'health', 'docs', 'redoc', 'openapi.json',
-                    'admin', 'user', 'users', 'articles', 'categories', 'media', 'profile', 'setting']
-        if any(full_path.startswith(p) for p in excluded):
+        # 排除所有API、静态资源和系统路径，确保这些路径不会被SPA回退拦截
+        excluded_prefixes = [
+            'api/',  # 所有API路径
+            'static/',  # 静态文件
+            'assets/',  # 资源文件（包括storage和themes）
+            'docs',  # API文档
+            'redoc',  # ReDoc文档
+            'openapi.json',  # OpenAPI规范
+            'health',  # 健康检查
+        ]
+
+        # 如果路径以排除的前缀开头，返回404而不是SPA页面
+        if any(full_path.startswith(prefix) for prefix in excluded_prefixes):
             return PlainTextResponse("Not Found", status_code=404)
+
+        # 尝试返回前端SPA页面
         try:
             frontend_index = os.path.join(os.path.dirname(__file__), "..", "frontend", "index.html")
             if os.path.exists(frontend_index):
@@ -525,6 +536,8 @@ def register_error_handlers(app: FastAPI):
                     return HTMLResponse(content=f.read())
         except Exception:
             pass
+
+        # 默认返回一个简单的SPA模板
         return HTMLResponse(
             content="<!DOCTYPE html><html><head><title>Blog</title></head><body><div id='app'></div></body></html>")
 
@@ -607,30 +620,30 @@ def create_app(config=None):
     # 注册所有 API 路由
     register_all_routes(app, worker_info)
 
-    # 静态文件挂载
+    # 错误处理和 SPA 回退
+    register_error_handlers(app)
+
+    # 静态文件挂载 - 确保在所有路由注册之后挂载，避免被catch-all路由拦截
     static_dir = os.path.join(os.path.dirname(__file__), "..", "static")
     os.makedirs(static_dir, exist_ok=True)
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
-    # 本地存储
+    # 本地存储 - 使用统一前缀 /assets/storage 避免与业务路由冲突
     try:
         from src.setting import app_config
         local_storage = getattr(app_config, 'LOCAL_STORAGE_PATH', 'storage')
     except Exception:
         local_storage = 'storage'
     os.makedirs(local_storage, exist_ok=True)
-    app.mount("/local-storage", StaticFiles(directory=local_storage), name="local-storage")
+    app.mount("/assets/storage", StaticFiles(directory=local_storage), name="local-storage")
 
     objects_dir = os.path.join(local_storage, 'objects')
     os.makedirs(objects_dir, exist_ok=True)
-    app.mount("/storage/objects", StaticFiles(directory=objects_dir), name="storage-objects")
+    app.mount("/assets/storage/objects", StaticFiles(directory=objects_dir), name="storage-objects")
 
     themes_dir = os.path.join(os.path.dirname(__file__), "..", "themes")
     if os.path.exists(themes_dir):
-        app.mount("/themes", StaticFiles(directory=themes_dir), name="themes")
-
-    # 错误处理和 SPA 回退
-    register_error_handlers(app)
+        app.mount("/assets/themes", StaticFiles(directory=themes_dir), name="themes")
 
     return app
 
