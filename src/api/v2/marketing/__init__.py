@@ -13,4 +13,4 @@ router = APIRouter(tags=["marketing"])
 
 # 按顺序包含子路由
 router.include_router(ad_management_router, prefix="/admin/ad")  # /admin/ad/*
-router.include_router(advertisement_system_router, prefix="/ads")  # /ads/*
+router.include_router(advertisement_system_router, prefix="")  # /*
