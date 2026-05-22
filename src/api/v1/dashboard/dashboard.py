@@ -462,8 +462,11 @@ async def get_my_messages(
 async def get_media_management_files(
         request: Request,
         page: int = Query(1, ge=1),
-        per_page: int = Query(10, ge=1, le=100),
+        per_page: int = Query(20, ge=1, le=100),
         file_type: Optional[str] = Query(None, alias="type"),
+        sort_by: Optional[str] = Query("time", alias="sort"),
+        sort_order: Optional[str] = Query("desc", alias="order"),
+        q: Optional[str] = Query(None, alias="q"),
         current_user: User = Depends(admin_required_api),
         db: AsyncSession = Depends(get_async_db)
 ):
@@ -491,6 +494,10 @@ async def get_media_management_files(
             elif file_type == 'videos':
                 base_query = base_query.where(FileHash.mime_type.like('video/%'))
 
+        # 搜索（按文件名模糊匹配）
+        if q:
+            base_query = base_query.where(Media.original_filename.ilike(f'%{q}%'))
+
         # 计算总数
         count_query = select(func.count()).select_from(base_query.subquery())
         total_result = await db.execute(count_query)
@@ -498,7 +505,10 @@ async def get_media_management_files(
 
         # 分页查询
         offset = (page - 1) * per_page
-        ordered_query = base_query.order_by(Media.created_at.desc()).offset(offset).limit(per_page)
+        # 排序
+        sort_column = Media.original_filename if sort_by == 'name' else Media.created_at
+        order_fn = sort_column.asc if sort_order == 'asc' else sort_column.desc
+        ordered_query = base_query.order_by(order_fn()).offset(offset).limit(per_page)
         result = await db.execute(ordered_query)
         rows = result.all()
 
