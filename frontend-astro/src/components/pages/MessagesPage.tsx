@@ -4,7 +4,7 @@ import React, {useEffect, useRef, useState, useCallback} from 'react';
 import {apiClient} from '@/lib/api';
 import {
   Send, MessageCircle, ChevronLeft, Users, Bell, Plus, X,
-  Loader, Check, Hash, Trash2,
+  Loader, Check, Hash, Trash2, UserPlus,
 } from 'lucide-react';
 
 // ─── Types ──────────────────────────────────────────
@@ -140,6 +140,12 @@ function GroupsTab() {
   const [showCreate, setShowCreate] = useState(false);
   const [createName, setCreateName] = useState('');
   const [createDesc, setCreateDesc] = useState('');
+  // Invite / manage state
+  const [showManage, setShowManage] = useState(false);
+  const [invites, setInvites] = useState<any[]>([]);
+  const [members, setMembers] = useState<any[]>([]);
+  const [inviteLink, setInviteLink] = useState('');
+  const [addUserId, setAddUserId] = useState('');
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -178,13 +184,56 @@ function GroupsTab() {
       const g = r.data?.group || r.data;
       if (g?.id) setGroups(p => [...p, {id: g.id, name: g.name, description: g.description, member_count: 1, unread_count: 0}]);
       setShowCreate(false); setCreateName(''); setCreateDesc('');
-      // Refresh list
       apiClient.get('/chats/groups/').then(r2 => {
         if (r2.success && r2.data) {
           const raw = Array.isArray(r2.data) ? r2.data : (r2.data.groups || r2.data.data || []);
           setGroups(raw);
         }
       });
+    }
+  };
+
+  // ── Open manage modal and load data ──
+  const openManage = async () => {
+    setShowManage(true); setInviteLink(''); setAddUserId('');
+    if (!activeGroup) return;
+    const [invR, memR] = await Promise.all([
+      apiClient.get<any>(`/chats/groups/${activeGroup}/invites`),
+      apiClient.get<any>(`/chats/groups/${activeGroup}/members`),
+    ]);
+    if (invR.success) setInvites(Array.isArray(invR.data) ? invR.data : invR.data.invites || []);
+    if (memR.success) setMembers(Array.isArray(memR.data) ? memR.data : memR.data.members || []);
+  };
+
+  // ── Generate invite link ──
+  const genInvite = async () => {
+    if (!activeGroup) return;
+    const r = await apiClient.post(`/chats/groups/${activeGroup}/create-invite`, {expires_hours: 72, max_uses: 10});
+    if (r.success) {
+      setInviteLink(r.data.full_url || r.data.invite_url || r.data.invite_code || '');
+      // Refresh invites
+      const invR = await apiClient.get<any>(`/chats/groups/${activeGroup}/invites`);
+      if (invR.success) setInvites(Array.isArray(invR.data) ? invR.data : invR.data.invites || []);
+    }
+  };
+
+  // ── Revoke invite ──
+  const revokeInvite = async (inviteId: number) => {
+    if (!activeGroup) return;
+    await apiClient.post(`/chats/groups/${activeGroup}/revoke-invite`, {invite_id: inviteId});
+    setInvites(prev => prev.filter(i => i.id !== inviteId && i.invite_id !== inviteId));
+  };
+
+  // ── Add member ──
+  const addMember = async () => {
+    if (!activeGroup || !addUserId.trim()) return;
+    const ids = addUserId.split(',').map(s => parseInt(s.trim())).filter(n => !isNaN(n));
+    if (!ids.length) return;
+    const r = await apiClient.post(`/chats/groups/${activeGroup}/members`, {member_ids: ids});
+    if (r.success) {
+      setAddUserId('');
+      const memR = await apiClient.get<any>(`/chats/groups/${activeGroup}/members`);
+      if (memR.success) setMembers(Array.isArray(memR.data) ? memR.data : memR.data.members || []);
     }
   };
 
@@ -230,7 +279,10 @@ function GroupsTab() {
               <button onClick={()=>setActiveGroup(null)} className="lg:hidden p-1 -ml-1"><ChevronLeft className="w-4 h-4"/></button>
               <Hash className="w-4 h-4 text-gray-400"/>
               <span className="font-medium text-xs text-gray-900 dark:text-white">{groups.find(g=>g.id===activeGroup)?.name||''}</span>
-              <span className="text-[10px] text-gray-400 ml-auto">{groups.find(g=>g.id===activeGroup)?.member_count||0} 人在线</span>
+              <button onClick={openManage} className="ml-auto p-1.5 text-gray-400 hover:text-blue-600 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800" title="管理群组">
+                <UserPlus className="w-4 h-4"/>
+              </button>
+              <span className="text-[10px] text-gray-400">{groups.find(g=>g.id===activeGroup)?.member_count||0}人</span>
             </div>
             <div className="flex-1 overflow-y-auto p-3 space-y-2.5">
               {groupMsgs.map(m => (
@@ -280,6 +332,97 @@ function GroupsTab() {
               </div>
               <button onClick={createGroup} disabled={!createName.trim()}
                 className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg disabled:opacity-50">创建</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ═══ Manage Group Modal ═══ */}
+      {showManage && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={()=>setShowManage(false)}>
+          <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md max-h-[80vh] overflow-y-auto m-4" onClick={e=>e.stopPropagation()}>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 dark:border-gray-700 sticky top-0 bg-white dark:bg-gray-900 z-10">
+              <h3 className="font-semibold text-sm text-gray-900 dark:text-white">管理群组</h3>
+              <button onClick={()=>setShowManage(false)} className="p-1 text-gray-400"><X className="w-4 h-4"/></button>
+            </div>
+            <div className="p-5 space-y-6">
+
+              {/* — Invite link — */}
+              <div>
+                <h4 className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-3">邀请链接</h4>
+                <button onClick={genInvite}
+                  className="w-full py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg inline-flex items-center justify-center gap-1.5">
+                  <Plus className="w-4 h-4"/>生成邀请链接（72h / 10次）
+                </button>
+                {inviteLink && (
+                  <div className="mt-2 flex gap-2">
+                    <input readOnly value={inviteLink}
+                      className="flex-1 px-3 py-1.5 border border-gray-200 dark:border-gray-700 rounded-lg text-xs font-mono dark:bg-gray-800 dark:text-white truncate"/>
+                    <button onClick={() => { navigator.clipboard.writeText(inviteLink); }}
+                      className="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 text-xs rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700">复制</button>
+                  </div>
+                )}
+              </div>
+
+              {/* — Existing invites — */}
+              <div>
+                <h4 className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-3">已有邀请</h4>
+                {invites.length > 0 ? (
+                  <div className="space-y-2">
+                    {invites.map((inv: any) => (
+                      <div key={inv.id || inv.invite_id} className="flex items-center justify-between p-2.5 bg-gray-50 dark:bg-gray-800 rounded-xl">
+                        <div className="min-w-0 flex-1">
+                          <p className="text-xs font-mono text-gray-600 dark:text-gray-400 truncate">{inv.invite_code || inv.code || inv.id}</p>
+                          <p className="text-[10px] text-gray-400">
+                            {(inv.use_count||0)}/({inv.max_uses||'∞'}) 次
+                            {inv.expires_at && <> · {new Date(inv.expires_at).toLocaleDateString('zh-CN')}过期</>}
+                          </p>
+                        </div>
+                        <button onClick={() => revokeInvite(inv.id || inv.invite_id)}
+                          className="p-1 text-gray-400 hover:text-red-500 shrink-0 ml-2"><Trash2 className="w-3.5 h-3.5"/></button>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-gray-400 text-center py-3">暂无邀请链接</p>
+                )}
+              </div>
+
+              {/* — Add member — */}
+              <div>
+                <h4 className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-3">添加成员</h4>
+                <div className="flex gap-2">
+                  <input value={addUserId} onChange={e=>setAddUserId(e.target.value)} placeholder="用户 ID（逗号分隔）"
+                    className="flex-1 px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-xs dark:bg-gray-800 dark:text-white"/>
+                  <button onClick={addMember}
+                    className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded-lg">添加</button>
+                </div>
+              </div>
+
+              {/* — Members list — */}
+              <div>
+                <h4 className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-3">成员列表 ({members.length})</h4>
+                <div className="space-y-1.5 max-h-40 overflow-y-auto">
+                  {members.map((m: any, i: number) => (
+                    <div key={m.id || m.user_id || i} className="flex items-center justify-between p-2 border border-gray-100 dark:border-gray-800 rounded-lg">
+                      <div className="flex items-center gap-2 min-w-0">
+                        <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-400 to-purple-400 flex items-center justify-center text-white text-[9px] font-bold shrink-0">
+                          {m.username?.charAt(0) || m.user?.charAt(0) || '?'}
+                        </div>
+                        <span className="text-xs text-gray-700 dark:text-gray-300 truncate">{m.username || `用户 #${m.user_id || m.user}`}</span>
+                      </div>
+                      {m.role && (
+                        <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0 ml-2
+                          ${m.role === 'owner' ? 'bg-yellow-100 text-yellow-700' : m.role === 'admin' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}`}>
+                          {m.role === 'owner' ? '群主' : m.role === 'admin' ? '管理' : '成员'}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                  {!members.length && <p className="text-xs text-gray-400 text-center py-3">暂无成员数据</p>}
+                </div>
+              </div>
+
             </div>
           </div>
         </div>
