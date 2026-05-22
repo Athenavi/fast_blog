@@ -55,7 +55,7 @@ function SensitiveWordsInner() {
       if (levelFilter !== '') params.level = levelFilter;
       if (actionFilter) params.action = actionFilter;
       const res = await apiClient.get<any>('/api/v2/security/sensitive-words/', params);
-      if (res.success && res.data) return res.data;
+      if (res.success && res.data?.items) return res.data;
       return {items: [], total: 0, page: 1, total_pages: 1};
     },
   });
