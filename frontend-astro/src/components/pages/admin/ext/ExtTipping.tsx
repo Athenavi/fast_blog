@@ -1,38 +1,114 @@
 'use client';
 
-import React from 'react';
-import {useQuery, useMutation} from '@tanstack/react-query';
+import React, {useState} from 'react';
+import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {apiClient} from '@/lib/api';
-import {Coins, TrendingUp, Users, DollarSign, Check, X} from 'lucide-react';
+import {Diamond, TrendingUp, Users, DollarSign, Check, X, Loader, Eye} from 'lucide-react';
 
-function ExtTippingInner() {
-  const {data:stats}=useQuery({queryKey:['ext-tip-stats'],queryFn:async()=>{const r=await apiClient.get<any>('/ext/tipping/my-stats');return r.success&&r.data?r.data:{}}});
-  const {data:recent}=useQuery({queryKey:['ext-tip-recent'],queryFn:async()=>{const r=await apiClient.get<any[]>('/ext/tipping/recent');return r.success&&r.data?(Array.isArray(r.data)?r.data:r.data.tips||[]):[]}});
-  const {data:withdrawals}=useQuery({queryKey:['ext-tip-withdrawals'],queryFn:async()=>{const r=await apiClient.get<any[]>('/ext/tipping/my-withdrawals');return r.success&&r.data?(Array.isArray(r.data)?r.data:r.data.withdrawals||[]):[]}});
-  const processMut=useMutation({mutationFn:(id:number)=>apiClient.post('/ext/tipping/admin/process-withdrawal',{withdrawal_id:id})});
+function TippingInner() {
+  const qc = useQueryClient();
+
+  const {data: recentTips} = useQuery({
+    queryKey: ['ext-tipping-recent'],
+    queryFn: async () => {
+      const r = await apiClient.get<any>('/ext/tipping/recent', {limit: 20});
+      const raw = r.success && r.data ? (r.data.tips || r.data) : [];
+      return Array.isArray(raw) ? raw : [];
+    },
+  });
+
+  const {data: leaderboard} = useQuery({
+    queryKey: ['ext-tipping-leaderboard'],
+    queryFn: async () => {
+      const r = await apiClient.get<any>('/ext/tipping/leaderboard', {limit: 20, period: 'all'});
+      const raw = r.success && r.data ? (r.data.leaderboard || r.data) : [];
+      return Array.isArray(raw) ? raw : [];
+    },
+  });
+
+  const {data: presetAmounts} = useQuery({
+    queryKey: ['ext-tipping-amounts'],
+    queryFn: async () => {
+      const r = await apiClient.get<any>('/ext/tipping/preset-amounts');
+      return r.success && r.data ? r.data : {};
+    },
+  });
+
+  const amounts: number[] = Array.isArray(presetAmounts?.amounts) ? presetAmounts.amounts : [];
 
   return (
     <AdminShell title="打赏系统">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border p-5"><DollarSign className="w-5 h-5 text-green-500 mb-2"/><p className="text-2xl font-bold">{stats?.total_received||'—'}</p><p className="text-xs text-gray-500">总收入</p></div>
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border p-5"><Coins className="w-5 h-5 text-yellow-500 mb-2"/><p className="text-2xl font-bold">{stats?.balance||'—'}</p><p className="text-xs text-gray-500">可提现</p></div>
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border p-5"><TrendingUp className="w-5 h-5 text-blue-500 mb-2"/><p className="text-2xl font-bold">{stats?.total_tips||'—'}</p><p className="text-xs text-gray-500">打赏次数</p></div>
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border p-5"><Users className="w-5 h-5 text-purple-500 mb-2"/><p className="text-2xl font-bold">{stats?.tippers||'—'}</p><p className="text-xs text-gray-500">打赏者</p></div>
-      </div>
-      <div className="grid lg:grid-cols-2 gap-6">
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-          <h3 className="px-5 py-4 font-semibold text-gray-900 dark:text-white border-b">最近打赏</h3>
-          {recent?.length>0?<div className="divide-y">{recent.map((t:any,i:number)=><div key={i} className="px-5 py-3 flex justify-between text-sm"><span className="text-gray-900 dark:text-white">{t.from_username||'匿名'}</span><span className="font-medium text-green-600">+¥{t.amount||t.amount_usd||'—'}</span></div>)}</div>:<p className="p-8 text-center text-gray-400 text-sm">暂无打赏</p>}
+      {/* Preset amounts */}
+      <div className="bg-white dark:bg-gray-900 rounded-2xl border p-6 mb-6">
+        <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><DollarSign className="w-5 h-5"/>预设打赏金额</h3>
+        <div className="flex flex-wrap gap-2">
+          {amounts.map((a, i) => (
+            <span key={i} className="px-4 py-2 bg-green-50 dark:bg-green-900/20 text-green-700 rounded-xl text-sm font-medium">¥{a}</span>
+          ))}
+          {presetAmounts?.min_amount !== undefined && (
+            <span className="text-xs text-gray-400 ml-2 self-center">范围: ¥{presetAmounts.min_amount} ~ ¥{presetAmounts.max_amount}</span>
+          )}
+          {!amounts.length && <p className="text-sm text-gray-400">暂无预设金额</p>}
         </div>
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-          <h3 className="px-5 py-4 font-semibold text-gray-900 dark:text-white border-b">提现申请</h3>
-          {withdrawals?.length>0?<div className="divide-y">{withdrawals.map((w:any,i:number)=><div key={i} className="px-5 py-3 flex items-center justify-between"><div><p className="text-sm font-medium text-gray-900 dark:text-white">¥{w.amount}</p><p className="text-xs text-gray-500">{w.created_at?new Date(w.created_at).toLocaleDateString('zh-CN'):''}</p></div><div className="flex items-center gap-2">{w.status==='pending'?<button onClick={()=>processMut.mutate(w.id)} className="px-3 py-1 bg-blue-600 text-white text-xs rounded-lg">处理</button>:<span className={`px-2 py-0.5 text-xs rounded-full ${w.status==='completed'?'bg-green-100 text-green-700':'bg-gray-100 text-gray-500'}`}>{w.status}</span>}</div></div>)}</div>:<p className="p-8 text-center text-gray-400 text-sm">暂无提现</p>}
+      </div>
+
+      <div className="grid lg:grid-cols-2 gap-6 mb-6">
+        {/* Recent tips */}
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2"><Eye className="w-5 h-5"/>最近打赏</h3>
+          </div>
+          {Array.isArray(recentTips) && recentTips.length > 0 ? (
+            <div className="divide-y divide-gray-100 dark:divide-gray-800">
+              {recentTips.slice(0, 15).map((tip: any, i: number) => (
+                <div key={tip.tip_id || i} className="px-6 py-3.5 flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-700 dark:text-gray-300">
+                      <span className="font-medium">{tip.from_username || tip.from_user_id || '用户'}</span>
+                      {' → '}
+                      <span className="font-medium">{tip.to_username || tip.to_user_id || '用户'}</span>
+                    </p>
+                    <p className="text-xs text-gray-400">{tip.message || (tip.article_id ? `文章 #${tip.article_id}` : '')}</p>
+                  </div>
+                  <span className="text-sm font-bold text-green-600">¥{tip.amount || 0}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="p-8 text-center text-sm text-gray-400">暂无打赏记录</div>
+          )}
+        </div>
+
+        {/* Leaderboard */}
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2"><TrendingUp className="w-5 h-5"/>打赏排行榜 TOP 20</h3>
+          </div>
+          {Array.isArray(leaderboard) && leaderboard.length > 0 ? (
+            <div className="divide-y divide-gray-100 dark:divide-gray-800">
+              {leaderboard.map((entry: any, i: number) => (
+                <div key={entry.user_id || i} className="px-6 py-3 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0
+                      ${i === 0 ? 'bg-yellow-100 text-yellow-700' : i === 1 ? 'bg-gray-200 text-gray-600' : i === 2 ? 'bg-orange-100 text-orange-700' : 'text-gray-500'}`}>
+                      {i + 1}
+                    </span>
+                    <span className="text-sm text-gray-700 dark:text-gray-300">{entry.username || entry.user || `用户 #${entry.user_id}`}</span>
+                  </div>
+                  <span className="text-sm font-semibold text-green-600">¥{entry.total_amount || entry.amount || 0}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="p-8 text-center text-sm text-gray-400">暂无排行榜数据</div>
+          )}
         </div>
       </div>
     </AdminShell>
   );
 }
-export default function ExtTipping(){return <AuthGuard><QueryProvider><ExtTippingInner/></QueryProvider></AuthGuard>;}
+
+export default function ExtTipping() { return <AuthGuard><QueryProvider><TippingInner/></QueryProvider></AuthGuard>; }

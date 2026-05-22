@@ -1,37 +1,108 @@
 'use client';
 
-import React from 'react';
-import {useQuery} from '@tanstack/react-query';
+import React, {useState} from 'react';
+import {useQuery, useMutation} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {apiClient} from '@/lib/api';
-import {Diamond, Image as ImageIcon, CheckCircle, ExternalLink} from 'lucide-react';
+import {Diamond, Image, Wallet, ExternalLink, Search, Loader, Check} from 'lucide-react';
 
-function ExtNFTInner() {
-  const {data:nfts}=useQuery({queryKey:['ext-nft'],queryFn:async()=>{const r=await apiClient.get<any[]>('/ext/nft');return r.success&&r.data?(Array.isArray(r.data)?r.data:r.data.nfts||[]):[]}});
+function NFTInner() {
+  const [searchArticleId, setSearchArticleId] = useState('');
+  const [nftInfo, setNftInfo] = useState<any>(null);
+  const [nftError, setNftError] = useState('');
+
+  const searchNft = async () => {
+    if (!searchArticleId) return;
+    setNftInfo(null); setNftError('');
+    try {
+      const r = await apiClient.get(`/ext/nft/${searchArticleId}`);
+      if (r.success && r.data) setNftInfo(r.data);
+      else setNftError(r.error || '未找到 NFT 信息' || '查询失败');
+    } catch { setNftError('查询失败'); }
+  };
+
+  // Mint form
+  const [mintArticleId, setMintArticleId] = useState('');
+  const [mintAddress, setMintAddress] = useState('');
+  const [mintResult, setMintResult] = useState<any>(null);
+  const mintMut = useMutation({
+    mutationFn: (data: any) => apiClient.post('/ext/nft/mint', data),
+    onSuccess: (r) => { if (r.success) setMintResult(r.data); else setMintResult({error: r.error}); },
+    onError: () => setMintResult({error: '铸造失败'}),
+  });
+
+  const clearMint = () => { setMintArticleId(''); setMintAddress(''); setMintResult(null); };
 
   return (
     <AdminShell title="NFT 管理">
-      <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 mb-6">
-        <div className="flex items-center gap-4"><Diamond className="w-10 h-10 text-purple-600"/><div><p className="font-bold text-gray-900 dark:text-white">NFT 功能</p><p className="text-sm text-gray-500">将文章铸造成 NFT，支持转移和验证</p></div></div>
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {nfts?.length>0?nfts.map((n:any,i:number)=>(
-          <div key={i} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-5">
-            <div className="aspect-square bg-gradient-to-br from-purple-50 to-blue-50 dark:from-purple-900/20 dark:to-blue-900/20 rounded-xl flex items-center justify-center mb-3">
-              {n.image_url?<img src={n.image_url} alt="" className="w-full h-full object-cover rounded-xl"/>:<ImageIcon className="w-12 h-12 text-gray-300"/>}
+      <div className="grid lg:grid-cols-2 gap-6">
+        {/* Mint NFT */}
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
+          <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><Diamond className="w-5 h-5"/>铸造 NFT</h3>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm text-gray-500 mb-1">文章 ID</label>
+              <input type="number" value={mintArticleId} onChange={e => setMintArticleId(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm dark:text-white"/>
             </div>
-            <h3 className="font-semibold text-sm text-gray-900 dark:text-white truncate">{n.name||n.token_id||'NFT'}</h3>
-            <p className="text-xs text-gray-500 mt-1">{n.collection||n.contract_address||''}</p>
-            <div className="flex items-center justify-between mt-3">
-              <span className="flex items-center gap-1 text-xs text-green-600"><CheckCircle className="w-3 h-3"/>已验证</span>
-              {n.explorer_url&&<a href={n.explorer_url} target="_blank" className="text-xs text-blue-600 hover:underline flex items-center gap-0.5"><ExternalLink className="w-3 h-3"/>查看</a>}
+            <div>
+              <label className="block text-sm text-gray-500 mb-1">所有者钱包地址</label>
+              <input value={mintAddress} onChange={e => setMintAddress(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm dark:text-white font-mono" placeholder="0x..."/>
             </div>
+            <button onClick={() => mintMut.mutate({article_id: parseInt(mintArticleId), owner_address: mintAddress})}
+              disabled={mintMut.isPending || !mintArticleId || !mintAddress}
+              className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-lg inline-flex items-center gap-1.5 disabled:opacity-50">
+              {mintMut.isPending ? <Loader className="w-4 h-4 animate-spin"/> : <Diamond className="w-4 h-4"/>}
+              铸造
+            </button>
+            {mintResult && (
+              <div className={`p-4 rounded-xl text-sm ${mintResult.error ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-700'}`}>
+                {mintResult.error ? (
+                  <p className="flex items-center gap-1"><Check className="w-4 h-4"/>{mintResult.error}</p>
+                ) : (
+                  <div className="space-y-1">
+                    <p className="font-medium">铸造成功</p>
+                    <p className="text-xs">Token ID: {mintResult.token_id || '—'}</p>
+                    <p className="text-xs break-all">合约: {mintResult.contract_address ? `${mintResult.contract_address.slice(0, 20)}...` : '—'}</p>
+                    <p className="text-xs break-all">所有者: {mintResult.owner_address ? `${mintResult.owner_address.slice(0, 20)}...` : '—'}</p>
+                  </div>
+                )}
+                <button onClick={clearMint} className="text-xs mt-2 underline">清除</button>
+              </div>
+            )}
           </div>
-        )):<div className="col-span-full p-12 text-center text-gray-400"><Diamond className="w-10 h-10 mx-auto mb-3 opacity-40"/><p>暂无 NFT</p></div>}
+        </div>
+
+        {/* Query NFT */}
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-6">
+          <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><Search className="w-5 h-5"/>查询 NFT</h3>
+          <div className="space-y-4">
+            <div className="flex gap-3">
+              <input type="number" value={searchArticleId} onChange={e => setSearchArticleId(e.target.value)}
+                className="flex-1 px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm dark:text-white" placeholder="文章 ID"/>
+              <button onClick={searchNft}
+                className="px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white text-sm rounded-lg">查询</button>
+            </div>
+            {nftInfo && (
+              <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl space-y-2 text-sm">
+                <p><span className="text-gray-500">Token ID:</span> {nftInfo.token_id || '—'}</p>
+                <p className="break-all"><span className="text-gray-500">合约:</span> {nftInfo.contract_address || '—'}</p>
+                <p className="break-all"><span className="text-gray-500">所有者:</span> {nftInfo.owner_address || '—'}</p>
+                <p><span className="text-gray-500">网络:</span> {nftInfo.network || '—'}</p>
+                {nftInfo.transaction_hash && (
+                  <p className="break-all"><span className="text-gray-500">Tx:</span> {nftInfo.transaction_hash.slice(0, 30)}...</p>
+                )}
+              </div>
+            )}
+            {nftError && <p className="text-sm text-red-500">{nftError}</p>}
+          </div>
+        </div>
       </div>
     </AdminShell>
   );
 }
-export default function ExtNFT(){return <AuthGuard><QueryProvider><ExtNFTInner/></QueryProvider></AuthGuard>;}
+
+export default function ExtNFT() { return <AuthGuard><QueryProvider><NFTInner/></QueryProvider></AuthGuard>; }

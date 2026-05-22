@@ -1,35 +1,86 @@
 'use client';
 
 import React from 'react';
-import {useQuery} from '@tanstack/react-query';
+import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {apiClient} from '@/lib/api';
-import {Award, Medal, Star, TrendingUp} from 'lucide-react';
+import {Award, Users, Filter, Loader} from 'lucide-react';
 
-function ExtBadgesInner() {
-  const {data:badges} = useQuery({queryKey:['ext-badges'],queryFn:async()=>{const r=await apiClient.get<any[]>('/ext/badges/available');return r.success&&r.data?(Array.isArray(r.data)?r.data:r.data.badges||[]):[]}});
-  const {data:stats}=useQuery({queryKey:['ext-badge-stats'],queryFn:async()=>{const r=await apiClient.get<any>('/ext/badges/admin/stats');return r.success&&r.data?r.data:{}}});
-  const {data:cats}=useQuery({queryKey:['ext-badge-cats'],queryFn:async()=>{const r=await apiClient.get<any[]>('/ext/badges/categories');return r.success&&r.data?(Array.isArray(r.data)?r.data:r.data.categories||[]):[]}});
+const CATEGORY_LABEL: Record<string, string> = {writing:'写作', consistency:'坚持', quality:'质量', community:'社区', social:'社交', special:'特殊'};
+
+function BadgesInner() {
+  const {data: stats} = useQuery({
+    queryKey: ['ext-badges-stats'],
+    queryFn: async () => {
+      const r = await apiClient.get<any>('/ext/badges/admin/stats');
+      return r.success && r.data ? r.data : {};
+    },
+  });
+
+  const {data: available} = useQuery({
+    queryKey: ['ext-badges-available'],
+    queryFn: async () => {
+      const r = await apiClient.get<any>('/ext/badges/available');
+      const raw = r.success && r.data ? (r.data.badges || r.data) : [];
+      return Array.isArray(raw) ? raw : [];
+    },
+  });
+
+  const [categoryFilter, setCategoryFilter] = React.useState<string>('');
+  const categories: string[] = Array.isArray(stats?.categories) ? stats.categories : [];
+
+  const filtered = Array.isArray(available)
+    ? (categoryFilter ? available.filter((b: any) => b.category === categoryFilter) : available)
+    : [];
 
   return (
     <AdminShell title="徽章系统">
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border p-5"><Award className="w-5 h-5 text-blue-500 mb-2"/><p className="text-2xl font-bold">{stats?.total_badges||badges?.length||0}</p><p className="text-xs text-gray-500">徽章总数</p></div>
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border p-5"><Medal className="w-5 h-5 text-purple-500 mb-2"/><p className="text-2xl font-bold">{stats?.awarded_count||'—'}</p><p className="text-xs text-gray-500">已颁发</p></div>
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border p-5"><Star className="w-5 h-5 text-yellow-500 mb-2"/><p className="text-2xl font-bold">{stats?.categories||cats?.length||0}</p><p className="text-xs text-gray-500">分类</p></div>
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border p-5"><TrendingUp className="w-5 h-5 text-green-500 mb-2"/><p className="text-2xl font-bold">{stats?.recently_awarded||'—'}</p><p className="text-xs text-gray-500">近期授予</p></div>
+      <div className="grid grid-cols-3 gap-4 mb-6">
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border p-5">
+          <div className="flex items-center gap-2 text-sm text-gray-500 mb-1"><Award className="w-4 h-4"/>总徽章数</div>
+          <p className="text-2xl font-bold">{stats?.total_badges ?? '—'}</p>
+        </div>
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border p-5">
+          <div className="flex items-center gap-2 text-sm text-gray-500 mb-1"><Users className="w-4 h-4"/>总授予次数</div>
+          <p className="text-2xl font-bold">{stats?.total_awarded ?? '—'}</p>
+        </div>
+        <div className="bg-white dark:bg-gray-900 rounded-2xl border p-5">
+          <div className="flex items-center gap-2 text-sm text-gray-500 mb-1"><Filter className="w-4 h-4"/>分类</div>
+          <p className="text-2xl font-bold">{categories.length}</p>
+        </div>
       </div>
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {badges?.map((b:any,i:number)=>(
-          <div key={b.badge_key||i} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-5 flex items-start gap-4 hover:shadow-sm transition-shadow">
-            <div className={`w-12 h-12 rounded-xl flex items-center justify-center text-2xl ${b.color||'bg-blue-50 dark:bg-blue-900/20'}`}>{b.icon||'🏅'}</div>
-            <div className="flex-1 min-w-0"><h3 className="font-semibold text-sm text-gray-900 dark:text-white">{b.name||b.badge_key}</h3><p className="text-xs text-gray-500 mt-0.5">{b.description||''}</p><p className="text-xs text-gray-400 mt-1">{b.category||''}</p></div>
+
+      <div className="flex gap-2 mb-4 flex-wrap">
+        <button onClick={() => setCategoryFilter('')}
+          className={`px-3 py-1.5 text-xs rounded-lg font-medium transition-colors ${!categoryFilter ? 'bg-blue-600 text-white' : 'bg-white dark:bg-gray-900 border text-gray-600'}`}>全部</button>
+        {categories.map(c => (
+          <button key={c} onClick={() => setCategoryFilter(c)}
+            className={`px-3 py-1.5 text-xs rounded-lg font-medium transition-colors ${categoryFilter === c ? 'bg-blue-600 text-white' : 'bg-white dark:bg-gray-900 border text-gray-600'}`}>
+            {CATEGORY_LABEL[c] || c}
+          </button>
+        ))}
+      </div>
+
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+        {filtered.map((badge: any, i: number) => (
+          <div key={badge.key || i} className="bg-white dark:bg-gray-900 rounded-2xl border p-5">
+            <div className="flex items-start justify-between mb-3">
+              <span className="text-2xl">{badge.icon || '🏅'}</span>
+              <span className="text-[10px] text-gray-400 font-mono">{badge.category}</span>
+            </div>
+            <p className="text-sm font-semibold text-gray-900 dark:text-white">{badge.name || badge.key}</p>
+            <p className="text-xs text-gray-400 mt-1">{badge.description || ''}</p>
+            {badge.points_reward > 0 && (
+              <p className="text-[10px] text-yellow-600 mt-2">🎁 {badge.points_reward} 积分奖励</p>
+            )}
           </div>
         ))}
+        {!filtered.length && <div className="col-span-full text-center py-8 text-sm text-gray-400">暂无徽章</div>}
       </div>
     </AdminShell>
   );
 }
-export default function ExtBadges(){return <AuthGuard><QueryProvider><ExtBadgesInner/></QueryProvider></AuthGuard>;}
+
+export default function ExtBadges() { return <AuthGuard><QueryProvider><BadgesInner/></QueryProvider></AuthGuard>; }
