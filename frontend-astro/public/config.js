@@ -4,5 +4,5 @@
  */
 const runtimeConfig = {
     API_BASE_URL: 'http://localhost:9421',
-    API_PREFIX: '/api/v1'
+    API_PREFIX: '/api/v2'
 };

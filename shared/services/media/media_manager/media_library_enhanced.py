@@ -225,6 +225,5 @@ class MediaLibraryService:
             "updated_at": media.updated_at.isoformat() if hasattr(media.updated_at, 'isoformat') else str(media.updated_at)
         }
 
-
 # 全局实例
 media_library_service = MediaLibraryService()
