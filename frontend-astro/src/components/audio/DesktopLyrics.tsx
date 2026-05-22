@@ -372,17 +372,19 @@ const DesktopLyrics: React.FC<{
 
   const onPointerUp = useCallback(() => { dragRef.current = null; }, []);
 
-  // 阻止事件冒泡 — 防止误触 MiniPlayer 的 togglePlay
+  // 阻止事件冒泡
   const stopProp = useCallback((e: React.MouseEvent | React.PointerEvent | React.TouchEvent) => {
     e.stopPropagation();
   }, []);
 
-  if (!visible || !lyrics.length) return null;
+  // 重置设置
+  const handleReset = useCallback(() => {
+    setSettings(resetSettings());
+  }, []);
+
+  // ── 以下计算在 early-return 前完成，保证 hooks 顺序不变 ──
 
   const currentLyric = activeLineIndex >= 0 ? lyrics[activeLineIndex] : null;
-  const prevLyric = activeLineIndex > 0 ? lyrics[activeLineIndex - 1] : null;
-  const nextLyric = activeLineIndex >= 0 && activeLineIndex + 1 < lyrics.length ? lyrics[activeLineIndex + 1] : null;
-  const gradient = GRADIENTS.find(g => g.id === settings.gradientId) ?? GRADIENTS[0];
 
   const highlightedTokens = useMemo(() => {
     if (!currentLyric) return [];
@@ -398,14 +400,16 @@ const DesktopLyrics: React.FC<{
     }));
   }, [currentLyric, karaokeProgress]);
 
+  const prevLyric = activeLineIndex > 0 ? lyrics[activeLineIndex - 1] : null;
+  const nextLyric = activeLineIndex >= 0 && activeLineIndex + 1 < lyrics.length ? lyrics[activeLineIndex + 1] : null;
+  const gradient = GRADIENTS.find(g => g.id === settings.gradientId) ?? GRADIENTS[0];
+
   const entryV = entryVariants(settings.entryAnim);
   const exitV = exitVariants(settings.exitAnim);
   const entryTrans = {duration: 0.4, ease: [0.16, 1, 0.3, 1]};
   const exitTrans = {duration: 0.35, ease: 'easeOut'};
 
-  const handleReset = useCallback(() => {
-    setSettings(resetSettings());
-  }, []);
+  if (!visible || !lyrics.length) return null;
 
   return (
       <>
