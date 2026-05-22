@@ -3,6 +3,7 @@
 import React, {useEffect, useState} from 'react';
 import {apiClient} from '@/lib/api/base-client';
 import type {Article} from '@/lib/api/base-types';
+import ArticleComments from './ArticleComments';
 
 interface Props { slug?: string; }
 
@@ -57,8 +58,12 @@ const ArticleDetail: React.FC<Props> = ({slug: propSlug}) => {
   );
 
   return (
-    <div className="prose prose-lg dark:prose-invert max-w-none">
-      <div dangerouslySetInnerHTML={{__html: article.content || '<p>暂无内容</p>'}} />
+    <div className="max-w-3xl mx-auto">
+      <div className="prose prose-lg dark:prose-invert max-w-none">
+        <div dangerouslySetInnerHTML={{__html: article.content || '<p>暂无内容</p>'}} />
+      </div>
+      {/* Comment section */}
+      {article.id && <ArticleComments articleId={article.id} />}
     </div>
   );
 };
