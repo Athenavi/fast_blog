@@ -133,13 +133,13 @@ function BackupInner() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
           <div className="bg-white dark:bg-gray-900 p-5 rounded-2xl border border-gray-200">
             <div className="flex items-center gap-2 text-sm text-gray-500 mb-1"><Database className="w-4 h-4"/>数据库备份</div>
-            <p className="text-2xl font-bold">{stats?.database_count ?? 0}</p></div>
+            <p className="text-2xl font-bold">{stats?.by_type?.database?.count ?? 0}</p></div>
           <div className="bg-white dark:bg-gray-900 p-5 rounded-2xl border border-gray-200">
             <div className="flex items-center gap-2 text-sm text-gray-500 mb-1"><HardDrive className="w-4 h-4"/>文件备份</div>
-            <p className="text-2xl font-bold">{stats?.files_count ?? 0}</p></div>
+            <p className="text-2xl font-bold">{stats?.by_type?.files?.count ?? 0}</p></div>
           <div className="bg-white dark:bg-gray-900 p-5 rounded-2xl border border-gray-200">
             <div className="flex items-center gap-2 text-sm text-gray-500 mb-1"><HardDrive className="w-4 h-4"/>完整备份</div>
-            <p className="text-2xl font-bold">{stats?.full_count ?? 0}</p></div>
+            <p className="text-2xl font-bold">{stats?.by_type?.full?.count ?? 0}</p></div>
           <div className="bg-white dark:bg-gray-900 p-5 rounded-2xl border border-gray-200">
             <div className="flex items-center gap-2 text-sm text-gray-500 mb-1"><Database className="w-4 h-4"/>总大小</div>
             <p className="text-2xl font-bold">{formatSize(stats?.total_size)}</p></div>
