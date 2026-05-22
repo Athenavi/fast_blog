@@ -83,10 +83,11 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
 
   const submitMut = useMutation({
     mutationFn: async (data: FormData) => { const fd = new FormData(); Object.entries(data).forEach(([k, v]) => { if (v !== undefined && v !== null && v !== '') fd.append(k, String(v)); }); fd.set('content', contentRef.current); fd.set('status', String(data.status ?? 0)); return mode === 'create' ? apiClient.post('/articles', fd) : apiClient.put(`/articles/${articleId}`, fd); },
-    onSuccess: (res) => { if (res.success) { qc.invalidateQueries({queryKey: ['my-posts']}); clearDraft(); setTimeout(() => window.location.href = '/my/posts', 500); } },
+    onSuccess: (res) => { if (res.success) { qc.invalidateQueries({queryKey: ['my-posts']}); clearDraft(); setTimeout(() => window.location.href = '/my/posts', 500); } else if (res.error) { alert(res.error); } },
+    onError: (err: any) => { alert(err?.message || '保存失败，请重试'); },
   });
 
-  const submit = async (data: FormData) => { setSaving(true); await submitMut.mutateAsync(data); setSaving(false); };
+  const submit = async (data: FormData) => { setSaving(true); try { await submitMut.mutateAsync(data); } finally { setSaving(false); } };
   const publish = () => { setValue('status', 1 as any); handleSubmit(submit)(); };
   const saveDraft = () => { setValue('status', 0 as any); handleSubmit(submit)(); };
 
