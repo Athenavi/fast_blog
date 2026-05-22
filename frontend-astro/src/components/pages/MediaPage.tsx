@@ -10,6 +10,7 @@ import {
   ChevronLeft,
   ChevronRight,
   FileText,
+  Filter,
   FolderClosed,
   FolderOpen,
   Grid3X3,
@@ -17,6 +18,7 @@ import {
   List,
   Music,
   Plus,
+  Tag,
   Trash2,
   Upload,
   Video,
@@ -135,7 +137,7 @@ const UploadArea: React.FC<{onUpload: (files: File[]) => void; uploading: boolea
 };
 
 /* ---------- MediaGrid ---------- */
-const MediaGrid: React.FC<{files: MediaFile[]; loading: boolean; viewMode: 'grid'|'list'; selected: number[]; onSelect: (id: number) => void; onPreview: (m: MediaFile) => void; onDelete: (m: MediaFile) => void}> = ({files, loading, viewMode, selected, onSelect, onPreview, onDelete}) => {
+const MediaGrid: React.FC<{files: MediaFile[]; loading: boolean; viewMode: 'grid'|'list'; selected: number[]; onSelect: (id: number) => void; onPreview: (m: MediaFile) => void; onDelete: (m: MediaFile) => void; onEditTags?: (m: MediaFile) => void}> = ({files, loading, viewMode, selected, onSelect, onPreview, onDelete, onEditTags}) => {
   if (loading) return <div className="p-12 text-center"><div className="animate-spin w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full mx-auto"/></div>;
   if (!files.length) return <div className="p-12 text-center text-gray-400"><ImageIcon className="w-12 h-12 mx-auto mb-3 opacity-50"/><p>暂无媒体文件</p></div>;
   const getIcon = (m: string) => m?.startsWith('video/') ? Video : m?.startsWith('audio/') ? Music : FileText;
@@ -175,9 +177,27 @@ const MediaGrid: React.FC<{files: MediaFile[]; loading: boolean; viewMode: 'grid
               ) :
               <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center"><Icon
                   className="w-5 h-5 text-gray-400"/></div>}
-          <div><p className="text-sm font-medium text-gray-900 dark:text-white truncate max-w-[200px]">{f.original_filename}</p><p className="text-xs text-gray-500">{f.file_size ? `${(f.file_size/1024).toFixed(1)} KB` : ''}</p></div>
+          <div>
+            <p className="text-sm font-medium text-gray-900 dark:text-white truncate max-w-[200px]">{f.original_filename}</p>
+            <p className="text-xs text-gray-500">{f.file_size ? `${(f.file_size/1024).toFixed(1)} KB` : ''}</p>
+            {f.tags && onEditTags && (
+                <p className="flex flex-wrap gap-1 mt-1 cursor-pointer hover:opacity-80" onClick={(e) => { e.stopPropagation(); onEditTags(f); }}>
+                  {(f.tags as string).split(',').filter(Boolean).slice(0, 3).map((tag: string) => (
+                      <span key={tag} className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400">{tag.trim()}</span>
+                  ))}
+                  {(f.tags as string).split(',').filter(Boolean).length > 3 && (
+                      <span className="text-[10px] text-gray-400">+{(f.tags as string).split(',').filter(Boolean).length - 3}</span>
+                  )}
+                </p>
+            )}
+          </div>
         </div></td>
-        <td className="text-sm text-gray-500 hidden sm:table-cell">{f.mime_type?.split('/')[0]||'-'}</td>
+        <td className="text-sm text-gray-500 hidden sm:table-cell">
+          <div className="flex items-center gap-2">
+            <span>{f.mime_type?.split('/')[0]||'-'}</span>
+            {f.category && <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400">{f.category}</span>}
+          </div>
+        </td>
         <td className="pr-4 text-right"><button onClick={() => onDelete(f)} className="p-1 text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4"/></button></td>
       </tr>
     );})}</tbody></table></div>);
@@ -243,7 +263,21 @@ const MediaGrid: React.FC<{files: MediaFile[]; loading: boolean; viewMode: 'grid
                 ) :
                 <div className="w-full h-full flex items-center justify-center cursor-pointer"
                      onClick={() => onPreview(f)}>{React.createElement(Icon, {className: 'w-10 h-10 text-gray-400'})}</div>}
-      <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"><p className="text-xs text-white truncate">{f.original_filename}</p></div>
+      {f.category && (
+          <div className="absolute top-2 left-8 z-10">
+            <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-600/70 text-white/90">{f.category}</span>
+          </div>
+      )}
+      <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
+        <p className="text-xs text-white truncate">{f.original_filename}</p>
+        {(f.tags || (onEditTags && !f.tags)) && (
+            <div className="flex flex-wrap gap-1 mt-1 cursor-pointer hover:opacity-80" onClick={(e) => { e.stopPropagation(); onEditTags && onEditTags(f); }}>
+              {f.tags ? (f.tags as string).split(',').filter(Boolean).slice(0, 2).map((tag: string) => (
+                  <span key={tag} className="text-[9px] px-1 py-0.5 rounded bg-purple-600/60 text-white/90">{tag.trim()}</span>
+              )) : <span className="text-[9px] text-white/50 italic">+标签</span>}
+            </div>
+        )}
+      </div>
       <button onClick={() => onDelete(f)} className="absolute top-2 right-2 z-10 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100"><X className="w-3 h-3"/></button>
           </div>
       );
@@ -1345,6 +1379,16 @@ const MediaPage: React.FC = () => {
   const [showCreateFolder, setShowCreateFolder] = useState(false);
   const [showMoveDialog, setShowMoveDialog] = useState(false);
 
+  // Tags & Categories state
+  const [allTags, setAllTags] = useState<{id: number; name: string}[]>([]);
+  const [allCategories, setAllCategories] = useState<{id: number; name: string}[]>([]);
+  const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number|null>(null);
+  const [showFilters, setShowFilters] = useState(false);
+
+  // Tag editor state (单文件 + 批量)
+  const [tagEditorMedia, setTagEditorMedia] = useState<{id: number; tags: string; multiple?: boolean} | null>(null);
+
   const loadFolders = useCallback(async () => {
     setFolderLoading(true);
     try {
@@ -1353,10 +1397,32 @@ const MediaPage: React.FC = () => {
     } catch {} finally { setFolderLoading(false); }
   }, []);
 
+  const loadTags = useCallback(async () => {
+    try {
+      const res = await apiClient.get('/media/tags');
+      if (res.success && res.data) {
+        const d = res.data as any;
+        setAllTags((d.tags || []).map((t: any) => ({id: t.name, name: t.name, count: t.count})));
+      }
+    } catch {}
+  }, []);
+
+  const loadCategories = useCallback(async () => {
+    try {
+      const res = await apiClient.get('/media/categories');
+      if (res.success && res.data) {
+        const d = res.data as any;
+        setAllCategories((d.categories || []).map((c: any) => ({id: c.name, name: c.name, count: c.count})));
+      }
+    } catch {}
+  }, []);
+
   const loadFiles = useCallback(async () => {
     setLoading(true);
     try {
       const params: any = {page, per_page: 20, media_type: filterType||undefined, q: search||undefined};
+      // Advanced filters
+      if (selectedCategoryId) params.category = selectedCategoryId;
       // Get folder name from selected folder
       if (selectedFolder !== null) {
         const findName = (nodes: FolderNode[], id: number): string|null => {
@@ -1372,10 +1438,11 @@ const MediaPage: React.FC = () => {
         if (d.stats) setStats(d.stats);
       }
     } catch {} finally { setLoading(false); }
-  }, [page, filterType, search, selectedFolder, folders]);
+  }, [page, filterType, search, selectedFolder, folders, selectedCategoryId]);
 
   useEffect(() => { loadFiles(); }, [loadFiles]);
   useEffect(() => { loadFolders(); }, []);
+  useEffect(() => { loadTags(); loadCategories(); }, []);
 
   const {uploading, uploadProgress, uploadStatus, uploadFiles} = useMediaUpload(() => loadFiles());
 
@@ -1404,6 +1471,23 @@ const MediaPage: React.FC = () => {
     else alert(res.error||'删除失败');
   };
 
+  const handleSaveTags = async (mediaId: number, tags: string[], mode: 'add' | 'replace') => {
+    try {
+      const res = await apiClient.post(`/media/${mediaId}/tags`, {tags, mode});
+      if (res.success) { loadFiles(); loadTags(); return true; }
+      else { alert(res.error || '保存标签失败'); return false; }
+    } catch { alert('保存标签失败'); return false; }
+  };
+
+  const handleSaveBatchTags = async (tag: string) => {
+    if (!selected.length) return;
+    try {
+      const res = await apiClient.post('/media/batch-tags', {media_ids: selected, tags: [tag], mode: 'add'});
+      if (res.success) { loadFiles(); loadTags(); }
+      else alert(res.error || '批量添加标签失败');
+    } catch { alert('批量添加标签失败'); }
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 pt-24 pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -1425,20 +1509,148 @@ const MediaPage: React.FC = () => {
           <main className="flex-1">
             <UploadArea onUpload={uploadFiles} uploading={uploading} progress={uploadProgress} status={uploadStatus} collapsed={uploadCollapsed} onToggle={()=>setUploadCollapsed(!uploadCollapsed)}/>
 
-            <div className="flex flex-wrap items-center gap-3 mb-4">
+            <div className="flex flex-wrap items-center gap-3 mb-2">
               <input type="text" value={search} onChange={e=>{setSearch(e.target.value);setPage(1)}} placeholder="搜索文件..." className="flex-1 min-w-[200px] px-4 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"/>
+              <button onClick={() => setShowFilters(v => !v)}
+                      className={`px-3 py-2.5 rounded-xl text-sm flex items-center gap-1.5 transition-colors ${showFilters || selectedTagIds.length || selectedCategoryId ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800' : 'bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
+                <Filter className="w-4 h-4"/>
+                {selectedTagIds.length || selectedCategoryId ? <span className="inline-flex items-center justify-center w-5 h-5 text-[10px] font-bold bg-blue-500 text-white rounded-full">{(selectedTagIds.length) + (selectedCategoryId ? 1 : 0)}</span> : '筛选'}
+              </button>
               {selected.length>0 && (<div className="flex items-center gap-2 flex-wrap">
                 <span className="text-sm text-blue-600 font-medium">{selected.length} 已选</span>
                 <button onClick={()=>setSelected([])} className="px-3 py-2 text-sm bg-gray-200 dark:bg-gray-700 rounded-lg">取消</button>
                 <button onClick={()=>{if(selected.length)setShowMoveDialog(true);}} className="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"><FolderClosed className="w-4 h-4 inline mr-1"/>移动</button>
+                <button onClick={()=>{if(selected.length)setTagEditorMedia({id:0, tags:'', multiple:true});}} className="px-3 py-2 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700"><Tag className="w-4 h-4 inline mr-1"/>标签</button>
                 <button onClick={async()=>{if(!confirm(`删除 ${selected.length} 个文件？`))return;const r=await MediaService.deleteMediaFile(selected);if(r.success){setSelected([]);loadFiles();}}} className="px-3 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700"><Trash2 className="w-4 h-4 inline mr-1"/>删除</button>
               </div>)}
             </div>
 
+            {/* 高级筛选面板 */}
+            {showFilters && (
+                <motion.div
+                    initial={{height: 0, opacity: 0}}
+                    animate={{height: 'auto', opacity: 1}}
+                    className="overflow-hidden mb-4"
+                >
+                  <div className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-4 space-y-4">
+                    {/* 类型筛选 */}
+                    <div>
+                      <label className="text-xs font-medium text-gray-500 dark:text-gray-400 block mb-2">文件类型</label>
+                      <div className="flex flex-wrap gap-2">
+                        {[
+                          {key: '', label: '全部'},
+                          {key: 'image', label: '图片'},
+                          {key: 'video', label: '视频'},
+                          {key: 'audio', label: '音频'},
+                          {key: 'application/pdf', label: 'PDF'},
+                        ].map(t => (
+                            <button key={t.key}
+                                    onClick={() => { setFilterType(t.key); setPage(1); }}
+                                    className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
+                                        filterType === t.key
+                                            ? 'bg-blue-600 text-white'
+                                            : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                                    }`}
+                            >{t.label}</button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* 标签筛选 */}
+                    {allTags.length > 0 && (
+                        <div>
+                          <label className="text-xs font-medium text-gray-500 dark:text-gray-400 block mb-2">
+                            标签 {selectedTagIds.length > 0 && (
+                              <button onClick={() => { setSelectedTagIds([]); setPage(1); }}
+                                      className="ml-2 text-blue-500 hover:text-blue-600 text-[10px]">清除</button>
+                          )}
+                          </label>
+                          <div className="flex flex-wrap gap-1.5">
+                            {allTags.map(tag => (
+                                <button key={tag.id}
+                                        onClick={() => {
+                                          setSelectedTagIds(prev =>
+                                              prev.includes(tag.id)
+                                                  ? prev.filter(id => id !== tag.id)
+                                                  : [...prev, tag.id]
+                                          );
+                                          setPage(1);
+                                        }}
+                                        className={`px-2.5 py-1 rounded-lg text-xs transition-colors ${
+                                            selectedTagIds.includes(tag.id)
+                                                ? 'bg-purple-600 text-white'
+                                                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                                        }`}
+                                >{tag.name}</button>
+                            ))}
+                          </div>
+                        </div>
+                    )}
+
+                    {/* 分类筛选 */}
+                    {allCategories.length > 0 && (
+                        <div>
+                          <label className="text-xs font-medium text-gray-500 dark:text-gray-400 block mb-2">
+                            分类 {selectedCategoryId && (
+                              <button onClick={() => { setSelectedCategoryId(null); setPage(1); }}
+                                      className="ml-2 text-blue-500 hover:text-blue-600 text-[10px]">清除</button>
+                          )}
+                          </label>
+                          <div className="flex flex-wrap gap-1.5">
+                            {allCategories.map(cat => (
+                                <button key={cat.id}
+                                        onClick={() => {
+                                          setSelectedCategoryId(prev => prev === cat.id ? null : cat.id);
+                                          setPage(1);
+                                        }}
+                                        className={`px-2.5 py-1 rounded-lg text-xs transition-colors ${
+                                            selectedCategoryId === cat.id
+                                                ? 'bg-emerald-600 text-white'
+                                                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                                        }`}
+                                >{cat.name}</button>
+                            ))}
+                          </div>
+                        </div>
+                    )}
+
+                    {/* 摘要: 当前筛选条件 */}
+                    {(selectedTagIds.length > 0 || selectedCategoryId || filterType) && (
+                        <div className="flex items-center gap-2 pt-2 border-t border-gray-100 dark:border-gray-800">
+                          <span className="text-xs text-gray-400">当前筛选:</span>
+                          {filterType && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-xs">
+                            {filterType === 'application/pdf' ? 'PDF' : filterType}
+                                <button onClick={() => { setFilterType(''); setPage(1); }} className="hover:text-blue-800">✕</button>
+                          </span>
+                          )}
+                          {selectedTagIds.map(id => {
+                            const tag = allTags.find(t => t.id === id);
+                            return tag ? (
+                                <span key={id} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 text-xs">
+                              {tag.name}
+                                  <button onClick={() => { setSelectedTagIds(prev => prev.filter(i => i !== id)); setPage(1); }} className="hover:text-purple-800">✕</button>
+                            </span>
+                            ) : null;
+                          })}
+                          {selectedCategoryId && allCategories.find(c => c.id === selectedCategoryId) && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 text-xs">
+                            {allCategories.find(c => c.id === selectedCategoryId)?.name}
+                                <button onClick={() => { setSelectedCategoryId(null); setPage(1); }} className="hover:text-emerald-800">✕</button>
+                            </span>
+                          )}
+                          <button onClick={() => { setSelectedTagIds([]); setSelectedCategoryId(null); setFilterType(''); setPage(1); }}
+                                  className="text-xs text-red-500 hover:text-red-600 ml-auto">清除全部</button>
+                        </div>
+                    )}
+                  </div>
+                </motion.div>
+            )}
+
             <MediaGrid files={files} loading={loading} viewMode={viewMode} selected={selected} onSelect={id=>setSelected(s=>s.includes(id)?s.filter(x=>x!==id):[...s,id])} onPreview={f => {
               if (f.mime_type?.startsWith('audio/')) { setNowPlaying(f); }
               else { setPreviewMedia(f); }
-            }} onDelete={setDeleteItem}/>
+            }} onDelete={setDeleteItem} onEditTags={f => setTagEditorMedia({id: f.id, tags: (f as any).tags || ''})}/>
 
             {totalPages>1 && (<div className="flex items-center justify-center gap-2 mt-8">
               <button disabled={page<=1} onClick={()=>setPage(p=>p-1)} className="p-2 rounded-lg border disabled:opacity-30 hover:bg-gray-100"><ChevronLeft className="w-4 h-4"/></button>
@@ -1461,9 +1673,186 @@ const MediaPage: React.FC = () => {
       {deleteItem && <DeleteConfirm item={deleteItem} onCancel={()=>setDeleteItem(null)} onConfirm={()=>handleDelete(deleteItem.id)}/>}
       <CreateFolderDialog open={showCreateFolder} onClose={()=>setShowCreateFolder(false)} onCreate={handleCreateFolder}/>
       <MoveDialog open={showMoveDialog} onClose={()=>setShowMoveDialog(false)} folders={folders} mediaCount={selected.length} onMove={handleMoveToFolder}/>
+      <TagEditor
+          media={tagEditorMedia}
+          allTags={allTags}
+          onClose={() => setTagEditorMedia(null)}
+          onSave={handleSaveTags}
+      />
+      <BatchTagDialog
+          open={tagEditorMedia?.multiple === true}
+          mediaCount={selected.length}
+          onClose={() => setTagEditorMedia(null)}
+          onSave={handleSaveBatchTags}
+          allTags={allTags}
+      />
     </div>
   );
 };
 
-const MediaPageGuard: React.FC = () => <AuthGuard><MediaPage /></AuthGuard>;
-export default MediaPageGuard;
+/* ========== Tag Editor (single media) ========== */
+const TagEditor: React.FC<{
+  media: {id: number; tags: string; multiple?: boolean} | null;
+  allTags: {id: string; name: string; count?: number}[];
+  onClose: () => void;
+  onSave: (mediaId: number, tags: string[], mode: 'add'|'replace') => Promise<boolean>;
+}> = ({media, allTags, onClose, onSave}) => {
+  const [tags, setTags] = useState<string[]>([]);
+  const [inputVal, setInputVal] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [suggestions, setSuggestions] = useState<{id: string; name: string}[]>([]);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (media) {
+      setTags((media.tags || '').split(',').filter(Boolean).map(t => t.trim()));
+      setInputVal('');
+    }
+  }, [media]);
+
+  useEffect(() => {
+    if (!inputVal.trim()) { setSuggestions([]); return; }
+    const q = inputVal.toLowerCase();
+    setSuggestions(
+        allTags.filter(t => t.name.toLowerCase().includes(q) && !tags.includes(t.name)).slice(0, 5)
+    );
+  }, [inputVal, allTags, tags]);
+
+  if (!media || media.multiple) return null;
+
+  const addTag = (name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed || tags.includes(trimmed) || tags.length >= 5) return;
+    setTags(prev => [...prev, trimmed]);
+    setInputVal('');
+    setSuggestions([]);
+  };
+
+  const removeTag = (name: string) => setTags(prev => prev.filter(t => t !== name));
+
+  const handleSave = async () => {
+    setSaving(true);
+    const ok = await onSave(media.id, tags, 'replace');
+    setSaving(false);
+    if (ok) onClose();
+  };
+
+  return (
+      <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={onClose}>
+        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white">编辑标签</h3>
+            <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400">✕</button>
+          </div>
+          <p className="text-xs text-gray-500 mb-3">最多 5 个标签</p>
+
+          {/* 已选标签 */}
+          <div className="flex flex-wrap gap-2 mb-3 min-h-[32px] p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
+            {tags.map(tag => (
+                <span key={tag}
+                      className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs font-medium">
+                  {tag}
+                  <button onClick={() => removeTag(tag)} className="hover:text-red-500">✕</button>
+                </span>
+            ))}
+            {tags.length === 0 && <span className="text-xs text-gray-400">暂无标签，输入添加</span>}
+          </div>
+
+          {/* 输入框 + 建议 */}
+          <div className="relative mb-4">
+            <input ref={inputRef} type="text" value={inputVal}
+                   onChange={e => setInputVal(e.target.value)}
+                   onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addTag(inputVal); } }}
+                   placeholder="输入标签名称..."
+                   className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 dark:text-white"
+                   disabled={tags.length >= 5}
+            />
+            {suggestions.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg overflow-hidden z-10">
+                  {suggestions.map(s => (
+                      <button key={s.id} onClick={() => addTag(s.name)}
+                              className="w-full px-3 py-2 text-left text-sm hover:bg-gray-50 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                        <Tag className="w-3 h-3 text-purple-500"/>
+                        {s.name}
+                      </button>
+                  ))}
+                </div>
+            )}
+          </div>
+
+          {/* 快速标签 */}
+          {allTags.length > 0 && (
+              <div className="mb-4">
+                <p className="text-xs text-gray-500 mb-2">常用标签</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {allTags.filter(t => !tags.includes(t.name)).slice(0, 10).map(t => (
+                      <button key={t.id} onClick={() => addTag(t.name)}
+                              className="px-2 py-1 rounded-lg text-xs bg-gray-100 dark:bg-gray-800 hover:bg-purple-100 dark:hover:bg-purple-900/30 text-gray-600 dark:text-gray-400 hover:text-purple-600 transition-colors">
+                        {t.name}
+                      </button>
+                  ))}
+                </div>
+              </div>
+          )}
+
+          <button onClick={handleSave} disabled={saving}
+                  className="w-full py-2.5 rounded-xl bg-purple-600 text-white text-sm font-medium hover:bg-purple-700 disabled:opacity-50 transition-colors">
+            {saving ? '保存中...' : '保存标签'}
+          </button>
+        </div>
+      </div>
+  );
+};
+
+/* ========== Batch Tag Dialog ========== */
+const BatchTagDialog: React.FC<{
+  open: boolean;
+  mediaCount: number;
+  onClose: () => void;
+  onSave: (tag: string) => Promise<void>;
+  allTags: {id: string; name: string; count?: number}[];
+}> = ({open, mediaCount, onClose, onSave, allTags}) => {
+  const [inputVal, setInputVal] = useState('');
+  const [saving, setSaving] = useState(false);
+
+  if (!open) return null;
+
+  const handleSave = async () => {
+    if (!inputVal.trim()) return;
+    setSaving(true);
+    await onSave(inputVal.trim());
+    setSaving(false);
+    onClose();
+  };
+
+  return (
+      <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={onClose}>
+        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">批量添加标签</h3>
+          <p className="text-sm text-gray-500 mb-4">将为 {mediaCount} 个文件添加标签</p>
+
+          <input type="text" value={inputVal}
+                 onChange={e => setInputVal(e.target.value)}
+                 onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleSave(); } }}
+                 placeholder="输入标签名称..."
+                 className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 dark:bg-gray-800 dark:text-white mb-3"
+                 autoFocus
+          />
+
+          <div className="flex gap-2">
+            <button onClick={onClose}
+                    className="flex-1 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800">
+              取消
+            </button>
+            <button onClick={handleSave} disabled={saving || !inputVal.trim()}
+                    className="flex-1 py-2 rounded-xl bg-purple-600 text-white text-sm font-medium hover:bg-purple-700 disabled:opacity-50 transition-colors">
+              {saving ? '添加中...' : '添加标签'}
+            </button>
+          </div>
+        </div>
+      </div>
+  );
+};
+
+/* ========== DeleteConfirm ========== */
+const DeleteConfirm: React.FC<{item: MediaFile; onCancel: ()=>void; onConfirm: ()=>void}> = ({item, onCancel, onConfirm}) => (
