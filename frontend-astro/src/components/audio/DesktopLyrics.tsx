@@ -1,6 +1,6 @@
 'use client';
 
-import React, {useCallback, useEffect, useRef, useState} from 'react';
+import React, {useCallback, useEffect, useRef, useState, useMemo} from 'react';
 import {motion, AnimatePresence} from 'framer-motion';
 
 /* ---------- Types ---------- */
@@ -10,6 +10,8 @@ interface LyricLine {
   text: string;
 }
 
+type AnimPreset = 'fade-up' | 'fade-scale' | 'slide-left' | 'slide-right' | 'typewriter';
+
 interface LyricsSettings {
   x: number;
   y: number;
@@ -17,6 +19,9 @@ interface LyricsSettings {
   fontFamily: string;
   opacity: number;
   gradientId: string;
+  boxWidth: number;           // 容器宽度 px
+  entryAnim: AnimPreset;      // 入场动画预设
+  exitAnim: AnimPreset;       // 退场动画预设
 }
 
 const GRADIENTS: { id: string; label: string; from: string; via: string; to: string; shadow: string }[] = [
@@ -37,9 +42,18 @@ const FONTS: { value: string; label: string }[] = [
   {value: 'monospace', label: '等宽'},
 ];
 
+const ANIM_PRESETS: { value: AnimPreset; label: string; desc: string }[] = [
+  {value: 'fade-up', label: '淡入上移', desc: 'opacity 0→1 + y 16→0'},
+  {value: 'fade-scale', label: '淡入缩放', desc: 'opacity 0→1 + scale 0.8→1'},
+  {value: 'slide-left', label: '右侧滑入', desc: 'x 40→0 + opacity'},
+  {value: 'slide-right', label: '左侧滑入', desc: 'x -40→0 + opacity'},
+  {value: 'typewriter', label: '打字机', desc: 'clipPath 逐字展开'},
+];
+
 const LS_KEY = 'fastblog_desktop_lyrics';
 const DEFAULT_SETTINGS: LyricsSettings = {
   x: 50, y: 50, fontSize: 18, fontFamily: 'system-ui, sans-serif', opacity: 90, gradientId: 'purple-pink',
+  boxWidth: 520, entryAnim: 'fade-up', exitAnim: 'fade-scale',
 };
 
 function loadSettings(): LyricsSettings {
@@ -53,7 +67,7 @@ function saveSettings(s: LyricsSettings) {
   localStorage.setItem(LS_KEY, JSON.stringify(s));
 }
 
-/* ---------- Tokenize ---------- */
+/* ---------- Tokenize (shared) ---------- */
 
 function tokenizeText(text: string): string[] {
   const tokens: string[] = [];
@@ -74,6 +88,38 @@ function tokenizeText(text: string): string[] {
   return tokens;
 }
 
+/* ---------- Entry / Exit animation variants ---------- */
+
+function entryVariants(preset: AnimPreset) {
+  switch (preset) {
+    case 'fade-up':
+      return {initial: {opacity: 0, y: 20, filter: 'blur(4px)'}, animate: {opacity: 1, y: 0, filter: 'blur(0px)'}};
+    case 'fade-scale':
+      return {initial: {opacity: 0, scale: 0.8, filter: 'blur(3px)'}, animate: {opacity: 1, scale: 1, filter: 'blur(0px)'}};
+    case 'slide-left':
+      return {initial: {opacity: 0, x: 40}, animate: {opacity: 1, x: 0}};
+    case 'slide-right':
+      return {initial: {opacity: 0, x: -40}, animate: {opacity: 1, x: 0}};
+    case 'typewriter':
+      return {initial: {opacity: 0, clipPath: 'inset(0 100% 0 0)'}, animate: {opacity: 1, clipPath: 'inset(0 0% 0 0)'}};
+  }
+}
+
+function exitVariants(preset: AnimPreset) {
+  switch (preset) {
+    case 'fade-up':
+      return {exit: {opacity: 0, y: -16, scale: 0.95, filter: 'blur(3px)'}};
+    case 'fade-scale':
+      return {exit: {opacity: 0, scale: 0.85, filter: 'blur(4px)'}};
+    case 'slide-left':
+      return {exit: {opacity: 0, x: -30}};
+    case 'slide-right':
+      return {exit: {opacity: 0, x: 30}};
+    case 'typewriter':
+      return {exit: {opacity: 0, clipPath: 'inset(0 0% 0 100%)'}};
+  }
+}
+
 /* ========== Settings Panel ========== */
 
 const SettingsPanel: React.FC<{
@@ -83,24 +129,31 @@ const SettingsPanel: React.FC<{
   prevLyric: string | null;
   nextLyric: string | null;
 }> = ({settings, onChange, onClose, prevLyric, nextLyric}) => {
-  const panelRef = useRef<HTMLDivElement>(null);
-
   return (
       <motion.div
-          ref={panelRef}
           initial={{opacity: 0, y: 10, scale: 0.95}}
           animate={{opacity: 1, y: 0, scale: 1}}
           exit={{opacity: 0, y: 10, scale: 0.95}}
-          className="fixed bottom-6 right-6 z-[70] bg-neutral-900/95 backdrop-blur-2xl rounded-2xl border border-white/10 shadow-2xl p-4 w-72"
+          className="fixed bottom-6 right-6 z-[70] bg-neutral-900/95 backdrop-blur-2xl rounded-2xl border border-white/10 shadow-2xl p-4 w-80 max-h-[80vh] overflow-y-auto"
           onClick={e => e.stopPropagation()}
       >
-        {/* 标题 + 关闭 */}
         <div className="flex items-center justify-between mb-3">
           <span className="text-white text-sm font-semibold">桌面歌词设置</span>
           <button onClick={onClose} className="w-6 h-6 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/50 text-xs">✕</button>
         </div>
 
-        {/* 字号 */}
+        {/* ── 容器宽度 ── */}
+        <div className="mb-3">
+          <label className="text-white/50 text-xs block mb-1">歌词框宽度 ({settings.boxWidth}px)</label>
+          <input type="range" min={260} max={900} step={10} value={settings.boxWidth}
+                 onChange={e => onChange({...settings, boxWidth: parseInt(e.target.value)})}
+                 className="w-full h-1 bg-white/20 rounded-full appearance-none cursor-pointer accent-purple-500"
+                 style={{background: `linear-gradient(to right, #a855f7 ${(settings.boxWidth-260)/(900-260)*100}%, rgba(255,255,255,0.15) ${(settings.boxWidth-260)/(900-260)*100}%)`}}
+          />
+          <div className="flex justify-between text-[10px] text-white/30 mt-0.5"><span>260</span><span>900</span></div>
+        </div>
+
+        {/* ── 字号 ── */}
         <div className="mb-3">
           <label className="text-white/50 text-xs block mb-1">字号</label>
           <div className="flex items-center gap-2">
@@ -112,7 +165,7 @@ const SettingsPanel: React.FC<{
           </div>
         </div>
 
-        {/* 字体 */}
+        {/* ── 字体 ── */}
         <div className="mb-3">
           <label className="text-white/50 text-xs block mb-1">字体</label>
           <div className="flex flex-wrap gap-1.5">
@@ -130,7 +183,7 @@ const SettingsPanel: React.FC<{
           </div>
         </div>
 
-        {/* 高亮颜色 */}
+        {/* ── 高亮颜色 ── */}
         <div className="mb-3">
           <label className="text-white/50 text-xs block mb-1">高亮颜色</label>
           <div className="flex flex-wrap gap-1.5">
@@ -147,7 +200,7 @@ const SettingsPanel: React.FC<{
           </div>
         </div>
 
-        {/* 透明度 */}
+        {/* ── 透明度 ── */}
         <div className="mb-3">
           <label className="text-white/50 text-xs block mb-1">透明度 ({settings.opacity}%)</label>
           <input type="range" min={30} max={100} value={settings.opacity}
@@ -157,19 +210,55 @@ const SettingsPanel: React.FC<{
           />
         </div>
 
-        {/* 歌词预览 */}
+        {/* ── 入场动画 ── */}
+        <div className="mb-3">
+          <label className="text-white/50 text-xs block mb-1">入场动画</label>
+          <div className="grid grid-cols-2 gap-1.5">
+            {ANIM_PRESETS.map(a => (
+                <button key={a.value}
+                        onClick={() => onChange({...settings, entryAnim: a.value})}
+                        className={`px-2 py-1.5 rounded-lg text-xs transition-colors text-left ${
+                            settings.entryAnim === a.value
+                                ? 'bg-purple-600/40 text-purple-300 border border-purple-500/40'
+                                : 'bg-white/10 hover:bg-white/20 text-white/60 border border-transparent'
+                        }`}
+                >
+                  <div className="font-medium">{a.label}</div>
+                  <div className="text-[10px] opacity-60 mt-0.5">{a.desc}</div>
+                </button>
+            ))}
+          </div>
+        </div>
+
+        {/* ── 退场动画 ── */}
+        <div className="mb-3">
+          <label className="text-white/50 text-xs block mb-1">退场动画</label>
+          <div className="grid grid-cols-2 gap-1.5">
+            {ANIM_PRESETS.map(a => (
+                <button key={a.value}
+                        onClick={() => onChange({...settings, exitAnim: a.value})}
+                        className={`px-2 py-1.5 rounded-lg text-xs transition-colors text-left ${
+                            settings.exitAnim === a.value
+                                ? 'bg-purple-600/40 text-purple-300 border border-purple-500/40'
+                                : 'bg-white/10 hover:bg-white/20 text-white/60 border border-transparent'
+                        }`}
+                >
+                  <div className="font-medium">{a.label}</div>
+                  <div className="text-[10px] opacity-60 mt-0.5">{a.desc}</div>
+                </button>
+            ))}
+          </div>
+        </div>
+
+        {/* ── 歌词预览 ── */}
         <div className="border-t border-white/10 pt-3 mt-1">
           <label className="text-white/50 text-xs block mb-2">预览</label>
-          <div className="space-y-2 text-center">
+          <div className="space-y-2 text-center" style={{fontFamily: settings.fontFamily}}>
             {prevLyric && (
-                <p className="text-white/30 text-xs truncate" style={{fontFamily: settings.fontFamily, fontSize: settings.fontSize - 4}}>
-                  {prevLyric}
-                </p>
+                <p className="text-white/30 text-xs truncate" style={{fontSize: settings.fontSize - 4}}>{prevLyric}</p>
             )}
             {nextLyric && (
-                <p className="text-white/60 text-sm truncate" style={{fontFamily: settings.fontFamily, fontSize: settings.fontSize}}>
-                  {nextLyric}
-                </p>
+                <p className="text-white/60 text-sm truncate" style={{fontSize: settings.fontSize}}>{nextLyric}</p>
             )}
           </div>
         </div>
@@ -177,7 +266,7 @@ const SettingsPanel: React.FC<{
   );
 };
 
-/* ========== DesktopLyrics Main Component ========== */
+/* ========== DesktopLyrics ========== */
 
 const DesktopLyrics: React.FC<{
   lyrics: LyricLine[];
@@ -189,24 +278,22 @@ const DesktopLyrics: React.FC<{
   const [settings, setSettings] = useState<LyricsSettings>(loadSettings);
   const [showSettings, setShowSettings] = useState(false);
   const [prevActiveIndex, setPrevActiveIndex] = useState(-1);
-  const dragRef = useRef<{
-    startX: number; startY: number;
-    origX: number; origY: number;
-    dragging: boolean;
-  } | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const textRef = useRef<HTMLDivElement>(null);
+  const [scrollOffset, setScrollOffset] = useState(0);
+  const dragRef = useRef<{startX: number; startY: number; origX: number; origY: number; dragging: boolean} | null>(null);
 
-  // 持久化
   useEffect(() => { saveSettings(settings); }, [settings]);
 
-  // 跟踪上一行索引用于动画
+  // 跟踪上一行索引
   useEffect(() => {
     if (activeLineIndex >= 0 && activeLineIndex !== prevActiveIndex) {
       setPrevActiveIndex(activeLineIndex);
+      setScrollOffset(0); // 换行时重置滚动
     }
   }, [activeLineIndex, prevActiveIndex]);
 
-  // ESC 关闭歌词
+  // ESC
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -218,14 +305,44 @@ const DesktopLyrics: React.FC<{
     return () => window.removeEventListener('keydown', handler);
   }, [showSettings, onVisibilityChange]);
 
-  // 预览行
-  const currentLyric = activeLineIndex >= 0 ? lyrics[activeLineIndex] : null;
-  const prevLyric = activeLineIndex > 0 ? lyrics[activeLineIndex - 1] : null;
-  const nextLyric = activeLineIndex >= 0 && activeLineIndex + 1 < lyrics.length ? lyrics[activeLineIndex + 1] : null;
+  // ── Karaoke 横向滚动 ──
+  // 根据 karaokeProgress 计算 translateX，使当前高亮词始终位于容器中心
+  useEffect(() => {
+    if (!textRef.current || !containerRef.current) return;
+    const textEl = textRef.current;
+    const containerWidth = settings.boxWidth;
+    const textWidth = textEl.scrollWidth;
 
-  const gradient = GRADIENTS.find(g => g.id === settings.gradientId) ?? GRADIENTS[0];
+    if (textWidth <= containerWidth) {
+      setScrollOffset(0);
+      return;
+    }
 
-  // ── 拖拽（pointer events 统一鼠标+触控）──
+    const tokens = currentLyric ? tokenizeText(currentLyric.text) : [];
+    if (!tokens.length) { setScrollOffset(0); return; }
+
+    // 找到当前高亮 token 的位置（累计宽度）
+    const highlightCount = Math.floor(tokens.length * karaokeProgress);
+    if (highlightCount <= 0) { setScrollOffset(0); return; }
+
+    // 估算每个 token 的平均宽度（基于总宽度）
+    const avgTokenWidth = textWidth / tokens.length;
+    const highlightCenter = highlightCount * avgTokenWidth;
+    const targetOffset = Math.max(0, highlightCenter - containerWidth / 2);
+
+    // 限制不能超出文本范围
+    const maxOffset = Math.max(0, textWidth - containerWidth);
+    const clamped = Math.min(targetOffset, maxOffset);
+
+    // 平滑滚动
+    setScrollOffset(prev => {
+      const diff = clamped - prev;
+      if (Math.abs(diff) < 2) return clamped;
+      return prev + diff * 0.15; // lerp
+    });
+  });
+
+  // 拖拽
   const onPointerDown = useCallback((e: React.PointerEvent) => {
     dragRef.current = {
       startX: e.clientX, startY: e.clientY,
@@ -247,14 +364,18 @@ const DesktopLyrics: React.FC<{
     }));
   }, []);
 
-  const onPointerUp = useCallback(() => {
-    dragRef.current = null;
-  }, []);
+  const onPointerUp = useCallback(() => { dragRef.current = null; }, []);
 
   if (!visible || !lyrics.length) return null;
 
-  // 当前行的高亮 tokens
-  const highlightedTokens = currentLyric ? (() => {
+  const currentLyric = activeLineIndex >= 0 ? lyrics[activeLineIndex] : null;
+  const prevLyric = activeLineIndex > 0 ? lyrics[activeLineIndex - 1] : null;
+  const nextLyric = activeLineIndex >= 0 && activeLineIndex + 1 < lyrics.length ? lyrics[activeLineIndex + 1] : null;
+  const gradient = GRADIENTS.find(g => g.id === settings.gradientId) ?? GRADIENTS[0];
+
+  // 当前行高亮 tokens
+  const highlightedTokens = useMemo(() => {
+    if (!currentLyric) return [];
     const tokens = tokenizeText(currentLyric.text);
     const highlightCount = Math.floor(tokens.length * karaokeProgress);
     return tokens.map((t, i) => ({
@@ -265,11 +386,17 @@ const DesktopLyrics: React.FC<{
           ? (karaokeProgress * tokens.length - i)
           : (i < highlightCount ? 1 : 0),
     }));
-  })() : [];
+  }, [currentLyric, karaokeProgress]);
+
+  const entryV = entryVariants(settings.entryAnim);
+  const exitV = exitVariants(settings.exitAnim);
+  const entryTrans = {duration: 0.4, ease: [0.16, 1, 0.3, 1]};
+  const exitTrans = {duration: 0.35, ease: 'easeOut'};
+  const nextTrans = {duration: 0.4, delay: 0.15, ease: 'easeOut'};
 
   return (
       <>
-        {/* ── 歌词主窗口 ── */}
+        {/* ── 歌词容器（固定宽，可拖拽） ── */}
         <motion.div
             ref={containerRef}
             className="fixed z-[65] select-none touch-none"
@@ -277,10 +404,6 @@ const DesktopLyrics: React.FC<{
               left: `${settings.x}%`,
               top: `${settings.y}%`,
               transform: 'translate(-50%, -50%)',
-              fontSize: `${settings.fontSize}px`,
-              fontFamily: settings.fontFamily,
-              maxWidth: 'min(70vw, 800px)',
-              width: 'max-content',
             }}
             initial={{opacity: 0, scale: 0.9}}
             animate={{opacity: settings.opacity / 100, scale: 1}}
@@ -291,85 +414,79 @@ const DesktopLyrics: React.FC<{
             onDoubleClick={() => onVisibilityChange(false)}
         >
           <div
-              className="bg-black/55 backdrop-blur-2xl rounded-2xl px-8 py-5 border border-white/8 shadow-2xl text-center leading-relaxed cursor-grab active:cursor-grabbing transition-shadow hover:shadow-purple-500/5"
-              style={{minWidth: '320px'}}
+              className="bg-black/55 backdrop-blur-2xl rounded-2xl px-6 py-5 border border-white/8 shadow-2xl text-center leading-relaxed cursor-grab active:cursor-grabbing transition-shadow hover:shadow-purple-500/5 overflow-hidden"
+              style={{
+                width: `${settings.boxWidth}px`,
+                minWidth: '260px',
+                maxWidth: '900px',
+              }}
           >
-            {/* 上一行（退场） */}
+            {/* 上一行 */}
             <AnimatePresence mode="popLayout">
               {prevLyric && activeLineIndex > 0 && prevActiveIndex === activeLineIndex - 1 && (
                   <motion.p
                       key={`prev-${activeLineIndex}`}
                       initial={{opacity: 1, y: 0}}
                       animate={{opacity: 0.25, y: -8}}
-                      exit={{opacity: 0, y: -20, scale: 0.95}}
+                      exit={{opacity: 0, ...exitV.exit, transition: exitTrans}}
                       transition={{duration: 0.35, ease: 'easeOut'}}
                       className="text-white/40 text-sm truncate mb-2"
-                      style={{fontSize: Math.max(12, settings.fontSize - 4)}}
+                      style={{fontSize: Math.max(12, settings.fontSize - 4), fontFamily: settings.fontFamily}}
                   >
                     {prevLyric.text}
                   </motion.p>
               )}
             </AnimatePresence>
 
-            {/* 当前行（入场 + 逐字高亮） */}
-            {currentLyric && (
-                <motion.div
-                    key={`curr-${activeLineIndex}`}
-                    initial={{opacity: 0, y: 16, filter: 'blur(4px)'}}
-                    animate={{opacity: 1, y: 0, filter: 'blur(0px)'}}
-                    exit={{opacity: 0, y: -16, filter: 'blur(4px)'}}
-                    transition={{duration: 0.4, ease: [0.16, 1, 0.3, 1]}}
-                    className="font-bold tracking-wide leading-relaxed"
-                >
-                  {highlightedTokens.map((item, ti) => {
-                    if (item.token === ' ') return <span key={ti} className="inline-block" style={{width: '0.3em'}}>&nbsp;</span>;
-                    return (
-                        <span key={ti} className="relative inline-block mx-[0.5px]">
-                      {/* 未高亮 */}
-                      <span className={item.highlighted ? 'text-transparent' : 'text-white/60'}>
-                        {item.token}
-                      </span>
-                          {/* 高亮渐变 */}
-                          {item.highlighted && (
-                              <span
-                                  className="absolute inset-0 bg-clip-text text-transparent"
-                                  style={{
-                                    background: `linear-gradient(135deg, ${gradient.from}, ${gradient.via}, ${gradient.to})`,
-                                    WebkitBackgroundClip: 'text',
-                                    filter: `drop-shadow(0 0 ${settings.fontSize > 20 ? 12 : 8}px ${gradient.shadow})`,
-                                  }}
-                              >
-                            {item.token}
-                          </span>
-                          )}
-                          {/* 过渡 clipPath */}
-                          {item.transitioning && (
-                              <span className="absolute inset-0 overflow-hidden" style={{color: 'transparent'}}>
-                            <span
-                                className="absolute inset-0 bg-clip-text text-transparent"
-                                style={{
-                                  background: `linear-gradient(135deg, ${gradient.from}, ${gradient.via}, ${gradient.to})`,
-                                  WebkitBackgroundClip: 'text',
-                                  clipPath: `inset(0 ${(1 - item.clipProgress) * 100}% 0 0)`,
-                                  filter: `drop-shadow(0 0 ${settings.fontSize > 20 ? 14 : 10}px ${gradient.shadow})`,
-                                }}
-                            >
-                              {item.token}
+            {/* 当前行（横向滚动容器） */}
+            <div className="relative overflow-hidden" style={{height: `${settings.fontSize * 1.6}px`}}>
+              <motion.div
+                  ref={textRef}
+                  key={`curr-${activeLineIndex}`}
+                  initial={{...entryV.initial}}
+                  animate={{...entryV.animate, x: -scrollOffset}}
+                  exit={{...exitV.exit, transition: exitTrans}}
+                  transition={entryTrans}
+                  className="absolute inset-0 flex items-center justify-center font-bold tracking-wide whitespace-nowrap"
+                  style={{fontFamily: settings.fontFamily, fontSize: `${settings.fontSize}px`}}
+              >
+                {currentLyric ? (
+                    highlightedTokens.map((item, ti) => {
+                      if (item.token === ' ') return <span key={ti} className="inline-block" style={{width: '0.3em'}}>&nbsp;</span>;
+                      return (
+                          <span key={ti} className="relative inline-block mx-[0.5px]">
+                        <span className={item.highlighted ? 'text-transparent' : 'text-white/60'}>{item.token}</span>
+                            {item.highlighted && (
+                                <span className="absolute inset-0 bg-clip-text text-transparent"
+                                      style={{
+                                        background: `linear-gradient(135deg, ${gradient.from}, ${gradient.via}, ${gradient.to})`,
+                                        WebkitBackgroundClip: 'text',
+                                        filter: `drop-shadow(0 0 ${settings.fontSize > 20 ? 12 : 8}px ${gradient.shadow})`,
+                                      }}
+                                >{item.token}</span>
+                            )}
+                            {item.transitioning && (
+                                <span className="absolute inset-0 overflow-hidden" style={{color: 'transparent'}}>
+                              <span className="absolute inset-0 bg-clip-text text-transparent"
+                                    style={{
+                                      background: `linear-gradient(135deg, ${gradient.from}, ${gradient.via}, ${gradient.to})`,
+                                      WebkitBackgroundClip: 'text',
+                                      clipPath: `inset(0 ${(1 - item.clipProgress) * 100}% 0 0)`,
+                                      filter: `drop-shadow(0 0 ${settings.fontSize > 20 ? 14 : 10}px ${gradient.shadow})`,
+                                    }}
+                              >{item.token}</span>
                             </span>
-                          </span>
-                          )}
-                    </span>
-                    );
-                  })}
-                </motion.div>
-            )}
+                            )}
+                      </span>
+                      );
+                    })
+                ) : (
+                    <span className="text-white/30">等待播放...</span>
+                )}
+              </motion.div>
+            </div>
 
-            {/* 无歌词占位 */}
-            {!currentLyric && (
-                <p className="text-white/30 text-sm">等待播放...</p>
-            )}
-
-            {/* 下一行（入场预告） */}
+            {/* 下一行 */}
             <AnimatePresence mode="popLayout">
               {nextLyric && activeLineIndex >= 0 && (
                   <motion.p
@@ -377,9 +494,9 @@ const DesktopLyrics: React.FC<{
                       initial={{opacity: 0, y: 12}}
                       animate={{opacity: 0.3, y: 6}}
                       exit={{opacity: 0, y: 20}}
-                      transition={{duration: 0.4, delay: 0.15, ease: 'easeOut'}}
+                      transition={nextTrans}
                       className="text-white/25 text-sm truncate mt-2"
-                      style={{fontSize: Math.max(11, settings.fontSize - 6)}}
+                      style={{fontSize: Math.max(11, settings.fontSize - 6), fontFamily: settings.fontFamily}}
                   >
                     {nextLyric.text}
                   </motion.p>
@@ -388,10 +505,7 @@ const DesktopLyrics: React.FC<{
           </div>
 
           {/* ── 悬停控制条 ── */}
-          <div
-              className="flex items-center justify-center gap-2 mt-2 opacity-0 hover:opacity-100 transition-opacity duration-200"
-              style={{pointerEvents: 'auto'}}
-          >
+          <div className="flex items-center justify-center gap-2 mt-2 opacity-0 hover:opacity-100 transition-opacity duration-200" style={{pointerEvents: 'auto'}}>
             <button onClick={() => onVisibilityChange(false)}
                     className="w-7 h-7 rounded-full bg-black/50 backdrop-blur border border-white/10 hover:bg-white/15 flex items-center justify-center text-white/50 text-xs transition-colors"
                     title="关闭桌面歌词">✕</button>
@@ -425,5 +539,5 @@ const DesktopLyrics: React.FC<{
 };
 
 export default DesktopLyrics;
-export {tokenizeText, GRADIENTS, FONTS};
-export type {LyricsSettings, LyricLine};
+export {tokenizeText, GRADIENTS, FONTS, ANIM_PRESETS};
+export type {LyricsSettings, LyricLine, AnimPreset};
