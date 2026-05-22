@@ -58,9 +58,9 @@ async def qr_login(request: Request, sys_version: str, global_encoding: str, dom
     }
 
 
-async def phone_scan_back(request: Request, current_user, cache):
+async def phone_scan_back(request: Request, current_user, cache, login_token: str = None):
     """手机扫码确认，将当前用户的 refresh_token 写入缓存"""
-    token = request.query_params.get("login_token")
+    token = login_token or request.query_params.get("login_token") or request.query_params.get("token")
     if not token:
         return {"success": False, "message": "Missing login token"}
 
@@ -70,6 +70,10 @@ async def phone_scan_back(request: Request, current_user, cache):
         return {"success": False, "message": "Invalid or expired token"}
 
     refresh_token = request.cookies.get("refresh_token")
+    if not refresh_token:
+        # 如果 cookie 中没有 refresh_token，从当前用户生成一个新的
+        from src.api.v1.auth import create_jwt_token
+        refresh_token = create_jwt_token(subject=str(current_user.id), token_type="refresh")
     current_user_id = current_user.id
 
     # 写入授权信息（包含 refresh_token）

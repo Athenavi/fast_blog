@@ -337,19 +337,20 @@ async def login_api(
 
         # 3.5 创建用户会话记录
         try:
-            # 获取设备信息
             user_agent = request.headers.get("User-Agent", "Unknown")
             ip_address = request.client.host if request.client else None
 
-            # 使用异步方法创建会话
-            await session_management_service.create_session(
+            device_info = {
+                'user_agent': user_agent,
+                'browser': request.headers.get('sec-ch-ua', 'Unknown'),
+                'platform': request.headers.get('sec-ch-ua-platform', 'Unknown'),
+            }
+
+            session_management_service.create_session(
                 user_id=user.id,
-                access_token=access_token,
-                refresh_token=refresh_token,  # 同时存储 refresh_token
-                device_info=user_agent,
+                device_info=device_info,
                 ip_address=ip_address,
-                expires_hours=720,  # 30天
-                db_session=db  # 复用当前的数据库会话
+                user_agent=user_agent,
             )
         except Exception as e:
             print(f"[Login API] Warning: Failed to create session record: {e}")
@@ -477,14 +478,17 @@ async def register_api(
         user_agent = request.headers.get("User-Agent", "Unknown")
         ip_address = request.client.host if request.client else None
 
-        await session_management_service.create_session(
+        device_info = {
+            'user_agent': user_agent,
+            'browser': request.headers.get('sec-ch-ua', 'Unknown'),
+            'platform': request.headers.get('sec-ch-ua-platform', 'Unknown'),
+        }
+
+        session_management_service.create_session(
             user_id=user.id,
-            access_token=access_token,
-            refresh_token=refresh_token,  # 同时存储 refresh_token
-            device_info=user_agent,
+            device_info=device_info,
             ip_address=ip_address,
-            expires_hours=720,
-            db_session=db
+            user_agent=user_agent,
         )
     except Exception as e:
         print(f"[Register API] Warning: Failed to create session: {e}")

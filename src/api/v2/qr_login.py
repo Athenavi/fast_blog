@@ -7,10 +7,13 @@ FastBlog API v2 二维码登录
     ("src.api.v2.qr_login", "/api/v2/auth/qr", ["qr-login"], False),
 """
 
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, Request, Depends, HTTPException
 from fastapi.logger import logger
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.extensions import cache
+from src.auth import get_current_user
+from src.extensions import get_async_db_session as get_async_db
 
 router = APIRouter(tags=["qr-login"])
 
@@ -42,59 +45,34 @@ async def v2_check_qr_status(request: Request):
 
 
 @router.post("/confirm")
-async def v2_phone_confirm(request: Request):
-    """手机端扫码后确认登录"""
+async def v2_phone_confirm(request: Request, db: AsyncSession = Depends(get_async_db)):
+    """手机端扫码后确认登录（支持 JSON body 或 query params）"""
     from src.api.v1.user_utils.qrlogin_utils import phone_scan_back
-    from src.auth import get_current_user
-    from fastapi import HTTPException
 
-    db = request.state.db if hasattr(request.state, 'db') else None
+    # 读取 login_token：优先从 JSON body，其次 query params
+    login_token = None
+    content_type = request.headers.get('content-type', '')
+    if 'application/json' in content_type:
+        try:
+            body = await request.json()
+            login_token = body.get('login_token') or body.get('token')
+        except Exception:
+            pass
+    if not login_token:
+        login_token = request.query_params.get('login_token') or request.query_params.get('token')
+
+    if not login_token:
+        return {"success": False, "message": "Missing login_token"}
+
     try:
         current_user = await get_current_user(request, db)
     except HTTPException as e:
         if e.status_code == 401:
             return {"success": False, "requires_auth": True, "message": "请先登录后再扫码"}
         raise e
+
     try:
-        return await phone_scan_back(request, current_user, cache)
+        return await phone_scan_back(request, current_user, cache, login_token=login_token)
     except Exception as e:
         logger.error(f"Phone confirm failed: {e}")
         return {"success": False, "message": "确认失败"}
-
-
-"""
-   # === QR Login endpoints (direct mount, bypasses router issues) ===
-    @app.get('/api/v1/qr/generate')
-    async def qr_generate_direct(request: Request):
-        from src.api.v1.user_utils.qrlogin_utils import qr_login
-        from src.setting import app_config
-        try:
-            sv = app_config.SYSTEM.SYS_VERSION
-            ge = app_config.SYSTEM.GLOBAL_ENCODING
-            domain = request.query_params.get('callback_domain', '')
-            return await qr_login(request, sv, ge, domain, cache)
-        except Exception as e:
-            from fastapi.logger import logger
-            logger.error(f'QR gen failed: {e}')
-            return {'success': False, 'message': str(e)}
-
-    @app.get('/api/v1/qr/status')
-    async def qr_status_direct(request: Request):
-        from src.api.v1.user_utils.qrlogin_utils import check_qr_login_back
-        try:
-            return await check_qr_login_back(request, cache)
-        except Exception as e:
-            return {'success': False, 'message': str(e)}
-
-    @app.post('/api/v1/qr/confirm')
-    async def qr_confirm_direct(request: Request):
-        from src.api.v1.user_utils.qrlogin_utils import phone_scan_back
-        from src.auth import get_current_user
-        try:
-            data = await request.json()
-            from fastapi import Request as FastAPIRequest
-            current_user = await get_current_user(request, None)
-            return await phone_scan_back(request, current_user, cache)
-        except Exception as e:
-            return {'success': False, 'requires_auth': True, 'message': '请先登录'}
-"""

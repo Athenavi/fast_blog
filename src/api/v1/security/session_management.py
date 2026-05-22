@@ -17,6 +17,7 @@ router = APIRouter(tags=["sessions"])
 
 @router.get("/my-sessions", summary="获取我的活跃会话")
 async def get_my_sessions(
+        request: Request,
         current_user: UserModel = Depends(get_current_active_user)
 ):
     """
@@ -27,6 +28,17 @@ async def get_my_sessions(
     """
     try:
         sessions = session_management_service.get_user_sessions(current_user.id)
+
+        # 标记当前会话：将 last_active 最新的作为当前设备
+        if sessions:
+            # 按 last_active 降序排序，第一个标记为 current
+            sorted_sessions = sorted(
+                sessions,
+                key=lambda s: s.get('last_active', s.get('created_at', '')),
+                reverse=True
+            )
+            if sorted_sessions:
+                sorted_sessions[0]['is_current'] = True
 
         return ApiResponse(
             success=True,
