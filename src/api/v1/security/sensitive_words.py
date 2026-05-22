@@ -184,6 +184,76 @@ async def list_sensitive_words(
         return ApiResponse(success=False, error=str(e))
 
 
+@router.get("/statistics")
+async def get_sensitive_word_statistics(
+        db: AsyncSession = Depends(get_async_db)
+):
+    """
+    获取敏感词统计信息
+    """
+    try:
+        # 总数
+        total_query = select(func.count()).select_from(SensitiveWord)
+        total_result = await db.execute(total_query)
+        total = total_result.scalar() or 0
+
+        # 按级别统计
+        level_query = (
+            select(SensitiveWord.level, func.count())
+            .group_by(SensitiveWord.level)
+        )
+        level_result = await db.execute(level_query)
+        by_level = {row[0]: row[1] for row in level_result.fetchall()}
+
+        # 按处理方式统计
+        action_query = (
+            select(SensitiveWord.action, func.count())
+            .group_by(SensitiveWord.action)
+        )
+        action_result = await db.execute(action_query)
+        by_action = {row[0]: row[1] for row in action_result.fetchall()}
+
+        # 按分类统计
+        category_query = (
+            select(SensitiveWord.category, func.count())
+            .where(SensitiveWord.category.isnot(None))
+            .group_by(SensitiveWord.category)
+        )
+        category_result = await db.execute(category_query)
+        by_category = {row[0]: row[1] for row in category_result.fetchall()}
+
+        # 激活状态统计
+        active_query = (
+            select(SensitiveWord.is_active, func.count())
+            .group_by(SensitiveWord.is_active)
+        )
+        active_result = await db.execute(active_query)
+        by_status = {
+            "active": 0,
+            "inactive": 0
+        }
+        for row in active_result.fetchall():
+            if row[0]:
+                by_status["active"] = row[1]
+            else:
+                by_status["inactive"] = row[1]
+
+        return ApiResponse(
+            success=True,
+            data={
+                "total": total,
+                "by_level": by_level,
+                "by_action": by_action,
+                "by_category": by_category,
+                "by_status": by_status
+            }
+        )
+
+    except Exception as e:
+        import traceback
+        print(f"Error in get_sensitive_word_statistics: {str(e)}")
+        print(traceback.format_exc())
+        return ApiResponse(success=False, error=str(e))
 @router.get("/{word_id}")
 async def get_sensitive_word(
         word_id: int,
@@ -411,73 +481,3 @@ async def refresh_sensitive_word_cache(
         return ApiResponse(success=False, error=str(e))
 
 
-@router.get("/statistics")
-async def get_sensitive_word_statistics(
-        db: AsyncSession = Depends(get_async_db)
-):
-    """
-    获取敏感词统计信息
-    """
-    try:
-        # 总数
-        total_query = select(func.count()).select_from(SensitiveWord)
-        total_result = await db.execute(total_query)
-        total = total_result.scalar() or 0
-
-        # 按级别统计
-        level_query = (
-            select(SensitiveWord.level, func.count())
-            .group_by(SensitiveWord.level)
-        )
-        level_result = await db.execute(level_query)
-        by_level = {row[0]: row[1] for row in level_result.fetchall()}
-
-        # 按处理方式统计
-        action_query = (
-            select(SensitiveWord.action, func.count())
-            .group_by(SensitiveWord.action)
-        )
-        action_result = await db.execute(action_query)
-        by_action = {row[0]: row[1] for row in action_result.fetchall()}
-
-        # 按分类统计
-        category_query = (
-            select(SensitiveWord.category, func.count())
-            .where(SensitiveWord.category.isnot(None))
-            .group_by(SensitiveWord.category)
-        )
-        category_result = await db.execute(category_query)
-        by_category = {row[0]: row[1] for row in category_result.fetchall()}
-
-        # 激活状态统计
-        active_query = (
-            select(SensitiveWord.is_active, func.count())
-            .group_by(SensitiveWord.is_active)
-        )
-        active_result = await db.execute(active_query)
-        by_status = {
-            "active": 0,
-            "inactive": 0
-        }
-        for row in active_result.fetchall():
-            if row[0]:
-                by_status["active"] = row[1]
-            else:
-                by_status["inactive"] = row[1]
-
-        return ApiResponse(
-            success=True,
-            data={
-                "total": total,
-                "by_level": by_level,
-                "by_action": by_action,
-                "by_category": by_category,
-                "by_status": by_status
-            }
-        )
-
-    except Exception as e:
-        import traceback
-        print(f"Error in get_sensitive_word_statistics: {str(e)}")
-        print(traceback.format_exc())
-        return ApiResponse(success=False, error=str(e))
