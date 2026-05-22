@@ -798,10 +798,27 @@ async def update_article_api(
         elif scheduled == '':
             article.scheduled_publish_at = None
 
+        # 敏感词过滤检查与替换
+        try:
+            new_title = form_data.get('title', article.title)
+            content_text_raw = form_data.get('content', '')
+            from shared.services.security.sensitive_word_service import sensitive_word_service
+            content_to_check = content_text_raw + ' ' + new_title
+            sensitive_check = await sensitive_word_service.check_content(content_to_check)
+            if sensitive_check.get('has_sensitive') and 'block' in sensitive_check.get('actions', []):
+                return ApiResponse(success=False, error="文章内容包含违规内容，已拒绝")
+            if sensitive_check.get('has_sensitive') and 'replace' in sensitive_check.get('actions', []):
+                article.title, _ = await sensitive_word_service.filter_content(new_title)
+                content_text = (await sensitive_word_service.filter_content(content_text_raw))[0]
+            else:
+                content_text = content_text_raw
+        except Exception as filter_err:
+            print(f"敏感词过滤失败: {filter_err}")
+            content_text = form_data.get('content', '')
+
         article.updated_at = datetime.now()
 
         # 内容更新
-        content_text = form_data.get('content', '')
         content_result = await db.execute(select(ArticleContent).where(ArticleContent.article == article_id))
         content_obj = content_result.scalar_one_or_none()
         if content_obj:

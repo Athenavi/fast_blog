@@ -21,7 +21,7 @@ const RevisionsSidebar: React.FC<Props> = ({articleId,open,onClose,onCollapse,on
 
   const rollbackMut=useMutation({mutationFn:(revId:number)=>apiClient.post(`/articles/${articleId}/revisions/${revId}/rollback`),onSuccess:()=>{if(selected){onRestore(selected.content,selected.title,selected.excerpt);onClose();}}});
 
-  const viewRevision=async(rev:Revision)=>{setSelected(rev);setCompareWith(null);setDiff(null);try{const r=await apiClient.get<any>(`/articles/revisions/${rev.id}`);if(r.success&&r.data)setPreview(r.data.content||rev.content);else setPreview(rev.content);}catch{setPreview(rev.content);}};
+  const viewRevision=async(rev:Revision)=>{setSelected(rev);setCompareWith(null);setDiff(null);setPreview(rev.content);};
 
   const compareRevisions=async(a:Revision,b:Revision)=>{setSelected(a);setCompareWith(b);try{const r=await apiClient.get<any>('/articles/revisions/compare',{rev1:a.id,rev2:b.id});if(r.success&&r.data)setDiff(r.data.differences||r.data);else setDiff({title_changed:a.title!==b.title,content_changed:true});}catch{setDiff({title_changed:true,content_changed:true});}};
 
