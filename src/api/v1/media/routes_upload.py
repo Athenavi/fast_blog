@@ -9,7 +9,7 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.services.notifications import webhook_service
+from shared.services.notifications.webhook_service import webhook_service
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 from src.setting import app_config
@@ -86,7 +86,7 @@ async def upload_media_file(
                 for file_result in successful:
                     if file_result.get('data'):
                         file_data = file_result['data']
-                        webhook_service.trigger_event(
+                        await webhook_service.trigger_event(
                             'media.uploaded',
                             {
                                 'file_id': file_data.get('id'),
@@ -96,7 +96,8 @@ async def upload_media_file(
                                 'url': file_data.get('url'),
                                 'uploaded_by': current_user_obj.id,
                                 'uploaded_at': datetime.now().isoformat(),
-                            }
+                            },
+                            db=db
                         )
             except Exception as webhook_err:
                 logger.error(f"Webhook trigger failed: {webhook_err}")

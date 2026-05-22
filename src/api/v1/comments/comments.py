@@ -10,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.comment import Comment
 from shared.services.comments.comment_manager import comment_like_service, comment_notification_service
-from shared.services.notifications import webhook_service
+from shared.services.notifications.webhook_service import webhook_service
 from shared.services.plugins.plugin_manager.init import trigger_plugin_event
 from shared.services.security.spam_filter_manager import spam_filter
 from shared.services.users.user_manager import gravatar_service
@@ -249,7 +249,7 @@ async def create_comment(
 
         # 触发 Webhook 事件
         try:
-            webhook_service.trigger_event(
+            await webhook_service.trigger_event(
                 'comment.created',
                 {
                     'comment_id': new_comment.id,
@@ -259,7 +259,8 @@ async def create_comment(
                     'content_preview': new_comment.content[:200],
                     'is_approved': new_comment.is_approved,
                     'created_at': new_comment.created_at.isoformat() if new_comment.created_at else None,
-                }
+                },
+                db=db
             )
         except Exception as webhook_err:
             print(f"Webhook trigger failed: {webhook_err}")
@@ -506,14 +507,15 @@ async def delete_comment(
 
         # 触发 Webhook 事件
         try:
-            webhook_service.trigger_event(
+            await webhook_service.trigger_event(
                 'comment.deleted',
                 {
                     'comment_id': comment_id,
                     'article_id': comment.article_id,
                     'author_id': comment.user_id,
                     'deleted_at': datetime.now().isoformat(),
-                }
+                },
+                db=db
             )
         except Exception as webhook_err:
             print(f"Webhook trigger failed: {webhook_err}")
