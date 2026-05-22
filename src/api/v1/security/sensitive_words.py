@@ -17,15 +17,6 @@ from src.extensions import get_async_db_session as get_async_db
 
 router = APIRouter(tags=["sensitive-words"])
 
-
-# 测试端点 - 用于调试
-@router.post("/test")
-async def test_endpoint(data: SensitiveWordCreate):
-    """测试端点，验证Pydantic模型"""
-    print(f"[TEST] Received: {data}")
-    return {"success": True, "data": data.dict()}
-
-
 # Pydantic 模型定义
 class SensitiveWordCreate(BaseModel):
     word: str

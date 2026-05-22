@@ -291,6 +291,15 @@ class BackupService:
                 'error': str(e)
             }
 
+    async def backup_full(self) -> Dict[str, Any]:
+        """
+        完整备份（数据库 + 文件）的别名方法
+        
+        Returns:
+            备份结果信息
+        """
+        return await self.full_backup()
+
     async def restore_database(self, backup_path: str) -> Dict[str, Any]:
         """
         恢复数据库
@@ -426,12 +435,13 @@ class BackupService:
                 'error': str(e)
             }
 
-    def list_backups(self, backup_type: str = None) -> List[Dict[str, Any]]:
+    def list_backups(self, backup_type: str = None, limit: int = None) -> List[Dict[str, Any]]:
         """
         列出所有备份
         
         Args:
             backup_type: 备份类型过滤 ('database', 'files', 'full')
+            limit: 返回数量限制
             
         Returns:
             备份列表
@@ -470,6 +480,10 @@ class BackupService:
         # 按创建时间排序
         backups.sort(key=lambda x: x.get('created_at', ''), reverse=True)
 
+        # 应用限制
+        if limit and limit > 0:
+            backups = backups[:limit]
+
         return backups
 
     def delete_backup(self, backup_path: str) -> bool:
@@ -495,12 +509,15 @@ class BackupService:
             logger.error(f"Failed to delete backup: {e}")
             return False
 
-    async def cleanup_old_backups(self, days: int = None):
+    async def cleanup_old_backups(self, days: int = None) -> Dict[str, Any]:
         """
         清理旧备份
         
         Args:
             days: 保留天数
+            
+        Returns:
+            清理结果统计
         """
         retention_days = days or self.config['retention_days']
         cutoff_date = datetime.now() - timedelta(days=retention_days)
@@ -508,15 +525,111 @@ class BackupService:
         backups = self.list_backups()
         
         deleted_count = 0
+        freed_space = 0
+        deleted_backups = []
+        
         for backup in backups:
-            created_at = datetime.fromisoformat(backup.get('created_at', ''))
-            if created_at < cutoff_date:
-                backup_path = backup.get('path') or backup.get('backup_dir')
-                if backup_path and os.path.exists(backup_path):
-                    if self.delete_backup(backup_path):
-                        deleted_count += 1
+            created_at_str = backup.get('created_at', '')
+            if not created_at_str:
+                continue
 
-        logger.info(f"Cleaned up {deleted_count} old backups (older than {retention_days} days)")
+            try:
+                created_at = datetime.fromisoformat(created_at_str)
+                if created_at < cutoff_date:
+                    backup_path = backup.get('path') or backup.get('backup_dir')
+                    if backup_path and os.path.exists(backup_path):
+                        # 获取文件大小
+                        if os.path.isfile(backup_path):
+                            file_size = os.path.getsize(backup_path)
+                        else:
+                            # 目录大小
+                            file_size = sum(
+                                os.path.getsize(os.path.join(dirpath, filename))
+                                for dirpath, dirnames, filenames in os.walk(backup_path)
+                                for filename in filenames
+                            )
+
+                        if self.delete_backup(backup_path):
+                            deleted_count += 1
+                            freed_space += file_size
+                            deleted_backups.append({
+                                'filename': backup.get('filename', ''),
+                                'size': file_size,
+                                'size_human': self._format_size(file_size),
+                                'created_at': created_at_str
+                            })
+            except Exception as e:
+                logger.error(f"Failed to process backup for cleanup: {e}")
+
+        logger.info(
+            f"Cleaned up {deleted_count} old backups (older than {retention_days} days), freed {self._format_size(freed_space)}")
+
+        return {
+            'deleted_count': deleted_count,
+            'freed_space': freed_space,
+            'freed_space_human': self._format_size(freed_space),
+            'deleted_backups': deleted_backups
+        }
+
+    def get_backup_schedule(self) -> Dict[str, Any]:
+        """获取备份计划配置"""
+        return {
+            'auto_backup_enabled': self.config['auto_backup_enabled'],
+            'auto_backup_schedule': self.config['auto_backup_schedule'],
+            'retention_days': self.config['retention_days'],
+            'compress_backups': self.config['compress_backups'],
+            'backup_database': self.config['backup_database'],
+            'backup_files': self.config['backup_files'],
+        }
+
+    def update_backup_schedule(self, config: Dict[str, Any]):
+        """更新备份计划配置"""
+        if 'auto_backup_enabled' in config:
+            self.config['auto_backup_enabled'] = config['auto_backup_enabled']
+        if 'auto_backup_schedule' in config:
+            self.config['auto_backup_schedule'] = config['auto_backup_schedule']
+        if 'retention_days' in config:
+            self.config['retention_days'] = config['retention_days']
+        if 'compress_backups' in config:
+            self.config['compress_backups'] = config['compress_backups']
+        if 'backup_database' in config:
+            self.config['backup_database'] = config['backup_database']
+        if 'backup_files' in config:
+            self.config['backup_files'] = config['backup_files']
+
+        logger.info(f"Backup schedule updated: {self.config}")
+
+    def get_backup_stats(self) -> Dict[str, Any]:
+        """获取备份统计信息"""
+        backups = self.list_backups()
+
+        total_size = 0
+        latest_backup = None
+        type_stats = {
+            'database': {'count': 0, 'size': 0},
+            'files': {'count': 0, 'size': 0},
+            'full': {'count': 0, 'size': 0},
+        }
+
+        for backup in backups:
+            size = backup.get('size', 0)
+            total_size += size
+            backup_type = backup.get('type', 'unknown')
+
+            if backup_type in type_stats:
+                type_stats[backup_type]['count'] += 1
+                type_stats[backup_type]['size'] += size
+
+            if not latest_backup or backup.get('created_at', '') > latest_backup.get('created_at', ''):
+                latest_backup = backup
+
+        return {
+            'total_backups': len(backups),
+            'total_size': total_size,
+            'total_size_human': self._format_size(total_size),
+            'latest_backup': latest_backup,
+            'by_type': type_stats,
+        }
 
     def _compress_file(self, file_path: str) -> str:
         """压缩文件"""

@@ -8,8 +8,8 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
 
-from src.api.v1.core.responses import ApiResponse
 from shared.services.translation.translation_progress import translation_tracker
+from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 
 router = APIRouter()
@@ -163,56 +163,4 @@ async def clear_language(
     return ApiResponse(
         success=True,
         message=f"Language {language_code} cleared"
-    )
-
-
-@router.get("/examples", summary="使用示例", description="获取翻译进度跟踪使用示例")
-async def get_usage_examples():
-    """获取使用示例"""
-    examples = {
-        "workflow": {
-            'description': '翻译工作流程',
-            'steps': [
-                '1. 初始化语言文件，注册所有翻译键',
-                '2. 翻译者开始翻译，调用 /register 接口',
-                '3. 实时查看进度 /progress/{language_code}',
-                '4. 查看贡献者统计 /contributors',
-                '5. 生成完整报告 /report',
-            ]
-        },
-        "integration": {
-            'description': '与翻译系统集成',
-            'code_example': '''
-from shared.services.translation_progress import translation_tracker
-
-# 注册翻译项
-def on_translation_complete(language_code, key, translator_id, translator_name):
-    translation_tracker.register_translation(
-        language_code=language_code,
-        translation_key=key,
-        is_translated=True,
-        translator_id=translator_id,
-        translator_name=translator_name,
-    )
-
-# 获取进度
-progress = translation_tracker.get_language_progress('zh')
-print(f"中文翻译进度: {progress['progress_percentage']}%")
-            '''.strip()
-        },
-        "dashboard": {
-            'description': '仪表板展示建议',
-            'components': [
-                '总体进度环形图',
-                '各语言进度条形图',
-                'Top 10贡献者列表',
-                '未翻译字符串列表',
-                '最近活动日志',
-            ]
-        }
-    }
-
-    return ApiResponse(
-        success=True,
-        data=examples
     )

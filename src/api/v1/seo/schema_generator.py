@@ -14,7 +14,7 @@ from shared.services.system.schema_generator import schema_generator
 from src.api.v1.core.responses import ApiResponse
 from src.api.v1.users.user_management import jwt_required
 
-router = APIRouter(prefix="/schema", tags=["Schema.org"])
+router = APIRouter(tags=["Schema.org"])
 
 
 # ==================== 请求模型 ====================

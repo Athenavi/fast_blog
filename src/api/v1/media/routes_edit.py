@@ -455,7 +455,7 @@ async def upload_edited_image(
             os.makedirs(os.path.dirname(local_path), exist_ok=True)
             with open(local_path, 'wb') as f:
                 f.write(file_data)
-            file_url = f"/local-storage/{storage_path}"
+            file_url = f"/assets/storage/{storage_path}"
         
         # 生成缩略图
         thumbnail_path = None
@@ -470,7 +470,7 @@ async def upload_edited_image(
             
             if os.path.exists(thumb_file):
                 thumbnail_path = f"thumbnails/{file_hash[:2]}/{file_hash}.jpg"
-                thumbnail_url = f"/local-storage/{thumbnail_path}"
+                thumbnail_url = f"/assets/storage/{thumbnail_path}"
         except Exception as e:
             logger.warning(f"生成缩略图失败: {e}")
         

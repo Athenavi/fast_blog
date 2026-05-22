@@ -94,6 +94,19 @@ from .email_service_config import EmailServiceConfig
 from .saml_config import SAMLConfig
 from .ldap_config import LDAPConfig
 from .sso_provider import SSOProvider
+from .payment_gateway import PaymentGateway
+from .payment_transaction import PaymentTransaction
+from .crypto_payment import CryptoPayment
+from .tax_config import TaxConfig
+from .enterprise_license import EnterpriseLicense
+from .support_ticket import SupportTicket
+from .support_ticket_reply import SupportTicketReply
+from .deployment_script import DeploymentScript
+from .deployment_log import DeploymentLog
+from .monitoring_alert import MonitoringAlert
+from .monitoring_metric import MonitoringMetric
+from .migration_task import MigrationTask
+from .migration_log import MigrationLog
 
 # ==================== 自动生成的导入 - 由 routes.yaml 管理 ====================
 # 此部分由脚本自动生成 - 请勿手动修改
@@ -191,6 +204,19 @@ __all__ = [
     'EmailServiceConfig',
     'SAMLConfig',
     'LDAPConfig',
-    'SSOProvider'
+    'SSOProvider',
+    'PaymentGateway',
+    'PaymentTransaction',
+    'CryptoPayment',
+    'TaxConfig',
+    'EnterpriseLicense',
+    'SupportTicket',
+    'SupportTicketReply',
+    'DeploymentScript',
+    'DeploymentLog',
+    'MonitoringAlert',
+    'MonitoringMetric',
+    'MigrationTask',
+    'MigrationLog'
 ]
 # ============================================================================

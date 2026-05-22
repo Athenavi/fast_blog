@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - BaiduAnalyticsConfig
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-12 14:56:00
+生成时间：2026-05-21 11:04:30
 """
 
 from sqlalchemy import Column, BigInteger, String, Boolean, DateTime, ForeignKey, Index
@@ -13,9 +13,11 @@ class BaiduAnalyticsConfig(Base):
     """百度统计配置模型模型"""
     __tablename__ = 'baidu_analytics_configs'
 
+
     __table_args__ = (
         Index('idx_baidu_config_site', 'site_id'),
     )
+
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='配置 ID')
 

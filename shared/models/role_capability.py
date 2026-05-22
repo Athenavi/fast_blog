@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - RoleCapability
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-12 14:56:00
+生成时间：2026-05-21 11:04:30
 """
 
 from sqlalchemy import Column, BigInteger, DateTime, ForeignKey, Index
@@ -20,9 +20,11 @@ class RoleCapability(Base):
         Index('idx_role_capabilities_unique', 'role_id', 'capability_id', unique=True),
     )
 
+
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='关联 ID')
 
     role_id = Column(BigInteger, ForeignKey('roles.id'), doc='角色 ID')
+
 
     capability_id = Column(BigInteger, ForeignKey('capabilities.id'), doc='权限能力 ID')
 

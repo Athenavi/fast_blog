@@ -1,10 +1,10 @@
 """
 SQLAlchemy 模型定义 - OrderItem
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-12 14:56:00
+生成时间：2026-05-21 11:04:30
 """
 
-from sqlalchemy import Column, Integer, BigInteger, String, DateTime, Numeric, ForeignKey, Index
+from sqlalchemy import Column, Integer, BigInteger, String, Text, DateTime, Numeric, ForeignKey, Index
 
 from . import Base  # 使用统一的 Base
 
@@ -15,31 +15,33 @@ class OrderItem(Base):
 
 
     __table_args__ = (
-        Index('idx_order_items_order', 'order_id'),
-        Index('idx_order_items_product', 'product_id'),
+        Index('idx_order_item_order', 'order'),
+        Index('idx_order_item_product', 'product_id'),
     )
 
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='订单项 ID')
 
-    order_id = Column(BigInteger, ForeignKey('orders.id'), doc='订单ID')
+    order = Column(BigInteger, ForeignKey('orders.id'), doc='订单')
 
 
-    product_id = Column(BigInteger, ForeignKey('products.id'), doc='商品ID')
+    product_id = Column(BigInteger, nullable=True, doc='产品ID')
 
 
-    product_name = Column(String(255), nullable=True, doc='商品名称(快照)')
+    product_name = Column(String(255), nullable=True, doc='产品名称')
 
-    quantity = Column(Integer, doc='数量')
+    quantity = Column(Integer, default=1, doc='数量')
 
+    unit_price = Column(Numeric(10, 2), doc='单价')
 
-    price = Column(Numeric(10, 2), doc='单价')
+    total_price = Column(Numeric(10, 2), doc='总价')
 
-
-    total = Column(Numeric(10, 2), doc='小计')
+    extra_metadata = Column('metadata', Text, nullable=True, doc='附加信息 (JSON格式)')
 
 
     created_at = Column(DateTime, doc='创建时间')
+
+    updated_at = Column(DateTime, doc='更新时间')
 
 
     def to_dict(self, exclude_sensitive=True):
@@ -50,13 +52,15 @@ class OrderItem(Base):
         """
         data = {
             'id': self.id,
-            'order_id': self.order_id,
+            'order': self.order,
             'product_id': self.product_id,
             'product_name': self.product_name,
             'quantity': self.quantity,
-            'price': self.price,
-            'total': self.total,
+            'unit_price': self.unit_price,
+            'total_price': self.total_price,
+            'extra_metadata': self.extra_metadata,
             'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }
 
         if not exclude_sensitive:

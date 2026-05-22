@@ -1,14 +1,37 @@
 'use client';
 
 import React, {useCallback, useEffect, useRef, useState} from 'react';
-import {MediaService, apiClient} from '@/lib/api';
 import type {MediaFile, MediaResponse} from '@/lib/api';
+import {apiClient, MediaService} from '@/lib/api';
 import {AuthGuard} from '@/components/AuthGuard';
-import {motion} from 'framer-motion';
 import {
-  ChevronDown, ChevronLeft, ChevronRight, FileText, FolderPlus, FolderOpen, FolderClosed, Grid3X3,
-  Image as ImageIcon, List, Music, Plus, Trash2, Upload, Video, X
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  FileText,
+  FolderClosed,
+  FolderOpen,
+  Grid3X3,
+  Image as ImageIcon,
+  List,
+  Music,
+  Plus,
+  Trash2,
+  Upload,
+  Video,
+  X
 } from 'lucide-react';
+import {getConfig} from '@/lib/config';
+
+// Helper function to build full media URL
+const getFullMediaUrl = (url: string | null | undefined): string => {
+  if (!url) return '';
+  // If already absolute URL, return as is
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  // Otherwise, prepend API base URL
+  const config = getConfig();
+  return `${config.API_BASE_URL}${url}`;
+};
 
 /* ---------- Shared icons ---------- */
 const Minus: React.FC<{className?: string}> = p => <svg className={p.className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4"/></svg>;
@@ -114,37 +137,493 @@ const MediaGrid: React.FC<{files: MediaFile[]; loading: boolean; viewMode: 'grid
   if (loading) return <div className="p-12 text-center"><div className="animate-spin w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full mx-auto"/></div>;
   if (!files.length) return <div className="p-12 text-center text-gray-400"><ImageIcon className="w-12 h-12 mx-auto mb-3 opacity-50"/><p>暂无媒体文件</p></div>;
   const getIcon = (m: string) => m?.startsWith('video/') ? Video : m?.startsWith('audio/') ? Music : FileText;
+
+  // List View
   if (viewMode === 'list') return (<div className="bg-white dark:bg-gray-900 rounded-xl border overflow-hidden"><table className="w-full"><thead className="bg-gray-50 dark:bg-gray-800"><tr><th className="w-10 px-4 py-3"/><th className="text-left text-sm font-medium text-gray-500 py-3">文件</th><th className="text-left text-sm font-medium text-gray-500 py-3 hidden sm:table-cell">类型</th><th className="text-right text-sm font-medium text-gray-500 py-3 pr-4">操作</th></tr></thead><tbody className="divide-y">
-    {files.map(f => {const Icon = f.mime_type?.startsWith('image/') ? ImageIcon : getIcon(f.mime_type||''); return (
+  {files.map(f => {
+    const isPDF = f.mime_type === 'application/pdf';
+    const Icon = f.mime_type?.startsWith('image/') ? ImageIcon : getIcon(f.mime_type || '');
+    return (
       <tr key={f.id} className={`hover:bg-gray-50 dark:hover:bg-gray-800 ${selected.includes(f.id)?'bg-blue-50 dark:bg-blue-900/20':''}`}>
         <td className="px-4"><input type="checkbox" checked={selected.includes(f.id)} onChange={() => onSelect(f.id)} className="h-4 w-4 text-blue-600 rounded"/></td>
         <td className="py-3 cursor-pointer" onClick={() => onPreview(f)}><div className="flex items-center gap-3">
-          {f.mime_type?.startsWith('image/') && f.url ? <img src={f.url} alt={f.original_filename} className="w-10 h-10 rounded-lg object-cover"/> : <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center"><Icon className="w-5 h-5 text-gray-400"/></div>}
+          {f.mime_type?.startsWith('image/') && f.url ? (
+              <img
+                  src={getFullMediaUrl(f.url)}
+                  alt={f.original_filename}
+                  className="w-10 h-10 rounded-lg object-cover"
+                  loading="lazy"
+                  decoding="async"
+              />
+          ) : f.mime_type?.startsWith('video/') && f.url ? (
+                  <div className="w-10 h-10 rounded-lg bg-gray-900 flex items-center justify-center relative">
+                    <Video className="w-5 h-5 text-white"/>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-4 h-4 bg-white/80 rounded-full flex items-center justify-center">
+                        <div
+                            className="w-0 h-0 border-t-[3px] border-t-transparent border-l-[6px] border-l-black border-b-[3px] border-b-transparent ml-0.5"/>
+                      </div>
+                    </div>
+                  </div>
+          ) : isPDF ? (
+                  // PDF 特殊图标
+                  <div className="w-10 h-10 rounded-lg bg-red-50 dark:bg-red-900/10 flex items-center justify-center">
+                    <FileText className="w-5 h-5 text-red-500"/>
+                  </div>
+              ) :
+              <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center"><Icon
+                  className="w-5 h-5 text-gray-400"/></div>}
           <div><p className="text-sm font-medium text-gray-900 dark:text-white truncate max-w-[200px]">{f.original_filename}</p><p className="text-xs text-gray-500">{f.file_size ? `${(f.file_size/1024).toFixed(1)} KB` : ''}</p></div>
         </div></td>
         <td className="text-sm text-gray-500 hidden sm:table-cell">{f.mime_type?.split('/')[0]||'-'}</td>
         <td className="pr-4 text-right"><button onClick={() => onDelete(f)} className="p-1 text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4"/></button></td>
       </tr>
     );})}</tbody></table></div>);
+
+  // Grid View
   return (<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-    {files.map(f => (<div key={f.id} className={`relative group aspect-square rounded-xl overflow-hidden border ${selected.includes(f.id)?'border-blue-500 ring-2 ring-blue-500':'border-gray-200 dark:border-gray-700'} bg-gray-50 dark:bg-gray-800`}>
+    {files.map(f => {
+      const isVideo = f.mime_type?.startsWith('video/');
+      const isImage = f.mime_type?.startsWith('image/');
+      const isPDF = f.mime_type === 'application/pdf';
+      const isAudio = f.mime_type?.startsWith('audio/');
+      const Icon = getIcon(f.mime_type || '');
+
+      return (
+          <div key={f.id}
+               className={`relative group aspect-square rounded-xl overflow-hidden border ${selected.includes(f.id) ? 'border-blue-500 ring-2 ring-blue-500' : 'border-gray-200 dark:border-gray-700'} bg-gray-50 dark:bg-gray-800`}>
       <input type="checkbox" checked={selected.includes(f.id)} onChange={() => onSelect(f.id)} className="absolute top-2 left-2 z-10 h-4 w-4 text-blue-600 rounded"/>
-      {f.mime_type?.startsWith('image/') && f.url ? <img src={f.url} alt={f.original_filename} className="w-full h-full object-cover cursor-pointer" onClick={() => onPreview(f)}/> :
-        <div className="w-full h-full flex items-center justify-center cursor-pointer" onClick={() => onPreview(f)}>{React.createElement(getIcon(f.mime_type||''),{className:'w-10 h-10 text-gray-400'})}</div>}
+            {isImage && f.url ? (
+                <img
+                    src={getFullMediaUrl(f.url)}
+                    alt={f.original_filename}
+                    className="w-full h-full object-cover cursor-pointer"
+                    onClick={() => onPreview(f)}
+                    loading="lazy"
+                    decoding="async"
+                />
+            ) : isVideo && f.url ? (
+                    <div className="w-full h-full relative cursor-pointer bg-gray-900" onClick={() => onPreview(f)}>
+                      {/* 视频缩略图 - 只加载元数据和首帧 */}
+                      <video
+                          src={getFullMediaUrl(f.url)}
+                          className="w-full h-full object-cover"
+                          preload="metadata"
+                          muted
+                          playsInline
+                      />
+                      {/* 播放按钮覆盖层 */}
+                      <div
+                          className="absolute inset-0 bg-black/30 flex items-center justify-center group-hover:bg-black/40 transition-colors">
+                        <div
+                            className="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                          <div
+                              className="w-0 h-0 border-t-[8px] border-t-transparent border-l-[14px] border-l-black border-b-[8px] border-b-transparent ml-1"/>
+                        </div>
+                      </div>
+                    </div>
+            ) : isPDF ? (
+                    // PDF 文件显示特殊图标
+                    <div
+                        className="w-full h-full flex flex-col items-center justify-center cursor-pointer bg-red-50 dark:bg-red-900/10"
+                        onClick={() => onPreview(f)}>
+                      <FileText className="w-12 h-12 text-red-500 mb-2"/>
+                      <span className="text-xs text-red-600 dark:text-red-400 font-medium">PDF</span>
+                    </div>
+            ) : isAudio ? (
+                    // 音频文件显示特殊图标
+                    <div
+                        className="w-full h-full flex flex-col items-center justify-center cursor-pointer bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/10 dark:to-pink-900/10"
+                        onClick={() => onPreview(f)}>
+                      <Music className="w-12 h-12 text-purple-500 mb-2"/>
+                      <span className="text-xs text-purple-600 dark:text-purple-400 font-medium">AUDIO</span>
+                    </div>
+                ) :
+                <div className="w-full h-full flex items-center justify-center cursor-pointer"
+                     onClick={() => onPreview(f)}>{React.createElement(Icon, {className: 'w-10 h-10 text-gray-400'})}</div>}
       <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"><p className="text-xs text-white truncate">{f.original_filename}</p></div>
       <button onClick={() => onDelete(f)} className="absolute top-2 right-2 z-10 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100"><X className="w-3 h-3"/></button>
-    </div>))}
+          </div>
+      );
+    })}
   </div>);
+};
+
+/* ---------- Audio Player with Vinyl Animation & Lyrics ---------- */
+const AudioPlayer: React.FC<{ media: MediaFile; fullUrl: string }> = ({media, fullUrl}) => {
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [volume, setVolume] = useState(1);
+  const [showLyrics, setShowLyrics] = useState(false);
+  const lyricsContainerRef = useRef<HTMLDivElement>(null);
+
+  // 音频元数据
+  const [coverImage, setCoverImage] = useState<string | null>(null);
+  const [lyrics, setLyrics] = useState<Array<{ time: number; text: string }>>([]);
+  const [loadingMetadata, setLoadingMetadata] = useState(true);
+
+  // 加载音频元数据
+  useEffect(() => {
+    const loadMetadata = async () => {
+      try {
+        setLoadingMetadata(true);
+        const response = await fetch(`${getConfig().API_BASE_URL}/api/v2/media/${media.id}/metadata`, {
+          credentials: 'include'
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success && result.data) {
+            // 设置封面图片
+            if (result.data.cover_image) {
+              setCoverImage(result.data.cover_image);
+            }
+            // 设置歌词
+            if (result.data.lyrics && result.data.lyrics.length > 0) {
+              setLyrics(result.data.lyrics);
+              setShowLyrics(true); // 自动显示歌词
+            }
+          }
+        }
+      } catch (error) {
+        console.error('加载音频元数据失败:', error);
+      } finally {
+        setLoadingMetadata(false);
+      }
+    };
+
+    loadMetadata();
+  }, [media.id]);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const updateTime = () => setCurrentTime(audio.currentTime);
+    const updateDuration = () => setDuration(audio.duration);
+    const onEnded = () => setIsPlaying(false);
+
+    audio.addEventListener('timeupdate', updateTime);
+    audio.addEventListener('loadedmetadata', updateDuration);
+    audio.addEventListener('ended', onEnded);
+
+    return () => {
+      audio.removeEventListener('timeupdate', updateTime);
+      audio.removeEventListener('loadedmetadata', updateDuration);
+      audio.removeEventListener('ended', onEnded);
+    };
+  }, []);
+
+  // 实时滚动歌词
+  useEffect(() => {
+    if (showLyrics && lyrics.length > 0 && lyricsContainerRef.current) {
+      const currentLyricIndex = lyrics.findIndex((l, i) => {
+        const nextLyric = lyrics[i + 1];
+        return currentTime >= l.time && (!nextLyric || currentTime < nextLyric.time);
+      });
+
+      if (currentLyricIndex !== -1) {
+        const container = lyricsContainerRef.current;
+        const lyricElement = container.children[currentLyricIndex] as HTMLElement;
+        if (lyricElement) {
+          const containerHeight = container.clientHeight;
+          const elementTop = lyricElement.offsetTop;
+          const elementHeight = lyricElement.clientHeight;
+          const scrollTop = elementTop - containerHeight / 2 + elementHeight / 2;
+          container.scrollTo({top: scrollTop, behavior: 'smooth'});
+        }
+      }
+    }
+  }, [currentTime, lyrics, showLyrics]);
+
+  const togglePlay = () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (isPlaying) {
+      audio.pause();
+    } else {
+      audio.play();
+    }
+    setIsPlaying(!isPlaying);
+  };
+
+  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    const time = parseFloat(e.target.value);
+    audio.currentTime = time;
+    setCurrentTime(time);
+  };
+
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    const vol = parseFloat(e.target.value);
+    audio.volume = vol;
+    setVolume(vol);
+  };
+
+  const formatTime = (time: number) => {
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  return (
+      <div className="flex flex-col lg:flex-row h-full">
+        {/* Left: Vinyl Record Animation */}
+        <div
+            className="flex-1 bg-gradient-to-br from-gray-900 via-purple-900 to-black p-8 flex items-center justify-center relative overflow-hidden">
+          {/* Background glow effect */}
+          <div
+              className={`absolute inset-0 transition-opacity duration-1000 ${isPlaying ? 'opacity-30' : 'opacity-10'}`}>
+            <div
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-purple-500 rounded-full blur-3xl"/>
+          </div>
+
+          {/* Vinyl Record */}
+          <div className="relative">
+            {/* Outer ring */}
+            <div
+                className={`w-64 h-64 md:w-80 md:h-80 rounded-full bg-gradient-to-br from-gray-800 via-gray-900 to-black shadow-2xl flex items-center justify-center transition-transform ${
+                    isPlaying ? 'animate-spin-slow' : ''
+                }`}
+                style={{
+                  boxShadow: '0 0 60px rgba(147, 51, 234, 0.3), inset 0 0 60px rgba(0, 0, 0, 0.5)',
+                  animationDuration: '3s'
+                }}
+            >
+              {/* Grooves pattern */}
+              <div className="absolute inset-4 rounded-full border-2 border-gray-700 opacity-30"/>
+              <div className="absolute inset-8 rounded-full border-2 border-gray-700 opacity-30"/>
+              <div className="absolute inset-12 rounded-full border-2 border-gray-700 opacity-30"/>
+              <div className="absolute inset-16 rounded-full border-2 border-gray-700 opacity-30"/>
+              <div className="absolute inset-20 rounded-full border-2 border-gray-700 opacity-30"/>
+
+              {/* Center label - 使用封面图片或默认渐变 */}
+              <div className="w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden shadow-lg relative">
+                {coverImage ? (
+                    <img
+                        src={coverImage}
+                        alt="Album Cover"
+                        className="w-full h-full object-cover"
+                    />
+                ) : (
+                    <div
+                        className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center">
+                      {loadingMetadata ? (
+                          <div
+                              className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>
+                      ) : (
+                          <div className="w-3 h-3 bg-gray-900 rounded-full"/>
+                      )}
+                    </div>
+                )}
+              </div>
+            </div>
+
+            {/* Tone arm (唱臂) */}
+            <div
+                className={`absolute -top-4 -right-4 w-32 h-2 bg-gradient-to-r from-gray-400 to-gray-600 rounded-full origin-left transition-transform duration-500 ${
+                    isPlaying ? 'rotate-12' : 'rotate-0'
+                }`}
+                style={{transformOrigin: 'left center'}}
+            />
+          </div>
+        </div>
+
+        {/* Right: Controls & Lyrics */}
+        <div className="flex-1 bg-white dark:bg-gray-900 flex flex-col">
+          {/* Audio Element (hidden) */}
+          <audio ref={audioRef} src={fullUrl} preload="auto"/>
+
+          {/* Song Info */}
+          <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{media.original_filename}</h3>
+            <p className="text-sm text-gray-500">
+              {media.file_size ? `${(media.file_size / 1024 / 1024).toFixed(2)} MB` : ''} · {formatTime(duration)}
+            </p>
+          </div>
+
+          {/* Progress Bar */}
+          <div className="px-6 py-4">
+            <input
+                type="range"
+                min="0"
+                max={duration || 100}
+                value={currentTime}
+                onChange={handleSeek}
+                className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-purple-600"
+            />
+            <div className="flex justify-between text-xs text-gray-500 mt-2">
+              <span>{formatTime(currentTime)}</span>
+              <span>{formatTime(duration)}</span>
+            </div>
+          </div>
+
+          {/* Controls */}
+          <div className="px-6 py-4 flex items-center justify-center gap-4">
+            <button
+                onClick={() => {
+                  const audio = audioRef.current;
+                  if (audio) audio.currentTime = Math.max(0, audio.currentTime - 10);
+                }}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+            >
+              <svg className="w-6 h-6 text-gray-700 dark:text-gray-300" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z"/>
+              </svg>
+            </button>
+
+            <button
+                onClick={togglePlay}
+                className="w-16 h-16 bg-gradient-to-br from-purple-600 to-pink-600 rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-transform"
+            >
+              {isPlaying ? (
+                  <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+                  </svg>
+              ) : (
+                  <svg className="w-8 h-8 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z"/>
+                  </svg>
+              )}
+            </button>
+
+            <button
+                onClick={() => {
+                  const audio = audioRef.current;
+                  if (audio) audio.currentTime = Math.min(duration, audio.currentTime + 10);
+                }}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+            >
+              <svg className="w-6 h-6 text-gray-700 dark:text-gray-300" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/>
+              </svg>
+            </button>
+          </div>
+
+          {/* Volume Control */}
+          <div className="px-6 py-2 flex items-center gap-3">
+            <svg className="w-5 h-5 text-gray-500" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/>
+            </svg>
+            <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                value={volume}
+                onChange={handleVolumeChange}
+                className="flex-1 h-1 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-purple-600"
+            />
+          </div>
+
+          {/* Lyrics Toggle */}
+          <div className="px-6 pb-4">
+            <button
+                onClick={() => setShowLyrics(!showLyrics)}
+                className="w-full py-2 px-4 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors"
+            >
+              {showLyrics ? '隐藏歌词' : '显示歌词'}
+            </button>
+          </div>
+
+          {/* Lyrics Display */}
+          {showLyrics && (
+              <div
+                  ref={lyricsContainerRef}
+                  className="flex-1 overflow-y-auto px-6 pb-6 space-y-3 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600"
+                  style={{maxHeight: '300px'}}
+              >
+                {lyrics.length > 0 ? (
+                    lyrics.map((lyric, index) => {
+                      const isActive = currentTime >= lyric.time &&
+                          (!lyrics[index + 1] || currentTime < lyrics[index + 1].time);
+                      return (
+                          <p
+                              key={index}
+                              className={`text-center transition-all duration-300 ${
+                                  isActive
+                                      ? 'text-purple-600 dark:text-purple-400 text-lg font-semibold scale-105'
+                                      : 'text-gray-500 dark:text-gray-400 text-base'
+                              }`}
+                          >
+                            {lyric.text}
+                          </p>
+                      );
+                    })
+                ) : (
+                    <div className="text-center text-gray-400 py-8">
+                      <Music className="w-12 h-12 mx-auto mb-3 opacity-50"/>
+                      <p>暂无歌词</p>
+                      <p className="text-xs mt-2">支持在音频文件同目录下放置 .lrc 文件</p>
+                    </div>
+                )}
+              </div>
+          )}
+        </div>
+      </div>
+  );
 };
 
 /* ---------- Modals ---------- */
 const PreviewModal: React.FC<{media: MediaFile|null; onClose: ()=>void}> = ({media, onClose}) => {
   if(!media) return null;
+  const fullUrl = getFullMediaUrl(media.url);
+  
   return (<div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={onClose}>
-    <div className="max-w-4xl max-h-[90vh] bg-white dark:bg-gray-900 rounded-2xl overflow-hidden shadow-2xl" onClick={e=>e.stopPropagation()}>
-      {media.mime_type?.startsWith('image/') && media.url ? <img src={media.url} alt={media.original_filename} className="max-w-full max-h-[70vh] object-contain"/> :
-        <div className="p-16 text-center"><FileText className="w-16 h-16 text-gray-400 mx-auto mb-4"/><p className="text-gray-600">{media.original_filename}</p></div>}
-      <div className="p-6 border-t border-gray-200 dark:border-gray-700"><h3 className="font-bold text-gray-900 dark:text-white">{media.original_filename}</h3><p className="text-sm text-gray-500 mt-1">{(media.file_size/1024).toFixed(1)} KB · {media.mime_type}</p></div>
+    <div
+        className="w-[90vw] max-w-7xl max-h-[95vh] bg-white dark:bg-gray-900 rounded-2xl overflow-hidden shadow-2xl flex flex-col"
+         onClick={e => e.stopPropagation()}>
+      {/* Audio Player with Vinyl Animation */}
+      {media.mime_type?.startsWith('audio/') && fullUrl ? (
+          <AudioPlayer media={media} fullUrl={fullUrl}/>
+      ) : media.mime_type === 'application/pdf' && fullUrl ? (
+          <div className="flex-1 bg-gray-100 dark:bg-gray-800 min-h-[80vh]">
+            <embed
+                src={fullUrl}
+                type="application/pdf"
+                className="w-full h-full"
+                style={{minHeight: '80vh', maxHeight: '85vh'}}
+            />
+          </div>
+      ) : media.mime_type?.startsWith('video/') && fullUrl ? (
+          // Video Player - 流式播放
+          <div className="bg-black">
+            <video
+                src={fullUrl}
+                controls
+                autoPlay
+                preload="auto"
+                className="max-w-full max-h-[70vh] w-full"
+                style={{maxHeight: '70vh'}}
+                playsInline
+            >
+              您的浏览器不支持视频播放
+            </video>
+          </div>
+      ) : media.mime_type?.startsWith('image/') && fullUrl ? (
+          // 图片完整加载
+          <img
+              src={fullUrl}
+              alt={media.original_filename}
+              className="max-w-full max-h-[70vh] object-contain"
+              loading="eager"
+              decoding="async"
+          />
+      ) : (
+          <div className="p-16 text-center"><FileText className="w-16 h-16 text-gray-400 mx-auto mb-4"/><p
+              className="text-gray-600">{media.original_filename}</p></div>
+      )}
+      <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
+        <h3 className="font-bold text-gray-900 dark:text-white">{media.original_filename}</h3>
+        <p className="text-sm text-gray-500 mt-1">
+          {media.file_size ? `${(media.file_size / 1024).toFixed(1)} KB` : ''} · {media.mime_type}
+        </p>
+      </div>
     </div>
   </div>);
 };

@@ -255,7 +255,7 @@ class FileProcessor:
         await db.flush()  # 刷新以获取生成的 ID
         
         # 构建文件URL（使用 media_id）
-        new_media.file_url = f"/api/v1/media/{new_media.id}"
+        new_media.file_url = f"/api/v2/media/{new_media.id}"
         await db.flush()  # 再次刷新以保存 file_url
 
         # 如果是视频文件，异步处理视频（转码、生成缩略图等）
@@ -565,7 +565,7 @@ class ChunkedUploadProcessor:
         except Exception as e:
             await db.rollback()
 
-            logging.getLogger(__name__).error(f"分块上传失败: {str(e)}")
+            logger.error(f"分块上传失败: {str(e)}")
             return {'success': False, 'error': str(e)}
 
     async def _get_upload_task(self, upload_id: str,
@@ -684,7 +684,7 @@ class ChunkedUploadProcessor:
         except Exception as e:
             await db.rollback()
 
-            logging.getLogger(__name__).error(f"完成上传失败: {str(e)}")
+            logger.error(f"完成上传失败: {str(e)}")
             return {'success': False, 'error': str(e)}
 
     async def _get_chunks(self, upload_id: str, db: AsyncSession) -> List[UploadChunk]:
@@ -842,7 +842,7 @@ async def process_single_file(processor: FileProcessor, file_data: bytes,
     except Exception as e:
         await db.rollback()
 
-        logging.getLogger(__name__).error(f"文件处理失败: {str(e)}")
+        logger.error(f"文件处理失败: {str(e)}")
         return {'success': False, 'error': str(e)}
 
 

@@ -8,8 +8,8 @@ from typing import Optional, List
 
 from fastapi import APIRouter, Depends, Query, Body
 
-from src.api.v1.core.responses import ApiResponse
 from shared.services.comments.team_comments import team_comment_service
+from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 
 router = APIRouter()
@@ -174,87 +174,4 @@ async def get_statistics(
     return ApiResponse(
         success=True,
         data=stats
-    )
-
-
-@router.get("/examples", summary="使用示例", description="获取团队评论使用示例")
-async def get_usage_examples():
-    """获取使用示例"""
-    examples = {
-        "workflow": {
-            'description': '团队协作流程',
-            'steps': [
-                '1. 团队成员查看内容并添加评论',
-                '2. 使用@提及通知相关人员',
-                '3. 通过回复进行线程讨论',
-                '4. 问题解决后标记为已解决',
-                '5. 定期查看统计了解协作情况',
-            ]
-        },
-        "mention_syntax": {
-            'description': '@提及使用',
-            'example': '''
-# 在评论内容中使用 @user_id 格式
-POST /api/v1/team-comments/comment
-{
-  "content_id": 123,
-  "content_type": "article",
-  "text": "@2 @3 请审核这篇文章的内容准确性",
-  "mentions": [2, 3]  // 同时传入用户ID列表
-}
-
-# 被提及的用户会收到通知
-GET /api/v1/team-comments/mentions
-            '''.strip()
-        },
-        "thread_discussion": {
-            'description': '线程讨论',
-            'example': '''
-# 创建主评论
-POST /api/v1/team-comments/comment
-{
-  "content_id": 123,
-  "content_type": "article",
-  "text": "这个章节需要补充更多案例"
-}
-// 返回: {"id": 1, ...}
-
-# 回复该评论
-POST /api/v1/team-comments/comment
-{
-  "content_id": 123,
-  "content_type": "article",
-  "text": "我同意，我来补充几个实际案例",
-  "parent_id": 1  // 回复评论1
-}
-
-# 继续回复
-POST /api/v1/team-comments/comment
-{
-  "content_id": 123,
-  "content_type": "article",
-  "text": "已经补充完成，请查看",
-  "parent_id": 1
-}
-
-# 标记为已解决
-POST /api/v1/team-comments/comment/1/resolve
-            '''.strip()
-        },
-        "integration_tips": {
-            'description': '集成建议',
-            'tips': [
-                '在文章编辑页面侧边栏显示评论',
-                '实时通知被@的用户',
-                '支持Markdown格式的评论内容',
-                '提供评论搜索和过滤功能',
-                '在仪表板显示未解决的评论数',
-                '定期清理已解决的旧评论',
-            ]
-        }
-    }
-
-    return ApiResponse(
-        success=True,
-        data=examples
     )

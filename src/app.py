@@ -53,7 +53,7 @@ def check_installation() -> bool:
         if not installed:
             print("\n" + "=" * 60)
             print("⚠️  系统尚未安装")
-            print("👉 请启动前端进程后访问 http://localhost:3000/install 完成安装向导")
+            print("👉 请启动前端进程后访问 http://localhost:4321/install 完成安装向导")
             print("=" * 60 + "\n")
         return installed
     except Exception as e:
@@ -62,166 +62,183 @@ def check_installation() -> bool:
 
 
 # ---------- 路由自动发现 ----------
-# 配置表：(模块路径, 前缀, 标签列表, 是否必需)
-ROUTE_REGISTRY = [
-    # 核心模块（必需）
-    ("src.api.v1.articles.article_password", "/api/v1", ["article-password"], True),
-    ("src.api.v1.articles.article_revisions", "/api/v1", ["article-revisions"], True),
-    ("src.api.v1.users.users", "/api/v1/users", ["users"], True),
-    ("src.api.v1.__init__", "", [], True),  # api_v1_router 内部自带前缀
-    ("src.api.v1.content_management.category_management", "/api/v1/categories", ["categories"], True),
-    ("src.api.v1.dashboard.dashboard", "/api/v1/dashboard", ["dashboard"], True),
-    ("src.api.v1.core.home", "/api/v1", ["home"], True),
-    ("src.api.v1.advanced_features.membership", "/api/v1/membership", ["membership"], True),
-    ("src.api.v1.articles.anomaly_detection", "/api/v1/sys", ["anomaly-detection"], True),
+# 注意：为了更好的兼容性保留 旧的 V1 路由注册表，已废弃，新功能请在V2中开发
+# 当前系统使用 src/api/v2/__init__.py 中的 ROUTE_REGISTRY_V2
+# 此处的配置仅作为历史参考，不应再使用
+# V1 路由注册表（已废弃）- 以下模块已迁移到 V2 聚合路由器
+# 这些模块已被整合到 src.api.v2.* 下的聚合路由器中
+ROUTE_REGISTRY_DEPRECATED = [
+    # 核心模块（必需）- 已迁移到 V2
+    # ("src.api.v1.articles.article_password", "/api/v1", ["article-password"], True),
+    # ("src.api.v1.articles.article_revisions", "/api/v1", ["article-revisions"], True),
+    # ("src.api.v1.users.users", "/api/v1/users", ["users"], True),
+    # ("src.api.v1.__init__", "", [], True),  # api_v1_router 内部自带前缀
+    # ("src.api.v1.content_management.category_management", "/api/v1/categories", ["categories"], True),
+    # ("src.api.v1.dashboard.dashboard", "/api/v1/dashboard", ["dashboard"], True),
+    # ("src.api.v1.core.home", "/api/v1", ["home"], True),
+    # ("src.api.v1.advanced_features.membership", "/api/v1/membership", ["membership"], True),
+    # ("src.api.v1.articles.anomaly_detection", "/api/v1/sys", ["anomaly-detection"], True),
     # misc 模块已完全清理并删除，功能已迁移到对应模块
-    ("src.api.v1.core.system", "/api/v1/system", ["system"], True),
-    # 功能模块（可选加载，失败仅警告）
-    ("src.api.v1.articles.article_analytics", "/api/v1/analytics", ["article-analytics"], False),
-    ("src.api.v1.articles.article_annotations", "/api/v1/article-annotations", ["article-annotations"], False),
-    ("src.api.v1.articles.article_search", "/api/v1/search", ["article-search"], False),
-    ("src.api.v1.articles.article_stats", "/api/v1/views", ["article-stats"], False),
-    ("src.api.v1.articles.draft_preview", "/api/v1/draft", ["draft-preview"], False),
-    ("src.api.v1.articles.scheduled_publish", "/api/v1/scheduler", ["scheduled-publish"], False),
-    ("src.api.v1.chat.chat", "/api/v1/chats", ["chat"], False),
-    ("src.api.v1.chat.chat_groups", "/api/v1/chats/groups", ["chat-groups"], False),
-    ("src.api.v1.chat.private_messages", "/api/v1/messages/private", ["private-messages"], False),
-    ("src.api.v1.collaboration.collaboration_invites", "/api/v1/collaboration-invites", ["collaboration-invites"],
-     False),
-    ("src.api.v1.collaboration.collaboration_save", "/api/v1/collaboration", ["collaboration-save"], False),
-    ("src.api.v1.collaboration.team_collaboration", "/api/v1/admin/team", ["team-collaboration"], False),
-    ("src.api.v1.collaboration.team_comments", "/api/v1/team/comments", ["team-comments"], False),
-    ("src.api.v1.collaboration.yjs_collaboration", "/api/v1", ["yjs-collaboration"], False),
-    ("src.api.v1.comments.comment_config", "/api/v1", ["comment-config"], False),
-    ("src.api.v1.comments.comment_subscriptions", "/api/v1", ["comment-subscriptions"], False),
-    ("src.api.v1.comments.comments", "/api/v1/comments", ["comments"], False),
-    ("src.api.v1.comments.comments_enhanced", "/api/v1/comment-plus", ["comments-enhanced"], False),
-    ("src.api.v1.compliance.gdpr_compliance", "/api/v1", ["gdpr-compliance"], False),
-    ("src.api.v1.content_management.block_editor", "/api/v1", ["block-editor"], False),
-    ("src.api.v1.content_management.custom_block_patterns", "/api/v1/pattern", ["custom-block-patterns"], False),
-    ("src.api.v1.content_management.custom_post_types", "/api/v1", ["custom-post-types"], False),
-    ("src.api.v1.content_management.feed", "/api/v1", ["feed"], False),
-    ("src.api.v1.content_management.form_builder", "/api/v1/admin/form", ["form-builder"], False),
-    ("src.api.v1.content_management.menu_management", "/api/v1/admin/menu", ["menu-management"], False),
-    ("src.api.v1.content_management.shortcode", "/api/v1", ["shortcode"], False),
-    ("src.api.v1.content_management.widgets", "/api/v1", ["widgets"], False),
-    ("src.api.v1.dashboard.analytics", "/api/v1", ["analytics"], False),
-    ("src.api.v1.dashboard.realtime_monitor", "/api/v1", ["realtime-monitor"], False),
-    # Ecommerce
-    ("src.api.v1.ecommerce.ecommerce", "/api/v1/shop", ["ecommerce"], False),
-    ("src.api.v1.ecommerce.ecommerce_cart", "/api/v1/shop", ["ecommerce-cart"], False),
-    ("src.api.v1.ecommerce.ecommerce_cart_orders", "/api/v1/shop", ["ecommerce-cart-orders"], False),
-    ("src.api.v1.ecommerce.ecommerce_products", "/api/v1/shop", ["ecommerce-products"], False),
-    ("src.api.v1.ecommerce.inventory_management", "/api/v1/admin/shop", ["inventory-management"], False),
-    ("src.api.v1.ecommerce.revenue_sharing", "/api/v1/shop", ["revenue-sharing"], False),
-    ("src.api.v1.integrations.baidu_analytics", "/api/v1/analytics/baidu", ["baidu-analytics"], False),
-    ("src.api.v1.integrations.ipfs", "/api/v1/ipfs", ["ipfs"], False),
-    ("src.api.v1.integrations.oauth_login", "/api/v1/oauth", ["oauth-login"], False),
-    ("src.api.v1.integrations.sso", "/api/v1", ["sso"], False),
-    ("src.api.v1.integrations.wordpress_import", "/api/v1/wordpress", ["wordpress-import"], False),
-    ("src.api.v1.marketing.ad_management", "/api/v1/admin/ad", ["ad-management"], False),
-    ("src.api.v1.marketing.advertisement_system", "/api/v1/ads", ["advertisement-system"], False),
-    ("src.api.v1.media", "/api/v1", ["media"], False),
-    ("src.api.v1.notifications.email_service", "/api/v1", ["email-service"], False),
-    ("src.api.v1.notifications.notifications", "/api/v1/notifications", ["notifications"], False),
-    ("src.api.v1.notifications.push_notifications", "/api/v1", ["push-notifications"], False),
-    ("src.api.v1.performance.cache_management", "/api/v1/admin/caches", ["cache-management"], False),
-    ("src.api.v1.performance.cdn_management", "/api/v1/admin/cdn", ["cdn-management"], False),
-    ("src.api.v1.performance.code_splitting_optimization", "/api/v1", ["code-splitting-optimization"], False),
-    ("src.api.v1.performance.css_optimizer", "/api/v1", ["css-optimizer"], False),
-    ("src.api.v1.performance.http2_config", "/api/v1", ["http2-config"], False),
-    ("src.api.v1.performance.image_lazy_load", "/api/v1", ["image-lazy-load"], False),
-    ("src.api.v1.performance.lazy_load_optimization", "/api/v1", ["lazy-load-optimization"], False),
-    ("src.api.v1.performance.load_balancer", "/api/v1", ["load-balancer"], False),
-    ("src.api.v1.performance.localization", "/api/v1", ["localization"], False),
-    ("src.api.v1.performance.object_cache", "/api/v1", ["object-cache"], False),
-    ("src.api.v1.performance.performance_monitor", "/api/v1/performance-monitor", ["performance-monitor"], False),
-    ("src.api.v1.performance.performance_tracking", "/api/v1/performance-tracking", ["performance-tracking"], False),
-    ("src.api.v1.performance.query_monitor", "/api/v1", ["query-monitor"], False),
-    ("src.api.v1.performance.query_optimization", "/api/v1", ["query-optimization"], False),
-    ("src.api.v1.performance.resource_optimization", "/api/v1", ["resource-optimization"], False),
-    ("src.api.v1.plugins.article_rating", "/api/v1/plugins/article-rating", ["article-rating"], False),
-    ("src.api.v1.plugins.plugin_management", "/api/v1/plugins", ["plugins"], False),
-    ("src.api.v1.search.fulltext_search", "/api/v1", ["fulltext-search"], False),
-    ("src.api.v1.security.audit_log", "/api/v1", ["audit-log"], False),
-    ("src.api.v1.security.content_approval", "/api/v1/content-approval", ["content-approval"], False),
-    ("src.api.v1.security.login_security", "/api/v1", ["login-security"], False),
-    ("src.api.v1.security.rate_limit", "/api/v1", ["rate-limit"], False),
-    ("src.api.v1.security.rbac", "/api/v1", ["rbac"], False),
-    ("src.api.v1.security.security_alert", "/api/v1", ["security-alert"], False),
-    ("src.api.v1.security.security_report", "/api/v1", ["security-report"], False),
-    ("src.api.v1.security.sensitive_words", "/api/v1/sensitive-words", ["sensitive-words"], False),
-    ("src.api.v1.security.session_management", "/api/v1/admin/session", ["session-management"], False),
-    ("src.api.v1.security.two_factor_auth", "/api/v1/2fa", ["2fa"], False),
-    # SEO 模块已统一整合到 seo.py 中
-    ("src.api.v1.seo.seo", "/api/v1/seo", ["seo"], False),
-    # 以下独立 SEO 模块已废弃，功能已合并到 seo.py
-    # ("src.api.v1.seo.batch_seo", "/api/v1", ["batch-seo"], False),
-    # ("src.api.v1.seo.breadcrumbs", "/api/v1/breadcrumbs", ["breadcrumbs"], False),
-    # ("src.api.v1.seo.hreflang_api", "/api/v1", ["hreflang-api"], False),
-    # ("src.api.v1.seo.internal_links", "/api/v1", ["internal-links"], False),
-    # ("src.api.v1.seo.redirect_management", "/api/v1/redirect", ["redirect-management"], False),
-    # ("src.api.v1.seo.seo_management", "/api/v1/admin/seo", ["seo-management"], False),
-    # ("src.api.v1.seo.seo_optimization", "/api/v1/seo", ["seo-optimization"], False),
-    # ("src.api.v1.seo.seo_tracking", "/api/v1/seo-tracking", ["seo-tracking"], False),
-    # ("src.api.v1.seo.sitemap", "/api/v1", ["sitemap"], False),
-    ("src.api.v1.social.share_stats", "/api/v1", ["share-stats"], False),
-    ("src.api.v1.static_generation.page_cache", "/api/v1", ["page-cache"], False),
-    ("src.api.v1.static_generation.static_site_generation", "/api/v1", ["static-site-generation"], False),
-    ("src.api.v1.system.admin_settings", "/api/v1/admin-settings", ["admin-settings"], False),
-    ("src.api.v1.system.backup_management", "/api/v1/admin/backup", ["backup-management"], False),
-    ("src.api.v1.system.batch_operations", "/api/v1", ["batch-operations"], False),
-    ("src.api.v1.system.data_export", "/api/v1", ["data-export"], False),
-    ("src.api.v1.system.database_migration", "/api/v1/admin/db/database-migration", ["database-migration"], False),
-    ("src.api.v1.system.incremental_backup", "/api/v1/backup-plus", ["incremental-backup"], False),
-    ("src.api.v1.system.installation", "/api/v1", ["installation"], False),
-    ("src.api.v1.system.maintenance", "/api/v1", ["maintenance"], False),
-    ("src.api.v1.system.migrations", "/api/v1", ["migrations"], False),
-    ("src.api.v1.system.multisite", "/api/v1", ["multisite"], False),
-    ("src.api.v1.system.report_management", "/api/v1/admin/report", ["report-management"], False),
-    ("src.api.v1.system.resource_transfer", "/api/v1", ["resource-transfer"], False),
-    ("src.api.v1.system.screen_options", "/api/v1", ["screen-options"], False),
-    ("src.api.v1.system.slow_query_log", "/api/v1/admin/slow-query-log", ["slow-query-log"], False),
-    ("src.api.v1.system.webhook_management", "/api/v1/admin/webhook", ["webhook-management"], False),
-    ("src.api.v1.system.workflow", "/api/v1", ["workflow"], False),
+    # ("src.api.v1.core.system", "/api/v1/system", ["system"], True),
 
-    ("src.api.v1.themes.page_templates", "/api/v1/pages", ["page-templates"], False),
-    # themes
-    ("src.api.v1.themes.full_site_editor", "/api/v1/theme", ["full-site-editor"], False),
-    ("src.api.v1.themes.template_hierarchy", "/api/v1/theme", ["template-hierarchy"], False),
-    ("src.api.v1.themes.theme_customizer", "/api/v1/theme", ["theme-customizer"], False),
-    ("src.api.v1.themes.theme_management", "/api/v1/admin/theme", ["theme-management"], False),
-    # translation_io, translation_progress, translation_service moved after user_management
-    # due to wildcard routes /{locale}/{key}
-    ("src.api.v1.user_utils", "/api/v1", ["user-utils"], False),
-    ("src.api.v1.user_utils.vip", "/api/v1", ["vip"], False),
-    ("src.api.v1.users.user_blocks", "/api/v1/user-blocks", ["user-blocks"], False),
-    ("src.api.v1.users.user_management", "/api/v1/admin/user", ["user-management"], False),
-    ("src.api.v1.users.user_profile", "/api/v1/users", ["user-profile"], False),
-    ("src.api.v1.users.user_relations", "/api/v1", ["user-relations"], False),
-    ("src.api.v1.users.user_settings", "/api/v1", ["user-settings"], False),
-    ("src.api.v1.utils.payment", "/api/v1", ["payment"], False),
-    # Wildcard route modules must be registered last
-    ("src.api.v1.advanced_features.edge_functions", "/api/v1/edge—func", ["edge-functions"], False),
-    # Translation modules with wildcard routes /{locale}/{key}
-    ("src.api.v1.translation.i18n", "/api/v1/i18n", ["i18n"], False),
-    ("src.api.v1.translation.translation_io", "/api/v1/i18n", ["translation-io"], False),
-    ("src.api.v1.translation.translation_progress", "/api/v1/i18n", ["translation-progress"], False),
-    ("src.api.v1.translation.translation_service", "/api/v1/i18n", ["translation-service"], False),
-    ("src.api.v1.translation.translations", "/api/v1/i18n", ["translations"], False),
-    ("src.api.v1.accessibility.accessibility_audit", "/api/v1/accessibility-audit", ["accessibility-audit"], False),
-    ("src.api.v1.accessibility.amp", "/api/v1/amp", ["amp"], False),
-    ("src.api.v1.advanced_features.achievement_badges", "/api/v1/ext/badges", ["achievement-badges"], False),
-    ("src.api.v1.advanced_features.ai_recommendations", "/api/v1/ext/ai-recommendations", ["ai-recommendations"],
-     False),
-    ("src.api.v1.advanced_features.expert_certification", "/api/v1/ext/expert-certification", ["expert-certification"],
-     False),
-    ("src.api.v1.advanced_features.nft", "/api/v1/ext/nft", ["nft"], False),
-    ("src.api.v1.advanced_features.personalized_feed", "/api/v1/ext/personalized-feed", ["personalized-feed"], False),
-    ("src.api.v1.advanced_features.points_system", "/api/v1/ext/point-system", ["points-system"], False),
-    ("src.api.v1.advanced_features.recommendations", "/api/v1/ext/recommendations", ["recommendations"], False),
-    ("src.api.v1.advanced_features.tipping_system", "/api/v1/ext/tipping-system", ["tipping-system"], False),
-    ("src.api.v1.advanced_features.websocket", "/api/v1/ext/ws", ["websocket"], False),
+    # 功能模块（可选加载）- 已迁移到 V2 聚合路由器
+    # Articles 模块 - 已整合到 src.api.v2.articles
+    # ("src.api.v1.articles.article_analytics", "/api/v1/analytics", ["article-analytics"], False),
+    # ("src.api.v1.articles.article_annotations", "/api/v1/article-annotations", ["article-annotations"], False),
+    # ("src.api.v1.articles.article_search", "/api/v1/search", ["article-search"], False),
+    # ("src.api.v1.articles.article_stats", "/api/v1/views", ["article-stats"], False),
+    # ("src.api.v1.articles.draft_preview", "/api/v1/draft", ["draft-preview"], False),
+    # ("src.api.v1.articles.scheduled_publish", "/api/v1/scheduler", ["scheduled-publish"], False),
+
+    # Chat 模块 - 已整合到 src.api.v2.chat
+    # ("src.api.v1.chat.chat", "/api/v1/chats", ["chat"], False),
+    # ("src.api.v1.chat.chat_groups", "/api/v1/chats/groups", ["chat-groups"], False),
+    # ("src.api.v1.chat.private_messages", "/api/v1/messages/private", ["private-messages"], False),
+
+    # Collaboration 模块 - 已整合到 src.api.v2.collaboration
+    # ("src.api.v1.collaboration.collaboration_invites", "/api/v1/collaboration-invites", ["collaboration-invites"], False),
+    # ("src.api.v1.collaboration.collaboration_save", "/api/v1/collaboration", ["collaboration-save"], False),
+    # ("src.api.v1.collaboration.team_collaboration", "/api/v1/admin/team", ["team-collaboration"], False),
+    # ("src.api.v1.collaboration.team_comments", "/api/v1/team/comments", ["team-comments"], False),
+    # ("src.api.v1.collaboration.yjs_collaboration", "/api/v1", ["yjs-collaboration"], False),
+
+    # Comments 模块 - 已整合到 src.api.v2.comments
+    # ("src.api.v1.comments.comment_config", "/api/v1", ["comment-config"], False),
+    # ("src.api.v1.comments.comment_subscriptions", "/api/v1", ["comment-subscriptions"], False),
+    # ("src.api.v1.comments.comments", "/api/v1/comments", ["comments"], False),
+    # ("src.api.v1.comments.comments_enhanced", "/api/v1/comment-plus", ["comments-enhanced"], False),
+
+    # Content Management 模块 - 已整合到 src.api.v2.content_management
+    # ("src.api.v1.content_management.block_editor", "/api/v1", ["block-editor"], False),
+    # ("src.api.v1.content_management.custom_block_patterns", "/api/v1/pattern", ["custom-block-patterns"], False),
+    # ("src.api.v1.content_management.custom_post_types", "/api/v1", ["custom-post-types"], False),
+    # ("src.api.v1.content_management.feed", "/api/v1", ["feed"], False),
+    # ("src.api.v1.content_management.form_builder", "/api/v1/admin/form", ["form-builder"], False),
+    # ("src.api.v1.content_management.menu_management", "/api/v1/admin/menu", ["menu-management"], False),
+    # ("src.api.v1.content_management.shortcode", "/api/v1", ["shortcode"], False),
+    # ("src.api.v1.content_management.widgets", "/api/v1", ["widgets"], False),
+
+    # Dashboard 模块 - 已整合到 src.api.v2.dashboard
+    # ("src.api.v1.dashboard.analytics", "/api/v1", ["analytics"], False),
+    # ("src.api.v1.dashboard.realtime_monitor", "/api/v1", ["realtime-monitor"], False),
+    
+    # Ecommerce - 已迁移到 V2 聚合路由器 src.api.v2.ecommerce
+    # ("src.api.v2.ecommerce", "/api/v2/shop", ["ecommerce"], False),
+
+    # Integrations 模块 - 已整合到 src.api.v2.integrations
+    # ("src.api.v1.integrations.baidu_analytics", "/api/v1/analytics/baidu", ["baidu-analytics"], False),
+    # ("src.api.v1.integrations.ipfs", "/api/v1/ipfs", ["ipfs"], False),
+    # ("src.api.v1.integrations.oauth_login", "/api/v1/oauth", ["oauth-login"], False),
+    # ("src.api.v1.integrations.sso", "/api/v1", ["sso"], False),
+    # ("src.api.v1.integrations.wordpress_import", "/api/v1/wordpress", ["wordpress-import"], False),
+
+    # Marketing 模块 - 已整合到 src.api.v2.marketing
+    # ("src.api.v1.marketing.ad_management", "/api/v1/admin/ad", ["ad-management"], False),
+    # ("src.api.v1.marketing.advertisement_system", "/api/v1/ads", ["advertisement-system"], False),
+
+    # Media 模块 - 已整合到 src.api.v2.media
+    # ("src.api.v1.media", "/api/v1", ["media"], False),
+
+    # Notifications 模块 - 已整合到 src.api.v2.notifications
+    # ("src.api.v1.notifications.email_service", "/api/v1", ["email-service"], False),
+    # ("src.api.v1.notifications.notifications", "/api/v1/notifications", ["notifications"], False),
+    # ("src.api.v1.notifications.push_notifications", "/api/v1", ["push-notifications"], False),
+
+    # Performance 模块 - 已整合到 src.api.v2.performance
+    # ("src.api.v1.performance.cache_management", "/api/v1/admin/caches", ["cache-management"], False),
+    # ("src.api.v1.performance.cdn_management", "/api/v1/admin/cdn", ["cdn-management"], False),
+    # ("src.api.v1.performance.code_splitting_optimization", "/api/v1", ["code-splitting-optimization"], False),
+    # ("src.api.v1.performance.css_optimizer", "/api/v1", ["css-optimizer"], False),
+    # ("src.api.v1.performance.http2_config", "/api/v1", ["http2-config"], False),
+    # ("src.api.v1.performance.image_lazy_load", "/api/v1", ["image-lazy-load"], False),
+    # ("src.api.v1.performance.lazy_load_optimization", "/api/v1", ["lazy-load-optimization"], False),
+    # ("src.api.v1.performance.load_balancer", "/api/v1", ["load-balancer"], False),
+    # ("src.api.v1.performance.localization", "/api/v1", ["localization"], False),
+    # ("src.api.v1.performance.object_cache", "/api/v1", ["object-cache"], False),
+    # ("src.api.v1.performance.performance_monitor", "/api/v1/performance-monitor", ["performance-monitor"], False),
+    # ("src.api.v1.performance.performance_tracking", "/api/v1/performance-tracking", ["performance-tracking"], False),
+    # ("src.api.v1.performance.query_monitor", "/api/v1", ["query-monitor"], False),
+    # ("src.api.v1.performance.query_optimization", "/api/v1", ["query-optimization"], False),
+    # ("src.api.v1.performance.resource_optimization", "/api/v1", ["resource-optimization"], False),
+
+    # Plugins 模块 - 已整合到 src.api.v2.plugins
+    # ("src.api.v1.plugins.article_rating", "/api/v1/plugins/article-rating", ["article-rating"], False),
+    # ("src.api.v1.plugins.plugin_management", "/api/v1/plugins", ["plugins"], False),
+
+    # Search 模块 - 已整合到 src.api.v2.search
+    # ("src.api.v1.search.fulltext_search", "/api/v1", ["fulltext-search"], False),
+
+    # Security 模块 - 已整合到 src.api.v2.security
+    # ("src.api.v1.security.audit_log", "/api/v1", ["audit-log"], False),
+    # ("src.api.v1.security.content_approval", "/api/v1/content-approval", ["content-approval"], False),
+    # ("src.api.v1.security.login_security", "/api/v1", ["login-security"], False),
+    # ("src.api.v1.security.rate_limit", "/api/v1", ["rate-limit"], False),
+    # ("src.api.v1.security.rbac", "/api/v1", ["rbac"], False),
+    # ("src.api.v1.security.security_alert", "/api/v1", ["security-alert"], False),
+    # ("src.api.v1.security.security_report", "/api/v1", ["security-report"], False),
+    # ("src.api.v1.security.sensitive_words", "/api/v1/sensitive-words", ["sensitive-words"], False),
+    # ("src.api.v1.security.session_management", "/api/v1/admin/session", ["session-management"], False),
+    # ("src.api.v1.security.two_factor_auth", "/api/v1/2fa", ["2fa"], False),
+    
+    # SEO 模块已统一整合到 seo.py 中
+    # ("src.api.v1.seo.seo", "/api/v2/seo", ["seo"], False),
+
+    # Social 模块 - 已整合到 src.api.v2.social
+    # ("src.api.v1.social.share_stats", "/api/v1", ["share-stats"], False),
+
+    # Static Generation 模块 - 已整合到 src.api.v2.static_generation
+    # ("src.api.v1.static_generation.page_cache", "/api/v1", ["page-cache"], False),
+    # ("src.api.v1.static_generation.static_site_generation", "/api/v1", ["static-site-generation"], False),
+
+    # System 模块 - 已整合到 src.api.v2.system
+    # ("src.api.v1.system.admin_settings", "/api/v1/admin-settings", ["admin-settings"], False),
+    # ("src.api.v1.system.backup_management", "/api/v1/admin/backup", ["backup-management"], False),
+    # ("src.api.v1.system.batch_operations", "/api/v1", ["batch-operations"], False),
+    # ("src.api.v1.system.data_export", "/api/v1", ["data-export"], False),
+    # ("src.api.v1.system.database_migration", "/api/v1/admin/db/database-migration", ["database-migration"], False),
+    # ("src.api.v1.system.incremental_backup", "/api/v1/backup-plus", ["incremental-backup"], False),
+    # ("src.api.v1.system.installation", "/api/v1", ["installation"], False),
+    # ("src.api.v1.system.maintenance", "/api/v1", ["maintenance"], False),
+    # ("src.api.v1.system.migrations", "/api/v1", ["migrations"], False),
+    # ("src.api.v1.system.multisite", "/api/v1", ["multisite"], False),
+    # ("src.api.v1.system.report_management", "/api/v1/admin/report", ["report-management"], False),
+    # ("src.api.v1.system.resource_transfer", "/api/v1", ["resource-transfer"], False),
+    # ("src.api.v1.system.screen_options", "/api/v1", ["screen-options"], False),
+    # ("src.api.v1.system.slow_query_log", "/api/v1/admin/slow-query-log", ["slow-query-log"], False),
+    # ("src.api.v1.system.webhook_management", "/api/v1/admin/webhook", ["webhook-management"], False),
+    # ("src.api.v1.system.workflow", "/api/v1", ["workflow"], False),
+
+    # Translation 模块 - 已整合到 src.api.v2.translation
+    # ("src.api.v1.translation.i18n", "/api/v1/i18n", ["i18n"], False),
+    # ("src.api.v1.translation.translation_io", "/api/v1/i18n", ["translation-io"], False),
+    # ("src.api.v1.translation.translation_progress", "/api/v1/i18n", ["translation-progress"], False),
+    # ("src.api.v1.translation.translation_service", "/api/v1/i18n", ["translation-service"], False),
+    # ("src.api.v1.translation.translations", "/api/v1/i18n", ["translations"], False),
+
+    # Users 模块 - 已整合到 src.api.v2.users
+    # ("src.api.v1.user_utils", "/api/v1", ["user-utils"], False),
+    # ("src.api.v1.user_utils.vip", "/api/v1", ["vip"], False),
+    # ("src.api.v1.users.user_blocks", "/api/v1/user-blocks", ["user-blocks"], False),
+    # ("src.api.v1.users.user_management", "/api/v1/admin/user", ["user-management"], False),
+    # ("src.api.v1.users.user_profile", "/api/v1/users", ["user-profile"], False),
+    # ("src.api.v1.users.user_relations", "/api/v1", ["user-relations"], False),
+    # ("src.api.v1.users.user_settings", "/api/v1", ["user-settings"], False),
+
+    # Advanced Features 模块 - 已整合到 src.api.v2.advanced_features
+    # ("src.api.v1.advanced_features.edge_functions", "/api/v1/edge—func", ["edge-functions"], False),
+    # ("src.api.v1.advanced_features.achievement_badges", "/api/v1/ext/badges", ["achievement-badges"], False),
+    # ("src.api.v1.advanced_features.ai_recommendations", "/api/v1/ext/ai-recommendations", ["ai-recommendations"], False),
+    # ("src.api.v1.advanced_features.expert_certification", "/api/v1/ext/expert-certification", ["expert-certification"], False),
+    # ("src.api.v1.advanced_features.nft", "/api/v1/ext/nft", ["nft"], False),
+    # ("src.api.v1.advanced_features.personalized_feed", "/api/v1/ext/personalized-feed", ["personalized-feed"], False),
+    # ("src.api.v1.advanced_features.points_system", "/api/v1/ext/point-system", ["points-system"], False),
+    # ("src.api.v1.advanced_features.recommendations", "/api/v1/ext/recommendations", ["recommendations"], False),
+    # ("src.api.v1.advanced_features.tipping_system", "/api/v1/ext/tipping-system", ["tipping-system"], False),
+    # ("src.api.v1.advanced_features.websocket", "/api/v1/ext/ws", ["websocket"], False),
+
+    # Accessibility 模块 - 已整合到 src.api.v2.accessibility
+    # ("src.api.v1.accessibility.accessibility_audit", "/api/v1/accessibility-audit", ["accessibility-audit"], False),
+    # ("src.api.v1.accessibility.amp", "/api/v1/amp", ["amp"], False),
 ]
 
 
@@ -289,6 +306,13 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     # 2. 数据库管理器（仅安装后）
     if is_installed:
         await safe_run_async("数据库管理器", _init_database)
+
+    # 2.5 懒加载系统初始化
+    try:
+        from src.utils.lazy_loader import init_lazy_loading
+        safe_run("懒加载系统", init_lazy_loading)
+    except ImportError as e:
+        print(f"[懒加载系统] ⚠️ 跳过: {e}")
 
     # 3. 扩展、调度器
     try:
@@ -462,6 +486,14 @@ def register_middleware(app: FastAPI):
     app.add_middleware(APIVersionMiddleware)
     print("[API Version] 已添加版本响应头中间件")
 
+    # 性能监控中间件
+    try:
+        from src.middleware.performance_monitor import PerformanceMonitoringMiddleware
+        app.add_middleware(PerformanceMonitoringMiddleware)
+        print("[Performance Monitor] 已添加性能监控中间件")
+    except ImportError as e:
+        print(f"[Performance Monitor] 加载失败: {e}")
+
     # 多站点
     try:
         from src.middleware.multisite_middleware import MultiSiteMiddleware
@@ -481,11 +513,22 @@ def register_error_handlers(app: FastAPI):
 
     @app.get('/{full_path:path}', response_class=HTMLResponse)
     async def spa_fallback(request: Request, full_path: str):
-        excluded = ['api', 'static', 'local-storage', 'storage', 'shared', 'thumbnail',
-                    'login', 'register', 'auth', 'health', 'docs', 'redoc', 'openapi.json',
-                    'admin', 'user', 'users', 'articles', 'categories', 'media', 'profile', 'setting']
-        if any(full_path.startswith(p) for p in excluded):
+        # 排除所有API、静态资源和系统路径，确保这些路径不会被SPA回退拦截
+        excluded_prefixes = [
+            'api/',  # 所有API路径
+            'static/',  # 静态文件
+            'assets/',  # 资源文件（包括storage和themes）
+            'docs',  # API文档
+            'redoc',  # ReDoc文档
+            'openapi.json',  # OpenAPI规范
+            'health',  # 健康检查
+        ]
+
+        # 如果路径以排除的前缀开头，返回404而不是SPA页面
+        if any(full_path.startswith(prefix) for prefix in excluded_prefixes):
             return PlainTextResponse("Not Found", status_code=404)
+
+        # 尝试返回前端SPA页面
         try:
             frontend_index = os.path.join(os.path.dirname(__file__), "..", "frontend", "index.html")
             if os.path.exists(frontend_index):
@@ -493,6 +536,8 @@ def register_error_handlers(app: FastAPI):
                     return HTMLResponse(content=f.read())
         except Exception:
             pass
+
+        # 默认返回一个简单的SPA模板
         return HTMLResponse(
             content="<!DOCTYPE html><html><head><title>Blog</title></head><body><div id='app'></div></body></html>")
 
@@ -540,7 +585,7 @@ def register_error_handlers(app: FastAPI):
     @app.exception_handler(Exception)
     async def general_exception_handler(request: Request, exc: Exception):
         from src.unified_logger import default_logger as logger
-        logger.getLogger(__name__).error(f"General error: {exc}")
+        logger.error(f"General error: {exc}")
         if any(kw in str(exc).lower() for kw in ["not found", "no result", "does not exist"]):
             from src.error import error
             return error(404, "Page Not Found")
@@ -569,75 +614,36 @@ def create_app(config=None):
         openapi_url="/openapi.json",
     )
 
-
-        # === QR Login endpoints (direct mount, bypasses router issues) ===
-    @app.get('/api/v1/qr/generate')
-    async def qr_generate_direct(request: Request):
-        from src.api.v1.user_utils.qrlogin_utils import qr_login
-        from src.setting import app_config
-        try:
-            sv = app_config.SYSTEM.SYS_VERSION
-            ge = app_config.SYSTEM.GLOBAL_ENCODING
-            domain = request.query_params.get('callback_domain', '')
-            return await qr_login(request, sv, ge, domain, cache)
-        except Exception as e:
-            from fastapi.logger import logger
-            logger.error(f'QR gen failed: {e}')
-            return {'success': False, 'message': str(e)}
-
-    @app.get('/api/v1/qr/status')
-    async def qr_status_direct(request: Request):
-        from src.api.v1.user_utils.qrlogin_utils import check_qr_login_back
-        try:
-            return await check_qr_login_back(request, cache)
-        except Exception as e:
-            return {'success': False, 'message': str(e)}
-
-    @app.post('/api/v1/qr/confirm')
-    async def qr_confirm_direct(request: Request):
-        from src.api.v1.user_utils.qrlogin_utils import phone_scan_back
-        from src.auth import get_current_user
-        try:
-            data = await request.json()
-            from fastapi import Request as FastAPIRequest
-            current_user = await get_current_user(request, None)
-            return await phone_scan_back(request, current_user, cache)
-        except Exception as e:
-            return {'success': False, 'requires_auth': True, 'message': '请先登录'}
-
-
-
-
-# 注册中间件
+    # 注册中间件
     register_middleware(app)
 
     # 注册所有 API 路由
     register_all_routes(app, worker_info)
 
-    # 静态文件挂载
+    # 错误处理和 SPA 回退
+    register_error_handlers(app)
+
+    # 静态文件挂载 - 确保在所有路由注册之后挂载，避免被catch-all路由拦截
     static_dir = os.path.join(os.path.dirname(__file__), "..", "static")
     os.makedirs(static_dir, exist_ok=True)
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
-    # 本地存储
+    # 本地存储 - 使用统一前缀 /assets/storage 避免与业务路由冲突
     try:
         from src.setting import app_config
         local_storage = getattr(app_config, 'LOCAL_STORAGE_PATH', 'storage')
     except Exception:
         local_storage = 'storage'
     os.makedirs(local_storage, exist_ok=True)
-    app.mount("/local-storage", StaticFiles(directory=local_storage), name="local-storage")
+    app.mount("/assets/storage", StaticFiles(directory=local_storage), name="local-storage")
 
     objects_dir = os.path.join(local_storage, 'objects')
     os.makedirs(objects_dir, exist_ok=True)
-    app.mount("/storage/objects", StaticFiles(directory=objects_dir), name="storage-objects")
+    app.mount("/assets/storage/objects", StaticFiles(directory=objects_dir), name="storage-objects")
 
     themes_dir = os.path.join(os.path.dirname(__file__), "..", "themes")
     if os.path.exists(themes_dir):
-        app.mount("/themes", StaticFiles(directory=themes_dir), name="themes")
-
-    # 错误处理和 SPA 回退
-    register_error_handlers(app)
+        app.mount("/assets/themes", StaticFiles(directory=themes_dir), name="themes")
 
     return app
 

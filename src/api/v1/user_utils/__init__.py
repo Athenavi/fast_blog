@@ -11,8 +11,6 @@ from src.utils.security.safe import validate_password_strength
 from .password_utils import *
 from .qrlogin_utils import *
 from .user_entities import *
-from .user_profile import *
-from .vip import *
 
 __all__ = [
     # 从 user_entities 导入的函数
@@ -22,11 +20,6 @@ __all__ = [
     'change_username',
     'bind_email',
     'get_avatar',
-
-    # 从 user_profile 导入的函数
-    'get_user_info',
-    'get_user_name_by_id',
-    'edit_profile',
 
     # 从 password_utils 导入的函数
     'verify_password',
@@ -40,8 +33,4 @@ __all__ = [
     'qr_login',
     'phone_scan_back',
     'check_qr_login_back',
-
-    # 从 vip 导入的函数
-    'get_vip_features',
-    'get_premium_content'
 ]

@@ -37,7 +37,12 @@ async def check_prerequisites_api():
 
 class DatabaseConfigRequest(BaseModel):
     """数据库配置请求"""
-    db_url: str
+    db_url: str = None  # 可选，兼容旧版
+    host: str = None
+    port: str = None
+    name: str = None
+    user: str = None
+    pass_: str = None  # 避免使用pass关键字
 
 
 class AdminUserRequest(BaseModel):

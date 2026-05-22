@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - ScheduledReport
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-12 14:56:00
+生成时间：2026-05-21 11:04:30
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Index
@@ -38,6 +38,7 @@ class ScheduledReport(Base):
 
     is_active = Column(Boolean, default=True, doc='是否激活')
 
+
     last_run_at = Column(DateTime, nullable=True, doc='上次执行时间')
 
     next_run_at = Column(DateTime, nullable=True, doc='下次执行时间')
@@ -45,6 +46,7 @@ class ScheduledReport(Base):
     created_at = Column(DateTime, doc='创建时间')
 
     updated_at = Column(DateTime, doc='更新时间')
+
 
     def to_dict(self, exclude_sensitive=True):
         """转换为字典

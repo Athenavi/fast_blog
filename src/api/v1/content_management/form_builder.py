@@ -105,7 +105,7 @@ async def get_form_templates():
         return ApiResponse(success=False, error=f"获取模板失败: {str(e)}")
 
 
-@router.post("/create")
+@router.post("/")
 async def create_form(
         title: str = Body(...),
         description: str = Body(''),

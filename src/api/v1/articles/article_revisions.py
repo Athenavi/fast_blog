@@ -230,7 +230,7 @@ async def compare_article_revisions(
         return ApiResponse(success=False, error=str(e))
 
 
-@router.get("/revisions/{revision_id}")
+@router.get("/{revision_id}")
 async def get_revision(
         revision_id: int,
         current_user=Depends(jwt_required),

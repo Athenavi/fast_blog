@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - ReportHistory
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-12 14:56:00
+生成时间：2026-05-21 11:04:30
 """
 
 from sqlalchemy import Column, BigInteger, String, Text, DateTime, ForeignKey, Index
@@ -35,6 +35,7 @@ class ReportHistory(Base):
     format = Column(String(10), nullable=True, doc='导出格式')
 
     generated_at = Column(DateTime, doc='生成时间')
+
 
     def to_dict(self, exclude_sensitive=True):
         """转换为字典
