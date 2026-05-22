@@ -284,7 +284,7 @@ function calcKaraokeProgress(
   return Math.max(0, Math.min(1, (currentTime - lineStart) / duration));
 }
 
-const AudioPlayer: React.FC<{ media: MediaFile; fullUrl: string }> = ({media, fullUrl}) => {
+const AudioPlayer: React.FC<{ media: MediaFile; fullUrl: string; onMinimize?: () => void }> = ({media, fullUrl, onMinimize}) => {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -421,6 +421,18 @@ const AudioPlayer: React.FC<{ media: MediaFile; fullUrl: string }> = ({media, fu
 
         {/* ====== Main Content Area ====== */}
         <div className="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden">
+          {/* 最小化按钮 (桌面左上角) */}
+          <button
+              onClick={onMinimize}
+              className="absolute top-4 left-4 z-20 w-8 h-8 rounded-full bg-white/5 hover:bg-white/15 backdrop-blur flex items-center justify-center transition-colors hidden lg:flex"
+              aria-label="最小化播放"
+              title="最小化 (Esc)"
+          >
+            <svg className="w-4 h-4 text-white/70" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </button>
+
           {/* --- Left: Vinyl (hidden on mobile, shown lg+) --- */}
           <div className="hidden lg:flex w-[45%] items-center justify-center relative overflow-hidden">
             {/* Background glow */}
@@ -444,8 +456,8 @@ const AudioPlayer: React.FC<{ media: MediaFile; fullUrl: string }> = ({media, fu
               />
             </motion.div>
 
-            {/* Vinyl + Tone arm container */}
-            <div className="relative">
+            {/* Vinyl + Tone arm container — 点击唱片可最小化 */}
+            <div className="relative cursor-pointer" onClick={onMinimize}>
               {/* 唱臂 */}
               <motion.div
                   className="absolute -top-8 -right-8 z-10"
@@ -525,6 +537,16 @@ const AudioPlayer: React.FC<{ media: MediaFile; fullUrl: string }> = ({media, fu
           <div className="flex-1 flex flex-col min-h-0 relative">
             {/* 手机版：顶部封面缩略 + 歌名 */}
             <div className="lg:hidden flex items-center gap-4 p-5 border-b border-white/10">
+              <motion.button
+                  className="shrink-0"
+                  whileTap={{scale: 0.9}}
+                  onClick={onMinimize}
+                  aria-label="最小化"
+              >
+                <svg className="w-5 h-5 text-white/50" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7"/>
+                </svg>
+              </motion.button>
               <div className="w-14 h-14 rounded-xl overflow-hidden shadow-lg shrink-0">
                 {coverImage ? (
                     <img src={coverImage} alt="cover" className="w-full h-full object-cover" />
@@ -703,7 +725,13 @@ const AudioPlayer: React.FC<{ media: MediaFile; fullUrl: string }> = ({media, fu
           <div className="flex items-center justify-between px-5 pb-3 gap-2">
             {/* Left: song info */}
             <div className="flex items-center gap-3 min-w-0 flex-1">
-              <div className="w-10 h-10 rounded-lg overflow-hidden shadow shrink-0">
+              <motion.div
+                  className="w-10 h-10 rounded-lg overflow-hidden shadow shrink-0 cursor-pointer"
+                  whileTap={{scale: 0.9}}
+                  onClick={onMinimize}
+                  title="最小化播放 (Esc)"
+                  aria-label="最小化播放"
+              >
                 {coverImage ? (
                     <img src={coverImage} alt="" className="w-full h-full object-cover" />
                 ) : (
@@ -711,7 +739,7 @@ const AudioPlayer: React.FC<{ media: MediaFile; fullUrl: string }> = ({media, fu
                       <Music className="w-5 h-5 text-white/70"/>
                     </div>
                 )}
-              </div>
+              </motion.div>
               <div className="min-w-0 max-w-[140px]">
                 <p className="text-white text-sm font-medium truncate">{media.original_filename}</p>
                 <p className="text-white/40 text-xs truncate">FastBlog</p>
@@ -867,16 +895,271 @@ const AudioPlayer: React.FC<{ media: MediaFile; fullUrl: string }> = ({media, fu
   );
 };
 
+/* ========== MiniPlayer (最小化播放) ========== */
+const MiniPlayer: React.FC<{
+  media: MediaFile;
+  fullUrl: string;
+  isPlaying: boolean;
+  onTogglePlay: () => void;
+  onRestore: () => void;
+  onClose: () => void;
+  coverImage: string | null;
+  currentTime: number;
+  duration: number;
+  formatTime: (t: number) => string;
+  audioRef: React.RefObject<HTMLAudioElement | null>;
+}> = ({media, fullUrl, isPlaying, onTogglePlay, onRestore, onClose, coverImage, currentTime, duration, formatTime, audioRef}) => {
+  const [showMenu, setShowMenu] = useState(false);
+  const longPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // 长按处理（移动端）
+  const handleTouchStart = () => {
+    longPressTimer.current = setTimeout(() => setShowMenu(true), 500);
+  };
+  const handleTouchEnd = () => {
+    if (longPressTimer.current) clearTimeout(longPressTimer.current);
+  };
+
+  // 点击外部关闭菜单
+  useEffect(() => {
+    if (!showMenu) return;
+    const handler = () => setShowMenu(false);
+    window.addEventListener('click', handler);
+    return () => window.removeEventListener('click', handler);
+  }, [showMenu]);
+
+  return (
+      <>
+        {/* 桌面端：左下角迷你卡片 */}
+        <motion.div
+            initial={{x: -100, opacity: 0}}
+            animate={{x: 0, opacity: 1}}
+            exit={{x: -100, opacity: 0}}
+            className="hidden sm:flex fixed bottom-4 left-4 z-[60] bg-black/90 backdrop-blur-2xl rounded-2xl border border-white/10 shadow-2xl overflow-hidden"
+            style={{paddingBottom: 'env(safe-area-inset-bottom, 0px)'}}
+        >
+          <div className="flex items-center gap-3 p-3 min-w-[260px] max-w-[320px]">
+            {/* 封面 */}
+            <motion.div
+                className="w-12 h-12 rounded-xl overflow-hidden shrink-0 cursor-pointer"
+                whileTap={{scale: 0.9}}
+                onClick={onRestore}
+                animate={isPlaying ? {rotate: 360} : {rotate: 0}}
+                transition={isPlaying ? {duration: 8, ease: 'linear', repeat: Infinity} : {duration: 0.4}}
+            >
+              {coverImage ? (
+                  <img src={coverImage} alt="" className="w-full h-full object-cover"/>
+              ) : (
+                  <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center">
+                    <Music className="w-6 h-6 text-white/70"/>
+                  </div>
+              )}
+            </motion.div>
+
+            {/* 歌名 + 进度条 */}
+            <div className="flex-1 min-w-0">
+              <p className="text-white text-sm font-medium truncate cursor-pointer" onClick={onRestore}>{media.original_filename}</p>
+              <div className="w-full h-0.5 rounded-full bg-white/10 mt-1.5 overflow-hidden">
+                <div className="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full transition-all duration-200"
+                     style={{width: `${duration ? (currentTime / duration) * 100 : 0}%`}}
+                />
+              </div>
+            </div>
+
+            {/* 控制按钮 */}
+            <div className="flex items-center gap-1">
+              <motion.button whileTap={{scale: 0.85}} onClick={onTogglePlay}
+                             className="w-9 h-9 bg-white/10 hover:bg-white/20 rounded-full flex items-center justify-center transition-colors"
+                             aria-label={isPlaying ? '暂停' : '播放'}>
+                {isPlaying ? (
+                    <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24"><path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/></svg>
+                ) : (
+                    <svg className="w-4 h-4 text-white ml-0.5" fill="currentColor" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                )}
+              </motion.button>
+              <motion.button whileTap={{scale: 0.85}} onClick={onClose}
+                             className="w-9 h-9 bg-white/5 hover:bg-white/15 rounded-full flex items-center justify-center transition-colors"
+                             aria-label="关闭">
+                <svg className="w-4 h-4 text-white/60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+              </motion.button>
+            </div>
+          </div>
+        </motion.div>
+
+        {/* 移动端：右上角黑胶迷你播放器 */}
+        <motion.div
+            initial={{y: -80, opacity: 0}}
+            animate={{y: 0, opacity: 1}}
+            exit={{y: -80, opacity: 0}}
+            className="sm:hidden fixed top-4 right-4 z-[60]"
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+            onClick={onTogglePlay}
+        >
+          <motion.div
+              className="w-16 h-16 rounded-full overflow-hidden shadow-2xl border-2 border-white/20 cursor-pointer relative"
+              animate={isPlaying ? {rotate: 360} : {rotate: 0}}
+              transition={isPlaying ? {duration: 8, ease: 'linear', repeat: Infinity} : {duration: 0.4}}
+          >
+            {coverImage ? (
+                <img src={coverImage} alt="" className="w-full h-full object-cover"/>
+            ) : (
+                <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center">
+                  <Music className="w-8 h-8 text-white/80"/>
+                </div>
+            )}
+
+            {/* 底部半透明条显示歌名 */}
+            <div className="absolute inset-x-0 bottom-0 h-5 bg-black/50 backdrop-blur flex items-center justify-center px-1">
+              <p className="text-[9px] text-white font-medium truncate leading-none">{media.original_filename}</p>
+            </div>
+          </motion.div>
+        </motion.div>
+
+        {/* 长按菜单 (移动端) */}
+        {showMenu && (
+            <div className="sm:hidden fixed z-[70] inset-0 bg-black/40 flex items-end justify-center pb-20"
+                 onClick={() => setShowMenu(false)}>
+              <motion.div
+                  initial={{y: 100, opacity: 0}}
+                  animate={{y: 0, opacity: 1}}
+                  className="bg-neutral-900/95 backdrop-blur-2xl rounded-2xl w-64 p-4 border border-white/10 shadow-2xl"
+                  onClick={e => e.stopPropagation()}
+              >
+                <p className="text-white font-semibold text-center mb-4 truncate">{media.original_filename}</p>
+                <div className="space-y-2">
+                  <button onClick={() => { setShowMenu(false); onRestore(); }}
+                          className="w-full py-3 px-4 bg-white/10 hover:bg-white/20 rounded-xl text-white text-sm font-medium transition-colors flex items-center gap-3">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l-5 5M4 16v4m0 0h4m-4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/>
+                    </svg>
+                    展开播放器
+                  </button>
+                  <button onClick={() => { setShowMenu(false); onClose(); }}
+                          className="w-full py-3 px-4 bg-red-500/20 hover:bg-red-500/30 rounded-xl text-red-400 text-sm font-medium transition-colors flex items-center gap-3">
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                    关闭播放
+                  </button>
+                </div>
+              </motion.div>
+            </div>
+        )}
+
+        {/* 隐藏的 audio 用于 MiniPlayer */}
+        <audio ref={audioRef} src={fullUrl} preload="auto"/>
+      </>
+  );
+};
+
+/* ========== MiniPlayerWrapper (自持 audio 状态) ========== */
+const MiniPlayerWrapper: React.FC<{
+  media: MediaFile;
+  fullUrl: string;
+  onRestore: () => void;
+  onClose: () => void;
+}> = ({media, fullUrl, onRestore, onClose}) => {
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [coverImage, setCoverImage] = useState<string | null>(null);
+
+  // 加载元数据
+  useEffect(() => {
+    fetch(`${getConfig().API_BASE_URL}/api/v2/media/${media.id}/metadata`, {credentials: 'include'})
+        .then(r => r.json())
+        .then(result => {
+          if (result.success && result.data?.cover_image) setCoverImage(result.data.cover_image);
+        })
+        .catch(() => {});
+  }, [media.id]);
+
+  useEffect(() => {
+    const a = audioRef.current;
+    if (!a) return;
+    const onTime = () => setCurrentTime(a.currentTime);
+    const onDur = () => setDuration(a.duration);
+    const onEnd = () => setIsPlaying(false);
+    a.addEventListener('timeupdate', onTime);
+    a.addEventListener('loadedmetadata', onDur);
+    a.addEventListener('ended', onEnd);
+    return () => { a.removeEventListener('timeupdate', onTime); a.removeEventListener('loadedmetadata', onDur); a.removeEventListener('ended', onEnd); };
+  }, []);
+
+  const togglePlay = () => {
+    const a = audioRef.current;
+    if (!a) return;
+    if (isPlaying) { a.pause(); } else { a.play(); }
+    setIsPlaying(!isPlaying);
+  };
+
+  const formatTime = (t: number) => {
+    const m = Math.floor(t / 60);
+    const s = Math.floor(t % 60);
+    return `${m}:${s.toString().padStart(2, '0')}`;
+  };
+
+  return (
+      <MiniPlayer
+          media={media}
+          fullUrl={fullUrl}
+          isPlaying={isPlaying}
+          onTogglePlay={togglePlay}
+          onRestore={onRestore}
+          onClose={onClose}
+          coverImage={coverImage}
+          currentTime={currentTime}
+          duration={duration}
+          formatTime={formatTime}
+          audioRef={audioRef}
+      />
+  );
+};
+
 /* ---------- Modals ---------- */
 const PreviewModal: React.FC<{media: MediaFile|null; onClose: ()=>void}> = ({media, onClose}) => {
   if(!media) return null;
   const fullUrl = getFullMediaUrl(media.url);
+
+  // 最小化状态
+  const [minimized, setMinimized] = useState(false);
+
+  // ESC 最小化 / 还原
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        if (media?.mime_type?.startsWith('audio/') && fullUrl) {
+          setMinimized(m => !m);
+        } else {
+          onClose();
+        }
+      }
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [media, fullUrl, onClose]);
+
+  // 最小化时不渲染全屏遮罩
+  if (minimized && media.mime_type?.startsWith('audio/') && fullUrl) {
+    return (
+        <MiniPlayerWrapper
+            media={media}
+            fullUrl={fullUrl}
+            onRestore={() => setMinimized(false)}
+            onClose={onClose}
+        />
+    );
+  }
   
   return (<div className="fixed inset-0 z-50 flex items-center justify-center" onClick={onClose}>
     {/*** AUDIO: 全屏沉浸 ***/}
     {media.mime_type?.startsWith('audio/') && fullUrl ? (
         <div className="w-full h-full flex flex-col" onClick={e => e.stopPropagation()}>
-          <AudioPlayer media={media} fullUrl={fullUrl}/>
+          <AudioPlayer media={media} fullUrl={fullUrl} onMinimize={() => setMinimized(true)}/>
         </div>
     ) : (
     /*** OTHER: 居中模态框 ***/
