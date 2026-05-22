@@ -16,10 +16,10 @@ const RevisionsSidebar: React.FC<Props> = ({articleId,open,onClose,onCollapse,on
 
   const {data:revisions,isLoading} = useQuery({
     queryKey:['revisions',articleId],enabled:open&&!!articleId,
-    queryFn:async()=>{const r=await apiClient.get<Revision[]>(`/view?slug=articleId/revisions`);return r.success&&r.data?(Array.isArray(r.data)?r.data:(r.data as any).revisions||[]):[]},
+    queryFn:async()=>{const r=await apiClient.get<Revision[]>(`/articles/${articleId}/revisions`);return r.success&&r.data?(Array.isArray(r.data)?r.data:(r.data as any).revisions||[]):[]},
   });
 
-  const rollbackMut=useMutation({mutationFn:(revId:number)=>apiClient.post(`/view?slug=articleId/revisions/${revId}/rollback`),onSuccess:()=>{if(selected){onRestore(selected.content,selected.title,selected.excerpt);onClose();}}});
+  const rollbackMut=useMutation({mutationFn:(revId:number)=>apiClient.post(`/articles/${articleId}/revisions/${revId}/rollback`),onSuccess:()=>{if(selected){onRestore(selected.content,selected.title,selected.excerpt);onClose();}}});
 
   const viewRevision=async(rev:Revision)=>{setSelected(rev);setCompareWith(null);setDiff(null);try{const r=await apiClient.get<any>(`/articles/revisions/${rev.id}`);if(r.success&&r.data)setPreview(r.data.content||rev.content);else setPreview(rev.content);}catch{setPreview(rev.content);}};
 

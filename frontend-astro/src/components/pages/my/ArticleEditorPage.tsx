@@ -77,7 +77,7 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
   });
 
   const submitMut = useMutation({
-    mutationFn: async (data: FormData) => { const fd = new FormData(); Object.entries(data).forEach(([k, v]) => { if (v !== undefined && v !== null && v !== '') fd.append(k, String(v)); }); fd.set('content', content); fd.set('status', String(data.status ?? 0)); return mode === 'create' ? apiClient.request('/articles', {method: 'POST', body: fd}) : apiClient.request(`/view?slug=articleId`, {method: 'PUT', body: fd}); },
+    mutationFn: async (data: FormData) => { const fd = new FormData(); Object.entries(data).forEach(([k, v]) => { if (v !== undefined && v !== null && v !== '') fd.append(k, String(v)); }); fd.set('content', content); fd.set('status', String(data.status ?? 0)); return mode === 'create' ? apiClient.post('/articles', fd) : apiClient.put(`/articles/edit/${articleId}`, fd); },
     onSuccess: (res) => { if (res.success) { qc.invalidateQueries({queryKey: ['my-posts']}); clearDraft(); setTimeout(() => window.location.href = '/my/posts', 500); } },
   });
 
