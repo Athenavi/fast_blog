@@ -49,6 +49,9 @@ function SensitiveWordsInner() {
   const queryKey = ['admin-sensitive-words', page, keyword, levelFilter, actionFilter];
   const {data, isLoading} = useQuery({
     queryKey,
+    staleTime: 0,
+    gcTime: 0,
+    refetchOnMount: true,
     queryFn: async () => {
       const params: Record<string, any> = {page, per_page: perPage};
       if (keyword) params.keyword = keyword;
@@ -62,6 +65,8 @@ function SensitiveWordsInner() {
 
   const {data: stats} = useQuery({
     queryKey: ['admin-sensitive-stats'],
+    staleTime: 0,
+    gcTime: 0,
     queryFn: async () => {
       const res = await apiClient.get<any>('/api/v2/security/sensitive-words/statistics');
       return res.success && res.data ? res.data : {};
