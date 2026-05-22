@@ -6,6 +6,7 @@ from fastapi import APIRouter
 
 # 导入V1的integrations子模块
 from src.api.v1.integrations.baidu_analytics import router as baidu_analytics_router
+from src.api.v1.integrations.google_analytics import router as google_analytics_router
 from src.api.v1.integrations.ipfs import router as ipfs_router
 from src.api.v1.integrations.oauth_login import router as oauth_login_router
 from src.api.v1.integrations.sso import router as sso_router
@@ -16,6 +17,7 @@ router = APIRouter(tags=["integrations"])
 
 # 按顺序包含子路由
 router.include_router(baidu_analytics_router, prefix="/analytics/baidu")  # /analytics/baidu/*
+router.include_router(google_analytics_router, prefix="/analytics/google")  # /analytics/google/*
 router.include_router(ipfs_router, prefix="/ipfs")  # /ipfs/*
 router.include_router(oauth_login_router, prefix="/oauth")  # /oauth/*
 router.include_router(wordpress_import_router, prefix="/wordpress")  # /wordpress/*
