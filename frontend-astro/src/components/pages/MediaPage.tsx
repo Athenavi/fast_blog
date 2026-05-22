@@ -409,344 +409,428 @@ const AudioPlayer: React.FC<{ media: MediaFile; fullUrl: string }> = ({media, fu
     return `${minutes}:${seconds.toString().padStart(2, '0')}`;
   };
 
-  return (
-      <div className="flex flex-col lg:flex-row h-full">
-        {/* Left: Vinyl Record Animation (Framer Motion) */}
-        <div className="flex-1 bg-gradient-to-br from-gray-900 via-purple-900 to-black p-8 flex items-center justify-center relative overflow-hidden">
-          {/* Background glow — pulsing with play state */}
-          <motion.div
-              className="absolute inset-0"
-              animate={{opacity: isPlaying ? 0.35 : 0.08}}
-              transition={{duration: 1}}
-          >
-            <motion.div
-                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full blur-3xl"
-                style={{background: 'radial-gradient(circle, rgba(147,51,234,0.6), rgba(236,72,153,0.3))'}}
-                animate={isPlaying ? {
-                  scale: [1, 1.15, 1],
-                  opacity: [0.4, 0.7, 0.4],
-                } : {scale: 1, opacity: 0.3}}
-                transition={isPlaying ? {
-                  duration: 4,
-                  repeat: Infinity,
-                  ease: 'easeInOut',
-                } : {duration: 0.6}}
-            />
-          </motion.div>
+  // 扩展控制状态
+  const [repeatMode, setRepeatMode] = useState<'off' | 'one' | 'all'>('off');
+  const [isLiked, setIsLiked] = useState(false);
+  const [showPlaylist, setShowPlaylist] = useState(false);
+  const [showVolumeSlider, setShowVolumeSlider] = useState(false);
 
-          {/* Vinyl Record */}
-          <div className="relative">
-            {/* 唱臂 (Tone arm) — 播放时摆入，暂停时摆出 */}
+  return (
+      <div className="flex flex-col h-full bg-black select-none">
+        <audio ref={audioRef} src={fullUrl} preload="auto"/>
+
+        {/* ====== Main Content Area ====== */}
+        <div className="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden">
+          {/* --- Left: Vinyl (hidden on mobile, shown lg+) --- */}
+          <div className="hidden lg:flex w-[45%] items-center justify-center relative overflow-hidden">
+            {/* Background glow */}
             <motion.div
-                className="absolute -top-6 -right-6 z-10 origin-bottom-left"
-                style={{transformOrigin: 'left 100%'}}
-                animate={{rotate: isPlaying ? 15 : -30}}
-                transition={{type: 'spring', stiffness: 100, damping: 15}}
+                className="absolute inset-0"
+                animate={{opacity: isPlaying ? 0.3 : 0.06}}
+                transition={{duration: 1}}
             >
-              <svg width="100" height="40" viewBox="0 0 100 40" fill="none">
-                <rect x="10" y="8" width="90" height="4" rx="2" fill="url(#armGrad)" />
-                <circle cx="10" cy="10" r="8" fill="#555" stroke="#333" strokeWidth="1.5" />
-                <circle cx="10" cy="10" r="3" fill="#222" />
-                <rect x="85" y="2" width="16" height="16" rx="2" fill="#666" />
-                <defs>
-                  <linearGradient id="armGrad" x1="0" y1="0" x2="1" y2="0">
-                    <stop offset="0%" stopColor="#888" />
-                    <stop offset="100%" stopColor="#444" />
-                  </linearGradient>
-                </defs>
-              </svg>
+              <motion.div
+                  className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[120%] aspect-square rounded-full blur-3xl"
+                  style={{background: 'radial-gradient(circle, rgba(147,51,234,0.5), rgba(236,72,153,0.2), transparent)'}}
+                  animate={isPlaying ? {
+                    scale: [1, 1.1, 1],
+                    opacity: [0.3, 0.6, 0.3],
+                  } : {scale: 1, opacity: 0.2}}
+                  transition={isPlaying ? {
+                    duration: 4,
+                    repeat: Infinity,
+                    ease: 'easeInOut',
+                  } : {duration: 0.6}}
+              />
             </motion.div>
 
-            {/* 黑胶唱片 */}
-            <motion.div
-                ref={vinylRef}
-                className="w-64 h-64 md:w-80 md:h-80 rounded-full bg-gradient-to-br from-gray-800 via-gray-900 to-black shadow-2xl flex items-center justify-center relative"
-                style={{
-                  boxShadow: isPlaying
-                    ? '0 0 80px rgba(147, 51, 234, 0.4), inset 0 0 60px rgba(0,0,0,0.5)'
-                    : '0 0 40px rgba(147, 51, 234, 0.15), inset 0 0 60px rgba(0,0,0,0.5)',
-                }}
-                animate={{rotate: isPlaying ? 360 : 0}}
-                transition={isPlaying
-                  ? {duration: 8, ease: 'linear', repeat: Infinity}
-                  : {duration: 0.6, ease: 'easeOut'}
-                }
-            >
-              {/* 唱片纹路 */}
-              {[4, 8, 12, 16, 20, 24].map(i => (
-                  <div key={i}
-                       className="absolute rounded-full border border-gray-700 opacity-20"
-                       style={{inset: `${i * 4}px`}}
-                  />
-              ))}
+            {/* Vinyl + Tone arm container */}
+            <div className="relative">
+              {/* 唱臂 */}
+              <motion.div
+                  className="absolute -top-8 -right-8 z-10"
+                  style={{transformOrigin: '16px 100%'}}
+                  animate={{rotate: isPlaying ? 18 : -35}}
+                  transition={{type: 'spring', stiffness: 90, damping: 14}}
+              >
+                <svg width="110" height="48" viewBox="0 0 110 48" fill="none">
+                  <rect x="16" y="10" width="94" height="4" rx="2" fill="url(#armGrad2)" />
+                  <circle cx="16" cy="12" r="10" fill="#555" stroke="#333" strokeWidth="1.5" />
+                  <circle cx="16" cy="12" r="4" fill="#222" />
+                  <circle cx="16" cy="12" r="1.5" fill="#888" />
+                  <rect x="92" y="2" width="18" height="20" rx="3" fill="#555" />
+                  <circle cx="101" cy="12" r="3" fill="#777" />
+                  <defs>
+                    <linearGradient id="armGrad2" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%" stopColor="#999" />
+                      <stop offset="50%" stopColor="#666" />
+                      <stop offset="100%" stopColor="#444" />
+                    </linearGradient>
+                  </defs>
+                </svg>
+              </motion.div>
 
-              {/* 唱片反光效果 */}
-              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-white/5 via-transparent to-transparent pointer-events-none" />
-
-              {/* 中心标签 */}
-              <div className="w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden shadow-lg relative z-10">
-                {coverImage ? (
-                    <img
-                        src={coverImage}
-                        alt="Album Cover"
-                        className="w-full h-full object-cover"
+              {/* 黑胶唱片 */}
+              <motion.div
+                  ref={vinylRef}
+                  className="w-72 h-72 xl:w-80 xl:h-80 rounded-full bg-gradient-to-br from-gray-800 via-gray-900 to-black shadow-2xl flex items-center justify-center relative"
+                  style={{
+                    boxShadow: isPlaying
+                      ? '0 0 100px rgba(147, 51, 234, 0.35), inset 0 0 80px rgba(0,0,0,0.6)'
+                      : '0 0 50px rgba(147, 51, 234, 0.1), inset 0 0 80px rgba(0,0,0,0.6)',
+                  }}
+                  animate={{rotate: isPlaying ? 360 : 0}}
+                  transition={isPlaying
+                    ? {duration: 8, ease: 'linear', repeat: Infinity}
+                    : {duration: 0.6, ease: 'easeOut'}
+                  }
+              >
+                {/* 纹路 */}
+                {[5, 10, 15, 20, 25, 30, 35].map(i => (
+                    <div key={i}
+                         className="absolute rounded-full border border-gray-700/20"
+                         style={{inset: `${i * 4}px`}}
                     />
+                ))}
+
+                {/* 反光 */}
+                <div className="absolute inset-2 rounded-full bg-gradient-to-br from-white/[0.06] via-transparent to-transparent pointer-events-none" />
+
+                {/* 中心标签 */}
+                <div className="w-28 h-28 xl:w-32 xl:h-32 rounded-full overflow-hidden shadow-lg relative z-10 ring-2 ring-white/10">
+                  {coverImage ? (
+                      <img
+                          src={coverImage}
+                          alt="cover"
+                          className="w-full h-full object-cover"
+                      />
+                  ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center">
+                        {loadingMetadata ? (
+                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"/>
+                        ) : (
+                            <Music className="w-7 h-7 text-white/80"/>
+                        )}
+                      </div>
+                  )}
+                </div>
+
+                {/* 中心孔 */}
+                <div className="absolute w-3 h-3 bg-black rounded-full z-20 border border-gray-700/50" />
+              </motion.div>
+            </div>
+          </div>
+
+          {/* --- Right: Lyrics Area (Apple Music style) --- */}
+          <div className="flex-1 flex flex-col min-h-0 relative">
+            {/* 手机版：顶部封面缩略 + 歌名 */}
+            <div className="lg:hidden flex items-center gap-4 p-5 border-b border-white/10">
+              <div className="w-14 h-14 rounded-xl overflow-hidden shadow-lg shrink-0">
+                {coverImage ? (
+                    <img src={coverImage} alt="cover" className="w-full h-full object-cover" />
                 ) : (
                     <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center">
-                      {loadingMetadata ? (
-                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>
-                      ) : (
-                          <div className="w-10 h-10 bg-gray-900 rounded-full flex items-center justify-center">
-                            <Music className="w-5 h-5 text-purple-400"/>
-                          </div>
-                      )}
+                      <Music className="w-6 h-6 text-white/80"/>
                     </div>
                 )}
               </div>
+              <div className="min-w-0 flex-1">
+                <p className="text-white font-semibold truncate text-base">{media.original_filename}</p>
+                <p className="text-white/50 text-xs truncate">FastBlog Audio</p>
+              </div>
+            </div>
 
-              {/* 中心孔 */}
-              <div className="absolute w-3 h-3 bg-gray-900 rounded-full z-20 border border-gray-700" />
-            </motion.div>
+            {/* 歌词标题 */}
+            <div className="px-6 pt-5 pb-2 flex items-center justify-between">
+              <button
+                  onClick={() => setShowLyrics(!showLyrics)}
+                  className="flex items-center gap-2 text-sm font-medium transition-colors"
+                  style={{color: showLyrics ? '#a855f7' : 'rgba(255,255,255,0.4)'}}
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/>
+                </svg>
+                歌词
+              </button>
+              {showLyrics && lyrics.length > 0 && (
+                  <span className="text-xs text-white/30">{lyrics.length} 行</span>
+              )}
+            </div>
+
+            {/* 歌词内容 */}
+            <div className="flex-1 overflow-hidden px-4">
+              {showLyrics ? (
+                  <div
+                      ref={lyricsContainerRef}
+                      className="h-full overflow-y-auto space-y-3 py-2 scrollbar-thin"
+                      style={{scrollbarWidth: 'thin'}}
+                  >
+                    {lyrics.length > 0 ? (
+                        lyrics.map((lyric, index) => {
+                          const isActive = index === activeLineIndex;
+                          const isPast = index < activeLineIndex;
+                          const tokens = tokenizeText(lyric.text);
+                          const highlightCount = isActive
+                              ? Math.floor(tokens.length * karaokeProgress)
+                              : (isPast ? tokens.length : 0);
+
+                          return (
+                              <div key={index} className="relative px-4 py-2 transition-all duration-300 min-h-[2.5rem]"
+                                   style={{
+                                     opacity: isPast ? 0.5 : (isActive ? 1 : 0.35),
+                                     transform: isActive ? 'scale(1)' : 'scale(0.96)',
+                                   }}
+                              >
+                                {/* 背景进度条 */}
+                                {isActive && (
+                                    <motion.div
+                                        className="absolute inset-0 rounded-xl bg-gradient-to-r from-purple-500/8 via-pink-500/8 to-transparent pointer-events-none"
+                                        animate={{width: `${karaokeProgress * 100}%`}}
+                                        transition={{duration: 0.08, ease: 'linear'}}
+                                    />
+                                )}
+
+                                <div className={`text-center leading-relaxed ${isActive ? 'text-xl font-bold tracking-wide' : 'text-sm'}`}>
+                                  {tokens.map((token, ti) => {
+                                    const isHighlighted = ti < highlightCount;
+                                    const isTransitioning = isActive && ti === highlightCount - 1 && karaokeProgress < 1;
+                                    const isNextToken = isActive && ti === highlightCount;
+                                    const tokenClipProgress = isTransitioning
+                                        ? (karaokeProgress * tokens.length - ti)
+                                        : (isHighlighted ? 1 : 0);
+
+                                    return token === ' ' ? (
+                                        <span key={ti} className="inline-block" style={{width: '0.3em'}}>&nbsp;</span>
+                                    ) : (
+                                        <span key={ti} className="relative inline-block mx-[0.5px]">
+                                      {/* 未高亮层 */}
+                                      <span className={`transition-all duration-150 ${isHighlighted ? 'text-transparent' : 'text-white/50'}`}>
+                                        {token}
+                                      </span>
+                                          {/* 高亮渐变层 */}
+                                          {isHighlighted && (
+                                              <span className="absolute inset-0 bg-gradient-to-r from-purple-400 via-fuchsia-300 to-pink-300 bg-clip-text text-transparent"
+                                                    style={{
+                                                      WebkitBackgroundClip: 'text',
+                                                      filter: isActive ? 'drop-shadow(0 0 10px rgba(168,85,247,0.5))' : 'none',
+                                                    }}
+                                              >
+                                            {token}
+                                          </span>
+                                          )}
+                                          {/* 过渡 clipPath */}
+                                          {isTransitioning && (
+                                              <span className="absolute inset-0 overflow-hidden" style={{color: 'transparent'}}>
+                                            <span className="absolute inset-0 bg-gradient-to-r from-purple-400 via-fuchsia-300 to-pink-300 bg-clip-text text-transparent"
+                                                  style={{
+                                                    WebkitBackgroundClip: 'text',
+                                                    clipPath: `inset(0 ${(1 - tokenClipProgress) * 100}% 0 0)`,
+                                                    filter: 'drop-shadow(0 0 12px rgba(168,85,247,0.7))',
+                                                  }}
+                                            >
+                                              {token}
+                                            </span>
+                                          </span>
+                                          )}
+                                          {/* 下一个字脉冲 */}
+                                          {isNextToken && (
+                                              <motion.span
+                                                  className="absolute inset-0 text-white/50"
+                                                  animate={{opacity: [0.3, 0.7, 0.3]}}
+                                                  transition={{duration: 1.2, repeat: Infinity, ease: 'easeInOut'}}
+                                              >
+                                                {token}
+                                              </motion.span>
+                                          )}
+                                    </span>
+                                    );
+                                  })}
+                                </div>
+                              </div>
+                          );
+                        })
+                    ) : (
+                        <div className="flex flex-col items-center justify-center h-full text-white/30">
+                          <Music className="w-12 h-12 mb-4 opacity-40"/>
+                          <p className="text-sm">暂无歌词</p>
+                          <p className="text-xs mt-1">支持在音频文件同目录下放置 .lrc 文件</p>
+                        </div>
+                    )}
+                  </div>
+              ) : (
+                  <div className="flex flex-col items-center justify-center h-full text-white/20">
+                    <svg className="w-16 h-16 mb-4 opacity-30" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/>
+                    </svg>
+                    <p className="text-sm">点击上方「歌词」查看逐字高亮</p>
+                  </div>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Right: Controls & Lyrics */}
-        <div className="flex-1 bg-white dark:bg-gray-900 flex flex-col min-h-0">
-          <audio ref={audioRef} src={fullUrl} preload="auto"/>
-
-          {/* Song Info */}
-          <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 truncate">{media.original_filename}</h3>
-            <p className="text-sm text-gray-500">
-              {media.file_size ? `${(media.file_size / 1024 / 1024).toFixed(2)} MB` : ''} · {formatTime(duration)}
-            </p>
-          </div>
-
-          {/* Progress Bar */}
-          <div className="px-6 py-4">
+        {/* ====== Bottom Controls Bar (Apple Music style) ====== */}
+        <div className="flex-shrink-0 bg-black/90 backdrop-blur-2xl border-t border-white/10">
+          {/* --- Progress Bar --- */}
+          <div className="px-4 pt-2 pb-1">
             <input
                 type="range"
                 min="0"
                 max={duration || 100}
                 value={currentTime}
                 onChange={handleSeek}
-                className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-purple-600"
+                className="w-full h-1 bg-white/20 rounded-full appearance-none cursor-pointer accent-purple-500"
+                style={{
+                  background: `linear-gradient(to right, #a855f7 ${(currentTime / (duration || 1)) * 100}%, rgba(255,255,255,0.15) ${(currentTime / (duration || 1)) * 100}%)`,
+                }}
             />
-            <div className="flex justify-between text-xs text-gray-500 mt-1">
+            <div className="flex justify-between text-[11px] text-white/30 mt-0.5 px-0.5">
               <span>{formatTime(currentTime)}</span>
               <span>{formatTime(duration)}</span>
             </div>
           </div>
 
-          {/* Controls */}
-          <div className="px-6 py-3 flex items-center justify-center gap-4">
-            <motion.button
-                whileTap={{scale: 0.9}}
-                onClick={() => {
-                  const audio = audioRef.current;
-                  if (audio) audio.currentTime = Math.max(0, audio.currentTime - 10);
-                }}
-                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
-            >
-              <svg className="w-6 h-6 text-gray-700 dark:text-gray-300" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z"/>
-              </svg>
-            </motion.button>
-
-            <motion.button
-                whileTap={{scale: 0.9}}
-                onClick={togglePlay}
-                className="w-16 h-16 bg-gradient-to-br from-purple-600 to-pink-600 rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-shadow"
-            >
-              {isPlaying ? (
-                  <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
-                  </svg>
-              ) : (
-                  <svg className="w-8 h-8 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
-                    <path d="M8 5v14l11-7z"/>
-                  </svg>
-              )}
-            </motion.button>
-
-            <motion.button
-                whileTap={{scale: 0.9}}
-                onClick={() => {
-                  const audio = audioRef.current;
-                  if (audio) audio.currentTime = Math.min(duration, audio.currentTime + 10);
-                }}
-                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
-            >
-              <svg className="w-6 h-6 text-gray-700 dark:text-gray-300" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/>
-              </svg>
-            </motion.button>
-          </div>
-
-          {/* Volume Control */}
-          <div className="px-6 py-2 flex items-center gap-3">
-            <svg className="w-5 h-5 text-gray-500 shrink-0" fill="currentColor" viewBox="0 0 24 24">
-              <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/>
-            </svg>
-            <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.01"
-                value={volume}
-                onChange={handleVolumeChange}
-                className="flex-1 h-1 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-purple-600"
-            />
-          </div>
-
-          {/* Lyrics Toggle */}
-          <div className="px-6 pb-3">
-            <button
-                onClick={() => setShowLyrics(!showLyrics)}
-                className={`w-full py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
-                    showLyrics
-                        ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
-                        : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
-                }`}
-            >
-              {showLyrics ? '🎤 隐藏歌词' : '📄 显示歌词'}
-            </button>
-          </div>
-
-          {/* Lyrics Display with Karaoke Highlighting */}
-          {showLyrics && (
-              <div
-                  ref={lyricsContainerRef}
-                  className="flex-1 overflow-y-auto px-6 pb-6 space-y-3 scrollbar-thin"
-                  style={{maxHeight: '320px'}}
-              >
-                {lyrics.length > 0 ? (
-                    lyrics.map((lyric, index) => {
-                      const isActive = index === activeLineIndex;
-                      const isPast = index < activeLineIndex;
-                      const tokens = tokenizeText(lyric.text);
-                      const highlightCount = isActive
-                          ? Math.floor(tokens.length * karaokeProgress)
-                          : (isPast ? tokens.length : 0);
-
-                      // 当前行进度条的宽度百分比
-                      const lineProgressPct = isActive ? karaokeProgress * 100 : (isPast ? 100 : 0);
-
-                      return (
-                          <div key={index} className="relative">
-                            {/* 背景进度条 — 当前行从左到右填色 */}
-                            {isActive && (
-                                <motion.div
-                                    className="absolute inset-0 rounded-lg bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-transparent pointer-events-none"
-                                    animate={{width: `${lineProgressPct}%`}}
-                                    transition={{duration: 0.1, ease: 'linear'}}
-                                />
-                            )}
-
-                            <motion.div
-                                className={`text-center leading-relaxed px-3 py-1.5 rounded-lg transition-colors ${
-                                    isActive
-                                        ? 'text-lg font-bold'
-                                        : isPast
-                                            ? 'text-sm text-gray-500 dark:text-gray-400'
-                                            : 'text-sm text-gray-400 dark:text-gray-500'
-                                }`}
-                                animate={
-                                  isActive
-                                    ? {scale: 1.02, y: 0}
-                                    : {scale: 1, y: 0}
-                                }
-                                transition={{duration: 0.25, ease: 'easeOut'}}
-                            >
-                              {tokens.map((token, ti) => {
-                                const isHighlighted = ti < highlightCount;
-                                // 当前正在过渡的字（最后一个高亮字）
-                                const isTransitioning = isActive && ti === highlightCount - 1 && karaokeProgress < 1;
-                                const isActiveToken = isActive && ti === highlightCount;
-
-                                // 单个 token 在 clipPath 中的进度
-                                const tokenClipProgress = isTransitioning
-                                    ? (karaokeProgress * tokens.length - ti)
-                                    : (isHighlighted ? 1 : 0);
-
-                                return token === ' ' ? (
-                                    <span key={ti} className="inline-block" style={{width: '0.3em'}}>&nbsp;</span>
-                                ) : (
-                                    <span
-                                        key={ti}
-                                        className="relative inline-block mx-[0.5px]"
-                                    >
-                                      {/* 基础层 — 未高亮颜色 */}
-                                      <span
-                                          className={`transition-all duration-200 ${
-                                              isHighlighted
-                                                  ? 'text-transparent'
-                                                  : (isActive
-                                                      ? 'text-gray-400 dark:text-gray-500'
-                                                      : 'text-gray-400 dark:text-gray-500')
-                                          }`}
-                                      >
-                                        {token}
-                                      </span>
-
-                                      {/* 高亮渐变层 — 使用 background-clip 实现渐变文字 */}
-                                      {isHighlighted && (
-                                          <span
-                                              className="absolute inset-0 bg-gradient-to-r from-purple-600 via-fuchsia-500 to-pink-500 dark:from-purple-400 dark:via-fuchsia-300 dark:to-pink-300 bg-clip-text text-transparent"
-                                              style={{
-                                                WebkitBackgroundClip: 'text',
-                                                filter: isActive ? 'drop-shadow(0 0 6px rgba(168,85,247,0.4))' : 'none',
-                                              }}
-                                          >
-                                            {token}
-                                          </span>
-                                      )}
-
-                                      {/* 当前正在过渡的字的 clipPath 新旧切换 */}
-                                      {isTransitioning && (
-                                          <span
-                                              className="absolute inset-0 overflow-hidden"
-                                              style={{color: 'transparent'}}
-                                          >
-                                            <span
-                                                className="absolute inset-0 bg-gradient-to-r from-purple-600 via-fuchsia-500 to-pink-500 dark:from-purple-400 dark:via-fuchsia-300 dark:to-pink-300 bg-clip-text text-transparent"
-                                                style={{
-                                                  WebkitBackgroundClip: 'text',
-                                                  clipPath: `inset(0 ${(1 - tokenClipProgress) * 100}% 0 0)`,
-                                                  filter: 'drop-shadow(0 0 8px rgba(168,85,247,0.6))',
-                                                }}
-                                            >
-                                              {token}
-                                            </span>
-                                          </span>
-                                      )}
-
-                                      {/* 即将高亮的下一个字的脉冲提示 */}
-                                      {isActiveToken && (
-                                          <motion.span
-                                              className="absolute inset-0 text-gray-400 dark:text-gray-500"
-                                              animate={{opacity: [0.4, 0.8, 0.4]}}
-                                              transition={{duration: 1.2, repeat: Infinity, ease: 'easeInOut'}}
-                                          >
-                                            {token}
-                                          </motion.span>
-                                      )}
-                                    </span>
-                                );
-                              })}
-                            </motion.div>
-                          </div>
-                      );
-                    })
+          {/* --- Controls Row --- */}
+          <div className="flex items-center justify-between px-5 pb-3 gap-2">
+            {/* Left: song info */}
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              <div className="w-10 h-10 rounded-lg overflow-hidden shadow shrink-0">
+                {coverImage ? (
+                    <img src={coverImage} alt="" className="w-full h-full object-cover" />
                 ) : (
-                    <div className="text-center text-gray-400 py-8">
-                      <Music className="w-12 h-12 mx-auto mb-3 opacity-50"/>
-                      <p>暂无歌词</p>
-                      <p className="text-xs mt-2">支持在音频文件同目录下放置 .lrc 文件</p>
+                    <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center">
+                      <Music className="w-5 h-5 text-white/70"/>
                     </div>
                 )}
               </div>
-          )}
+              <div className="min-w-0 max-w-[140px]">
+                <p className="text-white text-sm font-medium truncate">{media.original_filename}</p>
+                <p className="text-white/40 text-xs truncate">FastBlog</p>
+              </div>
+              {/* Like button */}
+              <motion.button
+                  whileTap={{scale: 0.85}}
+                  onClick={() => setIsLiked(!isLiked)}
+                  className="shrink-0"
+              >
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill={isLiked ? '#ec4899' : 'none'} stroke={isLiked ? '#ec4899' : 'rgba(255,255,255,0.4)'} strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/>
+                </svg>
+              </motion.button>
+            </div>
+
+            {/* Center: Playback controls */}
+            <div className="flex items-center gap-3">
+              {/* Rewind 10s */}
+              <motion.button
+                  whileTap={{scale: 0.85}}
+                  onClick={() => {const a = audioRef.current; if (a) a.currentTime = Math.max(0, a.currentTime - 10);}}
+                  className="text-white/50 hover:text-white transition-colors"
+              >
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z"/></svg>
+              </motion.button>
+
+              {/* Prev (restart) */}
+              <motion.button
+                  whileTap={{scale: 0.85}}
+                  onClick={() => {const a = audioRef.current; if (a) a.currentTime = 0;}}
+                  className="text-white/50 hover:text-white transition-colors"
+              >
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+              </motion.button>
+
+              {/* Play/Pause (large) */}
+              <motion.button
+                  whileTap={{scale: 0.9}}
+                  onClick={togglePlay}
+                  className="w-11 h-11 bg-white rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-all"
+              >
+                {isPlaying ? (
+                    <svg className="w-5 h-5 text-black" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+                    </svg>
+                ) : (
+                    <svg className="w-5 h-5 text-black ml-0.5" fill="currentColor" viewBox="0 0 24 24">
+                      <path d="M8 5v14l11-7z"/>
+                    </svg>
+                )}
+              </motion.button>
+
+              {/* Next (forward 10s) */}
+              <motion.button
+                  whileTap={{scale: 0.85}}
+                  onClick={() => {const a = audioRef.current; if (a) a.currentTime = Math.min(duration, a.currentTime + 10);}}
+                  className="text-white/50 hover:text-white transition-colors"
+              >
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/></svg>
+              </motion.button>
+
+              {/* Forward 10s */}
+              <motion.button
+                  whileTap={{scale: 0.85}}
+                  onClick={() => {const a = audioRef.current; if (a) a.currentTime = Math.min(duration, a.currentTime + 10);}}
+                  className="text-white/50 hover:text-white transition-colors"
+              >
+                <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M13 6v12l8.5-6L13 6zM4 18l8.5-6L4 6v12z"/></svg>
+              </motion.button>
+            </div>
+
+            {/* Right: Volume & extras */}
+            <div className="flex items-center gap-3 flex-1 justify-end">
+              {/* Repeat */}
+              <motion.button
+                  whileTap={{scale: 0.85}}
+                  onClick={() => setRepeatMode(r => r === 'off' ? 'all' : r === 'all' ? 'one' : 'off')}
+                  className="relative"
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke={repeatMode !== 'off' ? '#a855f7' : 'rgba(255,255,255,0.4)'} strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+                </svg>
+                {repeatMode === 'one' && (
+                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-purple-500 rounded-full flex items-center justify-center text-[8px] font-bold text-white">1</span>
+                )}
+              </motion.button>
+
+              {/* Volume */}
+              <div className="relative flex items-center">
+                <motion.button
+                    whileTap={{scale: 0.85}}
+                    onClick={() => setShowVolumeSlider(v => !v)}
+                    className="flex items-center"
+                >
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/>
+                  </svg>
+                </motion.button>
+                {showVolumeSlider && (
+                    <div className="absolute bottom-full right-0 mb-2 p-3 bg-neutral-900/95 backdrop-blur-xl rounded-xl border border-white/10 shadow-xl">
+                      <input
+                          type="range"
+                          min="0"
+                          max="1"
+                          step="0.01"
+                          value={volume}
+                          onChange={handleVolumeChange}
+                          className="w-20 h-1 bg-white/20 rounded-full appearance-none cursor-pointer accent-purple-500 rotate-0"
+                          style={{
+                            background: `linear-gradient(to right, #a855f7 ${volume * 100}%, rgba(255,255,255,0.15) ${volume * 100}%)`,
+                          }}
+                      />
+                    </div>
+                )}
+              </div>
+
+              {/* Playlist toggle */}
+              <motion.button
+                  whileTap={{scale: 0.85}}
+                  onClick={() => setShowPlaylist(!showPlaylist)}
+              >
+                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
+                </svg>
+              </motion.button>
+            </div>
+          </div>
         </div>
       </div>
   );
