@@ -2,9 +2,12 @@
 备份管理 API - V2 版本
 提供自动化的数据库和文件备份、恢复功能
 """
+import os
+import asyncio
 from typing import Optional
 
 from fastapi import APIRouter, Depends, BackgroundTasks
+from fastapi.responses import FileResponse
 
 from shared.models.user import User
 from shared.services.system.backup_service import BackupService
@@ -15,6 +18,9 @@ router = APIRouter(prefix="/backup", tags=["Backup Management"])
 
 # 初始化备份服务
 backup_service = BackupService()
+
+# 并发锁：同一时间只允许一个备份操作
+_backup_lock = asyncio.Lock()
 
 
 @router.post("/database", summary="备份数据库")
@@ -38,10 +44,11 @@ async def backup_database(
             error="需要管理员权限"
         )
 
-    try:
-        result = await backup_service.backup_database(backup_type=backup_type)
+    async with _backup_lock:
+        try:
+            result = await backup_service.backup_database(backup_type=backup_type)
 
-        if result['success']:
+            if result['success']:
             return ApiResponse(
                 success=True,
                 data=result['metadata'],
@@ -82,11 +89,12 @@ async def backup_files(
             error="需要管理员权限"
         )
 
-    try:
-        result = await backup_service.backup_files()
+    async with _backup_lock:
+        try:
+            result = await backup_service.backup_files()
 
-        if result['success']:
-            if result.get('backup_path'):
+            if result['success']:
+                if result.get('backup_path'):
                 return ApiResponse(
                     success=True,
                     data=result.get('metadata', {}),
@@ -128,15 +136,16 @@ async def backup_full(
             error="需要管理员权限"
         )
 
-    try:
-        result = await backup_service.backup_full()
+    async with _backup_lock:
+        try:
+            result = await backup_service.backup_full()
 
-        if result['success']:
-            return ApiResponse(
-                success=True,
-                data=result.get('metadata', {}),
-                message="完整备份成功"
-            )
+            if result['success']:
+                return ApiResponse(
+                    success=True,
+                    data=result.get('metadata', {}),
+                    message="完整备份成功"
+                )
         else:
             return ApiResponse(
                 success=False,
@@ -153,26 +162,35 @@ async def backup_full(
 @router.get("/list", summary="列出所有备份")
 async def list_backups(
         backup_type: Optional[str] = None,
-        limit: int = 50,
+        page: int = 1,
+        per_page: int = 20,
         current_user: User = Depends(jwt_required)
 ):
     """
-    列出所有备份文件
+    列出所有备份文件（分页）
     
     参数:
     - backup_type: 过滤备份类型 ('database', 'files', 'full')
-    - limit: 返回数量限制（默认50）
+    - page: 页码（从1开始）
+    - per_page: 每页数量（默认20）
     
     返回备份列表，按时间倒序排列
     """
     try:
-        backups = backup_service.list_backups(backup_type=backup_type, limit=limit)
+        all_backups = backup_service.list_backups(backup_type=backup_type, limit=0)
+        total = len(all_backups)
+        total_pages = max(1, (total + per_page - 1) // per_page)
+        start = (page - 1) * per_page
+        backups = all_backups[start:start + per_page]
 
         return ApiResponse(
             success=True,
             data={
                 'backups': backups,
-                'total': len(backups),
+                'total': total,
+                'page': page,
+                'per_page': per_page,
+                'total_pages': total_pages,
                 'backup_types': {
                     'database': sum(1 for b in backups if b.get('type') == 'database'),
                     'files': sum(1 for b in backups if b.get('type') == 'files'),
@@ -374,6 +392,35 @@ async def get_backup_stats(
             success=False,
             error=f"获取统计信息失败: {str(e)}"
         )
+
+
+@router.get("/download/{filename:path}", summary="下载备份文件")
+async def download_backup(
+        filename: str,
+        current_user: User = Depends(jwt_required)
+):
+    """下载指定的备份文件"""
+    if not current_user.is_superuser:
+        return ApiResponse(success=False, error="需要管理员权限")
+
+    # 在所有备份目录中查找文件
+    for base_dir in [backup_service.database_backup_dir,
+                     backup_service.files_backup_dir,
+                     backup_service.full_backup_dir]:
+        filepath = os.path.join(base_dir, filename)
+        if os.path.isfile(filepath):
+            return FileResponse(filepath, filename=filename)
+        # 完整备份是目录，尝试查找内部的 meta / db / files
+        dirpath = os.path.join(base_dir, filename)
+        if os.path.isdir(dirpath):
+            # 返回目录打包下载太复杂，返回目录内的 database 备份或提示
+            for fname in os.listdir(dirpath):
+                fpath = os.path.join(dirpath, fname)
+                if os.path.isfile(fpath) and (fname.endswith('.gz') or fname.endswith('.sql') or fname.endswith('.tar.gz')):
+                    return FileResponse(fpath, filename=fname)
+            return ApiResponse(success=False, error="备份目录中没有可下载的文件")
+
+    return ApiResponse(success=False, error="备份文件不存在")
 
 
 @router.post("/cleanup", summary="清理过期备份")
