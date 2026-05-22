@@ -1,5 +1,4 @@
-import {useEffect, useRef, useState, useCallback} from 'react';
-import * as Y from 'yjs';
+import {useEffect, useRef, useState, useCallback, useMemo} from 'react';
 import {getConfig} from '@/lib/config';
 
 export interface Collaborator {
@@ -9,15 +8,15 @@ export interface Collaborator {
   color?: string;
 }
 
-export interface YjsCollabState {
-  ydoc: Y.Doc;
+export interface CollabState {
   connected: boolean;
   connecting: boolean;
   collaborators: Collaborator[];
+  content: string;               // Latest HTML received from other editors
   error?: string;
   start: () => void;
   stop: () => void;
-  sendHtmlSnapshot: (html: string) => void;
+  sendContent: (html: string) => void;
   requestSave: () => void;
 }
 
@@ -26,17 +25,31 @@ const COLLABORATOR_COLORS = [
   '#20c997', '#e64980', '#15aabf', '#fab005', '#7950f2',
 ];
 
+// Throttle helper — at most one send per `ms` interval, last call wins
+function throttle(fn: (...args: any[]) => void, ms: number) {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+  let lastArgs: any[] | null = null;
+  const later = () => {
+    timer = null;
+    if (lastArgs) { fn(...lastArgs); lastArgs = null; }
+  };
+  return (...args: any[]) => {
+    lastArgs = args;
+    if (!timer) { timer = setTimeout(later, ms); }
+  };
+}
+
 export function useYjsCollaboration(
   documentId: string | null,
   articleId?: number | string | null,
   token?: string | null,
-): YjsCollabState {
+): CollabState {
   const [connected, setConnected] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
+  const [content, setContent] = useState('');
   const [error, setError] = useState<string | undefined>();
 
-  const ydocRef = useRef<Y.Doc>(new Y.Doc());
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimerRef = useRef<ReturnType<typeof setTimeout>>();
   const pingTimerRef = useRef<ReturnType<typeof setInterval>>();
@@ -44,15 +57,23 @@ export function useYjsCollaboration(
   const myClientIdRef = useRef<string>('');
   const stoppedRef = useRef(false);
 
+  // Throttled send to avoid flooding on every keystroke
+  const throttledSend = useMemo(() => throttle((html: string) => {
+    const ws = wsRef.current;
+    if (ws?.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({type: 'html_snapshot', html}));
+    }
+  }, 300), []);
+
   const sendJson = useCallback((msg: object) => {
     if (wsRef.current?.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify(msg));
     }
   }, []);
 
-  const sendHtmlSnapshot = useCallback((html: string) => {
-    sendJson({type: 'html_snapshot', html});
-  }, [sendJson]);
+  const sendContent = useCallback((html: string) => {
+    throttledSend(html);
+  }, [throttledSend]);
 
   const requestSave = useCallback(() => {
     sendJson({type: 'save'});
@@ -72,6 +93,7 @@ export function useYjsCollaboration(
     setConnected(false);
     setConnecting(false);
     setCollaborators([]);
+    setContent('');
   }, []);
 
   const start = useCallback(() => {
@@ -79,16 +101,15 @@ export function useYjsCollaboration(
     stoppedRef.current = false;
     setConnecting(true);
     setError(undefined);
+    setContent('');
 
-    // Use API_BASE_URL from config (backend URL), same as REST API client
     const baseUrl = getConfig().API_BASE_URL || `http://${window.location.host}`;
     const wsBase = baseUrl.replace(/^https?:/, (m) => m === 'https:' ? 'wss:' : 'ws:');
     const wsUrl = `${wsBase}/api/v2/collaboration/yjs/ws/${documentId}?article_id=${articleId || ''}${token ? `&token=${encodeURIComponent(token)}` : ''}`;
-    console.debug('[Yjs WS] Connecting to:', wsUrl);
+    console.debug('[Collab WS] Connecting to:', wsUrl);
 
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
-    const doc = ydocRef.current;
 
     ws.onopen = () => {
       if (stoppedRef.current) { ws.close(); return; }
@@ -96,7 +117,6 @@ export function useYjsCollaboration(
       setConnecting(false);
       setError(undefined);
 
-      // Start ping interval
       pingTimerRef.current = setInterval(() => {
         if (ws.readyState === WebSocket.OPEN) {
           ws.send(JSON.stringify({type: 'ping'}));
@@ -105,35 +125,23 @@ export function useYjsCollaboration(
     };
 
     ws.onmessage = (event) => {
-      if (event.data instanceof Blob) {
-        // Binary Yjs update
-        event.data.arrayBuffer().then(buf => {
-          const update = new Uint8Array(buf);
-          Y.applyUpdate(doc, update);
-        });
-        return;
-      }
+      if (event.data instanceof Blob) return; // ignore binary (Yjs not used for content)
 
-      // JSON message
       try {
         const msg = JSON.parse(event.data);
         const type = msg.type;
 
         if (type === 'welcome') {
           myClientIdRef.current = msg.client_id || '';
-          // Load HTML snapshot into doc if present
-          if (msg.html_snapshot) {
-            // The html_snapshot from backend is plain HTML, Yjs handles it via y-prosemirror
-            // We emit a custom event for the consumer to handle
-            window.dispatchEvent(new CustomEvent('yjs-welcome-html', {
-              detail: { html: msg.html_snapshot, documentId },
-            }));
-          }
-          // Set initial collaborators
+          // Set initial collaborators list
           const existing: Collaborator[] = (msg.clients || []).map((c: any) => ({
             client_id: c.client_id,
           }));
           setCollaborators(existing);
+          // If server has an HTML snapshot, load it
+          if (msg.html_snapshot) {
+            setContent(msg.html_snapshot);
+          }
         } else if (type === 'awareness') {
           const state = msg.state || {};
           if (state.type === 'user_joined') {
@@ -141,24 +149,15 @@ export function useYjsCollaboration(
               if (prev.find(c => c.client_id === state.client_id)) return prev;
               const color = COLLABORATOR_COLORS[colorIndexRef.current % COLLABORATOR_COLORS.length];
               colorIndexRef.current++;
-              return [...prev, {
-                client_id: state.client_id,
-                user_id: state.user_id,
-                user_name: state.user_name,
-                color,
-              }];
+              return [...prev, {client_id: state.client_id, user_id: state.user_id, user_name: state.user_name, color}];
             });
           } else if (state.type === 'user_left') {
             setCollaborators(prev => prev.filter(c => c.client_id !== state.client_id));
-          } else if (state.client_id && state.client_id !== myClientIdRef.current) {
-            // Cursor awareness update
-            setCollaborators(prev => {
-              const idx = prev.findIndex(c => c.client_id === state.client_id);
-              if (idx === -1) return prev;
-              const updated = [...prev];
-              updated[idx] = {...updated[idx], ...state};
-              return updated;
-            });
+          }
+        } else if (type === 'html_snapshot') {
+          // Another collaborator's content snapshot — update our editor
+          if (msg.html && msg.client_id !== myClientIdRef.current) {
+            setContent(msg.html);
           }
         } else if (type === 'save_result') {
           window.dispatchEvent(new CustomEvent('yjs-save-result', {
@@ -174,7 +173,6 @@ export function useYjsCollaboration(
       setConnected(false);
       if (pingTimerRef.current) clearInterval(pingTimerRef.current);
       if (!stoppedRef.current) {
-        // Auto reconnect after 3s
         reconnectTimerRef.current = setTimeout(() => {
           if (!stoppedRef.current) start();
         }, 3000);
@@ -185,41 +183,22 @@ export function useYjsCollaboration(
       setError('连接失败');
       setConnecting(false);
     };
-
-    // Listen for Yjs doc updates and send to server
-    const updateHandler = (update: Uint8Array, origin: any) => {
-      if (origin === 'remote') return; // Ignore remote updates
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.send(update);
-      }
-    };
-    doc.on('update', updateHandler);
-
-    // Store cleanup reference
-    (ws as any).__yjsCleanup = () => {
-      doc.off('update', updateHandler);
-    };
   }, [documentId, articleId, token]);
 
-  // Cleanup on unmount
+  // Cleanup
   useEffect(() => {
     return () => { stop(); };
   }, [stop]);
 
-  // Broadcast awareness (cursor/selection)
-  const broadcastAwareness = useCallback((awareState: Record<string, any>) => {
-    sendJson({type: 'awareness', state: awareState});
-  }, [sendJson]);
-
   return {
-    ydoc: ydocRef.current,
     connected,
     connecting,
     collaborators,
+    content,
     error,
     start,
     stop,
-    sendHtmlSnapshot,
+    sendContent,
     requestSave,
   };
 }

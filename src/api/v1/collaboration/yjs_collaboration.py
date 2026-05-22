@@ -139,7 +139,20 @@ async def yjs_websocket_endpoint(
 
                     elif msg_type == "html_snapshot":
                         # 前端保存 HTML 快照（用于保存到数据库）
-                        doc.update_html_snapshot(message.get("html", ""))
+                        html = message.get("html", "")
+                        doc.update_html_snapshot(html)
+                        # 广播给其他客户端（不通过 broadcast_awareness，直接发送 JSON）
+                        if html:
+                            for cid, client in doc.clients.items():
+                                if cid != client_id:
+                                    try:
+                                        await client.send_json({
+                                            "type": "html_snapshot",
+                                            "client_id": client_id,
+                                            "html": html,
+                                        })
+                                    except Exception as e:
+                                        print(f"[Yjs WS] broadcast html error to {cid}: {e}")
 
                     elif msg_type == "save":
                         try:

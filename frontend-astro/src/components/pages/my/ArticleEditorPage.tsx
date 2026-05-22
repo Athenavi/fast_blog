@@ -50,6 +50,7 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
   const [content, setContent] = useState('');
   const editorRef = useRef<any>(null);
   const draftLoaded = useRef(false);
+  const remoteContentRef = useRef(false);  // sentinel to avoid echo loop
 
   const articleId = useMemo(() => {
     if (mode === 'edit' && typeof window !== 'undefined') return new URLSearchParams(window.location.search).get('id');
@@ -70,6 +71,25 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
       collab.start();
     }
   }, [collabActive, articleId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Sync remote content → local editor
+  useEffect(() => {
+    if (collabActive && collab.content && editorRef.current) {
+      remoteContentRef.current = true;
+      editorRef.current.commands.setContent(collab.content, false);
+    }
+  }, [collabActive, collab.content]);
+
+  // Sync local content → remote (throttled by hook)
+  useEffect(() => {
+    if (remoteContentRef.current) {
+      remoteContentRef.current = false; // skip echo
+      return;
+    }
+    if (collabActive && content) {
+      collab.sendContent(content);
+    }
+  }, [collabActive, content]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const {register, handleSubmit, reset, watch, setValue, getValues, formState: {errors}} = useForm<FormData>({
     resolver: zodResolver(schema), defaultValues: {status: 0, hidden: false, is_vip_only: false, tags: ''},
@@ -181,12 +201,7 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
               {errors.title && <p className="text-red-500 text-sm -mt-4 mb-4">{errors.title.message}</p>}
 
               <React.Suspense fallback={<div className="h-[60vh] bg-gray-50 dark:bg-gray-800 rounded-xl animate-pulse" />}>
-                <RichEditor
-                  value={content} onChange={setContent} placeholder="开始写作..." editorRef={editorRef}
-                  ydoc={collabActive ? collab.ydoc : undefined}
-                  collaborators={collab.collaborators}
-                  myClientId={collabActive ? collab.collaborators.find(c => c.user_id?.toString() === '0')?.client_id : undefined}
-                />
+                <RichEditor value={content} onChange={setContent} placeholder="开始写作..." editorRef={editorRef} />
               </React.Suspense>
             </form>
           </div>
