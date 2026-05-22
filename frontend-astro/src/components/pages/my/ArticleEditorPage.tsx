@@ -44,7 +44,9 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
   const [lastSaved, setLastSaved] = useState<number | null>(null);
   const [showSidebar, setShowSidebar] = useState(true);
   const [showRevisions, setShowRevisions] = useState(false);
-  const [collabActive, setCollabActive] = useState(false);
+  const [collabActive, setCollabActive] = useState(
+    mode === 'edit' && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('collab') === '1'
+  );
   const [content, setContent] = useState('');
   const editorRef = useRef<any>(null);
   const draftLoaded = useRef(false);
@@ -56,6 +58,13 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
     articleId,
     typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('token') : null,
   );
+
+  // Auto-start collab when active from URL param
+  useEffect(() => {
+    if (collabActive && articleId) {
+      collab.start();
+    }
+  }, [collabActive, articleId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const articleId = useMemo(() => {
     if (mode === 'edit' && typeof window !== 'undefined') return new URLSearchParams(window.location.search).get('id');
