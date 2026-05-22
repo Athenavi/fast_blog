@@ -36,18 +36,27 @@ export default function LoginPage() {
   // Cleanup polling
   useEffect(() => { return () => { cancelRef.current = true; if (pollRef.current) clearTimeout(pollRef.current); }; }, []);
 
-  // ═══ QR Login Generator ═══
+  // ═══ QR Login Generator (uses V2 backend) ═══
   const generateQR = async () => {
-    setErr(''); setQrStatus('loading'); setQrImg(''); cancelRef.current = false;
-    const token = 'qr_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10);
-    setQrToken(token);
-    const loginUrl = `${window.location.origin}/mobile-login?login_token=${token}`;
+    setErr(''); setQrStatus('loading'); setQrImg(''); setQrToken(''); cancelRef.current = false;
     try {
-      const mod = await import('qrcode');
-      const dataUrl = await mod.toDataURL(loginUrl, {width:280,margin:2,color:{dark:'#1e40af',light:'#ffffff'}});
-      setQrImg(dataUrl);
+      const r = await apiClient.get<any>('/auth/qr/generate');
+      if (!r.success || !r.data) { setErr(r.error || '生成二维码失败'); setQrStatus('idle'); return; }
+      const token = r.data.token || r.data.qr_token;
+      const qrCodeDataUrl = r.data.qr_code || r.data.qr_data;
+      setQrToken(token);
+      if (qrCodeDataUrl && qrCodeDataUrl.startsWith('data:')) {
+        setQrImg(qrCodeDataUrl);
+      } else {
+        // Fallback: generate QR client-side from the login URL returned by backend
+        try {
+          const mod = await import('qrcode');
+          const loginUrl = `${window.location.origin}/mobile-login?login_token=${token}`;
+          const dataUrl = await mod.toDataURL(loginUrl, {width:280,margin:2,color:{dark:'#1e40af',light:'#ffffff'}});
+          setQrImg(dataUrl);
+        } catch { setErr('生成二维码失败'); setQrStatus('idle'); return; }
+      }
       setQrStatus('ready');
-      // Poll backend for confirmation
       pollQR(token);
     } catch { setErr('生成二维码失败'); setQrStatus('idle'); }
   };
@@ -57,33 +66,26 @@ export default function LoginPage() {
     pollRef.current = setTimeout(async () => {
       if (cancelRef.current) return;
       try {
-        const cfg = await import('@/lib/config').then(m => m.getConfig());
-        const res = await fetch(`${cfg.API_BASE_URL}/api/v1/qr/status?token=${token}`);
-        const data = res.ok ? await res.json() : {success: false, status: 'pending'};
-        if (data.success && data.status) {
-          const st = data.status;
-          if (st === 'success') {
-            setQrStatus('success');
-            const refreshToken = data.refresh_token;
-            if (refreshToken) setCookie('refresh_token', refreshToken, 604800);
-            const userR = await apiClient.get('/users/me');
-            if (userR.success && userR.data) {
-              const accessR = await apiClient.post('/auth/token/refresh', {refresh: refreshToken});
-              if (accessR.success && accessR.data) {
-                setCookie('access_token', (accessR.data as any).access_token, 3600);
-                window.location.href = next();
-                return;
-              }
-            }
-            setErr('扫码成功，获取令牌失败'); setQrStatus('idle'); return;
-          } else if (st === 'expired') {
-            setQrStatus('expired'); setErr('二维码已过期，请重新生成'); return;
-          } else {
-            setQrStatus('pending');
-            pollQR(token);
+        const r = await apiClient.get<any>(`/auth/qr/status`, {token});
+        const data = r.success && r.data ? r.data : {status: 'pending'};
+        const st = data.status;
+        if (st === 'confirmed' || st === 'success') {
+          setQrStatus('success');
+          const refreshToken = data.refresh_token;
+          if (refreshToken) setCookie('refresh_token', refreshToken, 604800);
+          // Use refresh token to get access token
+          const accessR = await apiClient.post('/auth/token/refresh', {refresh: refreshToken});
+          if (accessR.success && accessR.data) {
+            setCookie('access_token', (accessR.data as any).access_token || (accessR.data as any).access || '', 3600);
+            window.location.href = next();
+            return;
           }
+          setErr('扫码成功，获取令牌失败'); setQrStatus('idle'); return;
+        } else if (st === 'expired') {
+          setQrStatus('expired'); setErr('二维码已过期，请重新生成'); return;
         } else {
-          setErr(data.message||'状态查询失败'); setQrStatus('idle');
+          setQrStatus('pending');
+          pollQR(token);
         }
       } catch {
         if (!cancelRef.current) pollQR(token);

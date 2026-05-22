@@ -14,11 +14,8 @@ export default function MobileLoginPage() {
     setStatus('confirming');
     (async () => {
       try {
-        // If already logged in, confirm via backend
-        const config = await import('@/lib/config').then(m => m.getConfig());
-        const r = await (await fetch(`${config.API_BASE_URL}/api/v1/qr/confirm?login_token=${token}`, {method:'POST', credentials:'include'})).json();
-        if (r.success) { setStatus('success'); setMsg('登录确认成功，请返回电脑端继续'); setTimeout(() => window.close(), 2000); }
-        else if ((r as any).requires_auth) setStatus('error'), setMsg('请先在手机上登录账号');
+        const r = await apiClient.post('/auth/qr/confirm', {login_token: token});
+        if (r.success) { setStatus('success'); setMsg('登录确认成功，请返回电脑端继续'); }
         else setStatus('error'), setMsg(r.error||'确认失败');
       } catch { setStatus('error'); setMsg('网络错误'); }
     })();

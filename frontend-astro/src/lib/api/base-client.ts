@@ -10,12 +10,28 @@ interface ApiResponse<T = any> {
   pagination?: any;
 }
 
+// ─── Cookie helpers ──────────────────────────────
+function getCookie(name: string): string | null {
+  if (typeof document === 'undefined') return null;
+  for (const c of document.cookie.split(';')) {
+    const [n, v] = c.trim().split('=');
+    if (n === name && v) return decodeURIComponent(v);
+  }
+  return null;
+}
+function setCookie(name: string, value: string, maxAgeSec: number) {
+  if (typeof document === 'undefined') return;
+  document.cookie = `${name}=${value}; path=/; max-age=${maxAgeSec}; SameSite=Lax`;
+}
+function clearCookie(name: string) {
+  if (typeof document === 'undefined') return;
+  document.cookie = `${name}=; path=/; expires=Thu, 01 Jan 1970 00:00:00 UTC; SameSite=Lax`;
+}
+
 /** 构建完整 URL：补全 API 前缀 + 查询参数 */
 function buildUrl(path: string, params?: Record<string, any>): string {
   const base = getConfig().API_BASE_URL || '';
-  // 如果已经是完整 URL，直接使用
   if (path.startsWith('http://') || path.startsWith('https://')) return path;
-  // 补全 /api/v2 前缀
   const apiPath = path.startsWith('/api/') ? path : `/api/v2${!path.startsWith('/') ? '/' : ''}${path}`;
   let url = `${base}${apiPath}`;
   if (!params) return url;
@@ -24,6 +40,43 @@ function buildUrl(path: string, params?: Record<string, any>): string {
       .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
       .join('&');
   return qs ? `${url}?${qs}` : url;
+}
+
+// ─── Token refresh state ──────────────────────────
+let isRefreshing = false;
+let refreshPromise: Promise<boolean> | null = null;
+
+async function doRefreshToken(): Promise<boolean> {
+  const refreshToken = getCookie('refresh_token');
+  if (!refreshToken) return false;
+  try {
+    const base = getConfig().API_BASE_URL || '';
+    const url = `${base}/api/v2/auth/token/refresh`;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ refresh: refreshToken }),
+    });
+    if (!res.ok) return false;
+    const json = await res.json();
+    if (!json.success || !json.data) return false;
+    const { access_token, refresh_token } = json.data;
+    if (access_token) setCookie('access_token', access_token, 3600);
+    if (refresh_token) setCookie('refresh_token', refresh_token, 604800);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function ensureTokenFresh(): Promise<boolean> {
+  if (isRefreshing && refreshPromise) return refreshPromise;
+  isRefreshing = true;
+  refreshPromise = doRefreshToken();
+  const result = await refreshPromise;
+  isRefreshing = false;
+  refreshPromise = null;
+  return result;
 }
 
 async function request<T = any>(
@@ -42,7 +95,7 @@ async function request<T = any>(
 
     if (body && method !== 'GET') {
       if (body instanceof FormData) {
-        opts.body = body;  // fetch auto-sets multipart/form-data + boundary
+        opts.body = body;
       } else if (contentType === 'application/x-www-form-urlencoded') {
         opts.headers = {'Content-Type': 'application/x-www-form-urlencoded'};
         opts.body = Object.entries(body)
@@ -53,13 +106,38 @@ async function request<T = any>(
         opts.body = JSON.stringify(body);
       }
     }
-    // Append query params for non-GET methods too
     if (params && method !== 'GET') {
-      // Rebuild URL with params
-      // (for uncommon cases where we need query + body)
+      // (uncommon case: query + body)
     }
-    const res = await fetch(url, opts);
-    // Handle non-JSON responses
+
+    const accessToken = getCookie('access_token');
+    if (accessToken) {
+      opts.headers = { ...(opts.headers as Record<string, string> || {}), 'Authorization': `Bearer ${accessToken}` };
+    }
+
+    let res = await fetch(url, opts);
+
+    // ── Auto-refresh on 401 ──
+    if (res.status === 401 && !path.includes('/auth/token/refresh') && !path.includes('/auth/login')) {
+      const refreshed = await ensureTokenFresh();
+      if (refreshed) {
+        const newToken = getCookie('access_token');
+        if (newToken) {
+          opts.headers = { ...(opts.headers as Record<string, string> || {}), 'Authorization': `Bearer ${newToken}` };
+        }
+        res = await fetch(url, opts);
+      } else {
+        // Refresh failed — clear cookies and redirect to login
+        clearCookie('access_token');
+        clearCookie('refresh_token');
+        const currentPath = encodeURIComponent(window.location.pathname + window.location.search);
+        if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/login')) {
+          window.location.href = `/login?next=${currentPath}`;
+        }
+        return { success: false, error: '登录已过期，请重新登录' };
+      }
+    }
+
     const text = await res.text();
     try { return JSON.parse(text); } catch { return {success: false, error: text}; }
   } catch (e: any) {

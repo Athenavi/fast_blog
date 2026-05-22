@@ -5,7 +5,7 @@ import {apiClient} from '@/lib/api';
 import {useDarkMode} from '@/lib/dark-mode-manager';
 import {getAccessTokenFromCookie} from '@/lib/auth-utils';
 import {AuthGuard} from '@/components/AuthGuard';
-import {User, Shield, Moon, Monitor, LogOut, Camera, Check} from 'lucide-react';
+import {User, Shield, Moon, Monitor, LogOut, Camera, Check, Smartphone, Globe, X} from 'lucide-react';
 
 const TABS = [
   {id:'profile', label:'资料', icon:User},
@@ -96,10 +96,57 @@ function Settings() {
   const enable2FA = async () => { if(vc.length!==6){alert('输入6位验证码');return;} const r = await apiClient.post('/security/2fa/enable',{totp_token:vc}); if(r.success){setFa(true);setQr('');setCodes((r.data as any)?.backup_codes||[]);} };
   const disable2FA = async () => { if(!confirm('禁用2FA？'))return; const r = await apiClient.post('/security/2fa/disable'); if(r.success){setFa(false);setQr('');setSecret('');setCodes([]);} };
 
-  const loadS = async () => { const r = await apiClient.get('/security/sessions/my-sessions'); if(r.success&&r.data) setSessions((r.data as any).sessions||(r.data as any).data?.sessions||[]); };
+  // ═══ Sessions management ═══
+  const loadS = async () => {
+    const r = await apiClient.get<any>('/security/admin/session/my-sessions');
+    if (r.success && r.data) {
+      const raw = r.data.sessions || r.data.data?.sessions || [];
+      setSessions(Array.isArray(raw) ? raw : []);
+    }
+  };
   useEffect(()=>{if(tab===3)loadS();},[tab]);
 
-  const logout = () => { document.cookie='access_token=;path=/;expires=Thu,01 Jan 1970 00:00:00 UTC'; window.location.href='/login'; };
+  const revokeSession = async (sessionId: string) => {
+    const r = await apiClient.post('/security/admin/session/revoke', {session_id: sessionId});
+    if (r.success) {
+      setSessions(prev => prev.filter(s => s.session_id !== sessionId && s.id !== sessionId));
+    } else alert(r.error || '注销失败');
+  };
+
+  const revokeAllOther = async () => {
+    if (!confirm('这将注销所有其他设备，确定继续？')) return;
+    const r = await apiClient.post('/security/admin/session/revoke-all', {});
+    if (r.success) {
+      loadS();
+    } else alert(r.error || '操作失败');
+  };
+
+  // ═══ Logout ═══
+  const handleLogout = async () => {
+    try {
+      await apiClient.post('/auth/logout');
+    } catch {}
+    document.cookie='access_token=;path=/;expires=Thu,01 Jan 1970 00:00:00 UTC';
+    document.cookie='refresh_token=;path=/;expires=Thu,01 Jan 1970 00:00:00 UTC';
+    window.location.href='/login';
+  };
+
+  const formatDevice = (s: any): string => {
+    const info = s.device_info || s;
+    if (typeof info === 'string') return info;
+    const parts: string[] = [];
+    if (info.browser) parts.push(info.browser);
+    if (info.platform) parts.push(info.platform);
+    if (info.os) parts.push(info.os);
+    return parts.length ? parts.join(' · ') : (s.device || s.user_agent?.slice(0, 50) || '未知设备');
+  };
+
+  const getDeviceIcon = (s: any) => {
+    const info = s.device_info || s;
+    const ua = (info.user_agent || info.browser || '').toLowerCase();
+    if (ua.includes('mobile') || ua.includes('android') || ua.includes('iphone')) return <Smartphone className="w-4 h-4"/>;
+    return <Monitor className="w-4 h-4"/>;
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-gray-950 dark:to-gray-900">
@@ -107,7 +154,7 @@ function Settings() {
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">设置</h1>
-          <button onClick={logout} className="text-sm text-red-500 hover:text-red-600 flex items-center gap-1"><LogOut className="w-4 h-4"/>退出</button>
+          <button onClick={handleLogout} className="text-sm text-red-500 hover:text-red-600 flex items-center gap-1"><LogOut className="w-4 h-4"/>退出登录</button>
         </div>
 
         {/* Tab bar */}
@@ -125,7 +172,6 @@ function Settings() {
 
         {/* Profile */}
         {tab===0 && <div className="space-y-5 pb-12">
-          {/* Avatar */}
           <div className="bg-white/70 dark:bg-gray-900/70 backdrop-blur-sm rounded-xl border border-gray-100 dark:border-gray-800 p-5">
             <p className="font-medium text-gray-900 dark:text-white mb-3">头像</p>
             <div className="flex items-center gap-4">
@@ -137,18 +183,15 @@ function Settings() {
               <input ref={avRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={uploadAv} className="hidden"/>
             </div>
           </div>
-          {/* Username */}
           <div className="bg-white/70 dark:bg-gray-900/70 backdrop-blur-sm rounded-xl border border-gray-100 dark:border-gray-800 p-5">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">用户名</label>
             <div className="flex gap-2"><input value={un} onChange={e=>setUn(e.target.value)} className="flex-1 px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"/><button onClick={()=>save('username',un)} disabled={busy} className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50 shrink-0">{busy?'...':'保存'}</button></div>
           </div>
-          {/* Bio */}
           <div className="bg-white/70 dark:bg-gray-900/70 backdrop-blur-sm rounded-xl border border-gray-100 dark:border-gray-800 p-5">
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">简介</label>
             <textarea value={bio} onChange={e=>setBio(e.target.value)} rows={2} className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white resize-none mb-2"/>
             <button onClick={()=>save('bio',bio)} disabled={busy} className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 disabled:opacity-50">{busy?'...':'保存'}</button>
           </div>
-          {/* Locale + Privacy */}
           <div className="bg-white/70 dark:bg-gray-900/70 backdrop-blur-sm rounded-xl border border-gray-100 dark:border-gray-800 p-5 flex flex-wrap items-center gap-4">
             <div className="flex items-center gap-2"><label className="text-sm text-gray-600 dark:text-gray-400">语言</label>
               <select value={loc} onChange={e=>{setLoc(e.target.value);save('locale',e.target.value)}} className="px-3 py-2 border border-gray-200 rounded-lg bg-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
@@ -162,7 +205,6 @@ function Settings() {
 
         {/* Security */}
         {tab===1 && <div className="space-y-5 pb-12">
-          {/* Password */}
           <div className="bg-white/70 dark:bg-gray-900/70 backdrop-blur-sm rounded-xl border border-gray-100 dark:border-gray-800 p-5">
             <p className="font-medium text-gray-900 dark:text-white mb-3">修改密码</p>
             <div className="space-y-2 max-w-sm">
@@ -173,7 +215,6 @@ function Settings() {
             </div>
           </div>
 
-          {/* 2FA */}
           <div className="bg-white/70 dark:bg-gray-900/70 backdrop-blur-sm rounded-xl border border-gray-100 dark:border-gray-800 p-5">
             <div className="flex items-center justify-between mb-3">
               <div><p className="font-medium text-gray-900 dark:text-white">双重验证</p><p className="text-xs text-gray-500 mt-0.5">{fa ? '已启用 ✓' : '增加账户安全性'}</p></div>
@@ -218,16 +259,64 @@ function Settings() {
           </div>
         </div>}
 
-        {/* Sessions */}
-        {tab===3 && <div className="space-y-3 pb-12">
-          {sessions.length===0 ? (
-            <div className="bg-white/70 dark:bg-gray-900/70 backdrop-blur-sm rounded-xl border border-gray-100 dark:border-gray-800 p-8 text-center text-gray-400"><Monitor className="w-10 h-10 mx-auto mb-3 opacity-40"/><p className="text-sm">暂无</p></div>
-          ) : sessions.map((s:any,i:number) => (
-            <div key={i} className="bg-white/70 dark:bg-gray-900/70 backdrop-blur-sm rounded-xl border border-gray-100 dark:border-gray-800 p-4 flex items-center justify-between">
-              <div className="flex items-center gap-3"><div className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center"><Monitor className="w-4 h-4 text-blue-600"/></div><div><p className="text-sm font-medium text-gray-900 dark:text-white">{s.device||s.user_agent?.slice(0,40)||'未知'}</p><p className="text-xs text-gray-400">{s.last_active?new Date(s.last_active).toLocaleString('zh-CN'):''}</p></div></div>
+        {/* ═══ Sessions ═══ */}
+        {tab===3 && <div className="space-y-4 pb-12">
+          <div className="flex items-center justify-between">
+            <h2 className="font-medium text-gray-900 dark:text-white text-sm">已登录设备 ({sessions.length})</h2>
+            <div className="flex gap-2">
+              <button onClick={loadS} className="text-xs text-blue-600 hover:underline">刷新</button>
+              {sessions.length > 1 && (
+                <button onClick={revokeAllOther} className="text-xs text-red-500 hover:underline">注销其他设备</button>
+              )}
             </div>
-          ))}
-          <button onClick={loadS} className="text-sm text-blue-600 hover:underline">刷新</button>
+          </div>
+
+          {sessions.length === 0 ? (
+            <div className="bg-white/70 dark:bg-gray-900/70 backdrop-blur-sm rounded-xl border border-gray-100 dark:border-gray-800 p-8 text-center text-gray-400">
+              <Monitor className="w-10 h-10 mx-auto mb-3 opacity-40"/>
+              <p className="text-sm">暂无活跃会话</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {sessions.map((s: any, i: number) => {
+                const isCurrent = s.is_current || s.current || false;
+                const sessionId = s.session_id || s.id;
+                return (
+                  <div key={sessionId || i}
+                    className={`bg-white/70 dark:bg-gray-900/70 backdrop-blur-sm rounded-xl border p-4
+                      ${isCurrent ? 'border-blue-300 dark:border-blue-700 ring-1 ring-blue-200 dark:ring-blue-800' : 'border-gray-100 dark:border-gray-800'}`}>
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-start gap-3 min-w-0 flex-1">
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0
+                          ${isCurrent ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600' : 'bg-gray-100 dark:bg-gray-800 text-gray-500'}`}>
+                          {getDeviceIcon(s)}
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-sm font-medium text-gray-900 dark:text-white flex items-center gap-2">
+                            {formatDevice(s)}
+                            {isCurrent && <span className="px-1.5 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 text-[10px] rounded font-medium">当前设备</span>}
+                          </p>
+                          <div className="flex flex-wrap gap-x-4 gap-y-0.5 mt-1 text-xs text-gray-400">
+                            <span className="flex items-center gap-1"><Globe className="w-3 h-3"/>IP: {s.ip_address || s.ip || '—'}</span>
+                            <span>{s.last_active ? `${new Date(s.last_active).toLocaleString('zh-CN')}` : s.created_at ? `${new Date(s.created_at).toLocaleString('zh-CN')}` : ''}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 shrink-0 ml-3">
+                        {!isCurrent && (
+                          <button onClick={() => revokeSession(sessionId)}
+                            className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20"
+                            title="注销该设备">
+                            <X className="w-4 h-4"/>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>}
       </div>
     </div>
