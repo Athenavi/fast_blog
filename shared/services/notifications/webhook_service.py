@@ -380,6 +380,9 @@ class WebhookService:
         }
 
 
+# 全局实例
+webhook_service = WebhookService()
+
 # 常见事件类型
 WEBHOOK_EVENTS = {
     'article.published': '文章发布',
