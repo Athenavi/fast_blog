@@ -7,6 +7,8 @@ from fastapi import APIRouter
 from src.api.v1.articles.article_analytics import router as article_analytics_router
 from src.api.v1.articles.article_annotations import router as article_annotations_router
 # 导入V1的articles子模块
+from src.api.v1.articles.articles import router as articles_router
+from src.api.v1.articles.article_interactions import router as article_interactions_router
 from src.api.v1.articles.article_password import router as article_password_router
 from src.api.v1.articles.article_revisions import router as article_revisions_router
 from src.api.v1.articles.article_search import router as article_search_router
@@ -19,6 +21,8 @@ from src.api.v1.articles.scheduled_publish import router as scheduled_publish_ro
 router = APIRouter(tags=["articles"])
 
 # 按顺序包含子路由
+router.include_router(articles_router, prefix="")  # - 文章 CRUD (主线)
+router.include_router(article_interactions_router, prefix="")  # - 文章互动
 router.include_router(article_password_router, prefix="")  # - 文章密码
 router.include_router(article_revisions_router, prefix="")  # /revisions/* - 文章修订
 
