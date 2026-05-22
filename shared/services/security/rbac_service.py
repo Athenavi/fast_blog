@@ -312,6 +312,12 @@ class RBACService:
             是否有权限
         """
         from shared.models.user_role import UserRole
+        from shared.models.user import User
+
+        # 超级管理员直接放行
+        user = await db.get(User, user_id)
+        if user and getattr(user, 'is_superuser', False):
+            return True
 
         # 查询用户的所有角色
         stmt = select(UserRole).where(UserRole.user_id == user_id)
