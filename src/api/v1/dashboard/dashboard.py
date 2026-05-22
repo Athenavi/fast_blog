@@ -472,58 +472,75 @@ async def get_media_management_files(
     """
     try:
         from sqlalchemy import select, func
-        from sqlalchemy.orm import selectinload
 
-        # 查询媒体文件，按用户过滤
-        query = select(Media).options(selectinload(Media.hash)).where(Media.user == current_user.id)
+        # 基础查询：JOIN FileHash 获取媒体文件的类型和路径信息
+        base_query = (
+            select(Media, FileHash)
+            .join(FileHash, Media.hash == FileHash.hash, isouter=True)
+            .where(Media.user == current_user.id)
+        )
 
         # 根据文件类型过滤
         if file_type:
             if file_type == 'images':
-                query = query.join(FileHash).where(FileHash.mime_type.like('image/%'))
+                base_query = base_query.where(FileHash.mime_type.like('image/%'))
             elif file_type == 'documents':
-                query = query.join(FileHash).where(FileHash.mime_type.in_([
+                base_query = base_query.where(FileHash.mime_type.in_([
                     'application/pdf', 'application/msword', 'application/vnd.ms-excel', 'application/vnd.ms-powerpoint'
                 ]))
             elif file_type == 'videos':
-                query = query.join(FileHash).where(FileHash.mime_type.like('video/%'))
+                base_query = base_query.where(FileHash.mime_type.like('video/%'))
 
         # 计算总数
-        total_query = select(func.count()).select_from(query.subquery())
-        total_result = await db.execute(total_query)
+        count_query = select(func.count()).select_from(base_query.subquery())
+        total_result = await db.execute(count_query)
         total = total_result.scalar()
 
         # 分页查询
         offset = (page - 1) * per_page
-        media_files_query = query.offset(offset).limit(per_page)
-        media_files_result = await db.execute(media_files_query)
-        media_files = media_files_result.scalars().all()
+        ordered_query = base_query.order_by(Media.created_at.desc()).offset(offset).limit(per_page)
+        result = await db.execute(ordered_query)
+        rows = result.all()
 
         # 转换文件数据
         files_data = []
-        for media in media_files:
-            # 获取文件类型
+        for media, fh in rows:
             file_ext = media.original_filename.split('.')[-1].lower() if '.' in media.original_filename else ''
-            file_type = 'document'
-            if media.file_hash.mime_type.startswith('image/'):
-                file_type = 'image'
-            elif media.file_hash.mime_type.startswith('video/'):
-                file_type = 'video'
+            mime_type = fh.mime_type if fh else ''
+            storage_path = fh.storage_path if fh else ''
+            file_size = fh.file_size if fh else 0
+
+            ftype = 'document'
+            if mime_type.startswith('image/'):
+                ftype = 'image'
+            elif mime_type.startswith('video/'):
+                ftype = 'video'
             elif file_ext in ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'txt', 'rtf']:
-                file_type = 'document'
+                ftype = 'document'
             elif file_ext in ['mp3', 'wav', 'ogg', 'flac']:
-                file_type = 'audio'
+                ftype = 'audio'
 
             files_data.append({
                 "id": media.id,
                 "name": media.original_filename,
-                "url": f"/media/{media.file_hash.storage_path}/{media.original_filename}",
-                "size": media.file_hash.file_size,
-                "upload_date": media.created_at.isoformat(),
-                "type": file_type,
+                "url": f"/media/{storage_path}/{media.original_filename}" if storage_path else '',
+                "size": file_size,
+                "upload_date": media.created_at.isoformat() if media.created_at else '',
+                "type": ftype,
                 "extension": file_ext,
-                "mime_type": media.file_hash.mime_type
+                "mime_type": mime_type
             })
+
+        # 构建 PaginationInfo 对象
+        pages = (total + per_page - 1) // per_page if per_page > 0 else 1
+        pagination_info = {
+            "current_page": page,
+            "total_pages": pages,
+            "total": total,
+            "has_prev": page > 1,
+            "has_next": page < pages,
+            "per_page": per_page,
+        }
 
         return ApiResponse(
             success=True,
@@ -531,21 +548,14 @@ async def get_media_management_files(
                 "media_items": [{
                     "id": item["id"],
                     "original_filename": item["name"],
-                    "hash": "",  # 在管理界面中可能不需要hash
+                    "hash": "",
                     "mime_type": item["mime_type"],
                     "file_size": item["size"],
                     "created_at": item["upload_date"]
                 } for item in files_data],
                 "users": [],
-                "pagination": {
-                    "current_page": page,
-                    "pages": (total + per_page - 1) // per_page,
-                    "total": total,
-                    "has_prev": page > 1,
-                    "has_next": page < (total + per_page - 1) // per_page,
-                    "per_page": per_page
-                }
-            }
+            },
+            pagination=pagination_info
         )
     except Exception as e:
         return ApiResponse(success=False, error=str(e))
