@@ -23,6 +23,7 @@ import {
   X
 } from 'lucide-react';
 import {getConfig} from '@/lib/config';
+import DesktopLyrics from '@/components/audio/DesktopLyrics';
 
 // Helper function to build full media URL
 const getFullMediaUrl = (url: string | null | undefined): string => {
@@ -1073,124 +1074,6 @@ const MiniPlayerWrapper: React.FC<{
 };
 
 /* ========== DesktopLyrics (桌面歌词浮动窗口) ========== */
-const LS_LYRICS_KEY = 'fastblog_desktop_lyrics';
-const defaultLyricsSettings = {x: 80, y: 80, fontSize: 16, opacity: 85};
-
-function loadLyricsSettings() {
-  try {
-    const raw = localStorage.getItem(LS_LYRICS_KEY);
-    return raw ? {...defaultLyricsSettings, ...JSON.parse(raw)} : defaultLyricsSettings;
-  } catch { return defaultLyricsSettings; }
-}
-
-function saveLyricsSettings(s: typeof defaultLyricsSettings) {
-  localStorage.setItem(LS_LYRICS_KEY, JSON.stringify(s));
-}
-
-const DesktopLyrics: React.FC<{
-  lyrics: Array<{ time: number; text: string }>;
-  activeLineIndex: number;
-  karaokeProgress: number;
-  tokenizeText: (t: string) => string[];
-  visible: boolean;
-  onVisibilityChange: (v: boolean) => void;
-}> = ({lyrics, activeLineIndex, karaokeProgress, tokenizeText: tokenize, visible, onVisibilityChange}) => {
-  const [settings, setSettings] = useState(() => {
-    const saved = loadLyricsSettings();
-    return saved;
-  });
-  const containerRef = useRef<HTMLDivElement>(null);
-  const dragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
-
-  // 持久化位置和尺寸（不包含 visible 状态）
-  useEffect(() => {
-    saveLyricsSettings({x: settings.x, y: settings.y, fontSize: settings.fontSize, opacity: settings.opacity});
-  }, [settings.x, settings.y, settings.fontSize, settings.opacity]);
-
-  // ESC 关闭
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape' && visible) onVisibilityChange(false);
-    };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [visible, onVisibilityChange]);
-
-  // 拖拽
-  const onMouseDown = (e: React.MouseEvent) => {
-    dragRef.current = { startX: e.clientX, startY: e.clientY, origX: settings.x, origY: settings.y };
-    const onMove = (ev: MouseEvent) => {
-      if (!dragRef.current) return;
-      setSettings(s => ({...s, x: Math.max(0, Math.min(80, dragRef.current!.origX + (ev.clientX - dragRef.current!.startX))),
-        y: Math.max(0, Math.min(80, dragRef.current!.origY + (ev.clientY - dragRef.current!.startY)))}));
-    };
-    const onUp = () => { dragRef.current = null; window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
-    window.addEventListener('mousemove', onMove);
-    window.addEventListener('mouseup', onUp);
-  };
-
-  if (!visible || !lyrics.length) return null;
-
-  const currentLyric = activeLineIndex >= 0 ? lyrics[activeLineIndex] : null;
-
-  return (
-      <>
-        {/* 歌词窗口 */}
-        <motion.div
-            ref={containerRef}
-            initial={{opacity: 0, scale: 0.95}}
-            animate={{opacity: settings.opacity / 100, scale: 1}}
-            className="fixed z-[65] select-none cursor-grab active:cursor-grabbing"
-            style={{
-              left: `${settings.x}%`,
-              top: `${settings.y}%`,
-              transform: 'translate(-50%, -50%)',
-              fontSize: `${settings.fontSize}px`,
-              maxWidth: '60vw',
-            }}
-            onMouseDown={onMouseDown}
-            onDoubleClick={() => onVisibilityChange(false)}
-        >
-          <div className="bg-black/60 backdrop-blur-xl rounded-2xl px-6 py-4 border border-white/10 shadow-2xl text-center leading-relaxed min-w-[300px]">
-            {currentLyric ? (
-                <div className="font-bold tracking-wide">
-                  {tokenize(currentLyric.text).map((token, ti) => {
-                    const highlightCount = Math.floor(tokenize(currentLyric.text).length * karaokeProgress);
-                    const isHighlighted = ti < highlightCount;
-                    return token === ' ' ? <span key={ti}>&nbsp;</span> : (
-                        <span key={ti} className="relative inline-block">
-                      <span className={isHighlighted ? 'text-transparent' : 'text-white/50'}>{token}</span>
-                          {isHighlighted && (
-                              <span className="absolute inset-0 bg-gradient-to-r from-purple-400 via-fuchsia-300 to-pink-300 bg-clip-text text-transparent"
-                                    style={{WebkitBackgroundClip: 'text', filter: 'drop-shadow(0 0 8px rgba(168,85,247,0.5))'}}>
-                            {token}
-                          </span>
-                          )}
-                    </span>
-                    );
-                  })}
-                </div>
-            ) : (
-                <p className="text-white/30 text-sm">暂无歌词</p>
-            )}
-          </div>
-        </motion.div>
-
-        {/* 控制面板（悬停可见）：调整大小/开关 */}
-        <div className="fixed z-[66] bottom-4 right-4 flex items-center gap-2 opacity-30 hover:opacity-100 transition-opacity">
-          <button onClick={() => onVisibilityChange(false)}
-                  className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/60 text-xs">
-            ✕
-          </button>
-          <button onClick={() => setSettings(s => ({...s, fontSize: Math.max(12, s.fontSize - 1)}))}
-                  className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/60 text-xs font-bold">A−</button>
-          <button onClick={() => setSettings(s => ({...s, fontSize: Math.min(32, s.fontSize + 1)}))}
-                  className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/60 text-xs font-bold">A+</button>
-        </div>
-      </>
-  );
-};
-
 /* ========== AudioLayer (持久音频层) ========== */
 const AudioLayer: React.FC<{ media: MediaFile; onClose: () => void }> = ({media, onClose}) => {
   const fullUrl = getFullMediaUrl(media.url);
@@ -1301,7 +1184,6 @@ const AudioLayer: React.FC<{ media: MediaFile; onClose: () => void }> = ({media,
                   lyrics={lyrics}
                   activeLineIndex={activeLineIndex}
                   karaokeProgress={karaokeProgress}
-                  tokenizeText={tokenizeText}
                   visible={showDesktopLyrics}
                   onVisibilityChange={setShowDesktopLyrics}
               />

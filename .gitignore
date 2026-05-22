@@ -93,3 +93,4 @@ apps/*/migrations/*.py
 /plugins_data/*
 /mobile-app/node_modules/
 /frontend-astro/node_modules/
+/frontend-astro/*.tsbuildinfo
