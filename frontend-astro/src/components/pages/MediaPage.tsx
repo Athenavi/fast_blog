@@ -284,11 +284,17 @@ function calcKaraokeProgress(
   return Math.max(0, Math.min(1, (currentTime - lineStart) / duration));
 }
 
-const AudioPlayer: React.FC<{ media: MediaFile; fullUrl: string; onMinimize?: () => void }> = ({media, fullUrl, onMinimize}) => {
-  const audioRef = useRef<HTMLAudioElement>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
+const AudioPlayer: React.FC<{
+  media: MediaFile;
+  fullUrl: string;
+  onMinimize?: () => void;
+  audioRef: React.RefObject<HTMLAudioElement | null>;
+  isPlaying: boolean;
+  currentTime: number;
+  duration: number;
+  togglePlay: () => void;
+  handleSeek: (t: number) => void;
+}> = ({media, fullUrl, onMinimize, audioRef, isPlaying, currentTime, duration, togglePlay, handleSeek}) => {
   const [volume, setVolume] = useState(1);
   const [showLyrics, setShowLyrics] = useState(false);
   const lyricsContainerRef = useRef<HTMLDivElement>(null);
@@ -346,25 +352,6 @@ const AudioPlayer: React.FC<{ media: MediaFile; fullUrl: string; onMinimize?: ()
     loadMetadata();
   }, [media.id]);
 
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    const updateTime = () => setCurrentTime(audio.currentTime);
-    const updateDuration = () => setDuration(audio.duration);
-    const onEnded = () => setIsPlaying(false);
-
-    audio.addEventListener('timeupdate', updateTime);
-    audio.addEventListener('loadedmetadata', updateDuration);
-    audio.addEventListener('ended', onEnded);
-
-    return () => {
-      audio.removeEventListener('timeupdate', updateTime);
-      audio.removeEventListener('loadedmetadata', updateDuration);
-      audio.removeEventListener('ended', onEnded);
-    };
-  }, []);
-
   // 歌词自动滚动
   useEffect(() => {
     if (!showLyrics || !lyricsContainerRef.current || activeLineIndex === -1) return;
@@ -376,23 +363,9 @@ const AudioPlayer: React.FC<{ media: MediaFile; fullUrl: string; onMinimize?: ()
     }
   }, [activeLineIndex, showLyrics]);
 
-  const togglePlay = () => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    if (isPlaying) {
-      audio.pause();
-    } else {
-      audio.play();
-    }
-    setIsPlaying(!isPlaying);
-  };
-
-  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    const time = parseFloat(e.target.value);
-    audio.currentTime = time;
-    setCurrentTime(time);
+  // togglePlay 由父组件 AudioLayer 提供
+  const handleSeekEvent = (e: React.ChangeEvent<HTMLInputElement>) => {
+    handleSeek(parseFloat(e.target.value));
   };
 
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -417,7 +390,6 @@ const AudioPlayer: React.FC<{ media: MediaFile; fullUrl: string; onMinimize?: ()
 
   return (
       <div className="flex flex-col h-full bg-black select-none">
-        <audio ref={audioRef} src={fullUrl} preload="auto"/>
 
         {/* ====== Main Content Area ====== */}
         <div className="flex-1 flex flex-col lg:flex-row min-h-0 overflow-hidden">
@@ -702,7 +674,7 @@ const AudioPlayer: React.FC<{ media: MediaFile; fullUrl: string; onMinimize?: ()
                   min="0"
                   max={duration || 100}
                   value={currentTime}
-                  onChange={handleSeek}
+                  onChange={handleSeekEvent}
                   className="absolute inset-0 w-full h-full appearance-none bg-transparent cursor-pointer z-10 opacity-0"
                   style={{touchAction: 'none'}}
                   aria-label="播放进度"
@@ -761,7 +733,7 @@ const AudioPlayer: React.FC<{ media: MediaFile; fullUrl: string; onMinimize?: ()
               {/* Rewind 10s (仅桌面) */}
               <motion.button
                   whileTap={{scale: 0.85}}
-                  onClick={() => {const a = audioRef.current; if (a) a.currentTime = Math.max(0, a.currentTime - 10);}}
+                  onClick={() => handleSeek(Math.max(0, currentTime - 10))}
                   className="text-white/50 hover:text-white transition-colors p-2 min-w-[44px] min-h-[44px] items-center justify-center hidden sm:flex"
                   aria-label="后退10秒"
               >
@@ -771,7 +743,7 @@ const AudioPlayer: React.FC<{ media: MediaFile; fullUrl: string; onMinimize?: ()
               {/* Prev (restart) */}
               <motion.button
                   whileTap={{scale: 0.85}}
-                  onClick={() => {const a = audioRef.current; if (a) a.currentTime = 0;}}
+                  onClick={() => handleSeek(0)}
                   className="text-white/50 hover:text-white transition-colors p-2 min-w-[44px] min-h-[44px] flex items-center justify-center"
                   aria-label="重新播放"
               >
@@ -799,7 +771,7 @@ const AudioPlayer: React.FC<{ media: MediaFile; fullUrl: string; onMinimize?: ()
               {/* Next (skip 10s) */}
               <motion.button
                   whileTap={{scale: 0.85}}
-                  onClick={() => {const a = audioRef.current; if (a) a.currentTime = Math.min(duration, a.currentTime + 10);}}
+                  onClick={() => handleSeek(Math.min(duration, currentTime + 10))}
                   className="text-white/50 hover:text-white transition-colors p-2 min-w-[44px] min-h-[44px] flex items-center justify-center"
                   aria-label="前进10秒"
               >
@@ -809,7 +781,7 @@ const AudioPlayer: React.FC<{ media: MediaFile; fullUrl: string; onMinimize?: ()
               {/* Forward 10s (仅桌面) */}
               <motion.button
                   whileTap={{scale: 0.85}}
-                  onClick={() => {const a = audioRef.current; if (a) a.currentTime = Math.min(duration, a.currentTime + 10);}}
+                  onClick={() => handleSeek(Math.min(duration, currentTime + 10))}
                   className="text-white/50 hover:text-white transition-colors p-2 min-w-[44px] min-h-[44px] items-center justify-center hidden sm:flex"
                   aria-label="快进10秒"
               >
@@ -1049,26 +1021,25 @@ const MiniPlayer: React.FC<{
             </div>
         )}
 
-        {/* 隐藏的 audio 用于 MiniPlayer */}
-        <audio ref={audioRef} src={fullUrl} preload="auto"/>
       </>
   );
 };
 
-/* ========== MiniPlayerWrapper (自持 audio 状态) ========== */
+/* ========== MiniPlayerWrapper (使用共享 audioRef) ========== */
 const MiniPlayerWrapper: React.FC<{
   media: MediaFile;
   fullUrl: string;
   onRestore: () => void;
   onClose: () => void;
-}> = ({media, fullUrl, onRestore, onClose}) => {
-  const audioRef = useRef<HTMLAudioElement>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTime, setCurrentTime] = useState(0);
-  const [duration, setDuration] = useState(0);
+  audioRef: React.RefObject<HTMLAudioElement | null>;
+  isPlaying: boolean;
+  currentTime: number;
+  duration: number;
+  togglePlay: () => void;
+  handleSeek?: (t: number) => void;
+}> = ({media, fullUrl, onRestore, onClose, audioRef, isPlaying, currentTime, duration, togglePlay}) => {
   const [coverImage, setCoverImage] = useState<string | null>(null);
 
-  // 加载元数据
   useEffect(() => {
     fetch(`${getConfig().API_BASE_URL}/api/v2/media/${media.id}/metadata`, {credentials: 'include'})
         .then(r => r.json())
@@ -1077,25 +1048,6 @@ const MiniPlayerWrapper: React.FC<{
         })
         .catch(() => {});
   }, [media.id]);
-
-  useEffect(() => {
-    const a = audioRef.current;
-    if (!a) return;
-    const onTime = () => setCurrentTime(a.currentTime);
-    const onDur = () => setDuration(a.duration);
-    const onEnd = () => setIsPlaying(false);
-    a.addEventListener('timeupdate', onTime);
-    a.addEventListener('loadedmetadata', onDur);
-    a.addEventListener('ended', onEnd);
-    return () => { a.removeEventListener('timeupdate', onTime); a.removeEventListener('loadedmetadata', onDur); a.removeEventListener('ended', onEnd); };
-  }, []);
-
-  const togglePlay = () => {
-    const a = audioRef.current;
-    if (!a) return;
-    if (isPlaying) { a.pause(); } else { a.play(); }
-    setIsPlaying(!isPlaying);
-  };
 
   const formatTime = (t: number) => {
     const m = Math.floor(t / 60);
@@ -1120,52 +1072,291 @@ const MiniPlayerWrapper: React.FC<{
   );
 };
 
-/* ---------- Modals ---------- */
+/* ========== DesktopLyrics (桌面歌词浮动窗口) ========== */
+const LS_LYRICS_KEY = 'fastblog_desktop_lyrics';
+const defaultLyricsSettings = {x: 80, y: 80, fontSize: 16, opacity: 85};
+
+function loadLyricsSettings() {
+  try {
+    const raw = localStorage.getItem(LS_LYRICS_KEY);
+    return raw ? {...defaultLyricsSettings, ...JSON.parse(raw)} : defaultLyricsSettings;
+  } catch { return defaultLyricsSettings; }
+}
+
+function saveLyricsSettings(s: typeof defaultLyricsSettings) {
+  localStorage.setItem(LS_LYRICS_KEY, JSON.stringify(s));
+}
+
+const DesktopLyrics: React.FC<{
+  lyrics: Array<{ time: number; text: string }>;
+  activeLineIndex: number;
+  karaokeProgress: number;
+  tokenizeText: (t: string) => string[];
+  visible: boolean;
+  onVisibilityChange: (v: boolean) => void;
+}> = ({lyrics, activeLineIndex, karaokeProgress, tokenizeText: tokenize, visible, onVisibilityChange}) => {
+  const [settings, setSettings] = useState(() => {
+    const saved = loadLyricsSettings();
+    return saved;
+  });
+  const containerRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
+
+  // 持久化位置和尺寸（不包含 visible 状态）
+  useEffect(() => {
+    saveLyricsSettings({x: settings.x, y: settings.y, fontSize: settings.fontSize, opacity: settings.opacity});
+  }, [settings.x, settings.y, settings.fontSize, settings.opacity]);
+
+  // ESC 关闭
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && visible) onVisibilityChange(false);
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [visible, onVisibilityChange]);
+
+  // 拖拽
+  const onMouseDown = (e: React.MouseEvent) => {
+    dragRef.current = { startX: e.clientX, startY: e.clientY, origX: settings.x, origY: settings.y };
+    const onMove = (ev: MouseEvent) => {
+      if (!dragRef.current) return;
+      setSettings(s => ({...s, x: Math.max(0, Math.min(80, dragRef.current!.origX + (ev.clientX - dragRef.current!.startX))),
+        y: Math.max(0, Math.min(80, dragRef.current!.origY + (ev.clientY - dragRef.current!.startY)))}));
+    };
+    const onUp = () => { dragRef.current = null; window.removeEventListener('mousemove', onMove); window.removeEventListener('mouseup', onUp); };
+    window.addEventListener('mousemove', onMove);
+    window.addEventListener('mouseup', onUp);
+  };
+
+  if (!visible || !lyrics.length) return null;
+
+  const currentLyric = activeLineIndex >= 0 ? lyrics[activeLineIndex] : null;
+
+  return (
+      <>
+        {/* 歌词窗口 */}
+        <motion.div
+            ref={containerRef}
+            initial={{opacity: 0, scale: 0.95}}
+            animate={{opacity: settings.opacity / 100, scale: 1}}
+            className="fixed z-[65] select-none cursor-grab active:cursor-grabbing"
+            style={{
+              left: `${settings.x}%`,
+              top: `${settings.y}%`,
+              transform: 'translate(-50%, -50%)',
+              fontSize: `${settings.fontSize}px`,
+              maxWidth: '60vw',
+            }}
+            onMouseDown={onMouseDown}
+            onDoubleClick={() => onVisibilityChange(false)}
+        >
+          <div className="bg-black/60 backdrop-blur-xl rounded-2xl px-6 py-4 border border-white/10 shadow-2xl text-center leading-relaxed min-w-[300px]">
+            {currentLyric ? (
+                <div className="font-bold tracking-wide">
+                  {tokenize(currentLyric.text).map((token, ti) => {
+                    const highlightCount = Math.floor(tokenize(currentLyric.text).length * karaokeProgress);
+                    const isHighlighted = ti < highlightCount;
+                    return token === ' ' ? <span key={ti}>&nbsp;</span> : (
+                        <span key={ti} className="relative inline-block">
+                      <span className={isHighlighted ? 'text-transparent' : 'text-white/50'}>{token}</span>
+                          {isHighlighted && (
+                              <span className="absolute inset-0 bg-gradient-to-r from-purple-400 via-fuchsia-300 to-pink-300 bg-clip-text text-transparent"
+                                    style={{WebkitBackgroundClip: 'text', filter: 'drop-shadow(0 0 8px rgba(168,85,247,0.5))'}}>
+                            {token}
+                          </span>
+                          )}
+                    </span>
+                    );
+                  })}
+                </div>
+            ) : (
+                <p className="text-white/30 text-sm">暂无歌词</p>
+            )}
+          </div>
+        </motion.div>
+
+        {/* 控制面板（悬停可见）：调整大小/开关 */}
+        <div className="fixed z-[66] bottom-4 right-4 flex items-center gap-2 opacity-30 hover:opacity-100 transition-opacity">
+          <button onClick={() => onVisibilityChange(false)}
+                  className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/60 text-xs">
+            ✕
+          </button>
+          <button onClick={() => setSettings(s => ({...s, fontSize: Math.max(12, s.fontSize - 1)}))}
+                  className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/60 text-xs font-bold">A−</button>
+          <button onClick={() => setSettings(s => ({...s, fontSize: Math.min(32, s.fontSize + 1)}))}
+                  className="w-7 h-7 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white/60 text-xs font-bold">A+</button>
+        </div>
+      </>
+  );
+};
+
+/* ========== AudioLayer (持久音频层) ========== */
+const AudioLayer: React.FC<{ media: MediaFile; onClose: () => void }> = ({media, onClose}) => {
+  const fullUrl = getFullMediaUrl(media.url);
+  const [minimized, setMinimized] = useState(false);
+
+  // 共享 audio 元素 — 全程由 AudioLayer 持有
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [lyrics, setLyrics] = useState<Array<{ time: number; text: string }>>([]);
+
+  // 歌词高亮状态
+  const [activeLineIndex, setActiveLineIndex] = useState(-1);
+  const [karaokeProgress, setKaraokeProgress] = useState(0);
+
+  // 桌面歌词设置
+  const [showDesktopLyrics, setShowDesktopLyrics] = useState(false);
+
+  // audio 事件监听
+  useEffect(() => {
+    const a = audioRef.current;
+    if (!a) return;
+    const onTime = () => setCurrentTime(a.currentTime);
+    const onDur = () => setDuration(a.duration);
+    const onPlay = () => setIsPlaying(true);
+    const onPause = () => setIsPlaying(false);
+    const onEnd = () => setIsPlaying(false);
+    a.addEventListener('timeupdate', onTime);
+    a.addEventListener('loadedmetadata', onDur);
+    a.addEventListener('play', onPlay);
+    a.addEventListener('pause', onPause);
+    a.addEventListener('ended', onEnd);
+    return () => { a.removeEventListener('timeupdate', onTime); a.removeEventListener('loadedmetadata', onDur); a.removeEventListener('play', onPlay); a.removeEventListener('pause', onPause); a.removeEventListener('ended', onEnd); };
+  }, []);
+
+  const togglePlay = () => {
+    const a = audioRef.current;
+    if (!a) return;
+    if (isPlaying) a.pause(); else a.play();
+  };
+
+  const handleSeek = (time: number) => {
+    const a = audioRef.current;
+    if (a) a.currentTime = time;
+  };
+
+  // 加载元数据
+  useEffect(() => {
+    fetch(`${getConfig().API_BASE_URL}/api/v2/media/${media.id}/metadata`, {credentials: 'include'})
+        .then(r => r.json())
+        .then(result => {
+          if (result.success && result.data) {
+            if (result.data.lyrics?.length) setLyrics(result.data.lyrics);
+          }
+        })
+        .catch(() => {});
+  }, [media.id]);
+
+  // 桌面歌词默认关闭，用户通过按钮开启
+  useEffect(() => {
+    // 不再从 localStorage 读取 visible 状态，由用户主动触发
+  }, [lyrics]);
+
+  // 更新歌词高亮
+  useEffect(() => {
+    if (!lyrics.length) return;
+    const idx = lyrics.findIndex((l, i) => {
+      const next = lyrics[i + 1];
+      return currentTime >= l.time && (!next || currentTime < next.time);
+    });
+    setActiveLineIndex(idx);
+    if (idx >= 0) {
+      const line = lyrics[idx];
+      const nextTime = lyrics[idx + 1]?.time ?? line.time + 3;
+      const progress = Math.max(0, Math.min(1, (currentTime - line.time) / (nextTime - line.time)));
+      setKaraokeProgress(progress);
+    }
+  }, [currentTime, lyrics]);
+
+  // ESC 切换最小化
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMinimized(m => !m);
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, []);
+
+  // 共享给子组件
+  const sharedAudioProps = {
+    audioRef,
+    isPlaying,
+    currentTime,
+    duration,
+    togglePlay,
+    handleSeek,
+  };
+
+  if (minimized) {
+    return (
+        <>
+          <DesktopLyrics
+              lyrics={lyrics}
+              activeLineIndex={activeLineIndex}
+              karaokeProgress={karaokeProgress}
+              tokenizeText={tokenizeText}
+              visible={showDesktopLyrics}
+              onVisibilityChange={setShowDesktopLyrics}
+          />
+          {/* 桌面歌词开关 */}
+          {lyrics.length > 0 && (
+              <button
+                  onClick={() => setShowDesktopLyrics(v => !v)}
+                  className="fixed bottom-24 right-4 z-[66] w-9 h-9 rounded-full bg-black/60 backdrop-blur border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors"
+                  aria-label="桌面歌词"
+                  title="桌面歌词"
+              >
+                <svg className="w-4 h-4 text-white/70" fill="none" viewBox="0 0 24 24" stroke={showDesktopLyrics ? '#a855f7' : 'currentColor'} strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/>
+                </svg>
+              </button>
+          )}
+          <MiniPlayerWrapper
+              media={media}
+              fullUrl={fullUrl}
+              onRestore={() => setMinimized(false)}
+              onClose={onClose}
+              {...sharedAudioProps}
+          />
+          {/* 共享的 audio 元素 — 始终存在 */}
+          <audio ref={audioRef} src={fullUrl} preload="auto"/>
+        </>
+    );
+  }
+
+  return (
+      <div className="fixed inset-0 z-50 flex flex-col bg-black" onClick={() => {}}>
+        <AudioPlayer
+            media={media}
+            fullUrl={fullUrl}
+            onMinimize={() => setMinimized(true)}
+            {...sharedAudioProps}
+        />
+        {/* 共享的 audio 元素 — 始终存在 */}
+        <audio ref={audioRef} src={fullUrl} preload="auto"/>
+      </div>
+  );
+};
+
+/* ---------- PreviewModal (仅非音频) ---------- */
 const PreviewModal: React.FC<{media: MediaFile|null; onClose: ()=>void}> = ({media, onClose}) => {
   if(!media) return null;
   const fullUrl = getFullMediaUrl(media.url);
 
-  // 最小化状态
-  const [minimized, setMinimized] = useState(false);
-
-  // ESC 最小化 / 还原
+  // ESC 关闭
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        if (media?.mime_type?.startsWith('audio/') && fullUrl) {
-          setMinimized(m => !m);
-        } else {
-          onClose();
-        }
-      }
-    };
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [media, fullUrl, onClose]);
+  }, [onClose]);
 
-  // 最小化时不渲染全屏遮罩
-  if (minimized && media.mime_type?.startsWith('audio/') && fullUrl) {
-    return (
-        <MiniPlayerWrapper
-            media={media}
-            fullUrl={fullUrl}
-            onRestore={() => setMinimized(false)}
-            onClose={onClose}
-        />
-    );
-  }
-  
-  return (<div className="fixed inset-0 z-50 flex items-center justify-center" onClick={onClose}>
-    {/*** AUDIO: 全屏沉浸 ***/}
-    {media.mime_type?.startsWith('audio/') && fullUrl ? (
-        <div className="w-full h-full flex flex-col" onClick={e => e.stopPropagation()}>
-          <AudioPlayer media={media} fullUrl={fullUrl} onMinimize={() => setMinimized(true)}/>
-        </div>
-    ) : (
-    /*** OTHER: 居中模态框 ***/
+  return (<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80" onClick={onClose}>
     <div
         className="w-[90vw] max-w-7xl max-h-[95vh] bg-white dark:bg-gray-900 rounded-2xl overflow-hidden shadow-2xl flex flex-col"
-         onClick={e => e.stopPropagation()}>
+        onClick={e => e.stopPropagation()}>
       {media.mime_type === 'application/pdf' && fullUrl ? (
           <div className="flex-1 bg-gray-100 dark:bg-gray-800 min-h-[80vh]">
             <embed src={fullUrl} type="application/pdf" className="w-full h-full" style={{minHeight: '80vh', maxHeight: '85vh'}}/>
@@ -1182,7 +1373,6 @@ const PreviewModal: React.FC<{media: MediaFile|null; onClose: ()=>void}> = ({med
         <p className="text-sm text-gray-500 mt-1">{media.file_size ? `${(media.file_size / 1024).toFixed(1)} KB` : ''} · {media.mime_type}</p>
       </div>
     </div>
-    )}
   </div>);
 };
 
@@ -1261,6 +1451,7 @@ const MediaPage: React.FC = () => {
   const [viewMode, setViewMode] = useState<'grid'|'list'>('grid');
   const [selected, setSelected] = useState<number[]>([]);
   const [previewMedia, setPreviewMedia] = useState<MediaFile|null>(null);
+  const [nowPlaying, setNowPlaying] = useState<MediaFile|null>(null);
   const [deleteItem, setDeleteItem] = useState<MediaFile|null>(null);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [uploadCollapsed, setUploadCollapsed] = useState(true);
@@ -1362,7 +1553,10 @@ const MediaPage: React.FC = () => {
               </div>)}
             </div>
 
-            <MediaGrid files={files} loading={loading} viewMode={viewMode} selected={selected} onSelect={id=>setSelected(s=>s.includes(id)?s.filter(x=>x!==id):[...s,id])} onPreview={setPreviewMedia} onDelete={setDeleteItem}/>
+            <MediaGrid files={files} loading={loading} viewMode={viewMode} selected={selected} onSelect={id=>setSelected(s=>s.includes(id)?s.filter(x=>x!==id):[...s,id])} onPreview={f => {
+              if (f.mime_type?.startsWith('audio/')) { setNowPlaying(f); }
+              else { setPreviewMedia(f); }
+            }} onDelete={setDeleteItem}/>
 
             {totalPages>1 && (<div className="flex items-center justify-center gap-2 mt-8">
               <button disabled={page<=1} onClick={()=>setPage(p=>p-1)} className="p-2 rounded-lg border disabled:opacity-30 hover:bg-gray-100"><ChevronLeft className="w-4 h-4"/></button>
@@ -1373,7 +1567,15 @@ const MediaPage: React.FC = () => {
         </div>
       </div>
 
+      {/* 非音频预览 */}
       <PreviewModal media={previewMedia} onClose={()=>setPreviewMedia(null)}/>
+      {/* 持久音频层 — 独立于预览，不被打断 */}
+      {nowPlaying && (
+          <AudioLayer
+              media={nowPlaying}
+              onClose={() => { setNowPlaying(null); }}
+          />
+      )}
       {deleteItem && <DeleteConfirm item={deleteItem} onCancel={()=>setDeleteItem(null)} onConfirm={()=>handleDelete(deleteItem.id)}/>}
       <CreateFolderDialog open={showCreateFolder} onClose={()=>setShowCreateFolder(false)} onCreate={handleCreateFolder}/>
       <MoveDialog open={showMoveDialog} onClose={()=>setShowMoveDialog(false)} folders={folders} mediaCount={selected.length} onMove={handleMoveToFolder}/>
