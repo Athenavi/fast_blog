@@ -1526,11 +1526,16 @@ const MediaPage: React.FC = () => {
       }
       const res = await MediaService.getMediaFiles(params);
       if (res.success && res.data) {
-        const d = res.data as MediaResponse;
-        setFiles(d.media_items || []); setTotalPages(d.pagination?.pages||1);
+        const d = res.data as any;
+        setFiles(d.media_items || d.files || []);
+        setTotalPages(d.pagination?.pages || d.total_pages || 1);
         if (d.stats) setStats(d.stats);
+      } else {
+        console.error('[MediaPage] loadFiles failed:', res.error || res.message);
       }
-    } catch {} finally { setLoading(false); }
+    } catch (e) {
+      console.error('[MediaPage] loadFiles error:', e);
+    } finally { setLoading(false); }
   }, [page, filterType, search, selectedFolder, folders, selectedCategoryId]);
 
   useEffect(() => { loadFiles(); }, [loadFiles]);
@@ -1540,7 +1545,7 @@ const MediaPage: React.FC = () => {
   const {uploading, uploadProgress, uploadStatus, uploadFiles} = useMediaUpload(() => loadFiles());
 
   const handleDelete = async (id: number) => {
-    const res = await MediaService.deleteMediaFile([id]);
+    const res = await apiClient.delete('/media/?file-id-list=' + id);
     if (res.success) { setDeleteItem(null); loadFiles(); } else alert(res.error||'删除失败');
   };
 
