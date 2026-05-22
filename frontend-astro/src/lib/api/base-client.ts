@@ -1,5 +1,7 @@
 // API client for frontend
 
+import { getConfig } from '@/lib/config';
+
 interface ApiResponse<T = any> {
   success: boolean;
   data?: T;
@@ -10,8 +12,12 @@ interface ApiResponse<T = any> {
 
 /** 构建完整 URL：补全 API 前缀 + 查询参数 */
 function buildUrl(path: string, params?: Record<string, any>): string {
-  // 如果已经是完整 /api/ 路径，直接使用
-  let url = path.startsWith('/api/') ? path : `/api/v2${!path.startsWith('/') ? '/' : ''}${path}`;
+  const base = getConfig().API_BASE_URL || '';
+  // 如果已经是完整 URL，直接使用
+  if (path.startsWith('http://') || path.startsWith('https://')) return path;
+  // 补全 /api/v2 前缀
+  const apiPath = path.startsWith('/api/') ? path : `/api/v2${!path.startsWith('/') ? '/' : ''}${path}`;
+  let url = `${base}${apiPath}`;
   if (!params) return url;
   const qs = Object.entries(params)
       .filter(([, v]) => v !== undefined && v !== null && v !== '')
