@@ -186,6 +186,7 @@ const MediaGrid: React.FC<{files: MediaFile[]; loading: boolean; viewMode: 'grid
       const isVideo = f.mime_type?.startsWith('video/');
       const isImage = f.mime_type?.startsWith('image/');
       const isPDF = f.mime_type === 'application/pdf';
+      const isAudio = f.mime_type?.startsWith('audio/');
       const Icon = getIcon(f.mime_type || '');
 
       return (
@@ -229,6 +230,14 @@ const MediaGrid: React.FC<{files: MediaFile[]; loading: boolean; viewMode: 'grid
                       <FileText className="w-12 h-12 text-red-500 mb-2"/>
                       <span className="text-xs text-red-600 dark:text-red-400 font-medium">PDF</span>
                     </div>
+            ) : isAudio ? (
+                    // 音频文件显示特殊图标
+                    <div
+                        className="w-full h-full flex flex-col items-center justify-center cursor-pointer bg-gradient-to-br from-purple-50 to-pink-50 dark:from-purple-900/10 dark:to-pink-900/10"
+                        onClick={() => onPreview(f)}>
+                      <Music className="w-12 h-12 text-purple-500 mb-2"/>
+                      <span className="text-xs text-purple-600 dark:text-purple-400 font-medium">AUDIO</span>
+                    </div>
                 ) :
                 <div className="w-full h-full flex items-center justify-center cursor-pointer"
                      onClick={() => onPreview(f)}>{React.createElement(Icon, {className: 'w-10 h-10 text-gray-400'})}</div>}
@@ -240,6 +249,326 @@ const MediaGrid: React.FC<{files: MediaFile[]; loading: boolean; viewMode: 'grid
   </div>);
 };
 
+/* ---------- Audio Player with Vinyl Animation & Lyrics ---------- */
+const AudioPlayer: React.FC<{ media: MediaFile; fullUrl: string }> = ({media, fullUrl}) => {
+  const audioRef = useRef<HTMLAudioElement>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTime, setCurrentTime] = useState(0);
+  const [duration, setDuration] = useState(0);
+  const [volume, setVolume] = useState(1);
+  const [showLyrics, setShowLyrics] = useState(false);
+  const lyricsContainerRef = useRef<HTMLDivElement>(null);
+
+  // 音频元数据
+  const [coverImage, setCoverImage] = useState<string | null>(null);
+  const [lyrics, setLyrics] = useState<Array<{ time: number; text: string }>>([]);
+  const [loadingMetadata, setLoadingMetadata] = useState(true);
+
+  // 加载音频元数据
+  useEffect(() => {
+    const loadMetadata = async () => {
+      try {
+        setLoadingMetadata(true);
+        const response = await fetch(`${getConfig().API_BASE_URL}/api/v2/media/${media.id}/metadata`, {
+          credentials: 'include'
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success && result.data) {
+            // 设置封面图片
+            if (result.data.cover_image) {
+              setCoverImage(result.data.cover_image);
+            }
+            // 设置歌词
+            if (result.data.lyrics && result.data.lyrics.length > 0) {
+              setLyrics(result.data.lyrics);
+              setShowLyrics(true); // 自动显示歌词
+            }
+          }
+        }
+      } catch (error) {
+        console.error('加载音频元数据失败:', error);
+      } finally {
+        setLoadingMetadata(false);
+      }
+    };
+
+    loadMetadata();
+  }, [media.id]);
+
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const updateTime = () => setCurrentTime(audio.currentTime);
+    const updateDuration = () => setDuration(audio.duration);
+    const onEnded = () => setIsPlaying(false);
+
+    audio.addEventListener('timeupdate', updateTime);
+    audio.addEventListener('loadedmetadata', updateDuration);
+    audio.addEventListener('ended', onEnded);
+
+    return () => {
+      audio.removeEventListener('timeupdate', updateTime);
+      audio.removeEventListener('loadedmetadata', updateDuration);
+      audio.removeEventListener('ended', onEnded);
+    };
+  }, []);
+
+  // 实时滚动歌词
+  useEffect(() => {
+    if (showLyrics && lyrics.length > 0 && lyricsContainerRef.current) {
+      const currentLyricIndex = lyrics.findIndex((l, i) => {
+        const nextLyric = lyrics[i + 1];
+        return currentTime >= l.time && (!nextLyric || currentTime < nextLyric.time);
+      });
+
+      if (currentLyricIndex !== -1) {
+        const container = lyricsContainerRef.current;
+        const lyricElement = container.children[currentLyricIndex] as HTMLElement;
+        if (lyricElement) {
+          const containerHeight = container.clientHeight;
+          const elementTop = lyricElement.offsetTop;
+          const elementHeight = lyricElement.clientHeight;
+          const scrollTop = elementTop - containerHeight / 2 + elementHeight / 2;
+          container.scrollTo({top: scrollTop, behavior: 'smooth'});
+        }
+      }
+    }
+  }, [currentTime, lyrics, showLyrics]);
+
+  const togglePlay = () => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    if (isPlaying) {
+      audio.pause();
+    } else {
+      audio.play();
+    }
+    setIsPlaying(!isPlaying);
+  };
+
+  const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    const time = parseFloat(e.target.value);
+    audio.currentTime = time;
+    setCurrentTime(time);
+  };
+
+  const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    const vol = parseFloat(e.target.value);
+    audio.volume = vol;
+    setVolume(vol);
+  };
+
+  const formatTime = (time: number) => {
+    const minutes = Math.floor(time / 60);
+    const seconds = Math.floor(time % 60);
+    return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+  };
+
+  return (
+      <div className="flex flex-col lg:flex-row h-full">
+        {/* Left: Vinyl Record Animation */}
+        <div
+            className="flex-1 bg-gradient-to-br from-gray-900 via-purple-900 to-black p-8 flex items-center justify-center relative overflow-hidden">
+          {/* Background glow effect */}
+          <div
+              className={`absolute inset-0 transition-opacity duration-1000 ${isPlaying ? 'opacity-30' : 'opacity-10'}`}>
+            <div
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-purple-500 rounded-full blur-3xl"/>
+          </div>
+
+          {/* Vinyl Record */}
+          <div className="relative">
+            {/* Outer ring */}
+            <div
+                className={`w-64 h-64 md:w-80 md:h-80 rounded-full bg-gradient-to-br from-gray-800 via-gray-900 to-black shadow-2xl flex items-center justify-center transition-transform ${
+                    isPlaying ? 'animate-spin-slow' : ''
+                }`}
+                style={{
+                  boxShadow: '0 0 60px rgba(147, 51, 234, 0.3), inset 0 0 60px rgba(0, 0, 0, 0.5)',
+                  animationDuration: '3s'
+                }}
+            >
+              {/* Grooves pattern */}
+              <div className="absolute inset-4 rounded-full border-2 border-gray-700 opacity-30"/>
+              <div className="absolute inset-8 rounded-full border-2 border-gray-700 opacity-30"/>
+              <div className="absolute inset-12 rounded-full border-2 border-gray-700 opacity-30"/>
+              <div className="absolute inset-16 rounded-full border-2 border-gray-700 opacity-30"/>
+              <div className="absolute inset-20 rounded-full border-2 border-gray-700 opacity-30"/>
+
+              {/* Center label - 使用封面图片或默认渐变 */}
+              <div className="w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden shadow-lg relative">
+                {coverImage ? (
+                    <img
+                        src={coverImage}
+                        alt="Album Cover"
+                        className="w-full h-full object-cover"
+                    />
+                ) : (
+                    <div
+                        className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center">
+                      {loadingMetadata ? (
+                          <div
+                              className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>
+                      ) : (
+                          <div className="w-3 h-3 bg-gray-900 rounded-full"/>
+                      )}
+                    </div>
+                )}
+              </div>
+            </div>
+
+            {/* Tone arm (唱臂) */}
+            <div
+                className={`absolute -top-4 -right-4 w-32 h-2 bg-gradient-to-r from-gray-400 to-gray-600 rounded-full origin-left transition-transform duration-500 ${
+                    isPlaying ? 'rotate-12' : 'rotate-0'
+                }`}
+                style={{transformOrigin: 'left center'}}
+            />
+          </div>
+        </div>
+
+        {/* Right: Controls & Lyrics */}
+        <div className="flex-1 bg-white dark:bg-gray-900 flex flex-col">
+          {/* Audio Element (hidden) */}
+          <audio ref={audioRef} src={fullUrl} preload="auto"/>
+
+          {/* Song Info */}
+          <div className="p-6 border-b border-gray-200 dark:border-gray-700">
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{media.original_filename}</h3>
+            <p className="text-sm text-gray-500">
+              {media.file_size ? `${(media.file_size / 1024 / 1024).toFixed(2)} MB` : ''} · {formatTime(duration)}
+            </p>
+          </div>
+
+          {/* Progress Bar */}
+          <div className="px-6 py-4">
+            <input
+                type="range"
+                min="0"
+                max={duration || 100}
+                value={currentTime}
+                onChange={handleSeek}
+                className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-purple-600"
+            />
+            <div className="flex justify-between text-xs text-gray-500 mt-2">
+              <span>{formatTime(currentTime)}</span>
+              <span>{formatTime(duration)}</span>
+            </div>
+          </div>
+
+          {/* Controls */}
+          <div className="px-6 py-4 flex items-center justify-center gap-4">
+            <button
+                onClick={() => {
+                  const audio = audioRef.current;
+                  if (audio) audio.currentTime = Math.max(0, audio.currentTime - 10);
+                }}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+            >
+              <svg className="w-6 h-6 text-gray-700 dark:text-gray-300" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z"/>
+              </svg>
+            </button>
+
+            <button
+                onClick={togglePlay}
+                className="w-16 h-16 bg-gradient-to-br from-purple-600 to-pink-600 rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-transform"
+            >
+              {isPlaying ? (
+                  <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+                  </svg>
+              ) : (
+                  <svg className="w-8 h-8 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
+                    <path d="M8 5v14l11-7z"/>
+                  </svg>
+              )}
+            </button>
+
+            <button
+                onClick={() => {
+                  const audio = audioRef.current;
+                  if (audio) audio.currentTime = Math.min(duration, audio.currentTime + 10);
+                }}
+                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+            >
+              <svg className="w-6 h-6 text-gray-700 dark:text-gray-300" fill="currentColor" viewBox="0 0 24 24">
+                <path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/>
+              </svg>
+            </button>
+          </div>
+
+          {/* Volume Control */}
+          <div className="px-6 py-2 flex items-center gap-3">
+            <svg className="w-5 h-5 text-gray-500" fill="currentColor" viewBox="0 0 24 24">
+              <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/>
+            </svg>
+            <input
+                type="range"
+                min="0"
+                max="1"
+                step="0.01"
+                value={volume}
+                onChange={handleVolumeChange}
+                className="flex-1 h-1 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-purple-600"
+            />
+          </div>
+
+          {/* Lyrics Toggle */}
+          <div className="px-6 pb-4">
+            <button
+                onClick={() => setShowLyrics(!showLyrics)}
+                className="w-full py-2 px-4 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors"
+            >
+              {showLyrics ? '隐藏歌词' : '显示歌词'}
+            </button>
+          </div>
+
+          {/* Lyrics Display */}
+          {showLyrics && (
+              <div
+                  ref={lyricsContainerRef}
+                  className="flex-1 overflow-y-auto px-6 pb-6 space-y-3 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600"
+                  style={{maxHeight: '300px'}}
+              >
+                {lyrics.length > 0 ? (
+                    lyrics.map((lyric, index) => {
+                      const isActive = currentTime >= lyric.time &&
+                          (!lyrics[index + 1] || currentTime < lyrics[index + 1].time);
+                      return (
+                          <p
+                              key={index}
+                              className={`text-center transition-all duration-300 ${
+                                  isActive
+                                      ? 'text-purple-600 dark:text-purple-400 text-lg font-semibold scale-105'
+                                      : 'text-gray-500 dark:text-gray-400 text-base'
+                              }`}
+                          >
+                            {lyric.text}
+                          </p>
+                      );
+                    })
+                ) : (
+                    <div className="text-center text-gray-400 py-8">
+                      <Music className="w-12 h-12 mx-auto mb-3 opacity-50"/>
+                      <p>暂无歌词</p>
+                      <p className="text-xs mt-2">支持在音频文件同目录下放置 .lrc 文件</p>
+                    </div>
+                )}
+              </div>
+          )}
+        </div>
+      </div>
+  );
+};
+
 /* ---------- Modals ---------- */
 const PreviewModal: React.FC<{media: MediaFile|null; onClose: ()=>void}> = ({media, onClose}) => {
   if(!media) return null;
@@ -249,8 +578,10 @@ const PreviewModal: React.FC<{media: MediaFile|null; onClose: ()=>void}> = ({med
     <div
         className="w-[90vw] max-w-7xl max-h-[95vh] bg-white dark:bg-gray-900 rounded-2xl overflow-hidden shadow-2xl flex flex-col"
          onClick={e => e.stopPropagation()}>
-      {/* PDF Viewer */}
-      {media.mime_type === 'application/pdf' && fullUrl ? (
+      {/* Audio Player with Vinyl Animation */}
+      {media.mime_type?.startsWith('audio/') && fullUrl ? (
+          <AudioPlayer media={media} fullUrl={fullUrl}/>
+      ) : media.mime_type === 'application/pdf' && fullUrl ? (
           <div className="flex-1 bg-gray-100 dark:bg-gray-800 min-h-[80vh]">
             <embed
                 src={fullUrl}

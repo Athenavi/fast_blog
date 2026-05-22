@@ -3,6 +3,7 @@
 """
 from fastapi import APIRouter
 
+from .routes_audio_metadata import router as audio_metadata_router
 from .routes_cover import router as cover_router
 from .routes_cover_external import router as cover_external_router
 from .routes_edit import router as edit_router
@@ -30,6 +31,7 @@ router.include_router(cover_external_router, prefix="/cover")  # /cover/from-url
 router.include_router(edit_tools_router, prefix="/edit")  # /edit/process, /edit/crop 等
 router.include_router(enhancement_router, prefix="")  # /optimize/{file_id} 等（虽然有动态参数，但有前缀）
 router.include_router(thumbnail_router, prefix="")  # /{media_id}/thumbnail - 媒体缩略图
+router.include_router(audio_metadata_router, prefix="")  # /{media_id}/metadata - 音频元数据
 
 # 2. 最后注册包含根路径通配符的路由（必须放在最后！）
 router.include_router(stream_router, prefix="")  # /{media_id} - 通配符，必须最后
