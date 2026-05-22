@@ -137,13 +137,32 @@ const MediaGrid: React.FC<{files: MediaFile[]; loading: boolean; viewMode: 'grid
   if (loading) return <div className="p-12 text-center"><div className="animate-spin w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full mx-auto"/></div>;
   if (!files.length) return <div className="p-12 text-center text-gray-400"><ImageIcon className="w-12 h-12 mx-auto mb-3 opacity-50"/><p>暂无媒体文件</p></div>;
   const getIcon = (m: string) => m?.startsWith('video/') ? Video : m?.startsWith('audio/') ? Music : FileText;
+
+  // List View
   if (viewMode === 'list') return (<div className="bg-white dark:bg-gray-900 rounded-xl border overflow-hidden"><table className="w-full"><thead className="bg-gray-50 dark:bg-gray-800"><tr><th className="w-10 px-4 py-3"/><th className="text-left text-sm font-medium text-gray-500 py-3">文件</th><th className="text-left text-sm font-medium text-gray-500 py-3 hidden sm:table-cell">类型</th><th className="text-right text-sm font-medium text-gray-500 py-3 pr-4">操作</th></tr></thead><tbody className="divide-y">
     {files.map(f => {const Icon = f.mime_type?.startsWith('image/') ? ImageIcon : getIcon(f.mime_type||''); return (
       <tr key={f.id} className={`hover:bg-gray-50 dark:hover:bg-gray-800 ${selected.includes(f.id)?'bg-blue-50 dark:bg-blue-900/20':''}`}>
         <td className="px-4"><input type="checkbox" checked={selected.includes(f.id)} onChange={() => onSelect(f.id)} className="h-4 w-4 text-blue-600 rounded"/></td>
         <td className="py-3 cursor-pointer" onClick={() => onPreview(f)}><div className="flex items-center gap-3">
-          {f.mime_type?.startsWith('image/') && f.url ? <img src={getFullMediaUrl(f.url)} alt={f.original_filename}
-                                                             className="w-10 h-10 rounded-lg object-cover"/> :
+          {f.mime_type?.startsWith('image/') && f.url ? (
+              <img
+                  src={getFullMediaUrl(f.url)}
+                  alt={f.original_filename}
+                  className="w-10 h-10 rounded-lg object-cover"
+                  loading="lazy"
+                  decoding="async"
+              />
+          ) : f.mime_type?.startsWith('video/') && f.url ? (
+                  <div className="w-10 h-10 rounded-lg bg-gray-900 flex items-center justify-center relative">
+                    <Video className="w-5 h-5 text-white"/>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="w-4 h-4 bg-white/80 rounded-full flex items-center justify-center">
+                        <div
+                            className="w-0 h-0 border-t-[3px] border-t-transparent border-l-[6px] border-l-black border-b-[3px] border-b-transparent ml-0.5"/>
+                      </div>
+                    </div>
+                  </div>
+              ) :
               <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center"><Icon
                   className="w-5 h-5 text-gray-400"/></div>}
           <div><p className="text-sm font-medium text-gray-900 dark:text-white truncate max-w-[200px]">{f.original_filename}</p><p className="text-xs text-gray-500">{f.file_size ? `${(f.file_size/1024).toFixed(1)} KB` : ''}</p></div>
@@ -152,29 +171,100 @@ const MediaGrid: React.FC<{files: MediaFile[]; loading: boolean; viewMode: 'grid
         <td className="pr-4 text-right"><button onClick={() => onDelete(f)} className="p-1 text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4"/></button></td>
       </tr>
     );})}</tbody></table></div>);
+
+  // Grid View
   return (<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-    {files.map(f => (<div key={f.id} className={`relative group aspect-square rounded-xl overflow-hidden border ${selected.includes(f.id)?'border-blue-500 ring-2 ring-blue-500':'border-gray-200 dark:border-gray-700'} bg-gray-50 dark:bg-gray-800`}>
+    {files.map(f => {
+      const isVideo = f.mime_type?.startsWith('video/');
+      const isImage = f.mime_type?.startsWith('image/');
+      const Icon = getIcon(f.mime_type || '');
+
+      return (
+          <div key={f.id}
+               className={`relative group aspect-square rounded-xl overflow-hidden border ${selected.includes(f.id) ? 'border-blue-500 ring-2 ring-blue-500' : 'border-gray-200 dark:border-gray-700'} bg-gray-50 dark:bg-gray-800`}>
       <input type="checkbox" checked={selected.includes(f.id)} onChange={() => onSelect(f.id)} className="absolute top-2 left-2 z-10 h-4 w-4 text-blue-600 rounded"/>
-      {f.mime_type?.startsWith('image/') && f.url ? <img src={getFullMediaUrl(f.url)} alt={f.original_filename}
-                                                         className="w-full h-full object-cover cursor-pointer"
-                                                         onClick={() => onPreview(f)}/> :
-        <div className="w-full h-full flex items-center justify-center cursor-pointer" onClick={() => onPreview(f)}>{React.createElement(getIcon(f.mime_type||''),{className:'w-10 h-10 text-gray-400'})}</div>}
+            {isImage && f.url ? (
+                <img
+                    src={getFullMediaUrl(f.url)}
+                    alt={f.original_filename}
+                    className="w-full h-full object-cover cursor-pointer"
+                    onClick={() => onPreview(f)}
+                    loading="lazy"
+                    decoding="async"
+                />
+            ) : isVideo && f.url ? (
+                    <div className="w-full h-full relative cursor-pointer bg-gray-900" onClick={() => onPreview(f)}>
+                      {/* 视频缩略图 - 只加载元数据和首帧 */}
+                      <video
+                          src={getFullMediaUrl(f.url)}
+                          className="w-full h-full object-cover"
+                          preload="metadata"
+                          muted
+                          playsInline
+                      />
+                      {/* 播放按钮覆盖层 */}
+                      <div
+                          className="absolute inset-0 bg-black/30 flex items-center justify-center group-hover:bg-black/40 transition-colors">
+                        <div
+                            className="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                          <div
+                              className="w-0 h-0 border-t-[8px] border-t-transparent border-l-[14px] border-l-black border-b-[8px] border-b-transparent ml-1"/>
+                        </div>
+                      </div>
+                    </div>
+                ) :
+                <div className="w-full h-full flex items-center justify-center cursor-pointer"
+                     onClick={() => onPreview(f)}>{React.createElement(Icon, {className: 'w-10 h-10 text-gray-400'})}</div>}
       <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"><p className="text-xs text-white truncate">{f.original_filename}</p></div>
       <button onClick={() => onDelete(f)} className="absolute top-2 right-2 z-10 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100"><X className="w-3 h-3"/></button>
-    </div>))}
+          </div>
+      );
+    })}
   </div>);
 };
 
 /* ---------- Modals ---------- */
 const PreviewModal: React.FC<{media: MediaFile|null; onClose: ()=>void}> = ({media, onClose}) => {
   if(!media) return null;
+  const fullUrl = getFullMediaUrl(media.url);
+  
   return (<div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={onClose}>
-    <div className="max-w-4xl max-h-[90vh] bg-white dark:bg-gray-900 rounded-2xl overflow-hidden shadow-2xl" onClick={e=>e.stopPropagation()}>
-      {media.mime_type?.startsWith('image/') && media.url ?
-          <img src={getFullMediaUrl(media.url)} alt={media.original_filename}
-               className="max-w-full max-h-[70vh] object-contain"/> :
-        <div className="p-16 text-center"><FileText className="w-16 h-16 text-gray-400 mx-auto mb-4"/><p className="text-gray-600">{media.original_filename}</p></div>}
-      <div className="p-6 border-t border-gray-200 dark:border-gray-700"><h3 className="font-bold text-gray-900 dark:text-white">{media.original_filename}</h3><p className="text-sm text-gray-500 mt-1">{(media.file_size/1024).toFixed(1)} KB · {media.mime_type}</p></div>
+    <div className="max-w-5xl max-h-[90vh] bg-white dark:bg-gray-900 rounded-2xl overflow-hidden shadow-2xl"
+         onClick={e => e.stopPropagation()}>
+      {/* Video Player - 流式播放 */}
+      {media.mime_type?.startsWith('video/') && fullUrl ? (
+          <div className="bg-black">
+            <video
+                src={fullUrl}
+                controls
+                autoPlay
+                preload="auto"
+                className="max-w-full max-h-[70vh] w-full"
+                style={{maxHeight: '70vh'}}
+                playsInline
+            >
+              您的浏览器不支持视频播放
+            </video>
+          </div>
+      ) : media.mime_type?.startsWith('image/') && fullUrl ? (
+          // 图片完整加载
+          <img
+              src={fullUrl}
+              alt={media.original_filename}
+              className="max-w-full max-h-[70vh] object-contain"
+              loading="eager"
+              decoding="async"
+          />
+      ) : (
+          <div className="p-16 text-center"><FileText className="w-16 h-16 text-gray-400 mx-auto mb-4"/><p
+              className="text-gray-600">{media.original_filename}</p></div>
+      )}
+      <div className="p-6 border-t border-gray-200 dark:border-gray-700">
+        <h3 className="font-bold text-gray-900 dark:text-white">{media.original_filename}</h3>
+        <p className="text-sm text-gray-500 mt-1">
+          {media.file_size ? `${(media.file_size / 1024).toFixed(1)} KB` : ''} · {media.mime_type}
+        </p>
+      </div>
     </div>
   </div>);
 };

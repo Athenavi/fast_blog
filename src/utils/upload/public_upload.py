@@ -565,7 +565,7 @@ class ChunkedUploadProcessor:
         except Exception as e:
             await db.rollback()
 
-            logging.getLogger(__name__).error(f"分块上传失败: {str(e)}")
+            logger.error(f"分块上传失败: {str(e)}")
             return {'success': False, 'error': str(e)}
 
     async def _get_upload_task(self, upload_id: str,
@@ -684,7 +684,7 @@ class ChunkedUploadProcessor:
         except Exception as e:
             await db.rollback()
 
-            logging.getLogger(__name__).error(f"完成上传失败: {str(e)}")
+            logger.error(f"完成上传失败: {str(e)}")
             return {'success': False, 'error': str(e)}
 
     async def _get_chunks(self, upload_id: str, db: AsyncSession) -> List[UploadChunk]:
@@ -842,7 +842,7 @@ async def process_single_file(processor: FileProcessor, file_data: bytes,
     except Exception as e:
         await db.rollback()
 
-        logging.getLogger(__name__).error(f"文件处理失败: {str(e)}")
+        logger.error(f"文件处理失败: {str(e)}")
         return {'success': False, 'error': str(e)}
 
 
