@@ -21,6 +21,7 @@ export interface MediaResponse {
 }
 
 export { apiClient } from './base-client';
+export { CategoryService } from './category-service';
 
 export const MediaService = {
   async getMediaFiles(params: Record<string, any> = {}) {
