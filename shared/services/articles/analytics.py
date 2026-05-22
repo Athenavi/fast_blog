@@ -13,7 +13,7 @@ from typing import List, Dict
 from collections import defaultdict
 import threading
 
-from sqlalchemy import func
+from sqlalchemy import func, select, desc, literal
 from sqlalchemy.ext.asyncio import AsyncSession
 
 
@@ -157,7 +157,6 @@ class AnalyticsService:
         from shared.models.article import Article
         from shared.models.comment import Comment
         from shared.models.user import User
-        from sqlalchemy import select
 
         cutoff_date = datetime.now() - timedelta(days=days)
 
@@ -264,7 +263,6 @@ class AnalyticsService:
             热门文章列表
         """
         from shared.models.article import Article
-        from sqlalchemy import select
         
         cutoff_date = datetime.now() - timedelta(days=days)
 
@@ -300,7 +298,6 @@ class AnalyticsService:
         """
         from shared.models.article import Article
         from shared.models.category import Category
-        from sqlalchemy import select
 
         result = await self.db.execute(
             select(
@@ -382,17 +379,27 @@ class AnalyticsService:
         Returns:
             内容表现数据
         """
-        cutoff_date = datetime.now() - timedelta(days=days)
+        from shared.models.article import Article
+        from shared.models.comment import Comment
 
-        # 平均浏览量
-        avg_views = []
+        # 平均浏览量（基于内存 tracker）
+        total_views = view_tracker.get_total_views(days=days)
+        ar_result = await self.db.execute(
+            select(func.count(Article.id))
+        )
+        total_articles = ar_result.scalar() or 1
 
         # 平均评论数
-        avg_comments = []
+        cr_result = await self.db.execute(
+            select(func.count(Comment.id)).where(
+                Comment.created_at >= (datetime.now() - timedelta(days=days))
+            )
+        )
+        total_comments = cr_result.scalar() or 0
 
         return {
-            'avg_views_per_article': round(avg_views.scalar() or 0, 2),
-            'avg_comments_per_article': round(avg_comments.scalar() or 0, 2),
+            'avg_views_per_article': round(total_views / total_articles, 2),
+            'avg_comments_per_article': round(total_comments / total_articles, 2),
             'period_days': days,
         }
 
@@ -407,7 +414,6 @@ class AnalyticsService:
             流量来源列表
         """
         from shared.models.page_view import PageView
-        from sqlalchemy import literal
 
         cutoff_date = datetime.now() - timedelta(days=days)
 
@@ -451,6 +457,7 @@ class AnalyticsService:
             设备分布数据
         """
         from shared.models.page_view import PageView
+        from sqlalchemy import literal
 
         cutoff_date = datetime.now() - timedelta(days=days)
 
