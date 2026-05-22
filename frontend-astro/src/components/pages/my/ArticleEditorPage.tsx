@@ -51,6 +51,11 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
   const editorRef = useRef<any>(null);
   const draftLoaded = useRef(false);
 
+  const articleId = useMemo(() => {
+    if (mode === 'edit' && typeof window !== 'undefined') return new URLSearchParams(window.location.search).get('id');
+    return null;
+  }, [mode]);
+
   // Collaborative editing
   const collabDocId = mode === 'edit' && articleId ? `article-${articleId}` : null;
   const collab = useYjsCollaboration(
@@ -65,11 +70,6 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
       collab.start();
     }
   }, [collabActive, articleId]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const articleId = useMemo(() => {
-    if (mode === 'edit' && typeof window !== 'undefined') return new URLSearchParams(window.location.search).get('id');
-    return null;
-  }, [mode]);
 
   const {register, handleSubmit, reset, watch, setValue, getValues, formState: {errors}} = useForm<FormData>({
     resolver: zodResolver(schema), defaultValues: {status: 0, hidden: false, is_vip_only: false, tags: ''},
