@@ -27,7 +27,7 @@ async def check_gdpr_compliance(
     返回详细的合规性要求清单和实施建议
     """
     # 检查管理员权限
-    if not current_user.is_admin():
+    if not current_user.is_superuser:
         return ApiResponse(
             success=False,
             error="需要管理员权限"
@@ -58,7 +58,7 @@ async def check_ccpa_compliance(
     返回加州消费者隐私法案的合规要求和实施指南
     """
     # 检查管理员权限
-    if not current_user.is_admin():
+    if not current_user.is_superuser:
         return ApiResponse(
             success=False,
             error="需要管理员权限"
@@ -89,7 +89,7 @@ async def check_china_cybersecurity_compliance(
     包括网络安全法、数据安全法、个人信息保护法的要求
     """
     # 检查管理员权限
-    if not current_user.is_admin():
+    if not current_user.is_superuser:
         return ApiResponse(
             success=False,
             error="需要管理员权限"
@@ -124,7 +124,7 @@ async def get_compliance_checklist(
     返回该地区的完整合规要求和实施步骤
     """
     # 检查管理员权限
-    if not current_user.is_admin():
+    if not current_user.is_superuser:
         return ApiResponse(
             success=False,
             error="需要管理员权限"

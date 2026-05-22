@@ -32,7 +32,7 @@ async def backup_database(
     返回备份文件信息和元数据
     """
     # 检查权限（需要管理员权限）
-    if not current_user.is_admin():
+    if not current_user.is_superuser:
         return ApiResponse(
             success=False,
             error="需要管理员权限"
@@ -76,7 +76,7 @@ async def backup_files(
     - plugins/ 目录
     """
     # 检查权限
-    if not current_user.is_admin():
+    if not current_user.is_superuser:
         return ApiResponse(
             success=False,
             error="需要管理员权限"
@@ -122,7 +122,7 @@ async def backup_full(
     这是最全面的备份方式，建议定期执行
     """
     # 检查权限
-    if not current_user.is_admin():
+    if not current_user.is_superuser:
         return ApiResponse(
             success=False,
             error="需要管理员权限"
@@ -204,7 +204,7 @@ async def restore_backup(
     - backup_type: 恢复类型 ('database' 或 'files')
     """
     # 检查权限
-    if not current_user.is_admin():
+    if not current_user.is_superuser:
         return ApiResponse(
             success=False,
             error="需要管理员权限"
@@ -254,7 +254,7 @@ async def delete_backup(
     - backup_id: 备份文件ID或文件名
     """
     # 检查权限
-    if not current_user.is_admin():
+    if not current_user.is_superuser:
         return ApiResponse(
             success=False,
             error="需要管理员权限"
@@ -323,7 +323,7 @@ async def update_backup_schedule(
     - compress_backups: 是否压缩备份文件
     """
     # 检查权限
-    if not current_user.is_admin():
+    if not current_user.is_superuser:
         return ApiResponse(
             success=False,
             error="需要管理员权限"
@@ -390,7 +390,7 @@ async def cleanup_old_backups(
     返回被删除的备份列表
     """
     # 检查权限
-    if not current_user.is_admin():
+    if not current_user.is_superuser:
         return ApiResponse(
             success=False,
             error="需要管理员权限"

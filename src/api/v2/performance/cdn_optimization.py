@@ -62,7 +62,7 @@ async def configure_cloudflare(
     - cache_ttl: 缓存 TTL（秒）
     """
     # 检查管理员权限
-    if not current_user.is_admin():
+    if not current_user.is_superuser:
         return ApiResponse(
             success=False,
             error="需要管理员权限"
@@ -114,7 +114,7 @@ async def configure_aws_cloudfront(
     - max_ttl: 最大缓存时间（秒）
     """
     # 检查管理员权限
-    if not current_user.is_admin():
+    if not current_user.is_superuser:
         return ApiResponse(
             success=False,
             error="需要管理员权限"
@@ -161,7 +161,7 @@ async def configure_aliyun_cdn(
     - cache_ttl: 缓存时间（秒）
     """
     # 检查管理员权限
-    if not current_user.is_admin():
+    if not current_user.is_superuser:
         return ApiResponse(
             success=False,
             error="需要管理员权限"
@@ -208,7 +208,7 @@ async def configure_custom_cdn(
     - cache_ttl: 缓存时间（秒）
     """
     # 检查管理员权限
-    if not current_user.is_admin():
+    if not current_user.is_superuser:
         return ApiResponse(
             success=False,
             error="需要管理员权限"
