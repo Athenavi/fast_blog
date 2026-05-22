@@ -658,9 +658,9 @@ async def create_article_api(
             updated_at=datetime.now()
         )
 
-        # 分类
+        # 分类（仅设置正数 ID，0 或空字符串跳过）
         category_id = form_data.get('category_id')
-        if category_id and category_id.isdigit():
+        if category_id and category_id.isdigit() and int(category_id) > 0:
             new_article.category = int(category_id)
 
         # 定时发布
@@ -786,7 +786,7 @@ async def update_article_api(
         article.is_featured = is_featured_value in ('1', 'true', 'True', True)
 
         category_id = form_data.get('category_id')
-        article.category = int(category_id) if category_id and category_id.isdigit() else None
+        article.category = int(category_id) if category_id and category_id.isdigit() and int(category_id) > 0 else None
 
         scheduled = form_data.get('scheduled_publish_at')
         if scheduled:
