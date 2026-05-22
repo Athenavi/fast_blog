@@ -13,24 +13,24 @@ function BackupInner() {
   const {data: backups, isLoading} = useQuery({
     queryKey: ['admin-backups'],
     queryFn: async () => {
-      const res = await apiClient.get<any[]>('/backup/list');
+      const res = await apiClient.get<any[]>('/api/v2/system/backup/list');
       return res.success && res.data ? (Array.isArray(res.data) ? res.data : []) : [];
     },
   });
   const {data: stats} = useQuery({
     queryKey: ['admin-backup-stats'],
     queryFn: async () => {
-      const res = await apiClient.get<any>('/backup/stats');
+      const res = await apiClient.get<any>('/api/v2/system/backup/stats');
       return res.success && res.data ? res.data : {};
     },
   });
 
   const createMut = useMutation({
-    mutationFn: (type: string) => apiClient.post(`/backup/${type}`),
+    mutationFn: (type: string) => apiClient.post(`/api/v2/system/backup/${type}`),
     onSuccess: () => qc.invalidateQueries({queryKey: ['admin-backups']}),
   });
   const delMut = useMutation({
-    mutationFn: () => apiClient.delete('/backup/delete'),
+    mutationFn: () => apiClient.post('/api/v2/system/backup/cleanup'),
     onSuccess: () => qc.invalidateQueries({queryKey: ['admin-backups']}),
   });
 
