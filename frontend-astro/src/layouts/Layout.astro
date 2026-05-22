@@ -27,6 +27,23 @@ const {title = 'FastBlog', description = 'A modern blog platform', dir = 'ltr', 
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#3b82f6" />
     <slot name="head" />
+
+    <!-- Theme sync: apply dark class before paint to prevent flash -->
+    <script is:inline>
+      (function() {
+        var key = 'fastblog-theme';
+        var cls = 'dark';
+        var root = document.documentElement;
+        try {
+          var stored = localStorage.getItem(key);
+          if (stored === 'dark') {
+            root.classList.add(cls);
+          } else if (!stored && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            root.classList.add(cls);
+          }
+        } catch(e) {}
+      })();
+    </script>
   </head>
   <body class="antialiased" suppressHydrationWarning>
     <Navbar client:load />
