@@ -341,30 +341,34 @@ class AnalyticsService:
         cutoff_date = datetime.now() - timedelta(days=days)
 
         # 活跃作者（发布过文章的用户）
-        active_authors = await self.db.execute(
-            func.count(func.distinct(Article.user))
-        ).filter(
-            Article.created_at >= cutoff_date
+        aa_result = await self.db.execute(
+            select(func.count(func.distinct(Article.user))).where(
+                Article.created_at >= cutoff_date
+            )
         )
+        active_authors = aa_result.scalar()
 
         # 活跃评论者
-        active_commenters = await self.db.execute(
-            func.count(func.distinct(Comment.user_id))
-        ).filter(
-            Comment.created_at >= cutoff_date
+        ac_result = await self.db.execute(
+            select(func.count(func.distinct(Comment.user_id))).where(
+                Comment.created_at >= cutoff_date,
+                Comment.user_id.isnot(None),
+            )
         )
+        active_commenters = ac_result.scalar()
 
         # 新用户
-        new_users = await self.db.execute(
-            func.count(User.id)
-        ).filter(
-            User.created_at >= cutoff_date
+        nu_result = await self.db.execute(
+            select(func.count(User.id)).where(
+                User.date_joined >= cutoff_date
+            )
         )
+        new_users = nu_result.scalar()
 
         return {
-            'active_authors': active_authors.scalar(),
-            'active_commenters': active_commenters.scalar(),
-            'new_users': new_users.scalar(),
+            'active_authors': active_authors or 0,
+            'active_commenters': active_commenters or 0,
+            'new_users': new_users or 0,
             'period_days': days,
         }
 
@@ -402,42 +406,37 @@ class AnalyticsService:
         Returns:
             流量来源列表
         """
+        from shared.models.page_view import PageView
+        from sqlalchemy import literal
 
         cutoff_date = datetime.now() - timedelta(days=days)
 
         # 按引荐来源分组
-        result = []
+        stmt = (
+            select(
+                func.coalesce(PageView.referrer, literal('直接访问')).label('source'),
+                func.count(PageView.id).label('count'),
+            )
+            .where(PageView.created_at >= cutoff_date)
+            .group_by('source')
+            .order_by(desc('count'))
+            .limit(10)
+        )
+        result = await self.db.execute(stmt)
+        rows = result.all()
+
+        total_count = sum(row.count for row in rows) or 1
+        colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16']
 
         sources = []
-        total_count = 0
-        temp_sources = []
-
-        for row in result.all():
-            count = row.count
-            total_count += count
-            temp_sources.append({
-                'source': row.referrer or 'Direct',
-                'count': count,
-            })
-
-        # 计算百分比并添加颜色
-        colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#84cc16']
-        for idx, source in enumerate(temp_sources):
-            percentage = round((source['count'] / total_count * 100) if total_count > 0 else 0, 2)
+        for idx, row in enumerate(rows):
+            pct = round((row.count / total_count) * 100, 1)
             sources.append({
-                'name': source['source'],
-                'value': percentage,
+                'name': row.source,
+                'count': row.count,
+                'value': pct,
                 'color': colors[idx % len(colors)],
             })
-
-        # 如果没有数据，返回默认值
-        if not sources:
-            sources = [
-                {'name': '直接访问', 'value': 35, 'color': '#3b82f6'},
-                {'name': '搜索引擎', 'value': 28, 'color': '#10b981'},
-                {'name': '社交媒体', 'value': 22, 'color': '#f59e0b'},
-                {'name': '外部链接', 'value': 15, 'color': '#ef4444'},
-            ]
 
         return sources
 
@@ -451,40 +450,34 @@ class AnalyticsService:
         Returns:
             设备分布数据
         """
+        from shared.models.page_view import PageView
 
         cutoff_date = datetime.now() - timedelta(days=days)
 
-        # 按设备类型分组
-        result = []
+        stmt = (
+            select(
+                func.coalesce(PageView.device_type, literal('未知')).label('device'),
+                func.count(PageView.id).label('count'),
+            )
+            .where(PageView.created_at >= cutoff_date)
+            .group_by('device')
+            .order_by(desc('count'))
+        )
+        result = await self.db.execute(stmt)
+        rows = result.all()
 
-        devices = {}
-        total = 0
-
-        for row in result.all():
-            device = row.device_type or 'unknown'
-            count = row.count
-            devices[device] = count
-            total += count
-
-        # 转换为列表格式并计算百分比
+        total = sum(row.count for row in rows) or 1
         device_list = []
         colors = ['#8b5cf6', '#ec4899', '#06b6d4']
 
-        for idx, (device, count) in enumerate(devices.items()):
-            percentage = round((count / total * 100) if total > 0 else 0, 2)
+        for idx, row in enumerate(rows):
+            pct = round((row.count / total) * 100, 1)
             device_list.append({
-                'name': device,
-                'value': percentage,
+                'name': row.device,
+                'count': row.count,
+                'value': pct,
                 'color': colors[idx % len(colors)],
             })
-
-        # 如果没有数据，返回默认值
-        if not device_list:
-            device_list = [
-                {'name': '桌面端', 'value': 55, 'color': '#8b5cf6'},
-                {'name': '移动端', 'value': 38, 'color': '#ec4899'},
-                {'name': '平板', 'value': 7, 'color': '#06b6d4'},
-            ]
 
         return device_list
 
