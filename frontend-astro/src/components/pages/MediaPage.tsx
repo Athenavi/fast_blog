@@ -4,6 +4,7 @@ import React, {useCallback, useEffect, useRef, useState} from 'react';
 import type {MediaFile, MediaResponse} from '@/lib/api';
 import {apiClient, MediaService} from '@/lib/api';
 import {AuthGuard} from '@/components/AuthGuard';
+import {motion} from 'framer-motion';
 import {
   ChevronDown,
   ChevronLeft,
@@ -249,7 +250,40 @@ const MediaGrid: React.FC<{files: MediaFile[]; loading: boolean; viewMode: 'grid
   </div>);
 };
 
-/* ---------- Audio Player with Vinyl Animation & Lyrics ---------- */
+/* ---------- Audio Player with Vinyl Animation & Karaoke Lyrics ---------- */
+
+// 将歌词行拆分为逐字/逐词 token（中文按字，英文按单词）
+function tokenizeText(text: string): string[] {
+  const tokens: string[] = [];
+  let buf = '';
+  for (const ch of text) {
+    const isCJK = /[\u4e00-\u9fff\u3400-\u4dbf\uf900-\ufaff]/.test(ch);
+    if (isCJK) {
+      if (buf) { tokens.push(buf); buf = ''; }
+      tokens.push(ch);
+    } else if (ch === ' ') {
+      if (buf) { tokens.push(buf); buf = ''; }
+      tokens.push(' ');
+    } else {
+      buf += ch;
+    }
+  }
+  if (buf) tokens.push(buf);
+  return tokens;
+}
+
+// 计算当前行的逐字高亮进度 (0..1)
+function calcKaraokeProgress(
+  currentTime: number,
+  lineStart: number,
+  nextLineStart: number | null,
+): number {
+  const end = nextLineStart ?? lineStart + 3;
+  const duration = end - lineStart;
+  if (duration <= 0) return 1;
+  return Math.max(0, Math.min(1, (currentTime - lineStart) / duration));
+}
+
 const AudioPlayer: React.FC<{ media: MediaFile; fullUrl: string }> = ({media, fullUrl}) => {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -258,11 +292,28 @@ const AudioPlayer: React.FC<{ media: MediaFile; fullUrl: string }> = ({media, fu
   const [volume, setVolume] = useState(1);
   const [showLyrics, setShowLyrics] = useState(false);
   const lyricsContainerRef = useRef<HTMLDivElement>(null);
+  const vinylRef = useRef<HTMLDivElement>(null);
 
   // 音频元数据
   const [coverImage, setCoverImage] = useState<string | null>(null);
   const [lyrics, setLyrics] = useState<Array<{ time: number; text: string }>>([]);
   const [loadingMetadata, setLoadingMetadata] = useState(true);
+
+  // 当前高亮行索引
+  const activeLineIndex = lyrics.findIndex((l, i) => {
+    const next = lyrics[i + 1];
+    return currentTime >= l.time && (!next || currentTime < next.time);
+  });
+
+  // 当前行的逐字进度
+  const activeLine = activeLineIndex !== -1 ? lyrics[activeLineIndex] : null;
+  const karaokeProgress = activeLine
+    ? calcKaraokeProgress(
+        currentTime,
+        activeLine.time,
+        lyrics[activeLineIndex + 1]?.time ?? null,
+      )
+    : 0;
 
   // 加载音频元数据
   useEffect(() => {
@@ -276,14 +327,12 @@ const AudioPlayer: React.FC<{ media: MediaFile; fullUrl: string }> = ({media, fu
         if (response.ok) {
           const result = await response.json();
           if (result.success && result.data) {
-            // 设置封面图片
             if (result.data.cover_image) {
               setCoverImage(result.data.cover_image);
             }
-            // 设置歌词
             if (result.data.lyrics && result.data.lyrics.length > 0) {
               setLyrics(result.data.lyrics);
-              setShowLyrics(true); // 自动显示歌词
+              setShowLyrics(true);
             }
           }
         }
@@ -316,27 +365,16 @@ const AudioPlayer: React.FC<{ media: MediaFile; fullUrl: string }> = ({media, fu
     };
   }, []);
 
-  // 实时滚动歌词
+  // 歌词自动滚动
   useEffect(() => {
-    if (showLyrics && lyrics.length > 0 && lyricsContainerRef.current) {
-      const currentLyricIndex = lyrics.findIndex((l, i) => {
-        const nextLyric = lyrics[i + 1];
-        return currentTime >= l.time && (!nextLyric || currentTime < nextLyric.time);
-      });
-
-      if (currentLyricIndex !== -1) {
-        const container = lyricsContainerRef.current;
-        const lyricElement = container.children[currentLyricIndex] as HTMLElement;
-        if (lyricElement) {
-          const containerHeight = container.clientHeight;
-          const elementTop = lyricElement.offsetTop;
-          const elementHeight = lyricElement.clientHeight;
-          const scrollTop = elementTop - containerHeight / 2 + elementHeight / 2;
-          container.scrollTo({top: scrollTop, behavior: 'smooth'});
-        }
-      }
+    if (!showLyrics || !lyricsContainerRef.current || activeLineIndex === -1) return;
+    const container = lyricsContainerRef.current;
+    const el = container.children[activeLineIndex] as HTMLElement | undefined;
+    if (el) {
+      const target = el.offsetTop - container.clientHeight / 2 + el.clientHeight / 2;
+      container.scrollTo({top: target, behavior: 'smooth'});
     }
-  }, [currentTime, lyrics, showLyrics]);
+  }, [activeLineIndex, showLyrics]);
 
   const togglePlay = () => {
     const audio = audioRef.current;
@@ -373,37 +411,80 @@ const AudioPlayer: React.FC<{ media: MediaFile; fullUrl: string }> = ({media, fu
 
   return (
       <div className="flex flex-col lg:flex-row h-full">
-        {/* Left: Vinyl Record Animation */}
-        <div
-            className="flex-1 bg-gradient-to-br from-gray-900 via-purple-900 to-black p-8 flex items-center justify-center relative overflow-hidden">
-          {/* Background glow effect */}
-          <div
-              className={`absolute inset-0 transition-opacity duration-1000 ${isPlaying ? 'opacity-30' : 'opacity-10'}`}>
-            <div
-                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 bg-purple-500 rounded-full blur-3xl"/>
-          </div>
+        {/* Left: Vinyl Record Animation (Framer Motion) */}
+        <div className="flex-1 bg-gradient-to-br from-gray-900 via-purple-900 to-black p-8 flex items-center justify-center relative overflow-hidden">
+          {/* Background glow — pulsing with play state */}
+          <motion.div
+              className="absolute inset-0"
+              animate={{opacity: isPlaying ? 0.35 : 0.08}}
+              transition={{duration: 1}}
+          >
+            <motion.div
+                className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-96 h-96 rounded-full blur-3xl"
+                style={{background: 'radial-gradient(circle, rgba(147,51,234,0.6), rgba(236,72,153,0.3))'}}
+                animate={isPlaying ? {
+                  scale: [1, 1.15, 1],
+                  opacity: [0.4, 0.7, 0.4],
+                } : {scale: 1, opacity: 0.3}}
+                transition={isPlaying ? {
+                  duration: 2.5,
+                  repeat: Infinity,
+                  ease: 'easeInOut',
+                } : {duration: 0.5}}
+            />
+          </motion.div>
 
           {/* Vinyl Record */}
           <div className="relative">
-            {/* Outer ring */}
-            <div
-                className={`w-64 h-64 md:w-80 md:h-80 rounded-full bg-gradient-to-br from-gray-800 via-gray-900 to-black shadow-2xl flex items-center justify-center transition-transform ${
-                    isPlaying ? 'animate-spin-slow' : ''
-                }`}
-                style={{
-                  boxShadow: '0 0 60px rgba(147, 51, 234, 0.3), inset 0 0 60px rgba(0, 0, 0, 0.5)',
-                  animationDuration: '3s'
-                }}
+            {/* 唱臂 (Tone arm) — 播放时摆入，暂停时摆出 */}
+            <motion.div
+                className="absolute -top-6 -right-6 z-10 origin-bottom-left"
+                style={{transformOrigin: 'left 100%'}}
+                animate={{rotate: isPlaying ? 15 : -30}}
+                transition={{type: 'spring', stiffness: 100, damping: 15}}
             >
-              {/* Grooves pattern */}
-              <div className="absolute inset-4 rounded-full border-2 border-gray-700 opacity-30"/>
-              <div className="absolute inset-8 rounded-full border-2 border-gray-700 opacity-30"/>
-              <div className="absolute inset-12 rounded-full border-2 border-gray-700 opacity-30"/>
-              <div className="absolute inset-16 rounded-full border-2 border-gray-700 opacity-30"/>
-              <div className="absolute inset-20 rounded-full border-2 border-gray-700 opacity-30"/>
+              <svg width="100" height="40" viewBox="0 0 100 40" fill="none">
+                <rect x="10" y="8" width="90" height="4" rx="2" fill="url(#armGrad)" />
+                <circle cx="10" cy="10" r="8" fill="#555" stroke="#333" strokeWidth="1.5" />
+                <circle cx="10" cy="10" r="3" fill="#222" />
+                <rect x="85" y="2" width="16" height="16" rx="2" fill="#666" />
+                <defs>
+                  <linearGradient id="armGrad" x1="0" y1="0" x2="1" y2="0">
+                    <stop offset="0%" stopColor="#888" />
+                    <stop offset="100%" stopColor="#444" />
+                  </linearGradient>
+                </defs>
+              </svg>
+            </motion.div>
 
-              {/* Center label - 使用封面图片或默认渐变 */}
-              <div className="w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden shadow-lg relative">
+            {/* 黑胶唱片 */}
+            <motion.div
+                ref={vinylRef}
+                className="w-64 h-64 md:w-80 md:h-80 rounded-full bg-gradient-to-br from-gray-800 via-gray-900 to-black shadow-2xl flex items-center justify-center relative"
+                style={{
+                  boxShadow: isPlaying
+                    ? '0 0 80px rgba(147, 51, 234, 0.4), inset 0 0 60px rgba(0,0,0,0.5)'
+                    : '0 0 40px rgba(147, 51, 234, 0.15), inset 0 0 60px rgba(0,0,0,0.5)',
+                }}
+                animate={{rotate: isPlaying ? 360 : 0}}
+                transition={isPlaying
+                  ? {duration: 2, ease: 'linear', repeat: Infinity}
+                  : {duration: 0.5, ease: 'easeOut'}
+                }
+            >
+              {/* 唱片纹路 */}
+              {[4, 8, 12, 16, 20, 24].map(i => (
+                  <div key={i}
+                       className="absolute rounded-full border border-gray-700 opacity-20"
+                       style={{inset: `${i * 4}px`}}
+                  />
+              ))}
+
+              {/* 唱片反光效果 */}
+              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-white/5 via-transparent to-transparent pointer-events-none" />
+
+              {/* 中心标签 */}
+              <div className="w-24 h-24 md:w-32 md:h-32 rounded-full overflow-hidden shadow-lg relative z-10">
                 {coverImage ? (
                     <img
                         src={coverImage}
@@ -411,37 +492,31 @@ const AudioPlayer: React.FC<{ media: MediaFile; fullUrl: string }> = ({media, fu
                         className="w-full h-full object-cover"
                     />
                 ) : (
-                    <div
-                        className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center">
+                    <div className="w-full h-full bg-gradient-to-br from-purple-600 to-pink-600 flex items-center justify-center">
                       {loadingMetadata ? (
-                          <div
-                              className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>
+                          <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>
                       ) : (
-                          <div className="w-3 h-3 bg-gray-900 rounded-full"/>
+                          <div className="w-10 h-10 bg-gray-900 rounded-full flex items-center justify-center">
+                            <Music className="w-5 h-5 text-purple-400"/>
+                          </div>
                       )}
                     </div>
                 )}
               </div>
-            </div>
 
-            {/* Tone arm (唱臂) */}
-            <div
-                className={`absolute -top-4 -right-4 w-32 h-2 bg-gradient-to-r from-gray-400 to-gray-600 rounded-full origin-left transition-transform duration-500 ${
-                    isPlaying ? 'rotate-12' : 'rotate-0'
-                }`}
-                style={{transformOrigin: 'left center'}}
-            />
+              {/* 中心孔 */}
+              <div className="absolute w-3 h-3 bg-gray-900 rounded-full z-20 border border-gray-700" />
+            </motion.div>
           </div>
         </div>
 
         {/* Right: Controls & Lyrics */}
-        <div className="flex-1 bg-white dark:bg-gray-900 flex flex-col">
-          {/* Audio Element (hidden) */}
+        <div className="flex-1 bg-white dark:bg-gray-900 flex flex-col min-h-0">
           <audio ref={audioRef} src={fullUrl} preload="auto"/>
 
           {/* Song Info */}
           <div className="p-6 border-b border-gray-200 dark:border-gray-700">
-            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{media.original_filename}</h3>
+            <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2 truncate">{media.original_filename}</h3>
             <p className="text-sm text-gray-500">
               {media.file_size ? `${(media.file_size / 1024 / 1024).toFixed(2)} MB` : ''} · {formatTime(duration)}
             </p>
@@ -457,15 +532,16 @@ const AudioPlayer: React.FC<{ media: MediaFile; fullUrl: string }> = ({media, fu
                 onChange={handleSeek}
                 className="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-purple-600"
             />
-            <div className="flex justify-between text-xs text-gray-500 mt-2">
+            <div className="flex justify-between text-xs text-gray-500 mt-1">
               <span>{formatTime(currentTime)}</span>
               <span>{formatTime(duration)}</span>
             </div>
           </div>
 
           {/* Controls */}
-          <div className="px-6 py-4 flex items-center justify-center gap-4">
-            <button
+          <div className="px-6 py-3 flex items-center justify-center gap-4">
+            <motion.button
+                whileTap={{scale: 0.9}}
                 onClick={() => {
                   const audio = audioRef.current;
                   if (audio) audio.currentTime = Math.max(0, audio.currentTime - 10);
@@ -475,11 +551,12 @@ const AudioPlayer: React.FC<{ media: MediaFile; fullUrl: string }> = ({media, fu
               <svg className="w-6 h-6 text-gray-700 dark:text-gray-300" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z"/>
               </svg>
-            </button>
+            </motion.button>
 
-            <button
+            <motion.button
+                whileTap={{scale: 0.9}}
                 onClick={togglePlay}
-                className="w-16 h-16 bg-gradient-to-br from-purple-600 to-pink-600 rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-transform"
+                className="w-16 h-16 bg-gradient-to-br from-purple-600 to-pink-600 rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-shadow"
             >
               {isPlaying ? (
                   <svg className="w-8 h-8 text-white" fill="currentColor" viewBox="0 0 24 24">
@@ -490,9 +567,10 @@ const AudioPlayer: React.FC<{ media: MediaFile; fullUrl: string }> = ({media, fu
                     <path d="M8 5v14l11-7z"/>
                   </svg>
               )}
-            </button>
+            </motion.button>
 
-            <button
+            <motion.button
+                whileTap={{scale: 0.9}}
                 onClick={() => {
                   const audio = audioRef.current;
                   if (audio) audio.currentTime = Math.min(duration, audio.currentTime + 10);
@@ -502,12 +580,12 @@ const AudioPlayer: React.FC<{ media: MediaFile; fullUrl: string }> = ({media, fu
               <svg className="w-6 h-6 text-gray-700 dark:text-gray-300" fill="currentColor" viewBox="0 0 24 24">
                 <path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/>
               </svg>
-            </button>
+            </motion.button>
           </div>
 
           {/* Volume Control */}
           <div className="px-6 py-2 flex items-center gap-3">
-            <svg className="w-5 h-5 text-gray-500" fill="currentColor" viewBox="0 0 24 24">
+            <svg className="w-5 h-5 text-gray-500 shrink-0" fill="currentColor" viewBox="0 0 24 24">
               <path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z"/>
             </svg>
             <input
@@ -522,37 +600,92 @@ const AudioPlayer: React.FC<{ media: MediaFile; fullUrl: string }> = ({media, fu
           </div>
 
           {/* Lyrics Toggle */}
-          <div className="px-6 pb-4">
+          <div className="px-6 pb-3">
             <button
                 onClick={() => setShowLyrics(!showLyrics)}
-                className="w-full py-2 px-4 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-lg text-sm font-medium text-gray-700 dark:text-gray-300 transition-colors"
+                className={`w-full py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
+                    showLyrics
+                        ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
+                        : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-300'
+                }`}
             >
-              {showLyrics ? '隐藏歌词' : '显示歌词'}
+              {showLyrics ? '🎤 隐藏歌词' : '📄 显示歌词'}
             </button>
           </div>
 
-          {/* Lyrics Display */}
+          {/* Lyrics Display with Karaoke Highlighting */}
           {showLyrics && (
               <div
                   ref={lyricsContainerRef}
-                  className="flex-1 overflow-y-auto px-6 pb-6 space-y-3 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600"
-                  style={{maxHeight: '300px'}}
+                  className="flex-1 overflow-y-auto px-6 pb-6 space-y-4 scrollbar-thin"
+                  style={{maxHeight: '320px'}}
               >
                 {lyrics.length > 0 ? (
                     lyrics.map((lyric, index) => {
-                      const isActive = currentTime >= lyric.time &&
-                          (!lyrics[index + 1] || currentTime < lyrics[index + 1].time);
+                      const isActive = index === activeLineIndex;
+                      const tokens = tokenizeText(lyric.text);
+                      const highlightCount = isActive
+                          ? Math.floor(tokens.length * karaokeProgress)
+                          : (index < activeLineIndex ? tokens.length : 0);
+
                       return (
-                          <p
+                          <motion.div
                               key={index}
-                              className={`text-center transition-all duration-300 ${
+                              className={`text-center leading-relaxed ${
                                   isActive
-                                      ? 'text-purple-600 dark:text-purple-400 text-lg font-semibold scale-105'
-                                      : 'text-gray-500 dark:text-gray-400 text-base'
+                                      ? 'text-lg font-semibold'
+                                      : index < activeLineIndex
+                                          ? 'text-sm text-gray-500 dark:text-gray-400'
+                                          : 'text-sm text-gray-400 dark:text-gray-500'
                               }`}
+                              animate={isActive ? {scale: 1.02} : {scale: 1}}
+                              transition={{duration: 0.2}}
                           >
-                            {lyric.text}
-                          </p>
+                            {tokens.map((token, ti) => {
+                              const isHighlighted = ti < highlightCount;
+                              const isPartial = isActive && ti === highlightCount - 1 && karaokeProgress < 1;
+                              // 计算单个 token 的渐变动画进度
+                              const tokenProgress = isPartial
+                                  ? (karaokeProgress * tokens.length - ti)
+                                  : (isHighlighted ? 1 : 0);
+
+                              return token === ' ' ? (
+                                  <span key={ti}>&nbsp;</span>
+                              ) : (
+                                  <span
+                                      key={ti}
+                                      className="relative inline-block transition-colors duration-100"
+                                  >
+                            {/* 已高亮部分 */}
+                                    <span
+                                        className={`transition-all duration-150 ${
+                                            isHighlighted
+                                                ? 'text-purple-600 dark:text-purple-400'
+                                                : 'text-gray-400 dark:text-gray-500'
+                                        }`}
+                                    >
+                              {token}
+                            </span>
+                                    {/* 逐字渐变覆盖 — 用于当前正在高亮的字 */}
+                                    {isPartial && tokenProgress > 0 && tokenProgress < 1 && (
+                                        <span
+                                            className="absolute inset-0 overflow-hidden"
+                                            style={{color: 'transparent'}}
+                                        >
+                                  <span
+                                      className="absolute inset-0 text-purple-600 dark:text-purple-400"
+                                      style={{
+                                        clipPath: `inset(0 ${(1 - tokenProgress) * 100}% 0 0)`,
+                                      }}
+                                  >
+                                    {token}
+                                  </span>
+                                </span>
+                                    )}
+                          </span>
+                              );
+                            })}
+                          </motion.div>
                       );
                     })
                 ) : (
