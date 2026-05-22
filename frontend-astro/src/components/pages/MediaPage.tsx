@@ -427,10 +427,10 @@ const AudioPlayer: React.FC<{ media: MediaFile; fullUrl: string }> = ({media, fu
                   opacity: [0.4, 0.7, 0.4],
                 } : {scale: 1, opacity: 0.3}}
                 transition={isPlaying ? {
-                  duration: 2.5,
+                  duration: 4,
                   repeat: Infinity,
                   ease: 'easeInOut',
-                } : {duration: 0.5}}
+                } : {duration: 0.6}}
             />
           </motion.div>
 
@@ -468,8 +468,8 @@ const AudioPlayer: React.FC<{ media: MediaFile; fullUrl: string }> = ({media, fu
                 }}
                 animate={{rotate: isPlaying ? 360 : 0}}
                 transition={isPlaying
-                  ? {duration: 2, ease: 'linear', repeat: Infinity}
-                  : {duration: 0.5, ease: 'easeOut'}
+                  ? {duration: 8, ease: 'linear', repeat: Infinity}
+                  : {duration: 0.6, ease: 'easeOut'}
                 }
             >
               {/* 唱片纹路 */}
@@ -617,75 +617,125 @@ const AudioPlayer: React.FC<{ media: MediaFile; fullUrl: string }> = ({media, fu
           {showLyrics && (
               <div
                   ref={lyricsContainerRef}
-                  className="flex-1 overflow-y-auto px-6 pb-6 space-y-4 scrollbar-thin"
+                  className="flex-1 overflow-y-auto px-6 pb-6 space-y-3 scrollbar-thin"
                   style={{maxHeight: '320px'}}
               >
                 {lyrics.length > 0 ? (
                     lyrics.map((lyric, index) => {
                       const isActive = index === activeLineIndex;
+                      const isPast = index < activeLineIndex;
                       const tokens = tokenizeText(lyric.text);
                       const highlightCount = isActive
                           ? Math.floor(tokens.length * karaokeProgress)
-                          : (index < activeLineIndex ? tokens.length : 0);
+                          : (isPast ? tokens.length : 0);
+
+                      // 当前行进度条的宽度百分比
+                      const lineProgressPct = isActive ? karaokeProgress * 100 : (isPast ? 100 : 0);
 
                       return (
-                          <motion.div
-                              key={index}
-                              className={`text-center leading-relaxed ${
-                                  isActive
-                                      ? 'text-lg font-semibold'
-                                      : index < activeLineIndex
-                                          ? 'text-sm text-gray-500 dark:text-gray-400'
-                                          : 'text-sm text-gray-400 dark:text-gray-500'
-                              }`}
-                              animate={isActive ? {scale: 1.02} : {scale: 1}}
-                              transition={{duration: 0.2}}
-                          >
-                            {tokens.map((token, ti) => {
-                              const isHighlighted = ti < highlightCount;
-                              const isPartial = isActive && ti === highlightCount - 1 && karaokeProgress < 1;
-                              // 计算单个 token 的渐变动画进度
-                              const tokenProgress = isPartial
-                                  ? (karaokeProgress * tokens.length - ti)
-                                  : (isHighlighted ? 1 : 0);
+                          <div key={index} className="relative">
+                            {/* 背景进度条 — 当前行从左到右填色 */}
+                            {isActive && (
+                                <motion.div
+                                    className="absolute inset-0 rounded-lg bg-gradient-to-r from-purple-500/10 via-pink-500/10 to-transparent pointer-events-none"
+                                    animate={{width: `${lineProgressPct}%`}}
+                                    transition={{duration: 0.1, ease: 'linear'}}
+                                />
+                            )}
 
-                              return token === ' ' ? (
-                                  <span key={ti}>&nbsp;</span>
-                              ) : (
-                                  <span
-                                      key={ti}
-                                      className="relative inline-block transition-colors duration-100"
-                                  >
-                            {/* 已高亮部分 */}
+                            <motion.div
+                                className={`text-center leading-relaxed px-3 py-1.5 rounded-lg transition-colors ${
+                                    isActive
+                                        ? 'text-lg font-bold'
+                                        : isPast
+                                            ? 'text-sm text-gray-500 dark:text-gray-400'
+                                            : 'text-sm text-gray-400 dark:text-gray-500'
+                                }`}
+                                animate={
+                                  isActive
+                                    ? {scale: 1.02, y: 0}
+                                    : {scale: 1, y: 0}
+                                }
+                                transition={{duration: 0.25, ease: 'easeOut'}}
+                            >
+                              {tokens.map((token, ti) => {
+                                const isHighlighted = ti < highlightCount;
+                                // 当前正在过渡的字（最后一个高亮字）
+                                const isTransitioning = isActive && ti === highlightCount - 1 && karaokeProgress < 1;
+                                const isActiveToken = isActive && ti === highlightCount;
+
+                                // 单个 token 在 clipPath 中的进度
+                                const tokenClipProgress = isTransitioning
+                                    ? (karaokeProgress * tokens.length - ti)
+                                    : (isHighlighted ? 1 : 0);
+
+                                return token === ' ' ? (
+                                    <span key={ti} className="inline-block" style={{width: '0.3em'}}>&nbsp;</span>
+                                ) : (
                                     <span
-                                        className={`transition-all duration-150 ${
-                                            isHighlighted
-                                                ? 'text-purple-600 dark:text-purple-400'
-                                                : 'text-gray-400 dark:text-gray-500'
-                                        }`}
+                                        key={ti}
+                                        className="relative inline-block mx-[0.5px]"
                                     >
-                              {token}
-                            </span>
-                                    {/* 逐字渐变覆盖 — 用于当前正在高亮的字 */}
-                                    {isPartial && tokenProgress > 0 && tokenProgress < 1 && (
-                                        <span
-                                            className="absolute inset-0 overflow-hidden"
-                                            style={{color: 'transparent'}}
-                                        >
-                                  <span
-                                      className="absolute inset-0 text-purple-600 dark:text-purple-400"
-                                      style={{
-                                        clipPath: `inset(0 ${(1 - tokenProgress) * 100}% 0 0)`,
-                                      }}
-                                  >
-                                    {token}
-                                  </span>
-                                </span>
-                                    )}
-                          </span>
-                              );
-                            })}
-                          </motion.div>
+                                      {/* 基础层 — 未高亮颜色 */}
+                                      <span
+                                          className={`transition-all duration-200 ${
+                                              isHighlighted
+                                                  ? 'text-transparent'
+                                                  : (isActive
+                                                      ? 'text-gray-400 dark:text-gray-500'
+                                                      : 'text-gray-400 dark:text-gray-500')
+                                          }`}
+                                      >
+                                        {token}
+                                      </span>
+
+                                      {/* 高亮渐变层 — 使用 background-clip 实现渐变文字 */}
+                                      {isHighlighted && (
+                                          <span
+                                              className="absolute inset-0 bg-gradient-to-r from-purple-600 via-fuchsia-500 to-pink-500 dark:from-purple-400 dark:via-fuchsia-300 dark:to-pink-300 bg-clip-text text-transparent"
+                                              style={{
+                                                WebkitBackgroundClip: 'text',
+                                                filter: isActive ? 'drop-shadow(0 0 6px rgba(168,85,247,0.4))' : 'none',
+                                              }}
+                                          >
+                                            {token}
+                                          </span>
+                                      )}
+
+                                      {/* 当前正在过渡的字的 clipPath 新旧切换 */}
+                                      {isTransitioning && (
+                                          <span
+                                              className="absolute inset-0 overflow-hidden"
+                                              style={{color: 'transparent'}}
+                                          >
+                                            <span
+                                                className="absolute inset-0 bg-gradient-to-r from-purple-600 via-fuchsia-500 to-pink-500 dark:from-purple-400 dark:via-fuchsia-300 dark:to-pink-300 bg-clip-text text-transparent"
+                                                style={{
+                                                  WebkitBackgroundClip: 'text',
+                                                  clipPath: `inset(0 ${(1 - tokenClipProgress) * 100}% 0 0)`,
+                                                  filter: 'drop-shadow(0 0 8px rgba(168,85,247,0.6))',
+                                                }}
+                                            >
+                                              {token}
+                                            </span>
+                                          </span>
+                                      )}
+
+                                      {/* 即将高亮的下一个字的脉冲提示 */}
+                                      {isActiveToken && (
+                                          <motion.span
+                                              className="absolute inset-0 text-gray-400 dark:text-gray-500"
+                                              animate={{opacity: [0.4, 0.8, 0.4]}}
+                                              transition={{duration: 1.2, repeat: Infinity, ease: 'easeInOut'}}
+                                          >
+                                            {token}
+                                          </motion.span>
+                                      )}
+                                    </span>
+                                );
+                              })}
+                            </motion.div>
+                          </div>
                       );
                     })
                 ) : (
