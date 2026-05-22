@@ -155,7 +155,7 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
             <button onClick={() => setShowRevisions(true)} className="px-2 py-1 text-xs border border-gray-200 dark:border-gray-700 rounded-lg text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center gap-1">
               <History className="w-3.5 h-3.5"/><span className="hidden sm:inline">版本</span>
             </button>
-            <button onClick={() => { if (!collabActive) { collab.start(); setCollabActive(true); } else { collab.stop(); setCollabActive(false); } }}
+            <button onClick={() => { if (!collabActive) { setCollabActive(true); } else { collab.stop(); setCollabActive(false); } }}
               className={`px-2 py-1 text-xs border rounded-lg flex items-center gap-1 ${collabActive ? 'bg-green-50 border-green-200 text-green-700' : 'border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
               {collabActive ? <Wifi className="w-3.5 h-3.5"/> : <Users className="w-3.5 h-3.5"/>}
               <span className="hidden sm:inline">{collabActive ? '协作中' : '协作'}</span>

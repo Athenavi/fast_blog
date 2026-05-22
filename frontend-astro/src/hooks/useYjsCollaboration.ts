@@ -1,5 +1,6 @@
 import {useEffect, useRef, useState, useCallback} from 'react';
 import * as Y from 'yjs';
+import {getConfig} from '@/lib/config';
 
 export interface Collaborator {
   client_id: string;
@@ -79,9 +80,11 @@ export function useYjsCollaboration(
     setConnecting(true);
     setError(undefined);
 
-    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = window.location.host;
-    const wsUrl = `${protocol}//${host}/api/v2/collaboration/yjs/ws/${documentId}?article_id=${articleId || ''}${token ? `&token=${encodeURIComponent(token)}` : ''}`;
+    // Use API_BASE_URL from config (backend URL), same as REST API client
+    const baseUrl = getConfig().API_BASE_URL || `http://${window.location.host}`;
+    const wsBase = baseUrl.replace(/^https?:/, (m) => m === 'https:' ? 'wss:' : 'ws:');
+    const wsUrl = `${wsBase}/api/v2/collaboration/yjs/ws/${documentId}?article_id=${articleId || ''}${token ? `&token=${encodeURIComponent(token)}` : ''}`;
+    console.debug('[Yjs WS] Connecting to:', wsUrl);
 
     const ws = new WebSocket(wsUrl);
     wsRef.current = ws;
