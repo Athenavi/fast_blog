@@ -20,7 +20,7 @@ export interface MediaResponse {
   per_page?: number;
 }
 
-import { apiClient } from './base-client';
+export { apiClient } from './base-client';
 
 export const MediaService = {
   async getMediaFiles(params: Record<string, any> = {}) {
