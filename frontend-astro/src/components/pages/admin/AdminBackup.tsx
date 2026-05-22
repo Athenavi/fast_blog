@@ -8,6 +8,17 @@ import {AdminShell} from '@/components/admin/AdminShell';
 import {apiClient} from '@/lib/api/base-client';
 import {Database, HardDrive, Download, RotateCcw, Trash2, Clock} from 'lucide-react';
 
+function formatSize(bytes: number | string | undefined | null): string {
+  if (bytes == null) return '—';
+  const n = typeof bytes === 'string' ? parseFloat(bytes) : bytes;
+  if (isNaN(n) || n <= 0) return '—';
+  const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+  let i = 0;
+  let size = n;
+  while (size >= 1024 && i < units.length - 1) { size /= 1024; i++; }
+  return `${size.toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
+}
+
 function BackupInner() {
   const qc = useQueryClient();
   const {data: backups, isLoading} = useQuery({
@@ -41,7 +52,7 @@ function BackupInner() {
         <div className="bg-white dark:bg-gray-900 p-5 rounded-2xl border border-gray-200"><div className="flex items-center gap-2 text-sm text-gray-500 mb-1"><Database className="w-4 h-4"/>数据库备份</div><p className="text-2xl font-bold">{stats?.database_count ?? backups?.filter((b:any) => b.type === 'database').length ?? 0}</p></div>
         <div className="bg-white dark:bg-gray-900 p-5 rounded-2xl border border-gray-200"><div className="flex items-center gap-2 text-sm text-gray-500 mb-1"><HardDrive className="w-4 h-4"/>文件备份</div><p className="text-2xl font-bold">{stats?.files_count ?? backups?.filter((b:any) => b.type === 'files').length ?? 0}</p></div>
         <div className="bg-white dark:bg-gray-900 p-5 rounded-2xl border border-gray-200"><div className="flex items-center gap-2 text-sm text-gray-500 mb-1"><HardDrive className="w-4 h-4"/>完整备份</div><p className="text-2xl font-bold">{stats?.full_count ?? 0}</p></div>
-        <div className="bg-white dark:bg-gray-900 p-5 rounded-2xl border border-gray-200"><div className="flex items-center gap-2 text-sm text-gray-500 mb-1"><Database className="w-4 h-4"/>总大小</div><p className="text-2xl font-bold">{stats?.total_size || '—'}</p></div>
+        <div className="bg-white dark:bg-gray-900 p-5 rounded-2xl border border-gray-200"><div className="flex items-center gap-2 text-sm text-gray-500 mb-1"><Database className="w-4 h-4"/>总大小</div><p className="text-2xl font-bold">{formatSize(stats?.total_size)}</p></div>
       </div>
 
       {/* Actions */}
@@ -72,7 +83,7 @@ function BackupInner() {
               <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
                 <td className="px-5 py-4"><span className="px-2 py-0.5 text-xs rounded-full bg-blue-100 text-blue-700">{b.type || b.backup_type || 'database'}</span></td>
                 <td className="px-5 py-4 text-sm text-gray-500 hidden sm:table-cell">{b.created_at ? new Date(b.created_at).toLocaleString('zh-CN') : '-'}</td>
-                <td className="px-5 py-4 text-sm text-gray-500 hidden md:table-cell">{b.file_size || b.size || '-'}</td>
+                <td className="px-5 py-4 text-sm text-gray-500 hidden md:table-cell">{formatSize(b.file_size || b.size)}</td>
                 <td className="px-5 py-4 text-right"><button className="p-1.5 text-gray-400 hover:text-red-600"><Trash2 className="w-4 h-4"/></button></td>
               </tr>
             ))}
