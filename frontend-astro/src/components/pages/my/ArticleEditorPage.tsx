@@ -61,14 +61,19 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
   // Auto-slug
   useEffect(() => { const cur = getValues('slug'); if (title && !cur && mode === 'create') setValue('slug', slugify(title)); }, [title, mode, getValues, setValue]);
   // Auto-save draft
-  useEffect(() => { if (mode !== 'create') return; const t = setInterval(() => { const d = getValues(); if (d.title || content) { saveDraft({...d, content}); setLastSaved(Date.now()); } }, 30000); return () => clearInterval(t); }, [mode, getValues, content]);
+  useEffect(() => { if (mode !== 'create') return; const t = setInterval(() => { const d = getValues(); if (d.title || contentRef.current) { saveDraft({...d, content: contentRef.current}); setLastSaved(Date.now()); } }, 30000); return () => clearInterval(t); }, [mode, getValues]);
   // Load draft
   useEffect(() => { if (mode === 'create' && !draftLoaded.current) { draftLoaded.current = true; const draft = loadDraft(); if (draft?.title && confirm('检测到未保存的草稿，是否恢复？')) { reset({...draft, status: 0}); if (draft.content) setContent(draft.content); } else clearDraft(); } }, [mode, reset]);
 
   const {data: categories} = useQuery({ queryKey: ['categories'], staleTime: 300_000, queryFn: async () => { const res = await CategoryService.getCategories({per_page: 100}); return res.success && res.data ? (res.data.categories || []) : []; } });
 
+  const contentRef = useRef(content);
+  contentRef.current = content;
+
   const {isLoading: loadingArticle} = useQuery({
     queryKey: ['article-edit', articleId], enabled: mode === 'edit' && !!articleId,
+    staleTime: 0,
+    gcTime: 0,
     queryFn: async () => {
       const res = await apiClient.get<any>(`/articles/edit/${articleId}`);
       if (res.success && res.data) { const d = res.data; reset({ title: d.article?.title || d.title || '', slug: d.article?.slug || '', excerpt: d.article?.excerpt || d.excerpt || '', category_id: d.article?.category_id || undefined, tags: (d.article?.tags || []).join(', '), status: d.article?.status ?? 0, hidden: d.article?.hidden || false, is_vip_only: d.article?.is_vip_only || false, }); setContent(d.content || d.article?.content || ''); }
@@ -77,7 +82,7 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
   });
 
   const submitMut = useMutation({
-    mutationFn: async (data: FormData) => { const fd = new FormData(); Object.entries(data).forEach(([k, v]) => { if (v !== undefined && v !== null && v !== '') fd.append(k, String(v)); }); fd.set('content', content); fd.set('status', String(data.status ?? 0)); return mode === 'create' ? apiClient.post('/articles', fd) : apiClient.put(`/articles/${articleId}`, fd); },
+    mutationFn: async (data: FormData) => { const fd = new FormData(); Object.entries(data).forEach(([k, v]) => { if (v !== undefined && v !== null && v !== '') fd.append(k, String(v)); }); fd.set('content', contentRef.current); fd.set('status', String(data.status ?? 0)); return mode === 'create' ? apiClient.post('/articles', fd) : apiClient.put(`/articles/${articleId}`, fd); },
     onSuccess: (res) => { if (res.success) { qc.invalidateQueries({queryKey: ['my-posts']}); clearDraft(); setTimeout(() => window.location.href = '/my/posts', 500); } },
   });
 
