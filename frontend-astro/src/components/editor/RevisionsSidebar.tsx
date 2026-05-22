@@ -1,14 +1,15 @@
 'use client';
 
 import React, {useState} from 'react';
-import {useQuery, useMutation} from '@tanstack/react-query';
+import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {apiClient} from '@/lib/api';
-import {History, RotateCcw, Clock, User, FileText, X, GitCompare, ChevronRight} from 'lucide-react';
+import {History, RotateCcw, Clock, User, FileText, X, GitCompare, ChevronRight, Trash2} from 'lucide-react';
 
 interface Revision {id:number;revision_number:number;title:string;excerpt:string;content:string;change_summary:string|null;created_at:string;author?:{username:string};}
 interface Props {articleId:number|string;open:boolean;onClose:()=>void;onCollapse?:()=>void;onRestore:(c:string,t:string,e:string)=>void;}
 
 const RevisionsSidebar: React.FC<Props> = ({articleId,open,onClose,onCollapse,onRestore}) => {
+  const qc = useQueryClient();
   const [selected, setSelected] = useState<Revision|null>(null);
   const [compareWith, setCompareWith] = useState<Revision|null>(null);
   const [preview, setPreview] = useState<string|null>(null);
@@ -20,6 +21,8 @@ const RevisionsSidebar: React.FC<Props> = ({articleId,open,onClose,onCollapse,on
   });
 
   const rollbackMut=useMutation({mutationFn:(revId:number)=>apiClient.post(`/articles/${articleId}/revisions/${revId}/rollback`),onSuccess:()=>{if(selected){onRestore(selected.content,selected.title,selected.excerpt);onClose();}}});
+
+  const deleteRevMut=useMutation({mutationFn:(revId:number)=>apiClient.delete(`/articles/${articleId}/revisions/${revId}`),onSuccess:()=>{qc.invalidateQueries({queryKey:['revisions',articleId]});setSelected(null);}});
 
   const viewRevision=async(rev:Revision)=>{setSelected(rev);setCompareWith(null);setDiff(null);setPreview(rev.content);};
 
@@ -50,6 +53,7 @@ const RevisionsSidebar: React.FC<Props> = ({articleId,open,onClose,onCollapse,on
               {rev.change_summary&&<p className="text-xs text-gray-500 mt-1 line-clamp-1">{rev.change_summary}</p>}
               <div className="flex gap-1 mt-1.5">
                 {rev.author&&<span className="text-xs text-gray-400"><User className="w-3 h-3 inline mr-0.5"/>{rev.author.username}</span>}
+                <button onClick={e=>{e.stopPropagation();if(confirm('确定删除此版本？'))deleteRevMut.mutate(rev.id);}} className="text-xs text-red-400 hover:text-red-600 ml-1" title="删除"><Trash2 className="w-3 h-3"/></button>
                 {/* Compare button: visible on non-selected items when another is selected */}
                 {selected&&selected.id!==rev.id&&!compareWith&&<button onClick={e=>{e.stopPropagation();compareRevisions(selected,rev);}} className="text-xs text-blue-600 hover:underline ml-auto"><GitCompare className="w-3 h-3 inline mr-0.5"/>对比</button>}
               </div>
@@ -73,6 +77,7 @@ const RevisionsSidebar: React.FC<Props> = ({articleId,open,onClose,onCollapse,on
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 shrink-0">
               <span className="text-sm font-medium">v{selected.revision_number}</span>
               <button onClick={()=>{if(confirm('确定回滚到此版本？'))rollbackMut.mutate(selected.id);}} className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-1"><RotateCcw className="w-3 h-3"/>回滚</button>
+              <button onClick={()=>{if(confirm('确定删除此版本？'))deleteRevMut.mutate(selected.id);}} className="px-3 py-1.5 text-xs bg-red-500 text-white rounded-lg hover:bg-red-600 flex items-center gap-1"><Trash2 className="w-3 h-3"/>删除</button>
             </div>
           )}
           <div className="flex-1 overflow-y-auto p-4">
