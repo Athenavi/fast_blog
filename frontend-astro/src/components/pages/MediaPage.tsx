@@ -140,7 +140,10 @@ const MediaGrid: React.FC<{files: MediaFile[]; loading: boolean; viewMode: 'grid
 
   // List View
   if (viewMode === 'list') return (<div className="bg-white dark:bg-gray-900 rounded-xl border overflow-hidden"><table className="w-full"><thead className="bg-gray-50 dark:bg-gray-800"><tr><th className="w-10 px-4 py-3"/><th className="text-left text-sm font-medium text-gray-500 py-3">文件</th><th className="text-left text-sm font-medium text-gray-500 py-3 hidden sm:table-cell">类型</th><th className="text-right text-sm font-medium text-gray-500 py-3 pr-4">操作</th></tr></thead><tbody className="divide-y">
-    {files.map(f => {const Icon = f.mime_type?.startsWith('image/') ? ImageIcon : getIcon(f.mime_type||''); return (
+  {files.map(f => {
+    const isPDF = f.mime_type === 'application/pdf';
+    const Icon = f.mime_type?.startsWith('image/') ? ImageIcon : getIcon(f.mime_type || '');
+    return (
       <tr key={f.id} className={`hover:bg-gray-50 dark:hover:bg-gray-800 ${selected.includes(f.id)?'bg-blue-50 dark:bg-blue-900/20':''}`}>
         <td className="px-4"><input type="checkbox" checked={selected.includes(f.id)} onChange={() => onSelect(f.id)} className="h-4 w-4 text-blue-600 rounded"/></td>
         <td className="py-3 cursor-pointer" onClick={() => onPreview(f)}><div className="flex items-center gap-3">
@@ -162,6 +165,11 @@ const MediaGrid: React.FC<{files: MediaFile[]; loading: boolean; viewMode: 'grid
                       </div>
                     </div>
                   </div>
+          ) : isPDF ? (
+                  // PDF 特殊图标
+                  <div className="w-10 h-10 rounded-lg bg-red-50 dark:bg-red-900/10 flex items-center justify-center">
+                    <FileText className="w-5 h-5 text-red-500"/>
+                  </div>
               ) :
               <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center"><Icon
                   className="w-5 h-5 text-gray-400"/></div>}
@@ -177,6 +185,7 @@ const MediaGrid: React.FC<{files: MediaFile[]; loading: boolean; viewMode: 'grid
     {files.map(f => {
       const isVideo = f.mime_type?.startsWith('video/');
       const isImage = f.mime_type?.startsWith('image/');
+      const isPDF = f.mime_type === 'application/pdf';
       const Icon = getIcon(f.mime_type || '');
 
       return (
@@ -212,6 +221,14 @@ const MediaGrid: React.FC<{files: MediaFile[]; loading: boolean; viewMode: 'grid
                         </div>
                       </div>
                     </div>
+            ) : isPDF ? (
+                    // PDF 文件显示特殊图标
+                    <div
+                        className="w-full h-full flex flex-col items-center justify-center cursor-pointer bg-red-50 dark:bg-red-900/10"
+                        onClick={() => onPreview(f)}>
+                      <FileText className="w-12 h-12 text-red-500 mb-2"/>
+                      <span className="text-xs text-red-600 dark:text-red-400 font-medium">PDF</span>
+                    </div>
                 ) :
                 <div className="w-full h-full flex items-center justify-center cursor-pointer"
                      onClick={() => onPreview(f)}>{React.createElement(Icon, {className: 'w-10 h-10 text-gray-400'})}</div>}
@@ -229,10 +246,21 @@ const PreviewModal: React.FC<{media: MediaFile|null; onClose: ()=>void}> = ({med
   const fullUrl = getFullMediaUrl(media.url);
   
   return (<div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={onClose}>
-    <div className="max-w-5xl max-h-[90vh] bg-white dark:bg-gray-900 rounded-2xl overflow-hidden shadow-2xl"
+    <div
+        className="w-[90vw] max-w-7xl max-h-[95vh] bg-white dark:bg-gray-900 rounded-2xl overflow-hidden shadow-2xl flex flex-col"
          onClick={e => e.stopPropagation()}>
-      {/* Video Player - 流式播放 */}
-      {media.mime_type?.startsWith('video/') && fullUrl ? (
+      {/* PDF Viewer */}
+      {media.mime_type === 'application/pdf' && fullUrl ? (
+          <div className="flex-1 bg-gray-100 dark:bg-gray-800 min-h-[80vh]">
+            <embed
+                src={fullUrl}
+                type="application/pdf"
+                className="w-full h-full"
+                style={{minHeight: '80vh', maxHeight: '85vh'}}
+            />
+          </div>
+      ) : media.mime_type?.startsWith('video/') && fullUrl ? (
+          // Video Player - 流式播放
           <div className="bg-black">
             <video
                 src={fullUrl}
@@ -259,7 +287,7 @@ const PreviewModal: React.FC<{media: MediaFile|null; onClose: ()=>void}> = ({med
           <div className="p-16 text-center"><FileText className="w-16 h-16 text-gray-400 mx-auto mb-4"/><p
               className="text-gray-600">{media.original_filename}</p></div>
       )}
-      <div className="p-6 border-t border-gray-200 dark:border-gray-700">
+      <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
         <h3 className="font-bold text-gray-900 dark:text-white">{media.original_filename}</h3>
         <p className="text-sm text-gray-500 mt-1">
           {media.file_size ? `${(media.file_size / 1024).toFixed(1)} KB` : ''} · {media.mime_type}
