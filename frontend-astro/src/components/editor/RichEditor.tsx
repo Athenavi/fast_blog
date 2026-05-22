@@ -16,10 +16,14 @@ import {Table} from '@tiptap/extension-table';
 import {TableRow} from '@tiptap/extension-table-row';
 import {TableCell} from '@tiptap/extension-table-cell';
 import {TableHeader} from '@tiptap/extension-table-header';
+import * as Y from 'yjs';
+import Collaboration from '@tiptap/extension-collaboration';
+// CollaborationCursor 通过 useYjsCollaboration 的 awareness 广播实现
 import {X, Loader, Sparkles, ImageIcon, Image as ImageIcon2} from 'lucide-react';
 import {apiClient} from '@/lib/api';
 
-interface RichEditorProps {value:string;onChange:(v:string)=>void;placeholder?:string;editorRef?:React.MutableRefObject<any>;}
+interface CollaboratorInfo {client_id?:string;user_name?:string;color?:string;}
+interface RichEditorProps {value:string;onChange:(v:string)=>void;placeholder?:string;editorRef?:React.MutableRefObject<any>;ydoc?:Y.Doc;collaborators?:CollaboratorInfo[];myClientId?:string;}
 
 const AI_TOOLS = [
   {id:'polish',label:'润色'},{id:'grammar',label:'语法'},{id:'titles',label:'标题'},{id:'keywords',label:'关键词'},{id:'continue',label:'续写'},{id:'summary',label:'摘要'},{id:'style',label:'改风格'},
@@ -53,12 +57,15 @@ function MediaBrowser({onSelect,onClose}:{onSelect:(url:string)=>void;onClose:()
 }
 
 /* ── Main Editor (no toolbar — the parent renders it) ── */
-const RichEditor: React.FC<RichEditorProps> = ({value,onChange,placeholder='开始写作...',editorRef}) => {
+const RichEditor: React.FC<RichEditorProps> = ({value,onChange,placeholder='开始写作...',editorRef,ydoc,collaborators=[],myClientId}) => {
   const [showAI,setShowAI]=useState(false);
   const [showMedia,setShowMedia]=useState(false);
   const [aiResult,setAiResult]=useState('');
   const [aiBusy,setAiBusy]=useState(false);
   const prevValueRef = useRef(value);
+
+  const me = collaborators.find(c => c.client_id === myClientId);
+  const myName = me?.user_name || '编辑者';
 
   const editor = useEditor({
     extensions:[
@@ -66,9 +73,13 @@ const RichEditor: React.FC<RichEditorProps> = ({value,onChange,placeholder='开�
       Underline,Typography,TextAlign.configure({types:['heading','paragraph']}),Highlight,ImageExt,
       LinkExt.configure({openOnClick:false}),Table.configure({resizable:true}),TableRow,TableCell,TableHeader,
       TaskList,TaskItem.configure({nested:true}),
+      // Collaboration extensions (only when ydoc is provided)
+      ...(ydoc ? [
+        Collaboration.configure({document: ydoc}),
+      ] : []),
     ],
-    content: value || '',
-    onUpdate:({editor})=>onChange(editor.getHTML()),
+    content: ydoc ? undefined : (value || ''),
+    onUpdate: ydoc ? undefined : ({editor})=>onChange(editor.getHTML()),
     editorProps:{attributes:{class:'prose prose-lg dark:prose-invert max-w-none focus:outline-none min-h-[60vh] px-6 py-4'}},
   });
 

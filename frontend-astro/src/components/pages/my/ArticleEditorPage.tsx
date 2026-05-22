@@ -7,10 +7,11 @@ import {z} from 'zod';
 import {zodResolver} from '@hookform/resolvers/zod';
 import {apiClient, CategoryService} from '@/lib/api';
 import type {Category} from '@/lib/api/base-types';
-import {Save, ArrowLeft, X, History, Settings2, Bold, Italic, Heading1, Heading2, List, Quote, Image, Link, Sparkles, Eye, Tag, FolderTree, FileText, Hash} from 'lucide-react';
+import {Save, ArrowLeft, X, History, Settings2, Bold, Italic, Heading1, Heading2, List, Quote, Image, Link, Sparkles, Eye, Tag, FolderTree, FileText, Hash, Users, Copy, Wifi, WifiOff, Loader as LoaderIcon} from 'lucide-react';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AuthGuard} from '@/components/AuthGuard';
 import RevisionsSidebar from '@/components/editor/RevisionsSidebar';
+import {useYjsCollaboration} from '@/hooks/useYjsCollaboration';
 
 const RichEditor = React.lazy(() => import('@/components/editor/RichEditor'));
 
@@ -43,9 +44,18 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
   const [lastSaved, setLastSaved] = useState<number | null>(null);
   const [showSidebar, setShowSidebar] = useState(true);
   const [showRevisions, setShowRevisions] = useState(false);
+  const [collabActive, setCollabActive] = useState(false);
   const [content, setContent] = useState('');
   const editorRef = useRef<any>(null);
   const draftLoaded = useRef(false);
+
+  // Collaborative editing
+  const collabDocId = mode === 'edit' && articleId ? `article-${articleId}` : null;
+  const collab = useYjsCollaboration(
+    collabActive ? collabDocId : null,
+    articleId,
+    typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('token') : null,
+  );
 
   const articleId = useMemo(() => {
     if (mode === 'edit' && typeof window !== 'undefined') return new URLSearchParams(window.location.search).get('id');
@@ -132,9 +142,17 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
         <span className="text-xs text-gray-200 dark:text-gray-700 mx-1">|</span>
         {/* Actions */}
         {mode === 'edit' && articleId && (
-          <button onClick={() => setShowRevisions(true)} className="px-2 py-1 text-xs border border-gray-200 dark:border-gray-700 rounded-lg text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center gap-1">
-            <History className="w-3.5 h-3.5"/><span className="hidden sm:inline">版本</span>
-          </button>
+          <>
+            <button onClick={() => setShowRevisions(true)} className="px-2 py-1 text-xs border border-gray-200 dark:border-gray-700 rounded-lg text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center gap-1">
+              <History className="w-3.5 h-3.5"/><span className="hidden sm:inline">版本</span>
+            </button>
+            <button onClick={() => { if (!collabActive) { collab.start(); setCollabActive(true); } else { collab.stop(); setCollabActive(false); } }}
+              className={`px-2 py-1 text-xs border rounded-lg flex items-center gap-1 ${collabActive ? 'bg-green-50 border-green-200 text-green-700' : 'border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800'}`}>
+              {collabActive ? <Wifi className="w-3.5 h-3.5"/> : <Users className="w-3.5 h-3.5"/>}
+              <span className="hidden sm:inline">{collabActive ? '协作中' : '协作'}</span>
+              {collabActive && collab.connecting && <LoaderIcon className="w-3 h-3 animate-spin ml-0.5"/>}
+            </button>
+          </>
         )}
         <button onClick={() => setShowSidebar(!showSidebar)} className={`p-1 rounded-lg border ${showSidebar ? 'bg-blue-50 border-blue-200 text-blue-600' : 'border-gray-200 dark:border-gray-700 text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}><Settings2 className="w-3.5 h-3.5"/></button>
         <div className="ml-auto flex items-center gap-1.5">
@@ -154,7 +172,12 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
               {errors.title && <p className="text-red-500 text-sm -mt-4 mb-4">{errors.title.message}</p>}
 
               <React.Suspense fallback={<div className="h-[60vh] bg-gray-50 dark:bg-gray-800 rounded-xl animate-pulse" />}>
-                <RichEditor value={content} onChange={setContent} placeholder="开始写作..." editorRef={editorRef} />
+                <RichEditor
+                  value={content} onChange={setContent} placeholder="开始写作..." editorRef={editorRef}
+                  ydoc={collabActive ? collab.ydoc : undefined}
+                  collaborators={collab.collaborators}
+                  myClientId={collabActive ? collab.collaborators.find(c => c.user_id?.toString() === '0')?.client_id : undefined}
+                />
               </React.Suspense>
             </form>
           </div>
@@ -162,6 +185,29 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
 
         {showSidebar && (
           <aside className="w-72 lg:w-80 border-l border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 overflow-y-auto flex-shrink-0 p-5 space-y-1">
+            {/* Collaborators */}
+            {collabActive && (
+              <Section icon={Users} title={`协作者 (${collab.collaborators.length})`}>
+                <div className="space-y-1.5">
+                  {collab.collaborators.map((c, i) => (
+                    <div key={c.client_id || i} className="flex items-center gap-2 text-sm">
+                      <div className="w-5 h-5 rounded-full flex items-center justify-center text-white text-[10px] font-bold shrink-0"
+                        style={{backgroundColor: c.color || '#339af0'}}>
+                        {(c.user_name || '?').charAt(0).toUpperCase()}
+                      </div>
+                      <span className="text-gray-700 dark:text-gray-300 text-xs truncate">{c.user_name || `用户 ${c.client_id?.slice(0, 6)}`}</span>
+                      {c.client_id === collab.collaborators.find(x => x.user_id?.toString() === '0')?.client_id && <span className="text-[10px] text-gray-400">(我)</span>}
+                    </div>
+                  ))}
+                  {collab.connecting && <div className="flex items-center gap-2 text-xs text-gray-400"><LoaderIcon className="w-3 h-3 animate-spin"/>连接中...</div>}
+                  {!collab.connected && !collab.connecting && <div className="flex items-center gap-2 text-xs text-red-400"><WifiOff className="w-3 h-3"/>已断开</div>}
+                  <button onClick={() => { const url = `${window.location.origin}/my/posts/edit?id=${articleId}&collab=1`; navigator.clipboard.writeText(url); alert('协作链接已复制'); }}
+                    className="w-full mt-2 px-3 py-1.5 text-xs border border-gray-200 dark:border-gray-700 rounded-lg text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center justify-center gap-1">
+                    <Copy className="w-3 h-3"/>复制邀请链接
+                  </button>
+                </div>
+              </Section>
+            )}
             <Section icon={Eye} title="发布设置">
               <div className="space-y-2">
                 <label className="flex items-center justify-between text-sm"><span className="text-gray-600 dark:text-gray-400">公开可见</span><input type="checkbox" {...register('hidden')} className="toggle"/></label>
