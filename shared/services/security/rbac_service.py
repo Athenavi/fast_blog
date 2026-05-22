@@ -252,71 +252,75 @@ class RBACService:
     async def assign_role_to_user(self, db, user_id: int, role_id: int):
         """
         为用户分配角色
-        
+
         Args:
             db: 数据库会话
             user_id: 用户ID
             role_id: 角色ID
         """
-        from shared.models.user import User
+        from shared.models.user_role import UserRole
 
-        user = await db.get(User, user_id)
-        role = await db.get(Role, role_id)
+        # 检查是否已存在
+        stmt = select(UserRole).where(
+            UserRole.user_id == user_id, UserRole.role_id == role_id
+        )
+        result = await db.execute(stmt)
+        if result.scalar_one_or_none():
+            logger.info(f"Role {role_id} already assigned to user {user_id}")
+            return
 
-        if not user or not role:
-            raise ValueError("User or role not found")
+        ur = UserRole(user_id=user_id, role_id=role_id)
+        db.add(ur)
+        await db.commit()
 
-        if role not in user.roles:
-            user.roles.append(role)
-            await db.commit()
-
-            logger.info(f"Role {role.slug} assigned to user {user_id}")
+        logger.info(f"Role {role_id} assigned to user {user_id}")
 
     async def remove_role_from_user(self, db, user_id: int, role_id: int):
         """
         从用户移除角色
-        
+
         Args:
             db: 数据库会话
             user_id: 用户ID
             role_id: 角色ID
         """
-        from shared.models.user import User
+        from shared.models.user_role import UserRole
 
-        user = await db.get(User, user_id)
-        role = await db.get(Role, role_id)
+        stmt = select(UserRole).where(
+            UserRole.user_id == user_id, UserRole.role_id == role_id
+        )
+        result = await db.execute(stmt)
+        ur = result.scalar_one_or_none()
 
-        if not user or not role:
-            raise ValueError("User or role not found")
-
-        if role in user.roles:
-            user.roles.remove(role)
+        if ur:
+            await db.delete(ur)
             await db.commit()
-
-            logger.info(f"Role {role.slug} removed from user {user_id}")
+            logger.info(f"Role {role_id} removed from user {user_id}")
+        else:
+            logger.warning(f"Role {role_id} not assigned to user {user_id}")
 
     async def check_permission(self, db, user_id: int, permission_code: str) -> bool:
         """
         检查用户是否有指定权限
-        
+
         Args:
             db: 数据库会话
             user_id: 用户ID
             permission_code: 权限代码
-            
+
         Returns:
             是否有权限
         """
-        from shared.models.user import User
-        from sqlalchemy import select
+        from shared.models.user_role import UserRole
 
-        user = await db.get(User, user_id)
-        if not user:
-            return False
+        # 查询用户的所有角色
+        stmt = select(UserRole).where(UserRole.user_id == user_id)
+        result = await db.execute(stmt)
+        user_roles = result.scalars().all()
 
-        # 检查用户的所有角色及其capabilities
-        for role in user.roles:
-            if not role.is_active:
+        for ur in user_roles:
+            role = await db.get(Role, ur.role_id)
+            if not role or not role.is_active:
                 continue
 
             # 检查角色是否有该权限（capability）
@@ -325,7 +329,7 @@ class RBACService:
                     return True
 
             # 检查父角色（权限继承）
-            if role.parent:
+            if role.parent_id:
                 parent_role = await db.get(Role, role.parent_id)
                 if parent_role and parent_role.is_active:
                     for cap in parent_role.capabilities:
@@ -337,24 +341,26 @@ class RBACService:
     async def get_user_permissions(self, db, user_id: int) -> List[str]:
         """
         获取用户的所有权限
-        
+
         Args:
             db: 数据库会话
             user_id: 用户ID
-            
+
         Returns:
             权限代码列表
         """
-        from shared.models.user import User
+        from shared.models.user_role import UserRole
 
-        user = await db.get(User, user_id)
-        if not user:
-            return []
+        # 查询用户的所有角色
+        stmt = select(UserRole).where(UserRole.user_id == user_id)
+        result = await db.execute(stmt)
+        user_roles = result.scalars().all()
 
         capabilities = set()
 
-        for role in user.roles:
-            if not role.is_active:
+        for ur in user_roles:
+            role = await db.get(Role, ur.role_id)
+            if not role or not role.is_active:
                 continue
 
             for cap in role.capabilities:
