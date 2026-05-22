@@ -137,7 +137,7 @@ const UploadArea: React.FC<{onUpload: (files: File[]) => void; uploading: boolea
 };
 
 /* ---------- MediaGrid ---------- */
-const MediaGrid: React.FC<{files: MediaFile[]; loading: boolean; viewMode: 'grid'|'list'; selected: number[]; onSelect: (id: number) => void; onPreview: (m: MediaFile) => void; onDelete: (m: MediaFile) => void; onEditTags?: (m: MediaFile) => void}> = ({files, loading, viewMode, selected, onSelect, onPreview, onDelete, onEditTags}) => {
+const MediaGrid: React.FC<{files: MediaFile[]; loading: boolean; viewMode: 'grid'|'list'; selected: number[]; onSelect: (id: number) => void; onPreview: (m: MediaFile) => void; onDelete: (m: MediaFile) => void; onEditTags?: (m: MediaFile) => void; onEditCategory?: (m: MediaFile) => void}> = ({files, loading, viewMode, selected, onSelect, onPreview, onDelete, onEditTags, onEditCategory}) => {
   if (loading) return <div className="p-12 text-center"><div className="animate-spin w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full mx-auto"/></div>;
   if (!files.length) return <div className="p-12 text-center text-gray-400"><ImageIcon className="w-12 h-12 mx-auto mb-3 opacity-50"/><p>暂无媒体文件</p></div>;
   const getIcon = (m: string) => m?.startsWith('video/') ? Video : m?.startsWith('audio/') ? Music : FileText;
@@ -195,7 +195,13 @@ const MediaGrid: React.FC<{files: MediaFile[]; loading: boolean; viewMode: 'grid
         <td className="text-sm text-gray-500 hidden sm:table-cell">
           <div className="flex items-center gap-2">
             <span>{f.mime_type?.split('/')[0]||'-'}</span>
-            {f.category && <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400">{f.category}</span>}
+            {onEditCategory && (
+                <span onClick={(e) => { e.stopPropagation(); onEditCategory(f); }}
+                      className="text-[10px] px-1.5 py-0.5 rounded cursor-pointer hover:opacity-80 transition-opacity"
+                      style={{background: f.category ? '#d1fae5' : '#f3f4f6', color: f.category ? '#059669' : '#9ca3af'}}>
+                  {f.category || '+分类'}
+                </span>
+            )}
           </div>
         </td>
         <td className="pr-4 text-right"><button onClick={() => onDelete(f)} className="p-1 text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4"/></button></td>
@@ -263,9 +269,13 @@ const MediaGrid: React.FC<{files: MediaFile[]; loading: boolean; viewMode: 'grid
                 ) :
                 <div className="w-full h-full flex items-center justify-center cursor-pointer"
                      onClick={() => onPreview(f)}>{React.createElement(Icon, {className: 'w-10 h-10 text-gray-400'})}</div>}
-      {f.category && (
+      {onEditCategory && (
           <div className="absolute top-2 left-8 z-10">
-            <span className="text-[9px] px-1.5 py-0.5 rounded bg-emerald-600/70 text-white/90">{f.category}</span>
+            <span onClick={(e) => { e.stopPropagation(); onEditCategory(f); }}
+                  className="text-[9px] px-1.5 py-0.5 rounded cursor-pointer hover:opacity-80 transition-opacity"
+                  style={{background: f.category ? 'rgba(5,150,105,0.7)' : 'rgba(107,114,128,0.5)', color: '#fff'}}>
+              {f.category || '+分类'}
+            </span>
           </div>
       )}
       <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity">
@@ -1479,6 +1489,26 @@ const MediaPage: React.FC = () => {
     } catch { alert('保存标签失败'); return false; }
   };
 
+  // 分类编辑
+  const [categoryEditorMedia, setCategoryEditorMedia] = useState<{id: number; category: string | null; multiple?: boolean} | null>(null);
+
+  const handleSaveCategory = async (mediaId: number, category: string | null) => {
+    try {
+      const res = await apiClient.put(`/media/detail/${mediaId}`, {category});
+      if (res.success) { loadFiles(); loadCategories(); return true; }
+      else { alert(res.error || '保存分类失败'); return false; }
+    } catch { alert('保存分类失败'); return false; }
+  };
+
+  const handleSaveBatchCategory = async (category: string) => {
+    if (!selected.length) return;
+    try {
+      const res = await apiClient.post('/media/batch-categorize', {media_ids: selected, category});
+      if (res.success) { loadFiles(); loadCategories(); }
+      else alert(res.error || '批量设置分类失败');
+    } catch { alert('批量设置分类失败'); }
+  };
+
   const handleSaveBatchTags = async (tag: string) => {
     if (!selected.length) return;
     try {
@@ -1521,6 +1551,7 @@ const MediaPage: React.FC = () => {
                 <button onClick={()=>setSelected([])} className="px-3 py-2 text-sm bg-gray-200 dark:bg-gray-700 rounded-lg">取消</button>
                 <button onClick={()=>{if(selected.length)setShowMoveDialog(true);}} className="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"><FolderClosed className="w-4 h-4 inline mr-1"/>移动</button>
                 <button onClick={()=>{if(selected.length)setTagEditorMedia({id:0, tags:'', multiple:true});}} className="px-3 py-2 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700"><Tag className="w-4 h-4 inline mr-1"/>标签</button>
+                <button onClick={()=>{if(selected.length)setCategoryEditorMedia({id:0, category:null, multiple:true});}} className="px-3 py-2 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"><FolderClosed className="w-4 h-4 inline mr-1"/>分类</button>
                 <button onClick={async()=>{if(!confirm(`删除 ${selected.length} 个文件？`))return;const r=await MediaService.deleteMediaFile(selected);if(r.success){setSelected([]);loadFiles();}}} className="px-3 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700"><Trash2 className="w-4 h-4 inline mr-1"/>删除</button>
               </div>)}
             </div>
@@ -1650,7 +1681,7 @@ const MediaPage: React.FC = () => {
             <MediaGrid files={files} loading={loading} viewMode={viewMode} selected={selected} onSelect={id=>setSelected(s=>s.includes(id)?s.filter(x=>x!==id):[...s,id])} onPreview={f => {
               if (f.mime_type?.startsWith('audio/')) { setNowPlaying(f); }
               else { setPreviewMedia(f); }
-            }} onDelete={setDeleteItem} onEditTags={f => setTagEditorMedia({id: f.id, tags: (f as any).tags || ''})}/>
+            }} onDelete={setDeleteItem} onEditTags={f => setTagEditorMedia({id: f.id, tags: (f as any).tags || ''})} onEditCategory={f => setCategoryEditorMedia({id: f.id, category: (f as any).category || null})}/>
 
             {totalPages>1 && (<div className="flex items-center justify-center gap-2 mt-8">
               <button disabled={page<=1} onClick={()=>setPage(p=>p-1)} className="p-2 rounded-lg border disabled:opacity-30 hover:bg-gray-100"><ChevronLeft className="w-4 h-4"/></button>
@@ -1685,6 +1716,19 @@ const MediaPage: React.FC = () => {
           onClose={() => setTagEditorMedia(null)}
           onSave={handleSaveBatchTags}
           allTags={allTags}
+      />
+      <CategoryEditor
+          media={categoryEditorMedia}
+          allCategories={allCategories}
+          onClose={() => setCategoryEditorMedia(null)}
+          onSave={handleSaveCategory}
+      />
+      <BatchCategoryDialog
+          open={categoryEditorMedia?.multiple === true}
+          mediaCount={selected.length}
+          onClose={() => setCategoryEditorMedia(null)}
+          onSave={handleSaveBatchCategory}
+          allCategories={allCategories}
       />
     </div>
   );
@@ -1850,6 +1894,139 @@ const BatchTagDialog: React.FC<{
             <button onClick={handleSave} disabled={saving || !inputVal.trim()}
                     className="flex-1 py-2 rounded-xl bg-purple-600 text-white text-sm font-medium hover:bg-purple-700 disabled:opacity-50 transition-colors">
               {saving ? '添加中...' : '添加标签'}
+            </button>
+          </div>
+        </div>
+      </div>
+  );
+};
+
+/* ========== Category Editor (single media) ========== */
+const CategoryEditor: React.FC<{
+  media: {id: number; category: string | null; multiple?: boolean} | null;
+  allCategories: {id: string; name: string; count?: number}[];
+  onClose: () => void;
+  onSave: (mediaId: number, category: string | null) => Promise<boolean>;
+}> = ({media, allCategories, onClose, onSave}) => {
+  const [selected, setSelected] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [customVal, setCustomVal] = useState('');
+
+  useEffect(() => {
+    if (media && !media.multiple) {
+      setSelected(media.category);
+      setCustomVal('');
+    }
+  }, [media]);
+
+  if (!media || media.multiple) return null;
+
+  const handleSave = async () => {
+    const category = selected || customVal.trim() || null;
+    setSaving(true);
+    const ok = await onSave(media.id, category);
+    setSaving(false);
+    if (ok) onClose();
+  };
+
+  return (
+      <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={onClose}>
+        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-6 w-full max-w-md" onClick={e => e.stopPropagation()}>
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white">设置分类</h3>
+            <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400">✕</button>
+          </div>
+          <p className="text-xs text-gray-500 mb-3">一个媒体文件只能属于一个分类</p>
+
+          {/* 已有分类列表 */}
+          <div className="flex flex-wrap gap-2 mb-4">
+            {allCategories.map(cat => (
+                <button key={cat.id}
+                        onClick={() => { setSelected(cat.name); setCustomVal(''); }}
+                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                            selected === cat.name
+                                ? 'bg-emerald-600 text-white'
+                                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                        }`}
+                >{cat.name}</button>
+            ))}
+            <button onClick={() => { setSelected(null); setCustomVal(''); }}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                        selected === null && !customVal
+                            ? 'bg-gray-600 text-white'
+                            : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200'
+                    }`}>
+              无
+            </button>
+          </div>
+
+          {/* 自定义分类 */}
+          <div className="mb-4">
+            <label className="text-xs text-gray-500 mb-1 block">或输入自定义分类</label>
+            <input type="text" value={customVal}
+                   onChange={e => { setCustomVal(e.target.value); setSelected(null); }}
+                   placeholder="输入新分类名称..."
+                   className="w-full px-3 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:text-white"
+            />
+          </div>
+
+          <button onClick={handleSave} disabled={saving}
+                  className="w-full py-2.5 rounded-xl bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 disabled:opacity-50 transition-colors">
+            {saving ? '保存中...' : '保存分类'}
+          </button>
+        </div>
+      </div>
+  );
+};
+
+/* ========== Batch Category Dialog ========== */
+const BatchCategoryDialog: React.FC<{
+  open: boolean;
+  mediaCount: number;
+  onClose: () => void;
+  onSave: (category: string) => Promise<void>;
+  allCategories: {id: string; name: string; count?: number}[];
+}> = ({open, mediaCount, onClose, onSave, allCategories}) => {
+  const [selected, setSelected] = useState<string | null>(null);
+  const [saving, setSaving] = useState(false);
+
+  if (!open) return null;
+
+  const handleSave = async () => {
+    if (!selected) return;
+    setSaving(true);
+    await onSave(selected);
+    setSaving(false);
+    onClose();
+  };
+
+  return (
+      <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={onClose}>
+        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+          <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">批量设置分类</h3>
+          <p className="text-sm text-gray-500 mb-4">将为 {mediaCount} 个文件设置分类</p>
+
+          <div className="flex flex-wrap gap-2 mb-4">
+            {allCategories.map(cat => (
+                <button key={cat.id}
+                        onClick={() => setSelected(cat.name)}
+                        className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                            selected === cat.name
+                                ? 'bg-emerald-600 text-white'
+                                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                        }`}
+                >{cat.name}</button>
+            ))}
+          </div>
+
+          <div className="flex gap-2">
+            <button onClick={onClose}
+                    className="flex-1 py-2 rounded-xl border border-gray-200 dark:border-gray-700 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800">
+              取消
+            </button>
+            <button onClick={handleSave} disabled={saving || !selected}
+                    className="flex-1 py-2 rounded-xl bg-emerald-600 text-white text-sm font-medium hover:bg-emerald-700 disabled:opacity-50 transition-colors">
+              {saving ? '设置中...' : '设置分类'}
             </button>
           </div>
         </div>
