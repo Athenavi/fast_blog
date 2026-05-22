@@ -49,22 +49,21 @@ async def backup_database(
             result = await backup_service.backup_database(backup_type=backup_type)
 
             if result['success']:
-            return ApiResponse(
-                success=True,
-                data=result['metadata'],
-                message=f"数据库备份成功: {result['metadata']['size_human']}"
-            )
-        else:
+                return ApiResponse(
+                    success=True,
+                    data=result['metadata'],
+                    message=f"数据库备份成功: {result['metadata']['size_human']}"
+                )
+            else:
+                return ApiResponse(
+                    success=False,
+                    error=result.get('error', '备份失败')
+                )
+        except Exception as e:
             return ApiResponse(
                 success=False,
-                error=result.get('error', '备份失败')
+                error=f"备份失败: {str(e)}"
             )
-
-    except Exception as e:
-        return ApiResponse(
-            success=False,
-            error=f"备份失败: {str(e)}"
-        )
 
 
 @router.post("/files", summary="备份文件")
@@ -95,28 +94,27 @@ async def backup_files(
 
             if result['success']:
                 if result.get('backup_path'):
-                return ApiResponse(
-                    success=True,
-                    data=result.get('metadata', {}),
-                    message=f"文件备份成功: {result['metadata'].get('size_human', 'N/A')}"
-                )
+                    return ApiResponse(
+                        success=True,
+                        data=result.get('metadata', {}),
+                        message=f"文件备份成功: {result['metadata'].get('size_human', 'N/A')}"
+                    )
+                else:
+                    return ApiResponse(
+                        success=True,
+                        data={},
+                        message="没有需要备份的文件"
+                    )
             else:
                 return ApiResponse(
-                    success=True,
-                    data={},
-                    message="没有需要备份的文件"
+                    success=False,
+                    error=result.get('error', '备份失败')
                 )
-        else:
+        except Exception as e:
             return ApiResponse(
                 success=False,
-                error=result.get('error', '备份失败')
+                error=f"备份失败: {str(e)}"
             )
-
-    except Exception as e:
-        return ApiResponse(
-            success=False,
-            error=f"备份失败: {str(e)}"
-        )
 
 
 @router.post("/full", summary="完整备份")
@@ -146,17 +144,16 @@ async def backup_full(
                     data=result.get('metadata', {}),
                     message="完整备份成功"
                 )
-        else:
+            else:
+                return ApiResponse(
+                    success=False,
+                    error=result.get('error', '备份失败')
+                )
+        except Exception as e:
             return ApiResponse(
                 success=False,
-                error=result.get('error', '备份失败')
+                error=f"备份失败: {str(e)}"
             )
-
-    except Exception as e:
-        return ApiResponse(
-            success=False,
-            error=f"备份失败: {str(e)}"
-        )
 
 
 @router.get("/list", summary="列出所有备份")
