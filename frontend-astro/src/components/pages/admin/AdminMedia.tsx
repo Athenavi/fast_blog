@@ -7,6 +7,17 @@ import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {apiClient} from '@/lib/api/base-client';
 import {FileText, Image, Music, Trash2, Video} from 'lucide-react';
+import {getConfig} from '@/lib/config';
+
+// Helper function to build full media URL
+const getFullMediaUrl = (url: string | null | undefined): string => {
+    if (!url) return '';
+    // If already absolute URL, return as is
+    if (url.startsWith('http://') || url.startsWith('https://')) return url;
+    // Otherwise, prepend API base URL
+    const config = getConfig();
+    return `${config.API_BASE_URL}${url}`;
+};
 
 function AdminMediaInner() {
   const [page, setPage] = useState(1);
@@ -47,7 +58,9 @@ function AdminMediaInner() {
                 <tr key={f.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
                   <td className="px-5 py-3">
                     <div className="flex items-center gap-3">
-                      {f.mime_type?.startsWith('image/') && f.url ? <img src={f.url} alt={f.original_filename} className="w-10 h-10 rounded-lg object-cover"/> :
+                        {f.mime_type?.startsWith('image/') && f.url ?
+                            <img src={getFullMediaUrl(f.url)} alt={f.original_filename}
+                                 className="w-10 h-10 rounded-lg object-cover"/> :
                         <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-800 flex items-center justify-center"><Icon className="w-5 h-5 text-gray-400"/></div>}
                       <span className="text-sm font-medium text-gray-900 dark:text-white truncate max-w-[200px]">{f.original_filename}</span>
                     </div>

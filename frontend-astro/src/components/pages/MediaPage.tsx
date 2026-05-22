@@ -1,14 +1,37 @@
 'use client';
 
 import React, {useCallback, useEffect, useRef, useState} from 'react';
-import {MediaService, apiClient} from '@/lib/api';
 import type {MediaFile, MediaResponse} from '@/lib/api';
+import {apiClient, MediaService} from '@/lib/api';
 import {AuthGuard} from '@/components/AuthGuard';
-import {motion} from 'framer-motion';
 import {
-  ChevronDown, ChevronLeft, ChevronRight, FileText, FolderPlus, FolderOpen, FolderClosed, Grid3X3,
-  Image as ImageIcon, List, Music, Plus, Trash2, Upload, Video, X
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  FileText,
+  FolderClosed,
+  FolderOpen,
+  Grid3X3,
+  Image as ImageIcon,
+  List,
+  Music,
+  Plus,
+  Trash2,
+  Upload,
+  Video,
+  X
 } from 'lucide-react';
+import {getConfig} from '@/lib/config';
+
+// Helper function to build full media URL
+const getFullMediaUrl = (url: string | null | undefined): string => {
+  if (!url) return '';
+  // If already absolute URL, return as is
+  if (url.startsWith('http://') || url.startsWith('https://')) return url;
+  // Otherwise, prepend API base URL
+  const config = getConfig();
+  return `${config.API_BASE_URL}${url}`;
+};
 
 /* ---------- Shared icons ---------- */
 const Minus: React.FC<{className?: string}> = p => <svg className={p.className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4"/></svg>;
@@ -119,7 +142,10 @@ const MediaGrid: React.FC<{files: MediaFile[]; loading: boolean; viewMode: 'grid
       <tr key={f.id} className={`hover:bg-gray-50 dark:hover:bg-gray-800 ${selected.includes(f.id)?'bg-blue-50 dark:bg-blue-900/20':''}`}>
         <td className="px-4"><input type="checkbox" checked={selected.includes(f.id)} onChange={() => onSelect(f.id)} className="h-4 w-4 text-blue-600 rounded"/></td>
         <td className="py-3 cursor-pointer" onClick={() => onPreview(f)}><div className="flex items-center gap-3">
-          {f.mime_type?.startsWith('image/') && f.url ? <img src={f.url} alt={f.original_filename} className="w-10 h-10 rounded-lg object-cover"/> : <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center"><Icon className="w-5 h-5 text-gray-400"/></div>}
+          {f.mime_type?.startsWith('image/') && f.url ? <img src={getFullMediaUrl(f.url)} alt={f.original_filename}
+                                                             className="w-10 h-10 rounded-lg object-cover"/> :
+              <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center"><Icon
+                  className="w-5 h-5 text-gray-400"/></div>}
           <div><p className="text-sm font-medium text-gray-900 dark:text-white truncate max-w-[200px]">{f.original_filename}</p><p className="text-xs text-gray-500">{f.file_size ? `${(f.file_size/1024).toFixed(1)} KB` : ''}</p></div>
         </div></td>
         <td className="text-sm text-gray-500 hidden sm:table-cell">{f.mime_type?.split('/')[0]||'-'}</td>
@@ -129,7 +155,9 @@ const MediaGrid: React.FC<{files: MediaFile[]; loading: boolean; viewMode: 'grid
   return (<div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
     {files.map(f => (<div key={f.id} className={`relative group aspect-square rounded-xl overflow-hidden border ${selected.includes(f.id)?'border-blue-500 ring-2 ring-blue-500':'border-gray-200 dark:border-gray-700'} bg-gray-50 dark:bg-gray-800`}>
       <input type="checkbox" checked={selected.includes(f.id)} onChange={() => onSelect(f.id)} className="absolute top-2 left-2 z-10 h-4 w-4 text-blue-600 rounded"/>
-      {f.mime_type?.startsWith('image/') && f.url ? <img src={f.url} alt={f.original_filename} className="w-full h-full object-cover cursor-pointer" onClick={() => onPreview(f)}/> :
+      {f.mime_type?.startsWith('image/') && f.url ? <img src={getFullMediaUrl(f.url)} alt={f.original_filename}
+                                                         className="w-full h-full object-cover cursor-pointer"
+                                                         onClick={() => onPreview(f)}/> :
         <div className="w-full h-full flex items-center justify-center cursor-pointer" onClick={() => onPreview(f)}>{React.createElement(getIcon(f.mime_type||''),{className:'w-10 h-10 text-gray-400'})}</div>}
       <div className="absolute inset-x-0 bottom-0 p-2 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"><p className="text-xs text-white truncate">{f.original_filename}</p></div>
       <button onClick={() => onDelete(f)} className="absolute top-2 right-2 z-10 p-1 bg-red-500 text-white rounded-full opacity-0 group-hover:opacity-100"><X className="w-3 h-3"/></button>
@@ -142,7 +170,9 @@ const PreviewModal: React.FC<{media: MediaFile|null; onClose: ()=>void}> = ({med
   if(!media) return null;
   return (<div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={onClose}>
     <div className="max-w-4xl max-h-[90vh] bg-white dark:bg-gray-900 rounded-2xl overflow-hidden shadow-2xl" onClick={e=>e.stopPropagation()}>
-      {media.mime_type?.startsWith('image/') && media.url ? <img src={media.url} alt={media.original_filename} className="max-w-full max-h-[70vh] object-contain"/> :
+      {media.mime_type?.startsWith('image/') && media.url ?
+          <img src={getFullMediaUrl(media.url)} alt={media.original_filename}
+               className="max-w-full max-h-[70vh] object-contain"/> :
         <div className="p-16 text-center"><FileText className="w-16 h-16 text-gray-400 mx-auto mb-4"/><p className="text-gray-600">{media.original_filename}</p></div>}
       <div className="p-6 border-t border-gray-200 dark:border-gray-700"><h3 className="font-bold text-gray-900 dark:text-white">{media.original_filename}</h3><p className="text-sm text-gray-500 mt-1">{(media.file_size/1024).toFixed(1)} KB · {media.mime_type}</p></div>
     </div>

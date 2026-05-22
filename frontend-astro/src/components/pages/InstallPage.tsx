@@ -2,13 +2,14 @@
 
 import React, {useEffect, useState} from 'react';
 import {apiClient} from '@/lib/api';
-import {Check, Server, Database, Globe, Shield, ArrowLeft, ArrowRight} from 'lucide-react';
+import {ArrowLeft, ArrowRight, Check, Database, Globe, Loader, Server, Shield} from 'lucide-react';
 
 const steps = [
-  {id:'prereq', label:'环境检查', icon:Server},
-  {id:'database', label:'数据库配置', icon:Database},
-  {id:'site', label:'站点设置', icon:Globe},
-  {id:'admin', label:'管理员', icon:Shield},
+    {id: 'prereq', label: '检查', icon: Server},
+    {id: 'database', label: '配置', icon: Database},
+    {id: 'migration', label: '迁移', icon: Loader},
+    {id: 'site', label: '设置', icon: Globe},
+    {id: 'admin', label: '安全', icon: Shield},
 ];
 
 export default function InstallPage() {
@@ -16,11 +17,38 @@ export default function InstallPage() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const [prereqs, setPrereqs] = useState<any[]>([]);
-  const [db, setDb] = useState({host:'localhost', port:'3306', name:'', user:'root', pass:''});
+    const [db, setDb] = useState({host: 'localhost', port: '5432', name: '', user: 'postgres', pass: ''});
   const [site, setSite] = useState({name:'FastBlog', desc:'', url:''});
   const [admin, setAdmin] = useState({username:'', email:'', password:''});
+    const [migrationStatus, setMigrationStatus] = useState<{
+        success?: boolean;
+        message?: string;
+        logs?: string[]
+    }>({});
 
-  useEffect(() => { if (step===0) apiClient.get('/install/prerequisites').then(r => { if (r.success && r.data) setPrereqs(Array.isArray(r.data) ? r.data : []); }); }, [step]);
+    useEffect(() => {
+        if (step === 0) {
+            apiClient.get('/install/prerequisites').then(r => {
+                if (r.success && r.data) {
+                    // 将对象转换为数组格式
+                    const prereqArray = Object.entries(r.data)
+                        .filter(([key]) => key !== 'all_passed')
+                        .map(([key, value]: [string, any]) => ({
+                            name: {
+                                python_version: 'Python版本',
+                                database_connection: '数据库连接',
+                                writable_directories: '目录权限',
+                                required_packages: '依赖包'
+                            }[key] || key,
+                            passed: value.passed,
+                            message: value.message,
+                            ...value
+                        }));
+                    setPrereqs(prereqArray);
+                }
+            });
+        }
+    }, [step]);
 
   const checkDb = async () => {
     setBusy(true); setErr('');
@@ -30,20 +58,79 @@ export default function InstallPage() {
     return r.success;
   };
 
+    const runMigration = async () => {
+        setBusy(true);
+        setErr('');
+        try {
+            // 先配置数据库
+            const dbResult = await apiClient.post('/install/configure-database', {
+                db_type: 'postgresql',
+                host: db.host,
+                port: db.port,
+                database: db.name,
+                username: db.user,
+                password: db.pass
+            });
+
+            if (!dbResult.success) {
+                setErr(dbResult.error || '数据库配置失败');
+                setMigrationStatus({success: false, message: dbResult.error || '数据库配置失败'});
+                return false;
+            }
+
+            // 再执行数据库迁移
+            const r = await apiClient.post('/install/confirm-database-and-migrate');
+            if (r.success) {
+                setMigrationStatus({success: true, message: r.data?.message || '迁移成功'});
+                return true;
+            } else {
+                setErr(r.error || '迁移失败');
+                setMigrationStatus({success: false, message: r.error || '迁移失败'});
+                return false;
+            }
+        } catch (e: any) {
+            setErr('迁移过程出错: ' + (e.message || '未知错误'));
+            setMigrationStatus({success: false, message: '迁移过程出错'});
+            return false;
+        } finally {
+            setBusy(false);
+        }
+    };
+
   const complete = async () => {
     setBusy(true); setErr('');
     try {
-      await apiClient.post('/install/configure-database', db);
-      await apiClient.post('/install/configure-site', {site_name: site.name, site_description: site.desc, site_url: site.url});
+        // 注意：数据库配置和迁移已经在 Step 2 完成
+        // 这里只需要配置站点、创建管理员和完成安装
+
+        // 配置站点
+        await apiClient.post('/install/configure-site', {
+            site_name: site.name,
+            site_description: site.desc,
+            site_url: site.url,
+            admin_email: admin.email
+        });
+
+        // 创建管理员
       await apiClient.post('/install/create-admin', admin);
-      const r = await apiClient.post('/install/complete');
+
+        // 完成安装
+        const r = await apiClient.post('/install/complete', {
+            import_sample_data: false
+        });
+      
       if (r.success) window.location.href = '/login';
       else setErr(r.error||'安装失败');
-    } catch { setErr('安装失败'); } finally { setBusy(false); }
+    } catch (e: any) {
+        setErr('安装失败: ' + (e.message || '未知错误'));
+    } finally {
+        setBusy(false);
+    }
   };
 
   const next = async () => {
     if (step === 1 && !await checkDb()) return;
+      if (step === 2 && !await runMigration()) return;
     if (step < steps.length - 1) setStep(s => s+1);
     else await complete();
   };
@@ -83,15 +170,43 @@ export default function InstallPage() {
             ))}
           </div>}
 
-          {/* Step 2: Site */}
-          {step === 2 && <div className="space-y-3">
+            {/* Step 2: Migration */}
+            {step === 2 && <div className="space-y-4">
+                <p className="text-sm text-gray-500 mb-2">数据库迁移</p>
+                {migrationStatus.message ? (
+                    <div
+                        className={`p-4 rounded-xl ${migrationStatus.success ? 'bg-green-50 border border-green-200 text-green-700' : 'bg-red-50 border border-red-200 text-red-700'}`}>
+                        <div className="flex items-center gap-2">
+                            {migrationStatus.success ? <Check className="w-5 h-5"/> :
+                                <Loader className="w-5 h-5 animate-spin"/>}
+                            <span className="text-sm font-medium">{migrationStatus.message}</span>
+                        </div>
+                    </div>
+                ) : (
+                    <div className="text-center py-8">
+                        <Loader className="w-8 h-8 animate-spin mx-auto mb-3 text-blue-600"/>
+                        <p className="text-sm text-gray-500">点击"下一步"开始数据库迁移...</p>
+                    </div>
+                )}
+                <div className="text-xs text-gray-400 mt-2">
+                    <p>此步骤将：</p>
+                    <ul className="list-disc list-inside mt-1 space-y-1">
+                        <li>创建数据库表结构</li>
+                        <li>执行数据迁移脚本</li>
+                        <li>初始化系统配置</li>
+                    </ul>
+                </div>
+            </div>}
+
+            {/* Step 3: Site */}
+            {step === 3 && <div className="space-y-3">
             <input type="text" value={site.name} onChange={e=>setSite(p=>({...p,name:e.target.value}))} placeholder="站点名称" className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"/>
             <input type="text" value={site.desc} onChange={e=>setSite(p=>({...p,desc:e.target.value}))} placeholder="站点描述" className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"/>
             <input type="url" value={site.url} onChange={e=>setSite(p=>({...p,url:e.target.value}))} placeholder="站点 URL" className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"/>
           </div>}
 
-          {/* Step 3: Admin */}
-          {step === 3 && <div className="space-y-3">
+            {/* Step 4: Admin */}
+            {step === 4 && <div className="space-y-3">
             <input type="text" value={admin.username} onChange={e=>setAdmin(p=>({...p,username:e.target.value}))} placeholder="管理员用户名" className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"/>
             <input type="email" value={admin.email} onChange={e=>setAdmin(p=>({...p,email:e.target.value}))} placeholder="管理员邮箱" className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"/>
             <input type="password" value={admin.password} onChange={e=>setAdmin(p=>({...p,password:e.target.value}))} placeholder="管理员密码" className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"/>

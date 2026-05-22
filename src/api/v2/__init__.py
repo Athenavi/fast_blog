@@ -109,6 +109,10 @@ ROUTE_REGISTRY_V2 = [
     # V2 System 模块采用包级别聚合模式，所有子模块通过 __init__.py 统一注册
     ("src.api.v2.system", "/api/v2/system", ["system-v2"], True),
 
+    # ==================== 安装向导（独立顶级路由）====================
+    # 安装功能作为独立顶级资源，便于前端访问
+    ("src.api.v1.system.installation", "/api/v2/install", ["installation"], False),
+
     # ==================== GDPR 合规（V2 完整版）====================
     # V1 gdpr_compliance 已废弃，功能已整合到 V2 compliance_api
     # ("src.api.v1.compliance.gdpr_compliance", "/api/v2/gdpr", ["gdpr-compliance"], False),

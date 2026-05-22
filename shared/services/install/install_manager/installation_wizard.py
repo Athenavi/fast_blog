@@ -25,9 +25,15 @@ class InstallationWizardService:
     def __init__(self):
         self.install_lock_file = Path("install.lock")
         self.install_flag_file = Path("storage/.installation_completed")
-        self.config_file = Path(".env")
+        # 使用绝对路径，确保 .env 文件在项目根目录
+        self.config_file = Path(__file__).parent.parent.parent.parent.parent / ".env"
         self.config_dir = Path("config")
         self.ensure_directories()
+
+        print(f"\n[InstallationWizard] 初始化:")
+        print(f"  .env 文件路径: {self.config_file.absolute()}")
+        print(f"  项目根目录: {self.config_file.parent.absolute()}")
+        print(f"  文件是否存在: {self.config_file.exists()}")
 
     def ensure_directories(self):
         """确保必需的目录存在"""
@@ -270,62 +276,100 @@ class InstallationWizardService:
         Args:
             updates: 要更新的键值对
         """
-        env_content = {}
-        comments = []  # 保留注释
-        original_lines = []  # 保留原始行顺序
+        try:
+            env_content = {}
+            comments = []  # 保留注释
+            original_lines = []  # 保留原始行顺序
 
-        if self.config_file.exists():
-            with open(self.config_file, 'r', encoding='utf-8') as f:
-                for line in f:
-                    original_lines.append(line)
-                    line_stripped = line.strip()
-                    if line_stripped.startswith('#'):
-                        comments.append(line.rstrip('\n'))
-                    elif '=' in line_stripped and not line_stripped.startswith('#'):
-                        key, value = line_stripped.split('=', 1)
-                        env_content[key.strip()] = value.strip()
-        else:
-            # 如果文件不存在，添加标准头部注释
-            comments = [
-                '# ============================================================================',
-                '# FastBlog 环境配置文件',
-                '# ============================================================================',
-                '',
-                '# 数据库配置（仅支持 PostgreSQL）',
-                '# ----------------------------------------------------------------------------'
-            ]
+            print(f"\n[DEBUG] .env 文件路径: {self.config_file.absolute()}")
+            print(f"[DEBUG] 文件是否存在: {self.config_file.exists()}")
+            print(f"[DEBUG] 父目录: {self.config_file.parent.absolute()}")
+            print(f"[DEBUG] 父目录是否存在: {self.config_file.parent.exists()}")
 
-        # 更新配置
-        env_content.update(updates)
-
-        # 调试输出：显示即将写入的配置
-        print(f"\n[DEBUG] 即将写入 .env 文件的配置:")
-        for key, value in env_content.items():
-            if 'PASSWORD' in key or 'SECRET' in key:
-                print(f"  {key}: {'***' if value else '(empty)'}")
+            if self.config_file.exists():
+                with open(self.config_file, 'r', encoding='utf-8') as f:
+                    for line in f:
+                        original_lines.append(line)
+                        line_stripped = line.strip()
+                        if line_stripped.startswith('#'):
+                            comments.append(line.rstrip('\n'))
+                        elif '=' in line_stripped and not line_stripped.startswith('#'):
+                            key, value = line_stripped.split('=', 1)
+                            env_content[key.strip()] = value.strip()
             else:
-                print(f"  {key}: '{value}' (type: {type(value).__name__})")
+                # 如果文件不存在，添加标准头部注释
+                print("[DEBUG] .env 文件不存在，将创建新文件")
+                comments = [
+                    '# ============================================================================',
+                    '# FastBlog 环境配置文件',
+                    '# ============================================================================',
+                    '',
+                    '# 数据库配置（仅支持 PostgreSQL）',
+                    '# ----------------------------------------------------------------------------'
+                ]
 
-        # 写入文件，保持标准格式
-        with open(self.config_file, 'w', encoding='utf-8') as f:
-            # 先写注释
-            if comments:
-                for comment in comments:
-                    f.write(f"{comment}\n")
-                f.write("\n")
+            # 更新配置
+            env_content.update(updates)
 
-            # 再写配置项
+            # 调试输出：显示即将写入的配置
+            print(f"\n[DEBUG] 即将写入 .env 文件的配置:")
             for key, value in env_content.items():
-                # 确保值是字符串
-                if value is None:
-                    value = ''
-                elif not isinstance(value, str):
-                    value = str(value)
+                if 'PASSWORD' in key or 'SECRET' in key:
+                    print(f"  {key}: {'***' if value else '(empty)'}")
+                else:
+                    print(f"  {key}: '{value}' (type: {type(value).__name__})")
 
-                # 写入配置
-                f.write(f"{key}={value}\n")
+            # 确保父目录存在
+            self.config_file.parent.mkdir(parents=True, exist_ok=True)
+            print(f"[DEBUG] 父目录已确保存在")
 
-        print(f"\n[DEBUG] .env 文件已更新: {self.config_file.absolute()}")
+            # 写入文件，保持标准格式
+            with open(self.config_file, 'w', encoding='utf-8') as f:
+                # 先写注释
+                if comments:
+                    for comment in comments:
+                        f.write(f"{comment}\n")
+                    f.write("\n")
+
+                # 再写配置项
+                for key, value in env_content.items():
+                    # 确保值是字符串
+                    if value is None:
+                        value = ''
+                    elif not isinstance(value, str):
+                        value = str(value)
+
+                    # 写入配置
+                    f.write(f"{key}={value}\n")
+
+            print(f"\n[DEBUG] .env 文件已成功写入: {self.config_file.absolute()}")
+
+            # 验证文件是否真的被创建
+            if self.config_file.exists():
+                file_size = self.config_file.stat().st_size
+                print(f"[DEBUG] ✓ 文件存在，大小: {file_size} bytes")
+
+                # 读取并显示文件内容以供调试
+                with open(self.config_file, 'r', encoding='utf-8') as f:
+                    content = f.read()
+                    print(f"\n[DEBUG] 文件完整内容:")
+                    print("=" * 60)
+                    print(content)
+                    print("=" * 60)
+            else:
+                print(f"\n[ERROR] ✗ .env 文件写入后仍然不存在！")
+                print(f"[ERROR] 请检查以下可能的问题:")
+                print(f"  1. 父目录是否存在: {self.config_file.parent.exists()}")
+                print(f"  2. 父目录是否可写: {os.access(str(self.config_file.parent), os.W_OK)}")
+                print(f"  3. 当前工作目录: {Path.cwd().absolute()}")
+                raise RuntimeError(".env 文件创建失败")
+
+        except Exception as e:
+            import traceback
+            error_msg = f"更新 .env 文件失败: {str(e)}"
+            print(f"\n[ERROR] {error_msg}")
+            print(traceback.format_exc())
+            raise
 
     def import_sample_data(
             self,
@@ -768,9 +812,10 @@ class InstallationWizardService:
         确认数据库配置并执行数据库初始化
         
         流程：
-        1. 测试数据库连接
-        2. 检查是否有迁移脚本，如果没有则生成初始迁移
-        3. 执行 Alembic 迁移
+        1. 重新加载配置并初始化数据库管理器
+        2. 测试数据库连接
+        3. 检查是否有迁移脚本，如果没有则生成初始迁移
+        4. 执行 Alembic 迁移
             
         Returns:
             确认和迁移结果
@@ -784,29 +829,114 @@ class InstallationWizardService:
             print("开始初始化数据库...")
             print("=" * 60)
 
-            # 首先测试数据库连接
-            print("\n[1/3] 测试数据库连接...")
-            from src.utils.database.main import test_connection
-            if not test_connection():
+            # 首先重新加载配置并初始化数据库管理器
+            print("\n[1/4] 重新加载配置并初始化数据库管理器...")
+            try:
+                import importlib
+                from dotenv import load_dotenv
+
+                # 重新加载 .env 文件
+                load_dotenv(override=True)
+                print("  ✓ .env 文件已重新加载")
+
+                # 重新导入并初始化设置
+                import src.setting
+                importlib.reload(src.setting)
+                from src.setting import settings as new_settings
+                print(
+                    f"  ✓ 配置已重新加载，数据库 URL: {new_settings.database_url[:50]}..." if new_settings.database_url else "  ⚠ 数据库 URL 仍为空")
+
+                # 初始化统一数据库管理器
+                from src.utils.database.unified_manager import db_manager
+                # 重置管理器状态以允许重新初始化
+                db_manager._async_engine = None
+                db_manager._async_session_factory = None
+                db_manager.initialize()
+
+                if db_manager._async_session_factory is not None:
+                    print("✓ 数据库连接池初始化成功")
+                else:
+                    print("⚠ 警告：数据库连接池初始化失败，数据库 URL 可能未正确配置")
+                    return {
+                        'success': False,
+                        'error': '数据库连接池初始化失败。请检查 .env 文件中的数据库配置是否正确。'
+                    }
+            except Exception as init_err:
+                import traceback
+                error_msg = f'数据库管理器初始化失败: {str(init_err)}'
+                print(f"✗ {error_msg}")
+                print(traceback.format_exc())
                 return {
                     'success': False,
-                    'error': '数据库连接失败，请检查配置'
+                    'error': error_msg
                 }
-            print("✓ 数据库连接成功")
+
+            # 测试数据库连接
+            print("\n[2/4] 测试数据库连接...")
+
+            # 使用 psycopg2 进行同步连接测试（更可靠）
+            try:
+                import psycopg2
+
+                # 从配置中获取连接参数
+                from src.setting import settings
+                db_url = settings.database_url
+
+                if not db_url:
+                    return {
+                        'success': False,
+                        'error': '数据库 URL 未配置'
+                    }
+
+                # 解析数据库 URL
+                # 格式: postgresql+psycopg2://user:pass@host:port/dbname
+                from urllib.parse import urlparse
+                parsed = urlparse(db_url.replace('postgresql+psycopg2://', 'postgresql://'))
+
+                conn = psycopg2.connect(
+                    host=parsed.hostname or 'localhost',
+                    port=parsed.port or 5432,
+                    database=parsed.path.lstrip('/') or 'postgres',
+                    user=parsed.username or 'postgres',
+                    password=parsed.password or '',
+                    connect_timeout=5
+                )
+                conn.close()
+                print("✓ 数据库连接成功")
+
+            except ImportError:
+                error_msg = '缺少 psycopg2 库，请安装: pip install psycopg2-binary'
+                print(f"✗ {error_msg}")
+                return {
+                    'success': False,
+                    'error': error_msg
+                }
+            except Exception as e:
+                error_msg = f'数据库连接失败: {str(e)}'
+                print(f"✗ {error_msg}")
+                return {
+                    'success': False,
+                    'error': error_msg
+                }
 
             # 检查是否有迁移脚本
-            project_root = Path(__file__).parent.parent.parent.parent
+            # installation_wizard.py 路径: shared/services/install/install_manager/installation_wizard.py
+            # 需要向上5层到达项目根目录
+            project_root = Path(__file__).parent.parent.parent.parent.parent
             versions_dir = project_root / "alembic_migrations" / "versions"
             migration_files = list(versions_dir.glob("*.py")) if versions_dir.exists() else []
 
             # 过滤掉 __init__.py
             migration_files = [f for f in migration_files if f.name != "__init__.py"]
 
-            print(f"\n[2/3] 检查迁移脚本... (找到 {len(migration_files)} 个)")
+            print(f"\n[3/4] 检查迁移脚本... (找到 {len(migration_files)} 个)")
 
             # 如果没有迁移脚本，生成初始迁移
             if len(migration_files) == 0:
                 print("→ 未找到迁移脚本，正在生成初始迁移...")
+                print(f"  项目根目录: {project_root.absolute()}")
+                print(f"  迁移目录: {versions_dir.absolute()}")
+                print(f"  迁移目录是否存在: {versions_dir.exists()}")
 
                 result = subprocess.run(
                     [sys.executable, "-m", "alembic", "revision", "--autogenerate", "-m", "Initial migration"],
@@ -816,8 +946,19 @@ class InstallationWizardService:
                     timeout=60
                 )
 
+                # 调试输出
+                print(f"\n[DEBUG] Alembic 命令返回码: {result.returncode}")
+                if result.stdout:
+                    print(f"[DEBUG] Alembic stdout:\n{result.stdout}")
+                if result.stderr:
+                    print(f"[DEBUG] Alembic stderr:\n{result.stderr}")
+
                 if result.returncode != 0:
-                    error_msg = f'生成迁移脚本失败:\n{result.stderr}'
+                    error_msg = f'生成迁移脚本失败 (退出码: {result.returncode}):'
+                    if result.stderr:
+                        error_msg += f'\n{result.stderr}'
+                    if result.stdout:
+                        error_msg += f'\n{result.stdout}'
                     print(f"✗ {error_msg}")
                     return {
                         'success': False,
@@ -830,11 +971,17 @@ class InstallationWizardService:
                 migration_files = list(versions_dir.glob("*.py")) if versions_dir.exists() else []
                 migration_files = [f for f in migration_files if f.name != "__init__.py"]
                 print(f"→ 现在共有 {len(migration_files)} 个迁移脚本")
+
+                # 列出生成的文件
+                if migration_files:
+                    print("  生成的文件:")
+                    for f in migration_files:
+                        print(f"    - {f.name}")
             else:
                 print(f"✓ 找到 {len(migration_files)} 个迁移脚本")
 
             # 执行迁移
-            print("\n[3/3] 执行数据库迁移...")
+            print("\n[4/4] 执行数据库迁移...")
             result = subprocess.run(
                 [sys.executable, "-m", "alembic", "upgrade", "head"],
                 cwd=str(project_root),
@@ -842,54 +989,18 @@ class InstallationWizardService:
                 text=True,
                 timeout=300
             )
+            
+            # 调试输出
+            print(f"\n[DEBUG] Alembic upgrade 返回码: {result.returncode}")
+            if result.stdout:
+                print(f"[DEBUG] Alembic stdout:\n{result.stdout}")
+            if result.stderr:
+                print(f"[DEBUG] Alembic stderr:\n{result.stderr}")
 
             if result.returncode == 0:
                 print("✓ 数据库迁移成功完成")
                 if result.stdout:
                     print(f"\n迁移输出:\n{result.stdout}")
-
-                # 重要：重新加载配置以确保数据库 URL 被正确读取
-                print("\n[4/4] 重新加载配置并初始化数据库连接池...")
-                try:
-                    # 强制重新加载 .env 文件和配置
-                    import importlib
-                    from dotenv import load_dotenv
-                    
-                    # 重新加载 .env 文件
-                    load_dotenv(override=True)
-                    print("  ✓ .env 文件已重新加载")
-                    
-                    # 重新导入并初始化设置
-                    import src.setting
-                    importlib.reload(src.setting)
-                    from src.setting import settings as new_settings
-                    print(f"  ✓ 配置已重新加载，数据库 URL: {new_settings.database_url[:50]}..." if new_settings.database_url else "  ⚠ 数据库 URL 仍为空")
-                    
-                    # 初始化统一数据库管理器
-                    from src.utils.database.unified_manager import db_manager
-                    # 重置管理器状态以允许重新初始化
-                    db_manager._async_engine = None
-                    db_manager._async_session_factory = None
-                    db_manager.initialize()
-                    
-                    if db_manager._async_session_factory is not None:
-                        print("✓ 数据库连接池初始化成功")
-                    else:
-                        print("⚠ 警告：数据库连接池初始化失败，数据库 URL 可能未正确配置")
-                        return {
-                            'success': False,
-                            'error': '数据库连接池初始化失败。请检查 .env 文件中的数据库配置是否正确。'
-                        }
-                        
-                except Exception as init_err:
-                    import traceback
-                    error_msg = f'数据库连接池初始化失败: {str(init_err)}'
-                    print(f"✗ {error_msg}")
-                    print(traceback.format_exc())
-                    return {
-                        'success': False,
-                        'error': error_msg
-                    }
 
                 return {
                     'success': True,
@@ -898,7 +1009,11 @@ class InstallationWizardService:
                     'migrations_applied': len(migration_files)
                 }
             else:
-                error_msg = f'迁移失败 (退出码: {result.returncode}):\n{result.stderr}'
+                error_msg = f'迁移失败 (退出码: {result.returncode}):'
+                if result.stderr:
+                    error_msg += f'\n{result.stderr}'
+                if result.stdout:
+                    error_msg += f'\n{result.stdout}'
                 print(f"✗ {error_msg}")
                 return {
                     'success': False,

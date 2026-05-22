@@ -53,7 +53,7 @@ def check_installation() -> bool:
         if not installed:
             print("\n" + "=" * 60)
             print("⚠️  系统尚未安装")
-            print("👉 请启动前端进程后访问 http://localhost:3000/install 完成安装向导")
+            print("👉 请启动前端进程后访问 http://localhost:4321/install 完成安装向导")
             print("=" * 60 + "\n")
         return installed
     except Exception as e:
@@ -585,7 +585,7 @@ def register_error_handlers(app: FastAPI):
     @app.exception_handler(Exception)
     async def general_exception_handler(request: Request, exc: Exception):
         from src.unified_logger import default_logger as logger
-        logger.getLogger(__name__).error(f"General error: {exc}")
+        logger.error(f"General error: {exc}")
         if any(kw in str(exc).lower() for kw in ["not found", "no result", "does not exist"]):
             from src.error import error
             return error(404, "Page Not Found")
