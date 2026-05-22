@@ -12,7 +12,7 @@ from src.api.v1.articles.article_revisions import router as article_revisions_ro
 from src.api.v1.articles.article_search import router as article_search_router
 from src.api.v1.articles.article_stats import router as article_stats_router
 from src.api.v1.articles.draft_preview import router as draft_preview_router
-from src.api.v1.articles.articles import router as articles_router
+
 from src.api.v1.articles.scheduled_publish import router as scheduled_publish_router
 
 # 创建聚合路由器
@@ -27,5 +27,4 @@ router.include_router(article_annotations_router, prefix="/annotations")  # /art
 router.include_router(article_search_router, prefix="/search")  # /search/*
 router.include_router(article_stats_router, prefix="/views")  # /views/*
 router.include_router(draft_preview_router, prefix="/draft")  # /draft/*
-router.include_router(articles_router, prefix="")  # /* - 文章 CRUD (列表, 创建, 详情, 更新, 删除等)
 router.include_router(scheduled_publish_router, prefix="/scheduler")  # /scheduler/*

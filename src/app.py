@@ -283,6 +283,14 @@ def register_all_routes(app: FastAPI, worker_info: str):
         print(f"{worker_info} [ERROR] API v2 模块未找到: {e}\n")
         raise
 
+    # ====== 文章 CRUD 路由（直接挂载，绕过 V2 聚合路由器的 empty-path 限制）======
+    try:
+        from src.api.v1.articles.articles import router as articles_crud_router
+        app.include_router(articles_crud_router, prefix="/api/v2/articles", tags=["articles-v2"])
+        print(f"{worker_info} [OK] v2/articles CRUD 已加载")
+    except Exception as e:
+        print(f"{worker_info} [Warning] v2/articles CRUD 注册失败: {e}")
+
     # 注册 v3 路由（移动端专用）
     print(f"\n{worker_info} {'=' * 60}")
     print(f"{worker_info} 开始注册 API v3 路由（移动端）...")
