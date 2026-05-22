@@ -39,7 +39,7 @@ class WebhookService:
     5. 投递历史记录
     """
 
-    def __init__(self, db: AsyncSession):
+    def __init__(self, db: AsyncSession = None):
         self.db = db
         self.max_retries = 3
         self.retry_delay = 60  # 秒
@@ -132,19 +132,26 @@ class WebhookService:
         logger.info(f"Deleted webhook: {webhook_id}")
         return True
 
-    async def trigger_event(self, event: str, payload: Dict[str, Any]) -> Dict[str, Any]:
+    async def trigger_event(self, event: str, payload: Dict[str, Any],
+                            db: AsyncSession = None) -> Dict[str, Any]:
         """
         触发事件并投递到所有订阅的Webhook
         
         Args:
             event: 事件类型
             payload: 事件数据
+            db: 数据库会话（可选，覆盖 self.db）
             
         Returns:
             投递结果统计
         """
+        session = db or self.db
+        if not session:
+            logger.warning(f"Webhook event '{event}' skipped: no database session")
+            return {'event': event, 'total_webhooks': 0, 'success_count': 0, 'failed_count': 0}
+
         # 查询订阅了该事件的活跃Webhook
-        result = await self.db.execute(
+        result = await session.execute(
             select(Webhook).where(
                 Webhook.is_active == True
             )

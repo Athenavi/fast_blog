@@ -702,7 +702,7 @@ async def create_article_api(
         # 触发 Webhook 事件
         try:
 
-            webhook_service.trigger_event(
+            await webhook_service.trigger_event(
                 'article.created',
                 {
                     'article_id': new_article.id,
@@ -711,7 +711,8 @@ async def create_article_api(
                     'author_id': current_user.id,
                     'status': new_article.status,
                     'created_at': new_article.created_at.isoformat() if new_article.created_at else None,
-                }
+                },
+                db=db
             )
         except Exception as webhook_err:
             print(f"Webhook trigger failed: {webhook_err}")
@@ -828,7 +829,7 @@ async def update_article_api(
         # 触发 Webhook 事件
         try:
 
-            webhook_service.trigger_event(
+            await webhook_service.trigger_event(
                 'article.updated',
                 {
                     'article_id': article_id,
@@ -836,7 +837,8 @@ async def update_article_api(
                     'slug': article.slug,
                     'updated_fields': list(form_data.keys()),
                     'updated_at': article.updated_at.isoformat() if article.updated_at else None,
-                }
+                },
+                db=db
             )
         except Exception as webhook_err:
             print(f"Webhook trigger failed: {webhook_err}")
@@ -882,14 +884,15 @@ async def delete_article_api(
         # 触发 Webhook 事件
         try:
 
-            webhook_service.trigger_event(
+            await webhook_service.trigger_event(
                 'article.deleted',
                 {
                     'article_id': article_id,
                     'title': article.title,
                     'slug': article.slug,
                     'deleted_at': datetime.now().isoformat(),
-                }
+                },
+                db=db
             )
         except Exception as webhook_err:
             print(f"Webhook trigger failed: {webhook_err}")
