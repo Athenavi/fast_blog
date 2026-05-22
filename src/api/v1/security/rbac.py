@@ -12,7 +12,7 @@ from shared.services.security.rbac_service import rbac_service
 from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
-from src.utils.security.security import Permission
+from shared.models.capability import Capability
 
 router = APIRouter(tags=["rbac"])
 
@@ -76,7 +76,7 @@ async def create_role(
                 'description': role.description,
                 'is_system': role.is_system,
                 'parent_id': role.parent_id,
-                'permission_count': len(role.permissions),
+                'permission_count': len(role.capabilities),
             },
             message="Role created successfully"
         )
@@ -112,6 +112,18 @@ async def get_roles(
         result = await db.execute(query)
         roles = result.scalars().all()
 
+        # 查询每个角色的用户数
+        from shared.models.user_role import UserRole
+        from sqlalchemy import func
+
+        user_counts = {}
+        count_result = await db.execute(
+            select(UserRole.role_id, func.count(UserRole.user_id).label('cnt'))
+            .group_by(UserRole.role_id)
+        )
+        for row in count_result:
+            user_counts[row.role_id] = row.cnt
+
         roles_list = []
         for role in roles:
             roles_list.append({
@@ -121,8 +133,8 @@ async def get_roles(
                 'description': role.description,
                 'is_system': role.is_system,
                 'parent_id': role.parent_id,
-                'permission_count': len(role.permissions),
-                'user_count': len(role.users),
+                'permission_count': len(role.capabilities),
+                'user_count': user_counts.get(role.id, 0),
                 'created_at': role.created_at.isoformat() if role.created_at else None,
             })
 
@@ -161,10 +173,6 @@ async def update_role_permissions(
         if not has_permission:
             return ApiResponse(success=False, error="Insufficient permissions")
 
-        role = await db.get(
-            rbac_service.__class__.__module__.replace('.rbac_service', '.rbac_service').split('.')[-1] + '.Role',
-            role_id)
-
         role = await db.get(Role, role_id)
 
         if not role:
@@ -173,18 +181,18 @@ async def update_role_permissions(
         if role.is_system:
             return ApiResponse(success=False, error="Cannot modify system role permissions")
 
-        # 清空现有权限
-        role.permissions.clear()
+        # 清空现有 capability 关联
+        role.capabilities = []
 
-        # 添加新权限
+        # 添加新 capability
         from sqlalchemy import select
 
         for code in permission_codes:
-            perm_stmt = select(Permission).where(Permission.code == code)
-            perm_result = await db.execute(perm_stmt)
-            perm = perm_result.scalar_one_or_none()
-            if perm:
-                role.permissions.append(perm)
+            cap_stmt = select(Capability).where(Capability.code == code)
+            cap_result = await db.execute(cap_stmt)
+            cap = cap_result.scalar_one_or_none()
+            if cap:
+                role.capabilities.append(cap)
 
         await db.commit()
 
@@ -237,8 +245,12 @@ async def delete_role(
             return ApiResponse(success=False, error="Cannot delete system role")
 
         # 移除所有用户的该角色
-        for user in role.users:
-            user.roles.remove(role)
+        from shared.models.user_role import UserRole
+
+        user_role_stmt = select(UserRole).where(UserRole.role_id == role_id)
+        user_role_result = await db.execute(user_role_stmt)
+        for ur in user_role_result.scalars().all():
+            await db.delete(ur)
 
         await db.delete(role)
         await db.commit()
@@ -281,23 +293,23 @@ async def get_permissions(
     try:
         from sqlalchemy import select
 
-        query = select(Permission).where(Permission.is_active == True)
+        query = select(Capability).where(Capability.is_active == True)
 
         if resource_type:
-            query = query.where(Permission.resource_type == resource_type)
+            query = query.where(Capability.resource_type == resource_type)
 
         result = await db.execute(query)
-        permissions = result.scalars().all()
+        capabilities = result.scalars().all()
 
         perms_list = []
-        for perm in permissions:
+        for cap in capabilities:
             perms_list.append({
-                'id': perm.id,
-                'name': perm.name,
-                'code': perm.code,
-                'description': perm.description,
-                'resource_type': perm.resource_type,
-                'action': perm.action,
+                'id': cap.id,
+                'name': cap.name,
+                'code': cap.code,
+                'description': cap.description,
+                'resource_type': cap.resource_type,
+                'action': cap.action,
             })
 
         return ApiResponse(
