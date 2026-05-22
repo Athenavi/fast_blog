@@ -1187,10 +1187,11 @@ const AudioLayer: React.FC<{ media: MediaFile; onClose: () => void }> = ({media,
                   visible={showDesktopLyrics}
                   onVisibilityChange={setShowDesktopLyrics}
               />
-              {/* 桌面歌词开关 */}
+              {/* 桌面歌词开关（stopPropagation 防止误触 MiniPlayer 的 togglePlay） */}
               {lyrics.length > 0 && (
                   <button
-                      onClick={() => setShowDesktopLyrics(v => !v)}
+                      onClick={(e) => { e.stopPropagation(); setShowDesktopLyrics(v => !v); }}
+                      onPointerDown={(e) => e.stopPropagation()}
                       className="fixed bottom-24 right-4 z-[66] w-9 h-9 rounded-full bg-black/60 backdrop-blur border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors"
                       aria-label="桌面歌词"
                       title="桌面歌词"
