@@ -313,34 +313,54 @@ class RBACService:
         """
         from shared.models.user_role import UserRole
         from shared.models.user import User
+        from sqlalchemy.orm import selectinload
 
         # 超级管理员直接放行
-        user = await db.get(User, user_id)
-        if user and getattr(user, 'is_superuser', False):
-            return True
+        if user_id:
+            user = await db.get(User, user_id)
+            if user and getattr(user, 'is_superuser', False):
+                return True
 
-        # 查询用户的所有角色
-        stmt = select(UserRole).where(UserRole.user_id == user_id)
-        result = await db.execute(stmt)
-        user_roles = result.scalars().all()
+        # 查询用户的 role_id 列表
+        ur_stmt = select(UserRole.role_id).where(UserRole.user_id == user_id)
+        ur_result = await db.execute(ur_stmt)
+        role_ids = [row[0] for row in ur_result]
 
-        for ur in user_roles:
-            role = await db.get(Role, ur.role_id)
-            if not role or not role.is_active:
-                continue
+        if not role_ids:
+            return False
 
+        # 一次性加载所有角色及其 capabilities
+        role_stmt = select(Role).options(selectinload(Role.capabilities)).where(
+            Role.id.in_(role_ids), Role.is_active == True
+        )
+        role_result = await db.execute(role_stmt)
+        roles = role_result.scalars().all()
+
+        # 收集父角色
+        parent_ids = set(role.parent_id for role in roles if role.parent_id)
+
+        # 如果存在父角色，一次性加载它们及其 capabilities
+        parent_roles = {}
+        if parent_ids:
+            parent_stmt = select(Role).options(selectinload(Role.capabilities)).where(
+                Role.id.in_(list(parent_ids)), Role.is_active == True
+            )
+            parent_result = await db.execute(parent_stmt)
+            for pr in parent_result.scalars().all():
+                parent_roles[pr.id] = pr
+
+        for role in roles:
             # 检查角色是否有该权限（capability）
             for cap in role.capabilities:
                 if cap.code == permission_code or cap.code == '*':
                     return True
 
             # 检查父角色（权限继承）
-            if role.parent_id:
-                parent_role = await db.get(Role, role.parent_id)
-                if parent_role and parent_role.is_active:
-                    for cap in parent_role.capabilities:
-                        if cap.code == permission_code or cap.code == '*':
-                            return True
+            if role.parent_id and role.parent_id in parent_roles:
+                parent_role = parent_roles[role.parent_id]
+                for cap in parent_role.capabilities:
+                    if cap.code == permission_code or cap.code == '*':
+                        return True
 
         return False
 
@@ -356,28 +376,44 @@ class RBACService:
             权限代码列表
         """
         from shared.models.user_role import UserRole
+        from sqlalchemy.orm import selectinload
 
-        # 查询用户的所有角色
-        stmt = select(UserRole).where(UserRole.user_id == user_id)
-        result = await db.execute(stmt)
-        user_roles = result.scalars().all()
+        # 查询用户的 role_id 列表
+        ur_stmt = select(UserRole.role_id).where(UserRole.user_id == user_id)
+        ur_result = await db.execute(ur_stmt)
+        role_ids = [row[0] for row in ur_result]
+
+        if not role_ids:
+            return []
+
+        # 一次性加载所有角色及其 capabilities
+        role_stmt = select(Role).options(selectinload(Role.capabilities)).where(
+            Role.id.in_(role_ids), Role.is_active == True
+        )
+        role_result = await db.execute(role_stmt)
+        roles = role_result.scalars().all()
+
+        # 收集父角色
+        parent_ids = set(role.parent_id for role in roles if role.parent_id)
+        parent_roles = {}
+        if parent_ids:
+            parent_stmt = select(Role).options(selectinload(Role.capabilities)).where(
+                Role.id.in_(list(parent_ids)), Role.is_active == True
+            )
+            parent_result = await db.execute(parent_stmt)
+            for pr in parent_result.scalars().all():
+                parent_roles[pr.id] = pr
 
         capabilities = set()
 
-        for ur in user_roles:
-            role = await db.get(Role, ur.role_id)
-            if not role or not role.is_active:
-                continue
-
+        for role in roles:
             for cap in role.capabilities:
                 capabilities.add(cap.code)
 
             # 继承父角色权限
-            if role.parent_id:
-                parent_role = await db.get(Role, role.parent_id)
-                if parent_role and parent_role.is_active:
-                    for cap in parent_role.capabilities:
-                        capabilities.add(cap.code)
+            if role.parent_id and role.parent_id in parent_roles:
+                for cap in parent_roles[role.parent_id].capabilities:
+                    capabilities.add(cap.code)
 
         return list(capabilities)
 
