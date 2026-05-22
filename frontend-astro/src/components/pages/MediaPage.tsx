@@ -1853,6 +1853,3 @@ const BatchTagDialog: React.FC<{
       </div>
   );
 };
-
-/* ========== DeleteConfirm ========== */
-const DeleteConfirm: React.FC<{item: MediaFile; onCancel: ()=>void; onConfirm: ()=>void}> = ({item, onCancel, onConfirm}) => (
