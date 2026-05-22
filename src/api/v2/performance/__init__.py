@@ -17,6 +17,8 @@ from src.api.v1.performance.query_monitor import router as query_monitor_router
 from src.api.v1.performance.query_optimization import router as query_optimization_router
 from src.api.v1.performance.resource_optimization import router as resource_optimization_router
 
+from src.api.v2.performance.cdn_optimization import router as cdn_optimization_router
+
 # 创建聚合路由器
 router = APIRouter(tags=["performance"])
 
@@ -32,3 +34,4 @@ router.include_router(object_cache_router, prefix="/object-cache")  # /object-ca
 router.include_router(query_monitor_router, prefix="/query-monitor")  # /query-monitor/* - 查询监控
 router.include_router(query_optimization_router, prefix="/query-optimization")  # /query-optimization/* - 查询优化
 router.include_router(resource_optimization_router, prefix="/resource-optimization")  # /resource-optimization/* - 资源优化
+router.include_router(cdn_optimization_router, prefix="/cdn")  # /cdn/* - CDN优化
