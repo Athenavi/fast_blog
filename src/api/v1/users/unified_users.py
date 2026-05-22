@@ -33,7 +33,7 @@ from src.extensions import get_async_db_session as get_async_db
 from src.setting import app_config
 from src.utils.security.forms import ChangePasswordForm
 from src.utils.security.ip_utils import get_client_ip
-from src.utils.security.safe import valid_language_codes
+from src.utils.security.safe import is_valid_iso_language_code
 from src.utils.send_email import request_email_change
 
 router = APIRouter(tags=["users"])
@@ -431,7 +431,7 @@ async def update_current_user_profile_api(
                 elif field == 'bio':
                     await db_save_bio(user.id, data[field], db)
                 elif field == 'locale':
-                    if not valid_language_codes(data[field]):
+                    if not is_valid_iso_language_code(data[field]):
                         return ApiResponse(success=False, error='Invalid locale')
                     user.locale = data[field]
                 else:
@@ -624,7 +624,7 @@ async def update_user_settings_api(
             current_user.profile_private = bool(data['profile_private'])
 
         if 'locale' in data:
-            if not valid_language_codes(data['locale']):
+            if not is_valid_iso_language_code(data['locale']):
                 return ApiResponse(success=False, error='Invalid locale')
             current_user.locale = data['locale']
 
