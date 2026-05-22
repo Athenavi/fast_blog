@@ -371,6 +371,19 @@ async def login_api(
         # 6. 清除之前的失败记录
         await login_security_service.clear_failed_attempts_async(username, db)
 
+        # 记录审计日志
+        try:
+            from shared.services.security.audit_log_service import audit_log_service, AuditLogAction
+            await audit_log_service.log_action(
+                db=db, user_id=user.id, user_name=user.username,
+                action=AuditLogAction.LOGIN, resource_type='auth',
+                description=f"用户登录：{user.username}",
+                ip_address=request.client.host if request.client else None,
+                user_agent=request.headers.get('user-agent'),
+            )
+        except Exception:
+            pass
+
         return ApiResponse(
             success=True,
             data={
@@ -637,7 +650,10 @@ async def verify_sms_code(
 
 
 @router.post("/logout", summary="用户登出")
-async def logout_api(request: Request):
+async def logout_api(
+    request: Request,
+    db: AsyncSession = Depends(get_async_db),
+):
     """将当前 access_token 及可选的 refresh_token 加入黑名单"""
     try:
         body = await request.body()
@@ -666,6 +682,32 @@ async def logout_api(request: Request):
             _blacklist_token(access_token_str)
         if refresh_token_str:
             _blacklist_token(refresh_token_str)
+
+        # 记录审计日志
+        try:
+            from shared.services.security.audit_log_service import audit_log_service, AuditLogAction
+            # 从 access_token 中解析用户信息记录登出日志
+            log_user_id = None
+            log_user_name = None
+            if access_token_str:
+                try:
+                    payload = jwt.decode(access_token_str, settings.JWT_SECRET_KEY,
+                                         algorithms=[settings.JWT_ALGORITHM],
+                                         options={"verify_exp": False})
+                    log_user_id = payload.get('user_id') or payload.get('sub')
+                    log_user_name = payload.get('sub') or payload.get('username')
+                except Exception:
+                    pass
+            if log_user_id:
+                await audit_log_service.log_action(
+                    db=db, user_id=log_user_id, user_name=log_user_name,
+                    action=AuditLogAction.LOGOUT, resource_type='auth',
+                    description="用户登出",
+                    ip_address=request.client.host if request.client else None,
+                    user_agent=request.headers.get('user-agent'),
+                )
+        except Exception:
+            pass
 
         return ApiResponse(success=True, message="登出成功")
     except Exception as e:

@@ -701,7 +701,6 @@ async def create_article_api(
 
         # 触发 Webhook 事件
         try:
-
             await webhook_service.trigger_event(
                 'article.created',
                 {
@@ -716,7 +715,20 @@ async def create_article_api(
             )
         except Exception as webhook_err:
             print(f"Webhook trigger failed: {webhook_err}")
-        
+
+        # 记录审计日志
+        try:
+            from shared.services.security.audit_log_service import audit_log_service, AuditLogAction
+            await audit_log_service.log_action(
+                db=db, user_id=current_user.id, user_name=getattr(current_user, 'username', None),
+                action=AuditLogAction.CREATE, resource_type='article', resource_id=str(new_article.id),
+                description=f"创建文章：{new_article.title}",
+                ip_address=request.client.host if request.client else None,
+                user_agent=request.headers.get('user-agent'),
+            )
+        except Exception as audit_err:
+            print(f"审计日志记录失败: {audit_err}")
+
         return ApiResponse(success=True, data={"message": "Article created successfully", "article_id": new_article.id})
     except Exception as e:
         await db.rollback()
@@ -859,7 +871,20 @@ async def update_article_api(
             )
         except Exception as webhook_err:
             print(f"Webhook trigger failed: {webhook_err}")
-        
+
+        # 记录审计日志
+        try:
+            from shared.services.security.audit_log_service import audit_log_service, AuditLogAction
+            await audit_log_service.log_action(
+                db=db, user_id=current_user.id, user_name=getattr(current_user, 'username', None),
+                action=AuditLogAction.UPDATE, resource_type='article', resource_id=str(article_id),
+                description=f"更新文章：{article.title}",
+                ip_address=request.client.host if request.client else None,
+                user_agent=request.headers.get('user-agent'),
+            )
+        except Exception as audit_err:
+            print(f"审计日志记录失败: {audit_err}")
+
         return ApiResponse(success=True, data={"message": "Article updated successfully"})
     except Exception as e:
         await db.rollback()
@@ -913,7 +938,20 @@ async def delete_article_api(
             )
         except Exception as webhook_err:
             print(f"Webhook trigger failed: {webhook_err}")
-        
+
+        # 记录审计日志
+        try:
+            from shared.services.security.audit_log_service import audit_log_service, AuditLogAction
+            await audit_log_service.log_action(
+                db=db, user_id=current_user.id, user_name=getattr(current_user, 'username', None),
+                action=AuditLogAction.DELETE, resource_type='article', resource_id=str(article_id),
+                description=f"删除文章：{article.title}",
+                ip_address=request.client.host if request.client else None,
+                user_agent=request.headers.get('user-agent'),
+            )
+        except Exception as audit_err:
+            print(f"审计日志记录失败: {audit_err}")
+
         return ApiResponse(success=True, data={"message": "Article deleted successfully"})
     except Exception as e:
         import traceback
