@@ -670,20 +670,29 @@ const AudioPlayer: React.FC<{ media: MediaFile; fullUrl: string }> = ({media, fu
         </div>
 
         {/* ====== Bottom Controls Bar (Apple Music style) ====== */}
-        <div className="flex-shrink-0 bg-black/90 backdrop-blur-2xl border-t border-white/10">
-          {/* --- Progress Bar --- */}
-          <div className="px-4 pt-2 pb-1">
-            <input
-                type="range"
-                min="0"
-                max={duration || 100}
-                value={currentTime}
-                onChange={handleSeek}
-                className="w-full h-1 bg-white/20 rounded-full appearance-none cursor-pointer accent-purple-500"
-                style={{
-                  background: `linear-gradient(to right, #a855f7 ${(currentTime / (duration || 1)) * 100}%, rgba(255,255,255,0.15) ${(currentTime / (duration || 1)) * 100}%)`,
-                }}
-            />
+        <div className="flex-shrink-0 bg-black/90 backdrop-blur-2xl border-t border-white/10"
+             style={{paddingBottom: 'env(safe-area-inset-bottom, 0px)'}}>
+          {/* --- Progress Bar (touch-friendly, thin visual + large tap target) --- */}
+          <div className="px-4 pt-3 pb-1">
+            <div className="relative h-6 flex items-center -my-1">
+              <input
+                  type="range"
+                  min="0"
+                  max={duration || 100}
+                  value={currentTime}
+                  onChange={handleSeek}
+                  className="absolute inset-0 w-full h-full appearance-none bg-transparent cursor-pointer z-10 opacity-0"
+                  style={{touchAction: 'none'}}
+                  aria-label="播放进度"
+              />
+              {/* 视觉进度条 */}
+              <div className="w-full h-1 rounded-full bg-white/15 overflow-hidden pointer-events-none">
+                <div
+                    className="h-full rounded-full bg-gradient-to-r from-purple-500 to-pink-500 transition-all duration-75"
+                    style={{width: `${duration ? (currentTime / duration) * 100 : 0}%`}}
+                />
+              </div>
+            </div>
             <div className="flex justify-between text-[11px] text-white/30 mt-0.5 px-0.5">
               <span>{formatTime(currentTime)}</span>
               <span>{formatTime(duration)}</span>
@@ -719,13 +728,14 @@ const AudioPlayer: React.FC<{ media: MediaFile; fullUrl: string }> = ({media, fu
               </motion.button>
             </div>
 
-            {/* Center: Playback controls */}
-            <div className="flex items-center gap-3">
-              {/* Rewind 10s */}
+            {/* Center: Playback controls — 标准三键布局 + 附加键 (桌面) */}
+            <div className="flex items-center justify-center gap-1 sm:gap-3">
+              {/* Rewind 10s (仅桌面) */}
               <motion.button
                   whileTap={{scale: 0.85}}
                   onClick={() => {const a = audioRef.current; if (a) a.currentTime = Math.max(0, a.currentTime - 10);}}
-                  className="text-white/50 hover:text-white transition-colors"
+                  className="text-white/50 hover:text-white transition-colors p-2 min-w-[44px] min-h-[44px] items-center justify-center hidden sm:flex"
+                  aria-label="后退10秒"
               >
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M11 18V6l-8.5 6 8.5 6zm.5-6l8.5 6V6l-8.5 6z"/></svg>
               </motion.button>
@@ -734,7 +744,8 @@ const AudioPlayer: React.FC<{ media: MediaFile; fullUrl: string }> = ({media, fu
               <motion.button
                   whileTap={{scale: 0.85}}
                   onClick={() => {const a = audioRef.current; if (a) a.currentTime = 0;}}
-                  className="text-white/50 hover:text-white transition-colors"
+                  className="text-white/50 hover:text-white transition-colors p-2 min-w-[44px] min-h-[44px] flex items-center justify-center"
+                  aria-label="重新播放"
               >
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
               </motion.button>
@@ -743,7 +754,8 @@ const AudioPlayer: React.FC<{ media: MediaFile; fullUrl: string }> = ({media, fu
               <motion.button
                   whileTap={{scale: 0.9}}
                   onClick={togglePlay}
-                  className="w-11 h-11 bg-white rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-all"
+                  className="w-12 h-12 sm:w-11 sm:h-11 bg-white rounded-full flex items-center justify-center shadow-lg hover:shadow-xl transition-all mx-1"
+                  aria-label={isPlaying ? '暂停' : '播放'}
               >
                 {isPlaying ? (
                     <svg className="w-5 h-5 text-black" fill="currentColor" viewBox="0 0 24 24">
@@ -756,47 +768,51 @@ const AudioPlayer: React.FC<{ media: MediaFile; fullUrl: string }> = ({media, fu
                 )}
               </motion.button>
 
-              {/* Next (forward 10s) */}
+              {/* Next (skip 10s) */}
               <motion.button
                   whileTap={{scale: 0.85}}
                   onClick={() => {const a = audioRef.current; if (a) a.currentTime = Math.min(duration, a.currentTime + 10);}}
-                  className="text-white/50 hover:text-white transition-colors"
+                  className="text-white/50 hover:text-white transition-colors p-2 min-w-[44px] min-h-[44px] flex items-center justify-center"
+                  aria-label="前进10秒"
               >
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M4 18l8.5-6L4 6v12zm9-12v12l8.5-6L13 6z"/></svg>
               </motion.button>
 
-              {/* Forward 10s */}
+              {/* Forward 10s (仅桌面) */}
               <motion.button
                   whileTap={{scale: 0.85}}
                   onClick={() => {const a = audioRef.current; if (a) a.currentTime = Math.min(duration, a.currentTime + 10);}}
-                  className="text-white/50 hover:text-white transition-colors"
+                  className="text-white/50 hover:text-white transition-colors p-2 min-w-[44px] min-h-[44px] items-center justify-center hidden sm:flex"
+                  aria-label="快进10秒"
               >
                 <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M13 6v12l8.5-6L13 6zM4 18l8.5-6L4 6v12z"/></svg>
               </motion.button>
             </div>
 
             {/* Right: Volume & extras */}
-            <div className="flex items-center gap-3 flex-1 justify-end">
-              {/* Repeat */}
+            <div className="flex items-center justify-end gap-1 sm:gap-3 flex-1">
+              {/* Repeat (hidden on mobile) */}
               <motion.button
                   whileTap={{scale: 0.85}}
                   onClick={() => setRepeatMode(r => r === 'off' ? 'all' : r === 'all' ? 'one' : 'off')}
-                  className="relative"
+                  className="relative hidden sm:block p-2 min-w-[44px] min-h-[44px]"
+                  aria-label={`循环模式: ${repeatMode === 'off' ? '关闭' : repeatMode === 'all' ? '全部循环' : '单曲循环'}`}
               >
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke={repeatMode !== 'off' ? '#a855f7' : 'rgba(255,255,255,0.4)'} strokeWidth={2}>
+                <svg className="w-4 h-4 mx-auto" viewBox="0 0 24 24" fill="none" stroke={repeatMode !== 'off' ? '#a855f7' : 'rgba(255,255,255,0.4)'} strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
                 </svg>
                 {repeatMode === 'one' && (
-                    <span className="absolute -top-1 -right-1 w-3 h-3 bg-purple-500 rounded-full flex items-center justify-center text-[8px] font-bold text-white">1</span>
+                    <span className="absolute top-0 right-0 w-3 h-3 bg-purple-500 rounded-full flex items-center justify-center text-[8px] font-bold text-white">1</span>
                 )}
               </motion.button>
 
-              {/* Volume */}
-              <div className="relative flex items-center">
+              {/* Volume (hidden on mobile) */}
+              <div className="relative hidden sm:flex items-center">
                 <motion.button
                     whileTap={{scale: 0.85}}
                     onClick={() => setShowVolumeSlider(v => !v)}
-                    className="flex items-center"
+                    className="p-2 min-w-[44px] min-h-[44px] flex items-center justify-center"
+                    aria-label="音量"
                 >
                   <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth={2}>
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/>
@@ -811,21 +827,36 @@ const AudioPlayer: React.FC<{ media: MediaFile; fullUrl: string }> = ({media, fu
                           step="0.01"
                           value={volume}
                           onChange={handleVolumeChange}
-                          className="w-20 h-1 bg-white/20 rounded-full appearance-none cursor-pointer accent-purple-500 rotate-0"
+                          className="w-24 h-1.5 bg-white/20 rounded-full appearance-none cursor-pointer accent-purple-500"
                           style={{
                             background: `linear-gradient(to right, #a855f7 ${volume * 100}%, rgba(255,255,255,0.15) ${volume * 100}%)`,
                           }}
+                          aria-label="音量滑块"
                       />
                     </div>
                 )}
               </div>
 
-              {/* Playlist toggle */}
+              {/* Mobile: 歌词快捷切换 */}
+              <motion.button
+                  whileTap={{scale: 0.85}}
+                  onClick={() => setShowLyrics(!showLyrics)}
+                  className="sm:hidden p-2 min-w-[44px] min-h-[44px] flex items-center justify-center"
+                  aria-label={showLyrics ? '隐藏歌词' : '显示歌词'}
+              >
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke={showLyrics ? '#a855f7' : 'rgba(255,255,255,0.4)'} strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/>
+                </svg>
+              </motion.button>
+
+              {/* Playlist toggle (hidden on mobile) */}
               <motion.button
                   whileTap={{scale: 0.85}}
                   onClick={() => setShowPlaylist(!showPlaylist)}
+                  className="hidden sm:block p-2 min-w-[44px] min-h-[44px]"
+                  aria-label="播放列表"
               >
-                <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth={2}>
+                <svg className="w-4 h-4 mx-auto" viewBox="0 0 24 24" fill="none" stroke="rgba(255,255,255,0.4)" strokeWidth={2}>
                   <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"/>
                 </svg>
               </motion.button>
@@ -841,57 +872,34 @@ const PreviewModal: React.FC<{media: MediaFile|null; onClose: ()=>void}> = ({med
   if(!media) return null;
   const fullUrl = getFullMediaUrl(media.url);
   
-  return (<div className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4" onClick={onClose}>
+  return (<div className="fixed inset-0 z-50 flex items-center justify-center" onClick={onClose}>
+    {/*** AUDIO: 全屏沉浸 ***/}
+    {media.mime_type?.startsWith('audio/') && fullUrl ? (
+        <div className="w-full h-full flex flex-col" onClick={e => e.stopPropagation()}>
+          <AudioPlayer media={media} fullUrl={fullUrl}/>
+        </div>
+    ) : (
+    /*** OTHER: 居中模态框 ***/
     <div
         className="w-[90vw] max-w-7xl max-h-[95vh] bg-white dark:bg-gray-900 rounded-2xl overflow-hidden shadow-2xl flex flex-col"
          onClick={e => e.stopPropagation()}>
-      {/* Audio Player with Vinyl Animation */}
-      {media.mime_type?.startsWith('audio/') && fullUrl ? (
-          <AudioPlayer media={media} fullUrl={fullUrl}/>
-      ) : media.mime_type === 'application/pdf' && fullUrl ? (
+      {media.mime_type === 'application/pdf' && fullUrl ? (
           <div className="flex-1 bg-gray-100 dark:bg-gray-800 min-h-[80vh]">
-            <embed
-                src={fullUrl}
-                type="application/pdf"
-                className="w-full h-full"
-                style={{minHeight: '80vh', maxHeight: '85vh'}}
-            />
+            <embed src={fullUrl} type="application/pdf" className="w-full h-full" style={{minHeight: '80vh', maxHeight: '85vh'}}/>
           </div>
       ) : media.mime_type?.startsWith('video/') && fullUrl ? (
-          // Video Player - 流式播放
-          <div className="bg-black">
-            <video
-                src={fullUrl}
-                controls
-                autoPlay
-                preload="auto"
-                className="max-w-full max-h-[70vh] w-full"
-                style={{maxHeight: '70vh'}}
-                playsInline
-            >
-              您的浏览器不支持视频播放
-            </video>
-          </div>
+          <div className="bg-black"><video src={fullUrl} controls autoPlay preload="auto" className="max-w-full max-h-[70vh] w-full" style={{maxHeight: '70vh'}} playsInline>您的浏览器不支持视频播放</video></div>
       ) : media.mime_type?.startsWith('image/') && fullUrl ? (
-          // 图片完整加载
-          <img
-              src={fullUrl}
-              alt={media.original_filename}
-              className="max-w-full max-h-[70vh] object-contain"
-              loading="eager"
-              decoding="async"
-          />
+          <img src={fullUrl} alt={media.original_filename} className="max-w-full max-h-[70vh] object-contain" loading="eager" decoding="async"/>
       ) : (
-          <div className="p-16 text-center"><FileText className="w-16 h-16 text-gray-400 mx-auto mb-4"/><p
-              className="text-gray-600">{media.original_filename}</p></div>
+          <div className="p-16 text-center"><FileText className="w-16 h-16 text-gray-400 mx-auto mb-4"/><p className="text-gray-600">{media.original_filename}</p></div>
       )}
       <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
         <h3 className="font-bold text-gray-900 dark:text-white">{media.original_filename}</h3>
-        <p className="text-sm text-gray-500 mt-1">
-          {media.file_size ? `${(media.file_size / 1024).toFixed(1)} KB` : ''} · {media.mime_type}
-        </p>
+        <p className="text-sm text-gray-500 mt-1">{media.file_size ? `${(media.file_size / 1024).toFixed(1)} KB` : ''} · {media.mime_type}</p>
       </div>
     </div>
+    )}
   </div>);
 };
 
