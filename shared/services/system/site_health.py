@@ -17,7 +17,8 @@ class SiteHealthService:
     """站点健康检查服务"""
     
     def __init__(self):
-        self.base_dir = Path(__file__).resolve().parent.parent.parent
+        # 项目根目录 = site_health.py 向上 4 层: shared/services/system/site_health.py → project root
+        self.base_dir = Path(__file__).resolve().parent.parent.parent.parent
     
     def run_full_check(self) -> Dict[str, Any]:
         """
