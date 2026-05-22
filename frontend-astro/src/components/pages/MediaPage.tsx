@@ -1690,6 +1690,9 @@ const MediaPage: React.FC = () => {
   );
 };
 
+const MediaPageGuard: React.FC = () => <AuthGuard><MediaPage /></AuthGuard>;
+export default MediaPageGuard;
+
 /* ========== Tag Editor (single media) ========== */
 const TagEditor: React.FC<{
   media: {id: number; tags: string; multiple?: boolean} | null;
