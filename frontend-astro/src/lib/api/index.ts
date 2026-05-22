@@ -28,14 +28,14 @@ export const MediaService = {
     return apiClient.get('/media/files', params);
   },
   async deleteMediaFile(ids: number[]) {
-    return apiClient.post('/media/files/delete', { ids });
+    return apiClient.post('/media/batch-delete', { media_ids: ids });
   },
   async uploadMediaFileWithProgress(file: File, onProgress?: (pct: number) => void): Promise<any> {
     const form = new FormData();
     form.append('file', file);
     const xhr = new XMLHttpRequest();
     return new Promise((resolve, reject) => {
-      xhr.open('POST', '/api/v2/media/files/upload');
+      xhr.open('POST', '/api/v2/media/upload');
       xhr.withCredentials = true;
       if (onProgress) {
         xhr.upload.onprogress = (e) => {
