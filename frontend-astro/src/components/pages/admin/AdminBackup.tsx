@@ -13,8 +13,8 @@ function BackupInner() {
   const {data: backups, isLoading} = useQuery({
     queryKey: ['admin-backups'],
     queryFn: async () => {
-      const res = await apiClient.get<any[]>('/api/v2/system/backup/list');
-      return res.success && res.data ? (Array.isArray(res.data) ? res.data : []) : [];
+      const res = await apiClient.get<any>('/api/v2/system/backup/list');
+      return res.success && res.data?.backups ? res.data.backups : [];
     },
   });
   const {data: stats} = useQuery({
