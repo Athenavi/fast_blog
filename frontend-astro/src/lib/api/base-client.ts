@@ -41,7 +41,9 @@ async function request<T = any>(
     };
 
     if (body && method !== 'GET') {
-      if (contentType === 'application/x-www-form-urlencoded') {
+      if (body instanceof FormData) {
+        opts.body = body;  // fetch auto-sets multipart/form-data + boundary
+      } else if (contentType === 'application/x-www-form-urlencoded') {
         opts.headers = {'Content-Type': 'application/x-www-form-urlencoded'};
         opts.body = Object.entries(body)
             .map(([k, v]) => `${encodeURIComponent(k)}=${encodeURIComponent(String(v))}`)
