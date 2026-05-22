@@ -8,7 +8,7 @@ import {History, RotateCcw, Clock, User, FileText, X, GitCompare, ChevronRight} 
 interface Revision {id:number;revision_number:number;title:string;excerpt:string;content:string;change_summary:string|null;created_at:string;author?:{username:string};}
 interface Props {articleId:number|string;open:boolean;onClose:()=>void;onCollapse?:()=>void;onRestore:(c:string,t:string,e:string)=>void;}
 
-const RevisionsSidebar: React.FC<Props> = ({articleId,open,onClose,onRestore}) => {
+const RevisionsSidebar: React.FC<Props> = ({articleId,open,onClose,onCollapse,onRestore}) => {
   const [selected, setSelected] = useState<Revision|null>(null);
   const [compareWith, setCompareWith] = useState<Revision|null>(null);
   const [preview, setPreview] = useState<string|null>(null);
