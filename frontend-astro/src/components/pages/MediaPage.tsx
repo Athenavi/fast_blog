@@ -1290,54 +1290,53 @@ const AudioLayer: React.FC<{ media: MediaFile; onClose: () => void }> = ({media,
     handleSeek,
   };
 
-  if (minimized) {
-    return (
-        <>
-          <DesktopLyrics
-              lyrics={lyrics}
-              activeLineIndex={activeLineIndex}
-              karaokeProgress={karaokeProgress}
-              tokenizeText={tokenizeText}
-              visible={showDesktopLyrics}
-              onVisibilityChange={setShowDesktopLyrics}
-          />
-          {/* 桌面歌词开关 */}
-          {lyrics.length > 0 && (
-              <button
-                  onClick={() => setShowDesktopLyrics(v => !v)}
-                  className="fixed bottom-24 right-4 z-[66] w-9 h-9 rounded-full bg-black/60 backdrop-blur border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors"
-                  aria-label="桌面歌词"
-                  title="桌面歌词"
-              >
-                <svg className="w-4 h-4 text-white/70" fill="none" viewBox="0 0 24 24" stroke={showDesktopLyrics ? '#a855f7' : 'currentColor'} strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/>
-                </svg>
-              </button>
-          )}
-          <MiniPlayerWrapper
-              media={media}
-              fullUrl={fullUrl}
-              onRestore={() => setMinimized(false)}
-              onClose={onClose}
-              {...sharedAudioProps}
-          />
-          {/* 共享的 audio 元素 — 始终存在 */}
-          <audio ref={audioRef} src={fullUrl} preload="auto"/>
-        </>
-    );
-  }
-
   return (
-      <div className="fixed inset-0 z-50 flex flex-col bg-black" onClick={() => {}}>
-        <AudioPlayer
-            media={media}
-            fullUrl={fullUrl}
-            onMinimize={() => setMinimized(true)}
-            {...sharedAudioProps}
-        />
-        {/* 共享的 audio 元素 — 始终存在 */}
+      <>
+        {/* audio 永远在这个位置，不被条件分支卸载 */}
         <audio ref={audioRef} src={fullUrl} preload="auto"/>
-      </div>
+
+        {minimized ? (
+            <>
+              <DesktopLyrics
+                  lyrics={lyrics}
+                  activeLineIndex={activeLineIndex}
+                  karaokeProgress={karaokeProgress}
+                  tokenizeText={tokenizeText}
+                  visible={showDesktopLyrics}
+                  onVisibilityChange={setShowDesktopLyrics}
+              />
+              {/* 桌面歌词开关 */}
+              {lyrics.length > 0 && (
+                  <button
+                      onClick={() => setShowDesktopLyrics(v => !v)}
+                      className="fixed bottom-24 right-4 z-[66] w-9 h-9 rounded-full bg-black/60 backdrop-blur border border-white/10 flex items-center justify-center hover:bg-white/10 transition-colors"
+                      aria-label="桌面歌词"
+                      title="桌面歌词"
+                  >
+                    <svg className="w-4 h-4 text-white/70" fill="none" viewBox="0 0 24 24" stroke={showDesktopLyrics ? '#a855f7' : 'currentColor'} strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3"/>
+                    </svg>
+                  </button>
+              )}
+              <MiniPlayerWrapper
+                  media={media}
+                  fullUrl={fullUrl}
+                  onRestore={() => setMinimized(false)}
+                  onClose={onClose}
+                  {...sharedAudioProps}
+              />
+            </>
+        ) : (
+            <div className="fixed inset-0 z-50 flex flex-col bg-black">
+              <AudioPlayer
+                  media={media}
+                  fullUrl={fullUrl}
+                  onMinimize={() => setMinimized(true)}
+                  {...sharedAudioProps}
+              />
+            </div>
+        )}
+      </>
   );
 };
 
