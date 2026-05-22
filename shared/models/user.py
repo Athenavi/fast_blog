@@ -5,6 +5,7 @@ SQLAlchemy 模型定义 - User
 """
 
 from sqlalchemy import Column, BigInteger, String, Text, Boolean, DateTime, Index
+from sqlalchemy.orm import relationship
 
 from . import Base  # 使用统一的 Base
 
@@ -71,7 +72,8 @@ class User(Base):
 
     backup_codes = Column(Text, nullable=True, doc='备用码(JSON格式存储)')
 
-
+    # 关系定义（手动添加，注意：重新生成代码时可能需要重新添加）
+    roles = relationship('Role', secondary='user_role_assignments', backref='users', lazy='selectin')
 
     def to_dict(self, exclude_sensitive=True):
         """转换为字典
