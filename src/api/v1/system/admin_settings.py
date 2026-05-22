@@ -27,17 +27,17 @@ async def get_system_settings_dict(db: AsyncSession) -> Dict[str, str]:
         # 为了兼容性，先尝试JSON解析，如果失败则返回原值
         try:
             # 尝试解析JSON格式的值
-            parsed_value = json.loads(setting.value)
+            parsed_value = json.loads(setting.setting_value)
             # 如果解析出的值是字符串但包含引号，说明是被序列化的字符串
-            if isinstance(parsed_value, str) and setting.value.startswith('"') and setting.value.endswith('"'):
+            if isinstance(parsed_value, str) and setting.setting_value.startswith('"') and setting.setting_value.endswith('"'):
                 # 这种情况下，原始存储的可能是一个字符串，但被JSON序列化了
                 # 返回解析后的值（即去除外层引号的原始字符串）
-                settings_dict[setting.key] = parsed_value
+                settings_dict[setting.setting_key] = parsed_value
             else:
-                settings_dict[setting.key] = parsed_value
+                settings_dict[setting.setting_key] = parsed_value
         except (json.JSONDecodeError, TypeError):
             # 如果不是JSON格式，则直接使用原始值
-            settings_dict[setting.key] = setting.value
+            settings_dict[setting.setting_key] = setting.setting_value
     return settings_dict
 
 
@@ -65,22 +65,21 @@ async def update_system_setting(key: str, value: Any, db: AsyncSession) -> None:
 
     # 检查设置是否已存在 - 使用异步SQLAlchemy语法
     from sqlalchemy import select
-    existing_setting_query = select(SystemSettings).where(SystemSettings.key == key)
+    existing_setting_query = select(SystemSettings).where(SystemSettings.setting_key == key)
     existing_setting_result = await db.execute(existing_setting_query)  # 使用 await，因为 db.execute 在异步函数中返回结果
     existing_setting = existing_setting_result.scalar_one_or_none()
 
     if existing_setting:
         from datetime import datetime
-        existing_setting.value = serialized_value
+        existing_setting.setting_value = serialized_value
         existing_setting.updated_at = datetime.now()
         await db.commit()
     else:
         from datetime import datetime
         new_setting = SystemSettings(
-            key=key,
-            value=serialized_value,
+            setting_key=key,
+            setting_value=serialized_value,
             description=get_setting_description(key),
-            category=get_setting_category(key),
             updated_at=datetime.now()
         )
         db.add(new_setting)
@@ -125,42 +124,7 @@ def get_setting_description(key: str) -> str:
     return descriptions.get(key, f'{key} 设置')
 
 
-def get_setting_category(key: str) -> str:
-    """
-    获取设置键的分类
-    """
-    categories = {
-        'site_title': 'basic',
-        'site_img': 'basic',
-        'site_description': 'basic',
-        'site_domain': 'basic',
-        'site_beian': 'basic',
-        'site_keywords': 'basic',
-        'user_registration': 'system',
-        'menu_slug': 'system',
-        'home_hero_title': 'home',
-        'home_hero_subtitle': 'home',
-        'home_hero_cta_text': 'home',
-        'home_hero_cta_link': 'home',
-        'home_cta_target': 'home',
-        'home_featured_count': 'home',
-        'home_hero_background_image': 'home',
-        'home_featured_title': 'home',
-        'home_featured_empty_title': 'home',
-        'home_featured_empty_subtitle': 'home',
-        'home_main_title': 'home',
-        'home_main_filter_buttons': 'home',
-        'home_main_empty_title': 'home',
-        'home_main_empty_subtitle': 'home',
-        'home_newsletter_title': 'home',
-        'home_newsletter_subtitle': 'home',
-        'home_newsletter_placeholder': 'home',
-        'home_newsletter_button_text': 'home',
-        'home_no_category_msg': 'home',
-        'home_unknown_author_msg': 'home',
-        'home_no_summary_msg': 'home',
-    }
-    return categories.get(key, 'other')
+# def get_setting_category is no longer needed — model doesn't have a category column
 
 
 @router.get("/")
@@ -263,7 +227,8 @@ async def get_settings(
 async def update_settings(
         request: Request,
         current_user=Depends(jwt_required),
-        db: AsyncSession = Depends(get_async_db)):
+        db: AsyncSession = Depends(get_async_db)
+):
     """
     更新系统设置
     """
