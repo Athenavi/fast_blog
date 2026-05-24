@@ -1,6 +1,7 @@
 """
 文章相关 API（整合博客功能）
 """
+import asyncio
 import re
 from datetime import datetime
 from typing import Optional
@@ -22,6 +23,7 @@ from shared.services.articles.article_manager import article_query_service, pass
 from shared.services.content_management.shortcode_service import shortcode_service
 from shared.services.core.api_embed import APIEmbedService
 from shared.services.notifications.webhook_service import webhook_service
+from shared.services.static_generation.isr_service import isr_service
 from src.api.v1.core.openapi_examples import ARTICLE_LIST_EXAMPLE, ERROR_RESPONSE_EXAMPLE, ARTICLE_DETAIL_EXAMPLE, \
     ARTICLE_CREATE_EXAMPLE
 from src.api.v1.core.responses import ApiResponse
@@ -701,7 +703,7 @@ async def create_article_api(
 
         # 触发 Webhook 事件
         try:
-            await webhook_service.trigger_event(
+            asyncio.create_task(webhook_service.trigger_event(
                 'article.created',
                 {
                     'article_id': new_article.id,
@@ -710,11 +712,16 @@ async def create_article_api(
                     'author_id': current_user.id,
                     'status': new_article.status,
                     'created_at': new_article.created_at.isoformat() if new_article.created_at else None,
-                },
-                db=db
-            )
+                }
+            ))
         except Exception as webhook_err:
             print(f"Webhook trigger failed: {webhook_err}")
+
+        # 触发 ISR 重新生成
+        try:
+            asyncio.create_task(isr_service.on_article_update(new_article.slug))
+        except Exception as isr_err:
+            print(f"ISR trigger failed: {isr_err}")
 
         # 记录审计日志
         try:

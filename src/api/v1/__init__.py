@@ -9,18 +9,23 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models import User
+# 导入 AI 辅助功能路由
+from src.api.v1.ai.ai_assist_routes import router as ai_router
+# 导入第三方发布路由
+from src.api.v1.articles.third_party_publish_routes import router as publish_router
+# 导入安全监控路由
+from src.api.v1.system.security_monitor_routes import router as security_router
+# 导入 Webhook 路由
+from src.api.v1.system.webhook_routes import router as webhook_router
+# 导入移动端同步路由
+from src.api.v1.user_utils.mobile_sync_routes import router as mobile_router
+# 导入多端分发路由
+from src.api.v1.utils.feed_routes import router as feed_router
 from src.auth import get_current_user
 from src.extensions import cache, get_async_db_session as get_async_db
 from src.setting import app_config
 from src.utils.image.processing import generate_thumbnail, get_file_mime_type
 from src.utils.security.safe import is_valid_hash
-
-# 导入 AI 辅助功能路由
-from src.api.v1.ai.ai_assist_routes import router as ai_router
-# 导入移动端同步路由
-from src.api.v1.user_utils.mobile_sync_routes import router as mobile_router
-# 导入多端分发路由
-from src.api.v1.utils.feed_routes import router as feed_router
 
 api_v1_router = APIRouter(prefix="/api/v1", tags=["api-v1"])
 
@@ -343,6 +348,22 @@ api_v1_router.include_router(ai_router)
 api_v1_router.include_router(mobile_router)
 # 注册多端分发路由
 api_v1_router.include_router(feed_router)
+# 注册安全监控路由
+api_v1_router.include_router(security_router)
+# 注册第三方发布路由
+api_v1_router.include_router(publish_router)
+# 注册 Webhook 路由
+api_v1_router.include_router(webhook_router)
+
+# 注册 GraphQL 接口 (Headless CMS)
+try:
+    from strawberry.fastapi import GraphQLRouter
+    from src.api.v1.core.graphql_schema import schema
+
+    graphql_router = GraphQLRouter(schema, prefix="/graphql")
+    api_v1_router.include_router(graphql_router)
+except ImportError:
+    pass
 
 # 为路由自动发现系统提供统一的 router 名称
 router = api_v1_router
