@@ -17,6 +17,17 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, Any, List, Callable
 
+# 引入 FastBlog 核心依赖以实现真正的 AI 代理功能
+from sqlalchemy import select, update, delete
+from sqlalchemy.ext.asyncio import AsyncSession
+from shared.models.article import Article
+from shared.models.article_content import ArticleContent
+from shared.models.category import Category
+from shared.models.user import User
+from shared.models.ai_workflow import AIWorkflow
+from shared.models.audit_log import AuditLog
+from src.utils.database.main import get_async_session
+
 
 class MCPServer:
     """
@@ -443,16 +454,13 @@ class MCPServer:
     # ==================== 资源处理器 ====================
 
     async def _get_articles_resource(self, params: Dict) -> List[Dict]:
-        """获取文章列表"""
-        # TODO: 实际实现需要查询数据库
-        return [
-            {
-                "id": 1,
-                "title": "示例文章",
-                "status": "published",
-                "created_at": datetime.now().isoformat(),
-            }
-        ]
+        """获取文章列表 (Real-time DB Access)"""
+        async for db in get_async_session():
+            query = select(Article).where(Article.status == 1).order_by(Article.created_at.desc()).limit(20)
+            result = await db.execute(query)
+            articles = result.scalars().all()
+            return [a.to_dict() for a in articles]
+        return []
 
     async def _get_categories_resource(self, params: Dict) -> List[Dict]:
         """获取分类列表"""
@@ -496,19 +504,54 @@ class MCPServer:
     # ==================== 工具处理器 ====================
 
     async def _create_article_tool(self, arguments: Dict) -> Dict:
-        """创建文章工具"""
+        """创建文章工具 (AI Agent Action)"""
         title = arguments.get("title")
         content = arguments.get("content")
+        user_id = arguments.get("user_id", 1)  # 默认用户，实际应从认证上下文获取
 
         if not title or not content:
             raise ValueError("Title and content are required")
 
-        # TODO: 实际实现需要保存到数据库
-        return {
-            "success": True,
-            "message": f"Article '{title}' created successfully",
-            "article_id": 1,
-        }
+        async for db in get_async_session():
+            # 1. 创建文章记录
+            new_article = Article(
+                title=title,
+                slug=arguments.get("slug", title.replace(" ", "-")),
+                excerpt=arguments.get("excerpt", content[:200]),
+                user=user_id,
+                status=1 if arguments.get("status") == "published" else 0,
+                created_at=datetime.utcnow(),
+                updated_at=datetime.utcnow()
+            )
+            db.add(new_article)
+            await db.flush()
+
+            # 2. 保存内容
+            article_content = ArticleContent(
+                article=new_article.id,
+                content=content,
+                created_at=datetime.utcnow(),
+                updated_at=datetime.utcnow()
+            )
+            db.add(article_content)
+
+            # 3. 记录审计日志
+            audit_log = AuditLog(
+                user_id=user_id,
+                action="ai_create_article",
+                resource_type="Article",
+                resource_id=str(new_article.id),
+                description=f"AI Agent created article: {title}",
+                created_at=datetime.utcnow()
+            )
+            db.add(audit_log)
+            await db.commit()
+
+            return {
+                "success": True,
+                "message": f"Article '{title}' created successfully by AI Agent",
+                "article_id": new_article.id,
+            }
 
     async def _update_article_tool(self, arguments: Dict) -> Dict:
         """更新文章工具"""

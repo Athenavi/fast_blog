@@ -42,6 +42,134 @@
 # ============================================================================
 
 models:
+  AuditLog:
+    description: 操作审计日志模型
+    properties:
+      id:
+        type: bigint
+        description: 日志 ID
+      user_id:
+        type: bigint
+        nullable: true
+        description: 操作用户 ID
+        foreignKey: User
+      action:
+        type: string
+        maxLength: 100
+        description: "操作动作 (如: create_article, update_settings)"
+      resource_type:
+        type: string
+        maxLength: 50
+        nullable: true
+        description: "资源类型 (如: Article, User)"
+      resource_id:
+        type: bigint
+        nullable: true
+        description: 资源 ID
+      ip_address:
+        type: string
+        maxLength: 45
+        nullable: true
+        description: 操作 IP 地址
+      user_agent:
+        type: text
+        nullable: true
+        description: 用户代理字符串
+      request_data:
+        type: text
+        nullable: true
+        description: 请求数据快照 (JSON)
+      status:
+        type: string
+        maxLength: 20
+        default: success
+        description: "操作状态 (success, failure)"
+      error_message:
+        type: text
+        nullable: true
+        description: 错误信息
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+    orm: true
+    table: audit_logs
+    indexes:
+      - name: idx_audit_logs_user_id
+        columns: [ user_id ]
+        comment: "用户操作查询索引"
+      - name: idx_audit_logs_action
+        columns: [ action ]
+        comment: "动作类型查询索引"
+      - name: idx_audit_logs_created_at
+        columns: [ created_at ]
+        order: DESC
+        comment: "时间排序索引"
+      - name: idx_audit_logs_resource
+        columns: [ resource_type, resource_id ]
+        comment: "资源操作追踪索引"
+
+  AIWorkflow:
+    description: AI 智能工作流记录模型
+    properties:
+      id:
+        type: bigint
+        description: 工作流 ID
+      user_id:
+        type: bigint
+        description: 用户 ID
+        foreignKey: User
+      task_type:
+        type: string
+        maxLength: 50
+        description: "任务类型 (writing_assist, seo_optimize, tag_recommend)"
+      input_data:
+        type: text
+        description: 输入数据 (JSON)
+      output_data:
+        type: text
+        nullable: true
+        description: 输出结果 (JSON)
+      model_used:
+        type: string
+        maxLength: 100
+        nullable: true
+        description: 使用的 AI 模型
+      tokens_used:
+        type: integer
+        default: 0
+        description: 消耗的 Token 数量
+      status:
+        type: string
+        maxLength: 20
+        default: pending
+        description: "状态 (pending, processing, completed, failed)"
+      error_message:
+        type: text
+        nullable: true
+        description: 错误信息
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      completed_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: 完成时间
+    orm: true
+    table: ai_workflows
+    indexes:
+      - name: idx_ai_workflows_user_id
+        columns: [ user_id ]
+        comment: "用户工作流查询索引"
+      - name: idx_ai_workflows_task_type
+        columns: [ task_type ]
+        comment: "任务类型索引"
+      - name: idx_ai_workflows_status
+        columns: [ status ]
+        comment: "状态索引"
+
   User:
     description: 用户模型
     properties:
@@ -3320,52 +3448,6 @@ models:
       - name: idx_orders_payment_transaction
         columns: [ transaction_id ]
         comment: "交易ID查询索引"
-  OrderItem:
-    description: 订单项模型
-    properties:
-      id:
-        type: bigint
-        description: 订单项 ID
-      order_id:
-        type: bigint
-        description: 订单ID
-        foreignKey: Order
-        index: true
-      product_id:
-        type: bigint
-        description: 商品ID
-        foreignKey: Product
-        index: true
-      product_name:
-        type: string
-        maxLength: 255
-        description: 商品名称(快照)
-      quantity:
-        type: integer
-        description: 数量
-      price:
-        type: number
-        description: 单价
-      total:
-        type: number
-        description: 小计
-      extra_metadata:
-        type: text
-        nullable: true
-        description: 附加信息 (JSON格式)
-      created_at:
-        type: string
-        format: date-time
-        description: 创建时间
-    orm: true
-    table: order_items
-    indexes:
-      - name: idx_order_items_order
-        columns: [ order_id ]
-        comment: "订单索引"
-      - name: idx_order_items_product
-        columns: [ product_id ]
-        comment: "商品索引"
   # ============================================================================
   # 内容审核系统 - 敏感词模型
   # ============================================================================
@@ -4503,83 +4585,6 @@ models:
         columns: [ created_at ]
         order: DESC
         comment: "创建时间索引"
-
-  # ============================================================================
-  # 审计日志模型
-  # ============================================================================
-  AuditLog:
-    description: 审计日志模型
-    properties:
-      id:
-        type: bigint
-        description: 日志 ID
-      user_id:
-        type: bigint
-        nullable: true
-        description: 用户 ID
-        index: true
-      user_name:
-        type: string
-        maxLength: 255
-        nullable: true
-        description: 用户名
-      action:
-        type: string
-        maxLength: 50
-        description: 操作类型
-        index: true
-      level:
-        type: string
-        maxLength: 20
-        description: 日志级别
-        index: true
-      resource_type:
-        type: string
-        maxLength: 100
-        nullable: true
-        description: 资源类型
-        index: true
-      resource_id:
-        type: string
-        maxLength: 100
-        nullable: true
-        description: 资源 ID
-        index: true
-      ip_address:
-        type: string
-        maxLength: 45
-        nullable: true
-        description: IP 地址
-      user_agent:
-        type: text
-        nullable: true
-        description: 用户代理
-      description:
-        type: text
-        nullable: true
-        description: 操作描述
-      details:
-        type: text
-        nullable: true
-        description: 详细信息（JSON格式）
-      created_at:
-        type: string
-        format: date-time
-        description: 创建时间
-        index: true
-    orm: true
-    table: audit_logs
-    indexes:
-      - name: idx_audit_logs_user_action_time
-        columns: [ user_id, action, created_at ]
-        comment: "用户操作时间索引"
-      - name: idx_audit_logs_level_time
-        columns: [ level, created_at ]
-        comment: "级别时间索引"
-      - name: idx_audit_logs_resource
-        columns: [ resource_type, resource_id ]
-        comment: "资源索引"
-
   # ============================================================================
   # RBAC 权限模型
   # ============================================================================
@@ -6076,92 +6081,6 @@ models:
       - name: idx_tax_config_effective_dates
         columns: [ effective_from, effective_to ]
         comment: "生效日期索引"
-
-  Order:
-    description: 订单模型
-    properties:
-      id:
-        type: bigint
-        description: 订单 ID
-      user:
-        type: bigint
-        description: 用户
-        foreignKey: User
-      order_number:
-        type: string
-        maxLength: 50
-        unique: true
-        description: 订单编号
-      status:
-        type: string
-        maxLength: 20
-        enum:
-          - pending
-          - processing
-          - completed
-          - cancelled
-          - refunded
-        default: pending
-        description: 订单状态
-      total_amount:
-        type: number
-        description: 总金额
-      currency:
-        type: string
-        maxLength: 3
-        default: USD
-        description: 货币类型
-      tax_amount:
-        type: number
-        default: 0
-        description: 税额
-      shipping_address:
-        type: text
-        nullable: true
-        description: 收货地址 (JSON格式)
-      billing_address:
-        type: text
-        nullable: true
-        description: 账单地址 (JSON格式)
-      notes:
-        type: text
-        nullable: true
-        description: 订单备注
-      payment_gateway:
-        type: bigint
-        nullable: true
-        description: 支付网关
-        foreignKey: PaymentGateway
-      paid_at:
-        type: string
-        format: date-time
-        nullable: true
-        description: 支付完成时间
-      created_at:
-        type: string
-        format: date-time
-        description: 创建时间
-      updated_at:
-        type: string
-        format: date-time
-        description: 更新时间
-    orm: true
-    table: orders
-    indexes:
-      - name: idx_order_user
-        columns: [ user ]
-        comment: "用户订单索引"
-      - name: idx_order_number
-        columns: [ order_number ]
-        unique: true
-        comment: "订单号唯一索引"
-      - name: idx_order_status
-        columns: [ status ]
-        comment: "状态索引"
-      - name: idx_order_created
-        columns: [ created_at ]
-        order: DESC
-        comment: "创建时间索引"
 
   OrderItem:
     description: 订单项模型

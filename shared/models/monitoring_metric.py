@@ -1,12 +1,13 @@
 """
 SQLAlchemy 模型定义 - MonitoringMetric
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-21 11:04:30
+生成时间：2026-05-24 22:28:16
 """
 
-from sqlalchemy import Column, BigInteger, String, Text, DateTime, Numeric, ForeignKey, Index
+from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Numeric, ForeignKey, Index
 
 from . import Base  # 使用统一的 Base
+
 
 
 class MonitoringMetric(Base):
@@ -19,6 +20,7 @@ class MonitoringMetric(Base):
         Index('idx_metric_timestamp', 'timestamp'),
         Index('idx_metric_site', 'site_id'),
     )
+
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='指标 ID')
 

@@ -15,6 +15,13 @@ from src.setting import app_config
 from src.utils.image.processing import generate_thumbnail, get_file_mime_type
 from src.utils.security.safe import is_valid_hash
 
+# 导入 AI 辅助功能路由
+from src.api.v1.ai.ai_assist_routes import router as ai_router
+# 导入移动端同步路由
+from src.api.v1.user_utils.mobile_sync_routes import router as mobile_router
+# 导入多端分发路由
+from src.api.v1.utils.feed_routes import router as feed_router
+
 api_v1_router = APIRouter(prefix="/api/v1", tags=["api-v1"])
 
 
@@ -329,5 +336,13 @@ async def generate_thumbnail_async(source_path: Path, thumb_path: Path, filehash
 # ------------------------------------------------------------
 # 一定要最后注册通配符路由，必须在所有具体路由之后）
 # ------------------------------------------------------------
+
+# 注册 AI 辅助功能路由
+api_v1_router.include_router(ai_router)
+# 注册移动端同步路由
+api_v1_router.include_router(mobile_router)
+# 注册多端分发路由
+api_v1_router.include_router(feed_router)
+
 # 为路由自动发现系统提供统一的 router 名称
 router = api_v1_router

@@ -2,6 +2,8 @@ from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
 
+from .audit_log import AuditLog
+from .ai_workflow import AIWorkflow
 from .user import User
 from .article import Article
 from .category import Category
@@ -73,7 +75,6 @@ from .report_history import ReportHistory
 from .article_annotation import ArticleAnnotation
 from .webhook import Webhook
 from .webhook_delivery import WebhookDelivery
-from .audit_log import AuditLog
 from .role import Role
 from .capability import Capability
 from .role_capability import RoleCapability
@@ -113,6 +114,8 @@ from .migration_log import MigrationLog
 
 __all__ = [
     'Base',
+    'AuditLog',
+    'AIWorkflow',
     'User',
     'Article',
     'Category',
@@ -184,7 +187,6 @@ __all__ = [
     'ArticleAnnotation',
     'Webhook',
     'WebhookDelivery',
-    'AuditLog',
     'Role',
     'Capability',
     'RoleCapability',

@@ -1,8 +1,37 @@
 /**
  * API 类型定义
  * 由 routes.yaml 自动生成 - 请勿手动修改
- * 生成时间：2026-05-21 11:04:30
+ * 生成时间：2026-05-24 22:28:16
  */
+
+export interface AuditLog {
+    id: any;
+    user_id?: any;
+    user_name?: string;
+    action: string;
+    level: string;
+    resource_type?: string;
+    resource_id?: string;
+    ip_address?: string;
+    user_agent?: any;
+    description?: any;
+    details?: any;
+    created_at: string;
+}
+
+export interface AIWorkflow {
+    id: any;
+    user_id: any;
+    task_type: string;
+    input_data: any;
+    output_data?: any;
+    model_used?: string;
+    tokens_used: number;
+    status: string;
+    error_message?: any;
+    created_at: string;
+    completed_at?: string;
+}
 
 export interface User {
     id: any;
@@ -1044,21 +1073,6 @@ export interface WebhookDelivery {
     success: boolean;
     retry_count: number;
     next_retry_at?: string;
-    created_at: string;
-}
-
-export interface AuditLog {
-    id: any;
-    user_id?: any;
-    user_name?: string;
-    action: string;
-    level: string;
-    resource_type?: string;
-    resource_id?: string;
-    ip_address?: string;
-    user_agent?: any;
-    description?: any;
-    details?: any;
     created_at: string;
 }
 
