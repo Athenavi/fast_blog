@@ -1,12 +1,12 @@
 [FRONTEND]
-version = 0.3.26.0523
-build_time = 2026-05-23T02:00:00Z
+version = 0.3.26.0525
+build_time = 2026-05-25T15:00:00Z
 framework = Next.js 16.1.6
 node_version = 25.2.1
 
 [BACKEND]
-version = V0.3.26.0523
-build_time = 2026-05-23T02:00:00Z
+version = V0.3.26.0525
+build_time = 2026-05-25T15:00:00Z
 framework = FastAPI 0.128.0
 python_version = 3.14.4+
 
