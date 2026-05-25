@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - Order
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-24 22:49:57
+生成时间：2026-05-25 10:41:21
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Numeric, ForeignKey, Index
@@ -37,6 +37,7 @@ class Order(Base):
                     doc='订单状态 (pending:待支付, paid:已支付, processing:处理中, shipped:已发货, delivered:已送达, cancelled:已取消, refunded:已退款)')
 
     total_amount = Column(Numeric(10, 2), doc='订单总金额')
+
 
     shipping_amount = Column(Numeric(10, 2), default=0, doc='运费')
 

@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - WebhookDelivery
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-24 22:49:57
+生成时间：2026-05-25 10:41:21
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
@@ -43,6 +43,7 @@ class WebhookDelivery(Base):
 
 
     retry_count = Column(Integer, default=0, doc='重试次数')
+
 
     next_retry_at = Column(DateTime, nullable=True, doc='下次重试时间')
 

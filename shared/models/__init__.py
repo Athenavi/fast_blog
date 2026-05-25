@@ -2,10 +2,13 @@ from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
 
-
 from .audit_log import AuditLog
 from .ai_workflow import AIWorkflow
 from .page_builder import PageBuilder
+from .global_style import GlobalStyle
+from .field_permission import FieldPermission
+from .subscription_plan import SubscriptionPlan
+from .user_subscription import UserSubscription
 from .theme_package import ThemePackage
 from .user import User
 from .article import Article
@@ -111,6 +114,7 @@ from .monitoring_alert import MonitoringAlert
 from .monitoring_metric import MonitoringMetric
 from .migration_task import MigrationTask
 from .migration_log import MigrationLog
+from .global_style_config import GlobalStyleConfig
 
 # ==================== 自动生成的导入 - 由 routes.yaml 管理 ====================
 # 此部分由脚本自动生成 - 请勿手动修改
@@ -120,6 +124,10 @@ __all__ = [
     'AuditLog',
     'AIWorkflow',
     'PageBuilder',
+    'GlobalStyle',
+    'FieldPermission',
+    'SubscriptionPlan',
+    'UserSubscription',
     'ThemePackage',
     'User',
     'Article',
@@ -224,6 +232,7 @@ __all__ = [
     'MonitoringAlert',
     'MonitoringMetric',
     'MigrationTask',
-    'MigrationLog'
+    'MigrationLog',
+    'GlobalStyleConfig'
 ]
 # ============================================================================

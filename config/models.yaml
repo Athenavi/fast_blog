@@ -213,6 +213,139 @@ models:
         unique: true
         comment: "页面Slug唯一索引"
 
+  GlobalStyle:
+    description: 全局样式配置模型
+    properties:
+      id:
+        type: bigint
+        description: 配置 ID
+      theme_name:
+        type: string
+        maxLength: 100
+        unique: true
+        description: 主题/方案名称
+      variables_json:
+        type: text
+        description: "CSS 变量 JSON (colors, fonts, spacing)"
+      is_active:
+        type: boolean
+        default: false
+        description: 是否当前激活
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+    orm: true
+    table: global_styles
+
+  FieldPermission:
+    description: 字段级权限控制模型
+    properties:
+      id:
+        type: bigint
+        description: 权限 ID
+      role_id:
+        type: bigint
+        foreignKey: Role
+        description: 角色 ID
+      model_name:
+        type: string
+        maxLength: 100
+        description: 模型名称
+      field_name:
+        type: string
+        maxLength: 100
+        description: 字段名称
+      can_read:
+        type: boolean
+        default: true
+        description: 是否可读
+      can_write:
+        type: boolean
+        default: false
+        description: 是否可写
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+    orm: true
+    table: field_permissions
+
+  SubscriptionPlan:
+    description: 会员订阅计划模型
+    properties:
+      id:
+        type: bigint
+        description: 计划 ID
+      name:
+        type: string
+        maxLength: 255
+        description: 计划名称
+      slug:
+        type: string
+        maxLength: 255
+        unique: true
+        description: 唯一标识符
+      price:
+        type: integer
+        description: 价格 (分)
+      interval:
+        type: string
+        maxLength: 20
+        default: month
+        description: "计费周期 (month, year)"
+      features_json:
+        type: text
+        description: "功能列表 JSON"
+      is_active:
+        type: boolean
+        default: true
+        description: 是否启用
+      stripe_price_id:
+        type: string
+        nullable: true
+        description: Stripe 价格 ID
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+    orm: true
+    table: subscription_plans
+
+  UserSubscription:
+    description: 用户订阅记录模型
+    properties:
+      id:
+        type: bigint
+        description: 订阅 ID
+      user_id:
+        type: bigint
+        foreignKey: User
+        description: 用户 ID
+      plan_id:
+        type: bigint
+        foreignKey: SubscriptionPlan
+        description: 计划 ID
+      status:
+        type: string
+        maxLength: 20
+        default: active
+        description: "状态 (active, cancelled, expired)"
+      current_period_end:
+        type: string
+        format: date-time
+        description: 当前周期结束时间
+      stripe_subscription_id:
+        type: string
+        nullable: true
+        description: Stripe 订阅 ID
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+    orm: true
+    table: user_subscriptions
+
   ThemePackage:
     description: 主题包管理模型
     properties:
@@ -6845,3 +6978,88 @@ models:
         columns: [ created_at ]
         order: DESC
         comment: "创建时间索引"
+
+  GlobalStyleConfig:
+    description: '全局样式配置模型'
+    properties:
+      id:
+        type: bigint
+        description: 配置 ID
+      name:
+        type: string
+        maxLength: 100
+        unique: true
+        description: 配置名称（如 Dark Mode、Minimal、Corporate）
+      slug:
+        type: string
+        maxLength: 100
+        unique: true
+        description: 配置标识符
+      is_active:
+        type: boolean
+        default: false
+        description: 是否当前启用
+      theme_type:
+        type: string
+        maxLength: 50
+        default: custom
+        enum:
+          - light
+          - dark
+          - custom
+        description: 主题类型
+      color_scheme:
+        type: text
+        description: "配色方案（JSON，包含 primary、secondary、accent、background、text 等颜色）"
+      typography:
+        type: text
+        description: "字体配置（JSON，包含 font_family、font_size_base、line_height、heading_weights 等）"
+      spacing:
+        type: text
+        description: "间距配置（JSON，包含 padding_base、margin_base、gap_sizes 等）"
+      border_radius:
+        type: text
+        description: "圆角配置（JSON，包含 sm、md、lg、xl 等级别）"
+      shadows:
+        type: text
+        nullable: true
+        description: "阴影配置（JSON，包含 sm、md、lg、xl 等级别）"
+      breakpoints:
+        type: text
+        nullable: true
+        description: "响应式断点（JSON，包含 sm、md、lg、xl 像素值）"
+      css_variables:
+        type: text
+        nullable: true
+        description: "自定义 CSS 变量（JSON，键值对格式）"
+      preview_image:
+        type: string
+        nullable: true
+        maxLength: 500
+        description: 预览图 URL
+      created_by:
+        type: bigint
+        nullable: true
+        description: 创建者用户 ID
+        foreignKey: User
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    orm: true
+    table: global_style_configs
+    indexes:
+      - name: idx_global_style_slug
+        columns: [ slug ]
+        unique: true
+        comment: "配置标识唯一索引"
+      - name: idx_global_style_is_active
+        columns: [ is_active ]
+        comment: "激活状态索引"
+      - name: idx_global_style_theme_type
+        columns: [ theme_type ]
+        comment: "主题类型索引"

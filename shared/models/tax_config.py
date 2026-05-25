@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - TaxConfig
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-24 22:49:57
+生成时间：2026-05-25 10:41:21
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Numeric, Index
@@ -32,6 +32,7 @@ class TaxConfig(Base):
     tax_type = Column(String(50), nullable=True, doc='税种类型 (VAT, GST, Sales Tax, etc.)')
 
     rate = Column(Numeric(10, 2), doc='税率 (百分比)')
+
 
     description = Column(String(255), nullable=True, doc='描述')
 

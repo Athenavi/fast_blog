@@ -1,7 +1,7 @@
 /**
  * API 类型定义
  * 由 routes.yaml 自动生成 - 请勿手动修改
- * 生成时间：2026-05-24 22:49:57
+ * 生成时间：2026-05-25 10:41:20
  */
 
 export interface AuditLog {
@@ -41,6 +41,46 @@ export interface PageBuilder {
     is_published: boolean;
     created_at: string;
     updated_at: string;
+}
+
+export interface GlobalStyle {
+    id: any;
+    theme_name: string;
+    variables_json: any;
+    is_active: boolean;
+    created_at: string;
+}
+
+export interface FieldPermission {
+    id: any;
+    role_id: any;
+    model_name: string;
+    field_name: string;
+    can_read: boolean;
+    can_write: boolean;
+    created_at: string;
+}
+
+export interface SubscriptionPlan {
+    id: any;
+    name: string;
+    slug: string;
+    price: number;
+    interval: string;
+    features_json: any;
+    is_active: boolean;
+    stripe_price_id?: string;
+    created_at: string;
+}
+
+export interface UserSubscription {
+    id: any;
+    user_id: any;
+    plan_id: any;
+    status: string;
+    current_period_end: string;
+    stripe_subscription_id?: string;
+    created_at: string;
 }
 
 export interface ThemePackage {
@@ -1557,6 +1597,25 @@ export interface MigrationLog {
     item_type?: string;
     item_id?: any;
     created_at: string;
+}
+
+export interface GlobalStyleConfig {
+    id: any;
+    name: string;
+    slug: string;
+    is_active: boolean;
+    theme_type: string;
+    color_scheme: any;
+    typography: any;
+    spacing: any;
+    border_radius: any;
+    shadows?: any;
+    breakpoints?: any;
+    css_variables?: any;
+    preview_image?: string;
+    created_by?: any;
+    created_at: string;
+    updated_at: string;
 }
 
 

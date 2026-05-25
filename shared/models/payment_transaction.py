@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - PaymentTransaction
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-24 22:49:57
+生成时间：2026-05-25 10:41:21
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Numeric, ForeignKey, Index
@@ -34,6 +34,7 @@ class PaymentTransaction(Base):
 
 
     amount = Column(Numeric(10, 2), doc='金额')
+
 
     currency = Column(String(3), default='USD', doc='货币类型')
 

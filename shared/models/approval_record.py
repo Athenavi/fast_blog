@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - ApprovalRecord
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-24 22:49:57
+生成时间：2026-05-25 10:41:21
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
@@ -36,6 +36,7 @@ class ApprovalRecord(Base):
 
 
     max_level = Column(Integer, default=1, doc='最大审批级别')
+
 
     status = Column(String(20), index=True, default='pending', doc='状态（pending/approved/rejected/cancelled）')
 

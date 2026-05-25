@@ -16,7 +16,11 @@ import {Table} from '@tiptap/extension-table';
 import {TableRow} from '@tiptap/extension-table-row';
 import {TableCell} from '@tiptap/extension-table-cell';
 import {TableHeader} from '@tiptap/extension-table-header';
-import {X, Loader, Sparkles, ImageIcon, Image as ImageIcon2} from 'lucide-react';
+import Collaboration from '@tiptap/extension-collaboration';
+import CollaborationCursor from '@tiptap/extension-collaboration-cursor';
+import {WebsocketProvider} from 'y-websocket';
+import * as Y from 'yjs';
+import {X, Loader, Sparkles, ImageIcon, Image as ImageIcon2, LayoutGrid, Palette, History} from 'lucide-react';
 import {apiClient} from '@/lib/api';
 
 interface RichEditorProps {value:string;onChange:(v:string)=>void;placeholder?:string;editorRef?:React.MutableRefObject<any>;}
@@ -24,6 +28,72 @@ interface RichEditorProps {value:string;onChange:(v:string)=>void;placeholder?:s
 const AI_TOOLS = [
   {id:'polish',label:'润色'},{id:'grammar',label:'语法'},{id:'titles',label:'标题'},{id:'keywords',label:'关键词'},{id:'continue',label:'续写'},{id:'summary',label:'摘要'},{id:'style',label:'改风格'},
 ];
+
+/* ── Block Patterns & Global Styles ── */
+function PatternLibrary({onSelect, onClose}: { onSelect: (blocks: any) => void; onClose: () => void }) {
+  const [patterns, setPatterns] = useState<any[]>([]);
+  React.useEffect(() => {
+    apiClient.get('/block-patterns/list').then(r => {
+      if (r.success) setPatterns(r.data || [])
+    }).catch(console.error);
+  }, []);
+  return <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40" onClick={onClose}>
+    <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-3xl max-h-[85vh] flex flex-col shadow-2xl"
+         onClick={e => e.stopPropagation()}>
+      <div className="flex items-center justify-between px-6 py-4 border-b shrink-0"><h3
+          className="font-bold text-gray-900 dark:text-white">块模式库</h3>
+        <button onClick={onClose} className="p-1 rounded hover:bg-gray-100"><X className="w-5 h-5"/></button>
+      </div>
+      <div className="flex-1 overflow-y-auto p-6">
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+          {patterns.map(p => <button key={p.id} onClick={() => onSelect(JSON.parse(p.blocks))}
+                                     className="group p-4 rounded-xl border hover:border-blue-500 hover:shadow-md transition-all text-left">
+            <div
+                className="aspect-video bg-gray-100 dark:bg-gray-800 rounded-lg mb-3 flex items-center justify-center overflow-hidden">
+              {p.thumbnail ? <img src={p.thumbnail} className="w-full h-full object-cover"/> :
+                  <LayoutGrid className="w-8 h-8 text-gray-300"/>}
+            </div>
+            <h4 className="font-semibold text-sm truncate">{p.title}</h4>
+            <p className="text-xs text-gray-500 mt-1 line-clamp-2">{p.description}</p>
+          </button>)}
+        </div>
+      </div>
+    </div>
+  </div>;
+}
+
+function StyleManager({onClose}: { onClose: () => void }) {
+  const [styles, setStyles] = useState<any[]>([]);
+  React.useEffect(() => {
+    apiClient.get('/global-styles/list').then(r => {
+      if (r.success) setStyles(r.data || [])
+    }).catch(console.error);
+  }, []);
+  const activate = (id: number) => {
+    apiClient.post(`/global-styles/${id}/activate`).then(r => {
+      if (r.success) onClose()
+    });
+  };
+  return <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40" onClick={onClose}>
+    <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-md flex flex-col shadow-2xl"
+         onClick={e => e.stopPropagation()}>
+      <div className="flex items-center justify-between px-6 py-4 border-b shrink-0"><h3
+          className="font-bold text-gray-900 dark:text-white">全局样式方案</h3>
+        <button onClick={onClose} className="p-1 rounded hover:bg-gray-100"><X className="w-5 h-5"/></button>
+      </div>
+      <div className="p-4 space-y-3 max-h-[60vh] overflow-y-auto">
+        {styles.map(s => <div key={s.id}
+                              className={`p-4 rounded-xl border ${s.is_active ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-800'} flex items-center justify-between`}>
+          <div><h4 className="font-semibold">{s.theme_name}</h4><p
+              className="text-xs text-gray-500 mt-1">创建于 {new Date(s.created_at).toLocaleDateString()}</p></div>
+          {!s.is_active && <button onClick={() => activate(s.id)}
+                                   className="px-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200">应用</button>}
+          {s.is_active && <span className="text-xs font-medium text-blue-600">当前激活</span>}
+        </div>)}
+      </div>
+    </div>
+  </div>;
+}
 const AI_ENDPOINTS:Record<string,string> = {
   polish:'/ext/ai-recommendations/writing/polish',grammar:'/ext/ai-recommendations/writing/check-grammar',
   titles:'/ext/ai-recommendations/writing/generate-titles',keywords:'/ext/ai-recommendations/recommend-tags',
@@ -56,16 +126,38 @@ function MediaBrowser({onSelect,onClose}:{onSelect:(url:string)=>void;onClose:()
 const RichEditor: React.FC<RichEditorProps> = ({value,onChange,placeholder='开始写作...',editorRef}) => {
   const [showAI,setShowAI]=useState(false);
   const [showMedia,setShowMedia]=useState(false);
+  const [showPatterns, setShowPatterns] = useState(false);
+  const [showStyles, setShowStyles] = useState(false);
   const [aiResult,setAiResult]=useState('');
   const [aiBusy,setAiBusy]=useState(false);
   const prevValueRef = useRef(value);
+  const ydocRef = useRef<Y.Doc | null>(null);
+  const providerRef = useRef<any>(null);
+
+  // Initialize Collaboration
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const ydoc = new Y.Doc();
+      const provider = new WebsocketProvider('ws://localhost:1234', 'article-room', ydoc);
+      ydocRef.current = ydoc;
+      providerRef.current = provider;
+      return () => {
+        provider.destroy();
+        ydoc.destroy();
+      };
+    }
+  }, []);
 
   const editor = useEditor({
     extensions:[
-      StarterKit.configure({heading:{levels:[1,2,3]}}),Placeholder.configure({placeholder}),
+      StarterKit.configure({heading: {levels: [1, 2, 3]}, history: false}), Placeholder.configure({placeholder}),
       Underline,Typography,TextAlign.configure({types:['heading','paragraph']}),Highlight,ImageExt,
       LinkExt.configure({openOnClick:false}),Table.configure({resizable:true}),TableRow,TableCell,TableHeader,
       TaskList,TaskItem.configure({nested:true}),
+      ...(ydocRef.current ? [Collaboration.configure({document: ydocRef.current}), CollaborationCursor.configure({
+        provider: providerRef.current,
+        user: {name: 'User', color: '#f783ac'}
+      })] : []),
     ],
     content: value || '',
     onUpdate:({editor})=>onChange(editor.getHTML()),
@@ -99,6 +191,12 @@ const RichEditor: React.FC<RichEditorProps> = ({value,onChange,placeholder='开�
       <EditorContent editor={editor} />
 
       {/* Floating buttons */}
+      <button onClick={() => setShowPatterns(true)}
+              className="fixed bottom-36 right-6 z-40 w-11 h-11 bg-indigo-600 text-white rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center justify-center"
+              title="块模式"><LayoutGrid className="w-5 h-5"/></button>
+      <button onClick={() => setShowStyles(true)}
+              className="fixed bottom-28 right-6 z-40 w-11 h-11 bg-pink-600 text-white rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center justify-center"
+              title="全局样式"><Palette className="w-5 h-5"/></button>
       <button onClick={()=>setShowMedia(true)} className="fixed bottom-20 right-6 z-40 w-11 h-11 bg-blue-600 text-white rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center justify-center" title="媒体库"><ImageIcon2 className="w-5 h-5"/></button>
       <button onClick={()=>setShowAI(!showAI)} className="fixed bottom-6 right-6 z-40 w-12 h-12 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-full shadow-xl hover:shadow-2xl hover:scale-105 transition-all flex items-center justify-center" title="AI 助手"><Sparkles className="w-5 h-5"/></button>
 
@@ -119,6 +217,11 @@ const RichEditor: React.FC<RichEditorProps> = ({value,onChange,placeholder='开�
       </div>}
       {aiBusy&&<div className="border-t border-gray-200 dark:border-gray-700 p-4 bg-purple-50 dark:bg-purple-900/10 flex items-center gap-2 text-sm text-purple-600"><Loader className="w-4 h-4 animate-spin"/>AI 处理中...</div>}
       {showMedia&&<MediaBrowser onSelect={(url)=>{editor.chain().focus().setImage({src:url}).run();setShowMedia(false);}} onClose={()=>setShowMedia(false)}/>}
+      {showPatterns && <PatternLibrary onSelect={(blocks) => {
+        blocks.forEach((b: any) => editor.commands.insertContent(b));
+        setShowPatterns(false);
+      }} onClose={() => setShowPatterns(false)}/>}
+      {showStyles && <StyleManager onClose={() => setShowStyles(false)}/>}
     </div>
   );
 };

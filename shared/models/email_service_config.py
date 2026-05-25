@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - EmailServiceConfig
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-24 22:49:57
+生成时间：2026-05-25 10:41:21
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
@@ -33,6 +33,7 @@ class EmailServiceConfig(Base):
     smtp_host = Column(String(255), nullable=True, doc='SMTP 主机')
 
     smtp_port = Column(Integer, nullable=True, doc='SMTP 端口')
+
 
     smtp_username = Column(String(255), nullable=True, doc='SMTP 用户名')
 
