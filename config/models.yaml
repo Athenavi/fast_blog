@@ -170,6 +170,92 @@ models:
         columns: [ status ]
         comment: "状态索引"
 
+  PageBuilder:
+    description: 可视化页面构建器模型
+    properties:
+      id:
+        type: bigint
+        description: 页面 ID
+      title:
+        type: string
+        maxLength: 255
+        description: 页面标题
+      slug:
+        type: string
+        maxLength: 255
+        unique: true
+        description: 页面路径标识
+      blocks_data:
+        type: text
+        description: "页面块数据 (JSON 格式存储拖拽布局)"
+      template_name:
+        type: string
+        maxLength: 100
+        nullable: true
+        description: 关联的主题模板名称
+      is_published:
+        type: boolean
+        default: false
+        description: 是否发布
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    orm: true
+    table: page_builder
+    indexes:
+      - name: idx_page_builder_slug
+        columns: [ slug ]
+        unique: true
+        comment: "页面Slug唯一索引"
+
+  ThemePackage:
+    description: 主题包管理模型
+    properties:
+      id:
+        type: bigint
+        description: 主题 ID
+      name:
+        type: string
+        maxLength: 100
+        description: 主题显示名称
+      slug:
+        type: string
+        maxLength: 100
+        unique: true
+        description: 主题唯一标识
+      version:
+        type: string
+        maxLength: 20
+        description: 版本号
+      author:
+        type: string
+        maxLength: 100
+        nullable: true
+        description: 作者
+      config_data:
+        type: text
+        description: "主题配置 (JSON 格式)"
+      is_active:
+        type: boolean
+        default: false
+        description: 是否当前启用
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+    orm: true
+    table: theme_packages
+    indexes:
+      - name: idx_theme_packages_slug
+        columns: [ slug ]
+        unique: true
+        comment: "主题Slug唯一索引"
+
   User:
     description: 用户模型
     properties:

@@ -2,8 +2,11 @@ from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
 
+
 from .audit_log import AuditLog
 from .ai_workflow import AIWorkflow
+from .page_builder import PageBuilder
+from .theme_package import ThemePackage
 from .user import User
 from .article import Article
 from .category import Category
@@ -54,7 +57,6 @@ from .product import Product
 from .cart import Cart
 from .cart_item import CartItem
 from .order import Order
-from .order_item import OrderItem
 from .sensitive_word import SensitiveWord
 from .user_session import UserSession
 from .login_attempt import LoginAttempt
@@ -99,6 +101,7 @@ from .payment_gateway import PaymentGateway
 from .payment_transaction import PaymentTransaction
 from .crypto_payment import CryptoPayment
 from .tax_config import TaxConfig
+from .order_item import OrderItem
 from .enterprise_license import EnterpriseLicense
 from .support_ticket import SupportTicket
 from .support_ticket_reply import SupportTicketReply
@@ -116,6 +119,8 @@ __all__ = [
     'Base',
     'AuditLog',
     'AIWorkflow',
+    'PageBuilder',
+    'ThemePackage',
     'User',
     'Article',
     'Category',
@@ -166,7 +171,6 @@ __all__ = [
     'Cart',
     'CartItem',
     'Order',
-    'OrderItem',
     'SensitiveWord',
     'UserSession',
     'LoginAttempt',
@@ -211,6 +215,7 @@ __all__ = [
     'PaymentTransaction',
     'CryptoPayment',
     'TaxConfig',
+    'OrderItem',
     'EnterpriseLicense',
     'SupportTicket',
     'SupportTicketReply',

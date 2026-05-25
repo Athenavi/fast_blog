@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - SAMLConfig
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-24 22:28:16
+生成时间：2026-05-24 22:49:57
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
@@ -23,6 +23,7 @@ class SAMLConfig(Base):
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='配置 ID')
 
     site_id = Column(BigInteger, ForeignKey('sites.id'), nullable=True, doc='关联的站点 ID（为空表示全局配置）')
+
 
     entity_id = Column(String(255), nullable=True, doc='SAML Entity ID (SP Identifier)')
 

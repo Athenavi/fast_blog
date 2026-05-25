@@ -17,10 +17,18 @@ from src.api.v1.articles.third_party_publish_routes import router as publish_rou
 from src.api.v1.system.security_monitor_routes import router as security_router
 # 导入 Webhook 路由
 from src.api.v1.system.webhook_routes import router as webhook_router
+# 导入插件市场路由
+from src.api.v1.plugins.marketplace_routes import router as plugin_market_router
 # 导入移动端同步路由
 from src.api.v1.user_utils.mobile_sync_routes import router as mobile_router
 # 导入多端分发路由
 from src.api.v1.utils.feed_routes import router as feed_router
+# 导入页面构建器路由
+from src.api.v1.content_management.page_builder_routes import router as page_builder_router
+# 导入组件库路由
+from src.api.v1.content_management.component_routes import router as component_router
+# 导入主题市场路由
+from src.api.v1.content_management.theme_market_routes import router as theme_market_router
 from src.auth import get_current_user
 from src.extensions import cache, get_async_db_session as get_async_db
 from src.setting import app_config
@@ -354,6 +362,14 @@ api_v1_router.include_router(security_router)
 api_v1_router.include_router(publish_router)
 # 注册 Webhook 路由
 api_v1_router.include_router(webhook_router)
+# 注册插件市场路由
+api_v1_router.include_router(plugin_market_router)
+# 注册页面构建器路由
+api_v1_router.include_router(page_builder_router)
+# 注册组件库路由
+api_v1_router.include_router(component_router)
+# 注册主题市场路由
+api_v1_router.include_router(theme_market_router)
 
 # 注册 GraphQL 接口 (Headless CMS)
 try:

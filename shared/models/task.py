@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - Task
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-24 22:28:16
+生成时间：2026-05-24 22:49:57
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
@@ -37,6 +37,7 @@ class Task(Base):
     priority = Column(String(20), default='medium', doc='优先级（low/medium/high/urgent）')
 
     assigned_to = Column(BigInteger, ForeignKey('users.id'), nullable=True, doc='分配给用户 ID')
+
 
     created_by = Column(BigInteger, ForeignKey('users.id'), doc='创建者 ID')
 

@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - EnterpriseLicense
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-24 22:28:16
+生成时间：2026-05-24 22:49:57
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Numeric, Index
@@ -13,6 +13,7 @@ from . import Base  # 使用统一的 Base
 class EnterpriseLicense(Base):
     """企业许可证模型模型"""
     __tablename__ = 'enterprise_licenses'
+
 
     __table_args__ = (
         Index('idx_license_key', 'license_key', unique=True),

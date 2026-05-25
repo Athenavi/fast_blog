@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - ContentMapping
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-24 22:28:16
+生成时间：2026-05-24 22:49:57
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
@@ -32,6 +32,7 @@ class ContentMapping(Base):
     content_type = Column(String(50), nullable=True, doc='内容类型')
 
     source_content_id = Column(BigInteger, doc='源内容 ID')
+
 
     target_content_id = Column(BigInteger, nullable=True, doc='目标内容 ID')
 

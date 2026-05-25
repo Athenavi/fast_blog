@@ -1,21 +1,20 @@
 /**
  * API 类型定义
  * 由 routes.yaml 自动生成 - 请勿手动修改
- * 生成时间：2026-05-24 22:28:16
+ * 生成时间：2026-05-24 22:49:57
  */
 
 export interface AuditLog {
     id: any;
     user_id?: any;
-    user_name?: string;
     action: string;
-    level: string;
     resource_type?: string;
-    resource_id?: string;
+    resource_id?: any;
     ip_address?: string;
     user_agent?: any;
-    description?: any;
-    details?: any;
+    request_data?: any;
+    status: string;
+    error_message?: any;
     created_at: string;
 }
 
@@ -31,6 +30,28 @@ export interface AIWorkflow {
     error_message?: any;
     created_at: string;
     completed_at?: string;
+}
+
+export interface PageBuilder {
+    id: any;
+    title: string;
+    slug: string;
+    blocks_data: any;
+    template_name?: string;
+    is_published: boolean;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface ThemePackage {
+    id: any;
+    name: string;
+    slug: string;
+    version: string;
+    author?: string;
+    config_data: any;
+    is_active: boolean;
+    created_at: string;
 }
 
 export interface User {
@@ -794,32 +815,23 @@ export interface CartItem {
 
 export interface Order {
     id: any;
-    user: any;
     order_number: string;
+    user_id: any;
     status: string;
     total_amount: any;
-    currency: string;
-    tax_amount: any;
-    shipping_address?: any;
-    billing_address?: any;
+    shipping_amount: any;
+    discount_amount: any;
+    payment_method?: string;
+    payment_status: string;
+    transaction_id?: string;
+    shipping_address: string;
+    billing_address?: string;
     notes?: any;
-    payment_gateway?: any;
+    created_at: string;
+    updated_at: string;
     paid_at?: string;
-    created_at: string;
-    updated_at: string;
-}
-
-export interface OrderItem {
-    id: any;
-    order: any;
-    product_id?: any;
-    product_name: string;
-    quantity: number;
-    unit_price: any;
-    total_price: any;
-    metadata?: any;
-    created_at: string;
-    updated_at: string;
+    shipped_at?: string;
+    delivered_at?: string;
 }
 
 export interface SensitiveWord {
@@ -1405,6 +1417,19 @@ export interface TaxConfig {
     is_active: boolean;
     effective_from: string;
     effective_to?: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface OrderItem {
+    id: any;
+    order: any;
+    product_id?: any;
+    product_name: string;
+    quantity: number;
+    unit_price: any;
+    total_price: any;
+    metadata?: any;
     created_at: string;
     updated_at: string;
 }

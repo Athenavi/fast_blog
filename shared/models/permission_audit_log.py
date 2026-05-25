@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - PermissionAuditLog
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-24 22:28:16
+生成时间：2026-05-24 22:49:57
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
@@ -35,6 +35,7 @@ class PermissionAuditLog(Base):
 
 
     details = Column(Text, nullable=True, doc='详细信息（JSON格式）')
+
 
     ip_address = Column(String(45), nullable=True, doc='IP 地址')
 

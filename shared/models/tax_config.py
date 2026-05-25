@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - TaxConfig
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-24 22:28:16
+生成时间：2026-05-24 22:49:57
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Numeric, Index
@@ -21,6 +21,7 @@ class TaxConfig(Base):
         Index('idx_tax_config_active', 'is_active'),
         Index('idx_tax_config_effective_dates', 'effective_from', 'effective_to'),
     )
+
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='税务配置 ID')
 
