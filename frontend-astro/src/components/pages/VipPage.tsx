@@ -2,10 +2,9 @@
 
 import React from 'react';
 import {useQuery} from '@tanstack/react-query';
-import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
-import {apiClient} from '@/lib/api';
-import {Crown, Check, Sparkles, Zap, Star} from 'lucide-react';
+import {apiClient} from '@/lib/api/api-client';
+import {Check, Crown, Star, Zap} from 'lucide-react';
 
 function VipInner() {
   const {data: features} = useQuery({

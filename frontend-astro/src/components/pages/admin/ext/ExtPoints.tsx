@@ -1,12 +1,12 @@
 'use client';
 
 import React, {useState} from 'react';
-import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
-import {apiClient} from '@/lib/api';
-import {Coins, TrendingUp, Users, Plus, Minus, Loader, Search} from 'lucide-react';
+import {apiClient} from '@/lib/api/api-client';
+import {Coins, Loader, Minus, Plus, TrendingUp, Users} from 'lucide-react';
 
 function PointsInner() {
   const qc = useQueryClient();

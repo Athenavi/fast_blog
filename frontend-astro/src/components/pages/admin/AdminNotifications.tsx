@@ -1,12 +1,12 @@
 'use client';
 
 import React, {useState} from 'react';
-import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
-import {apiClient} from '@/lib/api';
-import {Bell, Send, Trash2, Check} from 'lucide-react';
+import {apiClient} from '@/lib/api/api-client';
+import {Bell, Check, Send, Trash2} from 'lucide-react';
 
 function NotificationsInner() {
   const qc = useQueryClient();

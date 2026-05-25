@@ -5,8 +5,8 @@ import {useQuery} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
-import {apiClient} from '@/lib/api';
-import {GitBranch, Eye, Download} from 'lucide-react';
+import {apiClient} from '@/lib/api/api-client';
+import {GitBranch} from 'lucide-react';
 
 function TemplatesInner() {
   const {data, isLoading} = useQuery({

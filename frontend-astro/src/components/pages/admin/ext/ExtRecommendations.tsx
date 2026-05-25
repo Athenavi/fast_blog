@@ -5,8 +5,8 @@ import {useQuery} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
-import {apiClient} from '@/lib/api';
-import {TrendingUp, Zap, Star, ThumbsUp, Eye, MessageSquare, Bookmark} from 'lucide-react';
+import {apiClient} from '@/lib/api/api-client';
+import {Eye, Star, ThumbsUp, TrendingUp, Zap} from 'lucide-react';
 
 function RecsInner() {
   const {data: trending} = useQuery({

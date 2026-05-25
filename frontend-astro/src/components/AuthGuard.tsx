@@ -1,7 +1,7 @@
 'use client';
 
 import React, {useEffect, useState} from 'react';
-import {apiClient} from '@/lib/api';
+import {apiClient} from '@/lib/api/api-client';
 
 /**
  * AuthGuard - 认证守卫组件

@@ -1,12 +1,12 @@
 'use client';
 
 import React, {useState} from 'react';
-import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
-import {apiClient} from '@/lib/api';
-import {Medal, Users, Check, X, Loader, Eye, FileText, Search} from 'lucide-react';
+import {apiClient} from '@/lib/api/api-client';
+import {Check, Eye, FileText, Loader, Medal, X} from 'lucide-react';
 
 function CertificationInner() {
   const qc = useQueryClient();

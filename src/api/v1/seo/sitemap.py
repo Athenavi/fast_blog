@@ -8,8 +8,7 @@ from fastapi import APIRouter, Depends, Request, Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models import Article, Category, Media, User
-from shared.models.article_i18n import ArticleI18n
+from shared.models import Article, Category, Media, User, ArticleContent
 from src.extensions import get_async_db_session as get_async_db
 from src.setting import AppConfig
 from src.utils.sitemap_generator import SitemapGenerator, SitemapUrl, SitemapIndex
@@ -285,7 +284,7 @@ async def get_multilingual_sitemap(
             main_url = f"{site_url}/blog/{article.id}.html"
 
         # 查询该文章的所有翻译版本
-        i18n_stmt = select(ArticleI18n).where(ArticleI18n.article == article.id)
+        i18n_stmt = select(ArticleContent).where(ArticleContent.article == article.id)
         i18n_result = await db.execute(i18n_stmt)
         translations = i18n_result.scalars().all()
 

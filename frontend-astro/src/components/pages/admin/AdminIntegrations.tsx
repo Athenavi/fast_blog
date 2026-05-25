@@ -1,15 +1,12 @@
 'use client';
 
 import React, {useState} from 'react';
-import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
-import {apiClient} from '@/lib/api';
-import {
-  Globe, Link, Unlink, Check, X, Loader, Shield, FileText,
-  BarChart3, Database, Upload, ExternalLink, Plus, Trash2,
-} from 'lucide-react';
+import {apiClient} from '@/lib/api/api-client';
+import {BarChart3, Check, Database, Globe, Link, Loader, Shield, Upload,} from 'lucide-react';
 
 // ─── Tabs ────────────────────────────────────────────
 const TABS = [

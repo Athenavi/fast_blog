@@ -4,8 +4,8 @@ import React from 'react';
 import {useQuery} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
-import {apiClient} from '@/lib/api';
-import {ShoppingBag, Search} from 'lucide-react';
+import {apiClient} from '@/lib/api/api-client';
+import {Search, ShoppingBag} from 'lucide-react';
 
 function ProductsInner() {
   const [search, setSearch] = React.useState('');

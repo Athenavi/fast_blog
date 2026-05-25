@@ -1,8 +1,8 @@
 'use client';
 
 import React, {useState} from 'react';
-import {apiClient} from '@/lib/api';
-import {UserPlus, Eye, EyeOff, Check} from 'lucide-react';
+import {apiClient} from '@/lib/api/api-client';
+import {Check, Eye, EyeOff, UserPlus} from 'lucide-react';
 
 export default function RegisterPage() {
   const [step, setStep] = useState(0);

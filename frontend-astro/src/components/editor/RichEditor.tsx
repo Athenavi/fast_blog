@@ -1,7 +1,7 @@
 'use client';
 
-import React, {useState, useCallback, useEffect, useRef} from 'react';
-import {useEditor, EditorContent} from '@tiptap/react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
+import {EditorContent, useEditor} from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import ImageExt from '@tiptap/extension-image';
@@ -20,8 +20,8 @@ import Collaboration from '@tiptap/extension-collaboration';
 import CollaborationCursor from '@tiptap/extension-collaboration-cursor';
 import {WebsocketProvider} from 'y-websocket';
 import * as Y from 'yjs';
-import {X, Loader, Sparkles, ImageIcon, Image as ImageIcon2, LayoutGrid, Palette, History} from 'lucide-react';
-import {apiClient} from '@/lib/api';
+import {Image as ImageIcon2, ImageIcon, LayoutGrid, Loader, Palette, Sparkles, X} from 'lucide-react';
+import {apiClient} from '@/lib/api/api-client';
 
 interface RichEditorProps {value:string;onChange:(v:string)=>void;placeholder?:string;editorRef?:React.MutableRefObject<any>;}
 

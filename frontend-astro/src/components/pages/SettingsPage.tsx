@@ -1,11 +1,11 @@
 'use client';
 
 import React, {useEffect, useRef, useState} from 'react';
-import {apiClient} from '@/lib/api';
+import {apiClient} from '@/lib/api/api-client';
 import {useDarkMode} from '@/lib/dark-mode-manager';
 import {getAccessTokenFromCookie} from '@/lib/auth-utils';
 import {AuthGuard} from '@/components/AuthGuard';
-import {User, Shield, Moon, Monitor, LogOut, Camera, Check, Smartphone, Globe, X} from 'lucide-react';
+import {Camera, Globe, LogOut, Monitor, Moon, Shield, Smartphone, User, X} from 'lucide-react';
 
 const TABS = [
   {id:'profile', label:'资料', icon:User},

@@ -1,7 +1,7 @@
 'use client';
 
 import React, {useEffect, useState} from 'react';
-import {apiClient} from '@/lib/api';
+import {apiClient} from '@/lib/api/api-client';
 import {AuthGuard} from '@/components/AuthGuard';
 import {Calendar, Edit3, Eye, FileText, Heart, Link as LinkIcon, Lock, Mail, MapPin, Settings} from 'lucide-react';
 

@@ -1,8 +1,8 @@
 'use client';
 
 import React, {useEffect, useRef, useState} from 'react';
-import {apiClient} from '@/lib/api';
-import {LogIn, Eye, EyeOff, Smartphone, ArrowLeft, QrCode, Loader} from 'lucide-react';
+import {apiClient} from '@/lib/api/api-client';
+import {ArrowLeft, Eye, EyeOff, Loader, LogIn, QrCode, Smartphone} from 'lucide-react';
 
 function getCookie(name: string): string | null {
   if (typeof document === 'undefined') return null;

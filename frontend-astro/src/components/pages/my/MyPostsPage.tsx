@@ -2,7 +2,7 @@
 
 import React, {useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
-import {apiClient} from '@/lib/api';
+import {apiClient} from '@/lib/api/api-client';
 import {Calendar, Edit, Eye, FileText, Lock, Plus, Search, Trash2} from 'lucide-react';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AuthGuard} from '@/components/AuthGuard';

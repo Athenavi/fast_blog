@@ -1,7 +1,7 @@
 'use client';
 
 import React, {useEffect, useState} from 'react';
-import {apiClient} from '@/lib/api';
+import {apiClient} from '@/lib/api/api-client';
 import {ArrowLeft, ArrowRight, Check, Database, Globe, Loader, Server, Shield} from 'lucide-react';
 
 const steps = [

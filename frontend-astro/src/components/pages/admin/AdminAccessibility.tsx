@@ -1,15 +1,12 @@
 'use client';
 
-import React, {useState} from 'react';
-import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
+import React from 'react';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
-import {apiClient} from '@/lib/api';
-import {
-  Eye, Check, X, Keyboard, Monitor, Type, Activity,
-  BookOpen, Wrench, Sun, Moon, Loader, ExternalLink,
-} from 'lucide-react';
+import {apiClient} from '@/lib/api/api-client';
+import {Activity, BookOpen, Check, ExternalLink, Eye, Keyboard, Monitor, Sun, Wrench,} from 'lucide-react';
 
 // ─── WCAG color ───────────────────────────────────────
 const WCAG_COLORS: Record<string, string> = {

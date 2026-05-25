@@ -1,12 +1,12 @@
 'use client';
 
 import React, {useState} from 'react';
-import {useQuery, useMutation} from '@tanstack/react-query';
+import {useMutation, useQuery} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
-import {apiClient} from '@/lib/api';
-import {PenLine, Sparkles, Loader, FileText} from 'lucide-react';
+import {apiClient} from '@/lib/api/api-client';
+import {FileText, Loader, Sparkles} from 'lucide-react';
 
 function ExtAIWritingInner() {
   const [text, setText] = useState(''); const [result, setResult] = useState(''); const [mode, setMode] = useState('polish');

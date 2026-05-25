@@ -1,11 +1,8 @@
 'use client';
 
-import React, {useEffect, useRef, useState, useCallback} from 'react';
-import {apiClient} from '@/lib/api';
-import {
-  Send, MessageCircle, ChevronLeft, Users, Bell, Plus, X,
-  Loader, Check, Hash, Trash2, UserPlus,
-} from 'lucide-react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
+import {apiClient} from '@/lib/api/api-client';
+import {Bell, Check, ChevronLeft, Hash, MessageCircle, Plus, Send, Trash2, UserPlus, Users, X,} from 'lucide-react';
 
 // ─── Types ──────────────────────────────────────────
 interface Conv {id:number; username:string; avatar?:string; last_message?:string; unread:number; updated_at:string;}

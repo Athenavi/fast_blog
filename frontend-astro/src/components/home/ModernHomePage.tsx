@@ -1,7 +1,7 @@
 'use client';
 
 import React, {useEffect, useState} from 'react';
-import {apiClient} from '@/lib/api';
+import {apiClient} from '@/lib/api/api-client';
 import {ArrowRight, Calendar, ChevronRight, Clock, Eye} from 'lucide-react';
 
 interface Article {id:number;title:string;slug:string;excerpt?:string;summary?:string;cover_image?:string;content?:string;views:number;likes:number;created_at:string;tags?:string[];category?:string;author?:{username:string;avatar?:string};}

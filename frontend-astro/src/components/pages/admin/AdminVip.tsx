@@ -1,15 +1,25 @@
 'use client';
 
 import React, {useState} from 'react';
-import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
-import {apiClient} from '@/lib/api';
+import {apiClient} from '@/lib/api/api-client';
 import {
-  Crown, Users, TrendingUp, DollarSign, Search,
-  Plus, Edit3, Trash2, X, Check, ChevronDown,
-  Package, Shield, UserCheck, AlertCircle,
+  Check,
+  Crown,
+  DollarSign,
+  Edit3,
+  Package,
+  Plus,
+  Search,
+  Shield,
+  Trash2,
+  TrendingUp,
+  UserCheck,
+  Users,
+  X,
 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────

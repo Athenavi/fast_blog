@@ -1,12 +1,12 @@
 'use client';
 
-import React, {useState} from 'react';
-import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
+import React from 'react';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
-import {apiClient} from '@/lib/api';
-import {Diamond, TrendingUp, Users, DollarSign, Check, X, Loader, Eye} from 'lucide-react';
+import {apiClient} from '@/lib/api/api-client';
+import {DollarSign, Eye, TrendingUp} from 'lucide-react';
 
 function TippingInner() {
   const qc = useQueryClient();

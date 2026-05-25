@@ -1,12 +1,12 @@
 'use client';
 
 import React from 'react';
-import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
+import {useQuery} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
-import {apiClient} from '@/lib/api';
-import {Award, Users, Filter, Loader} from 'lucide-react';
+import {apiClient} from '@/lib/api/api-client';
+import {Award, Filter, Users} from 'lucide-react';
 
 const CATEGORY_LABEL: Record<string, string> = {writing:'写作', consistency:'坚持', quality:'质量', community:'社区', social:'社交', special:'特殊'};
 

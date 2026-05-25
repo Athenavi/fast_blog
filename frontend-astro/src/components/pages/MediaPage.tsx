@@ -1,8 +1,8 @@
 'use client';
 
 import React, {useCallback, useEffect, useRef, useState} from 'react';
-import type {MediaFile, MediaResponse} from '@/lib/api';
-import {apiClient, MediaService} from '@/lib/api';
+import type {MediaFile} from '@/lib/api';
+import {MediaService} from '@/lib/api';
 import {AuthGuard} from '@/components/AuthGuard';
 import {motion} from 'framer-motion';
 import {
@@ -26,6 +26,7 @@ import {
 } from 'lucide-react';
 import {getConfig} from '@/lib/config';
 import DesktopLyrics from '@/components/audio/DesktopLyrics';
+import {apiClient} from "@/lib/api/api-client";
 
 // Helper function to build full media URL
 const getFullMediaUrl = (url: string | null | undefined): string => {
@@ -1546,33 +1547,50 @@ const MediaPage: React.FC = () => {
 
   const handleDelete = async (id: number) => {
     const res = await apiClient.delete('/media/?file-id-list=' + id);
-    if (res.success) { setDeleteItem(null); loadFiles(); } else alert(res.error||'删除失败');
+    if (res.success) {
+      setDeleteItem(null);
+      await loadFiles();
+    } else alert(res.error || '删除失败');
   };
 
   const handleCreateFolder = async (name: string) => {
     const res = await apiClient.post('/media/folders/', {name});
-    if (res.success) { setShowCreateFolder(false); loadFolders(); }
+    if (res.success) {
+      setShowCreateFolder(false);
+      await loadFolders();
+    }
     else alert(res.error||'创建失败');
   };
 
   const handleMoveToFolder = async (folderPath: string|null) => {
     if (!selected.length) return;
     const res = await apiClient.post('/media/folders/move-media', {media_ids: selected, folder_path: folderPath});
-    if (res.success) { setSelected([]); setShowMoveDialog(false); loadFiles(); }
+    if (res.success) {
+      setSelected([]);
+      setShowMoveDialog(false);
+      await loadFiles();
+    }
     else alert(res.error||'移动失败');
   };
 
   const handleDeleteFolder = async (id: number) => {
     if (!confirm('确定删除此文件夹？')) return;
     const res = await apiClient.delete(`/media/folders/${id}`);
-    if (res.success) { if (selectedFolder===id) setSelectedFolder(null); loadFolders(); }
+    if (res.success) {
+      if (selectedFolder === id) setSelectedFolder(null);
+      await loadFolders();
+    }
     else alert(res.error||'删除失败');
   };
 
   const handleSaveTags = async (mediaId: number, tags: string[], mode: 'add' | 'replace') => {
     try {
       const res = await apiClient.post(`/media/${mediaId}/tags`, {tags, mode});
-      if (res.success) { loadFiles(); loadTags(); return true; }
+      if (res.success) {
+        await loadFiles();
+        loadTags();
+        return true;
+      }
       else { alert(res.error || '保存标签失败'); return false; }
     } catch { alert('保存标签失败'); return false; }
   };
@@ -1583,7 +1601,11 @@ const MediaPage: React.FC = () => {
   const handleSaveCategory = async (mediaId: number, category: string | null) => {
     try {
       const res = await apiClient.put(`/media/detail/${mediaId}`, {category});
-      if (res.success) { loadFiles(); loadCategories(); return true; }
+      if (res.success) {
+        await loadFiles();
+        loadCategories();
+        return true;
+      }
       else { alert(res.error || '保存分类失败'); return false; }
     } catch { alert('保存分类失败'); return false; }
   };
@@ -1592,7 +1614,10 @@ const MediaPage: React.FC = () => {
     if (!selected.length) return;
     try {
       const res = await apiClient.post('/media/batch-categorize', {media_ids: selected, category});
-      if (res.success) { loadFiles(); loadCategories(); }
+      if (res.success) {
+        await loadFiles();
+        loadCategories();
+      }
       else alert(res.error || '批量设置分类失败');
     } catch { alert('批量设置分类失败'); }
   };
@@ -1601,7 +1626,10 @@ const MediaPage: React.FC = () => {
     if (!selected.length) return;
     try {
       const res = await apiClient.post('/media/batch-tags', {media_ids: selected, tags: [tag], mode: 'add'});
-      if (res.success) { loadFiles(); loadTags(); }
+      if (res.success) {
+        await loadFiles();
+        loadTags();
+      }
       else alert(res.error || '批量添加标签失败');
     } catch { alert('批量添加标签失败'); }
   };

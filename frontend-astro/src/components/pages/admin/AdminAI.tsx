@@ -1,12 +1,12 @@
 'use client';
 
 import React, {useState} from 'react';
-import {useQuery, useMutation} from '@tanstack/react-query';
+import {useMutation, useQuery} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
-import {apiClient} from '@/lib/api';
-import {Brain, Sparkles, Loader} from 'lucide-react';
+import {apiClient} from '@/lib/api/api-client';
+import {Brain, Loader, Sparkles} from 'lucide-react';
 
 function AIInner() {
   const [text, setText] = useState('');

@@ -1,15 +1,24 @@
 'use client';
 
-import React, {useState, useMemo, useCallback} from 'react';
-import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
+import React, {useMemo, useState} from 'react';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
-import {apiClient} from '@/lib/api';
+import {apiClient} from '@/lib/api/api-client';
 import {
-  Plus, Trash2, Play, Pause, X, Eye, MousePointerClick,
-  Layout, Calendar, Hash, ToggleLeft, Search, AlertTriangle,
-  ChevronDown, Loader,
+  AlertTriangle,
+  Eye,
+  Layout,
+  Loader,
+  MousePointerClick,
+  Pause,
+  Play,
+  Plus,
+  Search,
+  ToggleLeft,
+  Trash2,
+  X,
 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────

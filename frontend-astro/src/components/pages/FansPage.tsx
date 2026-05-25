@@ -4,8 +4,8 @@ import React, {useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
-import {apiClient} from '@/lib/api';
-import {Users, UserPlus, Search} from 'lucide-react';
+import {apiClient} from '@/lib/api/api-client';
+import {UserPlus, Users} from 'lucide-react';
 
 function FansInner() {
   const [tab, setTab] = useState(0);

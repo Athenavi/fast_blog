@@ -1,9 +1,9 @@
 'use client';
 
 import React, {useState} from 'react';
-import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
-import {apiClient} from '@/lib/api';
-import {History, RotateCcw, Clock, User, FileText, X, GitCompare, ChevronRight, Trash2} from 'lucide-react';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
+import {apiClient} from '@/lib/api/api-client';
+import {ChevronRight, Clock, FileText, GitCompare, History, RotateCcw, Trash2, User, X} from 'lucide-react';
 
 interface Revision {id:number;revision_number:number;title:string;excerpt:string;content:string;change_summary:string|null;created_at:string;author?:{username:string};}
 interface Props {articleId:number|string;open:boolean;onClose:()=>void;onCollapse?:()=>void;onRestore:(c:string,t:string,e:string)=>void;}

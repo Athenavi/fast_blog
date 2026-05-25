@@ -1,8 +1,8 @@
 'use client';
 
 import React, {useEffect, useState} from 'react';
-import {apiClient} from '@/lib/api';
-import {Smartphone, CheckCircle, XCircle, Loader} from 'lucide-react';
+import {apiClient} from '@/lib/api/api-client';
+import {CheckCircle, Loader, Smartphone, XCircle} from 'lucide-react';
 
 export default function MobileLoginPage() {
   const [status, setStatus] = useState<'checking'|'confirming'|'success'|'error'>('checking');

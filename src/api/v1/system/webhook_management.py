@@ -3,17 +3,17 @@ Webhook管理API端点
 
 提供Webhook配置管理和事件触发的REST API接口
 """
-from fastapi import APIRouter, Depends, Query, HTTPException, Body
 from typing import List, Optional
+
+from fastapi import APIRouter, Depends, Query, Body
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from shared.models.webhook import Webhook
+from shared.services.notifications.webhook_service import WebhookService
 from src.api.v1.core.responses import ApiResponse
 from src.auth import admin_required
-from shared.services.notifications.webhook_service import WebhookService, WEBHOOK_EVENTS
 from src.utils.database.unified_manager import db_manager
-
-from shared.models.webhook import Webhook
-from sqlalchemy import select
 
 router = APIRouter(tags=["Webhooks"])
 
@@ -243,7 +243,7 @@ async def get_delivery_stats(
 
 
 @router.get("/events", summary="获取支持的事件列表")
-async def get_supported_events(current_user=Depends(admin_required)):
+async def get_supported_events(current_user=Depends(admin_required), WEBHOOK_EVENTS=None):
     """获取所有支持的Webhook事件类型"""
     try:
         return ApiResponse(

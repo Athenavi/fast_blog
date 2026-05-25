@@ -2,10 +2,9 @@
 
 import React from 'react';
 import {useQuery} from '@tanstack/react-query';
-import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
-import {apiClient} from '@/lib/api';
-import {Info, Server, GitBranch, Calendar} from 'lucide-react';
+import {apiClient} from '@/lib/api/api-client';
+import {Calendar, GitBranch, Info, Server} from 'lucide-react';
 
 function VersionInner() {
   const {data, isLoading} = useQuery({
