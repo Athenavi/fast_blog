@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - CryptoPayment
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-25 10:41:21
+生成时间：2026-05-25 10:58:31
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Numeric, ForeignKey, Index
@@ -37,6 +37,7 @@ class CryptoPayment(Base):
     tx_hash = Column(String(255), nullable=True, doc='区块链交易哈希')
 
     confirmations = Column(Integer, default=0, doc='确认数')
+
 
     required_confirmations = Column(Integer, default=6, doc='所需确认数')
 

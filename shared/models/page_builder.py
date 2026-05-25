@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - PageBuilder
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-25 10:41:21
+生成时间：2026-05-25 10:58:31
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Index
@@ -13,6 +13,7 @@ from . import Base  # 使用统一的 Base
 class PageBuilder(Base):
     """可视化页面构建器模型模型"""
     __tablename__ = 'page_builder'
+
 
     __table_args__ = (
         Index('idx_page_builder_slug', 'slug', unique=True),

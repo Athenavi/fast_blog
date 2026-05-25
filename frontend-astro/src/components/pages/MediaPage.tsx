@@ -2121,3 +2121,104 @@ const BatchCategoryDialog: React.FC<{
       </div>
   );
 };
+
+/* ========== Image Crop Dialog ========== */
+const ImageCropDialog: React.FC<{
+  open: boolean;
+  media: MediaFile | null;
+  onClose: () => void;
+  onOptimize: (mediaId: number, cropData?: any) => Promise<void>;
+}> = ({open, media, onClose, onOptimize}) => {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [crop, setCrop] = useState({x: 0, y: 0, width: 100, height: 100});
+  const [processing, setProcessing] = useState(false);
+
+  useEffect(() => {
+    if (media && canvasRef.current) {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        const canvas = canvasRef.current!;
+        const ctx = canvas.getContext('2d')!;
+        canvas.width = img.width;
+        canvas.height = img.height;
+        ctx.drawImage(img, 0, 0);
+        setCrop({x: 0, y: 0, width: img.width, height: img.height});
+      };
+      img.src = getFullMediaUrl(media.url);
+    }
+  }, [media]);
+
+  const handleOptimize = async () => {
+    if (!media || !canvasRef.current) return;
+    setProcessing(true);
+    try {
+      // Convert crop to WebP and send to backend
+      const canvas = canvasRef.current;
+      const blob = await new Promise<Blob>((resolve) => {
+        canvas.toBlob((b) => resolve(b!), 'image/webp', 0.8);
+      });
+      const formData = new FormData();
+      formData.append('file', blob, `${media.filename}.webp`);
+      formData.append('crop_data', JSON.stringify(crop));
+
+      await onOptimize(media.id, crop);
+      onClose();
+    } catch (error) {
+      console.error('优化失败:', error);
+    } finally {
+      setProcessing(false);
+    }
+  };
+
+  if (!open || !media) return null;
+
+  return (
+      <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={onClose}>
+        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] flex flex-col"
+             onClick={e => e.stopPropagation()}>
+          <div className="flex items-center justify-between px-6 py-4 border-b dark:border-gray-700">
+            <h3 className="text-lg font-bold text-gray-900 dark:text-white">图像裁剪与优化</h3>
+            <button onClick={onClose} className="p-1 rounded hover:bg-gray-100 dark:hover:bg-gray-800"><X
+                className="w-5 h-5"/></button>
+          </div>
+          <div className="flex-1 overflow-auto p-6">
+            <div className="mb-4">
+              <canvas ref={canvasRef} className="max-w-full border rounded-lg"/>
+            </div>
+            <div className="grid grid-cols-2 gap-4 mb-4">
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">X 坐标</label>
+                <input type="number" value={crop.x} onChange={e => setCrop({...crop, x: Number(e.target.value)})}
+                       className="w-full px-3 py-2 border rounded-lg"/>
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">Y 坐标</label>
+                <input type="number" value={crop.y} onChange={e => setCrop({...crop, y: Number(e.target.value)})}
+                       className="w-full px-3 py-2 border rounded-lg"/>
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">宽度</label>
+                <input type="number" value={crop.width}
+                       onChange={e => setCrop({...crop, width: Number(e.target.value)})}
+                       className="w-full px-3 py-2 border rounded-lg"/>
+              </div>
+              <div>
+                <label className="text-xs text-gray-500 mb-1 block">高度</label>
+                <input type="number" value={crop.height}
+                       onChange={e => setCrop({...crop, height: Number(e.target.value)})}
+                       className="w-full px-3 py-2 border rounded-lg"/>
+              </div>
+            </div>
+          </div>
+          <div className="px-6 py-4 border-t dark:border-gray-700 flex gap-2">
+            <button onClick={onClose} className="flex-1 py-2 rounded-xl border text-sm">取消</button>
+            <button onClick={handleOptimize} disabled={processing}
+                    className="flex-1 py-2 rounded-xl bg-blue-600 text-white text-sm hover:bg-blue-700 disabled:opacity-50">
+              {processing ? '优化中...' : '生成 WebP'}
+            </button>
+          </div>
+        </div>
+      </div>
+  );
+};

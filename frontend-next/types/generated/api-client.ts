@@ -1,7 +1,7 @@
 /**
  * API 客户端
  * 由 routes.yaml 自动生成 - 请勿手动修改
- * 生成时间：2026-05-25 10:41:20
+ * 生成时间：2026-05-25 10:58:31
  */
 
 import {ApiResponse} from './api-types';

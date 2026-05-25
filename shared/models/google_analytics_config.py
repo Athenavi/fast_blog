@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - GoogleAnalyticsConfig
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-25 10:41:21
+生成时间：2026-05-25 10:58:31
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Numeric, ForeignKey, Index
@@ -35,6 +35,7 @@ class GoogleAnalyticsConfig(Base):
 
 
     enable_event_tracking = Column(Boolean, default=True, doc='是否启用事件追踪')
+
 
     enable_user_behavior_analysis = Column(Boolean, default=False, doc='是否启用用户行为分析')
 

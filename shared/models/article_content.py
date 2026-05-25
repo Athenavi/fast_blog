@@ -1,12 +1,13 @@
 """
 SQLAlchemy 模型定义 - ArticleContent
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-25 10:41:21
+生成时间：2026-05-25 10:58:31
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey
 
 from . import Base  # 使用统一的 Base
+
 
 
 class ArticleContent(Base):
@@ -30,7 +31,7 @@ class ArticleContent(Base):
 
     updated_at = Column(DateTime, doc='更新时间')
 
-    language_code = Column(String(255), default='zh-CN', doc='语言代码')
+    language_code = Column(String(255), default='zh-CN', doc='语言代码（文章国际化）')
 
 
     def to_dict(self, exclude_sensitive=True):

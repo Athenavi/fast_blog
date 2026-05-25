@@ -1227,6 +1227,82 @@ models:
       - name: idx_media_folders_unique_name
         columns: [ user, parent_id, name ]
         unique: true
+
+  MediaOptimization:
+    description: 媒体优化配置模型（支持 WebP 转换、多尺寸生成、CDN 集成）
+    properties:
+      id:
+        type: bigint
+        description: 配置 ID
+      media_id:
+        type: bigint
+        foreignKey: Media
+        description: 媒体 ID
+      webp_url:
+        type: string
+        nullable: true
+        maxLength: 500
+        description: WebP 格式 URL
+      sizes_json:
+        type: text
+        nullable: true
+        description: "多尺寸 JSON (thumbnail, medium, large)"
+      cdn_url:
+        type: string
+        nullable: true
+        maxLength: 500
+        description: CDN URL
+      optimization_status:
+        type: string
+        maxLength: 20
+        default: pending
+        description: "优化状态 (pending, processing, completed, failed)"
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+      updated_at:
+        type: string
+        format: date-time
+        description: 更新时间
+    orm: true
+    table: media_optimizations
+    indexes:
+      - name: idx_media_optimization_media
+        columns: [ media_id ]
+        comment: "媒体ID索引"
+      - name: idx_media_optimization_status
+        columns: [ optimization_status ]
+        comment: "优化状态索引"
+
+  ArticleRevisionNote:
+    description: 文章修订注释模型（为每次修订添加说明和备注）
+    properties:
+      id:
+        type: bigint
+        description: 注释 ID
+      revision_id:
+        type: bigint
+        foreignKey: ArticleRevision
+        description: 关联的修订版本 ID
+      user_id:
+        type: bigint
+        foreignKey: User
+        description: 添加注释的用户 ID
+      note_content:
+        type: text
+        description: 注释内容
+      created_at:
+        type: string
+        format: date-time
+        description: 创建时间
+    orm: true
+    table: article_revision_notes
+    indexes:
+      - name: idx_revision_notes_revision
+        columns: [ revision_id ]
+        comment: "修订版本索引"
+
   SystemSettings:
     description: 系统设置模型
     properties:
@@ -1318,50 +1394,9 @@ models:
       language_code:
         type: string
         default: zh-CN
-        description: 语言代码
+        description: 语言代码（文章国际化）
     orm: true
     table: article_content
-  ArticleI18n:
-    description: 文章国际化模型
-    properties:
-      i18n_id:
-        type: bigint
-        description: 国际化 ID
-        primaryKey: true
-        autoIncrement: true
-      article:
-        type: bigint
-        description: 文章
-        foreignKey: Article
-      language_id:
-        type: string
-        maxLength: 10
-        description: 语言 ID
-      title:
-        type: string
-        maxLength: 255
-        description: 标题
-      slug:
-        type: string
-        maxLength: 255
-        description: 文章 slug
-      content:
-        type: text
-        description: 文章内容
-      excerpt:
-        type: string
-        nullable: true
-        description: 摘要
-      created_at:
-        type: string
-        format: date-time
-        description: 创建时间
-      updated_at:
-        type: string
-        format: date-time
-        description: 更新时间
-    orm: true
-    table: article_i18n
   ArticleLike:
     description: 文章点赞模型
     properties:

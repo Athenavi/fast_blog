@@ -1,7 +1,7 @@
 /**
  * API 类型定义
  * 由 routes.yaml 自动生成 - 请勿手动修改
- * 生成时间：2026-05-25 10:41:20
+ * 生成时间：2026-05-25 10:58:31
  */
 
 export interface AuditLog {
@@ -288,6 +288,25 @@ export interface MediaFolder {
     updated_at: string;
 }
 
+export interface MediaOptimization {
+    id: any;
+    media_id: any;
+    webp_url?: string;
+    sizes_json?: any;
+    cdn_url?: string;
+    optimization_status: string;
+    created_at: string;
+    updated_at: string;
+}
+
+export interface ArticleRevisionNote {
+    id: any;
+    revision_id: any;
+    user_id: any;
+    note_content: any;
+    created_at: string;
+}
+
 export interface SystemSettings {
     id: number;
     setting_key: string;
@@ -315,18 +334,6 @@ export interface ArticleContent {
     created_at: string;
     updated_at: string;
     language_code: string;
-}
-
-export interface ArticleI18n {
-    i18n_id: any;
-    article: any;
-    language_id: string;
-    title: string;
-    slug: string;
-    content: any;
-    excerpt?: string;
-    created_at: string;
-    updated_at: string;
 }
 
 export interface ArticleLike {

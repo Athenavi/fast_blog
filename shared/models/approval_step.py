@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - ApprovalStep
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-25 10:41:21
+生成时间：2026-05-25 10:58:31
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
@@ -41,6 +41,7 @@ class ApprovalStep(Base):
     reviewed_at = Column(DateTime, nullable=True, doc='审核时间')
 
     created_at = Column(DateTime, doc='创建时间')
+
 
     def to_dict(self, exclude_sensitive=True):
         """转换为字典

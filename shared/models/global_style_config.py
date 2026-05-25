@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - GlobalStyleConfig
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-25 10:41:21
+生成时间：2026-05-25 10:58:31
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
@@ -9,15 +9,18 @@ from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateT
 from . import Base  # 使用统一的 Base
 
 
+
 class GlobalStyleConfig(Base):
     """全局样式配置模型模型"""
     __tablename__ = 'global_style_configs'
+
 
     __table_args__ = (
         Index('idx_global_style_slug', 'slug', unique=True),
         Index('idx_global_style_is_active', 'is_active'),
         Index('idx_global_style_theme_type', 'theme_type'),
     )
+
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='配置 ID')
 
@@ -34,6 +37,7 @@ class GlobalStyleConfig(Base):
 
     typography = Column(Text, nullable=False,
                         doc='字体配置（JSON，包含 font_family、font_size_base、line_height、heading_weights 等）')
+
 
     spacing = Column(Text, nullable=False, doc='间距配置（JSON，包含 padding_base、margin_base、gap_sizes 等）')
 

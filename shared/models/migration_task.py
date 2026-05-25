@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - MigrationTask
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-25 10:41:21
+生成时间：2026-05-25 10:58:31
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
@@ -31,6 +31,7 @@ class MigrationTask(Base):
     status = Column(String(20), default='pending', doc='任务状态')
 
     config = Column(Text, nullable=True, doc='迁移配置（JSON格式）')
+
 
     progress = Column(Integer, default=0, doc='进度百分比（0-100）')
 

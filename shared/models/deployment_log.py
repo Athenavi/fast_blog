@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - DeploymentLog
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-25 10:41:21
+生成时间：2026-05-25 10:58:31
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
@@ -25,6 +25,7 @@ class DeploymentLog(Base):
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='日志 ID')
 
     script_id = Column(BigInteger, ForeignKey('deployment_scripts.id'), doc='脚本 ID')
+
 
     user_id = Column(BigInteger, ForeignKey('users.id'), nullable=True, doc='执行者用户 ID')
 

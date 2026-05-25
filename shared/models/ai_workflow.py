@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - AIWorkflow
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-25 10:41:21
+生成时间：2026-05-25 10:58:31
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
@@ -20,6 +20,7 @@ class AIWorkflow(Base):
         Index('idx_ai_workflows_task_type', 'task_type'),
         Index('idx_ai_workflows_status', 'status'),
     )
+
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='工作流 ID')
 

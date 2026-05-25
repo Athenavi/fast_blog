@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - EmailServiceConfig
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-25 10:41:21
+生成时间：2026-05-25 10:58:31
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
@@ -44,6 +44,7 @@ class EmailServiceConfig(Base):
     from_name = Column(String(255), nullable=True, doc='发件人名称')
 
     enable_batch_sending = Column(Boolean, default=False, doc='是否启用批量发送')
+
 
     batch_size = Column(Integer, default=50, doc='批量发送大小')
 

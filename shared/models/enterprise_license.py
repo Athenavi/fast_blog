@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - EnterpriseLicense
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-25 10:41:21
+生成时间：2026-05-25 10:58:31
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Numeric, Index
@@ -33,6 +33,7 @@ class EnterpriseLicense(Base):
     contact_email = Column(String(255), nullable=True, doc='联系邮箱')
 
     max_sites = Column(Integer, default=-1, doc='最大站点数（-1表示无限）')
+
 
     features = Column(Text, nullable=True, doc='功能列表（JSON格式）')
 

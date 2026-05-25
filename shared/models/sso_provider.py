@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - SSOProvider
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-05-25 10:41:21
+生成时间：2026-05-25 10:58:31
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
@@ -48,6 +48,7 @@ class SSOProvider(Base):
 
 
     auto_provision_users = Column(Boolean, default=True, doc='是否自动创建用户')
+
 
     default_role = Column(String(50), default='subscriber', doc='新用户默认角色')
 

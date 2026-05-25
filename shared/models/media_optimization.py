@@ -1,5 +1,5 @@
 """
-SQLAlchemy 模型定义 - BaiduAnalyticsConfig
+SQLAlchemy 模型定义 - MediaOptimization
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
 生成时间：2026-05-25 10:58:31
 """
@@ -9,33 +9,26 @@ from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateT
 from . import Base  # 使用统一的 Base
 
 
-
-class BaiduAnalyticsConfig(Base):
-    """百度统计配置模型模型"""
-    __tablename__ = 'baidu_analytics_configs'
-
+class MediaOptimization(Base):
+    """媒体优化配置模型（支持 WebP 转换、多尺寸生成、CDN 集成）模型"""
+    __tablename__ = 'media_optimizations'
 
     __table_args__ = (
-        Index('idx_baidu_config_site', 'site_id'),
+        Index('idx_media_optimization_media', 'media_id'),
+        Index('idx_media_optimization_status', 'optimization_status'),
     )
-
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='配置 ID')
 
-    site_id = Column(BigInteger, ForeignKey('sites.id'), nullable=True, doc='关联的站点 ID（为空表示全局配置）')
+    media_id = Column(BigInteger, ForeignKey('media.id'), doc='媒体 ID')
 
+    webp_url = Column(String(500), nullable=True, doc='WebP 格式 URL')
 
-    site_token = Column(String(100), nullable=True, doc='百度统计 Site Token')
+    sizes_json = Column(Text, nullable=True, doc='多尺寸 JSON (thumbnail, medium, large)')
 
-    api_key = Column(String(255), nullable=True, doc='百度统计 API Key')
+    cdn_url = Column(String(500), nullable=True, doc='CDN URL')
 
-    enable_tracking = Column(Boolean, default=True, doc='是否启用追踪')
-
-
-    enable_data_sync = Column(Boolean, default=False, doc='是否启用数据同步')
-
-
-    is_active = Column(Boolean, default=False, doc='是否激活')
+    optimization_status = Column(String(20), default='pending', doc='优化状态 (pending, processing, completed, failed)')
 
     created_at = Column(DateTime, doc='创建时间')
 
@@ -49,12 +42,11 @@ class BaiduAnalyticsConfig(Base):
         """
         data = {
             'id': self.id,
-            'site_id': self.site_id,
-            'site_token': self.site_token,
-            'api_key': self.api_key,
-            'enable_tracking': self.enable_tracking,
-            'enable_data_sync': self.enable_data_sync,
-            'is_active': self.is_active,
+            'media_id': self.media_id,
+            'webp_url': self.webp_url,
+            'sizes_json': self.sizes_json,
+            'cdn_url': self.cdn_url,
+            'optimization_status': self.optimization_status,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }
@@ -68,4 +60,4 @@ class BaiduAnalyticsConfig(Base):
 
     def __repr__(self):
         """字符串表示"""
-        return f'<BaiduAnalyticsConfig id={self.id}>'
+        return f'<MediaOptimization id={self.id}>'

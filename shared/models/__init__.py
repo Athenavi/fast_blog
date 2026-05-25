@@ -2,6 +2,7 @@ from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
 
+
 from .audit_log import AuditLog
 from .ai_workflow import AIWorkflow
 from .page_builder import PageBuilder
@@ -16,9 +17,10 @@ from .category import Category
 from .category_subscription import CategorySubscription
 from .media import Media
 from .media_folder import MediaFolder
+from .media_optimization import MediaOptimization
+from .article_revision_note import ArticleRevisionNote
 from .system_settings import SystemSettings
 from .article_content import ArticleContent
-from .article_i18n import ArticleI18n
 from .article_like import ArticleLike
 from .file_hash import FileHash
 from .menus import Menus
@@ -135,9 +137,10 @@ __all__ = [
     'CategorySubscription',
     'Media',
     'MediaFolder',
+    'MediaOptimization',
+    'ArticleRevisionNote',
     'SystemSettings',
     'ArticleContent',
-    'ArticleI18n',
     'ArticleLike',
     'FileHash',
     'Menus',
