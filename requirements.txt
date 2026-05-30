@@ -46,7 +46,7 @@ requests>=2.31.0,<3.0.0
 slowapi>=0.1.9,<1.0.0
 
 # Environment & Configuration
-python-dotenv>=1.0.0,<2.0.0
+python-dotenv>=1.2.2,<2.0.0
 
 # Scheduling
 apscheduler>=3.10.0,<4.0.0
