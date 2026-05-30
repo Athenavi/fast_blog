@@ -1,3 +1,7 @@
+# ============================================================================
+# FastBlog .gitignore
+# ============================================================================
+
 # Python
 **/__pycache__/
 *.py[cod]
@@ -12,9 +16,6 @@ eggs/
 .eggs/
 lib/
 lib64/
-# But NOT React lib dirs
-!frontend-astro/src/lib/
-!frontend-next/src/lib/
 parts/
 sdist/
 var/
@@ -26,10 +27,10 @@ MANIFEST
 
 # Virtual Environment
 .venv/
+venv/
 env/
 ENV/
 .venv
-.env
 
 # IDE
 .idea/
@@ -37,22 +38,33 @@ ENV/
 *.swo
 *~
 .vscode/
+*.code-workspace
 
 # Logs
 logs/
 *.log
+*.log.*
 
-# Local configuration files
+# Environment files
 .env
 .env.local
 .env.dev
 .env.prod
 
-# Frontend
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Frontend build artifacts
 .vite/
 cache/
-frontend/node_modules/
 frontend/dist/
+frontend-astro/dist/
+frontend-astro/.astro/
+frontend-astro/*.tsbuildinfo
 frontend-next/.next/
 frontend-next/node_modules/
 
@@ -64,6 +76,7 @@ static/avatar/
 # Database
 *.db
 *.db-journal
+*.sqlite3
 
 # Alembic
 alembic/
@@ -86,14 +99,38 @@ Thumbs.db
 storage/
 storage/*
 
+# Docker
+.docker/
+
+# Coverage reports
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+
+# Testing
+.pytest_cache/
+.tox/
+.nox/
+
+# Type checking
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
 # Django Migrations (auto-generated)
 apps/*/migrations/*.py
 !apps/*/migrations/.gitkeep
 
+# Release & build artifacts
 /release/
 /upload_chunks/*
 /alembic_migrations/versions/*
 /plugins_data/*
 /mobile-app/node_modules/
 /frontend-astro/node_modules/
-/frontend-astro/*.tsbuildinfo
+
+# Terraform
+*.tfstate
+*.tfstate.*
+.terraform/
