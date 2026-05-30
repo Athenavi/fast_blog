@@ -22,7 +22,7 @@ except ImportError:
 class PluginHook:
     """
     插件钩子系统
-    
+
     支持两种类型的钩子:
     1. Action: 执行动作,无返回值
     2. Filter: 过滤数据,有返回值
@@ -106,7 +106,7 @@ plugin_hooks = PluginHook()
 class BasePlugin:
     """
     插件基类
-    
+
     所有插件都应继承此类并实现必要的方法
     """
 
@@ -167,7 +167,7 @@ class BasePlugin:
         """停用插件"""
         if not self.active:
             return
-        
+
         self.unregister_hooks()
         self.active = False
         print(f"[Plugin] Deactivated: {self.name}")
@@ -213,7 +213,7 @@ class BasePlugin:
                 else:
                     print(f"[Plugin] Warning: Invalid manifest for {self.name}: {msg}")
                     self.capabilities = self.metadata.get('capabilities', [])
-                    
+
             except Exception as e:
                 print(f"[Plugin] Failed to load metadata: {str(e)}")
 
@@ -271,7 +271,7 @@ class BasePlugin:
         """获取插件信息"""
         # 使用内置 hash 替代 hashlib，提升性能
         unique_id = abs(hash(self.slug)) % (10 ** 8)
-        
+
         return {
             'id': unique_id,
             'name': self.name,
@@ -323,7 +323,7 @@ class BasePlugin:
 class PluginManager:
     """
     插件管理器
-    
+
     负责插件的加载、激活、停用和管理
     """
 
@@ -498,14 +498,18 @@ class PluginManager:
         except Exception as e:
             print(f"[PluginManager] Failed to save state: {str(e)}")
 
-    def _load_plugin_state(self):
-        """加载插件状态（优先从数据库，回退到文件）"""
+    def _load_plugin_state(self) -> bool:
+        """加载插件状态（优先从数据库，回退到文件）
+
+        Returns:
+            bool: 是否成功恢复了至少一个插件的状态
+        """
         # 尝试从数据库加载
         if self._load_state_from_db():
-            return
+            return True
 
         # 回退到文件加载
-        self._load_state_from_file()
+        return self._load_state_from_file()
 
     def _load_state_from_db(self) -> bool:
         """从数据库加载插件状态"""
@@ -545,15 +549,20 @@ class PluginManager:
             print(f"[PluginManager] Falling back to file-based state loading...")
             return False
 
-    def _load_state_from_file(self):
-        """从文件加载插件状态"""
+    def _load_state_from_file(self) -> bool:
+        """从文件加载插件状态
+
+        Returns:
+            bool: 是否成功恢复了至少一个插件的状态
+        """
         if not self.state_file.exists():
-            return
+            return False
 
         try:
             with open(self.state_file, 'r', encoding='utf-8') as f:
                 state = json.load(f)
 
+            restored = False
             for plugin_slug, plugin_state in state.items():
                 plugin = self.plugins.get(plugin_slug)
                 if plugin:
@@ -566,24 +575,28 @@ class PluginManager:
                     if plugin_state.get('active'):
                         print(f"[PluginManager] Activating plugin from state file: {plugin_slug}")
                         plugin.activate()
+                        restored = True
+
+            return restored
         except Exception as e:
             print(f"[PluginManager] Failed to load state from file: {e}")
+            return False
 
     # ==================== 热插拔功能 ====================
 
     def hot_reload_plugin(self, plugin_slug: str) -> bool:
         """
         热重载插件（无需重启应用）
-        
+
         步骤:
         1. 停用当前插件（注销钩子）
         2. 重新加载模块代码
         3. 创建新的插件实例
         4. 激活新插件（注册钩子）
-        
+
         Args:
             plugin_slug: 插件slug
-            
+
         Returns:
             是否成功
         """
@@ -645,10 +658,10 @@ class PluginManager:
     def hot_load_plugin(self, plugin_slug: str) -> bool:
         """
         热加载新插件（运行时动态加载，无需重启）
-        
+
         Args:
             plugin_slug: 插件slug
-            
+
         Returns:
             是否成功
         """
@@ -697,10 +710,10 @@ class PluginManager:
     def hot_unload_plugin(self, plugin_slug: str) -> bool:
         """
         热卸载插件（运行时动态卸载，无需重启）
-        
+
         Args:
             plugin_slug: 插件slug
-            
+
         Returns:
             是否成功
         """
@@ -747,7 +760,7 @@ class PluginManager:
     def scan_for_new_plugins(self) -> List[str]:
         """
         扫描插件目录，发现新插件并返回slug列表
-        
+
         Returns:
             新发现的插件slug列表
         """

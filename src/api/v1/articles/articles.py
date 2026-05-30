@@ -191,7 +191,7 @@ async def _get_article_detail(
 
 
 # ---------- 文章列表 ----------
-@router.get("",
+@router.get("/",
             summary=ARTICLE_LIST_EXAMPLE["summary"],
             description=ARTICLE_LIST_EXAMPLE["description"],
             responses=ERROR_RESPONSE_EXAMPLE)
@@ -584,7 +584,7 @@ async def get_article_raw_content_api(
 
 
 # ---------- 创建文章 ----------
-@router.post("",
+@router.post("/",
              summary=ARTICLE_CREATE_EXAMPLE["summary"],
              description=ARTICLE_CREATE_EXAMPLE["description"],
              responses=ERROR_RESPONSE_EXAMPLE)

@@ -11,13 +11,14 @@ from pathlib import Path
 from typing import Dict, List, Any, Optional
 from urllib.parse import urlparse
 
-import aiohttp
+
+# aiohttp 仅在 download_media_files 中使用，延迟导入避免模块加载失败
 
 
 class WordPressImportService:
     """
     WordPress XML 导入服务
-    
+
     功能:
     1. 解析 WordPress WXR 文件
     2. 导入文章(包括内容、标题、摘要等)
@@ -39,10 +40,10 @@ class WordPressImportService:
     def parse_wxr_file(self, file_path: str) -> Dict[str, Any]:
         """
         解析 WordPress WXR 文件
-        
+
         Args:
             file_path: WXR 文件路径
-            
+
         Returns:
             包含所有解析数据的字典
         """
@@ -131,9 +132,10 @@ class WordPressImportService:
 
     def _parse_articles(self, channel) -> List[Dict[str, Any]]:
         """解析文章"""
+        ns = self.namespaces
         articles = []
         for item in channel.findall('item'):
-            post_type = self._get_text(item, 'wp:post_type')
+            post_type = self._get_text(item, 'wp:post_type', ns)
 
             # 只处理文章类型
             if post_type != 'post' and post_type != 'page':
@@ -144,13 +146,13 @@ class WordPressImportService:
                 'title': self._get_text(item, 'title'),
                 'link': self._get_text(item, 'link'),
                 'pubDate': self._get_text(item, 'pubDate'),
-                'author': self._get_text(item, 'dc:creator', self.namespaces),
-                'content': self._get_text(item, 'content:encoded', self.namespaces),
-                'excerpt': self._get_text(item, 'excerpt:encoded', self.namespaces),
-                'status': self._get_text(item, 'wp:status'),
-                'slug': self._get_text(item, 'wp:post_name'),
-                'created_at': self._parse_date(self._get_text(item, 'wp:post_date')),
-                'modified_at': self._parse_date(self._get_text(item, 'wp:post_modified')),
+                'author': self._get_text(item, 'dc:creator', ns),
+                'content': self._get_text(item, 'content:encoded', ns),
+                'excerpt': self._get_text(item, 'excerpt:encoded', ns),
+                'status': self._get_text(item, 'wp:status', ns),
+                'slug': self._get_text(item, 'wp:post_name', ns),
+                'created_at': self._parse_date(self._get_text(item, 'wp:post_date', ns)),
+                'modified_at': self._parse_date(self._get_text(item, 'wp:post_modified', ns)),
                 'categories': [],
                 'tags': [],
                 'comments': [],
@@ -164,24 +166,25 @@ class WordPressImportService:
 
                 if domain == 'category':
                     article['categories'].append({
-                        'name': category.text,
+                        'name': category.text or '',
                         'slug': nicename,
                     })
                 elif domain == 'post_tag':
                     article['tags'].append({
-                        'name': category.text,
+                        'name': category.text or '',
                         'slug': nicename,
                     })
 
             # 解析评论
-            for comment in item.findall('wp:comment', self.namespaces):
+            for comment in item.findall('wp:comment', ns):
                 article['comments'].append(self._parse_comment(comment))
 
-            # 解析特色图片
-            attachment_id = self._get_text(item, 'wp:postmeta/wp:meta_key[text()="_thumbnail_id"]/../wp:meta_value',
-                                           self.namespaces)
-            if attachment_id:
-                article['featured_image'] = attachment_id
+            # 解析特色图片（遍历 postmeta 寻找 _thumbnail_id）
+            for meta in item.findall('wp:postmeta', ns):
+                meta_key = self._get_text(meta, 'wp:meta_key', ns)
+                if meta_key == '_thumbnail_id':
+                    article['featured_image'] = self._get_text(meta, 'wp:meta_value', ns)
+                    break
 
             articles.append(article)
 
@@ -189,33 +192,35 @@ class WordPressImportService:
 
     def _parse_comment(self, comment_elem) -> Dict[str, Any]:
         """解析评论"""
+        ns = self.namespaces
         return {
-            'id': self._get_text(comment_elem, 'wp:comment_id'),
-            'author': self._get_text(comment_elem, 'wp:comment_author'),
-            'email': self._get_text(comment_elem, 'wp:comment_author_email'),
-            'url': self._get_text(comment_elem, 'wp:comment_author_url'),
-            'ip': self._get_text(comment_elem, 'wp:comment_author_IP'),
-            'date': self._parse_date(self._get_text(comment_elem, 'wp:comment_date')),
-            'content': self._get_text(comment_elem, 'wp:comment_content'),
-            'approved': self._get_text(comment_elem, 'wp:comment_approved') == '1',
-            'parent': self._get_text(comment_elem, 'wp:comment_parent'),
+            'id': self._get_text(comment_elem, 'wp:comment_id', ns),
+            'author': self._get_text(comment_elem, 'wp:comment_author', ns),
+            'email': self._get_text(comment_elem, 'wp:comment_author_email', ns),
+            'url': self._get_text(comment_elem, 'wp:comment_author_url', ns),
+            'ip': self._get_text(comment_elem, 'wp:comment_author_IP', ns),
+            'date': self._parse_date(self._get_text(comment_elem, 'wp:comment_date', ns)),
+            'content': self._get_text(comment_elem, 'wp:comment_content', ns),
+            'approved': self._get_text(comment_elem, 'wp:comment_approved', ns) == '1',
+            'parent': self._get_text(comment_elem, 'wp:comment_parent', ns),
         }
 
     def _parse_media(self, channel) -> List[Dict[str, Any]]:
         """解析媒体文件"""
+        ns = self.namespaces
         media = []
         for item in channel.findall('item'):
-            post_type = self._get_text(item, 'wp:post_type')
+            post_type = self._get_text(item, 'wp:post_type', ns)
 
             if post_type != 'attachment':
                 continue
 
             media_item = {
-                'id': self._get_text(item, 'wp:post_id'),
+                'id': self._get_text(item, 'wp:post_id', ns),
                 'title': self._get_text(item, 'title'),
-                'url': self._get_text(item, 'wp:attachment_url'),
-                'mime_type': self._get_text(item, 'wp:post_mime_type'),
-                'created_at': self._parse_date(self._get_text(item, 'wp:post_date')),
+                'url': self._get_text(item, 'wp:attachment_url', ns),
+                'mime_type': self._get_text(item, 'wp:post_mime_type', ns),
+                'created_at': self._parse_date(self._get_text(item, 'wp:post_date', ns)),
             }
             media.append(media_item)
 
@@ -261,12 +266,12 @@ class WordPressImportService:
             Dict[str, Any]:
         """
         将解析的数据导入数据库
-        
+
         Args:
             parsed_data: parse_wxr_file 返回的解析数据
             db_session: 数据库会话
             user_mapping: 作者ID映射 {wordpress_author_id: system_user_id}
-            
+
         Returns:
             导入结果统计
         """
@@ -334,8 +339,17 @@ class WordPressImportService:
                     if user_mapping and article_data['author'] in user_mapping:
                         user_id = user_mapping[article_data['author']]
 
+                    # 生成有效的 slug
+                    slug = article_data.get('slug', '').strip()
+                    if not slug:
+                        # slug 为空时从 title 生成，再不行用 index 兜底
+                        slug = re.sub(r'[^\w\-]', '-', (article_data.get('title') or f'imported-{idx}').strip())[
+                            :50].strip('-')
+                        if not slug:
+                            slug = f'imported-{idx}'
+
                     # 检查文章是否已存在（通过 slug）
-                    stmt = select(Article).where(Article.slug == article_data['slug'])
+                    stmt = select(Article).where(Article.slug == slug)
                     result = await db_session.execute(stmt)
                     existing = result.scalar_one_or_none()
 
@@ -344,41 +358,48 @@ class WordPressImportService:
                         continue
 
                     # 创建文章
+                    # tags_list 是逗号分隔的字符串，不是列表
+                    tags_str = ','.join(
+                        t.get('name', '') for t in article_data.get('tags', []) if t.get('name')
+                    )
                     article = Article(
-                        title=article_data['title'],
-                        slug=article_data['slug'],
-                        excerpt=article_data['excerpt'][:200] if article_data['excerpt'] else '',
-                        status=self._map_status(article_data['status']),
-                        tags_list=article_data['tags'],
+                        title=article_data.get('title') or f'未命名文章 {idx + 1}',
+                        slug=slug,
+                        excerpt=(article_data.get('excerpt') or '')[:200],
+                        status=self._map_status(article_data.get('status', 'draft')),
+                        tags_list=tags_str[:255] if tags_str else '',
+                        post_type='page' if article_data.get('type') == 'page' else 'article',
                         user=user_id,
-                        created_at=article_data['created_at'] or datetime.now(),
-                        updated_at=article_data['modified_at'] or datetime.now(),
+                        created_at=article_data.get('created_at') or datetime.now(),
+                        updated_at=article_data.get('modified_at') or datetime.now(),
                     )
                     db_session.add(article)
                     await db_session.flush()  # 获取文章ID
 
-                    # 创建文章内容
+                    # 创建文章内容（content 为 NOT NULL，确保不为 None）
                     now = datetime.now()
                     content = ArticleContent(
                         article=article.id,
-                        content=article_data['content'],
+                        content=article_data.get('content') or '',
                         created_at=now,
                         updated_at=now,
                     )
                     db_session.add(content)
 
-                    # 关联分类
-                    for cat_info in article_data['categories']:
-                        stmt = select(Category).where(Category.slug == cat_info['slug'])
-                        result = await db_session.execute(stmt)
-                        category = result.scalar_one_or_none()
-                        if category:
-                            article.categories.append(category)
+                    # 关联分类（Article 只有单个 category FK，取第一个匹配的分类）
+                    if article_data.get('categories'):
+                        for cat_info in article_data['categories']:
+                            stmt = select(Category).where(Category.slug == cat_info.get('slug'))
+                            result = await db_session.execute(stmt)
+                            category = result.scalar_one_or_none()
+                            if category:
+                                article.category = category.id
+                                break  # 只取第一个分类
 
                     # 生成 URL 重定向规则
-                    old_url = article_data['link']
+                    old_url = article_data.get('link')
                     if old_url:
-                        new_url = f"/articles/{article_data['slug']}"
+                        new_url = f"/articles/{slug}"
                         results['redirects'].append({
                             'old_url': old_url,
                             'new_url': new_url,
@@ -389,7 +410,12 @@ class WordPressImportService:
 
                 except Exception as e:
                     results['errors'].append(f"文章导入失败: {article_data.get('title', 'Unknown')} - {str(e)}")
-                    await db_session.rollback()
+                    # 不 rollback 整个事务，只跳过当前文章（已 flush 的需 expunge）
+                    try:
+                        if 'article' in dir() and article in db_session:
+                            await db_session.expunge(article)
+                    except Exception:
+                        pass
 
             await db_session.commit()
 
@@ -406,28 +432,38 @@ class WordPressImportService:
                 'results': results,
             }
 
-    def _map_status(self, wp_status: str) -> str:
-        """映射 WordPress 状态到系统状态"""
+    def _map_status(self, wp_status: str) -> int:
+        """映射 WordPress 状态到系统状态（Article.status 是 Integer: -1=deleted, 0=draft, 1=published）"""
         status_map = {
-            'publish': 'published',
-            'draft': 'draft',
-            'pending': 'pending',
-            'private': 'private',
-            'trash': 'deleted',
+            'publish': 1,
+            'draft': 0,
+            'pending': 0,
+            'private': 1,
+            'trash': -1,
         }
-        return status_map.get(wp_status, 'draft')
+        return status_map.get(wp_status, 0)
 
     async def download_media_files(self, media_list: List[Dict[str, Any]], progress_callback=None) -> Dict[str, Any]:
         """
         下载媒体文件
-        
+
         Args:
             media_list: 媒体文件列表
             progress_callback: 进度回调函数 (current, total)
-            
+
         Returns:
             下载结果统计
         """
+        try:
+            import aiohttp
+        except ImportError:
+            return {
+                'downloaded': 0,
+                'failed': 0,
+                'skipped': len(media_list),
+                'errors': ['aiohttp 未安装，无法下载媒体文件。请运行: pip install aiohttp'],
+                'media_mapping': {},
+            }
         results = {
             'downloaded': 0,
             'failed': 0,
@@ -489,10 +525,10 @@ class WordPressImportService:
     def generate_import_report(self, import_results: Dict[str, Any]) -> str:
         """
         生成导入报告
-        
+
         Args:
             import_results: 导入结果数据
-            
+
         Returns:
             格式化的报告文本
         """
