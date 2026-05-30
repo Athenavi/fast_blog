@@ -98,7 +98,7 @@ export function NestedSortableBlock({
                             <button
                                 onClick={() => {
                                     // TODO: 显示子块选择器
-                                    console.log('Add child to', path);
+                                    onAddChild(path, 'paragraph');
                                 }}
                                 className="p-1.5 text-gray-400 hover:text-green-600 transition"
                                 title="添加子块"

@@ -3,6 +3,26 @@
  */
 
 /**
+ * 通用 cookie 读取
+ */
+export function getCookie(name: string): string | null {
+    if (typeof document === 'undefined') return null;
+    for (const c of document.cookie.split(';')) {
+        const [n, v] = c.trim().split('=');
+        if (n === name && v) return decodeURIComponent(v);
+    }
+    return null;
+}
+
+/**
+ * 通用 cookie 写入
+ */
+export function setCookie(name: string, value: string, maxAgeSec: number): void {
+    if (typeof document === 'undefined') return;
+    document.cookie = `${name}=${encodeURIComponent(value)}; path=/; max-age=${maxAgeSec}; SameSite=Lax`;
+}
+
+/**
  * 从 cookie 获取 access_token
  */
 export function getAccessTokenFromCookie(): string | null {

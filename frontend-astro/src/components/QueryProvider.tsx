@@ -2,10 +2,28 @@
 
 import React, {useState} from 'react';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
+import {ErrorBoundary} from '@/components/ui/ErrorBoundary';
 
 export function QueryProvider({children}: {children: React.ReactNode}) {
   const [qc] = useState(() => new QueryClient({
-    defaultOptions: {queries: {staleTime: 30_000, retry: 1}},
+    defaultOptions: {
+      queries: {
+        staleTime: 60_000,
+        gcTime: 5 * 60_000,
+        retry: 1,
+        retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10_000),
+        refetchOnWindowFocus: false,
+        refetchOnMount: true,
+        refetchOnReconnect: true,
+      },
+      mutations: {
+        retry: 0,
+      },
+    },
   }));
-  return <QueryClientProvider client={qc}>{children}</QueryClientProvider>;
+  return (
+      <ErrorBoundary>
+        <QueryClientProvider client={qc}>{children}</QueryClientProvider>
+      </ErrorBoundary>
+  );
 }

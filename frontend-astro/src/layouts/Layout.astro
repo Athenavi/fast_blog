@@ -6,7 +6,6 @@ import Navbar from '@/components/Navbar';
 import Footer from '@/components/Footer';
 import {GlobalShortcuts} from '@/components/GlobalShortcuts';
 import MobileGestures from '@/components/MobileGestures';
-import MobileBottomNav from '@/components/MobileBottomNav';
 
 export interface Props {
   title?: string;
@@ -21,7 +20,7 @@ const {title = 'FastBlog', description = 'A modern blog platform', dir = 'ltr', 
 <html lang={lang} dir={dir} suppressHydrationWarning>
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
     <title>{title}</title>
     <meta name="description" content={description} />
     <link rel="manifest" href="/manifest.json" />
@@ -55,7 +54,6 @@ const {title = 'FastBlog', description = 'A modern blog platform', dir = 'ltr', 
     </main>
 
     <Footer client:load />
-    <MobileBottomNav client:load />
 
     <slot name="scripts" />
   </body>

@@ -151,4 +151,10 @@ export const apiClient = {
   postForm: <T = any>(path: string, body?: Record<string, any>) => request<T>('POST', path, 'application/x-www-form-urlencoded', body),
   put: <T = any>(path: string, body?: any) => request<T>('PUT', path, 'application/json', body),
   delete: <T = any>(path: string) => request<T>('DELETE', path),
+    /** 通用请求方法，支持任意 method + FormData 等 */
+    request: <T = any>(path: string, opts: { method?: string; body?: any; credentials?: string } = {}) => {
+        const method = (opts.method || 'GET').toUpperCase();
+        const contentType = opts.body instanceof FormData ? undefined : 'application/json';
+        return request<T>(method, path, contentType, opts.body);
+    },
 };

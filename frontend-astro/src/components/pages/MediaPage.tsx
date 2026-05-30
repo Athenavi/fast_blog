@@ -27,16 +27,7 @@ import {
 import {getConfig} from '@/lib/config';
 import DesktopLyrics from '@/components/audio/DesktopLyrics';
 import {apiClient} from "@/lib/api/api-client";
-
-// Helper function to build full media URL
-const getFullMediaUrl = (url: string | null | undefined): string => {
-  if (!url) return '';
-  // If already absolute URL, return as is
-  if (url.startsWith('http://') || url.startsWith('https://')) return url;
-  // Otherwise, prepend API base URL
-  const config = getConfig();
-  return `${config.API_BASE_URL}${url}`;
-};
+import {getFullMediaUrl} from '@/lib/utils';
 
 /* ---------- Shared icons ---------- */
 const Minus: React.FC<{className?: string}> = p => <svg className={p.className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4"/></svg>;
@@ -1474,10 +1465,10 @@ const MediaPage: React.FC = () => {
   const [showMoveDialog, setShowMoveDialog] = useState(false);
 
   // Tags & Categories state
-  const [allTags, setAllTags] = useState<{id: number; name: string}[]>([]);
-  const [allCategories, setAllCategories] = useState<{id: number; name: string}[]>([]);
-  const [selectedTagIds, setSelectedTagIds] = useState<number[]>([]);
-  const [selectedCategoryId, setSelectedCategoryId] = useState<number|null>(null);
+    const [allTags, setAllTags] = useState<{ id: string; name: string }[]>([]);
+    const [allCategories, setAllCategories] = useState<{ id: string; name: string; count?: number }[]>([]);
+    const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
+    const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
 
   // Tag editor state (单文件 + 批量)

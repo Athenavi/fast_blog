@@ -14,7 +14,7 @@ const { title, description = 'FastBlog - A modern blog platform', keywords = 'bl
 <html lang={Astro.currentLocale || 'zh-CN'} dir="ltr">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
     <meta name="description" content={description} />
     <meta name="keywords" content={keywords} />
     
@@ -25,12 +25,34 @@ const { title, description = 'FastBlog - A modern blog platform', keywords = 'bl
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
-    
-    <!-- Favicon -->
+
+      <!-- Performance: Preconnect to API origin -->
+      <link rel="preconnect" href="https://fonts.googleapis.com"/>
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+      <link rel="dns-prefetch" href="//fonts.googleapis.com"/>
+
+      <!-- Preload critical fonts -->
+      <link rel="preload" as="style"
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"/>
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+            media="print" onload="this.media='all'"/>
+      <noscript>
+          <link rel="stylesheet"
+                href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"/>
+      </noscript>
+
+      <!-- Favicon -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    
-    <!-- Title -->
+
+      <!-- Theme Color -->
+      <meta name="theme-color" content="#3b82f6" media="(prefers-color-scheme: light)"/>
+      <meta name="theme-color" content="#0f172a" media="(prefers-color-scheme: dark)"/>
+
+      <!-- Performance hints -->
+      <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+
+      <!-- Title -->
     <title>{title}</title>
     
     <slot name="head" />
@@ -53,6 +75,11 @@ const { title, description = 'FastBlog - A modern blog platform', keywords = 'bl
     </script>
   </head>
   <body class="antialiased bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100">
+  <!-- Skip to content for accessibility -->
+  <a href="#main-content"
+     class="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-[9999] focus:px-4 focus:py-2 focus:bg-blue-600 focus:text-white focus:rounded-lg">
+      跳转到主要内容
+  </a>
     <slot />
   </body>
 </html>
@@ -65,5 +92,18 @@ const { title, description = 'FastBlog - A modern blog platform', keywords = 'bl
   
   .dark * {
     border-color: #1f2937;
+  }
+
+  /* Skip link styling */
+  .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border-width: 0;
   }
 </style>

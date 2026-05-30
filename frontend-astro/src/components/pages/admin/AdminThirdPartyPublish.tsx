@@ -1,9 +1,10 @@
 import React, {useState} from 'react';
-import AdminShell from '@/components/layouts/AdminShell';
-import AuthGuard from '@/components/auth/AuthGuard';
-import QueryProvider from '@/components/providers/QueryProvider';
+import {AdminShell} from '@/components/admin/AdminShell';
+import {AuthGuard} from '@/components/AuthGuard';
+import {QueryProvider} from '@/components/QueryProvider';
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
-import apiClient from '@/lib/api-client';
+import {apiClient} from '@/lib/api/base-client';
+import {formatDateTime as formatTime} from '@/lib/utils';
 import {
     Share2, Send, CheckCircle, XCircle, Clock,
     ExternalLink, Settings, RefreshCw, FileText
@@ -109,9 +110,7 @@ function ThirdPartyPublishInner() {
         );
     };
 
-    const formatTime = (dateStr: string) => {
-        return new Date(dateStr).toLocaleString('zh-CN');
-    };
+    // formatTime imported from @/lib/utils as formatDateTime
 
     return (
         <AdminShell title="第三方平台发布">

@@ -9,10 +9,10 @@ import {Search, ShoppingBag} from 'lucide-react';
 
 function ProductsInner() {
   const [search, setSearch] = React.useState('');
-  const {data: products, isLoading} = useQuery({
+    const {data: products, isLoading} = useQuery<any[]>({
     queryKey: ['products', search],
     queryFn: async () => {
-      const r = await apiClient.get<any[]>('/shop', {q: search || undefined});
+        const r = await apiClient.get<any>('/shop', {q: search || undefined});
       return r.success && r.data ? (Array.isArray(r.data) ? r.data : r.data.products||[]) : [];
     },
   });

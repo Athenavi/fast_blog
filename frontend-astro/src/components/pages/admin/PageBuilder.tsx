@@ -1,9 +1,9 @@
 import React, {useState} from 'react';
-import AdminShell from '@/components/layouts/AdminShell';
-import AuthGuard from '@/components/auth/AuthGuard';
-import QueryProvider from '@/components/providers/QueryProvider';
+import {AdminShell} from '@/components/admin/AdminShell';
+import {AuthGuard} from '@/components/AuthGuard';
+import {QueryProvider} from '@/components/QueryProvider';
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
-import apiClient from '@/lib/api-client';
+import {apiClient} from '@/lib/api/base-client';
 // P6-1: 集成 dnd-kit 实现拖拽排序
 import {
     DndContext,
@@ -291,8 +291,10 @@ function PageBuilderInner() {
 
         const slug = title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
         try {
-            const res = await apiClient.post('/page-builder/pages/from-template', null, {
-                params: {template_id: templateId, title, slug}
+            const res = await apiClient.post('/page-builder/pages/from-template', {
+                template_id: templateId,
+                title,
+                slug
             });
             qc.invalidateQueries({queryKey: ['page-builder-pages']});
             setShowComponentLibrary(false);

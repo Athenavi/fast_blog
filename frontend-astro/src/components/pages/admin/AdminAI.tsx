@@ -13,10 +13,10 @@ function AIInner() {
   const [result, setResult] = useState('');
   const [mode, setMode] = useState<'keywords'|'description'|'outline'>('keywords');
 
-  const {data:skills} = useQuery({
+    const {data: skills} = useQuery<any[]>({
     queryKey: ['admin-ai-skills'],
     queryFn: async () => {
-      const r = await apiClient.get<any[]>('/ai/skills/ai-skills/list');
+        const r = await apiClient.get<any>('/ai/skills/ai-skills/list');
       return r.success && r.data ? (Array.isArray(r.data) ? r.data : r.data.skills||[]) : [];
     },
   });
@@ -52,9 +52,10 @@ function AIInner() {
         </div>
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 space-y-4">
           <h3 className="font-semibold text-gray-900 dark:text-white">AI 技能</h3>
-          {skills?.length > 0 ? (
+
+            {(skills?.length ?? 0) > 0 ? (
             <div className="space-y-2">
-              {skills.map((s:any,i:number) => (
+                {skills?.map((s: any, i: number) => (
                 <div key={i} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-xl">
                   <div><p className="text-sm font-medium text-gray-900 dark:text-white">{s.name||s.skill_name||'技能'}</p><p className="text-xs text-gray-500">{s.description||''}</p></div>
                   <span className={`px-2 py-0.5 text-xs rounded-full ${s.is_active!==false?'bg-green-100 text-green-700':'bg-gray-100 text-gray-500'}`}>{s.is_active!==false?'已激活':'未激活'}</span>

@@ -34,7 +34,12 @@ function ExtAIWritingInner() {
     onSuccess: (r) => setResult(r.success&&r.data?(r.data as any).result||(r.data as any).text||(r.data as any).titles?.join('\n')||JSON.stringify(r.data):'无结果'),
   });
 
-  const {data:trending}=useQuery({queryKey:['ext-writer-trending'],queryFn:async()=>{const r=await apiClient.get<any[]>('/ext/recommendations/trending');return r.success&&r.data?(Array.isArray(r.data)?r.data:r.data.articles||[]):[]}});
+    const {data: trending} = useQuery({
+        queryKey: ['ext-writer-trending'], queryFn: async () => {
+            const r = await apiClient.get<any>('/ext/recommendations/trending');
+            return r.success && r.data ? (Array.isArray(r.data) ? r.data : r.data.articles || []) : []
+        }
+    });
 
   return (
     <AdminShell title="AI 写作助手">

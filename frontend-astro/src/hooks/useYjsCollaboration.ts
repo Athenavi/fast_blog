@@ -51,8 +51,8 @@ export function useYjsCollaboration(
   const [error, setError] = useState<string | undefined>();
 
   const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimerRef = useRef<ReturnType<typeof setTimeout>>();
-  const pingTimerRef = useRef<ReturnType<typeof setInterval>>();
+    const reconnectTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+    const pingTimerRef = useRef<ReturnType<typeof setInterval> | undefined>(undefined);
   const colorIndexRef = useRef(0);
   const myClientIdRef = useRef<string>('');
   const stoppedRef = useRef(false);

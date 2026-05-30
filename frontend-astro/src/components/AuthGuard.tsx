@@ -2,6 +2,7 @@
 
 import React, {useEffect, useState} from 'react';
 import {apiClient} from '@/lib/api/api-client';
+import {getAccessTokenFromCookie} from '@/lib/auth-utils';
 
 /**
  * AuthGuard - 认证守卫组件
@@ -15,7 +16,7 @@ export function AuthGuard({children}: {children: React.ReactNode}) {
     const check = async () => {
       try {
         // 1) 检查本地是否有 token
-        const token = getCookie('access_token');
+          const token = getAccessTokenFromCookie();
         if (!token) {
           if (!cancelled) setStatus('unauthenticated');
           return;
@@ -58,11 +59,3 @@ export function AuthGuard({children}: {children: React.ReactNode}) {
   return <>{children}</>;
 }
 
-function getCookie(name: string): string | null {
-  if (typeof document === 'undefined') return null;
-  for (const c of document.cookie.split(';')) {
-    const [n, v] = c.trim().split('=');
-    if (n === name && v) return decodeURIComponent(v);
-  }
-  return null;
-}

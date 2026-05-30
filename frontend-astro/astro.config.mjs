@@ -58,7 +58,74 @@ export default defineConfig({
         '@': '/src',
       },
     },
-
+      build: {
+          // 代码分割优化
+          rollupOptions: {
+              output: {
+                  manualChunks: {
+                      'vendor-react': ['react', 'react-dom'],
+                      'vendor-query': ['@tanstack/react-query'],
+                      'vendor-motion': ['framer-motion'],
+                      'vendor-icons': ['lucide-react'],
+                      'vendor-radix': [
+                          '@radix-ui/react-dialog',
+                          '@radix-ui/react-dropdown-menu',
+                          '@radix-ui/react-select',
+                          '@radix-ui/react-tabs',
+                          '@radix-ui/react-toast',
+                          '@radix-ui/react-accordion',
+                          '@radix-ui/react-avatar',
+                          '@radix-ui/react-popover',
+                          '@radix-ui/react-switch',
+                          '@radix-ui/react-checkbox',
+                      ],
+                      'vendor-editor': [
+                          '@tiptap/react',
+                          '@tiptap/starter-kit',
+                          '@tiptap/pm',
+                          '@tiptap/extension-link',
+                          '@tiptap/extension-image',
+                          '@tiptap/extension-placeholder',
+                          '@tiptap/extension-code-block-lowlight',
+                          '@tiptap/extension-table',
+                          '@tiptap/extension-table-cell',
+                          '@tiptap/extension-table-header',
+                          '@tiptap/extension-table-row',
+                          '@tiptap/extension-task-list',
+                          '@tiptap/extension-task-item',
+                          '@tiptap/extension-text-align',
+                          '@tiptap/extension-underline',
+                          '@tiptap/extension-highlight',
+                          '@tiptap/extension-typography',
+                          '@tiptap/extension-floating-menu',
+                          '@tiptap/extension-text-style',
+                          '@tiptap/extension-color',
+                          '@tiptap/extension-font-family',
+                      ],
+                  },
+              },
+          },
+          // 启用 CSS 代码分割
+          cssCodeSplit: true,
+          // 压缩选项
+          minify: 'esbuild',
+          // 生产环境移除 console/debugger
+          target: 'es2022',
+      },
+      esbuild: {
+          // 生产环境自动移除 console.log 和 debugger
+          drop: process.env.NODE_ENV === 'production' ? ['console', 'debugger'] : [],
+      },
+      // 预优化依赖
+      optimizeDeps: {
+          include: [
+              'react',
+              'react-dom',
+              '@tanstack/react-query',
+              'framer-motion',
+              'lucide-react',
+          ],
+      },
   },
 
   i18n: {

@@ -3,7 +3,7 @@
  * 提供搜索自动补全和热门搜索功能
  */
 
-import apiClient from '../api-client';
+import apiClient from './api-client';
 import type {ApiResponse} from '@/lib/api/base-types';
 
 export interface SearchSuggestion {

@@ -9,10 +9,10 @@ import {UserPlus, Users} from 'lucide-react';
 
 function FansInner() {
   const [tab, setTab] = useState(0);
-  const {data: fans, isLoading} = useQuery({
+    const {data: fans, isLoading} = useQuery<any[]>({
     queryKey: ['fans'],
     queryFn: async () => {
-      const r = await apiClient.get<any[]>('/users/me/followers');
+        const r = await apiClient.get<any>('/users/me/followers');
       return r.success && r.data ? (Array.isArray(r.data) ? r.data : r.data.followers||r.data.users||[]) : [];
     },
   });

@@ -80,6 +80,7 @@ export interface Article {
         id: number;
         username: string;
         email?: string;
+        avatar?: string;
     };
     category?: {
         id: number;

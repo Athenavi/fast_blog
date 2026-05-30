@@ -2,21 +2,40 @@
 
 import React, {useEffect, useRef, useState} from 'react';
 import {apiClient} from '@/lib/api/api-client';
-import {ArrowLeft, Eye, EyeOff, Loader, LogIn, QrCode, Smartphone} from 'lucide-react';
+import {getAccessTokenFromCookie, getCookie, setCookie} from '@/lib/auth-utils';
+import {
+  ArrowLeft,
+  Eye,
+  EyeOff,
+  Loader,
+  LogIn,
+  QrCode,
+  Smartphone,
+  Mail,
+  Lock,
+  User,
+  GitBranch,
+  Globe,
+  Shield,
+  Sparkles,
+  Zap,
+  BookOpen,
+  ChevronRight,
+  AlertCircle
+} from 'lucide-react';
 
-function getCookie(name: string): string | null {
-  if (typeof document === 'undefined') return null;
-  for (const c of document.cookie.split(';')) {const [n, v] = c.trim().split('='); if (n === name && v) return decodeURIComponent(v);}
-  return null;
-}
-function setCookie(name: string, value: string, maxAgeSec: number) {
-  document.cookie = `${name}=${value}; path=/; max-age=${maxAgeSec}; SameSite=Lax`;
-}
+const features = [
+  {icon: Sparkles, title: 'AI 智能写作', desc: 'AI 辅助创作，灵感永不枯竭'},
+  {icon: Zap, title: '极速发布', desc: '一键多平台同步，触达全球读者'},
+  {icon: BookOpen, title: '沉浸阅读', desc: '精心设计的阅读体验，专注内容'},
+  {icon: Shield, title: '安全可靠', desc: '端到端加密，数据安全无忧'},
+];
 
 export default function LoginPage() {
   const [mode, setMode] = useState<'password'|'qrcode'>('password');
   const [u, setU] = useState(''); const [pw, setPw] = useState(''); const [rm, setRm] = useState(false);
   const [pv, setPv] = useState(false); const [err, setErr] = useState(''); const [busy, setBusy] = useState(false);
+  const [focusedField, setFocusedField] = useState<string | null>(null);
 
   // 2FA
   const [fa, setFa] = useState<{tempToken:string;userId:number}|null>(null);
@@ -25,7 +44,8 @@ export default function LoginPage() {
   // QR code
   const [qrImg, setQrImg] = useState(''); const [qrToken, setQrToken] = useState('');
   const [qrStatus, setQrStatus] = useState<'idle'|'loading'|'ready'|'pending'|'success'|'expired'>('idle');
-  const pollRef = useRef<NodeJS.Timeout>(); const cancelRef = useRef(false);
+  const pollRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const cancelRef = useRef(false);
 
   // Auto-redirect if logged in
   const [checking, setChecking] = useState(true);
@@ -48,7 +68,6 @@ export default function LoginPage() {
       if (qrCodeDataUrl && qrCodeDataUrl.startsWith('data:')) {
         setQrImg(qrCodeDataUrl);
       } else {
-        // Fallback: generate QR client-side from the login URL returned by backend
         try {
           const mod = await import('qrcode');
           const loginUrl = `${window.location.origin}/mobile-login?login_token=${token}`;
@@ -73,7 +92,6 @@ export default function LoginPage() {
           setQrStatus('success');
           const refreshToken = data.refresh_token;
           if (refreshToken) setCookie('refresh_token', refreshToken, 604800);
-          // Use refresh token to get access token
           const accessR = await apiClient.post('/auth/token/refresh', {refresh: refreshToken});
           if (accessR.success && accessR.data) {
             setCookie('access_token', (accessR.data as any).access_token || (accessR.data as any).access || '', 3600);
@@ -121,86 +139,461 @@ export default function LoginPage() {
     } catch { setErr('验证失败'); } finally { setBusy(false); }
   };
 
-  if (checking) return <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-950 dark:to-gray-900"><div className="animate-spin w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full"/></div>;
+  if (checking) return (
+      <div
+          className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative">
+            <div className="w-12 h-12 border-4 border-blue-200 dark:border-blue-800 rounded-full animate-spin"/>
+            <div
+                className="absolute inset-0 w-12 h-12 border-4 border-transparent border-t-blue-600 rounded-full animate-spin"/>
+          </div>
+          <p className="text-sm text-gray-500 dark:text-gray-400 animate-pulse">正在验证登录状态...</p>
+        </div>
+      </div>
+  );
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-950 dark:to-gray-900 p-4">
-      <div className="w-full max-w-xl">
-        <div className="text-center mb-8">
-          <div className="w-14 h-14 mx-auto mb-4 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center shadow-lg shadow-blue-200/50 dark:shadow-blue-900/30">
-            <LogIn className="w-7 h-7 text-white"/>
+      <div
+          className="min-h-screen flex bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
+        {/* ═══ Left Panel - Branding ═══ */}
+        <div className="hidden lg:flex lg:w-1/2 xl:w-[45%] relative overflow-hidden">
+          {/* Gradient Background */}
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-indigo-600 to-purple-700"/>
+
+          {/* Animated Orbs */}
+          <div className="absolute inset-0 overflow-hidden">
+            <div className="absolute -top-20 -left-20 w-80 h-80 bg-blue-400/20 rounded-full blur-3xl animate-pulse"
+                 style={{animationDuration: '4s'}}/>
+            <div className="absolute bottom-20 right-10 w-60 h-60 bg-purple-400/20 rounded-full blur-3xl animate-pulse"
+                 style={{animationDuration: '6s'}}/>
+            <div className="absolute top-1/3 left-1/3 w-40 h-40 bg-indigo-400/20 rounded-full blur-3xl animate-pulse"
+                 style={{animationDuration: '5s'}}/>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">{fa ? '验证身份' : '欢迎回来'}</h1>
-          <p className="text-sm text-gray-500 mt-1">{fa ? '请输入双重验证码' : '登录你的账户继续'}</p>
-        </div>
 
-        {err && <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-sm text-red-600 dark:text-red-400">{err}</div>}
+          {/* Grid Pattern */}
+          <div className="absolute inset-0 opacity-10" style={{
+            backgroundImage: 'radial-gradient(circle at 1px 1px, white 1px, transparent 0)',
+            backgroundSize: '40px 40px'
+          }}/>
 
-        {/* 2FA step */}
-        {fa ? (
-          <form onSubmit={verify2FA} className="bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-xl border border-gray-100 dark:border-gray-800 space-y-4">
-            <div className="text-center"><div className="w-14 h-14 mx-auto mb-3 bg-indigo-50 dark:bg-indigo-900/30 rounded-full flex items-center justify-center"><Smartphone className="w-7 h-7 text-indigo-600"/></div><p className="text-sm text-gray-500">{backup ? '输入8位备用码' : '输入认证器中的6位验证码'}</p></div>
-            <input type="text" inputMode="numeric" autoFocus value={code} onChange={e=>setCode(e.target.value.replace(/\D/g,'').slice(0,backup?8:6))} placeholder={backup?'备用码':'000000'} className="w-full text-center text-3xl tracking-[0.4em] px-4 py-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white font-mono"/>
-            <button type="submit" disabled={busy||code.length<(backup?8:6)} className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium rounded-xl transition-all disabled:opacity-50 shadow-lg">{busy?'验证中...':'验证'}</button>
-            <button type="button" onClick={()=>setBackup(!backup)} className="w-full text-sm text-blue-600 hover:text-blue-700 font-medium">{backup?'使用验证码':'使用备用码'}</button>
-            <button type="button" onClick={()=>setFa(null)} className="flex items-center justify-center gap-1 w-full text-sm text-gray-500 hover:text-gray-700"><ArrowLeft className="w-4 h-4"/>返回登录</button>
-          </form>
-        ) : (
-          <>
-            {/* Mode switch */}
-            <div className="flex bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl p-1 border border-gray-200/60 dark:border-gray-700/60 mb-4">
-              <button onClick={()=>setMode('password')} className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${mode==='password'?'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white':'text-gray-500 hover:text-gray-700'}`}><LogIn className="w-4 h-4 inline mr-1.5"/>密码登录</button>
-              <button onClick={()=>{setMode('qrcode');if(!qrImg)generateQR();}} className={`flex-1 py-2.5 rounded-lg text-sm font-medium transition-all ${mode==='qrcode'?'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white':'text-gray-500 hover:text-gray-700'}`}><QrCode className="w-4 h-4 inline mr-1.5"/>扫码登录</button>
+          {/* Content */}
+          <div className="relative z-10 flex flex-col justify-between p-12 xl:p-16 w-full">
+            {/* Logo & Brand */}
+            <div>
+              <div className="flex items-center gap-3 mb-2">
+                <div className="w-10 h-10 bg-white/20 backdrop-blur-sm rounded-xl flex items-center justify-center">
+                  <BookOpen className="w-5 h-5 text-white"/>
+                </div>
+                <span className="text-xl font-bold text-white">FastBlog</span>
+              </div>
             </div>
 
-            {mode==='password' && (
-              <form onSubmit={login} className="bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-xl border border-gray-100 dark:border-gray-800 space-y-4">
-                <input type="text" value={u} onChange={e=>setU(e.target.value)} placeholder="用户名或邮箱" required autoFocus className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"/>
-                <div className="relative"><input type={pv?'text':'password'} value={pw} onChange={e=>setPw(e.target.value)} placeholder="密码" required className="w-full px-4 py-3 pr-11 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"/><button type="button" onClick={()=>setPv(!pv)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">{pv?<EyeOff className="w-4 h-4"/>:<Eye className="w-4 h-4"/>}</button></div>
-                <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400 cursor-pointer"><input type="checkbox" checked={rm} onChange={e=>setRm(e.target.checked)} className="h-4 w-4 text-blue-600 rounded border-gray-300"/>记住我</label>
-                <button type="submit" disabled={busy||!u||!pw} className="w-full py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-medium rounded-xl transition-all disabled:opacity-60 shadow-lg">{busy?'登录中...':'登录'}</button>
-                <p className="text-center text-sm text-gray-500">还没有账户？<a href="/register" className="text-blue-600 hover:underline font-medium">注册</a></p>
-              </form>
-            )}
-
-            {mode==='qrcode' && (
-              <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-xl border border-gray-100 dark:border-gray-800">
-                <div className="text-center space-y-4">
-                  <p className="text-sm text-gray-600 dark:text-gray-400">
-                    {qrStatus==='loading' ? '生成二维码中...' :
-                     qrStatus==='ready' ? '使用手机扫描二维码登录' :
-                     qrStatus==='pending' ? '等待手机扫码确认...' :
-                     qrStatus==='success' ? '扫码成功，正在登录...' :
-                     qrStatus==='expired' ? '二维码已过期' :
-                     '扫描下方二维码'}
-                  </p>
-                  <div className="flex justify-center">
-                    {qrStatus==='loading' ? (
-                      <div className="w-[200px] h-[200px] bg-gray-50 dark:bg-gray-800 rounded-xl animate-pulse flex items-center justify-center"><Loader className="w-6 h-6 animate-spin text-gray-400"/></div>
-                    ) : qrImg ? (
-                      <div className="p-3 bg-white rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
-                        <img src={qrImg} alt="Login QR Code" className="w-[200px] h-[200px]"/>
-                      </div>
-                    ) : (
-                      <div className="w-[200px] h-[200px] bg-gray-50 dark:bg-gray-800 rounded-xl flex items-center justify-center text-gray-400 text-sm">点击生成二维码</div>
-                    )}
-                  </div>
-                  <div className="flex gap-2 justify-center">
-                    {qrStatus==='expired' && <button onClick={generateQR} className="px-4 py-2 bg-blue-600 text-white text-sm rounded-xl hover:bg-blue-700">重新生成</button>}
-                    {qrStatus==='idle' && <button onClick={generateQR} className="px-4 py-2 bg-blue-600 text-white text-sm rounded-xl hover:bg-blue-700">生成二维码</button>}
-                  </div>
-                  <p className="text-xs text-gray-400">打开 FastBlog App → 扫码 → 确认登录</p>
-                </div>
+            {/* Main Content */}
+            <div className="space-y-8">
+              <div>
+                <h2 className="text-3xl xl:text-4xl font-bold text-white leading-tight mb-4">
+                  创作、分享、<br/>连接世界
+                </h2>
+                <p className="text-blue-100/80 text-lg leading-relaxed max-w-md">
+                  FastBlog 是新一代智能博客平台，让每位创作者都能轻松表达思想、分享知识、与全球读者建立连接。
+                </p>
               </div>
-            )}
-          </>
-        )}
 
-        {!fa && mode==='password' && (
-          <div className="mt-6">
-            <p className="text-center text-sm text-gray-500">还没有账户？<a href="/register" className="text-blue-600 hover:underline font-medium">立即注册</a></p>
+              {/* Features */}
+              <div className="grid grid-cols-2 gap-4">
+                {features.map((feat, i) => {
+                  const Icon = feat.icon;
+                  return (
+                      <div key={i}
+                           className="group p-4 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/10 hover:bg-white/15 transition-all duration-300">
+                        <Icon className="w-6 h-6 text-blue-200 mb-3 group-hover:scale-110 transition-transform"/>
+                        <h3 className="text-sm font-semibold text-white mb-1">{feat.title}</h3>
+                        <p className="text-xs text-blue-100/70 leading-relaxed">{feat.desc}</p>
+                      </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Bottom Stats */}
+            <div className="flex items-center gap-8">
+              <div>
+                <div className="text-2xl font-bold text-white">50K+</div>
+                <div className="text-sm text-blue-100/70">活跃创作者</div>
+              </div>
+              <div className="w-px h-10 bg-white/20"/>
+              <div>
+                <div className="text-2xl font-bold text-white">1M+</div>
+                <div className="text-sm text-blue-100/70">优质文章</div>
+              </div>
+              <div className="w-px h-10 bg-white/20"/>
+              <div>
+                <div className="text-2xl font-bold text-white">100+</div>
+                <div className="text-sm text-blue-100/70">国家地区</div>
+              </div>
           </div>
-        )}
+          </div>
+        </div>
+
+        {/* ═══ Right Panel - Login Form ═══ */}
+        <div className="flex-1 flex items-center justify-center p-6 sm:p-8 lg:p-12">
+          <div className="w-full max-w-md">
+            {/* Mobile Logo */}
+            <div className="lg:hidden flex items-center gap-3 mb-8">
+              <div
+                  className="w-10 h-10 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-blue-200/50 dark:shadow-blue-900/30">
+                <BookOpen className="w-5 h-5 text-white"/>
+              </div>
+              <span className="text-xl font-bold text-gray-900 dark:text-white">FastBlog</span>
+            </div>
+
+            {/* Header */}
+            <div className="mb-8">
+              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">
+                {fa ? '🔐 验证身份' : mode === 'qrcode' ? '📱 扫码登录' : '👋 欢迎回来'}
+              </h1>
+              <p className="text-gray-500 dark:text-gray-400">
+                {fa ? '请输入双重验证码以继续' : mode === 'qrcode' ? '使用 FastBlog App 扫描二维码' : '登录你的账户，继续创作之旅'}
+              </p>
+            </div>
+
+            {/* Error Message */}
+            {err && (
+                <div
+                    className="mb-6 flex items-start gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200/60 dark:border-red-800/40 rounded-2xl text-sm">
+                  <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5"/>
+                  <span className="text-red-600 dark:text-red-400">{err}</span>
+                </div>
+            )}
+
+            {/* 2FA Form */}
+            {fa ? (
+                <div className="space-y-6">
+                  <div
+                      className="text-center p-6 bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20 rounded-2xl border border-indigo-100 dark:border-indigo-800/30">
+                    <div
+                        className="w-16 h-16 mx-auto mb-4 bg-gradient-to-br from-indigo-500 to-blue-500 rounded-2xl flex items-center justify-center shadow-lg">
+                      <Smartphone className="w-8 h-8 text-white"/>
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">
+                      {backup ? '输入你的8位备用恢复码' : '打开认证器应用，输入6位验证码'}
+                    </p>
+                  </div>
+
+                  <form onSubmit={verify2FA} className="space-y-4">
+                    <div className="relative">
+                      <input
+                          type="text"
+                          inputMode="numeric"
+                          autoFocus
+                          value={code}
+                          onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, backup ? 8 : 6))}
+                          placeholder={backup ? '输入备用码' : '000000'}
+                          className="w-full text-center text-3xl tracking-[0.5em] px-6 py-5 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-2xl focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 dark:text-white font-mono transition-all"
+                      />
+                    </div>
+
+                    <button
+                        type="submit"
+                        disabled={busy || code.length < (backup ? 8 : 6)}
+                        className="w-full py-4 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-semibold rounded-2xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-indigo-500/25 hover:shadow-xl hover:shadow-indigo-500/30 active:scale-[0.98]"
+                    >
+                      {busy ? (
+                          <span className="flex items-center justify-center gap-2">
+                      <Loader className="w-5 h-5 animate-spin"/> 验证中...
+                    </span>
+                      ) : '验证'}
+                    </button>
+
+                    <div className="flex items-center justify-between pt-2">
+                      <button type="button" onClick={() => setBackup(!backup)}
+                              className="text-sm text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 font-medium">
+                        {backup ? '使用验证码' : '使用备用码'}
+                      </button>
+                      <button type="button" onClick={() => {
+                        setFa(null);
+                        setCode('');
+                        setErr('');
+                      }}
+                              className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+                        <ArrowLeft className="w-4 h-4"/> 返回登录
+                      </button>
+                    </div>
+                  </form>
+                </div>
+            ) : (
+                <>
+                  {/* Mode Switch */}
+                  <div className="flex p-1.5 bg-gray-100 dark:bg-gray-800 rounded-2xl mb-6">
+                    <button
+                        onClick={() => {
+                          setMode('password');
+                          setErr('');
+                        }}
+                        className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                            mode === 'password'
+                                ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white'
+                                : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                        }`}
+                    >
+                      <Lock className="w-4 h-4"/> 密码登录
+                    </button>
+                    <button
+                        onClick={() => {
+                          setMode('qrcode');
+                          setErr('');
+                          if (!qrImg) generateQR();
+                        }}
+                        className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all duration-200 ${
+                            mode === 'qrcode'
+                                ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white'
+                                : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                        }`}
+                    >
+                      <QrCode className="w-4 h-4"/> 扫码登录
+                    </button>
+                  </div>
+
+                  {/* Password Form */}
+                  {mode === 'password' && (
+                      <form onSubmit={login} className="space-y-5">
+                        {/* Username Field */}
+                        <div className="space-y-2">
+                          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">用户名 / 邮箱</label>
+                          <div
+                              className={`relative group transition-all duration-200 ${focusedField === 'username' ? 'scale-[1.01]' : ''}`}>
+                            <div className="absolute left-4 top-1/2 -translate-y-1/2">
+                              <User
+                                  className={`w-5 h-5 transition-colors ${focusedField === 'username' ? 'text-blue-500' : 'text-gray-400'}`}/>
+                            </div>
+                            <input
+                                type="text"
+                                value={u}
+                                onChange={e => setU(e.target.value)}
+                                onFocus={() => setFocusedField('username')}
+                                onBlur={() => setFocusedField(null)}
+                                placeholder="输入用户名或邮箱"
+                                required
+                                autoFocus
+                                className="w-full pl-12 pr-4 py-4 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-2xl text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all"
+                            />
+                          </div>
+                        </div>
+
+                        {/* Password Field */}
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">密码</label>
+                            <a href="/forgot-password"
+                               className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 font-medium">
+                              忘记密码？
+                            </a>
+                          </div>
+                          <div
+                              className={`relative group transition-all duration-200 ${focusedField === 'password' ? 'scale-[1.01]' : ''}`}>
+                            <div className="absolute left-4 top-1/2 -translate-y-1/2">
+                              <Lock
+                                  className={`w-5 h-5 transition-colors ${focusedField === 'password' ? 'text-blue-500' : 'text-gray-400'}`}/>
+                            </div>
+                            <input
+                                type={pv ? 'text' : 'password'}
+                                value={pw}
+                                onChange={e => setPw(e.target.value)}
+                                onFocus={() => setFocusedField('password')}
+                                onBlur={() => setFocusedField(null)}
+                                placeholder="输入密码"
+                                required
+                                className="w-full pl-12 pr-12 py-4 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-2xl text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all"
+                            />
+                            <button
+                                type="button"
+                                onClick={() => setPv(!pv)}
+                                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                            >
+                              {pv ? <EyeOff className="w-5 h-5"/> : <Eye className="w-5 h-5"/>}
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Remember Me */}
+                        <label className="flex items-center gap-3 cursor-pointer group">
+                          <div className="relative">
+                            <input
+                                type="checkbox"
+                                checked={rm}
+                                onChange={e => setRm(e.target.checked)}
+                                className="peer sr-only"
+                            />
+                            <div
+                                className="w-5 h-5 border-2 border-gray-300 dark:border-gray-600 rounded-lg peer-checked:border-blue-500 peer-checked:bg-blue-500 transition-all flex items-center justify-center">
+                              {rm && (
+                                  <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24"
+                                       stroke="currentColor" strokeWidth={3}>
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/>
+                                  </svg>
+                              )}
+                            </div>
+                          </div>
+                          <span
+                              className="text-sm text-gray-600 dark:text-gray-400 group-hover:text-gray-800 dark:group-hover:text-gray-200 transition-colors">
+                      记住我的登录状态
+                    </span>
+                        </label>
+
+                        {/* Submit Button */}
+                        <button
+                            type="submit"
+                            disabled={busy || !u || !pw}
+                            className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold rounded-2xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30 active:scale-[0.98] flex items-center justify-center gap-2"
+                        >
+                          {busy ? (
+                              <>
+                                <Loader className="w-5 h-5 animate-spin"/>
+                                <span>登录中...</span>
+                              </>
+                          ) : (
+                              <>
+                                <span>登录</span>
+                                <ChevronRight className="w-5 h-5"/>
+                              </>
+                          )}
+                        </button>
+
+                        {/* Divider */}
+                        <div className="relative flex items-center py-2">
+                          <div className="flex-1 border-t border-gray-200 dark:border-gray-700"/>
+                          <span
+                              className="px-4 text-xs text-gray-400 dark:text-gray-500 font-medium">或使用其他方式</span>
+                          <div className="flex-1 border-t border-gray-200 dark:border-gray-700"/>
+                        </div>
+
+                        {/* Social Login */}
+                        <div className="grid grid-cols-2 gap-3">
+                          <button
+                              type="button"
+                              className="flex items-center justify-center gap-2 py-3.5 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-2xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-750 hover:border-gray-300 dark:hover:border-gray-600 transition-all active:scale-[0.98]"
+                          >
+                            <GitBranch className="w-5 h-5"/> GitHub
+                          </button>
+                          <button
+                              type="button"
+                              className="flex items-center justify-center gap-2 py-3.5 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-2xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-750 hover:border-gray-300 dark:hover:border-gray-600 transition-all active:scale-[0.98]"
+                          >
+                            <Globe className="w-5 h-5"/> Google
+                          </button>
+                        </div>
+
+                        {/* Register Link */}
+                        <p className="text-center text-sm text-gray-500 dark:text-gray-400 pt-2">
+                          还没有账户？{' '}
+                          <a href="/register"
+                             className="text-blue-600 hover:text-blue-700 dark:text-blue-400 font-semibold hover:underline">
+                            立即注册
+                          </a>
+                        </p>
+                      </form>
+                  )}
+
+                  {/* QR Code Panel */}
+                  {mode === 'qrcode' && (
+                      <div className="space-y-6">
+                        <div
+                            className="bg-white dark:bg-gray-800 rounded-3xl p-8 border border-gray-100 dark:border-gray-700 shadow-sm">
+                          <div className="text-center space-y-5">
+                            {/* QR Display */}
+                            <div className="flex justify-center">
+                              {qrStatus === 'loading' ? (
+                                  <div
+                                      className="w-[220px] h-[220px] bg-gray-50 dark:bg-gray-900 rounded-2xl animate-pulse flex items-center justify-center">
+                                    <div className="flex flex-col items-center gap-3">
+                                      <Loader className="w-8 h-8 animate-spin text-blue-500"/>
+                                      <span className="text-sm text-gray-400">生成中...</span>
+                                    </div>
+                                  </div>
+                              ) : qrImg ? (
+                                  <div className="relative p-4 bg-white rounded-2xl border-2 border-gray-100 shadow-lg">
+                                    <img src={qrImg} alt="Login QR Code" className="w-[200px] h-[200px]"/>
+                                    {qrStatus === 'success' && (
+                                        <div
+                                            className="absolute inset-0 bg-green-500/90 rounded-2xl flex items-center justify-center">
+                                          <svg className="w-16 h-16 text-white" fill="none" viewBox="0 0 24 24"
+                                               stroke="currentColor" strokeWidth={2.5}>
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/>
+                                          </svg>
+                                        </div>
+                                    )}
+                                  </div>
+                              ) : (
+                                  <div
+                                      className="w-[220px] h-[220px] bg-gray-50 dark:bg-gray-900 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700 flex flex-col items-center justify-center gap-3 cursor-pointer hover:border-blue-300 dark:hover:border-blue-700 transition-colors"
+                                      onClick={generateQR}>
+                                    <QrCode className="w-10 h-10 text-gray-300 dark:text-gray-600"/>
+                                    <span className="text-sm text-gray-400">点击生成二维码</span>
+                                  </div>
+                              )}
+                            </div>
+
+                            {/* Status Text */}
+                            <div className="space-y-2">
+                              <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                                {qrStatus === 'loading' ? '正在生成二维码...' :
+                                    qrStatus === 'ready' || qrStatus === 'pending' ? (
+                                            <span className="flex items-center justify-center gap-2">
+                              <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"/>
+                              等待扫码确认...
+                            </span>
+                                        ) :
+                                        qrStatus === 'success' ? '✅ 扫码成功！正在登录...' :
+                                            qrStatus === 'expired' ? '⏰ 二维码已过期' :
+                                                '使用 FastBlog App 扫描二维码'}
+                              </p>
+                            </div>
+
+                            {/* Action Buttons */}
+                            {(qrStatus === 'expired' || qrStatus === 'idle') && (
+                                <button
+                                    onClick={generateQR}
+                                    className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-sm font-semibold rounded-xl transition-all shadow-md hover:shadow-lg active:scale-[0.98]"
+                                >
+                                  {qrStatus === 'expired' ? '重新生成' : '生成二维码'}
+                                </button>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Instructions */}
+                        <div
+                            className="bg-gray-50 dark:bg-gray-800/50 rounded-2xl p-5 border border-gray-100 dark:border-gray-800">
+                          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">扫码步骤</h3>
+                          <ol className="space-y-2.5">
+                            {['打开 FastBlog 手机应用', '进入"我的" → "扫一扫"', '扫描上方二维码', '在手机上确认登录'].map((step, i) => (
+                                <li key={i}
+                                    className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
+                          <span
+                              className="w-6 h-6 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0">
+                            {i + 1}
+                          </span>
+                                  {step}
+                                </li>
+                            ))}
+                          </ol>
+                        </div>
+                      </div>
+                  )}
+                </>
+            )}
+
+            {/* Footer */}
+            <div className="mt-8 text-center">
+              <p className="text-xs text-gray-400 dark:text-gray-500">
+                登录即表示同意{' '}
+                <a href="/terms" className="text-gray-500 dark:text-gray-400 hover:underline">服务条款</a>
+                {' '}和{' '}
+                <a href="/privacy" className="text-gray-500 dark:text-gray-400 hover:underline">隐私政策</a>
+              </p>
+            </div>
+          </div>
       </div>
     </div>
   );

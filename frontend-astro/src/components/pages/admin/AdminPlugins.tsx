@@ -1,16 +1,20 @@
 'use client';
 
-import React, {useState} from 'react';
+import React, {useState, useMemo, useEffect} from 'react';
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
-import AuthGuard from '@/components/auth/AuthGuard';
-import QueryProvider from '@/components/providers/QueryProvider';
-import AdminShell from '@/components/layouts/AdminShell';
-import apiClient from '@/lib/api-client';
+import {AuthGuard} from '@/components/AuthGuard';
+import {QueryProvider} from '@/components/QueryProvider';
+import {AdminShell} from '@/components/admin/AdminShell';
+import {StatCard} from '@/components/admin/shared-ui';
+import {apiClient} from '@/lib/api/base-client';
 import {
   Puzzle, Download, Upload, Settings, Trash2, RefreshCw,
-  Search, Filter, Star, ExternalLink, Info
+  Search, Star, ExternalLink, Info, Shield, Zap, ChevronRight,
+  Check, X, AlertTriangle, Package, ToggleLeft, ToggleRight,
+  Clock, User, Globe, Tag
 } from 'lucide-react';
 
+/* ── 类型 ── */
 interface Plugin {
   slug: string;
   name: string;
@@ -23,14 +27,299 @@ interface Plugin {
   capabilities?: string[];
   created_at?: string;
   updated_at?: string;
+  downloads?: number;
+  rating?: number;
 }
 
+/* ── 骨架屏 ── */
+const PluginSkeleton = () => (
+    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+      {[1, 2, 3, 4, 5, 6].map(i => (
+          <div key={i}
+               className="animate-pulse bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden">
+            <div className="h-2 bg-gray-200 dark:bg-gray-700"/>
+            <div className="p-5 space-y-4">
+              <div className="flex items-start gap-3">
+                <div className="w-12 h-12 bg-gray-200 dark:bg-gray-700 rounded-xl"/>
+                <div className="flex-1 space-y-2">
+                  <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded w-32"/>
+                  <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-20"/>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-full"/>
+                <div className="h-3 bg-gray-200 dark:bg-gray-700 rounded w-3/4"/>
+              </div>
+              <div className="flex gap-1.5">
+                <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded-full w-16"/>
+                <div className="h-6 bg-gray-200 dark:bg-gray-700 rounded-full w-20"/>
+              </div>
+              <div className="h-10 bg-gray-200 dark:bg-gray-700 rounded-xl"/>
+            </div>
+          </div>
+      ))}
+    </div>
+);
+
+/* ── 插件卡片 ── */
+const PluginCard: React.FC<{
+  plugin: Plugin;
+  isInstalled: boolean;
+  onInstall: (slug: string) => void;
+  onToggle: (slug: string, activate: boolean) => void;
+  onUninstall: (slug: string) => void;
+  onConfig: (plugin: Plugin) => void;
+  installPending: boolean;
+  togglePending: boolean;
+  uninstallPending: boolean;
+}> = ({
+        plugin,
+        isInstalled,
+        onInstall,
+        onToggle,
+        onUninstall,
+        onConfig,
+        installPending,
+        togglePending,
+        uninstallPending
+      }) => {
+  const colorIdx = plugin.slug.charCodeAt(0) % 6;
+  const gradients = [
+    'from-blue-500 to-cyan-500',
+    'from-purple-500 to-pink-500',
+    'from-emerald-500 to-teal-500',
+    'from-amber-500 to-orange-500',
+    'from-rose-500 to-red-500',
+    'from-indigo-500 to-blue-500',
+  ];
+
+  return (
+      <div
+          className="group relative bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-xl transition-all duration-300 overflow-hidden">
+        {/* 顶部渐变条 */}
+        <div className={`h-1.5 bg-gradient-to-r ${gradients[colorIdx]}`}/>
+
+        <div className="p-5">
+          {/* 头部 */}
+          <div className="flex items-start gap-3 mb-4">
+            <div
+                className={`w-12 h-12 rounded-xl bg-gradient-to-br ${gradients[colorIdx]} flex items-center justify-center flex-shrink-0 shadow-lg`}>
+              <Puzzle className="w-6 h-6 text-white"/>
+            </div>
+            <div className="flex-1 min-w-0">
+              <h3 className="font-semibold text-gray-900 dark:text-white truncate">{plugin.name}</h3>
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="text-xs text-gray-400">v{plugin.version}</span>
+                {plugin.author && (
+                    <>
+                      <span className="text-gray-300 dark:text-gray-600">·</span>
+                      <span className="text-xs text-gray-400 flex items-center gap-1">
+                    <User className="w-3 h-3"/>
+                        {plugin.author}
+                  </span>
+                    </>
+                )}
+              </div>
+            </div>
+            {/* 状态标签 */}
+            {isInstalled && (
+                <span className={`flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-semibold ${
+                    plugin.is_active
+                        ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400'
+                        : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
+                }`}>
+              <span
+                  className={`w-1.5 h-1.5 rounded-full ${plugin.is_active ? 'bg-emerald-500 animate-pulse' : 'bg-gray-400'}`}/>
+                  {plugin.is_active ? '运行中' : '已停止'}
+            </span>
+            )}
+          </div>
+
+          {/* 描述 */}
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 line-clamp-2 leading-relaxed">
+            {plugin.description || '暂无描述'}
+          </p>
+
+          {/* 标签 */}
+          <div className="flex flex-wrap gap-1.5 mb-4">
+            {plugin.capabilities?.slice(0, 3).map((cap: string, i: number) => (
+                <span key={i}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-[10px] font-medium rounded-full">
+              <Tag className="w-2.5 h-2.5"/>
+                  {cap}
+            </span>
+            ))}
+            {(plugin.capabilities?.length || 0) > 3 && (
+                <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-500 text-[10px] rounded-full">
+              +{plugin.capabilities!.length - 3}
+            </span>
+            )}
+          </div>
+
+          {/* 元信息 */}
+          {isInstalled && (
+              <div className="flex items-center gap-3 mb-4 text-xs text-gray-400">
+                {plugin.updated_at && (
+                    <span className="flex items-center gap-1">
+                <Clock className="w-3 h-3"/>
+                      {new Date(plugin.updated_at).toLocaleDateString('zh-CN')}
+              </span>
+                )}
+                {plugin.rating && (
+                    <span className="flex items-center gap-1">
+                <Star className="w-3 h-3 text-amber-400 fill-amber-400"/>
+                      {plugin.rating.toFixed(1)}
+              </span>
+                )}
+              </div>
+          )}
+
+          {/* 操作按钮 */}
+          <div className="flex gap-2">
+            {!isInstalled ? (
+                <button onClick={() => onInstall(plugin.slug)} disabled={installPending}
+                        className="flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl transition-colors disabled:opacity-50 shadow-sm">
+                  {installPending ? (
+                      <><span
+                          className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/>安装中...</>
+                  ) : (
+                      <><Download className="w-4 h-4"/>安装</>
+                  )}
+                </button>
+            ) : (
+                <>
+                  <button onClick={() => onToggle(plugin.slug, !plugin.is_active)} disabled={togglePending}
+                          className={`flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-medium rounded-xl transition-colors disabled:opacity-50 ${
+                              plugin.is_active
+                                  ? 'bg-amber-100 dark:bg-amber-900/20 text-amber-700 dark:text-amber-400 hover:bg-amber-200 dark:hover:bg-amber-900/30'
+                                  : 'bg-emerald-100 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-200 dark:hover:bg-emerald-900/30'
+                          }`}>
+                    {togglePending ? (
+                        <span
+                            className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin"/>
+                    ) : (
+                        plugin.is_active ? <><ToggleLeft className="w-4 h-4"/>停用</> : <><ToggleRight
+                            className="w-4 h-4"/>启用</>
+                    )}
+                  </button>
+                  <button onClick={() => onConfig(plugin)}
+                          className="p-2.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl transition-colors">
+                    <Settings className="w-4 h-4"/>
+                  </button>
+                  {!plugin.is_active && (
+                      <button onClick={() => onUninstall(plugin.slug)} disabled={uninstallPending}
+                              className="p-2.5 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/30 rounded-xl transition-colors disabled:opacity-50">
+                        <Trash2 className="w-4 h-4"/>
+                      </button>
+                  )}
+                </>
+            )}
+          </div>
+        </div>
+      </div>
+  );
+};
+
+/* ── 配置弹窗 ── */
+const ConfigModal: React.FC<{
+  plugin: Plugin;
+  onClose: () => void;
+}> = ({plugin, onClose}) => (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={onClose}>
+      <div
+          className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 w-full max-w-lg max-h-[85vh] flex flex-col"
+          onClick={e => e.stopPropagation()}>
+        {/* 头部 */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+              <Settings className="w-5 h-5 text-blue-600 dark:text-blue-400"/>
+            </div>
+            <div>
+              <h3 className="font-semibold text-gray-900 dark:text-white">插件配置</h3>
+              <p className="text-xs text-gray-400">{plugin.name}</p>
+            </div>
+          </div>
+          <button onClick={onClose}
+                  className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800">
+            <X className="w-5 h-5"/>
+          </button>
+        </div>
+
+        {/* 内容 */}
+        <div className="p-6 overflow-y-auto space-y-5">
+          {/* 插件信息 */}
+          <div>
+            <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">插件信息</h4>
+            <div className="bg-gray-50 dark:bg-gray-800/50 rounded-xl p-4 space-y-3">
+              {[
+                {label: '名称', value: plugin.name},
+                {label: '版本', value: `v${plugin.version}`},
+                {label: '作者', value: plugin.author || 'N/A'},
+                {label: '标识', value: plugin.slug},
+                {label: '状态', value: plugin.is_active ? '已启用' : '已禁用'},
+                {
+                  label: '更新时间',
+                  value: plugin.updated_at ? new Date(plugin.updated_at).toLocaleString('zh-CN') : 'N/A'
+                },
+              ].map(item => (
+                  <div key={item.label} className="flex items-center justify-between">
+                    <span className="text-sm text-gray-500">{item.label}</span>
+                    <span className="text-sm text-gray-900 dark:text-white font-medium">{item.value}</span>
+                  </div>
+              ))}
+            </div>
+          </div>
+
+          {/* 权限能力 */}
+          {plugin.capabilities && plugin.capabilities.length > 0 && (
+              <div>
+                <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">权限能力</h4>
+                <div className="flex flex-wrap gap-2">
+                  {plugin.capabilities.map((cap: string, i: number) => (
+                      <span key={i}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 text-xs font-medium rounded-lg">
+                  <Shield className="w-3 h-3"/>
+                        {cap}
+                </span>
+                  ))}
+                </div>
+              </div>
+          )}
+
+          {/* 提示 */}
+          <div
+              className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
+            <div className="flex items-start gap-2.5">
+              <Info className="w-4.5 h-4.5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0"/>
+              <div>
+                <p className="text-sm font-medium text-amber-800 dark:text-amber-200">配置选项开发中</p>
+                <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                  此插件的详细配置选项将在后续版本中提供。当前版本仅支持启用/禁用操作。
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 底部 */}
+        <div className="flex justify-end px-6 py-4 border-t border-gray-100 dark:border-gray-800">
+          <button onClick={onClose}
+                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl transition-colors">
+            关闭
+          </button>
+        </div>
+      </div>
+    </div>
+);
+
+/* ── 主页面 ── */
 function PluginsInner() {
   const qc = useQueryClient();
   const [activeTab, setActiveTab] = useState<'installed' | 'marketplace'>('installed');
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedPlugin, setSelectedPlugin] = useState<Plugin | null>(null);
-  const [showConfig, setShowConfig] = useState(false);
+  const [configPlugin, setConfigPlugin] = useState<Plugin | null>(null);
+  const [uninstallTarget, setUninstallTarget] = useState<string | null>(null);
 
   // 查询已安装插件
   const {data: installedPlugins, isLoading: installedLoading} = useQuery({
@@ -58,7 +347,6 @@ function PluginsInner() {
     onSuccess: () => {
       qc.invalidateQueries({queryKey: ['plugins-installed']});
       qc.invalidateQueries({queryKey: ['plugins-marketplace']});
-      alert('插件安装成功！');
     }
   });
 
@@ -66,9 +354,7 @@ function PluginsInner() {
   const toggleMut = useMutation({
     mutationFn: ({slug, activate}: { slug: string; activate: boolean }) =>
         activate ? apiClient.post(`/plugins/${slug}/activate`) : apiClient.post(`/plugins/${slug}/deactivate`),
-    onSuccess: () => {
-      qc.invalidateQueries({queryKey: ['plugins-installed']});
-    }
+    onSuccess: () => qc.invalidateQueries({queryKey: ['plugins-installed']})
   });
 
   // 卸载插件
@@ -77,245 +363,178 @@ function PluginsInner() {
     onSuccess: () => {
       qc.invalidateQueries({queryKey: ['plugins-installed']});
       qc.invalidateQueries({queryKey: ['plugins-marketplace']});
-      alert('插件已卸载！');
+      setUninstallTarget(null);
     }
   });
 
-  const handleInstall = (slug: string) => {
-    if (confirm('确定要安装此插件吗？')) {
-      installMut.mutate(slug);
-    }
-  };
+  // 过滤
+  const filteredInstalled = useMemo(() => {
+    if (!installedPlugins) return [];
+    if (!searchTerm.trim()) return installedPlugins;
+    const q = searchTerm.toLowerCase();
+    return installedPlugins.filter((p: Plugin) =>
+        p.name?.toLowerCase().includes(q) || p.description?.toLowerCase().includes(q) || p.slug?.toLowerCase().includes(q)
+    );
+  }, [installedPlugins, searchTerm]);
 
-  const handleUninstall = (slug: string) => {
-    if (confirm('确定要卸载此插件吗？此操作不可恢复。')) {
-      uninstallMut.mutate(slug);
-    }
-  };
+  const filteredMarketplace = useMemo(() => {
+    if (!marketplacePlugins) return [];
+    if (!searchTerm.trim()) return marketplacePlugins;
+    const q = searchTerm.toLowerCase();
+    return marketplacePlugins.filter((p: Plugin) =>
+        p.name?.toLowerCase().includes(q) || p.description?.toLowerCase().includes(q) || p.slug?.toLowerCase().includes(q)
+    );
+  }, [marketplacePlugins, searchTerm]);
 
-  const filteredPlugins = (plugins: Plugin[]) => {
-    return plugins.filter((plugin: Plugin) => {
-      return !searchTerm ||
-          plugin.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          plugin.description?.toLowerCase().includes(searchTerm.toLowerCase());
-    });
-  };
+  // 统计
+  const stats = useMemo(() => {
+    const installed = installedPlugins?.length || 0;
+    const active = installedPlugins?.filter((p: Plugin) => p.is_active).length || 0;
+    const available = marketplacePlugins?.length || 0;
+    return {installed, active, available};
+  }, [installedPlugins, marketplacePlugins]);
 
-  const renderPluginCard = (plugin: Plugin, isInstalled: boolean = false) => (
-      <div key={plugin.slug}
-           className="bg-white dark:bg-gray-900 rounded-xl border overflow-hidden hover:shadow-lg transition">
-        <div className="p-5">
-          <div className="flex items-start justify-between mb-3">
-            <div className="flex-1">
-              <h3 className="font-semibold text-gray-900 dark:text-white">{plugin.name}</h3>
-              <p className="text-xs text-gray-500 mt-0.5">v{plugin.version} · by {plugin.author || 'Unknown'}</p>
-            </div>
-            {isInstalled && (
-                <button
-                    onClick={() => toggleMut.mutate({slug: plugin.slug, activate: !plugin.is_active})}
-                    className={`px-3 py-1 rounded-full text-xs font-medium transition ${
-                        plugin.is_active
-                            ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                    }`}
-                >
-                  {plugin.is_active ? '已启用' : '已禁用'}
-                </button>
-            )}
-          </div>
-
-          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4 line-clamp-2">
-            {plugin.description || '暂无描述'}
-          </p>
-
-          {/* 能力标签 */}
-          {plugin.capabilities && plugin.capabilities.length > 0 && (
-              <div className="flex flex-wrap gap-1 mb-4">
-                {plugin.capabilities.slice(0, 3).map((cap: string, i: number) => (
-                    <span key={i}
-                          className="px-2 py-0.5 bg-blue-50 dark:bg-blue-900/20 text-blue-600 text-[10px] rounded">
-                {cap}
-              </span>
-                ))}
-              </div>
-          )}
-
-          {/* 操作按钮 */}
-          <div className="flex gap-2">
-            {!isInstalled ? (
-                <button
-                    onClick={() => handleInstall(plugin.slug)}
-                    disabled={installMut.isPending}
-                    className="flex-1 px-3 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition flex items-center justify-center gap-1.5"
-                >
-                  <Download className="w-4 h-4"/>
-                  安装
-                </button>
-            ) : (
-                <>
-                  <button
-                      onClick={() => {
-                        setSelectedPlugin(plugin);
-                        setShowConfig(true);
-                      }}
-                      className="px-3 py-2 border text-sm rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition"
-                  >
-                    <Settings className="w-4 h-4"/>
-                  </button>
-                  {!plugin.is_active && (
-                      <button
-                          onClick={() => handleUninstall(plugin.slug)}
-                          disabled={uninstallMut.isPending}
-                          className="px-3 py-2 border text-red-600 text-sm rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition"
-                      >
-                        <Trash2 className="w-4 h-4"/>
-                      </button>
-                  )}
-                </>
-            )}
-          </div>
-        </div>
-      </div>
-  );
+  const currentPlugins = activeTab === 'installed' ? filteredInstalled : filteredMarketplace;
+  const isLoading = activeTab === 'installed' ? installedLoading : marketplaceLoading;
 
   return (
       <AdminShell title="插件市场">
-        <div className="space-y-6">
+        {/* 统计卡片 */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+          <StatCard icon={Package} label="已安装" value={stats.installed}
+                    gradient="from-blue-500 to-blue-600"/>
+          <StatCard icon={Zap} label="运行中" value={stats.active}
+                    gradient="from-emerald-500 to-emerald-600"/>
+          <StatCard icon={Globe} label="可用插件" value={stats.available}
+                    gradient="from-purple-500 to-purple-600"/>
+          <StatCard icon={Shield} label="安全评分" value="A+"
+                    gradient="from-amber-500 to-amber-600"/>
+        </div>
+
+        {/* 标签页 + 搜索 */}
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 mb-6">
           {/* 标签页 */}
-          <div className="flex gap-2">
-            <button
-                onClick={() => setActiveTab('installed')}
-                className={`px-4 py-2 rounded-lg font-medium transition ${
-                    activeTab === 'installed'
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-white dark:bg-gray-900 border hover:bg-gray-50 dark:hover:bg-gray-800'
-                }`}
-            >
-              <Puzzle className="w-4 h-4 inline mr-1.5"/>
+          <div
+              className="flex items-center gap-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-1">
+            <button onClick={() => setActiveTab('installed')}
+                    className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        activeTab === 'installed'
+                            ? 'bg-blue-600 text-white shadow-sm'
+                            : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'
+                    }`}>
+              <Puzzle className="w-4 h-4"/>
               已安装
+              {stats.installed > 0 && (
+                  <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-semibold ${
+                      activeTab === 'installed' ? 'bg-white/20' : 'bg-gray-200 dark:bg-gray-700'
+                  }`}>{stats.installed}</span>
+              )}
             </button>
-            <button
-                onClick={() => setActiveTab('marketplace')}
-                className={`px-4 py-2 rounded-lg font-medium transition ${
-                    activeTab === 'marketplace'
-                        ? 'bg-blue-600 text-white'
-                        : 'bg-white dark:bg-gray-900 border hover:bg-gray-50 dark:hover:bg-gray-800'
-                }`}
-            >
-              <Download className="w-4 h-4 inline mr-1.5"/>
+            <button onClick={() => setActiveTab('marketplace')}
+                    className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                        activeTab === 'marketplace'
+                            ? 'bg-blue-600 text-white shadow-sm'
+                            : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'
+                    }`}>
+              <Download className="w-4 h-4"/>
               插件市场
             </button>
           </div>
 
-          {/* 搜索栏 */}
-          <div className="relative">
+          {/* 搜索 */}
+          <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"/>
-            <input
-                type="text"
-                placeholder="搜索插件..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-10 pr-4 py-2 border rounded-lg bg-white dark:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+            <input type="text" value={searchTerm} onChange={e => setSearchTerm(e.target.value)}
+                   placeholder="搜索插件名称、描述..."
+                   className="w-full pl-10 pr-8 py-2.5 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white transition-all"/>
+            {searchTerm && (
+                <button onClick={() => setSearchTerm('')}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-gray-400 hover:text-gray-600">
+                  <X className="w-4 h-4"/>
+                </button>
+            )}
           </div>
-
-          {/* 插件网格 */}
-          {activeTab === 'installed' ? (
-              installedLoading ? (
-                  <div className="text-center py-12">
-                    <div
-                        className="animate-spin w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full mx-auto"/>
-                  </div>
-              ) : !installedPlugins?.length ? (
-                  <div className="text-center py-12 text-gray-400">
-                    <Puzzle className="w-16 h-16 mx-auto mb-4 opacity-30"/>
-                    <p>尚未安装任何插件</p>
-                    <button
-                        onClick={() => setActiveTab('marketplace')}
-                        className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-                    >
-                      浏览插件市场
-              </button>
-            </div>
-              ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredPlugins(installedPlugins).map((plugin: Plugin) => renderPluginCard(plugin, true))}
-            </div>
-              )
-          ) : (
-              marketplaceLoading ? (
-                  <div className="text-center py-12">
-                    <div
-                        className="animate-spin w-8 h-8 border-2 border-blue-600 border-t-transparent rounded-full mx-auto"/>
-                  </div>
-              ) : !marketplacePlugins?.length ? (
-                  <div className="text-center py-12 text-gray-400">
-                    <Download className="w-16 h-16 mx-auto mb-4 opacity-30"/>
-                    <p>暂无可用插件</p>
-                  </div>
-              ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {filteredPlugins(marketplacePlugins).map((plugin: Plugin) => renderPluginCard(plugin, false))}
-                  </div>
-              )
-          )}
         </div>
 
-        {/* 配置对话框 */}
-        {showConfig && selectedPlugin && (
-            <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-              <div className="bg-white dark:bg-gray-900 rounded-2xl max-w-2xl w-full">
-                <div className="px-6 py-4 border-b flex items-center justify-between">
-                  <h3 className="font-semibold text-lg">插件配置: {selectedPlugin.name}</h3>
-                  <button
-                      onClick={() => setShowConfig(false)}
-                      className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"
-                  >
-                    ✕
+        {/* 插件网格 */}
+        {isLoading ? (
+            <PluginSkeleton/>
+        ) : currentPlugins.length === 0 ? (
+            <div
+                className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-16 text-center">
+              <div
+                  className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
+                {activeTab === 'installed' ? <Puzzle className="w-8 h-8 text-gray-300 dark:text-gray-600"/> :
+                    <Download className="w-8 h-8 text-gray-300 dark:text-gray-600"/>}
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
+                {searchTerm ? '未找到匹配的插件' : activeTab === 'installed' ? '尚未安装任何插件' : '暂无可用插件'}
+              </h3>
+              <p className="text-sm text-gray-500 mb-6">
+                {searchTerm ? '尝试使用不同的搜索词' : activeTab === 'installed' ? '浏览插件市场发现更多功能' : '请稍后再来查看'}
+              </p>
+              {activeTab === 'installed' && !searchTerm && (
+                  <button onClick={() => setActiveTab('marketplace')}
+                          className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl transition-colors">
+                    <Download className="w-4 h-4"/>浏览插件市场
                   </button>
-                </div>
-                <div className="p-6 space-y-4">
-                  <div>
-                    <div className="text-sm font-medium text-gray-500 mb-1">插件信息</div>
-                    <div className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg text-sm space-y-1">
-                      <div><span className="text-gray-500">名称:</span> {selectedPlugin.name}</div>
-                      <div><span className="text-gray-500">版本:</span> v{selectedPlugin.version}</div>
-                      <div><span className="text-gray-500">作者:</span> {selectedPlugin.author || 'N/A'}</div>
-                      <div><span className="text-gray-500">状态:</span> {selectedPlugin.is_active ? '已启用' : '已禁用'}
-                      </div>
-                    </div>
-                  </div>
+              )}
+            </div>
+        ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+              {currentPlugins.map((plugin: Plugin) => (
+                  <PluginCard
+                      key={plugin.slug}
+                      plugin={plugin}
+                      isInstalled={activeTab === 'installed' || plugin.is_installed}
+                      onInstall={(slug) => installMut.mutate(slug)}
+                      onToggle={(slug, activate) => toggleMut.mutate({slug, activate})}
+                      onUninstall={(slug) => setUninstallTarget(slug)}
+                      onConfig={setConfigPlugin}
+                      installPending={installMut.isPending}
+                      togglePending={toggleMut.isPending}
+                      uninstallPending={uninstallMut.isPending}
+                  />
+              ))}
+            </div>
+        )}
 
-                  {selectedPlugin.capabilities && selectedPlugin.capabilities.length > 0 && (
-                      <div>
-                        <div className="text-sm font-medium text-gray-500 mb-1">权限能力</div>
-                        <div className="flex flex-wrap gap-2">
-                          {selectedPlugin.capabilities.map((cap: string, i: number) => (
-                              <span key={i}
-                                    className="px-2 py-1 bg-blue-50 dark:bg-blue-900/20 text-blue-600 text-xs rounded">
-                        {cap}
-                      </span>
-                          ))}
-                        </div>
-                      </div>
-                  )}
+        {/* 配置弹窗 */}
+        {configPlugin && <ConfigModal plugin={configPlugin} onClose={() => setConfigPlugin(null)}/>}
 
+        {/* 卸载确认弹窗 */}
+        {uninstallTarget && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+                 onClick={() => setUninstallTarget(null)}>
+              <div
+                  className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 w-full max-w-md p-6"
+                  onClick={e => e.stopPropagation()}>
+                <div className="flex items-center gap-3 mb-4">
                   <div
-                      className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-3">
-                    <div className="flex items-start gap-2">
-                      <Info className="w-4 h-4 text-yellow-600 mt-0.5"/>
-                      <p className="text-sm text-yellow-800 dark:text-yellow-200">
-                        此插件的配置选项将在后续版本中提供。当前版本仅支持启用/禁用操作。
-                      </p>
-                    </div>
+                      className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                    <AlertTriangle className="w-5 h-5 text-red-600 dark:text-red-400"/>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-gray-900 dark:text-white">确认卸载插件</h3>
+                    <p className="text-sm text-gray-500">此操作不可恢复</p>
                   </div>
                 </div>
-                <div className="px-6 py-4 border-t flex justify-end">
-                  <button
-                      onClick={() => setShowConfig(false)}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-                  >
-                    关闭
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+                  确定要卸载此插件吗？所有相关数据将被清除。
+                </p>
+                <div className="flex justify-end gap-3">
+                  <button onClick={() => setUninstallTarget(null)}
+                          className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors">
+                    取消
+                  </button>
+                  <button onClick={() => uninstallMut.mutate(uninstallTarget)} disabled={uninstallMut.isPending}
+                          className="px-4 py-2 text-sm font-medium bg-red-600 hover:bg-red-700 text-white rounded-xl transition-colors flex items-center gap-1.5 disabled:opacity-50">
+                    {uninstallMut.isPending ? (
+                        <><span
+                            className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"/>卸载中...</>
+                    ) : (
+                        <><Trash2 className="w-4 h-4"/>卸载</>
+                    )}
                   </button>
                 </div>
           </div>
@@ -326,11 +545,5 @@ function PluginsInner() {
 }
 
 export default function AdminPlugins() {
-  return (
-      <AuthGuard>
-        <QueryProvider>
-          <PluginsInner/>
-        </QueryProvider>
-      </AuthGuard>
-  );
+  return <AuthGuard><QueryProvider><PluginsInner/></QueryProvider></AuthGuard>;
 }

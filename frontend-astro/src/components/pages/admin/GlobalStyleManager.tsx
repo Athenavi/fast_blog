@@ -6,7 +6,7 @@
 
 import React, {useState} from 'react';
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
-import apiClient from '@/lib/api-client';
+import {apiClient} from '@/lib/api/base-client';
 import {STYLE_PRESETS, GlobalStyleConfig, applyGlobalStyle} from '@/lib/page-builder/global-styles';
 import {Palette, Save, Eye, Trash2, Edit3, Check} from 'lucide-react';
 

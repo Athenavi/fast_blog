@@ -150,7 +150,7 @@ const RichEditor: React.FC<RichEditorProps> = ({value,onChange,placeholder='å¼€å
 
   const editor = useEditor({
     extensions:[
-      StarterKit.configure({heading: {levels: [1, 2, 3]}, history: false}), Placeholder.configure({placeholder}),
+        StarterKit.configure({heading: {levels: [1, 2, 3]}}), Placeholder.configure({placeholder}),
       Underline,Typography,TextAlign.configure({types:['heading','paragraph']}),Highlight,ImageExt,
       LinkExt.configure({openOnClick:false}),Table.configure({resizable:true}),TableRow,TableCell,TableHeader,
       TaskList,TaskItem.configure({nested:true}),
@@ -168,7 +168,11 @@ const RichEditor: React.FC<RichEditorProps> = ({value,onChange,placeholder='å¼€å
   useEffect(()=>{if(editor&&editorRef)editorRef.current=editor;},[editor,editorRef]);
 
   // Sync external value changes
-  useEffect(()=>{if(!editor||value===prevValueRef.current)return;prevValueRef.current=value;if(value&&!editor.isDestroyed)editor.commands.setContent(value,false);},[value,editor]);
+    useEffect(() => {
+        if (!editor || value === prevValueRef.current) return;
+        prevValueRef.current = value;
+        if (value && !editor.isDestroyed) editor.commands.setContent(value, {emitUpdate: false});
+    }, [value, editor]);
 
   const runAI=useCallback(async(mode:string)=>{
     if(!editor)return;setShowAI(true);setAiBusy(true);setAiResult('');

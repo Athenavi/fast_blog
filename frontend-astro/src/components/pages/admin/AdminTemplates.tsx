@@ -9,17 +9,17 @@ import {apiClient} from '@/lib/api/api-client';
 import {GitBranch} from 'lucide-react';
 
 function TemplatesInner() {
-  const {data, isLoading} = useQuery({
+    const {data, isLoading} = useQuery<any[]>({
     queryKey: ['admin-templates'],
     queryFn: async () => {
-      const r = await apiClient.get<any[]>('/templates/templates/list');
+        const r = await apiClient.get<any>('/templates/templates/list');
       return r.success && r.data ? (Array.isArray(r.data) ? r.data : r.data.templates||[]) : [];
     },
   });
-  const {data: cats} = useQuery({
+    const {data: cats} = useQuery<any[]>({
     queryKey: ['admin-template-cats'],
     queryFn: async () => {
-      const r = await apiClient.get<any[]>('/templates/templates/categories');
+        const r = await apiClient.get<any>('/templates/templates/categories');
       return r.success && r.data ? (Array.isArray(r.data) ? r.data : r.data.categories||[]) : [];
     },
   });
@@ -27,9 +27,10 @@ function TemplatesInner() {
   return (
     <AdminShell title="模板管理">
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {cats?.length > 0 && (
+          {(cats?.length ?? 0) > 0 && (
           <div className="md:col-span-full flex gap-2 mb-2">
-            {cats.map((c:any,i:number) => <span key={i} className="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-lg text-xs font-medium">{c.name||c}</span>)}
+              {cats?.map((c: any, i: number) => <span key={i}
+                                                      className="px-3 py-1.5 bg-gray-100 dark:bg-gray-800 rounded-lg text-xs font-medium">{c.name || c}</span>)}
           </div>
         )}
         {isLoading ? (

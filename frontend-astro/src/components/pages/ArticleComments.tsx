@@ -109,10 +109,10 @@ const CommentItem: React.FC<{
           )}
         </div>
 
-        {/* Children */}
-        {comment.children && comment.children.length > 0 && (
+          {/* Replies */}
+          {comment.replies && comment.replies.length > 0 && (
           <div className="mt-1">
-            {comment.children.map((child: any) => (
+              {comment.replies.map((child: any) => (
               <CommentItem key={child.id} comment={child} depth={depth + 1} onLike={onLike} onDelete={onDelete} onReply={onReply}/>
             ))}
           </div>
@@ -221,7 +221,7 @@ const ArticleComments: React.FC<Props> = ({articleId}) => {
   const handleDelete = useCallback((id: number) => {
     setComments(prev => {
       const remove = (list: Comment[]): Comment[] =>
-        list.filter(c => c.id !== id).map(c => ({...c, children: remove(c.children || [])}));
+          list.filter(c => c.id !== id).map(c => ({...c, replies: remove(c.replies || [])}));
       return remove(prev);
     });
     setTotal(prev => Math.max(0, prev - 1));

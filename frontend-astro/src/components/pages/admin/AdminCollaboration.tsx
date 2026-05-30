@@ -9,10 +9,10 @@ import {apiClient} from '@/lib/api/api-client';
 import {CheckSquare, Handshake, MessageSquare, Users} from 'lucide-react';
 
 function CollabInner() {
-  const {data:workspaces, isLoading} = useQuery({
+    const {data: workspaces, isLoading} = useQuery<any[]>({
     queryKey: ['admin-collab-workspaces'],
     queryFn: async () => {
-      const r = await apiClient.get<any[]>('/collaboration/team/workspaces');
+        const r = await apiClient.get<any>('/collaboration/team/workspaces');
       return r.success && r.data ? (Array.isArray(r.data) ? r.data : r.data.workspaces||[]) : [];
     },
   });

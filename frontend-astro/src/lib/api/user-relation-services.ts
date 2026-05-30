@@ -1,4 +1,5 @@
-import {apiClient, ApiResponse} from "@/app/lib/api";
+import {apiClient} from './base-client';
+import type {ApiResponse} from './base-types';
 
 // User relation types
 export interface UserRelation {

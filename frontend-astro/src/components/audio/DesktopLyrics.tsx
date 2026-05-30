@@ -406,8 +406,8 @@ const DesktopLyrics: React.FC<{
 
   const entryV = entryVariants(settings.entryAnim);
   const exitV = exitVariants(settings.exitAnim);
-  const entryTrans = {duration: 0.4, ease: [0.16, 1, 0.3, 1]};
-  const exitTrans = {duration: 0.35, ease: 'easeOut'};
+    const entryTrans = {duration: 0.4, ease: [0.16, 1, 0.3, 1] as [number, number, number, number]};
+    const exitTrans = {duration: 0.35, ease: 'easeOut' as const};
 
   if (!visible || !lyrics.length) return null;
 
@@ -445,8 +445,8 @@ const DesktopLyrics: React.FC<{
                       key={`prev-${activeLineIndex}`}
                       initial={{opacity: 1, y: 0}}
                       animate={{opacity: 0.25, y: -8}}
-                      exit={{opacity: 0, ...exitV.exit, transition: exitTrans}}
-                      transition={{duration: 0.35, ease: 'easeOut'}}
+                      exit={{...exitV.exit, opacity: 0, transition: exitTrans}}
+                      transition={{duration: 0.35, ease: 'easeOut' as const}}
                       className="text-white/40 text-sm truncate mb-2"
                       style={{fontSize: Math.max(12, settings.fontSize - 4), fontFamily: settings.fontFamily}}
                   >

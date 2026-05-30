@@ -2,8 +2,20 @@
  * 分类服务
  */
 
-import {apiClient} from '../api';
-import type {ApiResponse, Category, PaginatedResponse} from './types';
+import {apiClient} from '../api/api-client';
+import type {Article, Category, ApiResponse} from '../api/base-types';
+
+export interface PaginatedResponse<T> {
+    data: T[];
+    pagination: {
+        current_page: number;
+        per_page: number;
+        total: number;
+        total_pages: number;
+        has_next: boolean;
+        has_prev: boolean;
+    };
+}
 
 export class CategoryService {
     /**

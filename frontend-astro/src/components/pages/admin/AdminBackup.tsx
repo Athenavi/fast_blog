@@ -1,13 +1,20 @@
 'use client';
 
-import React, {useState, useRef} from 'react';
+import React, {useState, useRef, useEffect, useMemo} from 'react';
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {apiClient} from '@/lib/api/base-client';
-import {ChevronLeft, ChevronRight, Database, HardDrive, Download, Trash2, Loader, ShieldAlert} from 'lucide-react';
+import {
+  ChevronLeft, ChevronRight, Database, HardDrive, Download, Trash2,
+  Loader, ShieldAlert, Clock, Archive, Search, Filter, AlertTriangle,
+  CheckCircle, FileDown, Package, BarChart3, Activity, RefreshCw
+} from 'lucide-react';
+import {timeAgo} from '@/lib/utils';
+import {StatCard} from '@/components/admin/shared-ui';
 
+/* ─── Helpers ─── */
 function formatSize(bytes: number | string | undefined | null): string {
   if (bytes == null) return '—';
   const n = typeof bytes === 'string' ? parseFloat(bytes) : bytes;
@@ -19,19 +26,185 @@ function formatSize(bytes: number | string | undefined | null): string {
   return `${size.toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
 }
 
+/* ─── Constants ─── */
 const TYPE_OPTIONS = [
-  {value: '', label: '全部'},
-  {value: 'database', label: '数据库'},
-  {value: 'files', label: '文件'},
-  {value: 'full', label: '完整'},
+  {value: '', label: '全部', icon: Package, gradient: 'from-gray-500 to-gray-600'},
+  {value: 'database', label: '数据库', icon: Database, gradient: 'from-blue-500 to-cyan-500'},
+  {value: 'files', label: '文件', icon: HardDrive, gradient: 'from-emerald-500 to-teal-500'},
+  {value: 'full', label: '完整', icon: Archive, gradient: 'from-purple-500 to-pink-500'},
 ] as const;
 
+const BACKUP_TYPE_CONFIG: Record<string, { label: string; icon: any; gradient: string; color: string; bg: string }> = {
+  database: {
+    label: '数据库',
+    icon: Database,
+    gradient: 'from-blue-500 to-cyan-500',
+    color: 'text-blue-600 dark:text-blue-400',
+    bg: 'bg-blue-50 dark:bg-blue-900/20'
+  },
+  files: {
+    label: '文件',
+    icon: HardDrive,
+    gradient: 'from-emerald-500 to-teal-500',
+    color: 'text-emerald-600 dark:text-emerald-400',
+    bg: 'bg-emerald-50 dark:bg-emerald-900/20'
+  },
+  full: {
+    label: '完整',
+    icon: Archive,
+    gradient: 'from-purple-500 to-pink-500',
+    color: 'text-purple-600 dark:text-purple-400',
+    bg: 'bg-purple-50 dark:bg-purple-900/20'
+  },
+};
+
+const GRADIENT_COLORS = [
+  'from-blue-500 to-cyan-500',
+  'from-emerald-500 to-teal-500',
+  'from-purple-500 to-pink-500',
+  'from-amber-500 to-orange-500',
+] as const;
+
+/* ─── Shared Components ─── */
+
+const SectionTitle: React.FC<{ icon: any; title: string; subtitle?: string; action?: React.ReactNode }> = ({
+                                                                                                             icon: Icon,
+                                                                                                             title,
+                                                                                                             subtitle,
+                                                                                                             action
+                                                                                                           }) => (
+    <div className="flex items-center justify-between">
+      <div className="flex items-center gap-3">
+        <div
+            className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center">
+          <Icon className="w-4 h-4 text-white"/>
+        </div>
+        <div>
+          <h3 className="font-semibold text-gray-900 dark:text-white">{title}</h3>
+          {subtitle && <p className="text-xs text-gray-500 dark:text-gray-400">{subtitle}</p>}
+        </div>
+      </div>
+      {action}
+    </div>
+);
+
+const BackupSkeleton = () => (
+    <div className="animate-pulse space-y-3">
+      {[1, 2, 3, 4, 5, 6].map(i => (
+          <div key={i} className="flex items-center gap-4 px-5 py-4">
+            <div className="w-16 h-5 bg-gray-200 dark:bg-gray-700 rounded-full"/>
+            <div className="flex-1 h-4 bg-gray-200 dark:bg-gray-700 rounded max-w-[200px]"/>
+            <div className="w-28 h-4 bg-gray-200 dark:bg-gray-700 rounded hidden md:block"/>
+            <div className="w-16 h-4 bg-gray-200 dark:bg-gray-700 rounded"/>
+            <div className="w-20 h-4 bg-gray-200 dark:bg-gray-700 rounded"/>
+          </div>
+      ))}
+    </div>
+);
+
+const EmptyState: React.FC<{ icon: any; title: string; desc: string; action?: React.ReactNode }> = ({
+                                                                                                      icon: Icon,
+                                                                                                      title,
+                                                                                                      desc,
+                                                                                                      action
+                                                                                                    }) => (
+    <div className="flex flex-col items-center justify-center py-16 px-4">
+      <div className="w-16 h-16 rounded-2xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center mb-4">
+        <Icon className="w-8 h-8 text-gray-300 dark:text-gray-600"/>
+      </div>
+      <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">{title}</h3>
+      <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">{desc}</p>
+      {action}
+    </div>
+);
+
+const Modal: React.FC<{
+  open: boolean;
+  onClose: () => void;
+  title: string;
+  subtitle?: string;
+  children: React.ReactNode;
+  maxWidth?: string
+}> = ({open, onClose, title, subtitle, children, maxWidth = 'max-w-lg'}) => {
+  const [isVisible, setIsVisible] = useState(false);
+  const [isAnimating, setIsAnimating] = useState(false);
+  useEffect(() => {
+    if (open) {
+      setIsVisible(true);
+      requestAnimationFrame(() => setIsAnimating(true));
+    } else {
+      setIsAnimating(false);
+      const timer = setTimeout(() => setIsVisible(false), 200);
+      return () => clearTimeout(timer);
+    }
+  }, [open]);
+  if (!isVisible) return null;
+  return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
+        <div
+            className={`absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-200 ${isAnimating ? 'opacity-100' : 'opacity-0'}`}/>
+        <div
+            className={`relative ${maxWidth} w-full bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 max-h-[85vh] flex flex-col transition-all duration-200 ${isAnimating ? 'scale-100 opacity-100 translate-y-0' : 'scale-95 opacity-0 translate-y-4'}`}
+            onClick={e => e.stopPropagation()}>
+          <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
+            <h2 className="text-lg font-bold text-gray-900 dark:text-white">{title}</h2>
+            {subtitle && <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{subtitle}</p>}
+          </div>
+          <div className="px-6 py-4 overflow-y-auto flex-1">{children}</div>
+        </div>
+      </div>
+  );
+};
+
+const DeleteConfirm: React.FC<{
+  filename: string;
+  onConfirm: () => void;
+  onCancel: () => void;
+  isPending?: boolean
+}> = ({filename, onConfirm, onCancel, isPending}) => (
+    <div className="space-y-4">
+      <div
+          className="flex items-start gap-3 p-4 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800/30">
+        <AlertTriangle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5"/>
+        <div>
+          <p className="text-sm font-medium text-red-800 dark:text-red-300">确认删除此备份？</p>
+          <p className="text-xs text-red-600 dark:text-red-400 mt-1">备份文件 <span
+              className="font-mono font-medium">{filename}</span> 将被永久删除，此操作无法撤销。</p>
+        </div>
+      </div>
+      <div className="flex justify-end gap-2">
+        <button onClick={onCancel}
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">取消
+        </button>
+        <button onClick={onConfirm} disabled={isPending}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-xl hover:bg-red-700 transition-colors disabled:opacity-50 flex items-center gap-2">
+          {isPending && <Loader className="w-3.5 h-3.5 animate-spin"/>}
+          {isPending ? '删除中…' : '确认删除'}
+        </button>
+      </div>
+    </div>
+);
+
+const TypeBadge: React.FC<{ type: string }> = ({type}) => {
+  const config = BACKUP_TYPE_CONFIG[type] || BACKUP_TYPE_CONFIG.database;
+  const Icon = config.icon;
+  return (
+      <span
+          className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-full ${config.bg} ${config.color}`}>
+      <Icon className="w-3 h-3"/>
+        {config.label}
+    </span>
+  );
+};
+
+/* ─── Main Component ─── */
 function BackupInner() {
   const qc = useQueryClient();
   const [page, setPage] = useState(1);
   const [typeFilter, setTypeFilter] = useState('');
-  // 追踪正在进行的备份类型（防 concurrent backup）
+  const [searchQuery, setSearchQuery] = useState('');
   const [backingUp, setBackingUp] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const prevFilterRef = useRef('');
   const filterKey = `${typeFilter}`;
   if (prevFilterRef.current !== filterKey) {
@@ -62,7 +235,46 @@ function BackupInner() {
   const total = data?.total || 0;
   const totalPages = data?.total_pages || 1;
 
-  // 创建备份 — 同一时间只允许一种类型的备份
+  const filteredBackups = useMemo(() => {
+    if (!searchQuery.trim()) return backups;
+    const q = searchQuery.toLowerCase();
+    return backups.filter((b: any) => {
+      const filename = b.filename || b.path?.split('/').pop() || b.backup_dir?.split('/').pop() || '';
+      return filename.toLowerCase().includes(q) || (b.type || '').toLowerCase().includes(q);
+    });
+  }, [backups, searchQuery]);
+
+  const statCards = useMemo(() => [
+    {
+      label: '数据库备份',
+      value: stats?.by_type?.database?.count ?? 0,
+      icon: Database,
+      gradient: GRADIENT_COLORS[0],
+      subtitle: formatSize(stats?.by_type?.database?.total_size)
+    },
+    {
+      label: '文件备份',
+      value: stats?.by_type?.files?.count ?? 0,
+      icon: HardDrive,
+      gradient: GRADIENT_COLORS[1],
+      subtitle: formatSize(stats?.by_type?.files?.total_size)
+    },
+    {
+      label: '完整备份',
+      value: stats?.by_type?.full?.count ?? 0,
+      icon: Archive,
+      gradient: GRADIENT_COLORS[2],
+      subtitle: formatSize(stats?.by_type?.full?.total_size)
+    },
+    {
+      label: '总存储大小',
+      value: formatSize(stats?.total_size),
+      icon: BarChart3,
+      gradient: GRADIENT_COLORS[3],
+      subtitle: `共 ${total} 个备份`
+    },
+  ], [stats, total]);
+
   const createMut = useMutation({
     mutationFn: async (type: string) => {
       setBackingUp(type);
@@ -77,16 +289,15 @@ function BackupInner() {
     onError: () => setBackingUp(null),
   });
 
-  // 删除单个备份
   const delOneMut = useMutation({
     mutationFn: (filename: string) => apiClient.delete(`/api/v2/system/backup/${encodeURIComponent(filename)}`),
     onSuccess: () => {
+      setDeleteTarget(null);
       qc.invalidateQueries({queryKey: ['admin-backups']});
       refetchStats();
     },
   });
 
-  // 清理旧备份
   const delMut = useMutation({
     mutationFn: () => apiClient.post('/api/v2/system/backup/cleanup'),
     onSuccess: () => {
@@ -114,10 +325,10 @@ function BackupInner() {
           </button>
           {pages.map((p, i) =>
               p === '...' ? <span key={`e-${i}`} className="px-2 text-gray-400">…</span> :
-              <button key={p} onClick={() => setPage(p as number)}
-                      className={`min-w-[36px] h-9 rounded-lg text-sm font-medium transition-colors ${
-                          p === page ? 'bg-blue-600 text-white' : 'border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
-                      }`}>{p}</button>
+                  <button key={p} onClick={() => setPage(p as number)}
+                          className={`min-w-[36px] h-9 rounded-lg text-sm font-medium transition-colors ${
+                              p === page ? 'bg-blue-600 text-white' : 'border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                          }`}>{p}</button>
           )}
           <button disabled={page >= totalPages} onClick={() => setPage(p => p + 1)}
                   className="p-2 rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-30 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
@@ -128,125 +339,219 @@ function BackupInner() {
   };
 
   return (
-      <AdminShell title="备份管理">
-        {/* 统计卡片 */}
+      <AdminShell title="备份管理" actions={
+        <div className="flex items-center gap-2">
+          <button onClick={() => {
+            qc.invalidateQueries({queryKey: ['admin-backups']});
+            refetchStats();
+          }}
+                  className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  title="刷新">
+            <RefreshCw className="w-4 h-4"/>
+          </button>
+        </div>
+      }>
+        {/* Stats Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-          <div className="bg-white dark:bg-gray-900 p-5 rounded-2xl border border-gray-200">
-            <div className="flex items-center gap-2 text-sm text-gray-500 mb-1"><Database className="w-4 h-4"/>数据库备份</div>
-            <p className="text-2xl font-bold">{stats?.by_type?.database?.count ?? 0}</p></div>
-          <div className="bg-white dark:bg-gray-900 p-5 rounded-2xl border border-gray-200">
-            <div className="flex items-center gap-2 text-sm text-gray-500 mb-1"><HardDrive className="w-4 h-4"/>文件备份</div>
-            <p className="text-2xl font-bold">{stats?.by_type?.files?.count ?? 0}</p></div>
-          <div className="bg-white dark:bg-gray-900 p-5 rounded-2xl border border-gray-200">
-            <div className="flex items-center gap-2 text-sm text-gray-500 mb-1"><HardDrive className="w-4 h-4"/>完整备份</div>
-            <p className="text-2xl font-bold">{stats?.by_type?.full?.count ?? 0}</p></div>
-          <div className="bg-white dark:bg-gray-900 p-5 rounded-2xl border border-gray-200">
-            <div className="flex items-center gap-2 text-sm text-gray-500 mb-1"><Database className="w-4 h-4"/>总大小</div>
-            <p className="text-2xl font-bold">{formatSize(stats?.total_size)}</p></div>
+          {statCards.map((card, i) => (
+              <StatCard key={i} {...card}/>
+          ))}
         </div>
 
-        {/* 操作栏 + 筛选 */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-5 mb-6">
-          <div className="flex flex-wrap items-center justify-between gap-4">
-            <div>
-              <h3 className="font-semibold text-gray-900 dark:text-white mb-3">创建备份</h3>
-              <div className="flex flex-wrap gap-2">
-                {(['database', 'files', 'full'] as const).map(t => (
-                    <button key={t}
-                            onClick={() => { if (!isBusy) createMut.mutate(t); }}
-                            disabled={isBusy}
-                            className={`px-4 py-2 rounded-xl text-sm font-medium transition-all flex items-center gap-2 ${
+        {/* Create Backup + Filter Bar */}
+        <div
+            className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200/80 dark:border-gray-700/80 overflow-hidden mb-6">
+          <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-800">
+            <SectionTitle icon={Download} title="创建备份" subtitle="选择备份类型立即创建系统备份"
+                          action={
+                            <button onClick={() => delMut.mutate()}
+                                    className="px-3 py-1.5 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-xs font-medium rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-1.5 transition-colors">
+                              <Trash2 className="w-3.5 h-3.5"/>清理旧备份
+                            </button>
+                          }
+            />
+          </div>
+          <div className="p-6">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {(['database', 'files', 'full'] as const).map(t => {
+                const config = BACKUP_TYPE_CONFIG[t];
+                const Icon = config.icon;
+                return (
+                    <button key={t} onClick={() => {
+                      if (!isBusy) createMut.mutate(t);
+                    }} disabled={isBusy}
+                            className={`relative group flex flex-col items-center gap-3 p-5 rounded-xl border-2 transition-all duration-300 ${
                                 backingUp === t
-                                    ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400 cursor-wait'
+                                    ? 'border-blue-300 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/20'
                                     : isBusy
-                                        ? 'bg-gray-100 dark:bg-gray-800 text-gray-400 cursor-not-allowed'
-                                        : 'bg-blue-600 hover:bg-blue-700 text-white'
+                                        ? 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50 opacity-50 cursor-not-allowed'
+                                        : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-blue-300 dark:hover:border-blue-700 hover:shadow-lg hover:-translate-y-0.5'
                             }`}>
-                      {backingUp === t
-                          ? <><Loader className="w-4 h-4 animate-spin"/>备份中…</>
-                          : <><Download className="w-4 h-4"/>{t === 'database' ? '数据库' : t === 'files' ? '文件' : '完整备份'}</>
-                      }
+                      <div
+                          className={`w-12 h-12 rounded-xl bg-gradient-to-br ${config.gradient} flex items-center justify-center shadow-lg ${
+                              backingUp === t ? 'animate-pulse' : ''
+                          }`}>
+                        {backingUp === t ? <Loader className="w-6 h-6 text-white animate-spin"/> :
+                            <Icon className="w-6 h-6 text-white"/>}
+                      </div>
+                      <div className="text-center">
+                        <p className="text-sm font-semibold text-gray-900 dark:text-white">
+                          {backingUp === t ? '备份中…' : config.label + '备份'}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                          {t === 'database' ? '备份数据库数据' : t === 'files' ? '备份上传文件' : '完整系统备份'}
+                        </p>
+                      </div>
+                      {backingUp === t && (
+                          <div
+                              className="absolute bottom-0 left-0 right-0 h-1 bg-gray-200 dark:bg-gray-700 rounded-b-xl overflow-hidden">
+                            <div className="h-full bg-gradient-to-r from-blue-500 to-cyan-500 animate-pulse"
+                                 style={{width: '60%'}}/>
+                          </div>
+                      )}
                     </button>
-                ))}
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
-                {TYPE_OPTIONS.map(opt => (
-                    <button key={opt.value} onClick={() => setTypeFilter(opt.value)}
-                            className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                                typeFilter === opt.value ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'
-                            }`}>{opt.label}</button>
-                ))}
-              </div>
-              <button onClick={() => delMut.mutate()}
-                      className="px-3 py-1.5 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-xs font-medium rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-1">
-                <Trash2 className="w-3.5 h-3.5"/>清理旧备份
-              </button>
+                );
+              })}
             </div>
           </div>
         </div>
 
-        {/* 列表 */}
-        <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
-          {isLoading ? (
-              <div className="p-12 text-center"><div className="animate-spin w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full mx-auto"/></div>
-          ) : !backups.length ? (
-              <div className="p-12 text-center text-gray-400"><Database className="w-10 h-10 mx-auto mb-3 opacity-50"/><p>暂无备份</p></div>
-          ) : (
-              <table className="w-full"><thead className="bg-gray-50 dark:bg-gray-800 border-b">
-              <tr>
-                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase">类型</th>
-                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase hidden sm:table-cell">文件名</th>
-                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase hidden md:table-cell">时间</th>
-                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase">大小</th>
-                <th className="px-5 py-3 text-right text-xs font-semibold text-gray-500 uppercase">操作</th>
-              </tr>
-              </thead><tbody className="divide-y">
-              {backups.map((b: any, i: number) => {
-                const filename = b.filename || b.path?.split('/').pop() || b.backup_dir?.split('/').pop() || '';
-                const isFull = b.type === 'full';
-                const downloadUrl = `/api/v2/system/backup/download/${encodeURIComponent(filename)}`;
-                return (
-                    <tr key={b.filename || i} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
-                      <td className="px-5 py-4">
-                        <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${
-                            b.type === 'database' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'
-                                : b.type === 'files' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                                    : 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
-                        }`}>
-                          {b.type === 'database' ? '数据库' : b.type === 'files' ? '文件' : '完整'}
-                        </span>
-                      </td>
-                      <td className="px-5 py-4 text-sm text-gray-700 dark:text-gray-300 hidden sm:table-cell max-w-[200px] truncate">{filename}</td>
-                      <td className="px-5 py-4 text-sm text-gray-500 hidden md:table-cell">
-                        {b.created_at ? new Date(b.created_at).toLocaleString('zh-CN') : '-'}
-                      </td>
-                      <td className="px-5 py-4 text-sm text-gray-500">
-                        {isFull ? (b.database_backup?.size_human || b.files_backup?.size_human || '—') : formatSize(b.size)}
-                      </td>
-                      <td className="px-5 py-4 text-right">
-                        <a href={downloadUrl}
-                           className="p-1.5 inline-block text-gray-400 hover:text-blue-600 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20">
-                          <Download className="w-4 h-4"/>
-                        </a>
-                        <button onClick={() => { if (confirm('确认删除此备份？')) delOneMut.mutate(filename); }}
-                                className="p-1.5 inline-block text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20">
-                          <Trash2 className="w-4 h-4"/>
-                        </button>
-                      </td>
-                    </tr>
-                );
-              })}
-              </tbody></table>
-          )}
+        {/* Backup List */}
+        <div
+            className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200/80 dark:border-gray-700/80 overflow-hidden">
+          <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-800">
+            <SectionTitle icon={Archive} title="备份列表" subtitle={`共 ${total} 个备份文件`}/>
+          </div>
+          <div className="px-6 py-4 border-b border-gray-100 dark:border-gray-800 flex flex-wrap items-center gap-3">
+            {/* Type Filter */}
+            <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
+              {TYPE_OPTIONS.map(opt => (
+                  <button key={opt.value} onClick={() => setTypeFilter(opt.value)}
+                          className={`relative px-3 py-1.5 rounded-lg text-xs font-medium transition-all duration-200 ${
+                              typeFilter === opt.value
+                                  ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white'
+                                  : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                          }`}>
+                <span className="flex items-center gap-1.5">
+                  <opt.icon className="w-3 h-3"/>
+                  {opt.label}
+                </span>
+              </button>
+              ))}
+            </div>
+            {/* Search */}
+            <div className="flex-1 min-w-[200px] max-w-md relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"/>
+              <input type="text" placeholder="搜索备份文件名…" value={searchQuery}
+                     onChange={e => setSearchQuery(e.target.value)}
+                     className="w-full pl-9 pr-4 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all"/>
+          </div>
         </div>
 
-        {/* 分页 */}
+          <div className="overflow-x-auto">
+          {isLoading ? (
+              <BackupSkeleton/>
+          ) : !backups.length ? (
+              <EmptyState icon={Archive} title="暂无备份" desc="点击上方按钮创建您的第一个系统备份"
+                          action={<button onClick={() => createMut.mutate('full')}
+                                          className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-cyan-600 rounded-xl hover:shadow-lg transition-all">立即创建完整备份</button>}
+              />
+          ) : filteredBackups.length === 0 ? (
+              <EmptyState icon={Search} title="未找到匹配的备份" desc="请尝试其他搜索关键词"/>
+          ) : (
+              <table className="w-full">
+                <thead className="bg-gray-50/80 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800">
+                <tr>
+                  <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">类型</th>
+                  <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden sm:table-cell">文件名</th>
+                  <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden md:table-cell">创建时间</th>
+                  <th className="px-6 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">大小</th>
+                  <th className="px-6 py-3.5 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">操作</th>
+                </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50 dark:divide-gray-800/50">
+                {filteredBackups.map((b: any, i: number) => {
+                  const filename = b.filename || b.path?.split('/').pop() || b.backup_dir?.split('/').pop() || '';
+                  const isFull = b.type === 'full';
+                  const downloadUrl = `/api/v2/system/backup/download/${encodeURIComponent(filename)}`;
+                  return (
+                      <tr key={b.filename || i}
+                          className="group hover:bg-gray-50/80 dark:hover:bg-gray-800/30 transition-colors">
+                        <td className="px-6 py-4">
+                          <TypeBadge type={b.type || 'database'}/>
+                      </td>
+                        <td className="px-6 py-4 hidden sm:table-cell">
+                          <div className="flex items-center gap-2">
+                            <FileDown className="w-4 h-4 text-gray-400 flex-shrink-0"/>
+                            <span className="text-sm text-gray-700 dark:text-gray-300 font-mono max-w-[200px] truncate"
+                                  title={filename}>{filename}</span>
+                          </div>
+                      </td>
+                        <td className="px-6 py-4 hidden md:table-cell">
+                          <div className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400">
+                            <Clock className="w-3.5 h-3.5"/>
+                            <span>{b.created_at ? new Date(b.created_at).toLocaleString('zh-CN') : '—'}</span>
+                          </div>
+                          {b.created_at && <span
+                              className="text-xs text-gray-400 dark:text-gray-500 ml-5">{timeAgo(b.created_at)}</span>}
+                        </td>
+                        <td className="px-6 py-4">
+                        <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
+                          {isFull ? (b.database_backup?.size_human || b.files_backup?.size_human || '—') : formatSize(b.size)}
+                        </span>
+                      </td>
+                        <td className="px-6 py-4 text-right">
+                          <div
+                              className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <a href={downloadUrl}
+                               className="p-2 text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
+                               title="下载备份">
+                              <Download className="w-4 h-4"/>
+                            </a>
+                            <button onClick={() => setDeleteTarget(filename)}
+                                    className="p-2 text-gray-400 hover:text-red-600 dark:hover:text-red-400 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                                    title="删除备份">
+                              <Trash2 className="w-4 h-4"/>
+                            </button>
+                          </div>
+                          {/* Mobile: always visible */}
+                          <div className="flex items-center justify-end gap-1 sm:hidden">
+                            <a href={downloadUrl}
+                               className="p-2 text-gray-400 hover:text-blue-600 rounded-lg hover:bg-blue-50 transition-colors">
+                              <Download className="w-4 h-4"/>
+                            </a>
+                            <button onClick={() => setDeleteTarget(filename)}
+                                    className="p-2 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50 transition-colors">
+                              <Trash2 className="w-4 h-4"/>
+                            </button>
+                          </div>
+                      </td>
+                    </tr>
+                  );
+                })}
+                </tbody>
+              </table>
+          )}
+        </div>
+        </div>
+
+        {/* Pagination */}
         <div className="flex items-center justify-between mt-4">
           <span className="text-xs text-gray-400">共 {total} 个备份</span>
           {renderPagination()}
         </div>
+
+        {/* Delete Confirmation Modal */}
+        <Modal open={!!deleteTarget} onClose={() => setDeleteTarget(null)} title="确认删除">
+          {deleteTarget && (
+              <DeleteConfirm
+                  filename={deleteTarget}
+                  onConfirm={() => delOneMut.mutate(deleteTarget)}
+                  onCancel={() => setDeleteTarget(null)}
+                  isPending={delOneMut.isPending}
+              />
+          )}
+        </Modal>
       </AdminShell>
   );
 }

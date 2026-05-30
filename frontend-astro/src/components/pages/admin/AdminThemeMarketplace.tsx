@@ -1,9 +1,9 @@
 import React, {useState} from 'react';
-import AdminShell from '@/components/layouts/AdminShell';
-import AuthGuard from '@/components/auth/AuthGuard';
-import QueryProvider from '@/components/providers/QueryProvider';
+import {AdminShell} from '@/components/admin/AdminShell';
+import {AuthGuard} from '@/components/AuthGuard';
+import {QueryProvider} from '@/components/QueryProvider';
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
-import apiClient from '@/lib/api-client';
+import {apiClient} from '@/lib/api/base-client';
 import {
     Palette, Download, CheckCircle, Settings, Eye, Trash2,
     Upload, Search, Filter, Star, Globe
