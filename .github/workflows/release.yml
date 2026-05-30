@@ -42,7 +42,7 @@ jobs:
         fetch-depth: 0   # 获取完整历史，以便脚本分析提交
 
     - name: Setup Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
+      uses: actions/setup-python@v6
       with:
         python-version: ${{ matrix.python-version }}
 
