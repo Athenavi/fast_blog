@@ -89,8 +89,8 @@ const FieldPermissionsTab: React.FC = () => {
     queryKey: ['field-permissions', page],
     queryFn: () => apiClient.get('/users/security/field-permissions', {page, per_page: 15}),
   });
-  const items: FieldPermission[] = data?.data || [];
-  const pagination: Pagination | undefined = data?.pagination;
+  const items: FieldPermission[] = data?.data?.field_permissions || [];
+  const pagination: Pagination | undefined = data?.data?.pagination;
 
   const createMut = useMutation({
     mutationFn: (d: any) => apiClient.post('/users/security/field-permissions', d),
@@ -257,8 +257,8 @@ const SessionsTab: React.FC = () => {
     queryKey: ['user-sessions', page],
     queryFn: () => apiClient.get('/users/security/sessions', {page, per_page: 15}),
   });
-  const items: UserSession[] = data?.data || [];
-  const pagination: Pagination | undefined = data?.pagination;
+  const items: UserSession[] = data?.data?.sessions || [];
+  const pagination: Pagination | undefined = data?.data?.pagination;
 
   const deactivateMut = useMutation({
     mutationFn: (id: number) => apiClient.post(`/users/security/sessions/${id}/deactivate`),
@@ -346,8 +346,8 @@ const EmailSubscriptionsTab: React.FC = () => {
     queryKey: ['email-subscriptions', page],
     queryFn: () => apiClient.get('/users/security/email-subscriptions', {page, per_page: 15}),
   });
-  const items: EmailSubscription[] = data?.data || [];
-  const pagination: Pagination | undefined = data?.pagination;
+  const items: EmailSubscription[] = data?.data?.email_subscriptions || [];
+  const pagination: Pagination | undefined = data?.data?.pagination;
 
   const toggleMut = useMutation({
     mutationFn: ({id, subscribed}: {
@@ -454,7 +454,7 @@ function UserSecurityInner() {
 
 export default function AdminUserSecurityManagement() {
   return (
-    <AuthGuard requireAdmin>
+    <AuthGuard>
       <QueryProvider>
         <UserSecurityInner/>
       </QueryProvider>

@@ -1,13 +1,26 @@
 'use client';
 
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
-import {motion, AnimatePresence} from 'framer-motion';
+import {AnimatePresence, motion} from 'framer-motion';
 import {apiClient} from '@/lib/api/base-client';
 import type {Article} from '@/lib/api/base-types';
 import ArticleComments from './ArticleComments';
 import {
-    ArrowUp, Bookmark, Calendar, Clock, Copy, Eye, Hash, Heart,
-    List, MessageSquare, Share2, Tag, ExternalLink, Check
+  ArrowUp,
+  Bookmark,
+  Calendar,
+  Check,
+  Clock,
+  Copy,
+  ExternalLink,
+  Eye,
+  Hash,
+  Heart,
+  List,
+  MessageSquare,
+  Share2,
+  Tag,
+  X
 } from 'lucide-react';
 
 interface Props {
@@ -325,7 +338,7 @@ const ArticleDetail: React.FC<Props> = ({slug: propSlug}) => {
                                   alt={article.title}
                                   className="w-full h-auto object-cover"
                                   loading="eager"
-                                  fetchpriority="high"
+                                  fetchPriority="high"
                               />
                           </div>
                       )}

@@ -76,8 +76,8 @@ const RevisionNotesTab: React.FC = () => {
       revision_id: revisionId || undefined
     }),
   });
-  const items: RevisionNote[] = data?.data || [];
-  const pagination: Pagination | undefined = data?.pagination;
+  const items: RevisionNote[] = data?.data?.revision_notes || [];
+  const pagination: Pagination | undefined = data?.data?.pagination;
 
   return (
     <>
@@ -139,8 +139,8 @@ const MenuLocationsTab: React.FC = () => {
     queryKey: ['menu-locations', page],
     queryFn: () => apiClient.get('/cms/management/menu-locations', {page, per_page: 15}),
   });
-  const items: MenuLocation[] = data?.data || [];
-  const pagination: Pagination | undefined = data?.pagination;
+  const items: MenuLocation[] = data?.data?.menu_locations || [];
+  const pagination: Pagination | undefined = data?.data?.pagination;
 
   const createMut = useMutation({
     mutationFn: (d: any) => apiClient.post('/cms/management/menu-locations', d),
@@ -271,8 +271,8 @@ const AssignmentsTab: React.FC = () => {
     queryKey: ['menu-assignments', page],
     queryFn: () => apiClient.get('/cms/management/menu-location-assignments', {page, per_page: 15}),
   });
-  const items: LocationAssignment[] = data?.data || [];
-  const pagination: Pagination | undefined = data?.pagination;
+  const items: LocationAssignment[] = data?.data?.assignments || [];
+  const pagination: Pagination | undefined = data?.data?.pagination;
 
   const createMut = useMutation({
     mutationFn: (d: any) => apiClient.post('/cms/management/menu-location-assignments', d),
@@ -394,7 +394,7 @@ function ContentExtInner() {
 
 export default function AdminContentManagementExt() {
   return (
-    <AuthGuard requireAdmin>
+    <AuthGuard>
       <QueryProvider>
         <ContentExtInner/>
       </QueryProvider>

@@ -3,7 +3,7 @@
  * 统一设计语言，消除跨页面重复代码
  */
 
-import React, {useState, useEffect} from 'react';
+import React, {useEffect, useState} from 'react';
 import {Loader} from 'lucide-react';
 
 /* ═══════════════════════════════════════════
@@ -199,14 +199,16 @@ export const DeleteConfirm: React.FC<{
 export const StatusBadge: React.FC<{
     active: boolean;
     label?: string;
-}> = ({active, label}) => (
+  activeText?: string;
+  inactiveText?: string;
+}> = ({active, label, activeText, inactiveText}) => (
     <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 text-xs font-medium rounded-full ${
         active
             ? 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-400'
             : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
     }`}>
     <span className={`w-1.5 h-1.5 rounded-full ${active ? 'bg-emerald-500 animate-pulse' : 'bg-gray-400'}`}/>
-        {label || (active ? '启用' : '禁用')}
+      {label || (active ? (activeText || '启用') : (inactiveText || '禁用'))}
   </span>
 );
 

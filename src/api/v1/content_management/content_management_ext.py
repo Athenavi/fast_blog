@@ -417,6 +417,58 @@ async def delete_menu_location(
 # ==================== 菜单-位置关联管理 ====================
 
 
+@router.get("/menu-location-assignments")
+async def list_assignments(
+    page: int = Query(1, ge=1, description="页码"),
+    per_page: int = Query(50, ge=1, le=200, description="每页数量"),
+    menu_id: Optional[int] = Query(None, description="按菜单ID筛选"),
+    location_id: Optional[int] = Query(None, description="按位置ID筛选"),
+    db: AsyncSession = Depends(get_async_db),
+    current_user=Depends(jwt_required),
+):
+    """获取菜单-位置关联列表"""
+    try:
+        is_admin = getattr(current_user, 'is_superuser', False) or getattr(current_user, 'is_staff', False)
+        if not is_admin:
+            raise HTTPException(status_code=403, detail="需要管理员权限")
+
+        query = select(MenuLocationAssignment)
+
+        if menu_id:
+            query = query.where(MenuLocationAssignment.menu_id == menu_id)
+        if location_id:
+            query = query.where(MenuLocationAssignment.location_id == location_id)
+
+        query = query.order_by(MenuLocationAssignment.created_at.desc())
+
+        count_query = select(func.count()).select_from(query.subquery())
+        total_result = await db.execute(count_query)
+        total = total_result.scalar()
+
+        offset = (page - 1) * per_page
+        query = query.offset(offset).limit(per_page)
+
+        result = await db.execute(query)
+        assignments = result.scalars().all()
+
+        return ApiResponse(
+            success=True,
+            data={
+                "assignments": [a.to_dict() for a in assignments],
+                "pagination": {
+                    "page": page,
+                    "per_page": per_page,
+                    "total": total,
+                    "total_pages": (total + per_page - 1) // per_page if total > 0 else 0,
+                },
+            }
+        )
+    except HTTPException:
+        raise
+    except Exception as e:
+        return ApiResponse(success=False, error=str(e))
+
+
 @router.post("/menu-location-assignments")
 async def create_assignment(
     request: Request,

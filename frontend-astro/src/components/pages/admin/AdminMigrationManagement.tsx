@@ -143,8 +143,8 @@ const TasksTab: React.FC = () => {
     }),
   });
 
-  const items: MigrationTask[] = data?.data || [];
-  const pagination: Pagination | undefined = data?.pagination;
+  const items: MigrationTask[] = data?.data?.tasks || [];
+  const pagination: Pagination | undefined = data?.data?.pagination;
 
   const createMut = useMutation({
     mutationFn: (d: any) => apiClient.post('/migration-management/tasks', d),
@@ -339,9 +339,9 @@ const TasksTab: React.FC = () => {
 const TaskLogs: React.FC<{ taskId: number }> = ({taskId}) => {
   const {data, isLoading} = useQuery({
     queryKey: ['migration-logs', taskId],
-    queryFn: () => apiClient.get(`/migration-management/tasks/${taskId}/logs`, {per_page: 50}),
+    queryFn: () => apiClient.get('/migration-management/logs', {task_id: taskId, per_page: 50}),
   });
-  const logs: MigrationLog[] = data?.data || [];
+  const logs: MigrationLog[] = data?.data?.logs || [];
   if (isLoading) return <div className="mt-3 animate-pulse h-20 bg-gray-100 dark:bg-gray-800 rounded-lg"/>;
   if (logs.length === 0) return <div className="mt-3 text-xs text-gray-400 p-3">暂无日志</div>;
   return (
@@ -372,8 +372,8 @@ const LogsTab: React.FC = () => {
     }),
   });
 
-  const items: MigrationLog[] = data?.data || [];
-  const pagination: Pagination | undefined = data?.pagination;
+  const items: MigrationLog[] = data?.data?.logs || [];
+  const pagination: Pagination | undefined = data?.data?.pagination;
 
   const deleteMut = useMutation({
     mutationFn: (id: number) => apiClient.delete(`/migration-management/logs/${id}`),
@@ -463,7 +463,7 @@ function MigrationManagementInner() {
 
 export default function AdminMigrationManagement() {
   return (
-    <AuthGuard requireAdmin>
+    <AuthGuard>
       <QueryProvider>
         <MigrationManagementInner/>
       </QueryProvider>

@@ -132,8 +132,8 @@ const GatewaysTab: React.FC = () => {
     queryFn: () => apiClient.get('/payment-management/gateways', {page, per_page: 15, search: search || undefined}),
   });
 
-  const items: PaymentGateway[] = data?.data || [];
-  const pagination: Pagination | undefined = data?.pagination;
+  const items: PaymentGateway[] = data?.data?.gateways || [];
+  const pagination: Pagination | undefined = data?.data?.pagination;
 
   const createMut = useMutation({
     mutationFn: (d: any) => apiClient.post('/payment-management/gateways', d),
@@ -304,8 +304,8 @@ const TransactionsTab: React.FC = () => {
     }),
   });
 
-  const items: PaymentTransaction[] = data?.data || [];
-  const pagination: Pagination | undefined = data?.pagination;
+  const items: PaymentTransaction[] = data?.data?.transactions || [];
+  const pagination: Pagination | undefined = data?.data?.pagination;
 
   return (
     <>
@@ -400,8 +400,8 @@ const TaxConfigsTab: React.FC = () => {
     queryFn: () => apiClient.get('/payment-management/tax-configs', {page, per_page: 15}),
   });
 
-  const items: TaxConfig[] = data?.data || [];
-  const pagination: Pagination | undefined = data?.pagination;
+  const items: TaxConfig[] = data?.data?.tax_configs || [];
+  const pagination: Pagination | undefined = data?.data?.pagination;
 
   const createMut = useMutation({
     mutationFn: (d: any) => apiClient.post('/payment-management/tax-configs', d),
@@ -586,7 +586,7 @@ function PaymentManagementInner() {
 
 export default function AdminPaymentManagement() {
   return (
-    <AuthGuard requireAdmin>
+    <AuthGuard>
       <QueryProvider>
         <PaymentManagementInner/>
       </QueryProvider>

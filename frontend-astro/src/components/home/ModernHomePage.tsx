@@ -4,8 +4,19 @@ import React, {useEffect, useRef, useState} from 'react';
 import {motion, useInView} from 'framer-motion';
 import {apiClient} from '@/lib/api/api-client';
 import {
-    ArrowRight, BookOpen, Calendar, ChevronRight, Clock, Eye,
-    FolderTree, Hash, Heart, MessageSquare, TrendingUp, Users, Zap
+  ArrowRight,
+  BookOpen,
+  Calendar,
+  ChevronRight,
+  Clock,
+  Eye,
+  FolderTree,
+  Hash,
+  Heart,
+  MessageSquare,
+  TrendingUp,
+  Users,
+  Zap
 } from 'lucide-react';
 
 // ═══ Types ═══
@@ -356,7 +367,7 @@ export default function ModernHomePage() {
                                   alt={f.title}
                                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                                   loading="eager"
-                                  fetchpriority="high"
+                                  fetchPriority="high"
                               />
                           ) : (
                               <div

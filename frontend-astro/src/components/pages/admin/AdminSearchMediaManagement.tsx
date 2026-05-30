@@ -64,8 +64,8 @@ const SearchIndexTab: React.FC = () => {
       indexed: indexedFilter !== '' ? indexedFilter === 'true' : undefined,
     }),
   });
-  const items: SearchIndex[] = data?.data || [];
-  const pagination: Pagination | undefined = data?.pagination;
+  const items: SearchIndex[] = data?.data?.search_indexes || [];
+  const pagination: Pagination | undefined = data?.data?.pagination;
 
   const createMut = useMutation({
     mutationFn: (d: any) => apiClient.post('/search/management/search-index', d),
@@ -205,8 +205,8 @@ const MediaOptimizationTab: React.FC = () => {
       status: statusFilter || undefined
     }),
   });
-  const items: MediaOptimization[] = data?.data || [];
-  const pagination: Pagination | undefined = data?.pagination;
+  const items: MediaOptimization[] = data?.data?.media_optimizations || [];
+  const pagination: Pagination | undefined = data?.data?.pagination;
 
   const createMut = useMutation({
     mutationFn: (d: any) => apiClient.post('/search/management/media-optimization', d),
@@ -393,7 +393,7 @@ function SearchMediaInner() {
 
 export default function AdminSearchMediaManagement() {
   return (
-    <AuthGuard requireAdmin>
+    <AuthGuard>
       <QueryProvider>
         <SearchMediaInner/>
       </QueryProvider>
