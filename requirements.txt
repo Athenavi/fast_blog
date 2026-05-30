@@ -76,7 +76,7 @@ meilisearch-python-sdk>=4.1.0,<8.0.0
 
 # File Handling
 python-magic>=0.4.27,<1.0.0
-humanize>=4.9.0,<5.0.0
+humanize>=4.15.0,<5.0.0
 
 # HTTP & Async
 aiohttp>=3.9.0,<4.0.0
