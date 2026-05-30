@@ -9,7 +9,7 @@ from datetime import datetime
 from typing import AsyncGenerator
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse, PlainTextResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.staticfiles import StaticFiles
 
@@ -511,43 +511,10 @@ def register_error_handlers(app: FastAPI):
         # 原逻辑简化
         return {"status": "healthy", "timestamp": datetime.now().isoformat()}
 
-    @app.get('/{full_path:path}', response_class=HTMLResponse)
-    async def spa_fallback(request: Request, full_path: str):
-        # 排除所有API、静态资源和系统路径，确保这些路径不会被SPA回退拦截
-        excluded_prefixes = [
-            'api/',  # 所有API路径
-            'static/',  # 静态文件
-            'assets/',  # 资源文件（包括storage和themes）
-            'docs',  # API文档
-            'redoc',  # ReDoc文档
-            'openapi.json',  # OpenAPI规范
-            'health',  # 健康检查
-        ]
-
-        # 如果路径以排除的前缀开头，返回404而不是SPA页面
-        if any(full_path.startswith(prefix) for prefix in excluded_prefixes):
-            return PlainTextResponse("Not Found", status_code=404)
-
-        # 尝试返回前端SPA页面
-        try:
-            frontend_index = os.path.join(os.path.dirname(__file__), "..", "frontend", "index.html")
-            if os.path.exists(frontend_index):
-                with open(frontend_index, "r", encoding="utf-8") as f:
-                    return HTMLResponse(content=f.read())
-        except Exception:
-            pass
-
-        # 默认返回一个简单的SPA模板
-        return HTMLResponse(
-            content="<!DOCTYPE html><html><head><title>Blog</title></head><body><div id='app'></div></body></html>")
-
-    # 全局路由兜底
-    @app.get("/{path:path}")
-    @app.post("/{path:path}")
-    @app.put("/{path:path}")
-    @app.delete("/{path:path}")
-    async def catch_all(request: Request, path: str):
-        raise HTTPException(status_code=404, detail="Not Found")
+    # 注意：不再注册 catch-all 路由（如 @app.get('/{full_path:path}')），
+    # 因为它会拦截所有请求（包括 API 请求），导致 API 路由（如 /api/v2/articles）
+    # 在缺少尾部斜杠时返回 404 而非正确匹配。
+    # SPA 回退逻辑已移至 404 异常处理器中处理。
 
     @app.exception_handler(401)
     async def unauthorized_handler(request: Request, exc: HTTPException):
@@ -558,6 +525,7 @@ def register_error_handlers(app: FastAPI):
 
     @app.exception_handler(404)
     async def custom_404_handler(request: Request, exc: HTTPException):
+        # 1. 尝试插件钩子拦截
         try:
             from shared.services.plugins.plugin_manager.core import plugin_hooks
             error_data = {
@@ -574,6 +542,27 @@ def register_error_handlers(app: FastAPI):
                                     status_code=response_data.get('status_code', 404))
         except Exception as e:
             print(f"[Plugin] 404 hook error: {e}")
+
+        # 2. API 路径直接返回 JSON 404
+        path = request.url.path
+        if path.startswith('/api/') or 'application/json' in request.headers.get('accept', ''):
+            from src.error import error
+            return error(404, "Page Not Found")
+
+        # 3. 非 API 路径尝试返回前端 SPA 页面
+        excluded_prefixes = ['static/', 'assets/', 'docs', 'redoc', 'openapi.json', 'health']
+        if not any(path.lstrip('/').startswith(prefix) for prefix in excluded_prefixes):
+            try:
+                frontend_index = os.path.join(os.path.dirname(__file__), "..", "frontend", "index.html")
+                if os.path.exists(frontend_index):
+                    with open(frontend_index, "r", encoding="utf-8") as f:
+                        return HTMLResponse(content=f.read())
+            except Exception:
+                pass
+            # 默认返回一个简单的SPA模板
+            return HTMLResponse(
+                content="<!DOCTYPE html><html><head><title>Blog</title></head><body><div id='app'></div></body></html>")
+
         from src.error import error
         return error(404, "Page Not Found")
 

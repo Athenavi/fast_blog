@@ -124,10 +124,8 @@ async def _get_article_detail(
     i18n_versions = i18n_result.scalars().all()
     i18n_data = [
         {
-            "language_code": trans.language_id,
-            "title": trans.title,
-            "slug": trans.slug,
-            "excerpt": trans.excerpt
+            "language_code": trans.language_code,
+            "content_preview": trans.content[:200] if trans.content else "",
         }
         for trans in i18n_versions
     ]

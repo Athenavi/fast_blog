@@ -18,6 +18,7 @@ from shared.models.notification import Notification
 from shared.models.user import User
 # 导入 SQLAlchemy 模型和服务
 from shared.models.user import User as UserModel
+from shared.models.user_activity import UserActivity
 from shared.models.vip_subscription import VIPSubscription
 # 注意：避免在此处直接导入 article_service，防止循环依赖
 # article_service 的导入已移至使用位置
@@ -27,6 +28,31 @@ from src.auth.auth_deps import admin_required as admin_required_api, jwt_require
 from src.extensions import get_async_db_session as get_async_db
 
 router = APIRouter()
+
+
+@router.get("/activities")
+async def get_activities(
+    request: Request,
+    page: int = Query(1, ge=1),
+    per_page: int = Query(8, ge=1, le=50),
+    current_user: User = Depends(admin_required_api),
+    db: AsyncSession = Depends(get_async_db)
+):
+    """获取最近用户活动列表"""
+    offset = (page - 1) * per_page
+    query = select(UserActivity).order_by(desc(UserActivity.created_at)).offset(offset).limit(per_page)
+    result = await db.execute(query)
+    activities = result.scalars().all()
+
+    data = [
+        {
+            "message": f"{a.activity_type or ''} - {a.details or ''}",
+            "action": a.activity_type,
+            "created_at": a.created_at.isoformat() if a.created_at else None,
+        }
+        for a in activities
+    ]
+    return ApiResponse.success_response(data=data)
 
 
 @router.get("/stats")
@@ -225,7 +251,7 @@ async def get_blog_management_articles(
         for article in articles:
             # 使用模型的 to_dict() 方法获取基础数据
             article_dict = article.to_dict()
-            
+
             # 确定文章状态（转换为字符串）
             article_status = 'draft'
             if article.status == 1:
@@ -327,11 +353,11 @@ async def get_my_articles(
             status_map = {'published': 1, 'draft': 0, 'deleted': -1}
             if status_lower in status_map:
                 query = query.where(Article.status == status_map[status_lower])
-        
+
         # 根据隐藏状态过滤
         if hidden is not None:
             query = query.where(Article.hidden == hidden)
-        
+
         # 搜索功能
         if search:
             query = query.where(
@@ -356,7 +382,7 @@ async def get_my_articles(
         for article in articles:
             # 使用模型的 to_dict() 方法获取基础数据
             article_dict = article.to_dict()
-            
+
             # 确定文章状态（转换为字符串）
             article_status = 'draft'
             if article.status == 1:
@@ -893,7 +919,7 @@ async def delete_blog_management_article(
         from sqlalchemy import select, delete
         from shared.models.article_content import ArticleContent
         from shared.models.article_revision import ArticleRevision
-        
+
         article_query = select(Article).where(Article.id == article_id)
         article_result = await db.execute(article_query)
         article = article_result.scalar_one_or_none()
@@ -1086,7 +1112,7 @@ async def admin_delete_vip_feature(
 async def admin_dashboard(current_user: User = Depends(admin_required_api)):
     """
     管理员面板入口
-    
+
     Returns:
         管理员面板信息
     """
