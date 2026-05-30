@@ -27,7 +27,7 @@ psycopg2-binary>=2.9.9,<3.0.0
 
 # Authentication & Security
 python-jose[cryptography]>=3.3.0,<4.0.0
-pyjwt>=2.8.0,<3.0.0
+pyjwt>=2.13.0,<3.0.0
 httpx-oauth>=0.14.0,<1.0.0
 fastapi-users[sqlalchemy]>=13.0.0,<14.0.0
 argon2-cffi>=23.1.0
