@@ -1,0 +1,72 @@
+# Git
+.git
+.gitignore
+.github
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.egg-info
+dist
+build
+.eggs
+*.egg
+.venv
+venv
+env
+.mypy_cache
+.pytest_cache
+htmlcov
+.coverage
+
+# Node.js
+node_modules
+.nuxt
+.next
+.output
+
+# IDE
+.idea
+.vscode
+*.swp
+*.swo
+*~
+
+# Logs
+logs
+*.log
+
+# Environment files
+.env
+.env.local
+.env.dev
+.env.prod
+
+# Documentation (not needed in container)
+docs
+*.md
+!README.md
+
+# Development files
+tests
+.gitignore
+.editorconfig
+Makefile
+docker-compose*.yml
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Backups and temp
+backups
+storage
+debug
+release
+upload_chunks
+plugins_data
+
+# Frontend build artifacts
+frontend-astro/dist
+frontend-astro/.astro
