@@ -44,6 +44,7 @@
 models:
   AuditLog:
     description: 操作审计日志模型
+    status: active
     properties:
       id:
         type: bigint
@@ -111,6 +112,7 @@ models:
 
   AIWorkflow:
     description: AI 智能工作流记录模型
+    status: active
     properties:
       id:
         type: bigint
@@ -172,6 +174,7 @@ models:
 
   PageBuilder:
     description: 可视化页面构建器模型
+    status: active
     properties:
       id:
         type: bigint
@@ -215,6 +218,7 @@ models:
 
   GlobalStyle:
     description: 全局样式配置模型
+    status: active
     properties:
       id:
         type: bigint
@@ -240,6 +244,7 @@ models:
 
   FieldPermission:
     description: 字段级权限控制模型
+    status: active
     properties:
       id:
         type: bigint
@@ -273,6 +278,7 @@ models:
 
   User:
     description: 用户模型
+    status: active
     properties:
       id:
         type: bigint
@@ -493,6 +499,7 @@ models:
       - new_password_confirm
   Article:
     description: 文章模型
+    status: active
     properties:
       id:
         type: bigint
@@ -803,6 +810,7 @@ models:
       - title
   Category:
     description: 分类模型
+    status: active
     properties:
       id:
         type: bigint
@@ -907,6 +915,7 @@ models:
       - name
   CategorySubscription:
     description: 分类订阅模型
+    status: active
     properties:
       id:
         type: bigint
@@ -927,6 +936,7 @@ models:
     table: category_subscriptions
   Media:
     description: 媒体文件模型
+    status: active
     properties:
       id:
         type: bigint
@@ -1057,6 +1067,7 @@ models:
         comment: "文件夹索引"
   MediaFolder:
     description: 媒体文件夹模型
+    status: active
     properties:
       id:
         type: bigint
@@ -1112,6 +1123,7 @@ models:
 
   MediaOptimization:
     description: 媒体优化配置模型（支持 WebP 转换、多尺寸生成、CDN 集成）
+    status: active
     properties:
       id:
         type: bigint
@@ -1159,6 +1171,7 @@ models:
 
   ArticleRevisionNote:
     description: 文章修订注释模型（为每次修订添加说明和备注）
+    status: active
     properties:
       id:
         type: bigint
@@ -1187,6 +1200,7 @@ models:
 
   SystemSettings:
     description: 系统设置模型
+    status: active
     properties:
       id:
         type: integer
@@ -1250,6 +1264,7 @@ models:
         description: 更新时间
   ArticleContent:
     description: 文章内容模型
+    status: active
     properties:
       id:
         type: bigint
@@ -1281,6 +1296,7 @@ models:
     table: article_content
   ArticleLike:
     description: 文章点赞模型
+    status: active
     properties:
       id:
         type: bigint
@@ -1301,6 +1317,7 @@ models:
     table: article_likes
   FileHash:
     description: 文件哈希模型
+    status: active
     properties:
       id:
         type: bigint
@@ -1338,6 +1355,7 @@ models:
     table: file_hashs
   Menus:
     description: 菜单模型
+    status: active
     properties:
       id:
         type: integer
@@ -1376,6 +1394,7 @@ models:
     table: menus
   MenuItems:
     description: 菜单项模型
+    status: active
     properties:
       id:
         type: integer
@@ -1422,6 +1441,7 @@ models:
     table: menu_items
   MenuLocation:
     description: 菜单位置模型（主菜单、页脚菜单等）
+    status: active
     properties:
       id:
         type: integer
@@ -1459,6 +1479,7 @@ models:
         unique: true
   MenuLocationAssignment:
     description: 菜单-位置关联表
+    status: active
     properties:
       id:
         type: bigint
@@ -1487,6 +1508,7 @@ models:
         unique: true
   Pages:
     description: 页面模型
+    status: active
     properties:
       id:
         type: bigint
@@ -1566,6 +1588,7 @@ models:
         columns: [ order_index ]
   UploadTask:
     description: 上传任务模型
+    status: active
     properties:
       id:
         type: string
@@ -1616,6 +1639,7 @@ models:
     table: upload_tasks
   UploadChunk:
     description: 上传分块模型
+    status: active
     properties:
       id:
         type: bigint
@@ -1647,6 +1671,7 @@ models:
     table: upload_chunks
   DownloadTask:
     description: 外部资源下载任务模型
+    status: active
     properties:
       id:
         type: bigint
@@ -1755,6 +1780,7 @@ models:
         comment: "创建时间索引"
   Notification:
     description: 通知模型
+    status: active
     properties:
       id:
         type: bigint
@@ -1795,6 +1821,7 @@ models:
     table: notifications
   PrivateMessage:
     description: 站内私信模型
+    status: active
     properties:
       id:
         type: bigint
@@ -1875,6 +1902,7 @@ models:
         comment: "已读状态索引"
   UserBlock:
     description: 用户屏蔽/拉黑模型
+    status: active
     properties:
       id:
         type: bigint
@@ -1913,6 +1941,7 @@ models:
         comment: "被屏蔽者索引"
   SearchHistory:
     description: 搜索历史模型
+    status: active
     properties:
       id:
         type: bigint
@@ -1947,6 +1976,7 @@ models:
         comment: "关键词索引"
   SearchIndex:
     description: 搜索索引状态模型
+    status: active
     properties:
       id:
         type: bigint
@@ -1994,6 +2024,7 @@ models:
         comment: "索引时间索引"
   PageView:
     description: 页面浏览模型
+    status: active
     properties:
       id:
         type: bigint
@@ -2065,6 +2096,7 @@ models:
     table: page_views
   UserActivity:
     description: 用户活动模型
+    status: active
     properties:
       id:
         type: bigint
@@ -2106,6 +2138,7 @@ models:
     table: user_activities
   VIPPlan:
     description: VIP 套餐模型
+    status: active
     properties:
       id:
         type: bigint
@@ -2152,6 +2185,7 @@ models:
     table: vip_plans
   VIPSubscription:
     description: VIP 订阅模型
+    status: active
     properties:
       id:
         type: bigint
@@ -2193,6 +2227,7 @@ models:
     table: vip_subscriptions
   VIPFeature:
     description: VIP 功能特权模型
+    status: active
     properties:
       id:
         type: bigint
@@ -2225,6 +2260,7 @@ models:
     table: vip_features
   CustomField:
     description: 自定义字段模型
+    status: active
     properties:
       id:
         type: bigint
@@ -2244,6 +2280,7 @@ models:
     table: custom_fields
   EmailSubscription:
     description: 邮件订阅模型
+    status: active
     properties:
       id:
         type: bigint
@@ -2264,6 +2301,7 @@ models:
     table: email_subscriptions
   ArticleRevision:
     description: 文章修订历史模型
+    status: active
     properties:
       id:
         type: bigint
@@ -2359,6 +2397,7 @@ models:
         columns: [ hash_code ]
   Plugin:
     description: 插件模型
+    status: active
     properties:
       id:
         type: bigint
@@ -2429,6 +2468,7 @@ models:
         columns: [ is_active ]
   Theme:
     description: 主题模型
+    status: active
     properties:
       id:
         type: bigint
@@ -2521,6 +2561,7 @@ models:
         columns: [ is_active ]
   Form:
     description: 表单模型
+    status: active
     properties:
       id:
         type: bigint
@@ -2581,6 +2622,7 @@ models:
         columns: [ status ]
   FormField:
     description: 表单字段模型
+    status: active
     properties:
       id:
         type: bigint
@@ -2646,6 +2688,7 @@ models:
         columns: [ order_index ]
   FormSubmission:
     description: 表单提交记录模型
+    status: active
     properties:
       id:
         type: bigint
@@ -2690,6 +2733,7 @@ models:
         columns: [ created_at ]
   WidgetInstance:
     description: Widget实例模型（持久化存储）
+    status: active
     properties:
       id:
         type: bigint
@@ -2741,6 +2785,7 @@ models:
         columns: [ widget_type ]
   BlockPattern:
     description: 自定义块模式模型
+    status: active
     properties:
       id:
         type: bigint
@@ -2818,6 +2863,7 @@ models:
     defs_target: block_pattern_defs.py
   CustomPostType:
     description: 自定义内容类型模型
+    status: active
     properties:
       id:
         type: bigint
@@ -2873,6 +2919,7 @@ models:
         columns: [ is_active ]
   CommentVote:
     description: 评论投票模型
+    status: active
     properties:
       id:
         type: bigint
@@ -2909,6 +2956,7 @@ models:
         unique: true
   CommentSubscription:
     description: 评论订阅模型
+    status: active
     properties:
       id:
         type: bigint
@@ -2970,6 +3018,7 @@ models:
         unique: true
   Comment:
     description: 评论模型
+    status: active
     properties:
       id:
         type: bigint
@@ -3074,6 +3123,7 @@ models:
         comment: "垃圾评论检测索引"
   OAuthAccount:
     description: OAuth 第三方登录账号关联模型
+    status: active
     properties:
       id:
         type: bigint
@@ -3129,6 +3179,7 @@ models:
         unique: true
   ArticleSEO:
     description: 文章SEO元数据模型
+    status: active
     properties:
       id:
         type: bigint
@@ -3235,6 +3286,7 @@ models:
   # ============================================================================
   ShareStat:
     description: 分享统计模型
+    status: active
     properties:
       id:
         type: bigint
@@ -3291,6 +3343,7 @@ models:
   # ============================================================================
   Product:
     description: 商品模型
+    status: active
     properties:
       id:
         type: bigint
@@ -3381,6 +3434,7 @@ models:
         comment: "SKU索引"
   Cart:
     description: 购物车模型
+    status: active
     properties:
       id:
         type: bigint
@@ -3416,6 +3470,7 @@ models:
         comment: "会话购物车索引"
   CartItem:
     description: 购物车项模型
+    status: active
     properties:
       id:
         type: bigint
@@ -3460,6 +3515,7 @@ models:
         comment: "唯一约束(同一商品在购物车中只能有一项)"
   Order:
     description: 订单模型
+    status: active
     properties:
       id:
         type: bigint
@@ -3589,6 +3645,7 @@ models:
   # ============================================================================
   SensitiveWord:
     description: 敏感词模型
+    status: active
     properties:
       id:
         type: bigint
@@ -3661,6 +3718,7 @@ models:
   # ============================================================================
   UserSession:
     description: 用户会话模型
+    status: active
     properties:
       id:
         type: bigint
@@ -3734,6 +3792,7 @@ models:
   # ============================================================================
   LoginAttempt:
     description: 登录尝试记录模型
+    status: active
     properties:
       id:
         type: bigint
@@ -3781,6 +3840,7 @@ models:
         comment: "创建时间索引"
   TokenBlacklist:
     description: Token 黑名单模型（UNLOGGED 表，用于存储被撤销的 JWT Token）
+    status: active
     properties:
       id:
         type: bigint
@@ -3823,6 +3883,7 @@ models:
   # ==================== 广告管理模型 ====================
   AdPlacement:
     description: 广告位模型
+    status: active
     properties:
       id:
         type: bigint
@@ -3877,6 +3938,7 @@ models:
 
   Ad:
     description: 广告模型
+    status: active
     properties:
       id:
         type: bigint
@@ -3994,6 +4056,7 @@ models:
 
   AdClick:
     description: 广告点击记录模型
+    status: active
     properties:
       id:
         type: bigint
@@ -4037,6 +4100,7 @@ models:
 
   AdImpression:
     description: 广告展示记录模型
+    status: active
     properties:
       id:
         type: bigint
@@ -4081,6 +4145,7 @@ models:
   # ==================== 收益分成模型 ====================
   RevenueRecord:
     description: 收益记录模型
+    status: active
     properties:
       id:
         type: bigint
@@ -4147,6 +4212,7 @@ models:
 
   RevenueSharingConfig:
     description: 收益分成配置模型
+    status: active
     properties:
       id:
         type: bigint
@@ -4194,6 +4260,7 @@ models:
 
   PayoutRequest:
     description: 提现申请模型
+    status: active
     properties:
       id:
         type: bigint
@@ -4259,6 +4326,7 @@ models:
 
   UserRevenueStats:
     description: 用户收益统计模型
+    status: active
     properties:
       id:
         type: bigint
@@ -4302,6 +4370,7 @@ models:
 
   ChatGroup:
     description: 群聊会话模型
+    status: active
     properties:
       id:
         type: bigint
@@ -4360,6 +4429,7 @@ models:
 
   ChatGroupMember:
     description: 群聊成员关系模型
+    status: active
     properties:
       id:
         type: bigint
@@ -4410,6 +4480,7 @@ models:
 
   ChatGroupInvite:
     description: 群聊邀请链接模型
+    status: active
     properties:
       id:
         type: bigint
@@ -4463,6 +4534,7 @@ models:
 
   ScheduledReport:
     description: 定时报表任务模型
+    status: active
     properties:
       id:
         type: bigint
@@ -4526,6 +4598,7 @@ models:
 
   ReportHistory:
     description: 报表历史记录模型
+    status: active
     properties:
       id:
         type: bigint
@@ -4567,6 +4640,7 @@ models:
 
   ArticleAnnotation:
     description: 文章批注模型（支持协作编辑时的评论和批注）
+    status: active
     properties:
       id:
         type: bigint
@@ -4625,6 +4699,7 @@ models:
         comment: "解决状态索引"
   Webhook:
     description: Webhook配置模型
+    status: active
     properties:
       id:
         type: bigint
@@ -4665,6 +4740,7 @@ models:
         comment: "激活状态索引"
   WebhookDelivery:
     description: Webhook投递记录模型
+    status: active
     properties:
       id:
         type: bigint
@@ -4726,6 +4802,7 @@ models:
   # ============================================================================
   Role:
     description: 角色模型
+    status: active
     properties:
       id:
         type: bigint
@@ -4781,6 +4858,7 @@ models:
         back_populates: roles
   Capability:
     description: 权限能力模型
+    status: active
     properties:
       id:
         type: bigint
@@ -4835,6 +4913,7 @@ models:
         back_populates: capabilities
   RoleCapability:
     description: 角色-权限能力关联模型
+    status: active
     properties:
       id:
         type: bigint
@@ -4863,6 +4942,7 @@ models:
         unique: true
   UserRole:
     description: 用户角色关联模型
+    status: active
     properties:
       id:
         type: bigint
@@ -4896,6 +4976,7 @@ models:
         unique: true
   PermissionAuditLog:
     description: 权限审计日志模型
+    status: active
     properties:
       id:
         type: bigint
@@ -4952,6 +5033,7 @@ models:
   # ============================================================================
   Workspace:
     description: 团队工作区模型
+    status: active
     properties:
       id:
         type: bigint
@@ -5003,6 +5085,7 @@ models:
 
   WorkspaceMember:
     description: 工作区成员模型
+    status: active
     properties:
       id:
         type: bigint
@@ -5046,6 +5129,7 @@ models:
 
   Task:
     description: 任务模型
+    status: active
     properties:
       id:
         type: bigint
@@ -5120,6 +5204,7 @@ models:
   # ============================================================================
   ApprovalRecord:
     description: 审批记录模型
+    status: active
     properties:
       id:
         type: bigint
@@ -5178,6 +5263,7 @@ models:
 
   ApprovalStep:
     description: 审批步骤模型
+    status: active
     properties:
       id:
         type: bigint
@@ -5233,6 +5319,7 @@ models:
   # ============================================================================
   Site:
     description: 站点模型
+    status: active
     properties:
       id:
         type: bigint
@@ -5318,6 +5405,7 @@ models:
 
   SiteUser:
     description: 站点用户关联模型
+    status: active
     properties:
       id:
         type: bigint
@@ -5361,6 +5449,7 @@ models:
 
   ContentMapping:
     description: 内容映射模型
+    status: active
     properties:
       id:
         type: bigint
@@ -5416,6 +5505,7 @@ models:
 
   GoogleAnalyticsConfig:
     description: Google Analytics 配置模型
+    status: active
     properties:
       id:
         type: bigint
@@ -5481,6 +5571,7 @@ models:
 
   BaiduAnalyticsConfig:
     description: 百度统计配置模型
+    status: active
     properties:
       id:
         type: bigint
@@ -5529,6 +5620,7 @@ models:
 
   NotificationIntegration:
     description: 通知集成配置模型（Slack/Discord等）
+    status: active
     properties:
       id:
         type: bigint
@@ -5597,6 +5689,7 @@ models:
 
   EmailServiceConfig:
     description: 邮件服务配置模型（SendGrid/Mailgun等）
+    status: active
     properties:
       id:
         type: bigint
@@ -5684,6 +5777,7 @@ models:
 
   SAMLConfig:
     description: SAML 2.0 配置模型
+    status: active
     properties:
       id:
         type: bigint
@@ -5769,6 +5863,7 @@ models:
 
   LDAPConfig:
     description: LDAP 配置模型
+    status: active
     properties:
       id:
         type: bigint
@@ -5862,6 +5957,7 @@ models:
 
   SSOProvider:
     description: SSO 提供商配置模型
+    status: active
     properties:
       id:
         type: bigint
@@ -5949,6 +6045,7 @@ models:
 
   PaymentGateway:
     description: 支付网关配置模型
+    status: active
     properties:
       id:
         type: bigint
@@ -5994,6 +6091,7 @@ models:
 
   PaymentTransaction:
     description: 支付交易记录模型
+    status: active
     properties:
       id:
         type: bigint
@@ -6070,6 +6168,7 @@ models:
 
   CryptoPayment:
     description: 加密货币支付模型
+    status: active
     properties:
       id:
         type: bigint
@@ -6156,6 +6255,7 @@ models:
 
   TaxConfig:
     description: 税务配置模型
+    status: active
     properties:
       id:
         type: bigint
@@ -6220,6 +6320,7 @@ models:
 
   OrderItem:
     description: 订单项模型
+    status: active
     properties:
       id:
         type: bigint
@@ -6274,6 +6375,7 @@ models:
 
   EnterpriseLicense:
     description: 企业许可证模型
+    status: planned
     properties:
       id:
         type: bigint
@@ -6363,6 +6465,7 @@ models:
 
   SupportTicket:
     description: 技术支持工单模型
+    status: planned
     properties:
       id:
         type: bigint
@@ -6459,6 +6562,7 @@ models:
 
   SupportTicketReply:
     description: 工单回复模型
+    status: planned
     properties:
       id:
         type: bigint
@@ -6501,6 +6605,7 @@ models:
 
   DeploymentScript:
     description: 部署脚本模型
+    status: planned
     properties:
       id:
         type: bigint
@@ -6563,6 +6668,7 @@ models:
 
   DeploymentLog:
     description: 部署日志模型
+    status: planned
     properties:
       id:
         type: bigint
@@ -6627,6 +6733,7 @@ models:
 
   MonitoringAlert:
     description: 监控告警模型
+    status: planned
     properties:
       id:
         type: bigint
@@ -6710,6 +6817,7 @@ models:
 
   MonitoringMetric:
     description: 监控指标模型
+    status: planned
     properties:
       id:
         type: bigint
@@ -6760,6 +6868,7 @@ models:
 
   MigrationTask:
     description: 迁移任务模型
+    status: active
     properties:
       id:
         type: bigint
@@ -6847,6 +6956,7 @@ models:
 
   MigrationLog:
     description: 迁移日志模型
+    status: active
     properties:
       id:
         type: bigint
@@ -6898,6 +7008,7 @@ models:
 
   GlobalStyleConfig:
     description: '全局样式配置模型'
+    status: active
     properties:
       id:
         type: bigint
