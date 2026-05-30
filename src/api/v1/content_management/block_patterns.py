@@ -12,22 +12,23 @@ router = APIRouter(tags=["block-patterns"])
 
 
 @router.get("")
+@router.get("/list")
 async def list_block_patterns(
     category: str = Query(None, description="分类过滤"),
     current_user=Depends(jwt_required)
 ):
     """
     获取所有块模式列表
-    
+
     Args:
         category: 可选的分类过滤
-        
+
     Returns:
         块模式列表
     """
     try:
         patterns = block_pattern_library.get_all_patterns(category=category)
-        
+
         return ApiResponse(
             success=True,
             data={
@@ -48,13 +49,13 @@ async def get_pattern_categories(
 ):
     """
     获取所有块模式分类
-    
+
     Returns:
         分类列表
     """
     try:
         categories = block_pattern_library.get_categories()
-        
+
         return ApiResponse(
             success=True,
             data={"categories": categories}
@@ -70,10 +71,10 @@ async def search_block_patterns(
 ):
     """
     搜索块模式
-    
+
     Args:
         q: 搜索关键词
-        
+
     Returns:
         匹配的块模式列表
     """
@@ -83,9 +84,9 @@ async def search_block_patterns(
                 success=False,
                 error="请提供搜索关键词"
             )
-        
+
         patterns = block_pattern_library.search_patterns(q)
-        
+
         return ApiResponse(
             success=True,
             data={
@@ -107,22 +108,22 @@ async def get_block_pattern(
 ):
     """
     获取单个块模式详情
-    
+
     Args:
         pattern_slug: 模式标识
-        
+
     Returns:
         块模式详情
     """
     try:
         pattern = block_pattern_library.get_pattern_by_slug(pattern_slug)
-        
+
         if not pattern:
             return ApiResponse(
                 success=False,
                 error=f"块模式不存在: {pattern_slug}"
             )
-        
+
         return ApiResponse(
             success=True,
             data={"pattern": pattern}

@@ -13,7 +13,6 @@ from sqlalchemy.orm import selectinload
 
 from shared.models.article import Article
 from shared.models.article_content import ArticleContent
-from shared.models.article_i18n import ArticleI18n
 from shared.models.article_revision import ArticleRevision
 from shared.models.category import Category
 from shared.models.user import User
@@ -120,7 +119,7 @@ async def _get_article_detail(
     seo_data_dict = article.seo_data.to_dict() if article.seo_data else {}
 
     # 8. 获取多语言版本
-    i18n_query = select(ArticleI18n).where(ArticleI18n.article == article.id)
+    i18n_query = select(ArticleContent).where(ArticleContent.article == article.id)
     i18n_result = await db.execute(i18n_query)
     i18n_versions = i18n_result.scalars().all()
     i18n_data = [
@@ -799,7 +798,7 @@ async def update_article_api(
 
         is_vip_only_value = form_data.get('is_vip_only', '0')
         article.is_vip_only = is_vip_only_value in ('1', 'true', 'True', True)
-        
+
         article.required_vip_level = int(form_data.get('required_vip_level', article.required_vip_level))
 
         is_featured_value = form_data.get('is_featured', '0')
@@ -1230,7 +1229,7 @@ async def reorder_articles_api(
 ):
     """
     文章拖拽排序
-    
+
     请求体格式：
     {
         "articles": [
@@ -1300,7 +1299,7 @@ async def batch_article_operation_api(
 ):
     """
     文章批量操作
-    
+
     支持的操作：
     - delete: 批量删除
     - publish: 批量发布

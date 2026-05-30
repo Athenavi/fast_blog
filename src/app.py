@@ -121,7 +121,7 @@ ROUTE_REGISTRY_DEPRECATED = [
     # Dashboard 模块 - 已整合到 src.api.v2.dashboard
     # ("src.api.v1.dashboard.analytics", "/api/v1", ["analytics"], False),
     # ("src.api.v1.dashboard.realtime_monitor", "/api/v1", ["realtime-monitor"], False),
-    
+
     # Ecommerce - 已迁移到 V2 聚合路由器 src.api.v2.ecommerce
     # ("src.api.v2.ecommerce", "/api/v2/shop", ["ecommerce"], False),
 
@@ -179,7 +179,7 @@ ROUTE_REGISTRY_DEPRECATED = [
     # ("src.api.v1.security.sensitive_words", "/api/v1/sensitive-words", ["sensitive-words"], False),
     # ("src.api.v1.security.session_management", "/api/v1/admin/session", ["session-management"], False),
     # ("src.api.v1.security.two_factor_auth", "/api/v1/2fa", ["2fa"], False),
-    
+
     # SEO 模块已统一整合到 seo.py 中
     # ("src.api.v1.seo.seo", "/api/v2/seo", ["seo"], False),
 
@@ -282,14 +282,6 @@ def register_all_routes(app: FastAPI, worker_info: str):
     except ImportError as e:
         print(f"{worker_info} [ERROR] API v2 模块未找到: {e}\n")
         raise
-
-    # ====== 文章 CRUD 路由（直接挂载，绕过 V2 聚合路由器的 empty-path 限制）======
-    try:
-        from src.api.v1.articles.articles import router as articles_crud_router
-        app.include_router(articles_crud_router, prefix="/api/v2/articles", tags=["articles-v2"])
-        print(f"{worker_info} [OK] v2/articles CRUD 已加载")
-    except Exception as e:
-        print(f"{worker_info} [Warning] v2/articles CRUD 注册失败: {e}")
 
     # 注册 v3 路由（移动端专用）
     print(f"\n{worker_info} {'=' * 60}")

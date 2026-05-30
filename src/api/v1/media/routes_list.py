@@ -26,6 +26,7 @@ from src.unified_logger import default_logger as logger
 
 # ---------- 列表 ----------
 @router.get("/files")
+@router.get("/files/list")
 async def list_media(
         request: Request,
         current_user_obj=Depends(jwt_required),
@@ -56,19 +57,19 @@ async def list_media(
         # 如果指定了文件夹名称（支持路径，如 folder1/folder2）
         if folder_name:
             from shared.models.media_folder import MediaFolder
-            
+
             # 解码 URL 编码的路径
             from urllib.parse import unquote
             folder_path = unquote(folder_name)
-            
+
             # 分割路径，过滤空字符串
             path_parts = [p.strip() for p in folder_path.split('/') if p.strip()]
-            
+
             if path_parts:
                 # 逐级查找文件夹
                 current_parent_id = None
                 target_folder_id = None
-                
+
                 for i, part_name in enumerate(path_parts):
                     folder_query = select(MediaFolder.id).where(
                         MediaFolder.name == part_name,
@@ -77,7 +78,7 @@ async def list_media(
                     )
                     folder_result = await db.execute(folder_query)
                     folder_id = folder_result.scalar_one_or_none()
-                    
+
                     if not folder_id:
                         # 路径中的某一级不存在，返回空列表
                         return {
@@ -96,14 +97,14 @@ async def list_media(
                                 }
                             }
                         }
-                    
+
                     # 如果是最后一级，记录目标文件夹 ID
                     if i == len(path_parts) - 1:
                         target_folder_id = folder_id
                     else:
                         # 否则继续查找下一级
                         current_parent_id = folder_id
-                
+
                 # 使用找到的文件夹 ID 过滤媒体
                 if target_folder_id:
                     base_query = base_query.where(Media.folder_id == target_folder_id)
@@ -332,10 +333,10 @@ async def get_video_thumbnail(
 ):
     """
     获取视频缩略图
-    
+
     Args:
         media_id: 媒体文件ID
-    
+
     Returns:
         缩略图文件或404
     """
