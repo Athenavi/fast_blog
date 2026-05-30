@@ -24,11 +24,11 @@ async def create_custom_pattern(
     try:
         # 从 JWT token 获取 user_id
         user_id = current_user.id if hasattr(current_user, 'id') else None
-        
+
         if not user_id:
             return ApiResponse(success=False, error="未授权，请先登录")
-        
-        result = custom_block_pattern_service.save_pattern(
+
+        result = await custom_block_pattern_service.save_pattern(
             user_id=user_id,
             title=title,
             description=description,
@@ -36,7 +36,7 @@ async def create_custom_pattern(
             category=category,
             tags=tags
         )
-        
+
         if result["success"]:
             return ApiResponse(
                 success=True,
@@ -62,15 +62,15 @@ async def list_user_patterns(
     """获取用户的自定义块模式列表"""
     try:
         user_id = getattr(current_user, 'id', 1)
-        
-        patterns = custom_block_pattern_service.get_user_patterns(user_id, category)
-        
+
+        patterns = await custom_block_pattern_service.get_user_patterns(user_id, category)
+
         return ApiResponse(
             success=True,
             data={
                 "patterns": patterns,
                 "total": len(patterns),
-                "categories": custom_block_pattern_service.get_categories(user_id)
+                "categories": await custom_block_pattern_service.get_categories(user_id)
             }
         )
     except Exception as e:
@@ -85,15 +85,15 @@ async def get_pattern_detail(
     """获取块模式详情"""
     try:
         user_id = getattr(current_user, 'id', 1)
-        
-        pattern = custom_block_pattern_service.get_pattern_by_id(user_id, pattern_id)
-        
+
+        pattern = await custom_block_pattern_service.get_pattern_by_id(user_id, pattern_id)
+
         if not pattern:
             return ApiResponse(
                 success=False,
                 error="块模式不存在"
             )
-        
+
         return ApiResponse(
             success=True,
             data={"pattern": pattern}
@@ -115,8 +115,8 @@ async def update_pattern(
     """更新块模式"""
     try:
         user_id = getattr(current_user, 'id', 1)
-        
-        result = custom_block_pattern_service.update_pattern(
+
+        result = await custom_block_pattern_service.update_pattern(
             user_id=user_id,
             pattern_id=pattern_id,
             title=title,
@@ -125,7 +125,7 @@ async def update_pattern(
             category=category,
             tags=tags
         )
-        
+
         if result["success"]:
             return ApiResponse(
                 success=True,
@@ -149,9 +149,9 @@ async def delete_pattern(
     """删除块模式"""
     try:
         user_id = getattr(current_user, 'id', 1)
-        
-        result = custom_block_pattern_service.delete_pattern(user_id, pattern_id)
-        
+
+        result = await custom_block_pattern_service.delete_pattern(user_id, pattern_id)
+
         if result["success"]:
             return ApiResponse(
                 success=True,

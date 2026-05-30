@@ -13,7 +13,6 @@
 """
 
 import hashlib
-import json
 import time
 from datetime import datetime, timedelta
 from enum import Enum
@@ -119,7 +118,7 @@ class CryptoPaymentRequest:
 class WalletManager:
     """
     钱包管理器
-    
+
     管理加密货币钱包地址生成和验证
     """
 
@@ -140,12 +139,12 @@ class WalletManager:
     ) -> str:
         """
         生成存款地址
-        
+
         Args:
             user_id: 用户ID
             blockchain: 区块链网络
             token_symbol: 代币符号
-            
+
         Returns:
             钱包地址
         """
@@ -181,7 +180,7 @@ class WalletManager:
 class BlockchainExplorer:
     """
     区块链浏览器接口
-    
+
     用于查询交易状态和确认数
     """
 
@@ -202,11 +201,11 @@ class BlockchainExplorer:
     ) -> Dict[str, Any]:
         """
         获取交易状态
-        
+
         Args:
             tx_hash: 交易哈希
             blockchain: 区块链网络
-            
+
         Returns:
             交易状态信息
         """
@@ -243,13 +242,13 @@ class BlockchainExplorer:
     ) -> Optional[Dict[str, Any]]:
         """
         监听支付
-        
+
         Args:
             wallet_address: 钱包地址
             expected_amount: 期望金额
             blockchain: 区块链网络
             timeout_seconds: 超时时间（秒）
-            
+
         Returns:
             交易信息，如果超时则返回None
         """
@@ -278,7 +277,7 @@ class BlockchainExplorer:
 class X402ProtocolHandler:
     """
     x402协议处理器
-    
+
     实现x402微支付通道协议
     """
 
@@ -294,13 +293,13 @@ class X402ProtocolHandler:
     ) -> Dict[str, Any]:
         """
         创建支付通道
-        
+
         Args:
             sender_address: 发送方地址
             receiver_address: 接收方地址
             amount: 金额
             blockchain: 区块链网络
-            
+
         Returns:
             支付通道信息
         """
@@ -332,12 +331,12 @@ class X402ProtocolHandler:
     ) -> Dict[str, Any]:
         """
         处理微支付
-        
+
         Args:
             channel_id: 通道ID
             amount: 金额
             signature: 签名
-            
+
         Returns:
             支付结果
         """
@@ -377,7 +376,7 @@ class X402ProtocolHandler:
 class NFTTicketVerifier:
     """
     NFT门票验证器
-    
+
     验证NFT持有者身份并解锁专属内容
     """
 
@@ -393,7 +392,7 @@ class NFTTicketVerifier:
     ):
         """
         注册NFT合约
-        
+
         Args:
             contract_address: 合约地址
             blockchain: 区块链网络
@@ -415,12 +414,12 @@ class NFTTicketVerifier:
     ) -> bool:
         """
         验证NFT所有权
-        
+
         Args:
             wallet_address: 钱包地址
             contract_address: 合约地址
             token_id: Token ID（可选）
-            
+
         Returns:
             是否拥有NFT
         """
@@ -438,11 +437,11 @@ class NFTTicketVerifier:
     ) -> List[Dict[str, Any]]:
         """
         获取用户拥有的NFT列表
-        
+
         Args:
             wallet_address: 钱包地址
             blockchain: 区块链网络（可选）
-            
+
         Returns:
             NFT列表
         """
@@ -463,7 +462,7 @@ class NFTTicketVerifier:
 class StablecoinPaymentProcessor:
     """
     稳定币支付处理器
-    
+
     支持USDT、USDC等稳定币支付
     """
 
@@ -489,14 +488,14 @@ class StablecoinPaymentProcessor:
     ) -> Dict[str, Any]:
         """
         创建稳定币支付请求
-        
+
         Args:
             order_id: 订单ID
             user_id: 用户ID
             amount: 金额（USD）
             token_symbol: 代币符号
             blockchain: 区块链网络
-            
+
         Returns:
             支付请求信息
         """
@@ -549,13 +548,13 @@ class StablecoinPaymentProcessor:
     ) -> Dict[str, Any]:
         """
         验证稳定币支付
-        
+
         Args:
             tx_hash: 交易哈希
             blockchain: 区块链网络
             expected_amount: 期望金额
             recipient_address: 接收地址
-            
+
         Returns:
             验证结果
         """
@@ -599,8 +598,12 @@ class StablecoinPaymentProcessor:
 class CryptoPaymentManager:
     """
     加密货币支付管理器
-    
+
     统一管理所有加密货币支付相关功能
+
+    架构说明：
+    - 内存缓存：self.payment_requests 作为快速访问缓存
+    - ORM 持久化：通过 CryptoPayment ORM 模型持久化到数据库，确保数据不丢失
     """
 
     def __init__(self):
@@ -610,6 +613,71 @@ class CryptoPaymentManager:
         self.nft_verifier = NFTTicketVerifier()
         self.stablecoin_processor = StablecoinPaymentProcessor()
         self.payment_requests: Dict[str, CryptoPaymentRequest] = {}
+
+    @staticmethod
+    async def _persist_to_orm(payment_request: CryptoPaymentRequest) -> bool:
+        """将支付请求持久化到 ORM 模型"""
+        try:
+            from src.utils.database.unified_manager import db_manager
+            from shared.models.crypto_payment import CryptoPayment as ORMCryptoPayment
+            from sqlalchemy import select
+
+            async with db_manager.get_async_session() as session:
+                # 检查是否已存在
+                existing = await session.execute(
+                    select(ORMCryptoPayment).where(
+                        ORMCryptoPayment.tx_hash == payment_request.order_id
+                    )
+                )
+                if existing.scalar_one_or_none():
+                    return True  # 已存在
+
+                record = ORMCryptoPayment(
+                    wallet_address=payment_request.wallet_address,
+                    blockchain=payment_request.blockchain.value,
+                    token_symbol=payment_request.token_symbol.value,
+                    tx_hash=payment_request.order_id,  # 使用 order_id 作为唯一标识
+                    confirmations=payment_request.confirmations,
+                    required_confirmations=payment_request.required_confirmations,
+                    exchange_rate=payment_request.exchange_rate,
+                    crypto_amount=payment_request.crypto_amount,
+                    status=payment_request.status.value,
+                    expires_at=payment_request.expires_at,
+                    created_at=datetime.now(),
+                    updated_at=datetime.now(),
+                )
+                session.add(record)
+                await session.commit()
+                return True
+        except Exception as e:
+            from src.unified_logger import default_logger as logger
+            logger.warning(f"CryptoPayment ORM 持久化失败（不影响主流程）：{e}")
+            return False
+
+    @staticmethod
+    async def _update_orm_status(order_id: str, status: str, confirmations: int = 0) -> bool:
+        """更新 ORM 中的支付状态"""
+        try:
+            from src.utils.database.unified_manager import db_manager
+            from shared.models.crypto_payment import CryptoPayment as ORMCryptoPayment
+            from sqlalchemy import select, update
+
+            async with db_manager.get_async_session() as session:
+                await session.execute(
+                    update(ORMCryptoPayment).where(
+                        ORMCryptoPayment.tx_hash == order_id
+                    ).values(
+                        status=status,
+                        confirmations=confirmations,
+                        updated_at=datetime.now()
+                    )
+                )
+                await session.commit()
+                return True
+        except Exception as e:
+            from src.unified_logger import default_logger as logger
+            logger.warning(f"CryptoPayment ORM 状态更新失败：{e}")
+            return False
 
     async def create_crypto_payment(
             self,
@@ -621,14 +689,14 @@ class CryptoPaymentManager:
     ) -> Dict[str, Any]:
         """
         创建加密货币支付
-        
+
         Args:
             order_id: 订单ID
             user_id: 用户ID
             amount_usd: 金额（USD）
             blockchain: 区块链网络
             token_symbol: 代币符号
-            
+
         Returns:
             支付请求信息
         """
@@ -661,7 +729,11 @@ class CryptoPaymentManager:
             exchange_rate=exchange_rate,
         )
 
+        # 内存缓存
         self.payment_requests[order_id] = payment_request
+
+        # ORM 持久化（异步，不阻塞主流程）
+        await self._persist_to_orm(payment_request)
 
         return {
             "success": True,
@@ -673,24 +745,32 @@ class CryptoPaymentManager:
     async def check_payment_status(self, order_id: str) -> Dict[str, Any]:
         """
         检查支付状态
-        
+
         Args:
             order_id: 订单ID
-            
+
         Returns:
             支付状态信息
         """
-        if order_id not in self.payment_requests:
+        # 优先从内存缓存获取
+        payment_request = self.payment_requests.get(order_id)
+
+        # 缓存未命中时，从 ORM 加载
+        if not payment_request:
+            payment_request = await self._load_from_orm(order_id)
+            if payment_request:
+                self.payment_requests[order_id] = payment_request
+
+        if not payment_request:
             return {
                 "success": False,
                 "error": "Payment request not found",
             }
 
-        payment_request = self.payment_requests[order_id]
-
         # 检查是否过期
         if payment_request.is_expired():
             payment_request.status = CryptoPaymentStatus.EXPIRED
+            await self._update_orm_status(order_id, CryptoPaymentStatus.EXPIRED.value)
             return {
                 "success": True,
                 "status": payment_request.to_dict(),
@@ -706,11 +786,52 @@ class CryptoPaymentManager:
 
             if confirmations >= payment_request.required_confirmations:
                 payment_request.status = CryptoPaymentStatus.COMPLETED
+                await self._update_orm_status(order_id, CryptoPaymentStatus.COMPLETED.value, confirmations)
 
         return {
             "success": True,
             "status": payment_request.to_dict(),
         }
+
+    @staticmethod
+    async def _load_from_orm(order_id: str) -> Optional[CryptoPaymentRequest]:
+        """从 ORM 加载支付请求"""
+        try:
+            from src.utils.database.unified_manager import db_manager
+            from shared.models.crypto_payment import CryptoPayment as ORMCryptoPayment
+            from sqlalchemy import select
+
+            async with db_manager.get_async_session() as session:
+                result = await session.execute(
+                    select(ORMCryptoPayment).where(ORMCryptoPayment.tx_hash == order_id)
+                )
+                record = result.scalar_one_or_none()
+
+                if not record:
+                    return None
+
+                # 将 ORM 记录转换为 CryptoPaymentRequest
+                blockchain = Blockchain(record.blockchain) if record.blockchain else Blockchain.ETHEREUM
+                token_symbol = TokenSymbol(record.token_symbol) if record.token_symbol else TokenSymbol.USDT
+
+                req = CryptoPaymentRequest(
+                    order_id=order_id,
+                    user_id=0,  # ORM 中没有 user_id，使用默认值
+                    amount_usd=float(record.crypto_amount or 0) * float(record.exchange_rate or 1),
+                    blockchain=blockchain,
+                    token_symbol=token_symbol,
+                    wallet_address=record.wallet_address or "",
+                    exchange_rate=float(record.exchange_rate or 1),
+                )
+                req.status = CryptoPaymentStatus(
+                    record.status) if record.status else CryptoPaymentStatus.WAITING_PAYMENT
+                req.confirmations = record.confirmations or 0
+                req.tx_hash = record.tx_hash if record.tx_hash != order_id else None
+                return req
+        except Exception as e:
+            from src.unified_logger import default_logger as logger
+            logger.warning(f"从 ORM 加载 CryptoPayment 失败：{e}")
+            return None
 
     async def process_webhook(
             self,
@@ -719,11 +840,11 @@ class CryptoPaymentManager:
     ) -> Dict[str, Any]:
         """
         处理区块链webhook
-        
+
         Args:
             blockchain: 区块链网络
             payload: webhook数据
-            
+
         Returns:
             处理结果
         """
@@ -732,11 +853,14 @@ class CryptoPaymentManager:
 
         if event_type == "transaction_confirmed":
             tx_hash = payload.get("tx_hash")
+            confirmations = payload.get("confirmations", 0)
             # 查找相关的支付请求并更新状态
             for order_id, payment_request in self.payment_requests.items():
                 if payment_request.tx_hash == tx_hash:
                     payment_request.status = CryptoPaymentStatus.COMPLETED
-                    payment_request.confirmations = payload.get("confirmations", 0)
+                    payment_request.confirmations = confirmations
+                    # 同步更新 ORM
+                    await self._update_orm_status(order_id, CryptoPaymentStatus.COMPLETED.value, confirmations)
                     return {"success": True, "order_id": order_id}
 
         return {"success": False, "error": "Event not processed"}

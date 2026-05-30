@@ -271,124 +271,6 @@ models:
     orm: true
     table: field_permissions
 
-  SubscriptionPlan:
-    description: 会员订阅计划模型
-    properties:
-      id:
-        type: bigint
-        description: 计划 ID
-      name:
-        type: string
-        maxLength: 255
-        description: 计划名称
-      slug:
-        type: string
-        maxLength: 255
-        unique: true
-        description: 唯一标识符
-      price:
-        type: integer
-        description: 价格 (分)
-      interval:
-        type: string
-        maxLength: 20
-        default: month
-        description: "计费周期 (month, year)"
-      features_json:
-        type: text
-        description: "功能列表 JSON"
-      is_active:
-        type: boolean
-        default: true
-        description: 是否启用
-      stripe_price_id:
-        type: string
-        nullable: true
-        description: Stripe 价格 ID
-      created_at:
-        type: string
-        format: date-time
-        description: 创建时间
-    orm: true
-    table: subscription_plans
-
-  UserSubscription:
-    description: 用户订阅记录模型
-    properties:
-      id:
-        type: bigint
-        description: 订阅 ID
-      user_id:
-        type: bigint
-        foreignKey: User
-        description: 用户 ID
-      plan_id:
-        type: bigint
-        foreignKey: SubscriptionPlan
-        description: 计划 ID
-      status:
-        type: string
-        maxLength: 20
-        default: active
-        description: "状态 (active, cancelled, expired)"
-      current_period_end:
-        type: string
-        format: date-time
-        description: 当前周期结束时间
-      stripe_subscription_id:
-        type: string
-        nullable: true
-        description: Stripe 订阅 ID
-      created_at:
-        type: string
-        format: date-time
-        description: 创建时间
-    orm: true
-    table: user_subscriptions
-
-  ThemePackage:
-    description: 主题包管理模型
-    properties:
-      id:
-        type: bigint
-        description: 主题 ID
-      name:
-        type: string
-        maxLength: 100
-        description: 主题显示名称
-      slug:
-        type: string
-        maxLength: 100
-        unique: true
-        description: 主题唯一标识
-      version:
-        type: string
-        maxLength: 20
-        description: 版本号
-      author:
-        type: string
-        maxLength: 100
-        nullable: true
-        description: 作者
-      config_data:
-        type: text
-        description: "主题配置 (JSON 格式)"
-      is_active:
-        type: boolean
-        default: false
-        description: 是否当前启用
-      created_at:
-        type: string
-        format: date-time
-        description: 创建时间
-    orm: true
-    table: theme_packages
-    indexes:
-      - name: idx_theme_packages_slug
-        columns: [ slug ]
-        unique: true
-        comment: "主题Slug唯一索引"
-
   User:
     description: 用户模型
     properties:
@@ -5531,7 +5413,7 @@ models:
   # ============================================================================
   # 第三方服务集成模型
   # ============================================================================
-  
+
   GoogleAnalyticsConfig:
     description: Google Analytics 配置模型
     properties:
@@ -5799,7 +5681,7 @@ models:
   # ============================================================================
   # 企业级认证模型
   # ============================================================================
-  
+
   SAMLConfig:
     description: SAML 2.0 配置模型
     properties:
@@ -6389,7 +6271,7 @@ models:
   # ============================================================================
   # 企业版功能模型
   # ============================================================================
-  
+
   EnterpriseLicense:
     description: 企业许可证模型
     properties:
@@ -6875,7 +6757,7 @@ models:
   # ============================================================================
   # 迁移工具模型
   # ============================================================================
-  
+
   MigrationTask:
     description: 迁移任务模型
     properties:

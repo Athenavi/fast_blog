@@ -1,15 +1,20 @@
-"""
+﻿"""
 块模式（Block Patterns）系统
 提供预设计的区块组合模板
+
+架构说明：
+- BuiltinBlockPattern: 内置模式的轻量级数据类（内存中使用）
+- ORM BlockPattern (shared.models.block_pattern): 用户自定义模式的持久化模型
+- 两类分离设计：内置模式硬编码无需持久化，用户自定义模式通过 ORM 持久化到数据库
 """
 
 from datetime import datetime, timezone
 from typing import Dict, List, Any, Optional
 
 
-class BlockPattern:
-    """块模式数据类"""
-    
+class BuiltinBlockPattern:
+    """内置块模式数据类（仅用于硬编码的内置模式，不涉及数据库持久化）"""
+
     def __init__(
         self,
         slug: str,
@@ -33,19 +38,19 @@ class BlockPattern:
 class BlockPatternLibrary:
     """
     块模式库管理器
-    
+
     提供预设计的区块组合模板，用户可以快速插入到文章中
     """
-    
+
     def __init__(self):
         # 内置块模式
         self.builtin_patterns = self._load_builtin_patterns()
-    
-    def _load_builtin_patterns(self) -> List[BlockPattern]:
+
+    def _load_builtin_patterns(self) -> List[BuiltinBlockPattern]:
         """加载内置块模式"""
         return [
             # Hero 区域
-            BlockPattern(
+            BuiltinBlockPattern(
                 slug="hero-basic",
                 title="基础 Hero 区域",
                 description="带有标题、副标题和按钮的醒目 Hero 区域",
@@ -80,8 +85,8 @@ class BlockPatternLibrary:
                 ],
                 tags=["hero", "banner", "cta"]
             ),
-            
-            BlockPattern(
+
+            BuiltinBlockPattern(
                 slug="hero-with-image",
                 title="带图片的 Hero",
                 description="左侧文字、右侧图片的 Hero 布局",
@@ -135,9 +140,9 @@ class BlockPatternLibrary:
                 ],
                 tags=["hero", "image", "two-column"]
             ),
-            
+
             # 特性列表
-            BlockPattern(
+            BuiltinBlockPattern(
                 slug="features-grid",
                 title="特性网格",
                 description="三列特性展示，带图标和描述",
@@ -190,9 +195,9 @@ class BlockPatternLibrary:
                 ],
                 tags=["features", "grid", "cards"]
             ),
-            
+
             # 团队介绍
-            BlockPattern(
+            BuiltinBlockPattern(
                 slug="team-members",
                 title="团队成员",
                 description="展示团队成员的卡片布局",
@@ -240,9 +245,9 @@ class BlockPatternLibrary:
                 ],
                 tags=["team", "members", "profiles"]
             ),
-            
+
             # 价格表
-            BlockPattern(
+            BuiltinBlockPattern(
                 slug="pricing-table",
                 title="价格表",
                 description="三档价格方案对比",
@@ -305,9 +310,9 @@ class BlockPatternLibrary:
                 ],
                 tags=["pricing", "plans", "comparison"]
             ),
-            
+
             # 联系方式
-            BlockPattern(
+            BuiltinBlockPattern(
                 slug="contact-form",
                 title="联系表单",
                 description="简洁的联系表单布局",
@@ -355,9 +360,9 @@ class BlockPatternLibrary:
                 ],
                 tags=["contact", "form", "communication"]
             ),
-            
+
             # CTA 行动号召
-            BlockPattern(
+            BuiltinBlockPattern(
                 slug="cta-banner",
                 title="CTA 横幅",
                 description="醒目的行动号召横幅",
@@ -388,9 +393,9 @@ class BlockPatternLibrary:
                 ],
                 tags=["cta", "banner", "conversion"]
             ),
-            
-            #  testimonials 客户评价
-            BlockPattern(
+
+            # testimonials 客户评价
+            BuiltinBlockPattern(
                 slug="testimonials",
                 title="客户评价",
                 description="展示客户反馈和评价",
@@ -428,9 +433,9 @@ class BlockPatternLibrary:
                 ],
                 tags=["testimonials", "reviews", "feedback"]
             ),
-            
+
             # FAQ 常见问题
-            BlockPattern(
+            BuiltinBlockPattern(
                 slug="faq-section",
                 title="FAQ 常见问题",
                 description="可折叠的常见问题列表",
@@ -467,9 +472,9 @@ class BlockPatternLibrary:
                 ],
                 tags=["faq", "questions", "help"]
             ),
-            
+
             # Newsletter 订阅
-            BlockPattern(
+            BuiltinBlockPattern(
                 slug="newsletter-signup",
                 title="邮件订阅",
                 description="简洁的邮件订阅表单",
@@ -501,9 +506,9 @@ class BlockPatternLibrary:
                 ],
                 tags=["newsletter", "subscription", "email"]
             ),
-            
+
             # Stats 统计数据
-            BlockPattern(
+            BuiltinBlockPattern(
                 slug="stats-counter",
                 title="统计数据",
                 description="展示关键业务数据",
@@ -553,31 +558,31 @@ class BlockPatternLibrary:
                 tags=["stats", "numbers", "metrics"]
             )
         ]
-    
+
     def get_all_patterns(self, category: Optional[str] = None) -> List[Dict[str, Any]]:
         """
         获取所有块模式
-        
+
         Args:
             category: 可选的分类过滤
-            
+
         Returns:
             块模式列表
         """
         patterns = self.builtin_patterns
-        
+
         if category:
             patterns = [p for p in patterns if p.category == category]
-        
+
         return [self._pattern_to_dict(p) for p in patterns]
-    
+
     def get_pattern_by_slug(self, slug: str) -> Optional[Dict[str, Any]]:
         """
         根据 slug 获取块模式
-        
+
         Args:
             slug: 模式标识
-            
+
         Returns:
             块模式字典，不存在返回 None
         """
@@ -585,35 +590,35 @@ class BlockPatternLibrary:
             if pattern.slug == slug:
                 return self._pattern_to_dict(pattern)
         return None
-    
+
     def get_categories(self) -> List[str]:
         """获取所有分类"""
         categories = set(p.category for p in self.builtin_patterns)
         return sorted(list(categories))
-    
+
     def search_patterns(self, query: str) -> List[Dict[str, Any]]:
         """
         搜索块模式
-        
+
         Args:
             query: 搜索关键词
-            
+
         Returns:
             匹配的块模式列表
         """
         query_lower = query.lower()
         results = []
-        
+
         for pattern in self.builtin_patterns:
             if (query_lower in pattern.title.lower() or
                 query_lower in pattern.description.lower() or
                 any(query_lower in tag.lower() for tag in pattern.tags)):
                 results.append(self._pattern_to_dict(pattern))
-        
+
         return results
-    
-    def _pattern_to_dict(self, pattern: BlockPattern) -> Dict[str, Any]:
-        """将 BlockPattern 对象转换为字典"""
+
+    def _pattern_to_dict(self, pattern: BuiltinBlockPattern) -> Dict[str, Any]:
+        """将 BuiltinBlockPattern 对象转换为字典"""
         return {
             "slug": pattern.slug,
             "title": pattern.title,

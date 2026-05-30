@@ -157,6 +157,22 @@ ROUTE_REGISTRY_V2 = [
     # ==================== 支付工具 ====================
     ("src.api.v1.utils.payment", "/api/v2/payments", ["payment"], False),
 
+    # ==================== 支付系统管理（网关/交易/税务配置）====================
+    ("src.api.v1.payment.payment_management", "/api/v2/payment-management", ["payment-management"], False),
+
+    # ==================== 迁移系统管理（任务/日志）====================
+    ("src.api.v1.system.migration_management", "/api/v2/migration-management", ["migration-management"], False),
+
+    # ==================== 内容管理扩展（修订注释/菜单位置）====================
+    ("src.api.v1.content_management.content_management_ext", "/api/v2/cms/management", ["content-management-ext"],
+     False),
+
+    # ==================== 用户安全管理（字段权限/会话/邮件订阅）====================
+    ("src.api.v1.users.user_security_management", "/api/v2/users/security", ["user-security-management"], False),
+
+    # ==================== 搜索与媒体管理（索引/优化）====================
+    ("src.api.v1.search.search_media_management", "/api/v2/search/management", ["search-media-management"], False),
+
     # ==================== 可访问性（V2 聚合路由器）====================
     # V2 Accessibility 模块采用包级别聚合模式，所有子模块通过 __init__.py 统一注册
     ("src.api.v2.accessibility", "/api/v2/accessibility", ["accessibility-v2"], True),
