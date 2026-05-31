@@ -1,7 +1,7 @@
 # FastBlog Development Makefile
 # Usage: make <target>
 
-.PHONY: help install dev test lint format clean docker-build docker-up docker-down
+.PHONY: help install dev test lint format clean docker-build docker-up docker-down dev-services-up dev-services-down dev-services-logs dev-services-search dev-services-tools pre-commit-install pre-commit-run
 
 # Default target
 help: ## Show this help message
@@ -135,6 +135,48 @@ docker-rebuild: ## Rebuild and restart Docker services
 docker-clean: ## Clean Docker resources
 	docker system prune -f
 	docker volume prune -f
+
+# ============================================================================
+# Development Services (Docker)
+# ============================================================================
+
+dev-services-up: ## Start development services (PostgreSQL + Redis)
+	docker-compose -f docker-compose.dev.yml up -d
+	@echo "✅ Dev services started: PostgreSQL(5432) + Redis(6379)"
+
+dev-services-down: ## Stop development services
+	docker-compose -f docker-compose.dev.yml down
+
+dev-services-logs: ## View development services logs
+	docker-compose -f docker-compose.dev.yml logs -f
+
+dev-services-search: ## Start dev services with Meilisearch
+	docker-compose -f docker-compose.dev.yml --profile search up -d
+	@echo "✅ Dev services started: PostgreSQL(5432) + Redis(6379) + Meilisearch(7700)"
+
+dev-services-tools: ## Start dev services with Adminer + Redis Commander
+	docker-compose -f docker-compose.dev.yml --profile tools --profile search up -d
+	@echo "✅ Dev services started with tools: Adminer(8080) Redis Commander(8081) Meilisearch(7700)"
+
+dev-services-reset: ## Reset development services (destroy volumes)
+	docker-compose -f docker-compose.dev.yml down -v
+	@echo "⚠️  Dev services stopped and volumes removed"
+
+# ============================================================================
+# Pre-commit Hooks
+# ============================================================================
+
+pre-commit-install: ## Install pre-commit hooks
+	pip install pre-commit
+	pre-commit install
+	pre-commit install --hook-type pre-push
+	@echo "✅ Pre-commit hooks installed"
+
+pre-commit-run: ## Run all pre-commit hooks
+	pre-commit run --all-files
+
+pre-commit-update: ## Update pre-commit hooks
+	pre-commit autoupdate
 
 # ============================================================================
 # Build & Release

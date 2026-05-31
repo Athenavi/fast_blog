@@ -8,7 +8,7 @@
 import {useState} from 'react';
 import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
-import {GripVertical, Trash2, Edit3, Plus} from 'lucide-react';
+import {Edit3, GripVertical, Plus, Trash2} from 'lucide-react';
 import type {NestedBlock} from '@/lib/page-builder/nested-blocks';
 import {BLOCK_DEFINITIONS} from '@/lib/page-builder/nested-blocks';
 
@@ -121,7 +121,7 @@ export function NestedSortableBlock({
                                       className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-600 transition flex items-center gap-2"
                                     >
                                       <span
-                                        className="text-gray-700 dark:text-gray-300">{childDef?.label || childType}</span>
+                                        className="text-gray-700 dark:text-gray-300">{childDef?.description || childType}</span>
                                     </button>
                                   );
                                 })}

@@ -1,6 +1,6 @@
 'use client';
 
-import React, {useState} from 'react';
+import React from 'react';
 import {
   AlertTriangle,
   ArrowRightLeft,
@@ -8,6 +8,7 @@ import {
   BarChart3,
   Bell,
   Brain,
+  Building2,
   CheckSquare,
   ChevronLeft,
   Coins,
@@ -79,6 +80,7 @@ export const navConfig: NavItem[] = [
   {labelKey: 'nav.accessibility', href: '/admin/accessibility', icon: Eye},
   {labelKey: 'nav.gdpr', href: '/admin/gdpr', icon: Shield},
   {sepKey: 'nav.advancedManagement'},
+  {labelKey: 'nav.enterprise', href: '/admin/enterprise', icon: Building2},
   {labelKey: 'nav.payment', href: '/admin/payment', icon: CreditCard},
   {labelKey: 'nav.migration', href: '/admin/migration', icon: ArrowRightLeft},
   {labelKey: 'nav.contentExt', href: '/admin/content-ext', icon: FileEdit},

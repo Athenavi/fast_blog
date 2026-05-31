@@ -194,6 +194,10 @@ ROUTE_REGISTRY_V2 = [
 
     # ==================== 示例和工具端点（集中管理）====================
     ("src.api.v2.examples_tools", "/api/v2/examples", ["examples-tools"], False),
+
+    # ==================== 企业管理（V2 聚合路由器）====================
+    # V2 Enterprise 模块整合许可证、工单、部署脚本、监控告警
+    ("src.api.v2.enterprise", "/api/v2/enterprise", ["enterprise-v2"], False),
 ]
 
 # v1 到 v2 的路径映射表（用于自动重定向）

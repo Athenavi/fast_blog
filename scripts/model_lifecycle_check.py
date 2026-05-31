@@ -118,6 +118,7 @@ def run_check(config: dict, orm_models: Dict[str, dict], usage_map: Dict[str, Li
     - 检查缺少 status 字段的模型
     - 检查 active 模型是否在代码中有引用
     - 检查 deprecated 模型是否仍在使用
+    - 检查新模型是否有 frontend_page 字段
     返回：0=通过, 1=有警告, 2=有错误
     """
     exit_code = 0
@@ -165,6 +166,18 @@ def run_check(config: dict, orm_models: Dict[str, dict], usage_map: Dict[str, Li
         errors.append(f"[ERROR] {len(deprecated_in_use)} 个 deprecated 模型仍在使用中:")
         for name, locations in sorted(deprecated_in_use):
             errors.append(f"    - {name}: {', '.join(locations[:3])}")
+
+    # 4. 检查 frontend_page 字段
+    missing_frontend_page = []
+    for name, defn in orm_models.items():
+        if "frontend_page" not in defn:
+            missing_frontend_page.append(name)
+
+    if missing_frontend_page:
+        warnings.append(f"[WARN] {len(missing_frontend_page)} 个模型缺少 frontend_page 字段:")
+        for name in sorted(missing_frontend_page):
+            warnings.append(f"    - {name}")
+        warnings.append("    提示: 运行 python scripts/add_frontend_page_to_models.py 添加字段")
 
     # 输出结果
     print("=" * 60)
@@ -238,6 +251,37 @@ def run_report(orm_models: Dict[str, dict], usage_map: Dict[str, List[str]]):
                 if len(usage) > 3:
                     print(f"    -> ... +{len(usage) - 3} more")
 
+    # 前端页面映射统计
+    print()
+    print("=" * 70)
+    print("  前端页面映射统计")
+    print("=" * 70)
+    print()
+
+    has_frontend = []
+    no_frontend = []
+    missing_field = []
+    for name, defn in orm_models.items():
+        fp = defn.get("frontend_page")
+        if "frontend_page" not in defn:
+            missing_field.append(name)
+        elif fp:
+            has_frontend.append((name, fp))
+        else:
+            no_frontend.append(name)
+
+    print(f"  有前端页面:  {len(has_frontend)}")
+    print(f"  仅后端 API:  {len(no_frontend)}")
+    if missing_field:
+        print(f"  缺少字段:    {len(missing_field)} (运行 add-frontend-page 补充)")
+
+    if no_frontend:
+        print()
+        print("[NO FRONTEND PAGE]")
+        print("-" * 50)
+        for name in sorted(no_frontend):
+            print(f"  {name}")
+
     # 汇总
     print()
     print("=" * 70)
@@ -250,6 +294,8 @@ def run_report(orm_models: Dict[str, dict], usage_map: Dict[str, List[str]]):
     print(f"  有代码引用:    {used}")
     print(f"  无代码引用:    {unused}")
     print(f"  使用率:        {used / total * 100:.1f}%")
+    print(f"  有前端页面:    {len(has_frontend)}")
+    print(f"  前端覆盖率:    {len(has_frontend) / total * 100:.1f}%")
     print()
 
 
@@ -319,12 +365,79 @@ def run_add_status(orm_models: Dict[str, dict]):
             print(f"    - {name}")
 
 
+def run_add_frontend_page(orm_models: Dict[str, dict]):
+    """
+    为缺少 frontend_page 字段的模型批量添加 frontend_page 字段。
+    使用行级文本插入，保留原有格式和注释。
+    """
+    # 导入映射表
+    sys.path.insert(0, str(PROJECT_ROOT / "scripts"))
+    try:
+        from add_frontend_page_to_models import FRONTEND_PAGE_MAP
+    except ImportError:
+        print("[ERROR] 无法导入 FRONTEND_PAGE_MAP，请确保 scripts/add_frontend_page_to_models.py 存在")
+        return
+
+    with open(MODELS_YAML, "r", encoding="utf-8") as f:
+        lines = f.readlines()
+
+    # 收集需要添加 frontend_page 的模型名
+    models_to_add = {}
+    for name, defn in orm_models.items():
+        if "frontend_page" not in defn:
+            models_to_add[name] = FRONTEND_PAGE_MAP.get(name, None)
+
+    if not models_to_add:
+        print("[OK] 所有 ORM 模型已有 frontend_page 字段，无需修改。")
+        return
+
+    # 策略：在每个模型定义块中，找到 "status:" 行，在其后插入 "    frontend_page: xxx"
+    new_lines = []
+    current_model = None
+    added_count = 0
+
+    for line in lines:
+        stripped = line.rstrip()
+
+        # 检测模型名称行 (两个空格开头 + 模型名 + 冒号)
+        model_match = re.match(r'^  (\w+):\s*$', line)
+        if model_match:
+            current_model = model_match.group(1)
+
+        # 检测 status 行，在其后插入 frontend_page
+        if current_model and current_model in models_to_add:
+            status_match = re.match(r'^    status:', line)
+            if status_match:
+                new_lines.append(line)
+                page_value = models_to_add[current_model]
+                if page_value:
+                    new_lines.append(f'    frontend_page: "{page_value}"\n')
+                else:
+                    new_lines.append(f'    frontend_page: null\n')
+                added_count += 1
+                del models_to_add[current_model]
+                current_model = None
+                continue
+
+        new_lines.append(line)
+
+    # 写回文件
+    with open(MODELS_YAML, "w", encoding="utf-8") as f:
+        f.writelines(new_lines)
+
+    print(f"[OK] 已为 {added_count} 个模型添加 frontend_page 字段，已保存到 {MODELS_YAML}")
+    if models_to_add:
+        print(f"[WARN] {len(models_to_add)} 个模型未找到 status 行，未能添加 frontend_page:")
+        for name in sorted(models_to_add.keys()):
+            print(f"    - {name}")
+
+
 def main():
     parser = argparse.ArgumentParser(description="模型生命周期管理检查工具")
     parser.add_argument(
         "command",
-        choices=["check", "report", "add-status"],
-        help="子命令: check=CI检查, report=详细报告, add-status=批量添加status字段",
+        choices=["check", "report", "add-status", "add-frontend-page"],
+        help="子命令: check=CI检查, report=详细报告, add-status=批量添加status字段, add-frontend-page=批量添加frontend_page字段",
     )
     args = parser.parse_args()
 
@@ -339,6 +452,8 @@ def main():
 
     if args.command == "add-status":
         run_add_status(orm_models)
+    elif args.command == "add-frontend-page":
+        run_add_frontend_page(orm_models)
     else:
         print("[SCAN] 正在检测代码引用...")
         usage_map = scan_all_usage(orm_models)
