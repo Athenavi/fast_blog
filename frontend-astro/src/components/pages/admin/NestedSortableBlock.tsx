@@ -50,6 +50,7 @@ export function NestedSortableBlock({
     const blockDef = BLOCK_DEFINITIONS.find(b => b.name === block.type);
   const __Icon = blockDef?.icon || 'Layout';
     const [showStyleEditor, setShowStyleEditor] = useState(false);
+  const [showChildPicker, setShowChildPicker] = useState(false);
     const [blockStyles, setBlockStyles] = useState(block.styles || {});
 
     // P13-1: 样式可视化控制器
@@ -93,18 +94,40 @@ export function NestedSortableBlock({
                         )}
                     </div>
                     <div className="flex items-center gap-1">
-                        {/* 添加子块按钮 */}
+                      {/* 添加子块按钮 + 类型选择器 */}
                         {canAddChildren && !maxChildrenReached && onAddChild && (
+                          <div className="relative">
                             <button
-                                onClick={() => {
-                                    // TODO: 显示子块选择器
-                                    onAddChild(path, 'paragraph');
-                                }}
-                                className="p-1.5 text-gray-400 hover:text-green-600 transition"
-                                title="添加子块"
+                              onClick={() => setShowChildPicker(!showChildPicker)}
+                              className="p-1.5 text-gray-400 hover:text-green-600 transition"
+                              title="添加子块"
                             >
-                                <Plus className="w-4 h-4"/>
+                              <Plus className="w-4 h-4"/>
                             </button>
+
+                            {/* 子块类型选择器弹出菜单 */}
+                            {showChildPicker && blockDef?.allowedChildren && (
+                              <div
+                                className="absolute right-0 top-full mt-1 z-50 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg py-1 min-w-[140px]">
+                                {blockDef.allowedChildren.map((childType) => {
+                                  const childDef = BLOCK_DEFINITIONS.find(b => b.name === childType);
+                                  return (
+                                    <button
+                                      key={childType}
+                                      onClick={() => {
+                                        onAddChild(path, childType);
+                                        setShowChildPicker(false);
+                                      }}
+                                      className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-600 transition flex items-center gap-2"
+                                    >
+                                      <span
+                                        className="text-gray-700 dark:text-gray-300">{childDef?.label || childType}</span>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
                         )}
 
                         {/* 样式编辑器 */}

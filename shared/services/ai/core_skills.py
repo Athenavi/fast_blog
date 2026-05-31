@@ -4,6 +4,8 @@
 提供内容创作、SEO优化、插件生成等核心技能
 """
 
+import re
+from collections import Counter
 from shared.services.ai.skills_framework import (
     BaseSkill,
     SkillMetadata,
@@ -12,12 +14,13 @@ from shared.services.ai.skills_framework import (
     SkillCategory,
     SkillPermission,
 )
+from shared.services.ai.llm_client import llm_client
 
 
 class ContentCreatorSkill(BaseSkill):
     """
     内容创作 Skill
-    
+
     AI 辅助写作、大纲生成、段落扩写等功能
     """
 
@@ -59,7 +62,23 @@ class ContentCreatorSkill(BaseSkill):
         if not topic:
             return SkillResult(success=False, error="Topic is required")
 
-        # TODO: 集成 LLM API 生成大纲
+        # 尝试使用 LLM 生成大纲
+        if llm_client.is_available:
+            result = await llm_client.generate_json(
+                prompt=f"请为以下主题生成文章大纲，返回 JSON 格式：\n主题：{topic}\n\n"
+                       f"要求：包含 title 和 sections 数组，每个 section 有 heading 和 points 数组。\n"
+                       f"生成 4-6 个章节，每个章节 2-4 个要点。",
+                system_prompt="你是一个专业的文章大纲规划师。请以 JSON 格式返回结果。",
+            )
+            if result.get("success") and isinstance(result.get("content"), dict):
+                outline = result["content"]
+                return SkillResult(
+                    success=True,
+                    data=outline,
+                    message="Outline generated successfully (LLM)"
+                )
+
+        # Fallback: 模板大纲
         outline = {
             "title": f"{topic} - 完整指南",
             "sections": [
@@ -84,7 +103,21 @@ class ContentCreatorSkill(BaseSkill):
         if not text:
             return SkillResult(success=False, error="Text is required")
 
-        # TODO: 集成 LLM API 扩写
+        # 尝试使用 LLM 扩写
+        if llm_client.is_available:
+            result = await llm_client.generate_text(
+                prompt=f"请扩写以下段落，使其更加详细、有深度，保持原始含义：\n\n{text}",
+                system_prompt="你是一个专业的写作助手。请扩写段落，添加更多细节、例子和分析。",
+            )
+            if result.get("success"):
+                expanded = result["content"]
+                return SkillResult(
+                    success=True,
+                    data={"original": text, "expanded": expanded},
+                    message="Paragraph expanded successfully (LLM)"
+                )
+
+        # Fallback
         expanded = f"{text}\n\n[扩展内容...]"
 
         return SkillResult(
@@ -100,7 +133,26 @@ class ContentCreatorSkill(BaseSkill):
         if not title:
             return SkillResult(success=False, error="Title is required")
 
-        # TODO: 集成 LLM API 优化
+        # 尝试使用 LLM 优化标题
+        if llm_client.is_available:
+            result = await llm_client.generate_json(
+                prompt=f"请为以下标题生成 3-5 个优化建议，包括 SEO 优化、吸引力优化、专业优化等类型。\n"
+                       f"原始标题：{title}\n\n"
+                       f"返回 JSON 格式，包含 suggestions 数组，每个元素有 title 和 type 字段。",
+                system_prompt="你是一个 SEO 和内容营销专家。请以 JSON 格式返回结果。",
+            )
+            if result.get("success") and isinstance(result.get("content"), dict):
+                content = result["content"]
+                if "suggestions" in content:
+                    suggestions = [s.get("title", str(s)) if isinstance(s, dict) else str(s) for s in
+                                   content["suggestions"]]
+                    return SkillResult(
+                        success=True,
+                        data={"original": title, "suggestions": suggestions},
+                        message="Title optimized successfully (LLM)"
+                    )
+
+        # Fallback
         suggestions = [
             f"{title}：完整指南",
             f"如何{title}：一步步教程",
@@ -120,8 +172,8 @@ class ContentCreatorSkill(BaseSkill):
         if not content:
             return SkillResult(success=False, error="Content is required")
 
-        # TODO: 集成 NLP 库提取关键词
-        keywords = ["关键词1", "关键词2", "关键词3"]
+        # 使用 TF-IDF 简化实现提取关键词
+        keywords = self._extract_keywords_tfidf(content, max_keywords=10)
 
         return SkillResult(
             success=True,
@@ -129,11 +181,38 @@ class ContentCreatorSkill(BaseSkill):
             message="Keywords extracted successfully"
         )
 
+    @staticmethod
+    def _extract_keywords_tfidf(content: str, max_keywords: int = 10) -> list:
+        """使用 TF-IDF 简化实现提取关键词"""
+        # 移除标点符号和特殊字符
+        text = re.sub(r'[^\w\s]', ' ', content)
+        words = text.lower().split()
+        # 过滤停用词和短词
+        stop_words = {
+            'the', 'a', 'an', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
+            'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could',
+            'should', 'may', 'might', 'shall', 'can', 'need', 'dare', 'ought',
+            'used', 'to', 'of', 'in', 'for', 'on', 'with', 'at', 'by', 'from',
+            'as', 'into', 'through', 'during', 'before', 'after', 'above', 'below',
+            'between', 'out', 'off', 'over', 'under', 'again', 'further', 'then',
+            'once', 'here', 'there', 'when', 'where', 'why', 'how', 'all', 'both',
+            'each', 'few', 'more', 'most', 'other', 'some', 'such', 'no', 'nor',
+            'not', 'only', 'own', 'same', 'so', 'than', 'too', 'very', 'just',
+            'because', 'but', 'and', 'or', 'if', 'while', 'this', 'that', 'these',
+            'those', 'it', 'its', 'we', 'our', 'you', 'your', 'they', 'their',
+            '的', '了', '在', '是', '我', '有', '和', '就', '不', '人', '都', '一',
+            '一个', '上', '也', '很', '到', '说', '要', '去', '你', '会', '着',
+            '没有', '看', '好', '自己', '这', '他', '她', '它', '们', '那', '些',
+        }
+        filtered = [w for w in words if len(w) > 1 and w not in stop_words]
+        counter = Counter(filtered)
+        keywords = [word for word, _ in counter.most_common(max_keywords)]
+        return keywords
 
 class SEOOptimizerSkill(BaseSkill):
     """
     SEO 优化 Skill
-    
+
     Meta 描述生成、关键词密度分析、可读性评分等
     """
 
@@ -175,7 +254,28 @@ class SEOOptimizerSkill(BaseSkill):
         if not content:
             return SkillResult(success=False, error="Content is required")
 
-        # TODO: 集成 LLM API 生成
+        # 尝试使用 LLM 生成 Meta 描述
+        if llm_client.is_available:
+            result = await llm_client.generate_text(
+                prompt=f"请为以下文章内容生成一段 SEO 友好的 Meta Description，不超过 160 个字符：\n\n"
+                       f"标题：{context.parameters.get('title', '')}\n"
+                       f"内容：{content[:500]}",
+                system_prompt="你是一个 SEO 专家。请生成简洁、有吸引力的 Meta Description。",
+                max_tokens=200,
+            )
+            if result.get("success"):
+                description = result["content"][:160]
+                return SkillResult(
+                    success=True,
+                    data={
+                        "description": description,
+                        "length": len(description),
+                        "optimal": len(description) <= 160
+                    },
+                    message="Meta description generated (LLM)"
+                )
+
+        # Fallback: 截取内容前 155 字符
         description = content[:155] + "..." if len(content) > 155 else content
 
         return SkillResult(
@@ -242,11 +342,32 @@ class SEOOptimizerSkill(BaseSkill):
         if not content:
             return SkillResult(success=False, error="Content is required")
 
-        # TODO: 基于内容相关性建议内部链接
-        suggestions = [
-            {"title": "相关文章1", "url": "/article/1"},
-            {"title": "相关文章2", "url": "/article/2"},
-        ]
+        # 基于关键词匹配建议内部链接
+        content_keywords = self._extract_keywords_tfidf(content, max_keywords=5)
+        # 获取可用文章列表
+        available_articles = context.parameters.get("available_articles", [])
+        suggestions = []
+        if available_articles:
+            for article in available_articles:
+                article_title = article.get("title", "")
+                article_id = article.get("id", 0)
+                # 计算关键词匹配度
+                title_lower = article_title.lower()
+                match_score = sum(1 for kw in content_keywords if kw in title_lower)
+                if match_score > 0:
+                    suggestions.append({
+                        "title": article_title,
+                        "url": f"/article/{article_id}",
+                        "relevance_score": min(match_score * 20, 100),
+                        "matched_keywords": [kw for kw in content_keywords if kw in title_lower],
+                    })
+            suggestions.sort(key=lambda x: x.get("relevance_score", 0), reverse=True)
+            suggestions = suggestions[:5]
+        else:
+            suggestions = [
+                {"title": "相关文章1", "url": "/article/1"},
+                {"title": "相关文章2", "url": "/article/2"},
+            ]
 
         return SkillResult(
             success=True,
@@ -258,7 +379,7 @@ class SEOOptimizerSkill(BaseSkill):
 class PluginGeneratorSkill(BaseSkill):
     """
     插件代码生成 Skill
-    
+
     根据描述生成 FastBlog 插件代码框架
     """
 
@@ -315,7 +436,7 @@ from shared.plugins.base import BasePlugin
 
 class {name.replace("-", "_").title()}Plugin(BasePlugin):
     """{name.replace("-", " ").title()} 插件"""
-    
+
     def __init__(self):
         super().__init__(
             name="{name}",
@@ -323,11 +444,11 @@ class {name.replace("-", "_").title()}Plugin(BasePlugin):
             description="{description}",
             author="Generated by AI",
         )
-    
+
     def activate(self):
         """激活插件"""
         pass
-    
+
     def deactivate(self):
         """停用插件"""
         pass
@@ -341,7 +462,7 @@ plugin = {name.replace("-", "_").title()}Plugin()
 class ThemeBuilderSkill(BaseSkill):
     """
     主题样式生成 Skill
-    
+
     根据描述生成 CSS 样式和主题配置
     """
 
@@ -379,7 +500,7 @@ class ThemeBuilderSkill(BaseSkill):
 
     def _generate_css(self, description: str) -> str:
         """生成 CSS 代码"""
-        return f"""/* 
+        return f"""/*
  * Generated Theme Styles
  * Description: {description}
  */
@@ -405,7 +526,7 @@ body {{
 class DataMigratorSkill(BaseSkill):
     """
     数据迁移助手 Skill
-    
+
     帮助从其他平台迁移数据到 FastBlog
     """
 
@@ -433,21 +554,57 @@ class DataMigratorSkill(BaseSkill):
                 error="Platform and import file are required"
             )
 
-        # TODO: 实现实际的数据迁移逻辑
-        return SkillResult(
-            success=True,
-            data={
-                "platform": source_platform,
-                "file": import_file,
-                "status": "completed",
-                "migrated_items": {
-                    "articles": 10,
-                    "categories": 5,
-                    "tags": 15,
-                }
-            },
-            message=f"Data migrated from {source_platform} successfully"
-        )
+        # 实际数据迁移逻辑
+        try:
+            import os
+            migrated_items = {"articles": 0, "categories": 0, "tags": 0, "media": 0}
+            migration_errors = []
+
+            if not os.path.exists(import_file):
+                return SkillResult(
+                    success=False,
+                    error=f"Import file not found: {import_file}"
+                )
+
+            if source_platform == "wordpress":
+                # WordPress XML 迁移
+                from shared.services.integrations.wordpress_importer import WordPressImporter
+                importer = WordPressImporter()
+                result = await importer.import_from_file(import_file)
+                migrated_items = result.get("migrated_items", migrated_items)
+            elif source_platform == "halo":
+                # Halo 迁移
+                from shared.services.integrations.halo_importer import HaloImporter
+                importer = HaloImporter()
+                result = await importer.import_from_file(import_file)
+                migrated_items = result.get("migrated_items", migrated_items)
+            else:
+                return SkillResult(
+                    success=False,
+                    error=f"Unsupported platform: {source_platform}. Supported: wordpress, halo"
+                )
+
+            return SkillResult(
+                success=True,
+                data={
+                    "platform": source_platform,
+                    "file": import_file,
+                    "status": "completed",
+                    "migrated_items": migrated_items,
+                    "errors": migration_errors,
+                },
+                message=f"Data migrated from {source_platform} successfully"
+            )
+        except ImportError:
+            return SkillResult(
+                success=False,
+                error=f"Migration module for {source_platform} not available"
+            )
+        except Exception as e:
+            return SkillResult(
+                success=False,
+                error=f"Migration failed: {str(e)}"
+            )
 
 
 # 注册所有核心 Skills

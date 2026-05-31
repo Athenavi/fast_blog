@@ -26,10 +26,10 @@ async def parse_wordpress_xml(
 ):
     """
     解析 WordPress XML 文件并返回预览信息
-    
+
     支持的文件格式:
     - WordPress WXR (WordPress eXtended RSS) XML 文件
-    
+
     返回内容:
     - 站点基本信息
     - 作者列表
@@ -90,13 +90,13 @@ async def import_wordpress_data(
 ):
     """
     导入 WordPress 数据到 FastBlog
-    
+
     参数说明:
     - file: WordPress 导出的 WXR XML 文件
     - user_mapping: 作者映射，JSON 格式 {"wordpress_author_login": system_user_id}
     - download_media: 是否下载媒体文件（会异步执行）
     - create_redirects: 是否自动创建旧 URL 到新 URL 的 301 重定向
-    
+
     导入内容:
     - 文章和页面
     - 分类
@@ -217,7 +217,7 @@ async def _download_media_background(media_list: list, user_id: int):
 async def get_import_template():
     """
     获取 WordPress 导入指南和模板说明
-    
+
     返回详细的导入步骤、支持的内容类型和注意事项
     """
     return ApiResponse(
@@ -293,7 +293,7 @@ async def validate_wordpress_file(
 ):
     """
     验证 WordPress 导出文件的有效性
-    
+
     检查文件格式、必需字段和数据结构完整性
     """
     if not file.filename.endswith('.xml'):
@@ -358,10 +358,30 @@ async def get_import_status(
 ):
     """
     查询异步导入任务的状态
-    
+
     用于跟踪大型文件导入或媒体下载的进度
     """
-    # TODO: 实现任务状态跟踪（需要添加任务队列或缓存）
+    # 通过 Redis 查询任务状态
+    task_data = None
+    try:
+        from src.services.redis_service import redis_service
+        task_data = await redis_service.get(f"wordpress_migration:{task_id}")
+    except Exception:
+        pass
+
+    if task_data and isinstance(task_data, dict):
+        return ApiResponse(
+            success=True,
+            data={
+                'task_id': task_id,
+                'status': task_data.get('status', 'unknown'),
+                'progress': task_data.get('progress', 0),
+                'message': task_data.get('message', ''),
+                'result': task_data.get('result'),
+            }
+        )
+
+    # 如果 Redis 中没有数据，返回默认状态
     return ApiResponse(
         success=True,
         data={

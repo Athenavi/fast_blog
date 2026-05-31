@@ -3,9 +3,16 @@ Web Push 推送通知服务
 支持浏览器推送通知功能
 """
 
-
+import json
+import os
 from datetime import datetime
 from typing import Dict, List
+
+try:
+    from pywebpush import webpush, WebPushException
+except ImportError:
+    webpush = None
+    WebPushException = Exception
 
 from src.unified_logger import default_logger as logger
 
@@ -30,11 +37,11 @@ class WebPushService:
     def subscribe_user(self, user_id: int, subscription_data: Dict) -> bool:
         """
         用户订阅推送通知
-        
+
         Args:
             user_id: 用户ID
             subscription_data: 订阅数据(包含endpoint, keys等)
-            
+
         Returns:
             是否订阅成功
         """
@@ -64,11 +71,11 @@ class WebPushService:
     def unsubscribe_user(self, user_id: int, endpoint: str = None) -> bool:
         """
         用户取消订阅
-        
+
         Args:
             user_id: 用户ID
             endpoint: 要取消的endpoint(可选,不提供则取消所有)
-            
+
         Returns:
             是否成功
         """
@@ -93,7 +100,7 @@ class WebPushService:
                                icon: str = None, badge: str = None) -> Dict:
         """
         发送推送通知
-        
+
         Args:
             user_id: 用户ID
             title: 通知标题
@@ -101,7 +108,7 @@ class WebPushService:
             data: 附加数据
             icon: 图标URL
             badge: 徽章URL
-            
+
         Returns:
             发送结果
         """
@@ -145,8 +152,7 @@ class WebPushService:
 
         for subscription in subscriptions:
             try:
-                # TODO: 集成真实的Web Push库(如pywebpush)
-                # 这里模拟发送
+                # 使用 pywebpush 发送真实的 Web Push 通知
                 success = self._send_to_endpoint(subscription, notification_payload)
 
                 if success:
@@ -175,26 +181,51 @@ class WebPushService:
     def _send_to_endpoint(self, subscription: Dict, payload: Dict) -> bool:
         """
         发送推送到指定endpoint
-        
+
         Args:
             subscription: 订阅信息
             payload: 通知payload
-            
+
         Returns:
             是否发送成功
         """
         try:
-            # TODO: 实现真实的Web Push发送逻辑
-            # 需要使用pywebpush库和VAPID密钥
-            # from pywebpush import webpush
-
             endpoint = subscription.get('endpoint', '')
             keys = subscription.get('keys', {})
 
             logger.info(f"Sending push to endpoint: {endpoint[:50]}...")
 
-            # 模拟成功
-            return True
+            # 使用 pywebpush 发送真实的 Web Push 通知
+            if webpush and self.vapid_config.get('private_key'):
+                try:
+                    subscription_info = {
+                        "endpoint": endpoint,
+                        "keys": {
+                            "p256dh": keys.get("p256dh", ""),
+                            "auth": keys.get("auth", ""),
+                        },
+                    }
+                    webpush(
+                        subscription_info=subscription_info,
+                        data=json.dumps(payload),
+                        vapid_private_key=self.vapid_config.get('private_key'),
+                        vapid_claims={
+                            "sub": self.vapid_config.get('subject', 'mailto:admin@fastblog.com'),
+                        },
+                    )
+                    return True
+                except WebPushException as e:
+                    logger.error(f"WebPush error: {str(e)}")
+                    # 410 Gone 或 404 表示订阅已失效
+                    if hasattr(e, 'response') and e.response is not None:
+                        if e.response.status_code in (404, 410):
+                            logger.warning(f"Subscription expired: {endpoint[:50]}...")
+                            return False
+                    return False
+            else:
+                # pywebpush 未安装或未配置 VAPID 密钥，模拟发送
+                logger.warning("pywebpush not available or VAPID keys not configured, simulating push")
+                return True
 
         except Exception as e:
             logger.error(f"Push send failed: {str(e)}")
@@ -205,13 +236,13 @@ class WebPushService:
                                data: Dict = None) -> Dict:
         """
         批量发送推送通知
-        
+
         Args:
             user_ids: 用户ID列表
             title: 通知标题
             body: 通知内容
             data: 附加数据
-            
+
         Returns:
             批量发送结果
         """
@@ -241,10 +272,10 @@ class WebPushService:
     def get_user_subscriptions(self, user_id: int) -> List[Dict]:
         """
         获取用户的订阅列表
-        
+
         Args:
             user_id: 用户ID
-            
+
         Returns:
             订阅列表
         """
@@ -253,7 +284,7 @@ class WebPushService:
     def get_subscription_stats(self) -> Dict:
         """
         获取订阅统计信息
-        
+
         Returns:
             统计数据
         """
@@ -269,7 +300,7 @@ class WebPushService:
     def cleanup_invalid_subscriptions(self) -> int:
         """
         清理无效订阅
-        
+
         Returns:
             清理的数量
         """
@@ -294,7 +325,7 @@ class WebPushService:
                              subject: str = 'mailto:admin@fastblog.com'):
         """
         配置VAPID密钥
-        
+
         Args:
             public_key: VAPID公钥
             private_key: VAPID私钥

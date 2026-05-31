@@ -40,12 +40,12 @@ async def subscribe_push(
 ):
     """
     用户订阅Web推送通知
-    
+
     需要提供Service Worker生成的订阅信息。
-    
+
     Args:
         subscription: 订阅数据(endpoint和keys)
-        
+
     Returns:
         订阅结果
     """
@@ -82,10 +82,10 @@ async def unsubscribe_push(
 ):
     """
     用户取消Web推送通知订阅
-    
+
     Args:
         endpoint: 要取消的endpoint(可选,不提供则取消所有)
-        
+
     Returns:
         取消结果
     """
@@ -115,7 +115,7 @@ async def get_subscription_status(
 ):
     """
     获取当前用户的推送订阅状态
-    
+
     Returns:
         订阅状态和列表
     """
@@ -141,10 +141,10 @@ async def send_push_notification(
 ):
     """
     向当前用户发送推送通知
-    
+
     Args:
         notification: 通知内容(title, body, data等)
-        
+
     Returns:
         发送结果
     """
@@ -178,19 +178,18 @@ async def send_push_to_users(
 ):
     """
     批量发送推送通知给指定用户
-    
+
     需要管理员权限。
-    
+
     Args:
         notification: 通知内容
         user_ids: 目标用户ID列表
-        
+
     Returns:
         批量发送结果
     """
-    # TODO: 添加管理员权限检查
-    # if not current_user.is_superuser:
-    #     raise HTTPException(status_code=403, detail="需要管理员权限")
+    if not getattr(current_user, 'is_superuser', False):
+        raise HTTPException(status_code=403, detail="需要管理员权限")
 
     try:
         result = web_push_service.send_to_multiple_users(
@@ -215,11 +214,12 @@ async def get_push_stats(
 ):
     """
     获取推送通知统计信息
-    
+
     Returns:
         统计数据
     """
-    # TODO: 添加管理员权限检查
+    if not getattr(current_user, 'is_superuser', False):
+        raise HTTPException(status_code=403, detail="需要管理员权限")
 
     try:
         stats = web_push_service.get_subscription_stats()
@@ -236,7 +236,7 @@ async def get_push_stats(
 async def get_vapid_public_key():
     """
     获取VAPID公钥用于前端订阅
-    
+
     Returns:
         VAPID公钥
     """

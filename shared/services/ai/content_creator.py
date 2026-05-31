@@ -15,14 +15,18 @@ AI 辅助内容创作服务
 9. 内部链接建议
 """
 
+import re
+from collections import Counter
 from datetime import datetime
 from typing import Dict, Any, List
+
+from shared.services.ai.llm_client import llm_client
 
 
 class AIWritingAssistant:
     """
     AI 写作助手
-    
+
     提供智能化的内容创作辅助功能
     """
 
@@ -38,13 +42,13 @@ class AIWritingAssistant:
     ) -> Dict[str, Any]:
         """
         生成文章大纲
-        
+
         Args:
             topic: 文章主题
             target_audience: 目标读者
             article_length: 文章长度 (short/medium/long)
             tone: 语气风格 (professional/casual/academic)
-            
+
         Returns:
             文章大纲
         """
@@ -57,7 +61,31 @@ class AIWritingAssistant:
 
         config = length_config.get(article_length, length_config["medium"])
 
-        # TODO: 集成 LLM API 生成大纲
+        # 尝试使用 LLM 生成大纲
+        if llm_client.is_available:
+            result = await llm_client.generate_json(
+                prompt=f"请为以下主题生成文章大纲：\n"
+                       f"主题：{topic}\n"
+                       f"目标读者：{target_audience}\n"
+                       f"文章长度：{article_length}（{config['word_count']}字）\n"
+                       f"语气风格：{tone}\n\n"
+                       f"要求：包含 title、meta、sections、seo_suggestions。\n"
+                       f"sections 数组中每个元素包含 heading、subheadings、key_points。",
+                system_prompt="你是一个专业的文章策划师和 SEO 专家。请以 JSON 格式返回结果。",
+            )
+            if result.get("success") and isinstance(result.get("content"), dict):
+                outline = result["content"]
+                # 记录生成历史
+                self.generation_history.append({
+                    "type": "outline",
+                    "topic": topic,
+                    "timestamp": datetime.now().isoformat(),
+                    "result": outline,
+                    "source": "llm"
+                })
+                return outline
+
+        # Fallback: 模板大纲
         outline = {
             "title": f"{topic}：完整指南",
             "meta": {
@@ -166,19 +194,33 @@ class AIWritingAssistant:
     ) -> Dict[str, Any]:
         """
         扩写段落
-        
+
         Args:
             text: 原始文本
             expansion_ratio: 扩展比例 (1.0-3.0)
             style: 扩展风格 (detailed/examples/analytical)
-            
+
         Returns:
             扩写后的文本
         """
         original_length = len(text)
 
-        # TODO: 集成 LLM API 扩写
-        expanded_text = f"""{text}
+        # 尝试使用 LLM 扩写
+        if llm_client.is_available:
+            style_prompts = {
+                "detailed": "请详细展开，添加更多细节和背景信息",
+                "examples": "请通过添加具体例子和案例来扩展",
+                "analytical": "请从分析角度深入探讨，添加数据和逻辑推理",
+            }
+            style_instruction = style_prompts.get(style, style_prompts["detailed"])
+            result = await llm_client.generate_text(
+                prompt=f"{style_instruction}，扩展比例约 {expansion_ratio} 倍：\n\n{text}",
+                system_prompt="你是一个专业的写作助手。请扩写段落，保持原始含义的同时增加深度和丰富度。",
+            )
+            if result.get("success"):
+                expanded_text = result["content"]
+            else:
+                expanded_text = f"""{text}
 
 【扩展内容】
 
@@ -218,11 +260,11 @@ class AIWritingAssistant:
     ) -> Dict[str, Any]:
         """
         优化标题
-        
+
         Args:
             title: 原始标题
             optimization_type: 优化类型 (seo/clickbait/professional/all)
-            
+
         Returns:
             优化建议列表
         """
@@ -299,23 +341,66 @@ class AIWritingAssistant:
     ) -> Dict[str, Any]:
         """
         提取关键词
-        
+
         Args:
             content: 文章内容
             max_keywords: 最大关键词数量
-            
+
         Returns:
             提取的关键词列表
         """
-        # TODO: 集成 NLP 库进行关键词提取
-        # 这里使用简化的实现
+        # 尝试使用 LLM 提取关键词
+        if llm_client.is_available:
+            result = await llm_client.generate_json(
+                prompt=f"请从以下内容中提取 {max_keywords} 个最重要的关键词：\n\n{content[:2000]}",
+                system_prompt="你是一个 NLP 专家。请以 JSON 格式返回关键词列表，包含 keywords 数组。",
+            )
+            if result.get("success") and isinstance(result.get("content"), dict):
+                llm_keywords = result.get("content", {}).get("keywords", [])
+                if llm_keywords and isinstance(llm_keywords[0], str):
+                    total_words = len(content.split())
+                    keywords = [
+                        {
+                            "keyword": kw,
+                            "frequency": content.lower().count(kw.lower()),
+                            "density": round(content.lower().count(kw.lower()) / max(total_words, 1) * 100, 2),
+                        }
+                        for kw in llm_keywords[:max_keywords]
+                    ]
+                    result_data = {
+                        "keywords": keywords,
+                        "total_words": total_words,
+                        "unique_words": len(set(content.lower().split())),
+                        "top_keywords": [k["keyword"] for k in keywords[:5]],
+                    }
+                    self.generation_history.append({
+                        "type": "keyword_extraction",
+                        "timestamp": datetime.now().isoformat(),
+                        "result": result_data,
+                        "source": "llm"
+                    })
+                    return result_data
 
-        words = content.split()
+        # Fallback: TF-IDF 简化实现
+        # 移除标点符号
+        clean_text = re.sub(r'[^\w\s]', ' ', content)
+        words = clean_text.split()
+        # 停用词过滤
+        stop_words = {
+            'the', 'a', 'an', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
+            'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could',
+            'should', 'may', 'might', 'shall', 'can', 'need', 'to', 'of', 'in',
+            'for', 'on', 'with', 'at', 'by', 'from', 'as', 'into', 'through',
+            'during', 'before', 'after', 'between', 'out', 'off', 'over', 'under',
+            'this', 'that', 'these', 'those', 'it', 'its', 'we', 'our', 'you',
+            'your', 'they', 'their', 'and', 'or', 'but', 'not', 'no', 'so',
+            '的', '了', '在', '是', '我', '有', '和', '就', '不', '人', '都', '一',
+            '上', '也', '很', '到', '说', '要', '去', '你', '会', '着',
+        }
         word_freq = {}
-
         for word in words:
-            word = word.lower().strip('.,!?;:\"\'')
-            if len(word) > 2:  # 忽略短词
+            word = word.lower().strip('.,!?;:\'"')
+            if len(word) > 2 and word not in stop_words:
                 word_freq[word] = word_freq.get(word, 0) + 1
 
         # 按频率排序
@@ -350,7 +435,7 @@ class AIWritingAssistant:
 class SEOAutoOptimizer:
     """
     自动 SEO 优化器
-    
+
     提供自动化的 SEO 优化功能
     """
 
@@ -365,12 +450,12 @@ class SEOAutoOptimizer:
     ) -> Dict[str, Any]:
         """
         生成 Meta 描述
-        
+
         Args:
             content: 文章内容
             title: 文章标题
             max_length: 最大长度
-            
+
         Returns:
             生成的 Meta 描述
         """
@@ -420,11 +505,11 @@ class SEOAutoOptimizer:
     ) -> Dict[str, Any]:
         """
         分析关键词密度
-        
+
         Args:
             content: 文章内容
             target_keywords: 目标关键词列表
-            
+
         Returns:
             关键词密度分析结果
         """
@@ -475,10 +560,10 @@ class SEOAutoOptimizer:
     ) -> Dict[str, Any]:
         """
         检查可读性
-        
+
         Args:
             content: 文章内容
-            
+
         Returns:
             可读性评分和建议
         """
@@ -545,25 +630,54 @@ class SEOAutoOptimizer:
     ) -> Dict[str, Any]:
         """
         建议内部链接
-        
+
         Args:
             content: 文章内容
             available_articles: 可用文章列表
-            
+
         Returns:
             内部链接建议
         """
-        # TODO: 基于内容相似度推荐相关文章
+        # 基于内容相似度推荐相关文章
         suggestions = []
 
         if available_articles:
-            # 模拟推荐逻辑
-            for article in available_articles[:5]:
+            # 提取内容关键词
+            clean_text = re.sub(r'[^\w\s]', ' ', content)
+            content_words = set(clean_text.lower().split())
+            stop_words = {
+                'the', 'a', 'an', 'is', 'are', 'was', 'were', 'be', 'been',
+                'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would',
+                'to', 'of', 'in', 'for', 'on', 'with', 'at', 'by', 'from',
+                'and', 'or', 'but', 'not', 'this', 'that', 'it', '的', '了',
+                '在', '是', '我', '有', '和', '就', '不', '都', '一', '也',
+            }
+            content_words -= stop_words
+            content_words = {w for w in content_words if len(w) > 1}
+
+            scored_articles = []
+            for article in available_articles:
+                article_title = article.get("title", "")
+                article_desc = article.get("description", article.get("excerpt", ""))
+                article_text = f"{article_title} {article_desc}".lower()
+                # 计算关键词匹配数
+                match_count = sum(1 for w in content_words if w in article_text)
+                # 标题匹配权重更高
+                title_matches = sum(1 for w in content_words if w in article_title.lower())
+                score = match_count + title_matches * 2
+                if score > 0:
+                    scored_articles.append((article, score))
+
+            # 按相关性排序
+            scored_articles.sort(key=lambda x: x[1], reverse=True)
+
+            for article, score in scored_articles[:5]:
+                relevance = min(int(score / max(len(content_words), 1) * 100), 100)
                 suggestions.append({
                     "article_id": article.get("id"),
                     "title": article.get("title"),
                     "url": f"/article/{article.get('id')}",
-                    "relevance_score": 85,
+                    "relevance_score": max(relevance, 10),
                     "anchor_text_suggestion": article.get("title")
                 })
 

@@ -32,10 +32,10 @@ class SiteQuotaService:
     async def get_site_quota(self, site_id: int) -> Dict:
         """
         获取站点配额信息
-        
+
         Args:
             site_id: 站点ID
-            
+
         Returns:
             配额信息，包括限制和当前使用量
         """
@@ -50,8 +50,6 @@ class SiteQuotaService:
         # 从 settings 中获取自定义配额，或使用默认值
         quotas = site.settings.get('quotas', self.DEFAULT_QUOTAS) if site.settings else self.DEFAULT_QUOTAS
 
-        # TODO: 统计当前使用量（需要 Article, User, Media 等模型支持 site_id）
-        # 目前返回占位数据
         usage = await self._calculate_usage(site_id)
 
         return {
@@ -68,10 +66,10 @@ class SiteQuotaService:
     async def _calculate_usage(self, site_id: int) -> Dict:
         """
         计算站点资源使用量
-        
+
         Args:
             site_id: 站点ID
-            
+
         Returns:
             使用量字典
         """
@@ -131,12 +129,12 @@ class SiteQuotaService:
     async def check_quota_available(self, site_id: int, resource_type: str, requested_amount: int = 1) -> Dict:
         """
         检查是否有可用配额
-        
+
         Args:
             site_id: 站点ID
             resource_type: 资源类型 (articles/users/media_size_mb/categories/plugins)
             requested_amount: 请求的数量
-            
+
         Returns:
             检查结果
         """
@@ -167,11 +165,11 @@ class SiteQuotaService:
     async def update_site_quota(self, site_id: int, quotas: Dict) -> Dict:
         """
         更新站点配额
-        
+
         Args:
             site_id: 站点ID
             quotas: 新的配额设置
-            
+
         Returns:
             更新结果
         """

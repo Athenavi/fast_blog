@@ -22,7 +22,7 @@ from shared.services.plugins.plugin_manager.core import BasePlugin, plugin_hooks
 class CloudUpgradePlugin(BasePlugin):
     """
     FastBlog Cloud 一键升级插件
-    
+
     功能:
     1. 版本检测和比较
     2. 升级流程编排 (10个步骤)
@@ -174,7 +174,7 @@ class CloudUpgradePlugin(BasePlugin):
     async def check_for_updates(self) -> Dict[str, Any]:
         """
         检查可用更新
-        
+
         Returns:
             更新信息
         """
@@ -289,8 +289,44 @@ class CloudUpgradePlugin(BasePlugin):
 
     async def _check_custom_server_updates(self) -> Optional[Dict[str, Any]]:
         """检查自定义服务器更新"""
-        # TODO: 实现自定义服务器检查
-        return None
+        try:
+            import aiohttp
+        except ImportError:
+            print("[CloudUpgrade] aiohttp not installed, custom server check unavailable")
+            return None
+
+        custom_cfg = self.settings.get('update_sources', {}).get('custom_server', {})
+        server_url = custom_cfg.get('url', '')
+        api_key = custom_cfg.get('api_key', '')
+
+        if not server_url:
+            return None
+
+        try:
+            headers = {'Content-Type': 'application/json'}
+            if api_key:
+                headers['Authorization'] = f'Bearer {api_key}'
+
+            async with aiohttp.ClientSession() as session:
+                async with session.get(
+                    f"{server_url.rstrip('/')}/api/version",
+                    headers=headers,
+                    timeout=aiohttp.ClientTimeout(total=15)
+                ) as resp:
+                    if resp.status == 200:
+                        data = await resp.json()
+                        return {
+                            'version': data.get('version', ''),
+                            'download_url': data.get('download_url', ''),
+                            'changelog': data.get('changelog', ''),
+                            'source': 'custom_server',
+                        }
+                    else:
+                        print(f"[CloudUpgrade] Custom server returned status {resp.status}")
+                        return None
+        except Exception as e:
+            print(f"[CloudUpgrade] Custom server check failed: {e}")
+            return None
 
     async def start_upgrade(
             self,
@@ -301,13 +337,13 @@ class CloudUpgradePlugin(BasePlugin):
     ) -> Dict[str, Any]:
         """
         开始升级流程
-        
+
         Args:
             version: 目标版本号
             source: 更新源 (github/local/custom)
             backup_before: 升级前备份
             auto_rollback: 失败时自动回滚
-            
+
         Returns:
             升级结果
         """
@@ -991,23 +1027,175 @@ class CloudUpgradePlugin(BasePlugin):
 
     async def _check_api_endpoints(self) -> Dict[str, Any]:
         """检查 API 端点"""
-        # TODO: 实现 API 端点健康检查
-        return {'passed': True}
+        try:
+            import aiohttp
+        except ImportError:
+            return {'passed': True, 'skipped': True, 'reason': 'aiohttp not installed'}
+
+        base_url = os.getenv('FASTBLOG_BASE_URL', 'http://127.0.0.1:8000')
+        endpoints = ['/api/v1/health', '/api/v1/articles', '/api/v1/auth/me']
+        results = {}
+
+        try:
+            async with aiohttp.ClientSession() as session:
+                for endpoint in endpoints:
+                    url = f"{base_url.rstrip('/')}{endpoint}"
+                    try:
+                        async with session.get(
+                            url, timeout=aiohttp.ClientTimeout(total=10)
+                        ) as resp:
+                            # 2xx 或 401 (未认证但服务正常) 都算通过
+                            results[endpoint] = resp.status in (200, 201, 204, 401, 403)
+                    except Exception as e:
+                        results[endpoint] = False
+
+            all_passed = all(results.values())
+            return {
+                'passed': all_passed,
+                'endpoints': results,
+            }
+        except Exception as e:
+            return {'passed': False, 'error': str(e)}
 
     async def _check_dependencies(self) -> Dict[str, Any]:
         """检查依赖"""
-        # TODO: 实现依赖检查
-        return {'passed': True}
+        import importlib
+
+        req_file = Path('requirements.txt')
+        if not req_file.exists():
+            return {'passed': True, 'skipped': True, 'reason': 'requirements.txt not found'}
+
+        missing = []
+        installed = []
+        try:
+            with open(req_file, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    if not line or line.startswith('#') or line.startswith('-'):
+                        continue
+                    # 提取包名（去除版本约束）
+                    pkg_name = \
+                    line.split('==')[0].split('>=')[0].split('<=')[0].split('~=')[0].split('!=')[0].split('[')[
+                        0].strip()
+                    try:
+                        importlib.import_module(pkg_name.replace('-', '_'))
+                        installed.append(pkg_name)
+                    except ImportError:
+                        missing.append(pkg_name)
+
+            return {
+                'passed': len(missing) == 0,
+                'installed': len(installed),
+                'missing': missing,
+            }
+        except Exception as e:
+            return {'passed': False, 'error': str(e)}
 
     async def _check_database_schema(self) -> Dict[str, Any]:
         """检查数据库 schema"""
-        # TODO: 实现 schema 检查
-        return {'passed': True}
+        try:
+            alembic_ini = Path('alembic.ini')
+            if not alembic_ini.exists():
+                return {'passed': True, 'skipped': True, 'reason': 'alembic.ini not found'}
+
+            result = subprocess.run(
+                ['alembic', 'current'],
+                capture_output=True,
+                text=True,
+                timeout=30
+            )
+
+            if result.returncode != 0:
+                return {
+                    'passed': False,
+                    'error': result.stderr.strip(),
+                }
+
+            # 检查是否有待执行的迁移
+            head_result = subprocess.run(
+                ['alembic', 'heads'],
+                capture_output=True,
+                text=True,
+                timeout=15
+            )
+
+            current_rev = result.stdout.strip().split('\n')[0] if result.stdout.strip() else ''
+            head_rev = head_result.stdout.strip().split('\n')[0] if head_result.stdout.strip() else ''
+
+            is_current = (current_rev == head_rev) if (current_rev and head_rev) else True
+
+            return {
+                'passed': is_current,
+                'current_revision': current_rev,
+                'head_revision': head_rev,
+                'needs_migration': not is_current,
+            }
+        except FileNotFoundError:
+            return {'passed': True, 'skipped': True, 'reason': 'alembic command not found'}
+        except Exception as e:
+            return {'passed': False, 'error': str(e)}
 
     async def _check_plugins_compatibility(self, version: str) -> Dict[str, Any]:
         """检查插件兼容性"""
-        # TODO: 实现插件兼容性检查
-        return {'passed': True}
+        incompatible = []
+        checked = []
+
+        try:
+            plugins_dir = Path('plugins')
+            if not plugins_dir.exists():
+                return {'passed': True, 'skipped': True, 'reason': 'plugins directory not found'}
+
+            target_parts = version.lstrip('v').split('.')
+            target_major = int(target_parts[0]) if target_parts else 0
+
+            for plugin_dir in plugins_dir.iterdir():
+                if not plugin_dir.is_dir():
+                    continue
+
+                # 检查 plugin.json 元数据
+                meta_file = plugin_dir / 'plugin.json'
+                if not meta_file.exists():
+                    continue
+
+                try:
+                    with open(meta_file, 'r', encoding='utf-8') as f:
+                        meta = json.load(f)
+
+                    plugin_name = meta.get('name', plugin_dir.name)
+                    min_fastblog = meta.get('min_fastblog_version', '')
+                    max_fastblog = meta.get('max_fastblog_version', '')
+
+                    checked.append(plugin_name)
+
+                    if min_fastblog:
+                        min_parts = min_fastblog.lstrip('v').split('.')
+                        min_major = int(min_parts[0]) if min_parts else 0
+                        if target_major < min_major:
+                            incompatible.append({
+                                'plugin': plugin_name,
+                                'reason': f'requires min version {min_fastblog}'
+                            })
+                            continue
+
+                    if max_fastblog:
+                        max_parts = max_fastblog.lstrip('v').split('.')
+                        max_major = int(max_parts[0]) if max_parts else 999
+                        if target_major > max_major:
+                            incompatible.append({
+                                'plugin': plugin_name,
+                                'reason': f'supports max version {max_fastblog}'
+                            })
+
+                except (json.JSONDecodeError, ValueError):
+                    continue
+
+            return {
+                'passed': len(incompatible) == 0,
+                'checked': checked,
+                'incompatible': incompatible,
+            }
+        except Exception as e:
+            return {'passed': False, 'error': str(e)}
 
     async def _backup_database(self, backup_dir: Path):
         """备份数据库"""

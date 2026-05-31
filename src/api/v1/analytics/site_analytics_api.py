@@ -7,17 +7,19 @@
 from datetime import datetime, timedelta
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 
 from shared.services.analytics.site_analytics import site_analytics
 from src.api.v1.core.responses import ApiResponse
 from src.api.v1.users.user_management import jwt_required
+from src.utils.security.ip_utils import get_client_ip
 
 router = APIRouter(prefix="/site-analytics", tags=["Site Analytics"])
 
 
 @router.post("/track/page-view")
 async def track_page_view(
+    request: Request,
         page_path: str = Query(..., description="页面路径"),
         page_title: Optional[str] = Query("", description="页面标题"),
         user_id: Optional[str] = Query(None, description="用户ID"),
@@ -27,11 +29,10 @@ async def track_page_view(
 ):
     """
     追踪页面浏览
-    
+
     记录用户访问页面的行为
     """
-    # 获取请求信息
-    ip_address = None  # TODO: 从请求中获取真实IP
+    ip_address = get_client_ip(request)
 
     site_analytics.track_page_view(
         page_path=page_path,
@@ -58,7 +59,7 @@ async def track_custom_event(
 ):
     """
     追踪自定义事件
-    
+
     记录用户的特定行为（如点击、表单提交等）
     """
     site_analytics.track_event(
@@ -119,7 +120,7 @@ async def get_traffic_sources(
 ):
     """
     获取流量来源统计
-    
+
     显示访问者的来源渠道（直接访问、搜索引擎、社交媒体等）
     """
     sources = site_analytics.get_traffic_sources(limit=limit)
@@ -141,7 +142,7 @@ async def get_user_activity(
 ):
     """
     获取用户活动统计
-    
+
     显示指定用户的访问行为和互动数据
     """
     activity = site_analytics.get_user_activity(user_id=user_id, days=days)
@@ -159,7 +160,7 @@ async def get_session_stats(
 ):
     """
     获取会话统计
-    
+
     显示单次访问的详细信息
     """
     stats = site_analytics.get_session_stats(session_id=session_id)
@@ -183,7 +184,7 @@ async def get_daily_stats(
 ):
     """
     获取每日统计数据
-    
+
     显示指定时间段内的每日访问量、独立访客等指标
     """
     stats = site_analytics.get_daily_stats(days=days)
@@ -209,7 +210,7 @@ async def get_real_time_stats(
 ):
     """
     获取实时统计
-    
+
     显示当前正在进行的访问活动
     """
     # 获取最近5分钟的事件
@@ -249,7 +250,7 @@ async def get_analytics_overview(
 ):
     """
     获取数据分析概览
-    
+
     综合显示关键指标和趋势
     """
     # 获取每日统计
@@ -295,7 +296,7 @@ async def export_analytics_data(
 ):
     """
     导出分析数据
-    
+
     将指定时间段的数据导出为JSON或CSV格式
     """
     try:

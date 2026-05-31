@@ -26,10 +26,10 @@ async def get_audio_metadata(
 ):
     """
     获取音频文件的元数据（封面、歌词等）
-    
+
     Args:
         media_id: 媒体文件ID
-    
+
     Returns:
         包含封面图片(base64)和歌词的JSON数据
     """
@@ -97,9 +97,34 @@ def extract_cover_from_audio(media: Media) -> Optional[bytes]:
 
         # 如果是S3路径，需要先下载到临时文件
         if file_path.startswith('s3://'):
-            # TODO: 实现S3文件下载逻辑
-            logger.warning("S3存储的音频文件暂不支持封面提取")
-            return None
+            try:
+                import tempfile
+                import boto3
+                from src.config import settings
+
+                # 解析 S3 路径 (s3://bucket/key)
+                parts = file_path.replace('s3://', '').split('/', 1)
+                bucket = parts[0]
+                key = parts[1] if len(parts) > 1 else ''
+
+                # 从配置获取 AWS 凭据
+                s3_client = boto3.client(
+                    's3',
+                    aws_access_key_id=getattr(settings, 'AWS_ACCESS_KEY_ID', None),
+                    aws_secret_access_key=getattr(settings, 'AWS_SECRET_ACCESS_KEY', None),
+                    region_name=getattr(settings, 'AWS_REGION', 'us-east-1'),
+                )
+
+                with tempfile.NamedTemporaryFile(suffix='.tmp', delete=False) as tmp_file:
+                    s3_client.download_file(bucket, key, tmp_file.name)
+                    result = extract_audio_cover(tmp_file.name)
+
+                    import os
+                    os.unlink(tmp_file.name)
+                    return result
+            except Exception as e:
+                logger.error(f"S3文件下载失败: {e}")
+                return None
 
         # 本地文件直接提取
         full_path = Path('storage/' + file_path)

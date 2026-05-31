@@ -4,6 +4,7 @@ import React, {useState} from 'react';
 import {QueryClient, QueryClientProvider} from '@tanstack/react-query';
 import {ErrorBoundary} from '@/components/ui/ErrorBoundary';
 import {ConfirmProvider} from '@/components/ui/confirm-provider';
+import {I18nProvider} from '@/lib/i18n';
 
 export function QueryProvider({children}: {children: React.ReactNode}) {
   const [qc] = useState(() => new QueryClient({
@@ -24,11 +25,13 @@ export function QueryProvider({children}: {children: React.ReactNode}) {
   }));
   return (
       <ErrorBoundary>
-        <QueryClientProvider client={qc}>
-          <ConfirmProvider>
-            {children}
-          </ConfirmProvider>
-        </QueryClientProvider>
+        <I18nProvider>
+          <QueryClientProvider client={qc}>
+            <ConfirmProvider>
+              {children}
+            </ConfirmProvider>
+          </QueryClientProvider>
+        </I18nProvider>
       </ErrorBoundary>
   );
 }

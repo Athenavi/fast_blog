@@ -3,10 +3,19 @@ P8-2: 健康检查与自愈服务
 提供系统监控、告警和自动恢复功能
 """
 import asyncio
+import json
 import psutil
 import time
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timedelta
+
+try:
+    import aiohttp
+except ImportError:
+    aiohttp = None
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,7 +27,7 @@ from src.utils.database.main import get_async_session
 class HealthChecker:
     """
     P8-2: 健康检查与自愈服务
-    
+
     功能：
     1. 数据库连接池监控
     2. 内存/CPU 使用率告警
@@ -27,7 +36,7 @@ class HealthChecker:
     5. 故障通知（Webhook/邮件）
     """
 
-    def __init__(self):
+    def __init__(self, webhook_url: str = "", email_config: Dict[str, Any] = None):
         self.check_interval = 60  # 检查间隔（秒）
         self.alert_thresholds = {
             'cpu_percent': 90,  # CPU 使用率阈值
@@ -37,11 +46,15 @@ class HealthChecker:
         }
         self.alert_history = []
         self.is_running = False
+        # Webhook 配置（支持飞书/钉钉/企业微信/Slack等）
+        self.webhook_url = webhook_url
+        # 邮件配置: {"smtp_host", "smtp_port", "username", "password", "recipients", "from_addr", "use_tls"}
+        self.email_config = email_config or {}
 
     async def check_database_health(self) -> Dict[str, Any]:
         """
         检查数据库健康状态
-        
+
         Returns:
             数据库健康信息
         """
@@ -99,7 +112,7 @@ class HealthChecker:
     def check_system_resources(self) -> Dict[str, Any]:
         """
         检查系统资源使用情况
-        
+
         Returns:
             系统资源信息
         """
@@ -170,7 +183,7 @@ class HealthChecker:
     async def check_application_health(self) -> Dict[str, Any]:
         """
         检查应用健康状态
-        
+
         Returns:
             应用健康信息
         """
@@ -205,7 +218,7 @@ class HealthChecker:
     async def _send_alert(self, alert_type: str, message: str, severity: str = "warning"):
         """
         发送告警通知（异步）
-        
+
         Args:
             alert_type: 告警类型
             message: 告警消息
@@ -226,9 +239,19 @@ class HealthChecker:
 
         logger.warning(f"[ALERT] [{severity.upper()}] {alert_type}: {message}")
 
-        # TODO: 集成 Webhook/邮件通知
-        # await self._send_webhook_notification(alert_data)
-        # await self._send_email_notification(alert_data)
+        # 异步发送 Webhook 通知
+        if self.webhook_url:
+            try:
+                await self._send_webhook_notification(alert_data)
+            except Exception as e:
+                logger.error(f"Webhook notification failed: {e}")
+
+        # 异步发送邮件通知（仅对 warning/critical 级别发送）
+        if self.email_config and severity in ("warning", "critical"):
+            try:
+                await self._send_email_notification(alert_data)
+            except Exception as e:
+                logger.error(f"Email notification failed: {e}")
 
     def _send_alert_sync(self, alert_type: str, message: str, severity: str = "warning"):
         """同步版本的告警发送"""
@@ -271,7 +294,7 @@ class HealthChecker:
     async def _attempt_self_healing(self, health: Dict[str, Any]):
         """
         尝试自愈
-        
+
         Args:
             health: 健康检查结果
         """
@@ -300,14 +323,140 @@ class HealthChecker:
     def get_alert_history(self, limit: int = 20) -> List[Dict[str, Any]]:
         """
         获取告警历史
-        
+
         Args:
             limit: 返回数量限制
-            
+
         Returns:
             告警历史列表
         """
         return self.alert_history[-limit:]
+
+    async def _send_webhook_notification(self, alert_data: Dict[str, Any]):
+        """
+        发送 Webhook 通知（支持飞书/钉钉/企业微信/Slack 等）
+        自动根据 URL 格式适配不同的消息体结构
+        """
+        if not self.webhook_url or not aiohttp:
+            return
+
+        severity_emoji = {"info": "ℹ️", "warning": "⚠️", "critical": "🔴"}.get(
+            alert_data.get("severity", "warning"), "⚠️"
+        )
+        title = f"{severity_emoji} 系统告警: {alert_data.get('type', 'unknown')}"
+        text = (
+            f"**类型**: {alert_data.get('type', 'N/A')}\n"
+            f"**级别**: {alert_data.get('severity', 'N/A')}\n"
+            f"**消息**: {alert_data.get('message', 'N/A')}\n"
+            f"**时间**: {alert_data.get('timestamp', 'N/A')}"
+        )
+
+        # 根据 URL 自动判断平台并构造消息体
+        url = self.webhook_url
+        if "feishu.cn" in url or "larksuite.com" in url:
+            # 飞书机器人
+            payload = {
+                "msg_type": "interactive",
+                "card": {
+                    "header": {"title": {"tag": "plain_text", "content": title}},
+                    "elements": [{"tag": "markdown", "content": text}],
+                },
+            }
+        elif "dingtalk.com" in url:
+            # 钉钉机器人
+            payload = {
+                "msgtype": "markdown",
+                "markdown": {"title": title, "text": f"## {title}\n\n{text}"},
+            }
+        elif "qyapi.weixin.qq.com" in url:
+            # 企业微信机器人
+            payload = {
+                "msgtype": "markdown",
+                "markdown": {"content": f"## {title}\n\n{text}"},
+            }
+        else:
+            # 通用 Webhook（Slack / Discord / 自定义）
+            payload = {
+                "text": f"{title}\n{text}",
+                "content": f"{title}\n{text}",
+            }
+
+        async with aiohttp.ClientSession() as session:
+            async with session.post(url, json=payload, timeout=aiohttp.ClientTimeout(total=10)) as resp:
+                if resp.status >= 400:
+                    body = await resp.text()
+                    logger.error(f"Webhook notification failed ({resp.status}): {body}")
+                else:
+                    logger.info(f"Webhook notification sent successfully for alert: {alert_data.get('type')}")
+
+    async def _send_email_notification(self, alert_data: Dict[str, Any]):
+        """
+        发送邮件告警通知
+        需要 email_config 包含: smtp_host, smtp_port, username, password, recipients, from_addr
+        """
+        cfg = self.email_config
+        if not cfg.get("smtp_host") or not cfg.get("recipients"):
+            return
+
+        severity = alert_data.get("severity", "warning")
+        subject = f"[{severity.upper()}] 系统告警: {alert_data.get('type', 'unknown')}"
+
+        html_body = f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; padding: 20px;">
+            <h2 style="color: {'#e74c3c' if severity == 'critical' else '#f39c12' if severity == 'warning' else '#3498db'};">
+                ⚠️ 系统告警通知
+            </h2>
+            <table style="border-collapse: collapse; width: 100%; max-width: 600px;">
+                <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">告警类型</td>
+                    <td style="padding: 8px; border: 1px solid #ddd;">{alert_data.get('type', 'N/A')}</td></tr>
+                <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">严重程度</td>
+                    <td style="padding: 8px; border: 1px solid #ddd;">{severity}</td></tr>
+                <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">告警消息</td>
+                    <td style="padding: 8px; border: 1px solid #ddd;">{alert_data.get('message', 'N/A')}</td></tr>
+                <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">触发时间</td>
+                    <td style="padding: 8px; border: 1px solid #ddd;">{alert_data.get('timestamp', 'N/A')}</td></tr>
+            </table>
+            <p style="color: #888; margin-top: 20px; font-size: 12px;">
+                此邮件由 FastBlog 健康检查服务自动发送
+            </p>
+        </body>
+        </html>
+        """
+
+        msg = MIMEMultipart("alternative")
+        msg["Subject"] = subject
+        msg["From"] = cfg.get("from_addr", cfg.get("username", ""))
+        msg["To"] = ", ".join(cfg["recipients"]) if isinstance(cfg["recipients"], list) else cfg["recipients"]
+        msg.attach(MIMEText(html_body, "html", "utf-8"))
+
+        try:
+            use_tls = cfg.get("use_tls", True)
+            smtp_port = cfg.get("smtp_port", 465 if use_tls else 587)
+
+            loop = asyncio.get_event_loop()
+            await loop.run_in_executor(None, self._send_email_sync, cfg, msg, smtp_port, use_tls)
+            logger.info(f"Email notification sent for alert: {alert_data.get('type')}")
+        except Exception as e:
+            logger.error(f"Email notification failed: {e}")
+
+    @staticmethod
+    def _send_email_sync(cfg: dict, msg: MIMEMultipart, smtp_port: int, use_tls: bool):
+        """同步发送邮件（在线程池中运行）"""
+        if use_tls:
+            server = smtplib.SMTP_SSL(cfg["smtp_host"], smtp_port, timeout=15)
+        else:
+            server = smtplib.SMTP(cfg["smtp_host"], smtp_port, timeout=15)
+            server.starttls()
+
+        try:
+            server.login(cfg["username"], cfg["password"])
+            recipients = cfg["recipients"]
+            if isinstance(recipients, str):
+                recipients = [recipients]
+            server.sendmail(cfg.get("from_addr", cfg["username"]), recipients, msg.as_string())
+        finally:
+            server.quit()
 
 
 # 全局实例

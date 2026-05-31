@@ -26,7 +26,7 @@ async def run_static_analysis(
 ):
     """
     运行静态代码分析
-    
+
     检查代码中的潜在安全问题
     """
     issues = static_analyzer.analyze(code, filename)
@@ -51,7 +51,7 @@ async def scan_dependencies(
 ):
     """
     扫描依赖包安全漏洞
-    
+
     检查插件依赖的已知安全问题
     """
     # 临时保存 requirements 文件
@@ -79,7 +79,7 @@ async def scan_dependencies(
 async def get_behavior_report(current_user=Depends(jwt_required)):
     """
     获取动态行为报告
-    
+
     查看插件运行时的行为监控数据
     """
     report = behavior_monitor.get_behavior_report()
@@ -98,7 +98,7 @@ async def track_api_call(
 ):
     """
     追踪 API 调用
-    
+
     记录插件的 API 使用情况
     """
     behavior_monitor.track_api_call(api_name, parameters)
@@ -117,7 +117,7 @@ async def track_resource_usage(
 ):
     """
     追踪资源使用
-    
+
     记录插件的资源消耗
     """
     behavior_monitor.track_resource_usage(cpu_percent, memory_mb)
@@ -137,7 +137,7 @@ async def track_network_request(
 ):
     """
     追踪网络请求
-    
+
     记录插件的网络活动
     """
     behavior_monitor.track_network_request(url, method, status)
@@ -157,7 +157,7 @@ async def run_full_audit(
 ):
     """
     运行完整安全审计
-    
+
     综合静态分析、依赖扫描和行为监控
     """
     # 静态代码分析
@@ -213,15 +213,17 @@ async def get_audit_history(
 ):
     """
     获取审计历史
-    
+
     查看之前的安全审计记录
     """
-    # TODO: 从数据库获取历史记录
+    from shared.services.plugins.plugin_audit import plugin_audit_logger
+    history = plugin_audit_logger.get_audit_logs(limit=limit)
+
     return ApiResponse(
         success=True,
         data={
-            "history": [],
-            "total": 0,
+            "history": history,
+            "total": len(history),
         }
     )
 
@@ -230,7 +232,7 @@ async def get_audit_history(
 async def get_security_guidelines(current_user=Depends(jwt_required)):
     """
     获取安全开发指南
-    
+
     提供插件开发的安全最佳实践
     """
     guidelines = {
@@ -306,7 +308,7 @@ async def get_security_guidelines(current_user=Depends(jwt_required)):
 async def get_common_vulnerabilities(current_user=Depends(jwt_required)):
     """
     获取常见漏洞列表
-    
+
     了解插件开发中常见的安全问题
     """
     vulnerabilities = {

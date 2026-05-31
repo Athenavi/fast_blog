@@ -279,11 +279,76 @@ class AliyunCDN(CDNProvider):
 
     async def get_analytics(self, period: str = '24h') -> Dict[str, Any]:
         """获取阿里云 CDN 分析数据"""
-        # TODO: 实现阿里云 CDN 数据分析
-        return {
-            'success': False,
-            'error': 'Not implemented yet'
-        }
+        try:
+            from aliyunsdkcore.client import AcsClient
+            from aliyunsdkcdn.request.v20180510.DescribeDomainBpsDataRequest import DescribeDomainBpsDataRequest
+            from aliyunsdkcdn.request.v20180510.DescribeDomainTrafficDataRequest import DescribeDomainTrafficDataRequest
+
+            client = AcsClient(self.access_key_id, self.access_key_secret, 'cn-hangzhou')
+
+            now = datetime.utcnow()
+            if period == '24h':
+                start_time = (now - timedelta(hours=24)).strftime('%Y-%m-%dT%H:%MZ')
+            elif period == '7d':
+                start_time = (now - timedelta(days=7)).strftime('%Y-%m-%dT%H:%MZ')
+            elif period == '30d':
+                start_time = (now - timedelta(days=30)).strftime('%Y-%m-%dT%H:%MZ')
+            else:
+                start_time = (now - timedelta(hours=24)).strftime('%Y-%m-%dT%H:%MZ')
+
+            end_time = now.strftime('%Y-%m-%dT%H:%MZ')
+
+            # 获取带宽数据
+            bps_request = DescribeDomainBpsDataRequest()
+            bps_request.set_StartTime(start_time)
+            bps_request.set_EndTime(end_time)
+            if self.domain:
+                bps_request.set_DomainName(self.domain)
+
+            bps_response = client.do_action_with_exception(bps_request)
+            bps_data = json.loads(bps_response)
+
+            # 获取流量数据
+            traffic_request = DescribeDomainTrafficDataRequest()
+            traffic_request.set_StartTime(start_time)
+            traffic_request.set_EndTime(end_time)
+            if self.domain:
+                traffic_request.set_DomainName(self.domain)
+
+            traffic_response = client.do_action_with_exception(traffic_request)
+            traffic_data = json.loads(traffic_response)
+
+            # 提取峰值带宽（bps -> Mbps）
+            bps_list = bps_data.get('BpsDataPerInterval', {}).get('DataModule', [])
+            peak_bps = max((item.get('PeakValue', 0) for item in bps_list), default=0)
+            avg_bps = sum(item.get('AvgValue', 0) for item in bps_list) / max(len(bps_list), 1)
+
+            # 提取总流量（bytes）
+            traffic_list = traffic_data.get('TrafficDataPerInterval', {}).get('DataModule', [])
+            total_traffic = sum(item.get('Value', 0) for item in traffic_list)
+
+            return {
+                'success': True,
+                'provider': 'aliyun',
+                'period': period,
+                'peak_bandwidth_bps': peak_bps,
+                'avg_bandwidth_bps': round(avg_bps, 2),
+                'peak_bandwidth_mbps': round(peak_bps / 1_000_000, 2),
+                'total_traffic_bytes': total_traffic,
+                'total_traffic_gb': round(total_traffic / (1024 ** 3), 2),
+                'data_points': len(bps_list),
+            }
+
+        except ImportError:
+            return {
+                'success': False,
+                'error': 'aliyun-python-sdk-cdn not installed'
+            }
+        except Exception as e:
+            return {
+                'success': False,
+                'error': str(e)
+            }
 
     async def test_connection(self) -> Dict[str, Any]:
         """测试阿里云 CDN 连接"""
@@ -397,11 +462,82 @@ class TencentCDN(CDNProvider):
 
     async def get_analytics(self, period: str = '24h') -> Dict[str, Any]:
         """获取腾讯云 CDN 分析数据"""
-        # TODO: 实现腾讯云 CDN 数据分析
-        return {
-            'success': False,
-            'error': 'Not implemented yet'
-        }
+        try:
+            from tencentcloud.common import credential
+            from tencentcloud.cdn.v20180606 import cdn_client, models
+
+            cred = credential.Credential(self.secret_id, self.secret_key)
+            client = cdn_client.CdnClient(cred, 'ap-guangzhou')
+
+            now = datetime.utcnow()
+            if period == '24h':
+                start_time = (now - timedelta(hours=24)).strftime('%Y-%m-%d %H:%M:%S')
+                interval = '5min'
+            elif period == '7d':
+                start_time = (now - timedelta(days=7)).strftime('%Y-%m-%d %H:%M:%S')
+                interval = 'hour'
+            elif period == '30d':
+                start_time = (now - timedelta(days=30)).strftime('%Y-%m-%d %H:%M:%S')
+                interval = 'day'
+            else:
+                start_time = (now - timedelta(hours=24)).strftime('%Y-%m-%d %H:%M:%S')
+                interval = '5min'
+
+            end_time = now.strftime('%Y-%m-%d %H:%M:%S')
+
+            # 获取流量数据
+            traffic_req = models.DescribeCdnDataRequest()
+            params = {
+                "StartTime": start_time,
+                "EndTime": end_time,
+                "Interval": interval,
+                "Metric": "flux",
+            }
+            if self.domain:
+                params["Domains"] = [self.domain]
+            traffic_req.from_json_string(json.dumps(params))
+
+            traffic_resp = client.DescribeCdnData(traffic_req)
+            traffic_data = json.loads(traffic_resp.to_json_string())
+
+            # 获取带宽数据
+            bps_req = models.DescribeCdnDataRequest()
+            params["Metric"] = "bandwidth"
+            bps_req.from_json_string(json.dumps(params))
+
+            bps_resp = client.DescribeCdnData(bps_req)
+            bps_data = json.loads(bps_resp.to_json_string())
+
+            # 提取数据
+            flux_list = traffic_data.get('Data', [{}])[0].get('CdnData', []) if traffic_data.get('Data') else []
+            total_flux = sum(flux_list) if flux_list else 0
+
+            bps_list = bps_data.get('Data', [{}])[0].get('CdnData', []) if bps_data.get('Data') else []
+            peak_bps = max(bps_list) if bps_list else 0
+            avg_bps = sum(bps_list) / max(len(bps_list), 1) if bps_list else 0
+
+            return {
+                'success': True,
+                'provider': 'tencent',
+                'period': period,
+                'peak_bandwidth_bps': peak_bps,
+                'avg_bandwidth_bps': round(avg_bps, 2),
+                'peak_bandwidth_mbps': round(peak_bps / 1_000_000, 2),
+                'total_flux_bytes': total_flux,
+                'total_flux_gb': round(total_flux / (1024 ** 3), 2),
+                'data_points': len(bps_list),
+            }
+
+        except ImportError:
+            return {
+                'success': False,
+                'error': 'tencentcloud-sdk-python not installed'
+            }
+        except Exception as e:
+            return {
+                'success': False,
+                'error': str(e)
+            }
 
     async def test_connection(self) -> Dict[str, Any]:
         """测试腾讯云 CDN 连接"""
@@ -438,7 +574,7 @@ class TencentCDN(CDNProvider):
 class CloudCDNPlugin(BasePlugin):
     """
     FastBlog Cloud CDN 管理插件
-    
+
     功能:
     1. 多云CDN提供商支持 (Cloudflare/阿里云/腾讯云)
     2. 智能缓存策略管理
@@ -644,11 +780,11 @@ class CloudCDNPlugin(BasePlugin):
     ) -> Dict[str, Any]:
         """
         清除 CDN 缓存
-        
+
         Args:
             urls: 要清除的 URL 列表
             provider: CDN 提供商名称
-            
+
         Returns:
             清除结果
         """
@@ -685,12 +821,12 @@ class CloudCDNPlugin(BasePlugin):
     ) -> Dict[str, Any]:
         """
         预热 CDN 缓存
-        
+
         Args:
             urls: 要预热的 URL 列表
             provider: CDN 提供商名称
             priority: 优先级 (high/normal/low)
-            
+
         Returns:
             预热结果
         """
@@ -725,11 +861,11 @@ class CloudCDNPlugin(BasePlugin):
     ) -> Dict[str, Any]:
         """
         获取 CDN 分析数据
-        
+
         Args:
             period: 时间周期 (24h/7d/30d)
             provider: CDN 提供商名称
-            
+
         Returns:
             分析数据
         """
@@ -751,10 +887,10 @@ class CloudCDNPlugin(BasePlugin):
     async def test_connection(self, provider: str = None) -> Dict[str, Any]:
         """
         测试 CDN 连接
-        
+
         Args:
             provider: CDN 提供商名称
-            
+
         Returns:
             测试结果
         """
@@ -770,10 +906,10 @@ class CloudCDNPlugin(BasePlugin):
     def convert_to_cdn_url(self, original_url: str) -> str:
         """
         将原始 URL 转换为 CDN URL
-        
+
         Args:
             original_url: 原始 URL
-            
+
         Returns:
             CDN URL
         """
@@ -807,10 +943,10 @@ class CloudCDNPlugin(BasePlugin):
     def convert_html_urls(self, response_data: Dict[str, Any]) -> Dict[str, Any]:
         """
         转换 HTML 中的 URL 为 CDN URL
-        
+
         Args:
             response_data: 响应数据
-            
+
         Returns:
             修改后的响应数据
         """
@@ -876,10 +1012,10 @@ class CloudCDNPlugin(BasePlugin):
     def get_cache_strategy(self, url: str) -> Optional[Dict[str, Any]]:
         """
         根据 URL 获取缓存策略
-        
+
         Args:
             url: URL 路径
-            
+
         Returns:
             缓存策略配置
         """

@@ -7,6 +7,7 @@ import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {StatCard} from '@/components/admin/shared-ui';
 import {apiClient} from '@/lib/api/base-client';
+import {useTranslation, locales, type Locale} from '@/lib/i18n';
 import {
   Save,
   Settings as SettingsIcon,
@@ -447,6 +448,7 @@ const DeleteConfirm: React.FC<{
 // ─── Main Component ───────────────────────────────────
 function SettingsInner() {
   const qc = useQueryClient();
+  const {locale, setLocale, t} = useTranslation();
   const [activeTab, setActiveTab] = useState('basic');
   const [localSettings, setLocalSettings] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
@@ -586,8 +588,15 @@ function SettingsInner() {
       case 'basic':
       case 'home':
       case 'system': {
-        const tabConfig = TABS.find(t => t.key === activeTab)!;
+        const tabConfig = TABS.find(tb => tb.key === activeTab)!;
+        const localeNames: Record<Locale, string> = {
+          'zh-CN': t('settings.languageSwitcher.languages.zh-CN'),
+          'en': t('settings.languageSwitcher.languages.en'),
+          'ar': t('settings.languageSwitcher.languages.ar'),
+          'he': t('settings.languageSwitcher.languages.he'),
+        };
         return (
+          <>
             <div
                 className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200/80 dark:border-gray-700/80 overflow-hidden">
               <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-800">
@@ -597,13 +606,13 @@ function SettingsInner() {
                                   <div className="relative">
                                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"/>
                                     <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-                                           placeholder="搜索设置项..."
+                                           placeholder={t('settings.systemOptionsDesc')}
                                            className="pl-9 pr-4 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 w-48 transition-all"/>
                                   </div>
                                   <button onClick={saveSettings} disabled={saving || !hasChanges}
                                           className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white text-sm font-medium rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40">
                                     {saving ? <Loader className="w-4 h-4 animate-spin"/> : <Save className="w-4 h-4"/>}
-                                    保存设置
+                                    {t('settings.saveSettings')}
                                   </button>
                                 </div>
                               }
@@ -626,14 +635,14 @@ function SettingsInner() {
               {hasChanges && !saveMsg && (
                   <div
                       className="mx-6 mt-4 p-3 rounded-xl text-sm flex items-center gap-2 bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800">
-                    <Clock className="w-4 h-4"/>有未保存的更改
+                    <Clock className="w-4 h-4"/>{t('common.loading')}
                   </div>
               )}
 
               <div className="p-6 space-y-5">
                 {filteredFields.length === 0 ? (
                     <div className="text-center py-8 text-sm text-gray-400">
-                      {searchQuery ? '未找到匹配的设置项' : '暂无设置项'}
+                      {searchQuery ? t('common.noData') : t('common.noData')}
                     </div>
                 ) : (
                     filteredFields.map((f, i) => (
@@ -661,6 +670,64 @@ function SettingsInner() {
                 )}
             </div>
           </div>
+
+            {/* ── Language Switcher Card ── */}
+            <div
+              className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200/80 dark:border-gray-700/80 overflow-hidden">
+              <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-800">
+                <SectionTitle icon={Globe} title={t('settings.languageSwitcher.title')}
+                              subtitle={t('settings.languageSwitcher.subtitle')}/>
+              </div>
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-3">
+                    <div
+                      className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center">
+                      <Globe className="w-5 h-5 text-white"/>
+                    </div>
+                    <div>
+                      <p
+                        className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('settings.languageSwitcher.current')}</p>
+                      <p className="text-lg font-semibold text-gray-900 dark:text-white">{localeNames[locale]}</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  {locales.map((loc) => (
+                    <button
+                      key={loc}
+                      onClick={() => setLocale(loc)}
+                      className={`relative flex flex-col items-center gap-2 p-4 rounded-xl border-2 transition-all duration-200 ${
+                        locale === loc
+                          ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20 shadow-md shadow-blue-500/20'
+                          : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-750'
+                      }`}
+                    >
+                      {locale === loc && (
+                        <div className="absolute top-2 right-2">
+                          <CheckCircle2 className="w-4 h-4 text-blue-500"/>
+                        </div>
+                      )}
+                      <span className={`text-sm font-medium ${
+                        locale === loc
+                          ? 'text-blue-700 dark:text-blue-300'
+                          : 'text-gray-700 dark:text-gray-300'
+                      }`}>
+                        {localeNames[loc]}
+                      </span>
+                      <span className={`text-xs ${
+                        locale === loc
+                          ? 'text-blue-500 dark:text-blue-400'
+                          : 'text-gray-400 dark:text-gray-500'
+                      }`}>
+                        {loc}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </>
         );
       }
 

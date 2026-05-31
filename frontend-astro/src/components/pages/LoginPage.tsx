@@ -6,6 +6,7 @@ import {zodResolver} from '@hookform/resolvers/zod';
 import {apiClient} from '@/lib/api/base-client';
 import {getCookie, setCookie} from '@/lib/auth-utils';
 import {loginSchema, twoFactorSchema, type LoginFormData, type TwoFactorFormData} from '@/lib/schemas';
+import {useTranslation} from '@/lib/i18n';
 import {
   ArrowLeft,
   Eye,
@@ -26,17 +27,18 @@ import {
   AlertCircle
 } from 'lucide-react';
 
-const features = [
-  {icon: Sparkles, title: 'AI 智能写作', desc: 'AI 辅助创作，灵感永不枯竭'},
-  {icon: Zap, title: '极速发布', desc: '一键多平台同步，触达全球读者'},
-  {icon: BookOpen, title: '沉浸阅读', desc: '精心设计的阅读体验，专注内容'},
-  {icon: Shield, title: '安全可靠', desc: '端到端加密，数据安全无忧'},
-];
-
 export default function LoginPage() {
+  const {t} = useTranslation();
   const [mode, setMode] = useState<'password'|'qrcode'>('password');
   const [pv, setPv] = useState(false); const [err, setErr] = useState(''); const [busy, setBusy] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
+
+  const features = [
+    {icon: Sparkles, titleKey: 'login.features.aiWriting', descKey: 'login.features.aiWritingDesc'},
+    {icon: Zap, titleKey: 'login.features.fastPublish', descKey: 'login.features.fastPublishDesc'},
+    {icon: BookOpen, titleKey: 'login.features.immersiveReading', descKey: 'login.features.immersiveReadingDesc'},
+    {icon: Shield, titleKey: 'login.features.secure', descKey: 'login.features.secureDesc'},
+  ];
 
   // react-hook-form — 登录表单
   const loginForm = useForm<LoginFormData>({
@@ -75,7 +77,11 @@ export default function LoginPage() {
     setErr(''); setQrStatus('loading'); setQrImg(''); setQrToken(''); cancelRef.current = false;
     try {
       const r = await apiClient.get('/auth/qr/generate');
-      if (!r.success || !r.data) { setErr(r.error || '生成二维码失败'); setQrStatus('idle'); return; }
+      if (!r.success || !r.data) {
+        setErr(r.error || t('login.qrGenerateFailed'));
+        setQrStatus('idle');
+        return;
+      }
       const token = r.data.token || r.data.qr_token;
       const qrCodeDataUrl = r.data.qr_code || r.data.qr_data;
       setQrToken(token);
@@ -87,11 +93,18 @@ export default function LoginPage() {
           const loginUrl = `${window.location.origin}/mobile-login?login_token=${token}`;
           const dataUrl = await mod.toDataURL(loginUrl, {width:280,margin:2,color:{dark:'#1e40af',light:'#ffffff'}});
           setQrImg(dataUrl);
-        } catch { setErr('生成二维码失败'); setQrStatus('idle'); return; }
+        } catch {
+          setErr(t('login.qrGenerateFailed'));
+          setQrStatus('idle');
+          return;
+        }
       }
       setQrStatus('ready');
       pollQR(token);
-    } catch { setErr('生成二维码失败'); setQrStatus('idle'); }
+    } catch {
+      setErr(t('login.qrGenerateFailed'));
+      setQrStatus('idle');
+    }
   };
 
   const pollQR = (token: string) => {
@@ -112,9 +125,13 @@ export default function LoginPage() {
             window.location.href = next();
             return;
           }
-          setErr('扫码成功，获取令牌失败'); setQrStatus('idle'); return;
+          setErr(t('login.qrScanSuccessButTokenFailed'));
+          setQrStatus('idle');
+          return;
         } else if (st === 'expired') {
-          setQrStatus('expired'); setErr('二维码已过期，请重新生成'); return;
+          setQrStatus('expired');
+          setErr(t('login.qrExpired'));
+          return;
         } else {
           setQrStatus('pending');
           pollQR(token);
@@ -135,13 +152,20 @@ export default function LoginPage() {
         password: data.password,
         remember_me: data.remember
       });
-      if (!r.success) { setErr(r.error||r.message||'登录失败'); setBusy(false); return; }
+      if (!r.success) {
+        setErr(r.error || r.message || t('login.loginFailed'));
+        setBusy(false);
+        return;
+      }
       const d = r.data as any;
       if (d.requires_2fa && d.temp_token) { setFa({tempToken:d.temp_token, userId:d.user_id}); setBusy(false); return; }
       if (d.access_token) setCookie('access_token', d.access_token, 3600);
       if (d.refresh_token) setCookie('refresh_token', d.refresh_token, 604800);
       window.location.href = next();
-    } catch { setErr('网络异常'); setBusy(false); }
+    } catch {
+      setErr(t('login.networkError'));
+      setBusy(false);
+    }
   };
 
   // ═══ 2FA ═══
@@ -154,8 +178,12 @@ export default function LoginPage() {
         const d = r.data as any; if (d.access_token) setCookie('access_token', d.access_token, 3600);
         if (d.refresh_token) setCookie('refresh_token', d.refresh_token, 604800);
         window.location.href = next();
-      } else setErr(r.error||'验证失败');
-    } catch { setErr('验证失败'); } finally { setBusy(false); }
+      } else setErr(r.error || t('login.verificationFailed'));
+    } catch {
+      setErr(t('login.verificationFailed'));
+    } finally {
+      setBusy(false);
+    }
   };
 
   if (checking) return (
@@ -167,7 +195,7 @@ export default function LoginPage() {
             <div
                 className="absolute inset-0 w-12 h-12 border-4 border-transparent border-t-blue-600 rounded-full animate-spin"/>
           </div>
-          <p className="text-sm text-gray-500 dark:text-gray-400 animate-pulse">正在验证登录状态...</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 animate-pulse">{t('login.verifyingStatus')}</p>
         </div>
       </div>
   );
@@ -212,10 +240,12 @@ export default function LoginPage() {
             <div className="space-y-8">
               <div>
                 <h2 className="text-3xl xl:text-4xl font-bold text-white leading-tight mb-4">
-                  创作、分享、<br/>连接世界
+                  {t('login.branding.tagline').split('\n').map((line, i) => (
+                    <React.Fragment key={i}>{i > 0 && <br/>}{line}</React.Fragment>
+                  ))}
                 </h2>
                 <p className="text-blue-100/80 text-lg leading-relaxed max-w-md">
-                  FastBlog 是新一代智能博客平台，让每位创作者都能轻松表达思想、分享知识、与全球读者建立连接。
+                  {t('login.branding.description')}
                 </p>
               </div>
 
@@ -227,8 +257,8 @@ export default function LoginPage() {
                       <div key={i}
                            className="group p-4 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/10 hover:bg-white/15 transition-all duration-300">
                         <Icon className="w-6 h-6 text-blue-200 mb-3 group-hover:scale-110 transition-transform"/>
-                        <h3 className="text-sm font-semibold text-white mb-1">{feat.title}</h3>
-                        <p className="text-xs text-blue-100/70 leading-relaxed">{feat.desc}</p>
+                        <h3 className="text-sm font-semibold text-white mb-1">{t(feat.titleKey)}</h3>
+                        <p className="text-xs text-blue-100/70 leading-relaxed">{t(feat.descKey)}</p>
                       </div>
                   );
                 })}
@@ -239,17 +269,17 @@ export default function LoginPage() {
             <div className="flex items-center gap-8">
               <div>
                 <div className="text-2xl font-bold text-white">50K+</div>
-                <div className="text-sm text-blue-100/70">活跃创作者</div>
+                <div className="text-sm text-blue-100/70">{t('login.branding.activeCreators')}</div>
               </div>
               <div className="w-px h-10 bg-white/20"/>
               <div>
                 <div className="text-2xl font-bold text-white">1M+</div>
-                <div className="text-sm text-blue-100/70">优质文章</div>
+                <div className="text-sm text-blue-100/70">{t('login.branding.qualityArticles')}</div>
               </div>
               <div className="w-px h-10 bg-white/20"/>
               <div>
                 <div className="text-2xl font-bold text-white">100+</div>
-                <div className="text-sm text-blue-100/70">国家地区</div>
+                <div className="text-sm text-blue-100/70">{t('login.branding.countries')}</div>
               </div>
           </div>
           </div>
@@ -270,10 +300,10 @@ export default function LoginPage() {
             {/* Header */}
             <div className="mb-8">
               <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">
-                {fa ? '🔐 验证身份' : mode === 'qrcode' ? '📱 扫码登录' : '👋 欢迎回来'}
+                {fa ? `🔐 ${t('login.twoFactorTitle')}` : mode === 'qrcode' ? `📱 ${t('login.qrLogin')}` : `👋 ${t('login.title')}`}
               </h1>
               <p className="text-gray-500 dark:text-gray-400">
-                {fa ? '请输入双重验证码以继续' : mode === 'qrcode' ? '使用 FastBlog App 扫描二维码' : '登录你的账户，继续创作之旅'}
+                {fa ? t('login.twoFactorSubtitle') : mode === 'qrcode' ? t('login.scanQRCode') : t('login.subtitle')}
               </p>
             </div>
 
@@ -297,7 +327,7 @@ export default function LoginPage() {
                       <Smartphone className="w-8 h-8 text-white"/>
                     </div>
                     <p className="text-sm text-gray-600 dark:text-gray-400">
-                      {backup ? '输入你的8位备用恢复码' : '打开认证器应用，输入6位验证码'}
+                      {backup ? t('login.twoFactorBackupHint') : t('login.twoFactorCodeHint')}
                     </p>
                   </div>
 
@@ -313,7 +343,7 @@ export default function LoginPage() {
                             autoFocus
                             value={field.value}
                             onChange={e => field.onChange(e.target.value.replace(/\D/g, '').slice(0, backup ? 8 : 6))}
-                            placeholder={backup ? '输入备用码' : '000000'}
+                            placeholder={backup ? t('login.twoFactorPlaceholder') : '000000'}
                             className="w-full text-center text-3xl tracking-[0.5em] px-6 py-5 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-2xl focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 dark:text-white font-mono transition-all"
                           />
                           {twoFAForm.formState.errors.code && (
@@ -332,15 +362,15 @@ export default function LoginPage() {
                     >
                       {busy ? (
                           <span className="flex items-center justify-center gap-2">
-                      <Loader className="w-5 h-5 animate-spin"/> 验证中...
+                      <Loader className="w-5 h-5 animate-spin"/> {t('login.twoFactorVerifying')}
                     </span>
-                      ) : '验证'}
+                      ) : t('login.verifyButton')}
                     </button>
 
                     <div className="flex items-center justify-between pt-2">
                       <button type="button" onClick={() => setBackup(!backup)}
                               className="text-sm text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 font-medium">
-                        {backup ? '使用验证码' : '使用备用码'}
+                        {backup ? t('login.twoFactorUseCode') : t('login.twoFactorUseBackup')}
                       </button>
                       <button type="button" onClick={() => {
                         setFa(null);
@@ -348,7 +378,7 @@ export default function LoginPage() {
                         setErr('');
                       }}
                               className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
-                        <ArrowLeft className="w-4 h-4"/> 返回登录
+                        <ArrowLeft className="w-4 h-4"/> {t('login.backToLogin')}
                       </button>
                     </div>
                   </form>
@@ -369,7 +399,7 @@ export default function LoginPage() {
                               : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
                         }`}
                     >
-                      <Lock className="w-4 h-4"/> 密码登录
+                      <Lock className="w-4 h-4"/> {t('login.passwordLogin')}
                     </button>
                     <button
                         onClick={() => {
@@ -383,7 +413,7 @@ export default function LoginPage() {
                               : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
                         }`}
                     >
-                      <QrCode className="w-4 h-4"/> 扫码登录
+                      <QrCode className="w-4 h-4"/> {t('login.qrLogin')}
                     </button>
                   </div>
 
@@ -393,7 +423,8 @@ export default function LoginPage() {
                       <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-5">
                         {/* Username Field */}
                         <div className="space-y-2">
-                          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">用户名 / 邮箱</label>
+                          <label
+                            className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('login.usernameOrEmail')}</label>
                           <div
                               className={`relative group transition-all duration-200 ${focusedField === 'username' ? 'scale-[1.01]' : ''}`}>
                             <div className="absolute left-4 top-1/2 -translate-y-1/2">
@@ -405,7 +436,7 @@ export default function LoginPage() {
                                 {...loginForm.register('username')}
                                 onFocus={() => setFocusedField('username')}
                                 onBlur={() => setFocusedField(null)}
-                                placeholder="输入用户名或邮箱"
+                                placeholder={t('login.usernameOrEmailPlaceholder')}
                                 autoFocus
                                 className={`w-full pl-12 pr-4 py-4 bg-white dark:bg-gray-800 border-2 rounded-2xl text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all ${
                                   loginForm.formState.errors.username
@@ -425,10 +456,11 @@ export default function LoginPage() {
                         {/* Password Field */}
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
-                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">密码</label>
+                            <label
+                              className="text-sm font-medium text-gray-700 dark:text-gray-300">{t('login.password')}</label>
                             <a href="/forgot-password"
                                className="text-xs text-blue-600 hover:text-blue-700 dark:text-blue-400 font-medium">
-                              忘记密码？
+                              {t('login.forgotPassword')}
                             </a>
                           </div>
                           <div
@@ -442,7 +474,7 @@ export default function LoginPage() {
                                 {...loginForm.register('password')}
                                 onFocus={() => setFocusedField('password')}
                                 onBlur={() => setFocusedField(null)}
-                                placeholder="输入密码"
+                                placeholder={t('login.passwordPlaceholder')}
                                 className={`w-full pl-12 pr-12 py-4 bg-white dark:bg-gray-800 border-2 rounded-2xl text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all ${
                                   loginForm.formState.errors.password
                                     ? 'border-red-400 dark:border-red-500'
@@ -485,7 +517,7 @@ export default function LoginPage() {
                           </div>
                           <span
                               className="text-sm text-gray-600 dark:text-gray-400 group-hover:text-gray-800 dark:group-hover:text-gray-200 transition-colors">
-                      记住我的登录状态
+                      {t('login.rememberMeStatus')}
                     </span>
                         </label>
 
@@ -498,11 +530,11 @@ export default function LoginPage() {
                           {busy ? (
                               <>
                                 <Loader className="w-5 h-5 animate-spin"/>
-                                <span>登录中...</span>
+                                <span>{t('login.loggingIn')}</span>
                               </>
                           ) : (
                               <>
-                                <span>登录</span>
+                                <span>{t('login.loginButton')}</span>
                                 <ChevronRight className="w-5 h-5"/>
                               </>
                           )}
@@ -512,7 +544,7 @@ export default function LoginPage() {
                         <div className="relative flex items-center py-2">
                           <div className="flex-1 border-t border-gray-200 dark:border-gray-700"/>
                           <span
-                            className="px-4 text-xs text-gray-400 dark:text-gray-500 dark:text-gray-400 font-medium">或使用其他方式</span>
+                            className="px-4 text-xs text-gray-400 dark:text-gray-500 font-medium">{t('login.orOtherMethods')}</span>
                           <div className="flex-1 border-t border-gray-200 dark:border-gray-700"/>
                         </div>
 
@@ -534,10 +566,10 @@ export default function LoginPage() {
 
                         {/* Register Link */}
                         <p className="text-center text-sm text-gray-500 dark:text-gray-400 pt-2">
-                          还没有账户？{' '}
+                          {t('login.noAccount')}{' '}
                           <a href="/register"
                              className="text-blue-600 hover:text-blue-700 dark:text-blue-400 font-semibold hover:underline">
-                            立即注册
+                            {t('login.registerNow')}
                           </a>
                         </p>
                       </form>
@@ -557,7 +589,7 @@ export default function LoginPage() {
                                       className="w-[220px] h-[220px] bg-gray-50 dark:bg-gray-900 rounded-2xl animate-pulse flex items-center justify-center">
                                     <div className="flex flex-col items-center gap-3">
                                       <Loader className="w-8 h-8 animate-spin text-blue-500"/>
-                                      <span className="text-sm text-gray-400">生成中...</span>
+                                      <span className="text-sm text-gray-400">{t('login.qrGenerating')}</span>
                                     </div>
                                   </div>
                               ) : qrImg ? (
@@ -578,7 +610,7 @@ export default function LoginPage() {
                                       className="w-[220px] h-[220px] bg-gray-50 dark:bg-gray-900 rounded-2xl border-2 border-dashed border-gray-200 dark:border-gray-700 flex flex-col items-center justify-center gap-3 cursor-pointer hover:border-blue-300 dark:hover:border-blue-700 transition-colors"
                                       onClick={generateQR}>
                                     <QrCode className="w-10 h-10 text-gray-300 dark:text-gray-600"/>
-                                    <span className="text-sm text-gray-400">点击生成二维码</span>
+                                    <span className="text-sm text-gray-400">{t('login.qrClickToGenerate')}</span>
                                   </div>
                               )}
                             </div>
@@ -586,16 +618,16 @@ export default function LoginPage() {
                             {/* Status Text */}
                             <div className="space-y-2">
                               <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                                {qrStatus === 'loading' ? '正在生成二维码...' :
+                                {qrStatus === 'loading' ? t('login.generatingQR') :
                                     qrStatus === 'ready' || qrStatus === 'pending' ? (
                                             <span className="flex items-center justify-center gap-2">
                               <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"/>
-                              等待扫码确认...
+                                              {t('login.qrWaitingScan')}
                             </span>
                                         ) :
-                                        qrStatus === 'success' ? '✅ 扫码成功！正在登录...' :
-                                            qrStatus === 'expired' ? '⏰ 二维码已过期' :
-                                                '使用 FastBlog App 扫描二维码'}
+                                      qrStatus === 'success' ? `✅ ${t('login.qrScanSuccess')}` :
+                                        qrStatus === 'expired' ? `⏰ ${t('login.qrExpiredShort')}` :
+                                          t('login.scanQRCode')}
                               </p>
                             </div>
 
@@ -605,7 +637,7 @@ export default function LoginPage() {
                                     onClick={generateQR}
                                     className="px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-sm font-semibold rounded-xl transition-all shadow-md hover:shadow-lg active:scale-[0.98]"
                                 >
-                                  {qrStatus === 'expired' ? '重新生成' : '生成二维码'}
+                                  {qrStatus === 'expired' ? t('login.qrRegenerate') : t('login.qrGenerate')}
                                 </button>
                             )}
                           </div>
@@ -614,9 +646,10 @@ export default function LoginPage() {
                         {/* Instructions */}
                         <div
                             className="bg-gray-50 dark:bg-gray-800/50 rounded-2xl p-5 border border-gray-100 dark:border-gray-800">
-                          <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">扫码步骤</h3>
+                          <h3
+                            className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3">{t('login.scanSteps')}</h3>
                           <ol className="space-y-2.5">
-                            {['打开 FastBlog 手机应用', '进入"我的" → "扫一扫"', '扫描上方二维码', '在手机上确认登录'].map((step, i) => (
+                            {[t('login.scanStep1'), t('login.scanStep2'), t('login.scanStep3'), t('login.scanStep4')].map((step, i) => (
                                 <li key={i}
                                     className="flex items-center gap-3 text-sm text-gray-600 dark:text-gray-400">
                           <span
@@ -635,11 +668,13 @@ export default function LoginPage() {
 
             {/* Footer */}
             <div className="mt-8 text-center">
-              <p className="text-xs text-gray-400 dark:text-gray-500 dark:text-gray-400">
-                登录即表示同意{' '}
-                <a href="/terms" className="text-gray-500 dark:text-gray-400 hover:underline">服务条款</a>
-                {' '}和{' '}
-                <a href="/privacy" className="text-gray-500 dark:text-gray-400 hover:underline">隐私政策</a>
+              <p className="text-xs text-gray-400 dark:text-gray-500">
+                {t('login.agreeToTerms')}{' '}
+                <a href="/terms"
+                   className="text-gray-500 dark:text-gray-400 hover:underline">{t('login.termsOfService')}</a>
+                {' '}{t('common.and') || '和'}{' '}
+                <a href="/privacy"
+                   className="text-gray-500 dark:text-gray-400 hover:underline">{t('login.privacyPolicy')}</a>
               </p>
             </div>
           </div>

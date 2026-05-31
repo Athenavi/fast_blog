@@ -11,6 +11,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from shared.services.articles.anomaly_detector import anomaly_detector
 from shared.services.security.security_alert import security_alert_service
 from shared.services.security.security_report import report_generator
+from shared.services.security.audit_service import audit_service
 from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 
@@ -30,7 +31,7 @@ async def generate_daily_report(
     # 获取数据
     anomalies = anomaly_detector.get_anomalies(hours=24)
     alerts = security_alert_service.get_alert_history(hours=24)
-    audit_logs = []  # TODO: 从审计日志服务获取
+    audit_logs = await audit_service.get_logs(limit=200)
 
     report = report_generator.generate_daily_report(
         anomalies=anomalies,
@@ -57,7 +58,7 @@ async def generate_weekly_report(
     # 获取数据
     anomalies = anomaly_detector.get_anomalies(hours=168)  # 7天
     alerts = security_alert_service.get_alert_history(hours=168)
-    audit_logs = []  # TODO: 从审计日志服务获取
+    audit_logs = await audit_service.get_logs(limit=500)
 
     report = report_generator.generate_weekly_report(
         anomalies=anomalies,
@@ -84,7 +85,7 @@ async def generate_monthly_report(
     # 获取数据
     anomalies = anomaly_detector.get_anomalies(hours=720)  # 30天
     alerts = security_alert_service.get_alert_history(hours=720)
-    audit_logs = []  # TODO: 从审计日志服务获取
+    audit_logs = await audit_service.get_logs(limit=2000)
 
     report = report_generator.generate_monthly_report(
         anomalies=anomalies,

@@ -300,18 +300,38 @@ def render_product_card(block: Block) -> str:
     return html
 
 
-def render_vip_content(block: Block) -> str:
-    """渲染 VIP 内容"""
+def render_vip_content(block: Block, user_level: int = 0) -> str:
+    """
+    渲染 VIP 内容
+
+    Args:
+        block: 块对象
+        user_level: 当前用户等级，0 表示未登录用户
+
+    Returns:
+        渲染后的 HTML
+    """
     attrs = block.attributes
     content = attrs.get("content", "")
     min_level = attrs.get("min_level", 1)
     message = attrs.get("message", "此内容为 VIP 专属")
 
-    # TODO: 实际实现需要检查用户权限
-    return f'''
+    if user_level >= min_level:
+        return f'''
 <div class="vip-content" data-min-level="{min_level}">
     <div class="vip-badge">VIP</div>
     {content}
+</div>
+'''
+    else:
+        return f'''
+<div class="vip-content vip-locked" data-min-level="{min_level}">
+    <div class="vip-badge">VIP</div>
+    <div class="vip-lock-overlay">
+        <div class="vip-lock-icon">🔒</div>
+        <p class="vip-lock-message">{message}</p>
+        <p class="vip-lock-hint">需要 VIP 等级 ≥ {min_level}</p>
+    </div>
 </div>
 '''
 

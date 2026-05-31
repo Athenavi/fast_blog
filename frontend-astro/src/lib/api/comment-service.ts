@@ -15,12 +15,16 @@ export interface Comment {
     author_url: string | null;
     content: string;
     is_approved: boolean;
+  status?: string;
     created_at: string;
     updated_at?: string;
     likes: number;
+  dislikes?: number;
     parent_id: number | null;
     avatar_url?: string;
     replies?: Comment[];
+  article_title?: string;
+  article_slug?: string;
 }
 
 export interface CommentListResponse {
@@ -41,6 +45,51 @@ export interface LikeCommentResponse {
         likes: number;
     };
     error?: string;
+}
+
+/** 评论投票记录 */
+export interface CommentVote {
+  id: number;
+  comment_id: number;
+  user: number | null;
+  vote_type: number; // 1: 赞, -1: 踩
+  ip_address?: string;
+  created_at: string;
+}
+
+/** 评论订阅记录 */
+export interface CommentSubscription {
+  id: number;
+  article_id: number;
+  user_id: number | null;
+  email: string | null;
+  notify_type: string; // new_comment | reply_to_me | all_replies
+  is_active: boolean;
+  confirm_token?: string;
+  confirmed_at?: string;
+  created_at: string;
+  updated_at?: string;
+  article_title?: string;
+}
+
+/** 评论投票统计 */
+export interface CommentVoteStats {
+  comment_id: number;
+  up_votes: number;
+  down_votes: number;
+  total_votes: number;
+}
+
+/** 评论互动分析数据 */
+export interface CommentAnalytics {
+  total_comments: number;
+  pending_comments: number;
+  approved_comments: number;
+  rejected_comments: number;
+  total_votes: number;
+  total_subscriptions: number;
+  top_commented_articles: Array<{ article_id: number; article_title: string; comment_count: number }>;
+  recent_vote_activity: number;
 }
 
 class CommentService {
@@ -226,6 +275,186 @@ class CommentService {
             };
         }
     }
+
+  /* ──────── 管理端 API ──────── */
+
+  /**
+   * 获取待审核评论列表（管理员）
+   */
+  async getPendingComments(): Promise<{ success: boolean; data?: Comment[]; error?: string }> {
+    try {
+      const res = await apiClient.get<unknown[]>('/comments/admin/comments/pending');
+      return {
+        success: !!res.success,
+        data: Array.isArray(res.data) ? (res.data as Comment[]) : [],
+      };
+    } catch (error) {
+      console.error('[CommentService] Failed to get pending comments:', error);
+      return {success: false, data: [], error: error instanceof Error ? error.message : '获取待审评论失败'};
+    }
+  }
+
+  /**
+   * 获取所有评论列表（管理员），支持状态筛选
+   * @param status - 筛选状态 (pending, approved, rejected, 空=全部)
+   */
+  async getAdminComments(status?: string): Promise<{ success: boolean; data?: Comment[]; error?: string }> {
+    try {
+      const res = await apiClient.get<unknown[]>('/comments/admin/comments', {status: status || undefined});
+      const comments = res.success && res.data
+        ? (Array.isArray(res.data) ? res.data : (res.data as { comments?: Comment[] }).comments || [])
+        : [];
+      return {success: !!res.success, data: comments as Comment[]};
+    } catch (error) {
+      console.error('[CommentService] Failed to get admin comments:', error);
+      return {success: false, data: [], error: error instanceof Error ? error.message : '获取评论失败'};
+    }
+  }
+
+  /**
+   * 审核通过评论（管理员）
+   * @param commentId - 评论ID
+   */
+  async approveComment(commentId: number): Promise<{ success: boolean; error?: string }> {
+    try {
+      const res = await apiClient.post(`/comments/admin/comments/${commentId}/approve`);
+      return {success: !!res.success};
+    } catch (error) {
+      console.error('[CommentService] Failed to approve comment:', error);
+      return {success: false, error: error instanceof Error ? error.message : '审核通过失败'};
+    }
+  }
+
+  /**
+   * 拒绝评论（管理员）
+   * @param commentId - 评论ID
+   */
+  async rejectComment(commentId: number): Promise<{ success: boolean; error?: string }> {
+    try {
+      const res = await apiClient.post(`/comments/admin/comments/${commentId}/reject`);
+      return {success: !!res.success};
+    } catch (error) {
+      console.error('[CommentService] Failed to reject comment:', error);
+      return {success: false, error: error instanceof Error ? error.message : '拒绝评论失败'};
+    }
+  }
+
+  /**
+   * 删除评论（管理员）
+   * @param commentId - 评论ID
+   */
+  async adminDeleteComment(commentId: number): Promise<{ success: boolean; error?: string }> {
+    try {
+      const res = await apiClient.delete(`/comments/admin/comments/${commentId}`);
+      return {success: !!res.success};
+    } catch (error) {
+      console.error('[CommentService] Failed to delete comment (admin):', error);
+      return {success: false, error: error instanceof Error ? error.message : '删除评论失败'};
+    }
+  }
+
+  /* ──────── 投票 API ──────── */
+
+  /**
+   * 对评论投票（赞/踩）
+   * @param commentId - 评论ID
+   * @param voteType - 投票类型 (1=赞, -1=踩)
+   */
+  async voteComment(commentId: number, voteType: 1 | -1): Promise<{
+    success: boolean;
+    data?: { action: string; likes: number; vote_type: number | null };
+    error?: string;
+  }> {
+    try {
+      const endpoint = voteType === 1
+        ? `/comments/enhanced/${commentId}/vote/like`
+        : `/comments/enhanced/${commentId}/vote/dislike`;
+      const res = await apiClient.post<{ action: string; likes: number; vote_type: number | null }>(endpoint);
+      return res as {
+        success: boolean;
+        data?: { action: string; likes: number; vote_type: number | null };
+        error?: string
+      };
+    } catch (error) {
+      console.error('[CommentService] Failed to vote comment:', error);
+      return {success: false, error: error instanceof Error ? error.message : '投票失败'};
+    }
+  }
+
+  /* ──────── 订阅 API ──────── */
+
+  /**
+   * 获取当前用户的评论订阅列表
+   */
+  async getMySubscriptions(): Promise<{
+    success: boolean;
+    data?: { subscriptions: CommentSubscription[]; total: number };
+    error?: string;
+  }> {
+    try {
+      const res = await apiClient.get<{ subscriptions: CommentSubscription[]; total: number }>(
+        '/comments/subscriptions/my-subscriptions'
+      );
+      return res as {
+        success: boolean;
+        data?: { subscriptions: CommentSubscription[]; total: number };
+        error?: string
+      };
+    } catch (error) {
+      console.error('[CommentService] Failed to get subscriptions:', error);
+      return {
+        success: false,
+        data: {subscriptions: [], total: 0},
+        error: error instanceof Error ? error.message : '获取订阅列表失败'
+      };
+    }
+  }
+
+  /**
+   * 订阅文章评论通知
+   * @param articleId - 文章ID
+   * @param email - 订阅邮箱
+   * @param notifyType - 通知类型
+   */
+  async subscribeArticle(articleId: number, email: string, notifyType: string = 'new_comment'): Promise<{
+    success: boolean;
+    data?: unknown;
+    error?: string;
+  }> {
+    try {
+      const res = await apiClient.post('/comments/subscriptions/subscribe', {
+        article_id: articleId,
+        email,
+        notify_type: notifyType,
+      });
+      return res as { success: boolean; data?: unknown; error?: string };
+    } catch (error) {
+      console.error('[CommentService] Failed to subscribe:', error);
+      return {success: false, error: error instanceof Error ? error.message : '订阅失败'};
+    }
+  }
+
+  /**
+   * 取消订阅文章评论通知
+   * @param articleId - 文章ID
+   * @param email - 订阅邮箱
+   */
+  async unsubscribeArticle(articleId: number, email: string): Promise<{
+    success: boolean;
+    data?: unknown;
+    error?: string;
+  }> {
+    try {
+      const res = await apiClient.post('/comments/subscriptions/unsubscribe', {
+        article_id: articleId,
+        email,
+      });
+      return res as { success: boolean; data?: unknown; error?: string };
+    } catch (error) {
+      console.error('[CommentService] Failed to unsubscribe:', error);
+      return {success: false, error: error instanceof Error ? error.message : '取消订阅失败'};
+    }
+  }
 }
 
 // 导出单例实例

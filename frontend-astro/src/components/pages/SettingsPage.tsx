@@ -5,6 +5,7 @@ import {apiClient} from '@/lib/api/base-client';
 import {useDarkMode} from '@/lib/dark-mode-manager';
 import {getAccessTokenFromCookie} from '@/lib/auth-utils';
 import {AuthGuard} from '@/components/AuthGuard';
+import {QueryProvider} from '@/components/QueryProvider';
 import {useConfirm} from '@/components/ui/confirm-provider';
 import {
   Camera,
@@ -754,4 +755,6 @@ function Settings() {
   );
 }
 
-export default function SettingsPageGuard() { return <AuthGuard><Settings/></AuthGuard>; }
+export default function SettingsPageGuard() {
+  return <AuthGuard><QueryProvider><Settings/></QueryProvider></AuthGuard>;
+}

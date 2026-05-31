@@ -29,7 +29,7 @@ async def create_order(
 ):
     """
     创建订单
-    
+
     生成新的支付订单
     """
     try:
@@ -64,7 +64,7 @@ async def process_payment(
 ):
     """
     处理支付
-    
+
     根据订单创建支付会话
     """
     order = payment_manager.get_order(order_id)
@@ -101,7 +101,7 @@ async def get_order(
 ):
     """
     查询订单
-    
+
     获取订单详细信息
     """
     order = payment_manager.get_order(order_id)
@@ -127,7 +127,7 @@ async def refund_order(
 ):
     """
     退款
-    
+
     对已支付的订单进行退款
     """
     try:
@@ -151,7 +151,7 @@ async def stripe_webhook(
 ):
     """
     Stripe Webhook
-    
+
     接收 Stripe 支付事件通知
     """
     # 验证 webhook
@@ -180,14 +180,51 @@ async def paypal_webhook(
 ):
     """
     PayPal Webhook
-    
+
     接收 PayPal 支付事件通知
     """
-    # TODO: 实现 PayPal webhook 处理
-    return ApiResponse(
-        success=True,
-        message="Webhook received"
-    )
+    try:
+        # 从 PayPal 事件中提取订单信息
+        event_type = event_data.get("event_type", "")
+        resource = event_data.get("resource", {})
+
+        if event_type == "CHECKOUT.ORDER.APPROVED" or event_type == "PAYMENT.CAPTURE.COMPLETED":
+            # 支付成功，获取 PayPal 订单ID
+            paypal_order_id = resource.get("id", "")
+            if paypal_order_id:
+                # 通过 PayPal 捕获支付
+                capture_result = await payment_manager.paypal.capture_payment(paypal_order_id)
+                return ApiResponse(
+                    success=True,
+                    data={
+                        "event_type": event_type,
+                        "order_id": paypal_order_id,
+                        "capture_result": capture_result,
+                    }
+                )
+        elif event_type == "PAYMENT.CAPTURE.DENIED" or event_type == "PAYMENT.CAPTURE.REFUNDED":
+            # 支付失败或退款
+            return ApiResponse(
+                success=True,
+                data={
+                    "event_type": event_type,
+                    "resource_id": resource.get("id", ""),
+                    "status": "handled",
+                }
+            )
+
+        return ApiResponse(
+            success=True,
+            message="Webhook received",
+            data={"event_type": event_type}
+        )
+    except Exception as e:
+        from src.utils.logger import logger
+        logger.error(f"PayPal webhook processing failed: {e}")
+        return ApiResponse(
+            success=False,
+            error=f"Webhook processing failed: {str(e)}"
+        )
 
 
 @router.post("/webhook/alipay")
@@ -196,7 +233,7 @@ async def alipay_webhook(
 ):
     """
     支付宝异步通知
-    
+
     接收支付宝支付结果通知
     """
     # 验证通知
@@ -208,7 +245,22 @@ async def alipay_webhook(
             error="Invalid notification"
         )
 
-    # TODO: 更新订单状态
+    # 从通知参数中提取订单信息并更新状态
+    try:
+        trade_no = params.get("trade_no", "") or params.get("out_trade_no", "")
+        trade_status = params.get("trade_status", "")
+
+        if trade_no and trade_status in ("TRADE_SUCCESS", "TRADE_FINISHED"):
+            from shared.services.payment.order_management import OrderManager, OrderStatus
+            order_manager = OrderManager()
+            # 尝试通过交易号查找并更新订单
+            for order_id, order in order_manager.orders.items():
+                if getattr(order, 'transaction_id', '') == trade_no:
+                    order_manager.update_order_status(order_id, OrderStatus.PAID)
+                    break
+    except Exception as e:
+        from src.utils.logger import logger
+        logger.error(f"Alipay order status update failed: {e}")
 
     return ApiResponse(
         success=True,
@@ -222,7 +274,7 @@ async def wechat_webhook(
 ):
     """
     微信支付通知
-    
+
     接收微信支付结果通知
     """
     # 验证通知
@@ -238,7 +290,7 @@ async def wechat_webhook(
 async def get_payment_methods(current_user=Depends(jwt_required)):
     """
     获取支持的支付方式
-    
+
     列出所有可用的支付网关
     """
     methods = [
@@ -358,7 +410,7 @@ async def create_crypto_payment(
 ):
     """
     创建加密货币支付
-    
+
     生成加密货币支付地址和二维码
     """
     try:
@@ -386,7 +438,7 @@ async def check_crypto_payment_status(
 ):
     """
     检查加密货币支付状态
-    
+
     查询支付确认数和状态
     """
     try:
@@ -415,7 +467,7 @@ async def create_x402_channel(
 ):
     """
     创建x402支付通道
-    
+
     用于微支付场景
     """
     try:
@@ -446,7 +498,7 @@ async def process_x402_payment(
 ):
     """
     处理x402微支付
-    
+
     通过支付通道进行微支付
     """
     try:
@@ -478,7 +530,7 @@ async def verify_nft_ownership(
 ):
     """
     验证NFT所有权
-    
+
     用于NFT门票和内容解锁
     """
     try:
@@ -512,7 +564,7 @@ async def calculate_tax(
 ):
     """
     计算税务
-    
+
     根据地区和税种计算税额
     """
     try:
@@ -539,7 +591,7 @@ async def calculate_tax(
 async def check_compliance(current_user=Depends(jwt_required)):
     """
     检查合规性
-    
+
     检查GDPR和PCI DSS合规状态
     """
     try:
@@ -714,7 +766,7 @@ async def checkout_from_cart(
 ):
     """
     从购物车结算
-    
+
     创建订单并清空购物车
     """
     try:
@@ -750,7 +802,7 @@ async def create_order(
 ):
     """
     创建订单
-    
+
     直接创建订单（不使用购物车）
     """
     try:

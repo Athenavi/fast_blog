@@ -28,13 +28,21 @@ async def export_translation(
     if not is_admin:
         raise HTTPException(status_code=403, detail="Permission denied")
 
-    # TODO: 从实际的翻译服务获取数据
-    # 这里使用示例数据
-    sample_translations = {
-        'hello': {'translation': '你好', 'translated': True},
-        'welcome': {'translation': '欢迎', 'translated': True},
-        'goodbye': {'translation': '', 'translated': False},
-    }
+    # 从翻译服务获取实际数据
+    try:
+        from shared.services.translation.translation import translation_service
+        raw_translations = translation_service.get_all_translations(language_code)
+        # 将原始翻译字典转换为导出格式
+        sample_translations = {}
+        for key, value in raw_translations.items():
+            if isinstance(value, str):
+                sample_translations[key] = {'translation': value, 'translated': bool(value)}
+            elif isinstance(value, dict):
+                sample_translations[key] = value
+            else:
+                sample_translations[key] = {'translation': str(value), 'translated': bool(value)}
+    except Exception:
+        sample_translations = {}
 
     if format == 'json':
         content = translation_io.export_to_json(sample_translations, language_code)
@@ -73,17 +81,24 @@ async def export_all_translations(
     if not is_admin:
         raise HTTPException(status_code=403, detail="Permission denied")
 
-    # TODO: 从实际的翻译服务获取所有语言数据
-    sample_all_translations = {
-        'zh-CN': {
-            'hello': {'translation': '你好', 'translated': True},
-            'welcome': {'translation': '欢迎', 'translated': True},
-        },
-        'en-US': {
-            'hello': {'translation': 'Hello', 'translated': True},
-            'welcome': {'translation': 'Welcome', 'translated': True},
-        },
-    }
+    # 从翻译服务获取所有语言数据
+    try:
+        from shared.services.translation.translation import translation_service
+        sample_all_translations = {}
+        for locale in translation_service.supported_locales:
+            raw_translations = translation_service.get_all_translations(locale)
+            locale_data = {}
+            for key, value in raw_translations.items():
+                if isinstance(value, str):
+                    locale_data[key] = {'translation': value, 'translated': bool(value)}
+                elif isinstance(value, dict):
+                    locale_data[key] = value
+                else:
+                    locale_data[key] = {'translation': str(value), 'translated': bool(value)}
+            if locale_data:
+                sample_all_translations[locale] = locale_data
+    except Exception:
+        sample_all_translations = {}
 
     results = translation_io.batch_export(sample_all_translations, format=format)
 
@@ -134,14 +149,14 @@ async def import_translation(
         # from shared.models.translation import Translation
         # language_code = result.get('language')
         # translations = result.get('translations', {})
-        # 
+        #
         # for key, trans_data in translations.items():
         #     stmt = select(Translation).where(
         #         (Translation.key == key) & (Translation.language == language_code)
         #     )
         #     db_result = await db.execute(stmt)
         #     existing = db_result.scalar_one_or_none()
-        #     
+        #
         #     if existing:
         #         existing.translation = trans_data.get('translation', '')
         #         existing.is_translated = trans_data.get('translated', False)
@@ -154,9 +169,9 @@ async def import_translation(
         #             is_translated=trans_data.get('translated', False),
         #         )
         #         db.add(new_translation)
-        # 
+        #
         # await db.commit()
-        
+
         return ApiResponse(
             success=True,
             message=result['message'],
@@ -201,7 +216,7 @@ async def batch_import_translations(
     #         translations = detail.get('translations', {})
     #         # Similar save logic as single import above
     #         pass
-    # 
+    #
     # await db.commit()
 
     return ApiResponse(

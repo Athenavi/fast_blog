@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 
 from shared.services.plugins.plugin_audit import plugin_audit_logger
 from shared.services.plugins.plugin_manager.manifest import PluginCapability
+from shared.services.plugins.plugin_manager.core import plugin_manager
 from src.api.v1.core.responses import ApiResponse
 from src.api.v1.users.user_management import jwt_required
 
@@ -39,12 +40,22 @@ class CheckPermissionRequest(BaseModel):
 async def check_plugin_permission(request: CheckPermissionRequest, current_user=Depends(jwt_required)):
     """
     检查插件权限
-    
+
     验证插件是否具有指定的权限，并记录审计日志
     """
-    # 这里应该调用实际的权限检查逻辑
-    # 目前返回模拟结果
-    has_permission = True  # TODO: 实现实际的权限检查
+    plugin = plugin_manager.get_plugin(request.plugin_slug)
+    if plugin is None:
+        return ApiResponse(
+            success=False,
+            data={
+                "plugin_slug": request.plugin_slug,
+                "capability": request.capability,
+                "granted": False,
+                "message": f"插件 '{request.plugin_slug}' 不存在"
+            }
+        )
+
+    has_permission = plugin.has_capability(request.capability)
 
     # 记录审计日志
     plugin_audit_logger.log_permission_check(
@@ -74,7 +85,7 @@ async def get_audit_logs(
 ):
     """
     获取插件权限审计日志
-    
+
     查看插件的权限使用记录和API调用历史
     """
     logs = plugin_audit_logger.get_audit_logs(
@@ -103,7 +114,7 @@ async def get_permission_statistics(
 ):
     """
     获取权限使用统计
-    
+
     显示各插件的权限检查次数、授权/拒绝比例等统计数据
     """
     stats = plugin_audit_logger.get_permission_statistics(plugin_slug)
@@ -121,7 +132,7 @@ async def get_permission_statistics(
 async def detect_plugin_anomalies(plugin_slug: str, current_user=Depends(jwt_required)):
     """
     检测插件异常行为
-    
+
     分析插件的权限使用模式，检测可能的滥用或异常行为
     """
     anomalies = plugin_audit_logger.detect_anomalies(plugin_slug)
@@ -148,7 +159,7 @@ async def validate_plugin_capabilities(
 ):
     """
     验证插件能力声明
-    
+
     检查插件声明的能力是否有效和合理
     """
     validation_results = []
@@ -196,7 +207,7 @@ async def validate_plugin_capabilities(
 async def get_available_capabilities(current_user=Depends(jwt_required)):
     """
     获取所有可用的能力列表
-    
+
     返回系统支持的所有资源类型和操作组合
     """
     capabilities = {
@@ -298,7 +309,7 @@ async def clear_old_logs(
 ):
     """
     清理旧的审计日志
-    
+
     删除指定天数之前的日志文件
     """
     plugin_audit_logger.clear_old_logs(days)
@@ -313,7 +324,7 @@ async def clear_old_logs(
 async def get_permissions_guide(current_user=Depends(jwt_required)):
     """
     获取插件权限使用指南
-    
+
     提供详细的权限声明和使用文档
     """
     guide = {

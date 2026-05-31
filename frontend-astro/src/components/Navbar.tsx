@@ -50,8 +50,10 @@ const Navbar: React.FC<NavbarProps> = ({title, subtitle, showBackButton = false,
 
         // Fetch user info if logged in
         if (token) {
-            fetch('/api/v2/users/me', {
-                headers: {Authorization: `Bearer ${token}`}
+          import('@/lib/config').then(({getConfig}) => {
+            const {API_BASE_URL} = getConfig();
+            return fetch(`${API_BASE_URL}/api/v2/users/me`, {
+              headers: {Authorization: `Bearer ${token}`}
             })
                 .then(r => r.json())
                 .then(data => {
@@ -60,8 +62,9 @@ const Navbar: React.FC<NavbarProps> = ({title, subtitle, showBackButton = false,
                         setUsername(data.data.username || '');
                     }
                 })
-                .catch(() => {
-                });
+              .catch(() => {
+              });
+          });
         }
     }, []);
 

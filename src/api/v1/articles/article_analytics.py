@@ -13,48 +13,6 @@ from src.auth.auth_deps import get_current_active_user
 router = APIRouter(tags=["article-analytics"])
 
 
-# 已废弃：此端点功能已统一到 article_interactions 中的 POST /{article_id}/view
-# @router.post("/record-view", summary="记录文章访问")
-# async def record_article_view(
-#         request: Request,
-#         article_id: int = Query(..., description="文章ID"),
-#         read_time: int = Query(0, description="阅读时长(秒)"),
-#         current_user: UserModel = Depends(get_current_active_user)
-# ):
-#     """
-#     记录文章访问(前端调用)
-#     
-#     Args:
-#         article_id: 文章ID
-#         read_time: 阅读时长(秒)
-#         
-#     Returns:
-#         操作结果
-#     """
-#     try:
-#         ip_address = request.client.host if request.client else None
-#         referer = request.headers.get('referer', '')
-#
-#         # TODO: 根据IP获取地域
-#         region = 'Unknown'
-#
-#         article_analytics_service.record_view(
-#             article_id=article_id,
-#             user_id=current_user.id,
-#             ip_address=ip_address,
-#             referer=referer,
-#             read_time_seconds=read_time,
-#             region=region,
-#         )
-#
-#         return ApiResponse(
-#             success=True,
-#             message='访问已记录'
-#         )
-#     except Exception as e:
-#         return ApiResponse(success=False, error=f"记录失败: {str(e)}")
-
-
 @router.get("/{article_id}/stats", summary="获取文章统计")
 async def get_article_stats(
         article_id: int,
@@ -63,11 +21,11 @@ async def get_article_stats(
 ):
     """
     获取文章统计数据
-    
+
     Args:
         article_id: 文章ID
         days: 统计天数(1-365)
-        
+
     Returns:
         统计数据
     """
@@ -90,11 +48,11 @@ async def get_views_trend(
 ):
     """
     获取文章阅读量趋势图数据
-    
+
     Args:
         article_id: 文章ID
         days: 统计天数(1-365)
-        
+
     Returns:
         趋势数据
     """
@@ -119,10 +77,10 @@ async def get_traffic_sources(
 ):
     """
     获取文章流量来源分布
-    
+
     Args:
         article_id: 文章ID
-        
+
     Returns:
         来源分布
     """
@@ -147,10 +105,10 @@ async def get_reader_regions(
 ):
     """
     获取文章读者地域分布
-    
+
     Args:
         article_id: 文章ID
-        
+
     Returns:
         地域分布
     """
@@ -176,11 +134,11 @@ async def get_full_analytics_report(
 ):
     """
     获取文章完整分析报告
-    
+
     Args:
         article_id: 文章ID
         days: 统计天数(1-365)
-        
+
     Returns:
         完整分析数据
     """
@@ -204,12 +162,12 @@ async def get_top_articles(
 ):
     """
     获取热门文章排行榜
-    
+
     Args:
         days: 统计天数(1-90)
         limit: 返回数量(1-100)
         sort_by: 排序字段(views/unique_visitors/avg_read_time)
-        
+
     Returns:
         文章排行榜
     """

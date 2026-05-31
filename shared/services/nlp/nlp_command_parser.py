@@ -32,7 +32,7 @@ class IntentType(Enum):
 class NLPCommandParser:
     """
     NLP 命令解析器
-    
+
     将自然语言指令转换为结构化操作
     """
 
@@ -95,10 +95,10 @@ class NLPCommandParser:
     def parse_command(self, command: str) -> Dict[str, Any]:
         """
         解析自然语言命令
-        
+
         Args:
             command: 自然语言命令
-            
+
         Returns:
             解析结果，包含意图、实体、参数等
         """
@@ -208,7 +208,7 @@ class NLPCommandParser:
 class BatchOperationManager:
     """
     批量操作管理器
-    
+
     支持批量执行内容管理操作
     """
 
@@ -223,12 +223,12 @@ class BatchOperationManager:
     ) -> Dict[str, Any]:
         """
         执行批量操作
-        
+
         Args:
             operation_type: 操作类型 (publish/draft/delete/update)
             items: 要操作的项目列表
             parameters: 操作参数
-            
+
         Returns:
             操作结果
         """
@@ -282,12 +282,44 @@ class BatchOperationManager:
             parameters: Dict[str, Any]
     ) -> Dict[str, Any]:
         """执行单个操作"""
-        # TODO: 实际实现需要调用相应的服务
-        return {
-            "item_id": item.get("id"),
-            "success": True,
-            "message": f"{operation_type} completed"
-        }
+        # 根据操作类型调用相应的服务
+        try:
+            item_id = item.get("id")
+            if not item_id:
+                return {"item_id": None, "success": False, "error": "Missing item id"}
+
+            if operation_type in ("update", "edit"):
+                # 更新操作
+                update_data = {k: v for k, v in parameters.items() if k not in ("operation_type",)}
+                update_data.update({k: v for k, v in item.items() if k != "id"})
+                if update_data:
+                    from shared.services.articles.article_manager.service import update_article
+                    from src.utils.database.unified_manager import get_db_session
+                    async with get_db_session() as db:
+                        await update_article(db, item_id, **update_data)
+                    return {"item_id": item_id, "success": True, "message": "update completed"}
+            elif operation_type in ("delete", "remove"):
+                from shared.services.articles.article_manager.service import delete_article
+                from src.utils.database.unified_manager import get_db_session
+                async with get_db_session() as db:
+                    await delete_article(db, item_id)
+                return {"item_id": item_id, "success": True, "message": "delete completed"}
+            elif operation_type in ("publish",):
+                from shared.services.articles.article_manager.service import update_article
+                from src.utils.database.unified_manager import get_db_session
+                async with get_db_session() as db:
+                    await update_article(db, item_id, status=1)
+                return {"item_id": item_id, "success": True, "message": "publish completed"}
+            elif operation_type in ("unpublish",):
+                from shared.services.articles.article_manager.service import update_article
+                from src.utils.database.unified_manager import get_db_session
+                async with get_db_session() as db:
+                    await update_article(db, item_id, status=0)
+                return {"item_id": item_id, "success": True, "message": "unpublish completed"}
+            else:
+                return {"item_id": item_id, "success": False, "error": f"Unsupported operation: {operation_type}"}
+        except Exception as e:
+            return {"item_id": item.get("id"), "success": False, "error": str(e)}
 
     def get_operation_history(self, limit: int = 10) -> List[Dict[str, Any]]:
         """获取操作历史"""
@@ -296,10 +328,10 @@ class BatchOperationManager:
     async def rollback_operation(self, operation_id: str) -> Dict[str, Any]:
         """
         回滚操作
-        
+
         Args:
             operation_id: 操作ID
-            
+
         Returns:
             回滚结果
         """
@@ -316,11 +348,44 @@ class BatchOperationManager:
                 "error": f"Operation not found: {operation_id}"
             }
 
-        # TODO: 实际实现回滚逻辑
+        # 实际回滚逻辑：对已成功的操作执行反向操作
+        rolled_back = 0
+        rollback_errors = []
+        op_type = operation.get("type", "")
+        details = operation.get("results", {}).get("details", [])
+
+        for detail in details:
+            if not detail.get("success"):
+                continue
+            item_id = detail.get("item_id")
+            if not item_id:
+                continue
+            try:
+                if op_type in ("delete", "remove"):
+                    # 删除操作无法回滚，记录警告
+                    rollback_errors.append(f"Cannot rollback delete for item {item_id}")
+                elif op_type == "publish":
+                    from shared.services.articles.article_manager.service import update_article
+                    from src.utils.database.unified_manager import get_db_session
+                    async with get_db_session() as db:
+                        await update_article(db, item_id, status=0)
+                    rolled_back += 1
+                elif op_type == "unpublish":
+                    from shared.services.articles.article_manager.service import update_article
+                    from src.utils.database.unified_manager import get_db_session
+                    async with get_db_session() as db:
+                        await update_article(db, item_id, status=1)
+                    rolled_back += 1
+                else:
+                    rollback_errors.append(f"Rollback not supported for operation: {op_type}")
+            except Exception as e:
+                rollback_errors.append(f"Rollback failed for item {item_id}: {str(e)}")
+
         return {
-            "success": True,
+            "success": rolled_back > 0 or len(rollback_errors) == 0,
             "message": f"Operation {operation_id} rolled back",
-            "rolled_back_items": operation["results"]["succeeded"]
+            "rolled_back_items": rolled_back,
+            "errors": rollback_errors,
         }
 
 

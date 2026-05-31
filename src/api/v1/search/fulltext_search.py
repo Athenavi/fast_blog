@@ -30,7 +30,7 @@ async def search_articles(
 ):
     """
     使用 Meilisearch 搜索文章
-    
+
     Args:
         q: 搜索关键词
         category_id: 分类ID过滤
@@ -41,7 +41,7 @@ async def search_articles(
         page: 页码
         per_page: 每页数量
         sort_by: 排序方式
-        
+
     Returns:
         搜索结果
     """
@@ -98,11 +98,11 @@ async def get_search_suggestions(
 ):
     """
     获取搜索建议（自动完成）
-    
+
     Args:
         q: 搜索前缀
         limit: 返回数量
-        
+
     Returns:
         搜索建议列表
     """
@@ -132,9 +132,9 @@ async def rebuild_search_index(
 ):
     """
     重建搜索索引（仅管理员）
-    
+
     重新索引所有已发布的文章
-    
+
     Returns:
         重建结果
     """
@@ -180,7 +180,7 @@ async def rebuild_search_index(
                 'category_name': category_name or '',
                 'author_id': article.user,
                 'author_name': author_name or '',
-                'tags': [],  # TODO: 获取标签
+                'tags': [t.strip() for t in article.tags_list.split(',')] if article.tags_list else [],
                 'views': article.views,
                 'likes': article.likes,
                 'status': 'published',
@@ -221,7 +221,7 @@ async def get_search_stats(
 ):
     """
     获取搜索索引统计信息（仅管理员）
-    
+
     Returns:
         统计信息
     """
@@ -253,10 +253,10 @@ async def sync_article_to_index(
 ):
     """
     手动同步单篇文章到搜索索引
-    
+
     Args:
         article_id: 文章ID
-        
+
     Returns:
         同步结果
     """
@@ -299,7 +299,7 @@ async def sync_article_to_index(
             'category_name': category_name or '',
             'author_id': article.user,
             'author_name': author_name or '',
-            'tags': [],  # TODO: 获取标签
+            'tags': [t.strip() for t in article.tags_list.split(',')] if article.tags_list else [],
             'views': article.views,
             'likes': article.likes,
             'status': 'published' if article.status == 1 else 'draft',

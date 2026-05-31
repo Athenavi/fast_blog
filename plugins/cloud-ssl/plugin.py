@@ -16,7 +16,7 @@ from shared.services.plugins.plugin_manager.core import BasePlugin, plugin_hooks
 class SSLCertificatePlugin(BasePlugin):
     """
     FastBlog Cloud SSL 证书管理插件
-    
+
     功能:
     1. Let's Encrypt 证书自动申请
     2. HTTP-01 和 DNS-01 验证
@@ -162,14 +162,14 @@ class SSLCertificatePlugin(BasePlugin):
     ) -> Dict[str, Any]:
         """
         申请 SSL 证书
-        
+
         Args:
             domain: 主域名
             email: 联系邮箱
             validation_method: 验证方法 (http-01/dns-01)
             wildcard: 是否通配符证书
             additional_domains: 额外域名 (SAN)
-            
+
         Returns:
             申请结果
         """
@@ -302,10 +302,10 @@ class SSLCertificatePlugin(BasePlugin):
     async def renew_certificate(self, domain: str) -> Dict[str, Any]:
         """
         续期 SSL 证书
-        
+
         Args:
             domain: 域名
-            
+
         Returns:
             续期结果
         """
@@ -444,11 +444,11 @@ class SSLCertificatePlugin(BasePlugin):
     ) -> Dict[str, Any]:
         """
         部署证书到 Web 服务器
-        
+
         Args:
             domain: 域名
             web_server_type: Web 服务器类型 (nginx/apache)
-            
+
         Returns:
             部署结果
         """
@@ -572,11 +572,136 @@ class SSLCertificatePlugin(BasePlugin):
             key_path: Path
     ) -> Dict[str, Any]:
         """部署到 Apache"""
-        # TODO: 实现 Apache 部署
-        return {
-            'success': False,
-            'error': 'Apache deployment not implemented yet'
-        }
+        import re
+
+        try:
+            # 查找 Apache 虚拟主机配置文件
+            apache_sites_dir = Path('/etc/apache2/sites-available')
+            vhost_candidates = [
+                apache_sites_dir / f'{domain}.conf',
+                apache_sites_dir / f'{domain}-ssl.conf',
+                apache_sites_dir / '000-default.conf',
+                apache_sites_dir / 'default-ssl.conf',
+            ]
+
+            vhost_file = None
+            for candidate in vhost_candidates:
+                if candidate.exists():
+                    vhost_file = candidate
+                    break
+
+            if vhost_file is None:
+                # 创建新的 SSL 虚拟主机配置
+                vhost_file = apache_sites_dir / f'{domain}-ssl.conf'
+                ssl_config = f"""<VirtualHost *:443>
+    ServerName {domain}
+    ServerAlias www.{domain}
+    DocumentRoot /var/www/{domain}
+
+    SSLEngine on
+    SSLCertificateFile {cert_path}
+    SSLCertificateKeyFile {key_path}
+    SSLProtocol all -SSLv3 -TLSv1 -TLSv1.1
+    SSLCipherSuite HIGH:!aNULL:!MD5
+
+    <Directory /var/www/{domain}>
+        AllowOverride All
+        Require all granted
+    </Directory>
+
+    ErrorLog ${{APACHE_LOG_DIR}}/{domain}_error.log
+    CustomLog ${{APACHE_LOG_DIR}}/{domain}_access.log combined
+</VirtualHost>
+"""
+                with open(vhost_file, 'w') as f:
+                    f.write(ssl_config)
+            else:
+                # 更新现有配置文件中的证书路径
+                with open(vhost_file, 'r') as f:
+                    config = f.read()
+
+                config = re.sub(
+                    r'SSLCertificateFile\s+[^\n]+',
+                    f'SSLCertificateFile {cert_path}',
+                    config
+                )
+                config = re.sub(
+                    r'SSLCertificateKeyFile\s+[^\n]+',
+                    f'SSLCertificateKeyFile {key_path}',
+                    config
+                )
+
+                # 如果没有 SSLEngine，添加 SSL 配置块
+                if 'SSLEngine' not in config:
+                    ssl_block = f"""
+    SSLEngine on
+    SSLCertificateFile {cert_path}
+    SSLCertificateKeyFile {key_path}
+    SSLProtocol all -SSLv3 -TLSv1 -TLSv1.1
+    SSLCipherSuite HIGH:!aNULL:!MD5
+"""
+                    config = config.replace('</VirtualHost>', f'{ssl_block}\n</VirtualHost>')
+
+                # 添加 HSTS 头
+                if self.settings['ssl_optimization']['enable_hsts']:
+                    hsts_header = f'Header always set Strict-Transport-Security "max-age={self.settings["ssl_optimization"]["hsts_max_age"]}"'
+                    if 'Strict-Transport-Security' not in config:
+                        config = config.replace('</VirtualHost>', f'    {hsts_header}\n</VirtualHost>')
+
+                with open(vhost_file, 'w') as f:
+                    f.write(config)
+
+            print(f"[CloudSSL] Updated Apache config for {domain}")
+
+            # 启用 SSL 模块和站点
+            for cmd in [
+                ['a2enmod', 'ssl'],
+                ['a2enmod', 'headers'],
+                ['a2ensite', f'{domain}-ssl'],
+            ]:
+                try:
+                    subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+                except Exception:
+                    pass
+
+            # 测试 Apache 配置
+            test_result = subprocess.run(
+                ['apachectl', 'configtest'],
+                capture_output=True,
+                text=True,
+                timeout=15
+            )
+
+            if test_result.returncode != 0:
+                return {
+                    'success': False,
+                    'error': f'Apache config test failed: {test_result.stderr}'
+                }
+
+            # 重载 Apache
+            reload_result = subprocess.run(
+                ['systemctl', 'reload', 'apache2'],
+                capture_output=True,
+                text=True,
+                timeout=15
+            )
+
+            if reload_result.returncode == 0:
+                return {
+                    'success': True,
+                    'message': 'Certificate deployed to Apache successfully'
+                }
+            else:
+                return {
+                    'success': False,
+                    'error': f'Apache reload failed: {reload_result.stderr}'
+                }
+
+        except Exception as e:
+            return {
+                'success': False,
+                'error': str(e)
+            }
 
     async def _get_certificate_info(self, domain: str) -> Optional[Dict[str, Any]]:
         """获取证书信息"""

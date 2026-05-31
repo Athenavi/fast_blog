@@ -43,7 +43,7 @@ async def create_sensitive_word(
 ):
     """
     添加敏感词
-    
+
     Args:
         data: 敏感词数据
     """
@@ -86,7 +86,12 @@ async def create_sensitive_word(
         await db.commit()
         await db.refresh(new_word)
 
-        # TODO: 刷新缓存
+        # 刷新缓存
+        try:
+            from shared.services.security.sensitive_word_service import sensitive_word_service
+            await sensitive_word_service.refresh_cache()
+        except Exception:
+            pass  # 缓存刷新失败不影响主流程
 
         return ApiResponse(
             success=True,
@@ -116,7 +121,7 @@ async def list_sensitive_words(
 ):
     """
     获取敏感词列表
-    
+
     Args:
         page: 页码
         per_page: 每页数量
@@ -299,7 +304,7 @@ async def update_sensitive_word(
 ):
     """
     更新敏感词
-    
+
     Args:
         word_id: 敏感词ID
         data: 更新数据
@@ -333,7 +338,12 @@ async def update_sensitive_word(
         await db.commit()
         await db.refresh(word)
 
-        # TODO: 刷新缓存
+        # 刷新缓存
+        try:
+            from shared.services.security.sensitive_word_service import sensitive_word_service
+            await sensitive_word_service.refresh_cache()
+        except Exception:
+            pass  # 缓存刷新失败不影响主流程
 
         return ApiResponse(
             success=True,
@@ -364,7 +374,12 @@ async def delete_sensitive_word(
         await db.delete(word)
         await db.commit()
 
-        # TODO: 刷新缓存
+        # 刷新缓存
+        try:
+            from shared.services.security.sensitive_word_service import sensitive_word_service
+            await sensitive_word_service.refresh_cache()
+        except Exception:
+            pass  # 缓存刷新失败不影响主流程
 
         return ApiResponse(
             success=True,
@@ -386,7 +401,7 @@ async def batch_import_sensitive_words(
 ):
     """
     批量导入敏感词
-    
+
     Args:
         words: 敏感词列表
             [
@@ -439,7 +454,12 @@ async def batch_import_sensitive_words(
 
         await db.commit()
 
-        # TODO: 刷新缓存
+        # 刷新缓存
+        try:
+            from shared.services.security.sensitive_word_service import sensitive_word_service
+            await sensitive_word_service.refresh_cache()
+        except Exception:
+            pass  # 缓存刷新失败不影响主流程
 
         return ApiResponse(
             success=True,

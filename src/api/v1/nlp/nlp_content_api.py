@@ -20,7 +20,7 @@ async def parse_command(
 ):
     """
     解析自然语言命令
-    
+
     将用户的自然语言指令转换为结构化的操作参数
     """
     result = nlp_parser.parse_command(command)
@@ -44,7 +44,7 @@ async def execute_nlp_command(
 ):
     """
     执行自然语言命令
-    
+
     解析并执行用户的自然语言指令
     """
     # 解析命令
@@ -103,7 +103,7 @@ async def execute_batch_operation(
 ):
     """
     执行批量操作
-    
+
     支持批量发布、批量删除等操作
     """
     result = await batch_manager.execute_batch_operation(
@@ -125,7 +125,7 @@ async def get_batch_history(
 ):
     """
     获取批量操作历史
-    
+
     查看最近执行的批量操作记录
     """
     history = batch_manager.get_operation_history(limit=limit)
@@ -146,7 +146,7 @@ async def rollback_batch_operation(
 ):
     """
     回滚批量操作
-    
+
     撤销之前执行的批量操作
     """
     result = await batch_manager.rollback_operation(operation_id)
@@ -162,7 +162,7 @@ async def rollback_batch_operation(
 async def get_command_examples(current_user=Depends(jwt_required)):
     """
     获取命令示例
-    
+
     提供常用的自然语言命令示例
     """
     examples = {
@@ -333,64 +333,168 @@ async def get_nlp_guide(current_user=Depends(jwt_required)):
 
 # ==================== 内部处理函数 ====================
 
+async def _get_db_session():
+    """获取数据库会话"""
+    try:
+        from src.utils.database.unified_manager import get_db_session
+        async for session in get_db_session():
+            return session
+    except Exception:
+        return None
+
+
 async def _handle_create(parameters: dict) -> dict:
     """处理创建操作"""
-    # TODO: 实际实现需要调用文章服务
-    return {
-        "action": "create",
-        "status": "completed",
-        "message": "Content created successfully"
-    }
+    try:
+        from shared.services.articles.article_manager import service as article_service
+        db = await _get_db_session()
+        if not db:
+            return {"action": "create", "status": "error", "message": "Database session unavailable"}
+
+        title = parameters.get("title", "")
+        content = parameters.get("content", "")
+        category_id = parameters.get("category_id")
+        tags = parameters.get("tags", "")
+        user_id = parameters.get("user_id", 0)
+
+        if not title:
+            return {"action": "create", "status": "error", "message": "Title is required"}
+
+        article = await article_service.create_article(
+            db=db, user_id=user_id, title=title, content=content,
+            category_id=category_id, tags=tags
+        )
+        return {
+            "action": "create", "status": "completed",
+            "message": f"Article '{title}' created successfully",
+            "data": {"article_id": article.id, "title": article.title}
+        }
+    except Exception as e:
+        return {"action": "create", "status": "error", "message": str(e)}
 
 
 async def _handle_update(parameters: dict) -> dict:
     """处理更新操作"""
-    # TODO: 实际实现需要调用文章服务
-    return {
-        "action": "update",
-        "status": "completed",
-        "message": "Content updated successfully"
-    }
+    try:
+        from shared.services.articles.article_manager import service as article_service
+        db = await _get_db_session()
+        if not db:
+            return {"action": "update", "status": "error", "message": "Database session unavailable"}
+
+        article_id = parameters.get("article_id")
+        if not article_id:
+            return {"action": "update", "status": "error", "message": "article_id is required"}
+
+        update_data = {}
+        for field in ("title", "content", "category_id", "tags", "excerpt"):
+            if field in parameters:
+                update_data[field] = parameters[field]
+
+        success = await article_service.update_article(db=db, article_id=int(article_id), **update_data)
+        return {
+            "action": "update", "status": "completed" if success else "failed",
+            "message": f"Article {article_id} updated" if success else "Update failed"
+        }
+    except Exception as e:
+        return {"action": "update", "status": "error", "message": str(e)}
 
 
 async def _handle_delete(parameters: dict) -> dict:
     """处理删除操作"""
-    # TODO: 实际实现需要调用文章服务
-    return {
-        "action": "delete",
-        "status": "completed",
-        "message": "Content deleted successfully"
-    }
+    try:
+        from shared.services.articles.article_manager import service as article_service
+        db = await _get_db_session()
+        if not db:
+            return {"action": "delete", "status": "error", "message": "Database session unavailable"}
+
+        article_id = parameters.get("article_id")
+        if not article_id:
+            return {"action": "delete", "status": "error", "message": "article_id is required"}
+
+        success = await article_service.delete_article(db=db, article_id=int(article_id))
+        return {
+            "action": "delete", "status": "completed" if success else "failed",
+            "message": f"Article {article_id} deleted" if success else "Delete failed"
+        }
+    except Exception as e:
+        return {"action": "delete", "status": "error", "message": str(e)}
 
 
 async def _handle_query(parameters: dict) -> dict:
     """处理查询操作"""
-    # TODO: 实际实现需要调用文章服务
-    return {
-        "action": "query",
-        "status": "completed",
-        "data": []
-    }
+    try:
+        from shared.services.articles.article_manager import service as article_service
+        db = await _get_db_session()
+        if not db:
+            return {"action": "query", "status": "error", "message": "Database session unavailable"}
+
+        keyword = parameters.get("keyword", "")
+        category_id = parameters.get("category_id")
+        user_id = parameters.get("user_id")
+        page = parameters.get("page", 1)
+        per_page = parameters.get("per_page", 10)
+
+        articles, total = await article_service.search_articles(
+            db=db, keyword=keyword, category_id=category_id,
+            user_id=user_id, page=page, per_page=per_page
+        )
+        return {
+            "action": "query", "status": "completed",
+            "data": [
+                {"id": a.id, "title": a.title, "excerpt": a.excerpt,
+                 "created_at": str(a.created_at) if a.created_at else ""}
+                for a in articles
+            ],
+            "total": total, "page": page, "per_page": per_page
+        }
+    except Exception as e:
+        return {"action": "query", "status": "error", "message": str(e)}
 
 
 async def _handle_publish(parameters: dict) -> dict:
     """处理发布操作"""
-    # TODO: 实际实现需要调用文章服务
-    return {
-        "action": "publish",
-        "status": "completed",
-        "message": "Content published successfully"
-    }
+    try:
+        from shared.services.articles.article_manager import service as article_service
+        db = await _get_db_session()
+        if not db:
+            return {"action": "publish", "status": "error", "message": "Database session unavailable"}
+
+        article_id = parameters.get("article_id")
+        if not article_id:
+            return {"action": "publish", "status": "error", "message": "article_id is required"}
+
+        # status=1 表示已发布
+        success = await article_service.update_article(db=db, article_id=int(article_id), status=1)
+        return {
+            "action": "publish", "status": "completed" if success else "failed",
+            "message": f"Article {article_id} published" if success else "Publish failed"
+        }
+    except Exception as e:
+        return {"action": "publish", "status": "error", "message": str(e)}
 
 
 async def _handle_search(parameters: dict) -> dict:
     """处理搜索操作"""
-    query = parameters.get("query", "")
+    try:
+        from shared.services.integrations.meilisearch_service import meilisearch_service
+        query = parameters.get("query", "")
+        limit = parameters.get("limit", 10)
 
-    # TODO: 实际实现需要调用搜索服务
-    return {
-        "action": "search",
-        "query": query,
-        "status": "completed",
-        "results": []
-    }
+        if not query:
+            return {"action": "search", "status": "error", "message": "Query is required"}
+
+        result = await meilisearch_service.search(query=query, page=1, per_page=limit)
+        results = []
+        if result and 'hits' in result:
+            results = [
+                {"id": hit.get("id"), "title": hit.get("title", ""), "excerpt": hit.get("excerpt", "")}
+                for hit in result['hits']
+            ]
+
+        return {
+            "action": "search", "query": query,
+            "status": "completed", "results": results,
+            "total": result.get("estimatedTotalHits", 0) if result else 0
+        }
+    except Exception as e:
+        return {"action": "search", "status": "error", "message": str(e)}

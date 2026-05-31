@@ -4,6 +4,7 @@ import React, {useCallback, useEffect, useRef, useState} from 'react';
 import type {MediaFile} from '@/lib/api';
 import {MediaService} from '@/lib/api';
 import {AuthGuard} from '@/components/AuthGuard';
+import {QueryProvider} from '@/components/QueryProvider';
 import {motion} from 'framer-motion';
 import {
   ChevronDown,
@@ -1883,7 +1884,7 @@ const MediaPage: React.FC = () => {
   );
 };
 
-const MediaPageGuard: React.FC = () => <AuthGuard><MediaPage /></AuthGuard>;
+const MediaPageGuard: React.FC = () => <AuthGuard><QueryProvider><MediaPage/></QueryProvider></AuthGuard>;
 export default MediaPageGuard;
 
 /* ========== Tag Editor (single media) ========== */

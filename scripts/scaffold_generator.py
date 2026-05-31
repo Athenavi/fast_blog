@@ -120,7 +120,7 @@ from src.unified_logger import default_logger as logger
 
 class {class_name}Plugin(BasePlugin):
     """{name} Plugin Implementation"""
-    
+
     def __init__(self):
         super().__init__(
             plugin_id=0,  # Will be set by plugin manager
@@ -128,7 +128,7 @@ class {class_name}Plugin(BasePlugin):
             slug="{slug}",
             version="1.0.0"
         )
-    
+
     def register_hooks(self):
         """Register plugin hooks"""
         # Example: Register a hook
@@ -136,25 +136,25 @@ class {class_name}Plugin(BasePlugin):
         # def on_article_created(article):
         #     logger.info(f"Article created: {{article.title}}")
         pass
-    
+
     def activate(self):
         """Activate plugin"""
         super().activate()
         logger.info(f"[{name}] Plugin activated")
         # Activation logic can be added here (e.g., create database tables)
-    
+
     def deactivate(self):
         """Deactivate plugin"""
         super().deactivate()
         logger.info(f"[{name}] Plugin deactivated")
         # Deactivation logic can be added here (e.g., cleanup resources)
-    
+
     def uninstall(self):
         """Uninstall plugin"""
         super().uninstall()
         logger.info(f"[{name}] Plugin uninstalled")
         # Uninstallation logic can be added here (e.g., drop database tables)
-    
+
     def get_settings_ui(self) -> str:
         """Return settings UI HTML (optional)"""
         return """
@@ -163,7 +163,7 @@ class {class_name}Plugin(BasePlugin):
             <p>Configure your plugin settings here.</p>
         </div>
         """
-    
+
     def save_settings(self, settings: Dict[str, Any]):
         """Save plugin settings (optional)"""
         # Save settings to database or config file
@@ -247,7 +247,7 @@ from pathlib import Path
 def test_plugin_initialization():
     """Test plugin can be initialized"""
     from plugins.{slug}.plugin import plugin_instance
-    
+
     assert plugin_instance is not None
     assert plugin_instance.name == "{name}"
     assert plugin_instance.slug == "{slug}"
@@ -256,27 +256,40 @@ def test_plugin_initialization():
 def test_plugin_activation():
     """Test plugin activation"""
     from plugins.{slug}.plugin import plugin_instance
-    
+
     plugin_instance.activate()
     assert plugin_instance.is_active()
-    
+
     plugin_instance.deactivate()
     assert not plugin_instance.is_active()
 
 
-# TODO: Add more tests for your plugin functionality
-# Example:
-# def test_plugin_feature():
-#     from plugins.{slug}.plugin import plugin_instance
-#     # Test your plugin's features here
-#     pass
+def test_plugin_feature():
+    """Test plugin core functionality - customize for your plugin"""
+    from plugins.
+    {slug}.plugin
+    import plugin_instance
+
+    plugin_instance.activate()
+
+    # Verify plugin info
+    info = plugin_instance.get_info()
+    assert isinstance(info, dict)
+    assert 'name' in info
+    assert 'slug' in info
+    assert 'version' in info
+
+    # Verify hooks are registered
+    assert hasattr(plugin_instance, 'register_hooks')
+
+    # Add more tests for your specific plugin features below
 
 
 def test_plugin_settings():
     """测试插件设置"""
     from plugins.
     {slug}.plugin
-    import plugin as plugin_instance
+    import plugin_instance
 
     # 检查默认设置是否存在
     assert hasattr(plugin_instance, 'settings')
@@ -292,7 +305,7 @@ def test_plugin_hooks():
     """测试插件钩子注册"""
     from plugins.
     {slug}.plugin
-    import plugin as plugin_instance
+    import plugin_instance
 
     # 激活插件
     plugin_instance.activate()
@@ -309,7 +322,7 @@ def test_plugin_activation_deactivation():
     """测试插件的激活和停用"""
     from plugins.
     {slug}.plugin
-    import plugin as plugin_instance
+    import plugin_instance
 
     # 初始状态应该是未激活
     assert not plugin_instance.is_active()
@@ -327,7 +340,7 @@ def test_plugin_info():
     """测试插件信息"""
     from plugins.
     {slug}.plugin
-    import plugin as plugin_instance
+    import plugin_instance
 
     # 检查插件基本信息
     assert hasattr(plugin_instance, 'name')
@@ -419,11 +432,11 @@ class ThemeScaffold(ScaffoldGenerator):
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ title }} - {{ site_name }}</title>
-    
-    <!-- Theme Styles -->
+
+<!-- Theme Styles -->
     <link rel="stylesheet" href="{{ theme_static_url }}/css/style.css">
-    
-    {% block head %}{% endblock %}
+
+{% block head %}{% endblock %}
 </head>
 <body>
     <!-- Header -->
@@ -431,8 +444,8 @@ class ThemeScaffold(ScaffoldGenerator):
         <nav class="navbar">
             <div class="container">
                 <a href="/" class="logo">{{ site_name }}</a>
-                
-                <ul class="nav-menu">
+
+<ul class="nav-menu">
                     <li><a href="/">Home</a></li>
                     <li><a href="/articles">Articles</a></li>
                     <li><a href="/categories">Categories</a></li>
@@ -440,25 +453,25 @@ class ThemeScaffold(ScaffoldGenerator):
             </div>
         </nav>
     </header>
-    
-    <!-- Main Content -->
+
+<!-- Main Content -->
     <main class="site-main">
         <div class="container">
             {% block content %}{% endblock %}
         </div>
     </main>
-    
-    <!-- Footer -->
+
+<!-- Footer -->
     <footer class="site-footer">
         <div class="container">
             <p>&copy; {{ current_year }} {{ site_name }}. All rights reserved.</p>
         </div>
     </footer>
-    
-    <!-- Theme Scripts -->
+
+<!-- Theme Scripts -->
     <script src="{{ theme_static_url }}/js/main.js"></script>
-    
-    {% block scripts %}{% endblock %}
+
+{% block scripts %}{% endblock %}
 </body>
 </html>
 '''
@@ -564,8 +577,8 @@ body {
 
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Theme loaded');
-    
-    // Add your custom JavaScript here
+
+// Add your custom JavaScript here
 });
 '''
 
@@ -665,7 +678,7 @@ async def list_{module_name}(
 ):
     """
     List all {name.lower()}
-    
+
     - **skip**: Number of records to skip
     - **limit**: Maximum number of records to return
     """
@@ -675,8 +688,8 @@ async def list_{module_name}(
 # result = await db.execute(stmt)
 # items = result.scalars().all()
 # return {{"items": items, "total": len(items), "skip": skip, "limit": limit}}
-    
-    return {{
+
+return {{
         "items": [],
         "total": 0,
         "skip": skip,
@@ -701,8 +714,8 @@ async def get_{module_name}(
     # if not item:
     #     raise HTTPException(status_code=404, detail="{name} not found")
     # return item
-    
-    raise HTTPException(status_code=501, detail="Not implemented yet")
+
+raise HTTPException(status_code=501, detail="Not implemented yet")
 
 
 @router.post("/")
@@ -720,8 +733,8 @@ async def create_{module_name}(
 # await db.commit()
 # await db.refresh(new_item)
 # return new_item
-    
-    raise HTTPException(status_code=501, detail="Not implemented yet")
+
+raise HTTPException(status_code=501, detail="Not implemented yet")
 
 
 @router.put("/{{item_id}}")
@@ -745,8 +758,8 @@ async def update_{module_name}(
 # await db.commit()
 # await db.refresh(item)
 # return item
-    
-    raise HTTPException(status_code=501, detail="Not implemented yet")
+
+raise HTTPException(status_code=501, detail="Not implemented yet")
 
 
 @router.delete("/{{item_id}}")
@@ -767,8 +780,8 @@ async def delete_{module_name}(
 # await db.delete(item)
 # await db.commit()
 # return {{"message": "Deleted successfully"}}
-    
-    raise HTTPException(status_code=501, detail="Not implemented yet")
+
+raise HTTPException(status_code=501, detail="Not implemented yet")
 '''
 
         api_file = api_dir / f"{module_name}.py"

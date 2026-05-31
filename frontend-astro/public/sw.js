@@ -163,25 +163,78 @@ self.addEventListener('sync', (event) => {
 });
 
 async function syncDrafts() {
-    // 从 IndexedDB 获取待同步的草稿
-    // 实际项目中需要实现 IndexedDB 操作
     console.log('[SW] Syncing drafts...');
+  const DB_NAME = 'fastblog-drafts';
+  const STORE_NAME = 'pending-drafts';
 
-    // 模拟同步逻辑
-    const drafts = []; // TODO: 从 IndexedDB 读取
+  try {
+    const drafts = await new Promise((resolve, reject) => {
+      const request = indexedDB.open(DB_NAME, 1);
+
+      request.onupgradeneeded = (event) => {
+        const db = event.target.result;
+        if (!db.objectStoreNames.contains(STORE_NAME)) {
+          db.createObjectStore(STORE_NAME, {keyPath: 'id'});
+        }
+      };
+
+      request.onsuccess = (event) => {
+        const db = event.target.result;
+        if (!db.objectStoreNames.contains(STORE_NAME)) {
+          resolve([]);
+          return;
+        }
+        const tx = db.transaction(STORE_NAME, 'readonly');
+        const store = tx.objectStore(STORE_NAME);
+        const getAllReq = store.getAll();
+
+        getAllReq.onsuccess = () => resolve(getAllReq.result || []);
+        getAllReq.onerror = () => resolve([]);
+      };
+
+      request.onerror = () => resolve([]);
+    });
 
     for (const draft of drafts) {
-        try {
-            await fetch('/api/v1/articles', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(draft),
-            });
-            console.log('[SW] Draft synced:', draft.id);
-        } catch (error) {
-            console.error('[SW] Failed to sync draft:', error);
+      try {
+        const response = await fetch('/api/v1/articles', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify(draft),
+        });
+
+        if (response.ok) {
+          // 同步成功后从 IndexedDB 中删除该草稿
+          await removeFromIndexedDB(DB_NAME, STORE_NAME, draft.id);
+          console.log('[SW] Draft synced:', draft.id);
+        } else {
+          console.warn('[SW] Draft sync failed with status:', response.status, draft.id);
         }
+      } catch (error) {
+        console.error('[SW] Failed to sync draft:', draft.id, error);
+      }
+        }
+  } catch (error) {
+    console.error('[SW] IndexedDB access error:', error);
     }
+}
+
+/**
+ * 从 IndexedDB 中删除已同步的草稿
+ */
+function removeFromIndexedDB(dbName, storeName, key) {
+  return new Promise((resolve) => {
+    const request = indexedDB.open(dbName, 1);
+    request.onsuccess = (event) => {
+      const db = event.target.result;
+      const tx = db.transaction(storeName, 'readwrite');
+      const store = tx.objectStore(storeName);
+      store.delete(key);
+      tx.oncomplete = () => resolve(true);
+      tx.onerror = () => resolve(false);
+    };
+    request.onerror = () => resolve(false);
+  });
 }
 
 // 推送通知支持

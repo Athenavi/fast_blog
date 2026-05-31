@@ -32,7 +32,7 @@ from src.utils.database.main import get_async_session
 class MCPServer:
     """
     MCP Server 核心实现
-    
+
     遵循 Model Context Protocol 规范，提供标准化的 AI 集成接口
     """
 
@@ -222,7 +222,7 @@ class MCPServer:
     ):
         """
         注册资源
-        
+
         Args:
             uri: 资源URI (如 fastblog://articles)
             name: 资源名称
@@ -247,7 +247,7 @@ class MCPServer:
     ):
         """
         注册工具
-        
+
         Args:
             name: 工具名称
             description: 工具描述
@@ -264,10 +264,10 @@ class MCPServer:
     async def handle_request(self, request: Dict[str, Any]) -> Dict[str, Any]:
         """
         处理 MCP 请求
-        
+
         Args:
             request: MCP 请求对象
-            
+
         Returns:
             MCP 响应对象
         """
@@ -585,14 +585,29 @@ class MCPServer:
         if not query:
             raise ValueError("Search query is required")
 
-        # TODO: 实际实现需要执行搜索
-        return [
-            {
-                "id": 1,
-                "title": f"搜索结果: {query}",
-                "excerpt": "...",
-            }
-        ]
+        try:
+            from shared.services.integrations.meilisearch_service import meilisearch_service
+            result = await meilisearch_service.search(
+                query=query,
+                page=1,
+                per_page=limit,
+            )
+            if result and 'hits' in result:
+                return [
+                    {
+                        "id": hit.get("id"),
+                        "title": hit.get("title", ""),
+                        "excerpt": hit.get("excerpt", ""),
+                        "slug": hit.get("slug", ""),
+                        "category_name": hit.get("category_name", ""),
+                        "author_name": hit.get("author_name", ""),
+                    }
+                    for hit in result['hits']
+                ]
+            return []
+        except Exception as e:
+            logger.error(f"MCP search failed: {e}")
+            return []
 
     async def _generate_seo_description_tool(self, arguments: Dict) -> Dict:
         """生成SEO描述工具"""
