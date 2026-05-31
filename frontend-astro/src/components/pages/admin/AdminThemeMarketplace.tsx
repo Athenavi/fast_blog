@@ -5,6 +5,7 @@ import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {apiClient} from '@/lib/api/base-client';
+import {useToast} from '@/components/ui/toast-provider';
 import {
     Palette, Download, CheckCircle, Settings, Eye, Trash2,
     Upload, Search, Filter, Star, Globe
@@ -30,6 +31,7 @@ interface Theme {
 
 function ThemeMarketplaceInner() {
   const confirm = useConfirm();
+  const toast = useToast();
     const qc = useQueryClient();
     const [activeTab, setActiveTab] = useState<'marketplace' | 'installed'>('marketplace');
     const [selectedTheme, setSelectedTheme] = useState<Theme | null>(null);
@@ -74,7 +76,7 @@ function ThemeMarketplaceInner() {
         onSuccess: () => {
             qc.invalidateQueries({queryKey: ['themes-marketplace']});
             qc.invalidateQueries({queryKey: ['themes-installed']});
-            alert('主题安装成功！');
+          toast.success('主题安装成功！');
         }
     });
 
@@ -83,7 +85,7 @@ function ThemeMarketplaceInner() {
         mutationFn: (slug: string) => apiClient.post(`/themes/${slug}/activate`),
         onSuccess: () => {
             qc.invalidateQueries({queryKey: ['themes-installed']});
-            alert('主题已激活！');
+          toast.success('主题已激活！');
         }
     });
 
@@ -92,7 +94,7 @@ function ThemeMarketplaceInner() {
         mutationFn: (slug: string) => apiClient.delete(`/themes/${slug}/uninstall`),
         onSuccess: () => {
             qc.invalidateQueries({queryKey: ['themes-installed']});
-            alert('主题已卸载！');
+          toast.success('主题已卸载！');
         }
     });
 
@@ -112,7 +114,7 @@ function ThemeMarketplaceInner() {
         mutationFn: ({slug, settings}: { slug: string; settings: any }) =>
             apiClient.put(`/themes/${slug}/config`, {settings}),
         onSuccess: () => {
-            alert('配置已保存！');
+          toast.success('配置已保存！');
             setShowConfig(false);
         }
     });

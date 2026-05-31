@@ -3,6 +3,8 @@
 import React, {lazy, Suspense, useState} from 'react';
 import {Edit3, Globe, Link, Map, Plus, Search, Trash2, Users} from 'lucide-react';
 import {AdminShell} from '@/components/admin/AdminShell';
+import {AuthGuard} from '@/components/AuthGuard';
+import {QueryProvider} from '@/components/QueryProvider';
 
 const LazySitesTab = lazy(() => import('./multisite/SitesTab'));
 const LazySiteUsersPanel = lazy(() => import('./multisite/SiteUsersPanel'));
@@ -43,3 +45,11 @@ const AdminMultisiteManagementInner: React.FC = () => {
 
 
 export default function AdminMultisiteManagement() {
+  return (
+    <AuthGuard>
+      <QueryProvider>
+        <AdminMultisiteManagementInner/>
+      </QueryProvider>
+    </AuthGuard>
+  );
+}

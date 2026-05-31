@@ -1,6 +1,7 @@
 'use client';
 
 import React, {useState} from 'react';
+import {Crown, Users, DollarSign, TrendingUp, Search} from 'lucide-react';
 import {Member} from './shared';
 
 const MembersTab: React.FC<{ members: Member[]; stats: Record<string, any> }> = ({members, stats}) => {

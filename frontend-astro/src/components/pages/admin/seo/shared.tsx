@@ -2,7 +2,7 @@
 
 
 /* ─── Types ─────────────────────────────────────── */
-interface ArticleSEO {
+export interface ArticleSEO {
   id: number;
   article_id: number;
   title: string;
@@ -20,7 +20,7 @@ interface ArticleSEO {
   updated_at?: string;
 }
 
-interface ShareStat {
+export interface ShareStat {
   id: number;
   article_id: number;
   article_title?: string;
@@ -31,7 +31,7 @@ interface ShareStat {
   created_at?: string;
 }
 
-interface SearchHistory {
+export interface SearchHistory {
   id: number;
   query: string;
   user_id?: number;
@@ -40,7 +40,7 @@ interface SearchHistory {
   created_at?: string;
 }
 
-interface SEODashboard {
+export interface SEODashboard {
   total_articles_with_seo: number;
   avg_seo_score: number;
   top_keywords: { keyword: string; count: number }[];
@@ -48,7 +48,7 @@ interface SEODashboard {
   recent_issues: { type: string; message: string; article_id?: number }[];
 }
 
-const Input: React.FC<{
+export const Input: React.FC<{
   label: string;
   value: string;
   onChange: (v: string) => void;
@@ -68,7 +68,7 @@ const Input: React.FC<{
   </div>
 );
 
-const ScoreBadge: React.FC<{ score?: number }> = ({score}) => {
+export const ScoreBadge: React.FC<{ score?: number }> = ({score}) => {
   if (score === undefined || score === null) return <span className="text-xs text-gray-400">未评分</span>;
   const color = score >= 80 ? 'text-green-600 bg-green-50 dark:bg-green-900/20' :
     score >= 60 ? 'text-yellow-600 bg-yellow-50 dark:bg-yellow-900/20' :

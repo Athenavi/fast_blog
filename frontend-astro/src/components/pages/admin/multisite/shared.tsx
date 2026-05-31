@@ -2,7 +2,7 @@
 
 
 /* ─── Types ─────────────────────────────────────── */
-interface Site {
+export interface Site {
   id: number;
   name: string;
   domain: string;
@@ -17,7 +17,7 @@ interface Site {
   updated_at?: string;
 }
 
-interface SiteUser {
+export interface SiteUser {
   id: number;
   user_id: number;
   username: string;
@@ -26,7 +26,7 @@ interface SiteUser {
   joined_at?: string;
 }
 
-interface ContentMapping {
+export interface ContentMapping {
   id: number;
   source_site_id: number;
   target_site_id: number;
@@ -40,7 +40,7 @@ interface ContentMapping {
   created_at?: string;
 }
 
-const Input: React.FC<{
+export const Input: React.FC<{
   label: string;
   value: string;
   onChange: (v: string) => void;
@@ -60,7 +60,7 @@ const Input: React.FC<{
   </div>
 );
 
-const StatusBadge: React.FC<{ active: boolean }> = ({active}) => (
+export const StatusBadge: React.FC<{ active: boolean }> = ({active}) => (
   <span
     className={`px-2 py-0.5 text-[10px] rounded-full font-medium ${active ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-500'}`}>
     {active ? '活跃' : '停用'}

@@ -4,10 +4,13 @@ import React, {useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {apiClient} from '@/lib/api/api-client';
 import {useConfirm} from '@/components/ui/confirm-provider';
+import {useToast} from '@/components/ui/toast-provider';
+import {Package, Plus, Crown, Edit3, Check, Trash2} from 'lucide-react';
 import {VIPPlan, PlanForm, Modal, Inp} from './shared';
 
 const PlansTab: React.FC<{ plans: VIPPlan[]; onChanged: () => void }> = ({plans, onChanged}) => {
   const confirm = useConfirm();
+  const toast = useToast();
   const qc = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<VIPPlan | null>(null);
@@ -47,7 +50,7 @@ const PlansTab: React.FC<{ plans: VIPPlan[]; onChanged: () => void }> = ({plans,
         qc.invalidateQueries({queryKey: ['admin-vip']});
         setShowForm(false);
         onChanged();
-      } else if (r.error) alert(r.error);
+      } else if (r.error) toast.error(r.error || '操作失败');
     },
   });
   const updateMut = useMutation({
@@ -57,7 +60,7 @@ const PlansTab: React.FC<{ plans: VIPPlan[]; onChanged: () => void }> = ({plans,
         qc.invalidateQueries({queryKey: ['admin-vip']});
         setShowForm(false);
         onChanged();
-      } else if (r.error) alert(r.error);
+      } else if (r.error) toast.error(r.error || '操作失败');
     },
   });
   const deleteMut = useMutation({
@@ -66,7 +69,7 @@ const PlansTab: React.FC<{ plans: VIPPlan[]; onChanged: () => void }> = ({plans,
       if (r.success) {
         qc.invalidateQueries({queryKey: ['admin-vip']});
         onChanged();
-      } else if (r.error) alert(r.error);
+      } else if (r.error) toast.error(r.error || '操作失败');
     },
   });
   const toggleMut = useMutation({
@@ -84,7 +87,10 @@ const PlansTab: React.FC<{ plans: VIPPlan[]; onChanged: () => void }> = ({plans,
   });
 
   const submitPlan = () => {
-    if (!f.name.trim()) return alert('请输入套餐名称');
+    if (!f.name.trim()) {
+      toast.error('请输入套餐名称');
+      return;
+    }
     if (editing) updateMut.mutate({id: editing.id, form: f});
     else createMut.mutate(f);
   };

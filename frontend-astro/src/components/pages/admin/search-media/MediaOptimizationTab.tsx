@@ -5,10 +5,13 @@ import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {EmptyState, Modal} from '@/components/admin/shared-ui';
 import {apiClient} from '@/lib/api/api-client';
 import {useConfirm} from '@/components/ui/confirm-provider';
+import {useToast} from '@/components/ui/toast-provider';
+import {ChevronLeft, ChevronRight, Edit3, Plus, Trash2, Zap} from 'lucide-react';
 import {MediaOptimization, Pagination} from './shared';
 
 const MediaOptimizationTab: React.FC = () => {
   const confirm = useConfirm();
+  const toast = useToast();
   const qc = useQueryClient();
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('');
@@ -32,7 +35,7 @@ const MediaOptimizationTab: React.FC = () => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['media-optimization']});
         setShowForm(false);
-      } else alert(r.error);
+      } else toast.error(r.error || '操作失败');
     },
   });
   const updateMut = useMutation({
@@ -45,7 +48,10 @@ const MediaOptimizationTab: React.FC = () => {
   });
 
   const submit = () => {
-    if (!form.media_id) return alert('请填写媒体ID');
+    if (!form.media_id) {
+      toast.error('请填写媒体ID');
+      return;
+    }
     createMut.mutate({...form, media_id: parseInt(form.media_id)});
   };
 

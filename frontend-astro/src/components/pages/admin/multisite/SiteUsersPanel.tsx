@@ -3,10 +3,12 @@
 import React, {useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {apiClient} from '@/lib/api/api-client';
+import {useToast} from '@/components/ui/toast-provider';
 import {Edit3, Globe, Link, Map, Plus, Search, Trash2, Users} from 'lucide-react';
 import {SiteUser} from './shared';
 
 const SiteUsersPanel: React.FC<{ siteId: number | null }> = ({siteId}) => {
+  const toast = useToast();
   const qc = useQueryClient();
   const [addUserId, setAddUserId] = useState('');
   const [addRole, setAddRole] = useState('editor');
@@ -25,21 +27,21 @@ const SiteUsersPanel: React.FC<{ siteId: number | null }> = ({siteId}) => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['site-users', siteId]});
         setAddUserId('');
-      } else alert(r.error);
+      } else toast.error(r.error || '操作失败');
     },
   });
   const removeUserMut = useMutation({
     mutationFn: (userId: number) => apiClient.delete(`/system/multisite/users/${userId}`),
     onSuccess: (r: any) => {
       if (r.success) qc.invalidateQueries({queryKey: ['site-users', siteId]});
-      else alert(r.error);
+      else toast.error(r.error || '操作失败');
     },
   });
   const updateRoleMut = useMutation({
     mutationFn: ({userId, role}: any) => apiClient.put(`/system/multisite/${siteId}/users/${userId}/role`, {role}),
     onSuccess: (r: any) => {
       if (r.success) qc.invalidateQueries({queryKey: ['site-users', siteId]});
-      else alert(r.error);
+      else toast.error(r.error || '操作失败');
     },
   });
 

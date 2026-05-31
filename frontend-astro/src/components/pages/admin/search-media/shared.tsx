@@ -2,7 +2,7 @@
 
 
 /* ─── Types ─────────────────────────────────────── */
-interface SearchIndex {
+export interface SearchIndex {
   id: number;
   article_id: number;
   indexed: boolean;
@@ -12,7 +12,7 @@ interface SearchIndex {
   updated_at?: string;
 }
 
-interface MediaOptimization {
+export interface MediaOptimization {
   id: number;
   media_id: number;
   webp_url?: string;
@@ -23,7 +23,7 @@ interface MediaOptimization {
   updated_at?: string;
 }
 
-interface Pagination {
+export interface Pagination {
   page: number;
   per_page: number;
   total: number;

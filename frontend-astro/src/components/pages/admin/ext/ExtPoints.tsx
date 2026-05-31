@@ -6,9 +6,11 @@ import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {apiClient} from '@/lib/api/api-client';
+import {useToast} from '@/components/ui/toast-provider';
 import {Coins, Loader, Minus, Plus, TrendingUp, Users} from 'lucide-react';
 
 function PointsInner() {
+  const toast = useToast();
   const qc = useQueryClient();
 
   const {data: stats} = useQuery({
@@ -53,11 +55,27 @@ function PointsInner() {
 
   const addMut = useMutation({
     mutationFn: (data: any) => apiClient.post('/ext/points/admin/add-points', data),
-    onSuccess: (r) => { if (r.success) {alert(r.message); setUserId(''); setPointsAmount(''); setReason(''); qc.invalidateQueries({queryKey:['ext-points-stats']});}},
+    onSuccess: (r) => {
+      if (r.success) {
+        toast.success(r.message || '操作成功');
+        setUserId('');
+        setPointsAmount('');
+        setReason('');
+        qc.invalidateQueries({queryKey: ['ext-points-stats']});
+      }
+    },
   });
   const deductMut = useMutation({
     mutationFn: (data: any) => apiClient.post('/ext/points/admin/deduct-points', data),
-    onSuccess: (r) => { if (r.success) {alert(r.message); setUserId(''); setPointsAmount(''); setReason(''); qc.invalidateQueries({queryKey:['ext-points-stats']});}},
+    onSuccess: (r) => {
+      if (r.success) {
+        toast.success(r.message || '操作成功');
+        setUserId('');
+        setPointsAmount('');
+        setReason('');
+        qc.invalidateQueries({queryKey: ['ext-points-stats']});
+      }
+    },
   });
 
   return (

@@ -4,6 +4,7 @@ import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {apiClient} from '@/lib/api/base-client';
+import {useToast} from '@/components/ui/toast-provider';
 // P6-1: 集成 dnd-kit 实现拖拽排序
 import {
     DndContext,
@@ -188,6 +189,7 @@ function SortableBlock({
 }
 
 function PageBuilderInner() {
+  const toast = useToast();
     const qc = useQueryClient();
     const [selectedPage, setSelectedPage] = useState<PageData | null>(null);
     const [editingBlocks, setEditingBlocks] = useState<any[]>([]);
@@ -254,7 +256,7 @@ function PageBuilderInner() {
             apiClient.put(`/page-builder/pages/${id}`, {blocks_data: blocks}),
         onSuccess: () => {
             qc.invalidateQueries({queryKey: ['page-builder-pages']});
-            alert('页面已保存！');
+          toast.success('页面已保存！');
         }
     });
 
@@ -263,7 +265,7 @@ function PageBuilderInner() {
         mutationFn: (id: number) => apiClient.post(`/page-builder/pages/${id}/publish`),
         onSuccess: () => {
             qc.invalidateQueries({queryKey: ['page-builder-pages']});
-            alert('页面已发布！');
+          toast.success('页面已发布！');
         }
     });
 
@@ -298,9 +300,9 @@ function PageBuilderInner() {
             });
             qc.invalidateQueries({queryKey: ['page-builder-pages']});
             setShowComponentLibrary(false);
-            alert('页面创建成功！');
+          toast.success('页面创建成功！');
         } catch (error) {
-            alert('创建失败：' + (error as any).response?.data?.detail || '未知错误');
+          toast.error('创建失败：' + ((error as any).response?.data?.detail || '未知错误'));
         }
     };
 

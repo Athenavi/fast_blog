@@ -5,10 +5,13 @@ import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {DeleteConfirm, EmptyState, Modal} from '@/components/admin/shared-ui';
 import {apiClient} from '@/lib/api/api-client';
 import {useConfirm} from '@/components/ui/confirm-provider';
+import {useToast} from '@/components/ui/toast-provider';
+import {ChevronLeft, ChevronRight, Clock, Monitor, PowerOff, Smartphone, Trash2} from 'lucide-react';
 import {UserSession, Pagination} from './shared';
 
 const SessionsTab: React.FC = () => {
   const confirm = useConfirm();
+  const toast = useToast();
   const qc = useQueryClient();
   const [page, setPage] = useState(1);
 
@@ -22,7 +25,7 @@ const SessionsTab: React.FC = () => {
   const deactivateMut = useMutation({
     mutationFn: (id: number) => apiClient.post(`/users/security/sessions/${id}/deactivate`),
     onSuccess: (r: any) => {
-      if (r.success) qc.invalidateQueries({queryKey: ['user-sessions']}); else alert(r.error);
+      if (r.success) qc.invalidateQueries({queryKey: ['user-sessions']}); else toast.error(r.error || '操作失败');
     },
   });
   const deleteMut = useMutation({

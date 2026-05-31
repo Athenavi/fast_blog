@@ -7,6 +7,7 @@ import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {DeleteConfirm, EmptyState, Modal} from '@/components/admin/shared-ui';
 import {apiClient} from '@/lib/api/api-client';
+import {useToast} from '@/components/ui/toast-provider';
 import {
   AlertCircle,
   ArrowRightLeft,
@@ -124,6 +125,7 @@ const LogLevelBadge: React.FC<{ level: string }> = ({level}) => {
 /* ─── Tasks Tab ─────────────────────────────────── */
 const TasksTab: React.FC = () => {
   const qc = useQueryClient();
+  const toast = useToast();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
@@ -152,7 +154,7 @@ const TasksTab: React.FC = () => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['migration-tasks']});
         setShowForm(false);
-      } else alert(r.error);
+      } else toast.error(r.error || '操作失败');
     },
   });
   const updateMut = useMutation({
@@ -161,7 +163,7 @@ const TasksTab: React.FC = () => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['migration-tasks']});
         setShowForm(false);
-      } else alert(r.error);
+      } else toast.error(r.error || '操作失败');
     },
   });
   const deleteMut = useMutation({
@@ -170,7 +172,7 @@ const TasksTab: React.FC = () => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['migration-tasks']});
         setDeleteId(null);
-      } else alert(r.error);
+      } else toast.error(r.error || '操作失败');
     },
   });
 
@@ -190,7 +192,10 @@ const TasksTab: React.FC = () => {
     setShowForm(true);
   };
   const submit = () => {
-    if (!form.task_name.trim()) return alert('请填写任务名称');
+    if (!form.task_name.trim()) {
+      toast.error('请填写任务名称');
+      return;
+    }
     if (editing) updateMut.mutate({id: editing.id, ...form});
     else createMut.mutate(form);
   };

@@ -9,7 +9,9 @@ import {useConfirm} from '@/components/ui/confirm-provider';
 import {GAConfig, BaiduConfig, Toggle, InputField, ActionButton} from './shared';
 
 
-function AnalyticsTab({showToast}: { showToast: (msg: string, type?: 'success' | 'error' | 'info') => void }) {
+export default function AnalyticsTab({showToast}: {
+  showToast: (msg: string, type?: 'success' | 'error' | 'info') => void
+}) {
   const confirm = useConfirm();
   const qc = useQueryClient();
   const [showGAModal, setShowGAModal] = useState(false);

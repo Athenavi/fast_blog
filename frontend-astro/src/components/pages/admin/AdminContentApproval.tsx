@@ -3,6 +3,8 @@
 import React, {lazy, Suspense, useState} from 'react';
 import {BarChart3, Check, CheckCircle, Clock, Eye, FileText, X, XCircle} from 'lucide-react';
 import {AdminShell} from '@/components/admin/AdminShell';
+import {AuthGuard} from '@/components/AuthGuard';
+import {QueryProvider} from '@/components/QueryProvider';
 
 const LazyPendingTab = lazy(() => import('./approval/PendingTab'));
 const LazyMyRequestsTab = lazy(() => import('./approval/MyRequestsTab'));
@@ -50,3 +52,11 @@ const AdminContentApprovalInner: React.FC = () => {
 
 
 export default function AdminContentApproval() {
+  return (
+    <AuthGuard>
+      <QueryProvider>
+        <AdminContentApprovalInner/>
+      </QueryProvider>
+    </AuthGuard>
+  );
+}

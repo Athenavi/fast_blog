@@ -1,8 +1,9 @@
 'use client';
 
+import {X} from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────
-interface VIPPlan {
+export interface VIPPlan {
   id: number;
   name: string;
   description?: string;
@@ -16,7 +17,7 @@ interface VIPPlan {
   updated_at?: string;
 }
 
-interface VIPFeature {
+export interface VIPFeature {
   id: number;
   code: string;
   name: string;
@@ -26,7 +27,7 @@ interface VIPFeature {
   created_at?: string;
 }
 
-interface Member {
+export interface Member {
   id: number;
   user_id: number;
   username: string;
@@ -40,14 +41,14 @@ interface Member {
   status: string;
 }
 
-interface VipMgmtData {
+export interface VipMgmtData {
   stats: Record<string, any>;
   members: Member[];
   plans: VIPPlan[];
   features: VIPFeature[];
 }
 
-interface PlanForm {
+export interface PlanForm {
   name: string;
   description: string;
   price: string;
@@ -57,14 +58,14 @@ interface PlanForm {
   features: string;
 }
 
-interface FeatureForm {
+export interface FeatureForm {
   code: string;
   name: string;
   description: string;
   required_level: string;
 }
 
-const Modal: React.FC<{ open: boolean; title: string; onClose: () => void; children: React.ReactNode }> = ({
+export const Modal: React.FC<{ open: boolean; title: string; onClose: () => void; children: React.ReactNode }> = ({
                                                                                                              open,
                                                                                                              title,
                                                                                                              onClose,
@@ -85,7 +86,7 @@ const Modal: React.FC<{ open: boolean; title: string; onClose: () => void; child
   </div>;
 };
 
-const Inp: React.FC<{
+export const Inp: React.FC<{
   label: string;
   value: string;
   onChange: (v: string) => void;

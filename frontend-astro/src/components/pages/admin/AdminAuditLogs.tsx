@@ -7,6 +7,7 @@ import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {apiClient} from '@/lib/api/base-client';
 import {useConfirm} from '@/components/ui/confirm-provider';
+import {useToast} from '@/components/ui/toast-provider';
 import {
   ScrollText, Download, Trash2, Search, Filter, X,
   AlertTriangle, AlertCircle, Info, ShieldAlert,
@@ -72,6 +73,7 @@ const Pagination: React.FC<{page:number;total:number;perPage:number;onChange:(p:
 // ─── Main component ───────────────────────────────────
 function AuditLogsInner() {
   const confirm = useConfirm();
+  const toast = useToast();
   const [page, setPage] = useState(1);
   const [searchUser, setSearchUser] = useState('');
   const [filterAction, setFilterAction] = useState('');
@@ -118,8 +120,10 @@ function AuditLogsInner() {
   const handleCleanup = useCallback(async () => {
     if (!await confirm({message: '确定清理 90 天前的审计日志？此操作不可撤销。', variant: 'warning'})) return;
     const res = await apiClient.post('/security/audit-log/cleanup', {days: 90});
-    if (res.success) { alert('清理完成'); refetch(); }
-    else if (res.error) alert(res.error);
+    if (res.success) {
+      toast.success('清理完成');
+      refetch();
+    } else if (res.error) toast.error(res.error || '操作失败');
   }, [refetch]);
 
   const resetFilters = () => { setSearchUser(''); setFilterAction(''); setFilterLevel(''); setPage(1); };

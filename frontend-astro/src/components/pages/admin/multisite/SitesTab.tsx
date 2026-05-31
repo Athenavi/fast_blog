@@ -4,10 +4,13 @@ import React, {useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {DeleteConfirm, EmptyState, Modal} from '@/components/admin/shared-ui';
 import {apiClient} from '@/lib/api/api-client';
+import {useToast} from '@/components/ui/toast-provider';
 import {Edit3, Globe, Link, Map, Plus, Search, Trash2, Users} from 'lucide-react';
 import {Site, Input, StatusBadge} from './shared';
+import SiteUsersPanel from './SiteUsersPanel';
 
 const SitesTab: React.FC = () => {
+  const toast = useToast();
   const qc = useQueryClient();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
@@ -33,7 +36,7 @@ const SitesTab: React.FC = () => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['sites']});
         setShowForm(false);
-      } else alert(r.error);
+      } else toast.error(r.error || '操作失败');
     },
   });
   const updateMut = useMutation({
@@ -42,7 +45,7 @@ const SitesTab: React.FC = () => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['sites']});
         setShowForm(false);
-      } else alert(r.error);
+      } else toast.error(r.error || '操作失败');
     },
   });
   const deleteMut = useMutation({
@@ -51,7 +54,7 @@ const SitesTab: React.FC = () => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['sites']});
         setDeleteId(null);
-      } else alert(r.error);
+      } else toast.error(r.error || '操作失败');
     },
   });
 
@@ -70,7 +73,10 @@ const SitesTab: React.FC = () => {
     setShowForm(true);
   };
   const submit = () => {
-    if (!form.name.trim() || !form.domain.trim()) return alert('请填写站点名称和域名');
+    if (!form.name.trim() || !form.domain.trim()) {
+      toast.error('请填写站点名称和域名');
+      return;
+    }
     const payload = {
       ...form,
       is_active: form.is_active === 'true',
@@ -104,7 +110,7 @@ const SitesTab: React.FC = () => {
         <div className="space-y-2">{[...Array(5)].map((_, i) => <div key={i}
                                                                      className="h-16 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse"/>)}</div>
       ) : sites.length === 0 ? (
-        <EmptyState icon={Globe} title="暂无站点" description="点击「新增站点」开始配置多站点"/>
+        <EmptyState icon={Globe} title="暂无站点" desc="点击「新增站点」开始配置多站点"/>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {sites.map(s => (
@@ -195,9 +201,9 @@ const SitesTab: React.FC = () => {
       </Modal>
 
       {/* Delete Confirm */}
-      <DeleteConfirm open={deleteId !== null} onClose={() => setDeleteId(null)}
-                     onConfirm={() => deleteId && deleteMut.mutate(deleteId)}
-                     title="确定删除此站点？" message="删除站点将同时移除所有关联的用户关系和内容映射。"/>
+      <DeleteConfirm onConfirm={() => deleteId && deleteMut.mutate(deleteId)}
+                     onCancel={() => setDeleteId(null)}
+                     title="确定删除此站点？" desc="删除站点将同时移除所有关联的用户关系和内容映射。"/>
     </>
   );
 };

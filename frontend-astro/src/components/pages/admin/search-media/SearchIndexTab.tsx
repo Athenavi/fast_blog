@@ -5,10 +5,13 @@ import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {EmptyState, Modal} from '@/components/admin/shared-ui';
 import {apiClient} from '@/lib/api/api-client';
 import {useConfirm} from '@/components/ui/confirm-provider';
+import {useToast} from '@/components/ui/toast-provider';
+import {CheckCircle, ChevronLeft, ChevronRight, Plus, RefreshCw, Search, Trash2, XCircle} from 'lucide-react';
 import {SearchIndex, Pagination} from './shared';
 
 const SearchIndexTab: React.FC = () => {
   const confirm = useConfirm();
+  const toast = useToast();
   const qc = useQueryClient();
   const [page, setPage] = useState(1);
   const [indexedFilter, setIndexedFilter] = useState('');
@@ -27,7 +30,7 @@ const SearchIndexTab: React.FC = () => {
   const createMut = useMutation({
     mutationFn: (d: any) => apiClient.post('/search/management/search-index', d),
     onSuccess: (r: any) => {
-      if (r.success) qc.invalidateQueries({queryKey: ['search-index']}); else alert(r.error);
+      if (r.success) qc.invalidateQueries({queryKey: ['search-index']}); else toast.error(r.error || '操作失败');
     },
   });
   const updateMut = useMutation({
@@ -43,8 +46,8 @@ const SearchIndexTab: React.FC = () => {
     onSuccess: (r: any) => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['search-index']});
-        alert(r.message || '重新索引已触发');
-      } else alert(r.error);
+        toast.success(r.message || '重新索引已触发');
+      } else toast.error(r.error || '操作失败');
     },
   });
 

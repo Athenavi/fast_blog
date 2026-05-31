@@ -2,10 +2,12 @@
 
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {apiClient} from '@/lib/api/api-client';
+import {useToast} from '@/components/ui/toast-provider';
 import {Link2, MessageSquare, Plus, Search, Trash2, Users} from 'lucide-react';
 import {ChatGroupInvite, StatusBadge} from './shared';
 
 const GroupInvitesPanel: React.FC<{ groupId: number | null }> = ({groupId}) => {
+  const toast = useToast();
   const qc = useQueryClient();
 
   const {data, isLoading} = useQuery({
@@ -20,14 +22,14 @@ const GroupInvitesPanel: React.FC<{ groupId: number | null }> = ({groupId}) => {
     mutationFn: () => apiClient.post(`/chats/groups/${groupId}/create-invite`, {}),
     onSuccess: (r: any) => {
       if (r.success) qc.invalidateQueries({queryKey: ['group-invites', groupId]});
-      else alert(r.error);
+      else toast.error(r.error || '操作失败');
     },
   });
   const revokeMut = useMutation({
     mutationFn: (code: string) => apiClient.post(`/chats/groups/${groupId}/revoke-invite`, {invite_code: code}),
     onSuccess: (r: any) => {
       if (r.success) qc.invalidateQueries({queryKey: ['group-invites', groupId]});
-      else alert(r.error);
+      else toast.error(r.error || '操作失败');
     },
   });
 

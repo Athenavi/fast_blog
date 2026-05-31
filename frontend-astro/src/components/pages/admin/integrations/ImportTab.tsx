@@ -8,7 +8,9 @@ import {apiClient} from '@/lib/api/api-client';
 import {ActionButton, Ghost} from './shared';
 
 
-function ImportTab({showToast}: { showToast: (msg: string, type?: 'success' | 'error' | 'info') => void }) {
+export default function ImportTab({showToast}: {
+  showToast: (msg: string, type?: 'success' | 'error' | 'info') => void
+}) {
   const qc = useQueryClient();
   const wpFileRef = useRef<HTMLInputElement>(null);
   const [importing, setImporting] = useState(false);

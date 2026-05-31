@@ -4,7 +4,7 @@
  */
 
 import React, {useEffect, useState} from 'react';
-import {Loader} from 'lucide-react';
+import {Loader, AlertTriangle, RefreshCw} from 'lucide-react';
 
 /* ═══════════════════════════════════════════
    StatCard - 渐变统计卡片
@@ -319,4 +319,60 @@ export const TypeBadge: React.FC<{
             {c.label}
     </span>
     );
+};
+
+/* ═══════════════════════════════════════════
+   QueryErrorFallback - React Query 错误展示
+   ═══════════════════════════════════════════ */
+export const QueryErrorFallback: React.FC<{
+  error: Error | null;
+  onRetry?: () => void;
+  title?: string;
+  desc?: string;
+}> = ({error, onRetry, title = '数据加载失败', desc}) => (
+  <div className="flex flex-col items-center justify-center py-12 px-4">
+    <div
+      className="w-14 h-14 rounded-2xl bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-800/30 flex items-center justify-center mb-4">
+      <AlertTriangle className="w-7 h-7 text-red-500"/>
+    </div>
+    <h3 className="text-sm font-semibold text-gray-900 dark:text-white mb-1">{title}</h3>
+    <p className="text-xs text-gray-500 dark:text-gray-400 mb-4 text-center max-w-sm">
+      {desc || error?.message || '请求出错，请稍后重试'}
+    </p>
+    {onRetry && (
+      <button onClick={onRetry}
+              className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-colors flex items-center gap-2">
+        <RefreshCw className="w-3.5 h-3.5"/>
+        重新加载
+      </button>
+    )}
+  </div>
+);
+
+/* ═══════════════════════════════════════════
+   QueryLoadingSkeleton - 通用查询加载骨架屏
+   ═══════════════════════════════════════════ */
+export const QueryLoadingSkeleton: React.FC<{
+  rows?: number;
+  variant?: 'table' | 'card';
+}> = ({rows = 5, variant = 'table'}) => {
+  if (variant === 'card') {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {Array.from({length: rows}).map((_, i) => (
+          <div key={i}
+               className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-5 animate-pulse">
+            <div className="h-4 w-24 bg-gray-200 dark:bg-gray-700 rounded mb-3"/>
+            <div className="h-3 w-full bg-gray-200 dark:bg-gray-700 rounded mb-2"/>
+            <div className="h-3 w-2/3 bg-gray-200 dark:bg-gray-700 rounded"/>
+          </div>
+        ))}
+      </div>
+    );
+  }
+  return (
+    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+      <Skeleton lines={rows}/>
+    </div>
+  );
 };

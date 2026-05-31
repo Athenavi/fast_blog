@@ -3,11 +3,14 @@
 import React, {useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {EmptyState, Modal, Pagination} from '@/components/admin/shared-ui';
+import {useToast} from '@/components/ui/toast-provider';
 import {apiClient} from '@/lib/api/api-client';
+import {Settings, Edit3} from 'lucide-react';
 import {RevenueSharingConfig} from './shared';
 
 const ConfigTab: React.FC = () => {
   const qc = useQueryClient();
+  const toast = useToast();
   const [editing, setEditing] = useState<RevenueSharingConfig | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [form, setForm] = useState({platform_percentage: '', min_payout_amount: '', payout_cycle: '', description: ''});
@@ -25,7 +28,7 @@ const ConfigTab: React.FC = () => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['revenue-configs']});
         setShowForm(false);
-      } else alert(r.error);
+      } else toast.error(r.error || '操作失败');
     },
   });
 
@@ -57,7 +60,7 @@ const ConfigTab: React.FC = () => {
         <div className="space-y-2">{[...Array(3)].map((_, i) => <div key={i}
                                                                      className="h-20 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse"/>)}</div>
       ) : items.length === 0 ? (
-        <EmptyState icon={Settings} title="暂无分成配置" description="系统将在首次交易时自动生成默认配置"/>
+        <EmptyState icon={Settings} title="暂无分成配置" desc="系统将在首次交易时自动生成默认配置"/>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {items.map(c => (

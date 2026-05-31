@@ -4,6 +4,7 @@ import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {apiClient} from '@/lib/api/base-client';
+import {useToast} from '@/components/ui/toast-provider';
 import {formatDateTime as formatTime} from '@/lib/utils';
 import {
     Share2, Send, CheckCircle, XCircle, Clock,
@@ -43,6 +44,7 @@ const STATUS_CONFIG = {
 };
 
 function ThirdPartyPublishInner() {
+  const toast = useToast();
     const qc = useQueryClient();
     const [selectedArticle, setSelectedArticle] = useState<number | null>(null);
     const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
@@ -74,13 +76,13 @@ function ThirdPartyPublishInner() {
             qc.invalidateQueries({queryKey: ['publish-records']});
             setShowPublishDialog(false);
             setSelectedPlatforms([]);
-            alert('发布任务已提交！');
+          toast.success('发布任务已提交！');
         }
     });
 
     const handlePublish = () => {
         if (!selectedArticle || selectedPlatforms.length === 0) {
-            alert('请选择文章和至少一个平台');
+          toast.error('请选择文章和至少一个平台');
             return;
         }
         publishMut.mutate({article_id: selectedArticle, platforms: selectedPlatforms});

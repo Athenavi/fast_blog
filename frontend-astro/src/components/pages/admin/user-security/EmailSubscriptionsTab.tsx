@@ -5,6 +5,7 @@ import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {DeleteConfirm, EmptyState, Modal} from '@/components/admin/shared-ui';
 import {apiClient} from '@/lib/api/api-client';
 import {useConfirm} from '@/components/ui/confirm-provider';
+import {ChevronLeft, ChevronRight, Mail, Trash2} from 'lucide-react';
 import {EmailSubscription, Pagination} from './shared';
 
 const EmailSubscriptionsTab: React.FC = () => {

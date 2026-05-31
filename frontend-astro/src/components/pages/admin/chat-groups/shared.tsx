@@ -2,7 +2,7 @@
 
 
 /* ─── Types ─────────────────────────────────────── */
-interface ChatGroup {
+export interface ChatGroup {
   id: number;
   name: string;
   description?: string;
@@ -17,7 +17,7 @@ interface ChatGroup {
   updated_at?: string;
 }
 
-interface ChatGroupMember {
+export interface ChatGroupMember {
   id: number;
   user_id: number;
   username: string;
@@ -27,7 +27,7 @@ interface ChatGroupMember {
   last_active_at?: string;
 }
 
-interface ChatGroupInvite {
+export interface ChatGroupInvite {
   id: number;
   group_id: number;
   invite_code: string;
@@ -39,7 +39,7 @@ interface ChatGroupInvite {
   created_at?: string;
 }
 
-const Input: React.FC<{
+export const Input: React.FC<{
   label: string;
   value: string;
   onChange: (v: string) => void;
@@ -59,7 +59,7 @@ const Input: React.FC<{
   </div>
 );
 
-const StatusBadge: React.FC<{ active: boolean }> = ({active}) => (
+export const StatusBadge: React.FC<{ active: boolean }> = ({active}) => (
   <span
     className={`px-2 py-0.5 text-[10px] rounded-full font-medium ${active ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-500'}`}>
     {active ? '活跃' : '已停用'}

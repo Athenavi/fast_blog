@@ -2,7 +2,7 @@
 
 
 /* ─── Types ─────────────────────────────────────── */
-interface RevenueRecord {
+export interface RevenueRecord {
   id: number;
   user_id: number;
   username?: string;
@@ -15,7 +15,7 @@ interface RevenueRecord {
   created_at?: string;
 }
 
-interface RevenueSharingConfig {
+export interface RevenueSharingConfig {
   id: number;
   revenue_type: string;
   platform_percentage: number;
@@ -26,7 +26,7 @@ interface RevenueSharingConfig {
   description?: string;
 }
 
-interface PayoutRequest {
+export interface PayoutRequest {
   id: number;
   user_id: number;
   username?: string;
@@ -39,7 +39,7 @@ interface PayoutRequest {
   created_at?: string;
 }
 
-interface UserRevenueStats {
+export interface UserRevenueStats {
   user_id: number;
   username?: string;
   total_earnings: number;
@@ -49,11 +49,11 @@ interface UserRevenueStats {
   last_payout_at?: string;
 }
 
-const MoneyDisplay: React.FC<{ amount: number; className?: string }> = ({amount, className = ''}) => (
+export const MoneyDisplay: React.FC<{ amount: number; className?: string }> = ({amount, className = ''}) => (
   <span className={`font-medium ${className}`}>¥{amount.toFixed(2)}</span>
 );
 
-const StatusBadge: React.FC<{ status: string }> = ({status}) => {
+export const StatusBadge: React.FC<{ status: string }> = ({status}) => {
   const colors: Record<string, string> = {
     pending: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400',
     confirmed: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
@@ -74,7 +74,7 @@ const StatusBadge: React.FC<{ status: string }> = ({status}) => {
   );
 };
 
-const StatCard: React.FC<{ icon: React.ElementType; label: string; value: string; color: string }> = ({
+export const StatCard: React.FC<{ icon: React.ElementType; label: string; value: string; color: string }> = ({
                                                                                                         icon: Icon,
                                                                                                         label,
                                                                                                         value,

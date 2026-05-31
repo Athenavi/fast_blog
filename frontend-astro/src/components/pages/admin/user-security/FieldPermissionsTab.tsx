@@ -4,9 +4,12 @@ import React, {useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {DeleteConfirm, EmptyState, Modal} from '@/components/admin/shared-ui';
 import {apiClient} from '@/lib/api/api-client';
-import {FieldPermission, Pagination} from './shared';
+import {useToast} from '@/components/ui/toast-provider';
+import {ChevronLeft, ChevronRight, Edit3, Lock as LockIcon, Plus, Trash2, Unlock} from 'lucide-react';
+import {FieldPermission, Input, Pagination} from './shared';
 
 const FieldPermissionsTab: React.FC = () => {
+  const toast = useToast();
   const qc = useQueryClient();
   const [page, setPage] = useState(1);
   const [showForm, setShowForm] = useState(false);
@@ -27,7 +30,7 @@ const FieldPermissionsTab: React.FC = () => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['field-permissions']});
         setShowForm(false);
-      } else alert(r.error);
+      } else toast.error(r.error || '操作失败');
     },
   });
   const updateMut = useMutation({
@@ -36,7 +39,7 @@ const FieldPermissionsTab: React.FC = () => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['field-permissions']});
         setShowForm(false);
-      } else alert(r.error);
+      } else toast.error(r.error || '操作失败');
     },
   });
   const deleteMut = useMutation({
@@ -45,7 +48,7 @@ const FieldPermissionsTab: React.FC = () => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['field-permissions']});
         setDeleteId(null);
-      } else alert(r.error);
+      } else toast.error(r.error || '操作失败');
     },
   });
 
@@ -66,7 +69,10 @@ const FieldPermissionsTab: React.FC = () => {
     setShowForm(true);
   };
   const submit = () => {
-    if (!form.role_id || !form.model_name.trim() || !form.field_name.trim()) return alert('请填写完整信息');
+    if (!form.role_id || !form.model_name.trim() || !form.field_name.trim()) {
+      toast.error('请填写完整信息');
+      return;
+    }
     const payload = {
       role_id: parseInt(form.role_id),
       model_name: form.model_name,
@@ -88,7 +94,7 @@ const FieldPermissionsTab: React.FC = () => {
       </div>
       {isLoading ? <div className="animate-pulse space-y-2">{[1, 2, 3].map(i => <div key={i}
                                                                                      className="h-14 bg-gray-100 dark:bg-gray-800 rounded-xl"/>)}</div> :
-        items.length === 0 ? <EmptyState icon={Lock} title="暂无字段权限" desc="配置角色对模型字段的读写权限"/> :
+        items.length === 0 ? <EmptyState icon={LockIcon} title="暂无字段权限" desc="配置角色对模型字段的读写权限"/> :
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
@@ -111,11 +117,11 @@ const FieldPermissionsTab: React.FC = () => {
                     className="text-xs bg-blue-50 dark:bg-blue-900/20 px-1.5 py-0.5 rounded text-blue-700 dark:text-blue-400">{p.field_name}</code>
                   </td>
                   <td className="py-3 px-4 text-center">{p.can_read ?
-                    <Lock className="w-4 h-4 text-green-500 mx-auto"/> :
-                    <Lock className="w-4 h-4 text-gray-300 mx-auto"/>}</td>
+                    <LockIcon className="w-4 h-4 text-green-500 mx-auto"/> :
+                    <LockIcon className="w-4 h-4 text-gray-300 mx-auto"/>}</td>
                   <td className="py-3 px-4 text-center">{p.can_write ?
                     <Unlock className="w-4 h-4 text-green-500 mx-auto"/> :
-                    <Lock className="w-4 h-4 text-gray-300 mx-auto"/>}</td>
+                    <LockIcon className="w-4 h-4 text-gray-300 mx-auto"/>}</td>
                   <td className="py-3 px-4 text-right">
                     <button onClick={() => openEdit(p)}
                             className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 mr-1">

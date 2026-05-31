@@ -4,10 +4,12 @@ import React, {useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {DeleteConfirm, EmptyState, Modal} from '@/components/admin/shared-ui';
 import {apiClient} from '@/lib/api/api-client';
+import {useToast} from '@/components/ui/toast-provider';
 import {ChevronLeft, ChevronRight, Edit3, FileEdit, Link2, MapPin, MessageSquare, Plus, Trash2} from 'lucide-react';
-import {MenuLocation, Pagination} from './shared';
+import {Input, MenuLocation, Pagination} from './shared';
 
 const MenuLocationsTab: React.FC = () => {
+  const toast = useToast();
   const qc = useQueryClient();
   const [page, setPage] = useState(1);
   const [showForm, setShowForm] = useState(false);
@@ -28,7 +30,7 @@ const MenuLocationsTab: React.FC = () => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['menu-locations']});
         setShowForm(false);
-      } else alert(r.error);
+      } else toast.error(r.error || '操作失败');
     },
   });
   const updateMut = useMutation({
@@ -37,7 +39,7 @@ const MenuLocationsTab: React.FC = () => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['menu-locations']});
         setShowForm(false);
-      } else alert(r.error);
+      } else toast.error(r.error || '操作失败');
     },
   });
   const deleteMut = useMutation({
@@ -46,7 +48,7 @@ const MenuLocationsTab: React.FC = () => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['menu-locations']});
         setDeleteId(null);
-      } else alert(r.error);
+      } else toast.error(r.error || '操作失败');
     },
   });
 
@@ -61,7 +63,10 @@ const MenuLocationsTab: React.FC = () => {
     setShowForm(true);
   };
   const submit = () => {
-    if (!form.name.trim() || !form.slug.trim()) return alert('请填写名称和标识');
+    if (!form.name.trim() || !form.slug.trim()) {
+      toast.error('请填写名称和标识');
+      return;
+    }
     if (editing) updateMut.mutate({id: editing.id, ...form});
     else createMut.mutate(form);
   };

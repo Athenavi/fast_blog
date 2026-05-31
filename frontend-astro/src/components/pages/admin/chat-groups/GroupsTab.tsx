@@ -4,10 +4,14 @@ import React, {useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {EmptyState, Modal, Pagination} from '@/components/admin/shared-ui';
 import {apiClient} from '@/lib/api/api-client';
+import {useToast} from '@/components/ui/toast-provider';
 import {Link2, MessageSquare, Plus, Search, Trash2, Users} from 'lucide-react';
 import {ChatGroup, Input, StatusBadge} from './shared';
+import GroupMembersPanel from './GroupMembersPanel';
+import GroupInvitesPanel from './GroupInvitesPanel';
 
 const GroupsTab: React.FC = () => {
+  const toast = useToast();
   const qc = useQueryClient();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
@@ -34,7 +38,7 @@ const GroupsTab: React.FC = () => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['chat-groups']});
         setShowForm(false);
-      } else alert(r.error);
+      } else toast.error(r.error || '操作失败');
     },
   });
 
@@ -44,7 +48,10 @@ const GroupsTab: React.FC = () => {
     setShowForm(true);
   };
   const submit = () => {
-    if (!form.name.trim()) return alert('请填写群聊名称');
+    if (!form.name.trim()) {
+      toast.error('请填写群聊名称');
+      return;
+    }
     const payload = {
       ...form,
       max_members: parseInt(form.max_members) || 500,
@@ -77,7 +84,7 @@ const GroupsTab: React.FC = () => {
         <div className="space-y-2">{[...Array(5)].map((_, i) => <div key={i}
                                                                      className="h-16 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse"/>)}</div>
       ) : items.length === 0 ? (
-        <EmptyState icon={MessageSquare} title="暂无群聊" description="点击「创建群聊」开始"/>
+        <EmptyState icon={MessageSquare} title="暂无群聊" desc="点击「创建群聊」开始"/>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {items.map(g => (
@@ -121,7 +128,7 @@ const GroupsTab: React.FC = () => {
       )}
 
       {total > 15 &&
-        <div className="mt-4"><Pagination page={page} total={total} perPage={15} onPageChange={setPage}/></div>}
+        <div className="mt-4"><Pagination page={page} totalPages={Math.ceil(total / 15)} onPageChange={setPage}/></div>}
 
       {/* Create Group Modal */}
       <Modal open={showForm} onClose={() => setShowForm(false)} title="创建群聊">

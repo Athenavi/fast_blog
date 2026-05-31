@@ -1,7 +1,10 @@
 'use client';
 
 import React, {lazy, Suspense, useState} from 'react';
+import {Banknote, DollarSign, PieChart, Settings} from 'lucide-react';
 import {AdminShell} from '@/components/admin/AdminShell';
+import {AuthGuard} from '@/components/AuthGuard';
+import {QueryProvider} from '@/components/QueryProvider';
 
 const LazyRecordsTab = lazy(() => import('./revenue/RecordsTab'));
 const LazyPayoutsTab = lazy(() => import('./revenue/PayoutsTab'));
@@ -50,5 +53,12 @@ const AdminRevenueManagementInner: React.FC = () => {
   );
 };
 
-
 export default function AdminRevenueManagement() {
+  return (
+    <AuthGuard>
+      <QueryProvider>
+        <AdminRevenueManagementInner/>
+      </QueryProvider>
+    </AuthGuard>
+  );
+}

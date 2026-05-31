@@ -4,9 +4,12 @@ import React, {useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {EmptyState, Modal, Pagination} from '@/components/admin/shared-ui';
 import {apiClient} from '@/lib/api/api-client';
+import {useToast} from '@/components/ui/toast-provider';
+import {Banknote, CheckCircle, XCircle} from 'lucide-react';
 import {PayoutRequest, StatusBadge} from './shared';
 
 const PayoutsTab: React.FC = () => {
+  const toast = useToast();
   const qc = useQueryClient();
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState('');
@@ -26,21 +29,21 @@ const PayoutsTab: React.FC = () => {
     mutationFn: (id: number) => apiClient.post(`/shop/revenue/payouts/${id}/approve`),
     onSuccess: (r: any) => {
       if (r.success) qc.invalidateQueries({queryKey: ['payout-requests']});
-      else alert(r.error);
+      else toast.error(r.error || '操作失败');
     },
   });
   const completeMut = useMutation({
     mutationFn: (id: number) => apiClient.post(`/shop/revenue/payouts/${id}/complete`),
     onSuccess: (r: any) => {
       if (r.success) qc.invalidateQueries({queryKey: ['payout-requests']});
-      else alert(r.error);
+      else toast.error(r.error || '操作失败');
     },
   });
   const rejectMut = useMutation({
     mutationFn: (id: number) => apiClient.post(`/shop/revenue/payouts/${id}/reject`),
     onSuccess: (r: any) => {
       if (r.success) qc.invalidateQueries({queryKey: ['payout-requests']});
-      else alert(r.error);
+      else toast.error(r.error || '操作失败');
     },
   });
 
@@ -66,7 +69,7 @@ const PayoutsTab: React.FC = () => {
         <div className="space-y-2">{[...Array(5)].map((_, i) => <div key={i}
                                                                      className="h-16 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse"/>)}</div>
       ) : items.length === 0 ? (
-        <EmptyState icon={Banknote} title="暂无提现申请" description="用户发起提现后将在此显示"/>
+        <EmptyState icon={Banknote} title="暂无提现申请" desc="用户发起提现后将在此显示"/>
       ) : (
         <div
           className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
@@ -117,7 +120,7 @@ const PayoutsTab: React.FC = () => {
           </table>
           {total > 15 && (
             <div className="p-3 border-t border-gray-100 dark:border-gray-800">
-              <Pagination page={page} total={total} perPage={15} onPageChange={setPage}/>
+              <Pagination page={page} totalPages={Math.ceil(total / 15)} onPageChange={setPage}/>
             </div>
           )}
         </div>

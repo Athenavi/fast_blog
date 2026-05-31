@@ -2,6 +2,8 @@
 
 import React, {lazy, Suspense, useState} from 'react';
 import {AdminShell} from '@/components/admin/AdminShell';
+import {AuthGuard} from '@/components/AuthGuard';
+import {QueryProvider} from '@/components/QueryProvider';
 
 const LazyGroupsTab = lazy(() => import('./chat-groups/GroupsTab'));
 const LazyGroupMembersPanel = lazy(() => import('./chat-groups/GroupMembersPanel'));
@@ -29,3 +31,11 @@ const AdminChatGroupsManagementInner: React.FC = () => {
 
 
 export default function AdminChatGroupsManagement() {
+  return (
+    <AuthGuard>
+      <QueryProvider>
+        <AdminChatGroupsManagementInner/>
+      </QueryProvider>
+    </AuthGuard>
+  );
+}

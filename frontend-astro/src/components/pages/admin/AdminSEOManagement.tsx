@@ -3,6 +3,8 @@
 import React, {lazy, Suspense, useState} from 'react';
 import {Download, Edit3, FileText, Search, Share2} from 'lucide-react';
 import {AdminShell} from '@/components/admin/AdminShell';
+import {AuthGuard} from '@/components/AuthGuard';
+import {QueryProvider} from '@/components/QueryProvider';
 
 const LazyArticleSEOTab = lazy(() => import('./seo/ArticleSEOTab'));
 const LazyShareStatsTab = lazy(() => import('./seo/ShareStatsTab'));
@@ -50,3 +52,11 @@ const AdminSEOManagementInner: React.FC = () => {
 
 
 export default function AdminSEOManagement() {
+  return (
+    <AuthGuard>
+      <QueryProvider>
+        <AdminSEOManagementInner/>
+      </QueryProvider>
+    </AuthGuard>
+  );
+}

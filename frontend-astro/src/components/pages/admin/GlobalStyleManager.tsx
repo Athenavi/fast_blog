@@ -10,6 +10,7 @@ import {apiClient} from '@/lib/api/base-client';
 import {STYLE_PRESETS, GlobalStyleConfig, applyGlobalStyle} from '@/lib/page-builder/global-styles';
 import {Palette, Save, Eye, Trash2, Edit3, Check} from 'lucide-react';
 import {useConfirm} from '@/components/ui/confirm-provider';
+import {useToast} from '@/components/ui/toast-provider';
 
 interface GlobalStyleManagerProps {
     onClose?: () => void;
@@ -17,6 +18,7 @@ interface GlobalStyleManagerProps {
 
 export function GlobalStyleManager({onClose}: GlobalStyleManagerProps) {
   const confirm = useConfirm();
+  const toast = useToast();
     const qc = useQueryClient();
     const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
     const [showPreview, setShowPreview] = useState(false);
@@ -35,7 +37,7 @@ export function GlobalStyleManager({onClose}: GlobalStyleManagerProps) {
         mutationFn: (id: number) => apiClient.post(`/page-builder/global-styles/${id}/activate`),
         onSuccess: () => {
             qc.invalidateQueries({queryKey: ['global-style-configs']});
-            alert('样式配置已激活！');
+          toast.success('样式配置已激活！');
         }
     });
 
@@ -44,7 +46,7 @@ export function GlobalStyleManager({onClose}: GlobalStyleManagerProps) {
         mutationFn: (id: number) => apiClient.delete(`/page-builder/global-styles/${id}`),
         onSuccess: () => {
             qc.invalidateQueries({queryKey: ['global-style-configs']});
-            alert('样式配置已删除！');
+          toast.success('样式配置已删除！');
         }
     });
 
@@ -66,9 +68,9 @@ export function GlobalStyleManager({onClose}: GlobalStyleManagerProps) {
                 breakpoints: preset.breakpoints
             });
             qc.invalidateQueries({queryKey: ['global-style-configs']});
-            alert('样式配置已创建！');
+          toast.success('样式配置已创建！');
         } catch (error) {
-            alert('创建失败：' + (error as any).response?.data?.detail || '未知错误');
+          toast.error('创建失败：' + ((error as any).response?.data?.detail || '未知错误'));
         }
     };
 

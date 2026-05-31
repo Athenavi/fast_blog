@@ -4,11 +4,13 @@ import React, {useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {EmptyState, Modal, Pagination} from '@/components/admin/shared-ui';
 import {apiClient} from '@/lib/api/api-client';
+import {useToast} from '@/components/ui/toast-provider';
 import {Eye, Search, ShoppingCart} from 'lucide-react';
 import {MoneyDisplay} from './shared';
 import type {Order} from './shared';
 
 const OrdersTab: React.FC = () => {
+  const toast = useToast();
   const qc = useQueryClient();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
@@ -32,7 +34,7 @@ const OrdersTab: React.FC = () => {
     mutationFn: ({id, status}: { id: number; status: string }) => apiClient.put(`/shop/orders/${id}`, {status}),
     onSuccess: (r: any) => {
       if (r.success) qc.invalidateQueries({queryKey: ['orders']});
-      else alert(r.error);
+      else toast.error(r.error || '操作失败');
     },
   });
 
@@ -83,7 +85,7 @@ const OrdersTab: React.FC = () => {
         <div className="space-y-2">{[...Array(5)].map((_, i) => <div key={i}
                                                                      className="h-16 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse"/>)}</div>
       ) : items.length === 0 ? (
-        <EmptyState icon={ShoppingCart} title="暂无订单" description="订单将在用户购买商品后自动生成"/>
+        <EmptyState icon={ShoppingCart} title="暂无订单" desc="订单将在用户购买商品后自动生成"/>
       ) : (
         <div
           className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
@@ -133,7 +135,7 @@ const OrdersTab: React.FC = () => {
           </table>
           {total > 15 && (
             <div className="p-3 border-t border-gray-100 dark:border-gray-800">
-              <Pagination page={page} total={total} perPage={15} onPageChange={setPage}/>
+              <Pagination page={page} totalPages={Math.ceil(total / 15)} onPageChange={setPage}/>
             </div>
           )}
         </div>

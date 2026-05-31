@@ -2,6 +2,7 @@
 
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {apiClient} from '@/lib/api/api-client';
+import {DollarSign, TrendingUp, Banknote, Clock} from 'lucide-react';
 import {StatCard} from './shared';
 
 const StatsTab: React.FC = () => {

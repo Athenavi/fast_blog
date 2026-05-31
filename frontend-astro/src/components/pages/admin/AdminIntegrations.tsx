@@ -31,7 +31,7 @@ const LazyAnalyticsTab = lazy(() => import('./integrations/AnalyticsTab'));
 const LazyIPFSTab = lazy(() => import('./integrations/IPFSTab'));
 const LazyImportTab = lazy(() => import('./integrations/ImportTab'));
 
-const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<any>> = {
+const TAB_COMPONENTS: Record<string, React.LazyExoticComponent<React.ComponentType<any>>> = {
   oauth: LazyOAuthTab,
   sso: LazySSOTab,
   analytics: LazyAnalyticsTab,

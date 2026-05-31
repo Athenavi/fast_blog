@@ -7,9 +7,11 @@ import {apiClient} from '@/lib/api/api-client';
 import {ChevronLeft, ChevronRight, CreditCard, Edit3, Plus, Search, Trash2} from 'lucide-react';
 import {Input, Badge} from './shared';
 import type {PaymentGateway, Pagination} from './shared';
+import {useToast} from '@/components/ui/toast-provider';
 
 const GatewaysTab: React.FC = () => {
   const qc = useQueryClient();
+  const toast = useToast();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
@@ -37,7 +39,7 @@ const GatewaysTab: React.FC = () => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['payment-gateways']});
         setShowForm(false);
-      } else alert(r.error);
+      } else toast.error(r.error || '操作失败');
     },
   });
   const updateMut = useMutation({
@@ -46,7 +48,7 @@ const GatewaysTab: React.FC = () => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['payment-gateways']});
         setShowForm(false);
-      } else alert(r.error);
+      } else toast.error(r.error || '操作失败');
     },
   });
   const deleteMut = useMutation({
@@ -55,7 +57,7 @@ const GatewaysTab: React.FC = () => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['payment-gateways']});
         setDeleteId(null);
-      } else alert(r.error);
+      } else toast.error(r.error || '操作失败');
     },
   });
 
@@ -76,7 +78,10 @@ const GatewaysTab: React.FC = () => {
     setShowForm(true);
   };
   const submit = () => {
-    if (!form.name.trim() || !form.provider.trim()) return alert('请填写名称和提供商');
+    if (!form.name.trim() || !form.provider.trim()) {
+      toast.error('请填写名称和提供商');
+      return;
+    }
     const payload = {...form, is_active: form.is_active === 'true'};
     if (editing) updateMut.mutate({id: editing.id, ...payload});
     else createMut.mutate(payload);

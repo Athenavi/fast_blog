@@ -4,12 +4,14 @@ import React, {useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {DeleteConfirm, EmptyState, Modal} from '@/components/admin/shared-ui';
 import {apiClient} from '@/lib/api/api-client';
+import {useToast} from '@/components/ui/toast-provider';
 import {ChevronLeft, ChevronRight, Edit3, FileEdit, Link2, MapPin, MessageSquare, Plus, Trash2} from 'lucide-react';
 import {useConfirm} from '@/components/ui/confirm-provider';
-import {LocationAssignment, Pagination} from './shared';
+import {Input, LocationAssignment, Pagination} from './shared';
 
 const AssignmentsTab: React.FC = () => {
   const confirm = useConfirm();
+  const toast = useToast();
   const qc = useQueryClient();
   const [page, setPage] = useState(1);
   const [showForm, setShowForm] = useState(false);
@@ -28,7 +30,7 @@ const AssignmentsTab: React.FC = () => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['menu-assignments']});
         setShowForm(false);
-      } else alert(r.error);
+      } else toast.error(r.error || '操作失败');
     },
   });
   const deleteMut = useMutation({
@@ -37,7 +39,10 @@ const AssignmentsTab: React.FC = () => {
   });
 
   const submit = () => {
-    if (!form.menu_id || !form.location_id) return alert('请填写菜单ID和位置ID');
+    if (!form.menu_id || !form.location_id) {
+      toast.error('请填写菜单ID和位置ID');
+      return;
+    }
     createMut.mutate({menu_id: parseInt(form.menu_id), location_id: parseInt(form.location_id)});
   };
 

@@ -24,7 +24,9 @@ import {useConfirm} from '@/components/ui/confirm-provider';
 import {IPFSFile, InputField, ActionButton} from './shared';
 
 
-function IPFSTab({showToast}: { showToast: (msg: string, type?: 'success' | 'error' | 'info') => void }) {
+export default function IPFSTab({showToast}: {
+  showToast: (msg: string, type?: 'success' | 'error' | 'info') => void
+}) {
   const confirm = useConfirm();
   const qc = useQueryClient();
   const fileInputRef = useRef<HTMLInputElement>(null);

@@ -2,7 +2,7 @@
 
 
 /* ─── Types ─────────────────────────────────────── */
-interface ApprovalRecord {
+export interface ApprovalRecord {
   id: number;
   content_type: string;
   content_id: number;
@@ -19,7 +19,7 @@ interface ApprovalRecord {
   updated_at?: string;
 }
 
-interface ApprovalStep {
+export interface ApprovalStep {
   id: number;
   record_id: number;
   step_number: number;
@@ -30,7 +30,7 @@ interface ApprovalStep {
   action_at?: string;
 }
 
-interface ApprovalStats {
+export interface ApprovalStats {
   total_requests: number;
   pending_count: number;
   approved_count: number;
@@ -40,7 +40,7 @@ interface ApprovalStats {
   by_content_type: { type: string; count: number }[];
 }
 
-const StatusBadge: React.FC<{ status: string }> = ({status}) => {
+export const StatusBadge: React.FC<{ status: string }> = ({status}) => {
   const colors: Record<string, string> = {
     pending: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400',
     approved: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
@@ -58,7 +58,7 @@ const StatusBadge: React.FC<{ status: string }> = ({status}) => {
   );
 };
 
-const PriorityBadge: React.FC<{ priority?: string }> = ({priority}) => {
+export const PriorityBadge: React.FC<{ priority?: string }> = ({priority}) => {
   if (!priority) return null;
   const colors: Record<string, string> = {
     high: 'bg-red-100 dark:bg-red-900/30 text-red-600',
@@ -74,7 +74,7 @@ const PriorityBadge: React.FC<{ priority?: string }> = ({priority}) => {
   );
 };
 
-const StatCard: React.FC<{
+export const StatCard: React.FC<{
   icon: React.ElementType;
   label: string;
   value: string | number;

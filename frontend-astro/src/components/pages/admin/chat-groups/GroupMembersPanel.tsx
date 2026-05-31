@@ -3,10 +3,12 @@
 import React, {useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {apiClient} from '@/lib/api/api-client';
+import {useToast} from '@/components/ui/toast-provider';
 import {Link2, MessageSquare, Plus, Search, Trash2, Users} from 'lucide-react';
 import {ChatGroupMember} from './shared';
 
 const GroupMembersPanel: React.FC<{ groupId: number | null }> = ({groupId}) => {
+  const toast = useToast();
   const qc = useQueryClient();
   const [addUserId, setAddUserId] = useState('');
 
@@ -24,14 +26,14 @@ const GroupMembersPanel: React.FC<{ groupId: number | null }> = ({groupId}) => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['group-members', groupId]});
         setAddUserId('');
-      } else alert(r.error);
+      } else toast.error(r.error || '操作失败');
     },
   });
   const removeMut = useMutation({
     mutationFn: (userId: number) => apiClient.delete(`/chats/groups/${groupId}/members/${userId}`),
     onSuccess: (r: any) => {
       if (r.success) qc.invalidateQueries({queryKey: ['group-members', groupId]});
-      else alert(r.error);
+      else toast.error(r.error || '操作失败');
     },
   });
 

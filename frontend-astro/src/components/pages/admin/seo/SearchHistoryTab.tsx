@@ -24,7 +24,7 @@ const SearchHistoryTab: React.FC = () => {
         <div className="space-y-2">{[...Array(5)].map((_, i) => <div key={i}
                                                                      className="h-16 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse"/>)}</div>
       ) : items.length === 0 ? (
-        <EmptyState icon={Search} title="暂无搜索历史" description="用户搜索后将自动记录"/>
+        <EmptyState icon={Search} title="暂无搜索历史" desc="用户搜索后将自动记录"/>
       ) : (
         <div
           className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
@@ -52,7 +52,7 @@ const SearchHistoryTab: React.FC = () => {
           </table>
           {total > 20 && (
             <div className="p-3 border-t border-gray-100 dark:border-gray-800">
-              <Pagination page={page} total={total} perPage={20} onPageChange={setPage}/>
+              <Pagination page={page} totalPages={Math.ceil(total / 20)} onPageChange={setPage}/>
             </div>
           )}
         </div>

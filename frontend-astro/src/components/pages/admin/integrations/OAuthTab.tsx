@@ -9,7 +9,9 @@ import {useConfirm} from '@/components/ui/confirm-provider';
 import {OAuthProvider, LinkedAccount, ProviderAvatar, ActionButton} from './shared';
 
 
-function OAuthTab({showToast}: { showToast: (msg: string, type?: 'success' | 'error' | 'info') => void }) {
+export default function OAuthTab({showToast}: {
+  showToast: (msg: string, type?: 'success' | 'error' | 'info') => void
+}) {
   const confirm = useConfirm();
   const qc = useQueryClient();
   const [showConfigModal, setShowConfigModal] = useState(false);

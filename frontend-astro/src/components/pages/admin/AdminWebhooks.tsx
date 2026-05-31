@@ -6,6 +6,7 @@ import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {apiClient} from '@/lib/api/base-client';
 import {formatDateTime as formatTime} from '@/lib/utils';
 import {useConfirm} from '@/components/ui/confirm-provider';
+import {useToast} from '@/components/ui/toast-provider';
 import {
     Webhook, Plus, Trash2, Edit3, CheckCircle, XCircle,
     Clock, RefreshCw, Eye, Activity, AlertTriangle
@@ -51,6 +52,7 @@ const STATUS_CONFIG = {
 
 function WebhooksInner() {
   const confirm = useConfirm();
+  const toast = useToast();
     const qc = useQueryClient();
     const [showCreateDialog, setShowCreateDialog] = useState(false);
     const [editingWebhook, setEditingWebhook] = useState<WebhookData | null>(null);
@@ -82,7 +84,7 @@ function WebhooksInner() {
             qc.invalidateQueries({queryKey: ['webhooks']});
             setShowCreateDialog(false);
             setFormData({url: '', events: [], is_active: true});
-            alert('Webhook 创建成功！');
+          toast.success('Webhook 创建成功！');
         }
     });
 
@@ -93,7 +95,7 @@ function WebhooksInner() {
         onSuccess: () => {
             qc.invalidateQueries({queryKey: ['webhooks']});
             setEditingWebhook(null);
-            alert('Webhook 更新成功！');
+          toast.success('Webhook 更新成功！');
         }
     });
 
@@ -102,7 +104,7 @@ function WebhooksInner() {
         mutationFn: (id: number) => apiClient.delete(`/webhooks/${id}`),
         onSuccess: () => {
             qc.invalidateQueries({queryKey: ['webhooks']});
-            alert('Webhook 已删除！');
+          toast.success('Webhook 已删除！');
         }
     });
 
@@ -111,13 +113,13 @@ function WebhooksInner() {
         mutationFn: (id: number) => apiClient.post(`/webhooks/${id}/test`),
         onSuccess: () => {
             qc.invalidateQueries({queryKey: ['webhook-deliveries']});
-            alert('测试事件已发送！');
+          toast.success('测试事件已发送！');
         }
     });
 
     const handleCreate = () => {
         if (!formData.url || formData.events.length === 0) {
-            alert('请填写 URL 并至少选择一个事件');
+          toast.error('请填写 URL 并至少选择一个事件');
             return;
         }
         createMut.mutate(formData);

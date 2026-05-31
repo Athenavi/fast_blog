@@ -7,9 +7,11 @@ import {apiClient} from '@/lib/api/api-client';
 import {ChevronLeft, ChevronRight, Edit3, FileText, Plus, Trash2} from 'lucide-react';
 import {Input, Badge} from './shared';
 import type {TaxConfig, Pagination} from './shared';
+import {useToast} from '@/components/ui/toast-provider';
 
 const TaxConfigsTab: React.FC = () => {
   const qc = useQueryClient();
+  const toast = useToast();
   const [page, setPage] = useState(1);
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<TaxConfig | null>(null);
@@ -37,7 +39,7 @@ const TaxConfigsTab: React.FC = () => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['tax-configs']});
         setShowForm(false);
-      } else alert(r.error);
+      } else toast.error(r.error || '操作失败');
     },
   });
   const updateMut = useMutation({
@@ -46,7 +48,7 @@ const TaxConfigsTab: React.FC = () => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['tax-configs']});
         setShowForm(false);
-      } else alert(r.error);
+      } else toast.error(r.error || '操作失败');
     },
   });
   const deleteMut = useMutation({
@@ -55,7 +57,7 @@ const TaxConfigsTab: React.FC = () => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['tax-configs']});
         setDeleteId(null);
-      } else alert(r.error);
+      } else toast.error(r.error || '操作失败');
     },
   });
 
@@ -77,7 +79,10 @@ const TaxConfigsTab: React.FC = () => {
     setShowForm(true);
   };
   const submit = () => {
-    if (!form.country.trim() || !form.rate) return alert('请填写国家和税率');
+    if (!form.country.trim() || !form.rate) {
+      toast.error('请填写国家和税率');
+      return;
+    }
     const payload = {...form, rate: parseFloat(form.rate), is_active: form.is_active === 'true'};
     if (editing) updateMut.mutate({id: editing.id, ...payload});
     else createMut.mutate(payload);

@@ -8,6 +8,7 @@ import {AdminShell} from '@/components/admin/AdminShell';
 import {apiClient} from '@/lib/api/base-client';
 import {ChevronLeft, ChevronRight, Plus, Trash2, RefreshCw, AlertTriangle, Search, Filter, Pencil, Upload, X} from 'lucide-react';
 import {useConfirm} from '@/components/ui/confirm-provider';
+import {useToast} from '@/components/ui/toast-provider';
 
 const ACTION_LABELS: Record<string, string> = {block: '拦截', replace: '替换', warn: '警告'};
 const ACTION_COLORS: Record<string, string> = {
@@ -19,6 +20,7 @@ const LEVEL_NAMES = ['', '低危', '中危', '高危'];
 
 function SensitiveWordsInner() {
   const confirm = useConfirm();
+  const toast = useToast();
   const qc = useQueryClient();
   // 分页 & 筛选
   const [page, setPage] = useState(1);
@@ -111,7 +113,7 @@ function SensitiveWordsInner() {
 
   const refreshMut = useMutation({
     mutationFn: () => apiClient.post('/api/v2/security/sensitive-words/refresh-cache'),
-    onSuccess: () => alert('缓存已刷新'),
+    onSuccess: () => toast.success('缓存已刷新'),
   });
 
   const batchMut = useMutation({

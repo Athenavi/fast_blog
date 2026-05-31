@@ -4,11 +4,13 @@ import React, {useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {DeleteConfirm, EmptyState, Modal, Pagination, StatusBadge} from '@/components/admin/shared-ui';
 import {apiClient} from '@/lib/api/api-client';
+import {useToast} from '@/components/ui/toast-provider';
 import {Edit3, Package, Plus, Search, Trash2} from 'lucide-react';
 import {Input, Select, MoneyDisplay} from './shared';
 import type {Product} from './shared';
 
 const ProductsTab: React.FC = () => {
+  const toast = useToast();
   const qc = useQueryClient();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
@@ -34,7 +36,7 @@ const ProductsTab: React.FC = () => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['products']});
         setShowForm(false);
-      } else alert(r.error);
+      } else toast.error(r.error || '操作失败');
     },
   });
   const updateMut = useMutation({
@@ -43,7 +45,7 @@ const ProductsTab: React.FC = () => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['products']});
         setShowForm(false);
-      } else alert(r.error);
+      } else toast.error(r.error || '操作失败');
     },
   });
   const deleteMut = useMutation({
@@ -52,7 +54,7 @@ const ProductsTab: React.FC = () => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['products']});
         setDeleteId(null);
-      } else alert(r.error);
+      } else toast.error(r.error || '操作失败');
     },
   });
 
@@ -83,7 +85,10 @@ const ProductsTab: React.FC = () => {
     setShowForm(true);
   };
   const submit = () => {
-    if (!form.name.trim()) return alert('请填写商品名称');
+    if (!form.name.trim()) {
+      toast.error('请填写商品名称');
+      return;
+    }
     const payload = {
       ...form,
       price: parseFloat(form.price) || 0,
@@ -120,7 +125,7 @@ const ProductsTab: React.FC = () => {
         <div className="space-y-2">{[...Array(5)].map((_, i) => <div key={i}
                                                                      className="h-16 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse"/>)}</div>
       ) : items.length === 0 ? (
-        <EmptyState icon={Package} title="暂无商品" description="点击「新增商品」开始创建"/>
+        <EmptyState icon={Package} title="暂无商品" desc="点击「新增商品」开始创建"/>
       ) : (
         <div
           className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
@@ -183,7 +188,7 @@ const ProductsTab: React.FC = () => {
           </table>
           {total > 15 && (
             <div className="p-3 border-t border-gray-100 dark:border-gray-800">
-              <Pagination page={page} total={total} perPage={15} onPageChange={setPage}/>
+              <Pagination page={page} totalPages={Math.ceil(total / 15)} onPageChange={setPage}/>
             </div>
           )}
         </div>
@@ -230,9 +235,14 @@ const ProductsTab: React.FC = () => {
       </Modal>
 
       {/* Delete Confirm */}
-      <DeleteConfirm open={deleteId !== null} onClose={() => setDeleteId(null)}
-                     onConfirm={() => deleteId && deleteMut.mutate(deleteId)}
-                     title="确定删除此商品？" message="删除后无法恢复，相关订单数据将保留。"/>
+      {deleteId !== null && (
+        <Modal open={true} onClose={() => setDeleteId(null)} title="确认删除">
+          <DeleteConfirm itemName={`商品#${deleteId}`}
+                         onConfirm={() => deleteMut.mutate(deleteId)}
+                         onCancel={() => setDeleteId(null)}
+                         isPending={deleteMut.isPending}/>
+        </Modal>
+      )}
     </>
   );
 };

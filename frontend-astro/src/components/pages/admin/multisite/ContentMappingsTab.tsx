@@ -13,10 +13,10 @@ const ContentMappingsTab: React.FC = () => {
 
   const {data, isLoading} = useQuery({
     queryKey: ['content-mappings', page, siteFilter],
-    queryFn: () => {
-      if (!siteFilter) return {data: {mappings: [], total: 0}};
-      return apiClient.get(`/system/multisite/${siteFilter}/content-mappings`, {page, per_page: 15});
-    },
+    queryFn: () => siteFilter
+      ? apiClient.get(`/system/multisite/${siteFilter}/content-mappings`, {page, per_page: 15})
+      : Promise.resolve({success: true, data: {mappings: [], total: 0}}),
+    enabled: !!siteFilter,
   });
 
   const items: ContentMapping[] = data?.data?.mappings || [];
@@ -41,12 +41,12 @@ const ContentMappingsTab: React.FC = () => {
       </div>
 
       {!siteFilter ? (
-        <EmptyState icon={Link} title="请选择站点" description="选择一个站点以查看其内容映射关系"/>
+        <EmptyState icon={Link} title="请选择站点" desc="选择一个站点以查看其内容映射关系"/>
       ) : isLoading ? (
         <div className="space-y-2">{[...Array(5)].map((_, i) => <div key={i}
                                                                      className="h-16 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse"/>)}</div>
       ) : items.length === 0 ? (
-        <EmptyState icon={Link} title="暂无内容映射" description="该站点暂无跨站内容同步映射"/>
+        <EmptyState icon={Link} title="暂无内容映射" desc="该站点暂无跨站内容同步映射"/>
       ) : (
         <div
           className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-800 overflow-hidden">

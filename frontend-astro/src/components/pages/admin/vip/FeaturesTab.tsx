@@ -4,10 +4,13 @@ import React, {useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {apiClient} from '@/lib/api/api-client';
 import {useConfirm} from '@/components/ui/confirm-provider';
+import {useToast} from '@/components/ui/toast-provider';
+import {Shield, Plus, Edit3, Check, Trash2} from 'lucide-react';
 import {VIPFeature, FeatureForm, Modal, Inp} from './shared';
 
 const FeaturesTab: React.FC<{ features: VIPFeature[]; onChanged: () => void }> = ({features, onChanged}) => {
   const confirm = useConfirm();
+  const toast = useToast();
   const qc = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<VIPFeature | null>(null);
@@ -31,7 +34,7 @@ const FeaturesTab: React.FC<{ features: VIPFeature[]; onChanged: () => void }> =
         qc.invalidateQueries({queryKey: ['admin-vip']});
         setShowForm(false);
         onChanged();
-      } else if (r.error) alert(r.error);
+      } else if (r.error) toast.error(r.error || '操作失败');
     },
   });
   const updateMut = useMutation({
@@ -41,7 +44,7 @@ const FeaturesTab: React.FC<{ features: VIPFeature[]; onChanged: () => void }> =
         qc.invalidateQueries({queryKey: ['admin-vip']});
         setShowForm(false);
         onChanged();
-      } else if (r.error) alert(r.error);
+      } else if (r.error) toast.error(r.error || '操作失败');
     },
   });
   const deleteMut = useMutation({
@@ -50,7 +53,7 @@ const FeaturesTab: React.FC<{ features: VIPFeature[]; onChanged: () => void }> =
       if (r.success) {
         qc.invalidateQueries({queryKey: ['admin-vip']});
         onChanged();
-      } else if (r.error) alert(r.error);
+      } else if (r.error) toast.error(r.error || '操作失败');
     },
   });
   const toggleMut = useMutation({
@@ -67,7 +70,10 @@ const FeaturesTab: React.FC<{ features: VIPFeature[]; onChanged: () => void }> =
   });
 
   const submitFeature = () => {
-    if (!f.code.trim() || !f.name.trim()) return alert('请填写功能代码和名称');
+    if (!f.code.trim() || !f.name.trim()) {
+      toast.error('请填写功能代码和名称');
+      return;
+    }
     if (editing) updateMut.mutate({id: editing.id, form: f});
     else createMut.mutate(f);
   };

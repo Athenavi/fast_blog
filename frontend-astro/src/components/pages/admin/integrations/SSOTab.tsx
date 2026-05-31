@@ -8,7 +8,7 @@ import {apiClient} from '@/lib/api/api-client';
 import {ProviderAvatar, InputField} from './shared';
 
 
-function SSOTab({showToast}: { showToast: (msg: string, type?: 'success' | 'error' | 'info') => void }) {
+export default function SSOTab({showToast}: { showToast: (msg: string, type?: 'success' | 'error' | 'info') => void }) {
   const [activeSection, setActiveSection] = useState<'oauth2' | 'saml' | 'ldap'>('oauth2');
 
   const {data: ssoConfig, isLoading} = useQuery({

@@ -6,9 +6,11 @@ import {EmptyState, Modal, Pagination} from '@/components/admin/shared-ui';
 import {apiClient} from '@/lib/api/api-client';
 import {BarChart3, Check, CheckCircle, Clock, Eye, FileText, X, XCircle} from 'lucide-react';
 import {ApprovalRecord, StatusBadge, PriorityBadge} from './shared';
+import {useToast} from '@/components/ui/toast-provider';
 
 const PendingTab: React.FC = () => {
   const qc = useQueryClient();
+  const toast = useToast();
   const [page, setPage] = useState(1);
   const [typeFilter, setTypeFilter] = useState('');
   const [showDetail, setShowDetail] = useState<ApprovalRecord | null>(null);
@@ -32,7 +34,7 @@ const PendingTab: React.FC = () => {
         qc.invalidateQueries({queryKey: ['pending-approvals']});
         setShowDetail(null);
         setActionNotes('');
-      } else alert(r.error);
+      } else toast.error(r.error || '操作失败');
     },
   });
   const rejectMut = useMutation({
@@ -42,7 +44,7 @@ const PendingTab: React.FC = () => {
         qc.invalidateQueries({queryKey: ['pending-approvals']});
         setShowDetail(null);
         setActionNotes('');
-      } else alert(r.error);
+      } else toast.error(r.error || '操作失败');
     },
   });
   const cancelMut = useMutation({
@@ -51,7 +53,7 @@ const PendingTab: React.FC = () => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['pending-approvals']});
         setShowDetail(null);
-      } else alert(r.error);
+      } else toast.error(r.error || '操作失败');
     },
   });
 
@@ -78,7 +80,7 @@ const PendingTab: React.FC = () => {
         <div className="space-y-2">{[...Array(5)].map((_, i) => <div key={i}
                                                                      className="h-20 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse"/>)}</div>
       ) : items.length === 0 ? (
-        <EmptyState icon={CheckCircle} title="暂无待审批内容" description="所有内容已处理完毕"/>
+        <EmptyState icon={CheckCircle} title="暂无待审批内容" desc="所有内容已处理完毕"/>
       ) : (
         <div className="space-y-3">
           {items.map(a => (
@@ -133,7 +135,7 @@ const PendingTab: React.FC = () => {
       )}
 
       {total > 15 &&
-        <div className="mt-4"><Pagination page={page} total={total} perPage={15} onPageChange={setPage}/></div>}
+        <div className="mt-4"><Pagination page={page} totalPages={Math.ceil(total / 15)} onPageChange={setPage}/></div>}
 
       {/* Detail & Action Modal */}
       <Modal open={showDetail !== null} onClose={() => setShowDetail(null)} title="审批详情">
