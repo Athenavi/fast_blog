@@ -28,6 +28,7 @@ import {getConfig} from '@/lib/config';
 import DesktopLyrics from '@/components/audio/DesktopLyrics';
 import {apiClient} from "@/lib/api/api-client";
 import {getFullMediaUrl} from '@/lib/utils';
+import {useConfirm} from '@/components/ui/confirm-provider';
 
 /* ---------- Shared icons ---------- */
 const Minus: React.FC<{className?: string}> = p => <svg className={p.className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4"/></svg>;
@@ -1443,6 +1444,7 @@ const useMediaUpload = (onComplete?: () => void) => {
 
 /* ========== Main MediaPage ========== */
 const MediaPage: React.FC = () => {
+  const confirm = useConfirm();
   const [files, setFiles] = useState<MediaFile[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(1);
@@ -1565,7 +1567,7 @@ const MediaPage: React.FC = () => {
   };
 
   const handleDeleteFolder = async (id: number) => {
-    if (!confirm('确定删除此文件夹？')) return;
+    if (!await confirm({message: '确定删除此文件夹？', variant: 'danger'})) return;
     const res = await apiClient.delete(`/media/folders/${id}`);
     if (res.success) {
       if (selectedFolder === id) setSelectedFolder(null);
@@ -1658,8 +1660,21 @@ const MediaPage: React.FC = () => {
                 <button onClick={()=>setSelected([])} className="px-3 py-2 text-sm bg-gray-200 dark:bg-gray-700 rounded-lg">取消</button>
                 <button onClick={()=>{if(selected.length)setShowMoveDialog(true);}} className="px-3 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700"><FolderClosed className="w-4 h-4 inline mr-1"/>移动</button>
                 <button onClick={()=>{if(selected.length)setTagEditorMedia({id:0, tags:'', multiple:true});}} className="px-3 py-2 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700"><Tag className="w-4 h-4 inline mr-1"/>标签</button>
-                <button onClick={()=>{if(selected.length)setCategoryEditorMedia({id:0, category:null, multiple:true});}} className="px-3 py-2 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"><FolderClosed className="w-4 h-4 inline mr-1"/>分类</button>
-                <button onClick={async()=>{if(!confirm(`删除 ${selected.length} 个文件？`))return;const r=await MediaService.deleteMediaFile(selected);if(r.success){setSelected([]);loadFiles();}}} className="px-3 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700"><Trash2 className="w-4 h-4 inline mr-1"/>删除</button>
+                <button onClick={async () => {
+                  if (selected.length) setCategoryEditorMedia({id: 0, category: null, multiple: true});
+                }} className="px-3 py-2 text-sm bg-emerald-600 text-white rounded-lg hover:bg-emerald-700"><FolderClosed
+                  className="w-4 h-4 inline mr-1"/>分类
+                </button>
+                <button onClick={async () => {
+                  if (!await confirm({message: `删除 ${selected.length} 个文件？`, variant: 'danger'})) return;
+                  const r = await MediaService.deleteMediaFile(selected);
+                  if (r.success) {
+                    setSelected([]);
+                    loadFiles();
+                  }
+                }} className="px-3 py-2 text-sm bg-red-600 text-white rounded-lg hover:bg-red-700"><Trash2
+                  className="w-4 h-4 inline mr-1"/>删除
+                </button>
               </div>)}
             </div>
 

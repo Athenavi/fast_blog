@@ -5,6 +5,7 @@ import {QueryProvider} from '@/components/QueryProvider';
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {apiClient} from '@/lib/api/base-client';
 import {formatDateTime as formatTime} from '@/lib/utils';
+import {useConfirm} from '@/components/ui/confirm-provider';
 import {
     Webhook, Plus, Trash2, Edit3, CheckCircle, XCircle,
     Clock, RefreshCw, Eye, Activity, AlertTriangle
@@ -49,6 +50,7 @@ const STATUS_CONFIG = {
 };
 
 function WebhooksInner() {
+  const confirm = useConfirm();
     const qc = useQueryClient();
     const [showCreateDialog, setShowCreateDialog] = useState(false);
     const [editingWebhook, setEditingWebhook] = useState<WebhookData | null>(null);
@@ -126,8 +128,8 @@ function WebhooksInner() {
         updateMut.mutate({id: editingWebhook.id, data: formData});
     };
 
-    const handleDelete = (id: number) => {
-        if (confirm('确定要删除此 Webhook 吗？')) {
+  const handleDelete = async (id: number) => {
+    if (await confirm({message: '确定要删除此 Webhook 吗？', variant: 'danger'})) {
             deleteMut.mutate(id);
         }
     };

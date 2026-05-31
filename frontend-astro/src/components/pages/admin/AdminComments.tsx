@@ -6,6 +6,7 @@ import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {apiClient} from '@/lib/api/base-client';
+import {useConfirm} from '@/components/ui/confirm-provider';
 import {
     Check, X, MessageSquare, Clock, CheckCircle2, XCircle, AlertTriangle,
     User, FileText, RefreshCw, MoreHorizontal, Eye, Trash2, Filter,
@@ -180,6 +181,7 @@ const CommentCard: React.FC<{
 };
 
 function CommentsInner() {
+  const confirm = useConfirm();
   const qc = useQueryClient();
     const [statusFilter, setStatusFilter] = useState('pending');
     const [searchInput, setSearchInput] = useState('');
@@ -318,8 +320,11 @@ function CommentsInner() {
                         comment={c}
                         onApprove={() => approveMut.mutate(c.id)}
                         onReject={() => rejectMut.mutate(c.id)}
-                        onDelete={() => {
-                            if (confirm('确认删除此评论？此操作不可恢复。')) deleteMut.mutate(c.id);
+                        onDelete={async () => {
+                          if (await confirm({
+                            message: '确认删除此评论？此操作不可恢复。',
+                            variant: 'danger'
+                          })) deleteMut.mutate(c.id);
                         }}
                     />
                 ))}
@@ -337,8 +342,11 @@ function CommentsInner() {
               有 <strong>{filteredComments.length}</strong> 条待审核评论
             </span>
                     </div>
-                    <button onClick={() => {
-                        if (confirm(`确认批量通过所有 ${filteredComments.length} 条评论？`)) {
+                  <button onClick={async () => {
+                    if (await confirm({
+                      message: `确认批量通过所有 ${filteredComments.length} 条评论？`,
+                      variant: 'danger'
+                    })) {
                             filteredComments.forEach((c: any) => approveMut.mutate(c.id));
                         }
                     }}

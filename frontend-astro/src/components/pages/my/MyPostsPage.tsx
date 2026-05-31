@@ -6,8 +6,10 @@ import {apiClient} from '@/lib/api/api-client';
 import {Calendar, Edit, Eye, FileText, Lock, Plus, Search, Trash2} from 'lucide-react';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AuthGuard} from '@/components/AuthGuard';
+import {useConfirm} from '@/components/ui/confirm-provider';
 
 function MyPostsInner() {
+  const confirm = useConfirm();
   const [page, setPage] = useState(1);
   const [q, setQ] = useState('');
   const qc = useQueryClient();
@@ -110,8 +112,8 @@ function MyPostsInner() {
                         <a href={`/my/posts/edit?id=${a.id}`}
                            className="p-1.5 text-gray-400 hover:text-blue-600 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20"><Edit
                             className="w-4 h-4"/></a>
-                        <button onClick={() => {
-                          if (confirm('删除此文章？')) delMut.mutate(a.id);
+                        <button onClick={async () => {
+                          if (await confirm({message: '删除此文章？', variant: 'danger'})) delMut.mutate(a.id);
                         }}
                                 className="p-1.5 text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20">
                           <Trash2 className="w-4 h-4"/></button>

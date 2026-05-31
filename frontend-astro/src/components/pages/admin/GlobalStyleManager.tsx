@@ -9,12 +9,14 @@ import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {apiClient} from '@/lib/api/base-client';
 import {STYLE_PRESETS, GlobalStyleConfig, applyGlobalStyle} from '@/lib/page-builder/global-styles';
 import {Palette, Save, Eye, Trash2, Edit3, Check} from 'lucide-react';
+import {useConfirm} from '@/components/ui/confirm-provider';
 
 interface GlobalStyleManagerProps {
     onClose?: () => void;
 }
 
 export function GlobalStyleManager({onClose}: GlobalStyleManagerProps) {
+  const confirm = useConfirm();
     const qc = useQueryClient();
     const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
     const [showPreview, setShowPreview] = useState(false);
@@ -237,8 +239,8 @@ export function GlobalStyleManager({onClose}: GlobalStyleManagerProps) {
                                         </>
                                     )}
                                     <button
-                                        onClick={() => {
-                                            if (confirm('确定要删除此样式配置吗？')) {
+                                      onClick={async () => {
+                                        if (await confirm({message: '确定要删除此样式配置吗？', variant: 'danger'})) {
                                                 deleteMut.mutate(config.id);
                                             }
                                         }}

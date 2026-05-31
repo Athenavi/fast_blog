@@ -8,6 +8,7 @@ import {AdminShell} from '@/components/admin/AdminShell';
 import {StatCard, SectionTitle, EmptyState, Pagination, Skeleton} from '@/components/admin/shared-ui';
 import {useDebounce} from '@/lib/hooks';
 import {apiClient} from '@/lib/api/base-client';
+import {useConfirm} from '@/components/ui/confirm-provider';
 import {
     ChevronLeft, ChevronRight, Edit, Eye, Plus, Search, Trash2, X,
     FileText, Clock, TrendingUp, Tag, MoreHorizontal, ExternalLink,
@@ -135,6 +136,7 @@ const ArticleActions: React.FC<{ article: any; onEdit: () => void; onDelete: () 
 };
 
 function ArticlesInner() {
+  const confirm = useConfirm();
   const qc = useQueryClient();
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState('');
@@ -417,8 +419,11 @@ function ArticlesInner() {
                         <ArticleActions
                             article={a}
                             onEdit={() => window.location.href = `/my/posts/edit?id=${a.id}`}
-                            onDelete={() => {
-                                if (confirm('确认删除此文章？此操作不可恢复。')) delMut.mutate(a.id);
+                            onDelete={async () => {
+                              if (await confirm({
+                                message: '确认删除此文章？此操作不可恢复。',
+                                variant: 'danger'
+                              })) delMut.mutate(a.id);
                             }}
                         />
                     </td>

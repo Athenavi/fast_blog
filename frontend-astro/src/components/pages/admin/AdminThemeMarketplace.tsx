@@ -1,4 +1,5 @@
 import React, {useState} from 'react';
+import {useConfirm} from '@/components/ui/confirm-provider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
@@ -28,6 +29,7 @@ interface Theme {
 }
 
 function ThemeMarketplaceInner() {
+  const confirm = useConfirm();
     const qc = useQueryClient();
     const [activeTab, setActiveTab] = useState<'marketplace' | 'installed'>('marketplace');
     const [selectedTheme, setSelectedTheme] = useState<Theme | null>(null);
@@ -115,20 +117,20 @@ function ThemeMarketplaceInner() {
         }
     });
 
-    const handleInstall = (slug: string) => {
-        if (confirm('确定要安装此主题吗？')) {
+  const handleInstall = async (slug: string) => {
+    if (await confirm({message: '确定要安装此主题吗？', variant: 'warning'})) {
             installMut.mutate(slug);
         }
     };
 
-    const handleActivate = (slug: string) => {
-        if (confirm('确定要激活此主题吗？当前活动主题将被停用。')) {
+  const handleActivate = async (slug: string) => {
+    if (await confirm({message: '确定要激活此主题吗？当前活动主题将被停用。', variant: 'warning'})) {
             activateMut.mutate(slug);
         }
     };
 
-    const handleUninstall = (slug: string) => {
-        if (confirm('确定要卸载此主题吗？')) {
+  const handleUninstall = async (slug: string) => {
+    if (await confirm({message: '确定要卸载此主题吗？', variant: 'danger'})) {
             uninstallMut.mutate(slug);
         }
     };

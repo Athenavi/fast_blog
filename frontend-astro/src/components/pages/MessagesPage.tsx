@@ -3,6 +3,7 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {apiClient} from '@/lib/api/api-client';
 import {Bell, Check, ChevronLeft, Hash, MessageCircle, Plus, Send, Trash2, UserPlus, Users, X,} from 'lucide-react';
+import {useConfirm} from '@/components/ui/confirm-provider';
 
 // ─── Types ──────────────────────────────────────────
 interface Conv {id:number; username:string; avatar?:string; last_message?:string; unread:number; updated_at:string;}
@@ -430,6 +431,7 @@ function GroupsTab() {
 
 // ─── Tab: Notifications ──────────────────────────────
 function NotificationsTab() {
+  const confirm = useConfirm();
   const [notifs, setNotifs] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -455,7 +457,7 @@ function NotificationsTab() {
   };
 
   const cleanAll = async () => {
-    if (!confirm('清理所有通知？')) return;
+    if (!await confirm({message: '清理所有通知？', variant: 'warning'})) return;
     await apiClient.delete('/notifications/messages/clean');
     setNotifs([]);
   };

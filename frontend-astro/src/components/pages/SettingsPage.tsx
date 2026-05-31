@@ -5,6 +5,7 @@ import {apiClient} from '@/lib/api/api-client';
 import {useDarkMode} from '@/lib/dark-mode-manager';
 import {getAccessTokenFromCookie} from '@/lib/auth-utils';
 import {AuthGuard} from '@/components/AuthGuard';
+import {useConfirm} from '@/components/ui/confirm-provider';
 import {
     Camera, Globe, LogOut, Monitor, Moon, Shield, Smartphone, User, X,
     Sun, Eye, EyeOff, Copy, Download, Check, CheckCircle2, AlertCircle,
@@ -20,6 +21,7 @@ const TABS = [
 ];
 
 function Settings() {
+  const confirm = useConfirm();
   const {theme, setTheme} = useDarkMode();
   const [tab, setTab] = useState(0);
   const [p, setP] = useState<any>(null);
@@ -125,7 +127,16 @@ function Settings() {
 
   const setup2FA = async () => { const r = await apiClient.get('/security/2fa/setup'); if(r.success&&r.data){setQr(r.data.qr_code);setSecret(r.data.secret);} };
   const enable2FA = async () => { if(vc.length!==6){alert('输入6位验证码');return;} const r = await apiClient.post('/security/2fa/enable',{totp_token:vc}); if(r.success){setFa(true);setQr('');setCodes((r.data as any)?.backup_codes||[]);} };
-  const disable2FA = async () => { if(!confirm('禁用2FA？'))return; const r = await apiClient.post('/security/2fa/disable'); if(r.success){setFa(false);setQr('');setSecret('');setCodes([]);} };
+  const disable2FA = async () => {
+    if (!await confirm({message: '禁用2FA？', variant: 'warning'})) return;
+    const r = await apiClient.post('/security/2fa/disable');
+    if (r.success) {
+      setFa(false);
+      setQr('');
+      setSecret('');
+      setCodes([]);
+    }
+  };
 
   const loadS = async () => {
     const r = await apiClient.get<any>('/security/admin/session/my-sessions');
@@ -143,7 +154,7 @@ function Settings() {
   };
 
   const revokeAllOther = async () => {
-    if (!confirm('这将注销所有其他设备，确定继续？')) return;
+    if (!await confirm({message: '这将注销所有其他设备，确定继续？', variant: 'warning'})) return;
     const r = await apiClient.post('/security/admin/session/revoke-all', {});
       if (r.success) loadS();
       else alert(r.error || '操作失败');

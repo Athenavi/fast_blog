@@ -4,6 +4,7 @@ import React, {useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {apiClient} from '@/lib/api/api-client';
 import {ChevronRight, Clock, FileText, GitCompare, History, RotateCcw, Trash2, User, X} from 'lucide-react';
+import {useConfirm} from '@/components/ui/confirm-provider';
 
 interface Revision {id:number;revision_number:number;title:string;excerpt:string;content:string;change_summary:string|null;created_at:string;author?:{username:string};}
 interface Props {articleId:number|string;open:boolean;onClose:()=>void;onCollapse?:()=>void;onRestore:(c:string,t:string,e:string)=>void;}
@@ -27,6 +28,7 @@ const RevisionsSidebar: React.FC<Props> = ({articleId,open,onClose,onCollapse,on
   const viewRevision=async(rev:Revision)=>{setSelected(rev);setCompareWith(null);setDiff(null);setPreview(rev.content);};
 
   const compareRevisions=async(a:Revision,b:Revision)=>{setSelected(a);setCompareWith(b);try{const r=await apiClient.get<any>('/articles/revisions/compare',{rev1:a.id,rev2:b.id});if(r.success&&r.data)setDiff(r.data.differences||r.data);else setDiff({title_changed:a.title!==b.title,content_changed:true});}catch{setDiff({title_changed:true,content_changed:true});}};
+  const confirm = useConfirm();
 
   if(!open)return null;
 
@@ -46,14 +48,18 @@ const RevisionsSidebar: React.FC<Props> = ({articleId,open,onClose,onCollapse,on
           {isLoading?<div className="space-y-3">{[1,2,3].map(i=><div key={i} className="h-16 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse"/>)}</div>
           : !revisions?.length ? <div className="text-center py-8 text-gray-400"><FileText className="w-10 h-10 mx-auto mb-2 opacity-50"/><p className="text-sm">暂无版本记录</p></div>
           : revisions.map(rev=>(
-            <button key={rev.id} onClick={()=>viewRevision(rev)}
+                <button key={rev.id} onClick={async () => viewRevision(rev)}
               className={`w-full text-left p-3 rounded-xl border transition-colors ${selected?.id===rev.id&&!compareWith?'border-blue-500 bg-blue-50 dark:bg-blue-900/20':compareWith?.id===rev.id?'border-orange-400 bg-orange-50 dark:bg-orange-900/20':'border-gray-200 dark:border-gray-700 hover:border-gray-300'}`}>
               <div className="flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-white"><Clock className="w-3.5 h-3.5 text-gray-400"/>v{rev.revision_number}</div>
               <p className="text-xs text-gray-500">{new Date(rev.created_at).toLocaleString('zh-CN')}</p>
               {rev.change_summary&&<p className="text-xs text-gray-500 mt-1 line-clamp-1">{rev.change_summary}</p>}
               <div className="flex gap-1 mt-1.5">
                 {rev.author&&<span className="text-xs text-gray-400"><User className="w-3 h-3 inline mr-0.5"/>{rev.author.username}</span>}
-                <button onClick={e=>{e.stopPropagation();if(confirm('确定删除此版本？'))deleteRevMut.mutate(rev.id);}} className="text-xs text-red-400 hover:text-red-600 ml-1" title="删除"><Trash2 className="w-3 h-3"/></button>
+                <button onClick={async e => {
+                  e.stopPropagation();
+                  if (await confirm({message: '确定删除此版本？', variant: 'danger'})) deleteRevMut.mutate(rev.id);
+                }} className="text-xs text-red-400 hover:text-red-600 ml-1" title="删除"><Trash2 className="w-3 h-3"/>
+                </button>
                 {/* Compare button: visible on non-selected items when another is selected */}
                 {selected&&selected.id!==rev.id&&!compareWith&&<button onClick={e=>{e.stopPropagation();compareRevisions(selected,rev);}} className="text-xs text-blue-600 hover:underline ml-auto"><GitCompare className="w-3 h-3 inline mr-0.5"/>对比</button>}
               </div>
@@ -76,8 +82,18 @@ const RevisionsSidebar: React.FC<Props> = ({articleId,open,onClose,onCollapse,on
           ) : (
             <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 shrink-0">
               <span className="text-sm font-medium">v{selected.revision_number}</span>
-              <button onClick={()=>{if(confirm('确定回滚到此版本？'))rollbackMut.mutate(selected.id);}} className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-1"><RotateCcw className="w-3 h-3"/>回滚</button>
-              <button onClick={()=>{if(confirm('确定删除此版本？'))deleteRevMut.mutate(selected.id);}} className="px-3 py-1.5 text-xs bg-red-500 text-white rounded-lg hover:bg-red-600 flex items-center gap-1"><Trash2 className="w-3 h-3"/>删除</button>
+              <button onClick={async () => {
+                if (await confirm({message: '确定回滚到此版本？', variant: 'warning'})) rollbackMut.mutate(selected.id);
+              }}
+                      className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 flex items-center gap-1">
+                <RotateCcw className="w-3 h-3"/>回滚
+              </button>
+              <button onClick={async () => {
+                if (await confirm({message: '确定删除此版本？', variant: 'danger'})) deleteRevMut.mutate(selected.id);
+              }}
+                      className="px-3 py-1.5 text-xs bg-red-500 text-white rounded-lg hover:bg-red-600 flex items-center gap-1">
+                <Trash2 className="w-3 h-3"/>删除
+              </button>
             </div>
           )}
           <div className="flex-1 overflow-y-auto p-4">

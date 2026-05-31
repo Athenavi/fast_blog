@@ -6,6 +6,7 @@ import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {apiClient} from '@/lib/api/api-client';
+import {useConfirm} from '@/components/ui/confirm-provider';
 import {
   AlertTriangle,
   Eye,
@@ -211,6 +212,7 @@ const CreateAdModal: React.FC<{open: boolean; onClose: () => void; slots: AdSlot
 
 // ─── Main Component ───────────────────────────────────
 function AdsInner() {
+  const confirm = useConfirm();
   const qc = useQueryClient();
   const [showCreate, setShowCreate] = useState(false);
   const [filterSlot, setFilterSlot] = useState('');
@@ -369,7 +371,12 @@ function AdsInner() {
                           <Play className="w-4 h-4"/>
                         </button>
                       ) : null}
-                      <button onClick={() => { if (confirm('确定删除广告「' + a.title + '」？')) delMut.mutate(a.ad_id); }}
+                      <button onClick={async () => {
+                        if (await confirm({
+                          message: '确定删除广告「' + a.title + '」？',
+                          variant: 'danger'
+                        })) delMut.mutate(a.ad_id);
+                      }}
                         className="p-1.5 inline-block text-gray-400 hover:text-red-600" title="删除">
                         <Trash2 className="w-4 h-4"/>
                       </button>

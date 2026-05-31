@@ -4,6 +4,7 @@ import React, {useState, useEffect, useCallback} from 'react';
 import {commentService} from '@/lib/api/comment-service';
 import type {Comment} from '@/lib/api/comment-service';
 import {MessageSquare, Heart, Reply, Trash2, Clock, TrendingUp, ChevronDown, Send, X, AlertTriangle, Loader} from 'lucide-react';
+import {useConfirm} from '@/components/ui/confirm-provider';
 
 // ─── Types ────────────────────────────────────────────
 interface Props {articleId: number;}
@@ -37,6 +38,7 @@ const CommentItem: React.FC<{
   onDelete: (id: number) => void;
   onReply: (id: number, name: string) => void;
 }> = ({comment, depth, onLike, onDelete, onReply}) => {
+  const confirm = useConfirm();
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(comment.likes || 0);
   const [deleting, setDeleting] = useState(false);
@@ -52,7 +54,7 @@ const CommentItem: React.FC<{
 
   const handleDelete = useCallback(async () => {
     if (!comment.id || deleting) return;
-    if (!confirm('确定删除此评论？')) return;
+    if (!await confirm({message: '确定删除此评论？', variant: 'danger'})) return;
     setDeleting(true);
     const res = await commentService.deleteComment(comment.id);
     if (res.success) onDelete(comment.id);

@@ -7,6 +7,7 @@ import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {apiClient} from '@/lib/api/base-client';
 import {ChevronLeft, ChevronRight, Plus, Trash2, RefreshCw, AlertTriangle, Search, Filter, Pencil, Upload, X} from 'lucide-react';
+import {useConfirm} from '@/components/ui/confirm-provider';
 
 const ACTION_LABELS: Record<string, string> = {block: '拦截', replace: '替换', warn: '警告'};
 const ACTION_COLORS: Record<string, string> = {
@@ -17,6 +18,7 @@ const ACTION_COLORS: Record<string, string> = {
 const LEVEL_NAMES = ['', '低危', '中危', '高危'];
 
 function SensitiveWordsInner() {
+  const confirm = useConfirm();
   const qc = useQueryClient();
   // 分页 & 筛选
   const [page, setPage] = useState(1);
@@ -369,7 +371,9 @@ function SensitiveWordsInner() {
                               className="p-1.5 inline-block text-gray-400 hover:text-blue-600 rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20">
                         <Pencil className="w-4 h-4"/>
                       </button>
-                      <button onClick={() => { if (confirm('确认删除此敏感词？')) delMut.mutate(w.id); }}
+                      <button onClick={async () => {
+                        if (await confirm({message: '确认删除此敏感词？', variant: 'danger'})) delMut.mutate(w.id);
+                      }}
                               className="p-1.5 inline-block text-gray-400 hover:text-red-600 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20">
                         <Trash2 className="w-4 h-4"/>
                       </button>

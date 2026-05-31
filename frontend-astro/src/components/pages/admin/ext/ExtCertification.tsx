@@ -7,8 +7,10 @@ import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {apiClient} from '@/lib/api/api-client';
 import {Check, Eye, FileText, Loader, Medal, X} from 'lucide-react';
+import {useConfirm} from '@/components/ui/confirm-provider';
 
 function CertificationInner() {
+  const confirm = useConfirm();
   const qc = useQueryClient();
 
   const {data: stats} = useQuery({
@@ -168,7 +170,14 @@ function CertificationInner() {
             <input value={revokeReason} onChange={e => setRevokeReason(e.target.value)}
               className="w-full px-3 py-2 border rounded-lg text-sm dark:bg-gray-800 dark:text-white dark:border-gray-700"/>
           </div>
-          <button onClick={() => { if (confirm('确认撤销该用户的认证？')) revokeMut.mutate({user_id: parseInt(revokeUserId), reason: revokeReason}); setRevokeUserId(''); setRevokeReason(''); }}
+          <button onClick={async () => {
+            if (await confirm({
+              message: '确认撤销该用户的认证？',
+              variant: 'warning'
+            })) revokeMut.mutate({user_id: parseInt(revokeUserId), reason: revokeReason});
+            setRevokeUserId('');
+            setRevokeReason('');
+          }}
             disabled={revokeMut.isPending || !revokeUserId}
             className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-sm rounded-lg disabled:opacity-50">
             {revokeMut.isPending ? <Loader className="w-4 h-4 animate-spin"/> : '撤销认证'}
