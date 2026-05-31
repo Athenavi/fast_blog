@@ -1,30 +1,29 @@
 ﻿'use client';
 
 import React, {useEffect, useRef, useState} from 'react';
-import {useForm, FormProvider, Controller} from 'react-hook-form';
+import {Controller, FormProvider, useForm} from 'react-hook-form';
 import {zodResolver} from '@hookform/resolvers/zod';
 import {apiClient} from '@/lib/api/base-client';
 import {getCookie, setCookie} from '@/lib/auth-utils';
-import {loginSchema, twoFactorSchema, type LoginFormData, type TwoFactorFormData} from '@/lib/schemas';
+import {type LoginFormData, loginSchema, type TwoFactorFormData, twoFactorSchema} from '@/lib/schemas';
 import {useTranslation} from '@/lib/i18n';
 import {
+  AlertCircle,
   ArrowLeft,
-  Eye,
-  EyeOff,
-  Loader,
-  LogIn,
-  QrCode,
-  Smartphone,
-  Lock,
-  User,
-  GitBranch,
-  Globe,
-  Shield,
-  Sparkles,
-  Zap,
   BookOpen,
   ChevronRight,
-  AlertCircle
+  Eye,
+  EyeOff,
+  GitBranch,
+  Globe,
+  Loader,
+  Lock,
+  QrCode,
+  Shield,
+  Smartphone,
+  Sparkles,
+  User,
+  Zap
 } from 'lucide-react';
 
 export default function LoginPage() {
@@ -62,6 +61,9 @@ export default function LoginPage() {
   const [qrStatus, setQrStatus] = useState<'idle'|'loading'|'ready'|'pending'|'success'|'expired'>('idle');
   const pollRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const cancelRef = useRef(false);
+  const [countdown, setCountdown] = useState(0);
+  const countdownTimerRef = useRef<NodeJS.Timeout | undefined>(undefined);
+  const generateQRRef = useRef<(() => Promise<void>) | null>(null);
 
   // Auto-redirect if logged in
   const [checking, setChecking] = useState(true);
@@ -69,8 +71,51 @@ export default function LoginPage() {
 
   const next = () => new URLSearchParams(window.location.search).get('next')||'/profile';
 
-  // Cleanup polling
-  useEffect(() => { return () => { cancelRef.current = true; if (pollRef.current) clearTimeout(pollRef.current); }; }, []);
+  // Cleanup polling + countdown
+  useEffect(() => {
+    return () => {
+      cancelRef.current = true;
+      if (pollRef.current) clearTimeout(pollRef.current);
+      if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
+    };
+  }, []);
+
+  // Keep generateQR ref current
+  useEffect(() => {
+    generateQRRef.current = generateQR;
+  });
+
+  // Countdown timer for QR code expiry
+  useEffect(() => {
+    if (countdown <= 0 || qrStatus === 'success' || qrStatus === 'expired' || qrStatus === 'idle' || qrStatus === 'loading') return;
+    countdownTimerRef.current = setInterval(() => {
+      setCountdown(prev => {
+        if (prev <= 1) {
+          clearInterval(countdownTimerRef.current!);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => {
+      if (countdownTimerRef.current) clearInterval(countdownTimerRef.current);
+    };
+  }, [countdown > 0, qrStatus]);
+
+  // Auto-refresh when QR code expires via countdown
+  useEffect(() => {
+    if (countdown !== 0) return;
+    if (qrStatus !== 'ready' && qrStatus !== 'pending') return;
+    // QR expired — stop polling, show expired state, then auto-refresh
+    cancelRef.current = true;
+    if (pollRef.current) clearTimeout(pollRef.current);
+    setQrStatus('expired');
+    const timer = setTimeout(() => {
+      cancelRef.current = false;
+      generateQRRef.current?.();
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [countdown]);
 
   // ═══ QR Login Generator (uses V2 backend) ═══
   const generateQR = async () => {
@@ -99,6 +144,9 @@ export default function LoginPage() {
           return;
         }
       }
+      // Calculate countdown from expires_at
+      const expiresAt = r.data.expires_at ? parseInt(r.data.expires_at) * 1000 : Date.now() + 180000;
+      setCountdown(Math.max(0, Math.floor((expiresAt - Date.now()) / 1000)));
       setQrStatus('ready');
       pollQR(token);
     } catch {
@@ -112,10 +160,11 @@ export default function LoginPage() {
     pollRef.current = setTimeout(async () => {
       if (cancelRef.current) return;
       try {
-        const r = await apiClient.get(`/auth/qr/status`, {token});
+        const r = await apiClient.get(`/auth/qr/status`, {token, 'no-cache': '1'});
         const data = r.success && r.data ? r.data : {status: 'pending'};
         const st = data.status;
         if (st === 'confirmed' || st === 'success') {
+          setCountdown(0);
           setQrStatus('success');
           const refreshToken = data.refresh_token;
           if (refreshToken) setCookie('refresh_token', refreshToken, 604800);
@@ -129,6 +178,7 @@ export default function LoginPage() {
           setQrStatus('idle');
           return;
         } else if (st === 'expired') {
+          setCountdown(0);
           setQrStatus('expired');
           setErr(t('login.qrExpired'));
           return;
@@ -604,6 +654,18 @@ export default function LoginPage() {
                                           </svg>
                                         </div>
                                     )}
+                                    {qrStatus === 'expired' && (
+                                      <div
+                                        className="absolute inset-0 bg-orange-500/85 rounded-2xl flex flex-col items-center justify-center gap-2">
+                                        <svg className="w-14 h-14 text-white" fill="none" viewBox="0 0 24 24"
+                                             stroke="currentColor" strokeWidth={2}>
+                                          <circle cx="12" cy="12" r="10"/>
+                                          <polyline points="12 6 12 12 16 14"/>
+                                        </svg>
+                                        <span
+                                          className="text-white text-sm font-medium">{t('login.qrExpiredAutoRefresh')}</span>
+                                      </div>
+                                    )}
                                   </div>
                               ) : (
                                   <div
@@ -620,13 +682,21 @@ export default function LoginPage() {
                               <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
                                 {qrStatus === 'loading' ? t('login.generatingQR') :
                                     qrStatus === 'ready' || qrStatus === 'pending' ? (
-                                            <span className="flex items-center justify-center gap-2">
-                              <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"/>
-                                              {t('login.qrWaitingScan')}
-                            </span>
-                                        ) :
+                                        <span className="flex flex-col items-center gap-1">
+                                          <span className="flex items-center justify-center gap-2">
+                                            <span className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"/>
+                                            {t('login.qrWaitingScan')}
+                                          </span>
+                                          {countdown > 0 && (
+                                            <span
+                                              className={`text-xs ${countdown <= 30 ? 'text-orange-500 font-semibold' : 'text-gray-400 dark:text-gray-500'}`}>
+                                              {t('login.qrExpiresIn', {seconds: countdown})}
+                                            </span>
+                                          )}
+                                        </span>
+                                      ) :
                                       qrStatus === 'success' ? `✅ ${t('login.qrScanSuccess')}` :
-                                        qrStatus === 'expired' ? `⏰ ${t('login.qrExpiredShort')}` :
+                                        qrStatus === 'expired' ? t('login.qrExpiredAutoRefresh') :
                                           t('login.scanQRCode')}
                               </p>
                             </div>

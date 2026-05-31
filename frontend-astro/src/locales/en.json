@@ -150,6 +150,8 @@
     "qrExpiredShort": "QR code expired",
     "qrRegenerate": "Regenerate",
     "qrGenerate": "Generate QR code",
+    "qrExpiresIn": "QR code expires in {seconds}s",
+    "qrExpiredAutoRefresh": "QR code expired, regenerating...",
     "twoFactorTitle": "Verify Identity",
     "twoFactorSubtitle": "Please enter your two-factor code to continue",
     "twoFactorCodeHint": "Open your authenticator app and enter the 6-digit code",

@@ -511,6 +511,23 @@ def register_error_handlers(app: FastAPI):
         # 原逻辑简化
         return {"status": "healthy", "timestamp": datetime.now().isoformat()}
 
+    @app.get("/mobile-login", tags=["qr-login"])
+    async def mobile_login_page(request: Request):
+        """手机扫码确认页面（注册在应用顶层，绕过 API 中间件和认证）"""
+        from src.api.v2.qr_login import _MOBILE_LOGIN_HTML
+        from fastapi.responses import HTMLResponse
+
+        # 动态计算前端登录页地址
+        host = request.headers.get("host", "localhost:9421")
+        scheme = request.url.scheme or "http"
+        # 开发环境：后端 :9421 → 前端 :4321（Astro 默认端口）
+        # 生产环境：同源部署时 host 不含 :9421，保持原样
+        frontend_host = host.replace(":9421", ":4321")
+        frontend_origin = f"{scheme}://{frontend_host}"
+
+        html = _MOBILE_LOGIN_HTML.replace("{{FRONTEND_ORIGIN}}", frontend_origin)
+        return HTMLResponse(content=html)
+
     # 注意：不再注册 catch-all 路由（如 @app.get('/{full_path:path}')），
     # 因为它会拦截所有请求（包括 API 请求），导致 API 路由（如 /api/v2/articles）
     # 在缺少尾部斜杠时返回 404 而非正确匹配。

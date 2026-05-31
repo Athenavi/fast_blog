@@ -22,7 +22,7 @@ from starlette.middleware.base import BaseHTTPMiddleware
 class HttpCacheMiddleware(BaseHTTPMiddleware):
     """
     HTTP 缓存中间件
-    
+
     实现 RFC 7232 条件请求规范
     支持 ETag 和 Last-Modified 验证
     """
@@ -39,7 +39,7 @@ class HttpCacheMiddleware(BaseHTTPMiddleware):
     ):
         """
         初始化 HTTP 缓存中间件
-        
+
         Args:
             app: FastAPI 应用
             enable_etag: 是否启用 ETag
@@ -56,6 +56,7 @@ class HttpCacheMiddleware(BaseHTTPMiddleware):
         self.skip_paths = skip_paths or [
             '/admin',
             '/api/v1/auth',
+            '/api/v2/auth',
             '/api/v1/user',
             '/login',
             '/register',
@@ -146,10 +147,10 @@ class HttpCacheMiddleware(BaseHTTPMiddleware):
     def _generate_etag(self, content: bytes) -> str:
         """
         生成 ETag
-        
+
         Args:
             content: 响应内容
-            
+
         Returns:
             ETag 字符串（强验证器）
         """
@@ -159,10 +160,10 @@ class HttpCacheMiddleware(BaseHTTPMiddleware):
     def _format_http_datetime(self, timestamp: float) -> str:
         """
         格式化时间为 HTTP 日期格式
-        
+
         Args:
             timestamp: Unix 时间戳
-            
+
         Returns:
             HTTP 日期字符串 (RFC 7231)
         """
@@ -172,10 +173,10 @@ class HttpCacheMiddleware(BaseHTTPMiddleware):
     def _parse_http_datetime(self, date_string: str) -> Optional[float]:
         """
         解析 HTTP 日期字符串
-        
+
         Args:
             date_string: HTTP 日期字符串
-            
+
         Returns:
             Unix 时间戳，解析失败返回 None
         """
@@ -207,12 +208,12 @@ class HttpCacheMiddleware(BaseHTTPMiddleware):
     ) -> Optional[Response]:
         """
         检查条件请求
-        
+
         Args:
             request: FastAPI 请求
             etag: 响应的 ETag
             last_modified: 响应的 Last-Modified
-            
+
         Returns:
             如果满足条件返回 304 响应，否则返回 None
         """
@@ -261,7 +262,7 @@ class HttpCacheMiddleware(BaseHTTPMiddleware):
     ) -> Response:
         """
         添加缓存头到响应
-        
+
         Args:
             response: FastAPI 响应
             request: FastAPI 请求
@@ -269,7 +270,7 @@ class HttpCacheMiddleware(BaseHTTPMiddleware):
             last_modified: Last-Modified 值
             response_body: 响应体
             is_head: 是否为 HEAD 请求
-            
+
         Returns:
             添加了缓存头的响应
         """

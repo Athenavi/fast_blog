@@ -150,6 +150,8 @@
     "qrExpiredShort": "二维码已过期",
     "qrRegenerate": "重新生成",
     "qrGenerate": "生成二维码",
+    "qrExpiresIn": "二维码 {seconds} 秒后过期",
+    "qrExpiredAutoRefresh": "二维码已过期，正在重新生成...",
     "twoFactorTitle": "验证身份",
     "twoFactorSubtitle": "请输入双重验证码以继续",
     "twoFactorCodeHint": "打开认证器应用，输入6位验证码",
