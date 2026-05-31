@@ -1,14 +1,14 @@
-'use client';
+﻿'use client';
 
 import React, {useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
-import {DeleteConfirm, EmptyState, Modal} from '@/components/admin/shared-ui';
-import {apiClient} from '@/lib/api/api-client';
+import {EmptyState, Modal} from '@/components/admin/shared-ui';
+import {apiClient} from '@/lib/api/base-client';
 import {useToast} from '@/components/ui/toast-provider';
-import {ChevronLeft, ChevronRight, Edit3, FileEdit, Link2, MapPin, MessageSquare, Plus, Trash2} from 'lucide-react';
+import {ChevronLeft, ChevronRight, Link2, Plus, Trash2} from 'lucide-react';
 import {useConfirm} from '@/components/ui/confirm-provider';
 import {Input, LocationAssignment, Pagination} from './shared';
-
+import type {ApiResponse} from '@/lib/api/base-types';
 const AssignmentsTab: React.FC = () => {
   const confirm = useConfirm();
   const toast = useToast();
@@ -26,7 +26,7 @@ const AssignmentsTab: React.FC = () => {
 
   const createMut = useMutation({
     mutationFn: (d: any) => apiClient.post('/cms/management/menu-location-assignments', d),
-    onSuccess: (r: any) => {
+    onSuccess: (r: ApiResponse) => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['menu-assignments']});
         setShowForm(false);
@@ -82,7 +82,7 @@ const AssignmentsTab: React.FC = () => {
           </div>}
       {pagination && pagination.total_pages > 1 && (
         <div className="flex items-center justify-between mt-4">
-          <span className="text-xs text-gray-500">共 {pagination.total} 条</span>
+          <span className="text-xs text-gray-500 dark:text-gray-400">共 {pagination.total} 条</span>
           <div className="flex items-center gap-1">
             <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}
                     className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30">

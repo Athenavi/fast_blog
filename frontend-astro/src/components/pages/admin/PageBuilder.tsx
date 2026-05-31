@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import {useState} from 'react';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
@@ -6,14 +6,7 @@ import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {apiClient} from '@/lib/api/base-client';
 import {useToast} from '@/components/ui/toast-provider';
 // P6-1: 集成 dnd-kit 实现拖拽排序
-import {
-    DndContext,
-    DragOverlay,
-    PointerSensor,
-    useSensor,
-    useSensors,
-    closestCenter,
-} from '@dnd-kit/core';
+import {DndContext, PointerSensor, useSensor, useSensors, closestCenter} from '@dnd-kit/core';
 import {
     arrayMove,
     SortableContext,
@@ -22,9 +15,25 @@ import {
 } from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
 import {
-    Layout, Plus, Save, Eye, Trash2, Edit3, GripVertical,
-    Type, Image as ImageIcon, Video, Grid, Star, MessageSquare,
-    DollarSign, HelpCircle, Users, Mail, Monitor, Smartphone, Tablet
+  Layout,
+  Plus,
+  Save,
+  Eye,
+  Trash2,
+  Edit3,
+  GripVertical,
+  Image as ImageIcon,
+  Video,
+  Grid,
+  Star,
+  MessageSquare,
+  DollarSign,
+  HelpCircle,
+  Users,
+  Mail,
+  Monitor,
+  Smartphone,
+  Tablet
 } from 'lucide-react';
 
 interface PageData {
@@ -130,7 +139,7 @@ function SortableBlock({
                     <div className="mb-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg space-y-3">
                         <div className="grid grid-cols-2 gap-3">
                             <div>
-                                <label className="text-xs text-gray-500 block mb-1">背景色</label>
+                              <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">背景色</label>
                                 <input
                                     type="color"
                                     value={blockStyles.backgroundColor || '#ffffff'}
@@ -139,7 +148,7 @@ function SortableBlock({
                                 />
                             </div>
                             <div>
-                                <label className="text-xs text-gray-500 block mb-1">文字色</label>
+                              <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">文字色</label>
                                 <input
                                     type="color"
                                     value={blockStyles.color || '#000000'}
@@ -150,7 +159,7 @@ function SortableBlock({
                         </div>
                         <div className="grid grid-cols-3 gap-3">
                             <div>
-                                <label className="text-xs text-gray-500 block mb-1">Padding</label>
+                              <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Padding</label>
                                 <input
                                     type="number"
                                     value={blockStyles.padding || 16}
@@ -159,7 +168,7 @@ function SortableBlock({
                                 />
                             </div>
                             <div>
-                                <label className="text-xs text-gray-500 block mb-1">Margin</label>
+                              <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Margin</label>
                                 <input
                                     type="number"
                                     value={blockStyles.margin || 0}
@@ -168,7 +177,7 @@ function SortableBlock({
                                 />
                             </div>
                             <div>
-                                <label className="text-xs text-gray-500 block mb-1">圆角</label>
+                              <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">圆角</label>
                                 <input
                                     type="number"
                                     value={blockStyles.borderRadius || 8}
@@ -180,7 +189,7 @@ function SortableBlock({
                     </div>
                 )}
 
-                <div className="text-xs text-gray-500">
+              <div className="text-xs text-gray-500 dark:text-gray-400">
                     {JSON.stringify(block.data, null, 2).slice(0, 200)}...
                 </div>
             </div>
@@ -270,7 +279,7 @@ function PageBuilderInner() {
     });
 
     // 删除页面
-    const deleteMut = useMutation({
+  const __deleteMut = useMutation({
         mutationFn: (id: number) => apiClient.delete(`/page-builder/pages/${id}`),
         onSuccess: () => {
             qc.invalidateQueries({queryKey: ['page-builder-pages']});
@@ -293,7 +302,7 @@ function PageBuilderInner() {
 
         const slug = title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
         try {
-            const res = await apiClient.post('/page-builder/pages/from-template', {
+          const __res = await apiClient.post('/page-builder/pages/from-template', {
                 template_id: templateId,
                 title,
                 slug
@@ -381,7 +390,7 @@ function PageBuilderInner() {
                                         <span className="text-sm font-medium truncate">{page.title}</span>
                                         {page.is_published && (
                                             <span
-                                                className="text-[10px] px-1.5 py-0.5 bg-green-100 text-green-700 rounded">已发布</span>
+                                              className="text-[10px] px-1.5 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded">已发布</span>
                                         )}
                                     </div>
                                     <div className="text-xs text-gray-400 font-mono truncate">/{page.slug}</div>
@@ -511,7 +520,7 @@ function PageBuilderInner() {
                             </div>
                             <div className="flex-1 overflow-y-auto p-4">
                                 <div
-                                    className={`${getPreviewWidth()} mx-auto bg-white shadow-lg rounded-lg min-h-[600px] p-6`}>
+                                  className={`${getPreviewWidth()} mx-auto bg-white dark:bg-gray-900 shadow-lg rounded-lg min-h-[600px] p-6`}>
                                     {editingBlocks.map((block, index) => (
                                         <div key={index} className="mb-4">
                                             <div
@@ -550,10 +559,10 @@ function PageBuilderInner() {
                             <div className="flex gap-2 text-sm">
                                 <span className="font-medium text-gray-700 dark:text-gray-300">快速开始：</span>
                                 <button className="text-blue-600 hover:underline">全部</button>
-                                <button className="text-gray-500 hover:text-blue-600">营销</button>
-                                <button className="text-gray-500 hover:text-blue-600">企业</button>
-                                <button className="text-gray-500 hover:text-blue-600">博客</button>
-                                <button className="text-gray-500 hover:text-blue-600">作品集</button>
+                              <button className="text-gray-500 dark:text-gray-400 hover:text-blue-600">营销</button>
+                              <button className="text-gray-500 dark:text-gray-400 hover:text-blue-600">企业</button>
+                              <button className="text-gray-500 dark:text-gray-400 hover:text-blue-600">博客</button>
+                              <button className="text-gray-500 dark:text-gray-400 hover:text-blue-600">作品集</button>
                             </div>
                         </div>
 
@@ -563,7 +572,7 @@ function PageBuilderInner() {
                                 <h4 className="text-sm font-semibold mb-3 text-gray-700 dark:text-gray-300">📄
                                     预建页面模板（一键导入）</h4>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {components?.filter((c: any) => c.id).map((template: any) => {
+                                  {components?.filter((c) => c.id).map((template) => {
                                         const Icon = COMPONENT_ICONS[template.blocks?.[0]?.type] || Layout;
                                         return (
                                             <div
@@ -576,9 +585,10 @@ function PageBuilderInner() {
                                                         <span className="font-medium text-sm">{template.name}</span>
                                                     </div>
                                                     <span
-                                                        className="text-[10px] px-2 py-0.5 bg-green-100 text-green-700 rounded-full">{template.category}</span>
+                                                      className="text-[10px] px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full">{template.category}</span>
                                                 </div>
-                                                <p className="text-xs text-gray-500 mb-3 line-clamp-2">{template.description}</p>
+                                              <p
+                                                className="text-xs text-gray-500 dark:text-gray-400 mb-3 line-clamp-2">{template.description}</p>
                                                 <button
                                                     onClick={() => handleCreateFromTemplate(template.id)}
                                                     className="w-full px-3 py-1.5 bg-green-600 text-white text-xs rounded-lg hover:bg-green-700 transition"
@@ -596,7 +606,7 @@ function PageBuilderInner() {
                                 <h4 className="text-sm font-semibold mb-3 text-gray-700 dark:text-gray-300">🧩
                                     单个组件（添加到当前页面）</h4>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    {components?.filter((c: any) => !c.id).map((comp: ComponentTemplate) => {
+                                  {components?.filter((c) => !c.id).map((comp: ComponentTemplate) => {
                                         const Icon = COMPONENT_ICONS[comp.name] || Layout;
                                         return (
                                             <div
@@ -608,7 +618,8 @@ function PageBuilderInner() {
                                                     <Icon className="w-5 h-5 text-blue-600"/>
                                                     <span className="font-medium">{comp.name}</span>
                                                 </div>
-                                                <p className="text-xs text-gray-500 mb-3">{comp.description}</p>
+                                              <p
+                                                className="text-xs text-gray-500 dark:text-gray-400 mb-3">{comp.description}</p>
                                                 <div className="text-[10px] text-gray-400">分类: {comp.category}</div>
                                             </div>
                                         );

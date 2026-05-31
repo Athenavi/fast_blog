@@ -1,7 +1,7 @@
 'use client';
 
 import React, {useState, useMemo, useEffect} from 'react';
-import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
+import {useQuery, useQueryClient} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
@@ -9,12 +9,38 @@ import {apiClient} from '@/lib/api/base-client';
 import {useDebounce} from '@/lib/hooks';
 import {StatCard} from '@/components/admin/shared-ui';
 import {
-  Shield, AlertTriangle, Activity, Users, Lock,
-  Eye, Filter, Download, RefreshCw, Search, Clock,
-  Globe, Zap, ChevronDown, X, ChevronLeft, ChevronRight,
-  Loader2, CheckCircle, XCircle, Info, Ban, UserX,
-  FileText, Database, Settings, ArrowUpRight, TrendingUp,
-  ShieldCheck, ShieldAlert, Fingerprint, Network, Server
+  Shield,
+  AlertTriangle,
+  Activity,
+  Users,
+  Lock,
+  Eye,
+  Filter,
+  Download,
+  RefreshCw,
+  Search,
+  Clock,
+  Globe,
+  Zap,
+  ChevronDown,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Loader2,
+  CheckCircle,
+  XCircle,
+  Info,
+  Ban,
+  UserX,
+  FileText,
+  Database,
+  Settings,
+  ArrowUpRight,
+  TrendingUp,
+  ShieldAlert,
+  Fingerprint,
+  Network,
+  Server
 } from 'lucide-react';
 
 /* ─── Interfaces ─── */
@@ -34,16 +60,6 @@ interface AuditLog {
   risk_level?: 'low' | 'medium' | 'high' | 'critical';
 }
 
-interface SecuritySummary {
-  total_actions_24h: number;
-  failed_logins_24h: number;
-  suspicious_ips: string[];
-  recent_critical_events: any[];
-  threat_score?: number;
-  active_sessions?: number;
-  blocked_attempts?: number;
-  uptime_hours?: number;
-}
 
 const ACTION_OPTIONS = [
   {key: 'all', label: '全部动作', icon: Activity},
@@ -60,7 +76,12 @@ const STATUS_OPTIONS = [
   {key: 'failure', label: '失败'},
 ];
 
-const RISK_CONFIG: Record<string, { label: string; color: string; bg: string; icon: any }> = {
+const RISK_CONFIG: Record<string, {
+  label: string;
+  color: string;
+  bg: string;
+  icon: React.ComponentType<{ className?: string }>
+}> = {
   low: {
     label: '低风险',
     color: 'text-green-600 dark:text-green-400',
@@ -250,7 +271,7 @@ const LogDetailModal: React.FC<{ log: AuditLog; onClose: () => void }> = ({log, 
 
 /* ─── Main Component ─── */
 function SecurityDashboardInner() {
-  const qc = useQueryClient();
+  const __qc = useQueryClient();
   const [filterAction, setFilterAction] = useState('all');
   const [filterStatus, setFilterStatus] = useState('all');
   const [search, setSearch] = useState('');
@@ -259,7 +280,7 @@ function SecurityDashboardInner() {
   const debouncedSearch = useDebounce(search, 300);
 
   /* ─── Data fetching ─── */
-  const {data: summary, isLoading: summaryLoading, refetch: refetchSummary} = useQuery({
+  const {data: summary, refetch: refetchSummary} = useQuery({
     queryKey: ['security-summary'],
     queryFn: async () => {
       const res = await apiClient.get('/security/dashboard/summary');
@@ -509,7 +530,7 @@ function SecurityDashboardInner() {
                   <Shield className="w-10 h-10 text-gray-300 dark:text-gray-600"/>
                 </div>
                 <p className="text-lg font-medium text-gray-500 dark:text-gray-400 mb-1">暂无审计日志</p>
-                <p className="text-sm text-gray-400 dark:text-gray-500">安全事件将会记录在这里</p>
+                <p className="text-sm text-gray-400 dark:text-gray-500 dark:text-gray-400">安全事件将会记录在这里</p>
               </div>
           ) : (
               <div className="overflow-x-auto">

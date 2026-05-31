@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 
 // ─── Level badge ──────────────────────────────────────
-const levelCfg: Record<string,{bg:string;text:string;icon:any}> = {
+const levelCfg: Record<string, { bg: string; text: string; icon: React.ComponentType<{ className?: string }> }> = {
   CRITICAL: {bg:'bg-red-100 dark:bg-red-900/20', text:'text-red-700', icon:ShieldAlert},
   ERROR:    {bg:'bg-orange-100 dark:bg-orange-900/20', text:'text-orange-700', icon:AlertCircle},
   WARNING:  {bg:'bg-yellow-100 dark:bg-yellow-900/20', text:'text-yellow-700', icon:AlertTriangle},
@@ -40,9 +40,15 @@ const ActionBadge: React.FC<{action:string}> = ({action}) => (
 );
 
 // ─── Stat card ────────────────────────────────────────
-const StatCard: React.FC<{icon:any;label:string;value:number|string;color?:string}> = ({icon:Icon,label,value,color}) => (
+const StatCard: React.FC<{
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: number | string;
+  color?: string
+}> = ({icon: Icon, label, value, color}) => (
   <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-4">
-    <div className="flex items-center gap-2 text-sm text-gray-500 mb-1"><Icon className={`w-4 h-4 ${color||''}`}/>{label}</div>
+    <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1"><Icon
+      className={`w-4 h-4 ${color || ''}`}/>{label}</div>
     <p className="text-2xl font-bold text-gray-900 dark:text-white">{value ?? '—'}</p>
   </div>
 );
@@ -53,9 +59,11 @@ const Pagination: React.FC<{page:number;total:number;perPage:number;onChange:(p:
   if (totalPages <= 1) return null;
   return (
     <div className="flex items-center justify-between px-5 py-3 border-t border-gray-100 dark:border-gray-800">
-      <span className="text-xs text-gray-500">共 {total} 条</span>
+      <span className="text-xs text-gray-500 dark:text-gray-400">共 {total} 条</span>
       <div className="flex items-center gap-1">
-        <button disabled={page<=1} onClick={()=>onChange(page-1)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30"><ChevronLeft className="w-4 h-4 text-gray-500"/></button>
+        <button disabled={page <= 1} onClick={() => onChange(page - 1)}
+                className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30"><ChevronLeft
+          className="w-4 h-4 text-gray-500 dark:text-gray-400"/></button>
         {Array.from({length:Math.min(totalPages,7)},(_,i)=>{
           let p:number;
           if (totalPages<=7) p = i+1;
@@ -64,7 +72,9 @@ const Pagination: React.FC<{page:number;total:number;perPage:number;onChange:(p:
           else p = page-3+i;
           return <button key={p} onClick={()=>onChange(p)} className={`w-8 h-8 text-xs rounded-lg ${p===page?'bg-blue-600 text-white':'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'}`}>{p}</button>;
         })}
-        <button disabled={page>=totalPages} onClick={()=>onChange(page+1)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30"><ChevronRight className="w-4 h-4 text-gray-500"/></button>
+        <button disabled={page >= totalPages} onClick={() => onChange(page + 1)}
+                className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30"><ChevronRight
+          className="w-4 h-4 text-gray-500 dark:text-gray-400"/></button>
       </div>
     </div>
   );
@@ -130,7 +140,9 @@ function AuditLogsInner() {
 
   // Get level breakdown for stats
   const levelStats: Record<string,number> = {};
-  (stats.by_level||[]).forEach((s:any) => { levelStats[s.level] = s.count; });
+  (stats.by_level || []).forEach((s) => {
+    levelStats[s.level] = s.count;
+  });
 
   return (
     <AdminShell title="审计日志">
@@ -145,7 +157,8 @@ function AuditLogsInner() {
       {/* Filters */}
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 mb-4">
         <div className="flex items-center gap-2 px-5 py-3 border-b border-gray-100 dark:border-gray-800">
-          <button onClick={()=>setFilterExpanded(!filterExpanded)} className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+          <button onClick={() => setFilterExpanded(!filterExpanded)}
+                  className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
             <Filter className="w-4 h-4"/><span className="hidden sm:inline">筛选</span>
           </button>
           <div className="flex-1" />
@@ -173,7 +186,10 @@ function AuditLogsInner() {
               <option value="INFO">INFO</option><option value="WARNING">WARNING</option>
               <option value="ERROR">ERROR</option><option value="CRITICAL">CRITICAL</option>
             </select>
-            <button onClick={resetFilters} className="px-3 py-2 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 flex items-center gap-1"><X className="w-3.5 h-3.5"/>重置</button>
+            <button onClick={resetFilters}
+                    className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 flex items-center gap-1">
+              <X className="w-3.5 h-3.5"/>重置
+            </button>
           </div>
         )}
       </div>
@@ -188,16 +204,30 @@ function AuditLogsInner() {
           <div className="overflow-x-auto">
             <table className="w-full"><thead className="bg-gray-50 dark:bg-gray-800 border-b">
               <tr>
-                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase">用户</th>
-                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase">级别</th>
-                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase">操作</th>
-                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase hidden sm:table-cell">详情</th>
-                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase hidden lg:table-cell">资源</th>
-                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase hidden md:table-cell">IP</th>
-                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase whitespace-nowrap">时间</th>
+                <th
+                  className="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">用户
+                </th>
+                <th
+                  className="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">级别
+                </th>
+                <th
+                  className="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">操作
+                </th>
+                <th
+                  className="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase hidden sm:table-cell">详情
+                </th>
+                <th
+                  className="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase hidden lg:table-cell">资源
+                </th>
+                <th
+                  className="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase hidden md:table-cell">IP
+                </th>
+                <th
+                  className="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase whitespace-nowrap">时间
+                </th>
               </tr>
             </thead><tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-              {logs.map((log: any) => (
+            {logs.map((log) => (
                 <tr key={log.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 text-sm">
                   <td className="px-5 py-3">
                     <div>
@@ -207,12 +237,14 @@ function AuditLogsInner() {
                   </td>
                   <td className="px-5 py-3"><LevelBadge level={log.level||'INFO'} /></td>
                   <td className="px-5 py-3"><ActionBadge action={log.action} /></td>
-                  <td className="px-5 py-3 text-gray-500 hidden sm:table-cell max-w-[200px] truncate" title={log.description||''}>{log.description || '-'}</td>
-                  <td className="px-5 py-3 text-gray-500 hidden lg:table-cell text-xs">
+                  <td className="px-5 py-3 text-gray-500 dark:text-gray-400 hidden sm:table-cell max-w-[200px] truncate"
+                      title={log.description || ''}>{log.description || '-'}</td>
+                  <td className="px-5 py-3 text-gray-500 dark:text-gray-400 hidden lg:table-cell text-xs">
                     {log.resource_type ? <><span className="text-gray-400">{log.resource_type}</span>{log.resource_id ? <span className="text-gray-300">/{log.resource_id}</span> : null}</> : '-'}
                   </td>
                   <td className="px-5 py-3 text-gray-400 font-mono text-xs hidden md:table-cell">{log.ip_address || '-'}</td>
-                  <td className="px-5 py-3 text-gray-500 whitespace-nowrap text-xs">{log.created_at ? new Date(log.created_at).toLocaleString('zh-CN') : '-'}</td>
+                  <td
+                    className="px-5 py-3 text-gray-500 dark:text-gray-400 whitespace-nowrap text-xs">{log.created_at ? new Date(log.created_at).toLocaleString('zh-CN') : '-'}</td>
                 </tr>
               ))}
             </tbody></table>

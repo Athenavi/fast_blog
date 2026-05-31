@@ -1,6 +1,6 @@
 'use client';
 
-import React, {useState, useMemo, useEffect} from 'react';
+import React, {useState, useMemo} from 'react';
 import {useQuery} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
@@ -8,10 +8,27 @@ import {AdminShell} from '@/components/admin/AdminShell';
 import {StatCard} from '@/components/admin/shared-ui';
 import {apiClient} from '@/lib/api/base-client';
 import {
-  TrendingUp, Eye, Users, FileText, MessageSquare, UserPlus,
-  Clock, Globe, Monitor, Smartphone, Tablet, ChevronUp, ChevronDown,
-  Activity, Zap, ExternalLink, Download, RefreshCw, Calendar,
-  BarChart3, PieChart, Loader2
+  TrendingUp,
+  Eye,
+  Users,
+  FileText,
+  MessageSquare,
+  UserPlus,
+  Clock,
+  Globe,
+  Monitor,
+  Smartphone,
+  Tablet,
+  ChevronUp,
+  ChevronDown,
+  Activity,
+  Zap,
+  Download,
+  RefreshCw,
+  Calendar,
+  BarChart3,
+  PieChart,
+  Loader2
 } from 'lucide-react';
 
 /* ─── Helpers ─── */
@@ -33,7 +50,12 @@ const DATE_RANGES = [
 const CHART_COLORS = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4', '#f97316'];
 
 /* ─── Section Title ─── */
-const SectionTitle: React.FC<{ icon: any; title: string; subtitle?: string; action?: React.ReactNode }> = ({
+const SectionTitle: React.FC<{
+  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
+  title: string;
+  subtitle?: string;
+  action?: React.ReactNode
+}> = ({
                                                                                                              icon: Icon,
                                                                                                              title,
                                                                                                              subtitle,
@@ -54,7 +76,7 @@ const SectionTitle: React.FC<{ icon: any; title: string; subtitle?: string; acti
 );
 
 /* ─── Skeleton ─── */
-const CardSkeleton = () => (
+const __CardSkeleton = () => (
     <div
         className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 animate-pulse">
       <div className="flex items-center gap-2 mb-4">
@@ -172,7 +194,8 @@ const HBar: React.FC<{
         <div className="flex justify-between text-xs mb-1.5">
           <span className="text-gray-700 dark:text-gray-300 truncate font-medium">{item.name}</span>
           <span className="text-gray-500 dark:text-gray-400 shrink-0 ml-2">
-            {fmt(item.value)} <span className="text-gray-400 dark:text-gray-500">({item.pct.toFixed(0)}%)</span>
+            {fmt(item.value)} <span
+            className="text-gray-400 dark:text-gray-500 dark:text-gray-400">({item.pct.toFixed(0)}%)</span>
           </span>
         </div>
         <div className="w-full h-2.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
@@ -194,7 +217,12 @@ const HBar: React.FC<{
 
 /* ─── Device Card ─── */
 const DeviceCard: React.FC<{
-  items: { name: string; value: number; pct: number; icon: any }[];
+  items: {
+    name: string;
+    value: number;
+    pct: number;
+    icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>
+  }[];
 }> = ({items}) => (
     <div className="space-y-4">
       {items.map((d, i) => {
@@ -236,7 +264,7 @@ function AnalyticsInner() {
   const {data: overview, isLoading: overviewLoading} = useQuery({
     queryKey: ['analytics-overview', days],
     queryFn: async () => {
-      const res = await apiClient.get<any>('/dashboard/analytics/overview', {days});
+      const res = await apiClient.get('/dashboard/analytics/overview', {days});
       return res.success && res.data ? res.data : {};
     },
   });
@@ -244,7 +272,7 @@ function AnalyticsInner() {
   const {data: trend, isLoading: trendLoading} = useQuery({
     queryKey: ['analytics-trend', days],
     queryFn: async () => {
-      const res = await apiClient.get<any>('/dashboard/analytics/article-views-trend', {days});
+      const res = await apiClient.get('/dashboard/analytics/article-views-trend', {days});
       return res.success && res.data ? res.data : [];
     },
   });
@@ -252,7 +280,7 @@ function AnalyticsInner() {
   const {data: popular, isLoading: popularLoading} = useQuery({
     queryKey: ['analytics-popular', days],
     queryFn: async () => {
-      const res = await apiClient.get<any>('/dashboard/analytics/popular-articles', {limit: 10, days});
+      const res = await apiClient.get('/dashboard/analytics/popular-articles', {limit: 10, days});
       return res.success && res.data ? res.data : [];
     },
   });
@@ -260,7 +288,7 @@ function AnalyticsInner() {
   const {data: categories} = useQuery({
     queryKey: ['analytics-categories'],
     queryFn: async () => {
-      const res = await apiClient.get<any>('/dashboard/analytics/category-distribution');
+      const res = await apiClient.get('/dashboard/analytics/category-distribution');
       return res.success && res.data ? res.data : [];
     },
   });
@@ -268,7 +296,7 @@ function AnalyticsInner() {
   const {data: activity} = useQuery({
     queryKey: ['analytics-activity', days],
     queryFn: async () => {
-      const res = await apiClient.get<any>('/dashboard/analytics/user-activity', {days});
+      const res = await apiClient.get('/dashboard/analytics/user-activity', {days});
       return res.success && res.data ? res.data : {};
     },
   });
@@ -276,7 +304,7 @@ function AnalyticsInner() {
   const {data: trafficSources} = useQuery({
     queryKey: ['analytics-traffic', days],
     queryFn: async () => {
-      const res = await apiClient.get<any>('/dashboard/analytics/traffic-sources', {days});
+      const res = await apiClient.get('/dashboard/analytics/traffic-sources', {days});
       return res.success && res.data ? res.data : [];
     },
   });
@@ -284,7 +312,7 @@ function AnalyticsInner() {
   const {data: deviceStats} = useQuery({
     queryKey: ['analytics-devices', days],
     queryFn: async () => {
-      const res = await apiClient.get<any>('/dashboard/analytics/device-stats', {days});
+      const res = await apiClient.get('/dashboard/analytics/device-stats', {days});
       return res.success && res.data ? res.data : [];
     },
   });
@@ -292,8 +320,8 @@ function AnalyticsInner() {
   /* ─── Computed data ─── */
   const catItems = useMemo(() => {
     if (!Array.isArray(categories)) return [];
-    const total = categories.reduce((s: number, c: any) => s + (c.value || c.count || 0), 0) || 1;
-    return categories.map((c: any) => ({
+    const total = categories.reduce((s, c) => s + (c.value || c.count || 0), 0) || 1;
+    return categories.map((c) => ({
       name: c.name || c.category_name || '未知',
       value: c.value || c.count || 0,
       pct: ((c.value || c.count || 0) / total) * 100,
@@ -302,8 +330,8 @@ function AnalyticsInner() {
 
   const trafficItems = useMemo(() => {
     if (!Array.isArray(trafficSources)) return [];
-    const total = trafficSources.reduce((s: number, t: any) => s + (t.count || t.visits || 0), 0) || 1;
-    return trafficSources.map((t: any) => ({
+    const total = trafficSources.reduce((s, t) => s + (t.count || t.visits || 0), 0) || 1;
+    return trafficSources.map((t) => ({
       name: t.source || t.name || '未知',
       value: t.count || t.visits || 0,
       pct: ((t.count || t.visits || 0) / total) * 100,
@@ -312,8 +340,8 @@ function AnalyticsInner() {
 
   const deviceItems = useMemo(() => {
     if (!Array.isArray(deviceStats)) return [];
-    const total = deviceStats.reduce((s: number, d: any) => s + (d.count || d.visits || 0), 0) || 1;
-    return deviceStats.map((d: any) => ({
+    const total = deviceStats.reduce((s, d) => s + (d.count || d.visits || 0), 0) || 1;
+    return deviceStats.map((d) => ({
       name: d.device || d.device_type || '未知',
       value: d.count || d.visits || 0,
       pct: ((d.count || d.visits || 0) / total) * 100,
@@ -329,7 +357,7 @@ function AnalyticsInner() {
     if (!trendData?.length) return;
     const csv = [
       ['日期', '浏览量', '访客'].join(','),
-      ...trendData.map((d: any) => [d.date, d.views, d.visitors].join(','))
+      ...trendData.map((d) => [d.date, d.views, d.visitors].join(','))
     ].join('\n');
     const blob = new Blob(['\uFEFF' + csv], {type: 'text/csv;charset=utf-8'});
     const url = URL.createObjectURL(blob);
@@ -475,7 +503,7 @@ function AnalyticsInner() {
                       i === 0 ? 'bg-gradient-to-br from-yellow-400 to-amber-500 text-white' :
                           i === 1 ? 'bg-gradient-to-br from-gray-300 to-gray-400 text-white dark:from-gray-600 dark:to-gray-700' :
                               i === 2 ? 'bg-gradient-to-br from-orange-400 to-orange-500 text-white' :
-                                  'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
+                                'bg-gray-100 text-gray-500 dark:text-gray-400 dark:bg-gray-800 dark:text-gray-400'
                   }`}>
                     {i + 1}
                   </span>
@@ -483,7 +511,7 @@ function AnalyticsInner() {
                     <p className="text-sm font-medium text-gray-900 dark:text-white truncate group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
                       {a.title || '无标题'}
                     </p>
-                    <p className="text-xs text-gray-400 dark:text-gray-500 flex items-center gap-2">
+                    <p className="text-xs text-gray-400 dark:text-gray-500 dark:text-gray-400 flex items-center gap-2">
                       <span className="flex items-center gap-0.5"><Eye className="w-3 h-3"/>{fmt(a.views)}</span>
                       <span className="flex items-center gap-0.5"><MessageSquare className="w-3 h-3"/>{a.comments || 0}</span>
                     </p>

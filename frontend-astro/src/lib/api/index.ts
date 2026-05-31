@@ -1,6 +1,6 @@
-import {apiClient} from "@/lib/api/api-client";
+﻿import {apiClient} from "@/lib/api/base-client";
 
-export {apiClient} from "@/lib/api/api-client";
+export {apiClient} from "@/lib/api/base-client";
 export {ArticleService} from './article-service';
 export type {Article, Category, ApiResponse, Pagination} from './base-types';
 

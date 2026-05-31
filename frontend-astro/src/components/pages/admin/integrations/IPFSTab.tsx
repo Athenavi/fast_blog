@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, {useState, useCallback, useRef} from 'react';
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
@@ -16,10 +16,9 @@ import {
   PinOff,
   Save,
   Trash2,
-  Upload,
   X
 } from 'lucide-react';
-import {apiClient} from '@/lib/api/api-client';
+import {apiClient} from '@/lib/api/base-client';
 import {useConfirm} from '@/components/ui/confirm-provider';
 import {IPFSFile, InputField, ActionButton} from './shared';
 
@@ -40,7 +39,7 @@ export default function IPFSTab({showToast}: {
   const {data: ipfsFiles, isLoading} = useQuery({
     queryKey: ['integ-ipfs-files'],
     queryFn: async () => {
-      const r = await apiClient.get<any>('/integrations/ipfs/files');
+      const r = await apiClient.get('/integrations/ipfs/files');
       const raw = r.success && r.data ? (r.data.files || r.data) : [];
       return (Array.isArray(raw) ? raw : []) as IPFSFile[];
     },
@@ -162,12 +161,12 @@ export default function IPFSTab({showToast}: {
             {uploading ? (
               <div className="flex flex-col items-center">
                 <Loader className="w-8 h-8 text-blue-500 animate-spin mb-2"/>
-                <p className="text-sm text-gray-500">正在上传到 IPFS...</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">正在上传到 IPFS...</p>
               </div>
             ) : (
               <div className="flex flex-col items-center">
                 <CloudUpload className="w-10 h-10 text-gray-300 mb-2"/>
-                <p className="text-sm text-gray-500">拖放文件到这里，或点击选择文件</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">拖放文件到这里，或点击选择文件</p>
                 <p className="text-xs text-gray-400 mt-1">支持任意类型文件</p>
               </div>
             )}
@@ -204,7 +203,7 @@ export default function IPFSTab({showToast}: {
                       </span>
                     ) : (
                       <span
-                        className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400 rounded-full">
+                        className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-medium bg-gray-100 text-gray-500 dark:text-gray-400 dark:bg-gray-800 dark:text-gray-400 rounded-full">
                         未固定
                       </span>
                     )}

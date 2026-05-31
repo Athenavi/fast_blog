@@ -1,13 +1,13 @@
-'use client';
+﻿'use client';
 
 import React, {useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {EmptyState, Modal, Pagination} from '@/components/admin/shared-ui';
-import {apiClient} from '@/lib/api/api-client';
-import {BarChart3, Check, CheckCircle, Clock, Eye, FileText, X, XCircle} from 'lucide-react';
+import {apiClient} from '@/lib/api/base-client';
+import {Check, CheckCircle, Eye, X} from 'lucide-react';
 import {ApprovalRecord, StatusBadge, PriorityBadge} from './shared';
 import {useToast} from '@/components/ui/toast-provider';
-
+import type {ApiResponse} from '@/lib/api/base-types';
 const PendingTab: React.FC = () => {
   const qc = useQueryClient();
   const toast = useToast();
@@ -29,7 +29,7 @@ const PendingTab: React.FC = () => {
 
   const approveMut = useMutation({
     mutationFn: (id: number) => apiClient.post(`/security/content-approval/${id}/approve`, {notes: actionNotes}),
-    onSuccess: (r: any) => {
+    onSuccess: (r: ApiResponse) => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['pending-approvals']});
         setShowDetail(null);
@@ -39,7 +39,7 @@ const PendingTab: React.FC = () => {
   });
   const rejectMut = useMutation({
     mutationFn: (id: number) => apiClient.post(`/security/content-approval/${id}/reject`, {notes: actionNotes}),
-    onSuccess: (r: any) => {
+    onSuccess: (r: ApiResponse) => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['pending-approvals']});
         setShowDetail(null);
@@ -49,7 +49,7 @@ const PendingTab: React.FC = () => {
   });
   const cancelMut = useMutation({
     mutationFn: (id: number) => apiClient.post(`/security/content-approval/${id}/cancel`),
-    onSuccess: (r: any) => {
+    onSuccess: (r: ApiResponse) => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['pending-approvals']});
         setShowDetail(null);
@@ -98,7 +98,7 @@ const PendingTab: React.FC = () => {
                   </div>
                   <h3
                     className="font-semibold text-gray-900 dark:text-gray-100 mb-1">{a.content_title || `内容#${a.content_id}`}</h3>
-                  <div className="flex items-center gap-4 text-xs text-gray-500">
+                  <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
                     <span>申请人: {a.requester_name || `用户#${a.requester_id}`}</span>
                     <span>步骤: {a.current_step}/{a.total_steps}</span>
                     <span>申请时间: {a.created_at?.slice(0, 16)}</span>
@@ -111,7 +111,7 @@ const PendingTab: React.FC = () => {
                     setActionNotes('');
                   }}
                           className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800" title="查看详情">
-                    <Eye className="w-4 h-4 text-gray-500"/>
+                    <Eye className="w-4 h-4 text-gray-500 dark:text-gray-400"/>
                   </button>
                   <button onClick={() => {
                     setShowDetail(a);
@@ -143,24 +143,24 @@ const PendingTab: React.FC = () => {
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4 text-sm">
               <div>
-                <span className="text-gray-500">内容类型：</span>
+                <span className="text-gray-500 dark:text-gray-400">内容类型：</span>
                 <span
                   className="font-medium">{contentTypeLabels[showDetail.content_type] || showDetail.content_type}</span>
               </div>
               <div>
-                <span className="text-gray-500">内容ID：</span>
+                <span className="text-gray-500 dark:text-gray-400">内容ID：</span>
                 <span className="font-mono">#{showDetail.content_id}</span>
               </div>
               <div>
-                <span className="text-gray-500">申请人：</span>
+                <span className="text-gray-500 dark:text-gray-400">申请人：</span>
                 <span>{showDetail.requester_name || `#${showDetail.requester_id}`}</span>
               </div>
               <div>
-                <span className="text-gray-500">审批进度：</span>
+                <span className="text-gray-500 dark:text-gray-400">审批进度：</span>
                 <span>{showDetail.current_step}/{showDetail.total_steps} 步</span>
               </div>
               <div className="col-span-2">
-                <span className="text-gray-500">申请理由：</span>
+                <span className="text-gray-500 dark:text-gray-400">申请理由：</span>
                 <span>{showDetail.reason || '无'}</span>
               </div>
             </div>

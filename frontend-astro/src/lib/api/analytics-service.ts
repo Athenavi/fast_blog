@@ -1,4 +1,4 @@
-import apiClient from './api-client';
+﻿import {apiClient} from './base-client';
 import type {ApiResponse} from './base-types';
 
 export interface OverviewStats {
@@ -72,12 +72,12 @@ export class AnalyticsService {
     }
 
     // 获取用户活动
-    static async getUserActivity(days: number = 30): Promise<ApiResponse<any>> {
+  static async getUserActivity(days: number = 30): Promise<ApiResponse<unknown>> {
         return apiClient.get(`/dashboard/analytics/user-activity?days=${days}`);
     }
 
     // 获取内容表现
-    static async getContentPerformance(days: number = 30): Promise<ApiResponse<any>> {
+  static async getContentPerformance(days: number = 30): Promise<ApiResponse<unknown>> {
         return apiClient.get(`/dashboard/analytics/content-performance?days=${days}`);
     }
 }

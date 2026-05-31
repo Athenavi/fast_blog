@@ -1,24 +1,26 @@
-'use client';
+﻿'use client';
 
 import React, {useState} from 'react';
-import {apiClient} from '@/lib/api/api-client';
+import {useForm, FormProvider} from 'react-hook-form';
+import {zodResolver} from '@hookform/resolvers/zod';
+import {apiClient} from '@/lib/api/base-client';
+import {registerSchema, type RegisterFormData} from '@/lib/schemas';
 import {
-    Check,
-    Eye,
-    EyeOff,
-    UserPlus,
-    Mail,
-    Lock,
-    User,
-    Globe,
-    ArrowLeft,
-    ArrowRight,
-    AlertCircle,
-    BookOpen,
-    Sparkles,
-    Loader,
-    Shield,
-    CheckCircle2
+  Check,
+  Eye,
+  EyeOff,
+  UserPlus,
+  Mail,
+  Lock,
+  User,
+  Globe,
+  ArrowLeft,
+  ArrowRight,
+  AlertCircle,
+  BookOpen,
+  Sparkles,
+  Loader,
+  CheckCircle2
 } from 'lucide-react';
 
 const passwordStrength = (pw: string): { level: number; label: string; color: string } => {
@@ -44,71 +46,90 @@ const benefits = [
 
 export default function RegisterPage() {
   const [step, setStep] = useState(0);
-  const [f, setF] = useState({username:'', email:'', password:'', confirm:'', locale:'zh_CN', terms:false});
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
   const [pv, setPv] = useState(false);
   const [uOk, setUOk] = useState<boolean|null>(null);
   const [eOk, setEOk] = useState<boolean|null>(null);
-    const [focusedField, setFocusedField] = useState<string | null>(null);
+  const [focusedField, setFocusedField] = useState<string | null>(null);
 
-  const u = (field: string, val: any) => setF(p => ({...p, [field]: val}));
+  const form = useForm<RegisterFormData>({
+    resolver: zodResolver(registerSchema) as any,
+    defaultValues: {
+      username: '',
+      email: '',
+      password: '',
+      confirmPassword: '',
+      locale: 'zh_CN',
+      terms: false as unknown as true
+    },
+    mode: 'onBlur',
+  });
+  const {register, handleSubmit, watch, setValue, trigger, getValues, formState: {errors}} = form;
+
+  const watchedPassword = watch('password');
+  const watchedConfirm = watch('confirmPassword');
+  const strength = passwordStrength(watchedPassword || '');
 
   const checkU = async () => {
-    if (f.username.length < 3) { setUOk(false); return; }
-    try { const r = await apiClient.get(`/auth/check-username?username=${f.username}`); setUOk(!(r as any).exists); }
+    const username = getValues('username');
+    if ((username || '').length < 3) {
+      setUOk(false);
+      return;
+    }
+    try {
+      const r = await apiClient.get(`/auth/check-username?username=${username}`);
+      setUOk(!(r as any).exists);
+    }
     catch { setUOk(false); }
   };
   const checkE = async () => {
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email)) { setEOk(false); return; }
-    try { const r = await apiClient.get(`/auth/check-email?email=${f.email}`); setEOk(!(r as any).exists); }
+    const email = getValues('email');
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email || '')) {
+      setEOk(false);
+      return;
+    }
+    try {
+      const r = await apiClient.get(`/auth/check-email?email=${email}`);
+      setEOk(!(r as any).exists);
+    }
     catch { setEOk(false); }
   };
 
-    const canProceedStep0 = f.username.length >= 3 && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email);
-    const canProceedStep1 = f.password.length >= 8 && f.password === f.confirm;
-    const strength = passwordStrength(f.password);
-
   const next = async () => {
-      if (step === 0) {
-          setErr('');
-          await checkU();
-          await checkE();
-          // Need to check after async
-          if (f.username.length < 3) {
-              setErr('用户名至少3个字符');
-              return;
-          }
-          if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(f.email)) {
-              setErr('请输入有效的邮箱地址');
-              return;
-          }
-          setStep(1);
-          return;
+    if (step === 0) {
+      setErr('');
+      const valid = await trigger(['username', 'email']);
+      if (!valid) return;
+      await checkU();
+      await checkE();
+      const uVal = getValues('username');
+      if ((uVal || '').length < 3) {
+        setErr('用户名至少3个字符');
+        return;
       }
-      if (step === 1) {
-          if (f.password.length < 8) {
-              setErr('密码至少8位');
-              return;
-          }
-          if (f.password !== f.confirm) {
-              setErr('两次密码不匹配');
-              return;
-          }
-          setErr('');
-          setStep(2);
+      setStep(1);
+      return;
+    }
+    if (step === 1) {
+      const valid = await trigger(['password', 'confirmPassword']);
+      if (!valid) {
+        setErr('请检查密码填写');
+        return;
       }
+      setErr('');
+      setStep(2);
+    }
   };
 
-  const submit = async (e: React.FormEvent) => {
-    e.preventDefault();
-      if (!f.terms) {
-          setErr('请同意服务条款和隐私政策');
-          return;
-      }
+  const onSubmit = async (data: RegisterFormData) => {
     setBusy(true); setErr('');
     try {
-      const r = await apiClient.postForm('/auth/register', {username: f.username, email: f.email, password: f.password});
+      const r = await apiClient.postForm('/auth/register', {
+        username: data.username,
+        email: data.email,
+        password: data.password
+      });
       if (r?.success) {
         const d = r.data as any;
         if (d?.access_token) {
@@ -261,6 +282,7 @@ export default function RegisterPage() {
                       className="bg-white dark:bg-gray-800 rounded-3xl p-6 sm:p-8 shadow-xl border border-gray-100 dark:border-gray-700">
                       {/* Step 0: Basic Info */}
                       {step === 0 && (
+                        <FormProvider {...form}>
                           <div className="space-y-5">
                               {/* Username */}
                               <div className="space-y-2">
@@ -273,27 +295,29 @@ export default function RegisterPage() {
                                       </div>
                                       <input
                                           type="text"
-                                          value={f.username}
-                                          onChange={e => {
-                                              u('username', e.target.value);
+                                          {...register('username')}
+                                          onChange={(e) => {
+                                            register('username').onChange(e);
                                               setUOk(null);
                                               setErr('');
                                           }}
                                           onFocus={() => setFocusedField('username')}
-                                          onBlur={() => {
+                                          onBlur={(e) => {
+                                            register('username').onBlur(e);
                                               setFocusedField(null);
                                               checkU();
                                           }}
                                           placeholder="选择一个独特的用户名"
                                           autoFocus
-                                          className="w-full pl-12 pr-12 py-4 bg-gray-50 dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-600 rounded-2xl text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all"
+                                          className={`w-full pl-12 pr-12 py-4 bg-gray-50 dark:bg-gray-900 border-2 rounded-2xl text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all ${errors.username ? 'border-red-400 focus:border-red-500' : 'border-gray-200 dark:border-gray-600 focus:border-indigo-500'}`}
                                       />
                                       <div className="absolute right-4 top-1/2 -translate-y-1/2">
                                           {uOk === true && <CheckCircle2 className="w-5 h-5 text-green-500"/>}
                                           {uOk === false && <AlertCircle className="w-5 h-5 text-red-500"/>}
                                       </div>
                                   </div>
-                                  {uOk !== null && (
+                                {errors.username && <p className="text-xs text-red-500">{errors.username.message}</p>}
+                                {uOk !== null && !errors.username && (
                                       <p className={`text-xs flex items-center gap-1 ${uOk ? 'text-green-600 dark:text-green-400' : 'text-red-500'}`}>
                                           {uOk ? '✓ 用户名可用' : '✗ 用户名不可用或已被占用'}
                                       </p>
@@ -312,26 +336,28 @@ export default function RegisterPage() {
                                       </div>
                                       <input
                                           type="email"
-                                          value={f.email}
-                                          onChange={e => {
-                                              u('email', e.target.value);
+                                          {...register('email')}
+                                          onChange={(e) => {
+                                            register('email').onChange(e);
                                               setEOk(null);
                                               setErr('');
                                           }}
                                           onFocus={() => setFocusedField('email')}
-                                          onBlur={() => {
+                                          onBlur={(e) => {
+                                            register('email').onBlur(e);
                                               setFocusedField(null);
                                               checkE();
                                           }}
                                           placeholder="your@email.com"
-                                          className="w-full pl-12 pr-12 py-4 bg-gray-50 dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-600 rounded-2xl text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all"
+                                          className={`w-full pl-12 pr-12 py-4 bg-gray-50 dark:bg-gray-900 border-2 rounded-2xl text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all ${errors.email ? 'border-red-400 focus:border-red-500' : 'border-gray-200 dark:border-gray-600 focus:border-indigo-500'}`}
                                       />
                                       <div className="absolute right-4 top-1/2 -translate-y-1/2">
                                           {eOk === true && <CheckCircle2 className="w-5 h-5 text-green-500"/>}
                                           {eOk === false && <AlertCircle className="w-5 h-5 text-red-500"/>}
                                       </div>
                                   </div>
-                                  {eOk !== null && (
+                                {errors.email && <p className="text-xs text-red-500">{errors.email.message}</p>}
+                                {eOk !== null && !errors.email && (
                                       <p className={`text-xs flex items-center gap-1 ${eOk ? 'text-green-600 dark:text-green-400' : 'text-red-500'}`}>
                                           {eOk ? '✓ 邮箱可用' : '✗ 邮箱格式不正确或已被注册'}
                                       </p>
@@ -341,229 +367,238 @@ export default function RegisterPage() {
                               <button
                                   type="button"
                                   onClick={next}
-                                  disabled={!canProceedStep0}
                                   className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold rounded-2xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-indigo-500/25 hover:shadow-xl active:scale-[0.98] flex items-center justify-center gap-2"
                               >
                                   下一步 <ArrowRight className="w-5 h-5"/>
                               </button>
                           </div>
+                        </FormProvider>
                       )}
 
                       {/* Step 1: Password */}
-                      {step === 1 && (
-                          <div className="space-y-5">
-                              {/* Password */}
-                              <div className="space-y-2">
-                                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300">密码</label>
-                                  <div
-                                      className={`relative transition-all duration-200 ${focusedField === 'password' ? 'scale-[1.01]' : ''}`}>
-                                      <div className="absolute left-4 top-1/2 -translate-y-1/2">
-                                          <Lock
-                                              className={`w-5 h-5 transition-colors ${focusedField === 'password' ? 'text-indigo-500' : 'text-gray-400'}`}/>
-                                      </div>
-                                      <input
-                                          type={pv ? 'text' : 'password'}
-                                          value={f.password}
-                                          onChange={e => {
-                                              u('password', e.target.value);
-                                              setErr('');
-                                          }}
-                                          onFocus={() => setFocusedField('password')}
-                                          onBlur={() => setFocusedField(null)}
-                                          placeholder="至少8位，包含字母和数字"
-                                          autoFocus
-                                          className="w-full pl-12 pr-12 py-4 bg-gray-50 dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-600 rounded-2xl text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all"
-                                      />
-                                      <button type="button" onClick={() => setPv(!pv)}
-                                              className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-                                          {pv ? <EyeOff className="w-5 h-5"/> : <Eye className="w-5 h-5"/>}
-                                      </button>
-                                  </div>
-                                  {/* Password Strength */}
-                                  {f.password && (
-                                      <div className="space-y-1.5">
-                                          <div className="flex gap-1">
-                                              {[1, 2, 3, 4, 5].map(i => (
-                                                  <div key={i}
-                                                       className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${i <= strength.level ? strength.color : 'bg-gray-200 dark:bg-gray-700'}`}/>
-                                              ))}
-                                          </div>
-                                          <p className="text-xs text-gray-500">密码强度: <span
-                                              className="font-medium">{strength.label}</span></p>
-                                      </div>
-                                  )}
+                    {step === 1 && (
+                      <FormProvider {...form}>
+                        <div className="space-y-5">
+                          {/* Password */}
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">密码</label>
+                            <div
+                              className={`relative transition-all duration-200 ${focusedField === 'password' ? 'scale-[1.01]' : ''}`}>
+                              <div className="absolute left-4 top-1/2 -translate-y-1/2">
+                                <Lock
+                                  className={`w-5 h-5 transition-colors ${focusedField === 'password' ? 'text-indigo-500' : 'text-gray-400'}`}/>
                               </div>
-
-                              {/* Confirm Password */}
-                              <div className="space-y-2">
-                                  <label
-                                      className="text-sm font-medium text-gray-700 dark:text-gray-300">确认密码</label>
-                                  <div
-                                      className={`relative transition-all duration-200 ${focusedField === 'confirm' ? 'scale-[1.01]' : ''}`}>
-                                      <div className="absolute left-4 top-1/2 -translate-y-1/2">
-                                          <Lock
-                                              className={`w-5 h-5 transition-colors ${focusedField === 'confirm' ? 'text-indigo-500' : 'text-gray-400'}`}/>
-                                      </div>
-                                      <input
-                                          type="password"
-                                          value={f.confirm}
-                                          onChange={e => {
-                                              u('confirm', e.target.value);
-                                              setErr('');
-                                          }}
-                                          onFocus={() => setFocusedField('confirm')}
-                                          onBlur={() => setFocusedField(null)}
-                                          placeholder="再次输入密码"
-                                          className="w-full pl-12 pr-12 py-4 bg-gray-50 dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-600 rounded-2xl text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all"
-                                      />
-                                      {f.confirm && (
-                                          <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                                              {f.password === f.confirm ?
-                                                  <CheckCircle2 className="w-5 h-5 text-green-500"/> :
-                                                  <AlertCircle className="w-5 h-5 text-red-500"/>}
-                                          </div>
-                                      )}
-                                  </div>
-                                  {f.confirm && f.password !== f.confirm && (
-                                      <p className="text-xs text-red-500">✗ 两次密码不匹配</p>
-                                  )}
+                              <input
+                                type={pv ? 'text' : 'password'}
+                                {...register('password')}
+                                onChange={(e) => {
+                                  register('password').onChange(e);
+                                  setErr('');
+                                }}
+                                onFocus={() => setFocusedField('password')}
+                                onBlur={(e) => {
+                                  register('password').onBlur(e);
+                                  setFocusedField(null);
+                                }}
+                                placeholder="至少8位，包含字母和数字"
+                                autoFocus
+                                className={`w-full pl-12 pr-12 py-4 bg-gray-50 dark:bg-gray-900 border-2 rounded-2xl text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all ${errors.password ? 'border-red-400 focus:border-red-500' : 'border-gray-200 dark:border-gray-600 focus:border-indigo-500'}`}
+                              />
+                              <button type="button" onClick={() => setPv(!pv)}
+                                      className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                                {pv ? <EyeOff className="w-5 h-5"/> : <Eye className="w-5 h-5"/>}
+                              </button>
+                            </div>
+                            {errors.password && <p className="text-xs text-red-500">{errors.password.message}</p>}
+                            {/* Password Strength */}
+                            {watchedPassword && (
+                              <div className="space-y-1.5">
+                                <div className="flex gap-1">
+                                  {[1, 2, 3, 4, 5].map(i => (
+                                    <div key={i}
+                                         className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${i <= strength.level ? strength.color : 'bg-gray-200 dark:bg-gray-700'}`}/>
+                                  ))}
+                                </div>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">密码强度: <span
+                                  className="font-medium">{strength.label}</span></p>
                               </div>
-
-                              {/* Password Requirements */}
-                              <div
-                                  className="p-4 bg-gray-50 dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-700">
-                                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">密码要求:</p>
-                                  <div className="grid grid-cols-2 gap-1.5">
-                                      {[
-                                          {met: f.password.length >= 8, text: '至少8个字符'},
-                                          {met: /[A-Z]/.test(f.password), text: '包含大写字母'},
-                                          {met: /[0-9]/.test(f.password), text: '包含数字'},
-                                          {met: /[^A-Za-z0-9]/.test(f.password), text: '包含特殊字符'},
-                                      ].map((req, i) => (
-                                          <div key={i}
-                                               className={`flex items-center gap-1.5 text-xs ${req.met ? 'text-green-600 dark:text-green-400' : 'text-gray-400'}`}>
-                                              {req.met ? <Check className="w-3.5 h-3.5"/> : <div
-                                                  className="w-3.5 h-3.5 rounded-full border border-gray-300 dark:border-gray-600"/>}
-                                              {req.text}
-                                          </div>
-                                      ))}
-                                  </div>
-                              </div>
-
-                              <div className="flex gap-3">
-                                  <button type="button" onClick={() => {
-                                      setStep(0);
-                                      setErr('');
-                                  }}
-                                          className="flex-1 py-4 border-2 border-gray-200 dark:border-gray-600 rounded-2xl text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors flex items-center justify-center gap-2 text-gray-700 dark:text-gray-300">
-                                      <ArrowLeft className="w-4 h-4"/> 上一步
-                                  </button>
-                                  <button
-                                      type="button"
-                                      onClick={next}
-                                      disabled={!canProceedStep1}
-                                      className="flex-1 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold rounded-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-indigo-500/25 active:scale-[0.98] flex items-center justify-center gap-2"
-                                  >
-                                      下一步 <ArrowRight className="w-4 h-4"/>
-                                  </button>
-                              </div>
+                            )}
                           </div>
-                      )}
+
+                          {/* Confirm Password */}
+                          <div className="space-y-2">
+                            <label
+                              className="text-sm font-medium text-gray-700 dark:text-gray-300">确认密码</label>
+                            <div
+                              className={`relative transition-all duration-200 ${focusedField === 'confirm' ? 'scale-[1.01]' : ''}`}>
+                              <div className="absolute left-4 top-1/2 -translate-y-1/2">
+                                <Lock
+                                  className={`w-5 h-5 transition-colors ${focusedField === 'confirm' ? 'text-indigo-500' : 'text-gray-400'}`}/>
+                              </div>
+                              <input
+                                type="password"
+                                {...register('confirmPassword')}
+                                onChange={(e) => {
+                                  register('confirmPassword').onChange(e);
+                                  setErr('');
+                                }}
+                                onFocus={() => setFocusedField('confirm')}
+                                onBlur={(e) => {
+                                  register('confirmPassword').onBlur(e);
+                                  setFocusedField(null);
+                                }}
+                                placeholder="再次输入密码"
+                                className={`w-full pl-12 pr-12 py-4 bg-gray-50 dark:bg-gray-900 border-2 rounded-2xl text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 transition-all ${errors.confirmPassword ? 'border-red-400 focus:border-red-500' : 'border-gray-200 dark:border-gray-600 focus:border-indigo-500'}`}
+                              />
+                              {watchedConfirm && (
+                                <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                                  {watchedPassword === watchedConfirm ?
+                                    <CheckCircle2 className="w-5 h-5 text-green-500"/> :
+                                    <AlertCircle className="w-5 h-5 text-red-500"/>}
+                                </div>
+                              )}
+                            </div>
+                            {errors.confirmPassword &&
+                              <p className="text-xs text-red-500">{errors.confirmPassword.message}</p>}
+                          </div>
+
+                          {/* Password Requirements */}
+                          <div
+                            className="p-4 bg-gray-50 dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-700">
+                            <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">密码要求:</p>
+                            <div className="grid grid-cols-2 gap-1.5">
+                              {[
+                                {met: (watchedPassword || '').length >= 8, text: '至少8个字符'},
+                                {met: /[A-Z]/.test(watchedPassword || ''), text: '包含大写字母'},
+                                {met: /[0-9]/.test(watchedPassword || ''), text: '包含数字'},
+                                {met: /[^A-Za-z0-9]/.test(watchedPassword || ''), text: '包含特殊字符'},
+                              ].map((req, i) => (
+                                <div key={i}
+                                     className={`flex items-center gap-1.5 text-xs ${req.met ? 'text-green-600 dark:text-green-400' : 'text-gray-400'}`}>
+                                  {req.met ? <Check className="w-3.5 h-3.5"/> : <div
+                                    className="w-3.5 h-3.5 rounded-full border border-gray-300 dark:border-gray-600"/>}
+                                  {req.text}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+
+                          <div className="flex gap-3">
+                            <button type="button" onClick={() => {
+                              setStep(0);
+                              setErr('');
+                            }}
+                                    className="flex-1 py-4 border-2 border-gray-200 dark:border-gray-600 rounded-2xl text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors flex items-center justify-center gap-2 text-gray-700 dark:text-gray-300">
+                              <ArrowLeft className="w-4 h-4"/> 上一步
+                            </button>
+                            <button
+                              type="button"
+                              onClick={next}
+                              className="flex-1 py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-white font-semibold rounded-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-indigo-500/25 active:scale-[0.98] flex items-center justify-center gap-2"
+                            >
+                              下一步 <ArrowRight className="w-4 h-4"/>
+                            </button>
+                          </div>
+                        </div>
+                      </FormProvider>
+                    )}
 
                       {/* Step 2: Confirm & Terms */}
-                      {step === 2 && (
-                          <form onSubmit={submit} className="space-y-5">
-                              {/* Summary */}
+                    {step === 2 && (
+                      <FormProvider {...form}>
+                        <form onSubmit={handleSubmit(onSubmit)} className="space-y-5">
+                          {/* Summary */}
+                          <div
+                            className="p-5 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-2xl border border-indigo-100 dark:border-indigo-800/30">
+                            <h3
+                              className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
+                              <CheckCircle2 className="w-4 h-4 text-green-500"/> 注册信息确认
+                            </h3>
+                            <div className="space-y-2">
+                              <div className="flex items-center gap-3 text-sm">
+                                <User className="w-4 h-4 text-gray-400"/>
+                                <span className="text-gray-500 dark:text-gray-400">用户名:</span>
+                                <span
+                                  className="font-medium text-gray-900 dark:text-white">{watch('username')}</span>
+                              </div>
+                              <div className="flex items-center gap-3 text-sm">
+                                <Mail className="w-4 h-4 text-gray-400"/>
+                                <span className="text-gray-500 dark:text-gray-400">邮箱:</span>
+                                <span className="font-medium text-gray-900 dark:text-white">{watch('email')}</span>
+                              </div>
+                              <div className="flex items-center gap-3 text-sm">
+                                <Lock className="w-4 h-4 text-gray-400"/>
+                                <span className="text-gray-500 dark:text-gray-400">密码:</span>
+                                <span
+                                  className="font-medium text-gray-900 dark:text-white">{'•'.repeat((watchedPassword || '').length)}</span>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Language */}
+                          <div className="space-y-2">
+                            <label
+                              className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
+                              <Globe className="w-4 h-4"/> 界面语言
+                            </label>
+                            <select
+                              {...register('locale')}
+                              className="w-full px-4 py-3.5 bg-gray-50 dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-600 rounded-2xl text-sm text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all"
+                            >
+                              <option value="zh_CN">🇨🇳 简体中文</option>
+                              <option value="en_US">🇺🇸 English</option>
+                            </select>
+                          </div>
+
+                          {/* Terms */}
+                          <label
+                            className="flex items-start gap-3 cursor-pointer group p-4 rounded-2xl bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-700 hover:border-indigo-200 dark:hover:border-indigo-800 transition-colors">
+                            <div className="relative mt-0.5">
+                              <input type="checkbox" {...register('terms')} className="peer sr-only"/>
                               <div
-                                  className="p-5 bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 rounded-2xl border border-indigo-100 dark:border-indigo-800/30">
-                                  <h3 className="text-sm font-semibold text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
-                                      <CheckCircle2 className="w-4 h-4 text-green-500"/> 注册信息确认
-                                  </h3>
-                                  <div className="space-y-2">
-                                      <div className="flex items-center gap-3 text-sm">
-                                          <User className="w-4 h-4 text-gray-400"/>
-                                          <span className="text-gray-500 dark:text-gray-400">用户名:</span>
-                                          <span
-                                              className="font-medium text-gray-900 dark:text-white">{f.username}</span>
-                                      </div>
-                                      <div className="flex items-center gap-3 text-sm">
-                                          <Mail className="w-4 h-4 text-gray-400"/>
-                                          <span className="text-gray-500 dark:text-gray-400">邮箱:</span>
-                                          <span className="font-medium text-gray-900 dark:text-white">{f.email}</span>
-                                      </div>
-                                      <div className="flex items-center gap-3 text-sm">
-                                          <Lock className="w-4 h-4 text-gray-400"/>
-                                          <span className="text-gray-500 dark:text-gray-400">密码:</span>
-                                          <span
-                                              className="font-medium text-gray-900 dark:text-white">{'•'.repeat(f.password.length)}</span>
-                                      </div>
-                                  </div>
+                                className="w-5 h-5 border-2 border-gray-300 dark:border-gray-600 rounded-lg peer-checked:border-indigo-500 peer-checked:bg-indigo-500 transition-all flex items-center justify-center">
+                                {watch('terms') &&
+                                  <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24"
+                                       stroke="currentColor" strokeWidth={3}>
+                                    <path strokeLinecap="round" strokeLinejoin="round"
+                                          d="M5 13l4 4L19 7"/>
+                                  </svg>}
                               </div>
+                            </div>
+                            <span className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                     我已阅读并同意{' '}
+                              <a href="/terms"
+                                 className="text-indigo-600 hover:underline dark:text-indigo-400 font-medium">服务条款</a>
+                              {' '}和{' '}
+                              <a href="/privacy"
+                                 className="text-indigo-600 hover:underline dark:text-indigo-400 font-medium">隐私政策</a>
+                   </span>
+                          </label>
+                          {errors.terms && <p className="text-xs text-red-500">{errors.terms.message}</p>}
 
-                              {/* Language */}
-                              <div className="space-y-2">
-                                  <label
-                                      className="text-sm font-medium text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                                      <Globe className="w-4 h-4"/> 界面语言
-                                  </label>
-                                  <select
-                                      value={f.locale}
-                                      onChange={e => u('locale', e.target.value)}
-                                      className="w-full px-4 py-3.5 bg-gray-50 dark:bg-gray-900 border-2 border-gray-200 dark:border-gray-600 rounded-2xl text-sm text-gray-900 dark:text-white focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all"
-                                  >
-                                      <option value="zh_CN">🇨🇳 简体中文</option>
-                                      <option value="en_US">🇺🇸 English</option>
-                                  </select>
-                              </div>
-
-                              {/* Terms */}
-                              <label
-                                  className="flex items-start gap-3 cursor-pointer group p-4 rounded-2xl bg-gray-50 dark:bg-gray-900 border border-gray-100 dark:border-gray-700 hover:border-indigo-200 dark:hover:border-indigo-800 transition-colors">
-                                  <div className="relative mt-0.5">
-                                      <input type="checkbox" checked={f.terms}
-                                             onChange={e => u('terms', e.target.checked)} className="peer sr-only"/>
-                                      <div
-                                          className="w-5 h-5 border-2 border-gray-300 dark:border-gray-600 rounded-lg peer-checked:border-indigo-500 peer-checked:bg-indigo-500 transition-all flex items-center justify-center">
-                                          {f.terms &&
-                                              <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24"
-                                                   stroke="currentColor" strokeWidth={3}>
-                                                  <path strokeLinecap="round" strokeLinejoin="round"
-                                                        d="M5 13l4 4L19 7"/>
-                                              </svg>}
-                                      </div>
-                                  </div>
-                                  <span className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
-                    我已阅读并同意{' '}
-                                      <a href="/terms"
-                                         className="text-indigo-600 hover:underline dark:text-indigo-400 font-medium">服务条款</a>
-                                      {' '}和{' '}
-                                      <a href="/privacy"
-                                         className="text-indigo-600 hover:underline dark:text-indigo-400 font-medium">隐私政策</a>
-                  </span>
-                              </label>
-
-                              <div className="flex gap-3">
-                                  <button type="button" onClick={() => {
-                                      setStep(1);
-                                      setErr('');
-                                  }}
-                                          className="flex-1 py-4 border-2 border-gray-200 dark:border-gray-600 rounded-2xl text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors flex items-center justify-center gap-2 text-gray-700 dark:text-gray-300">
-                                      <ArrowLeft className="w-4 h-4"/> 上一步
-                                  </button>
-                                  <button
-                                      type="submit"
-                                      disabled={busy || !f.terms}
-                                      className="flex-1 py-4 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold rounded-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-green-500/25 hover:shadow-xl active:scale-[0.98] flex items-center justify-center gap-2"
-                                  >
-                                      {busy ? (
-                                          <><Loader className="w-5 h-5 animate-spin"/> 创建中...</>
-                                      ) : (
-                                          <><Sparkles className="w-5 h-5"/> 创建账户</>
-                                      )}
-                                  </button>
-                              </div>
-                          </form>
-                      )}
+                          <div className="flex gap-3">
+                            <button type="button" onClick={() => {
+                              setStep(1);
+                              setErr('');
+                            }}
+                                    className="flex-1 py-4 border-2 border-gray-200 dark:border-gray-600 rounded-2xl text-sm font-semibold hover:bg-gray-50 dark:hover:bg-gray-750 transition-colors flex items-center justify-center gap-2 text-gray-700 dark:text-gray-300">
+                              <ArrowLeft className="w-4 h-4"/> 上一步
+                            </button>
+                            <button
+                              type="submit"
+                              disabled={busy || !watch('terms')}
+                              className="flex-1 py-4 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold rounded-2xl transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-green-500/25 hover:shadow-xl active:scale-[0.98] flex items-center justify-center gap-2"
+                            >
+                              {busy ? (
+                                <><Loader className="w-5 h-5 animate-spin"/> 创建中...</>
+                              ) : (
+                                <><Sparkles className="w-5 h-5"/> 创建账户</>
+                              )}
+                            </button>
+                          </div>
+                        </form>
+                      </FormProvider>
+                    )}
                   </div>
 
                   {/* Login Link */}
@@ -577,7 +612,7 @@ export default function RegisterPage() {
 
                   {/* Footer */}
                   <div className="mt-6 text-center">
-                      <p className="text-xs text-gray-400 dark:text-gray-500">
+                    <p className="text-xs text-gray-400 dark:text-gray-500 dark:text-gray-400">
                           注册即表示同意我们的服务条款和隐私政策
                       </p>
                   </div>

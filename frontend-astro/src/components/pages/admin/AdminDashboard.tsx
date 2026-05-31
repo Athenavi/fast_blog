@@ -1,6 +1,6 @@
 'use client';
 
-import React, {useState} from 'react';
+import React from 'react';
 import {useQuery} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
@@ -8,9 +8,17 @@ import {AdminShell} from '@/components/admin/AdminShell';
 import {apiClient} from '@/lib/api/base-client';
 import {motion} from 'framer-motion';
 import {
-    ArrowUpRight, ArrowDownRight, BookOpen, Calendar,
-    Eye, FileText, MessageSquare, TrendingUp,
-    Users, Activity, Clock, BarChart3
+  ArrowUpRight,
+  ArrowDownRight,
+  Calendar,
+  Eye,
+  FileText,
+  MessageSquare,
+  TrendingUp,
+  Users,
+  Activity,
+  Clock,
+  BarChart3
 } from 'lucide-react';
 
 // ═══ Enhanced Stat Card ═══
@@ -70,7 +78,7 @@ const StatCard: React.FC<{
                 )}
             </div>
             <p className="text-3xl font-extrabold text-gray-900 dark:text-white tabular-nums">{value ?? '—'}{suffix}</p>
-            <p className="text-sm text-gray-500 mt-1">{label}</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{label}</p>
         </motion.div>
     );
 };
@@ -132,7 +140,7 @@ function DashboardInner() {
     const {data: activities} = useQuery({
     queryKey: ['admin-activity'],
     queryFn: async () => {
-        const res = await apiClient.get<any[]>('/dashboard/activities', {page: 1, per_page: 8});
+      const res = await apiClient.get<unknown[]>('/dashboard/activities', {page: 1, per_page: 8});
       return res.success && res.data ? (Array.isArray(res.data) ? res.data : []) : [];
     },
   });
@@ -251,7 +259,7 @@ function DashboardInner() {
                                 href={action.href}
                                 className="flex flex-col items-center gap-2 p-4 rounded-xl border border-gray-100 dark:border-gray-800 hover:border-blue-200 dark:hover:border-blue-800 hover:bg-blue-50/50 dark:hover:bg-blue-900/10 transition-all"
                             >
-                                <Icon className="w-5 h-5 text-gray-500"/>
+                              <Icon className="w-5 h-5 text-gray-500 dark:text-gray-400"/>
                                 <span
                                     className="text-xs font-medium text-gray-600 dark:text-gray-400">{action.label}</span>
                             </a>

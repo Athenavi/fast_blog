@@ -1,9 +1,9 @@
-'use client';
+﻿'use client';
 
 import React, {useState} from 'react';
-import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
-import {EmptyState, Modal, Pagination} from '@/components/admin/shared-ui';
-import {apiClient} from '@/lib/api/api-client';
+import {useQuery} from '@tanstack/react-query';
+import {EmptyState, Pagination} from '@/components/admin/shared-ui';
+import {apiClient} from '@/lib/api/base-client';
 import {Search, DollarSign} from 'lucide-react';
 import {RevenueRecord, MoneyDisplay, StatusBadge} from './shared';
 
@@ -61,13 +61,13 @@ const RecordsTab: React.FC = () => {
           <table className="w-full text-sm">
             <thead>
             <tr className="bg-gray-50 dark:bg-gray-800/50">
-              <th className="text-left px-4 py-3 font-medium text-gray-500">用户</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-500">类型</th>
-              <th className="text-right px-4 py-3 font-medium text-gray-500">总额</th>
-              <th className="text-right px-4 py-3 font-medium text-gray-500">平台费用</th>
-              <th className="text-right px-4 py-3 font-medium text-gray-500">用户收益</th>
-              <th className="text-center px-4 py-3 font-medium text-gray-500">状态</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-500">时间</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">用户</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">类型</th>
+              <th className="text-right px-4 py-3 font-medium text-gray-500 dark:text-gray-400">总额</th>
+              <th className="text-right px-4 py-3 font-medium text-gray-500 dark:text-gray-400">平台费用</th>
+              <th className="text-right px-4 py-3 font-medium text-gray-500 dark:text-gray-400">用户收益</th>
+              <th className="text-center px-4 py-3 font-medium text-gray-500 dark:text-gray-400">状态</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">时间</th>
             </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -81,10 +81,10 @@ const RecordsTab: React.FC = () => {
                     </span>
                 </td>
                 <td className="px-4 py-3 text-right"><MoneyDisplay amount={r.amount}/></td>
-                <td className="px-4 py-3 text-right text-gray-500">¥{r.platform_fee.toFixed(2)}</td>
+                <td className="px-4 py-3 text-right text-gray-500 dark:text-gray-400">¥{r.platform_fee.toFixed(2)}</td>
                 <td className="px-4 py-3 text-right text-green-600 font-medium">¥{r.user_earnings.toFixed(2)}</td>
                 <td className="px-4 py-3 text-center"><StatusBadge status={r.status}/></td>
-                <td className="px-4 py-3 text-xs text-gray-500">{r.created_at?.slice(0, 16)}</td>
+                <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">{r.created_at?.slice(0, 16)}</td>
               </tr>
             ))}
             </tbody>

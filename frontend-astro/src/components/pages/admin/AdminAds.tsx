@@ -1,11 +1,11 @@
-'use client';
+﻿'use client';
 
 import React, {useMemo, useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
-import {apiClient} from '@/lib/api/api-client';
+import {apiClient} from '@/lib/api/base-client';
 import {useConfirm} from '@/components/ui/confirm-provider';
 import {
   AlertTriangle,
@@ -59,18 +59,31 @@ const fmtNum = (n: number | undefined | null) => {
 };
 
 const statusBadge = (status: string) => {
-  const map: Record<string, string> = {active: 'bg-green-100 text-green-700', paused: 'bg-yellow-100 text-yellow-700', expired: 'bg-gray-100 text-gray-500'};
+  const map: Record<string, string> = {
+    active: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
+    paused: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400',
+    expired: 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
+  };
   const labels: Record<string, string> = {active: '投放中', paused: '已暂停', expired: '已过期'};
-  return <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${map[status] || 'bg-gray-100 text-gray-500'}`}>{labels[status] || status}</span>;
+  return <span
+    className={`px-2 py-0.5 text-xs rounded-full font-medium ${map[status] || 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'}`}>{labels[status] || status}</span>;
 };
 
 const typeLabel: Record<string, string> = {image: '图片', html: 'HTML', adsense: 'AdSense', baidu: '百度联盟'};
 const slotLabels: Record<string, string> = {header_top: '顶部横幅', sidebar_right: '右侧边栏', article_inline: '文中广告', footer_bottom: '底部广告', homepage_banner: '首页轮播'};
 
 // ─── Stat Card ────────────────────────────────────────
-const StatCard: React.FC<{icon: any; label: string; value: any; sub?: string; color?: string}> = ({icon: Icon, label, value, sub, color}) => (
+const StatCard: React.FC<{
+  icon: React.ComponentType<{ className?: string }>;
+  label: string;
+  value: any;
+  sub?: string;
+  color?: string
+}> = ({icon: Icon, label, value, sub, color}) => (
   <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-5">
-    <div className="flex items-center justify-between mb-2"><span className="text-sm text-gray-500">{label}</span><Icon className={`w-5 h-5 ${color || 'text-gray-400'}`}/></div>
+    <div className="flex items-center justify-between mb-2"><span
+      className="text-sm text-gray-500 dark:text-gray-400">{label}</span><Icon
+      className={`w-5 h-5 ${color || 'text-gray-400'}`}/></div>
     <p className="text-2xl font-bold text-gray-900 dark:text-white">{fmtNum(value)}</p>
     {sub && <p className="text-xs text-gray-400 mt-1">{sub}</p>}
   </div>
@@ -309,9 +322,9 @@ function AdsInner() {
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 mb-6">
         {slotList.map(s => (
           <div key={s.slot_id} className="bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
-            <p className="text-xs font-medium text-gray-500 uppercase tracking-wider">{s.name}</p>
+            <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">{s.name}</p>
             <p className="text-xs text-gray-400 mt-0.5">{s.width}×{s.height}</p>
-            <div className="flex items-center gap-2 mt-3 text-xs text-gray-500">
+            <div className="flex items-center gap-2 mt-3 text-xs text-gray-500 dark:text-gray-400">
               <span className="px-1.5 py-0.5 rounded bg-green-50 dark:bg-green-900/20 text-green-600 font-medium">{s.stats?.active_ads || 0} 个</span>
               <span>{fmtNum(s.stats?.total_impressions)} 展示</span>
             </div>
@@ -333,13 +346,27 @@ function AdsInner() {
             <table className="w-full">
               <thead className="bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
                 <tr>
-                  <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase text-left">标题</th>
-                  <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase text-left hidden md:table-cell">广告位</th>
-                  <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase text-left hidden lg:table-cell">类型</th>
-                  <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase text-left">状态</th>
-                  <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase text-left hidden sm:table-cell">展示/点击</th>
-                  <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase text-left hidden lg:table-cell">优先级</th>
-                  <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase text-right">操作</th>
+                  <th
+                    className="px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase text-left">标题
+                  </th>
+                  <th
+                    className="px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase text-left hidden md:table-cell">广告位
+                  </th>
+                  <th
+                    className="px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase text-left hidden lg:table-cell">类型
+                  </th>
+                  <th
+                    className="px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase text-left">状态
+                  </th>
+                  <th
+                    className="px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase text-left hidden sm:table-cell">展示/点击
+                  </th>
+                  <th
+                    className="px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase text-left hidden lg:table-cell">优先级
+                  </th>
+                  <th
+                    className="px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase text-right">操作
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -349,10 +376,12 @@ function AdsInner() {
                       <p className="text-sm font-medium text-gray-900 dark:text-white truncate max-w-[200px]">{a.title}</p>
                       <p className="text-[10px] text-gray-400 mt-0.5">{(a.start_date || '').slice(0, 10)} ~ {(a.end_date || '').slice(0, 10)}</p>
                     </td>
-                    <td className="px-5 py-4 text-sm text-gray-500 hidden md:table-cell">{slotLabels[a.slot_id] || a.slot_id}</td>
-                    <td className="px-5 py-4 text-xs text-gray-500 hidden lg:table-cell">{typeLabel[a.ad_type] || a.ad_type}</td>
+                    <td
+                      className="px-5 py-4 text-sm text-gray-500 dark:text-gray-400 hidden md:table-cell">{slotLabels[a.slot_id] || a.slot_id}</td>
+                    <td
+                      className="px-5 py-4 text-xs text-gray-500 dark:text-gray-400 hidden lg:table-cell">{typeLabel[a.ad_type] || a.ad_type}</td>
                     <td className="px-5 py-4">{statusBadge(a.status)}</td>
-                    <td className="px-5 py-4 text-sm text-gray-500 hidden sm:table-cell">
+                    <td className="px-5 py-4 text-sm text-gray-500 dark:text-gray-400 hidden sm:table-cell">
                       <span className="flex items-center gap-3">
                         <span className="flex items-center gap-1"><Eye className="w-3 h-3"/>{fmtNum(0)}</span>
                         <span className="flex items-center gap-1"><MousePointerClick className="w-3 h-3"/>{fmtNum(0)}</span>

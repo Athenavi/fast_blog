@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import {useState} from 'react';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
@@ -31,16 +31,29 @@ interface PublishRecord {
 }
 
 const PLATFORMS = [
-    {id: 'zhihu', name: '知乎', icon: '📝', color: 'bg-blue-100 text-blue-700'},
-    {id: 'juejin', name: '掘金', icon: '⛏️', color: 'bg-green-100 text-green-700'},
+  {id: 'zhihu', name: '知乎', icon: '📝', color: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400'},
+  {
+    id: 'juejin',
+    name: '掘金',
+    icon: '⛏️',
+    color: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+  },
     {id: 'medium', name: 'Medium', icon: '📰', color: 'bg-gray-100 text-gray-700'},
     {id: 'twitter', name: 'Twitter', icon: '🐦', color: 'bg-sky-100 text-sky-700'}
 ];
 
 const STATUS_CONFIG = {
-    pending: {color: 'bg-yellow-100 text-yellow-700', icon: Clock, label: '待发布'},
-    success: {color: 'bg-green-100 text-green-700', icon: CheckCircle, label: '成功'},
-    failed: {color: 'bg-red-100 text-red-700', icon: XCircle, label: '失败'}
+  pending: {
+    color: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400',
+    icon: Clock,
+    label: '待发布'
+  },
+  success: {
+    color: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
+    icon: CheckCircle,
+    label: '成功'
+  },
+  failed: {color: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400', icon: XCircle, label: '失败'}
 };
 
 function ThirdPartyPublishInner() {
@@ -130,7 +143,7 @@ function ThirdPartyPublishInner() {
                             </p>
                             <button
                                 onClick={() => setShowPublishDialog(true)}
-                                className="px-6 py-2 bg-white text-blue-600 rounded-lg font-semibold hover:bg-blue-50 transition flex items-center gap-2"
+                                className="px-6 py-2 bg-white dark:bg-gray-800 text-blue-600 dark:text-blue-400 rounded-lg font-semibold hover:bg-blue-50 transition flex items-center gap-2"
                             >
                                 <Send className="w-4 h-4"/>
                                 开始发布
@@ -150,23 +163,23 @@ function ThirdPartyPublishInner() {
                 {/* 发布统计 */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div className="bg-white dark:bg-gray-900 rounded-xl border p-4">
-                        <div className="text-sm text-gray-500 mb-1">总发布次数</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">总发布次数</div>
                         <div className="text-2xl font-bold">{publishRecords?.length || 0}</div>
                     </div>
                     <div className="bg-white dark:bg-gray-900 rounded-xl border p-4">
-                        <div className="text-sm text-gray-500 mb-1">成功发布</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">成功发布</div>
                         <div className="text-2xl font-bold text-green-600">
                             {publishRecords?.filter((r: PublishRecord) => r.status === 'success').length || 0}
                         </div>
                     </div>
                     <div className="bg-white dark:bg-gray-900 rounded-xl border p-4">
-                        <div className="text-sm text-gray-500 mb-1">待发布</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">待发布</div>
                         <div className="text-2xl font-bold text-yellow-600">
                             {publishRecords?.filter((r: PublishRecord) => r.status === 'pending').length || 0}
                         </div>
                     </div>
                     <div className="bg-white dark:bg-gray-900 rounded-xl border p-4">
-                        <div className="text-sm text-gray-500 mb-1">发布失败</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">发布失败</div>
                         <div className="text-2xl font-bold text-red-600">
                             {publishRecords?.filter((r: PublishRecord) => r.status === 'failed').length || 0}
                         </div>
@@ -203,11 +216,21 @@ function ThirdPartyPublishInner() {
                             <table className="w-full">
                                 <thead className="bg-gray-50 dark:bg-gray-800">
                                 <tr>
-                                    <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase">文章</th>
-                                    <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase">平台</th>
-                                    <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase">状态</th>
-                                    <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase hidden lg:table-cell">外部链接</th>
-                                    <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase hidden md:table-cell">发布时间</th>
+                                  <th
+                                    className="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">文章
+                                  </th>
+                                  <th
+                                    className="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">平台
+                                  </th>
+                                  <th
+                                    className="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">状态
+                                  </th>
+                                  <th
+                                    className="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase hidden lg:table-cell">外部链接
+                                  </th>
+                                  <th
+                                    className="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase hidden md:table-cell">发布时间
+                                  </th>
                                 </tr>
                                 </thead>
                                 <tbody className="divide-y">
@@ -244,7 +267,8 @@ function ThirdPartyPublishInner() {
                                                     <span className="text-gray-400 text-sm">-</span>
                                                 )}
                                             </td>
-                                            <td className="px-5 py-4 text-sm text-gray-500 hidden md:table-cell">
+                                          <td
+                                            className="px-5 py-4 text-sm text-gray-500 dark:text-gray-400 hidden md:table-cell">
                                                 {formatTime(record.published_at)}
                                             </td>
                                         </tr>

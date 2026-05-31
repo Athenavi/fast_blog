@@ -1,14 +1,14 @@
-'use client';
+﻿'use client';
 
 import React, {useState} from 'react';
-import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
-import {apiClient} from '@/lib/api/api-client';
-import {BarChart3, Check, CheckCircle, Clock, Eye, FileText, X, XCircle} from 'lucide-react';
+import {useQuery} from '@tanstack/react-query';
+import {apiClient} from '@/lib/api/base-client';
+import {CheckCircle, Clock, FileText, XCircle} from 'lucide-react';
 import {ApprovalStep, ApprovalStats, StatCard} from './shared';
 
 const HistoryTab: React.FC = () => {
-  const [page, setPage] = useState(1);
-  const [selectedRecord, setSelectedRecord] = useState<number | null>(null);
+  const [page, _setPage] = useState(1);
+  const [selectedRecord, _setSelectedRecord] = useState<number | null>(null);
 
   const {data, isLoading} = useQuery({
     queryKey: ['approval-history', page],
@@ -17,13 +17,13 @@ const HistoryTab: React.FC = () => {
 
   const stats: ApprovalStats = data?.data || {};
 
-  const {data: historyData, isLoading: historyLoading} = useQuery({
+  const {data: historyData} = useQuery({
     queryKey: ['approval-record-history', selectedRecord],
     queryFn: () => selectedRecord ? apiClient.get(`/security/content-approval/${selectedRecord}/history`) : null,
     enabled: !!selectedRecord,
   });
 
-  const historySteps: ApprovalStep[] = historyData?.data?.steps || [];
+  const _historySteps: ApprovalStep[] = historyData?.data?.steps || [];
 
   return (
     <div className="space-y-6">
@@ -46,7 +46,7 @@ const HistoryTab: React.FC = () => {
         <div className="space-y-3">
           {(stats.by_content_type || []).map(ct => (
             <div key={ct.type} className="flex items-center gap-3">
-              <span className="text-xs text-gray-500 w-16">{ct.type}</span>
+              <span className="text-xs text-gray-500 dark:text-gray-400 w-16">{ct.type}</span>
               <div className="flex-1 bg-gray-100 dark:bg-gray-800 rounded-full h-4 overflow-hidden">
                 <div className="h-full bg-blue-500 rounded-full"
                      style={{width: `${Math.min((ct.count / (stats.total_requests || 1)) * 100, 100)}%`}}/>

@@ -1,7 +1,7 @@
-'use client';
+﻿'use client';
 
-import React, {useCallback, useEffect, useRef, useState} from 'react';
-import {apiClient} from '@/lib/api/api-client';
+import {useCallback, useEffect, useRef, useState} from 'react';
+import {apiClient} from '@/lib/api/base-client';
 import {Bell, Check, ChevronLeft, Hash, MessageCircle, Plus, Send, Trash2, UserPlus, Users, X,} from 'lucide-react';
 import {useConfirm} from '@/components/ui/confirm-provider';
 
@@ -79,7 +79,7 @@ function ChatTab({onUnread}: {onUnread?: (n: number) => void}) {
                     <span className="font-medium text-xs text-gray-900 dark:text-white">{c.username}</span>
                     {c.updated_at && <span className="text-[10px] text-gray-400">{new Date(c.updated_at).toLocaleDateString('zh-CN')}</span>}
                   </div>
-                  <p className="text-[11px] text-gray-500 truncate mt-0.5">{c.last_message||''}</p>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate mt-0.5">{c.last_message || ''}</p>
                 </div>
                 {c.unread > 0 && <span className="px-1.5 py-0.5 bg-blue-600 text-white text-[10px] rounded-full min-w-[16px] text-center leading-none">{c.unread}</span>}
               </div>
@@ -196,8 +196,8 @@ function GroupsTab() {
     setShowManage(true); setInviteLink(''); setAddUserId('');
     if (!activeGroup) return;
     const [invR, memR] = await Promise.all([
-      apiClient.get<any>(`/chats/groups/${activeGroup}/invites`),
-      apiClient.get<any>(`/chats/groups/${activeGroup}/members`),
+      apiClient.get(`/chats/groups/${activeGroup}/invites`),
+      apiClient.get(`/chats/groups/${activeGroup}/members`),
     ]);
     if (invR.success) setInvites(Array.isArray(invR.data) ? invR.data : invR.data.invites || []);
     if (memR.success) setMembers(Array.isArray(memR.data) ? memR.data : memR.data.members || []);
@@ -210,7 +210,7 @@ function GroupsTab() {
     if (r.success) {
       setInviteLink(r.data.full_url || r.data.invite_url || r.data.invite_code || '');
       // Refresh invites
-      const invR = await apiClient.get<any>(`/chats/groups/${activeGroup}/invites`);
+      const invR = await apiClient.get(`/chats/groups/${activeGroup}/invites`);
       if (invR.success) setInvites(Array.isArray(invR.data) ? invR.data : invR.data.invites || []);
     }
   };
@@ -230,7 +230,7 @@ function GroupsTab() {
     const r = await apiClient.post(`/chats/groups/${activeGroup}/members`, {member_ids: ids});
     if (r.success) {
       setAddUserId('');
-      const memR = await apiClient.get<any>(`/chats/groups/${activeGroup}/members`);
+      const memR = await apiClient.get(`/chats/groups/${activeGroup}/members`);
       if (memR.success) setMembers(Array.isArray(memR.data) ? memR.data : memR.data.members || []);
     }
   };
@@ -258,7 +258,7 @@ function GroupsTab() {
                     <span className="font-medium text-xs text-gray-900 dark:text-white truncate">{g.name}</span>
                     <span className="text-[10px] text-gray-400">{g.member_count}人</span>
                   </div>
-                  <p className="text-[11px] text-gray-500 truncate mt-0.5">{g.description||''}</p>
+                  <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate mt-0.5">{g.description || ''}</p>
                 </div>
                 {g.unread_count > 0 && <span className="px-1.5 py-0.5 bg-blue-600 text-white text-[10px] rounded-full">{g.unread_count}</span>}
               </div>
@@ -319,12 +319,12 @@ function GroupsTab() {
             </div>
             <div className="p-5 space-y-4">
               <div>
-                <label className="block text-xs text-gray-500 mb-1">群名称</label>
+                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">群名称</label>
                 <input value={createName} onChange={e=>setCreateName(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm dark:bg-gray-800 dark:text-white"/>
               </div>
               <div>
-                <label className="block text-xs text-gray-500 mb-1">描述（可选）</label>
+                <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">描述（可选）</label>
                 <input value={createDesc} onChange={e=>setCreateDesc(e.target.value)}
                   className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm dark:bg-gray-800 dark:text-white"/>
               </div>
@@ -367,7 +367,7 @@ function GroupsTab() {
                 <h4 className="text-xs font-semibold text-gray-700 dark:text-gray-300 mb-3">已有邀请</h4>
                 {invites.length > 0 ? (
                   <div className="space-y-2">
-                    {invites.map((inv: any) => (
+                    {invites.map((inv) => (
                       <div key={inv.id || inv.invite_id} className="flex items-center justify-between p-2.5 bg-gray-50 dark:bg-gray-800 rounded-xl">
                         <div className="min-w-0 flex-1">
                           <p className="text-xs font-mono text-gray-600 dark:text-gray-400 truncate">{inv.invite_code || inv.code || inv.id}</p>
@@ -411,7 +411,7 @@ function GroupsTab() {
                       </div>
                       {m.role && (
                         <span className={`text-[10px] px-1.5 py-0.5 rounded font-medium shrink-0 ml-2
-                          ${m.role === 'owner' ? 'bg-yellow-100 text-yellow-700' : m.role === 'admin' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500'}`}>
+                          ${m.role === 'owner' ? 'bg-yellow-100 text-yellow-700' : m.role === 'admin' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-500 dark:text-gray-400'}`}>
                           {m.role === 'owner' ? '群主' : m.role === 'admin' ? '管理' : '成员'}
                         </span>
                       )}
@@ -437,7 +437,7 @@ function NotificationsTab() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const r = await apiClient.get<any>('/notifications/messages');
+    const r = await apiClient.get('/notifications/messages');
     if (r.success && r.data) {
       setNotifs(Array.isArray(r.data) ? r.data : r.data.notifications || r.data.data || []);
     }
@@ -485,7 +485,8 @@ function NotificationsTab() {
             {notifs.map(n => (
               <div key={n.id} className={`px-4 py-3.5 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-gray-800/50 ${!n.is_read ? 'bg-blue-50/50 dark:bg-blue-900/5' : ''}`}>
                 <div className="flex-1 min-w-0 pr-3">
-                  <p className={`text-xs ${n.is_read ? 'text-gray-500' : 'text-gray-900 dark:text-white font-medium'}`}>
+                  <p
+                    className={`text-xs ${n.is_read ? 'text-gray-500 dark:text-gray-400' : 'text-gray-900 dark:text-white font-medium'}`}>
                     {n.content || n.message || n.title || '-'}
                   </p>
                   <p className="text-[10px] text-gray-400 mt-0.5">
@@ -521,7 +522,7 @@ export default function MessagesPage() {
           return (
             <button key={t.key} onClick={() => setActiveTab(t.key)}
               className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium border-b-2 transition-colors
-                ${activeTab === t.key ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+                ${activeTab === t.key ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700'}`}>
               <Icon className="w-4 h-4"/>{t.label}
             </button>
           );

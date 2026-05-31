@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import type {MediaFile} from '@/lib/api';
@@ -26,13 +26,20 @@ import {
 } from 'lucide-react';
 import {getConfig} from '@/lib/config';
 import DesktopLyrics from '@/components/audio/DesktopLyrics';
-import {apiClient} from "@/lib/api/api-client";
+import {apiClient} from "@/lib/api/base-client";
 import {getFullMediaUrl} from '@/lib/utils';
 import {useConfirm} from '@/components/ui/confirm-provider';
 
 /* ---------- Shared icons ---------- */
-const Minus: React.FC<{className?: string}> = p => <svg className={p.className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4"/></svg>;
-const File: React.FC<{className?: string}> = p => <svg className={p.className} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>;
+const _Minus: React.FC<{ className?: string }> = p => <svg className={p.className} fill="none" viewBox="0 0 24 24"
+                                                           stroke="currentColor">
+  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 12H4"/>
+</svg>;
+const _File: React.FC<{ className?: string }> = p => <svg className={p.className} fill="none" viewBox="0 0 24 24"
+                                                          stroke="currentColor">
+  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+        d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>
+</svg>;
 
 /* ---------- FolderTree ---------- */
 interface FolderNode {
@@ -72,7 +79,7 @@ const FolderTree: React.FC<{
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">文件夹</h3>
+        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">文件夹</h3>
         <button onClick={onCreate} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded text-gray-400 hover:text-blue-600"><Plus className="w-4 h-4"/></button>
       </div>
       {loading ? (
@@ -98,14 +105,16 @@ const StorageStats: React.FC<{ stats: any; loading: boolean }> = ({stats, loadin
     {label: '已用空间', count: stats.storage_used || '0 MB', color: 'from-green-500 to-emerald-500', icon: Upload},
   ];
   return (<div className="space-y-3">
-    <h3 className="text-sm font-semibold text-gray-500 uppercase tracking-wider">存储</h3>
+    <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">存储</h3>
     {items.map(item => {const Icon = item.icon; return (
       <div key={item.label} className={`p-4 rounded-xl bg-gradient-to-br ${item.color} text-white`}>
         <div className="flex items-center gap-2 text-sm opacity-80"><Icon className="w-4 h-4"/>{item.label}</div>
         <p className="text-xl font-bold mt-1">{loading ? '...' : item.count}</p>
       </div>
     );})}
-    {!loading && stats.storage_percentage !== undefined && (<div><div className="flex justify-between text-xs text-gray-500 mb-1"><span>存储</span><span>{stats.storage_percentage}%</span></div>
+    {!loading && stats.storage_percentage !== undefined && (<div>
+      <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
+        <span>存储</span><span>{stats.storage_percentage}%</span></div>
       <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2"><div className="bg-blue-600 h-2 rounded-full" style={{width: `${stats.storage_percentage}%`}}/></div></div>)}
   </div>);
 };
@@ -124,7 +133,11 @@ const UploadArea: React.FC<{onUpload: (files: File[]) => void; uploading: boolea
       <Upload className="w-10 h-10 text-gray-400 mx-auto mb-3"/>
       <p className="text-gray-600 dark:text-gray-400 font-medium">{uploading ? '上传中...' : '拖拽文件到此处或点击上传'}</p>
       <input ref={inputRef} type="file" multiple onChange={e => {if (e.target.files?.length) onUpload(Array.from(e.target.files));}} className="hidden"/>
-      {uploading && <div className="mt-4"><div className="w-full bg-gray-200 rounded-full h-2"><div className="bg-blue-600 h-2 rounded-full transition-all" style={{width: `${progress}%`}}/></div><p className="text-sm text-gray-500 mt-1">{status}</p></div>}
+      {uploading && <div className="mt-4">
+        <div className="w-full bg-gray-200 rounded-full h-2">
+          <div className="bg-blue-600 h-2 rounded-full transition-all" style={{width: `${progress}%`}}/>
+        </div>
+        <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{status}</p></div>}
     </div>)}
   </div>);
 };
@@ -205,7 +218,8 @@ const MediaGrid: React.FC<{files: MediaFile[]; loading: boolean; viewMode: 'grid
                 <div className="w-10 h-10 rounded-lg bg-gray-100 dark:bg-gray-700 flex items-center justify-center"><Icon className="w-5 h-5 text-gray-400"/></div>}
             <div>
               <p className="text-sm font-medium text-gray-900 dark:text-white truncate max-w-[200px]">{f.original_filename}</p>
-              <p className="text-xs text-gray-500">{f.file_size ? `${(f.file_size/1024).toFixed(1)} KB` : ''}</p>
+              <p
+                className="text-xs text-gray-500 dark:text-gray-400">{f.file_size ? `${(f.file_size / 1024).toFixed(1)} KB` : ''}</p>
               {f.tags && onEditTags && (
                   <p className="flex flex-wrap gap-1 mt-1 cursor-pointer hover:opacity-80" onClick={(e) => { e.stopPropagation(); onEditTags(f); }}>
                     {(f.tags as string).split(',').filter(Boolean).slice(0, 3).map((tag: string) => (
@@ -218,7 +232,9 @@ const MediaGrid: React.FC<{files: MediaFile[]; loading: boolean; viewMode: 'grid
               )}
             </div>
           </div></td>
-          <td className="text-sm text-gray-500 hidden sm:table-cell"><div className="flex items-center gap-2"><span>{f.mime_type?.split('/')[0]||'-'}</span></div></td>
+          <td className="text-sm text-gray-500 dark:text-gray-400 hidden sm:table-cell">
+            <div className="flex items-center gap-2"><span>{f.mime_type?.split('/')[0] || '-'}</span></div>
+          </td>
           <td className="pr-4 text-right"><button onClick={() => onDelete(f)} className="p-1 text-gray-400 hover:text-red-500"><Trash2 className="w-4 h-4"/></button></td>
         </tr>
     );
@@ -283,7 +299,7 @@ const MediaGrid: React.FC<{files: MediaFile[]; loading: boolean; viewMode: 'grid
   const renderGroupHeader = (key: string, label: string, items: MediaFile[]) => {
     const collapsed = groupCollapsed.has(key);
     const groupSelectedAll = items.every(f => selected.includes(f.id));
-    const groupSelectedSome = items.some(f => selected.includes(f.id));
+    const __groupSelectedSome = items.some(f => selected.includes(f.id));
     const cleanKey = key.replace('\u0000', '');
     return (
         <div key={`header-${key}`}
@@ -297,7 +313,8 @@ const MediaGrid: React.FC<{files: MediaFile[]; loading: boolean; viewMode: 'grid
           {/* 分类名 + 数量 */}
           <span className="text-sm font-semibold text-gray-700 dark:text-gray-200 flex-1">
             {cleanKey || '未分类'}
-            <span className="ml-2 text-xs font-normal text-gray-400 dark:text-gray-500">{items.length} 项</span>
+            <span
+              className="ml-2 text-xs font-normal text-gray-400 dark:text-gray-500 dark:text-gray-400">{items.length} 项</span>
           </span>
 
           {/* 全选按钮 */}
@@ -322,8 +339,12 @@ const MediaGrid: React.FC<{files: MediaFile[]; loading: boolean; viewMode: 'grid
           <div className="flex items-center justify-between mb-3 px-1">
             <span className="text-xs text-gray-400">共 {files.length} 个文件，{groups.size} 个分组</span>
             <div className="flex gap-2">
-              <button onClick={expandAll} className={`text-xs px-2 py-1 rounded-lg transition-colors ${allExpanded ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'}`}>全部展开</button>
-              <button onClick={collapseAll} className={`text-xs px-2 py-1 rounded-lg transition-colors ${!allExpanded ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'}`}>全部折叠</button>
+              <button onClick={expandAll}
+                      className={`text-xs px-2 py-1 rounded-lg transition-colors ${allExpanded ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'}`}>全部展开
+              </button>
+              <button onClick={collapseAll}
+                      className={`text-xs px-2 py-1 rounded-lg transition-colors ${!allExpanded ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'}`}>全部折叠
+              </button>
             </div>
           </div>
 
@@ -352,8 +373,12 @@ const MediaGrid: React.FC<{files: MediaFile[]; loading: boolean; viewMode: 'grid
         <div className="flex items-center justify-between mb-3 px-1">
           <span className="text-xs text-gray-400">共 {files.length} 个文件，{groups.size} 个分组</span>
           <div className="flex gap-2">
-            <button onClick={expandAll} className={`text-xs px-2 py-1 rounded-lg transition-colors ${allExpanded ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'}`}>全部展开</button>
-            <button onClick={collapseAll} className={`text-xs px-2 py-1 rounded-lg transition-colors ${!allExpanded ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'}`}>全部折叠</button>
+            <button onClick={expandAll}
+                    className={`text-xs px-2 py-1 rounded-lg transition-colors ${allExpanded ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'}`}>全部展开
+            </button>
+            <button onClick={collapseAll}
+                    className={`text-xs px-2 py-1 rounded-lg transition-colors ${!allExpanded ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'}`}>全部折叠
+            </button>
           </div>
         </div>
 
@@ -1372,7 +1397,8 @@ const PreviewModal: React.FC<{media: MediaFile|null; onClose: ()=>void}> = ({med
       )}
       <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
         <h3 className="font-bold text-gray-900 dark:text-white">{media.original_filename}</h3>
-        <p className="text-sm text-gray-500 mt-1">{media.file_size ? `${(media.file_size / 1024).toFixed(1)} KB` : ''} · {media.mime_type}</p>
+        <p
+          className="text-sm text-gray-500 dark:text-gray-400 mt-1">{media.file_size ? `${(media.file_size / 1024).toFixed(1)} KB` : ''} · {media.mime_type}</p>
       </div>
     </div>
   </div>);
@@ -1382,7 +1408,8 @@ const DeleteConfirm: React.FC<{item: MediaFile; onCancel: ()=>void; onConfirm: (
   <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={onCancel}>
     <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 max-w-sm w-full shadow-xl" onClick={e=>e.stopPropagation()}>
       <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">确认删除</h3>
-      <p className="text-sm text-gray-500 mb-6">确定要删除 <span className="font-medium">{item.original_filename}</span> 吗？</p>
+      <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">确定要删除 <span
+        className="font-medium">{item.original_filename}</span> 吗？</p>
       <div className="flex justify-end gap-3"><button onClick={onCancel} className="px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg text-sm font-medium">取消</button><button onClick={onConfirm} className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700">删除</button></div>
     </div>
   </div>
@@ -1398,10 +1425,10 @@ const MoveDialog: React.FC<{open: boolean; onClose: ()=>void; folders: FolderNod
   return (<div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={onClose}>
     <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 max-w-md w-full shadow-xl" onClick={e=>e.stopPropagation()}>
       <h3 className="text-lg font-bold mb-2">移动文件</h3>
-      <p className="text-sm text-gray-500 mb-4">将选中的 {mediaCount} 个文件移动到：</p>
+      <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">将选中的 {mediaCount} 个文件移动到：</p>
       <div className="space-y-2 max-h-64 overflow-y-auto mb-4">
         <button onClick={()=>onMove(null)} className="w-full flex items-center gap-3 px-4 py-3 text-left rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-500 transition-colors">
-          <Grid3X3 className="w-5 h-5 text-gray-500"/><span className="font-medium">根目录</span>
+          <Grid3X3 className="w-5 h-5 text-gray-500 dark:text-gray-400"/><span className="font-medium">根目录</span>
         </button>
         {folders.map(n=>renderNode(n))}
       </div>
@@ -1489,7 +1516,7 @@ const MediaPage: React.FC = () => {
       const res = await apiClient.get('/media/tags');
       if (res.success && res.data) {
         const d = res.data as any;
-        setAllTags((d.tags || []).map((t: any) => ({id: t.name, name: t.name, count: t.count})));
+        setAllTags((d.tags || []).map((t) => ({id: t.name, name: t.name, count: t.count})));
       }
     } catch {}
   }, []);
@@ -1499,7 +1526,7 @@ const MediaPage: React.FC = () => {
       const res = await apiClient.get('/media/categories');
       if (res.success && res.data) {
         const d = res.data as any;
-        setAllCategories((d.categories || []).map((c: any) => ({id: c.name, name: c.name, count: c.count})));
+        setAllCategories((d.categories || []).map((c) => ({id: c.name, name: c.name, count: c.count})));
       }
     } catch {}
   }, []);
@@ -1913,7 +1940,7 @@ const TagEditor: React.FC<{
             <h3 className="text-lg font-bold text-gray-900 dark:text-white">编辑标签</h3>
             <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400">✕</button>
           </div>
-          <p className="text-xs text-gray-500 mb-3">最多 5 个标签</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">最多 5 个标签</p>
 
           {/* 已选标签 */}
           <div className="flex flex-wrap gap-2 mb-3 min-h-[32px] p-2 bg-gray-50 dark:bg-gray-800 rounded-lg">
@@ -1952,7 +1979,7 @@ const TagEditor: React.FC<{
           {/* 快速标签 */}
           {allTags.length > 0 && (
               <div className="mb-4">
-                <p className="text-xs text-gray-500 mb-2">常用标签</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-2">常用标签</p>
                 <div className="flex flex-wrap gap-1.5">
                   {allTags.filter(t => !tags.includes(t.name)).slice(0, 10).map(t => (
                       <button key={t.id} onClick={() => addTag(t.name)}
@@ -1998,7 +2025,7 @@ const BatchTagDialog: React.FC<{
       <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={onClose}>
         <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
           <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">批量添加标签</h3>
-          <p className="text-sm text-gray-500 mb-4">将为 {mediaCount} 个文件添加标签</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">将为 {mediaCount} 个文件添加标签</p>
 
           <input type="text" value={inputVal}
                  onChange={e => setInputVal(e.target.value)}
@@ -2058,7 +2085,7 @@ const CategoryEditor: React.FC<{
             <h3 className="text-lg font-bold text-gray-900 dark:text-white">设置分类</h3>
             <button onClick={onClose} className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400">✕</button>
           </div>
-          <p className="text-xs text-gray-500 mb-3">一个媒体文件只能属于一个分类</p>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">一个媒体文件只能属于一个分类</p>
 
           {/* 已有分类列表 */}
           <div className="flex flex-wrap gap-2 mb-4">
@@ -2084,7 +2111,7 @@ const CategoryEditor: React.FC<{
 
           {/* 自定义分类 */}
           <div className="mb-4">
-            <label className="text-xs text-gray-500 mb-1 block">或输入自定义分类</label>
+            <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">或输入自定义分类</label>
             <input type="text" value={customVal}
                    onChange={e => { setCustomVal(e.target.value); setSelected(null); }}
                    placeholder="输入新分类名称..."
@@ -2126,7 +2153,7 @@ const BatchCategoryDialog: React.FC<{
       <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={onClose}>
         <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
           <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">批量设置分类</h3>
-          <p className="text-sm text-gray-500 mb-4">将为 {mediaCount} 个文件设置分类</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">将为 {mediaCount} 个文件设置分类</p>
 
           <div className="flex flex-wrap gap-2 mb-4">
             {allCategories.map(cat => (
@@ -2157,7 +2184,7 @@ const BatchCategoryDialog: React.FC<{
 };
 
 /* ========== Image Crop Dialog ========== */
-const ImageCropDialog: React.FC<{
+const _ImageCropDialog: React.FC<{
   open: boolean;
   media: MediaFile | null;
   onClose: () => void;
@@ -2222,23 +2249,23 @@ const ImageCropDialog: React.FC<{
             </div>
             <div className="grid grid-cols-2 gap-4 mb-4">
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">X 坐标</label>
+                <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">X 坐标</label>
                 <input type="number" value={crop.x} onChange={e => setCrop({...crop, x: Number(e.target.value)})}
                        className="w-full px-3 py-2 border rounded-lg"/>
               </div>
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">Y 坐标</label>
+                <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">Y 坐标</label>
                 <input type="number" value={crop.y} onChange={e => setCrop({...crop, y: Number(e.target.value)})}
                        className="w-full px-3 py-2 border rounded-lg"/>
               </div>
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">宽度</label>
+                <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">宽度</label>
                 <input type="number" value={crop.width}
                        onChange={e => setCrop({...crop, width: Number(e.target.value)})}
                        className="w-full px-3 py-2 border rounded-lg"/>
               </div>
               <div>
-                <label className="text-xs text-gray-500 mb-1 block">高度</label>
+                <label className="text-xs text-gray-500 dark:text-gray-400 mb-1 block">高度</label>
                 <input type="number" value={crop.height}
                        onChange={e => setCrop({...crop, height: Number(e.target.value)})}
                        className="w-full px-3 py-2 border rounded-lg"/>

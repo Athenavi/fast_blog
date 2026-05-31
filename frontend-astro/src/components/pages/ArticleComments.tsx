@@ -1,8 +1,11 @@
 'use client';
 
 import React, {useState, useEffect, useCallback} from 'react';
+import {useForm, FormProvider} from 'react-hook-form';
+import {zodResolver} from '@hookform/resolvers/zod';
 import {commentService} from '@/lib/api/comment-service';
 import type {Comment} from '@/lib/api/comment-service';
+import {commentFormSchema, type CommentFormFormData} from '@/lib/schemas';
 import {MessageSquare, Heart, Reply, Trash2, Clock, TrendingUp, ChevronDown, Send, X, AlertTriangle, Loader} from 'lucide-react';
 import {useConfirm} from '@/components/ui/confirm-provider';
 
@@ -114,7 +117,7 @@ const CommentItem: React.FC<{
           {/* Replies */}
           {comment.replies && comment.replies.length > 0 && (
           <div className="mt-1">
-              {comment.replies.map((child: any) => (
+            {comment.replies.map((child) => (
               <CommentItem key={child.id} comment={child} depth={depth + 1} onLike={onLike} onDelete={onDelete} onReply={onReply}/>
             ))}
           </div>
@@ -132,37 +135,38 @@ const CommentForm: React.FC<{
   onCancel?: () => void;
   onSubmitted: () => void;
 }> = ({articleId, parentId, replyTo, onCancel, onSubmitted}) => {
-  const [content, setContent] = useState('');
-  const [authorName, setAuthorName] = useState('');
-  const [authorEmail, setAuthorEmail] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState('');
+  const [serverError, setServerError] = useState('');
+
+  const form = useForm<CommentFormFormData>({
+    resolver: zodResolver(commentFormSchema),
+    defaultValues: {content: '', author_name: '', author_email: ''},
+  });
+  const {register, handleSubmit, watch, reset, formState: {errors}} = form;
+  const contentValue = watch('content') || '';
 
   const isReply = !!parentId;
 
-  const handleSubmit = useCallback(async () => {
-    if (!content.trim()) { setError('评论内容不能为空'); return; }
-    if (content.length > 2000) { setError('评论内容不能超过 2000 字'); return; }
+  const onSubmit = useCallback(async (data: CommentFormFormData) => {
     setSubmitting(true);
-    setError('');
+    setServerError('');
 
     const res = await commentService.createComment(
-      articleId, content.trim(), parentId,
-      authorName.trim() || undefined, authorEmail.trim() || undefined,
+      articleId, data.content.trim(), parentId,
+      data.author_name?.trim() || undefined, data.author_email?.trim() || undefined,
     );
 
     setSubmitting(false);
     if (res.success) {
-      setContent('');
-      setAuthorName('');
-      setAuthorEmail('');
+      reset({content: '', author_name: '', author_email: ''});
       onSubmitted();
     } else {
-      setError(res.error || '提交失败，请稍后重试');
+      setServerError(res.error || '提交失败，请稍后重试');
     }
-  }, [articleId, content, parentId, authorName, authorEmail, onSubmitted]);
+  }, [articleId, parentId, onSubmitted, reset]);
 
   return (
+    <FormProvider {...form}>
     <div className={`${isReply ? 'mt-3 border-t border-gray-100 dark:border-gray-800 pt-3' : ''}`}>
       {replyTo && (
         <p className="text-xs text-blue-500 mb-2 flex items-center gap-1">
@@ -171,31 +175,37 @@ const CommentForm: React.FC<{
         </p>
       )}
       <textarea
-        value={content}
-        onChange={e => setContent(e.target.value)}
+        {...register('content')}
         placeholder={isReply ? '写下你的回复...' : '写下你的评论...'}
         rows={3}
         maxLength={2000}
-        className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white placeholder-gray-400 resize-none transition-shadow"
+        className={`w-full px-4 py-3 border rounded-xl bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white placeholder-gray-400 resize-none transition-shadow ${
+          errors.content ? 'border-red-400 dark:border-red-500' : 'border-gray-200 dark:border-gray-700'
+        }`}
       />
+      {errors.content && <p className="mt-1 text-xs text-red-500">{errors.content.message}</p>}
       <div className="flex items-center justify-between mt-2 gap-3 flex-wrap">
         <div className="flex items-center gap-2 flex-1 min-w-0">
-          <input value={authorName} onChange={e => setAuthorName(e.target.value)} placeholder="昵称（可选）"
+          <input {...register('author_name')} placeholder="昵称（可选）"
             className="flex-1 min-w-[100px] px-3 py-1.5 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white placeholder-gray-400"/>
-          <input value={authorEmail} onChange={e => setAuthorEmail(e.target.value)} placeholder="邮箱（可选）"
-            className="flex-1 min-w-[120px] px-3 py-1.5 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white placeholder-gray-400"/>
+          <input {...register('author_email')} placeholder="邮箱（可选）"
+                 className={`flex-1 min-w-[120px] px-3 py-1.5 border rounded-lg bg-white dark:bg-gray-800 text-xs focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white placeholder-gray-400 ${
+                   errors.author_email ? 'border-red-400 dark:border-red-500' : 'border-gray-200 dark:border-gray-700'
+                 }`}/>
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <span className="text-[10px] text-gray-400">{content.length}/2000</span>
-          <button onClick={handleSubmit} disabled={submitting || !content.trim()}
+          <span className="text-[10px] text-gray-400">{contentValue.length}/2000</span>
+          <button onClick={handleSubmit(onSubmit)} disabled={submitting}
             className="inline-flex items-center gap-1 px-4 py-1.5 text-xs font-medium bg-blue-600 hover:bg-blue-700 text-white rounded-lg disabled:opacity-50 transition-colors">
             {submitting ? <Loader className="w-3 h-3 animate-spin"/> : <Send className="w-3 h-3"/>}
             {isReply ? '回复' : '发表评论'}
           </button>
         </div>
       </div>
-      {error && <p className="mt-1.5 text-xs text-red-500 flex items-center gap-1"><AlertTriangle className="w-3 h-3"/>{error}</p>}
+      {serverError && <p className="mt-1.5 text-xs text-red-500 flex items-center gap-1"><AlertTriangle
+        className="w-3 h-3"/>{serverError}</p>}
     </div>
+    </FormProvider>
   );
 };
 
@@ -245,7 +255,7 @@ const ArticleComments: React.FC<Props> = ({articleId}) => {
         </h2>
         <div className="relative">
           <button onClick={() => setShowSortMenu(!showSortMenu)}
-            className="flex items-center gap-1 px-3 py-1.5 text-xs border border-gray-200 dark:border-gray-700 rounded-lg text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800">
+                  className="flex items-center gap-1 px-3 py-1.5 text-xs border border-gray-200 dark:border-gray-700 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800">
             {sortBy === 'latest' ? <Clock className="w-3.5 h-3.5"/> : <TrendingUp className="w-3.5 h-3.5"/>}
             {sortBy === 'latest' ? '最新' : sortBy === 'popular' ? '最热' : '最早'}
             <ChevronDown className="w-3 h-3"/>

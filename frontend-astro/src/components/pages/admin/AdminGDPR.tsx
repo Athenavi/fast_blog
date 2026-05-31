@@ -1,11 +1,11 @@
-'use client';
+﻿'use client';
 
-import React, {useState} from 'react';
+import {useState} from 'react';
 import {useMutation, useQuery} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
-import {apiClient} from '@/lib/api/api-client';
+import {apiClient} from '@/lib/api/base-client';
 import {BookOpen, Check, Clock, Download, ExternalLink, FileText, Globe, Loader, Shield, X,} from 'lucide-react';
 
 // ─── Region tab config ────────────────────────────────
@@ -23,21 +23,21 @@ function GDPRInner() {
   const {data: gdprCheck} = useQuery({
     queryKey: ['gdpr-check', 'eu'],
     queryFn: async () => {
-      const r = await apiClient.get<any>('/compliance/gdpr/check');
+      const r = await apiClient.get('/compliance/gdpr/check');
       return r.success && r.data ? r.data : {};
     },
   });
   const {data: ccpaCheck} = useQuery({
     queryKey: ['gdpr-check', 'california'],
     queryFn: async () => {
-      const r = await apiClient.get<any>('/compliance/ccpa/check');
+      const r = await apiClient.get('/compliance/ccpa/check');
       return r.success && r.data ? r.data : {};
     },
   });
   const {data: chinaCheck} = useQuery({
     queryKey: ['gdpr-check', 'china'],
     queryFn: async () => {
-      const r = await apiClient.get<any>('/compliance/china/check');
+      const r = await apiClient.get('/compliance/china/check');
       return r.success && r.data ? r.data : {};
     },
   });
@@ -47,7 +47,7 @@ function GDPRInner() {
   const {data: checklistData} = useQuery({
     queryKey: ['gdpr-checklist', activeRegion],
     queryFn: async () => {
-      const r = await apiClient.get<any>(`/compliance/checklist/${activeRegion}`);
+      const r = await apiClient.get(`/compliance/checklist/${activeRegion}`);
       return r.success && r.data ? r.data : {};
     },
   });
@@ -56,7 +56,7 @@ function GDPRInner() {
   const {data: overview} = useQuery({
     queryKey: ['gdpr-overview'],
     queryFn: async () => {
-      const r = await apiClient.get<any>('/compliance/overview');
+      const r = await apiClient.get('/compliance/overview');
       return r.success && r.data ? r.data : {};
     },
   });
@@ -65,7 +65,7 @@ function GDPRInner() {
   const {data: retentionData} = useQuery({
     queryKey: ['gdpr-retention'],
     queryFn: async () => {
-      const r = await apiClient.get<any>('/compliance/data-retention');
+      const r = await apiClient.get('/compliance/data-retention');
       return r.success && r.data ? r.data : {};
     },
   });
@@ -128,9 +128,9 @@ function GDPRInner() {
                 <div className="flex items-center gap-3 mb-4">
                   <span className="text-3xl font-black">{currentCheck.score}%</span>
                   <span className={`px-3 py-1 text-sm rounded-full font-medium
-                    ${currentCheck.score >= 80 ? 'bg-green-100 text-green-700' :
-                      currentCheck.score >= 50 ? 'bg-yellow-100 text-yellow-700' :
-                      'bg-red-100 text-red-700'}`}>
+                    ${currentCheck.score >= 80 ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' :
+                    currentCheck.score >= 50 ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' :
+                      'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'}`}>
                     {currentCheck.score >= 80 ? '良好' : currentCheck.score >= 50 ? '需改进' : '不合规'}
                   </span>
                 </div>
@@ -199,7 +199,7 @@ function GDPRInner() {
               <div key={i} className="border border-gray-100 dark:border-gray-800 rounded-xl p-4">
                 <p className="text-sm font-medium text-gray-900 dark:text-white">{reg.name}</p>
                 <p className="text-xs text-gray-400 mb-2">{reg.full_name}</p>
-                <div className="space-y-1 text-xs text-gray-500">
+                <div className="space-y-1 text-xs text-gray-500 dark:text-gray-400">
                   <p><span className="text-gray-400">区域:</span> {reg.region}</p>
                   <p><span className="text-gray-400">生效:</span> {reg.effective_date}</p>
                   {reg.key_rights && (
@@ -254,16 +254,23 @@ function GDPRInner() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-gray-200 dark:border-gray-700">
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">数据类型</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase">建议保留期</th>
-                  <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase hidden sm:table-cell">法律依据</th>
+                  <th
+                    className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">数据类型
+                  </th>
+                  <th
+                    className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">建议保留期
+                  </th>
+                  <th
+                    className="px-4 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase hidden sm:table-cell">法律依据
+                  </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
                 {retentionCats.map((cat: any, i: number) => (
                   <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
                     <td className="px-4 py-3 text-gray-900 dark:text-white">{cat.name || cat.type || cat.category}</td>
-                    <td className="px-4 py-3 text-gray-500">{cat.retention || cat.period || cat.duration || '—'}</td>
+                    <td
+                      className="px-4 py-3 text-gray-500 dark:text-gray-400">{cat.retention || cat.period || cat.duration || '—'}</td>
                     <td className="px-4 py-3 text-gray-400 hidden sm:table-cell">{cat.basis || cat.legal_basis || cat.reason || '—'}</td>
                   </tr>
                 ))}

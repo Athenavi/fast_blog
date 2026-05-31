@@ -5,8 +5,19 @@ import {motion, AnimatePresence} from 'framer-motion';
 import {ArticleService} from '@/lib/api';
 import type {Article} from '@/lib/api/base-types';
 import {
-    BookOpen, Calendar, ChevronLeft, ChevronRight, Clock, Eye,
-    Filter, Grid, Hash, Heart, List, Search, SlidersHorizontal, X
+  BookOpen,
+  ChevronLeft,
+  ChevronRight,
+  Clock,
+  Eye,
+  Filter,
+  Grid,
+  Hash,
+  Heart,
+  List,
+  Search,
+  SlidersHorizontal,
+  X
 } from 'lucide-react';
 
 type ViewMode = 'grid' | 'list';
@@ -149,7 +160,7 @@ const ArticleList: React.FC = () => {
                   {/* Filter toggle */}
                   <button
                       onClick={() => setShowFilters(!showFilters)}
-                      className={`p-2.5 rounded-xl border transition-colors ${showFilters ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-600' : 'border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
+                      className={`p-2.5 rounded-xl border transition-colors ${showFilters ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-600' : 'border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'}`}
                   >
                       <SlidersHorizontal className="w-4 h-4"/>
                   </button>
@@ -226,7 +237,7 @@ const ArticleList: React.FC = () => {
 
           {/* ═══ Results Count ═══ */}
           {!loading && (
-              <p className="text-sm text-gray-500 mb-6">
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
                   {totalCount > 0
                       ? `共 ${totalCount} 篇文章${searchQuery ? ` · 搜索 "${searchQuery}"` : ''}${selectedTag ? ` · 标签 "${selectedTag}"` : ''}`
                       : '未找到相关文章'
@@ -245,7 +256,7 @@ const ArticleList: React.FC = () => {
           ) : articles.length === 0 ? (
               <div className="text-center py-20">
                   <BookOpen className="w-16 h-16 text-gray-200 dark:text-gray-700 mx-auto mb-4"/>
-                  <h3 className="text-lg font-semibold text-gray-500 mb-2">暂无文章</h3>
+                <h3 className="text-lg font-semibold text-gray-500 dark:text-gray-400 mb-2">暂无文章</h3>
                   <p className="text-sm text-gray-400">
                       {searchQuery ? '尝试换个关键词搜索' : '还没有发布任何文章'}
                   </p>
@@ -357,7 +368,8 @@ const ArticleList: React.FC = () => {
                               <h3 className="font-semibold text-gray-900 dark:text-white line-clamp-1 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors mb-1">
                                   {article.title}
                               </h3>
-                              <p className="text-sm text-gray-500 line-clamp-2">{article.excerpt || article.summary || ''}</p>
+                            <p
+                              className="text-sm text-gray-500 dark:text-gray-400 line-clamp-2">{article.excerpt || article.summary || ''}</p>
                               <div className="flex items-center gap-4 text-xs text-gray-400 mt-2">
                                   <span className="flex items-center gap-1"><Eye
                                       className="w-3 h-3"/>{article.views || 0}</span>
@@ -376,7 +388,7 @@ const ArticleList: React.FC = () => {
                   <button
                       onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                       disabled={currentPage <= 1}
-                      className="p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      className="p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                   >
                       <ChevronLeft className="w-4 h-4"/>
                   </button>
@@ -409,7 +421,7 @@ const ArticleList: React.FC = () => {
                   <button
                       onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                       disabled={currentPage >= totalPages}
-                      className="p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                      className="p-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                   >
                       <ChevronRight className="w-4 h-4"/>
                   </button>

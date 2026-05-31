@@ -1,11 +1,11 @@
-'use client';
+﻿'use client';
 
-import React, {useState} from 'react';
+import {useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
-import {apiClient} from '@/lib/api/api-client';
+import {apiClient} from '@/lib/api/base-client';
 import {useToast} from '@/components/ui/toast-provider';
 import {Coins, Loader, Minus, Plus, TrendingUp, Users} from 'lucide-react';
 
@@ -16,7 +16,7 @@ function PointsInner() {
   const {data: stats} = useQuery({
     queryKey: ['ext-points-stats'],
     queryFn: async () => {
-      const r = await apiClient.get<any>('/ext/points/admin/stats');
+      const r = await apiClient.get('/ext/points/admin/stats');
       return r.success && r.data ? r.data : {};
     },
   });
@@ -24,7 +24,7 @@ function PointsInner() {
   const {data: rules} = useQuery({
     queryKey: ['ext-points-rules'],
     queryFn: async () => {
-      const r = await apiClient.get<any>('/ext/points/points-rules');
+      const r = await apiClient.get('/ext/points/points-rules');
       const raw = r.success && r.data ? (r.data.rules || r.data) : [];
       return Array.isArray(raw) ? raw : [];
     },
@@ -33,7 +33,7 @@ function PointsInner() {
   const {data: exchangeRules} = useQuery({
     queryKey: ['ext-points-exchange'],
     queryFn: async () => {
-      const r = await apiClient.get<any>('/ext/points/exchange-rules');
+      const r = await apiClient.get('/ext/points/exchange-rules');
       const raw = r.success && r.data ? (r.data.rules || r.data) : [];
       return Array.isArray(raw) ? raw : [];
     },
@@ -42,7 +42,7 @@ function PointsInner() {
   const {data: leaderboard} = useQuery({
     queryKey: ['ext-points-leaderboard'],
     queryFn: async () => {
-      const r = await apiClient.get<any>('/ext/points/leaderboard', {limit: 20, period: 'all'});
+      const r = await apiClient.get('/ext/points/leaderboard', {limit: 20, period: 'all'});
       const raw = r.success && r.data ? (r.data.leaderboard || r.data) : [];
       return Array.isArray(raw) ? raw : [];
     },
@@ -83,15 +83,21 @@ function PointsInner() {
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="bg-white dark:bg-gray-900 rounded-2xl border p-5">
-          <div className="flex items-center gap-2 text-sm text-gray-500 mb-1"><Users className="w-4 h-4"/>有积分的用户</div>
+          <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1"><Users
+            className="w-4 h-4"/>有积分的用户
+          </div>
           <p className="text-2xl font-bold">{stats?.total_users_with_points ?? '—'}</p>
         </div>
         <div className="bg-white dark:bg-gray-900 rounded-2xl border p-5">
-          <div className="flex items-center gap-2 text-sm text-gray-500 mb-1"><Coins className="w-4 h-4"/>总发放积分</div>
+          <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1"><Coins
+            className="w-4 h-4"/>总发放积分
+          </div>
           <p className="text-2xl font-bold">{stats?.total_points_issued ?? '—'}</p>
         </div>
         <div className="bg-white dark:bg-gray-900 rounded-2xl border p-5">
-          <div className="flex items-center gap-2 text-sm text-gray-500 mb-1"><TrendingUp className="w-4 h-4"/>积分规则</div>
+          <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1"><TrendingUp
+            className="w-4 h-4"/>积分规则
+          </div>
           <p className="text-2xl font-bold">{Array.isArray(rules) ? rules.length : '—'}</p>
         </div>
       </div>
@@ -135,17 +141,17 @@ function PointsInner() {
         <h3 className="font-semibold text-gray-900 dark:text-white mb-4">管理员操作</h3>
         <div className="grid grid-cols-3 gap-3 mb-4">
           <div>
-            <label className="block text-xs text-gray-500 mb-1">用户 ID</label>
+            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">用户 ID</label>
             <input type="number" value={userId} onChange={e => setUserId(e.target.value)}
               className="w-full px-3 py-2 border rounded-lg text-sm dark:bg-gray-800 dark:text-white dark:border-gray-700"/>
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">积分数量</label>
+            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">积分数量</label>
             <input type="number" value={pointsAmount} onChange={e => setPointsAmount(e.target.value)}
               className="w-full px-3 py-2 border rounded-lg text-sm dark:bg-gray-800 dark:text-white dark:border-gray-700"/>
           </div>
           <div>
-            <label className="block text-xs text-gray-500 mb-1">原因</label>
+            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">原因</label>
             <input value={reason} onChange={e => setReason(e.target.value)}
               className="w-full px-3 py-2 border rounded-lg text-sm dark:bg-gray-800 dark:text-white dark:border-gray-700"/>
           </div>
@@ -171,15 +177,19 @@ function PointsInner() {
         </div>
         {Array.isArray(leaderboard) && leaderboard.length > 0 ? (
           <table className="w-full"><thead className="bg-gray-50 dark:bg-gray-800 border-b"><tr>
-            <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase text-left w-12">排名</th>
-            <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase text-left">用户</th>
-            <th className="px-5 py-3 text-xs font-semibold text-gray-500 uppercase text-right">积分</th>
+            <th
+              className="px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase text-left w-12">排名
+            </th>
+            <th className="px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase text-left">用户
+            </th>
+            <th className="px-5 py-3 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase text-right">积分
+            </th>
           </tr></thead><tbody className="divide-y">
             {leaderboard.map((entry: any, i: number) => (
               <tr key={entry.user_id || i} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
                 <td className="px-5 py-3">
                   <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold
-                    ${i === 0 ? 'bg-yellow-100 text-yellow-700' : i === 1 ? 'bg-gray-200 text-gray-600' : i === 2 ? 'bg-orange-100 text-orange-700' : 'text-gray-500'}`}>
+                    ${i === 0 ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' : i === 1 ? 'bg-gray-200 text-gray-600' : i === 2 ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400' : 'text-gray-500 dark:text-gray-400'}`}>
                     {i + 1}
                   </span>
                 </td>

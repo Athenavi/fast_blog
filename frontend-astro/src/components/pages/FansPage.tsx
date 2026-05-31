@@ -1,10 +1,10 @@
-'use client';
+﻿'use client';
 
-import React, {useState} from 'react';
+import {useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
-import {apiClient} from '@/lib/api/api-client';
+import {apiClient} from '@/lib/api/base-client';
 import {UserPlus, Users} from 'lucide-react';
 
 function FansInner() {
@@ -12,7 +12,7 @@ function FansInner() {
     const {data: fans, isLoading} = useQuery<any[]>({
     queryKey: ['fans'],
     queryFn: async () => {
-        const r = await apiClient.get<any>('/users/me/followers');
+      const r = await apiClient.get('/users/me/followers');
       return r.success && r.data ? (Array.isArray(r.data) ? r.data : r.data.followers||r.data.users||[]) : [];
     },
   });
@@ -23,7 +23,8 @@ function FansInner() {
         <div className="flex items-center gap-3 mb-6"><Users className="w-6 h-6 text-gray-600"/><h1 className="text-2xl font-bold text-gray-900 dark:text-white">粉丝</h1></div>
         <div className="flex gap-1 mb-6 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl p-1 border w-fit">
           {['粉丝','关注中'].map((l,i) => (
-            <button key={l} onClick={()=>setTab(i)} className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${tab===i?'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white':'text-gray-500 hover:text-gray-700'}`}>{l}</button>
+            <button key={l} onClick={() => setTab(i)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${tab === i ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'}`}>{l}</button>
           ))}
         </div>
         {isLoading ? (

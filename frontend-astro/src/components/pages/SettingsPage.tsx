@@ -1,16 +1,37 @@
-'use client';
+﻿'use client';
 
 import React, {useEffect, useRef, useState, useCallback} from 'react';
-import {apiClient} from '@/lib/api/api-client';
+import {apiClient} from '@/lib/api/base-client';
 import {useDarkMode} from '@/lib/dark-mode-manager';
 import {getAccessTokenFromCookie} from '@/lib/auth-utils';
 import {AuthGuard} from '@/components/AuthGuard';
 import {useConfirm} from '@/components/ui/confirm-provider';
 import {
-    Camera, Globe, LogOut, Monitor, Moon, Shield, Smartphone, User, X,
-    Sun, Eye, EyeOff, Copy, Download, Check, CheckCircle2, AlertCircle,
-    Loader, ChevronRight, Lock, Bell, Palette, Fingerprint, SmartphoneNfc,
-    RefreshCw, Trash2
+  Camera,
+  Globe,
+  LogOut,
+  Monitor,
+  Moon,
+  Shield,
+  Smartphone,
+  User,
+  X,
+  Sun,
+  Eye,
+  EyeOff,
+  Copy,
+  Download,
+  Check,
+  CheckCircle2,
+  AlertCircle,
+  Loader,
+  Lock,
+  Bell,
+  Palette,
+  Fingerprint,
+  SmartphoneNfc,
+  RefreshCw,
+  Trash2
 } from 'lucide-react';
 
 const TABS = [
@@ -139,7 +160,7 @@ function Settings() {
   };
 
   const loadS = async () => {
-    const r = await apiClient.get<any>('/security/admin/session/my-sessions');
+    const r = await apiClient.get('/security/admin/session/my-sessions');
     if (r.success && r.data) {
       const raw = r.data.sessions || r.data.data?.sessions || [];
       setSessions(Array.isArray(raw) ? raw : []);
@@ -219,7 +240,7 @@ function Settings() {
                                     <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${
                                         tab === i
                                             ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-                                            : 'bg-gray-100 dark:bg-gray-700 text-gray-500'
+                                          : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
                                     }`}>
                                         <Icon className="w-4.5 h-4.5"/>
                                     </div>
@@ -404,7 +425,8 @@ function Settings() {
                                     </div>
                                     <div>
                                         <h3 className="font-semibold text-gray-900 dark:text-white">修改密码</h3>
-                                        <p className="text-xs text-gray-500">定期更改密码以保护账户安全</p>
+                                      <p
+                                        className="text-xs text-gray-500 dark:text-gray-400">定期更改密码以保护账户安全</p>
                                     </div>
                                 </div>
 
@@ -445,7 +467,7 @@ function Settings() {
                                                     ))}
                                                 </div>
                                                 <span
-                                                    className="text-xs text-gray-500">强度: {pwStrength > 0 ? pwStrengthLabels[pwStrength - 1] : '—'}</span>
+                                                  className="text-xs text-gray-500 dark:text-gray-400">强度: {pwStrength > 0 ? pwStrengthLabels[pwStrength - 1] : '—'}</span>
                                             </div>
                                         )}
                                     </div>
@@ -485,7 +507,7 @@ function Settings() {
                                         <div
                                             className={`w-10 h-10 rounded-xl flex items-center justify-center ${fa ? 'bg-green-100 dark:bg-green-900/30' : 'bg-gray-100 dark:bg-gray-700'}`}>
                                             <Fingerprint
-                                                className={`w-5 h-5 ${fa ? 'text-green-600 dark:text-green-400' : 'text-gray-500'}`}/>
+                                              className={`w-5 h-5 ${fa ? 'text-green-600 dark:text-green-400' : 'text-gray-500 dark:text-gray-400'}`}/>
                                         </div>
                                         <div>
                                             <h3 className="font-semibold text-gray-900 dark:text-white flex items-center gap-2">
@@ -493,7 +515,8 @@ function Settings() {
                                                 {fa && <span
                                                     className="px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-xs rounded-full font-medium">已启用</span>}
                                             </h3>
-                                            <p className="text-xs text-gray-500">使用认证器应用增加额外安全层</p>
+                                          <p
+                                            className="text-xs text-gray-500 dark:text-gray-400">使用认证器应用增加额外安全层</p>
                                         </div>
                                     </div>
                                     {fa ? (
@@ -575,7 +598,7 @@ function Settings() {
                                     </div>
                                     <div>
                                         <h3 className="font-semibold text-gray-900 dark:text-white">主题设置</h3>
-                                        <p className="text-xs text-gray-500">选择你喜欢的界面主题</p>
+                                      <p className="text-xs text-gray-500 dark:text-gray-400">选择你喜欢的界面主题</p>
                                     </div>
                                 </div>
 
@@ -648,7 +671,8 @@ function Settings() {
                                         </div>
                                         <div>
                                             <h3 className="font-semibold text-gray-900 dark:text-white">已登录设备</h3>
-                                            <p className="text-xs text-gray-500">共 {sessions.length} 个活跃会话</p>
+                                          <p
+                                            className="text-xs text-gray-500 dark:text-gray-400">共 {sessions.length} 个活跃会话</p>
                                         </div>
                                     </div>
                                     <div className="flex gap-2">
@@ -689,7 +713,7 @@ function Settings() {
                                                 >
                                                     <div
                                                         className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                                                            isCurrent ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600' : 'bg-gray-100 dark:bg-gray-700 text-gray-500'
+                                                          isCurrent ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600' : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
                                                         }`}>
                                                         {getDeviceIcon(s)}
                                                     </div>

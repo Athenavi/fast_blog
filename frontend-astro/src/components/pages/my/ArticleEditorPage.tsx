@@ -8,14 +8,61 @@ import {zodResolver} from '@hookform/resolvers/zod';
 import {apiClient, CategoryService} from '@/lib/api';
 import type {Category} from '@/lib/api/base-types';
 import {
-    Save, ArrowLeft, X, History, Settings2, Bold, Italic, Heading1, Heading2,
-    List, Quote, Image, Link, Sparkles, Eye, Tag, FolderTree, FileText, Hash,
-    Users, Copy, Wifi, WifiOff, Loader as LoaderIcon, Type, AlignLeft,
-    AlignCenter, AlignRight, Underline as UnderlineIcon, Strikethrough,
-    ListOrdered, Code, Minus, ChevronDown, Check, AlertCircle, Clock,
-    BarChart3, EyeOff, Maximize2, Minimize2, Keyboard, MoreHorizontal,
-    Sun, Moon, Globe, Lock, Crown, Send, ArrowRight, Columns2,
-    PanelRightClose, PanelRightOpen, Palette, Undo2, Redo2
+  Save,
+  ArrowLeft,
+  X,
+  History,
+  Settings2,
+  Bold,
+  Italic,
+  Heading1,
+  Heading2,
+  List,
+  Quote,
+  Image,
+  Link,
+  Sparkles,
+  Eye,
+  Tag,
+  FolderTree,
+  FileText,
+  Hash,
+  Users,
+  Copy,
+  Wifi,
+  WifiOff,
+  Loader as LoaderIcon,
+  Type,
+  AlignLeft,
+  AlignCenter,
+  AlignRight,
+  Underline as UnderlineIcon,
+  Strikethrough,
+  ListOrdered,
+  Code,
+  Minus,
+  ChevronDown,
+  Check,
+  AlertCircle,
+  Clock,
+  BarChart3,
+  EyeOff,
+  Maximize2,
+  Minimize2,
+  Keyboard,
+  MoreHorizontal,
+  Sun,
+  Moon,
+  Globe,
+  Lock,
+  Crown,
+  Send,
+  ArrowRight,
+  Columns2,
+  PanelRightClose,
+  PanelRightOpen,
+  Undo2,
+  Redo2
 } from 'lucide-react';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AuthGuard} from '@/components/AuthGuard';
@@ -104,7 +151,8 @@ const ShortcutsModal: React.FC<{ onClose: () => void }> = ({onClose}) => {
                 <div className="flex-1 overflow-y-auto p-6 space-y-6">
                     {shortcuts.map(group => (
                         <div key={group.category}>
-                            <h4 className="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-wider mb-3">{group.category}</h4>
+                          <h4
+                            className="text-xs font-bold text-gray-400 dark:text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">{group.category}</h4>
                             <div className="space-y-1.5">
                                 {group.items.map(s => (
                                     <div key={s.keys}
@@ -165,7 +213,7 @@ const ToolbarDropdown: React.FC<{
 
 /* ── Section Component ── */
 const Section: React.FC<{
-    icon: any;
+  icon: React.ComponentType<{ className?: string }>;
     title: string;
     children: React.ReactNode;
     defaultOpen?: boolean;
@@ -303,7 +351,7 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
   const title = watch('title');
     const coverImage = watch('cover_image');
     const isHidden = watch('hidden');
-    const isVipOnly = watch('is_vip_only');
+  const __isVipOnly = watch('is_vip_only');
 
     // Writing stats
     const stats = useWritingStats(content);
@@ -364,7 +412,7 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
     queryKey: ['article-edit', articleId], enabled: mode === 'edit' && !!articleId,
       staleTime: 0, gcTime: 0,
     queryFn: async () => {
-      const res = await apiClient.get<any>(`/articles/edit/${articleId}`);
+      const res = await apiClient.get(`/articles/edit/${articleId}`);
         if (res.success && res.data) {
             const d = res.data;
             reset({
@@ -514,7 +562,7 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
                       <div
                           className="absolute inset-0 rounded-full border-2 border-blue-600 border-t-transparent animate-spin"/>
                   </div>
-                  <p className="text-sm text-gray-500">加载文章中...</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">加载文章中...</p>
               </div>
           </div>
       );
@@ -576,7 +624,7 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
               <ToolbarDropdown
                   trigger={
                       <button
-                          className="flex items-center gap-1 px-2 py-1.5 text-xs text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
+                        className="flex items-center gap-1 px-2 py-1.5 text-xs text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
                           <Type className="w-4 h-4"/><ChevronDown className="w-3 h-3"/>
                       </button>
                   }>
@@ -622,14 +670,14 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
         {mode === 'edit' && articleId && (
           <>
               <button onClick={() => setShowRevisions(true)}
-                      className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600 transition-all">
+                      className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600 transition-all">
               <History className="w-3.5 h-3.5"/><span className="hidden sm:inline">版本</span>
             </button>
             <button onClick={() => { if (!collabActive) { setCollabActive(true); } else { collab.stop(); setCollabActive(false); } }}
                     className={`flex items-center gap-1.5 px-2.5 py-1.5 text-xs rounded-lg border transition-all ${
                         collabActive
                             ? 'bg-emerald-50 dark:bg-emerald-900/20 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400'
-                            : 'border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800'
+                          : 'border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800'
                     }`}>
               {collabActive ? <Wifi className="w-3.5 h-3.5"/> : <Users className="w-3.5 h-3.5"/>}
               <span className="hidden sm:inline">{collabActive ? '协作中' : '协作'}</span>
@@ -801,7 +849,7 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
                                       const url = `${window.location.origin}/my/posts/edit?id=${articleId}&collab=1`;
                                       navigator.clipboard.writeText(url);
                                   }}
-                                          className="w-full px-3 py-2 text-xs border border-gray-200 dark:border-gray-700 rounded-lg text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center justify-center gap-1.5 transition-colors">
+                                          className="w-full px-3 py-2 text-xs border border-gray-200 dark:border-gray-700 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 flex items-center justify-center gap-1.5 transition-colors">
                                       <Copy className="w-3.5 h-3.5"/>复制邀请链接
                                   </button>
                               </div>

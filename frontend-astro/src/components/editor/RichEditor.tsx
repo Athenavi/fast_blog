@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {EditorContent, useEditor} from '@tiptap/react';
@@ -21,7 +21,7 @@ import CollaborationCursor from '@tiptap/extension-collaboration-cursor';
 import {WebsocketProvider} from 'y-websocket';
 import * as Y from 'yjs';
 import {Image as ImageIcon2, ImageIcon, LayoutGrid, Loader, Palette, Sparkles, X} from 'lucide-react';
-import {apiClient} from '@/lib/api/api-client';
+import {apiClient} from '@/lib/api/base-client';
 
 interface RichEditorProps {value:string;onChange:(v:string)=>void;placeholder?:string;editorRef?:React.MutableRefObject<any>;}
 
@@ -222,7 +222,7 @@ const RichEditor: React.FC<RichEditorProps> = ({value,onChange,placeholder='开�
       {aiBusy&&<div className="border-t border-gray-200 dark:border-gray-700 p-4 bg-purple-50 dark:bg-purple-900/10 flex items-center gap-2 text-sm text-purple-600"><Loader className="w-4 h-4 animate-spin"/>AI 处理中...</div>}
       {showMedia&&<MediaBrowser onSelect={(url)=>{editor.chain().focus().setImage({src:url}).run();setShowMedia(false);}} onClose={()=>setShowMedia(false)}/>}
       {showPatterns && <PatternLibrary onSelect={(blocks) => {
-        blocks.forEach((b: any) => editor.commands.insertContent(b));
+        blocks.forEach((b) => editor.commands.insertContent(b));
         setShowPatterns(false);
       }} onClose={() => setShowPatterns(false)}/>}
       {showStyles && <StyleManager onClose={() => setShowStyles(false)}/>}

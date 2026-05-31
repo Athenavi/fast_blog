@@ -1,10 +1,10 @@
-'use client';
+﻿'use client';
 
 import React, {useState} from 'react';
-import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
-import {EmptyState, Modal, Pagination} from '@/components/admin/shared-ui';
-import {apiClient} from '@/lib/api/api-client';
-import {Download, Edit3, FileText, Search, Share2} from 'lucide-react';
+import {useQuery} from '@tanstack/react-query';
+import {EmptyState, Pagination} from '@/components/admin/shared-ui';
+import {apiClient} from '@/lib/api/base-client';
+import {Share2} from 'lucide-react';
 import {ShareStat} from './shared';
 
 const ShareStatsTab: React.FC = () => {
@@ -40,11 +40,11 @@ const ShareStatsTab: React.FC = () => {
           <table className="w-full text-sm">
             <thead>
             <tr className="bg-gray-50 dark:bg-gray-800/50">
-              <th className="text-left px-4 py-3 font-medium text-gray-500">文章</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-500">平台</th>
-              <th className="text-right px-4 py-3 font-medium text-gray-500">分享次数</th>
-              <th className="text-right px-4 py-3 font-medium text-gray-500">点击次数</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-500">最后分享</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">文章</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">平台</th>
+              <th className="text-right px-4 py-3 font-medium text-gray-500 dark:text-gray-400">分享次数</th>
+              <th className="text-right px-4 py-3 font-medium text-gray-500 dark:text-gray-400">点击次数</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">最后分享</th>
             </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -54,13 +54,14 @@ const ShareStatsTab: React.FC = () => {
                   className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100 max-w-[200px] truncate">{s.article_title || `文章#${s.article_id}`}</td>
                 <td className="px-4 py-3">
                     <span
-                      className={`px-2 py-0.5 text-[10px] rounded-full font-medium ${platformColors[s.platform] || 'bg-gray-100 text-gray-500'}`}>
+                      className={`px-2 py-0.5 text-[10px] rounded-full font-medium ${platformColors[s.platform] || 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'}`}>
                       {s.platform}
                     </span>
                 </td>
                 <td className="px-4 py-3 text-right font-medium">{s.share_count}</td>
-                <td className="px-4 py-3 text-right text-gray-500">{s.click_count}</td>
-                <td className="px-4 py-3 text-xs text-gray-500">{s.last_shared_at?.slice(0, 16) || '-'}</td>
+                <td className="px-4 py-3 text-right text-gray-500 dark:text-gray-400">{s.click_count}</td>
+                <td
+                  className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">{s.last_shared_at?.slice(0, 16) || '-'}</td>
               </tr>
             ))}
             </tbody>

@@ -62,7 +62,7 @@ export const Input: React.FC<{
 
 export const StatusBadge: React.FC<{ active: boolean }> = ({active}) => (
   <span
-    className={`px-2 py-0.5 text-[10px] rounded-full font-medium ${active ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-500'}`}>
+    className={`px-2 py-0.5 text-[10px] rounded-full font-medium ${active ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'}`}>
     {active ? '活跃' : '停用'}
   </span>
 );

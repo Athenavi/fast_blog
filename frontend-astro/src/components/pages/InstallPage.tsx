@@ -1,7 +1,7 @@
-'use client';
+﻿'use client';
 
-import React, {useEffect, useState} from 'react';
-import {apiClient} from '@/lib/api/api-client';
+import {useEffect, useState} from 'react';
+import {apiClient} from '@/lib/api/base-client';
 import {ArrowLeft, ArrowRight, Check, Database, Globe, Loader, Server, Shield} from 'lucide-react';
 
 const steps = [
@@ -118,7 +118,7 @@ export default function InstallPage() {
         const r = await apiClient.post('/install/complete', {
             import_sample_data: false
         });
-      
+
       if (r.success) window.location.href = '/login';
       else setErr(r.error||'安装失败');
     } catch (e: any) {
@@ -154,7 +154,7 @@ export default function InstallPage() {
         <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 shadow-xl border border-gray-100 dark:border-gray-800">
           {/* Step 0: Prerequisites */}
           {step === 0 && <div className="space-y-3">
-            <p className="text-sm text-gray-500 mb-4">系统环境检查</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">系统环境检查</p>
             {prereqs.length ? prereqs.map((p,i) => (
               <div key={i} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-xl"><span className="text-sm">{p.name||p.check||'-'}</span>
                 <span className={`px-2 py-0.5 text-xs rounded-full ${p.passed ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{p.passed ? '通过' : '失败'}</span>
@@ -172,7 +172,7 @@ export default function InstallPage() {
 
             {/* Step 2: Migration */}
             {step === 2 && <div className="space-y-4">
-                <p className="text-sm text-gray-500 mb-2">数据库迁移</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-2">数据库迁移</p>
                 {migrationStatus.message ? (
                     <div
                         className={`p-4 rounded-xl ${migrationStatus.success ? 'bg-green-50 border border-green-200 text-green-700' : 'bg-red-50 border border-red-200 text-red-700'}`}>
@@ -185,7 +185,7 @@ export default function InstallPage() {
                 ) : (
                     <div className="text-center py-8">
                         <Loader className="w-8 h-8 animate-spin mx-auto mb-3 text-blue-600"/>
-                        <p className="text-sm text-gray-500">点击"下一步"开始数据库迁移...</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400">点击"下一步"开始数据库迁移...</p>
                     </div>
                 )}
                 <div className="text-xs text-gray-400 mt-2">

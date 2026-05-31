@@ -1,8 +1,8 @@
-'use client';
+﻿'use client';
 
 import React, {useState} from 'react';
-import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
-import {apiClient} from '@/lib/api/api-client';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {apiClient} from '@/lib/api/base-client';
 import {useConfirm} from '@/components/ui/confirm-provider';
 import {useToast} from '@/components/ui/toast-provider';
 import {Package, Plus, Crown, Edit3, Check, Trash2} from 'lucide-react';
@@ -111,10 +111,10 @@ const PlansTab: React.FC<{ plans: VIPPlan[]; onChanged: () => void }> = ({plans,
           <div className="flex items-start justify-between mb-3">
             <div>
               <h4 className="font-bold text-gray-900 dark:text-white">{p.name}</h4>
-              {p.description && <p className="text-xs text-gray-500 mt-0.5">{p.description}</p>}
+              {p.description && <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{p.description}</p>}
             </div>
             {!p.is_active && <span
-              className="px-2 py-0.5 text-[10px] rounded-full bg-gray-200 dark:bg-gray-700 text-gray-500">已禁用</span>}
+              className="px-2 py-0.5 text-[10px] rounded-full bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400">已禁用</span>}
           </div>
           <div className="flex items-baseline gap-1 mb-3">
             <span className="text-2xl font-bold text-gray-900 dark:text-white">¥{p.price}</span>
@@ -122,7 +122,7 @@ const PlansTab: React.FC<{ plans: VIPPlan[]; onChanged: () => void }> = ({plans,
               <span className="text-xs text-gray-400 line-through">¥{p.original_price}</span>}
             <span className="text-xs text-gray-400 ml-auto">/{p.duration_days}天</span>
           </div>
-          <div className="flex items-center gap-2 text-xs text-gray-500 mb-3">
+          <div className="flex items-center gap-2 text-xs text-gray-500 dark:text-gray-400 mb-3">
             <Crown className="w-3.5 h-3.5"/>Lv.{p.level}
           </div>
           <div className="flex gap-1.5 mt-3 pt-3 border-t border-gray-100 dark:border-gray-800">

@@ -4,7 +4,7 @@
 
 'use client';
 
-import React from 'react';
+
 import {getDirection} from '@/lib/i18n';
 import type {Locale} from '@/lib/i18n';
 

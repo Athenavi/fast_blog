@@ -8,11 +8,42 @@ import {AdminShell} from '@/components/admin/AdminShell';
 import {StatCard} from '@/components/admin/shared-ui';
 import {apiClient} from '@/lib/api/base-client';
 import {
-  Save, Settings as SettingsIcon, Home, Menu, FileText, Shield, Plus, Trash2, X,
-  Edit3, Check, AlertTriangle, Loader, ExternalLink, ChevronDown,
-  Globe, Mail, Search, Image, RotateCcw, Download, Upload, Eye,
-  Layers, Zap, Palette, Bell, BarChart3, Hash, Type, Link2,
-  CheckCircle2, XCircle, Clock, FileCode, Layout, Monitor,
+  Save,
+  Settings as SettingsIcon,
+  Home,
+  Menu,
+  FileText,
+  Shield,
+  Plus,
+  Trash2,
+  X,
+  Edit3,
+  Check,
+  AlertTriangle,
+  Loader,
+  ExternalLink,
+  ChevronDown,
+  Globe,
+  Mail,
+  Search,
+  Image,
+  RotateCcw,
+  Download,
+  Upload,
+  Eye,
+  Layers,
+  Zap,
+  Bell,
+  BarChart3,
+  Hash,
+  Type,
+  Link2,
+  CheckCircle2,
+  XCircle,
+  Clock,
+  FileCode,
+  Layout,
+  Monitor
 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────
@@ -185,7 +216,12 @@ const SETTINGS_FIELDS: FieldDef[] = [
 ];
 
 // ─── Section Title ────────────────────────────────────
-const SectionTitle: React.FC<{ icon: any; title: string; subtitle?: string; action?: React.ReactNode }> = ({
+const SectionTitle: React.FC<{
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  subtitle?: string;
+  action?: React.ReactNode
+}> = ({
                                                                                                              icon: Icon,
                                                                                                              title,
                                                                                                              subtitle,
@@ -334,7 +370,7 @@ const StatusBadge: React.FC<{ active: boolean; label?: string }> = ({active, lab
     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold ${
         active
             ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-            : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400'
+          : 'bg-gray-100 text-gray-500 dark:text-gray-400 dark:bg-gray-800 dark:text-gray-400'
     }`}>
     <span className={`w-1.5 h-1.5 rounded-full ${active ? 'bg-emerald-500 animate-pulse' : 'bg-gray-400'}`}/>
       {label || (active ? '激活' : '禁用')}
@@ -343,7 +379,7 @@ const StatusBadge: React.FC<{ active: boolean; label?: string }> = ({active, lab
 
 // ─── Template Badge ───────────────────────────────────
 const TemplateBadge: React.FC<{ template: string }> = ({template}) => {
-  const config: Record<string, { icon: any; color: string }> = {
+  const config: Record<string, { icon: React.ComponentType<{ className?: string }>; color: string }> = {
     'default': {icon: Layout, color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'},
     'full-width': {icon: Monitor, color: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'},
     'sidebar': {icon: Layers, color: 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'},
@@ -358,7 +394,12 @@ const TemplateBadge: React.FC<{ template: string }> = ({template}) => {
 };
 
 // ─── Empty State ──────────────────────────────────────
-const EmptyState: React.FC<{ icon: any; title: string; desc: string; action?: React.ReactNode }> = ({
+const EmptyState: React.FC<{
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  desc: string;
+  action?: React.ReactNode
+}> = ({
                                                                                                       icon: Icon,
                                                                                                       title,
                                                                                                       desc,
@@ -369,7 +410,7 @@ const EmptyState: React.FC<{ icon: any; title: string; desc: string; action?: Re
         <Icon className="w-8 h-8 text-gray-300 dark:text-gray-600"/>
       </div>
       <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{title}</p>
-      <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{desc}</p>
+      <p className="text-xs text-gray-400 dark:text-gray-500 dark:text-gray-400 mt-1">{desc}</p>
       {action && <div className="mt-4">{action}</div>}
     </div>
 );
@@ -424,7 +465,7 @@ function SettingsInner() {
   const {data: fullData, isLoading} = useQuery({
     queryKey: ['admin-system-settings'],
     queryFn: async () => {
-      const r = await apiClient.get<any>('/system/settings/');
+      const r = await apiClient.get('/system/settings/');
       if (r.success && r.data) {
         const raw = r.data.settings || {};
         const norm: Record<string, string> = {};
@@ -701,7 +742,7 @@ function SettingsInner() {
                                      className="flex items-center justify-between py-2 px-3.5 bg-gray-50 dark:bg-gray-800/50 rounded-xl text-sm group/item hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
                                   <div className="flex items-center gap-2.5 min-w-0">
                                 <span
-                                    className="w-5 h-5 rounded bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-[10px] font-mono text-gray-500 shrink-0">
+                                  className="w-5 h-5 rounded bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-[10px] font-mono text-gray-500 dark:text-gray-400 shrink-0">
                                   {itemIdx + 1}
                                 </span>
                                     <span
@@ -908,7 +949,8 @@ function SettingsInner() {
                                 <span className="text-sm font-medium text-gray-900 dark:text-white">{p.title}</span>
                               </div>
                             </td>
-                            <td className="px-5 py-4 text-sm text-gray-500 font-mono hidden sm:table-cell">
+                            <td
+                              className="px-5 py-4 text-sm text-gray-500 dark:text-gray-400 font-mono hidden sm:table-cell">
                               <span
                                   className="px-2 py-0.5 bg-gray-100 dark:bg-gray-800 rounded text-xs">/{p.slug}</span>
                             </td>

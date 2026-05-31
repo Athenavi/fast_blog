@@ -1,12 +1,12 @@
-'use client';
+﻿'use client';
 
-import React, {lazy, Suspense, useState} from 'react';
+import {lazy, Suspense, useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
 import {Crown, Package, Shield} from 'lucide-react';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
-import {apiClient} from '@/lib/api/api-client';
+import {apiClient} from '@/lib/api/base-client';
 import {VipMgmtData} from './vip/shared';
 
 const LazyPlansTab = lazy(() => import('./vip/PlansTab'));
@@ -34,7 +34,7 @@ function VipAdminInner() {
   const {data: mgmt, isLoading, refetch} = useQuery({
     queryKey: ['admin-vip'],
     queryFn: async () => {
-      const r = await apiClient.get<any>('/dashboard/vip-management');
+      const r = await apiClient.get('/dashboard/vip-management');
       return (r.success && r.data) ? (r.data as VipMgmtData) : {stats: {}, members: [], plans: [], features: []};
     },
   });
@@ -44,7 +44,7 @@ function VipAdminInner() {
       <div className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
         {tabs.map(t => (
           <button key={t.key} onClick={() => setActiveTab(t.key)}
-                  className={`px-3 py-1.5 text-sm rounded-md transition-colors ${activeTab === t.key ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white' : 'text-gray-500 hover:text-gray-700'}`}>
+                  className={`px-3 py-1.5 text-sm rounded-md transition-colors ${activeTab === t.key ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'}`}>
             <t.icon className="w-4 h-4 inline mr-1"/>
             {t.label}
           </button>

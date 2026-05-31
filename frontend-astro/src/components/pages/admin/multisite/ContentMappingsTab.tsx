@@ -1,10 +1,10 @@
-'use client';
+﻿'use client';
 
 import React, {useState} from 'react';
-import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
-import {DeleteConfirm, EmptyState, Modal} from '@/components/admin/shared-ui';
-import {apiClient} from '@/lib/api/api-client';
-import {Edit3, Globe, Link, Map, Plus, Search, Trash2, Users} from 'lucide-react';
+import {useQuery} from '@tanstack/react-query';
+import {EmptyState} from '@/components/admin/shared-ui';
+import {apiClient} from '@/lib/api/base-client';
+import {Link} from 'lucide-react';
 import {ContentMapping} from './shared';
 
 const ContentMappingsTab: React.FC = () => {
@@ -20,7 +20,7 @@ const ContentMappingsTab: React.FC = () => {
   });
 
   const items: ContentMapping[] = data?.data?.mappings || [];
-  const total: number = data?.data?.total || 0;
+  const _total: number = data?.data?.total || 0;
 
   const syncStatusColors: Record<string, string> = {
     synced: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
@@ -53,11 +53,11 @@ const ContentMappingsTab: React.FC = () => {
           <table className="w-full text-sm">
             <thead>
             <tr className="bg-gray-50 dark:bg-gray-800/50">
-              <th className="text-left px-4 py-3 font-medium text-gray-500">来源站点</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-500">目标站点</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-500">内容类型</th>
-              <th className="text-center px-4 py-3 font-medium text-gray-500">同步状态</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-500">最后同步</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">来源站点</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">目标站点</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">内容类型</th>
+              <th className="text-center px-4 py-3 font-medium text-gray-500 dark:text-gray-400">同步状态</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">最后同步</th>
             </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -73,11 +73,12 @@ const ContentMappingsTab: React.FC = () => {
                 </td>
                 <td className="px-4 py-3 text-center">
                     <span
-                      className={`px-2 py-0.5 text-[10px] rounded-full font-medium ${syncStatusColors[m.sync_status] || 'bg-gray-100 text-gray-500'}`}>
+                      className={`px-2 py-0.5 text-[10px] rounded-full font-medium ${syncStatusColors[m.sync_status] || 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'}`}>
                       {m.sync_status}
                     </span>
                 </td>
-                <td className="px-4 py-3 text-xs text-gray-500">{m.last_synced_at?.slice(0, 16) || '-'}</td>
+                <td
+                  className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">{m.last_synced_at?.slice(0, 16) || '-'}</td>
               </tr>
             ))}
             </tbody>

@@ -1,13 +1,13 @@
-'use client';
+﻿'use client';
 
 import React, {useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
-import {EmptyState, Modal, Pagination} from '@/components/admin/shared-ui';
+import {EmptyState, Modal} from '@/components/admin/shared-ui';
 import {useToast} from '@/components/ui/toast-provider';
-import {apiClient} from '@/lib/api/api-client';
+import {apiClient} from '@/lib/api/base-client';
 import {Settings, Edit3} from 'lucide-react';
 import {RevenueSharingConfig} from './shared';
-
+import type {ApiResponse} from '@/lib/api/base-types';
 const ConfigTab: React.FC = () => {
   const qc = useQueryClient();
   const toast = useToast();
@@ -24,7 +24,7 @@ const ConfigTab: React.FC = () => {
 
   const updateMut = useMutation({
     mutationFn: ({revenue_type, ...d}: any) => apiClient.put(`/shop/revenue/configs/${revenue_type}`, d),
-    onSuccess: (r: any) => {
+    onSuccess: (r: ApiResponse) => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['revenue-configs']});
         setShowForm(false);
@@ -69,28 +69,28 @@ const ConfigTab: React.FC = () => {
               <div className="flex items-center justify-between mb-3">
                 <div>
                   <h3 className="font-semibold text-gray-900 dark:text-gray-100">{c.revenue_type}</h3>
-                  {c.description && <p className="text-xs text-gray-500 mt-0.5">{c.description}</p>}
+                  {c.description && <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{c.description}</p>}
                 </div>
                 <button onClick={() => openEdit(c)} className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800">
-                  <Edit3 className="w-4 h-4 text-gray-500"/>
+                  <Edit3 className="w-4 h-4 text-gray-500 dark:text-gray-400"/>
                 </button>
               </div>
               <div className="grid grid-cols-2 gap-4 text-sm">
                 <div>
-                  <div className="text-xs text-gray-500">平台分成</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">平台分成</div>
                   <div className="text-lg font-semibold text-blue-600">{c.platform_percentage}%</div>
                 </div>
                 <div>
-                  <div className="text-xs text-gray-500">用户分成</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">用户分成</div>
                   <div className="text-lg font-semibold text-green-600">{(100 - c.platform_percentage).toFixed(1)}%
                   </div>
                 </div>
                 <div>
-                  <div className="text-xs text-gray-500">最低提现</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">最低提现</div>
                   <div className="font-medium">¥{c.min_payout_amount.toFixed(2)}</div>
                 </div>
                 <div>
-                  <div className="text-xs text-gray-500">结算周期</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">结算周期</div>
                   <div
                     className="font-medium">{c.payout_cycle === 'monthly' ? '每月' : c.payout_cycle === 'weekly' ? '每周' : c.payout_cycle}</div>
                 </div>

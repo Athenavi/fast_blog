@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import {useState} from 'react';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
@@ -7,10 +7,7 @@ import {apiClient} from '@/lib/api/base-client';
 import {formatDateTime as formatTime} from '@/lib/utils';
 import {useConfirm} from '@/components/ui/confirm-provider';
 import {useToast} from '@/components/ui/toast-provider';
-import {
-    Webhook, Plus, Trash2, Edit3, CheckCircle, XCircle,
-    Clock, RefreshCw, Eye, Activity, AlertTriangle
-} from 'lucide-react';
+import {Webhook, Plus, Trash2, Edit3, CheckCircle, XCircle, Clock, Eye, Activity, AlertTriangle} from 'lucide-react';
 
 interface WebhookData {
     id: number;
@@ -45,9 +42,9 @@ const EVENT_OPTIONS = [
 ];
 
 const STATUS_CONFIG = {
-    pending: {color: 'bg-yellow-100 text-yellow-700', icon: Clock},
-    success: {color: 'bg-green-100 text-green-700', icon: CheckCircle},
-    failed: {color: 'bg-red-100 text-red-700', icon: XCircle}
+  pending: {color: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400', icon: Clock},
+  success: {color: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400', icon: CheckCircle},
+  failed: {color: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400', icon: XCircle}
 };
 
 function WebhooksInner() {
@@ -174,17 +171,17 @@ function WebhooksInner() {
                 {/* 统计卡片 */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div className="bg-white dark:bg-gray-900 rounded-xl border p-4">
-                        <div className="text-sm text-gray-500 mb-1">活跃 Webhook</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">活跃 Webhook</div>
                         <div className="text-2xl font-bold text-green-600">
                             {webhooks?.filter((w: WebhookData) => w.is_active).length || 0}
                         </div>
                     </div>
                     <div className="bg-white dark:bg-gray-900 rounded-xl border p-4">
-                        <div className="text-sm text-gray-500 mb-1">总 Webhook</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">总 Webhook</div>
                         <div className="text-2xl font-bold">{webhooks?.length || 0}</div>
                     </div>
                     <div className="bg-white dark:bg-gray-900 rounded-xl border p-4">
-                        <div className="text-sm text-gray-500 mb-1">今日投递</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">今日投递</div>
                         <div className="text-2xl font-bold text-blue-600">
                             {deliveries?.filter((d: WebhookDelivery) => {
                                 const today = new Date().toDateString();
@@ -193,7 +190,7 @@ function WebhooksInner() {
                         </div>
                     </div>
                     <div className="bg-white dark:bg-gray-900 rounded-xl border p-4">
-                        <div className="text-sm text-gray-500 mb-1">失败次数</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">失败次数</div>
                         <div className="text-2xl font-bold text-red-600">
                             {deliveries?.filter((d: WebhookDelivery) => d.status === 'failed').length || 0}
                         </div>
@@ -242,13 +239,13 @@ function WebhooksInner() {
                                                     className="font-medium text-gray-900 dark:text-white">{webhook.url}</span>
                                                 {webhook.is_active ? (
                                                     <span
-                                                        className="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded-full">活跃</span>
+                                                      className="px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-xs rounded-full">活跃</span>
                                                 ) : (
                                                     <span
-                                                        className="px-2 py-0.5 bg-gray-100 text-gray-600 text-xs rounded-full">停用</span>
+                                                      className="px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 text-xs rounded-full">停用</span>
                                                 )}
                                             </div>
-                                            <div className="text-xs text-gray-500 space-x-3">
+                                          <div className="text-xs text-gray-500 dark:text-gray-400 space-x-3">
                                                 <span>ID: {webhook.id}</span>
                                                 <span>事件: {webhook.events.join(', ')}</span>
                                                 <span>创建时间: {formatTime(webhook.created_at || '')}</span>
@@ -297,11 +294,21 @@ function WebhooksInner() {
                             <table className="w-full">
                                 <thead className="bg-gray-50 dark:bg-gray-800">
                                 <tr>
-                                    <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase">事件</th>
-                                    <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase">状态</th>
-                                    <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase hidden md:table-cell">状态码</th>
-                                    <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase hidden lg:table-cell">时间</th>
-                                    <th className="px-5 py-3 text-right text-xs font-semibold text-gray-500 uppercase">操作</th>
+                                  <th
+                                    className="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">事件
+                                  </th>
+                                  <th
+                                    className="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">状态
+                                  </th>
+                                  <th
+                                    className="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase hidden md:table-cell">状态码
+                                  </th>
+                                  <th
+                                    className="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase hidden lg:table-cell">时间
+                                  </th>
+                                  <th
+                                    className="px-5 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">操作
+                                  </th>
                                 </tr>
                                 </thead>
                                 <tbody className="divide-y">
@@ -309,10 +316,12 @@ function WebhooksInner() {
                                     <tr key={delivery.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
                                         <td className="px-5 py-4 text-sm text-gray-900 dark:text-white">{delivery.event}</td>
                                         <td className="px-5 py-4">{getStatusBadge(delivery.status)}</td>
-                                        <td className="px-5 py-4 text-sm text-gray-500 hidden md:table-cell">
+                                      <td
+                                        className="px-5 py-4 text-sm text-gray-500 dark:text-gray-400 hidden md:table-cell">
                                             {delivery.status_code || '-'}
                                         </td>
-                                        <td className="px-5 py-4 text-sm text-gray-500 hidden lg:table-cell">
+                                      <td
+                                        className="px-5 py-4 text-sm text-gray-500 dark:text-gray-400 hidden lg:table-cell">
                                             {formatTime(delivery.created_at)}
                                         </td>
                                         <td className="px-5 py-4 text-right">
@@ -425,28 +434,31 @@ function WebhooksInner() {
                         </div>
                         <div className="flex-1 overflow-y-auto p-6 space-y-4">
                             <div>
-                                <div className="text-sm font-medium text-gray-500 mb-1">事件</div>
+                              <div className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">事件</div>
                                 <div>{selectedDelivery.event}</div>
                             </div>
                             <div>
-                                <div className="text-sm font-medium text-gray-500 mb-1">状态</div>
+                              <div className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">状态</div>
                                 <div>{getStatusBadge(selectedDelivery.status)}</div>
                             </div>
                             {selectedDelivery.status_code && (
                                 <div>
-                                    <div className="text-sm font-medium text-gray-500 mb-1">HTTP 状态码</div>
+                                  <div className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">HTTP
+                                    状态码
+                                  </div>
                                     <div>{selectedDelivery.status_code}</div>
                                 </div>
                             )}
                             <div>
-                                <div className="text-sm font-medium text-gray-500 mb-1">请求载荷</div>
+                              <div className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">请求载荷</div>
                                 <pre className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg text-xs overflow-x-auto">
                   {JSON.stringify(selectedDelivery.payload, null, 2)}
                 </pre>
                             </div>
                             {selectedDelivery.response_body && (
                                 <div>
-                                    <div className="text-sm font-medium text-gray-500 mb-1">响应内容</div>
+                                  <div className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">响应内容
+                                  </div>
                                     <pre className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg text-xs overflow-x-auto">
                     {selectedDelivery.response_body.slice(0, 1000)}
                   </pre>
@@ -454,7 +466,8 @@ function WebhooksInner() {
                             )}
                             {selectedDelivery.error_message && (
                                 <div>
-                                    <div className="text-sm font-medium text-gray-500 mb-1">错误信息</div>
+                                  <div className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">错误信息
+                                  </div>
                                     <div className="text-red-600 bg-red-50 dark:bg-red-900/20 p-3 rounded-lg text-sm">
                                         {selectedDelivery.error_message}
                                     </div>
@@ -462,12 +475,15 @@ function WebhooksInner() {
                             )}
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <div className="text-sm font-medium text-gray-500 mb-1">发送时间</div>
+                                  <div className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">发送时间
+                                  </div>
                                     <div>{formatTime(selectedDelivery.created_at)}</div>
                                 </div>
                                 {selectedDelivery.completed_at && (
                                     <div>
-                                        <div className="text-sm font-medium text-gray-500 mb-1">完成时间</div>
+                                      <div
+                                        className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">完成时间
+                                      </div>
                                         <div>{formatTime(selectedDelivery.completed_at)}</div>
                                     </div>
                                 )}

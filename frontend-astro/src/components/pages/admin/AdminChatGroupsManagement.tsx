@@ -1,13 +1,13 @@
 'use client';
 
-import React, {lazy, Suspense, useState} from 'react';
+import React, {lazy, Suspense} from 'react';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 
 const LazyGroupsTab = lazy(() => import('./chat-groups/GroupsTab'));
-const LazyGroupMembersPanel = lazy(() => import('./chat-groups/GroupMembersPanel'));
-const LazyGroupInvitesPanel = lazy(() => import('./chat-groups/GroupInvitesPanel'));
+const __LazyGroupMembersPanel = lazy(() => import('./chat-groups/GroupMembersPanel'));
+const __LazyGroupInvitesPanel = lazy(() => import('./chat-groups/GroupInvitesPanel'));
 
 const TabSkeleton = () => (
   <div className="space-y-4 animate-pulse">

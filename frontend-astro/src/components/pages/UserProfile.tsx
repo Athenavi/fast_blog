@@ -1,7 +1,7 @@
-'use client';
+﻿'use client';
 
-import React, {useEffect, useState} from 'react';
-import {apiClient} from '@/lib/api/api-client';
+import {useEffect, useState} from 'react';
+import {apiClient} from '@/lib/api/base-client';
 import {AuthGuard} from '@/components/AuthGuard';
 import {Calendar, Edit3, Eye, FileText, Heart, Link as LinkIcon, Lock, Mail, MapPin, Settings} from 'lucide-react';
 
@@ -52,7 +52,7 @@ function Profile() {
           <img src={av} alt="" className="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl border-4 border-white dark:border-gray-900 shadow-xl object-cover bg-white" onError={e=>{(e.target as HTMLImageElement).src=`https://ui-avatars.com/api/?name=${encodeURIComponent(u.username||'U')}&background=random`}}/>
           <div className="text-center sm:text-left flex-1">
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white">{u.display_name||u.username}</h1>
-            <p className="text-gray-500">@{u.username}</p>
+            <p className="text-gray-500 dark:text-gray-400">@{u.username}</p>
             {u.bio && <p className="text-sm text-gray-600 dark:text-gray-400 mt-1 max-w-lg">{u.bio}</p>}
           </div>
           <a href="/settings" className="shrink-0 px-4 py-2 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm font-medium hover:bg-gray-50 dark:hover:bg-gray-700 shadow-sm transition-colors"><Settings className="w-4 h-4 inline mr-1 -mt-0.5"/>编辑</a>
@@ -60,16 +60,22 @@ function Profile() {
 
         {/* Stats row */}
         <div className="flex gap-6 sm:gap-10 mb-8 text-center sm:text-left">
-          <div><p className="text-xl font-bold text-gray-900 dark:text-white">{st.articles_count}</p><p className="text-xs text-gray-500">文章</p></div>
-          <div><p className="text-xl font-bold text-gray-900 dark:text-white">{st.followers_count}</p><p className="text-xs text-gray-500">粉丝</p></div>
-          <div><p className="text-xl font-bold text-gray-900 dark:text-white">{st.following_count}</p><p className="text-xs text-gray-500">关注</p></div>
-          <div><p className="text-xl font-bold text-gray-900 dark:text-white">{arts.reduce((s,a)=>s+(a.views||0),0)}</p><p className="text-xs text-gray-500">浏览</p></div>
+          <div><p className="text-xl font-bold text-gray-900 dark:text-white">{st.articles_count}</p><p
+            className="text-xs text-gray-500 dark:text-gray-400">文章</p></div>
+          <div><p className="text-xl font-bold text-gray-900 dark:text-white">{st.followers_count}</p><p
+            className="text-xs text-gray-500 dark:text-gray-400">粉丝</p></div>
+          <div><p className="text-xl font-bold text-gray-900 dark:text-white">{st.following_count}</p><p
+            className="text-xs text-gray-500 dark:text-gray-400">关注</p></div>
+          <div><p
+            className="text-xl font-bold text-gray-900 dark:text-white">{arts.reduce((s, a) => s + (a.views || 0), 0)}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400">浏览</p></div>
         </div>
 
         {/* Tabs */}
         <div className="flex gap-1 mb-6 bg-white/60 dark:bg-gray-800/60 backdrop-blur-sm rounded-xl p-1 border border-gray-200/60 dark:border-gray-700/60 w-fit">
           {['近期文章','个人信息'].map((l,i) => (
-            <button key={l} onClick={()=>setTab(i)} className={`px-5 py-2 rounded-lg text-sm font-medium transition-all ${tab===i ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}>{l}</button>
+            <button key={l} onClick={() => setTab(i)}
+                    className={`px-5 py-2 rounded-lg text-sm font-medium transition-all ${tab === i ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}`}>{l}</button>
           ))}
         </div>
 
@@ -85,7 +91,7 @@ function Profile() {
                   {a.cover_image && <img src={a.cover_image} alt="" className="hidden sm:block w-28 h-20 rounded-lg object-cover shrink-0"/>}
                   <div className="min-w-0 flex-1">
                     <h3 className="font-semibold text-gray-900 dark:text-white truncate">{a.title}</h3>
-                    <p className="text-xs text-gray-500 mt-1 line-clamp-1">{a.excerpt||''}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-1">{a.excerpt || ''}</p>
                     <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
                       <span><Calendar className="w-3 h-3 inline mr-0.5"/>{a.created_at ? new Date(a.created_at).toLocaleDateString('zh-CN') : ''}</span>
                       <span><Eye className="w-3 h-3 inline mr-0.5"/>{a.views||0}</span>
@@ -109,7 +115,7 @@ function Profile() {
             ].map(({icon:Icon,label,value,link}) => (
               <div key={label} className="flex items-center gap-3 text-sm">
                 <Icon className="w-4 h-4 text-gray-400 shrink-0"/>
-                <span className="text-gray-500 w-12">{label}</span>
+                <span className="text-gray-500 dark:text-gray-400 w-12">{label}</span>
                 {link && value!=='未设置' ? <a href={value} target="_blank" rel="noopener" className="text-blue-600 hover:underline truncate">{value}</a> : <span className="text-gray-900 dark:text-white">{value}</span>}
               </div>
             ))}

@@ -1,8 +1,8 @@
-'use client';
+﻿'use client';
 
-import React, {useState} from 'react';
+import {useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
-import {apiClient} from '@/lib/api/api-client';
+import {apiClient} from '@/lib/api/base-client';
 import {Calendar, Edit, Eye, FileText, Lock, Plus, Search, Trash2} from 'lucide-react';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AuthGuard} from '@/components/AuthGuard';
@@ -17,7 +17,7 @@ function MyPostsInner() {
   const {data, isLoading} = useQuery({
     queryKey: ['my-posts', page, q],
     queryFn: async () => {
-      const res = await apiClient.get<any>('/dashboard/my/articles', {page, per_page: 15, q: q || undefined});
+      const res = await apiClient.get('/dashboard/my/articles', {page, per_page: 15, q: q || undefined});
       if (!res.success || !res.data) return {articles: [], total: 0};
       // API may return {articles:[], total:N} or {data:{articles:[], total:N}} or just an array
       if (Array.isArray(res.data)) return {articles: res.data, total: res.data.length};
@@ -56,7 +56,7 @@ function MyPostsInner() {
           {/* Header */}
           <div className="flex items-center justify-between mb-6">
             <div><h1 className="text-2xl font-bold text-gray-900 dark:text-white">我的文章</h1><p
-                className="text-sm text-gray-500 mt-0.5">{total > 0 ? `共 ${total} 篇` : ''}</p></div>
+              className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">{total > 0 ? `共 ${total} 篇` : ''}</p></div>
             <a href="/my/posts/create"
                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl flex items-center gap-1.5 transition-colors shadow-sm"><Plus
                 className="w-4 h-4"/>写文章</a>
@@ -81,13 +81,13 @@ function MyPostsInner() {
                 <div
                     className="bg-white/70 dark:bg-gray-900/70 backdrop-blur-sm rounded-2xl border border-gray-100 dark:border-gray-800 p-12 text-center">
                   <FileText className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3"/>
-                  <p className="text-gray-500 mb-4 text-sm">{q ? '没有匹配的文章' : '还没有文章'}</p>
+                  <p className="text-gray-500 dark:text-gray-400 mb-4 text-sm">{q ? '没有匹配的文章' : '还没有文章'}</p>
                   {!q && <a href="/my/posts/create"
                             className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-sm rounded-xl hover:bg-blue-700"><Plus
                       className="w-4 h-4"/>开始写作</a>}
                 </div>
             ) : (
-                articles.map((a: any) => (
+              articles.map((a) => (
                     <div key={a.id}
                          className="bg-white/70 dark:bg-gray-900/70 backdrop-blur-sm rounded-xl border border-gray-100 dark:border-gray-800 p-4 hover:border-gray-200 dark:hover:border-gray-700 transition-all hover:shadow-sm flex items-start gap-3">
                       <div className="flex-1 min-w-0">
@@ -101,7 +101,8 @@ function MyPostsInner() {
                              className="font-semibold text-gray-900 dark:text-white text-sm hover:text-blue-600 truncate">{a.title || '无标题'}</a>
                         </div>
                         {(a.excerpt || a.summary) &&
-                            <p className="text-xs text-gray-500 mt-1 line-clamp-1">{a.excerpt || a.summary}</p>}
+                          <p
+                            className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-1">{a.excerpt || a.summary}</p>}
                         <div className="flex items-center gap-3 mt-1.5 text-xs text-gray-400">
                                         <span><Calendar
                                             className="w-3 h-3 inline mr-0.5"/>{a.created_at ? new Date(a.created_at).toLocaleDateString('zh-CN') : ''}</span>

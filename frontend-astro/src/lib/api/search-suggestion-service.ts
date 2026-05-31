@@ -1,9 +1,9 @@
-/**
+﻿/**
  * 搜索建议服务
  * 提供搜索自动补全和热门搜索功能
  */
 
-import apiClient from './api-client';
+import {apiClient} from './base-client';
 import type {ApiResponse} from '@/lib/api/base-types';
 
 export interface SearchSuggestion {

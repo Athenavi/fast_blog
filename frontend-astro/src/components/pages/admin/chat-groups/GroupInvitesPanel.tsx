@@ -1,11 +1,11 @@
-'use client';
+﻿'use client';
 
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
-import {apiClient} from '@/lib/api/api-client';
+import {apiClient} from '@/lib/api/base-client';
 import {useToast} from '@/components/ui/toast-provider';
-import {Link2, MessageSquare, Plus, Search, Trash2, Users} from 'lucide-react';
+import {Trash2} from 'lucide-react';
 import {ChatGroupInvite, StatusBadge} from './shared';
-
+import type {ApiResponse} from '@/lib/api/base-types';
 const GroupInvitesPanel: React.FC<{ groupId: number | null }> = ({groupId}) => {
   const toast = useToast();
   const qc = useQueryClient();
@@ -20,14 +20,14 @@ const GroupInvitesPanel: React.FC<{ groupId: number | null }> = ({groupId}) => {
 
   const createMut = useMutation({
     mutationFn: () => apiClient.post(`/chats/groups/${groupId}/create-invite`, {}),
-    onSuccess: (r: any) => {
+    onSuccess: (r: ApiResponse) => {
       if (r.success) qc.invalidateQueries({queryKey: ['group-invites', groupId]});
       else toast.error(r.error || '操作失败');
     },
   });
   const revokeMut = useMutation({
     mutationFn: (code: string) => apiClient.post(`/chats/groups/${groupId}/revoke-invite`, {invite_code: code}),
-    onSuccess: (r: any) => {
+    onSuccess: (r: ApiResponse) => {
       if (r.success) qc.invalidateQueries({queryKey: ['group-invites', groupId]});
       else toast.error(r.error || '操作失败');
     },
@@ -44,7 +44,7 @@ const GroupInvitesPanel: React.FC<{ groupId: number | null }> = ({groupId}) => {
         <>
           <div className="space-y-2 mb-4 max-h-60 overflow-y-auto">
             {invites.length === 0 ? (
-              <p className="text-sm text-gray-500 text-center py-4">暂无邀请链接</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">暂无邀请链接</p>
             ) : invites.map(inv => (
               <div key={inv.id}
                    className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">

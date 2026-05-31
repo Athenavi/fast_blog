@@ -1,17 +1,17 @@
-'use client';
+﻿'use client';
 
 import React, {useState, useRef} from 'react';
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {SectionTitle} from '@/components/admin/shared-ui';
 import {ArrowRight, Check, Database, FileText, FileUp, Globe, Loader, Upload, X} from 'lucide-react';
-import {apiClient} from '@/lib/api/api-client';
+import {apiClient} from '@/lib/api/base-client';
 import {ActionButton, Ghost} from './shared';
 
 
 export default function ImportTab({showToast}: {
   showToast: (msg: string, type?: 'success' | 'error' | 'info') => void
 }) {
-  const qc = useQueryClient();
+  const __qc = useQueryClient();
   const wpFileRef = useRef<HTMLInputElement>(null);
   const [importing, setImporting] = useState(false);
   const [parseResult, setParseResult] = useState<any>(null);
@@ -19,10 +19,10 @@ export default function ImportTab({showToast}: {
   const [downloadMedia, setDownloadMedia] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
 
-  const {data: wpTemplate} = useQuery({
+  const {data: _wpTemplate} = useQuery({
     queryKey: ['integ-wp-template'],
     queryFn: async () => {
-      const r = await apiClient.get<any>('/integrations/wordpress/template');
+      const r = await apiClient.get('/integrations/wordpress/template');
       return r.success && r.data ? r.data : null;
     },
   });
@@ -117,12 +117,13 @@ export default function ImportTab({showToast}: {
                 {importing ? (
                   <div className="flex flex-col items-center">
                     <Loader className="w-8 h-8 text-blue-500 animate-spin mb-2"/>
-                    <p className="text-sm text-gray-500">{parseResult ? '正在导入...' : '正在解析...'}</p>
+                    <p
+                      className="text-sm text-gray-500 dark:text-gray-400">{parseResult ? '正在导入...' : '正在解析...'}</p>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center">
                     <FileUp className="w-10 h-10 text-gray-300 mb-2"/>
-                    <p className="text-sm text-gray-500">选择 WordPress 导出文件 (.xml)</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">选择 WordPress 导出文件 (.xml)</p>
                     <p className="text-xs text-gray-400 mt-1">在 WordPress 后台 → 工具 → 导出 获取</p>
                   </div>
                 )}
@@ -220,7 +221,7 @@ export default function ImportTab({showToast}: {
                 <div className="flex items-center gap-3 mb-2">
                   <div
                     className="w-8 h-8 rounded-lg bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 flex items-center justify-center">
-                    <Icon className="w-4 h-4 text-gray-500"/>
+                    <Icon className="w-4 h-4 text-gray-500 dark:text-gray-400"/>
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-900 dark:text-white">{src.name}</p>

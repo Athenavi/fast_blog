@@ -79,7 +79,7 @@ export const Modal: React.FC<{ open: boolean; title: string; onClose: () => void
       <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800">
         <h3 className="font-bold text-gray-900 dark:text-white">{title}</h3>
         <button onClick={onClose} className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800"><X
-          className="w-4 h-4 text-gray-500"/></button>
+          className="w-4 h-4 text-gray-500 dark:text-gray-400"/></button>
       </div>
       <div className="px-6 py-4">{children}</div>
     </div>
@@ -96,7 +96,7 @@ export const Inp: React.FC<{
   rows?: number
 }> = ({label, value, onChange, type, placeholder, className, rows}) => (
   <div className={`mb-3 ${className || ''}`}>
-    <label className="block text-xs font-semibold text-gray-500 mb-1">{label}</label>
+    <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">{label}</label>
     {rows ? (
       <textarea rows={rows} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
                 className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white placeholder-gray-400 resize-none"/>

@@ -1,6 +1,6 @@
 'use client';
 
-import React, {useState, useMemo, useEffect, useCallback} from 'react';
+import React, {useState, useMemo, useEffect} from 'react';
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
@@ -8,14 +8,41 @@ import {AdminShell} from '@/components/admin/AdminShell';
 import {apiClient} from '@/lib/api/base-client';
 import {StatCard} from '@/components/admin/shared-ui';
 import {
-  Shield, Edit, Trash2, Plus, X, Check, AlertTriangle, Users,
-  Search, Key, UserCheck, Crown, Lock, Unlock, ChevronDown,
-  CheckCircle2, XCircle, Loader, Eye, Hash, Layers, Settings,
-  FileText, MessageSquare, Image, BarChart3, Globe, Bell,
+  Shield,
+  Edit,
+  Trash2,
+  Plus,
+  X,
+  Check,
+  AlertTriangle,
+  Users,
+  Search,
+  Key,
+  UserCheck,
+  Crown,
+  Lock,
+  Unlock,
+  ChevronDown,
+  CheckCircle2,
+  XCircle,
+  Loader,
+  Hash,
+  Layers,
+  Settings,
+  FileText,
+  MessageSquare,
+  Image,
+  BarChart3,
+  Globe,
+  Bell
 } from 'lucide-react';
 
 // ─── Permission resource type icons ───────────────────
-const RESOURCE_ICONS: Record<string, { icon: any; gradient: string; color: string }> = {
+const RESOURCE_ICONS: Record<string, {
+  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
+  gradient: string;
+  color: string
+}> = {
   article: {icon: FileText, gradient: 'from-blue-500 to-cyan-500', color: 'text-blue-600 dark:text-blue-400'},
   user: {icon: Users, gradient: 'from-purple-500 to-pink-500', color: 'text-purple-600 dark:text-purple-400'},
   comment: {icon: MessageSquare, gradient: 'from-amber-500 to-orange-500', color: 'text-amber-600 dark:text-amber-400'},
@@ -40,7 +67,12 @@ const getResourceConfig = (rt: string) => RESOURCE_ICONS[rt] || {
 
 
 // ─── Section Title ────────────────────────────────────
-const SectionTitle: React.FC<{ icon: any; title: string; subtitle?: string; action?: React.ReactNode }> = ({
+const SectionTitle: React.FC<{
+  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
+  title: string;
+  subtitle?: string;
+  action?: React.ReactNode
+}> = ({
                                                                                                              icon: Icon,
                                                                                                              title,
                                                                                                              subtitle,
@@ -83,7 +115,12 @@ const RolesSkeleton = () => (
 );
 
 // ─── Empty State ──────────────────────────────────────
-const EmptyState: React.FC<{ icon: any; title: string; desc: string; action?: React.ReactNode }> = ({
+const EmptyState: React.FC<{
+  icon: React.ComponentType<{ className?: string; style?: React.CSSProperties }>;
+  title: string;
+  desc: string;
+  action?: React.ReactNode
+}> = ({
                                                                                                       icon: Icon,
                                                                                                       title,
                                                                                                       desc,
@@ -94,7 +131,7 @@ const EmptyState: React.FC<{ icon: any; title: string; desc: string; action?: Re
         <Icon className="w-8 h-8 text-gray-300 dark:text-gray-600"/>
       </div>
       <p className="text-sm font-medium text-gray-500 dark:text-gray-400">{title}</p>
-      <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{desc}</p>
+      <p className="text-xs text-gray-400 dark:text-gray-500 dark:text-gray-400 mt-1">{desc}</p>
       {action && <div className="mt-4">{action}</div>}
     </div>
 );
@@ -193,7 +230,7 @@ function RoleModal({mode, role, permissions, onClose}: {
   const [desc, setDesc] = useState(role?.description || '');
   const [selectedPerms, setSelectedPerms] = useState<Set<string>>(() => {
     if (!role?.permission_codes) return new Set<string>();
-    return new Set(role.permission_codes.map((c: any) => typeof c === 'string' ? c : String(c)));
+    return new Set(role.permission_codes.map((c) => typeof c === 'string' ? c : String(c)));
   });
   const [error, setError] = useState('');
   const [searchPerms, setSearchPerms] = useState('');
@@ -202,7 +239,7 @@ function RoleModal({mode, role, permissions, onClose}: {
   // Group permissions by resource_type
   const grouped = useMemo(() => {
     const acc: Record<string, any[]> = {};
-    permissions.forEach((p: any) => {
+    permissions.forEach((p) => {
       const rt = p.resource_type || p.code?.split(':')[0] || 'other';
       if (!acc[rt]) acc[rt] = [];
       acc[rt].push(p);
@@ -216,7 +253,7 @@ function RoleModal({mode, role, permissions, onClose}: {
     const q = searchPerms.toLowerCase();
     const result: Record<string, any[]> = {};
     Object.entries(grouped).forEach(([rt, perms]) => {
-      const filtered = perms.filter((p: any) =>
+      const filtered = perms.filter((p) =>
           (p.name || '').toLowerCase().includes(q) || (p.code || '').toLowerCase().includes(q)
       );
       if (filtered.length > 0) result[rt] = filtered;
@@ -243,8 +280,8 @@ function RoleModal({mode, role, permissions, onClose}: {
 
   const selectAllInGroup = (rt: string, perms: any[]) => {
     const s = new Set(selectedPerms);
-    const allSelected = perms.every((p: any) => s.has(p.code || `${p.resource_type}:${p.action}`));
-    perms.forEach((p: any) => {
+    const allSelected = perms.every((p) => s.has(p.code || `${p.resource_type}:${p.action}`));
+    perms.forEach((p) => {
       const code = p.code || `${p.resource_type}:${p.action}`;
       allSelected ? s.delete(code) : s.add(code);
     });
@@ -328,8 +365,8 @@ function RoleModal({mode, role, permissions, onClose}: {
                 const config = getResourceConfig(rt);
                 const Icon = config.icon;
                 const isExpanded = expandedGroups.has(rt);
-                const allSelected = perms.every((p: any) => selectedPerms.has(p.code || `${p.resource_type}:${p.action}`));
-                const someSelected = perms.some((p: any) => selectedPerms.has(p.code || `${p.resource_type}:${p.action}`));
+                const allSelected = perms.every((p) => selectedPerms.has(p.code || `${p.resource_type}:${p.action}`));
+                const someSelected = perms.some((p) => selectedPerms.has(p.code || `${p.resource_type}:${p.action}`));
 
                 return (
                     <div key={rt}>
@@ -354,7 +391,7 @@ function RoleModal({mode, role, permissions, onClose}: {
                                   className={`text-[10px] px-2 py-0.5 rounded-full font-medium transition-colors ${
                                       allSelected
                                           ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
-                                          : 'bg-gray-100 text-gray-500 dark:bg-gray-800 dark:text-gray-400 hover:bg-blue-100 hover:text-blue-600'
+                                        : 'bg-gray-100 text-gray-500 dark:text-gray-400 dark:bg-gray-800 dark:text-gray-400 hover:bg-blue-100 hover:text-blue-600'
                                   }`}>
                             {allSelected ? '全选 ✓' : '全选'}
                           </button>
@@ -364,7 +401,7 @@ function RoleModal({mode, role, permissions, onClose}: {
                       </button>
                       {isExpanded && (
                           <div className="px-4 pb-3 flex flex-wrap gap-1.5">
-                            {perms.map((p: any) => {
+                            {perms.map((p) => {
                               const code = p.code || `${p.resource_type}:${p.action}`;
                               const active = selectedPerms.has(code);
                               return (
@@ -418,8 +455,8 @@ function UsersModal({roleId, roleName, onClose}: {roleId: number; roleName: stri
       return Array.isArray(res.data) ? res.data : (res.data.users || []);
     },
   });
-  const assigned = (users || []).filter((u: any) =>
-      u.roles?.some((r: any) => r.id === roleId)
+  const assigned = (users || []).filter((u) =>
+    u.roles?.some((r) => r.id === roleId)
   );
 
   return (
@@ -447,7 +484,7 @@ function UsersModal({roleId, roleName, onClose}: {roleId: number; roleName: stri
             </div>
         ) : (
             <div className="space-y-2">
-              {assigned.map((u: any) => {
+              {assigned.map((u) => {
                 const initial = u.username?.[0]?.toUpperCase() || '?';
                 const colors = ['from-blue-500 to-cyan-500', 'from-purple-500 to-pink-500', 'from-emerald-500 to-teal-500', 'from-amber-500 to-orange-500', 'from-rose-500 to-red-500'];
                 const colorIdx = (u.id || 0) % colors.length;
@@ -469,7 +506,7 @@ function UsersModal({roleId, roleName, onClose}: {roleId: number; roleName: stri
                   </span>
                       ) : (
                           <span
-                              className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-500 rounded-full text-[10px] font-medium">
+                            className="inline-flex items-center gap-1 px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 rounded-full text-[10px] font-medium">
                     <span className="w-1.5 h-1.5 rounded-full bg-gray-400"/>禁用
                   </span>
                       )}
@@ -522,7 +559,7 @@ function RolesInner() {
     if (!roles) return [];
     if (!searchQuery) return roles;
     const q = searchQuery.toLowerCase();
-    return roles.filter((r: any) =>
+    return roles.filter((r) =>
         r.name?.toLowerCase().includes(q) || r.slug?.toLowerCase().includes(q) || r.description?.toLowerCase().includes(q)
     );
   }, [roles, searchQuery]);
@@ -530,10 +567,10 @@ function RolesInner() {
   // Stats
   const stats = useMemo(() => ({
     totalRoles: roles?.length || 0,
-    systemRoles: roles?.filter((r: any) => r.is_system).length || 0,
-    customRoles: roles?.filter((r: any) => !r.is_system).length || 0,
+    systemRoles: roles?.filter((r) => r.is_system).length || 0,
+    customRoles: roles?.filter((r) => !r.is_system).length || 0,
     totalPermissions: permissions?.length || 0,
-    totalUsers: roles?.reduce((sum: number, r: any) => sum + (r.user_count || 0), 0) || 0,
+    totalUsers: roles?.reduce((sum, r) => sum + (r.user_count || 0), 0) || 0,
   }), [roles, permissions]);
 
   return (
@@ -593,7 +630,7 @@ function RolesInner() {
                   </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50 dark:divide-gray-800/50">
-                  {filteredRoles.map((r: any) => (
+                  {filteredRoles.map((r) => (
                       <tr key={r.id} className="group hover:bg-gray-50/80 dark:hover:bg-gray-800/30 transition-colors">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">

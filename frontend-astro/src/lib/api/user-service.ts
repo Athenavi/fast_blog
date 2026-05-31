@@ -1,9 +1,9 @@
-/**
+﻿/**
  * 用户搜索服务
  * 用于 @提及功能获取用户列表
  */
 
-import apiClient from './api-client';
+import {apiClient} from './base-client';
 import type {ApiResponse} from '@/lib/api/base-types';
 
 export interface UserSuggestion {

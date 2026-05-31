@@ -25,7 +25,8 @@ const CategoriesPage: React.FC = () => {
           className="p-6 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 hover:shadow-lg hover:border-blue-500 transition-all">
           <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-2">{cat.name}</h3>
           {cat.description && <p className="text-sm text-gray-600 dark:text-gray-400">{cat.description}</p>}
-          {cat.article_count !== undefined && <span className="inline-block mt-3 text-xs px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded-full text-gray-500">{cat.article_count} 篇文章</span>}
+          {cat.article_count !== undefined && <span
+            className="inline-block mt-3 text-xs px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded-full text-gray-500 dark:text-gray-400">{cat.article_count} 篇文章</span>}
         </a>
       ))}
     </div>

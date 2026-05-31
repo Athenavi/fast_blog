@@ -1,14 +1,14 @@
-'use client';
+﻿'use client';
 
 import React, {useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
-import {EmptyState, Modal} from '@/components/admin/shared-ui';
-import {apiClient} from '@/lib/api/api-client';
+import {EmptyState} from '@/components/admin/shared-ui';
+import {apiClient} from '@/lib/api/base-client';
 import {useConfirm} from '@/components/ui/confirm-provider';
 import {useToast} from '@/components/ui/toast-provider';
 import {CheckCircle, ChevronLeft, ChevronRight, Plus, RefreshCw, Search, Trash2, XCircle} from 'lucide-react';
 import {SearchIndex, Pagination} from './shared';
-
+import type {ApiResponse} from '@/lib/api/base-types';
 const SearchIndexTab: React.FC = () => {
   const confirm = useConfirm();
   const toast = useToast();
@@ -29,7 +29,7 @@ const SearchIndexTab: React.FC = () => {
 
   const createMut = useMutation({
     mutationFn: (d: any) => apiClient.post('/search/management/search-index', d),
-    onSuccess: (r: any) => {
+    onSuccess: (r: ApiResponse) => {
       if (r.success) qc.invalidateQueries({queryKey: ['search-index']}); else toast.error(r.error || '操作失败');
     },
   });
@@ -43,7 +43,7 @@ const SearchIndexTab: React.FC = () => {
   });
   const batchReindexMut = useMutation({
     mutationFn: (articleIds?: number[]) => apiClient.post('/search/management/search-index/batch-reindex', {article_ids: articleIds}),
-    onSuccess: (r: any) => {
+    onSuccess: (r: ApiResponse) => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['search-index']});
         toast.success(r.message || '重新索引已触发');
@@ -91,12 +91,14 @@ const SearchIndexTab: React.FC = () => {
             <table className="w-full text-sm">
               <thead>
               <tr className="border-b border-gray-100 dark:border-gray-800">
-                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">ID</th>
-                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">文章ID</th>
-                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">索引状态</th>
-                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">索引哈希</th>
-                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">最后索引时间</th>
-                <th className="text-right py-3 px-4 text-xs font-semibold text-gray-500">操作</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">ID</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">文章ID</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">索引状态</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">索引哈希</th>
+                <th
+                  className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">最后索引时间
+                </th>
+                <th className="text-right py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">操作</th>
               </tr>
               </thead>
               <tbody>{items.map(s => (
@@ -112,12 +114,12 @@ const SearchIndexTab: React.FC = () => {
                  </span>
                   </td>
                   <td
-                    className="py-3 px-4 text-xs font-mono text-gray-500">{s.index_hash ? s.index_hash.substring(0, 12) + '...' : '—'}</td>
+                    className="py-3 px-4 text-xs font-mono text-gray-500 dark:text-gray-400">{s.index_hash ? s.index_hash.substring(0, 12) + '...' : '—'}</td>
                   <td
-                    className="py-3 px-4 text-xs text-gray-500">{s.last_indexed_at ? new Date(s.last_indexed_at).toLocaleString('zh-CN') : '—'}</td>
+                    className="py-3 px-4 text-xs text-gray-500 dark:text-gray-400">{s.last_indexed_at ? new Date(s.last_indexed_at).toLocaleString('zh-CN') : '—'}</td>
                   <td className="py-3 px-4 text-right">
                     <button onClick={() => updateMut.mutate({id: s.id, indexed: !s.indexed})}
-                            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 mr-1"
+                            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 mr-1"
                             title="切换索引状态">
                       <RefreshCw className="w-3.5 h-3.5"/>
                     </button>
@@ -133,7 +135,7 @@ const SearchIndexTab: React.FC = () => {
           </div>}
       {pagination && pagination.total_pages > 1 && (
         <div className="flex items-center justify-between mt-4">
-          <span className="text-xs text-gray-500">共 {pagination.total} 条</span>
+          <span className="text-xs text-gray-500 dark:text-gray-400">共 {pagination.total} 条</span>
           <div className="flex items-center gap-1">
             <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}
                     className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30">

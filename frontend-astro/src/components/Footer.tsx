@@ -12,10 +12,7 @@
 
 import React, {useEffect, useState} from 'react';
 import {motion, AnimatePresence} from 'framer-motion';
-import {
-    Rss, GitBranch, Share2, Mail, ArrowUp, Heart, BookOpen,
-    MessageSquare, Shield, Globe
-} from 'lucide-react';
+import {Rss, GitBranch, Share2, Mail, ArrowUp, Heart, BookOpen, Shield, Globe} from 'lucide-react';
 import LanguageSwitcher from './LanguageSwitcher';
 
 const Footer: React.FC = () => {

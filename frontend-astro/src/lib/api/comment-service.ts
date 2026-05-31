@@ -1,9 +1,9 @@
-/**
+﻿/**
  * 评论服务
  * 提供评论相关的API调用
  */
 
-import apiClient from './api-client';
+import {apiClient} from './base-client';
 
 export interface Comment {
     id: number;

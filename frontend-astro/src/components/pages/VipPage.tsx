@@ -1,9 +1,9 @@
-'use client';
+﻿'use client';
 
-import React from 'react';
+
 import {useQuery} from '@tanstack/react-query';
 import {QueryProvider} from '@/components/QueryProvider';
-import {apiClient} from '@/lib/api/api-client';
+import {apiClient} from '@/lib/api/base-client';
 import {Check, Crown, Star, Zap} from 'lucide-react';
 
 function VipInner() {
@@ -17,7 +17,7 @@ function VipInner() {
   const {data: status} = useQuery({
     queryKey: ['vip-status'],
     queryFn: async () => {
-      const r = await apiClient.get<any>('/membership/status');
+      const r = await apiClient.get('/membership/status');
       return r.success && r.data ? r.data : {};
     },
   });
@@ -33,7 +33,8 @@ function VipInner() {
       <div className="max-w-5xl mx-auto px-4 py-16 sm:py-24 text-center">
         <div className="inline-flex items-center gap-2 px-4 py-1.5 bg-purple-100 dark:bg-purple-900/30 rounded-full text-sm font-medium text-purple-700 dark:text-purple-300 mb-6"><Crown className="w-4 h-4"/>VIP 会员</div>
         <h1 className="text-4xl sm:text-5xl font-black text-gray-900 dark:text-white mb-4">解锁全部功能</h1>
-        <p className="text-lg text-gray-500 mb-12 max-w-xl mx-auto">升级到 VIP，享受更强大的写作和分析工具</p>
+        <p className="text-lg text-gray-500 dark:text-gray-400 mb-12 max-w-xl mx-auto">升级到
+          VIP，享受更强大的写作和分析工具</p>
 
         {status?.is_vip && <div className="inline-flex items-center gap-2 px-5 py-2.5 bg-green-100 dark:bg-green-900/20 rounded-xl text-green-700 dark:text-green-300 mb-12"><Crown className="w-5 h-5"/>您是 VIP 会员，有效期至 {new Date(status.expires_at).toLocaleDateString('zh-CN')}</div>}
 

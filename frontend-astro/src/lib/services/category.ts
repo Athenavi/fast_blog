@@ -1,9 +1,9 @@
-/**
+﻿/**
  * 分类服务
  */
 
-import {apiClient} from '../api/api-client';
-import type {Article, Category, ApiResponse} from '../api/base-types';
+import {apiClient} from '../api/base-client';
+import type {Category, ApiResponse} from '../api/base-types';
 
 export interface PaginatedResponse<T> {
     data: T[];

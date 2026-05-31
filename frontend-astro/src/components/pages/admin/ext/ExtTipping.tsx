@@ -1,20 +1,20 @@
-'use client';
+﻿'use client';
 
-import React from 'react';
+
 import {useQuery, useQueryClient} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
-import {apiClient} from '@/lib/api/api-client';
+import {apiClient} from '@/lib/api/base-client';
 import {DollarSign, Eye, TrendingUp} from 'lucide-react';
 
 function TippingInner() {
-  const qc = useQueryClient();
+  const __qc = useQueryClient();
 
   const {data: recentTips} = useQuery({
     queryKey: ['ext-tipping-recent'],
     queryFn: async () => {
-      const r = await apiClient.get<any>('/ext/tipping/recent', {limit: 20});
+      const r = await apiClient.get('/ext/tipping/recent', {limit: 20});
       const raw = r.success && r.data ? (r.data.tips || r.data) : [];
       return Array.isArray(raw) ? raw : [];
     },
@@ -23,7 +23,7 @@ function TippingInner() {
   const {data: leaderboard} = useQuery({
     queryKey: ['ext-tipping-leaderboard'],
     queryFn: async () => {
-      const r = await apiClient.get<any>('/ext/tipping/leaderboard', {limit: 20, period: 'all'});
+      const r = await apiClient.get('/ext/tipping/leaderboard', {limit: 20, period: 'all'});
       const raw = r.success && r.data ? (r.data.leaderboard || r.data) : [];
       return Array.isArray(raw) ? raw : [];
     },
@@ -32,7 +32,7 @@ function TippingInner() {
   const {data: presetAmounts} = useQuery({
     queryKey: ['ext-tipping-amounts'],
     queryFn: async () => {
-      const r = await apiClient.get<any>('/ext/tipping/preset-amounts');
+      const r = await apiClient.get('/ext/tipping/preset-amounts');
       return r.success && r.data ? r.data : {};
     },
   });
@@ -93,7 +93,7 @@ function TippingInner() {
                 <div key={entry.user_id || i} className="px-6 py-3 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0
-                      ${i === 0 ? 'bg-yellow-100 text-yellow-700' : i === 1 ? 'bg-gray-200 text-gray-600' : i === 2 ? 'bg-orange-100 text-orange-700' : 'text-gray-500'}`}>
+                      ${i === 0 ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' : i === 1 ? 'bg-gray-200 text-gray-600' : i === 2 ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400' : 'text-gray-500 dark:text-gray-400'}`}>
                       {i + 1}
                     </span>
                     <span className="text-sm text-gray-700 dark:text-gray-300">{entry.username || entry.user || `用户 #${entry.user_id}`}</span>

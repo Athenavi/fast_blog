@@ -10,10 +10,31 @@ import {useDebounce} from '@/lib/hooks';
 import {apiClient} from '@/lib/api/base-client';
 import {useConfirm} from '@/components/ui/confirm-provider';
 import {
-    ChevronLeft, ChevronRight, Edit, Eye, Plus, Search, Trash2, X,
-    FileText, Clock, TrendingUp, Tag, MoreHorizontal, ExternalLink,
-    Archive, AlertCircle, CheckCircle2, Filter, SlidersHorizontal,
-    LayoutGrid, List, Download, RefreshCw, Star, EyeOff, Crown
+  ChevronLeft,
+  ChevronRight,
+  Edit,
+  Eye,
+  Plus,
+  Search,
+  Trash2,
+  X,
+  FileText,
+  Clock,
+  TrendingUp,
+  Tag,
+  MoreHorizontal,
+  ExternalLink,
+  Archive,
+  AlertCircle,
+  CheckCircle2,
+  Filter,
+  SlidersHorizontal,
+  LayoutGrid,
+  List,
+  RefreshCw,
+  Star,
+  EyeOff,
+  Crown
 } from 'lucide-react';
 
 const STATUS_OPTIONS = [
@@ -177,9 +198,9 @@ function ArticlesInner() {
 
     // Stats
     const stats = useMemo(() => {
-        const published = articles.filter((a: any) => a.status === 'published' || a.status === 1).length;
-        const drafts = articles.filter((a: any) => a.status !== 'published' && a.status !== 1 && a.status !== 'deleted').length;
-        const totalViews = articles.reduce((sum: number, a: any) => sum + (a.views || 0), 0);
+      const published = articles.filter((a) => a.status === 'published' || a.status === 1).length;
+      const drafts = articles.filter((a) => a.status !== 'published' && a.status !== 1 && a.status !== 'deleted').length;
+      const totalViews = articles.reduce((sum, a) => sum + (a.views || 0), 0);
         return {published, drafts, totalViews};
     }, [articles]);
 
@@ -222,7 +243,7 @@ function ArticlesInner() {
       <AdminShell title="文章管理" actions={
           <div className="flex items-center gap-2">
               <button onClick={() => refetch()}
-                      className="p-2 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                      className="p-2 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                       title="刷新">
                   <RefreshCw className="w-4 h-4"/>
               </button>
@@ -324,11 +345,21 @@ function ArticlesInner() {
                           <thead
                               className="bg-gray-50/80 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800">
                           <tr>
-                              <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">文章</th>
-                              <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden sm:table-cell">状态</th>
-                              <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">浏览</th>
-                              <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden lg:table-cell">日期</th>
-                              <th className="px-5 py-3.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">操作</th>
+                            <th
+                              className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">文章
+                            </th>
+                            <th
+                              className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden sm:table-cell">状态
+                            </th>
+                            <th
+                              className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden md:table-cell">浏览
+                            </th>
+                            <th
+                              className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden lg:table-cell">日期
+                            </th>
+                            <th
+                              className="px-5 py-3.5 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">操作
+                            </th>
                           </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-50 dark:divide-gray-800/50">
@@ -356,7 +387,7 @@ function ArticlesInner() {
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
                           {debouncedSearch ? '未找到匹配的文章' : '暂无文章'}
                       </h3>
-                      <p className="text-sm text-gray-500 mb-6">
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
                           {debouncedSearch ? '尝试使用不同的关键词搜索' : '创建你的第一篇文章开始写作'}
                       </p>
                       {!debouncedSearch && (
@@ -372,15 +403,25 @@ function ArticlesInner() {
                           <thead
                               className="bg-gray-50/80 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800">
                           <tr>
-                              <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">文章</th>
-                              <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden sm:table-cell">状态</th>
-                              <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">浏览</th>
-                              <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden lg:table-cell">日期</th>
-                              <th className="px-5 py-3.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">操作</th>
+                            <th
+                              className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">文章
+                            </th>
+                            <th
+                              className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden sm:table-cell">状态
+                            </th>
+                            <th
+                              className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden md:table-cell">浏览
+                            </th>
+                            <th
+                              className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden lg:table-cell">日期
+                            </th>
+                            <th
+                              className="px-5 py-3.5 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">操作
+                            </th>
                           </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-50 dark:divide-gray-800/50">
-                          {articles.map((a: any) => (
+                          {articles.map((a) => (
                               <tr key={a.id}
                                   className="group hover:bg-gray-50/80 dark:hover:bg-gray-800/30 transition-colors">
                     <td className="px-5 py-4">
@@ -407,7 +448,7 @@ function ArticlesInner() {
                     </td>
                                   <td className="px-5 py-4 hidden sm:table-cell"><StatusBadge status={a.status}/></td>
                                   <td className="px-5 py-4 hidden md:table-cell">
-                                      <div className="flex items-center gap-1.5 text-sm text-gray-500">
+                                    <div className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400">
                                           <Eye className="w-3.5 h-3.5 text-gray-400"/>{a.views || 0}
                                       </div>
                                   </td>
@@ -436,7 +477,7 @@ function ArticlesInner() {
               ) : (
                   <div className="p-4">
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                          {articles.map((a: any) => (
+                        {articles.map((a) => (
                               <div key={a.id}
                                    className="group rounded-xl border border-gray-100 dark:border-gray-800 hover:border-blue-200 dark:hover:border-blue-800 hover:shadow-md transition-all overflow-hidden">
                                   {a.cover_image ? (

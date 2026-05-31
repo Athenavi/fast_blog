@@ -1,25 +1,25 @@
-'use client';
+﻿'use client';
 
-import React from 'react';
+
 import {useQuery} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
-import {apiClient} from '@/lib/api/api-client';
+import {apiClient} from '@/lib/api/base-client';
 import {GitBranch} from 'lucide-react';
 
 function TemplatesInner() {
     const {data, isLoading} = useQuery<any[]>({
     queryKey: ['admin-templates'],
     queryFn: async () => {
-        const r = await apiClient.get<any>('/templates/templates/list');
+      const r = await apiClient.get('/templates/templates/list');
       return r.success && r.data ? (Array.isArray(r.data) ? r.data : r.data.templates||[]) : [];
     },
   });
     const {data: cats} = useQuery<any[]>({
     queryKey: ['admin-template-cats'],
     queryFn: async () => {
-        const r = await apiClient.get<any>('/templates/templates/categories');
+      const r = await apiClient.get('/templates/templates/categories');
       return r.success && r.data ? (Array.isArray(r.data) ? r.data : r.data.categories||[]) : [];
     },
   });
@@ -41,7 +41,7 @@ function TemplatesInner() {
           <div key={t.id||i} className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-5 hover:shadow-sm transition-shadow">
             <div className="aspect-video bg-gray-50 dark:bg-gray-800 rounded-xl mb-3 flex items-center justify-center text-gray-300 text-2xl">📄</div>
             <h3 className="font-semibold text-sm text-gray-900 dark:text-white truncate">{t.name||'模板'}</h3>
-            <p className="text-xs text-gray-500 mt-1 line-clamp-2">{t.description||''}</p>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-2">{t.description || ''}</p>
             <p className="text-xs text-gray-400 mt-2">{t.category||''}</p>
           </div>
         ))}

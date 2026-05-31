@@ -32,7 +32,7 @@ const Navbar: React.FC<NavbarProps> = ({title, subtitle, showBackButton = false,
     const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
     const [isSearchOpen, setIsSearchOpen] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
-    const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<unknown[]>([]);
     const [searchLoading, setSearchLoading] = useState(false);
     const [isLoggedIn, setIsLoggedIn] = useState(false);
     const [userAvatar, setUserAvatar] = useState<string | null>(null);

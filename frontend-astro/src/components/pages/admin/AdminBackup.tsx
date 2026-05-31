@@ -7,9 +7,24 @@ import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {apiClient} from '@/lib/api/base-client';
 import {
-  ChevronLeft, ChevronRight, Database, HardDrive, Download, Trash2,
-  Loader, ShieldAlert, Clock, Archive, Search, Filter, AlertTriangle,
-  CheckCircle, FileDown, Package, BarChart3, Activity, RefreshCw
+  ChevronLeft,
+  ChevronRight,
+  Database,
+  HardDrive,
+  Download,
+  Trash2,
+  Loader,
+  ShieldAlert,
+  Clock,
+  Archive,
+  Search,
+  Filter,
+  AlertTriangle,
+  FileDown,
+  Package,
+  BarChart3,
+  Activity,
+  RefreshCw
 } from 'lucide-react';
 import {timeAgo} from '@/lib/utils';
 import {StatCard} from '@/components/admin/shared-ui';
@@ -34,7 +49,13 @@ const TYPE_OPTIONS = [
   {value: 'full', label: '完整', icon: Archive, gradient: 'from-purple-500 to-pink-500'},
 ] as const;
 
-const BACKUP_TYPE_CONFIG: Record<string, { label: string; icon: any; gradient: string; color: string; bg: string }> = {
+const BACKUP_TYPE_CONFIG: Record<string, {
+  label: string;
+  icon: React.ComponentType<{ className?: string }>;
+  gradient: string;
+  color: string;
+  bg: string
+}> = {
   database: {
     label: '数据库',
     icon: Database,
@@ -67,7 +88,12 @@ const GRADIENT_COLORS = [
 
 /* ─── Shared Components ─── */
 
-const SectionTitle: React.FC<{ icon: any; title: string; subtitle?: string; action?: React.ReactNode }> = ({
+const SectionTitle: React.FC<{
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  subtitle?: string;
+  action?: React.ReactNode
+}> = ({
                                                                                                              icon: Icon,
                                                                                                              title,
                                                                                                              subtitle,
@@ -102,7 +128,12 @@ const BackupSkeleton = () => (
     </div>
 );
 
-const EmptyState: React.FC<{ icon: any; title: string; desc: string; action?: React.ReactNode }> = ({
+const EmptyState: React.FC<{
+  icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  desc: string;
+  action?: React.ReactNode
+}> = ({
                                                                                                       icon: Icon,
                                                                                                       title,
                                                                                                       desc,
@@ -217,7 +248,7 @@ function BackupInner() {
     queryFn: async () => {
       const params: Record<string, any> = {page, per_page: 15};
       if (typeFilter) params.backup_type = typeFilter;
-      const res = await apiClient.get<any>('/api/v2/system/backup/list', params);
+      const res = await apiClient.get('/api/v2/system/backup/list', params);
       if (res.success && res.data) return res.data;
       return {backups: [], total: 0, page: 1, per_page: 15, total_pages: 1};
     },
@@ -226,7 +257,7 @@ function BackupInner() {
   const {data: stats, refetch: refetchStats} = useQuery({
     queryKey: ['admin-backup-stats'],
     queryFn: async () => {
-      const res = await apiClient.get<any>('/api/v2/system/backup/stats');
+      const res = await apiClient.get('/api/v2/system/backup/stats');
       return res.success && res.data ? res.data : {};
     },
   });
@@ -238,7 +269,7 @@ function BackupInner() {
   const filteredBackups = useMemo(() => {
     if (!searchQuery.trim()) return backups;
     const q = searchQuery.toLowerCase();
-    return backups.filter((b: any) => {
+    return backups.filter((b) => {
       const filename = b.filename || b.path?.split('/').pop() || b.backup_dir?.split('/').pop() || '';
       return filename.toLowerCase().includes(q) || (b.type || '').toLowerCase().includes(q);
     });
@@ -345,7 +376,7 @@ function BackupInner() {
             qc.invalidateQueries({queryKey: ['admin-backups']});
             refetchStats();
           }}
-                  className="p-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                  className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                   title="刷新">
             <RefreshCw className="w-4 h-4"/>
           </button>
@@ -493,7 +524,7 @@ function BackupInner() {
                             <span>{b.created_at ? new Date(b.created_at).toLocaleString('zh-CN') : '—'}</span>
                           </div>
                           {b.created_at && <span
-                              className="text-xs text-gray-400 dark:text-gray-500 ml-5">{timeAgo(b.created_at)}</span>}
+                            className="text-xs text-gray-400 dark:text-gray-500 dark:text-gray-400 ml-5">{timeAgo(b.created_at)}</span>}
                         </td>
                         <td className="px-6 py-4">
                         <span className="text-sm font-medium text-gray-700 dark:text-gray-300">

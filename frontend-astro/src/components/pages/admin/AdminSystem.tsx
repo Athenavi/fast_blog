@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+
 import {useQuery} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
@@ -14,9 +14,9 @@ const statusIcon = (status: string) => {
   return <AlertTriangle className="w-4 h-4 text-yellow-500" />;
 };
 const statusBadge = (status: string, label?: string) => {
-  const cls = status === 'pass' || status === 'good' ? 'bg-green-100 text-green-700'
-    : status === 'fail' || status === 'critical' ? 'bg-red-100 text-red-700'
-    : 'bg-yellow-100 text-yellow-700';
+  const cls = status === 'pass' || status === 'good' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
+    : status === 'fail' || status === 'critical' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
+      : 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400';
   return <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${cls}`}>{label || status}</span>;
 };
 
@@ -24,25 +24,25 @@ function SystemInner() {
   const {data: infoRes} = useQuery({
     queryKey: ['admin-system-info'],
     queryFn: async () => {
-      const res = await apiClient.get<any>('/system/info');
+      const res = await apiClient.get('/system/info');
       return res.success && res.data ? res.data : {};
     },
   });
   const {data: healthRes} = useQuery({
     queryKey: ['admin-system-health'],
     queryFn: async () => {
-      const res = await apiClient.get<any>('/system/health');
+      const res = await apiClient.get('/system/health');
       return res.success && res.data ? res.data : {};
     },
   });
 
   const info = infoRes || {};
   const health = healthRes || {};
-  const checks: Record<string, any[]> = health.checks || {};
+  const checks: Record<string, unknown[]> = health.checks || {};
 
   const InfoRow = ({label, value}: {label: string; value: string}) => (
     <div className="flex justify-between py-2.5 border-b border-gray-100 dark:border-gray-800 last:border-0">
-      <span className="text-sm text-gray-500">{label}</span>
+      <span className="text-sm text-gray-500 dark:text-gray-400">{label}</span>
       <span className="text-sm font-medium text-gray-900 dark:text-white">{value || '—'}</span>
     </div>
   );
@@ -52,7 +52,7 @@ function SystemInner() {
       {/* Total score */}
       {health.overall_score !== undefined && (
         <div className="mb-6 bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 text-center">
-          <p className="text-sm text-gray-500 mb-1">健康评分</p>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">健康评分</p>
           <p className={`text-4xl font-bold ${health.overall_score >= 80 ? 'text-green-600' : health.overall_score >= 60 ? 'text-yellow-600' : 'text-red-600'}`}>
             {health.overall_score}/100
           </p>
@@ -87,7 +87,7 @@ function SystemInner() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between gap-2">
                     <span className="text-sm font-medium text-gray-900 dark:text-white">{item.name}</span>
-                    <span className="text-xs text-gray-500 shrink-0">{item.value}</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400 shrink-0">{item.value}</span>
                   </div>
                   {item.recommendation && (
                     <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-0.5">{item.recommendation}</p>

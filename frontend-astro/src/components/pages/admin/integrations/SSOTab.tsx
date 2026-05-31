@@ -1,20 +1,20 @@
-'use client';
+﻿'use client';
 
-import React, {useState} from 'react';
+import {useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
 import {SectionTitle, StatusBadge} from '@/components/admin/shared-ui';
-import {Check, Key, Server, Shield, X} from 'lucide-react';
-import {apiClient} from '@/lib/api/api-client';
+import {Check, Key, Server, Shield} from 'lucide-react';
+import {apiClient} from '@/lib/api/base-client';
 import {ProviderAvatar, InputField} from './shared';
 
 
 export default function SSOTab({showToast}: { showToast: (msg: string, type?: 'success' | 'error' | 'info') => void }) {
   const [activeSection, setActiveSection] = useState<'oauth2' | 'saml' | 'ldap'>('oauth2');
 
-  const {data: ssoConfig, isLoading} = useQuery({
+  const {data: ssoConfig} = useQuery({
     queryKey: ['integ-sso-config'],
     queryFn: async () => {
-      const r = await apiClient.get<any>('/integrations/sso/config');
+      const r = await apiClient.get('/integrations/sso/config');
       return r.success && r.data ? r.data : {};
     },
   });
@@ -140,8 +140,10 @@ export default function SSOTab({showToast}: { showToast: (msg: string, type?: 's
                 </div>
                 <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
                   <p className="text-sm font-medium text-gray-900 dark:text-white mb-2">SP 端点</p>
-                  <p className="text-xs text-gray-500 font-mono">ACS: /api/v2/integrations/sso/saml/acs</p>
-                  <p className="text-xs text-gray-500 font-mono mt-1">SLO: /api/v2/integrations/sso/saml/slo</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 font-mono">ACS:
+                    /api/v2/integrations/sso/saml/acs</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 font-mono mt-1">SLO:
+                    /api/v2/integrations/sso/saml/slo</p>
                 </div>
               </div>
             </div>
@@ -169,7 +171,8 @@ export default function SSOTab({showToast}: { showToast: (msg: string, type?: 's
                 }} placeholder="uid,mail,cn" hint="需要获取的属性列表"/>
                 <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl">
                   <p className="text-sm font-medium text-gray-900 dark:text-white mb-2">认证端点</p>
-                  <p className="text-xs text-gray-500 font-mono">POST /api/v2/integrations/sso/ldap/authenticate</p>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 font-mono">POST
+                    /api/v2/integrations/sso/ldap/authenticate</p>
                 </div>
               </div>
             </div>

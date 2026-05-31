@@ -1,11 +1,11 @@
-'use client';
+﻿'use client';
 
-import React, {useState} from 'react';
+import {useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
-import {apiClient} from '@/lib/api/api-client';
+import {apiClient} from '@/lib/api/base-client';
 import {Check, Eye, FileText, Loader, Medal, X} from 'lucide-react';
 import {useConfirm} from '@/components/ui/confirm-provider';
 
@@ -16,7 +16,7 @@ function CertificationInner() {
   const {data: stats} = useQuery({
     queryKey: ['ext-cert-stats'],
     queryFn: async () => {
-      const r = await apiClient.get<any>('/ext/expert-certification/admin/stats');
+      const r = await apiClient.get('/ext/expert-certification/admin/stats');
       return r.success && r.data ? r.data : {};
     },
   });
@@ -24,7 +24,7 @@ function CertificationInner() {
   const {data: fields} = useQuery({
     queryKey: ['ext-cert-fields'],
     queryFn: async () => {
-      const r = await apiClient.get<any>('/ext/expert-certification/fields');
+      const r = await apiClient.get('/ext/expert-certification/fields');
       const raw = r.success && r.data ? (r.data.fields || r.data) : [];
       return Array.isArray(raw) ? raw : [];
     },
@@ -33,7 +33,7 @@ function CertificationInner() {
   const {data: pendingApps} = useQuery({
     queryKey: ['ext-cert-pending'],
     queryFn: async () => {
-      const r = await apiClient.get<any>('/ext/expert-certification/admin/pending-applications');
+      const r = await apiClient.get('/ext/expert-certification/admin/pending-applications');
       const raw = r.success && r.data ? (r.data.applications || r.data) : [];
       return Array.isArray(raw) ? raw : [];
     },
@@ -42,7 +42,7 @@ function CertificationInner() {
   const {data: experts} = useQuery({
     queryKey: ['ext-cert-experts'],
     queryFn: async () => {
-      const r = await apiClient.get<any>('/ext/expert-certification/experts', {limit: 50});
+      const r = await apiClient.get('/ext/expert-certification/experts', {limit: 50});
       const raw = r.success && r.data ? (r.data.experts || r.data) : [];
       return Array.isArray(raw) ? raw : [];
     },
@@ -66,19 +66,27 @@ function CertificationInner() {
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div className="bg-white dark:bg-gray-900 rounded-2xl border p-5">
-          <div className="flex items-center gap-2 text-sm text-gray-500 mb-1"><Medal className="w-4 h-4"/>总认证专家</div>
+          <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1"><Medal
+            className="w-4 h-4"/>总认证专家
+          </div>
           <p className="text-2xl font-bold">{stats?.total_experts ?? '—'}</p>
         </div>
         <div className="bg-white dark:bg-gray-900 rounded-2xl border p-5">
-          <div className="flex items-center gap-2 text-sm text-gray-500 mb-1"><FileText className="w-4 h-4"/>认证领域</div>
+          <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1"><FileText
+            className="w-4 h-4"/>认证领域
+          </div>
           <p className="text-2xl font-bold">{stats?.total_fields ?? (Array.isArray(fields) ? fields.length : '—')}</p>
         </div>
         <div className="bg-white dark:bg-gray-900 rounded-2xl border p-5">
-          <div className="flex items-center gap-2 text-sm text-gray-500 mb-1"><Eye className="w-4 h-4"/>待审核</div>
+          <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1"><Eye
+            className="w-4 h-4"/>待审核
+          </div>
           <p className="text-2xl font-bold">{stats?.pending_applications ?? (Array.isArray(pendingApps) ? pendingApps.length : '—')}</p>
         </div>
         <div className="bg-white dark:bg-gray-900 rounded-2xl border p-5">
-          <div className="flex items-center gap-2 text-sm text-gray-500 mb-1"><X className="w-4 h-4"/>已拒绝</div>
+          <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1"><X
+            className="w-4 h-4"/>已拒绝
+          </div>
           <p className="text-2xl font-bold">{stats?.rejected_count ?? '—'}</p>
         </div>
       </div>
@@ -108,7 +116,8 @@ function CertificationInner() {
                     <p className="text-sm text-gray-700 dark:text-gray-300">{exp.username || `用户 #${exp.user_id}`}</p>
                     <p className="text-xs text-gray-400">{exp.field_name || exp.field || ''}</p>
                   </div>
-                  <span className="px-2 py-0.5 bg-green-100 text-green-700 text-[10px] rounded font-medium">已认证</span>
+                  <span
+                    className="px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 text-[10px] rounded font-medium">已认证</span>
                 </div>
               ))}
             </div>
@@ -161,12 +170,12 @@ function CertificationInner() {
         <h3 className="font-semibold text-gray-900 dark:text-white mb-4">撤销认证</h3>
         <div className="flex gap-3 items-end">
           <div className="flex-1">
-            <label className="block text-xs text-gray-500 mb-1">用户 ID</label>
+            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">用户 ID</label>
             <input type="number" value={revokeUserId} onChange={e => setRevokeUserId(e.target.value)}
               className="w-full px-3 py-2 border rounded-lg text-sm dark:bg-gray-800 dark:text-white dark:border-gray-700"/>
           </div>
           <div className="flex-1">
-            <label className="block text-xs text-gray-500 mb-1">原因</label>
+            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">原因</label>
             <input value={revokeReason} onChange={e => setRevokeReason(e.target.value)}
               className="w-full px-3 py-2 border rounded-lg text-sm dark:bg-gray-800 dark:text-white dark:border-gray-700"/>
           </div>

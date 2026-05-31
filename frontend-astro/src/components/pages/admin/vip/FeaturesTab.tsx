@@ -1,8 +1,8 @@
-'use client';
+﻿'use client';
 
 import React, {useState} from 'react';
-import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
-import {apiClient} from '@/lib/api/api-client';
+import {useMutation, useQueryClient} from '@tanstack/react-query';
+import {apiClient} from '@/lib/api/base-client';
 import {useConfirm} from '@/components/ui/confirm-provider';
 import {useToast} from '@/components/ui/toast-provider';
 import {Shield, Plus, Edit3, Check, Trash2} from 'lucide-react';
@@ -91,13 +91,15 @@ const FeaturesTab: React.FC<{ features: VIPFeature[]; onChanged: () => void }> =
       <table className="w-full">
         <thead className="bg-gray-50 dark:bg-gray-800 border-b">
         <tr>
-          <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase">代码</th>
-          <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase">名称</th>
-          <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase hidden sm:table-cell">描述
+          <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">代码</th>
+          <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">名称</th>
+          <th
+            className="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase hidden sm:table-cell">描述
           </th>
-          <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase">等级</th>
-          <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase">状态</th>
-          <th className="px-5 py-3 text-right text-xs font-semibold text-gray-500 uppercase">操作</th>
+          <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">等级</th>
+          <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">状态</th>
+          <th className="px-5 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">操作
+          </th>
         </tr>
         </thead>
         <tbody className="divide-y">
@@ -105,19 +107,20 @@ const FeaturesTab: React.FC<{ features: VIPFeature[]; onChanged: () => void }> =
           <tr key={fe.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
             <td className="px-5 py-3 text-sm font-mono text-gray-700 dark:text-gray-300">{fe.code}</td>
             <td className="px-5 py-3 text-sm font-medium text-gray-900 dark:text-white">{fe.name}</td>
-            <td className="px-5 py-3 text-sm text-gray-500 hidden sm:table-cell">{fe.description || '-'}</td>
+            <td
+              className="px-5 py-3 text-sm text-gray-500 dark:text-gray-400 hidden sm:table-cell">{fe.description || '-'}</td>
             <td className="px-5 py-3 text-sm"><span
               className="px-2 py-0.5 text-xs rounded-full bg-purple-100 dark:bg-purple-900/20 text-purple-700">Lv.{fe.required_level}</span>
             </td>
             <td className="px-5 py-3"><span
-              className={`px-2 py-0.5 text-xs rounded-full ${fe.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>{fe.is_active ? '启用' : '禁用'}</span>
+              className={`px-2 py-0.5 text-xs rounded-full ${fe.is_active ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'}`}>{fe.is_active ? '启用' : '禁用'}</span>
             </td>
             <td className="px-5 py-3 text-right">
               <button onClick={() => openEdit(fe)}
                       className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg"
                       title="编辑"><Edit3 className="w-3.5 h-3.5"/></button>
               <button onClick={() => toggleMut.mutate(fe)}
-                      className="p-1.5 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"
+                      className="p-1.5 text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg"
                       title={fe.is_active ? '禁用' : '启用'}><Check className="w-3.5 h-3.5"/></button>
               <button onClick={async () => {
                 if (await confirm({message: `确定删除「${fe.name}」？`, variant: 'danger'})) deleteMut.mutate(fe.id);

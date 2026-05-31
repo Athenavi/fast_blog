@@ -1,13 +1,13 @@
 'use client';
 
 import React, {lazy, Suspense, useState} from 'react';
-import {Edit3, Globe, Link, Map, Plus, Search, Trash2, Users} from 'lucide-react';
+import {Globe, Link} from 'lucide-react';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 
 const LazySitesTab = lazy(() => import('./multisite/SitesTab'));
-const LazySiteUsersPanel = lazy(() => import('./multisite/SiteUsersPanel'));
+const __LazySiteUsersPanel = lazy(() => import('./multisite/SiteUsersPanel'));
 const LazyContentMappingsTab = lazy(() => import('./multisite/ContentMappingsTab'));
 
 const TabSkeleton = () => (
@@ -25,11 +25,11 @@ const AdminMultisiteManagementInner: React.FC = () => {
     <AdminShell title="多站点管理" actions={
       <div className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
         <button onClick={() => setActiveTab('sites')}
-                className={`px-4 py-1.5 text-sm rounded-md transition-colors ${activeTab === 'sites' ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white' : 'text-gray-500 hover:text-gray-700'}`}>
+                className={`px-4 py-1.5 text-sm rounded-md transition-colors ${activeTab === 'sites' ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'}`}>
           <Globe className="w-4 h-4 inline mr-1.5"/>站点管理
         </button>
         <button onClick={() => setActiveTab('mappings')}
-                className={`px-4 py-1.5 text-sm rounded-md transition-colors ${activeTab === 'mappings' ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white' : 'text-gray-500 hover:text-gray-700'}`}>
+                className={`px-4 py-1.5 text-sm rounded-md transition-colors ${activeTab === 'mappings' ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'}`}>
           <Link className="w-4 h-4 inline mr-1.5"/>内容映射
         </button>
       </div>

@@ -1,18 +1,18 @@
-'use client';
+﻿'use client';
 
-import React from 'react';
+
 import {useQuery} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
-import {apiClient} from '@/lib/api/api-client';
+import {apiClient} from '@/lib/api/base-client';
 import {Eye, Star, ThumbsUp, TrendingUp, Zap} from 'lucide-react';
 
 function RecsInner() {
   const {data: trending} = useQuery({
     queryKey: ['ext-recs-trending'],
     queryFn: async () => {
-      const r = await apiClient.get<any>('/ext/recommendations/trending', {window: '7d', limit: 10});
+      const r = await apiClient.get('/ext/recommendations/trending', {window: '7d', limit: 10});
       const raw = r.success && r.data ? (r.data.trending || r.data) : [];
       return Array.isArray(raw) ? raw : [];
     },
@@ -21,7 +21,7 @@ function RecsInner() {
   const {data: risingStars} = useQuery({
     queryKey: ['ext-recs-rising'],
     queryFn: async () => {
-      const r = await apiClient.get<any>('/ext/recommendations/rising-stars', {limit: 10});
+      const r = await apiClient.get('/ext/recommendations/rising-stars', {limit: 10});
       const raw = r.success && r.data ? (r.data.rising_stars || r.data) : [];
       return Array.isArray(raw) ? raw : [];
     },
@@ -30,7 +30,7 @@ function RecsInner() {
   const {data: personalized} = useQuery({
     queryKey: ['ext-recs-personalized'],
     queryFn: async () => {
-      const r = await apiClient.get<any>('/ext/recommendations/personalized', {limit: 10});
+      const r = await apiClient.get('/ext/recommendations/personalized', {limit: 10});
       const raw = r.success && r.data ? (r.data.recommendations || r.data) : [];
       return Array.isArray(raw) ? raw : [];
     },
@@ -52,7 +52,7 @@ function RecsInner() {
                 <div key={article.id || i} className="px-6 py-3.5">
                   <div className="flex items-start gap-3">
                     <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0 mt-0.5
-                      ${i === 0 ? 'bg-orange-100 text-orange-700' : i === 1 ? 'bg-gray-200 text-gray-600' : i === 2 ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-500'}`}>
+                      ${i === 0 ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400' : i === 1 ? 'bg-gray-200 text-gray-600' : i === 2 ? 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'}`}>
                       {i + 1}
                     </span>
                     <div className="min-w-0 flex-1">
@@ -85,7 +85,7 @@ function RecsInner() {
                 <div key={star.user_id || i} className="px-6 py-3.5 flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <span className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold shrink-0
-                      ${i === 0 ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-500'}`}>
+                      ${i === 0 ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'}`}>
                       {i + 1}
                     </span>
                     <div>

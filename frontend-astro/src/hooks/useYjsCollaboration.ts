@@ -134,7 +134,7 @@ export function useYjsCollaboration(
         if (type === 'welcome') {
           myClientIdRef.current = msg.client_id || '';
           // Set initial collaborators list
-          const existing: Collaborator[] = (msg.clients || []).map((c: any) => ({
+          const existing: Collaborator[] = (msg.clients || []).map((c) => ({
             client_id: c.client_id,
           }));
           setCollaborators(existing);

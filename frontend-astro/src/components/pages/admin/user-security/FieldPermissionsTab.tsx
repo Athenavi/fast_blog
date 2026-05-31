@@ -1,13 +1,13 @@
-'use client';
+﻿'use client';
 
 import React, {useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {DeleteConfirm, EmptyState, Modal} from '@/components/admin/shared-ui';
-import {apiClient} from '@/lib/api/api-client';
+import {apiClient} from '@/lib/api/base-client';
 import {useToast} from '@/components/ui/toast-provider';
 import {ChevronLeft, ChevronRight, Edit3, Lock as LockIcon, Plus, Trash2, Unlock} from 'lucide-react';
 import {FieldPermission, Input, Pagination} from './shared';
-
+import type {ApiResponse} from '@/lib/api/base-types';
 const FieldPermissionsTab: React.FC = () => {
   const toast = useToast();
   const qc = useQueryClient();
@@ -26,7 +26,7 @@ const FieldPermissionsTab: React.FC = () => {
 
   const createMut = useMutation({
     mutationFn: (d: any) => apiClient.post('/users/security/field-permissions', d),
-    onSuccess: (r: any) => {
+    onSuccess: (r: ApiResponse) => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['field-permissions']});
         setShowForm(false);
@@ -35,7 +35,7 @@ const FieldPermissionsTab: React.FC = () => {
   });
   const updateMut = useMutation({
     mutationFn: ({id, ...d}: any) => apiClient.put(`/users/security/field-permissions/${id}`, d),
-    onSuccess: (r: any) => {
+    onSuccess: (r: ApiResponse) => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['field-permissions']});
         setShowForm(false);
@@ -44,7 +44,7 @@ const FieldPermissionsTab: React.FC = () => {
   });
   const deleteMut = useMutation({
     mutationFn: (id: number) => apiClient.delete(`/users/security/field-permissions/${id}`),
-    onSuccess: (r: any) => {
+    onSuccess: (r: ApiResponse) => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['field-permissions']});
         setDeleteId(null);
@@ -99,12 +99,12 @@ const FieldPermissionsTab: React.FC = () => {
             <table className="w-full text-sm">
               <thead>
               <tr className="border-b border-gray-100 dark:border-gray-800">
-                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">角色ID</th>
-                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">模型</th>
-                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">字段</th>
-                <th className="text-center py-3 px-4 text-xs font-semibold text-gray-500">可读</th>
-                <th className="text-center py-3 px-4 text-xs font-semibold text-gray-500">可写</th>
-                <th className="text-right py-3 px-4 text-xs font-semibold text-gray-500">操作</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">角色ID</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">模型</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">字段</th>
+                <th className="text-center py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">可读</th>
+                <th className="text-center py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">可写</th>
+                <th className="text-right py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">操作</th>
               </tr>
               </thead>
               <tbody>{items.map(p => (
@@ -124,7 +124,7 @@ const FieldPermissionsTab: React.FC = () => {
                     <LockIcon className="w-4 h-4 text-gray-300 mx-auto"/>}</td>
                   <td className="py-3 px-4 text-right">
                     <button onClick={() => openEdit(p)}
-                            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 mr-1">
+                            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 mr-1">
                       <Edit3 className="w-3.5 h-3.5"/></button>
                     <button onClick={() => setDeleteId(p.id)}
                             className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500"><Trash2
@@ -136,7 +136,7 @@ const FieldPermissionsTab: React.FC = () => {
           </div>}
       {pagination && pagination.total_pages > 1 && (
         <div className="flex items-center justify-between mt-4">
-          <span className="text-xs text-gray-500">共 {pagination.total} 条</span>
+          <span className="text-xs text-gray-500 dark:text-gray-400">共 {pagination.total} 条</span>
           <div className="flex items-center gap-1">
             <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}
                     className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30">

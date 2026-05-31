@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import {useState} from 'react';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
@@ -28,10 +28,10 @@ const TASK_TYPE_LABELS: Record<string, string> = {
 };
 
 const STATUS_CONFIG = {
-    pending: {color: 'bg-yellow-100 text-yellow-700', icon: Clock},
-    processing: {color: 'bg-blue-100 text-blue-700', icon: Loader2},
-    completed: {color: 'bg-green-100 text-green-700', icon: CheckCircle},
-    failed: {color: 'bg-red-100 text-red-700', icon: XCircle}
+  pending: {color: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400', icon: Clock},
+  processing: {color: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400', icon: Loader2},
+  completed: {color: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400', icon: CheckCircle},
+  failed: {color: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400', icon: XCircle}
 };
 
 function AIWorkflowsInner() {
@@ -73,23 +73,23 @@ function AIWorkflowsInner() {
                 {/* 统计卡片 */}
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div className="bg-white dark:bg-gray-900 rounded-xl border p-4">
-                        <div className="text-sm text-gray-500 mb-1">总任务数</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">总任务数</div>
                         <div className="text-2xl font-bold">{workflows?.length || 0}</div>
                     </div>
                     <div className="bg-white dark:bg-gray-900 rounded-xl border p-4">
-                        <div className="text-sm text-gray-500 mb-1">已完成</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">已完成</div>
                         <div className="text-2xl font-bold text-green-600">
                             {workflows?.filter((w: AIWorkflow) => w.status === 'completed').length || 0}
                         </div>
                     </div>
                     <div className="bg-white dark:bg-gray-900 rounded-xl border p-4">
-                        <div className="text-sm text-gray-500 mb-1">处理中</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">处理中</div>
                         <div className="text-2xl font-bold text-blue-600">
                             {workflows?.filter((w: AIWorkflow) => w.status === 'processing').length || 0}
                         </div>
                     </div>
                     <div className="bg-white dark:bg-gray-900 rounded-xl border p-4">
-                        <div className="text-sm text-gray-500 mb-1">Token 消耗</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">Token 消耗</div>
                         <div className="text-2xl font-bold text-purple-600">
                             {workflows?.reduce((sum: number, w: AIWorkflow) => sum + (w.tokens_used || 0), 0) || 0}
                         </div>
@@ -130,7 +130,7 @@ function AIWorkflowsInner() {
                         </span>
                                                 {getStatusBadge(workflow.status)}
                                             </div>
-                                            <div className="text-xs text-gray-500 space-x-3">
+                                          <div className="text-xs text-gray-500 dark:text-gray-400 space-x-3">
                                                 <span>ID: {workflow.id}</span>
                                                 <span>模型: {workflow.model_used || 'N/A'}</span>
                                                 <span>Tokens: {workflow.tokens_used}</span>
@@ -186,22 +186,23 @@ function AIWorkflowsInner() {
                         </div>
                         <div className="p-6 space-y-4">
                             <div>
-                                <div className="text-sm font-medium text-gray-500 mb-1">任务类型</div>
+                              <div className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">任务类型</div>
                                 <div>{TASK_TYPE_LABELS[selectedTask.task_type] || selectedTask.task_type}</div>
                             </div>
                             <div>
-                                <div className="text-sm font-medium text-gray-500 mb-1">状态</div>
+                              <div className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">状态</div>
                                 <div>{getStatusBadge(selectedTask.status)}</div>
                             </div>
                             <div>
-                                <div className="text-sm font-medium text-gray-500 mb-1">输入数据</div>
+                              <div className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">输入数据</div>
                                 <pre className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg text-xs overflow-x-auto">
                   {JSON.stringify(selectedTask.input_data, null, 2)}
                 </pre>
                             </div>
                             {selectedTask.output_data && (
                                 <div>
-                                    <div className="text-sm font-medium text-gray-500 mb-1">输出结果</div>
+                                  <div className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">输出结果
+                                  </div>
                                     <pre className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg text-xs overflow-x-auto">
                     {JSON.stringify(selectedTask.output_data, null, 2)}
                   </pre>
@@ -209,22 +210,28 @@ function AIWorkflowsInner() {
                             )}
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <div className="text-sm font-medium text-gray-500 mb-1">使用模型</div>
+                                  <div className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">使用模型
+                                  </div>
                                     <div>{selectedTask.model_used || 'N/A'}</div>
                                 </div>
                                 <div>
-                                    <div className="text-sm font-medium text-gray-500 mb-1">Token 消耗</div>
+                                  <div className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">Token
+                                    消耗
+                                  </div>
                                     <div>{selectedTask.tokens_used}</div>
                                 </div>
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <div className="text-sm font-medium text-gray-500 mb-1">创建时间</div>
+                                  <div className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">创建时间
+                                  </div>
                                     <div>{formatTime(selectedTask.created_at)}</div>
                                 </div>
                                 {selectedTask.completed_at && (
                                     <div>
-                                        <div className="text-sm font-medium text-gray-500 mb-1">完成时间</div>
+                                      <div
+                                        className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">完成时间
+                                      </div>
                                         <div>{formatTime(selectedTask.completed_at)}</div>
                                     </div>
                                 )}

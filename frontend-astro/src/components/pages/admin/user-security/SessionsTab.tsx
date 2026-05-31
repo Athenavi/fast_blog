@@ -1,14 +1,14 @@
-'use client';
+﻿'use client';
 
 import React, {useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
-import {DeleteConfirm, EmptyState, Modal} from '@/components/admin/shared-ui';
-import {apiClient} from '@/lib/api/api-client';
+import {EmptyState} from '@/components/admin/shared-ui';
+import {apiClient} from '@/lib/api/base-client';
 import {useConfirm} from '@/components/ui/confirm-provider';
 import {useToast} from '@/components/ui/toast-provider';
 import {ChevronLeft, ChevronRight, Clock, Monitor, PowerOff, Smartphone, Trash2} from 'lucide-react';
 import {UserSession, Pagination} from './shared';
-
+import type {ApiResponse} from '@/lib/api/base-types';
 const SessionsTab: React.FC = () => {
   const confirm = useConfirm();
   const toast = useToast();
@@ -24,7 +24,7 @@ const SessionsTab: React.FC = () => {
 
   const deactivateMut = useMutation({
     mutationFn: (id: number) => apiClient.post(`/users/security/sessions/${id}/deactivate`),
-    onSuccess: (r: any) => {
+    onSuccess: (r: ApiResponse) => {
       if (r.success) qc.invalidateQueries({queryKey: ['user-sessions']}); else toast.error(r.error || '操作失败');
     },
   });
@@ -49,11 +49,11 @@ const SessionsTab: React.FC = () => {
                     <div className="flex items-center gap-2">
                       <span className="text-sm font-medium text-gray-900 dark:text-white">用户#{s.user_id}</span>
                       <span
-                        className={`px-1.5 py-0.5 text-[10px] rounded-full ${s.is_active ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-500'}`}>
+                        className={`px-1.5 py-0.5 text-[10px] rounded-full ${s.is_active ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'}`}>
                      {s.is_active ? '活跃' : '已失效'}
                    </span>
                     </div>
-                    <div className="flex items-center gap-2 mt-0.5 text-[11px] text-gray-500">
+                    <div className="flex items-center gap-2 mt-0.5 text-[11px] text-gray-500 dark:text-gray-400">
                       {s.device_info && <span>{s.device_info}</span>}
                       {s.ip_address && <><span>·</span><span>{s.ip_address}</span></>}
                       {s.location && <><span>·</span><span>{s.location}</span></>}
@@ -86,7 +86,7 @@ const SessionsTab: React.FC = () => {
           </div>}
       {pagination && pagination.total_pages > 1 && (
         <div className="flex items-center justify-between mt-4">
-          <span className="text-xs text-gray-500">共 {pagination.total} 条</span>
+          <span className="text-xs text-gray-500 dark:text-gray-400">共 {pagination.total} 条</span>
           <div className="flex items-center gap-1">
             <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}
                     className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30">

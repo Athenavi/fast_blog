@@ -1,12 +1,23 @@
 'use client';
 
-import React, {useState, useRef} from 'react';
+import {useState, useRef} from 'react';
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {apiClient} from '@/lib/api/base-client';
-import {ChevronLeft, ChevronRight, Plus, Trash2, RefreshCw, AlertTriangle, Search, Filter, Pencil, Upload, X} from 'lucide-react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  Plus,
+  Trash2,
+  RefreshCw,
+  AlertTriangle,
+  Search,
+  Pencil,
+  Upload,
+  X
+} from 'lucide-react';
 import {useConfirm} from '@/components/ui/confirm-provider';
 import {useToast} from '@/components/ui/toast-provider';
 
@@ -61,7 +72,7 @@ function SensitiveWordsInner() {
       if (keyword) params.keyword = keyword;
       if (levelFilter !== '') params.level = levelFilter;
       if (actionFilter) params.action = actionFilter;
-      const res = await apiClient.get<any>('/api/v2/security/sensitive-words/', params);
+      const res = await apiClient.get('/api/v2/security/sensitive-words/', params);
       if (res.success && res.data?.items) return res.data;
       return {items: [], total: 0, page: 1, total_pages: 1};
     },
@@ -72,7 +83,7 @@ function SensitiveWordsInner() {
     staleTime: 0,
     gcTime: 0,
     queryFn: async () => {
-      const res = await apiClient.get<any>('/api/v2/security/sensitive-words/statistics');
+      const res = await apiClient.get('/api/v2/security/sensitive-words/statistics');
       return res.success && res.data ? res.data : {};
     },
   });
@@ -207,7 +218,8 @@ function SensitiveWordsInner() {
             <AlertTriangle className="w-8 h-8 text-orange-500"/>
             <div>
               <p className="font-bold text-gray-900 dark:text-white text-lg">{stats?.total_count ?? total} 个敏感词</p>
-              <p className="text-xs text-gray-500">最后更新: {stats?.last_updated ? new Date(stats.last_updated).toLocaleString('zh-CN') : '-'}</p>
+              <p
+                className="text-xs text-gray-500 dark:text-gray-400">最后更新: {stats?.last_updated ? new Date(stats.last_updated).toLocaleString('zh-CN') : '-'}</p>
             </div>
           </div>
           <div className="flex gap-2">
@@ -319,7 +331,8 @@ function SensitiveWordsInner() {
                   <h3 className="font-semibold text-gray-900 dark:text-white text-lg">批量导入</h3>
                   <button onClick={() => setBatchOpen(false)} className="p-1 text-gray-400 hover:text-gray-600"><X className="w-5 h-5"/></button>
                 </div>
-                <p className="text-sm text-gray-500 mb-3">每行一个敏感词，导入时级别默认低危、处理方式拦截。</p>
+                <p
+                  className="text-sm text-gray-500 dark:text-gray-400 mb-3">每行一个敏感词，导入时级别默认低危、处理方式拦截。</p>
                 <textarea value={batchText} onChange={e => setBatchText(e.target.value)} rows={8}
                           placeholder={"敏感词1\n敏感词2\n敏感词3"}
                           className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white resize-none"/>
@@ -340,15 +353,27 @@ function SensitiveWordsInner() {
           ) : (
               <table className="w-full"><thead className="bg-gray-50 dark:bg-gray-800 border-b">
               <tr>
-                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase">敏感词</th>
-                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase hidden sm:table-cell">级别</th>
-                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase">处理</th>
-                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase hidden md:table-cell">分类</th>
-                <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase hidden md:table-cell">创建时间</th>
-                <th className="px-5 py-3 text-right text-xs font-semibold text-gray-500 uppercase">操作</th>
+                <th
+                  className="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">敏感词
+                </th>
+                <th
+                  className="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase hidden sm:table-cell">级别
+                </th>
+                <th
+                  className="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">处理
+                </th>
+                <th
+                  className="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase hidden md:table-cell">分类
+                </th>
+                <th
+                  className="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase hidden md:table-cell">创建时间
+                </th>
+                <th
+                  className="px-5 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">操作
+                </th>
               </tr>
               </thead><tbody className="divide-y">
-              {items.map((w: any) => (
+              {items.map((w) => (
                   <tr key={w.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
                     <td className="px-5 py-4">
                       <span className={`px-3 py-1 rounded-lg text-sm font-mono ${
@@ -358,14 +383,16 @@ function SensitiveWordsInner() {
                                       'bg-gray-50 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
                       }`}>{w.word}</span>
                     </td>
-                    <td className="px-5 py-4 text-sm text-gray-500 hidden sm:table-cell">{LEVEL_NAMES[w.level] || '-'}</td>
+                    <td
+                      className="px-5 py-4 text-sm text-gray-500 dark:text-gray-400 hidden sm:table-cell">{LEVEL_NAMES[w.level] || '-'}</td>
                     <td className="px-5 py-4">
                         <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${ACTION_COLORS[w.action] || ''}`}>
                           {ACTION_LABELS[w.action] || w.action}
                         </span>
                     </td>
-                    <td className="px-5 py-4 text-sm text-gray-500 hidden md:table-cell">{w.category || '-'}</td>
-                    <td className="px-5 py-4 text-sm text-gray-500 hidden md:table-cell">
+                    <td
+                      className="px-5 py-4 text-sm text-gray-500 dark:text-gray-400 hidden md:table-cell">{w.category || '-'}</td>
+                    <td className="px-5 py-4 text-sm text-gray-500 dark:text-gray-400 hidden md:table-cell">
                       {w.created_at ? new Date(w.created_at).toLocaleString('zh-CN') : '-'}
                     </td>
                     <td className="px-5 py-4 text-right space-x-1">

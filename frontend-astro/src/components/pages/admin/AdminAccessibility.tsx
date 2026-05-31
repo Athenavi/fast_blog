@@ -1,18 +1,18 @@
-'use client';
+﻿'use client';
 
-import React from 'react';
+
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
-import {apiClient} from '@/lib/api/api-client';
+import {apiClient} from '@/lib/api/base-client';
 import {Activity, BookOpen, Check, ExternalLink, Eye, Keyboard, Monitor, Sun, Wrench,} from 'lucide-react';
 
 // ─── WCAG color ───────────────────────────────────────
 const WCAG_COLORS: Record<string, string> = {
-  A: 'bg-orange-100 text-orange-700',
-  AA: 'bg-green-100 text-green-700',
-  AAA: 'bg-blue-100 text-blue-700',
+  A: 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400',
+  AA: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
+  AAA: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
 };
 
 // ─── Main ─────────────────────────────────────────────
@@ -23,7 +23,7 @@ function AccessInner() {
   const {data: userConfig} = useQuery({
     queryKey: ['admin-a11y-config'],
     queryFn: async () => {
-      const r = await apiClient.get<any>('/system/accessibility/config');
+      const r = await apiClient.get('/system/accessibility/config');
       return r.success && r.data ? r.data : {};
     },
   });
@@ -36,7 +36,7 @@ function AccessInner() {
   const {data: checklistData} = useQuery({
     queryKey: ['admin-a11y-checklist'],
     queryFn: async () => {
-      const r = await apiClient.get<any>('/accessibility/audit/checklist');
+      const r = await apiClient.get('/accessibility/audit/checklist');
       return r.success && r.data ? r.data : {};
     },
   });
@@ -45,7 +45,7 @@ function AccessInner() {
   const {data: guidelinesData} = useQuery({
     queryKey: ['admin-a11y-guidelines'],
     queryFn: async () => {
-      const r = await apiClient.get<any>('/accessibility/audit/guidelines');
+      const r = await apiClient.get('/accessibility/audit/guidelines');
       return r.success && r.data ? r.data : {};
     },
   });
@@ -54,7 +54,7 @@ function AccessInner() {
   const {data: toolsData} = useQuery({
     queryKey: ['admin-a11y-tools'],
     queryFn: async () => {
-      const r = await apiClient.get<any>('/accessibility/audit/tools');
+      const r = await apiClient.get('/accessibility/audit/tools');
       return r.success && r.data ? r.data : {};
     },
   });
@@ -83,7 +83,7 @@ function AccessInner() {
     : [];
 
   // ── Guidelines ──
-  const guidelines = Array.isArray(guidelinesData) ? guidelinesData
+  const __guidelines = Array.isArray(guidelinesData) ? guidelinesData
     : (guidelinesData?.guidelines || []);
 
   // ── Tools sections ──
@@ -120,7 +120,7 @@ function AccessInner() {
         </div>
         <div className="mt-4 flex items-center gap-4">
           <div>
-            <label className="text-sm text-gray-500">字号</label>
+            <label className="text-sm text-gray-500 dark:text-gray-400">字号</label>
             <select value={userConfig?.font_size || 'medium'}
               onChange={e => configMut.mutate({font_size: e.target.value})}
               className="ml-2 px-3 py-1.5 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 dark:text-white">
@@ -153,7 +153,8 @@ function AccessInner() {
                         <p className="text-xs text-gray-400">WCAG {item.wcag_criterion || item.wcag || item.guideline || ''}</p>
                       </div>
                       <div className="flex items-center gap-2 shrink-0 ml-3">
-                        <span className={`px-1.5 py-0.5 text-[10px] rounded font-medium ${WCAG_COLORS[item.level?.toUpperCase()] || 'bg-gray-100 text-gray-500'}`}>
+                        <span
+                          className={`px-1.5 py-0.5 text-[10px] rounded font-medium ${WCAG_COLORS[item.level?.toUpperCase()] || 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'}`}>
                           {item.level || item.wcag_criterion || ''}
                         </span>
                       </div>
@@ -190,7 +191,7 @@ function AccessInner() {
                     </div>
                   ))}
                   {section.section.methods?.map((m: string, i: number) => (
-                    <div key={`m${i}`} className="text-xs text-gray-500 flex items-start gap-1.5">
+                    <div key={`m${i}`} className="text-xs text-gray-500 dark:text-gray-400 flex items-start gap-1.5">
                       <Check className="w-3 h-3 text-green-500 mt-0.5 shrink-0"/>{m}
                     </div>
                   ))}

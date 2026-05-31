@@ -1,11 +1,11 @@
-'use client';
+﻿'use client';
 
 import React, {useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
-import {apiClient} from '@/lib/api/api-client';
+import {apiClient} from '@/lib/api/base-client';
 import {
   Activity,
   AlertTriangle,
@@ -81,28 +81,28 @@ const ProviderModal: React.FC<{
 function CDNInner() {
   const [provider, setProvider] = useState<{provider:string;label:string;fields:{key:string;label:string;type?:string;required?:boolean}[]}|null>(null);
 
-  const {data: config, isLoading: cfgLoading} = useQuery({
+  const {data: config} = useQuery({
     queryKey: ['admin-cdn-config'],
     queryFn: async () => {
-      const r = await apiClient.get<any>('/performance/cdn/config');
+      const r = await apiClient.get('/performance/cdn/config');
       return r.success && r.data ? r.data : {};
     },
   });
   const {data: cacheStrategies} = useQuery({
     queryKey: ['admin-cdn-strategies'],
     queryFn: async () => {
-      const r = await apiClient.get<any>('/performance/cdn/cache-strategies');
+      const r = await apiClient.get('/performance/cdn/cache-strategies');
       return r.success && r.data ? r.data : {};
     },
   });
   const {data: bestPractices} = useQuery({
     queryKey: ['admin-cdn-practices'],
     queryFn: async () => {
-      const r = await apiClient.get<any>('/performance/cdn/best-practices');
+      const r = await apiClient.get('/performance/cdn/best-practices');
       return r.success && r.data ? r.data : {};
     },
   });
-  const purgeMut = useMutation({
+  const __purgeMut = useMutation({
     mutationFn: () => apiClient.post('/performance/cdn/purge-cache'),
   });
 
@@ -153,19 +153,27 @@ function CDNInner() {
       {/* ═══ Overview Cards ═══ */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-5">
-          <div className="flex items-center gap-2 text-sm text-gray-500 mb-1"><Server className="w-4 h-4"/>提供商</div>
+          <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1"><Server
+            className="w-4 h-4"/>提供商
+          </div>
           <p className="text-2xl font-bold text-gray-900 dark:text-white">{providers.length > 0 ? providers.join(', ') : '未配置'}</p>
         </div>
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-5">
-          <div className="flex items-center gap-2 text-sm text-gray-500 mb-1"><Globe className="w-4 h-4"/>域名</div>
+          <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1"><Globe
+            className="w-4 h-4"/>域名
+          </div>
           <p className="text-2xl font-bold text-gray-900 dark:text-white">{config?.domain || '—'}</p>
         </div>
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-5">
-          <div className="flex items-center gap-2 text-sm text-gray-500 mb-1"><Shield className="w-4 h-4"/>HTTPS</div>
+          <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1"><Shield
+            className="w-4 h-4"/>HTTPS
+          </div>
           <p className="text-2xl font-bold text-gray-900 dark:text-white">{config?.enable_ssl ? <Check className="w-6 h-6 text-green-500 inline"/> : '—'}</p>
         </div>
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-5">
-          <div className="flex items-center gap-2 text-sm text-gray-500 mb-1"><Zap className="w-4 h-4"/>压缩</div>
+          <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1"><Zap
+            className="w-4 h-4"/>压缩
+          </div>
           <p className="text-2xl font-bold text-gray-900 dark:text-white">{config?.enable_brotli ? 'Brotli' : config?.enable_minification ? 'Gzip' : '—'}</p>
         </div>
       </div>
@@ -217,7 +225,7 @@ function CDNInner() {
                 </p>
                 <ul className="space-y-1">
                   {s.practices.map((p: string, j: number) => (
-                    <li key={j} className="text-xs text-gray-500 flex items-start gap-1.5">
+                    <li key={j} className="text-xs text-gray-500 dark:text-gray-400 flex items-start gap-1.5">
                       <Check className="w-3 h-3 text-green-500 mt-0.5 shrink-0"/>{p}
                     </li>
                   ))}

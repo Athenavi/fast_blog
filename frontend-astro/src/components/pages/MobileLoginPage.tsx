@@ -1,7 +1,7 @@
-'use client';
+﻿'use client';
 
-import React, {useEffect, useState} from 'react';
-import {apiClient} from '@/lib/api/api-client';
+import {useEffect, useState} from 'react';
+import {apiClient} from '@/lib/api/base-client';
 import {CheckCircle, Loader, Smartphone, XCircle} from 'lucide-react';
 
 export default function MobileLoginPage() {

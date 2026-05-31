@@ -73,14 +73,14 @@ const ArticleDetail: React.FC<Props> = ({slug: propSlug}) => {
             // Fetch related articles
             if (data.category_id || data.id) {
                 try {
-                    const relRes = await apiClient.get<any>('/articles', {
+                  const relRes = await apiClient.get('/articles', {
                         per_page: 4,
                         exclude: data.id,
                         category_id: data.category_id
                     });
                     if (relRes.success && relRes.data) {
                         const articles = relRes.data.data || relRes.data || [];
-                        setRelatedArticles(articles.filter((a: any) => a.id !== data.id).slice(0, 3));
+                      setRelatedArticles(articles.filter((a) => a.id !== data.id).slice(0, 3));
                     }
                 } catch {
                 }
@@ -205,7 +205,7 @@ const ArticleDetail: React.FC<Props> = ({slug: propSlug}) => {
               <MessageSquare className="w-10 h-10 text-gray-300 dark:text-gray-600"/>
           </div>
         <h1 className="text-2xl font-bold text-gray-800 dark:text-gray-200 mb-2">{error || '文章不存在'}</h1>
-          <p className="text-gray-500 mb-6">请检查链接是否正确，或浏览其他文章</p>
+        <p className="text-gray-500 dark:text-gray-400 mb-6">请检查链接是否正确，或浏览其他文章</p>
           <a href="/articles" className="btn-primary">返回文章列表</a>
       </div>
     </div>
@@ -260,7 +260,7 @@ const ArticleDetail: React.FC<Props> = ({slug: propSlug}) => {
                           {article.category && (
                               <>
                                   <span>/</span>
-                                  <span className="text-gray-500">{article.category?.name}</span>
+                                <span className="text-gray-500 dark:text-gray-400">{article.category?.name}</span>
                               </>
                           )}
                       </div>
@@ -313,7 +313,7 @@ const ArticleDetail: React.FC<Props> = ({slug: propSlug}) => {
                                   </div>
                               )}
 
-                              <div className="flex items-center gap-4 text-sm text-gray-500 ml-auto">
+                            <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400 ml-auto">
                   <span className="flex items-center gap-1.5">
                     <Calendar className="w-4 h-4"/>
                       {formatDate(article.created_at)}
@@ -438,7 +438,7 @@ const ArticleDetail: React.FC<Props> = ({slug: propSlug}) => {
                                   相关推荐
                               </h2>
                               <div className="grid sm:grid-cols-3 gap-4">
-                                  {relatedArticles.map((a: any) => (
+                                {relatedArticles.map((a) => (
                                       <a
                                           key={a.id}
                                           href={`/view?slug=${a.slug}`}

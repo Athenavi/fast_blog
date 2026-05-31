@@ -26,7 +26,7 @@ export class MenuService {
             if (response.success && response.data && response.data.menus) {
                 const menus = response.data.menus;
                 // 查找指定 slug 的菜单
-                const targetMenu = menus.find((menu: any) => menu.slug === slug);
+              const targetMenu = menus.find((menu) => menu.slug === slug);
 
                 if (targetMenu) {
                     return {
@@ -84,7 +84,7 @@ export class MenuService {
                 const menus = (response.data as any).menus;
                 if (Array.isArray(menus) && menus.length > 0) {
                     // 尝试查找名为'main'或'主菜单'的菜单
-                    const mainMenu = menus.find((menu: any) =>
+                  const mainMenu = menus.find((menu) =>
                         menu.slug === 'main' ||
                         menu.name === '主菜单' ||
                         menu.name === 'Main Menu' ||

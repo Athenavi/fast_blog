@@ -1,7 +1,7 @@
 'use client';
 
 import React, {lazy, Suspense, useState} from 'react';
-import {Download, Edit3, FileText, Search, Share2} from 'lucide-react';
+import {FileText, Search, Share2} from 'lucide-react';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
@@ -32,7 +32,7 @@ const AdminSEOManagementInner: React.FC = () => {
       <div className="flex bg-gray-100 dark:bg-gray-800 rounded-lg p-0.5">
         {tabs.map(t => (
           <button key={t.key} onClick={() => setActiveTab(t.key)}
-                  className={`px-3 py-1.5 text-sm rounded-md transition-colors ${activeTab === t.key ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white' : 'text-gray-500 hover:text-gray-700'}`}>
+                  className={`px-3 py-1.5 text-sm rounded-md transition-colors ${activeTab === t.key ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'}`}>
             <t.icon className="w-4 h-4 inline mr-1"/>
             {t.label}
           </button>

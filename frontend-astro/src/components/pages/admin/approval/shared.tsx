@@ -45,14 +45,14 @@ export const StatusBadge: React.FC<{ status: string }> = ({status}) => {
     pending: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400',
     approved: 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400',
     rejected: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
-    cancelled: 'bg-gray-100 dark:bg-gray-800 text-gray-500',
+    cancelled: 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400',
   };
   const labels: Record<string, string> = {
     pending: '待审批', approved: '已通过', rejected: '已拒绝', cancelled: '已取消',
   };
   return (
     <span
-      className={`px-2 py-0.5 text-[10px] rounded-full font-medium ${colors[status] || 'bg-gray-100 text-gray-500'}`}>
+      className={`px-2 py-0.5 text-[10px] rounded-full font-medium ${colors[status] || 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'}`}>
       {labels[status] || status}
     </span>
   );
@@ -68,7 +68,7 @@ export const PriorityBadge: React.FC<{ priority?: string }> = ({priority}) => {
   const labels: Record<string, string> = {high: '高', medium: '中', low: '低'};
   return (
     <span
-      className={`px-1.5 py-0.5 text-[10px] rounded-full font-medium ${colors[priority] || 'bg-gray-100 text-gray-500'}`}>
+      className={`px-1.5 py-0.5 text-[10px] rounded-full font-medium ${colors[priority] || 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'}`}>
       {labels[priority] || priority}
     </span>
   );
@@ -86,7 +86,7 @@ export const StatCard: React.FC<{
         <Icon className="w-5 h-5 text-white"/>
       </div>
       <div>
-        <div className="text-xs text-gray-500">{label}</div>
+        <div className="text-xs text-gray-500 dark:text-gray-400">{label}</div>
         <div className="text-lg font-semibold text-gray-900 dark:text-gray-100">{value}</div>
       </div>
     </div>

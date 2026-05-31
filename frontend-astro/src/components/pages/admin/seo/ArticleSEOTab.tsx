@@ -1,12 +1,13 @@
-'use client';
+﻿'use client';
 
 import React, {useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {EmptyState, Modal, Pagination} from '@/components/admin/shared-ui';
-import {apiClient} from '@/lib/api/api-client';
-import {Download, Edit3, FileText, Search, Share2} from 'lucide-react';
+import {apiClient} from '@/lib/api/base-client';
+import {useToast} from '@/components/ui/toast-provider';
+import {Download, Edit3, FileText, Search} from 'lucide-react';
 import {ArticleSEO, Input, ScoreBadge} from './shared';
-
+import type {ApiResponse} from '@/lib/api/base-types';
 const ArticleSEOTab: React.FC = () => {
   const qc = useQueryClient();
   const toast = useToast();
@@ -29,7 +30,7 @@ const ArticleSEOTab: React.FC = () => {
 
   const updateMut = useMutation({
     mutationFn: ({id, ...d}: any) => apiClient.post('/seo/batch/update', {article_ids: [id], ...d}),
-    onSuccess: (r: any) => {
+    onSuccess: (r: ApiResponse) => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['seo-batch-stats']});
         setShowForm(false);
@@ -39,7 +40,7 @@ const ArticleSEOTab: React.FC = () => {
 
   const exportMut = useMutation({
     mutationFn: () => apiClient.post('/seo/batch/export', {}),
-    onSuccess: (r: any) => {
+    onSuccess: (r: ApiResponse<{ download_url?: string }>) => {
       if (r.success && r.data?.download_url) window.open(r.data.download_url);
     },
   });
@@ -91,12 +92,12 @@ const ArticleSEOTab: React.FC = () => {
           <table className="w-full text-sm">
             <thead>
             <tr className="bg-gray-50 dark:bg-gray-800/50">
-              <th className="text-left px-4 py-3 font-medium text-gray-500">文章标题</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-500">焦点关键词</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-500">Meta 标题</th>
-              <th className="text-center px-4 py-3 font-medium text-gray-500">SEO 评分</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-500">Robots</th>
-              <th className="text-right px-4 py-3 font-medium text-gray-500">操作</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">文章标题</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">焦点关键词</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Meta 标题</th>
+              <th className="text-center px-4 py-3 font-medium text-gray-500 dark:text-gray-400">SEO 评分</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">Robots</th>
+              <th className="text-right px-4 py-3 font-medium text-gray-500 dark:text-gray-400">操作</th>
             </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -112,13 +113,15 @@ const ArticleSEOTab: React.FC = () => {
                       className="px-2 py-0.5 text-[10px] rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-400">{a.focus_keyword}</span>
                   ) : <span className="text-xs text-gray-400">-</span>}
                 </td>
-                <td className="px-4 py-3 text-xs text-gray-500 max-w-[200px] truncate">{a.meta_title || '-'}</td>
+                <td
+                  className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400 max-w-[200px] truncate">{a.meta_title || '-'}</td>
                 <td className="px-4 py-3 text-center"><ScoreBadge score={a.seo_score}/></td>
-                <td className="px-4 py-3 text-xs font-mono text-gray-500">{a.robots_directive || 'index,follow'}</td>
+                <td
+                  className="px-4 py-3 text-xs font-mono text-gray-500 dark:text-gray-400">{a.robots_directive || 'index,follow'}</td>
                 <td className="px-4 py-3 text-right">
                   <button onClick={() => openEdit(a)} className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
                           title="编辑 SEO">
-                    <Edit3 className="w-3.5 h-3.5 text-gray-500"/>
+                    <Edit3 className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400"/>
                   </button>
                 </td>
               </tr>

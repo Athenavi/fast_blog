@@ -6,8 +6,8 @@
 
 'use client';
 
-import React, {createContext, useCallback, useContext, useRef, useState} from 'react';
-import {AlertTriangle, Trash2, Info, ShieldAlert} from 'lucide-react';
+import React, {createContext, useCallback, useContext, useState} from 'react';
+import {AlertTriangle, Trash2, Info} from 'lucide-react';
 
 // ═══ Types ═══
 export type ConfirmVariant = 'danger' | 'warning' | 'info';

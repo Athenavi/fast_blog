@@ -4,11 +4,11 @@
  * 提供一键切换全站配色方案、字体/间距配置、样式预设库选择功能
  */
 
-import React, {useState} from 'react';
+import {useState} from 'react';
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {apiClient} from '@/lib/api/base-client';
 import {STYLE_PRESETS, GlobalStyleConfig, applyGlobalStyle} from '@/lib/page-builder/global-styles';
-import {Palette, Save, Eye, Trash2, Edit3, Check} from 'lucide-react';
+import {Palette, Save, Eye, Trash2, Check} from 'lucide-react';
 import {useConfirm} from '@/components/ui/confirm-provider';
 import {useToast} from '@/components/ui/toast-provider';
 
@@ -20,7 +20,7 @@ export function GlobalStyleManager({onClose}: GlobalStyleManagerProps) {
   const confirm = useConfirm();
   const toast = useToast();
     const qc = useQueryClient();
-    const [selectedPreset, setSelectedPreset] = useState<string | null>(null);
+  const [_selectedPreset, _setSelectedPreset] = useState<string | null>(null);
     const [showPreview, setShowPreview] = useState(false);
 
     // 查询已保存的样式配置
@@ -133,12 +133,12 @@ export function GlobalStyleManager({onClose}: GlobalStyleManagerProps) {
                             <div className="flex items-start justify-between mb-2">
                                 <span className="font-medium text-sm">{preset.name}</span>
                                 <span
-                                    className="text-[10px] px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full capitalize">
+                                  className="text-[10px] px-2 py-0.5 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-full capitalize">
                                     {preset.theme_type}
                                 </span>
                             </div>
 
-                            <p className="text-xs text-gray-500 mb-3">
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">
                                 {preset.typography.font_family.split(',')[0]}
                             </p>
 
@@ -209,7 +209,7 @@ export function GlobalStyleManager({onClose}: GlobalStyleManagerProps) {
                                             <span className="font-medium text-sm">{config.name}</span>
                                             {config.is_active && (
                                                 <span
-                                                    className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded-full flex items-center gap-1">
+                                                  className="text-xs px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full flex items-center gap-1">
                                                     <Check className="w-3 h-3"/>
                                                     当前启用
                                                 </span>

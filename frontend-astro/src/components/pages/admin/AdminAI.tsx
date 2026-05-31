@@ -1,11 +1,11 @@
-'use client';
+﻿'use client';
 
-import React, {useState} from 'react';
+import {useState} from 'react';
 import {useMutation, useQuery} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
-import {apiClient} from '@/lib/api/api-client';
+import {apiClient} from '@/lib/api/base-client';
 import {Brain, Loader, Sparkles} from 'lucide-react';
 
 function AIInner() {
@@ -16,7 +16,7 @@ function AIInner() {
     const {data: skills} = useQuery<any[]>({
     queryKey: ['admin-ai-skills'],
     queryFn: async () => {
-        const r = await apiClient.get<any>('/ai/skills/ai-skills/list');
+      const r = await apiClient.get('/ai/skills/ai-skills/list');
       return r.success && r.data ? (Array.isArray(r.data) ? r.data : r.data.skills||[]) : [];
     },
   });
@@ -44,7 +44,8 @@ function AIInner() {
               {id:'description', label:'描述'},
               {id:'outline', label:'大纲'},
             ].map(m => (
-              <button key={m.id} onClick={()=>setMode(m.id as any)} className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${mode===m.id?'bg-white dark:bg-gray-700 shadow-sm text-gray-900':'text-gray-500 hover:text-gray-700'}`}>{m.label}</button>
+              <button key={m.id} onClick={() => setMode(m.id as any)}
+                      className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${mode === m.id ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700'}`}>{m.label}</button>
             ))}
           </div>
           <textarea value={text} onChange={e=>setText(e.target.value)} rows={5} placeholder="输入内容..." className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white resize-none"/>
@@ -57,8 +58,11 @@ function AIInner() {
             <div className="space-y-2">
                 {skills?.map((s: any, i: number) => (
                 <div key={i} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-xl">
-                  <div><p className="text-sm font-medium text-gray-900 dark:text-white">{s.name||s.skill_name||'技能'}</p><p className="text-xs text-gray-500">{s.description||''}</p></div>
-                  <span className={`px-2 py-0.5 text-xs rounded-full ${s.is_active!==false?'bg-green-100 text-green-700':'bg-gray-100 text-gray-500'}`}>{s.is_active!==false?'已激活':'未激活'}</span>
+                  <div><p
+                    className="text-sm font-medium text-gray-900 dark:text-white">{s.name || s.skill_name || '技能'}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{s.description || ''}</p></div>
+                  <span
+                    className={`px-2 py-0.5 text-xs rounded-full ${s.is_active !== false ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'}`}>{s.is_active !== false ? '已激活' : '未激活'}</span>
                 </div>
               ))}
             </div>

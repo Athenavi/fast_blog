@@ -1,9 +1,9 @@
-'use client';
+﻿'use client';
 
 import React, {useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
-import {DeleteConfirm, EmptyState, Modal} from '@/components/admin/shared-ui';
-import {apiClient} from '@/lib/api/api-client';
+import {EmptyState} from '@/components/admin/shared-ui';
+import {apiClient} from '@/lib/api/base-client';
 import {useConfirm} from '@/components/ui/confirm-provider';
 import {ChevronLeft, ChevronRight, Mail, Trash2} from 'lucide-react';
 import {EmailSubscription, Pagination} from './shared';
@@ -41,11 +41,11 @@ const EmailSubscriptionsTab: React.FC = () => {
             <table className="w-full text-sm">
               <thead>
               <tr className="border-b border-gray-100 dark:border-gray-800">
-                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">ID</th>
-                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">用户ID</th>
-                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">订阅状态</th>
-                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">创建时间</th>
-                <th className="text-right py-3 px-4 text-xs font-semibold text-gray-500">操作</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">ID</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">用户ID</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">订阅状态</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">创建时间</th>
+                <th className="text-right py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">操作</th>
               </tr>
               </thead>
               <tbody>{items.map(s => (
@@ -55,12 +55,12 @@ const EmailSubscriptionsTab: React.FC = () => {
                   <td className="py-3 px-4 font-medium text-gray-900 dark:text-white">用户#{s.user_id}</td>
                   <td className="py-3 px-4">
                     <button onClick={() => toggleMut.mutate({id: s.id, subscribed: s.subscribed})}
-                            className={`px-2.5 py-1 text-[10px] rounded-full font-medium ${s.subscribed ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-500'}`}>
+                            className={`px-2.5 py-1 text-[10px] rounded-full font-medium ${s.subscribed ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'}`}>
                       {s.subscribed ? '已订阅' : '未订阅'}
                     </button>
                   </td>
                   <td
-                    className="py-3 px-4 text-xs text-gray-500">{s.created_at ? new Date(s.created_at).toLocaleString('zh-CN') : '—'}</td>
+                    className="py-3 px-4 text-xs text-gray-500 dark:text-gray-400">{s.created_at ? new Date(s.created_at).toLocaleString('zh-CN') : '—'}</td>
                   <td className="py-3 px-4 text-right">
                     <button onClick={async () => {
                       if (await confirm({message: '确定删除？', variant: 'danger'})) deleteMut.mutate(s.id);
@@ -74,7 +74,7 @@ const EmailSubscriptionsTab: React.FC = () => {
           </div>}
       {pagination && pagination.total_pages > 1 && (
         <div className="flex items-center justify-between mt-4">
-          <span className="text-xs text-gray-500">共 {pagination.total} 条</span>
+          <span className="text-xs text-gray-500 dark:text-gray-400">共 {pagination.total} 条</span>
           <div className="flex items-center gap-1">
             <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}
                     className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30">

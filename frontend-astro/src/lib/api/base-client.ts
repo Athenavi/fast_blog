@@ -1,14 +1,7 @@
 // API client for frontend
 
 import { getConfig } from '@/lib/config';
-
-interface ApiResponse<T = any> {
-  success: boolean;
-  data?: T;
-  error?: string;
-  message?: string;
-  pagination?: any;
-}
+import type {ApiResponse, Pagination} from '@/lib/api/base-types';
 
 // ─── Cookie helpers ──────────────────────────────
 function getCookie(name: string): string | null {

@@ -1,10 +1,10 @@
-'use client';
+﻿'use client';
 
 import React, {useState} from 'react';
-import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
-import {EmptyState, Modal, Pagination} from '@/components/admin/shared-ui';
-import {apiClient} from '@/lib/api/api-client';
-import {BarChart3, Check, CheckCircle, Clock, Eye, FileText, X, XCircle} from 'lucide-react';
+import {useQuery} from '@tanstack/react-query';
+import {EmptyState, Pagination} from '@/components/admin/shared-ui';
+import {apiClient} from '@/lib/api/base-client';
+import {FileText} from 'lucide-react';
 import {ApprovalRecord, StatusBadge} from './shared';
 
 const MyRequestsTab: React.FC = () => {
@@ -53,12 +53,12 @@ const MyRequestsTab: React.FC = () => {
           <table className="w-full text-sm">
             <thead>
             <tr className="bg-gray-50 dark:bg-gray-800/50">
-              <th className="text-left px-4 py-3 font-medium text-gray-500">内容</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-500">类型</th>
-              <th className="text-center px-4 py-3 font-medium text-gray-500">进度</th>
-              <th className="text-center px-4 py-3 font-medium text-gray-500">状态</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-500">申请时间</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-500">备注</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">内容</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">类型</th>
+              <th className="text-center px-4 py-3 font-medium text-gray-500 dark:text-gray-400">进度</th>
+              <th className="text-center px-4 py-3 font-medium text-gray-500 dark:text-gray-400">状态</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">申请时间</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">备注</th>
             </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -72,9 +72,10 @@ const MyRequestsTab: React.FC = () => {
                       {contentTypeLabels[r.content_type] || r.content_type}
                     </span>
                 </td>
-                <td className="px-4 py-3 text-center text-xs text-gray-500">{r.current_step}/{r.total_steps}</td>
+                <td
+                  className="px-4 py-3 text-center text-xs text-gray-500 dark:text-gray-400">{r.current_step}/{r.total_steps}</td>
                 <td className="px-4 py-3 text-center"><StatusBadge status={r.status}/></td>
-                <td className="px-4 py-3 text-xs text-gray-500">{r.created_at?.slice(0, 16)}</td>
+                <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">{r.created_at?.slice(0, 16)}</td>
                 <td className="px-4 py-3 text-xs text-gray-400 max-w-[150px] truncate">{r.admin_notes || '-'}</td>
               </tr>
             ))}

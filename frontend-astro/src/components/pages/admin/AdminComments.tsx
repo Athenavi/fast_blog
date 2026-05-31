@@ -8,9 +8,26 @@ import {AdminShell} from '@/components/admin/AdminShell';
 import {apiClient} from '@/lib/api/base-client';
 import {useConfirm} from '@/components/ui/confirm-provider';
 import {
-    Check, X, MessageSquare, Clock, CheckCircle2, XCircle, AlertTriangle,
-    User, FileText, RefreshCw, MoreHorizontal, Eye, Trash2, Filter,
-    ChevronLeft, ChevronRight, Search, Shield, ThumbsUp, ThumbsDown, Ban
+  Check,
+  X,
+  MessageSquare,
+  Clock,
+  CheckCircle2,
+  XCircle,
+  AlertTriangle,
+  User,
+  FileText,
+  RefreshCw,
+  MoreHorizontal,
+  Eye,
+  Trash2,
+  Filter,
+  ChevronRight,
+  Search,
+  Shield,
+  ThumbsUp,
+  ThumbsDown,
+  Ban
 } from 'lucide-react';
 
 const STATUS_TABS = [
@@ -190,10 +207,10 @@ function CommentsInner() {
         queryKey: ['admin-comments', statusFilter],
     queryFn: async () => {
         if (statusFilter === 'pending') {
-            const res = await apiClient.get<any[]>('/comments/admin/comments/pending');
+          const res = await apiClient.get<unknown[]>('/comments/admin/comments/pending');
             return res.success && res.data ? (Array.isArray(res.data) ? res.data : []) : [];
         }
-        const res = await apiClient.get<any[]>('/comments/admin/comments', {status: statusFilter || undefined});
+      const res = await apiClient.get<unknown[]>('/comments/admin/comments', {status: statusFilter || undefined});
         return res.success && res.data ? (Array.isArray(res.data) ? res.data : (res.data as any).comments || []) : [];
     },
   });
@@ -217,7 +234,7 @@ function CommentsInner() {
         if (!comments) return [];
         if (!searchInput) return comments;
         const q = searchInput.toLowerCase();
-        return comments.filter((c: any) =>
+      return comments.filter((c) =>
             (c.content || '').toLowerCase().includes(q) ||
             (c.author_name || '').toLowerCase().includes(q) ||
             (c.article_title || '').toLowerCase().includes(q)
@@ -227,16 +244,16 @@ function CommentsInner() {
     // Stats
     const allComments = comments || [];
     const stats = useMemo(() => ({
-        pending: allComments.filter((c: any) => c.status === 'pending' || !c.status).length,
-        approved: allComments.filter((c: any) => c.status === 'approved').length,
-        rejected: allComments.filter((c: any) => c.status === 'rejected').length,
+      pending: allComments.filter((c) => c.status === 'pending' || !c.status).length,
+      approved: allComments.filter((c) => c.status === 'approved').length,
+      rejected: allComments.filter((c) => c.status === 'rejected').length,
         total: allComments.length,
     }), [allComments]);
 
     return (
         <AdminShell title="评论管理" actions={
             <button onClick={() => refetch()}
-                    className="p-2 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                    className="p-2 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                     title="刷新">
                 <RefreshCw className="w-4 h-4"/>
             </button>
@@ -257,7 +274,7 @@ function CommentsInner() {
                             <span className={`px-1.5 py-0.5 text-[10px] font-bold rounded-full ${
                                 statusFilter === tab.value
                                     ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400'
-                                    : 'bg-gray-100 dark:bg-gray-800 text-gray-500'
+                                  : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'
                             }`}>{count}</span>
                         </button>
                     );
@@ -308,13 +325,13 @@ function CommentsInner() {
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
                     {searchInput ? '未找到匹配的评论' : statusFilter === 'pending' ? '暂无待审评论' : '暂无评论'}
                 </h3>
-                <p className="text-sm text-gray-500">
+              <p className="text-sm text-gray-500 dark:text-gray-400">
                     {searchInput ? '尝试使用不同的关键词搜索' : statusFilter === 'pending' ? '所有评论都已处理完毕' : '该分类下暂无评论'}
                 </p>
             </div>
         ) : (
             <div className="divide-y divide-gray-50 dark:divide-gray-800/50">
-                {filteredComments.map((c: any) => (
+              {filteredComments.map((c) => (
                     <CommentCard
                         key={c.id}
                         comment={c}
@@ -347,7 +364,7 @@ function CommentsInner() {
                       message: `确认批量通过所有 ${filteredComments.length} 条评论？`,
                       variant: 'danger'
                     })) {
-                            filteredComments.forEach((c: any) => approveMut.mutate(c.id));
+                      filteredComments.forEach((c) => approveMut.mutate(c.id));
                         }
                     }}
                             className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-medium rounded-lg transition-colors">

@@ -1,11 +1,11 @@
-'use client';
+﻿'use client';
 
-import React, {useState} from 'react';
+import {useState} from 'react';
 import {useMutation} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
-import {apiClient} from '@/lib/api/api-client';
+import {apiClient} from '@/lib/api/base-client';
 import {Check, Diamond, Loader, Search} from 'lucide-react';
 
 function NFTInner() {
@@ -43,12 +43,12 @@ function NFTInner() {
           <h3 className="font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2"><Diamond className="w-5 h-5"/>铸造 NFT</h3>
           <div className="space-y-4">
             <div>
-              <label className="block text-sm text-gray-500 mb-1">文章 ID</label>
+              <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">文章 ID</label>
               <input type="number" value={mintArticleId} onChange={e => setMintArticleId(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm dark:text-white"/>
             </div>
             <div>
-              <label className="block text-sm text-gray-500 mb-1">所有者钱包地址</label>
+              <label className="block text-sm text-gray-500 dark:text-gray-400 mb-1">所有者钱包地址</label>
               <input value={mintAddress} onChange={e => setMintAddress(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm dark:text-white font-mono" placeholder="0x..."/>
             </div>
@@ -88,12 +88,16 @@ function NFTInner() {
             </div>
             {nftInfo && (
               <div className="p-4 bg-gray-50 dark:bg-gray-800 rounded-xl space-y-2 text-sm">
-                <p><span className="text-gray-500">Token ID:</span> {nftInfo.token_id || '—'}</p>
-                <p className="break-all"><span className="text-gray-500">合约:</span> {nftInfo.contract_address || '—'}</p>
-                <p className="break-all"><span className="text-gray-500">所有者:</span> {nftInfo.owner_address || '—'}</p>
-                <p><span className="text-gray-500">网络:</span> {nftInfo.network || '—'}</p>
+                <p><span className="text-gray-500 dark:text-gray-400">Token ID:</span> {nftInfo.token_id || '—'}</p>
+                <p className="break-all"><span
+                  className="text-gray-500 dark:text-gray-400">合约:</span> {nftInfo.contract_address || '—'}</p>
+                <p className="break-all"><span
+                  className="text-gray-500 dark:text-gray-400">所有者:</span> {nftInfo.owner_address || '—'}</p>
+                <p><span className="text-gray-500 dark:text-gray-400">网络:</span> {nftInfo.network || '—'}</p>
                 {nftInfo.transaction_hash && (
-                  <p className="break-all"><span className="text-gray-500">Tx:</span> {nftInfo.transaction_hash.slice(0, 30)}...</p>
+                  <p className="break-all"><span
+                    className="text-gray-500 dark:text-gray-400">Tx:</span> {nftInfo.transaction_hash.slice(0, 30)}...
+                  </p>
                 )}
               </div>
             )}

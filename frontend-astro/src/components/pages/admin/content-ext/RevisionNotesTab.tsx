@@ -1,10 +1,10 @@
-'use client';
+﻿'use client';
 
 import React, {useState} from 'react';
-import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
-import {DeleteConfirm, EmptyState, Modal} from '@/components/admin/shared-ui';
-import {apiClient} from '@/lib/api/api-client';
-import {ChevronLeft, ChevronRight, Edit3, FileEdit, Link2, MapPin, MessageSquare, Plus, Trash2} from 'lucide-react';
+import {useQuery} from '@tanstack/react-query';
+import {EmptyState} from '@/components/admin/shared-ui';
+import {apiClient} from '@/lib/api/base-client';
+import {ChevronLeft, ChevronRight, MessageSquare} from 'lucide-react';
 import {RevisionNote, Pagination} from './shared';
 
 const RevisionNotesTab: React.FC = () => {
@@ -52,7 +52,7 @@ const RevisionNotesTab: React.FC = () => {
           </div>}
       {pagination && pagination.total_pages > 1 && (
         <div className="flex items-center justify-between mt-4">
-          <span className="text-xs text-gray-500">共 {pagination.total} 条</span>
+          <span className="text-xs text-gray-500 dark:text-gray-400">共 {pagination.total} 条</span>
           <div className="flex items-center gap-1">
             <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}
                     className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30">

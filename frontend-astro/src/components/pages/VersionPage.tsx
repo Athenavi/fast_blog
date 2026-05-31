@@ -1,22 +1,29 @@
-'use client';
+﻿'use client';
 
-import React from 'react';
+
 import {useQuery} from '@tanstack/react-query';
 import {QueryProvider} from '@/components/QueryProvider';
-import {apiClient} from '@/lib/api/api-client';
+import {apiClient} from '@/lib/api/base-client';
 import {Calendar, GitBranch, Info, Server} from 'lucide-react';
 
 function VersionInner() {
   const {data, isLoading} = useQuery({
     queryKey: ['version'],
     queryFn: async () => {
-      const r = await apiClient.get<any>('/system/version/full');
+      const r = await apiClient.get('/system/version/full');
       return r.success && r.data ? r.data : {};
     },
   });
 
-  const Row = ({icon:Icon, label, value}: {icon:any;label:string;value:string}) => (
-    <div className="flex items-center gap-4 py-3 border-b border-gray-100 dark:border-gray-800 last:border-0"><Icon className="w-5 h-5 text-gray-400 shrink-0"/><span className="text-sm text-gray-500 w-24">{label}</span><span className="text-sm font-medium text-gray-900 dark:text-white">{value||'—'}</span></div>
+  const Row = ({icon: Icon, label, value}: {
+    icon: React.ComponentType<{ className?: string }>;
+    label: string;
+    value: string
+  }) => (
+    <div className="flex items-center gap-4 py-3 border-b border-gray-100 dark:border-gray-800 last:border-0"><Icon
+      className="w-5 h-5 text-gray-400 shrink-0"/><span
+      className="text-sm text-gray-500 dark:text-gray-400 w-24">{label}</span><span
+      className="text-sm font-medium text-gray-900 dark:text-white">{value || '—'}</span></div>
   );
 
   return (

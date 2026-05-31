@@ -1,8 +1,8 @@
-'use client';
+﻿'use client';
 
 import React, {useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
-import {apiClient} from '@/lib/api/api-client';
+import {apiClient} from '@/lib/api/base-client';
 import {ChevronRight, Clock, FileText, GitCompare, History, RotateCcw, Trash2, User, X} from 'lucide-react';
 import {useConfirm} from '@/components/ui/confirm-provider';
 
@@ -27,7 +27,19 @@ const RevisionsSidebar: React.FC<Props> = ({articleId,open,onClose,onCollapse,on
 
   const viewRevision=async(rev:Revision)=>{setSelected(rev);setCompareWith(null);setDiff(null);setPreview(rev.content);};
 
-  const compareRevisions=async(a:Revision,b:Revision)=>{setSelected(a);setCompareWith(b);try{const r=await apiClient.get<any>('/articles/revisions/compare',{rev1:a.id,rev2:b.id});if(r.success&&r.data)setDiff(r.data.differences||r.data);else setDiff({title_changed:a.title!==b.title,content_changed:true});}catch{setDiff({title_changed:true,content_changed:true});}};
+  const compareRevisions = async (a: Revision, b: Revision) => {
+    setSelected(a);
+    setCompareWith(b);
+    try {
+      const r = await apiClient.get('/articles/revisions/compare', {rev1: a.id, rev2: b.id});
+      if (r.success && r.data) setDiff(r.data.differences || r.data); else setDiff({
+        title_changed: a.title !== b.title,
+        content_changed: true
+      });
+    } catch {
+      setDiff({title_changed: true, content_changed: true});
+    }
+  };
   const confirm = useConfirm();
 
   if(!open)return null;

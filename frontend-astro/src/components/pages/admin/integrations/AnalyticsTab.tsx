@@ -1,10 +1,10 @@
-'use client';
+﻿'use client';
 
-import React, {useState} from 'react';
+import {useState} from 'react';
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {EmptyState, Modal, SectionTitle, StatCard, StatusBadge} from '@/components/admin/shared-ui';
-import {Activity, BarChart3, Edit3, Eye, Key, Loader, Plus, Save, Trash2, X} from 'lucide-react';
-import {apiClient} from '@/lib/api/api-client';
+import {Activity, BarChart3, Edit3, Eye, Loader, Plus, Save, Trash2, X} from 'lucide-react';
+import {apiClient} from '@/lib/api/base-client';
 import {useConfirm} from '@/components/ui/confirm-provider';
 import {GAConfig, BaiduConfig, Toggle, InputField, ActionButton} from './shared';
 
@@ -37,7 +37,7 @@ export default function AnalyticsTab({showToast}: {
   const {data: gaConfig, isLoading: gaLoading} = useQuery({
     queryKey: ['integ-ga-config'],
     queryFn: async () => {
-      const r = await apiClient.get<any>('/integrations/analytics/google/config');
+      const r = await apiClient.get('/integrations/analytics/google/config');
       return r.success && r.data ? r.data as GAConfig : null;
     },
   });
@@ -46,7 +46,7 @@ export default function AnalyticsTab({showToast}: {
   const {data: baiduConfigs, isLoading: baiduLoading} = useQuery({
     queryKey: ['integ-baidu-configs'],
     queryFn: async () => {
-      const r = await apiClient.get<any>('/integrations/analytics/baidu/configs');
+      const r = await apiClient.get('/integrations/analytics/baidu/configs');
       const raw = r.success && r.data ? (r.data.configs || r.data) : [];
       return (Array.isArray(raw) ? raw : []) as BaiduConfig[];
     },
@@ -166,17 +166,17 @@ export default function AnalyticsTab({showToast}: {
                 <div className="flex items-center gap-2">
                   <Toggle checked={gaConfig.enable_page_view_tracking || false} onChange={() => {
                   }} disabled/>
-                  <span className="text-xs text-gray-500">页面追踪</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">页面追踪</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Toggle checked={gaConfig.enable_event_tracking || false} onChange={() => {
                   }} disabled/>
-                  <span className="text-xs text-gray-500">事件追踪</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">事件追踪</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Toggle checked={gaConfig.anonymize_ip || false} onChange={() => {
                   }} disabled/>
-                  <span className="text-xs text-gray-500">IP 匿名化</span>
+                  <span className="text-xs text-gray-500 dark:text-gray-400">IP 匿名化</span>
                 </div>
               </div>
               {gaConfig.id && (
@@ -226,12 +226,12 @@ export default function AnalyticsTab({showToast}: {
                     <div className="flex items-center gap-2">
                       <Toggle checked={cfg.enable_tracking || false} onChange={() => {
                       }} disabled/>
-                      <span className="text-xs text-gray-500">追踪</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">追踪</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Toggle checked={cfg.enable_data_sync || false} onChange={() => {
                       }} disabled/>
-                      <span className="text-xs text-gray-500">数据同步</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">数据同步</span>
                     </div>
                     <div className="flex-1"/>
                     <ActionButton onClick={() => {

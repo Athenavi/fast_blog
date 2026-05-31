@@ -1,14 +1,14 @@
-'use client';
+﻿'use client';
 
 import React, {useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {EmptyState, Modal} from '@/components/admin/shared-ui';
-import {apiClient} from '@/lib/api/api-client';
+import {apiClient} from '@/lib/api/base-client';
 import {useConfirm} from '@/components/ui/confirm-provider';
 import {useToast} from '@/components/ui/toast-provider';
 import {ChevronLeft, ChevronRight, Edit3, Plus, Trash2, Zap} from 'lucide-react';
 import {MediaOptimization, Pagination} from './shared';
-
+import type {ApiResponse} from '@/lib/api/base-types';
 const MediaOptimizationTab: React.FC = () => {
   const confirm = useConfirm();
   const toast = useToast();
@@ -31,7 +31,7 @@ const MediaOptimizationTab: React.FC = () => {
 
   const createMut = useMutation({
     mutationFn: (d: any) => apiClient.post('/search/management/media-optimization', d),
-    onSuccess: (r: any) => {
+    onSuccess: (r: ApiResponse) => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['media-optimization']});
         setShowForm(false);
@@ -94,13 +94,13 @@ const MediaOptimizationTab: React.FC = () => {
             <table className="w-full text-sm">
               <thead>
               <tr className="border-b border-gray-100 dark:border-gray-800">
-                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">ID</th>
-                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">媒体ID</th>
-                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">WebP URL</th>
-                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">CDN URL</th>
-                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">状态</th>
-                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">多尺寸</th>
-                <th className="text-right py-3 px-4 text-xs font-semibold text-gray-500">操作</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">ID</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">媒体ID</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">WebP URL</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">CDN URL</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">状态</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">多尺寸</th>
+                <th className="text-right py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">操作</th>
               </tr>
               </thead>
               <tbody>{items.map(m => (
@@ -118,16 +118,18 @@ const MediaOptimizationTab: React.FC = () => {
                   </td>
                   <td className="py-3 px-4">
                  <span
-                   className={`px-2 py-0.5 text-[10px] rounded-full font-medium ${statusColors[m.optimization_status] || 'bg-gray-100 text-gray-500'}`}>
+                   className={`px-2 py-0.5 text-[10px] rounded-full font-medium ${statusColors[m.optimization_status] || 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'}`}>
                    {statusLabels[m.optimization_status] || m.optimization_status}
                  </span>
                   </td>
-                  <td className="py-3 px-4 text-xs text-gray-500">{m.sizes_json ? '有' : '—'}</td>
+                  <td className="py-3 px-4 text-xs text-gray-500 dark:text-gray-400">{m.sizes_json ? '有' : '—'}</td>
                   <td className="py-3 px-4 text-right">
                     <button onClick={() => {
                       const url = prompt('WebP URL:', m.webp_url || '');
                       if (url !== null) updateMut.mutate({id: m.id, webp_url: url});
-                    }} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 mr-1"><Edit3
+                    }}
+                            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 mr-1">
+                      <Edit3
                       className="w-3.5 h-3.5"/></button>
                     <button onClick={async () => {
                       if (await confirm({message: '确定删除？', variant: 'danger'})) deleteMut.mutate(m.id);
@@ -141,7 +143,7 @@ const MediaOptimizationTab: React.FC = () => {
           </div>}
       {pagination && pagination.total_pages > 1 && (
         <div className="flex items-center justify-between mt-4">
-          <span className="text-xs text-gray-500">共 {pagination.total} 条</span>
+          <span className="text-xs text-gray-500 dark:text-gray-400">共 {pagination.total} 条</span>
           <div className="flex items-center gap-1">
             <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}
                     className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30">

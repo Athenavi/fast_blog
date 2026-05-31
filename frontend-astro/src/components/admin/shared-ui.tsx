@@ -10,7 +10,7 @@ import {Loader, AlertTriangle, RefreshCw} from 'lucide-react';
    StatCard - 渐变统计卡片
    ═══════════════════════════════════════════ */
 export const StatCard: React.FC<{
-    icon: any;
+  icon: React.ComponentType<{ className?: string }>;
     label: string;
     value: string | number;
     gradient?: string;        /* gradient类 (e.g. "from-blue-500 to-blue-600") */
@@ -62,7 +62,7 @@ export const StatCard: React.FC<{
    SectionTitle - 区域标题
    ═══════════════════════════════════════════ */
 export const SectionTitle: React.FC<{
-    icon: any;
+  icon: React.ComponentType<{ className?: string }>;
     title: string;
     subtitle?: string;
     action?: React.ReactNode;
@@ -138,7 +138,7 @@ export const Modal: React.FC<{
    EmptyState - 空状态
    ═══════════════════════════════════════════ */
 export const EmptyState: React.FC<{
-    icon: any;
+  icon: React.ComponentType<{ className?: string }>;
     title: string;
     desc: string;
     action?: React.ReactNode;
@@ -308,7 +308,12 @@ export const GradientBadge: React.FC<{
    ═══════════════════════════════════════════ */
 export const TypeBadge: React.FC<{
     type: string;
-    config: Record<string, { label: string; icon: any; color: string; bg: string }>;
+  config: Record<string, {
+    label: string;
+    icon: React.ComponentType<{ className?: string }>;
+    color: string;
+    bg: string
+  }>;
 }> = ({type, config}) => {
     const c = config[type] || config.default || {label: type, icon: null, color: 'text-gray-600', bg: 'bg-gray-50'};
     const Icon = c.icon;

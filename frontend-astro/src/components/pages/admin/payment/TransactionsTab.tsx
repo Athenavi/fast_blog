@@ -1,9 +1,9 @@
-'use client';
+﻿'use client';
 
 import React, {useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
 import {EmptyState} from '@/components/admin/shared-ui';
-import {apiClient} from '@/lib/api/api-client';
+import {apiClient} from '@/lib/api/base-client';
 import {ChevronLeft, ChevronRight, DollarSign, Search} from 'lucide-react';
 import {StatusBadge} from './shared';
 import type {PaymentTransaction, Pagination} from './shared';
@@ -58,31 +58,31 @@ const TransactionsTab: React.FC = () => {
             <table className="w-full text-sm">
               <thead>
               <tr className="border-b border-gray-100 dark:border-gray-800">
-                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">ID</th>
-                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">订单号</th>
-                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">金额</th>
-                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">状态</th>
-                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">支付方式</th>
-                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">创建时间</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">ID</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">订单号</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">金额</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">状态</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">支付方式</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">创建时间</th>
               </tr>
               </thead>
               <tbody>{items.map(t => (
                 <tr key={t.id}
                     className="border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-800/30">
-                  <td className="py-3 px-4 font-mono text-xs text-gray-500">#{t.id}</td>
+                  <td className="py-3 px-4 font-mono text-xs text-gray-500 dark:text-gray-400">#{t.id}</td>
                   <td className="py-3 px-4 font-medium text-gray-900 dark:text-white text-xs">{t.order_id}</td>
                   <td className="py-3 px-4 font-semibold text-gray-900 dark:text-white">{t.amount} {t.currency}</td>
                   <td className="py-3 px-4"><StatusBadge status={t.status}/></td>
                   <td className="py-3 px-4 text-gray-600 dark:text-gray-400">{t.payment_method || '—'}</td>
                   <td
-                    className="py-3 px-4 text-xs text-gray-500">{t.created_at ? new Date(t.created_at).toLocaleString('zh-CN') : '—'}</td>
+                    className="py-3 px-4 text-xs text-gray-500 dark:text-gray-400">{t.created_at ? new Date(t.created_at).toLocaleString('zh-CN') : '—'}</td>
                 </tr>
               ))}</tbody>
             </table>
           </div>}
       {pagination && pagination.total_pages > 1 && (
         <div className="flex items-center justify-between mt-4">
-          <span className="text-xs text-gray-500">共 {pagination.total} 条</span>
+          <span className="text-xs text-gray-500 dark:text-gray-400">共 {pagination.total} 条</span>
           <div className="flex items-center gap-1">
             <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}
                     className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30">

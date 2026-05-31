@@ -1,14 +1,14 @@
-'use client';
+﻿'use client';
 
 import React, {useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {DeleteConfirm, EmptyState, Modal} from '@/components/admin/shared-ui';
-import {apiClient} from '@/lib/api/api-client';
+import {apiClient} from '@/lib/api/base-client';
 import {ChevronLeft, ChevronRight, CreditCard, Edit3, Plus, Search, Trash2} from 'lucide-react';
 import {Input, Badge} from './shared';
 import type {PaymentGateway, Pagination} from './shared';
 import {useToast} from '@/components/ui/toast-provider';
-
+import type {ApiResponse} from '@/lib/api/base-types';
 const GatewaysTab: React.FC = () => {
   const qc = useQueryClient();
   const toast = useToast();
@@ -35,7 +35,7 @@ const GatewaysTab: React.FC = () => {
 
   const createMut = useMutation({
     mutationFn: (d: any) => apiClient.post('/payment-management/gateways', d),
-    onSuccess: (r: any) => {
+    onSuccess: (r: ApiResponse) => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['payment-gateways']});
         setShowForm(false);
@@ -44,7 +44,7 @@ const GatewaysTab: React.FC = () => {
   });
   const updateMut = useMutation({
     mutationFn: ({id, ...d}: any) => apiClient.put(`/payment-management/gateways/${id}`, d),
-    onSuccess: (r: any) => {
+    onSuccess: (r: ApiResponse) => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['payment-gateways']});
         setShowForm(false);
@@ -53,7 +53,7 @@ const GatewaysTab: React.FC = () => {
   });
   const deleteMut = useMutation({
     mutationFn: (id: number) => apiClient.delete(`/payment-management/gateways/${id}`),
-    onSuccess: (r: any) => {
+    onSuccess: (r: ApiResponse) => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['payment-gateways']});
         setDeleteId(null);
@@ -114,11 +114,11 @@ const GatewaysTab: React.FC = () => {
             <table className="w-full text-sm">
               <thead>
               <tr className="border-b border-gray-100 dark:border-gray-800">
-                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">名称</th>
-                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">提供商</th>
-                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">支持货币</th>
-                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500">状态</th>
-                <th className="text-right py-3 px-4 text-xs font-semibold text-gray-500">操作</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">名称</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">提供商</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">支持货币</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">状态</th>
+                <th className="text-right py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">操作</th>
               </tr>
               </thead>
               <tbody>{items.map(g => (
@@ -126,11 +126,12 @@ const GatewaysTab: React.FC = () => {
                     className="border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-800/30">
                   <td className="py-3 px-4 font-medium text-gray-900 dark:text-white">{g.name}</td>
                   <td className="py-3 px-4 text-gray-600 dark:text-gray-400">{g.provider}</td>
-                  <td className="py-3 px-4 text-gray-500 text-xs">{g.supported_currencies || '—'}</td>
+                  <td
+                    className="py-3 px-4 text-gray-500 dark:text-gray-400 text-xs">{g.supported_currencies || '—'}</td>
                   <td className="py-3 px-4"><Badge active={g.is_active}/></td>
                   <td className="py-3 px-4 text-right">
                     <button onClick={() => openEdit(g)}
-                            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 mr-1">
+                            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400 mr-1">
                       <Edit3 className="w-3.5 h-3.5"/></button>
                     <button onClick={() => setDeleteId(g.id)}
                             className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500"><Trash2
@@ -142,7 +143,7 @@ const GatewaysTab: React.FC = () => {
           </div>}
       {pagination && pagination.total_pages > 1 && (
         <div className="flex items-center justify-between mt-4">
-          <span className="text-xs text-gray-500">共 {pagination.total} 条</span>
+          <span className="text-xs text-gray-500 dark:text-gray-400">共 {pagination.total} 条</span>
           <div className="flex items-center gap-1">
             <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}
                     className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30">

@@ -1,6 +1,6 @@
 'use client';
 
-import React, {useState, useMemo, useEffect} from 'react';
+import React, {useState, useMemo} from 'react';
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
@@ -8,10 +8,28 @@ import {AdminShell} from '@/components/admin/AdminShell';
 import {StatCard} from '@/components/admin/shared-ui';
 import {apiClient} from '@/lib/api/base-client';
 import {
-  Puzzle, Download, Upload, Settings, Trash2, RefreshCw,
-  Search, Star, ExternalLink, Info, Shield, Zap, ChevronRight,
-  Check, X, AlertTriangle, Package, ToggleLeft, ToggleRight,
-  Clock, User, Globe, Tag
+  Puzzle,
+  Download,
+  Upload,
+  Settings,
+  Trash2,
+  RefreshCw,
+  Search,
+  Star,
+  ExternalLink,
+  Info,
+  Shield,
+  Zap,
+  ChevronRight,
+  X,
+  AlertTriangle,
+  Package,
+  ToggleLeft,
+  ToggleRight,
+  Clock,
+  User,
+  Globe,
+  Tag
 } from 'lucide-react';
 
 /* ── 类型 ── */
@@ -150,7 +168,8 @@ const PluginCard: React.FC<{
             </span>
             ))}
             {(plugin.capabilities?.length || 0) > 3 && (
-                <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-500 text-[10px] rounded-full">
+              <span
+                className="px-2 py-0.5 bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400 text-[10px] rounded-full">
               +{plugin.capabilities!.length - 3}
             </span>
             )}
@@ -264,7 +283,7 @@ const ConfigModal: React.FC<{
                 },
               ].map(item => (
                   <div key={item.label} className="flex items-center justify-between">
-                    <span className="text-sm text-gray-500">{item.label}</span>
+                    <span className="text-sm text-gray-500 dark:text-gray-400">{item.label}</span>
                     <span className="text-sm text-gray-900 dark:text-white font-medium">{item.value}</span>
                   </div>
               ))}
@@ -420,7 +439,7 @@ function PluginsInner() {
                     className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                         activeTab === 'installed'
                             ? 'bg-blue-600 text-white shadow-sm'
-                            : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'
+                          : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                     }`}>
               <Puzzle className="w-4 h-4"/>
               已安装
@@ -434,7 +453,7 @@ function PluginsInner() {
                     className={`flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
                         activeTab === 'marketplace'
                             ? 'bg-blue-600 text-white shadow-sm'
-                            : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'
+                          : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                     }`}>
               <Download className="w-4 h-4"/>
               插件市场
@@ -470,7 +489,7 @@ function PluginsInner() {
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
                 {searchTerm ? '未找到匹配的插件' : activeTab === 'installed' ? '尚未安装任何插件' : '暂无可用插件'}
               </h3>
-              <p className="text-sm text-gray-500 mb-6">
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
                 {searchTerm ? '尝试使用不同的搜索词' : activeTab === 'installed' ? '浏览插件市场发现更多功能' : '请稍后再来查看'}
               </p>
               {activeTab === 'installed' && !searchTerm && (
@@ -516,7 +535,7 @@ function PluginsInner() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-900 dark:text-white">确认卸载插件</h3>
-                    <p className="text-sm text-gray-500">此操作不可恢复</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">此操作不可恢复</p>
                   </div>
                 </div>
                 <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">

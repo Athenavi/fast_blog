@@ -1,4 +1,4 @@
-import React, {useState} from 'react';
+import {useState} from 'react';
 import {useConfirm} from '@/components/ui/confirm-provider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {AuthGuard} from '@/components/AuthGuard';
@@ -6,10 +6,7 @@ import {QueryProvider} from '@/components/QueryProvider';
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {apiClient} from '@/lib/api/base-client';
 import {useToast} from '@/components/ui/toast-provider';
-import {
-    Palette, Download, CheckCircle, Settings, Eye, Trash2,
-    Upload, Search, Filter, Star, Globe
-} from 'lucide-react';
+import {Palette, Download, CheckCircle, Settings, Eye, Trash2, Search, Filter, Star, Globe} from 'lucide-react';
 
 interface Theme {
     id?: number;
@@ -182,7 +179,8 @@ function ThemeMarketplaceInner() {
                 <div className="flex items-start justify-between mb-2">
                     <div>
                         <h3 className="font-semibold text-gray-900 dark:text-white">{theme.name}</h3>
-                        <p className="text-xs text-gray-500">v{theme.version} · by {theme.author || 'Unknown'}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">v{theme.version} ·
+                        by {theme.author || 'Unknown'}</p>
                     </div>
                 </div>
 
@@ -401,7 +399,7 @@ function ThemeMarketplaceInner() {
                                                         })}
                                                         className="w-full px-3 py-2 border rounded-lg bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                                     >
-                                                        {schema.options?.map((opt: any) => (
+                                                      {schema.options?.map((opt) => (
                                                             <option key={opt.value} value={opt.value}>
                                                                 {opt.label}
                                                             </option>
@@ -421,7 +419,8 @@ function ThemeMarketplaceInner() {
                                             </div>
                                         ))
                                     ) : (
-                                        <p className="text-gray-500 text-center py-8">此主题没有可配置项</p>
+                                      <p
+                                        className="text-gray-500 dark:text-gray-400 text-center py-8">此主题没有可配置项</p>
                                     )}
                                 </div>
 

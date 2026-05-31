@@ -1,14 +1,14 @@
-'use client';
+﻿'use client';
 
 import React, {useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {DeleteConfirm, EmptyState, Modal, Pagination, StatusBadge} from '@/components/admin/shared-ui';
-import {apiClient} from '@/lib/api/api-client';
+import {apiClient} from '@/lib/api/base-client';
 import {useToast} from '@/components/ui/toast-provider';
 import {Edit3, Package, Plus, Search, Trash2} from 'lucide-react';
 import {Input, Select, MoneyDisplay} from './shared';
 import type {Product} from './shared';
-
+import type {ApiResponse} from '@/lib/api/base-types';
 const ProductsTab: React.FC = () => {
   const toast = useToast();
   const qc = useQueryClient();
@@ -32,7 +32,7 @@ const ProductsTab: React.FC = () => {
 
   const createMut = useMutation({
     mutationFn: (d: any) => apiClient.post('/shop/products', d),
-    onSuccess: (r: any) => {
+    onSuccess: (r: ApiResponse) => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['products']});
         setShowForm(false);
@@ -41,7 +41,7 @@ const ProductsTab: React.FC = () => {
   });
   const updateMut = useMutation({
     mutationFn: ({id, ...d}: any) => apiClient.put(`/shop/products/${id}`, d),
-    onSuccess: (r: any) => {
+    onSuccess: (r: ApiResponse) => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['products']});
         setShowForm(false);
@@ -50,7 +50,7 @@ const ProductsTab: React.FC = () => {
   });
   const deleteMut = useMutation({
     mutationFn: (id: number) => apiClient.delete(`/shop/products/${id}`),
-    onSuccess: (r: any) => {
+    onSuccess: (r: ApiResponse) => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['products']});
         setDeleteId(null);
@@ -132,13 +132,13 @@ const ProductsTab: React.FC = () => {
           <table className="w-full text-sm">
             <thead>
             <tr className="bg-gray-50 dark:bg-gray-800/50">
-              <th className="text-left px-4 py-3 font-medium text-gray-500">商品名称</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-500">SKU</th>
-              <th className="text-right px-4 py-3 font-medium text-gray-500">价格</th>
-              <th className="text-right px-4 py-3 font-medium text-gray-500">库存</th>
-              <th className="text-center px-4 py-3 font-medium text-gray-500">状态</th>
-              <th className="text-center px-4 py-3 font-medium text-gray-500">类型</th>
-              <th className="text-right px-4 py-3 font-medium text-gray-500">操作</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">商品名称</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">SKU</th>
+              <th className="text-right px-4 py-3 font-medium text-gray-500 dark:text-gray-400">价格</th>
+              <th className="text-right px-4 py-3 font-medium text-gray-500 dark:text-gray-400">库存</th>
+              <th className="text-center px-4 py-3 font-medium text-gray-500 dark:text-gray-400">状态</th>
+              <th className="text-center px-4 py-3 font-medium text-gray-500 dark:text-gray-400">类型</th>
+              <th className="text-right px-4 py-3 font-medium text-gray-500 dark:text-gray-400">操作</th>
             </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -148,7 +148,7 @@ const ProductsTab: React.FC = () => {
                   <div className="font-medium text-gray-900 dark:text-gray-100">{p.name}</div>
                   {p.category && <div className="text-xs text-gray-400">{p.category}</div>}
                 </td>
-                <td className="px-4 py-3 text-gray-500 font-mono text-xs">{p.sku || '-'}</td>
+                <td className="px-4 py-3 text-gray-500 dark:text-gray-400 font-mono text-xs">{p.sku || '-'}</td>
                 <td className="px-4 py-3 text-right">
                   <MoneyDisplay amount={p.price}/>
                   {p.compare_price && p.compare_price > p.price && (
@@ -174,7 +174,7 @@ const ProductsTab: React.FC = () => {
                   <div className="flex items-center justify-end gap-1">
                     <button onClick={() => openEdit(p)}
                             className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800" title="编辑">
-                      <Edit3 className="w-3.5 h-3.5 text-gray-500"/>
+                      <Edit3 className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400"/>
                     </button>
                     <button onClick={() => setDeleteId(p.id)}
                             className="p-1.5 rounded hover:bg-red-50 dark:hover:bg-red-900/20" title="删除">

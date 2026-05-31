@@ -1,10 +1,10 @@
-'use client';
+﻿'use client';
 
 import React from 'react';
 import {useQuery} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
-import {apiClient} from '@/lib/api/api-client';
+import {apiClient} from '@/lib/api/base-client';
 import {Search, ShoppingBag} from 'lucide-react';
 
 function ProductsInner() {
@@ -12,7 +12,7 @@ function ProductsInner() {
     const {data: products, isLoading} = useQuery<any[]>({
     queryKey: ['products', search],
     queryFn: async () => {
-        const r = await apiClient.get<any>('/shop', {q: search || undefined});
+      const r = await apiClient.get('/shop', {q: search || undefined});
       return r.success && r.data ? (Array.isArray(r.data) ? r.data : r.data.products||[]) : [];
     },
   });
@@ -21,7 +21,8 @@ function ProductsInner() {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-gray-950 dark:to-gray-900 pt-20">
       <div className="max-w-6xl mx-auto px-4">
         <div className="flex items-center justify-between mb-8">
-          <div><h1 className="text-2xl font-bold text-gray-900 dark:text-white">商城</h1><p className="text-sm text-gray-500 mt-1">发现精选产品</p></div>
+          <div><h1 className="text-2xl font-bold text-gray-900 dark:text-white">商城</h1><p
+            className="text-sm text-gray-500 dark:text-gray-400 mt-1">发现精选产品</p></div>
         </div>
         <div className="relative mb-6"><Search className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"/><input type="text" value={search} onChange={e=>setSearch(e.target.value)} placeholder="搜索产品..." className="w-full pl-11 pr-4 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"/></div>
         {isLoading ? (

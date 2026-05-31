@@ -3,16 +3,7 @@
 import {useMutation, useQueryClient, type UseMutationResult} from '@tanstack/react-query';
 import {useToast} from '@/components/ui/toast-provider';
 import {apiClient} from '@/lib/api/base-client';
-
-/**
- * API 响应通用结构
- */
-interface ApiResponse<T = any> {
-  success: boolean;
-  data?: T;
-  error?: string;
-  message?: string;
-}
+import type {ApiResponse} from '@/lib/api/base-types';
 
 /**
  * useApiMutation 配置选项

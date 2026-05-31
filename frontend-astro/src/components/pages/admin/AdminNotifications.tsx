@@ -1,19 +1,44 @@
-'use client';
+﻿'use client';
 
 import React, {useState, useMemo, useEffect, useCallback} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
-import {apiClient} from '@/lib/api/api-client';
+import {apiClient} from '@/lib/api/base-client';
 import {useDebounce} from '@/lib/hooks';
 import {StatCard} from '@/components/admin/shared-ui';
 import {
-  Bell, BellRing, Check, CheckCheck, Send, Trash2, Search,
-  Mail, AlertTriangle, Shield, FileText, UserPlus, CreditCard,
-  Settings, Filter, ChevronDown, Clock, Eye, EyeOff,
-  Inbox, Archive, RefreshCw, Plus, X, ChevronLeft, ChevronRight,
-  Zap, MessageSquare, Info, AlertCircle, Loader2
+  Bell,
+  BellRing,
+  Check,
+  CheckCheck,
+  Send,
+  Trash2,
+  Search,
+  Mail,
+  AlertTriangle,
+  Shield,
+  FileText,
+  UserPlus,
+  CreditCard,
+  Settings,
+  Filter,
+  ChevronDown,
+  Clock,
+  Eye,
+  EyeOff,
+  Inbox,
+  Archive,
+  RefreshCw,
+  Plus,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  MessageSquare,
+  Info,
+  AlertCircle,
+  Loader2
 } from 'lucide-react';
 
 /* ─── Notification type config ─── */
@@ -123,7 +148,7 @@ const NotificationCard: React.FC<{
             }) : '未知'}
           </span>
             <span
-                className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${typeConfig.color.replace('from-', 'bg-').split(' ')[0]}/10 ${typeConfig.color.replace('to-', 'text-').split(' ')[0] || 'text-gray-500'}`}>
+              className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-medium ${typeConfig.color.replace('from-', 'bg-').split(' ')[0]}/10 ${typeConfig.color.replace('to-', 'text-').split(' ')[0] || 'text-gray-500 dark:text-gray-400'}`}>
             {typeConfig.label}
           </span>
             {n.priority && n.priority !== 'normal' && (
@@ -337,7 +362,7 @@ function NotificationsInner() {
   const {data: notifications = [], isLoading, refetch, isFetching} = useQuery<any[]>({
     queryKey: ['admin-notifications'],
     queryFn: async () => {
-      const r = await apiClient.get<any>('/notifications/messages');
+      const r = await apiClient.get('/notifications/messages');
       return r.success && r.data ? (Array.isArray(r.data) ? r.data : r.data.notifications || []) : [];
     },
   });
@@ -397,9 +422,9 @@ function NotificationsInner() {
   /* ─── Stats ─── */
   const stats = useMemo(() => {
     const total = notifications.length;
-    const unread = notifications.filter((n: any) => !n.is_read).length;
+    const unread = notifications.filter((n) => !n.is_read).length;
     const read = total - unread;
-    const today = notifications.filter((n: any) => {
+    const today = notifications.filter((n) => {
       if (!n.created_at) return false;
       const d = new Date(n.created_at);
       const now = new Date();
@@ -413,16 +438,16 @@ function NotificationsInner() {
     let result = [...notifications];
 
     // Status filter
-    if (statusFilter === 'unread') result = result.filter((n: any) => !n.is_read);
-    else if (statusFilter === 'read') result = result.filter((n: any) => n.is_read);
+    if (statusFilter === 'unread') result = result.filter((n) => !n.is_read);
+    else if (statusFilter === 'read') result = result.filter((n) => n.is_read);
 
     // Type filter
-    if (typeFilter !== 'all') result = result.filter((n: any) => (n.type || 'system') === typeFilter);
+    if (typeFilter !== 'all') result = result.filter((n) => (n.type || 'system') === typeFilter);
 
     // Search
     if (debouncedSearch) {
       const q = debouncedSearch.toLowerCase();
-      result = result.filter((n: any) =>
+      result = result.filter((n) =>
           (n.title || '').toLowerCase().includes(q) ||
           (n.content || '').toLowerCase().includes(q) ||
           (n.message || '').toLowerCase().includes(q)
@@ -448,7 +473,7 @@ function NotificationsInner() {
     if (selectedIds.size === filtered.length) {
       setSelectedIds(new Set());
     } else {
-      setSelectedIds(new Set(filtered.map((n: any) => n.id)));
+      setSelectedIds(new Set(filtered.map((n) => n.id)));
     }
   }, [filtered, selectedIds]);
 
@@ -596,13 +621,13 @@ function NotificationsInner() {
               <p className="text-lg font-medium text-gray-500 dark:text-gray-400 mb-1">
                 {search ? '没有找到匹配的通知' : '暂无通知'}
               </p>
-              <p className="text-sm text-gray-400 dark:text-gray-500">
+              <p className="text-sm text-gray-400 dark:text-gray-500 dark:text-gray-400">
                 {search ? '尝试使用其他关键词搜索' : '新通知将会显示在这里'}
               </p>
             </div>
         ) : (
           <div className="divide-y divide-gray-100 dark:divide-gray-800">
-            {filtered.map((n: any) => (
+            {filtered.map((n) => (
                 <NotificationCard
                     key={n.id}
                     notification={n}

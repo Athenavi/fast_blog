@@ -12,17 +12,23 @@ const MembersTab: React.FC<{ members: Member[]; stats: Record<string, any> }> = 
     {/* Stats */}
     <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-5">
-        <div className="flex items-center gap-2 text-sm text-gray-500 mb-1"><Crown className="w-4 h-4"/>VIP 总数</div>
+        <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1"><Crown
+          className="w-4 h-4"/>VIP 总数
+        </div>
         <p className="text-2xl font-bold">{stats.total_vip_count ?? '—'}</p></div>
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-5">
-        <div className="flex items-center gap-2 text-sm text-gray-500 mb-1"><Users className="w-4 h-4"/>本月新增</div>
+        <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1"><Users
+          className="w-4 h-4"/>本月新增
+        </div>
         <p className="text-2xl font-bold">{stats.monthly_new ?? '—'}</p></div>
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-5">
-        <div className="flex items-center gap-2 text-sm text-gray-500 mb-1"><DollarSign className="w-4 h-4"/>月收入
+        <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1"><DollarSign
+          className="w-4 h-4"/>月收入
         </div>
         <p className="text-2xl font-bold">{stats.monthly_revenue ?? '—'}</p></div>
       <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-5">
-        <div className="flex items-center gap-2 text-sm text-gray-500 mb-1"><TrendingUp className="w-4 h-4"/>续费率
+        <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400 mb-1"><TrendingUp
+          className="w-4 h-4"/>续费率
         </div>
         <p className="text-2xl font-bold">{stats.renewal_rate ? `${stats.renewal_rate}%` : '—'}</p></div>
     </div>
@@ -44,16 +50,18 @@ const MembersTab: React.FC<{ members: Member[]; stats: Record<string, any> }> = 
         <table className="w-full">
           <thead className="bg-gray-50 dark:bg-gray-800 border-b">
           <tr>
-            <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase">用户</th>
-            <th
-              className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase hidden sm:table-cell">套餐
+            <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">用户
             </th>
             <th
-              className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase hidden md:table-cell">到期
+              className="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase hidden sm:table-cell">套餐
             </th>
-            <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase">状态</th>
             <th
-              className="px-5 py-3 text-right text-xs font-semibold text-gray-500 uppercase hidden lg:table-cell">金额
+              className="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase hidden md:table-cell">到期
+            </th>
+            <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase">状态
+            </th>
+            <th
+              className="px-5 py-3 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase hidden lg:table-cell">金额
             </th>
           </tr>
           </thead>
@@ -71,12 +79,12 @@ const MembersTab: React.FC<{ members: Member[]; stats: Record<string, any> }> = 
                   className="px-2 py-0.5 text-xs rounded-full bg-purple-100 dark:bg-purple-900/20 text-purple-700">{m.plan_name}</span>
               </td>
               <td
-                className="px-5 py-4 text-sm text-gray-500 hidden md:table-cell">{m.expires_at ? new Date(m.expires_at).toLocaleDateString('zh-CN') : '-'}</td>
+                className="px-5 py-4 text-sm text-gray-500 dark:text-gray-400 hidden md:table-cell">{m.expires_at ? new Date(m.expires_at).toLocaleDateString('zh-CN') : '-'}</td>
               <td className="px-5 py-4"><span
-                className={`px-2 py-0.5 text-xs rounded-full ${m.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>{m.is_active ? '有效' : '过期'}</span>
+                className={`px-2 py-0.5 text-xs rounded-full ${m.is_active ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'}`}>{m.is_active ? '有效' : '过期'}</span>
               </td>
               <td
-                className="px-5 py-4 text-sm text-gray-500 text-right hidden lg:table-cell">¥{m.amount.toFixed(2)}</td>
+                className="px-5 py-4 text-sm text-gray-500 dark:text-gray-400 text-right hidden lg:table-cell">¥{m.amount.toFixed(2)}</td>
             </tr>
           ))}
           </tbody>

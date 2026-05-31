@@ -8,9 +8,26 @@ import {AdminShell} from '@/components/admin/AdminShell';
 import {StatCard} from '@/components/admin/shared-ui';
 import {apiClient} from '@/lib/api/base-client';
 import {
-  FolderTree, Plus, Edit3, Trash2, Search, X, ChevronDown, ChevronRight,
-  Hash, FileText, GripVertical, MoreVertical, Eye, EyeOff, Check, AlertTriangle,
-  LayoutGrid, List, ArrowUpDown, ArrowUp, ArrowDown
+  FolderTree,
+  Plus,
+  Edit3,
+  Trash2,
+  Search,
+  X,
+  ChevronDown,
+  ChevronRight,
+  Hash,
+  FileText,
+  GripVertical,
+  MoreVertical,
+  Eye,
+  EyeOff,
+  Check,
+  AlertTriangle,
+  LayoutGrid,
+  List,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react';
 
 /* ── 颜色方案 ── */
@@ -149,7 +166,7 @@ const CategoryRow: React.FC<{
                 <p className="text-xs text-gray-400 font-mono mb-3 truncate">/{cat.slug}</p>
             )}
             <div className="flex items-center justify-between pt-3 border-t border-gray-100 dark:border-gray-800">
-            <span className="flex items-center gap-1 text-xs text-gray-500">
+            <span className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
               <FileText className="w-3.5 h-3.5"/>
               {count} 篇文章
             </span>
@@ -348,7 +365,7 @@ const DeleteConfirm: React.FC<{
           </div>
           <div>
             <h3 className="font-semibold text-gray-900 dark:text-white">确认删除分类</h3>
-            <p className="text-sm text-gray-500">此操作不可撤销</p>
+            <p className="text-sm text-gray-500 dark:text-gray-400">此操作不可撤销</p>
           </div>
         </div>
         <p className="text-sm text-gray-600 dark:text-gray-400 mb-1">
@@ -384,7 +401,7 @@ function CategoriesInner() {
   const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
   const [sortBy, setSortBy] = useState<'name' | 'count'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
-  const [expandedIds, setExpandedIds] = useState<Set<number>>(new Set());
+  const [_expandedIds, _setExpandedIds] = useState<Set<number>>(new Set());
 
   const {data: cats, isLoading} = useQuery({
     queryKey: ['admin-categories'],
@@ -392,7 +409,7 @@ function CategoriesInner() {
       const res = await apiClient.get('/api/v2/categories');
       if (!res.success || !res.data) return [];
       const categoriesData = (res.data as any).categories || [];
-      return categoriesData.map((item: any) => ({
+      return categoriesData.map((item) => ({
         ...item.category,
         article_count: item.article_count || 0
       }));
@@ -411,7 +428,7 @@ function CategoriesInner() {
   const stats = useMemo(() => {
     if (!cats) return {total: 0, totalArticles: 0, maxArticles: 0, topCategory: ''};
     const total = cats.length;
-    const totalArticles = cats.reduce((sum: number, c: any) => sum + (c.articles_count || c.article_count || 0), 0);
+    const totalArticles = cats.reduce((sum, c) => sum + (c.articles_count || c.article_count || 0), 0);
     const sorted = [...cats].sort((a: any, b: any) =>
         ((b.articles_count || b.article_count || 0) - (a.articles_count || a.article_count || 0))
     );
@@ -429,7 +446,7 @@ function CategoriesInner() {
     let result = cats;
     if (searchInput.trim()) {
       const q = searchInput.toLowerCase();
-      result = result.filter((c: any) =>
+      result = result.filter((c) =>
           c.name?.toLowerCase().includes(q) || c.slug?.toLowerCase().includes(q)
       );
     }
@@ -512,14 +529,14 @@ function CategoriesInner() {
               className="flex items-center gap-1 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-1">
             <button onClick={() => toggleSort('name')}
                     className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                        sortBy === 'name' ? 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'
+                      sortBy === 'name' ? 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                     }`}>
               名称 {sortBy === 'name' && (sortOrder === 'asc' ? <ArrowUp className="w-3 h-3"/> :
                 <ArrowDown className="w-3 h-3"/>)}
             </button>
             <button onClick={() => toggleSort('count')}
                     className={`flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
-                        sortBy === 'count' ? 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white' : 'text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800'
+                      sortBy === 'count' ? 'bg-gray-200 dark:bg-gray-700 text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'
                     }`}>
               文章数 {sortBy === 'count' && (sortOrder === 'asc' ? <ArrowUp className="w-3 h-3"/> :
                 <ArrowDown className="w-3 h-3"/>)}
@@ -560,7 +577,7 @@ function CategoriesInner() {
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
                 {searchInput ? '未找到匹配的分类' : '暂无分类'}
               </h3>
-              <p className="text-sm text-gray-500 mb-6">
+              <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
                 {searchInput ? '尝试使用不同的搜索词' : '创建第一个分类来组织你的文章'}
               </p>
               {!searchInput && (
@@ -585,7 +602,7 @@ function CategoriesInner() {
                 className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden">
               {/* 表头 */}
               <div
-                  className="flex items-center gap-3 px-5 py-3 border-b border-gray-100 dark:border-gray-800 bg-gray-50/80 dark:bg-gray-800/30 text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                className="flex items-center gap-3 px-5 py-3 border-b border-gray-100 dark:border-gray-800 bg-gray-50/80 dark:bg-gray-800/30 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                 <div className="w-5"/>
                 <div className="w-5"/>
                 <div className="w-9"/>

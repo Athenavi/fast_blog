@@ -5,12 +5,12 @@
  * 使用 dnd-kit 实现拖拽排序和嵌套拖拽
  */
 
-import React, {useState} from 'react';
+import {useState} from 'react';
 import {useSortable} from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
 import {GripVertical, Trash2, Edit3, Plus} from 'lucide-react';
 import type {NestedBlock} from '@/lib/page-builder/nested-blocks';
-import {BLOCK_DEFINITIONS, canParentAcceptChild, generateBlockId} from '@/lib/page-builder/nested-blocks';
+import {BLOCK_DEFINITIONS} from '@/lib/page-builder/nested-blocks';
 
 interface NestedSortableBlockProps {
     block: NestedBlock;
@@ -48,7 +48,7 @@ export function NestedSortableBlock({
     };
 
     const blockDef = BLOCK_DEFINITIONS.find(b => b.name === block.type);
-    const Icon = blockDef?.icon || 'Layout';
+  const __Icon = blockDef?.icon || 'Layout';
     const [showStyleEditor, setShowStyleEditor] = useState(false);
     const [blockStyles, setBlockStyles] = useState(block.styles || {});
 
@@ -131,7 +131,7 @@ export function NestedSortableBlock({
                     <div className="mb-3 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg space-y-3">
                         <div className="grid grid-cols-2 gap-3">
                             <div>
-                                <label className="text-xs text-gray-500 block mb-1">背景色</label>
+                              <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">背景色</label>
                                 <input
                                     type="color"
                                     value={blockStyles.backgroundColor || '#ffffff'}
@@ -140,7 +140,7 @@ export function NestedSortableBlock({
                                 />
                             </div>
                             <div>
-                                <label className="text-xs text-gray-500 block mb-1">文字色</label>
+                              <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">文字色</label>
                                 <input
                                     type="color"
                                     value={blockStyles.color || '#000000'}
@@ -151,7 +151,7 @@ export function NestedSortableBlock({
                         </div>
                         <div className="grid grid-cols-3 gap-3">
                             <div>
-                                <label className="text-xs text-gray-500 block mb-1">Padding</label>
+                              <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Padding</label>
                                 <input
                                     type="number"
                                     value={blockStyles.padding || 16}
@@ -160,7 +160,7 @@ export function NestedSortableBlock({
                                 />
                             </div>
                             <div>
-                                <label className="text-xs text-gray-500 block mb-1">Margin</label>
+                              <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">Margin</label>
                                 <input
                                     type="number"
                                     value={blockStyles.margin || 0}
@@ -169,7 +169,7 @@ export function NestedSortableBlock({
                                 />
                             </div>
                             <div>
-                                <label className="text-xs text-gray-500 block mb-1">圆角</label>
+                              <label className="text-xs text-gray-500 dark:text-gray-400 block mb-1">圆角</label>
                                 <input
                                     type="number"
                                     value={blockStyles.borderRadius || 8}
@@ -182,7 +182,7 @@ export function NestedSortableBlock({
                 )}
 
                 {/* 块数据预览 */}
-                <div className="text-xs text-gray-500 mb-3">
+              <div className="text-xs text-gray-500 dark:text-gray-400 mb-3">
                     {JSON.stringify(block.data, null, 2).slice(0, 200)}...
                 </div>
 

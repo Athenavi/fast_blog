@@ -1,8 +1,8 @@
-'use client';
+﻿'use client';
 
 import React, {useEffect, useRef, useState} from 'react';
 import {motion, useInView} from 'framer-motion';
-import {apiClient} from '@/lib/api/api-client';
+import {apiClient} from '@/lib/api/base-client';
 import {
   ArrowRight,
   BookOpen,
@@ -132,11 +132,11 @@ export default function ModernHomePage() {
     (async () => {
       try {
         const [featRes, recentRes, popRes, catRes, statRes] = await Promise.all([
-          apiClient.get<any>('/home/featured'),
-          apiClient.get<any>('/home/recent'),
-          apiClient.get<any>('/home/popular'),
-          apiClient.get<any>('/home/categories'),
-          apiClient.get<any>('/home/stats'),
+          apiClient.get('/home/featured'),
+          apiClient.get('/home/recent'),
+          apiClient.get('/home/popular'),
+          apiClient.get('/home/categories'),
+          apiClient.get('/home/stats'),
         ]);
           if (featRes.success) setFeatured(Array.isArray(featRes.data) ? featRes.data : featRes.data?.articles || []);
           if (recentRes.success) setRecent(Array.isArray(recentRes.data) ? recentRes.data.slice(0, 8) : recentRes.data?.articles?.slice(0, 8) || []);

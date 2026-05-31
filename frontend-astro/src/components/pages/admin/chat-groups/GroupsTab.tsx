@@ -1,23 +1,23 @@
-'use client';
+﻿'use client';
 
 import React, {useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {EmptyState, Modal, Pagination} from '@/components/admin/shared-ui';
-import {apiClient} from '@/lib/api/api-client';
+import {apiClient} from '@/lib/api/base-client';
 import {useToast} from '@/components/ui/toast-provider';
-import {Link2, MessageSquare, Plus, Search, Trash2, Users} from 'lucide-react';
+import {Link2, MessageSquare, Plus, Search, Users} from 'lucide-react';
 import {ChatGroup, Input, StatusBadge} from './shared';
 import GroupMembersPanel from './GroupMembersPanel';
 import GroupInvitesPanel from './GroupInvitesPanel';
-
+import type {ApiResponse} from '@/lib/api/base-types';
 const GroupsTab: React.FC = () => {
   const toast = useToast();
   const qc = useQueryClient();
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState('');
   const [showForm, setShowForm] = useState(false);
-  const [editing, setEditing] = useState<ChatGroup | null>(null);
-  const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [_editing, setEditing] = useState<ChatGroup | null>(null);
+  const [_deleteId, _setDeleteId] = useState<number | null>(null);
   const [showMembers, setShowMembers] = useState<number | null>(null);
   const [showInvites, setShowInvites] = useState<number | null>(null);
   const [form, setForm] = useState({
@@ -34,7 +34,7 @@ const GroupsTab: React.FC = () => {
 
   const createMut = useMutation({
     mutationFn: (d: any) => apiClient.post('/chats/groups', d),
-    onSuccess: (r: any) => {
+    onSuccess: (r: ApiResponse) => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['chat-groups']});
         setShowForm(false);
@@ -98,28 +98,29 @@ const GroupsTab: React.FC = () => {
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-900 dark:text-gray-100">{g.name}</h3>
-                    <p className="text-xs text-gray-500">{g.owner_name || `创建者#${g.owner_id}`}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">{g.owner_name || `创建者#${g.owner_id}`}</p>
                   </div>
                 </div>
                 <StatusBadge active={g.is_active}/>
               </div>
-              {g.description && <p className="text-xs text-gray-500 mb-3 line-clamp-2">{g.description}</p>}
-              <div className="flex items-center gap-4 text-xs text-gray-500 mb-3">
+              {g.description &&
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-3 line-clamp-2">{g.description}</p>}
+              <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400 mb-3">
                 <span className="flex items-center gap-1"><Users
                   className="w-3 h-3"/> {g.member_count}/{g.max_members || '∞'}</span>
                 <span
-                  className={`px-1.5 py-0.5 rounded-full text-[10px] ${g.is_public ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600' : 'bg-gray-100 dark:bg-gray-800 text-gray-500'}`}>
+                  className={`px-1.5 py-0.5 rounded-full text-[10px] ${g.is_public ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-600' : 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'}`}>
                   {g.is_public ? '公开' : '私密'}
                 </span>
               </div>
               <div className="flex items-center justify-end gap-1 pt-2 border-t border-gray-100 dark:border-gray-800">
                 <button onClick={() => setShowMembers(g.id)}
                         className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800" title="成员管理">
-                  <Users className="w-3.5 h-3.5 text-gray-500"/>
+                  <Users className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400"/>
                 </button>
                 <button onClick={() => setShowInvites(g.id)}
                         className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800" title="邀请链接">
-                  <Link2 className="w-3.5 h-3.5 text-gray-500"/>
+                  <Link2 className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400"/>
                 </button>
               </div>
             </div>

@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import React, {useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
@@ -6,7 +6,7 @@ import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {DeleteConfirm, EmptyState, Modal} from '@/components/admin/shared-ui';
-import {apiClient} from '@/lib/api/api-client';
+import {apiClient} from '@/lib/api/base-client';
 import {useToast} from '@/components/ui/toast-provider';
 import {
   AlertCircle,
@@ -24,7 +24,7 @@ import {
   Trash2,
   XCircle
 } from 'lucide-react';
-
+import type {ApiResponse} from '@/lib/api/base-types';
 /* ─── Types ─────────────────────────────────────── */
 interface MigrationTask {
   id: number;
@@ -102,13 +102,13 @@ const StatusBadge: React.FC<{ status: string }> = ({status}) => {
     running: 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400',
     pending: 'bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400',
     failed: 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400',
-    paused: 'bg-gray-100 dark:bg-gray-800 text-gray-500',
+    paused: 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400',
   };
   const labels: Record<string, string> = {
     completed: '已完成', running: '运行中', pending: '等待中', failed: '失败', paused: '已暂停',
   };
   return <span
-    className={`px-2 py-0.5 text-[10px] rounded-full font-medium ${colors[status] || 'bg-gray-100 text-gray-500'}`}>{labels[status] || status}</span>;
+    className={`px-2 py-0.5 text-[10px] rounded-full font-medium ${colors[status] || 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'}`}>{labels[status] || status}</span>;
 };
 
 const LogLevelBadge: React.FC<{ level: string }> = ({level}) => {
@@ -119,7 +119,7 @@ const LogLevelBadge: React.FC<{ level: string }> = ({level}) => {
     debug: 'text-gray-400',
   };
   return <span
-    className={`text-[10px] font-mono font-semibold uppercase ${colors[level] || 'text-gray-500'}`}>{level}</span>;
+    className={`text-[10px] font-mono font-semibold uppercase ${colors[level] || 'text-gray-500 dark:text-gray-400'}`}>{level}</span>;
 };
 
 /* ─── Tasks Tab ─────────────────────────────────── */
@@ -150,7 +150,7 @@ const TasksTab: React.FC = () => {
 
   const createMut = useMutation({
     mutationFn: (d: any) => apiClient.post('/migration-management/tasks', d),
-    onSuccess: (r: any) => {
+    onSuccess: (r: ApiResponse) => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['migration-tasks']});
         setShowForm(false);
@@ -159,7 +159,7 @@ const TasksTab: React.FC = () => {
   });
   const updateMut = useMutation({
     mutationFn: ({id, ...d}: any) => apiClient.put(`/migration-management/tasks/${id}`, d),
-    onSuccess: (r: any) => {
+    onSuccess: (r: ApiResponse) => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['migration-tasks']});
         setShowForm(false);
@@ -168,7 +168,7 @@ const TasksTab: React.FC = () => {
   });
   const deleteMut = useMutation({
     mutationFn: (id: number) => apiClient.delete(`/migration-management/tasks/${id}`),
-    onSuccess: (r: any) => {
+    onSuccess: (r: ApiResponse) => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['migration-tasks']});
         setDeleteId(null);
@@ -255,10 +255,11 @@ const TasksTab: React.FC = () => {
                   </div>
                   <div className="flex items-center gap-1">
                     <button onClick={() => setViewLogsId(viewLogsId === t.id ? null : t.id)}
-                            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500"
+                            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400"
                             title="查看日志"><ScrollText className="w-3.5 h-3.5"/></button>
                     <button onClick={() => openEdit(t)}
-                            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500"><Edit3
+                            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400">
+                      <Edit3
                       className="w-3.5 h-3.5"/></button>
                     <button onClick={() => setDeleteId(t.id)}
                             className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500"><Trash2
@@ -268,7 +269,8 @@ const TasksTab: React.FC = () => {
                 {/* Progress bar */}
                 {t.total_items > 0 && (
                   <div className="mt-3">
-                    <div className="flex items-center justify-between text-[10px] text-gray-500 mb-1">
+                    <div
+                      className="flex items-center justify-between text-[10px] text-gray-500 dark:text-gray-400 mb-1">
                       <span>{t.migrated_items}/{t.total_items} 项</span>
                       <span>{t.progress}%</span>
                     </div>
@@ -290,7 +292,7 @@ const TasksTab: React.FC = () => {
           </div>}
       {pagination && pagination.total_pages > 1 && (
         <div className="flex items-center justify-between mt-4">
-          <span className="text-xs text-gray-500">共 {pagination.total} 条</span>
+          <span className="text-xs text-gray-500 dark:text-gray-400">共 {pagination.total} 条</span>
           <div className="flex items-center gap-1">
             <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}
                     className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30">
@@ -355,7 +357,8 @@ const TaskLogs: React.FC<{ taskId: number }> = ({taskId}) => {
         <div key={l.id} className="flex items-start gap-2 py-1">
           <LogLevelBadge level={l.log_level}/>
           <span className="text-[11px] text-gray-300 font-mono">{l.message}</span>
-          {l.item_type && <span className="text-[10px] text-gray-500">[{l.item_type}#{l.item_id}]</span>}
+          {l.item_type &&
+            <span className="text-[10px] text-gray-500 dark:text-gray-400">[{l.item_type}#{l.item_id}]</span>}
         </div>
       ))}
     </div>
@@ -408,7 +411,8 @@ const LogsTab: React.FC = () => {
               <div key={l.id} className="flex items-start gap-2 py-1.5 border-b border-gray-800 last:border-0 group">
                 <LogLevelBadge level={l.log_level}/>
                 <span className="text-[11px] text-gray-300 font-mono flex-1">{l.message}</span>
-                {l.item_type && <span className="text-[10px] text-gray-500">[{l.item_type}#{l.item_id}]</span>}
+                {l.item_type &&
+                  <span className="text-[10px] text-gray-500 dark:text-gray-400">[{l.item_type}#{l.item_id}]</span>}
                 <span
                   className="text-[10px] text-gray-600">{l.created_at ? new Date(l.created_at).toLocaleString('zh-CN') : ''}</span>
                 <button onClick={() => deleteMut.mutate(l.id)}
@@ -419,7 +423,7 @@ const LogsTab: React.FC = () => {
           </div>}
       {pagination && pagination.total_pages > 1 && (
         <div className="flex items-center justify-between mt-4">
-          <span className="text-xs text-gray-500">共 {pagination.total} 条</span>
+          <span className="text-xs text-gray-500 dark:text-gray-400">共 {pagination.total} 条</span>
           <div className="flex items-center gap-1">
             <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}
                     className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30">
@@ -437,7 +441,7 @@ const LogsTab: React.FC = () => {
 
 /* ─── Main Component ───────────────────────────── */
 type TabKey = 'tasks' | 'logs';
-const TABS: { key: TabKey; label: string; icon: any }[] = [
+const TABS: { key: TabKey; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
   {key: 'tasks', label: '迁移任务', icon: ArrowRightLeft},
   {key: 'logs', label: '迁移日志', icon: ScrollText},
 ];
@@ -451,7 +455,7 @@ function MigrationManagementInner() {
         <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
           {TABS.map(t => (
             <button key={t.key} onClick={() => setTab(t.key)}
-                    className={`flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm rounded-lg transition-colors ${tab === t.key ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm font-medium' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}>
+                    className={`flex-1 flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm rounded-lg transition-colors ${tab === t.key ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm font-medium' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}`}>
               <t.icon className="w-4 h-4"/>
               {t.label}
             </button>

@@ -1,7 +1,7 @@
 'use client';
 
 import React, {useState} from 'react';
-import {useQuery, useMutation} from '@tanstack/react-query';
+import {useMutation} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';

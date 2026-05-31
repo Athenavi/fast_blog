@@ -8,9 +8,24 @@ import {AdminShell} from '@/components/admin/AdminShell';
 import {apiClient} from '@/lib/api/base-client';
 import {useDebounce} from '@/lib/hooks';
 import {
-    ChevronLeft, ChevronRight, Search, X, Shield, Crown, UserCheck, UserX,
-    Users, Mail, Calendar, MoreHorizontal, Ban, CheckCircle, Eye, RefreshCw,
-    AlertTriangle, TrendingUp, UserPlus
+  ChevronLeft,
+  ChevronRight,
+  Search,
+  X,
+  Shield,
+  Crown,
+  UserCheck,
+  UserX,
+  Users,
+  Mail,
+  Calendar,
+  MoreHorizontal,
+  Ban,
+  CheckCircle,
+  Eye,
+  RefreshCw,
+  TrendingUp,
+  UserPlus
 } from 'lucide-react';
 
 const STATUS_OPTIONS = [
@@ -19,7 +34,7 @@ const STATUS_OPTIONS = [
     {value: 'banned', label: '禁用', icon: Ban},
 ] as const;
 
-const ROLE_COLORS: Record<string, { bg: string; text: string; icon: any }> = {
+const ROLE_COLORS: Record<string, { bg: string; text: string; icon: React.ComponentType<{ className?: string }> }> = {
     admin: {bg: 'bg-purple-50 dark:bg-purple-900/20', text: 'text-purple-700 dark:text-purple-400', icon: Crown},
     editor: {bg: 'bg-blue-50 dark:bg-blue-900/20', text: 'text-blue-700 dark:text-blue-400', icon: Shield},
     user: {bg: 'bg-gray-50 dark:bg-gray-800', text: 'text-gray-600 dark:text-gray-400', icon: Users},
@@ -155,9 +170,9 @@ function UsersInner() {
 
     // Stats
     const stats = useMemo(() => {
-        const active = users.filter((u: any) => u.is_active !== false).length;
-        const banned = users.filter((u: any) => u.is_active === false).length;
-        const admins = users.filter((u: any) => u.roles?.some((r: any) => r.name === 'admin') || u.role === 'admin').length;
+      const active = users.filter((u) => u.is_active !== false).length;
+      const banned = users.filter((u) => u.is_active === false).length;
+      const admins = users.filter((u) => u.roles?.some((r) => r.name === 'admin') || u.role === 'admin').length;
         return {active, banned, admins};
     }, [users]);
 
@@ -197,7 +212,7 @@ function UsersInner() {
   return (
       <AdminShell title="用户管理" actions={
           <button onClick={() => refetch()}
-                  className="p-2 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                  className="p-2 rounded-lg border border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                   title="刷新">
               <RefreshCw className="w-4 h-4"/>
           </button>
@@ -280,11 +295,21 @@ function UsersInner() {
                       <thead
                           className="bg-gray-50/80 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800">
                       <tr>
-                          <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">用户</th>
-                          <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden sm:table-cell">邮箱</th>
-                          <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">角色</th>
-                          <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">状态</th>
-                          <th className="px-5 py-3.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">操作</th>
+                        <th
+                          className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">用户
+                        </th>
+                        <th
+                          className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden sm:table-cell">邮箱
+                        </th>
+                        <th
+                          className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden md:table-cell">角色
+                        </th>
+                        <th
+                          className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">状态
+                        </th>
+                        <th
+                          className="px-5 py-3.5 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">操作
+                        </th>
                       </tr>
                       </thead>
                       <tbody className="divide-y divide-gray-50 dark:divide-gray-800/50">
@@ -300,7 +325,7 @@ function UsersInner() {
                       <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">
                           {debouncedSearch ? '未找到匹配的用户' : '暂无用户'}
                       </h3>
-                      <p className="text-sm text-gray-500">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
                           {debouncedSearch ? '尝试使用不同的关键词搜索' : '等待用户注册'}
                       </p>
                   </div>
@@ -310,15 +335,25 @@ function UsersInner() {
                           <thead
                               className="bg-gray-50/80 dark:bg-gray-800/50 border-b border-gray-100 dark:border-gray-800">
                           <tr>
-                              <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">用户</th>
-                              <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden sm:table-cell">邮箱</th>
-                              <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider hidden md:table-cell">角色</th>
-                              <th className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">状态</th>
-                              <th className="px-5 py-3.5 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">操作</th>
+                            <th
+                              className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">用户
+                            </th>
+                            <th
+                              className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden sm:table-cell">邮箱
+                            </th>
+                            <th
+                              className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider hidden md:table-cell">角色
+                            </th>
+                            <th
+                              className="px-5 py-3.5 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">状态
+                            </th>
+                            <th
+                              className="px-5 py-3.5 text-right text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">操作
+                            </th>
                           </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-50 dark:divide-gray-800/50">
-                          {users.map((u: any) => {
+                          {users.map((u) => {
                               const isActive = u.is_active !== false;
                               const role = u.roles?.[0]?.name || u.role || 'user';
                               const roleConfig = ROLE_COLORS[role] || ROLE_COLORS.user;
@@ -341,7 +376,8 @@ function UsersInner() {
                                           </div>
                                       </td>
                                       <td className="px-5 py-4 hidden sm:table-cell">
-                                          <div className="flex items-center gap-1.5 text-sm text-gray-500">
+                                        <div
+                                          className="flex items-center gap-1.5 text-sm text-gray-500 dark:text-gray-400">
                                               <Mail className="w-3.5 h-3.5 text-gray-400"/>{u.email || '—'}
                                           </div>
                                       </td>

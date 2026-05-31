@@ -1,12 +1,12 @@
-'use client';
+﻿'use client';
 
 import React, {useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
-import {apiClient} from '@/lib/api/api-client';
+import {apiClient} from '@/lib/api/base-client';
 import {useToast} from '@/components/ui/toast-provider';
-import {Edit3, Globe, Link, Map, Plus, Search, Trash2, Users} from 'lucide-react';
+import {Trash2} from 'lucide-react';
 import {SiteUser} from './shared';
-
+import type {ApiResponse} from '@/lib/api/base-types';
 const SiteUsersPanel: React.FC<{ siteId: number | null }> = ({siteId}) => {
   const toast = useToast();
   const qc = useQueryClient();
@@ -23,7 +23,7 @@ const SiteUsersPanel: React.FC<{ siteId: number | null }> = ({siteId}) => {
 
   const addUserMut = useMutation({
     mutationFn: (d: any) => apiClient.post('/system/multisite/users', {site_id: siteId, ...d}),
-    onSuccess: (r: any) => {
+    onSuccess: (r: ApiResponse) => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['site-users', siteId]});
         setAddUserId('');
@@ -32,14 +32,14 @@ const SiteUsersPanel: React.FC<{ siteId: number | null }> = ({siteId}) => {
   });
   const removeUserMut = useMutation({
     mutationFn: (userId: number) => apiClient.delete(`/system/multisite/users/${userId}`),
-    onSuccess: (r: any) => {
+    onSuccess: (r: ApiResponse) => {
       if (r.success) qc.invalidateQueries({queryKey: ['site-users', siteId]});
       else toast.error(r.error || '操作失败');
     },
   });
   const updateRoleMut = useMutation({
     mutationFn: ({userId, role}: any) => apiClient.put(`/system/multisite/${siteId}/users/${userId}/role`, {role}),
-    onSuccess: (r: any) => {
+    onSuccess: (r: ApiResponse) => {
       if (r.success) qc.invalidateQueries({queryKey: ['site-users', siteId]});
       else toast.error(r.error || '操作失败');
     },
@@ -56,7 +56,7 @@ const SiteUsersPanel: React.FC<{ siteId: number | null }> = ({siteId}) => {
         <>
           <div className="space-y-2 mb-4 max-h-60 overflow-y-auto">
             {users.length === 0 ? (
-              <p className="text-sm text-gray-500 text-center py-4">暂无用户</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">暂无用户</p>
             ) : users.map(u => (
               <div key={u.id} className="flex items-center justify-between p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
                 <div>
@@ -80,7 +80,7 @@ const SiteUsersPanel: React.FC<{ siteId: number | null }> = ({siteId}) => {
             ))}
           </div>
           <div className="border-t border-gray-100 dark:border-gray-800 pt-4">
-            <h4 className="text-xs font-semibold text-gray-500 mb-2">添加用户</h4>
+            <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">添加用户</h4>
             <div className="flex gap-2">
               <input value={addUserId} onChange={e => setAddUserId(e.target.value)} placeholder="用户ID"
                      className="flex-1 px-3 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 dark:text-white"/>

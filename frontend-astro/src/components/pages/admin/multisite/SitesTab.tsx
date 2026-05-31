@@ -1,14 +1,14 @@
-'use client';
+﻿'use client';
 
 import React, {useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {DeleteConfirm, EmptyState, Modal} from '@/components/admin/shared-ui';
-import {apiClient} from '@/lib/api/api-client';
+import {apiClient} from '@/lib/api/base-client';
 import {useToast} from '@/components/ui/toast-provider';
-import {Edit3, Globe, Link, Map, Plus, Search, Trash2, Users} from 'lucide-react';
+import {Edit3, Globe, Map, Plus, Search, Trash2, Users} from 'lucide-react';
 import {Site, Input, StatusBadge} from './shared';
 import SiteUsersPanel from './SiteUsersPanel';
-
+import type {ApiResponse} from '@/lib/api/base-types';
 const SitesTab: React.FC = () => {
   const toast = useToast();
   const qc = useQueryClient();
@@ -28,11 +28,11 @@ const SitesTab: React.FC = () => {
   });
 
   const sites: Site[] = data?.data?.sites || data?.data?.items || [];
-  const total: number = data?.data?.total || 0;
+  const _total: number = data?.data?.total || 0;
 
   const createMut = useMutation({
     mutationFn: (d: any) => apiClient.post('/system/multisite', d),
-    onSuccess: (r: any) => {
+    onSuccess: (r: ApiResponse) => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['sites']});
         setShowForm(false);
@@ -41,7 +41,7 @@ const SitesTab: React.FC = () => {
   });
   const updateMut = useMutation({
     mutationFn: ({id, ...d}: any) => apiClient.put(`/system/multisite/${id}`, d),
-    onSuccess: (r: any) => {
+    onSuccess: (r: ApiResponse) => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['sites']});
         setShowForm(false);
@@ -50,7 +50,7 @@ const SitesTab: React.FC = () => {
   });
   const deleteMut = useMutation({
     mutationFn: (id: number) => apiClient.delete(`/system/multisite/${id}`),
-    onSuccess: (r: any) => {
+    onSuccess: (r: ApiResponse) => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['sites']});
         setDeleteId(null);
@@ -124,13 +124,14 @@ const SitesTab: React.FC = () => {
                   </div>
                   <div>
                     <h3 className="font-semibold text-gray-900 dark:text-gray-100">{s.name}</h3>
-                    <p className="text-xs text-gray-500 font-mono">{s.domain}</p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 font-mono">{s.domain}</p>
                   </div>
                 </div>
                 <StatusBadge active={s.is_active}/>
               </div>
-              {s.description && <p className="text-xs text-gray-500 mb-3 line-clamp-2">{s.description}</p>}
-              <div className="flex items-center gap-4 text-xs text-gray-500 mb-3">
+              {s.description &&
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-3 line-clamp-2">{s.description}</p>}
+              <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400 mb-3">
                 <span className="flex items-center gap-1"><Users className="w-3 h-3"/> {s.user_count || 0} 用户</span>
                 <span className="flex items-center gap-1"><Map className="w-3 h-3"/> {s.content_count || 0} 内容</span>
               </div>
@@ -145,11 +146,11 @@ const SitesTab: React.FC = () => {
               <div className="flex items-center justify-end gap-1 pt-2 border-t border-gray-100 dark:border-gray-800">
                 <button onClick={() => setShowUsers(s.id)}
                         className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800" title="用户管理">
-                  <Users className="w-3.5 h-3.5 text-gray-500"/>
+                  <Users className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400"/>
                 </button>
                 <button onClick={() => openEdit(s)} className="p-1.5 rounded hover:bg-gray-100 dark:hover:bg-gray-800"
                         title="编辑">
-                  <Edit3 className="w-3.5 h-3.5 text-gray-500"/>
+                  <Edit3 className="w-3.5 h-3.5 text-gray-500 dark:text-gray-400"/>
                 </button>
                 <button onClick={() => setDeleteId(s.id)}
                         className="p-1.5 rounded hover:bg-red-50 dark:hover:bg-red-900/20" title="删除">

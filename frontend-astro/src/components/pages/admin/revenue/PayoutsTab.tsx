@@ -1,13 +1,13 @@
-'use client';
+﻿'use client';
 
 import React, {useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
-import {EmptyState, Modal, Pagination} from '@/components/admin/shared-ui';
-import {apiClient} from '@/lib/api/api-client';
+import {EmptyState, Pagination} from '@/components/admin/shared-ui';
+import {apiClient} from '@/lib/api/base-client';
 import {useToast} from '@/components/ui/toast-provider';
 import {Banknote, CheckCircle, XCircle} from 'lucide-react';
 import {PayoutRequest, StatusBadge} from './shared';
-
+import type {ApiResponse} from '@/lib/api/base-types';
 const PayoutsTab: React.FC = () => {
   const toast = useToast();
   const qc = useQueryClient();
@@ -27,21 +27,21 @@ const PayoutsTab: React.FC = () => {
 
   const approveMut = useMutation({
     mutationFn: (id: number) => apiClient.post(`/shop/revenue/payouts/${id}/approve`),
-    onSuccess: (r: any) => {
+    onSuccess: (r: ApiResponse) => {
       if (r.success) qc.invalidateQueries({queryKey: ['payout-requests']});
       else toast.error(r.error || '操作失败');
     },
   });
   const completeMut = useMutation({
     mutationFn: (id: number) => apiClient.post(`/shop/revenue/payouts/${id}/complete`),
-    onSuccess: (r: any) => {
+    onSuccess: (r: ApiResponse) => {
       if (r.success) qc.invalidateQueries({queryKey: ['payout-requests']});
       else toast.error(r.error || '操作失败');
     },
   });
   const rejectMut = useMutation({
     mutationFn: (id: number) => apiClient.post(`/shop/revenue/payouts/${id}/reject`),
-    onSuccess: (r: any) => {
+    onSuccess: (r: ApiResponse) => {
       if (r.success) qc.invalidateQueries({queryKey: ['payout-requests']});
       else toast.error(r.error || '操作失败');
     },
@@ -76,13 +76,13 @@ const PayoutsTab: React.FC = () => {
           <table className="w-full text-sm">
             <thead>
             <tr className="bg-gray-50 dark:bg-gray-800/50">
-              <th className="text-left px-4 py-3 font-medium text-gray-500">用户</th>
-              <th className="text-right px-4 py-3 font-medium text-gray-500">金额</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-500">支付方式</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-500">收款账户</th>
-              <th className="text-center px-4 py-3 font-medium text-gray-500">状态</th>
-              <th className="text-left px-4 py-3 font-medium text-gray-500">申请时间</th>
-              <th className="text-right px-4 py-3 font-medium text-gray-500">操作</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">用户</th>
+              <th className="text-right px-4 py-3 font-medium text-gray-500 dark:text-gray-400">金额</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">支付方式</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">收款账户</th>
+              <th className="text-center px-4 py-3 font-medium text-gray-500 dark:text-gray-400">状态</th>
+              <th className="text-left px-4 py-3 font-medium text-gray-500 dark:text-gray-400">申请时间</th>
+              <th className="text-right px-4 py-3 font-medium text-gray-500 dark:text-gray-400">操作</th>
             </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
@@ -90,10 +90,10 @@ const PayoutsTab: React.FC = () => {
               <tr key={p.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/30">
                 <td className="px-4 py-3 text-gray-900 dark:text-gray-100">{p.username || `用户#${p.user_id}`}</td>
                 <td className="px-4 py-3 text-right font-medium text-green-600">¥{p.amount.toFixed(2)}</td>
-                <td className="px-4 py-3 text-gray-500">{p.payment_method}</td>
-                <td className="px-4 py-3 text-xs font-mono text-gray-500">{p.payment_account}</td>
+                <td className="px-4 py-3 text-gray-500 dark:text-gray-400">{p.payment_method}</td>
+                <td className="px-4 py-3 text-xs font-mono text-gray-500 dark:text-gray-400">{p.payment_account}</td>
                 <td className="px-4 py-3 text-center"><StatusBadge status={p.status}/></td>
-                <td className="px-4 py-3 text-xs text-gray-500">{p.created_at?.slice(0, 16)}</td>
+                <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">{p.created_at?.slice(0, 16)}</td>
                 <td className="px-4 py-3 text-right">
                   {p.status === 'pending' && (
                     <div className="flex items-center justify-end gap-1">

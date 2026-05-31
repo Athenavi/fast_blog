@@ -1,10 +1,10 @@
-'use client';
+﻿'use client';
 
-import React, {useState} from 'react';
+import {useState} from 'react';
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {EmptyState, SectionTitle, StatCard, StatusBadge} from '@/components/admin/shared-ui';
 import {CheckCircle, Globe, Link, Loader, Shield, Unlink} from 'lucide-react';
-import {apiClient} from '@/lib/api/api-client';
+import {apiClient} from '@/lib/api/base-client';
 import {useConfirm} from '@/components/ui/confirm-provider';
 import {OAuthProvider, LinkedAccount, ProviderAvatar, ActionButton} from './shared';
 
@@ -14,16 +14,16 @@ export default function OAuthTab({showToast}: {
 }) {
   const confirm = useConfirm();
   const qc = useQueryClient();
-  const [showConfigModal, setShowConfigModal] = useState(false);
-  const [configProvider, setConfigProvider] = useState('');
-  const [configForm, setConfigForm] = useState({client_id: '', client_secret: '', redirect_uri: ''});
+  const [_showConfigModal, _setShowConfigModal] = useState(false);
+  const [_configProvider, _setConfigProvider] = useState('');
+  const [_configForm, _setConfigForm] = useState({client_id: '', client_secret: '', redirect_uri: ''});
 
   const {data: providers, isLoading: loadingProviders} = useQuery({
     queryKey: ['integ-oauth-providers'],
     queryFn: async () => {
-      const r = await apiClient.get<any>('/integrations/oauth/providers');
+      const r = await apiClient.get('/integrations/oauth/providers');
       const raw = r.success && r.data ? (r.data.providers || r.data) : [];
-      return (Array.isArray(raw) ? raw : []).filter((p: any) =>
+      return (Array.isArray(raw) ? raw : []).filter((p) =>
         (p.name || p.provider || '').toLowerCase() !== 'weibo'
       );
     },
@@ -32,7 +32,7 @@ export default function OAuthTab({showToast}: {
   const {data: linkedAccounts} = useQuery({
     queryKey: ['integ-oauth-linked'],
     queryFn: async () => {
-      const r = await apiClient.get<any>('/integrations/oauth/linked-accounts');
+      const r = await apiClient.get('/integrations/oauth/linked-accounts');
       const raw = r.success && r.data ? (r.data.linked_accounts || r.data.accounts || r.data) : [];
       return (Array.isArray(raw) ? raw : []) as LinkedAccount[];
     },
@@ -55,7 +55,7 @@ export default function OAuthTab({showToast}: {
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard icon={Globe} label="可用提供商" value={providerList.length} color="from-blue-500 to-indigo-500"/>
-        <StatCard icon={CheckCircle} label="已配置" value={providerList.filter((p: any) => p.configured).length}
+        <StatCard icon={CheckCircle} label="已配置" value={providerList.filter((p) => p.configured).length}
                   color="from-green-500 to-emerald-500"/>
         <StatCard icon={Link} label="已关联账号" value={linked.length} color="from-purple-500 to-violet-500"/>
         <StatCard icon={Shield} label="登录方式" value={linked.length + 1} sub="含密码登录"

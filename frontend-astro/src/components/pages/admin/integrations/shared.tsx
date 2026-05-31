@@ -141,7 +141,7 @@ export const InputField: React.FC<{
 
 export const ActionButton: React.FC<{
   onClick: () => void;
-  icon: any;
+  icon: React.ComponentType<{ className?: string }>;
   label: string;
   variant?: 'primary' | 'danger' | 'ghost';
   loading?: boolean;

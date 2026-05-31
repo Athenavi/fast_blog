@@ -1,11 +1,11 @@
-'use client';
+﻿'use client';
 
-import React, {useState} from 'react';
+import {useState} from 'react';
 import {useMutation, useQuery} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
-import {apiClient} from '@/lib/api/api-client';
+import {apiClient} from '@/lib/api/base-client';
 import {FileText, Loader, Sparkles} from 'lucide-react';
 
 function ExtAIWritingInner() {
@@ -36,7 +36,7 @@ function ExtAIWritingInner() {
 
     const {data: trending} = useQuery({
         queryKey: ['ext-writer-trending'], queryFn: async () => {
-            const r = await apiClient.get<any>('/ext/recommendations/trending');
+        const r = await apiClient.get('/ext/recommendations/trending');
             return r.success && r.data ? (Array.isArray(r.data) ? r.data : r.data.articles || []) : []
         }
     });

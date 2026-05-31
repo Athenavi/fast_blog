@@ -1,8 +1,11 @@
-'use client';
+﻿'use client';
 
 import React, {useEffect, useRef, useState} from 'react';
-import {apiClient} from '@/lib/api/api-client';
-import {getAccessTokenFromCookie, getCookie, setCookie} from '@/lib/auth-utils';
+import {useForm, FormProvider, Controller} from 'react-hook-form';
+import {zodResolver} from '@hookform/resolvers/zod';
+import {apiClient} from '@/lib/api/base-client';
+import {getCookie, setCookie} from '@/lib/auth-utils';
+import {loginSchema, twoFactorSchema, type LoginFormData, type TwoFactorFormData} from '@/lib/schemas';
 import {
   ArrowLeft,
   Eye,
@@ -11,7 +14,6 @@ import {
   LogIn,
   QrCode,
   Smartphone,
-  Mail,
   Lock,
   User,
   GitBranch,
@@ -33,16 +35,28 @@ const features = [
 
 export default function LoginPage() {
   const [mode, setMode] = useState<'password'|'qrcode'>('password');
-  const [u, setU] = useState(''); const [pw, setPw] = useState(''); const [rm, setRm] = useState(false);
   const [pv, setPv] = useState(false); const [err, setErr] = useState(''); const [busy, setBusy] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
 
+  // react-hook-form — 登录表单
+  const loginForm = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema) as any,
+    defaultValues: {username: '', password: '', remember: false},
+  });
+
+  // react-hook-form — 2FA 表单
+  const twoFAForm = useForm<TwoFactorFormData>({
+    resolver: zodResolver(twoFactorSchema),
+    defaultValues: {code: ''},
+  });
+
   // 2FA
   const [fa, setFa] = useState<{tempToken:string;userId:number}|null>(null);
-  const [code, setCode] = useState(''); const [backup, setBackup] = useState(false);
+  const [backup, setBackup] = useState(false);
 
   // QR code
-  const [qrImg, setQrImg] = useState(''); const [qrToken, setQrToken] = useState('');
+  const [qrImg, setQrImg] = useState('');
+  const [, setQrToken] = useState('');
   const [qrStatus, setQrStatus] = useState<'idle'|'loading'|'ready'|'pending'|'success'|'expired'>('idle');
   const pollRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const cancelRef = useRef(false);
@@ -60,7 +74,7 @@ export default function LoginPage() {
   const generateQR = async () => {
     setErr(''); setQrStatus('loading'); setQrImg(''); setQrToken(''); cancelRef.current = false;
     try {
-      const r = await apiClient.get<any>('/auth/qr/generate');
+      const r = await apiClient.get('/auth/qr/generate');
       if (!r.success || !r.data) { setErr(r.error || '生成二维码失败'); setQrStatus('idle'); return; }
       const token = r.data.token || r.data.qr_token;
       const qrCodeDataUrl = r.data.qr_code || r.data.qr_data;
@@ -85,7 +99,7 @@ export default function LoginPage() {
     pollRef.current = setTimeout(async () => {
       if (cancelRef.current) return;
       try {
-        const r = await apiClient.get<any>(`/auth/qr/status`, {token});
+        const r = await apiClient.get(`/auth/qr/status`, {token});
         const data = r.success && r.data ? r.data : {status: 'pending'};
         const st = data.status;
         if (st === 'confirmed' || st === 'success') {
@@ -112,10 +126,15 @@ export default function LoginPage() {
   };
 
   // ═══ Password Login ═══
-  const login = async (e: React.FormEvent) => {
-    e.preventDefault(); setBusy(true); setErr('');
+  const onLoginSubmit = async (data: LoginFormData) => {
+    setBusy(true);
+    setErr('');
     try {
-      const r = await apiClient.postForm('/auth/login', {username: u, password: pw, remember_me: rm});
+      const r = await apiClient.postForm('/auth/login', {
+        username: data.username,
+        password: data.password,
+        remember_me: data.remember
+      });
       if (!r.success) { setErr(r.error||r.message||'登录失败'); setBusy(false); return; }
       const d = r.data as any;
       if (d.requires_2fa && d.temp_token) { setFa({tempToken:d.temp_token, userId:d.user_id}); setBusy(false); return; }
@@ -126,11 +145,11 @@ export default function LoginPage() {
   };
 
   // ═══ 2FA ═══
-  const verify2FA = async (e: React.FormEvent) => {
-    e.preventDefault(); if (!fa || code.length < 6) { setErr('请输入验证码'); return; }
+  const on2FASubmit = async (data: TwoFactorFormData) => {
+    if (!fa) return;
     setBusy(true); setErr('');
     try {
-      const r = await apiClient.post('/security/2fa/verify-login', {user_id: fa.userId, token: code});
+      const r = await apiClient.post('/security/2fa/verify-login', {user_id: fa.userId, token: data.code});
       if (r.success && r.data) {
         const d = r.data as any; if (d.access_token) setCookie('access_token', d.access_token, 3600);
         if (d.refresh_token) setCookie('refresh_token', d.refresh_token, 604800);
@@ -269,6 +288,7 @@ export default function LoginPage() {
 
             {/* 2FA Form */}
             {fa ? (
+              <FormProvider {...twoFAForm}>
                 <div className="space-y-6">
                   <div
                       className="text-center p-6 bg-gradient-to-br from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20 rounded-2xl border border-indigo-100 dark:border-indigo-800/30">
@@ -281,22 +301,33 @@ export default function LoginPage() {
                     </p>
                   </div>
 
-                  <form onSubmit={verify2FA} className="space-y-4">
-                    <div className="relative">
-                      <input
-                          type="text"
-                          inputMode="numeric"
-                          autoFocus
-                          value={code}
-                          onChange={e => setCode(e.target.value.replace(/\D/g, '').slice(0, backup ? 8 : 6))}
-                          placeholder={backup ? '输入备用码' : '000000'}
-                          className="w-full text-center text-3xl tracking-[0.5em] px-6 py-5 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-2xl focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 dark:text-white font-mono transition-all"
-                      />
-                    </div>
+                  <form onSubmit={twoFAForm.handleSubmit(on2FASubmit)} className="space-y-4">
+                    <Controller
+                      name="code"
+                      control={twoFAForm.control}
+                      render={({field}) => (
+                        <div className="relative">
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            autoFocus
+                            value={field.value}
+                            onChange={e => field.onChange(e.target.value.replace(/\D/g, '').slice(0, backup ? 8 : 6))}
+                            placeholder={backup ? '输入备用码' : '000000'}
+                            className="w-full text-center text-3xl tracking-[0.5em] px-6 py-5 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-2xl focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 dark:text-white font-mono transition-all"
+                          />
+                          {twoFAForm.formState.errors.code && (
+                            <p className="text-xs text-red-500 dark:text-red-400 text-center mt-2">
+                              {twoFAForm.formState.errors.code.message}
+                            </p>
+                          )}
+                        </div>
+                      )}
+                    />
 
                     <button
                         type="submit"
-                        disabled={busy || code.length < (backup ? 8 : 6)}
+                        disabled={busy}
                         className="w-full py-4 bg-gradient-to-r from-indigo-600 to-blue-600 hover:from-indigo-700 hover:to-blue-700 text-white font-semibold rounded-2xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-indigo-500/25 hover:shadow-xl hover:shadow-indigo-500/30 active:scale-[0.98]"
                     >
                       {busy ? (
@@ -313,15 +344,16 @@ export default function LoginPage() {
                       </button>
                       <button type="button" onClick={() => {
                         setFa(null);
-                        setCode('');
+                        twoFAForm.reset({code: ''});
                         setErr('');
                       }}
-                              className="flex items-center gap-1 text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300">
+                              className="flex items-center gap-1 text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300">
                         <ArrowLeft className="w-4 h-4"/> 返回登录
                       </button>
                     </div>
                   </form>
                 </div>
+              </FormProvider>
             ) : (
                 <>
                   {/* Mode Switch */}
@@ -334,7 +366,7 @@ export default function LoginPage() {
                         className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all duration-200 ${
                             mode === 'password'
                                 ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white'
-                                : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
                         }`}
                     >
                       <Lock className="w-4 h-4"/> 密码登录
@@ -348,7 +380,7 @@ export default function LoginPage() {
                         className={`flex-1 flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all duration-200 ${
                             mode === 'qrcode'
                                 ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white'
-                                : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'
+                              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
                         }`}
                     >
                       <QrCode className="w-4 h-4"/> 扫码登录
@@ -357,7 +389,8 @@ export default function LoginPage() {
 
                   {/* Password Form */}
                   {mode === 'password' && (
-                      <form onSubmit={login} className="space-y-5">
+                    <FormProvider {...loginForm}>
+                      <form onSubmit={loginForm.handleSubmit(onLoginSubmit)} className="space-y-5">
                         {/* Username Field */}
                         <div className="space-y-2">
                           <label className="text-sm font-medium text-gray-700 dark:text-gray-300">用户名 / 邮箱</label>
@@ -369,16 +402,24 @@ export default function LoginPage() {
                             </div>
                             <input
                                 type="text"
-                                value={u}
-                                onChange={e => setU(e.target.value)}
+                                {...loginForm.register('username')}
                                 onFocus={() => setFocusedField('username')}
                                 onBlur={() => setFocusedField(null)}
                                 placeholder="输入用户名或邮箱"
-                                required
                                 autoFocus
-                                className="w-full pl-12 pr-4 py-4 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-2xl text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all"
+                                className={`w-full pl-12 pr-4 py-4 bg-white dark:bg-gray-800 border-2 rounded-2xl text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all ${
+                                  loginForm.formState.errors.username
+                                    ? 'border-red-400 dark:border-red-500'
+                                    : 'border-gray-200 dark:border-gray-700'
+                                }`}
                             />
                           </div>
+                          {loginForm.formState.errors.username && (
+                            <p className="text-xs text-red-500 dark:text-red-400 flex items-center gap-1 pl-1">
+                              <AlertCircle className="w-3 h-3 flex-shrink-0"/>
+                              {loginForm.formState.errors.username.message}
+                            </p>
+                          )}
                         </div>
 
                         {/* Password Field */}
@@ -398,13 +439,15 @@ export default function LoginPage() {
                             </div>
                             <input
                                 type={pv ? 'text' : 'password'}
-                                value={pw}
-                                onChange={e => setPw(e.target.value)}
+                                {...loginForm.register('password')}
                                 onFocus={() => setFocusedField('password')}
                                 onBlur={() => setFocusedField(null)}
                                 placeholder="输入密码"
-                                required
-                                className="w-full pl-12 pr-12 py-4 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-2xl text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all"
+                                className={`w-full pl-12 pr-12 py-4 bg-white dark:bg-gray-800 border-2 rounded-2xl text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 transition-all ${
+                                  loginForm.formState.errors.password
+                                    ? 'border-red-400 dark:border-red-500'
+                                    : 'border-gray-200 dark:border-gray-700'
+                                }`}
                             />
                             <button
                                 type="button"
@@ -414,6 +457,12 @@ export default function LoginPage() {
                               {pv ? <EyeOff className="w-5 h-5"/> : <Eye className="w-5 h-5"/>}
                             </button>
                           </div>
+                          {loginForm.formState.errors.password && (
+                            <p className="text-xs text-red-500 dark:text-red-400 flex items-center gap-1 pl-1">
+                              <AlertCircle className="w-3 h-3 flex-shrink-0"/>
+                              {loginForm.formState.errors.password.message}
+                            </p>
+                          )}
                         </div>
 
                         {/* Remember Me */}
@@ -421,13 +470,12 @@ export default function LoginPage() {
                           <div className="relative">
                             <input
                                 type="checkbox"
-                                checked={rm}
-                                onChange={e => setRm(e.target.checked)}
+                                {...loginForm.register('remember')}
                                 className="peer sr-only"
                             />
                             <div
                                 className="w-5 h-5 border-2 border-gray-300 dark:border-gray-600 rounded-lg peer-checked:border-blue-500 peer-checked:bg-blue-500 transition-all flex items-center justify-center">
-                              {rm && (
+                              {loginForm.watch('remember') && (
                                   <svg className="w-3 h-3 text-white" fill="none" viewBox="0 0 24 24"
                                        stroke="currentColor" strokeWidth={3}>
                                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/>
@@ -444,7 +492,7 @@ export default function LoginPage() {
                         {/* Submit Button */}
                         <button
                             type="submit"
-                            disabled={busy || !u || !pw}
+                            disabled={busy}
                             className="w-full py-4 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold rounded-2xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-500/25 hover:shadow-xl hover:shadow-blue-500/30 active:scale-[0.98] flex items-center justify-center gap-2"
                         >
                           {busy ? (
@@ -464,7 +512,7 @@ export default function LoginPage() {
                         <div className="relative flex items-center py-2">
                           <div className="flex-1 border-t border-gray-200 dark:border-gray-700"/>
                           <span
-                              className="px-4 text-xs text-gray-400 dark:text-gray-500 font-medium">或使用其他方式</span>
+                            className="px-4 text-xs text-gray-400 dark:text-gray-500 dark:text-gray-400 font-medium">或使用其他方式</span>
                           <div className="flex-1 border-t border-gray-200 dark:border-gray-700"/>
                         </div>
 
@@ -493,6 +541,7 @@ export default function LoginPage() {
                           </a>
                         </p>
                       </form>
+                    </FormProvider>
                   )}
 
                   {/* QR Code Panel */}
@@ -586,7 +635,7 @@ export default function LoginPage() {
 
             {/* Footer */}
             <div className="mt-8 text-center">
-              <p className="text-xs text-gray-400 dark:text-gray-500">
+              <p className="text-xs text-gray-400 dark:text-gray-500 dark:text-gray-400">
                 登录即表示同意{' '}
                 <a href="/terms" className="text-gray-500 dark:text-gray-400 hover:underline">服务条款</a>
                 {' '}和{' '}

@@ -1,7 +1,7 @@
-'use client';
+﻿'use client';
 
-import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
-import {apiClient} from '@/lib/api/api-client';
+import {useQuery} from '@tanstack/react-query';
+import {apiClient} from '@/lib/api/base-client';
 import {DollarSign, TrendingUp, Banknote, Clock} from 'lucide-react';
 import {StatCard} from './shared';
 
@@ -38,7 +38,7 @@ const StatsTab: React.FC = () => {
               <span className="text-[10px] text-white font-medium">{stats.platform_ratio || 30}%</span>
             </div>
           </div>
-          <span className="text-xs text-gray-500 whitespace-nowrap">平台 | 用户</span>
+          <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">平台 | 用户</span>
           <div className="flex-1 bg-gray-100 dark:bg-gray-800 rounded-full h-6 overflow-hidden">
             <div className="h-full bg-green-500 rounded-full flex items-center justify-start pl-2"
                  style={{width: `${100 - (stats.platform_ratio || 30)}%`}}>
