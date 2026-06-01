@@ -21,15 +21,15 @@ router = APIRouter(tags=["home"])
 async def send_subscription_confirmation_email(email: str):
     """
     后台发送订阅确认邮件(不阻塞主进程)
-    
+
     Args:
         email: 订阅邮箱
     """
     try:
         from datetime import datetime
-        
+
         subject = "感谢订阅 FastBlog"
-        
+
         html_content = f"""
         <h2>感谢订阅!</h2>
         <p>您已成功订阅 FastBlog 的更新通知。</p>
@@ -42,7 +42,7 @@ async def send_subscription_confirmation_email(email: str):
         <p>如果您不想继续接收邮件,可以随时取消订阅。</p>
         <p style="color: #999; font-size: 12px;">订阅时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</p>
         """
-        
+
         text_content = f"""感谢订阅 FastBlog!
 
 您已成功订阅我们的更新通知。
@@ -56,7 +56,7 @@ async def send_subscription_confirmation_email(email: str):
 
 订阅时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
         """
-        
+
         # 发送邮件
         from shared.services.notifications.email_service import email_service
         email_service.send_email(
@@ -65,9 +65,9 @@ async def send_subscription_confirmation_email(email: str):
             html_content=html_content,
             text_content=text_content
         )
-        
+
         print(f"订阅确认邮件已发送到: {email}")
-        
+
     except Exception as e:
         print(f"发送订阅确认邮件失败: {e}")
         import traceback
@@ -347,26 +347,47 @@ async def get_home_stats(db: AsyncSession = Depends(get_async_session)):
 async def get_home_menus(request: Request = None):
     """
     获取首页菜单配置
-    返回导航菜单数据
+    从数据库获取所有已激活的菜单及其菜单项
     """
     try:
-        # 返回默认菜单配置
-        menus = {
-            "main_menu": [
-                {"title": "首页", "url": "/", "target": "_self"},
-                {"title": "文章", "url": "/articles", "target": "_self"},
-                {"title": "分类", "url": "/categories", "target": "_self"},
-                {"title": "关于", "url": "/about", "target": "_self"},
-            ],
-            "footer_menu": [
-                {"title": "隐私政策", "url": "/privacy", "target": "_self"},
-                {"title": "服务条款", "url": "/terms", "target": "_self"},
-                {"title": "联系我们", "url": "/contact", "target": "_self"},
-            ]
-        }
-        return ApiResponse(success=True, data=menus)
+        from src.extensions import get_async_db_session
+        from src.utils.menu_builder import get_all_menus_with_items_async
+
+        # 获取数据库会话
+        async for db in get_async_db_session():
+            try:
+                menus_dict = await get_all_menus_with_items_async(db)
+
+                # 将字典转为列表格式，方便前端使用
+                menus_list = []
+                for menu_id, menu_data in menus_dict.items():
+                    menus_list.append({
+                        "id": menu_data['id'],
+                        "name": menu_data['name'],
+                        "slug": menu_data['slug'],
+                        "description": menu_data.get('description', ''),
+                        "items": menu_data.get('items', [])
+                    })
+
+                return ApiResponse(success=True, data={"menus": menus_list})
+            finally:
+                await db.close()
     except Exception as e:
-        return ApiResponse(success=False, error=str(e))
+        import traceback
+        print(f"Error in get_home_menus: {str(e)}")
+        print(traceback.format_exc())
+        # 出错时返回默认菜单
+        from src.utils.menu_builder import get_default_menu
+        default_items = get_default_menu()
+        return ApiResponse(success=True, data={
+            "menus": [{
+                "id": 0,
+                "name": "默认菜单",
+                "slug": "default",
+                "description": "系统默认菜单",
+                "items": default_items
+            }]
+        })
 
 
 @router.get("/search")
@@ -402,7 +423,7 @@ async def search_home_articles(
             .limit(per_page)
         )
         articles = articles_result.scalars().all()
-        
+
         # 批量加载分类信息（避免 N+1）
         category_ids = [art.category_id for art in articles if art.category_id]
         categories_dict = {}
@@ -463,7 +484,7 @@ async def _get_featured_articles(db: AsyncSession, limit: int) -> list:
 
         result = await db.execute(query)
         articles = result.scalars().unique().all()
-        
+
         # 批量加载分类信息（避免 N+1）
         category_ids = [art.category_id for art in articles if art.category_id]
         categories_dict = {}
@@ -472,7 +493,7 @@ async def _get_featured_articles(db: AsyncSession, limit: int) -> list:
             cat_result = await db.execute(cat_query)
             for cat in cat_result.scalars().all():
                 categories_dict[cat.id] = cat
-        
+
         return [_format_article_with_category(article, categories_dict) for article in articles]
     except Exception as e:
 
@@ -493,7 +514,7 @@ async def _get_recent_articles_simple(db: AsyncSession, limit: int) -> list:
 
         result = await db.execute(query)
         articles = result.scalars().unique().all()
-        
+
         # 批量加载分类信息（避免 N+1）
         category_ids = [art.category_id for art in articles if art.category_id]
         categories_dict = {}
@@ -502,7 +523,7 @@ async def _get_recent_articles_simple(db: AsyncSession, limit: int) -> list:
             cat_result = await db.execute(cat_query)
             for cat in cat_result.scalars().all():
                 categories_dict[cat.id] = cat
-        
+
         return [_format_article_with_category(article, categories_dict) for article in articles]
     except Exception as e:
 
@@ -523,7 +544,7 @@ async def _get_popular_articles(db: AsyncSession, limit: int) -> list:
 
         result = await db.execute(query)
         articles = result.scalars().unique().all()
-        
+
         # 批量加载分类信息（避免 N+1）
         category_ids = [art.category_id for art in articles if art.category_id]
         categories_dict = {}
@@ -532,7 +553,7 @@ async def _get_popular_articles(db: AsyncSession, limit: int) -> list:
             cat_result = await db.execute(cat_query)
             for cat in cat_result.scalars().all():
                 categories_dict[cat.id] = cat
-        
+
         return [_format_article_with_category(article, categories_dict) for article in articles]
     except Exception as e:
 

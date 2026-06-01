@@ -1,5 +1,7 @@
 # FastBlog 移动端 API (v3)
 
+**适用版本**: FastBlog V0.3.26.0521+
+
 ## 概述
 
 FastBlog v3 API 是专门为移动端App设计的RESTful API接口，提供优化的数据传输和简化的响应结构。

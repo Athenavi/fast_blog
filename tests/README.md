@@ -1,5 +1,7 @@
 # FastBlog Test Suite
 
+**适用版本**: FastBlog V0.3.26.0521+
+
 This directory contains the test suite for FastBlog.
 
 ## Quick Start

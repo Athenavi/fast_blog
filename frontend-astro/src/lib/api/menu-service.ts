@@ -1,7 +1,15 @@
-// Menu service for Next.js frontend
+// Menu service for frontend
 import type {ApiResponse} from '@/lib/api/base-types';
 import {MenuItem} from './admin-settings-service';
 import {cachedFetch} from '@/lib/api-cache';
+import {getConfig} from '@/lib/config';
+
+/** 构建完整的菜单 API URL */
+function getMenuApiUrl(): string {
+  const config = getConfig();
+  const base = config.API_BASE_URL || '';
+  return `${base}/api/v2/home/menus`;
+}
 
 export interface MenuTreeItem extends MenuItem {
     children?: MenuTreeItem[];
@@ -21,7 +29,7 @@ export class MenuService {
     static async getMenuBySlug(slug: string = 'main'): Promise<ApiResponse<MenuData>> {
         try {
             // 使用 /home/menus 获取所有菜单，然后过滤出指定的菜单
-            const response = await cachedFetch<any>('/home/menus', undefined, 10 * 60 * 1000); // 10分钟缓存
+          const response = await cachedFetch<any>(getMenuApiUrl(), undefined, 10 * 60 * 1000); // 10分钟缓存
 
             if (response.success && response.data && response.data.menus) {
                 const menus = response.data.menus;
@@ -62,7 +70,7 @@ export class MenuService {
     // 获取所有菜单数据
     static async getAllMenus(): Promise<ApiResponse<any>> {
         try {
-            const response = await cachedFetch<ApiResponse<any>>('/home/menus', undefined, 10 * 60 * 1000); // 10分钟缓存
+          const response = await cachedFetch<ApiResponse<any>>(getMenuApiUrl(), undefined, 10 * 60 * 1000); // 10分钟缓存
             return response;
         } catch (error) {
             return {
@@ -78,7 +86,7 @@ export class MenuService {
     static async getMainMenu(): Promise<ApiResponse<MenuTreeItem[]>> {
         try {
             // 优先获取名为'main'的菜单，如果没有则获取第一个菜单
-            let response = await cachedFetch<ApiResponse<any>>('/home/menus', undefined, 10 * 60 * 1000); // 10分钟缓存
+          let response = await cachedFetch<ApiResponse<any>>(getMenuApiUrl(), undefined, 10 * 60 * 1000); // 10分钟缓存
 
             if (response.success && response.data && (response.data as any).menus) {
                 const menus = (response.data as any).menus;

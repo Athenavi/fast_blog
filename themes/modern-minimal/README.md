@@ -74,9 +74,10 @@ export const themeConfig = {
 
 ## 🔧 技术支持
 
-- FastBlog >= 1.0.0
+- FastBlog >= V0.3.0
 - 现代浏览器（Chrome, Firefox, Safari, Edge）
 - 支持 CSS Grid 和 Flexbox
+- Astro 5.x + TailwindCSS 4.x
 
 ## 📝 许可证
 

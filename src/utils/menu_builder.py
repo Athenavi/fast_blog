@@ -15,11 +15,11 @@ from shared.models import Menus, MenuItems, SystemSettings
 def get_menu_tree_by_slug(db: Session, menu_slug: str) -> List[Dict]:
     """
     根据菜单slug获取菜单树结构
-    
+
     Args:
         db: 数据库会话
         menu_slug: 菜单标识符
-        
+
     Returns:
         包含菜单项树结构的列表
     """
@@ -100,7 +100,7 @@ def get_original_menu_item(all_menu_items: List[MenuItems], item_id: int) -> Men
 def get_default_menu() -> List[Dict]:
     """
     返回默认菜单结构
-    
+
     Returns:
         默认菜单结构
     """
@@ -139,10 +139,10 @@ def get_default_menu() -> List[Dict]:
 def get_all_menus_with_items(db: Session) -> Dict:
     """
     获取所有菜单及其菜单项的结构
-    
+
     Args:
         db: 数据库会话
-        
+
     Returns:
         包含所有菜单和其菜单项的字典
     """
@@ -226,20 +226,20 @@ def sort_children_recursive_simple(menu_tree: List[Dict]):
 def get_menu_tree_by_system_config(db: Session) -> List[Dict]:
     """
     从系统配置中获取菜单slug并返回对应的菜单树结构
-    
+
     Args:
         db: 数据库会话
-        
+
     Returns:
         包含菜单项树结构的列表
     """
     try:
         # 从系统设置中获取菜单slug配置
         from sqlalchemy import select
-        menu_setting_query = select(SystemSettings).where(SystemSettings.key == 'menu_slug')
+        menu_setting_query = select(SystemSettings).where(SystemSettings.setting_key == 'menu_slug')
         menu_setting_result = db.execute(menu_setting_query)
         menu_setting = menu_setting_result.scalar_one_or_none()
-        menu_slug = menu_setting.value if menu_setting else 'default'
+        menu_slug = menu_setting.setting_value if menu_setting else 'default'
 
         # 获取菜单树
         return get_menu_tree_by_slug(db, menu_slug)
@@ -252,10 +252,10 @@ def get_menu_tree_by_system_config(db: Session) -> List[Dict]:
 async def get_all_menus_with_items_async(db: AsyncSession) -> Dict:
     """
     异步获取所有菜单及其菜单项的结构
-    
+
     Args:
         db: 异步数据库会话
-        
+
     Returns:
         包含所有菜单和其菜单项的字典
     """

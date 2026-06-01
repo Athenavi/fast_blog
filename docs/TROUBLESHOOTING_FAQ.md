@@ -1,6 +1,6 @@
 # FastBlog 故障排查 FAQ
 
-**适用版本**: FastBlog 0.0.2+
+**适用版本**: FastBlog V0.3.26.0521+
 
 ---
 
@@ -112,7 +112,7 @@ docker-compose restart
 
 **症状**:
 ```
-Access to fetch at 'http://localhost:9421/api/v1/articles' from origin 'http://localhost:3000' has been blocked by CORS policy
+Access to fetch at 'http://localhost:9421/api/v2/articles' from origin 'http://localhost:4321' has been blocked by CORS policy
 ```
 
 **解决方案**:
@@ -120,7 +120,7 @@ Access to fetch at 'http://localhost:9421/api/v1/articles' from origin 'http://l
 在 `.env` 中配置：
 
 ```env
-CORS_ORIGINS=http://localhost:3000,http://localhost:9421,https://yourdomain.com
+CORS_ORIGINS=http://localhost:4321,http://localhost:9421,https://yourdomain.com
 ```
 
 ### Q6: 数据库连接超时
@@ -150,25 +150,29 @@ listen_addresses = '*'
 
 ## 数据库问题
 
-### Q7: 迁移失败
+### Q7: Alembic 迁移失败
 
 **症状**:
 ```
-django.db.utils.ProgrammingError: relation "xxx" does not exist
+sqlalchemy.exc.ProgrammingError: relation "xxx" does not exist
 ```
 
 **解决方案**:
 
 ```bash
-# 1. 清理迁移文件
-find . -path "*/migrations/*.py" -not -name "__init__.py" -delete
-find . -path "*/migrations/*.pyc" -delete
+# 1. 检查当前迁移状态
+alembic current
 
-# 2. 重新创建迁移
-python django_blog/manage.py makemigrations
+# 2. 查看迁移历史
+alembic history
 
-# 3. 应用迁移
-python django_blog/manage.py migrate
+# 3. 如果需要重置，先备份数据库，然后：
+alembic downgrade base
+alembic upgrade head
+
+# 4. 如果迁移文件损坏，从版本控制恢复
+git checkout alembic_migrations/
+alembic upgrade head
 ```
 
 ### Q8: 数据库性能慢
@@ -207,7 +211,7 @@ LIMIT 10;
 
 ```bash
 # 1. 检查后端是否运行
-curl http://localhost:9421/api/v1/health
+curl http://localhost:9421/api/v2/health
 
 # 2. 检查 CORS 配置
 # 确保 .env 中包含前端域名
@@ -228,8 +232,9 @@ PUBLIC_API_BASE_URL=http://localhost:9421
 **解决方案**:
 
 ```bash
-# 1. 收集静态文件（Django）
-python django_blog/manage.py collectstatic
+# 1. 重新构建前端
+cd frontend-astro
+npm run build
 
 # 2. 检查媒体文件权限
 chmod -R 755 media/
@@ -238,11 +243,17 @@ chmod -R 755 static/
 # 3. 检查 Nginx 配置
 sudo nginx -t
 sudo systemctl restart nginx
+
+# 4. 确认静态资源路径
+# 本地存储: /assets/storage/
+# 主题文件: /assets/themes/
+# 标准静态: /static/
 ```
 
 ### Q11: Astro 构建失败
 
 **症状**:
+
 ```
 Error: Build failed with errors
 ```
@@ -278,8 +289,8 @@ CACHE_BACKEND=redis
 2. **优化数据库查询**
 
 - 添加适当的索引
-- 使用 select_related 和 prefetch_related
-- 避免 N+1 查询
+- 使用 `selectinload` 和 `joinedload` 避免 N+1 查询
+- 使用异步会话 (`AsyncSession`) 提高并发性能
 
 3. **启用 CDN**
 
@@ -299,10 +310,11 @@ gzip_types text/plain text/css application/json application/javascript;
 
 **解决方案**:
 
-1. **调整 Gunicorn workers**
-```python
-# gunicorn_config.py
-workers = 2  # 减少 worker 数量
+1. **调整 Uvicorn workers**
+```bash
+# 减少 worker 数量
+python main.py --port 9421
+# 默认单 worker，如需多 worker 通过 Docker Compose 扩展
 ```
 
 2. **优化数据库连接池**
@@ -316,9 +328,6 @@ DB_MAX_OVERFLOW=10
 ```bash
 # Redis
 redis-cli FLUSHDB
-
-# Django
-python django_blog/manage.py clear_cache
 ```
 
 ---
@@ -328,11 +337,15 @@ python django_blog/manage.py clear_cache
 ### Q14: 如何重置管理员密码？
 
 ```bash
-# Docker 环境
-docker-compose exec backend python django_blog/manage.py changepassword admin
+# 通过 API 重置（需要数据库直接访问）
+# 1. 连接数据库
+docker-compose exec postgres psql -U postgres fast_blog
 
-# 本地环境
-python django_blog/manage.py changepassword admin
+# 2. 生成新的密码哈希
+python -c "from src.extensions import _get_pwd_context; print(_get_pwd_context().hash('new_password'))"
+
+# 3. 更新数据库中的密码
+UPDATE users SET hashed_password = '新哈希值' WHERE username = 'admin';
 ```
 
 ### Q15: 如何查看日志？
@@ -344,18 +357,21 @@ docker-compose logs -f frontend
 
 # 本地环境
 tail -f logs/app.log
+
+# 查看 Nginx 日志
+docker-compose logs -f nginx
 ```
 
 ### Q16: 端口被占用
 
 ```bash
 # 查看端口占用
-lsof -i :3000  # 前端端口
-lsof -i :9421  # 后端端口
+lsof -i :4321  # 前端端口 (Astro)
+lsof -i :9421  # 后端端口 (FastAPI)
 
 # 修改端口
 # 编辑 docker-compose.yml 或 .env 文件
-FRONTEND_PORT=3001
+FRONTEND_PORT=4322
 BACKEND_PORT=9422
 ```
 
@@ -371,20 +387,24 @@ tar -czf media_backup.tar.gz media/
 # 完整备份
 docker-compose down
 tar -czf full_backup.tar.gz .
+
+# 使用内置备份 API
+curl -X POST http://localhost:9421/api/v2/system/backup/create
 ```
 
 ### Q18: 如何更新系统？
 
 ```bash
 # Docker 环境
-docker-compose pull
+git pull
+docker-compose build --no-cache
 docker-compose up -d
 
 # 本地环境
 git pull
 pip install -r requirements.txt
-cd frontend-astro && npm install
-npm run build
+cd frontend-astro && npm install && npm run build
+alembic upgrade head
 ```
 
 ---

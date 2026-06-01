@@ -1,6 +1,10 @@
 # FastBlog Python SDK
 
-FastBlog API 的官方 Python SDK，提供同步和异步客户端。
+FastBlog API V2 的官方 Python SDK，提供同步和异步客户端。
+
+> **API 版本**: V2 (`/api/v2/`)  
+> **FastBlog 版本**: V0.3.26.0521+  
+> **Python 要求**: 3.10+
 
 ## 安装
 
@@ -33,10 +37,10 @@ pip install requests aiohttp
 ```python
 from fastblog_sdk import FastBlogClient
 
-# 创建客户端
-client = FastBlogClient("http://localhost:9421/api/v1")
+# 创建客户端（默认使用 V2 API）
+client = FastBlogClient("http://localhost:9421/api/v2")
 
-# 登录
+# 登录（支持用户名或邮箱）
 client.login("admin@example.com", "password")
 
 # 获取文章列表
@@ -61,10 +65,10 @@ import asyncio
 from fastblog_sdk import AsyncFastBlogClient
 
 async def main():
-    # 创建客户端
-    async with AsyncFastBlogClient("http://localhost:9421/api/v1") as client:
+    # 创建客户端（默认使用 V2 API）
+    async with AsyncFastBlogClient("http://localhost:9421/api/v2") as client:
         
-        # 登录
+        # 登录（支持用户名或邮箱）
         await client.login("admin@example.com", "password")
         
         # 获取文章
@@ -101,53 +105,64 @@ python examples/async_example.py
 
 ## API 参考
 
-### 认证相关
+### 认证相关 (`/api/v2/auth/`)
 
-- `login(email, password)` - 用户登录
-- `logout()` - 用户登出
-- `register(email, password, username)` - 用户注册
+| 方法                                    | 说明                                                 |
+|---------------------------------------|----------------------------------------------------|
+| `login(username, password)`           | 用户登录（支持用户名或邮箱），返回 `access_token` 和 `refresh_token` |
+| `logout()`                            | 用户登出，将当前 token 加入黑名单                               |
+| `register(email, password, username)` | 用户注册                                               |
 
-### 文章相关
+### 文章相关 (`/api/v2/articles/`)
 
-- `get_articles(page, per_page, **params)` - 获取文章列表
-- `get_article(article_id)` - 获取单篇文章
-- `create_article(data)` - 创建文章
-- `update_article(article_id, data)` - 更新文章
-- `delete_article(article_id)` - 删除文章
+| 方法                                       | 说明     |
+|------------------------------------------|--------|
+| `get_articles(page, per_page, **params)` | 获取文章列表 |
+| `get_article(article_id)`                | 获取单篇文章 |
+| `create_article(data)`                   | 创建文章   |
+| `update_article(article_id, data)`       | 更新文章   |
+| `delete_article(article_id)`             | 删除文章   |
 
-### 分类相关
+### 分类相关 (`/api/v2/categories/`)
 
-- `get_categories()` - 获取分类列表
-- `create_category(name, slug, description)` - 创建分类
+| 方法                                         | 说明     |
+|--------------------------------------------|--------|
+| `get_categories()`                         | 获取分类列表 |
+| `create_category(name, slug, description)` | 创建分类   |
 
-### 用户相关
+### 用户相关 (`/api/v2/users/`)
 
-- `get_current_user()` - 获取当前用户信息
-- `update_profile(data)` - 更新用户资料
+| 方法                     | 说明                    |
+|------------------------|-----------------------|
+| `get_current_user()`   | 获取当前用户信息（`/users/me`） |
+| `update_profile(data)` | 更新用户资料（`/users/me`）   |
 
-### 媒体相关
+### 媒体相关 (`/api/v2/media/`)
 
-- `upload_media(file_path)` - 上传媒体文件
+| 方法                        | 说明     |
+|---------------------------|--------|
+| `upload_media(file_path)` | 上传媒体文件 |
 
-### 仪表板相关
+### 仪表板相关 (`/api/v2/dashboard/`)
 
-- `get_dashboard_stats()` - 获取仪表板统计数据
+| 方法                              | 说明        |
+|---------------------------------|-----------|
+| `get_dashboard_stats()`         | 获取仪表板统计数据 |
+| `get_dashboard_analytics(days)` | 获取仪表板分析数据 |
 
-### SEO 追踪相关
+### SEO 追踪相关 (`/api/v2/seo/tracking/`)
 
-- `get_seo_traffic(days)` - 获取 SEO 流量数据
-- `get_top_keywords(limit, days)` - 获取热门关键词
-
-### 报表相关
-
-- `get_content_report(days)` - 获取内容报表
-- `get_custom_report(metrics, days)` - 获取自定义报表
+| 方法                              | 说明             |
+|---------------------------------|----------------|
+| `get_seo_traffic(days)`         | 获取 SEO 流量数据    |
+| `get_top_keywords(limit, days)` | 获取热门关键词        |
+| `get_seo_dashboard()`           | 获取 SEO 仪表板概览数据 |
 
 ## 功能特性
 
-- ✅ 完整的 API 覆盖（28+ 端点）
+- ✅ 完整覆盖 V2 API（28+ 端点）
 - ✅ 同步和异步客户端
-- ✅ 自动 Token 管理
+- ✅ 自动 JWT Token 管理（access_token / refresh_token）
 - ✅ 类型提示支持
 - ✅ 详细的文档字符串
 - ✅ 错误处理
@@ -160,7 +175,7 @@ python examples/async_example.py
 from fastblog_sdk import FastBlogClient
 import requests
 
-client = FastBlogClient("http://localhost:9421/api/v1")
+client = FastBlogClient("http://localhost:9421/api/v2")
 
 try:
     articles = client.get_articles()
@@ -180,7 +195,7 @@ except Exception as e:
 
 ```python
 # 推荐：自动管理会话
-with FastBlogClient("http://localhost:9421/api/v1") as client:
+with FastBlogClient("http://localhost:9421/api/v2") as client:
     client.login("admin@example.com", "password")
     # ... 执行操作
 # 会话自动关闭
@@ -191,7 +206,7 @@ with FastBlogClient("http://localhost:9421/api/v1") as client:
 ```python
 # 异步客户端适合批量操作
 async def batch_create_articles():
-    async with AsyncFastBlogClient("http://localhost:9421/api/v1") as client:
+    async with AsyncFastBlogClient("http://localhost:9421/api/v2") as client:
         await client.login("admin@example.com", "password")
         
         tasks = []

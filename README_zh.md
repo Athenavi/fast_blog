@@ -8,8 +8,8 @@
 
 [![CI Status](https://github.com/Athenavi/fast_blog/actions/workflows/ci.yml/badge.svg)](https://github.com/Athenavi/fast_blog/actions/workflows/ci.yml)
 [![Release](https://github.com/Athenavi/fast_blog/actions/workflows/release.yml/badge.svg)](https://github.com/Athenavi/fast_blog/actions/workflows/release.yml)
-[![Python Version](https://img.shields.io/badge/python-3.11+-blue.svg?logo=python&logoColor=white)](https://www.python.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![Python Version](https://img.shields.io/badge/python-3.14+-blue.svg?logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.128-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![Astro](https://img.shields.io/badge/Astro-5.x-BC52EE.svg?logo=astro&logoColor=white)](https://astro.build/)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](./LICENSE)
 [![GitHub Stars](https://img.shields.io/github/stars/Athenavi/fast_blog?style=social)](https://github.com/Athenavi/fast_blog/stargazers)
@@ -34,7 +34,7 @@ FastBlog 是一个**新一代博客平台**，将 **FastAPI** 的极致性能与
 | API 优先    | ✅        | ❌         | ✅     | ✅      |
 | 静态生成      | ✅        | ❌         | ❌     | ❌      |
 | 插件系统      | ✅        | ✅         | ❌     | ✅      |
-| 双后端架构     | ✅        | ❌         | ❌     | ❌      |
+| 移动端 App   | ✅        | ❌         | ❌     | ❌      |
 | 零 JS 前端   | ✅        | ❌         | ❌     | ❌      |
 | Docker 支持 | ✅        | ✅         | ✅     | ✅      |
 
@@ -51,15 +51,16 @@ FastBlog 是一个**新一代博客平台**，将 **FastAPI** 的极致性能与
 
 ### 🔌 可扩展
 
-- **插件系统** — Hook 机制，无需修改核心代码即可扩展
-- **主题引擎** — 基于 Jinja2 的热插拔主题系统
-- **RESTful API** — 完整 API + 自动生成 Swagger/ReDoc 文档
-- **Python SDK** — 编程式访问接口
+- **插件系统** — Hook 机制（`do_action` / `apply_filters`），无需修改核心代码即可扩展
+- **主题引擎** — 热插拔 Astro 主题 + React Islands 组件
+- **RESTful API** — 完整 v2 API + 自动生成 Swagger/ReDoc 文档
+- **SDK 支持** — Python & JavaScript SDK 编程访问
 
 ### 🔒 企业级安全
 
-- **JWT + OAuth2** — 安全认证 + 刷新令牌 + 双因素认证 (TOTP)
-- **角色权限** — 细粒度的基于能力的权限管理系统
+- **JWT + OAuth2** — Cookie/Bearer 双模式认证 + 双因素认证 (TOTP)
+- **RBAC 权限** — 细粒度的基于能力的权限管理系统
+- **零信任安全** — IP 追踪、异常检测、内容审批工作流
 - **审计日志** — 追踪所有敏感操作
 - **速率限制** — 可配置的端点级限流
 
@@ -68,14 +69,15 @@ FastBlog 是一个**新一代博客平台**，将 **FastAPI** 的极致性能与
 - **响应式设计** — 完美适配桌面、平板、手机
 - **深色模式** — 跟随系统主题自动切换
 - **SEO 优化** — 自动生成 Sitemap、Meta 标签、结构化数据
-- **PWA 支持** — 可安装为原生应用
+- **PWA 支持** — 可安装为原生应用，支持离线访问
+- **移动端 App** — Capacitor 封装的原生 Android/iOS 应用
 
 ### 🛠️ 开发者体验
 
-- **双后端** — FastAPI（异步高性能）和 Django（成熟稳定）灵活切换
 - **热重载** — 开发时即时反馈
-- **CLI 工具** — 强大的命令行管理工具
+- **CLI 工具** — 强大的命令行管理工具（`python scripts/cli.py`）
 - **类型安全** — 全代码库类型注解
+- **MCP Server** — AI 集成，支持 Claude Desktop & Cursor IDE
 
 ---
 
@@ -86,20 +88,21 @@ FastBlog 是一个**新一代博客平台**，将 **FastAPI** 的极致性能与
 │                        Nginx / CDN                          │
 ├────────────────────────┬────────────────────────────────────┤
 │    Astro 前端           │         FastAPI 后端               │
-│   (静态/SSR/ISR)       │    (异步 REST API 服务器)          │
+│   (静态 SSG)           │    (异步 REST API 服务器)          │
 │                        │                                    │
 │  ┌──────────────┐      │  ┌───────────┐  ┌──────────────┐  │
-│  │  React/Vue   │      │  │  路由层    │  │   中间件     │  │
-│  │  岛屿组件    │      │  └─────┬─────┘  └──────────────┘  │
-│  └──────────────┘      │        │                          │
-│                        │  ┌─────▼─────┐  ┌──────────────┐  │
-│  ┌──────────────┐      │  │  服务层    │  │  插件钩子    │  │
-│  │  TailwindCSS │      │  └─────┬─────┘  └──────────────┘  │
-│  └──────────────┘      │        │                          │
-│                        │  ┌─────▼─────┐  ┌──────────────┐  │
-│                        │  │  模型层    │  │   缓存层     │  │
-│                        │  │(SQLAlchemy)│  │   (Redis)    │  │
-│                        │  └─────┬─────┘  └──────────────┘  │
+│  │  React 19    │      │  │  路由层    │  │   中间件     │  │
+│  │  岛屿组件    │      │  │ (v2/v3)   │  │              │  │
+│  └──────────────┘      │  └─────┬─────┘  └──────────────┘  │
+│                        │        │                          │
+│  ┌──────────────┐      │  ┌─────▼─────┐  ┌──────────────┐  │
+│  │ TailwindCSS  │      │  │  服务层    │  │  插件钩子    │  │
+│  └──────────────┘      │  └─────┬─────┘  └──────────────┘  │
+│                        │        │                          │
+│  ┌──────────────┐      │  ┌─────▼─────┐  ┌──────────────┐  │
+│  │ TanStack     │      │  │  模型层    │  │   缓存层     │  │
+│  │ React Query  │      │  │(SQLAlchemy)│  │   (Redis)    │  │
+│  └──────────────┘      │  └─────┬─────┘  └──────────────┘  │
 │                        │        │                          │
 │                        │  ┌─────▼─────┐                    │
 │                        │  │PostgreSQL │                    │
@@ -119,23 +122,47 @@ FastBlog 是一个**新一代博客平台**，将 **FastAPI** 的极致性能与
 
 **后端**
 
-- [FastAPI](https://fastapi.tiangolo.com/) — 异步 Web 框架
-- [SQLAlchemy](https://www.sqlalchemy.org/) — ORM 数据库工具
-- [PostgreSQL](https://www.postgresql.org/) — 主数据库
+- [FastAPI](https://fastapi.tiangolo.com/) 0.128 — 异步 Web 框架
+- [SQLAlchemy](https://www.sqlalchemy.org/) 2.0 — ORM 数据库工具
+- [PostgreSQL](https://www.postgresql.org/) — 主数据库 (asyncpg)
 - [Redis](https://redis.io/) — 缓存 & 会话存储
 - [Alembic](https://alembic.sqlalchemy.org/) — 数据库迁移
 - [Uvicorn](https://www.uvicorn.org/) — ASGI 服务器
+- [APScheduler](https://apscheduler.readthedocs.io/) — 后台任务调度
 
 </td>
 <td valign="top" width="50%">
 
 **前端**
 
-- [Astro](https://astro.build/) — 静态站点生成器
-- [React](https://react.dev/) / [Vue](https://vuejs.org/) — UI 组件
+- [Astro](https://astro.build/) 5.7 — 静态站点生成器 (SSG)
+- [React](https://react.dev/) 19 — UI 组件（岛屿架构）
 - [TailwindCSS](https://tailwindcss.com/) — 工具优先 CSS
 - [TypeScript](https://www.typescriptlang.org/) — 类型安全
-- [SWR](https://swr.vercel.app/) — 数据获取
+- [TanStack React Query](https://tanstack.com/query) — 数据获取
+- [TipTap](https://tiptap.dev/) — 富文本编辑器
+- [Radix UI](https://www.radix-ui.com/) — 无障碍组件库
+
+</td>
+</tr>
+<tr>
+<td valign="top">
+
+**基础设施**
+
+- [Docker](https://www.docker.com/) — 容器化部署
+- [Nginx](https://nginx.org/) — 反向代理
+- [Capacitor](https://capacitorjs.com/) — 移动端 App (Android/iOS)
+
+</td>
+<td valign="top">
+
+**集成服务**
+
+- [Meilisearch](https://www.meilisearch.com/) — 全文搜索引擎
+- [Sentry](https://sentry.io/) — 错误追踪
+- [S3 兼容存储](https://aws.amazon.com/s3/) — 对象存储
+- [MCP Server](https://modelcontextprotocol.io/) — AI 集成
 
 </td>
 </tr>
@@ -163,9 +190,9 @@ docker-compose up -d
 <details>
 <summary><b>前置要求</b></summary>
 
-- Python 3.11+
+- Python 3.14+
 - Node.js 18+
-- PostgreSQL 14+
+- PostgreSQL 17+
 - Redis 7+（可选，用于缓存）
 
 </details>
@@ -193,6 +220,15 @@ python main.py --backend fastapi
 cd frontend-astro
 npm install
 npm run dev
+```
+
+### CLI 快速开始
+
+```bash
+# 使用内置 CLI
+python scripts/cli.py create my-blog   # 初始化项目
+python scripts/cli.py user create admin --admin  # 创建管理员
+python scripts/cli.py dev --port 9421  # 启动开发服务器
 ```
 
 ---
@@ -231,32 +267,35 @@ npm run dev
 
 ### ✅ 已完成
 
-- [x] FastAPI + Django 双后端架构
-- [x] Astro 前端（岛屿架构）
-- [x] 插件系统（Hook 机制）
-- [x] 主题引擎（热重载）
-- [x] RESTful API（自动文档）
-- [x] JWT 认证 + 双因素认证
-- [x] 文章管理系统
-- [x] 评论系统
-- [x] 媒体管理
+- [x] FastAPI 异步后端，100+ 数据模型
+- [x] Astro SSG 前端 + React 19 岛屿架构
+- [x] 插件系统（Hook 机制，18 个内置插件）
+- [x] 主题引擎（热切换，3 个主题：default, magazine, modern-minimal）
+- [x] RESTful API v2 + 自动 Swagger 文档
+- [x] JWT 认证 + 双因素认证 (TOTP) + 零信任安全
+- [x] TipTap 富文本编辑器文章管理
+- [x] 嵌套评论系统
+- [x] S3 兼容媒体管理
 - [x] 全文搜索（Meilisearch）
-- [x] SEO 优化工具集
+- [x] SEO 优化工具集（Sitemap、Meta、结构化数据）
 - [x] Docker 部署支持
+- [x] PWA 支持 + 离线访问
+- [x] 实时协作（基于 Yjs）
+- [x] AI 集成（MCP Server）
+- [x] 移动端 App（Capacitor Android/iOS）
+- [x] 电商模块（商品、订单、购物车）
+- [x] 国际化（i18n）+ 翻译管理
 
 ### 🚧 进行中
 
-- [ ] PWA 支持
-- [ ] 国际化（i18n）
-- [ ] 实时通知系统
-- [ ] 数据分析仪表板
+- [ ] 多租户支持
+- [ ] GraphQL API
+- [ ] 高级数据分析仪表板
 
 ### 📅 计划中
 
-- [ ] GraphQL API
-- [ ] WebSocket 实时协作
-- [ ] AI 辅助写作
-- [ ] 多租户支持
+- [ ] Webhook 系统
+- [ ] 内容版本对比视图
 
 查看 [开放 Issues](https://github.com/Athenavi/fast_blog/issues) 获取完整的功能列表和已知问题。
 

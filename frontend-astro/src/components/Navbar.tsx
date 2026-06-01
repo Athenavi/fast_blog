@@ -12,13 +12,27 @@
 'use client';
 
 import React, {useEffect, useRef, useState} from 'react';
-import {motion, AnimatePresence} from 'framer-motion';
+import {AnimatePresence, motion} from 'framer-motion';
 import {
-    Bell, BookOpen, ChevronDown, FolderTree, Home, Image as ImageIcon,
-    LogOut, Moon, PenSquare, Search, Settings, Sun, User, X, Command
+  Bell,
+  BookOpen,
+  ChevronDown,
+  Command,
+  FolderTree,
+  Home,
+  Image as ImageIcon,
+  LogOut,
+  Moon,
+  PenSquare,
+  Search,
+  Settings,
+  Sun,
+  User,
+  X
 } from 'lucide-react';
 import {useDarkMode} from '@/lib/dark-mode-manager';
 import {getAccessTokenFromCookie} from '@/lib/auth-utils';
+import {MenuService, type MenuTreeItem} from '@/lib/api/menu-service';
 
 interface NavbarProps {
     title?: string;
@@ -40,8 +54,30 @@ const Navbar: React.FC<NavbarProps> = ({title, subtitle, showBackButton = false,
     const [pathname, setPathname] = useState('/');
     const [scrolled, setScrolled] = useState(false);
     const [notifOpen, setNotifOpen] = useState(false);
+  const [navItems, setNavItems] = useState<Array<{ name: string; href: string; icon: React.ComponentType<any> }>>([]);
     const searchInputRef = useRef<HTMLInputElement>(null);
     const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  // 根据菜单项标题/URL匹配图标
+  const getIconForMenuItem = (title: string, url: string): React.ComponentType<any> => {
+    const t = (title || '').toLowerCase();
+    const u = (url || '').toLowerCase();
+    if (t.includes('首页') || t.includes('home') || u === '/') return Home;
+    if (t.includes('文章') || t.includes('blog') || t.includes('article') || u.includes('/article')) return BookOpen;
+    if (t.includes('分类') || t.includes('categor') || u.includes('/categor')) return FolderTree;
+    if (t.includes('关于') || t.includes('about') || u.includes('/about')) return User;
+    if (t.includes('标签') || t.includes('tag') || u.includes('/tag')) return Search;
+    if (t.includes('设置') || t.includes('setting') || u.includes('/setting')) return Settings;
+    return BookOpen; // 默认图标
+  };
+
+  // 默认导航项（作为后备）
+  const defaultNavItems = [
+    {name: '首页', href: '/', icon: Home},
+    {name: '文章', href: '/articles', icon: BookOpen},
+    {name: '分类', href: '/categories', icon: FolderTree},
+    {name: '关于', href: '/about', icon: User},
+  ];
 
     useEffect(() => {
         setPathname(window.location.pathname);
@@ -67,6 +103,30 @@ const Navbar: React.FC<NavbarProps> = ({title, subtitle, showBackButton = false,
           });
         }
     }, []);
+
+  // 从 API 动态获取导航菜单
+  useEffect(() => {
+    MenuService.getMainMenu().then(response => {
+      if (response.success && response.data && response.data.length > 0) {
+        const dynamicItems = response.data
+          .filter((item: MenuTreeItem) => item.is_active !== false)
+          .sort((a: MenuTreeItem, b: MenuTreeItem) => (a.order_index || 0) - (b.order_index || 0))
+          .map((item: MenuTreeItem) => ({
+            name: item.title || item.name || '',
+            href: item.url || item.href || '#',
+            icon: getIconForMenuItem(item.title || item.name || '', item.url || item.href || ''),
+          }));
+        if (dynamicItems.length > 0) {
+          setNavItems(dynamicItems);
+          return;
+        }
+      }
+      // 如果获取失败或无数据，使用默认导航项
+      setNavItems(defaultNavItems);
+    }).catch(() => {
+      setNavItems(defaultNavItems);
+    });
+  }, []);
 
     // Scroll detection for glass effect
     useEffect(() => {
@@ -138,13 +198,6 @@ const Navbar: React.FC<NavbarProps> = ({title, subtitle, showBackButton = false,
             window.location.href = `/search?q=${encodeURIComponent(searchQuery)}`;
         }
     };
-
-    const navItems = [
-        {name: '首页', href: '/', icon: Home},
-        {name: '文章', href: '/articles', icon: BookOpen},
-        {name: '分类', href: '/categories', icon: FolderTree},
-        {name: '关于', href: '/about', icon: User},
-    ];
 
     const userMenuItems = isLoggedIn ? [
         {name: '写文章', href: '/my/posts/create', icon: PenSquare},

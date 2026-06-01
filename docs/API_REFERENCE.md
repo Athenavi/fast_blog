@@ -1,6 +1,8 @@
 # FastBlog API 参考文档
 
-本文档提供 FastBlog 系统的核心 API 参考。完整的 API 文档可通过 Swagger UI 访问：http://localhost:9421/docs
+本文档提供 FastBlog 系统的 **API v2** 核心参考。完整的 API 文档可通过 Swagger UI 访问：http://localhost:9421/docs
+
+> **注意**: 本项目当前使用 API v2 作为主要版本。v1 已废弃，旧路径会通过中间件自动重定向到 v2。
 
 ## 📋 目录
 
@@ -10,6 +12,9 @@
 - [用户管理](#用户管理)
 - [评论系统](#评论系统)
 - [媒体管理](#媒体管理)
+- [仪表板](#仪表板)
+- [SEO](#seo)
+- [系统管理](#系统管理)
 - [错误码说明](#错误码说明)
 - [快速示例](#快速示例)
 
@@ -17,22 +22,24 @@
 
 ## 🔐 认证
 
-### 获取 Token
+### 登录获取 Token
 
 ```bash
-curl -X POST "http://localhost:9421/api/v1/auth/login" \
+curl -X POST "http://localhost:9421/api/v2/auth/login" \
   -H "Content-Type: application/json" \
   -d '{"username": "admin", "password": "admin123"}'
 ```
+
+> 登录支持 `username` 或 `email` 字段。
 
 **Python 示例:**
 
 ```python
 import requests
 
-response = requests.post("http://localhost:9421/api/v1/auth/login",
+response = requests.post("http://localhost:9421/api/v2/auth/login",
                          json={"username": "admin", "password": "admin123"})
-token = response.json()["access_token"]
+token = response.json()["data"]["access_token"]
 ```
 
 **响应:**
@@ -41,11 +48,24 @@ token = response.json()["access_token"]
   "success": true,
   "data": {
     "access_token": "eyJhbGciOiJIUzI1NiIs...",
-    "refresh_token": "eyJhbGciOiJIUzI1NiIs...",
     "token_type": "bearer",
-    "expires_in": 3600
+      "expires_in": 3600,
+      "user": {
+          "id": 1,
+          "username": "admin",
+          "email": "admin@example.com",
+          "role": "admin"
+      }
   }
 }
+```
+
+### 用户注册
+
+```bash
+curl -X POST "http://localhost:9421/api/v2/auth/register" \
+  -H "Content-Type: application/json" \
+  -d '{"username": "newuser", "email": "user@example.com", "password": "securepass123"}'
 ```
 
 ### 使用 Token
@@ -55,6 +75,22 @@ token = response.json()["access_token"]
 Authorization: Bearer eyJhbGciOiJIUzI1NiIs...
 ```
 
+系统同时支持 Cookie 和 Bearer Token 两种认证方式。
+
+### 刷新 Token
+
+```http
+POST /api/v2/auth/refresh
+Authorization: Bearer {token}
+```
+
+### 登出
+
+```http
+POST /api/v2/auth/logout
+Authorization: Bearer {token}
+```
+
 ---
 
 ## 📝 文章管理
@@ -62,7 +98,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIs...
 ### 获取文章列表
 
 ```http
-GET /api/v1/articles?page=1&per_page=10&order_by=created_at&order=desc
+GET /api/v2/articles?page=1&per_page=10&order_by=created_at&order=desc
 ```
 
 **查询参数:**
@@ -73,6 +109,7 @@ GET /api/v1/articles?page=1&per_page=10&order_by=created_at&order=desc
 - `category_id`: 分类 ID 过滤
 - `tag`: 标签过滤
 - `search`: 搜索关键词
+- `status`: 文章状态（draft, published）
 
 **响应:**
 ```json
@@ -111,13 +148,13 @@ GET /api/v1/articles?page=1&per_page=10&order_by=created_at&order=desc
 ### 获取文章详情
 
 ```http
-GET /api/v1/articles/{id}
+GET /api/v2/articles/{id}
 ```
 
 ### 创建文章
 
 ```http
-POST /api/v1/articles
+POST /api/v2/articles
 Authorization: Bearer {token}
 Content-Type: application/json
 
@@ -129,14 +166,14 @@ Content-Type: application/json
   "cover_image": "https://example.com/cover.jpg",
   "category_ids": [1, 2],
   "tags": ["Python", "Tutorial"],
-  "status": 1
+  "status": "published"
 }
 ```
 
 ### 更新文章
 
 ```http
-PUT /api/v1/articles/{id}
+PUT /api/v2/articles/{id}
 Authorization: Bearer {token}
 Content-Type: application/json
 
@@ -149,8 +186,34 @@ Content-Type: application/json
 ### 删除文章
 
 ```http
-DELETE /api/v1/articles/{id}
+DELETE /api/v2/articles/{id}
 Authorization: Bearer {token}
+```
+
+### 搜索文章
+
+```http
+GET /api/v2/search?q=关键词&page=1&per_page=10
+```
+
+### 获取文章评论
+
+```http
+GET /api/v2/comments?article_id={article_id}&page=1&per_page=20
+```
+
+### 发表评论
+
+```http
+POST /api/v2/comments
+Authorization: Bearer {token}
+Content-Type: application/json
+
+{
+  "article_id": 1,
+  "content": "评论内容",
+  "parent_id": null
+}
 ```
 
 ---
@@ -160,13 +223,13 @@ Authorization: Bearer {token}
 ### 获取分类列表
 
 ```http
-GET /api/v1/categories
+GET /api/v2/categories
 ```
 
 ### 创建分类
 
 ```http
-POST /api/v1/categories
+POST /api/v2/categories
 Authorization: Bearer {token}
 Content-Type: application/json
 
@@ -180,13 +243,13 @@ Content-Type: application/json
 ### 获取标签列表
 
 ```http
-GET /api/v1/tags
+GET /api/v2/tags
 ```
 
 ### 创建标签
 
 ```http
-POST /api/v1/tags
+POST /api/v2/tags
 Authorization: Bearer {token}
 Content-Type: application/json
 
@@ -203,14 +266,14 @@ Content-Type: application/json
 ### 获取当前用户信息
 
 ```http
-GET /api/v1/users/me
+GET /api/v2/users/me
 Authorization: Bearer {token}
 ```
 
 ### 更新用户信息
 
 ```http
-PUT /api/v1/users/me
+PUT /api/v2/users/me
 Authorization: Bearer {token}
 Content-Type: application/json
 
@@ -223,7 +286,7 @@ Content-Type: application/json
 ### 获取用户列表（管理员）
 
 ```http
-GET /api/v1/users?page=1&per_page=10
+GET /api/v2/users?page=1&per_page=10
 Authorization: Bearer {token}
 ```
 
@@ -234,17 +297,18 @@ Authorization: Bearer {token}
 ### 获取文章评论
 
 ```http
-GET /api/v1/articles/{article_id}/comments
+GET /api/v2/comments?article_id={article_id}
 ```
 
 ### 发表评论
 
 ```http
-POST /api/v1/articles/{article_id}/comments
+POST /api/v2/comments
 Authorization: Bearer {token}
 Content-Type: application/json
 
 {
+  "article_id": 1,
   "content": "评论内容",
   "parent_id": null
 }
@@ -253,7 +317,7 @@ Content-Type: application/json
 ### 删除评论
 
 ```http
-DELETE /api/v1/comments/{comment_id}
+DELETE /api/v2/comments/{comment_id}
 Authorization: Bearer {token}
 ```
 
@@ -264,7 +328,7 @@ Authorization: Bearer {token}
 ### 上传文件
 
 ```http
-POST /api/v1/media/upload
+POST /api/v2/media/upload
 Authorization: Bearer {token}
 Content-Type: multipart/form-data
 
@@ -288,39 +352,97 @@ file: <binary>
 ### 获取媒体列表
 
 ```http
-GET /api/v1/media?page=1&per_page=10
+GET /api/v2/media?page=1&per_page=10
 Authorization: Bearer {token}
 ```
 
 ### 删除媒体
 
 ```http
-DELETE /api/v1/media/{media_id}
+DELETE /api/v2/media/{media_id}
 Authorization: Bearer {token}
 ```
 
 ---
 
-## ⚙️ 设置管理
+## 📊 仪表板
 
-### 获取网站设置
+### 获取仪表板统计
 
 ```http
-GET /api/v1/settings
+GET /api/v2/dashboard/stats
+Authorization: Bearer {token}
 ```
 
-### 更新网站设置（管理员）
+**响应:**
+
+```json
+{
+    "success": true,
+    "data": {
+        "total_articles": 150,
+        "published_articles": 120,
+        "draft_articles": 30,
+        "total_users": 50,
+        "total_views": 15000,
+        "total_comments": 300
+    }
+}
+```
+
+---
+
+## 🔍 SEO
+
+### 获取 SEO 信息
 
 ```http
-PUT /api/v1/settings
+GET /api/v2/seo/management
 Authorization: Bearer {token}
-Content-Type: application/json
+```
 
-{
-  "site_name": "我的博客",
-  "site_description": "一个现代化的博客系统",
-  "site_url": "https://example.com"
-}
+### 获取 Sitemap
+
+```http
+GET /api/v2/seo/sitemap
+```
+
+### SEO 追踪数据
+
+```http
+GET /api/v2/seo/tracking?days=30
+Authorization: Bearer {token}
+```
+
+---
+
+## ⚙️ 系统管理
+
+### 健康检查
+
+```http
+GET /api/v2/health
+```
+
+### 获取系统信息
+
+```http
+GET /api/v2/system/version/full
+```
+
+### 插件管理
+
+```http
+# 获取插件列表
+GET /api/v2/plugins
+
+# 启用插件
+POST /api/v2/plugins/{slug}/enable
+Authorization: Bearer {token}
+
+# 禁用插件
+POST /api/v2/plugins/{slug}/disable
+Authorization: Bearer {token}
 ```
 
 ---
@@ -361,7 +483,7 @@ Content-Type: application/json
 ```python
 import requests
 
-BASE_URL = "http://localhost:9421/api/v1"
+BASE_URL = "http://localhost:9421/api/v2"
 
 # 1. 登录获取token
 response = requests.post(f"{BASE_URL}/auth/login",
@@ -380,19 +502,28 @@ response = requests.post(f"{BASE_URL}/articles",
                          json={
                              "title": "My Article",
                              "content": "# Hello World",
-                             "status": 1
+                             "status": "published"
                          })
 
 # 4. 获取文章详情
 article_id = 1
 response = requests.get(f"{BASE_URL}/articles/{article_id}")
 article = response.json()
+
+# 5. 搜索文章
+response = requests.get(f"{BASE_URL}/search",
+                        params={"q": "Python", "page": 1, "per_page": 10})
+results = response.json()
+
+# 6. 获取仪表板统计
+response = requests.get(f"{BASE_URL}/dashboard/stats", headers=headers)
+stats = response.json()
 ```
 
 ### JavaScript 完整示例
 
 ```javascript
-const BASE_URL = 'http://localhost:9421/api/v1';
+const BASE_URL = 'http://localhost:9421/api/v2';
 
 // 1. 登录获取token
 const loginResponse = await fetch(`${BASE_URL}/auth/login`, {
@@ -418,9 +549,28 @@ const createResponse = await fetch(`${BASE_URL}/articles`, {
     body: JSON.stringify({
         title: 'My Article',
         content: '# Hello World',
-        status: 1
+        status: 'published'
     })
 });
+```
+
+### cURL 快速测试
+
+```bash
+# 登录
+TOKEN=$(curl -s -X POST "http://localhost:9421/api/v2/auth/login" \
+  -H "Content-Type: application/json" \
+  -d '{"username": "admin", "password": "admin123"}' | jq -r '.data.access_token')
+
+# 获取文章列表
+curl -H "Authorization: Bearer $TOKEN" \
+  "http://localhost:9421/api/v2/articles?page=1&per_page=5"
+
+# 创建文章
+curl -X POST "http://localhost:9421/api/v2/articles" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"title": "Test Article", "content": "# Hello", "status": "published"}'
 ```
 
 ---
@@ -429,12 +579,37 @@ const createResponse = await fetch(`${BASE_URL}/articles`, {
 
 以上仅列出了核心 API 端点。完整的 API 文档包括：
 
-- 插件管理 API
-- 主题管理 API
-- SEO 相关 API
-- 数据分析 API
-- Widget 管理 API
+- 仪表板统计与分析
+- 插件管理
+- 主题管理
+- SEO 优化工具
+- 电商功能（商品、订单、购物车）
+- 通知系统
+- 聊天与消息
+- 协作编辑
+- 翻译管理
+- 广告管理
+- 安全与权限管理
+- 备份与恢复
+- 性能监控
 
 请访问 Swagger UI 查看完整文档：http://localhost:9421/docs
 
 或使用 ReDoc：http://localhost:9421/redoc
+
+---
+
+## 📱 移动端 API (v3)
+
+移动端使用独立的 API v3，详见 [移动端 API 文档](../src/api/v3/MOBILE_API_README.md)。
+
+移动端 API 基础路径：`http://localhost:9421/api/v3/mobile/`
+
+支持的模块：
+
+- 认证 (`/auth`)
+- 文章 (`/articles`)
+- 评论 (`/comments`)
+- 用户 (`/users`)
+- 媒体 (`/media`)
+- 分类 (`/categories`)

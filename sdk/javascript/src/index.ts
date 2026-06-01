@@ -1,7 +1,11 @@
 /**
- * FastBlog API JavaScript/TypeScript SDK
+ * FastBlog API JavaScript/TypeScript SDK (V2)
  *
- * 完整的FastBlog博客系统API客户端
+ * 完整的 FastBlog 博客系统 API 客户端
+ *
+ * @version 2.0.0
+ * @api-version V2 (/api/v2/)
+ * @fastblog-version V0.3.26.0521+
  */
 
 import axios, {AxiosInstance} from 'axios';
@@ -11,11 +15,9 @@ import axios, {AxiosInstance} from 'axios';
 // ============================================================================
 
 export interface AuthResponse {
+  user: UserInfo;
     access_token: string;
     refresh_token?: string;
-    token_type: string;
-    expires_in?: number;
-    user?: UserInfo;
 }
 
 export interface UserInfo {
@@ -25,6 +27,10 @@ export interface UserInfo {
     role?: string;
     bio?: string;
     profile_picture?: string;
+  is_active?: boolean;
+  is_superuser?: boolean;
+  is_staff?: boolean;
+  vip_level?: number;
 }
 
 export interface Article {
@@ -101,17 +107,6 @@ export interface Plugin {
     settings?: Record<string, any>;
 }
 
-export interface Theme {
-    id: number;
-    name: string;
-    slug: string;
-    version: string;
-    description?: string;
-    author?: string;
-    active: boolean;
-    screenshot?: string;
-}
-
 export interface ApiResponse<T = any> {
     success: boolean;
     data?: T;
@@ -132,6 +127,7 @@ export interface ApiResponse<T = any> {
 // ============================================================================
 
 export interface SDKConfig {
+  /** API V2 基础 URL，例如 http://localhost:9421/api/v2 */
     baseURL: string;
     timeout?: number;
     accessToken?: string;
@@ -176,10 +172,11 @@ export class FastBlogSDK {
         );
     }
 
-    // 🔐 认证模块 Auth
+  // 🔐 认端点: /api/v2/auth/
 
     /**
-     * 用户登录
+     * 用户登录（支持用户名或邮箱）
+     * 端点: POST /auth/login
      */
     async login(username: string, password: string): Promise<AuthResponse> {
         const response = await this.client.post<ApiResponse<AuthResponse>>('/auth/login', {
@@ -195,16 +192,18 @@ export class FastBlogSDK {
 
     /**
      * 刷新 Token
+     * 端点: POST /auth/token/refresh
      */
     async refreshToken(): Promise<AuthResponse> {
-        const response = await this.client.post<ApiResponse<AuthResponse>>('/auth/refresh');
+      const response = await this.client.post<ApiResponse<AuthResponse>>('/auth/token/refresh');
         const data = response.data.data!;
         this.accessToken = data.access_token;
         return data;
     }
 
     /**
-     * 登出
+     * 登出（将当前 token 加入黑名单）
+     * 端点: POST /auth/logout
      */
     async logout(): Promise<void> {
         await this.client.post('/auth/logout');
@@ -218,10 +217,11 @@ export class FastBlogSDK {
         this.accessToken = token;
     }
 
-    // 📝 文章模块 Articles
+  // 📝 文章模块 - 端点: /api/v2/articles/
 
     /**
      * 获取文章列表
+     * 端点: GET /articles
      */
     async getArticles(params?: {
         page?: number;
@@ -254,6 +254,7 @@ export class FastBlogSDK {
 
     /**
      * 获取文章详情
+     * 端点: GET /articles/{id}
      */
     async getArticle(id: number): Promise<ApiResponse<Article>> {
         const response = await this.client.get<ApiResponse<Article>>(`/articles/${id}`);
@@ -262,6 +263,7 @@ export class FastBlogSDK {
 
     /**
      * 创建文章
+     * 端点: POST /articles
      */
     async createArticle(article: {
         title: string;
@@ -288,6 +290,7 @@ export class FastBlogSDK {
 
     /**
      * 更新文章
+     * 端点: PUT /articles/{id}
      */
     async updateArticle(id: number, updates: Partial<Article>): Promise<ApiResponse<Article>> {
         const response = await this.client.put<ApiResponse<Article>>(`/articles/${id}`, updates);
@@ -296,16 +299,18 @@ export class FastBlogSDK {
 
     /**
      * 删除文章
+     * 端点: DELETE /articles/{id}
      */
     async deleteArticle(id: number): Promise<ApiResponse<void>> {
         const response = await this.client.delete<ApiResponse<void>>(`/articles/${id}`);
         return response.data;
     }
 
-    // 📂 分类模块 Categories
+  // 📂 分类模块 - 端点: /api/v2/categories/
 
     /**
      * 获取分类列表
+     * 端点: GET /categories
      */
     async getCategories(): Promise<ApiResponse<Category[]>> {
         const response = await this.client.get<ApiResponse<Category[]>>('/categories');
@@ -314,6 +319,7 @@ export class FastBlogSDK {
 
     /**
      * 创建分类
+     * 端点: POST /categories
      */
     async createCategory(category: {
         name: string;
@@ -330,10 +336,11 @@ export class FastBlogSDK {
         return response.data;
     }
 
-    // 🖼️ 媒体模块 Media
+  // 🖼️ 媒体模块 - 端点: /api/v2/media/
 
     /**
      * 上传文件
+     * 端点: POST /media/upload
      */
     async uploadFile(file: File | Blob, folder: string = 'uploads'): Promise<ApiResponse<MediaFile>> {
         const formData = new FormData();
@@ -351,18 +358,20 @@ export class FastBlogSDK {
 
     /**
      * 获取媒体列表
+     * 端点: GET /media/files
      */
     async getMedia(page: number = 1, perPage: number = 20): Promise<ApiResponse<MediaFile[]>> {
-        const response = await this.client.get<ApiResponse<MediaFile[]>>('/media', {
+      const response = await this.client.get<ApiResponse<MediaFile[]>>('/media/files', {
             params: {page, per_page: perPage},
         });
         return response.data;
     }
 
-    // 👥 用户模块 Users
+  // 👥 用户模块 - 端点: /api/v2/users/
 
     /**
      * 获取当前用户信息
+     * 端点: GET /users/me
      */
     async getCurrentUser(): Promise<ApiResponse<UserInfo>> {
         const response = await this.client.get<ApiResponse<UserInfo>>('/users/me');
@@ -371,18 +380,20 @@ export class FastBlogSDK {
 
     /**
      * 获取用户列表
+     * 端点: GET /users/
      */
     async getUsers(page: number = 1, perPage: number = 10): Promise<ApiResponse<UserInfo[]>> {
-        const response = await this.client.get<ApiResponse<UserInfo[]>>('/users', {
+      const response = await this.client.get<ApiResponse<UserInfo[]>>('/users/', {
             params: {page, per_page: perPage},
         });
         return response.data;
     }
 
-    // 💬 评论模块 Comments
+  // 💬 评论模块 - 端点: /api/v2/comments/
 
     /**
      * 获取文章评论
+     * 端点: GET /comments
      */
     async getComments(articleId: number, page: number = 1, perPage: number = 20): Promise<ApiResponse<Comment[]>> {
         const response = await this.client.get<ApiResponse<Comment[]>>('/comments', {
@@ -393,6 +404,7 @@ export class FastBlogSDK {
 
     /**
      * 发表评论
+     * 端点: POST /comments
      */
     async createComment(comment: {
         articleId: number;
@@ -407,10 +419,11 @@ export class FastBlogSDK {
         return response.data;
     }
 
-    // 📊 仪表板模块 Dashboard
+  // 📊 仪表板模块 - 端点: /api/v2/dashboard/
 
     /**
      * 获取统计数据
+     * 端点: GET /dashboard/stats
      */
     async getDashboardStats(): Promise<ApiResponse<DashboardStats>> {
         const response = await this.client.get<ApiResponse<DashboardStats>>('/dashboard/stats');
@@ -419,6 +432,7 @@ export class FastBlogSDK {
 
     /**
      * 获取分析数据
+     * 端点: GET /dashboard/analytics
      */
     async getDashboardAnalytics(days: number = 30): Promise<ApiResponse<any>> {
         const response = await this.client.get<ApiResponse<any>>('/dashboard/analytics', {
@@ -427,18 +441,20 @@ export class FastBlogSDK {
         return response.data;
     }
 
-    // 🔌 插件模块 Plugins
+  // 🔌 插件模块 - 端点: /api/v2/plugins/
 
     /**
      * 获取插件列表
+     * 端点: GET /plugins/
      */
     async getPlugins(): Promise<ApiResponse<Plugin[]>> {
-        const response = await this.client.get<ApiResponse<Plugin[]>>('/plugins');
+      const response = await this.client.get<ApiResponse<Plugin[]>>('/plugins/');
         return response.data;
     }
 
     /**
      * 激活插件
+     * 端点: POST /plugins/{slug}/activate
      */
     async activatePlugin(slug: string): Promise<ApiResponse<void>> {
         const response = await this.client.post<ApiResponse<void>>(`/plugins/${slug}/activate`);
@@ -447,59 +463,10 @@ export class FastBlogSDK {
 
     /**
      * 停用插件
+     * 端点: POST /plugins/{slug}/deactivate
      */
     async deactivatePlugin(slug: string): Promise<ApiResponse<void>> {
         const response = await this.client.post<ApiResponse<void>>(`/plugins/${slug}/deactivate`);
-        return response.data;
-    }
-
-    // 🎨 主题模块 Themes
-
-    /**
-     * 获取主题列表
-     */
-    async getThemes(): Promise<ApiResponse<Theme[]>> {
-        const response = await this.client.get<ApiResponse<Theme[]>>('/themes');
-        return response.data;
-    }
-
-    /**
-     * 激活主题
-     */
-    async activateTheme(slug: string): Promise<ApiResponse<void>> {
-        const response = await this.client.post<ApiResponse<void>>(`/themes/${slug}/activate`);
-        return response.data;
-    }
-
-    // ⚙️ 设置模块 Settings
-
-    /**
-     * 获取系统设置
-     */
-    async getSettings(): Promise<ApiResponse<Record<string, any>>> {
-        const response = await this.client.get<ApiResponse<Record<string, any>>>('/settings');
-        return response.data;
-    }
-
-    /**
-     * 更新设置
-     */
-    async updateSettings(updates: Record<string, any>): Promise<ApiResponse<void>> {
-        const response = await this.client.put<ApiResponse<void>>('/settings', updates);
-        return response.data;
-    }
-
-    // 🤖 AI 功能模块
-
-    /**
-     * 生成 AI 友好的元数据
-     */
-    async generateMetadata(title: string, content: string, excerpt?: string): Promise<ApiResponse<any>> {
-        const response = await this.client.post<ApiResponse<any>>('/ai/metadata/generate', {
-            title,
-            content,
-            excerpt,
-        });
         return response.data;
     }
 }

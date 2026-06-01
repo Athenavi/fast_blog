@@ -42,10 +42,10 @@ these are specifically curated for newcomers.
 
 ### Prerequisites
 
-- Python 3.11+
+- Python 3.14+
 - Node.js 18+
-- PostgreSQL 14+
-- Redis 7+ (optional)
+- PostgreSQL 16+
+- Redis 7+
 - Git
 
 ### Setup Steps
@@ -84,7 +84,7 @@ these are specifically curated for newcomers.
 6. **Setup environment**
 
    ```bash
-   cp .env_example .env
+   cp .env.example .env
    # Edit .env with your local configuration
    ```
 
@@ -96,9 +96,9 @@ these are specifically curated for newcomers.
 
 8. **Start the development server**
 
-   ```bash
-   python main.py --backend fastapi --env dev
-   ```
+    ```bash
+    python main.py --port 9421 --env dev
+    ```
 
 9. **Setup frontend (optional)**
 
@@ -300,7 +300,7 @@ def test_article_creation(sample_article):
 
 @pytest.mark.asyncio
 async def test_async_article_fetch(async_client):
-    response = await async_client.get("/api/v1/articles/1")
+    response = await async_client.get("/api/v2/articles/1")
     assert response.status_code == 200
 ```
 

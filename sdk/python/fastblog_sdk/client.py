@@ -1,10 +1,12 @@
 """
 FastBlog API Python SDK Client
 提供同步和异步客户端实现
+
+API 版本: V2 (/api/v2/)
+FastBlog 版本: V0.3.26.0521+
 """
 
-from typing import Optional, Dict, Any, List
-import asyncio
+from typing import Optional, Dict, Any
 
 import requests
 
@@ -18,15 +20,15 @@ except ImportError:
 
 
 class FastBlogClient:
-    """FastBlog API 同步客户端"""
+    """FastBlog API 同步客户端（V2 API）"""
 
-    def __init__(self, base_url: str = "http://localhost:9421/api/v1", token: Optional[str] = None):
+    def __init__(self, base_url: str = "http://localhost:9421/api/v2", token: Optional[str] = None):
         """
         初始化客户端
-        
+
         Args:
-            base_url: API 基础 URL
-            token: JWT Token（可选）
+            base_url: API V2 基础 URL（默认 http://localhost:9421/api/v2）
+            token: JWT Access Token（可选）
         """
         self.base_url = base_url.rstrip('/')
         self.token = token
@@ -40,12 +42,12 @@ class FastBlogClient:
     def _request(self, method: str, endpoint: str, **kwargs) -> Dict[str, Any]:
         """
         发送 HTTP 请求
-        
+
         Args:
             method: HTTP 方法
-            endpoint: API 端点
+            endpoint: API 端点（相对于 base_url 的路径）
             **kwargs: 请求参数
-            
+
         Returns:
             响应数据
         """
@@ -56,24 +58,34 @@ class FastBlogClient:
 
     # ==================== 认证相关 ====================
 
-    def login(self, email: str, password: str) -> Dict[str, Any]:
+    def login(self, username: str, password: str) -> Dict[str, Any]:
         """
-        用户登录
-        
+        用户登录（支持用户名或邮箱）
+
         Args:
-            email: 邮箱
+            username: 用户名或邮箱
             password: 密码
-            
+
         Returns:
-            包含 token 的响应
+            包含 access_token 和 refresh_token 的响应
+
+        Response 结构:
+            {
+                "success": true,
+                "data": {
+                    "user": {"id", "username", "email", ...},
+                    "access_token": "...",
+                    "refresh_token": "..."
+                }
+            }
         """
         response = self._request('POST', '/auth/login', json={
-            'email': email,
+            'username': username,
             'password': password
         })
 
         if response.get('success'):
-            self.token = response['data']['token']
+            self.token = response['data']['access_token']
             self.session.headers.update({
                 'Authorization': f'Bearer {self.token}'
             })
@@ -90,12 +102,12 @@ class FastBlogClient:
     def register(self, email: str, password: str, username: str) -> Dict[str, Any]:
         """
         用户注册
-        
+
         Args:
             email: 邮箱
             password: 密码
             username: 用户名
-            
+
         Returns:
             注册结果
         """
@@ -110,12 +122,12 @@ class FastBlogClient:
     def get_articles(self, page: int = 1, per_page: int = 10, **params) -> Dict[str, Any]:
         """
         获取文章列表
-        
+
         Args:
             page: 页码
             per_page: 每页数量
             **params: 其他查询参数
-            
+
         Returns:
             文章列表
         """
@@ -125,10 +137,10 @@ class FastBlogClient:
     def get_article(self, article_id: int) -> Dict[str, Any]:
         """
         获取单篇文章
-        
+
         Args:
             article_id: 文章ID
-            
+
         Returns:
             文章详情
         """
@@ -137,10 +149,10 @@ class FastBlogClient:
     def create_article(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
         创建文章
-        
+
         Args:
             data: 文章数据
-            
+
         Returns:
             创建的文章
         """
@@ -149,11 +161,11 @@ class FastBlogClient:
     def update_article(self, article_id: int, data: Dict[str, Any]) -> Dict[str, Any]:
         """
         更新文章
-        
+
         Args:
             article_id: 文章ID
             data: 更新数据
-            
+
         Returns:
             更新后的文章
         """
@@ -162,10 +174,10 @@ class FastBlogClient:
     def delete_article(self, article_id: int) -> Dict[str, Any]:
         """
         删除文章
-        
+
         Args:
             article_id: 文章ID
-            
+
         Returns:
             删除结果
         """
@@ -180,12 +192,12 @@ class FastBlogClient:
     def create_category(self, name: str, slug: str, description: str = '') -> Dict[str, Any]:
         """
         创建分类
-        
+
         Args:
             name: 分类名称
             slug: 分类别名
             description: 分类描述
-            
+
         Returns:
             创建的分类
         """
@@ -199,29 +211,29 @@ class FastBlogClient:
 
     def get_current_user(self) -> Dict[str, Any]:
         """获取当前用户信息"""
-        return self._request('GET', '/user/profile')
+        return self._request('GET', '/users/me')
 
     def update_profile(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
         更新用户资料
-        
+
         Args:
             data: 更新数据
-            
+
         Returns:
             更新后的用户信息
         """
-        return self._request('PUT', '/user/profile', json=data)
+        return self._request('PUT', '/users/me', json=data)
 
     # ==================== 媒体相关 ====================
 
     def upload_media(self, file_path: str) -> Dict[str, Any]:
         """
         上传媒体文件
-        
+
         Args:
             file_path: 文件路径
-            
+
         Returns:
             上传的媒体信息
         """
@@ -240,60 +252,48 @@ class FastBlogClient:
     def get_seo_traffic(self, days: int = 30) -> Dict[str, Any]:
         """
         获取 SEO 流量数据
-        
+
         Args:
             days: 统计天数
-            
+
         Returns:
             SEO 流量数据
         """
-        return self._request('GET', '/seo-tracking/search-traffic', params={'days': days})
+        return self._request('GET', '/seo/tracking/search-traffic', params={'days': days})
 
     def get_top_keywords(self, limit: int = 20, days: int = 30) -> Dict[str, Any]:
         """
         获取热门关键词
-        
+
         Args:
             limit: 返回数量
             days: 统计天数
-            
+
         Returns:
             关键词列表
         """
-        return self._request('GET', '/seo-tracking/top-keywords', params={
+        return self._request('GET', '/seo/tracking/top-keywords', params={
             'limit': limit,
             'days': days
         })
 
-    # ==================== 报表相关 ====================
+    # ==================== SEO 仪表板相关 ====================
 
-    def get_content_report(self, days: int = 30) -> Dict[str, Any]:
+    def get_seo_dashboard(self) -> Dict[str, Any]:
+        """获取 SEO 仪表板概览数据"""
+        return self._request('GET', '/seo/tracking/dashboard')
+
+    def get_dashboard_analytics(self, days: int = 30) -> Dict[str, Any]:
         """
-        获取内容报表
-        
+        获取仪表板分析数据
+
         Args:
             days: 统计天数
-            
-        Returns:
-            内容报表
-        """
-        return self._request('GET', '/reports/content', params={'days': days})
 
-    def get_custom_report(self, metrics: List[str], days: int = 30) -> Dict[str, Any]:
-        """
-        获取自定义报表
-        
-        Args:
-            metrics: 指标列表
-            days: 统计天数
-            
         Returns:
-            自定义报表
+            分析数据
         """
-        return self._request('POST', '/reports/custom', json={
-            'metrics': metrics,
-            'days': days
-        })
+        return self._request('GET', '/dashboard/analytics', params={'days': days})
 
     def close(self):
         """关闭会话"""
@@ -308,15 +308,15 @@ class FastBlogClient:
 
 # 异步客户端
 class AsyncFastBlogClient:
-    """FastBlog API 异步客户端"""
+    """FastBlog API 异步客户端（V2 API）"""
 
-    def __init__(self, base_url: str = "http://localhost:9421/api/v1", token: Optional[str] = None):
+    def __init__(self, base_url: str = "http://localhost:9421/api/v2", token: Optional[str] = None):
         """
         初始化异步客户端
-        
+
         Args:
-            base_url: API 基础 URL
-            token: JWT Token（可选）
+            base_url: API V2 基础 URL（默认 http://localhost:9421/api/v2）
+            token: JWT Access Token（可选）
         """
         if not HAS_AIOHTTP:
             raise ImportError(
@@ -344,12 +344,12 @@ class AsyncFastBlogClient:
     async def _request(self, method: str, endpoint: str, **kwargs) -> Dict[str, Any]:
         """
         发送 HTTP 请求
-        
+
         Args:
             method: HTTP 方法
             endpoint: API 端点
             **kwargs: 请求参数
-            
+
         Returns:
             响应数据
         """
@@ -362,24 +362,24 @@ class AsyncFastBlogClient:
 
     # ==================== 认证相关 ====================
 
-    async def login(self, email: str, password: str) -> Dict[str, Any]:
+    async def login(self, username: str, password: str) -> Dict[str, Any]:
         """
-        用户登录
-        
+        用户登录（支持用户名或邮箱）
+
         Args:
-            email: 邮箱
+            username: 用户名或邮箱
             password: 密码
-            
+
         Returns:
-            包含 token 的响应
+            包含 access_token 和 refresh_token 的响应
         """
         response = await self._request('POST', '/auth/login', json={
-            'email': email,
+            'username': username,
             'password': password
         })
 
         if response.get('success'):
-            self.token = response['data']['token']
+            self.token = response['data']['access_token']
             # 更新会话的 headers
             if self.session and not self.session.closed:
                 self.session.headers.update({
@@ -397,12 +397,12 @@ class AsyncFastBlogClient:
     async def register(self, email: str, password: str, username: str) -> Dict[str, Any]:
         """
         用户注册
-        
+
         Args:
             email: 邮箱
             password: 密码
             username: 用户名
-            
+
         Returns:
             注册结果
         """
@@ -417,12 +417,12 @@ class AsyncFastBlogClient:
     async def get_articles(self, page: int = 1, per_page: int = 10, **params) -> Dict[str, Any]:
         """
         获取文章列表
-        
+
         Args:
             page: 页码
             per_page: 每页数量
             **params: 其他查询参数
-            
+
         Returns:
             文章列表
         """
@@ -432,10 +432,10 @@ class AsyncFastBlogClient:
     async def get_article(self, article_id: int) -> Dict[str, Any]:
         """
         获取单篇文章
-        
+
         Args:
             article_id: 文章ID
-            
+
         Returns:
             文章详情
         """
@@ -444,10 +444,10 @@ class AsyncFastBlogClient:
     async def create_article(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
         创建文章
-        
+
         Args:
             data: 文章数据
-            
+
         Returns:
             创建的文章
         """
@@ -456,11 +456,11 @@ class AsyncFastBlogClient:
     async def update_article(self, article_id: int, data: Dict[str, Any]) -> Dict[str, Any]:
         """
         更新文章
-        
+
         Args:
             article_id: 文章ID
             data: 更新数据
-            
+
         Returns:
             更新后的文章
         """
@@ -469,10 +469,10 @@ class AsyncFastBlogClient:
     async def delete_article(self, article_id: int) -> Dict[str, Any]:
         """
         删除文章
-        
+
         Args:
             article_id: 文章ID
-            
+
         Returns:
             删除结果
         """
@@ -487,12 +487,12 @@ class AsyncFastBlogClient:
     async def create_category(self, name: str, slug: str, description: str = '') -> Dict[str, Any]:
         """
         创建分类
-        
+
         Args:
             name: 分类名称
             slug: 分类别名
             description: 分类描述
-            
+
         Returns:
             创建的分类
         """
@@ -506,29 +506,29 @@ class AsyncFastBlogClient:
 
     async def get_current_user(self) -> Dict[str, Any]:
         """获取当前用户信息"""
-        return await self._request('GET', '/user/profile')
+        return await self._request('GET', '/users/me')
 
     async def update_profile(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
         更新用户资料
-        
+
         Args:
             data: 更新数据
-            
+
         Returns:
             更新后的用户信息
         """
-        return await self._request('PUT', '/user/profile', json=data)
+        return await self._request('PUT', '/users/me', json=data)
 
     # ==================== 媒体相关 ====================
 
     async def upload_media(self, file_path: str) -> Dict[str, Any]:
         """
         上传媒体文件
-        
+
         Args:
             file_path: 文件路径
-            
+
         Returns:
             上传的媒体信息
         """
@@ -554,60 +554,48 @@ class AsyncFastBlogClient:
     async def get_seo_traffic(self, days: int = 30) -> Dict[str, Any]:
         """
         获取 SEO 流量数据
-        
+
         Args:
             days: 统计天数
-            
+
         Returns:
             SEO 流量数据
         """
-        return await self._request('GET', '/seo-tracking/search-traffic', params={'days': days})
+        return await self._request('GET', '/seo/tracking/search-traffic', params={'days': days})
 
     async def get_top_keywords(self, limit: int = 20, days: int = 30) -> Dict[str, Any]:
         """
         获取热门关键词
-        
+
         Args:
             limit: 返回数量
             days: 统计天数
-            
+
         Returns:
             关键词列表
         """
-        return await self._request('GET', '/seo-tracking/top-keywords', params={
+        return await self._request('GET', '/seo/tracking/top-keywords', params={
             'limit': limit,
             'days': days
         })
 
-    # ==================== 报表相关 ====================
+    # ==================== SEO 仪表板相关 ====================
 
-    async def get_content_report(self, days: int = 30) -> Dict[str, Any]:
+    async def get_seo_dashboard(self) -> Dict[str, Any]:
+        """获取 SEO 仪表板概览数据"""
+        return await self._request('GET', '/seo/tracking/dashboard')
+
+    async def get_dashboard_analytics(self, days: int = 30) -> Dict[str, Any]:
         """
-        获取内容报表
-        
+        获取仪表板分析数据
+
         Args:
             days: 统计天数
-            
-        Returns:
-            内容报表
-        """
-        return await self._request('GET', '/reports/content', params={'days': days})
 
-    async def get_custom_report(self, metrics: List[str], days: int = 30) -> Dict[str, Any]:
-        """
-        获取自定义报表
-        
-        Args:
-            metrics: 指标列表
-            days: 统计天数
-            
         Returns:
-            自定义报表
+            分析数据
         """
-        return await self._request('POST', '/reports/custom', json={
-            'metrics': metrics,
-            'days': days
-        })
+        return await self._request('GET', '/dashboard/analytics', params={'days': days})
 
     async def close(self):
         """关闭会话"""

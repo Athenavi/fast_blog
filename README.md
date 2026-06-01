@@ -8,8 +8,8 @@
 
 [![CI Status](https://github.com/Athenavi/fast_blog/actions/workflows/ci.yml/badge.svg)](https://github.com/Athenavi/fast_blog/actions/workflows/ci.yml)
 [![Release](https://github.com/Athenavi/fast_blog/actions/workflows/release.yml/badge.svg)](https://github.com/Athenavi/fast_blog/actions/workflows/release.yml)
-[![Python Version](https://img.shields.io/badge/python-3.11+-blue.svg?logo=python&logoColor=white)](https://www.python.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![Python Version](https://img.shields.io/badge/python-3.14+-blue.svg?logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.128-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![Astro](https://img.shields.io/badge/Astro-5.x-BC52EE.svg?logo=astro&logoColor=white)](https://astro.build/)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](./LICENSE)
 [![GitHub Stars](https://img.shields.io/github/stars/Athenavi/fast_blog?style=social)](https://github.com/Athenavi/fast_blog/stargazers)
@@ -43,7 +43,7 @@ frontend architecture of **Astro**. It's built for developers who want a product
 | API-First         | ✅        | ❌         | ✅     | ✅      |
 | Static Generation | ✅        | ❌         | ❌     | ❌      |
 | Plugin System     | ✅        | ✅         | ❌     | ✅      |
-| Multi-Backend     | ✅        | ❌         | ❌     | ❌      |
+| Mobile App        | ✅        | ❌         | ❌     | ❌      |
 | Zero-JS Frontend  | ✅        | ❌         | ❌     | ❌      |
 | Docker Ready      | ✅        | ✅         | ✅     | ✅      |
 
@@ -60,15 +60,16 @@ frontend architecture of **Astro**. It's built for developers who want a product
 
 ### 🔌 Extensible
 
-- **Plugin System** — Hook-based architecture, extend without touching core code
-- **Theme Engine** — Hot-swappable themes with Jinja2 templating
-- **RESTful API** — Complete API with auto-generated Swagger/ReDoc documentation
-- **SDK Support** — Python SDK for programmatic access
+- **Plugin System** — Hook-based architecture (`do_action` / `apply_filters`), extend without touching core code
+- **Theme Engine** — Hot-swappable Astro themes with React Islands
+- **RESTful API** — Complete v2 API with auto-generated Swagger/ReDoc documentation
+- **SDK Support** — Python & JavaScript SDK for programmatic access
 
 ### 🔒 Enterprise-Ready
 
-- **JWT + OAuth2** — Secure authentication with refresh tokens & 2FA (TOTP)
-- **Role-Based Access** — Granular permission system with capability-based roles
+- **JWT + OAuth2** — Secure authentication with Cookie/Bearer dual-mode, 2FA (TOTP)
+- **Role-Based Access** — Granular RBAC permission system with capability-based roles
+- **Zero Trust Security** — IP tracking, anomaly detection, content approval workflows
 - **Audit Logging** — Track all sensitive operations
 - **Rate Limiting** — Configurable per-endpoint rate limits
 
@@ -77,14 +78,15 @@ frontend architecture of **Astro**. It's built for developers who want a product
 - **Responsive Design** — Pixel-perfect on desktop, tablet, and mobile
 - **Dark Mode** — System-aware dark/light theme switching
 - **SEO Optimized** — Auto-generated sitemaps, meta tags, structured data
-- **PWA Ready** — Installable as a native application
+- **PWA Ready** — Installable as a native application with offline support
+- **Mobile App** — Capacitor-wrapped native Android/iOS app
 
 ### 🛠️ Developer Experience
 
-- **Dual Backend** — Switch between FastAPI (async) and Django (stable)
 - **Hot Reload** — Instant feedback during development
-- **CLI Tools** — Powerful command-line utilities for management
+- **CLI Tools** — Powerful command-line utilities (`python scripts/cli.py`)
 - **Type Safe** — Full type annotations throughout the codebase
+- **MCP Server** — AI integration for Claude Desktop & Cursor IDE
 
 ---
 
@@ -95,20 +97,21 @@ frontend architecture of **Astro**. It's built for developers who want a product
 │                        Nginx / CDN                          │
 ├────────────────────────┬────────────────────────────────────┤
 │    Astro Frontend      │         FastAPI Backend            │
-│   (Static/SRR/ISR)    │    (Async REST API Server)         │
+│   (Static SSG)        │    (Async REST API Server)         │
 │                        │                                    │
 │  ┌──────────────┐      │  ┌───────────┐  ┌──────────────┐  │
-│  │  React/Vue   │      │  │  Routes   │  │  Middleware  │  │
-│  │  Islands     │      │  └─────┬─────┘  └──────────────┘  │
-│  └──────────────┘      │        │                          │
-│                        │  ┌─────▼─────┐  ┌──────────────┐  │
-│  ┌──────────────┐      │  │ Services  │  │  Plugin Hook │  │
-│  │  TailwindCSS │      │  └─────┬─────┘  └──────────────┘  │
-│  └──────────────┘      │        │                          │
-│                        │  ┌─────▼─────┐  ┌──────────────┐  │
-│                        │  │  Models   │  │    Cache     │  │
-│                        │  │(SQLAlchemy)│  │   (Redis)    │  │
-│                        │  └─────┬─────┘  └──────────────┘  │
+│  │  React 19    │      │  │  Routes   │  │  Middleware  │  │
+│  │  Islands     │      │  │  (v2/v3)  │  │              │  │
+│  └──────────────┘      │  └─────┬─────┘  └──────────────┘  │
+│                        │        │                          │
+│  ┌──────────────┐      │  ┌─────▼─────┐  ┌──────────────┐  │
+│  │ TailwindCSS  │      │  │ Services  │  │  Plugin Hook │  │
+│  └──────────────┘      │  └─────┬─────┘  └──────────────┘  │
+│                        │        │                          │
+│  ┌──────────────┐      │  ┌─────▼─────┐  ┌──────────────┐  │
+│  │ TanStack     │      │  │  Models   │  │    Cache     │  │
+│  │ React Query  │      │  │(SQLAlchemy)│  │   (Redis)    │  │
+│  └──────────────┘      │  └─────┬─────┘  └──────────────┘  │
 │                        │        │                          │
 │                        │  ┌─────▼─────┐                    │
 │                        │  │PostgreSQL │                    │
@@ -128,23 +131,26 @@ frontend architecture of **Astro**. It's built for developers who want a product
 
 **Backend**
 
-- [FastAPI](https://fastapi.tiangolo.com/) — Async web framework
-- [SQLAlchemy](https://www.sqlalchemy.org/) — ORM & database toolkit
-- [PostgreSQL](https://www.postgresql.org/) — Primary database
+- [FastAPI](https://fastapi.tiangolo.com/) 0.128 — Async web framework
+- [SQLAlchemy](https://www.sqlalchemy.org/) 2.0 — ORM & database toolkit
+- [PostgreSQL](https://www.postgresql.org/) — Primary database (asyncpg)
 - [Redis](https://redis.io/) — Caching & sessions
 - [Alembic](https://alembic.sqlalchemy.org/) — Database migrations
 - [Uvicorn](https://www.uvicorn.org/) — ASGI server
+- [APScheduler](https://apscheduler.readthedocs.io/) — Background tasks
 
 </td>
 <td valign="top" width="50%">
 
 **Frontend**
 
-- [Astro](https://astro.build/) — Static site generator
-- [React](https://react.dev/) / [Vue](https://vuejs.org/) — UI components
+- [Astro](https://astro.build/) 5.7 — Static site generator (SSG)
+- [React](https://react.dev/) 19 — UI components (Islands)
 - [TailwindCSS](https://tailwindcss.com/) — Utility-first CSS
 - [TypeScript](https://www.typescriptlang.org/) — Type safety
-- [SWR](https://swr.vercel.app/) — Data fetching
+- [TanStack React Query](https://tanstack.com/query) — Data fetching
+- [TipTap](https://tiptap.dev/) — Rich text editor
+- [Radix UI](https://www.radix-ui.com/) — Accessible components
 
 </td>
 </tr>
@@ -155,7 +161,7 @@ frontend architecture of **Astro**. It's built for developers who want a product
 
 - [Docker](https://www.docker.com/) — Containerization
 - [Nginx](https://nginx.org/) — Reverse proxy
-- [Supervisor](http://supervisord.org/) — Process management
+- [Capacitor](https://capacitorjs.com/) — Mobile app (Android/iOS)
 
 </td>
 <td valign="top">
@@ -165,6 +171,7 @@ frontend architecture of **Astro**. It's built for developers who want a product
 - [Meilisearch](https://www.meilisearch.com/) — Full-text search
 - [Sentry](https://sentry.io/) — Error tracking
 - [S3-compatible](https://aws.amazon.com/s3/) — Object storage
+- [MCP Server](https://modelcontextprotocol.io/) — AI integration
 
 </td>
 </tr>
@@ -192,9 +199,9 @@ Visit `http://localhost:4321` for the frontend, `http://localhost:9421/docs` for
 <details>
 <summary><b>Prerequisites</b></summary>
 
-- Python 3.11+
+- Python 3.14+
 - Node.js 18+
-- PostgreSQL 14+
+- PostgreSQL 17+
 - Redis 7+ (optional, for caching)
 
 </details>
@@ -228,9 +235,9 @@ npm run dev
 
 ```bash
 # Using the built-in CLI
-python scripts/cli.py init          # Initialize project
-python scripts/cli.py create-admin  # Create admin user
-python scripts/cli.py run           # Start development server
+python scripts/cli.py create my-blog   # Initialize project
+python scripts/cli.py user create admin --admin  # Create admin user
+python scripts/cli.py dev --port 9421  # Start development server
 ```
 
 ---
@@ -271,34 +278,35 @@ Benchmarked against a typical blog with 1000 articles:
 
 ### ✅ Completed
 
-- [x] FastAPI + Django dual-backend architecture
-- [x] Astro frontend with Islands architecture
-- [x] Plugin system with Hook mechanism
-- [x] Theme engine with hot-reload
-- [x] RESTful API with auto-generated docs
-- [x] JWT authentication with 2FA support
-- [x] Article management with rich editor
-- [x] Comment system
-- [x] Media management with optimization
+- [x] FastAPI async backend with 100+ data models
+- [x] Astro SSG frontend with React 19 Islands architecture
+- [x] Plugin system with Hook mechanism (18 built-in plugins)
+- [x] Theme engine with hot-swap (3 themes: default, magazine, modern-minimal)
+- [x] RESTful API v2 with auto-generated Swagger docs
+- [x] JWT authentication with 2FA (TOTP) & Zero Trust security
+- [x] Article management with TipTap rich editor
+- [x] Comment system with nested replies
+- [x] Media management with S3-compatible storage
 - [x] Full-text search (Meilisearch)
-- [x] SEO optimization toolkit
+- [x] SEO optimization toolkit (sitemap, meta, structured data)
 - [x] Docker deployment support
+- [x] PWA support with offline capabilities
+- [x] Real-time collaboration (Yjs-based)
+- [x] AI integration via MCP Server
+- [x] Mobile app (Capacitor Android/iOS)
+- [x] E-commerce module (products, orders, cart)
+- [x] Internationalization (i18n) with translation management
 
 ### 🚧 In Progress
 
-- [ ] PWA support
-- [ ] Internationalization (i18n)
-- [ ] Real-time notification system
-- [ ] Analytics dashboard
+- [ ] Multi-tenant support
+- [ ] GraphQL API
+- [ ] Advanced analytics dashboard
 
 ### 📅 Planned
 
-- [ ] GraphQL API
-- [ ] WebSocket real-time collaboration
-- [ ] AI-assisted writing
-- [ ] Multi-tenant support
-- [ ] Headless CMS mode
-- [ ] Mobile app (React Native)
+- [ ] Webhook system
+- [ ] Content versioning with diff view
 
 See the [open issues](https://github.com/Athenavi/fast_blog/issues) for a full list of proposed features and known
 issues.

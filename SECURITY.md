@@ -77,7 +77,7 @@ FastBlog includes the following security features:
 - SQL injection prevention (ORM-based queries)
 - XSS protection (output sanitization)
 - Rate limiting (configurable per endpoint)
-- Password hashing (Argon2id)
+- Password hashing (bcrypt)
 - Role-based access control (RBAC)
 - Audit logging for sensitive operations
 
