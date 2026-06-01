@@ -11,14 +11,13 @@ from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from shared.services.performance.performance_monitor import performance_monitor
-
 from src.unified_logger import default_logger as logger
 
 
 class PerformanceMonitoringMiddleware(BaseHTTPMiddleware):
     """
     性能监控中间件
-    
+
     功能:
     1. 自动记录每个请求的响应时间
     2. 跟踪请求大小和响应大小
@@ -29,29 +28,29 @@ class PerformanceMonitoringMiddleware(BaseHTTPMiddleware):
     def __init__(self, app, excluded_paths: list = None):
         """
         初始化中间件
-        
+
         Args:
             app: FastAPI应用实例
             excluded_paths: 需要排除的路径列表 (不监控这些路径)
         """
         super().__init__(app)
         self.excluded_paths = excluded_paths or [
-            '/health',
+            '/api/v2/health',
             '/metrics',
             '/favicon.ico',
-            '/static/',
-            '/docs',
-            '/openapi.json',
+            '/api/v2/static/',
+            '/api/v2/docs',
+            '/api/v2/openapi.json',
         ]
 
     async def dispatch(self, request: Request, call_next: Callable) -> Response:
         """
         处理请求并记录性能指标
-        
+
         Args:
             request: FastAPI请求对象
             call_next: 下一个处理函数
-            
+
         Returns:
             HTTP响应
         """
@@ -125,16 +124,16 @@ class PerformanceMonitoringMiddleware(BaseHTTPMiddleware):
 def monitor_db_query(table_name: str = None):
     """
     数据库查询性能监控装饰器
-    
+
     用法:
         @monitor_db_query(table_name='articles')
         async def get_articles():
             # 数据库查询代码
             pass
-    
+
     Args:
         table_name: 表名 (可选，如果不提供则从函数名推断)
-        
+
     Returns:
         装饰器函数
     """
@@ -183,7 +182,7 @@ def monitor_db_query(table_name: str = None):
 def start_system_monitoring(interval: int = 30):
     """
     启动系统资源监控定时任务
-    
+
     Args:
         interval: 采样间隔 (秒)
     """

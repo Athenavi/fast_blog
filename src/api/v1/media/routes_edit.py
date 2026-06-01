@@ -101,7 +101,7 @@ async def batch_categorize_media(
     """批量为媒体设置分类"""
     try:
         from sqlalchemy import update as sql_update
-        
+
         # 批量更新分类
         stmt = (
             sql_update(Media)
@@ -110,9 +110,9 @@ async def batch_categorize_media(
         )
         result = await db.execute(stmt)
         await db.commit()
-        
+
         return ApiResponse(
-            success=True, 
+            success=True,
             message=f"成功为 {result.rowcount} 个文件设置分类",
             data={"updated_count": result.rowcount}
         )
@@ -131,21 +131,21 @@ async def batch_update_tags(
         db: AsyncSession = Depends(get_async_db)
 ):
     """批量为媒体设置标签
-    
+
     注意：每个媒体最多支持5个标签
     """
     try:
         from sqlalchemy import select
-        
+
         # 检查标签数量限制
         if len(tags) > 5:
             return ApiResponse(success=False, error="最多只能设置5个标签")
-        
+
         # 查询所有媒体
         query = select(Media).where(Media.id.in_(media_ids))
         result = await db.execute(query)
         media_list = result.scalars().all()
-        
+
         updated_count = 0
         for media in media_list:
             if mode == 'replace':
@@ -157,15 +157,15 @@ async def batch_update_tags(
                 if media.tags:
                     existing_tags = set(t.strip() for t in media.tags.split(',') if t.strip())
                 existing_tags.update(tags)
-                
+
                 if len(existing_tags) > 5:
                     continue  # 跳过超过限制的媒体
-                
+
                 media.tags = ','.join(existing_tags) if existing_tags else None
             updated_count += 1
-        
+
         await db.commit()
-        
+
         return ApiResponse(
             success=True,
             message=f"成功为 {updated_count} 个文件更新标签",
@@ -211,7 +211,7 @@ async def update_media(
     if 'tags' in body:
         # 处理 tags 字段 - 支持字符串和数组两种格式
         tags_value = body['tags']
-        
+
         # 如果是字符串，解析为数组进行检查
         if isinstance(tags_value, str):
             tags_list = [t.strip() for t in tags_value.split(',') if t.strip()] if tags_value else []
@@ -219,11 +219,11 @@ async def update_media(
             tags_list = tags_value
         else:
             tags_list = []
-        
+
         # 检查标签数量限制（最多5个）
         if len(tags_list) > 5:
             return ApiResponse(success=False, error="最多只能设置5个标签")
-        
+
         # 保存为逗号分隔的字符串
         media.tags = ','.join(tags_list) if tags_list else None
     if 'category' in body:
@@ -400,7 +400,7 @@ async def upload_edited_image(
 ):
     """
     上传编辑后的图片并更新媒体记录
-    
+
     Args:
         media_id: 媒体文件ID
         file: 编辑后的图片文件
@@ -409,21 +409,21 @@ async def upload_edited_image(
         from src.utils.storage.s3_storage import s3_storage
         import hashlib
         from datetime import datetime
-        
+
         # 验证媒体文件是否存在且属于当前用户
         query = select(Media).where(Media.id == media_id, Media.user == current_user.id)
         result = await db.execute(query)
         media = result.scalar_one_or_none()
-        
+
         if not media:
             return JSONResponse(
                 content={"success": False, "error": "媒体文件不存在或无权访问"},
                 status_code=404
             )
-        
+
         # 读取上传的文件
         file_data = await file.read()
-        
+
         # 验证是否为有效图片
         validation = image_processor.validate_image(file_data)
         if not validation['valid']:
@@ -431,18 +431,18 @@ async def upload_edited_image(
                 content={"success": False, "error": f"无效的图片: {', '.join(validation['errors'])}"},
                 status_code=400
             )
-        
+
         # 计算新文件的 hash
         file_hash = hashlib.sha256(file_data).hexdigest()
-        
+
         # 获取文件信息
         image_info = image_processor.get_image_info(file_data)
-        
+
         # 保存文件到存储
         ext = file.filename.split('.')[-1] if '.' in file.filename else 'jpg'
         filename = f"{file_hash}.{ext}"
         storage_path = f"objects/{file_hash[:2]}/{filename}"
-        
+
         # 使用 S3 存储或本地存储
         try:
             s3_storage.save_raw_file(storage_path, file_data)
@@ -455,8 +455,8 @@ async def upload_edited_image(
             os.makedirs(os.path.dirname(local_path), exist_ok=True)
             with open(local_path, 'wb') as f:
                 f.write(file_data)
-            file_url = f"/assets/storage/{storage_path}"
-        
+            file_url = f"/api/v2/assets/storage/{storage_path}"
+
         # 生成缩略图
         thumbnail_path = None
         thumbnail_url = None
@@ -464,16 +464,16 @@ async def upload_edited_image(
             thumb_dir = f"storage/thumbnails/{file_hash[:2]}"
             os.makedirs(thumb_dir, exist_ok=True)
             thumb_file = f"{thumb_dir}/{file_hash}.jpg"
-            
+
             from src.utils.image.processing import generate_thumbnail
             generate_thumbnail(local_path if os.path.exists(local_path) else f"storage/{storage_path}", thumb_file)
-            
+
             if os.path.exists(thumb_file):
                 thumbnail_path = f"thumbnails/{file_hash[:2]}/{file_hash}.jpg"
-                thumbnail_url = f"/assets/storage/{thumbnail_path}"
+                thumbnail_url = f"/api/v2/assets/storage/{thumbnail_path}"
         except Exception as e:
             logger.warning(f"生成缩略图失败: {e}")
-        
+
         # 更新媒体记录
         media.hash = file_hash
         media.filename = filename
@@ -486,9 +486,9 @@ async def upload_edited_image(
         media.thumbnail_path = thumbnail_path
         media.thumbnail_url = thumbnail_url
         media.updated_at = datetime.now()
-        
+
         await db.commit()
-        
+
         return JSONResponse(
             content={
                 "success": True,
@@ -496,7 +496,7 @@ async def upload_edited_image(
                 "data": media.to_dict()
             }
         )
-        
+
     except Exception as e:
         await db.rollback()
         logger.error(f"保存图片失败: {e}")

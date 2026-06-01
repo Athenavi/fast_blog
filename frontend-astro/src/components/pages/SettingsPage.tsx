@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import React, {useEffect, useRef, useState, useCallback} from 'react';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {apiClient} from '@/lib/api/base-client';
 import {useDarkMode} from '@/lib/dark-mode-manager';
 import {getAccessTokenFromCookie} from '@/lib/auth-utils';
@@ -8,31 +8,27 @@ import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {useConfirm} from '@/components/ui/confirm-provider';
 import {
+  AlertCircle,
   Camera,
+  Check,
+  CheckCircle2,
+  Copy,
+  Eye,
+  EyeOff,
+  Fingerprint,
   Globe,
+  Loader,
+  Lock,
   LogOut,
   Monitor,
   Moon,
+  Palette,
+  RefreshCw,
   Shield,
   Smartphone,
-  User,
-  X,
   Sun,
-  Eye,
-  EyeOff,
-  Copy,
-  Download,
-  Check,
-  CheckCircle2,
-  AlertCircle,
-  Loader,
-  Lock,
-  Bell,
-  Palette,
-  Fingerprint,
-  SmartphoneNfc,
-  RefreshCw,
-  Trash2
+  Trash2,
+  User
 } from 'lucide-react';
 
 const TABS = [
@@ -75,7 +71,7 @@ function Settings() {
           let url = u.avatar_url || u.avatar || '';
           if (url && !url.startsWith('http')) {
             const c = await import('@/lib/config').then(m => m.getConfig());
-            url = url.startsWith('/') ? `${c.API_BASE_URL}${url}` : `${c.API_BASE_URL}/static/avatar/${url}.webp`;
+            url = url.startsWith('/') ? `${c.API_BASE_URL}${url}` : `${c.API_BASE_URL}/api/v2/static/avatar/${url}.webp`;
           }
           setAv(url||`https://ui-avatars.com/api/?name=${encodeURIComponent(u.username||'U')}&background=random`);
         }

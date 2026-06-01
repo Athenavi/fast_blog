@@ -35,7 +35,7 @@ def get_article_meta_tags(article, content=None, author=None, request: Request =
         'og:description': description,
         'og:type': 'article',
         'og:url': f"{host_url}/p/{article.slug}",
-        'og:image': cover_image if cover_image else f"{host_url}/static/images/default-cover.jpg",
+        'og:image': cover_image if cover_image else f"{host_url}/api/v2/static/images/default-cover.jpg",
         'article:author': author_name,
         'article:published_time': article.created_at.isoformat() if article.created_at else datetime.now().isoformat(),
         'article:modified_time': article.updated_at.isoformat() if article.updated_at else article.created_at.isoformat(),
@@ -43,7 +43,7 @@ def get_article_meta_tags(article, content=None, author=None, request: Request =
         'twitter:card': 'summary_large_image',
         'twitter:title': title,
         'twitter:description': description,
-        'twitter:image': cover_image if cover_image else f"{host_url}/static/images/default-cover.jpg",
+        'twitter:image': cover_image if cover_image else f"{host_url}/api/v2/static/images/default-cover.jpg",
     }
 
     # 尝试调用插件钩子增强元标签
@@ -162,10 +162,10 @@ def generate_seo_friendly_url(title, model_type='article', id_value=None):
 def get_feed_discovery_tags(base_url: str = None) -> dict:
     """
     生成RSS/Atom Feed发现标签（用于HTML head）
-    
+
     Args:
         base_url: 网站基础URL，如果为None则使用默认值
-        
+
     Returns:
         包含feed link标签的字典
     """

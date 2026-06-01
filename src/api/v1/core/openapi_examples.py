@@ -13,7 +13,7 @@ ARTICLE_LIST_EXAMPLE = {
 - 分页支持 (page, per_page)
 - 关键词搜索 (search) - 搜索标题和摘要
 - 分类筛选 (category_id)
-- 作者筛选 (user_id)  
+- 作者筛选 (user_id)
 - 状态筛选 (status: draft/published/deleted)
 
 **使用场景**:
@@ -86,7 +86,7 @@ ARTICLE_DETAIL_EXAMPLE = {
                 "id": 1,
                 "username": "admin",
                 "bio": "全栈开发者",
-                "profile_picture": "/static/avatar/admin.webp"
+                "profile_picture": "/api/v2/static/avatar/admin.webp"
             },
             "category_id": 1,
             "views": 1235,
@@ -103,7 +103,7 @@ ARTICLE_CREATE_EXAMPLE = {
     "description": """
 创建一篇新文章，需要认证权限。
 
-**权限要求**: 
+**权限要求**:
 - 需要登录
 - 用户角色至少为 Contributor
 

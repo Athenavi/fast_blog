@@ -21,7 +21,7 @@ class RegisterFunctionRequest(BaseModel):
 async def list_functions():
     """
     列出所有 Edge Functions
-    
+
     Returns:
         函数列表
     """
@@ -41,10 +41,10 @@ async def list_functions():
 async def register_function(request: RegisterFunctionRequest):
     """
     注册 Edge Function
-    
+
     Args:
         request: 函数配置
-        
+
     Returns:
         注册结果
     """
@@ -73,10 +73,10 @@ async def register_function(request: RegisterFunctionRequest):
 async def remove_function(function_name: str):
     """
     移除 Edge Function
-    
+
     Args:
         function_name: 函数名称
-        
+
     Returns:
         操作结果
     """
@@ -100,7 +100,7 @@ async def remove_function(function_name: str):
 async def generate_cloudflare_worker():
     """
     生成 Cloudflare Workers 代码
-    
+
     Returns:
         生成结果
     """
@@ -122,7 +122,7 @@ async def generate_cloudflare_worker():
 async def generate_vercel_edge_functions():
     """
     生成 Vercel Edge Functions 代码
-    
+
     Returns:
         生成结果
     """
@@ -175,7 +175,7 @@ def register_default_functions():
     edge_functions_service.register_function(
         name='static-cache',
         handler=static_cache_handler,
-        route='/static/*',
+        route='/api/v2/static/*',
         cache_ttl=86400,  # 24小时缓存
         description='Cache static assets at edge'
     )

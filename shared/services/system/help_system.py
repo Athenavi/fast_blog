@@ -7,7 +7,7 @@ from typing import List, Dict, Any, Optional
 
 class HelpSystem:
     """帮助系统服务"""
-    
+
     # 默认帮助内容
     DEFAULT_HELP_CONTENT = {
         'admin_dashboard': {
@@ -143,23 +143,23 @@ class HelpSystem:
             ]
         },
     }
-    
+
     @classmethod
     def get_help_content(cls, page_key: str, language: str = 'zh_CN') -> Optional[Dict[str, Any]]:
         """
         获取指定页面的帮助内容
-        
+
         Args:
             page_key: 页面标识符
             language: 语言代码
-            
+
         Returns:
             帮助内容字典，如果不存在返回 None
         """
         help_data = cls.DEFAULT_HELP_CONTENT.get(page_key)
         if not help_data:
             return None
-        
+
         return {
             'page_key': page_key,
             'title': help_data['title'],
@@ -167,12 +167,12 @@ class HelpSystem:
             'related_links': help_data.get('related_links', []),
             'language': language
         }
-    
+
     @classmethod
     def get_all_help_topics(cls) -> List[Dict[str, str]]:
         """
         获取所有帮助主题列表
-        
+
         Returns:
             主题列表
         """
@@ -183,24 +183,24 @@ class HelpSystem:
                 'title': data['title']
             })
         return topics
-    
+
     @classmethod
     def search_help(cls, query: str) -> List[Dict[str, Any]]:
         """
         搜索帮助内容
-        
+
         Args:
             query: 搜索关键词
-            
+
         Returns:
             匹配的帮助内容列表
         """
         results = []
         query_lower = query.lower()
-        
+
         for key, data in cls.DEFAULT_HELP_CONTENT.items():
             # 在标题和内容中搜索
-            if (query_lower in data['title'].lower() or 
+            if (query_lower in data['title'].lower() or
                 query_lower in data['content'].lower()):
                 results.append({
                     'page_key': key,
@@ -208,21 +208,21 @@ class HelpSystem:
                     'excerpt': cls._extract_excerpt(data['content'], query),
                     'relevance': cls._calculate_relevance(data, query)
                 })
-        
+
         # 按相关性排序
         results.sort(key=lambda x: x['relevance'], reverse=True)
         return results
-    
+
     @classmethod
     def _extract_excerpt(cls, content: str, query: str, max_length: int = 150) -> str:
         """
         提取包含关键词的摘要
-        
+
         Args:
             content: 完整内容
             query: 搜索词
             max_length: 最大长度
-            
+
         Returns:
             摘要文本
         """
@@ -231,66 +231,66 @@ class HelpSystem:
         # 移除 HTML 标签
         text = re.sub(r'<[^>]+>', '', content)
         text = ' '.join(text.split())
-        
+
         if len(text) <= max_length:
             return text
-        
+
         # 查找关键词位置
         query_lower = query.lower()
         text_lower = text.lower()
         pos = text_lower.find(query_lower)
-        
+
         if pos == -1:
             return text[:max_length] + '...'
-        
+
         # 从关键词前后截取
         start = max(0, pos - 50)
         end = min(len(text), pos + len(query) + 100)
-        
+
         excerpt = text[start:end]
         if start > 0:
             excerpt = '...' + excerpt
         if end < len(text):
             excerpt += '...'
-        
+
         return excerpt
-    
+
     @classmethod
     def _calculate_relevance(cls, help_data: Dict, query: str) -> float:
         """
         计算相关性分数
-        
+
         Args:
             help_data: 帮助数据
             query: 搜索词
-            
+
         Returns:
             相关性分数 (0-1)
         """
         score = 0.0
         query_lower = query.lower()
-        
+
         # 标题匹配权重更高
         if query_lower in help_data['title'].lower():
             score += 0.5
-        
+
         # 内容匹配
         if query_lower in help_data['content'].lower():
             score += 0.3
-        
+
         # 相关链接标题匹配
         for link in help_data.get('related_links', []):
             if query_lower in link['title'].lower():
                 score += 0.2
-        
+
         return min(score, 1.0)
-    
+
     @classmethod
-    def add_custom_help(cls, page_key: str, title: str, content: str, 
+    def add_custom_help(cls, page_key: str, title: str, content: str,
                        related_links: List[Dict[str, str]] = None):
         """
         添加自定义帮助内容（供插件使用）
-        
+
         Args:
             page_key: 页面标识符
             title: 帮助标题
@@ -302,16 +302,16 @@ class HelpSystem:
             'content': content,
             'related_links': related_links or []
         }
-    
+
     @classmethod
     def get_field_tooltip(cls, field_name: str, context: str = 'general') -> Optional[str]:
         """
         获取字段的 tooltip 提示
-        
+
         Args:
             field_name: 字段名称
             context: 上下文（页面或模块）
-            
+
         Returns:
             提示文本
         """
@@ -325,17 +325,17 @@ class HelpSystem:
             'meta_title': '搜索引擎显示的标题，建议 50-60 个字符',
             'meta_description': '搜索引擎显示的描述，建议 150-160 个字符',
         }
-        
+
         return tooltips.get(field_name)
-    
+
     @classmethod
     def get_video_tutorials(cls, topic: str = None) -> List[Dict[str, str]]:
         """
         获取视频教程列表
-        
+
         Args:
             topic: 主题过滤（可选）
-            
+
         Returns:
             教程列表
         """
@@ -346,7 +346,7 @@ class HelpSystem:
                 'description': '学习如何使用 FastBlog 的基本功能',
                 'duration': '5:30',
                 'url': '/tutorials/getting-started',
-                'thumbnail': '/static/tutorials/getting-started.jpg'
+                'thumbnail': '/api/v2/static/tutorials/getting-started.jpg'
             },
             {
                 'id': 'writing-articles',
@@ -354,7 +354,7 @@ class HelpSystem:
                 'description': '掌握文章编辑器的所有功能',
                 'duration': '8:15',
                 'url': '/tutorials/writing-articles',
-                'thumbnail': '/static/tutorials/writing.jpg'
+                'thumbnail': '/api/v2/static/tutorials/writing.jpg'
             },
             {
                 'id': 'seo-optimization',
@@ -362,11 +362,11 @@ class HelpSystem:
                 'description': '提高文章在搜索引擎中的排名',
                 'duration': '12:00',
                 'url': '/tutorials/seo',
-                'thumbnail': '/static/tutorials/seo.jpg'
+                'thumbnail': '/api/v2/static/tutorials/seo.jpg'
             },
         ]
-        
+
         if topic:
             tutorials = [t for t in tutorials if topic.lower() in t['title'].lower()]
-        
+
         return tutorials

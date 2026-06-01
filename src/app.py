@@ -506,12 +506,12 @@ def register_middleware(app: FastAPI):
 def register_error_handlers(app: FastAPI):
     """注册全局错误处理器和 SPA 回退"""
 
-    @app.get("/health", tags=["system"])
+    @app.get("/api/v2/health", tags=["system"])
     async def health_check():
         # 原逻辑简化
         return {"status": "healthy", "timestamp": datetime.now().isoformat()}
 
-    @app.get("/mobile-login", tags=["qr-login"])
+    @app.get("/api/v2/mobile-login", tags=["qr-login"])
     async def mobile_login_page(request: Request):
         """手机扫码确认页面（注册在应用顶层，绕过 API 中间件和认证）"""
         from src.api.v2.qr_login import _MOBILE_LOGIN_HTML
@@ -567,7 +567,8 @@ def register_error_handlers(app: FastAPI):
             return error(404, "Page Not Found")
 
         # 3. 非 API 路径尝试返回前端 SPA 页面
-        excluded_prefixes = ['static/', 'assets/', 'docs', 'redoc', 'openapi.json', 'health']
+        excluded_prefixes = ['api/v2/static/', 'api/v2/assets/', 'api/v2/docs', 'api/v2/redoc', 'api/v2/openapi.json',
+                             'api/v2/health']
         if not any(path.lstrip('/').startswith(prefix) for prefix in excluded_prefixes):
             try:
                 frontend_index = os.path.join(os.path.dirname(__file__), "..", "frontend", "index.html")
@@ -615,9 +616,9 @@ def create_app(config=None):
         title="FastBlog API",
         version="1.0.0",
         lifespan=lifespan,
-        docs_url="/docs",
-        redoc_url="/redoc",
-        openapi_url="/openapi.json",
+        docs_url="/api/v2/docs",
+        redoc_url="/api/v2/redoc",
+        openapi_url="/api/v2/openapi.json",
     )
 
     # 注册中间件
@@ -632,24 +633,24 @@ def create_app(config=None):
     # 静态文件挂载 - 确保在所有路由注册之后挂载，避免被catch-all路由拦截
     static_dir = os.path.join(os.path.dirname(__file__), "..", "static")
     os.makedirs(static_dir, exist_ok=True)
-    app.mount("/static", StaticFiles(directory=static_dir), name="static")
+    app.mount("/api/v2/static", StaticFiles(directory=static_dir), name="static")
 
-    # 本地存储 - 使用统一前缀 /assets/storage 避免与业务路由冲突
+    # 本地存储 - 使用统一前缀 /api/v2/assets/storage 避免与业务路由冲突
     try:
         from src.setting import app_config
         local_storage = getattr(app_config, 'LOCAL_STORAGE_PATH', 'storage')
     except Exception:
         local_storage = 'storage'
     os.makedirs(local_storage, exist_ok=True)
-    app.mount("/assets/storage", StaticFiles(directory=local_storage), name="local-storage")
+    app.mount("/api/v2/assets/storage", StaticFiles(directory=local_storage), name="local-storage")
 
     objects_dir = os.path.join(local_storage, 'objects')
     os.makedirs(objects_dir, exist_ok=True)
-    app.mount("/assets/storage/objects", StaticFiles(directory=objects_dir), name="storage-objects")
+    app.mount("/api/v2/assets/storage/objects", StaticFiles(directory=objects_dir), name="storage-objects")
 
     themes_dir = os.path.join(os.path.dirname(__file__), "..", "themes")
     if os.path.exists(themes_dir):
-        app.mount("/assets/themes", StaticFiles(directory=themes_dir), name="themes")
+        app.mount("/api/v2/assets/themes", StaticFiles(directory=themes_dir), name="themes")
 
     return app
 

@@ -12,13 +12,14 @@ from typing import Dict
 from fastapi import Request
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.responses import JSONResponse
+
 from src.unified_logger import default_logger as logger
 
 
 class XSSFilterMiddleware(BaseHTTPMiddleware):
     """
     XSS 过滤中间件
-    
+
     检查请求体中的内容，防止 XSS 攻击
     支持多种检测模式和智能排除
     """
@@ -95,7 +96,7 @@ class XSSFilterMiddleware(BaseHTTPMiddleware):
     def __init__(self, app, enable_logging: bool = True, strict_mode: bool = False):
         """
         初始化 XSS 过滤器
-        
+
         Args:
             app: FastAPI 应用
             enable_logging: 是否启用日志记录
@@ -179,10 +180,10 @@ class XSSFilterMiddleware(BaseHTTPMiddleware):
     def _check_for_xss(self, data) -> dict:
         """
         递归检查数据中是否包含 XSS
-        
+
         Args:
             data: 要检查的数据（字符串、字典或列表）
-            
+
         Returns:
             dict: {
                 'detected': bool,  # 是否检测到 XSS
@@ -229,7 +230,7 @@ class XSSFilterMiddleware(BaseHTTPMiddleware):
     def _log_attempt(self, request: Request, source: str, result: dict):
         """
         记录 XSS 尝试
-        
+
         Args:
             request: FastAPI 请求对象
             source: 检测来源
@@ -258,7 +259,7 @@ class XSSFilterMiddleware(BaseHTTPMiddleware):
 class CSRFProtectionMiddleware(BaseHTTPMiddleware):
     """
     CSRF 保护中间件
-    
+
     验证 CSRF token，防止跨站请求伪造
     """
 
@@ -266,7 +267,7 @@ class CSRFProtectionMiddleware(BaseHTTPMiddleware):
     SAFE_METHODS = {'GET', 'HEAD', 'OPTIONS'}
 
     # 排除的路径（如 API 端点使用 JWT 认证）
-    EXCLUDED_PATHS = ['/api/', '/auth/', '/health']
+    EXCLUDED_PATHS = ['/api/', '/auth/', '/api/v2/health']
 
     async def dispatch(self, request: Request, call_next):
         # GET/HEAD/OPTIONS 请求不需要 CSRF 验证
@@ -318,7 +319,7 @@ class CSRFProtectionMiddleware(BaseHTTPMiddleware):
 class RateLimiterMiddleware(BaseHTTPMiddleware):
     """
     速率限制中间件
-    
+
     限制单个 IP 的请求频率，防止滥用和 DDoS 攻击
     支持不同端点的差异化限流策略
     """
@@ -327,8 +328,8 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
     EXCLUDED_PATHS = [
         '/api/v1/thumbnail',  # 缩略图接口（频繁访问，需要豁免）
         '/api/v1/media/',  # 媒体文件接口（图片加载需要豁免）
-        '/health',  # 健康检查接口
-        '/static/',  # 静态文件
+        '/api/v2/health',  # 健康检查接口
+        '/api/v2/static/',  # 静态文件
     ]
 
     # 敏感端点的更严格限制 {path_prefix: (max_requests, window_seconds)}
@@ -345,7 +346,7 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
     def __init__(self, app, max_requests: int = None, window_seconds: int = None):
         """
         初始化速率限制器
-        
+
         Args:
             app: FastAPI 应用
             max_requests: 时间窗口内的最大请求数（已废弃，使用类常量）
@@ -414,10 +415,10 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
     def _get_rate_limit_for_path(self, path: str) -> tuple:
         """
         根据路径获取速率限制配置
-        
+
         Args:
             path: 请求路径
-            
+
         Returns:
             (max_requests, window_seconds) 元组
         """
@@ -469,7 +470,7 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
 class SQLInjectionFilterMiddleware(BaseHTTPMiddleware):
     """
     SQL 注入过滤中间件
-    
+
     检查请求参数中的 SQL 注入模式
     支持日志记录和审计功能
     """
@@ -515,7 +516,7 @@ class SQLInjectionFilterMiddleware(BaseHTTPMiddleware):
     def __init__(self, app, enable_logging: bool = True):
         """
         初始化 SQL 注入过滤器
-        
+
         Args:
             app: FastAPI 应用
             enable_logging: 是否启用日志记录
@@ -572,7 +573,7 @@ class SQLInjectionFilterMiddleware(BaseHTTPMiddleware):
     def _log_attempt(self, request: Request, source: str, result: dict):
         """
         记录 SQL 注入尝试
-        
+
         Args:
             request: FastAPI 请求对象
             source: 检测来源 ('query_params' 或 'request_body')
@@ -600,10 +601,10 @@ class SQLInjectionFilterMiddleware(BaseHTTPMiddleware):
     def _check_sql_injection(self, data) -> dict:
         """
         递归检查 SQL 注入
-        
+
         Args:
             data: 要检查的数据（字符串、字典或列表）
-            
+
         Returns:
             dict: {
                 'detected': bool,  # 是否检测到 SQL 注入
@@ -645,10 +646,10 @@ class SQLInjectionFilterMiddleware(BaseHTTPMiddleware):
 def create_security_middleware_stack(app):
     """
     创建安全中间件栈（不包含速率限制）
-    
+
     Args:
         app: FastAPI 应用
-        
+
     Returns:
         添加了安全中间件的应用
     """

@@ -30,7 +30,7 @@ async def get_mobile_user_profile(
             safe_filename = safe_filename.replace('"', '').replace("'", "").strip()
             if safe_filename:
                 base_url = str(request.url).split('/users/profile')[0].rsplit('/', 1)[0]
-                avatar_url = f"{base_url}/static/avatar/{safe_filename}.webp"
+                avatar_url = f"{base_url}/api/v2/static/avatar/{safe_filename}.webp"
 
         return ApiResponse(
             success=True,

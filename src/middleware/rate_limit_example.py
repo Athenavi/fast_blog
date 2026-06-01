@@ -47,7 +47,7 @@ async def get_profile(request: Request):
     return {"profile": {}}
 
 
-@app.get("/health")
+@app.get("/api/v2/health")
 # 健康检查接口不限流
 async def health_check():
     """健康检查 - 不限流"""

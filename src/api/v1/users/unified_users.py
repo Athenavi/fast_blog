@@ -24,7 +24,7 @@ from shared.services.users.user_manager import user_csv_service
 # 导入核心依赖
 from src.api.v1.core.responses import ApiResponse
 from src.api.v1.user_utils.password_utils import validate_password_async, update_password
-from src.api.v1.user_utils.user_entities import check_user_conflict, check_user_conflict_async, change_username, db_save_bio, \
+from src.api.v1.user_utils.user_entities import check_user_conflict_async, change_username, db_save_bio, \
     save_uploaded_avatar
 from src.auth.auth_deps import admin_required as admin_required_api, jwt_required_dependency as jwt_required, \
     get_current_active_user
@@ -339,7 +339,7 @@ async def get_current_user_api(
             safe_filename = safe_filename.replace('"', '').replace("'", "").strip()
             if safe_filename:  # 只有在处理后仍有内容时才使用
                 # 直接返回相对路径，让前端自己拼接完整URL
-                avatar_url = f"/static/avatar/{safe_filename}.webp"
+                avatar_url = f"/api/v2/static/avatar/{safe_filename}.webp"
 
         user_data = {
             "id": current_user.id,
@@ -447,7 +447,7 @@ async def update_current_user_profile_api(
             safe_filename = safe_filename.replace('"', '').replace("'", "").strip()
             if safe_filename:
                 # 直接返回相对路径，让前端自己拼接完整URL
-                avatar_url = f"/static/avatar/{safe_filename}.webp"
+                avatar_url = f"/api/v2/static/avatar/{safe_filename}.webp"
 
         user_data = {
             "id": user.id,
@@ -577,7 +577,7 @@ async def update_avatar_api(
             await db.close()
 
         # 构建头像 URL
-        avatar_url = f"/static/avatar/{result}.webp"
+        avatar_url = f"/api/v2/static/avatar/{result}.webp"
         print(f"[Avatar Upload] Success! Avatar URL: {avatar_url}")
         print(f"[Avatar Upload] === END ===")
         return JSONResponse(content={"success": True, "avatar_url": avatar_url})
@@ -929,7 +929,7 @@ async def get_user_profile_api(
             safe_filename = safe_filename.replace('"', '').replace("'", "").strip()
             if safe_filename:
                 base_url = str(request.url).rsplit('/', 1)[0]
-                avatar_url = f"{base_url}/static/avatar/{safe_filename}.webp"
+                avatar_url = f"{base_url}/api/v2/static/avatar/{safe_filename}.webp"
 
         user_data = {
             "id": user.id,

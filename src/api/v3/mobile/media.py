@@ -58,7 +58,7 @@ async def upload_mobile_image(
 
         # 构建URL
         base_url = str(request.url).split('/media/upload')[0]
-        file_url = f"{base_url}/static/uploads/mobile/{current_user.id}/{unique_filename}"
+        file_url = f"{base_url}/api/v2/static/uploads/mobile/{current_user.id}/{unique_filename}"
 
         return ApiResponse(
             success=True,
@@ -117,7 +117,7 @@ async def upload_article_cover(
 
         # 构建URL
         base_url = str(request.url).split('/media/upload')[0]
-        file_url = f"{base_url}/static/uploads/covers/{current_user.id}/{unique_filename}"
+        file_url = f"{base_url}/api/v2/static/uploads/covers/{current_user.id}/{unique_filename}"
 
         return ApiResponse(
             success=True,

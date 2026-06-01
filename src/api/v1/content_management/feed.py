@@ -72,7 +72,7 @@ async def get_rss_feed(
 ):
     """
     获取全站文章 Feed
-    
+
     支持 RSS 2.0 和 Atom 1.0 格式
     """
 
@@ -98,7 +98,7 @@ async def get_rss_feed(
         description=site_description,
         language='zh-CN',
         feed_url=f"{site_url}/feed",
-        icon_url=f"{site_url}/static/logo.png",
+        icon_url=f"{site_url}/api/v2/static/logo.png",
         copyright=f"© {datetime.now().year} {site_title}",
     )
 

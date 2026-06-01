@@ -69,7 +69,7 @@ class UpdateChecker:
                 all_versions = version_manager.get_all_versions()
                 backend_info = all_versions.get('BACKEND', {})
                 frontend_info = all_versions.get('FRONTEND', {})
-                    
+
                 return {
                     "backend_version": backend_info.get('version', '0.0.0'),
                     "frontend_version": frontend_info.get('version', '0.0.0'),
@@ -77,12 +77,12 @@ class UpdateChecker:
                     "framework": backend_info.get('framework', ''),
                     "status": "success"
                 }
-                
+
             # 回退到读取文件方式
             if self.version_file.exists():
                 with open(self.version_file, 'r', encoding='utf-8') as f:
                     content = f.read()
-                    
+
                 # 解析 INI 格式
                 version_info = {}
                 current_section = None
@@ -96,7 +96,7 @@ class UpdateChecker:
                     elif '=' in line and current_section:
                         key, value = line.split('=', 1)
                         version_info[current_section][key.strip()] = value.strip()
-                    
+
                 return {
                     "backend_version": version_info.get("BACKEND", {}).get("version", "0.0.0"),
                     "frontend_version": version_info.get("FRONTEND", {}).get("version", "0.0.0"),
@@ -104,7 +104,7 @@ class UpdateChecker:
                     "framework": version_info.get("BACKEND", {}).get("framework", ""),
                     "status": "success"
                 }
-                
+
             return {
                 "backend_version": "0.0.0",
                 "frontend_version": "0.0.0",
@@ -112,7 +112,7 @@ class UpdateChecker:
                 "framework": "FastAPI",
                 "status": "default"
             }
-    
+
         except Exception as e:
             logger.error(f"读取版本信息失败：{e}")
             return {
@@ -130,7 +130,7 @@ class UpdateChecker:
             if VERSION_MANAGER_AVAILABLE:
                 versions = version_manager.get_all_versions()
                 summary = get_version_summary()
-                    
+
                 return {
                     'success': True,
                     'data': {
@@ -323,17 +323,17 @@ async def check_for_updates():
         # 获取当前版本
         current_info = update_checker.get_version_info()
         current_version = current_info['data'].get('versions', {}).get('backend', {}).get('version', '0.0.0')
-        
+
         # 从本地 releases 目录查找最新版本
         releases_dir = project_root / "releases"
         latest_version = current_version
         changelog = ''
         has_update = False
-        
+
         if releases_dir.exists():
             # 查找所有更新包
             update_packages = list(releases_dir.glob("update_*.zip"))
-            
+
             if update_packages:
                 # 提取版本号并排序
                 versions = []
@@ -343,17 +343,17 @@ async def check_for_updates():
                         versions.append((version_str, pkg))
                     except:
                         pass
-                
+
                 if versions:
                     # 按版本号排序（假设版本号格式为 x.y.z）
                     versions.sort(key=lambda x: [int(p) for p in x[0].split('.')], reverse=True)
                     latest_version = versions[0][0]
-                    
+
                     # 检查是否有更新
                     from packaging import version as pkg_version
                     if pkg_version.parse(latest_version) > pkg_version.parse(current_version):
                         has_update = True
-                        
+
                         # 读取changelog
                         metadata_file = releases_dir / f"update_{latest_version}.json"
                         if metadata_file.exists():
@@ -383,7 +383,7 @@ async def apply_update(version: str = None):
         import subprocess
         import sys
         from pathlib import Path
-        
+
         # 如果没有指定版本，使用最新版本
         if not version:
             # 从releases目录获取最新版本
@@ -399,24 +399,24 @@ async def apply_update(version: str = None):
                             versions.append(version_str)
                         except:
                             pass
-                    
+
                     if versions:
                         versions.sort(key=lambda x: [int(p) for p in x.split('.')], reverse=True)
                         version = versions[0]
-            
+
             if not version:
                 version = "latest"
-        
+
         # 准备命令
-        cmd = [sys.executable, "-m", "updater.updater", 
-               "--target-version", version, 
+        cmd = [sys.executable, "-m", "updater.updater",
+               "--target-version", version,
                "--app-path", str(project_root)]
-        
+
         logger.info(f"执行更新命令: {' '.join(cmd)}")
-        
+
         # 执行更新命令
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)  # 5分钟超时
-        
+
         if result.returncode == 0:
             return JSONResponse(content={
                 'success': True,
@@ -437,7 +437,7 @@ async def apply_update(version: str = None):
                     'stdout': result.stdout
                 }
             })
-        
+
     except subprocess.TimeoutExpired:
         logger.error("更新超时")
         return JSONResponse(content={
@@ -461,16 +461,16 @@ async def download_update_package(version: str = "latest"):
         # 获取项目根目录
         base_dir = project_root
         releases_dir = base_dir / "releases"
-        
+
         # 如果指定 latest，查找最新的更新包
         if version == "latest":
             if not releases_dir.exists():
                 raise HTTPException(status_code=404, detail="Releases 目录不存在")
-            
+
             update_packages = list(releases_dir.glob("update_*.zip"))
             if not update_packages:
                 raise HTTPException(status_code=404, detail="未找到更新包")
-            
+
             # 按文件名排序（假设文件名包含版本号）
             update_packages.sort(key=lambda x: x.name, reverse=True)
             package_file = update_packages[0]
@@ -478,17 +478,17 @@ async def download_update_package(version: str = "latest"):
             package_file = releases_dir / f"update_{version}.zip"
             if not package_file.exists():
                 raise HTTPException(status_code=404, detail=f"版本 {version} 的更新包不存在")
-        
+
         # 读取文件并返回
         from fastapi.responses import FileResponse
-        
+
         logger.info(f"提供下载：{package_file}")
         return FileResponse(
             path=package_file,
             filename=package_file.name,
             media_type='application/zip'
         )
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -502,7 +502,7 @@ async def list_update_packages():
     try:
         base_dir = project_root
         releases_dir = base_dir / "releases"
-        
+
         if not releases_dir.exists():
             return JSONResponse(content={
                 'success': True,
@@ -511,7 +511,7 @@ async def list_update_packages():
                     'total': 0
                 }
             })
-        
+
         packages = []
         for zip_file in releases_dir.glob("update_*.zip"):
             # 尝试读取元数据
@@ -520,7 +520,7 @@ async def list_update_packages():
             if metadata_file.exists():
                 with open(metadata_file, 'r', encoding='utf-8') as f:
                     metadata = json.load(f)
-            
+
             packages.append({
                 'filename': zip_file.name,
                 'version': zip_file.stem.replace('update_', ''),
@@ -528,10 +528,10 @@ async def list_update_packages():
                 'build_time': metadata.get('build_time', ''),
                 'metadata': metadata
             })
-        
+
         # 按版本号排序
         packages.sort(key=lambda x: x['version'], reverse=True)
-        
+
         return JSONResponse(content={
             'success': True,
             'data': {
@@ -539,7 +539,7 @@ async def list_update_packages():
                 'total': len(packages)
             }
         })
-        
+
     except Exception as e:
         logger.error(f"列出更新包失败：{e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -554,14 +554,14 @@ async def check_updates_now():
                 'success': False,
                 'error': '自动更新检查器未加载'
             })
-        
+
         result = await auto_update_checker.check_for_updates()
-        
+
         return JSONResponse(content={
             'success': True,
             'data': result
         })
-        
+
     except Exception as e:
         logger.error(f"检查更新失败：{e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -576,7 +576,7 @@ async def get_auto_check_status():
                 'success': False,
                 'error': '自动更新检查器未加载'
             })
-        
+
         return JSONResponse(content={
             'success': True,
             'data': {
@@ -586,7 +586,7 @@ async def get_auto_check_status():
                 'current_version': auto_update_checker.current_version
             }
         })
-        
+
     except Exception as e:
         logger.error(f"获取自动检查状态失败：{e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -598,9 +598,9 @@ async def list_backups(limit: int = 10):
     try:
         # 导入备份管理器
         from shared.utils.backup_manager import backup_manager
-        
+
         backups = backup_manager.list_backups(limit)
-        
+
         return JSONResponse(content={
             'success': True,
             'data': {
@@ -609,7 +609,7 @@ async def list_backups(limit: int = 10):
                 'total_size': backup_manager.get_total_size()
             }
         })
-        
+
     except Exception as e:
         logger.error(f"列出备份失败：{e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -621,11 +621,11 @@ async def create_backup(version: str = None):
     try:
         from shared.utils.backup_manager import backup_manager
         from pathlib import Path
-        
+
         project_root = Path(__file__).resolve().parent.parent.parent
-        
+
         backup_info = backup_manager.create_backup(str(project_root), version)
-        
+
         if backup_info:
             return JSONResponse(content={
                 'success': True,
@@ -637,7 +637,7 @@ async def create_backup(version: str = None):
                 'success': False,
                 'error': '备份创建失败'
             }, status_code=500)
-        
+
     except Exception as e:
         logger.error(f"创建备份失败：{e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -646,18 +646,18 @@ async def create_backup(version: str = None):
 @app.post("/api/v1/backups/restore")
 async def restore_backup(backup_id: str):
     """恢复备份
-    
+
     Args:
         backup_id: 备份 ID（时间戳）
     """
     try:
         from shared.utils.backup_manager import backup_manager
         from pathlib import Path
-        
+
         project_root = Path(__file__).resolve().parent.parent.parent
-        
+
         success = backup_manager.restore_backup(backup_id, str(project_root))
-        
+
         if success:
             return JSONResponse(content={
                 'success': True,
@@ -669,7 +669,7 @@ async def restore_backup(backup_id: str):
                 'success': False,
                 'error': '备份恢复失败'
             }, status_code=500)
-        
+
     except Exception as e:
         logger.error(f"恢复备份失败：{e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -680,9 +680,9 @@ async def delete_backup(backup_id: str):
     """删除备份"""
     try:
         from shared.utils.backup_manager import backup_manager
-        
+
         success = backup_manager.delete_backup(backup_id)
-        
+
         if success:
             return JSONResponse(content={
                 'success': True,
@@ -693,7 +693,7 @@ async def delete_backup(backup_id: str):
                 'success': False,
                 'error': '备份不存在或删除失败'
             }, status_code=404)
-        
+
     except Exception as e:
         logger.error(f"删除备份失败：{e}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -739,7 +739,7 @@ def main():
 
     logger.info("=== 更新检查服务器启动 ===")
     logger.info(f"监听地址: http://{host}:{port}")
-    logger.info(f"API文档: http://{host}:{port}/docs")
+    logger.info(f"API文档: http://{host}:{port}/api/v2/docs")
 
     # 设置信号处理器
     setup_signal_handlers()

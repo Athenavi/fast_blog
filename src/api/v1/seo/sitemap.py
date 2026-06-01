@@ -20,7 +20,7 @@ router = APIRouter(tags=["sitemap"])
 async def get_sitemap_index(request: Request):
     """
     获取站点地图索引
-    
+
     返回所有站点地图文件的索引，包括多语言版本
     """
     site_url = str(request.base_url).rstrip('/')
@@ -55,7 +55,7 @@ async def get_posts_sitemap(
 ):
     """
     获取文章站点地图
-    
+
     包含所有已发布的文章
     """
 
@@ -260,7 +260,7 @@ async def get_multilingual_sitemap(
 ):
     """
     获取多语言站点地图
-    
+
     包含所有文章的多语言版本和 hreflang 标签
     """
     site_url = str(request.base_url).rstrip('/')
@@ -339,7 +339,7 @@ async def get_authors_sitemap(
 ):
     """
     获取作者站点地图
-    
+
     包含所有有公开文章的用户
     """
     site_url = str(request.base_url).rstrip('/')
@@ -396,7 +396,7 @@ async def get_images_sitemap(
 ):
     """
     获取图片站点地图
-    
+
     包含所有公开的图片文件，符合 Google Image Sitemap 标准
     """
     site_url = str(request.base_url).rstrip('/')
@@ -461,7 +461,7 @@ async def get_videos_sitemap(
 ):
     """
     获取视频站点地图
-    
+
     包含所有公开的视频文件，符合 Google Video Sitemap 标准
     """
     site_url = str(request.base_url).rstrip('/')
@@ -492,7 +492,7 @@ async def get_videos_sitemap(
                 '/') else f"{site_url}{thumbnail_url}"
         elif not thumbnail_url:
             # 如果没有缩略图，使用默认占位符
-            thumbnail_url = f"{site_url}/static/video-placeholder.jpg"
+            thumbnail_url = f"{site_url}/api/v2/static/video-placeholder.jpg"
 
         # 构建视频元数据
         video_data = {
@@ -536,7 +536,7 @@ async def get_videos_sitemap(
 async def get_robots_txt(request: Request):
     """
     生成 robots.txt 文件
-    
+
     包含站点地图声明和爬虫规则
     """
     site_url = str(request.base_url).rstrip('/')

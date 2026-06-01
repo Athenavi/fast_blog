@@ -6,6 +6,8 @@
 
 import re
 from collections import Counter
+
+from shared.services.ai.llm_client import llm_client
 from shared.services.ai.skills_framework import (
     BaseSkill,
     SkillMetadata,
@@ -14,7 +16,6 @@ from shared.services.ai.skills_framework import (
     SkillCategory,
     SkillPermission,
 )
-from shared.services.ai.llm_client import llm_client
 
 
 class ContentCreatorSkill(BaseSkill):
@@ -493,7 +494,7 @@ class ThemeBuilderSkill(BaseSkill):
             success=True,
             data={
                 "css": css_code,
-                "preview_url": "/assets/themes/preview/custom",
+                "preview_url": "/api/v2/assets/themes/preview/custom",
             },
             message="Theme styles generated"
         )

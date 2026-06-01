@@ -12,7 +12,7 @@ from typing import Dict, Any, List, Optional
 class AccessibilityOptimizer:
     """
     无障碍优化服务
-    
+
     功能:
     1. WCAG 2.1 A/AA/AAA级别合规检查
     2. 自动化无障碍性检测
@@ -45,12 +45,12 @@ class AccessibilityOptimizer:
     ) -> Dict[str, Any]:
         """
         运行全面的无障碍性审计
-        
+
         Args:
             html_content: HTML内容
             url: 页面URL（可选）
             level: WCAG级别 (A/AA/AAA)
-            
+
         Returns:
             审计报告
         """
@@ -110,10 +110,10 @@ class AccessibilityOptimizer:
     def generate_aria_suggestions(self, html_content: str) -> List[Dict[str, Any]]:
         """
         生成ARIA属性建议
-        
+
         Args:
             html_content: HTML内容
-            
+
         Returns:
             ARIA建议列表
         """
@@ -181,10 +181,10 @@ class AccessibilityOptimizer:
     def test_keyboard_navigation(self, html_content: str) -> Dict[str, Any]:
         """
         测试键盘导航
-        
+
         Args:
             html_content: HTML内容
-            
+
         Returns:
             键盘导航测试结果
         """
@@ -249,12 +249,12 @@ class AccessibilityOptimizer:
     ) -> Dict[str, Any]:
         """
         检查颜色对比度合规性
-        
+
         Args:
             foreground: 前景色（十六进制）
             background: 背景色（十六进制）
             text_size: 文字大小 (normal/large)
-            
+
         Returns:
             对比度检查结果
         """
@@ -276,10 +276,10 @@ class AccessibilityOptimizer:
     def get_fix_templates(self, violation_type: str) -> Dict[str, Any]:
         """
         获取修复模板
-        
+
         Args:
             violation_type: 违规类型
-            
+
         Returns:
             修复模板
         """
@@ -333,7 +333,7 @@ class AccessibilityOptimizer:
                 "after": '<a href="/page">阅读完整文章</a>',
                 "explanation": "链接文本应清晰说明目标",
                 "examples": [
-                    '<a href="/docs">查看文档</a>',
+                    '<a href="/api/v2/docs">查看文档</a>',
                     '<a href="/contact">联系我们</a>'
                 ]
             }
@@ -347,7 +347,7 @@ class AccessibilityOptimizer:
     def get_wcag_guidelines(self) -> Dict[str, Any]:
         """
         获取WCAG 2.1指南
-        
+
         Returns:
             WCAG指南信息
         """

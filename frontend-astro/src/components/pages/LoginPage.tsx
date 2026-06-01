@@ -135,7 +135,7 @@ export default function LoginPage() {
       } else {
         try {
           const mod = await import('qrcode');
-          const loginUrl = `${window.location.origin}/mobile-login?login_token=${token}`;
+          const loginUrl = `${window.location.origin}/api/v2/mobile-login?login_token=${token}`;
           const dataUrl = await mod.toDataURL(loginUrl, {width:280,margin:2,color:{dark:'#1e40af',light:'#ffffff'}});
           setQrImg(dataUrl);
         } catch {

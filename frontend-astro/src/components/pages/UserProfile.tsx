@@ -26,7 +26,7 @@ function Profile() {
         let url = u.avatar_url || u.avatar || '';
         if (url && !url.startsWith('http')) {
           const c = await import('@/lib/config').then(m => m.getConfig());
-          url = url.startsWith('/') ? `${c.API_BASE_URL}${url}` : `${c.API_BASE_URL}/static/avatar/${url}.webp`;
+          url = url.startsWith('/') ? `${c.API_BASE_URL}${url}` : `${c.API_BASE_URL}/api/v2/static/avatar/${url}.webp`;
         }
         setAv(url || `https://ui-avatars.com/api/?name=${encodeURIComponent(u.username||'U')}&background=random`);
       } catch {} finally {}

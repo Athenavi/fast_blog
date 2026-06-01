@@ -12,7 +12,7 @@ from typing import Any, Dict, List, Optional
 class CDNService:
     """
     CDN集成服务
-    
+
     管理CDN配置和资源分发
     """
 
@@ -42,7 +42,7 @@ class CDNService:
     ) -> Dict[str, Any]:
         """
         配置Cloudflare CDN
-        
+
         Args:
             api_token: Cloudflare API Token
             zone_id: Zone ID
@@ -51,7 +51,7 @@ class CDNService:
             enable_minification: 启用代码压缩
             enable_brotli: 启用Brotli压缩
             cache_ttl: 缓存TTL（秒）
-        
+
         Returns:
             配置结果
         """
@@ -96,7 +96,7 @@ class CDNService:
     ) -> Dict[str, Any]:
         """
         配置AWS CloudFront CDN
-        
+
         Args:
             access_key_id: AWS Access Key ID
             secret_access_key: AWS Secret Access Key
@@ -105,7 +105,7 @@ class CDNService:
             origin_domain: 源站域名
             enable_compression: 启用压缩
             cache_ttl: 缓存TTL（秒）
-        
+
         Returns:
             配置结果
         """
@@ -146,7 +146,7 @@ class CDNService:
     ) -> Dict[str, Any]:
         """
         配置阿里云CDN
-        
+
         Args:
             access_key_id: 阿里云Access Key ID
             access_key_secret: 阿里云Access Key Secret
@@ -154,7 +154,7 @@ class CDNService:
             source_domain: 源站域名
             enable_https: 启用HTTPS
             cache_ttl: 缓存TTL（秒）
-        
+
         Returns:
             配置结果
         """
@@ -193,14 +193,14 @@ class CDNService:
     ) -> Dict[str, Any]:
         """
         配置自定义CDN
-        
+
         Args:
             name: CDN名称
             cdn_url: CDN URL
             api_endpoint: API端点
             api_key: API密钥
             settings: 自定义设置
-        
+
         Returns:
             配置结果
         """
@@ -226,10 +226,10 @@ class CDNService:
     def get_cdn_config(self, provider: Optional[str] = None) -> Dict[str, Any]:
         """
         获取CDN配置
-        
+
         Args:
             provider: CDN提供商（如果为None，返回所有配置）
-        
+
         Returns:
             CDN配置
         """
@@ -262,12 +262,12 @@ class CDNService:
     ) -> Dict[str, Any]:
         """
         清除CDN缓存
-        
+
         Args:
             provider: CDN提供商
             urls: 要清除的URL列表
             purge_all: 是否清除所有缓存
-        
+
         Returns:
             清除结果
         """
@@ -311,11 +311,11 @@ class CDNService:
     def get_cdn_stats(self, provider: str, hours: int = 24) -> Dict[str, Any]:
         """
         获取CDN统计信息
-        
+
         Args:
             provider: CDN提供商
             hours: 统计最近多少小时
-        
+
         Returns:
             统计信息
         """
@@ -335,7 +335,7 @@ class CDNService:
         #     params={'since': f'-{hours}hours'}
         # )
         # stats = response.json()['result']
-        # 
+        #
         # For now, return sample data
 
         stats = {
@@ -352,8 +352,8 @@ class CDNService:
                 'miss_rate': 7.5,
             },
             'top_files': [
-                {'url': '/static/css/main.css', 'hits': 50000},
-                {'url': '/static/js/app.js', 'hits': 45000},
+                {'url': '/api/v2/static/css/main.css', 'hits': 50000},
+                {'url': '/api/v2/static/js/app.js', 'hits': 45000},
                 {'url': '/images/logo.png', 'hits': 30000},
             ],
             'status_codes': {
@@ -372,11 +372,11 @@ class CDNService:
     def generate_integration_code(self, provider: str, framework: str = 'html') -> str:
         """
         生成集成代码
-        
+
         Args:
             provider: CDN提供商
             framework: 框架类型 (html, react, vue, django, etc.)
-        
+
         Returns:
             集成代码示例
         """
@@ -392,10 +392,10 @@ class CDNService:
 <!-- Replace local resource URLs with CDN URLs -->
 
 <!-- CSS -->
-<link rel="stylesheet" href="{cdn_url}/static/css/main.css">
+<link rel="stylesheet" href="{cdn_url}/api/v2/static/css/main.css">
 
 <!-- JavaScript -->
-<script src="{cdn_url}/static/js/app.js"></script>
+<script src="{cdn_url}/api/v2/static/js/app.js"></script>
 
 <!-- Images -->
 <img src="{cdn_url}/images/logo.png" alt="Logo">
@@ -411,9 +411,9 @@ const CDN_URL = '{cdn_url}';
 function App() {{
   return (
     <div>
-      <link rel="stylesheet" href="{{{{CDN_URL}}}}/static/css/main.css" />
+      <link rel="stylesheet" href="{{{{CDN_URL}}}}/api/v2/static/css/main.css" />
       <img src="{{{{CDN_URL}}}}/images/logo.png" alt="Logo" />
-      <script src="{{{{CDN_URL}}}}/static/js/app.js" />
+      <script src="{{{{CDN_URL}}}}/api/v2/static/js/app.js" />
     </div>
   );
 }}
@@ -424,7 +424,7 @@ function App() {{
 # Django CDN Integration for {provider.upper()}
 # In settings.py
 
-STATIC_URL = '{cdn_url}/static/'
+STATIC_URL = '{cdn_url}/api/v2/static/'
 MEDIA_URL = '{cdn_url}/media/'
 
 # Or use django-storages with CDN backend
@@ -438,10 +438,10 @@ AWS_S3_CUSTOM_DOMAIN = '{config.get("domain", "")}'
     def _sanitize_config(self, config: Dict[str, Any]) -> Dict[str, Any]:
         """
         清理配置（隐藏敏感信息）
-        
+
         Args:
             config: 原始配置
-        
+
         Returns:
             清理后的配置
         """

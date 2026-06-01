@@ -135,7 +135,7 @@ async def change_profiles_back(
         user = user_result.scalar_one_or_none()
         if not user:
             return JSONResponse(content={'error': 'User not found'}, status_code=404)
-        
+
         profile_private = data.get('profile_private', False)
         user.profile_private = bool(profile_private)
         await db.commit()
@@ -149,7 +149,7 @@ async def change_profiles_back(
         user = user_result.scalar_one_or_none()
         if not user:
             return JSONResponse(content={'error': 'User not found'}, status_code=404)
-        
+
         locale = data.get('locale', 'zh_CN')
         if not valid_language_codes(locale):
             return JSONResponse(content={'error': 'Invalid locale'}, status_code=400)
@@ -197,10 +197,10 @@ async def update_avatar_api(
 ):
     """
     更新用户头像API
-    
+
     Args:
         file: 上传的头像文件（JPG、PNG、WEBP格式，最大5MB）
-        
+
     Returns:
         JSON响应，包含成功状态和头像URL
     """
@@ -211,7 +211,7 @@ async def update_avatar_api(
         print(f"[Avatar Upload] File name: {file.filename}")
         print(f"[Avatar Upload] Content type: {file.content_type}")
         print(f"[Avatar Upload] File size attr: {file.size if hasattr(file, 'size') else 'unknown'}")
-        
+
         # 验证文件类型
         allowed_types = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg']
         if file.content_type not in allowed_types:
@@ -242,7 +242,7 @@ async def update_avatar_api(
             await db.close()
 
         # 构建头像 URL
-        avatar_url = f"/static/avatar/{result}.webp"
+        avatar_url = f"/api/v2/static/avatar/{result}.webp"
         print(f"[Avatar Upload] Success! Avatar URL: {avatar_url}")
         print(f"[Avatar Upload] === END ===")
         return JSONResponse(content={"success": True, "avatar_url": avatar_url})

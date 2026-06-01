@@ -14,7 +14,7 @@ from shared.models.site import Site
 class MultiSiteMiddleware(BaseHTTPMiddleware):
     """
     多站点中间件
-    
+
     功能：
     1. 根据请求域名匹配站点
     2. 根据请求路径前缀匹配站点（子目录模式）
@@ -24,7 +24,7 @@ class MultiSiteMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         # 跳过静态文件和 API 文档
         path = request.url.path
-        if path.startswith('/static/') or path in ['/docs', '/redoc', '/openapi.json']:
+        if path.startswith('/api/v2/static/') or path in ['/api/v2/docs', '/api/v2/redoc', '/api/v2/openapi.json']:
             return await call_next(request)
 
         # 获取数据库会话
@@ -44,7 +44,7 @@ class MultiSiteMiddleware(BaseHTTPMiddleware):
     async def _resolve_site(self, request: Request, db: AsyncSession) -> Site:
         """
         解析当前请求对应的站点
-        
+
         优先级：
         1. 子域名匹配 (site1.example.com)
         2. 完整域名匹配 (example.com)
@@ -125,7 +125,7 @@ class MultiSiteMiddleware(BaseHTTPMiddleware):
 def get_current_site(request: Request) -> Site:
     """
     获取当前请求对应的站点
-    
+
     Usage:
         from src.middleware.multisite_middleware import get_current_site
         current_site = get_current_site(request)

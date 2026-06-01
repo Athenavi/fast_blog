@@ -3,12 +3,11 @@
 对所有内部 API 调用实施默认的身份验证和最小权限原则
 """
 from fastapi import Request, HTTPException, Depends
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from typing import Optional
+from fastapi.security import HTTPBearer
 
-from src.auth.auth_deps import jwt_required_dependency as jwt_required
 from shared.models.user import User
 from shared.services.security.rbac_service import rbac_service
+from src.auth.auth_deps import jwt_required_dependency as jwt_required
 
 security = HTTPBearer(auto_error=False)
 
@@ -18,7 +17,7 @@ async def zero_trust_middleware(request: Request, call_next):
     零信任中间件：拦截所有请求，强制进行身份验证和权限检查
     """
     # 排除公开路径（如登录、注册、静态资源）
-    public_paths = ["/api/v1/auth/login", "/api/v1/auth/register", "/static", "/media"]
+    public_paths = ["/api/v1/auth/login", "/api/v1/auth/register", "/api/v2/static", "/media"]
     if any(request.url.path.startswith(path) for path in public_paths):
         return await call_next(request)
 

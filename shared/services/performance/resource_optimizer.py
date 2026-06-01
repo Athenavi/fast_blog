@@ -14,14 +14,14 @@ from typing import Dict, List, Optional
 class ResourceOptimizer:
     """
     资源优化服务
-    
+
     提供静态资源的压缩、优化和版本化管理
     """
 
     def __init__(self, source_dir: str = "static", output_dir: str = "static/optimized"):
         """
         初始化资源优化器
-        
+
         Args:
             source_dir: 源文件目录
             output_dir: 优化后输出目录
@@ -62,10 +62,10 @@ class ResourceOptimizer:
     def generate_version_hash(self, file_path: Path) -> str:
         """
         生成文件版本哈希
-        
+
         Args:
             file_path: 文件路径
-        
+
         Returns:
             版本哈希字符串
         """
@@ -86,10 +86,10 @@ class ResourceOptimizer:
     def get_versioned_url(self, original_url: str) -> str:
         """
         获取带版本号的URL
-        
+
         Args:
             original_url: 原始URL
-        
+
         Returns:
             带版本号的URL
         """
@@ -111,11 +111,11 @@ class ResourceOptimizer:
     def optimize_css(self, css_content: str, minify: bool = True) -> str:
         """
         优化CSS内容
-        
+
         Args:
             css_content: CSS内容
             minify: 是否压缩
-        
+
         Returns:
             优化后的CSS
         """
@@ -143,11 +143,11 @@ class ResourceOptimizer:
     def optimize_js(self, js_content: str, minify: bool = True) -> str:
         """
         优化JavaScript内容
-        
+
         Args:
             js_content: JavaScript内容
             minify: 是否压缩
-        
+
         Returns:
             优化后的JavaScript
         """
@@ -174,12 +174,12 @@ class ResourceOptimizer:
                        max_width: Optional[int] = None) -> Path:
         """
         优化图片
-        
+
         Args:
             image_path: 图片路径
             quality: 压缩质量 (1-100)
             max_width: 最大宽度（可选）
-        
+
         Returns:
             优化后的图片路径
         """
@@ -220,11 +220,11 @@ class ResourceOptimizer:
     def process_css_file(self, css_file: Path, minify: bool = True) -> Path:
         """
         处理CSS文件
-        
+
         Args:
             css_file: CSS文件路径
             minify: 是否压缩
-        
+
         Returns:
             优化后的文件路径
         """
@@ -255,11 +255,11 @@ class ResourceOptimizer:
     def process_js_file(self, js_file: Path, minify: bool = True) -> Path:
         """
         处理JavaScript文件
-        
+
         Args:
             js_file: JS文件路径
             minify: 是否压缩
-        
+
         Returns:
             优化后的文件路径
         """
@@ -291,12 +291,12 @@ class ResourceOptimizer:
                        minify: bool = True, image_quality: int = 85) -> Dict[str, int]:
         """
         批量优化资源
-        
+
         Args:
             file_types: 要优化的文件类型列表
             minify: 是否压缩文本文件
             image_quality: 图片压缩质量
-        
+
         Returns:
             优化统计信息
         """
@@ -335,7 +335,7 @@ class ResourceOptimizer:
     def generate_resource_manifest(self) -> Dict:
         """
         生成资源清单
-        
+
         Returns:
             资源清单字典
         """
@@ -354,7 +354,7 @@ class ResourceOptimizer:
                 manifest['resources'][relative_path] = {
                     'size': file_size,
                     'version': self.version_map.get(relative_path),
-                    'url': f"/static/optimized/{relative_path}",
+                    'url': f"/api/v2/static/optimized/{relative_path}",
                 }
 
         # 保存清单
