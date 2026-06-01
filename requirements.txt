@@ -69,7 +69,7 @@ mutagen>=1.47.0,<2.0.0
 psutil>=5.9.0,<6.0.0
 
 # Error Tracking
-sentry-sdk[fastapi]>=1.40.0,<2.0.0
+sentry-sdk[fastapi]>=2.61.1,<3.0.0
 
 # Search Engine
 meilisearch-python-sdk>=4.1.0,<8.0.0
