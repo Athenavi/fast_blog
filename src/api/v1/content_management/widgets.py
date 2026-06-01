@@ -17,6 +17,52 @@ from src.extensions import get_async_db_session as get_async_db
 router = APIRouter(tags=["widgets"])
 
 
+@router.get("/")
+async def list_all_widgets(
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
+    area: Optional[str] = Query(None),
+    current_user=Depends(admin_required_api),
+    db: AsyncSession = Depends(get_async_db)
+):
+    """获取所有小部件实例列表"""
+    try:
+        from shared.models.widget_instance import WidgetInstance
+        from sqlalchemy import select, func
+
+        query = select(WidgetInstance)
+        count_query = select(func.count()).select_from(WidgetInstance)
+
+        if area:
+            query = query.where(WidgetInstance.area == area)
+            count_query = count_query.where(WidgetInstance.area == area)
+
+        # 总数
+        total_result = await db.execute(count_query)
+        total = total_result.scalar() or 0
+
+        # 分页查询
+        offset = (page - 1) * per_page
+        query = query.order_by(WidgetInstance.area, WidgetInstance.order_index).offset(offset).limit(per_page)
+        result = await db.execute(query)
+        widgets = [w.to_dict() for w in result.scalars().all()]
+
+        return ApiResponse(
+            success=True,
+            data={
+                'items': widgets,
+                'total': total,
+                'page': page,
+                'per_page': per_page,
+                'total_pages': (total + per_page - 1) // per_page
+            }
+        )
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return ApiResponse(success=False, error=f"获取小部件列表失败: {str(e)}")
+
+
 @router.get("/types")
 async def get_widget_types(category: Optional[str] = Query(None)):
     """获取小部件类型列表"""
@@ -51,7 +97,7 @@ async def get_area_widgets(area_id: str, db: AsyncSession = Depends(get_async_db
     try:
         from shared.models.widget_instance import WidgetInstance
         from sqlalchemy import select
-        
+
         # 从数据库查询
         stmt = (
             select(WidgetInstance)
@@ -60,10 +106,10 @@ async def get_area_widgets(area_id: str, db: AsyncSession = Depends(get_async_db
         )
         result = await db.execute(stmt)
         widgets = result.scalars().all()
-        
+
         # 转换为字典列表
         widget_list = [w.to_dict() for w in widgets]
-        
+
         return ApiResponse(
             success=True,
             data={'widgets': widget_list}
@@ -166,14 +212,14 @@ async def create_widget(
     try:
         from shared.models.widget_instance import WidgetInstance
         from sqlalchemy import select, func
-        
+
         # 获取当前区域的最大 order_index
         stmt = select(func.max(WidgetInstance.order_index)).where(
             WidgetInstance.area == area
         )
         result = await db.execute(stmt)
         max_order = result.scalar() or -1
-        
+
         # 创建新实例
         new_widget = WidgetInstance(
             widget_type=widget_type,
@@ -185,11 +231,11 @@ async def create_widget(
             created_at=datetime.now(),
             updated_at=datetime.now()
         )
-        
+
         db.add(new_widget)
         await db.commit()
         await db.refresh(new_widget)
-        
+
         return ApiResponse(
             success=True,
             data=new_widget.to_dict(),
@@ -213,23 +259,23 @@ async def update_widget(
     try:
         from shared.models.widget_instance import WidgetInstance
         from sqlalchemy import select
-        
+
         stmt = select(WidgetInstance).where(WidgetInstance.id == widget_id)
         result = await db.execute(stmt)
         widget = result.scalar_one_or_none()
-        
+
         if not widget:
             return ApiResponse(success=False, error="Widget 不存在")
-        
+
         if title is not None:
             widget.title = title
         if config is not None:
             widget.config = str(config)
-        
+
         widget.updated_at = datetime.now()
         await db.commit()
         await db.refresh(widget)
-        
+
         return ApiResponse(
             success=True,
             data=widget.to_dict(),
@@ -252,18 +298,18 @@ async def toggle_widget(
     try:
         from shared.models.widget_instance import WidgetInstance
         from sqlalchemy import select
-        
+
         stmt = select(WidgetInstance).where(WidgetInstance.id == widget_id)
         result = await db.execute(stmt)
         widget = result.scalar_one_or_none()
-        
+
         if not widget:
             return ApiResponse(success=False, error="Widget 不存在")
-        
+
         widget.is_active = is_active
         widget.updated_at = datetime.now()
         await db.commit()
-        
+
         return ApiResponse(
             success=True,
             message=f"Widget 已{'启用' if is_active else '禁用'}"
@@ -285,18 +331,18 @@ async def reorder_single_widget(
     try:
         from shared.models.widget_instance import WidgetInstance
         from sqlalchemy import select
-        
+
         stmt = select(WidgetInstance).where(WidgetInstance.id == widget_id)
         result = await db.execute(stmt)
         widget = result.scalar_one_or_none()
-        
+
         if not widget:
             return ApiResponse(success=False, error="Widget 不存在")
-        
+
         old_order = widget.order_index
         widget.order_index = order_index
         widget.updated_at = datetime.now()
-        
+
         # 如果有其他 Widget 在同一位置，调整它们的顺序
         stmt = select(WidgetInstance).where(
             WidgetInstance.area == widget.area,
@@ -304,7 +350,7 @@ async def reorder_single_widget(
         )
         result = await db.execute(stmt)
         other_widgets = result.scalars().all()
-        
+
         for other_widget in other_widgets:
             if old_order < order_index:
                 # 向下移动，中间的 Widget 上移
@@ -314,9 +360,9 @@ async def reorder_single_widget(
                 # 向上移动，中间的 Widget 下移
                 if order_index <= other_widget.order_index < old_order:
                     other_widget.order_index += 1
-        
+
         await db.commit()
-        
+
         return ApiResponse(
             success=True,
             message="排序更新成功"
@@ -337,25 +383,25 @@ async def batch_reorder_widgets(
     try:
         from shared.models.widget_instance import WidgetInstance
         from sqlalchemy import select
-        
+
         # 批量更新所有 widget 的 order_index
         for update_data in updates:
             widget_id = update_data.get('id')
             new_order = update_data.get('order_index')
-            
+
             if widget_id is None or new_order is None:
                 continue
-            
+
             stmt = select(WidgetInstance).where(WidgetInstance.id == widget_id)
             result = await db.execute(stmt)
             widget = result.scalar_one_or_none()
-            
+
             if widget:
                 widget.order_index = new_order
                 widget.updated_at = datetime.now()
-        
+
         await db.commit()
-        
+
         return ApiResponse(
             success=True,
             message="批量排序更新成功"
@@ -373,15 +419,15 @@ async def render_widget(widget_id: int, db: AsyncSession = Depends(get_async_db)
         from shared.models.widget_instance import WidgetInstance
         from sqlalchemy import select
         import json
-        
+
         # 从数据库获取 widget 实例
         stmt = select(WidgetInstance).where(WidgetInstance.id == widget_id)
         result = await db.execute(stmt)
         widget = result.scalar_one_or_none()
-        
+
         if not widget:
             return ApiResponse(success=False, error="Widget 不存在")
-        
+
         # 解析配置
         config = {}
         if widget.config:
@@ -389,7 +435,7 @@ async def render_widget(widget_id: int, db: AsyncSession = Depends(get_async_db)
                 config = json.loads(widget.config) if isinstance(widget.config, str) else widget.config
             except:
                 config = {}
-        
+
         # 构建 widget 数据
         widget_data = {
             'id': str(widget.id),
@@ -397,10 +443,10 @@ async def render_widget(widget_id: int, db: AsyncSession = Depends(get_async_db)
             'title': widget.title,
             'config': config
         }
-        
+
         # 渲染 HTML
         html = widget_service.render_widget(widget_data)
-        
+
         return ApiResponse(
             success=True,
             data={'html': html}
@@ -428,7 +474,7 @@ async def get_recent_posts_data(
             show_thumbnail=show_thumbnail,
             show_date=show_date
         )
-        
+
         return ApiResponse(
             success=True,
             data={'posts': posts}
@@ -452,7 +498,7 @@ async def get_recent_comments_data(
             count=count,
             show_avatar=show_avatar
         )
-        
+
         return ApiResponse(
             success=True,
             data={'comments': comments}
@@ -476,7 +522,7 @@ async def get_tags_cloud_data(
             count=count,
             display_type=display_type
         )
-        
+
         return ApiResponse(
             success=True,
             data={'tags': tags}
@@ -500,7 +546,7 @@ async def get_categories_data(
             show_count=show_count,
             hierarchical=hierarchical
         )
-        
+
         return ApiResponse(
             success=True,
             data={'categories': categories}
@@ -524,7 +570,7 @@ async def get_archives_data(
             archive_type=archive_type,
             show_count=show_count
         )
-        
+
         return ApiResponse(
             success=True,
             data={'archives': archives}
@@ -548,7 +594,7 @@ async def get_popular_posts_data(
             count=count,
             period=period
         )
-        
+
         return ApiResponse(
             success=True,
             data={'posts': posts}
@@ -568,18 +614,18 @@ async def get_menu_data(
     try:
         from shared.models.menu import Menu, MenuItem
         from sqlalchemy import select
-        
+
         # 查询菜单
         menu_stmt = select(Menu).where(Menu.slug == slug)
         menu_result = await db.execute(menu_stmt)
         menu = menu_result.scalar_one_or_none()
-        
+
         if not menu:
             return ApiResponse(
                 success=False,
                 error=f"菜单不存在: {slug}"
             )
-        
+
         # 查询菜单项（包括层级关系）
         items_stmt = (
             select(MenuItem)
@@ -589,7 +635,7 @@ async def get_menu_data(
         )
         items_result = await db.execute(items_stmt)
         menu_items = items_result.scalars().all()
-        
+
         # 构建树形结构
         def build_tree(items, parent_id=None):
             tree = []
@@ -606,9 +652,9 @@ async def get_menu_data(
                         node['children'] = children
                     tree.append(node)
             return tree
-        
+
         items_data = build_tree(menu_items)
-        
+
         return ApiResponse(
             success=True,
             data={'menu': menu.name, 'items': items_data}

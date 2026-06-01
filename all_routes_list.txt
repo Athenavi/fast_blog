@@ -7,9 +7,9 @@
 模块: fastapi.applications
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 [S]     1. /api/v2/docs                                                                     [GET,HEAD  ] -> swagger_ui_html
-[S]     2. /api/v2/openapi.json                                                             [GET,HEAD  ] -> openapi
-[S]     3. /api/v2/redoc                                                                    [GET,HEAD  ] -> redoc_html
-[S]     4. /docs/oauth2-redirect                                                            [GET,HEAD  ] -> swagger_ui_redirect
+[S]     2. /api/v2/docs/oauth2-redirect                                                     [GET,HEAD  ] -> swagger_ui_redirect
+[S]     3. /api/v2/openapi.json                                                             [GET,HEAD  ] -> openapi
+[S]     4. /api/v2/redoc                                                                    [GET,HEAD  ] -> redoc_html
 
 ────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────
 模块: src.api.v1.accessibility.accessibility_audit

@@ -418,7 +418,10 @@ export default function LoginPage() {
                     </button>
 
                     <div className="flex items-center justify-between pt-2">
-                      <button type="button" onClick={() => setBackup(!backup)}
+                      <button type="button" onClick={() => {
+                        setBackup(!backup);
+                        twoFAForm.reset({code: ''});
+                      }}
                               className="text-sm text-indigo-600 hover:text-indigo-700 dark:text-indigo-400 font-medium">
                         {backup ? t('login.twoFactorUseCode') : t('login.twoFactorUseBackup')}
                       </button>

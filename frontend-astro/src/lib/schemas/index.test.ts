@@ -1,15 +1,15 @@
-import {describe, it, expect} from 'vitest';
+import {describe, expect, it} from 'vitest';
 import {
-  loginSchema,
-  twoFactorSchema,
-  registerSchema,
   articleSchema,
-  commentSchema,
-  commentFormSchema,
-  userProfileSchema,
   changePasswordSchema,
+  commentFormSchema,
+  commentSchema,
+  loginSchema,
+  registerSchema,
   searchSchema,
   subscribeSchema,
+  twoFactorSchema,
+  userProfileSchema,
 } from './index';
 
 // ─── loginSchema ───
@@ -53,14 +53,20 @@ describe('loginSchema', () => {
 
 // ─── twoFactorSchema ───
 describe('twoFactorSchema', () => {
-  it('should accept valid 6-digit code', () => {
+  it('should accept valid 6-digit TOTP code', () => {
     const result = twoFactorSchema.safeParse({code: '123456'});
     expect(result.success).toBe(true);
   });
 
-  it('should reject code that is not 6 digits', () => {
+  it('should accept valid 8-digit backup code', () => {
+    const result = twoFactorSchema.safeParse({code: '12345678'});
+    expect(result.success).toBe(true);
+  });
+
+  it('should reject code that is not 6 or 8 digits', () => {
     expect(twoFactorSchema.safeParse({code: '12345'}).success).toBe(false);
     expect(twoFactorSchema.safeParse({code: '1234567'}).success).toBe(false);
+    expect(twoFactorSchema.safeParse({code: '123456789'}).success).toBe(false);
   });
 
   it('should reject non-numeric code', () => {

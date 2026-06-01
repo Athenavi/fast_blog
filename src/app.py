@@ -619,6 +619,7 @@ def create_app(config=None):
         docs_url="/api/v2/docs",
         redoc_url="/api/v2/redoc",
         openapi_url="/api/v2/openapi.json",
+        swagger_ui_oauth2_redirect_url="/api/v2/docs/oauth2-redirect",
     )
 
     # 注册中间件

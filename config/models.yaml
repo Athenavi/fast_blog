@@ -370,6 +370,7 @@ models:
       - get_display_name
     defs_target: mydef.py
   UserCreate:
+    type: schema
     description: 用户创建请求模型
     properties:
       username:
@@ -396,6 +397,7 @@ models:
       - password
       - password_confirm
   UserUpdate:
+    type: schema
     description: 用户更新请求模型
     properties:
       username:
@@ -424,6 +426,7 @@ models:
         default: false
         description: 是否私密资料
   ProfileUpdateRequest:
+    type: schema
     description: 用户资料更新请求
     properties:
       username:
@@ -448,6 +451,7 @@ models:
         nullable: true
         description: 语言设置
   PasswordChange:
+    type: schema
     description: 密码修改请求模型
     properties:
       old_password:
@@ -656,6 +660,7 @@ models:
         primaryjoin: Article.id == ArticleSEO.article_id
         uselist: false
   ArticleList:
+    type: schema
     description: 文章列表模型
     properties:
       id:
@@ -722,6 +727,7 @@ models:
         format: date-time
         description: 更新时间
   AuthorSimple:
+    type: schema
     description: 作者简化信息
     properties:
       id:
@@ -731,6 +737,7 @@ models:
         type: string
         description: 用户名
   ArticleCreateUpdate:
+    type: schema
     description: 文章创建/更新请求模型
     properties:
       title:
@@ -875,6 +882,7 @@ models:
           - is_visible
         comment: 可见性索引
   CategoryCreateUpdate:
+    type: schema
     description: 分类创建/更新请求模型
     properties:
       name:
@@ -1258,6 +1266,8 @@ models:
     table: system_settings
   AdminSettings:
     description: 管理员设置模型
+    status: active
+    frontend_page: /admin/settings
     properties:
       id:
         type: bigint
@@ -1870,7 +1880,7 @@ models:
   PrivateMessage:
     description: 站内私信模型
     status: active
-    frontend_page: null
+    frontend_page: /admin/chat-groups
     properties:
       id:
         type: bigint
@@ -2093,7 +2103,7 @@ models:
   PageView:
     description: 页面浏览模型
     status: active
-    frontend_page: null
+    frontend_page: /admin/analytics
     properties:
       id:
         type: bigint
@@ -2166,7 +2176,7 @@ models:
   UserActivity:
     description: 用户活动模型
     status: active
-    frontend_page: null
+    frontend_page: /admin/analytics
     properties:
       id:
         type: bigint
@@ -2782,7 +2792,7 @@ models:
   FormSubmission:
     description: 表单提交记录模型
     status: active
-    frontend_page: null
+    frontend_page: /admin/forms
     properties:
       id:
         type: bigint
@@ -2831,7 +2841,7 @@ models:
   WidgetInstance:
     description: Widget实例模型（持久化存储）
     status: active
-    frontend_page: null
+    frontend_page: /admin/widgets
     properties:
       id:
         type: bigint
@@ -3570,7 +3580,7 @@ models:
   Cart:
     description: 购物车模型
     status: active
-    frontend_page: null
+    frontend_page: /admin/ecommerce
     properties:
       id:
         type: bigint
@@ -3609,7 +3619,7 @@ models:
   CartItem:
     description: 购物车项模型
     status: active
-    frontend_page: null
+    frontend_page: /admin/ecommerce
     properties:
       id:
         type: bigint

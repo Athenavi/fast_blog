@@ -16,7 +16,10 @@ export const loginSchema = z.object({
 export type LoginFormData = z.infer<typeof loginSchema>;
 
 export const twoFactorSchema = z.object({
-  code: z.string().min(6, '验证码为 6 位').max(6, '验证码为 6 位').regex(/^\d{6}$/, '验证码必须为 6 位数字'),
+  code: z.string().regex(/^\d+$/, '验证码必须为数字').refine(
+    v => v.length === 6 || v.length === 8,
+    '验证码为 6 位数字（或备用码为 8 位数字）'
+  ),
 });
 export type TwoFactorFormData = z.infer<typeof twoFactorSchema>;
 
