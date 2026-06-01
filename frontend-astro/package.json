@@ -59,7 +59,7 @@
     "@tiptap/extension-underline": "^3.22.5",
     "@tiptap/pm": "^3.22.5",
     "@tiptap/react": "^3.22.5",
-    "@tiptap/starter-kit": "^3.22.5",
+    "@tiptap/starter-kit": "^3.24.0",
     "@tiptap/y-tiptap": "^3.0.3",
     "@vite-pwa/astro": "^0.0.1",
     "astro": "^5.7.10",
