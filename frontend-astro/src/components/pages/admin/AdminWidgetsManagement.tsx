@@ -7,7 +7,7 @@ import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {apiClient} from '@/lib/api/base-client';
 import {useToast} from '@/components/ui/toast-provider';
-import {useConfirm} from '@/components/ui/use-confirm';
+import {useConfirm} from '@/components/ui/confirm-provider';
 import {GripVertical, Layers, Plus, RefreshCw, Settings, ToggleLeft, ToggleRight, Trash2, Widget} from 'lucide-react';
 
 interface WidgetInstance {
@@ -39,7 +39,7 @@ interface WidgetArea {
 
 function WidgetsInner() {
   const toast = useToast();
-  const {confirm} = useConfirm();
+  const confirm = useConfirm();
   const qc = useQueryClient();
   const [page, setPage] = useState(1);
   const [areaFilter, setAreaFilter] = useState('');
