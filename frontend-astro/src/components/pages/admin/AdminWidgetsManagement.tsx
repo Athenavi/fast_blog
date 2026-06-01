@@ -8,7 +8,7 @@ import {QueryProvider} from '@/components/QueryProvider';
 import {apiClient} from '@/lib/api/base-client';
 import {useToast} from '@/components/ui/toast-provider';
 import {useConfirm} from '@/components/ui/confirm-provider';
-import {GripVertical, Layers, Plus, RefreshCw, Settings, ToggleLeft, ToggleRight, Trash2, Widget} from 'lucide-react';
+import {Blocks, GripVertical, Layers, Plus, RefreshCw, Settings, ToggleLeft, ToggleRight, Trash2} from 'lucide-react';
 
 interface WidgetInstance {
   id: number;
@@ -168,7 +168,7 @@ function WidgetsInner() {
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
           {[
-            {label: '总小部件', value: total, icon: <Widget className="w-5 h-5"/>, color: 'blue'},
+            {label: '总小部件', value: total, icon: <Blocks className="w-5 h-5"/>, color: 'blue'},
             {label: '已启用', value: activeCount, icon: <ToggleRight className="w-5 h-5"/>, color: 'green'},
             {label: '已禁用', value: inactiveCount, icon: <ToggleLeft className="w-5 h-5"/>, color: 'gray'},
             {label: '区域数', value: areas.length, icon: <Layers className="w-5 h-5"/>, color: 'purple'},
@@ -217,7 +217,7 @@ function WidgetsInner() {
           </div>
         ) : !items.length ? (
           <div className="text-center py-16 text-gray-400">
-            <Widget className="w-12 h-12 mx-auto mb-3 opacity-40"/>
+            <Blocks className="w-12 h-12 mx-auto mb-3 opacity-40"/>
             <p>暂无小部件</p>
           </div>
         ) : (
