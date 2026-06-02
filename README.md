@@ -29,6 +29,7 @@
 
 <div align="center">
   <em>Modern, fast, and beautiful — a blog platform designed for the modern web.</em>
+  <img src="docs/assets/media.png" alt="FastBlog media page Preview" width="85%" height="auto" onerror="this.style.display='none'">
 </div>
 
 ---

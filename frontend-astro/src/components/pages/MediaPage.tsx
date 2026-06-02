@@ -255,16 +255,27 @@ const MediaGrid: React.FC<{files: MediaFile[]; loading: boolean; viewMode: 'grid
               <img src={getFullMediaUrl(f.url)} alt={f.original_filename} className="w-full h-full object-cover cursor-pointer" onClick={() => onPreview(f)} loading="lazy" decoding="async"/>
           ) : isVideo && f.url ? (
             <div
-              className="w-full h-full relative cursor-pointer bg-gray-900 flex items-center justify-center overflow-hidden"
+              className="w-full h-full relative cursor-pointer bg-gray-900 overflow-hidden"
               onClick={() => onPreview(f)}>
-              <video src={getFullMediaUrl(f.url)} className="w-full h-full object-cover"
-                     style={{objectPosition: 'center'}} preload="metadata" muted playsInline/>
-                    <div className="absolute inset-0 bg-black/30 flex items-center justify-center group-hover:bg-black/40 transition-colors">
-                      <div className="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
-                        <div className="w-0 h-0 border-t-[8px] border-t-transparent border-l-[14px] border-l-black border-b-[8px] border-b-transparent ml-1"/>
-                      </div>
-                    </div>
-                  </div>
+              <video src={getFullMediaUrl(f.url)} preload="metadata" muted playsInline
+                     style={{
+                       position: 'absolute',
+                       top: 0,
+                       left: 0,
+                       width: '100%',
+                       height: '100%',
+                       objectFit: 'cover',
+                       objectPosition: 'center'
+                     }}/>
+              <div
+                className="absolute inset-0 bg-black/30 flex items-center justify-center group-hover:bg-black/40 transition-colors">
+                <div
+                  className="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
+                  <div
+                    className="w-0 h-0 border-t-[8px] border-t-transparent border-l-[14px] border-l-black border-b-[8px] border-b-transparent ml-1"/>
+                </div>
+              </div>
+            </div>
           ) : isPDF ? (
                   <div className="w-full h-full flex flex-col items-center justify-center cursor-pointer bg-red-50 dark:bg-red-900/10" onClick={() => onPreview(f)}>
                     <FileText className="w-12 h-12 text-red-500 mb-2"/>
