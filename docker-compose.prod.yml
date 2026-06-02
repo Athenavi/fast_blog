@@ -10,6 +10,7 @@ services:
       context: .
       dockerfile: Dockerfile
       target: production
+      network: host
     container_name: fastblog-backend
     restart: always
     ports:
@@ -39,14 +40,7 @@ services:
       - fastblog-plugins-data:/app/plugins_data
       - fastblog-storage:/app/storage
       - fastblog-config:/app/config
-      # 临时挂载：修复缺失模块/导入错误（待重新构建镜像即可移除）
-      - ./src/setting.py:/app/src/setting.py:ro
-      - ./shared/utils/auto_update_checker.py:/app/shared/utils/auto_update_checker.py:ro
-      - ./shared/utils/translation_api_clients.py:/app/shared/utils/translation_api_clients.py:ro
-      - ./shared/services/translation/localization_service.py:/app/shared/services/translation/localization_service.py:ro
-      - ./src/api/v1/system/installation.py:/app/src/api/v1/system/installation.py:ro
-      - ./shared/services/media/image_tool/image_version_manager.py:/app/shared/services/media/image_tool/image_version_manager.py:ro
-      - ./shared/services/install/install_manager/installation_wizard.py:/app/shared/services/install/install_manager/installation_wizard.py:ro
+      - fastblog-static-generated:/app/static_generated
     depends_on:
       postgres:
         condition: service_healthy
@@ -75,8 +69,10 @@ services:
         max-file: "3"
 
   # ============================================================================
-  # Frontend (Astro - Static Files served by Nginx)
+  # Frontend (Astro static files + Nginx reverse proxy — unified)
   # ============================================================================
+  # This container serves both the frontend static files AND reverse-proxies
+  # API/media requests to the backend, replacing the standalone nginx container.
   frontend:
     build:
       context: ./frontend-astro
@@ -84,14 +80,19 @@ services:
     container_name: fastblog-frontend
     restart: always
     ports:
-      - "127.0.0.1:4321:80"
+      - "80:80"
+      - "443:443"
+    volumes:
+      - fastblog-logs:/var/log/nginx
+    depends_on:
+      - backend
     networks:
       - fastblog-network
     deploy:
       resources:
         limits:
-          cpus: '0.25'
-          memory: 64M
+          cpus: '0.5'
+          memory: 128M
     logging:
       driver: "json-file"
       options:
@@ -161,31 +162,6 @@ services:
       timeout: 5s
       retries: 5
 
-  # ============================================================================
-  # Nginx Reverse Proxy
-  # ============================================================================
-  nginx:
-    image: nginx:alpine
-    container_name: fastblog-nginx
-    restart: always
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d:ro
-      - ./nginx/ssl:/etc/nginx/ssl:ro
-      - fastblog-logs:/var/log/nginx
-    depends_on:
-      - backend
-      - frontend
-    networks:
-      - fastblog-network
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 256M
-
 # ============================================================================
 # Volumes (named volumes for persistence)
 # ============================================================================
@@ -207,6 +183,8 @@ volumes:
   fastblog-storage:
     driver: local
   fastblog-plugins-data:
+    driver: local
+  fastblog-static-generated:
     driver: local
 
 # ============================================================================

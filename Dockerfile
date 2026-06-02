@@ -1,27 +1,47 @@
 # ============================================================================
-# FastBlog Multi-Stage Dockerfile
+# FastBlog Multi-Stage Dockerfile (Optimized for size)
+# ============================================================================
+# Current: ~1.17GB → Target: ~700MB
+# Key optimizations:
+#   1. Static ffmpeg binary replaces apt ffmpeg (saves ~270MB of LLVM/Mesa deps)
+#   2. pip --no-compile avoids .pyc files
+#   3. Clean pip/setuptools/tests/docs from site-packages after install
 # ============================================================================
 
-# Stage 1: Build Python dependencies
-FROM python:3.11-slim AS builder
+# Stage 1: Build Python dependencies + download static ffmpeg
+FROM python:3.14-slim AS builder
 
 WORKDIR /app
 
-# Install build dependencies
+# Install build dependencies (no curl needed — ffmpeg is pre-downloaded)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     g++ \
     libpq-dev \
+    xz-utils \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy and install Python dependencies
+# Install static ffmpeg from pre-downloaded tarball (John Van Sickle builds)
+# This replaces `apt install ffmpeg` which pulls in 233 packages (~350MB) including
+# LLVM (126MB), Mesa GPU (41MB), libz3 (27MB) — none needed in a headless container.
+# Pre-downloaded to tools/ffmpeg/ because Docker build network can't reach GitHub.
+# To update: download from https://johnvansickle.com/ffmpeg/
+COPY tools/ffmpeg/ffmpeg-release-amd64-static.tar.xz /tmp/ffmpeg.tar.xz
+RUN tar xJf /tmp/ffmpeg.tar.xz -C /tmp/ && \
+    mv /tmp/ffmpeg-*-amd64-static/ffmpeg /usr/local/bin/ffmpeg && \
+    mv /tmp/ffmpeg-*-amd64-static/ffprobe /usr/local/bin/ffprobe && \
+    chmod +x /usr/local/bin/ffmpeg /usr/local/bin/ffprobe && \
+    rm -rf /tmp/ffmpeg* && \
+    ffmpeg -version | head -1
+
+# Copy and install Python dependencies (--no-compile: skip .pyc, saves ~3MB)
 COPY requirements.txt .
-RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
+RUN pip install --no-cache-dir --no-compile --prefix=/install -r requirements.txt
 
 # ============================================================================
-# Stage 2: Production image
+# Stage 2: Production image (minimal runtime)
 # ============================================================================
-FROM python:3.11-slim AS production
+FROM python:3.14-slim AS production
 
 LABEL org.opencontainers.image.title="FastBlog"
 LABEL org.opencontainers.image.description="Modern, high-performance blog platform"
@@ -30,23 +50,41 @@ LABEL org.opencontainers.image.licenses="Apache-2.0"
 
 WORKDIR /app
 
-# Install runtime dependencies (gosu for clean privilege dropping in entrypoint)
+# Install ONLY essential runtime dependencies (no ffmpeg — using static binary)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     libpq5 \
-    ffmpeg \
     tini \
     gosu \
     && rm -rf /var/lib/apt/lists/* \
     && adduser --disabled-password --gecos '' --home /app appuser
 
-# Copy Python packages from builder
+# Copy Python packages from builder, then clean up non-runtime artifacts
 COPY --from=builder /install /usr/local
 
+# Clean up: remove pip, setuptools, dist-info, tests, docs, __pycache__
+# These are build-time artifacts not needed at runtime (~40MB savings)
+RUN find /usr/local/lib/python3.14/site-packages -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null; \
+    find /usr/local/lib/python3.14/site-packages -name '*.pyc' -delete 2>/dev/null; \
+    rm -rf /usr/local/lib/python3.14/site-packages/pip \
+           /usr/local/lib/python3.14/site-packages/pip-*.dist-info \
+           /usr/local/lib/python3.14/site-packages/setuptools \
+           /usr/local/lib/python3.14/site-packages/setuptools-*.dist-info \
+           /usr/local/lib/python3.14/site-packages/_distutils_hack \
+           /usr/local/lib/python3.14/site-packages/pkg_resources \
+           /usr/local/lib/python3.14/site-packages/wheel \
+           /usr/local/lib/python3.14/site-packages/wheel-*.dist-info; \
+    find /usr/local/lib/python3.14/site-packages -type d -name 'tests' -exec rm -rf {} + 2>/dev/null; \
+    find /usr/local/lib/python3.14/site-packages -type d -name 'test' -exec rm -rf {} + 2>/dev/null; \
+    true
+
+# Copy static ffmpeg binaries from builder (replaces apt ffmpeg, ~350MB → ~80MB)
+COPY --from=builder /usr/local/bin/ffmpeg /usr/local/bin/ffmpeg
+COPY --from=builder /usr/local/bin/ffprobe /usr/local/bin/ffprobe
+
 # Fix secure-python-utils broken __init__.py (PasswordService import error)
-# The package __init__.py imports PasswordService which doesn't exist in all versions
 RUN python -c "from pathlib import Path; \
-    p = Path('/usr/local/lib/python3.11/site-packages/secure_python_utils/__init__.py'); \
+    p = Path('/usr/local/lib/python3.14/site-packages/secure_python_utils/__init__.py'); \
     p.write_text('# Patched: removed broken PasswordService import to fix startup error\n') if p.exists() else None"
 
 # Create necessary directories BEFORE copying app code (better layer caching)

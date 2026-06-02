@@ -9,6 +9,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+      network: host
     container_name: fastblog-backend
     restart: unless-stopped
     ports:
@@ -39,14 +40,6 @@ services:
       - fastblog-storage:/app/storage
       - fastblog-plugins-data:/app/plugins_data
       - fastblog-static-generated:/app/static_generated
-      # 临时挂载：修复缺失模块/导入错误（待重新构建镜像即可移除）
-      - ./src/setting.py:/app/src/setting.py:ro
-      - ./shared/utils/auto_update_checker.py:/app/shared/utils/auto_update_checker.py:ro
-      - ./shared/utils/translation_api_clients.py:/app/shared/utils/translation_api_clients.py:ro
-      - ./shared/services/translation/localization_service.py:/app/shared/services/translation/localization_service.py:ro
-      - ./src/api/v1/system/installation.py:/app/src/api/v1/system/installation.py:ro
-      - ./shared/services/media/image_tool/image_version_manager.py:/app/shared/services/media/image_tool/image_version_manager.py:ro
-      - ./shared/services/install/install_manager/installation_wizard.py:/app/shared/services/install/install_manager/installation_wizard.py:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -62,8 +55,10 @@ services:
       start_period: 30s
 
   # ============================================================================
-  # Frontend (Astro - Static Files served by Nginx)
+  # Frontend (Astro static files + Nginx reverse proxy — unified)
   # ============================================================================
+  # This container serves both the frontend static files AND reverse-proxies
+  # API/media requests to the backend, replacing the standalone nginx container.
   frontend:
     build:
       context: ./frontend-astro
@@ -72,6 +67,8 @@ services:
     restart: unless-stopped
     ports:
       - "${FRONTEND_PORT:-4321}:80"
+    depends_on:
+      - backend
     networks:
       - fastblog-network
 
@@ -117,25 +114,6 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-
-  # ============================================================================
-  # Nginx Reverse Proxy (Production)
-  # ============================================================================
-  nginx:
-    image: nginx:alpine
-    container_name: fastblog-nginx
-    restart: unless-stopped
-    ports:
-      - "${HTTP_PORT:-80}:80"
-      - "${HTTPS_PORT:-443}:443"
-    volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d:ro
-      - ./nginx/ssl:/etc/nginx/ssl:ro
-    depends_on:
-      - backend
-      - frontend
-    networks:
-      - fastblog-network
 
 # ============================================================================
 # Volumes (named volumes — Docker manages ownership, no permission issues)
