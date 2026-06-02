@@ -1,7 +1,7 @@
 // API client for frontend
 
-import { getConfig } from '@/lib/config';
-import type {ApiResponse, Pagination} from '@/lib/api/base-types';
+import {getConfig} from '@/lib/config';
+import type {ApiResponse} from '@/lib/api/base-types';
 
 // ─── Cookie helpers ──────────────────────────────
 function getCookie(name: string): string | null {
@@ -143,6 +143,7 @@ export const apiClient = {
   post: <T = any>(path: string, body?: any) => request<T>('POST', path, 'application/json', body),
   postForm: <T = any>(path: string, body?: Record<string, any>) => request<T>('POST', path, 'application/x-www-form-urlencoded', body),
   put: <T = any>(path: string, body?: any) => request<T>('PUT', path, 'application/json', body),
+  patch: <T = any>(path: string, body?: any) => request<T>('PATCH', path, 'application/json', body),
   delete: <T = any>(path: string) => request<T>('DELETE', path),
     /** 通用请求方法，支持任意 method + FormData 等 */
     request: <T = any>(path: string, opts: { method?: string; body?: any; credentials?: string } = {}) => {

@@ -1,9 +1,9 @@
 'use client';
 
-import React, {useState, lazy, Suspense} from 'react';
+import React, {lazy, Suspense, useState} from 'react';
 import {Menu} from 'lucide-react';
 import {ErrorBoundary} from '@/components/ui/ErrorBoundary';
-import {SidebarSkeleton} from './AdminSidebar';
+import {SidebarSkeleton} from './AdminSidebarSkeleton';
 
 // 懒加载侧边栏组件 — 45+ lucide 图标被分离到独立 chunk
 const DesktopSidebar = lazy(() =>

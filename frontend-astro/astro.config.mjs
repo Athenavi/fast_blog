@@ -1,10 +1,10 @@
-import { defineConfig } from 'astro/config';
+import {defineConfig} from 'astro/config';
 import react from '@astrojs/react';
 import tailwindcss from '@tailwindcss/vite';
 import sitemap from '@astrojs/sitemap';
 import AstroPWA from '@vite-pwa/astro';
 import path from 'path';
-import { fileURLToPath } from 'url';
+import {fileURLToPath} from 'url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -106,6 +106,13 @@ export default defineConfig({
                           '@tiptap/extension-color',
                           '@tiptap/extension-font-family',
                       ],
+                      'vendor-collab': [
+                          'yjs',
+                          'y-websocket',
+                          'y-prosemirror',
+                          '@tiptap/extension-collaboration',
+                          '@tiptap/extension-collaboration-cursor',
+                      ],
                   },
               },
           },
@@ -128,6 +135,12 @@ export default defineConfig({
               '@tanstack/react-query',
               'framer-motion',
               'lucide-react',
+          ],
+          exclude: [
+              '@testing-library/react',
+              '@testing-library/user-event',
+              '@testing-library/dom',
+              '@testing-library/jest-dom',
           ],
       },
   },

@@ -112,9 +112,9 @@ const Navbar: React.FC<NavbarProps> = ({title, subtitle, showBackButton = false,
           .filter((item: MenuTreeItem) => item.is_active !== false)
           .sort((a: MenuTreeItem, b: MenuTreeItem) => (a.order_index || 0) - (b.order_index || 0))
           .map((item: MenuTreeItem) => ({
-            name: item.title || item.name || '',
-            href: item.url || item.href || '#',
-            icon: getIconForMenuItem(item.title || item.name || '', item.url || item.href || ''),
+            name: item.title || '',
+            href: item.url || '#',
+            icon: getIconForMenuItem(item.title || '', item.url || ''),
           }));
         if (dynamicItems.length > 0) {
           setNavItems(dynamicItems);
