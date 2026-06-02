@@ -12,7 +12,7 @@ from typing import Dict, Any, List
 class InstallationWizardService:
     """
     安装向导服务
-    
+
     功能:
     1. 检测是否已安装
     2. 数据库配置和初始化
@@ -25,9 +25,10 @@ class InstallationWizardService:
     def __init__(self):
         self.install_lock_file = Path("install.lock")
         self.install_flag_file = Path("storage/.installation_completed")
-        # 使用绝对路径，确保 .env 文件在项目根目录
-        self.config_file = Path(__file__).parent.parent.parent.parent.parent / ".env"
-        self.config_dir = Path("config")
+        # 使用绝对路径，Docker 模式下 .env 写入 config/.env（挂载卷），开发模式回退到根目录 .env
+        _project_root = Path(__file__).parent.parent.parent.parent.parent
+        self.config_dir = _project_root / "config"
+        self.config_file = self.config_dir / ".env"
         self.ensure_directories()
 
         print(f"\n[InstallationWizard] 初始化:")
@@ -54,7 +55,7 @@ class InstallationWizardService:
     def check_prerequisites(self) -> Dict[str, Any]:
         """
         检查安装前置条件
-        
+
         Returns:
             检查结果字典
         """
@@ -100,10 +101,10 @@ class InstallationWizardService:
     def _test_postgresql_connection(self, config: Dict[str, str]) -> Dict[str, Any]:
         """
         测试 PostgreSQL 数据库连接
-        
+
         Args:
             config: 数据库配置
-            
+
         Returns:
             测试结果
         """
@@ -189,7 +190,7 @@ class InstallationWizardService:
     def configure_database(self, config: Dict[str, str]) -> Dict[str, Any]:
         """
         配置数据库连接（仅支持 PostgreSQL）
-        
+
         Args:
             config: 数据库配置字典
                 - db_type: 数据库类型 (必须为 postgresql)
@@ -198,7 +199,7 @@ class InstallationWizardService:
                 - database: 数据库名
                 - username: 用户名
                 - password: 密码
-                
+
         Returns:
             配置结果
         """
@@ -272,7 +273,7 @@ class InstallationWizardService:
     def _update_env_file(self, updates: Dict[str, str]):
         """
         更新.env文件（保持标准格式）
-        
+
         Args:
             updates: 要更新的键值对
         """
@@ -378,11 +379,11 @@ class InstallationWizardService:
     ) -> Dict[str, Any]:
         """
         导入示例数据（实际导入到数据库）
-        
+
         Args:
             import_articles: 是否导入示例文章
             import_categories: 是否导入示例分类
-            
+
         Returns:
             导入结果
         """
@@ -564,7 +565,7 @@ class InstallationWizardService:
     def is_installed(self) -> bool:
         """
         检查系统是否已安装
-        
+
         Returns:
             是否已安装
         """
@@ -573,7 +574,7 @@ class InstallationWizardService:
     def get_installation_status(self) -> Dict[str, Any]:
         """
         获取安装状态
-        
+
         Returns:
             安装状态信息
         """
@@ -599,10 +600,10 @@ class InstallationWizardService:
     ) -> Dict[str, Any]:
         """
         检查数据库连接
-        
+
         Args:
             db_url: 数据库URL
-            
+
         Returns:
             检查结果
         """
@@ -619,12 +620,12 @@ class InstallationWizardService:
     ) -> Dict[str, Any]:
         """
         创建管理员账号（实际创建到数据库）
-        
+
         Args:
             username: 用户名
             email: 邮箱
             password: 密码
-            
+
         Returns:
             创建结果
         """
@@ -724,7 +725,7 @@ class InstallationWizardService:
 
             # 运行异步函数（处理可能在异步上下文中调用的情况）
             import sys
-            
+
             try:
                 loop = asyncio.get_running_loop()
                 # 已经有运行的事件循环（例如在 FastAPI 请求处理中）
@@ -761,14 +762,14 @@ class InstallationWizardService:
     ) -> Dict[str, Any]:
         """
         配置站点基本信息
-        
+
         Args:
             site_name: 站点名称
             site_url: 站点URL
             admin_email: 管理员邮箱
             site_description: 站点描述
             language: 语言 (zh_CN/en_US)
-            
+
         Returns:
             配置结果
         """
@@ -810,13 +811,13 @@ class InstallationWizardService:
     def confirm_database_and_migrate(self) -> Dict[str, Any]:
         """
         确认数据库配置并执行数据库初始化
-        
+
         流程：
         1. 重新加载配置并初始化数据库管理器
         2. 测试数据库连接
         3. 检查是否有迁移脚本，如果没有则生成初始迁移
         4. 执行 Alembic 迁移
-            
+
         Returns:
             确认和迁移结果
         """
@@ -989,7 +990,7 @@ class InstallationWizardService:
                 text=True,
                 timeout=300
             )
-            
+
             # 调试输出
             print(f"\n[DEBUG] Alembic upgrade 返回码: {result.returncode}")
             if result.stdout:
@@ -1040,13 +1041,13 @@ class InstallationWizardService:
     def complete_installation(self, install_info: Dict[str, Any]) -> Dict[str, Any]:
         """
         完成安装（包括导入示例数据）
-        
+
         Args:
             install_info: 安装信息
                 - import_sample_data: 是否导入示例数据
                 - import_articles: 是否导入文章
                 - import_categories: 是否导入分类
-            
+
         Returns:
             完成结果
         """
@@ -1093,7 +1094,7 @@ class InstallationWizardService:
     def reset_installation(self) -> Dict[str, Any]:
         """
         重置安装状态（用于重新安装）
-        
+
         Returns:
             重置结果
         """
@@ -1114,7 +1115,7 @@ class InstallationWizardService:
     def get_installation_steps(self) -> List[Dict[str, str]]:
         """
         获取安装步骤列表
-        
+
         Returns:
             安装步骤
         """

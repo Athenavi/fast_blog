@@ -30,9 +30,7 @@ services:
       - JWT_SECRET_KEY=${JWT_SECRET_KEY:-}
       - ENVIRONMENT=production
       - DEBUG=False
-    # 临时以 root 运行：appuser 无法在 root 拥有的 /app 下创建新目录
-    # 待网络恢复后重新构建镜像（Dockerfile 已修复 entrypoint），即可移除此行
-    user: "0:0"
+    # 不设置 user — entrypoint 默认以 root 运行，初始化后通过 gosu 降权到 appuser
     volumes:
       - fastblog-media:/app/media
       - fastblog-uploads:/app/uploads
@@ -40,13 +38,15 @@ services:
       - fastblog-backups:/app/backups
       - fastblog-plugins-data:/app/plugins_data
       - fastblog-storage:/app/storage
-      # 临时挂载：修复缺失模块/导入错误（待网络恢复后重新构建镜像即可移除）
+      - fastblog-config:/app/config
+      # 临时挂载：修复缺失模块/导入错误（待重新构建镜像即可移除）
       - ./src/setting.py:/app/src/setting.py:ro
       - ./shared/utils/auto_update_checker.py:/app/shared/utils/auto_update_checker.py:ro
       - ./shared/utils/translation_api_clients.py:/app/shared/utils/translation_api_clients.py:ro
       - ./shared/services/translation/localization_service.py:/app/shared/services/translation/localization_service.py:ro
       - ./src/api/v1/system/installation.py:/app/src/api/v1/system/installation.py:ro
       - ./shared/services/media/image_tool/image_version_manager.py:/app/shared/services/media/image_tool/image_version_manager.py:ro
+      - ./shared/services/install/install_manager/installation_wizard.py:/app/shared/services/install/install_manager/installation_wizard.py:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -202,9 +202,11 @@ volumes:
     driver: local
   fastblog-backups:
     driver: local
-  fastblog-plugins-data:
+  fastblog-config:
     driver: local
   fastblog-storage:
+    driver: local
+  fastblog-plugins-data:
     driver: local
 
 # ============================================================================

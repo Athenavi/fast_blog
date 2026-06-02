@@ -27,21 +27,26 @@ services:
       - SECRET_KEY=${SECRET_KEY:-}
       - ENVIRONMENT=production
       - DEBUG=False
-    # 临时以 root 运行：appuser 无法在 root 拥有的 /app 下创建新目录
-    # 待网络恢复后重新构建镜像（Dockerfile 已修复 entrypoint），即可移除此行
-    user: "0:0"
+    # 注意：不设置 user，Dockerfile 无 USER 指令，默认 root
+    # entrypoint 以 root 运行初始化后，通过 gosu 降权到 appuser
     volumes:
-      - ./media:/app/media
-      - ./uploads:/app/uploads
-      - ./logs:/app/logs
-      - ./backups:/app/backups
-      # 临时挂载：修复缺失模块/导入错误（待网络恢复后重新构建镜像即可移除）
+      # 所有可写目录使用命名卷 — 从镜像继承 appuser:appuser 权限，无权限问题
+      - fastblog-media:/app/media
+      - fastblog-uploads:/app/uploads
+      - fastblog-logs:/app/logs
+      - fastblog-backups:/app/backups
+      - fastblog-config:/app/config
+      - fastblog-storage:/app/storage
+      - fastblog-plugins-data:/app/plugins_data
+      - fastblog-static-generated:/app/static_generated
+      # 临时挂载：修复缺失模块/导入错误（待重新构建镜像即可移除）
       - ./src/setting.py:/app/src/setting.py:ro
       - ./shared/utils/auto_update_checker.py:/app/shared/utils/auto_update_checker.py:ro
       - ./shared/utils/translation_api_clients.py:/app/shared/utils/translation_api_clients.py:ro
       - ./shared/services/translation/localization_service.py:/app/shared/services/translation/localization_service.py:ro
       - ./src/api/v1/system/installation.py:/app/src/api/v1/system/installation.py:ro
       - ./shared/services/media/image_tool/image_version_manager.py:/app/shared/services/media/image_tool/image_version_manager.py:ro
+      - ./shared/services/install/install_manager/installation_wizard.py:/app/shared/services/install/install_manager/installation_wizard.py:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -84,7 +89,7 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD:-fastblog_secret}
       POSTGRES_DB: ${DB_NAME:-fast_blog}
     volumes:
-      - postgres-data:/var/lib/postgresql/data
+      - fastblog-postgres:/var/lib/postgresql/data
     networks:
       - fastblog-network
     healthcheck:
@@ -104,7 +109,7 @@ services:
       - "${REDIS_PORT:-6379}:6379"
     command: redis-server --appendonly yes --maxmemory 256mb --maxmemory-policy allkeys-lru
     volumes:
-      - redis-data:/data
+      - fastblog-redis:/data
     networks:
       - fastblog-network
     healthcheck:
@@ -133,12 +138,28 @@ services:
       - fastblog-network
 
 # ============================================================================
-# Volumes
+# Volumes (named volumes — Docker manages ownership, no permission issues)
 # ============================================================================
 volumes:
-  postgres-data:
+  fastblog-postgres:
     driver: local
-  redis-data:
+  fastblog-redis:
+    driver: local
+  fastblog-media:
+    driver: local
+  fastblog-uploads:
+    driver: local
+  fastblog-logs:
+    driver: local
+  fastblog-backups:
+    driver: local
+  fastblog-config:
+    driver: local
+  fastblog-storage:
+    driver: local
+  fastblog-plugins-data:
+    driver: local
+  fastblog-static-generated:
     driver: local
 
 # ============================================================================

@@ -3,17 +3,23 @@ set -e
 
 # ============================================================================
 # FastBlog Docker Entrypoint
-# Creates runtime directories with proper permissions, then drops to appuser.
-# This handles directories excluded by .dockerignore that the app needs at runtime.
+# Creates missing runtime directories, then drops to appuser.
+#
+# Permission strategy:
+#   - All writable directories use Docker named volumes, which inherit
+#     ownership from the image layer (appuser:appuser). No chown needed.
+#   - This script only creates directories that might be missing at runtime
+#     (e.g., new directories added in code updates not yet in the volume).
 #
 # Usage in docker-compose:
 #   entrypoint: ["/docker-entrypoint.sh"]
-#   user: "0:0"   # start as root so this script can create dirs
+#   # No user directive needed — script runs as root (Dockerfile has no USER),
+#   # then drops to appuser via gosu.
 # ============================================================================
 
 echo "[entrypoint] Ensuring runtime directories exist..."
 
-# All runtime directories the application may need at startup or runtime
+# Runtime directories the application may need
 RUNTIME_DIRS="
 /app/static_generated
 /app/plugins_data
@@ -41,21 +47,21 @@ RUNTIME_DIRS="
 /app/static/uploads/covers
 "
 
-# Create all directories
+# Create missing directories and ensure correct ownership for all.
+# Named volumes may inherit root:root if initialized from empty image dirs,
+# so we must unconditionally chown every listed directory.
 for dir in $RUNTIME_DIRS; do
     [ -z "$dir" ] && continue
     if [ ! -d "$dir" ]; then
         mkdir -p "$dir"
+        echo "[entrypoint] Created: $dir"
     fi
+    chown appuser:appuser "$dir"
 done
-
-# Chown everything under /app to appuser (single pass)
-chown -R appuser:appuser /app 2>/dev/null || true
 
 echo "[entrypoint] Dropping to appuser and starting application..."
 
 # Drop privileges and execute the original CMD
-# Prefer gosu (installed in rebuilt images), fall back to runuser (current image)
 if command -v gosu >/dev/null 2>&1; then
     exec tini -- gosu appuser "$@"
 else

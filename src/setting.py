@@ -4,8 +4,9 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-# 加载 .env 文件
-load_dotenv()
+# 加载 .env 文件（优先 config/.env [Docker 模式]，回退到根目录 .env [开发模式]）
+load_dotenv(Path(__file__).parent.parent / "config" / ".env")
+load_dotenv()  # 根目录 .env 作为 fallback，已加载的值不会被覆盖
 
 # 全局标志：跟踪数据库 URI 是否已经打印过（当前进程内）
 _db_uri_printed = False
