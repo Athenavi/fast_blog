@@ -12,7 +12,9 @@ from typing import Dict, List, Optional
 
 from PIL import Image
 
-from updater.updater import base_dir
+# 原: from updater.updater import base_dir
+# updater/ 被 .dockerignore 排除，改为本地计算项目根目录
+base_dir = Path(__file__).resolve().parents[4]  # shared/services/media/image_tool/ → 项目根
 
 from src.unified_logger import default_logger as logger
 
@@ -29,7 +31,7 @@ SIZE_PRESETS = {
 class ImageVersionManager:
     """
     图片版本管理器
-    
+
     功能:
     1. 生成多个尺寸的图片版本 (thumbnail, small, medium, large)
     2. 保留原图备份
@@ -48,13 +50,13 @@ class ImageVersionManager:
     ) -> Dict[str, str]:
         """
         为图片生成多个尺寸版本
-        
+
         Args:
             image_path: 原图路径（相对于MEDIA_ROOT）
             sizes: 需要生成的尺寸列表，默认为 ['thumbnail', 'small', 'medium', 'large']
             quality: JPEG/WEBP 质量 (1-100)
             backup_original: 是否备份原图
-            
+
         Returns:
             生成的版本字典 {size_name: file_path}
         """
@@ -112,10 +114,10 @@ class ImageVersionManager:
     def _backup_original(self, image_path: str) -> str:
         """
         备份原图
-        
+
         Args:
             image_path: 原图完整路径
-            
+
         Returns:
             备份文件路径
         """
@@ -147,7 +149,7 @@ class ImageVersionManager:
     ) -> str:
         """
         生成单个尺寸版本
-        
+
         Args:
             img: PIL图片对象
             output_dir: 输出目录
@@ -156,7 +158,7 @@ class ImageVersionManager:
             size_name: 尺寸名称
             preset: 尺寸预设配置
             quality: 输出质量
-            
+
         Returns:
             生成的版本文件路径
         """
@@ -203,12 +205,12 @@ class ImageVersionManager:
     def _center_crop(self, img: Image.Image, width: int, height: int) -> Image.Image:
         """
         居中裁剪图片
-        
+
         Args:
             img: PIL图片对象
             width: 目标宽度
             height: 目标高度
-            
+
         Returns:
             裁剪后的图片
         """
@@ -238,11 +240,11 @@ class ImageVersionManager:
     ) -> List[str]:
         """
         清理指定图片的所有版本
-        
+
         Args:
             image_path: 原图路径
             sizes: 要清理的尺寸列表，默认为所有
-            
+
         Returns:
             已删除的文件列表
         """
@@ -276,11 +278,11 @@ class ImageVersionManager:
     ) -> Optional[str]:
         """
         获取指定版本的文件路径
-        
+
         Args:
             image_path: 原图路径
             size_name: 尺寸名称
-            
+
         Returns:
             版本文件路径，如果不存在则返回 None
         """

@@ -40,12 +40,13 @@ services:
       - fastblog-backups:/app/backups
       - fastblog-plugins-data:/app/plugins_data
       - fastblog-storage:/app/storage
-      # 临时挂载：修复缺失模块（待网络恢复后重新构建镜像即可移除）
+      # 临时挂载：修复缺失模块/导入错误（待网络恢复后重新构建镜像即可移除）
       - ./src/setting.py:/app/src/setting.py:ro
       - ./shared/utils/auto_update_checker.py:/app/shared/utils/auto_update_checker.py:ro
       - ./shared/utils/translation_api_clients.py:/app/shared/utils/translation_api_clients.py:ro
       - ./shared/services/translation/localization_service.py:/app/shared/services/translation/localization_service.py:ro
       - ./src/api/v1/system/installation.py:/app/src/api/v1/system/installation.py:ro
+      - ./shared/services/media/image_tool/image_version_manager.py:/app/shared/services/media/image_tool/image_version_manager.py:ro
     depends_on:
       postgres:
         condition: service_healthy
