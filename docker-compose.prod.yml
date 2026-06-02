@@ -24,6 +24,7 @@ services:
       # --- Redis 配置 ---
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-fastblog_redis_secret}
       # --- 应用配置 ---
       - SECRET_KEY=${SECRET_KEY:-}
       - JWT_SECRET_KEY=${JWT_SECRET_KEY:-}
@@ -132,7 +133,7 @@ services:
         --appendonly yes
         --maxmemory 512mb
         --maxmemory-policy allkeys-lru
-        --requirepass ${REDIS_PASSWORD:-}
+        --requirepass ${REDIS_PASSWORD:-fastblog_redis_secret}
     volumes:
       - fastblog-redis:/data
     networks:
@@ -143,7 +144,7 @@ services:
           cpus: '0.5'
           memory: 512M
     healthcheck:
-      test: [ "CMD", "redis-cli", "ping" ]
+      test: [ "CMD-SHELL", "redis-cli -a ${REDIS_PASSWORD:-fastblog_redis_secret} ping | grep -q PONG" ]
       interval: 10s
       timeout: 5s
       retries: 5

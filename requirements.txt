@@ -64,7 +64,7 @@ mutagen==1.47.0
 psutil==7.2.2
 
 # Error Tracking
-sentry-sdk[fastapi]
+sentry-sdk[fastapi]==2.61.1
 
 # Search Engine
 meilisearch-python-sdk==7.2.1
@@ -72,6 +72,9 @@ meilisearch-python-sdk==7.2.1
 # File Handling
 python-magic==0.4.27
 humanize==4.15.0
+
+# Async File I/O
+aiofiles==25.1.0
 
 # HTTP & Async
 aiohttp==3.14.0

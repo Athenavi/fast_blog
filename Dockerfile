@@ -49,6 +49,7 @@ RUN python -c "from pathlib import Path; \
     p.write_text('# Patched: removed broken PasswordService import to fix startup error\n') if p.exists() else None"
 
 # Create necessary directories BEFORE copying app code (better layer caching)
+# IMPORTANT: chown writable directories in the same RUN layer to avoid a separate chown layer
 RUN mkdir -p /app/media \
     /app/upload_chunks \
     /app/static \
@@ -57,7 +58,17 @@ RUN mkdir -p /app/media \
     /app/translations \
     /app/backups \
     /app/logs \
-    /app/storage
+    /app/storage \
+    && chown appuser:appuser \
+        /app/media \
+        /app/upload_chunks \
+        /app/static \
+        /app/themes \
+        /app/plugins \
+        /app/translations \
+        /app/backups \
+        /app/logs \
+        /app/storage
 
 # Copy application code as appuser (avoids expensive recursive chown layer)
 COPY --chown=appuser:appuser . .
