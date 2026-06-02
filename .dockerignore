@@ -79,9 +79,11 @@ nginx
 # Mobile app source
 mobile-app
 
-# SDK & Scripts (not imported by backend)
+# SDK & Tools (not imported by backend)
+# tools/ excluded — ffmpeg tarball loaded via BuildKit additional_contexts (ffmpeg_src)
 sdk
 scripts
+tools
 
 # Advanced adapter (not imported anywhere in src/)
 advanced

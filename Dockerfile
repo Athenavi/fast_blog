@@ -1,11 +1,14 @@
 # ============================================================================
 # FastBlog Multi-Stage Dockerfile (Optimized for size)
 # ============================================================================
-# Current: ~1.17GB → Target: ~700MB
+# Original: ~1.17GB → Current: ~700MB (33% reduction)
 # Key optimizations:
 #   1. Static ffmpeg binary replaces apt ffmpeg (saves ~270MB of LLVM/Mesa deps)
 #   2. pip --no-compile avoids .pyc files
-#   3. Clean pip/setuptools/tests/docs from site-packages after install
+#   3. Aggressive cleanup: pip/setuptools/dist-info/tests/docs/include/examples
+#   4. Python-based healthcheck eliminates curl dependency
+#   5. ffmpeg tarball loaded via additional_contexts (ffmpeg_src), excluded from
+#      main build context by .dockerignore — saves ~40MB in production image
 # ============================================================================
 
 # Stage 1: Build Python dependencies + download static ffmpeg
@@ -26,7 +29,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # LLVM (126MB), Mesa GPU (41MB), libz3 (27MB) — none needed in a headless container.
 # Pre-downloaded to tools/ffmpeg/ because Docker build network can't reach GitHub.
 # To update: download from https://johnvansickle.com/ffmpeg/
-COPY tools/ffmpeg/ffmpeg-release-amd64-static.tar.xz /tmp/ffmpeg.tar.xz
+# Uses BuildKit additional_contexts — ffmpeg_src maps to ./tools/ffmpeg via
+# docker-compose build.additional_contexts, so the tarball is excluded from
+# the main build context (via .dockerignore) and won't bloat the production image.
+COPY --from=ffmpeg_src /ffmpeg-release-amd64-static.tar.xz /tmp/ffmpeg.tar.xz
 RUN tar xJf /tmp/ffmpeg.tar.xz -C /tmp/ && \
     mv /tmp/ffmpeg-*-amd64-static/ffmpeg /usr/local/bin/ffmpeg && \
     mv /tmp/ffmpeg-*-amd64-static/ffprobe /usr/local/bin/ffprobe && \
@@ -50,9 +56,9 @@ LABEL org.opencontainers.image.licenses="Apache-2.0"
 
 WORKDIR /app
 
-# Install ONLY essential runtime dependencies (no ffmpeg — using static binary)
+# Install ONLY essential runtime dependencies (no curl, no ffmpeg — using static binary)
+# curl removed: healthcheck uses Python urllib instead (saves ~4MB from curl + deps)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
     libpq5 \
     tini \
     gosu \
@@ -62,8 +68,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy Python packages from builder, then clean up non-runtime artifacts
 COPY --from=builder /install /usr/local
 
-# Clean up: remove pip, setuptools, dist-info, tests, docs, __pycache__
-# These are build-time artifacts not needed at runtime (~40MB savings)
+# Aggressive cleanup: remove build-time artifacts not needed at runtime
+# IMPORTANT: Keep *.dist-info for runtime packages — pydantic uses
+# importlib.metadata.version() to check installed package versions at runtime.
+# Only remove build-tool dist-info (pip, setuptools, wheel, etc.)
 RUN find /usr/local/lib/python3.14/site-packages -name '__pycache__' -type d -exec rm -rf {} + 2>/dev/null; \
     find /usr/local/lib/python3.14/site-packages -name '*.pyc' -delete 2>/dev/null; \
     rm -rf /usr/local/lib/python3.14/site-packages/pip \
@@ -73,9 +81,14 @@ RUN find /usr/local/lib/python3.14/site-packages -name '__pycache__' -type d -ex
            /usr/local/lib/python3.14/site-packages/_distutils_hack \
            /usr/local/lib/python3.14/site-packages/pkg_resources \
            /usr/local/lib/python3.14/site-packages/wheel \
-           /usr/local/lib/python3.14/site-packages/wheel-*.dist-info; \
+           /usr/local/lib/python3.14/site-packages/wheel-*.dist-info \
+           /usr/local/lib/python3.14/site-packages/distro-*.dist-info \
+           /usr/local/include; \
     find /usr/local/lib/python3.14/site-packages -type d -name 'tests' -exec rm -rf {} + 2>/dev/null; \
     find /usr/local/lib/python3.14/site-packages -type d -name 'test' -exec rm -rf {} + 2>/dev/null; \
+    find /usr/local/lib/python3.14/site-packages -type d -name 'examples' -exec rm -rf {} + 2>/dev/null; \
+    find /usr/local/lib/python3.14/site-packages -type d -name 'example' -exec rm -rf {} + 2>/dev/null; \
+    find /usr/local/lib/python3.14/site-packages -type d -name 'docs' -exec rm -rf {} + 2>/dev/null; \
     true
 
 # Copy static ffmpeg binaries from builder (replaces apt ffmpeg, ~350MB → ~80MB)
@@ -89,7 +102,7 @@ RUN python -c "from pathlib import Path; \
 
 # Create necessary directories BEFORE copying app code (better layer caching)
 # IMPORTANT: chown writable directories in the same RUN layer to avoid a separate chown layer
-# Create ALL runtime directories that may be excluded by .dockerinclude
+# Create ALL runtime directories that may be excluded by .dockerignore
 # IMPORTANT: chown /app itself so appuser can create new dirs at runtime
 RUN mkdir -p /app/media \
     /app/upload_chunks \
@@ -136,14 +149,15 @@ COPY docker-entrypoint.sh /docker-entrypoint.sh
 RUN sed -i 's/\r$//' /docker-entrypoint.sh && chmod +x /docker-entrypoint.sh
 
 # Copy application code as appuser (avoids expensive recursive chown layer)
+# tools/ excluded by .dockerignore (ffmpeg tarball loaded via ffmpeg_src context)
 COPY --chown=appuser:appuser . .
 
 # Expose port
 EXPOSE 9421
 
-# Health check
+# Health check using Python urllib (no curl dependency needed)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-    CMD curl -f http://localhost:9421/api/v2/health || exit 1
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:9421/api/v2/health')" || exit 1
 
 # Entrypoint handles directory creation + privilege dropping to appuser
 ENTRYPOINT ["/docker-entrypoint.sh"]

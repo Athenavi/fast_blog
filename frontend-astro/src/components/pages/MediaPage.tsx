@@ -254,8 +254,11 @@ const MediaGrid: React.FC<{files: MediaFile[]; loading: boolean; viewMode: 'grid
           {isImage && f.url ? (
               <img src={getFullMediaUrl(f.url)} alt={f.original_filename} className="w-full h-full object-cover cursor-pointer" onClick={() => onPreview(f)} loading="lazy" decoding="async"/>
           ) : isVideo && f.url ? (
-                  <div className="w-full h-full relative cursor-pointer bg-gray-900" onClick={() => onPreview(f)}>
-                    <video src={getFullMediaUrl(f.url)} className="w-full h-full object-cover" preload="metadata" muted playsInline/>
+            <div
+              className="w-full h-full relative cursor-pointer bg-gray-900 flex items-center justify-center overflow-hidden"
+              onClick={() => onPreview(f)}>
+              <video src={getFullMediaUrl(f.url)} className="w-full h-full object-cover"
+                     style={{objectPosition: 'center'}} preload="metadata" muted playsInline/>
                     <div className="absolute inset-0 bg-black/30 flex items-center justify-center group-hover:bg-black/40 transition-colors">
                       <div className="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform">
                         <div className="w-0 h-0 border-t-[8px] border-t-transparent border-l-[14px] border-l-black border-b-[8px] border-b-transparent ml-1"/>
@@ -1390,7 +1393,11 @@ const PreviewModal: React.FC<{media: MediaFile|null; onClose: ()=>void}> = ({med
             <embed src={fullUrl} type="application/pdf" className="w-full h-full" style={{minHeight: '80vh', maxHeight: '85vh'}}/>
           </div>
       ) : media.mime_type?.startsWith('video/') && fullUrl ? (
-          <div className="bg-black"><video src={fullUrl} controls autoPlay preload="auto" className="max-w-full max-h-[70vh] w-full" style={{maxHeight: '70vh'}} playsInline>您的浏览器不支持视频播放</video></div>
+        <div className="bg-black flex-1 flex items-center justify-center">
+          <video src={fullUrl} controls autoPlay preload="auto"
+                 className="max-w-full max-h-[85vh] w-full h-full object-contain" playsInline>您的浏览器不支持视频播放
+          </video>
+        </div>
       ) : media.mime_type?.startsWith('image/') && fullUrl ? (
           <img src={fullUrl} alt={media.original_filename} className="max-w-full max-h-[70vh] object-contain" loading="eager" decoding="async"/>
       ) : (

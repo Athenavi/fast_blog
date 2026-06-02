@@ -10,6 +10,8 @@ services:
       context: .
       dockerfile: Dockerfile
       network: host
+      additional_contexts:
+        ffmpeg_src: ./tools/ffmpeg
     container_name: fastblog-backend
     restart: unless-stopped
     ports:
@@ -48,7 +50,7 @@ services:
     networks:
       - fastblog-network
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:9421/api/v2/health" ]
+      test: [ "CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9421/api/v2/health')" ]
       interval: 30s
       timeout: 10s
       retries: 3

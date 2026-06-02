@@ -36,7 +36,7 @@ async def setup_2fa(
 ):
     """
     设置2FA - 生成密钥和QR码
-    
+
     返回QR码供用户扫描,以及手动输入的密钥
     """
     try:
@@ -99,7 +99,7 @@ async def enable_2fa(
 ):
     """
     启用2FA
-    
+
     需要用户提供TOTP验证码来验证设置正确
     """
     try:
@@ -197,7 +197,7 @@ async def verify_2fa_login(
 ):
     """
     验证2FA登录
-    
+
     在用户输入用户名密码后,如果启用了2FA,需要调用此接口
     验证成功后返回正式的access_token和refresh_token
     """
@@ -255,19 +255,20 @@ async def verify_2fa_login(
 
         # 创建用户会话记录
         try:
-            await session_management_service.create_session_async(
+            device_info = {
+                'user_agent': user_agent,
+                'browser': request.headers.get('sec-ch-ua', 'Unknown'),
+                'platform': request.headers.get('sec-ch-ua-platform', 'Unknown'),
+            }
+            session_management_service.create_session(
                 user_id=user.id,
-                session_token=access_token,
-                device_info=user_agent,
+                device_info=device_info,
                 ip_address=ip_address,
-                expires_hours=720,
-                db_session=db
+                user_agent=user_agent,
             )
             print(f"[2FA Verify] Session created for user {user.id}")
         except Exception as e:
             print(f"[2FA Verify] Warning: Failed to create session: {e}")
-            import traceback
-            traceback.print_exc()
 
         # 更新最后登录时间
         user.last_login = datetime.now(timezone.utc)
