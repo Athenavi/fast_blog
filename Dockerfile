@@ -30,12 +30,13 @@ LABEL org.opencontainers.image.licenses="Apache-2.0"
 
 WORKDIR /app
 
-# Install runtime dependencies
+# Install runtime dependencies (gosu for clean privilege dropping in entrypoint)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     libpq5 \
     ffmpeg \
     tini \
+    gosu \
     && rm -rf /var/lib/apt/lists/* \
     && adduser --disabled-password --gecos '' --home /app appuser
 
@@ -50,41 +51,64 @@ RUN python -c "from pathlib import Path; \
 
 # Create necessary directories BEFORE copying app code (better layer caching)
 # IMPORTANT: chown writable directories in the same RUN layer to avoid a separate chown layer
+# Create ALL runtime directories that may be excluded by .dockerinclude
+# IMPORTANT: chown /app itself so appuser can create new dirs at runtime
 RUN mkdir -p /app/media \
     /app/upload_chunks \
     /app/static \
+    /app/static/uploads \
     /app/themes \
     /app/plugins \
+    /app/plugins_data \
     /app/translations \
     /app/backups \
+    /app/backups/automated \
     /app/logs \
     /app/storage \
+    /app/storage/cache \
+    /app/storage/objects \
+    /app/storage/thumbnails \
+    /app/uploads \
+    /app/config \
+    /app/static_generated \
+    /app/temp \
+    /app/temp/search \
+    /app/custom-patterns \
     && chown appuser:appuser \
+        /app \
         /app/media \
         /app/upload_chunks \
         /app/static \
         /app/themes \
         /app/plugins \
+        /app/plugins_data \
         /app/translations \
         /app/backups \
         /app/logs \
-        /app/storage
+        /app/storage \
+        /app/uploads \
+        /app/config \
+        /app/static_generated \
+        /app/temp \
+        /app/custom-patterns
+
+# Copy entrypoint script (needs root for directory creation at startup)
+# Strip CRLF (Windows line endings) as safety measure for cross-platform builds
+COPY docker-entrypoint.sh /docker-entrypoint.sh
+RUN sed -i 's/\r$//' /docker-entrypoint.sh && chmod +x /docker-entrypoint.sh
 
 # Copy application code as appuser (avoids expensive recursive chown layer)
 COPY --chown=appuser:appuser . .
-
-# Switch to non-root user
-USER appuser
 
 # Expose port
 EXPOSE 9421
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
-    CMD curl -f http://localhost:9421/api/v1/health || exit 1
+    CMD curl -f http://localhost:9421/api/v2/health || exit 1
 
-# Use tini as init system
-ENTRYPOINT ["tini", "--"]
+# Entrypoint handles directory creation + privilege dropping to appuser
+ENTRYPOINT ["/docker-entrypoint.sh"]
 
 # Start the application
 CMD ["python", "main.py", "--backend", "fastapi", "--port", "9421"]

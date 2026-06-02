@@ -23,7 +23,7 @@ async def check_prerequisites_api():
     """检查安装前置条件"""
     try:
         result = installation_wizard_service.check_prerequisites()
-        
+
         return ApiResponse(
             success=True,
             data=result
@@ -93,7 +93,7 @@ async def configure_database_api(
                 success=False,
                 error="System already installed"
             )
-        
+
         config = {
             'db_type': request.db_type,
             'host': request.host,
@@ -104,7 +104,7 @@ async def configure_database_api(
         }
 
         result = installation_wizard_service.configure_database(config)
-        
+
         return ApiResponse(
             success=result['success'],
             data=result
@@ -119,11 +119,11 @@ async def configure_database_api(
 async def _import_sample_data_helper(import_articles: bool, import_categories: bool):
     """
     导入示例数据的辅助函数（可复用）
-    
+
     Args:
         import_articles: 是否导入文章
         import_categories: 是否导入分类
-        
+
     Returns:
         ApiResponse
     """
@@ -284,7 +284,7 @@ async def get_installation_status_api():
     """获取安装状态"""
     try:
         status = installation_wizard_service.get_installation_status()
-        
+
         return ApiResponse(
             success=True,
             data=status
@@ -304,7 +304,7 @@ async def get_installation_steps_api():
     """获取安装步骤"""
     try:
         steps = installation_wizard_service.get_installation_steps()
-        
+
         return ApiResponse(
             success=True,
             data={
@@ -329,7 +329,7 @@ async def check_database_connection_api(
     """检查数据库连接"""
     try:
         result = installation_wizard_service.check_database_connection(request.db_url)
-        
+
         return ApiResponse(
             success=result['success'],
             data=result
@@ -397,22 +397,22 @@ async def create_admin_user_api(
                 # 强制重新加载 .env 文件和配置
                 import importlib
                 from dotenv import load_dotenv
-                
+
                 # 重新加载 .env 文件
                 load_dotenv(override=True)
                 print("  ✓ .env 文件已重新加载")
-                
+
                 # 重新导入并初始化设置
                 import src.setting
                 importlib.reload(src.setting)
                 from src.setting import settings as new_settings
                 print(f"  ✓ 配置已重新加载，数据库 URL: {new_settings.database_url[:50]}..." if new_settings.database_url else "  ⚠ 数据库 URL 仍为空")
-                
+
                 # 重置并重新初始化数据库管理器
                 unified_db_manager._async_engine = None
                 unified_db_manager._async_session_factory = None
                 unified_db_manager.initialize()
-                
+
                 if unified_db_manager._async_session_factory is not None:
                     print("✓ 数据库连接池初始化成功")
                 else:
@@ -485,7 +485,7 @@ async def create_admin_user_api(
             except Exception:
                 await session.rollback()
                 raise
-                
+
     except Exception as e:
         import traceback
         print(f"Error in create_admin_user_api: {str(e)}")
@@ -508,7 +508,7 @@ async def configure_site_settings_api(
                 success=False,
                 error="System already installed"
             )
-        
+
         config = {
             'site_name': request.site_name,
             'site_url': request.site_url,
@@ -524,7 +524,7 @@ async def configure_site_settings_api(
             site_description=request.site_description,
             language=request.language
         )
-        
+
         return ApiResponse(
             success=result['success'],
             data=result
@@ -634,7 +634,7 @@ async def reset_installation_api():
     """重置安装状态"""
     try:
         result = installation_wizard_service.reset_installation()
-        
+
         return ApiResponse(
             success=result['success'],
             data=result
@@ -673,8 +673,10 @@ async def stream_migration_logs():
             status = migration_service.get_migration_status()
             print(f"[SSE] 当前版本: {status['current']}, 目标版本: {status['head']}", file=sys.stderr)
 
-            yield f"data: {json.dumps({'type': 'info', 'message': f'当前版本: {status["current"]}'}, ensure_ascii=False)}\n\n"
-            yield f"data: {json.dumps({'type': 'info', 'message': f'目标版本: {status["head"]}'}, ensure_ascii=False)}\n\n"
+            current_ver = status["current"]
+            head_ver = status["head"]
+            yield f"data: {json.dumps({'type': 'info', 'message': f'当前版本: {current_ver}'}, ensure_ascii=False)}\n\n"
+            yield f"data: {json.dumps({'type': 'info', 'message': f'目标版本: {head_ver}'}, ensure_ascii=False)}\n\n"
 
             if status.get('is_up_to_date'):
                 yield f"data: {json.dumps({'type': 'info', 'message': '数据库已是最新版本，无需迁移'}, ensure_ascii=False)}\n\n"

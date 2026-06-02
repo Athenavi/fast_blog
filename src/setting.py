@@ -425,41 +425,45 @@ class ProductionConfig(AppConfig):
         self.TESTING = False
         self._validate_required_env()
 
-    @staticmethod
-    def _validate_required_env():
-        """校验生产环境必需的环境变量，缺失时快速失败并给出明确提示"""
+    def _validate_required_env(self):
+        """校验生产环境必需的数据库配置，使用 AppConfig 已解析的属性（带默认值）。
+        仅发出警告而不终止进程——应用设计为在数据库未配置时仍能启动（安装向导）。
+        """
         missing = []
-        if not os.environ.get('DB_NAME') and not os.getenv('DATABASE_NAME'):
+        # 使用 AppConfig 解析后的属性（有 fallback 默认值），而非原始 os.environ.get()
+        if not self.db_name:
             missing.append('DB_NAME')
-        if not os.environ.get('DB_HOST') and not os.getenv('DATABASE_HOST'):
+        if not self.db_host:
             missing.append('DB_HOST')
-        if not os.environ.get('DB_USER') and not os.getenv('DATABASE_USER'):
+        if not self.db_user:
             missing.append('DB_USER')
 
         if missing:
             print("=" * 70)
-            print("❌ 启动失败：缺少必要的数据库环境变量")
+            print("⚠️  警告：以下数据库环境变量未设置，应用将以安装向导模式启动")
             print("=" * 70)
-            print(f"   缺失的变量: {', '.join(missing)}")
+            print(f"   未设置的变量: {', '.join(missing)}")
             print()
             print("   请通过以下任一方式配置：")
             print("   1. 创建 .env 文件（参考 .env.example）")
             print("   2. 在 docker-compose.yml 的 environment 中设置")
             print("   3. 直接设置系统环境变量")
             print()
-            print("   示例 .env 配置：")
-            print("     DB_HOST=postgres")
-            print("     DB_PORT=5432")
-            print("     DB_USER=postgres")
-            print("     DB_PASSWORD=your_password")
-            print("     DB_NAME=fast_blog")
-            print("     SECRET_KEY=your-secret-key-at-least-32-chars")
+            print("   示例 docker-compose.yml 配置：")
+            print("     environment:")
+            print("       - DB_HOST=postgres")
+            print("       - DB_PORT=5432")
+            print("       - DB_USER=postgres")
+            print("       - DB_PASSWORD=your_password")
+            print("       - DB_NAME=fast_blog")
+            print("       - SECRET_KEY=your-secret-key-at-least-32-chars")
             print("=" * 70)
-            raise SystemExit(1)
-
-        # 警告：未设置密码（允许，但提示安全风险）
-        if not os.environ.get('DB_PASSWORD') and not os.getenv('DATABASE_PASSWORD'):
-            print("⚠️  警告：未设置 DB_PASSWORD，数据库将使用空密码连接")
+            print("   应用将继续启动，请通过 /install 页面完成数据库配置。")
+            print("=" * 70)
+        else:
+            # 警告：未设置密码（允许，但提示安全风险）
+            if not self.db_password:
+                print("⚠️  警告：未设置 DB_PASSWORD，数据库将使用空密码连接")
 
 
 class DevelopmentConfig(AppConfig):

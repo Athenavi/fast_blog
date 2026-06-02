@@ -27,11 +27,20 @@ services:
       - SECRET_KEY=${SECRET_KEY:-}
       - ENVIRONMENT=production
       - DEBUG=False
+    # 临时以 root 运行：appuser 无法在 root 拥有的 /app 下创建新目录
+    # 待网络恢复后重新构建镜像（Dockerfile 已修复 entrypoint），即可移除此行
+    user: "0:0"
     volumes:
       - ./media:/app/media
       - ./uploads:/app/uploads
       - ./logs:/app/logs
       - ./backups:/app/backups
+      # 临时挂载：修复缺失模块（待网络恢复后重新构建镜像即可移除）
+      - ./src/setting.py:/app/src/setting.py:ro
+      - ./shared/utils/auto_update_checker.py:/app/shared/utils/auto_update_checker.py:ro
+      - ./shared/utils/translation_api_clients.py:/app/shared/utils/translation_api_clients.py:ro
+      - ./shared/services/translation/localization_service.py:/app/shared/services/translation/localization_service.py:ro
+      - ./src/api/v1/system/installation.py:/app/src/api/v1/system/installation.py:ro
     depends_on:
       postgres:
         condition: service_healthy
@@ -40,7 +49,7 @@ services:
     networks:
       - fastblog-network
     healthcheck:
-      test: [ "CMD", "curl", "-f", "http://localhost:9421/api/v1/health" ]
+      test: [ "CMD", "curl", "-f", "http://localhost:9421/api/v2/health" ]
       interval: 30s
       timeout: 10s
       retries: 3

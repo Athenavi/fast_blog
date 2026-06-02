@@ -6,8 +6,7 @@
 
 from datetime import datetime, timezone
 from typing import Dict, List
-
-import pytz
+from zoneinfo import ZoneInfo
 
 from src.unified_logger import default_logger as logger
 
@@ -121,11 +120,11 @@ class LocalizationService:
                         locale: str = None) -> str:
         """
         检测用户时区
-        
+
         Args:
             ip_address: IP地址(可选)
             locale: 语言区域(可选)
-            
+
         Returns:
             时区名称
         """
@@ -148,10 +147,10 @@ class LocalizationService:
     def _get_timezone_from_ip(self, ip_address: str) -> str:
         """
         从IP地址获取时区
-        
+
         Args:
             ip_address: IP地址
-            
+
         Returns:
             时区名称，失败返回None
         """
@@ -219,11 +218,11 @@ class LocalizationService:
                                  user_timezone: str = 'UTC') -> datetime:
         """
         将UTC时间转换为用户本地时间
-        
+
         Args:
             dt: UTC时间
             user_timezone: 用户时区
-            
+
         Returns:
             用户本地时间
         """
@@ -232,7 +231,7 @@ class LocalizationService:
             dt = dt.replace(tzinfo=timezone.utc)
 
         try:
-            tz = pytz.timezone(user_timezone)
+            tz = ZoneInfo(user_timezone)
             return dt.astimezone(tz)
         except Exception as e:
             logger.error(f"Failed to convert timezone: {str(e)}")
@@ -242,12 +241,12 @@ class LocalizationService:
                     user_timezone: str = 'UTC') -> str:
         """
         格式化日期
-        
+
         Args:
             dt: 日期时间
             locale: 语言区域
             user_timezone: 用户时区
-            
+
         Returns:
             格式化后的日期字符串
         """
@@ -267,12 +266,12 @@ class LocalizationService:
                         user_timezone: str = 'UTC') -> str:
         """
         格式化日期时间
-        
+
         Args:
             dt: 日期时间
             locale: 语言区域
             user_timezone: 用户时区
-            
+
         Returns:
             格式化后的日期时间字符串
         """
@@ -292,18 +291,18 @@ class LocalizationService:
                              user_timezone: str = 'UTC') -> str:
         """
         格式化相对时间(如"3小时前")
-        
+
         Args:
             dt: 日期时间
             locale: 语言区域
             user_timezone: 用户时区
-            
+
         Returns:
             相对时间字符串
         """
         # 转换到用户时区
         local_dt = self.convert_to_user_timezone(dt, user_timezone)
-        now = datetime.now(pytz.timezone(user_timezone))
+        now = datetime.now(ZoneInfo(user_timezone))
 
         diff = now - local_dt
         seconds = int(diff.total_seconds())
@@ -366,12 +365,12 @@ class LocalizationService:
                         currency_code: str = None) -> str:
         """
         格式化货币
-        
+
         Args:
             amount: 金额
             locale: 语言区域
             currency_code: 货币代码(可选)
-            
+
         Returns:
             格式化后的货币字符串
         """
@@ -397,11 +396,11 @@ class LocalizationService:
     def _format_number(self, number: float, num_format: Dict) -> str:
         """
         格式化数字（千位分隔符和小数点）
-        
+
         Args:
             number: 数字
             num_format: 数字格式配置
-            
+
         Returns:
             格式化后的数字字符串
         """
@@ -426,10 +425,10 @@ class LocalizationService:
     def get_user_locale_info(self, locale: str = 'en-US') -> Dict:
         """
         获取用户区域完整信息
-        
+
         Args:
             locale: 语言区域
-            
+
         Returns:
             区域信息字典
         """
@@ -457,7 +456,7 @@ class LocalizationService:
     def get_supported_locales(self) -> List[str]:
         """
         获取支持的语言区域列表
-        
+
         Returns:
             区域代码列表
         """
@@ -466,15 +465,15 @@ class LocalizationService:
     def get_timezone_offset(self, timezone_name: str) -> str:
         """
         获取时区偏移量
-        
+
         Args:
             timezone_name: 时区名称
-            
+
         Returns:
             偏移量字符串(如 +08:00)
         """
         try:
-            tz = pytz.timezone(timezone_name)
+            tz = ZoneInfo(timezone_name)
             now = datetime.now(tz)
             offset = now.utcoffset()
 
