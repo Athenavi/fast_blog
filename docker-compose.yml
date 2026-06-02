@@ -1,8 +1,6 @@
 # FastBlog Docker Compose Configuration
 # Usage: docker-compose up -d
 
-version: '3.8'
-
 services:
   # ============================================================================
   # FastBlog Backend (FastAPI)
@@ -16,17 +14,19 @@ services:
     ports:
       - "${BACKEND_PORT:-9421}:9421"
     environment:
+      # --- 数据库配置（Docker 内部网络，host 使用服务名） ---
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_USER=${DB_USER:-postgres}
       - DB_PASSWORD=${DB_PASSWORD:-fastblog_secret}
       - DB_NAME=${DB_NAME:-fast_blog}
+      # --- Redis 配置 ---
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      # --- 应用配置 ---
+      - SECRET_KEY=${SECRET_KEY:-}
       - ENVIRONMENT=production
       - DEBUG=False
-    env_file:
-      - .env
     volumes:
       - ./media:/app/media
       - ./uploads:/app/uploads
@@ -47,7 +47,7 @@ services:
       start_period: 30s
 
   # ============================================================================
-  # Frontend (Astro)
+  # Frontend (Astro - Static Files served by Nginx)
   # ============================================================================
   frontend:
     build:
@@ -56,11 +56,7 @@ services:
     container_name: fastblog-frontend
     restart: unless-stopped
     ports:
-      - "${FRONTEND_PORT:-4321}:4321"
-    environment:
-      - PUBLIC_API_URL=http://backend:9421
-    depends_on:
-      - backend
+      - "${FRONTEND_PORT:-4321}:80"
     networks:
       - fastblog-network
 

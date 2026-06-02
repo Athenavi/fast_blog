@@ -4,7 +4,11 @@
 展示如何使用 secure-python-utils 为特定路由添加速率限制
 """
 from fastapi import FastAPI, Request
-from secure_python_utils.rate_limiter import RateLimiter
+
+try:
+    from secure_python_utils.rate_limiter import RateLimiter
+except (ImportError, AttributeError):
+    RateLimiter = None
 
 # 创建 FastAPI 应用
 app = FastAPI()

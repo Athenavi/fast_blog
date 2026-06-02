@@ -57,17 +57,17 @@ def get_sqlalchemy_uri(db_config):
         safe_uri = sqlalchemy_uri.replace(db_password, '***')
     else:
         safe_uri = sqlalchemy_uri
-    
+
     # 使用环境变量标记当前进程是否已输出数据库信息
     import os
     worker_info = _get_worker_info()
     env_key = f"DB_INFO_PRINTED_{os.getpid()}"
-    
+
     if not os.environ.get(env_key):
         print(f"{worker_info} 数据库引擎：PostgreSQL")
         print(f"{worker_info} SQLAlchemy URI: {safe_uri}")
         os.environ[env_key] = "1"  # 标记为已打印
-    
+
     return sqlalchemy_uri
 
 
@@ -253,17 +253,17 @@ class AppConfig(BaseConfig):
     def database_pool_size(self):
         """动态获取连接池大小"""
         return self.db_pool_size
-    
+
     @property
     def database_pool_overflow(self):
         """动态获取连接池溢出数"""
         return self.db_pool_overflow
-    
+
     @property
     def database_pool_timeout(self):
         """动态获取连接池超时"""
         return self.db_pool_timeout
-    
+
     @property
     def pool_config(self):
         """动态获取连接池配置（PostgreSQL）"""
@@ -400,7 +400,7 @@ def get_app_config():
         print(f"临时密钥：{secret_key}")
         print("请在生产环境中设置 SECRET_KEY 环境变量以确保 Token 稳定性。")
         print("=" * 60)
-    
+
     BaseConfig.SECRET_KEY = secret_key
 
     # 获取domain环境变量
@@ -423,6 +423,43 @@ class ProductionConfig(AppConfig):
         super().__init__()
         self.DEBUG = False
         self.TESTING = False
+        self._validate_required_env()
+
+    @staticmethod
+    def _validate_required_env():
+        """校验生产环境必需的环境变量，缺失时快速失败并给出明确提示"""
+        missing = []
+        if not os.environ.get('DB_NAME') and not os.getenv('DATABASE_NAME'):
+            missing.append('DB_NAME')
+        if not os.environ.get('DB_HOST') and not os.getenv('DATABASE_HOST'):
+            missing.append('DB_HOST')
+        if not os.environ.get('DB_USER') and not os.getenv('DATABASE_USER'):
+            missing.append('DB_USER')
+
+        if missing:
+            print("=" * 70)
+            print("❌ 启动失败：缺少必要的数据库环境变量")
+            print("=" * 70)
+            print(f"   缺失的变量: {', '.join(missing)}")
+            print()
+            print("   请通过以下任一方式配置：")
+            print("   1. 创建 .env 文件（参考 .env.example）")
+            print("   2. 在 docker-compose.yml 的 environment 中设置")
+            print("   3. 直接设置系统环境变量")
+            print()
+            print("   示例 .env 配置：")
+            print("     DB_HOST=postgres")
+            print("     DB_PORT=5432")
+            print("     DB_USER=postgres")
+            print("     DB_PASSWORD=your_password")
+            print("     DB_NAME=fast_blog")
+            print("     SECRET_KEY=your-secret-key-at-least-32-chars")
+            print("=" * 70)
+            raise SystemExit(1)
+
+        # 警告：未设置密码（允许，但提示安全风险）
+        if not os.environ.get('DB_PASSWORD') and not os.getenv('DATABASE_PASSWORD'):
+            print("⚠️  警告：未设置 DB_PASSWORD，数据库将使用空密码连接")
 
 
 class DevelopmentConfig(AppConfig):

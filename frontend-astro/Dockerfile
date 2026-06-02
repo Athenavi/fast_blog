@@ -1,40 +1,53 @@
-# Frontend Dockerfile for FastBlog Astro frontend
+# ============================================================================
+# Frontend Dockerfile for FastBlog Astro frontend (Static Export)
+# Multi-stage build: Node.js build -> Nginx static serving
+# Final image size: ~50MB (vs ~1.13GB with node:20-alpine)
+# ============================================================================
+
+# ---------------------------------------------------------------------------
+# Stage 1: Build static files
+# ---------------------------------------------------------------------------
 FROM node:20-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
+# Copy dependency files first (better layer caching)
 COPY package*.json ./
 
-# Install dependencies
+# Install all dependencies (dev + prod) for build
 RUN npm ci --legacy-peer-deps
 
 # Copy source code
 COPY . .
 
-# Build the application
+# Build static output (output: 'static' in astro.config.mjs)
 RUN npm run build
 
-# ============================================================================
-# Production stage
-# ============================================================================
-FROM node:20-alpine AS production
+# ---------------------------------------------------------------------------
+# Stage 2: Serve with Nginx (Alpine)
+# ---------------------------------------------------------------------------
+FROM nginx:1-alpine AS production
 
-WORKDIR /app
+# Remove default nginx config
+RUN rm /etc/nginx/conf.d/default.conf
 
-# Copy built assets from builder
-COPY --from=builder /app/dist ./dist
-COPY --from=builder /app/package*.json ./
+# Copy custom nginx config for static file serving
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Install production dependencies only
-RUN npm ci --omit=dev --legacy-peer-deps
+# Copy built static files from builder stage
+# Astro 'static' output goes to dist/
+COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Expose port
-EXPOSE 4321
+# Add non-root user for security
+RUN chown -R nginx:nginx /usr/share/nginx/html \
+    && chown -R nginx:nginx /var/cache/nginx \
+    && chown -R nginx:nginx /var/log/nginx \
+    && touch /var/run/nginx.pid \
+    && chown -R nginx:nginx /var/run/nginx.pid
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://localhost:4321/ || exit 1
+EXPOSE 80
 
-# Start the application
-CMD ["npm", "run", "preview", "--", "--host", "0.0.0.0"]
+HEALTHCHECK --interval=30s --timeout=5s --start-period=5s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:80/ || exit 1
+
+CMD ["nginx", "-g", "daemon off;"]

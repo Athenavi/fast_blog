@@ -13,7 +13,7 @@ router = APIRouter(tags=["system-version"])
 
 def get_version_from_update_server(request_type: str):
     """从更新服务器获取版本信息"""
-    import requests
+    import httpx
 
     try:
         # 更新服务器地址
@@ -27,7 +27,7 @@ def get_version_from_update_server(request_type: str):
         endpoint = endpoint_map.get(request_type, '/api/v1/version/full')
         url = f"{update_server_url}{endpoint}"
 
-        response = requests.get(url, timeout=10)
+        response = httpx.get(url, timeout=10)
         response.raise_for_status()
 
         return {
