@@ -2,6 +2,7 @@
 全文搜索 API 端点
 提供基于 Meilisearch 的高性能搜索功能
 """
+import re
 from datetime import datetime
 from typing import Optional
 
@@ -180,7 +181,8 @@ async def rebuild_search_index(
                 'category_name': category_name or '',
                 'author_id': article.user,
                 'author_name': author_name or '',
-                'tags': [t.strip() for t in article.tags_list.split(',')] if article.tags_list else [],
+                'tags': [t.strip() for t in re.split(r'[,;]', article.tags_list) if
+                         t.strip()] if article.tags_list else [],
                 'views': article.views,
                 'likes': article.likes,
                 'status': 'published',
@@ -299,7 +301,7 @@ async def sync_article_to_index(
             'category_name': category_name or '',
             'author_id': article.user,
             'author_name': author_name or '',
-            'tags': [t.strip() for t in article.tags_list.split(',')] if article.tags_list else [],
+            'tags': [t.strip() for t in re.split(r'[,;]', article.tags_list) if t.strip()] if article.tags_list else [],
             'views': article.views,
             'likes': article.likes,
             'status': 'published' if article.status == 1 else 'draft',

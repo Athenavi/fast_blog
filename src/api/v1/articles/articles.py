@@ -35,6 +35,13 @@ from src.utils.filters import markdown_to_html
 router = APIRouter()
 
 
+def _split_tags(tags_str: str) -> list:
+    """将标签字符串拆分为数组，同时支持逗号和分号分隔符"""
+    if not tags_str:
+        return []
+    return [t.strip() for t in re.split(r'[,;]', tags_str) if t.strip()]
+
+
 # ---------- 通用辅助函数 ----------
 async def _get_article_author(db: AsyncSession, user_id: int) -> dict:
     """获取文章作者信息字典"""
@@ -138,7 +145,7 @@ async def _get_article_detail(
         "excerpt": article.excerpt,
         "content": html_content,
         "cover_image": article.cover_image,
-        "tags": [tag.strip() for tag in article.tags_list.split(",") if tag.strip()] if article.tags_list else [],
+        "tags": _split_tags(article.tags_list),
         "views": article.views or 0,
         "likes": article.likes or 0,
         "status": article.status,
@@ -252,7 +259,7 @@ async def get_articles_api(
                 "slug": article.slug,
                 "excerpt": article.excerpt,
                 "cover_image": article.cover_image,
-                "tags": article.tags_list.split(",") if article.tags_list else [],
+                "tags": _split_tags(article.tags_list),
                 "author": {
                     "id": article.user,
                     "username": users_dict[article.user].username if article.user in users_dict else "Unknown"
@@ -343,7 +350,7 @@ async def get_home_articles_api(
                 "slug": article.slug,
                 "excerpt": article.excerpt,
                 "cover_image": article.cover_image,
-                "tags": article.tags_list.split(",") if article.tags_list else [],
+                "tags": _split_tags(article.tags_list),
                 "author": {
                     "id": article.user,
                     "username": users_dict[article.user].username if article.user in users_dict else "Unknown"
@@ -411,7 +418,7 @@ async def get_user_articles_api(
                 "title": article.title,
                 "excerpt": article.excerpt,
                 "cover_image": article.cover_image,
-                "tags": article.tags_list.split(",") if article.tags_list else [],
+                "tags": _split_tags(article.tags_list),
                 "category_id": article.category,
                 "category_name": categories_dict[
                     article.category].name if article.category in categories_dict else None,
@@ -565,7 +572,7 @@ async def get_article_raw_content_api(
             "excerpt": article.excerpt,
             "content": raw_content,
             "cover_image": article.cover_image,
-            "tags": article.tags_list.split(",") if article.tags_list else [],
+            "tags": _split_tags(article.tags_list),
             "category_id": article.category,
             "status": article.status,
             "hidden": article.hidden,
@@ -1003,7 +1010,7 @@ async def get_articles_by_tag_api(
                 "slug": article.slug,
                 "excerpt": article.excerpt,
                 "cover_image": article.cover_image,
-                "tags": article.tags_list.split(",") if article.tags_list else [],
+                "tags": _split_tags(article.tags_list),
                 "author": {
                     "id": article.user,
                     "username": users_dict[article.user].username if article.user in users_dict else "Unknown"
@@ -1056,7 +1063,7 @@ async def get_featured_articles_api(
                 "slug": article.slug,
                 "excerpt": article.excerpt,
                 "cover_image": article.cover_image,
-                "tags": article.tags_list.split(",") if article.tags_list else [],
+                "tags": _split_tags(article.tags_list),
                 "author": {
                     "id": article.user,
                     "username": users_dict[article.user].username if article.user in users_dict else "Unknown"
@@ -1125,7 +1132,7 @@ async def get_edit_article_api(
                 "slug": article.slug,
                 "excerpt": article.excerpt,
                 "cover_image": article.cover_image,
-                "tags": article.tags_list.split(",") if article.tags_list else [],
+                "tags": _split_tags(article.tags_list),
                 "status": article.status,
                 "hidden": article.hidden,
                 "is_vip_only": article.is_vip_only,

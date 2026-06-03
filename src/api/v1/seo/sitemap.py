@@ -2,6 +2,7 @@
 XML 站点地图 API
 提供标准的 Sitemap 协议支持，包括多语言 hreflang 标签
 """
+import re
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, Request, Response
@@ -174,7 +175,7 @@ async def get_tags_sitemap(
     unique_tags = set()
     for article in articles:
         if article.tags_list:
-            tags = [tag.strip() for tag in article.tags_list.split(',') if tag.strip()]
+            tags = [tag.strip() for tag in re.split(r'[,;]', article.tags_list) if tag.strip()]
             unique_tags.update(tags)
 
     generator = SitemapGenerator()

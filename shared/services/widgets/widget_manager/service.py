@@ -5,6 +5,7 @@ Widget服务核心逻辑
 
 import hashlib
 import json
+import re
 from datetime import datetime, timezone
 from typing import Dict, List, Any, Optional
 
@@ -20,7 +21,7 @@ from shared.services.widgets.widget_manager.renderer import WidgetRenderer
 class WidgetService:
     """
     小部件系统服务
-    
+
     功能:
     1. 动态小部件注册
     2. 小部件位置管理
@@ -165,7 +166,7 @@ class WidgetService:
                         widget.order_index = index
 
                 await db.commit()
-            
+
             return {'success': True, 'message': '排序更新成功'}
         except Exception as e:
             return {'success': False, 'error': str(e)}
@@ -187,7 +188,7 @@ class WidgetService:
 
                 await db.delete(widget)
                 await db.commit()
-            
+
             return {'success': True, 'message': '小部件已移除'}
         except Exception as e:
             return {'success': False, 'error': str(e)}
@@ -484,9 +485,10 @@ class WidgetService:
             for article in articles:
                 if article.tags_list:  # 修复：使用 tags_list
                     tags_list = article.tags_list if isinstance(article.tags_list, list) else [tag.strip() for tag in
-                                                                                               article.tags_list.split(
-                                                                                                   ',') if
-                                                                                     tag.strip()]
+                                                                                               re.split(r'[,;]',
+                                                                                                        article.tags_list)
+                                                                                               if
+                                                                                               tag.strip()]
                     tag_counter.update(tags_list)
 
             most_common = tag_counter.most_common(count)

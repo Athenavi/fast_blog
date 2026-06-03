@@ -2,6 +2,7 @@
 插件公开API服务
 提供插件可以安全调用的公开接口，避免插件直接操作数据库
 """
+import re
 from typing import Dict, List, Any, Optional
 
 from sqlalchemy import select
@@ -13,7 +14,7 @@ from src.extensions import get_async_session_context
 class PluginPublicAPI:
     """
     插件公开API
-    
+
     所有插件应该通过此类提供的接口来访问系统数据，
     而不是直接操作数据库。这样可以保证：
     1. 数据一致性
@@ -31,13 +32,13 @@ class PluginPublicAPI:
     ) -> List[Dict[str, Any]]:
         """
         获取已发布文章列表（异步版本）
-        
+
         Args:
             limit: 返回数量限制
             offset: 偏移量
             category_id: 分类ID筛选
             include_hidden: 是否包含隐藏文章
-            
+
         Returns:
             文章列表，每个文章包含:
             - id: 文章ID
@@ -80,7 +81,7 @@ class PluginPublicAPI:
                     tags_list = []
                     if article.tags_list:
                         try:
-                            tags_list = [tag.strip() for tag in article.tags_list.split(',') if tag.strip()]
+                            tags_list = [tag.strip() for tag in re.split(r'[,;]', article.tags_list) if tag.strip()]
                         except:
                             tags_list = []
 
@@ -111,10 +112,10 @@ class PluginPublicAPI:
     async def get_article_by_slug(slug: str) -> Optional[Dict[str, Any]]:
         """
         根据slug获取文章详情（异步版本）
-        
+
         Args:
             slug: 文章URL别名
-            
+
         Returns:
             文章详情字典，如果不存在返回None
         """
@@ -133,7 +134,7 @@ class PluginPublicAPI:
                     tags_list = []
                     if article.tags_list:
                         try:
-                            tags_list = [tag.strip() for tag in article.tags_list.split(',') if tag.strip()]
+                            tags_list = [tag.strip() for tag in re.split(r'[,;]', article.tags_list) if tag.strip()]
                         except:
                             tags_list = []
 
@@ -160,10 +161,10 @@ class PluginPublicAPI:
     async def get_all_pages(include_draft: bool = False) -> List[Dict[str, Any]]:
         """
         获取所有页面列表（异步版本）
-        
+
         Args:
             include_draft: 是否包含草稿
-            
+
         Returns:
             页面列表
         """
@@ -171,13 +172,13 @@ class PluginPublicAPI:
         # When pages table is available, implement like this:
         # from shared.models.page import Page
         # from sqlalchemy import select
-        # 
+        #
         # stmt = select(Page)
         # if not include_draft:
         #     stmt = stmt.where(Page.status == 'published')
         # result = await db.execute(stmt)
         # pages = result.scalars().all()
-        # 
+        #
         # return [{
         #     'id': page.id,
         #     'title': page.title,
@@ -185,7 +186,7 @@ class PluginPublicAPI:
         #     'content': page.content,
         #     'status': page.status,
         # } for page in pages]
-        
+
         print("[PluginPublicAPI] Pages feature not yet implemented, returning empty list")
         return []
 
@@ -193,7 +194,7 @@ class PluginPublicAPI:
     async def get_site_settings() -> Dict[str, Any]:
         """
         获取网站设置（异步版本）
-        
+
         Returns:
             网站设置字典
         """

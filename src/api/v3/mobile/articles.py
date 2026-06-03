@@ -2,6 +2,7 @@
 移动端文章API
 提供适合移动端的文章相关接口，包括列表、详情、搜索等功能
 """
+import re
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, Request
@@ -107,7 +108,8 @@ async def get_mobile_articles_list(
                 "views": article.views or 0,
                 "likes": article.likes or 0,
                 "created_at": article.created_at.isoformat() if article.created_at else None,
-                "tags": article.tags_list.split(",") if article.tags_list else []
+                "tags": [t.strip() for t in re.split(r'[,;]', article.tags_list) if
+                         t.strip()] if article.tags_list else []
             })
 
         return ApiResponse(
@@ -200,7 +202,8 @@ async def get_mobile_article_detail(
                 "likes": article.likes or 0,
                 "created_at": article.created_at.isoformat() if article.created_at else None,
                 "updated_at": article.updated_at.isoformat() if article.updated_at else None,
-                "tags": article.tags_list.split(",") if article.tags_list else [],
+                "tags": [t.strip() for t in re.split(r'[,;]', article.tags_list) if
+                         t.strip()] if article.tags_list else [],
                 "is_vip_only": article.is_vip_only,
                 "required_vip_level": article.required_vip_level
             }

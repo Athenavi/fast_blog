@@ -2,6 +2,7 @@
 简化版首页API接口
 解决异步greenlet问题，提供稳定的首页数据服务
 """
+import re
 from typing import Optional, Dict, Any
 
 from fastapi import APIRouter, Depends, Query, Request
@@ -661,7 +662,7 @@ def _format_article_with_category(article, categories_dict=None) -> Dict[str, An
             article.updated_at),
         "status": article.status,
         "is_featured": getattr(article, 'is_featured', False),
-        "tags": article.tags_list.split(",") if article.tags_list else []
+        "tags": [t.strip() for t in re.split(r'[,;]', article.tags_list) if t.strip()] if article.tags_list else []
     }
 
 

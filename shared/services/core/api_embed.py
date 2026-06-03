@@ -5,6 +5,7 @@ API嵌入服务
 避免N+1查询问题，提高API效率
 """
 
+import re
 from typing import Any, Dict, List
 
 from sqlalchemy import select
@@ -14,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 class APIEmbedService:
     """
     API嵌入服务
-    
+
     提供资源的嵌入式加载功能
     支持常见的关联关系预加载
     """
@@ -22,7 +23,7 @@ class APIEmbedService:
     def __init__(self, db: AsyncSession):
         """
         初始化嵌入服务
-        
+
         Args:
             db: 数据库会话
         """
@@ -35,11 +36,11 @@ class APIEmbedService:
     ) -> List[Dict[str, Any]]:
         """
         嵌入文章关联数据
-        
+
         Args:
             articles: 文章列表
             embed_fields: 要嵌入的字段列表
-        
+
         Returns:
             包含嵌入数据的文章列表
         """
@@ -115,7 +116,7 @@ class APIEmbedService:
             'slug': article.slug,
             'excerpt': article.excerpt,
             'cover_image': article.cover_image,
-            'tags': article.tags_list.split(',') if article.tags_list else [],
+            'tags': [t.strip() for t in re.split(r'[,;]', article.tags_list) if t.strip()] if article.tags_list else [],
             'views': article.views or 0,
             'likes': article.likes or 0,
             'status': article.status,
@@ -127,10 +128,10 @@ class APIEmbedService:
     def parse_embed_param(embed_param: str) -> List[str]:
         """
         解析_embed参数
-        
+
         Args:
             embed_param: _embed参数值，逗号分隔
-        
+
         Returns:
             嵌入字段列表
         """
@@ -146,11 +147,11 @@ class APIEmbedService:
     ) -> List[str]:
         """
         验证嵌入字段
-        
+
         Args:
             requested_fields: 请求的字段列表
             allowed_fields: 允许的字段列表
-        
+
         Returns:
             有效的字段列表
         """

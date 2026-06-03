@@ -2,6 +2,7 @@
 仪表板相关 API
 """
 
+import re
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, Request, HTTPException
@@ -286,11 +287,11 @@ async def get_blog_management_articles(
                         "description": category.description
                     }
 
-            # 处理标签（将 tags_list 字符串转换为数组）
+            # 处理标签（将 tags_list 字符串转换为数组，支持逗号和分号分隔符）
             tags_list = []
             if article_dict.get('tags_list'):
                 if isinstance(article_dict['tags_list'], str):
-                    tags_list = [tag.strip() for tag in article_dict['tags_list'].split(';') if tag.strip()]
+                    tags_list = [tag.strip() for tag in re.split(r'[,;]', article_dict['tags_list']) if tag.strip()]
                 else:
                     tags_list = article_dict['tags_list']
 
@@ -413,11 +414,11 @@ async def get_my_articles(
             elif article.status == -1:
                 article_status = 'deleted'
 
-            # 处理标签（将 tags_list 字符串转换为数组）
+            # 处理标签（将 tags_list 字符串转换为数组，支持逗号和分号分隔符）
             tags_list = []
             if article_dict.get('tags_list'):
                 if isinstance(article_dict['tags_list'], str):
-                    tags_list = [t.strip() for t in article_dict['tags_list'].split(';') if t.strip()]
+                    tags_list = [t.strip() for t in re.split(r'[,;]', article_dict['tags_list']) if t.strip()]
                 else:
                     tags_list = article_dict['tags_list']
 

@@ -2,6 +2,7 @@ t"""
 SEO优化工具模块
 包含sitemap生成、meta标签优化等功能
 """
+import re
 from datetime import datetime
 
 from fastapi import Request
@@ -58,7 +59,8 @@ def get_article_meta_tags(article, content=None, author=None, request: Request =
                 'excerpt': article.excerpt or '',
                 'slug': article.slug,
                 'featured_image': cover_image,
-                'tags': article.tags_list.split(';') if article.tags_list else [],
+                'tags': [t.strip() for t in re.split(r'[,;]', article.tags_list) if
+                         t.strip()] if article.tags_list else [],
                 'created_at': article.created_at,
                 'updated_at': article.updated_at,
             }
