@@ -332,6 +332,8 @@ async def get_my_articles(
         status: Optional[str] = Query(None),
         search: Optional[str] = Query(None),
         hidden: Optional[bool] = Query(None),
+    category_id: Optional[int] = Query(None, description="按分类 ID 筛选"),
+    tag: Optional[str] = Query(None, description="按标签筛选"),
         current_user: User = Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
@@ -358,6 +360,14 @@ async def get_my_articles(
         if hidden is not None:
             query = query.where(Article.hidden == hidden)
 
+        # 根据分类过滤
+        if category_id is not None:
+            query = query.where(Article.category == category_id)
+
+        # 根据标签过滤（在 tags_list 字段中搜索）
+        if tag:
+            query = query.where(Article.tags_list.contains(tag))
+
         # 搜索功能
         if search:
             query = query.where(
@@ -378,6 +388,17 @@ async def get_my_articles(
         articles_result = await db.execute(articles_query)
         articles = articles_result.scalars().all()
 
+        # 批量查询分类名称（避免 N+1 查询）
+        from shared.models.category import Category
+        category_ids = list(set(a.category for a in articles if a.category))
+        categories_dict = {}
+        if category_ids:
+            cat_result = await db.execute(
+                select(Category).where(Category.id.in_(category_ids))
+            )
+            for cat in cat_result.scalars().all():
+                categories_dict[cat.id] = cat.name
+
         articles_data = []
         for article in articles:
             # 使用模型的 to_dict() 方法获取基础数据
@@ -396,16 +417,19 @@ async def get_my_articles(
             tags_list = []
             if article_dict.get('tags_list'):
                 if isinstance(article_dict['tags_list'], str):
-                    tags_list = [tag.strip() for tag in article_dict['tags_list'].split(';') if tag.strip()]
+                    tags_list = [t.strip() for t in article_dict['tags_list'].split(';') if t.strip()]
                 else:
                     tags_list = article_dict['tags_list']
+
+            # 获取分类名称
+            category_name = categories_dict.get(article.category, '')
 
             # 检查文章是否有密码保护
             has_password = False
             try:
-                from sqlalchemy import select
+                from sqlalchemy import select as sel
                 from shared.models.article_content import ArticleContent
-                content_query = select(ArticleContent).where(ArticleContent.article == article.id)
+                content_query = sel(ArticleContent).where(ArticleContent.article == article.id)
                 content_result = await db.execute(content_query)
                 content = content_result.scalar_one_or_none()
                 has_password = bool(content and content.passwd)
@@ -418,6 +442,8 @@ async def get_my_articles(
                 "tags": tags_list,  # 转换后的标签数组
                 "status": article_status,  # 覆盖为字符串状态
                 "has_password": has_password,  # 添加密码保护状态
+                "category_id": article.category,  # 分类 ID
+                "category_name": category_name,  # 分类名称
                 "author": {
                     "id": article.user,
                     "username": "未知作者"  # 由于 author 关系已注释，暂时显示未知

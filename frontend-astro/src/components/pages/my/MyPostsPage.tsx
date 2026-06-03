@@ -11,6 +11,7 @@ import {useConfirm} from '@/components/ui/confirm-provider';
 import {
   BookOpen,
   Calendar,
+  ChevronDown,
   ChevronLeft,
   ChevronRight,
   Copy,
@@ -19,12 +20,13 @@ import {
   Eye,
   EyeOff,
   FileText,
+  Filter,
   Globe,
   Grid,
+  Hash,
   Heart,
   KeyRound,
   LayoutList,
-  Loader2,
   Lock,
   MoreHorizontal,
   PenSquare,
@@ -51,8 +53,19 @@ interface Article {
   has_password?: boolean;
   created_at: string;
   updated_at?: string;
+  category?: number;
+  category_id?: number;
   category_name?: string;
   tags?: string[];
+}
+
+interface Category {
+  id: number;
+  name: string;
+  slug?: string;
+  icon?: string;
+  color?: string;
+  articles_count?: number;
 }
 
 type ViewMode = 'list' | 'grid';
@@ -103,7 +116,25 @@ const PasswordModal: React.FC<{
 
     setLoading(true);
     try {
-      const res = await apiClient.post(`/articles/${article.id}/password`, {password: isSet ? null : password});
+      const endpoint = `/articles/${article.id}/password`;
+      const res = await apiClient.post(endpoint, isSet ? {} : {password});
+      if (res.success) {
+        onSuccess();
+        onClose();
+      } else {
+        setError(res.error || '操作失败');
+      }
+    } catch (err: any) {
+      setError(err.message || '网络错误');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRemovePassword = async () => {
+    setLoading(true);
+    try {
+      const res = await apiClient.delete(`/articles/${article.id}/password`);
       if (res.success) {
         onSuccess();
         onClose();
@@ -119,106 +150,102 @@ const PasswordModal: React.FC<{
 
   return (
     <motion.div initial={{opacity: 0}} animate={{opacity: 1}} exit={{opacity: 0}}
-                className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+                className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
                 onClick={onClose}>
       <motion.div initial={{opacity: 0, scale: 0.95, y: 20}} animate={{opacity: 1, scale: 1, y: 0}}
-                  exit={{opacity: 0, scale: 0.95, y: 20}}
-                  className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 w-full max-w-md overflow-hidden"
+                  className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md overflow-hidden"
                   onClick={e => e.stopPropagation()}>
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800">
-          <div className="flex items-center gap-3">
-            <div
-              className={`p-2 rounded-xl ${isSet ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400' : 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'}`}>
-              {isSet ? <Lock className="w-5 h-5"/> : <KeyRound className="w-5 h-5"/>}
+        <div className="p-6">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="w-10 h-10 rounded-xl bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
+              <KeyRound className="w-5 h-5 text-blue-600 dark:text-blue-400"/>
             </div>
             <div>
-              <h3 className="font-semibold text-gray-900 dark:text-white">{isSet ? '移除文章密码' : '设置文章密码'}</h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 line-clamp-1">{article.title}</p>
+              <h3 className="font-semibold text-gray-900 dark:text-white">
+                {isSet ? '管理文章密码' : '设置文章密码'}
+              </h3>
+              <p className="text-sm text-gray-500 dark:text-gray-400">
+                {isSet ? '修改或移除文章的访问密码' : '为文章设置访问密码保护'}
+              </p>
             </div>
           </div>
-          <button onClick={onClose}
-                  className="p-1.5 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
-            <X className="w-4 h-4"/>
-          </button>
-        </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
           {isSet ? (
-            <div
-              className="flex items-center gap-3 p-3 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800">
-              <ShieldCheck className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0"/>
-              <p
-                className="text-sm text-amber-700 dark:text-amber-300">当前文章已设置密码保护，确认后将移除密码，任何人都可访问。</p>
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 p-3 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl">
+                <ShieldCheck className="w-5 h-5 text-emerald-600 dark:text-emerald-400"/>
+                <span className="text-sm text-emerald-700 dark:text-emerald-300">此文章已设置密码保护</span>
+              </div>
+              {error && <p className="text-sm text-red-500">{error}</p>}
+              <div className="flex gap-2">
+                <button onClick={onClose}
+                        className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                  取消
+                </button>
+                <button onClick={handleRemovePassword} disabled={loading}
+                        className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-xl hover:bg-red-700 disabled:opacity-50 transition-colors">
+                  {loading ? '处理中...' : '移除密码'}
+                </button>
+              </div>
             </div>
           ) : (
-            <>
+            <form onSubmit={handleSubmit} className="space-y-3">
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">访问密码</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">访问密码</label>
                 <input ref={inputRef} type="password" value={password} onChange={e => setPassword(e.target.value)}
-                       placeholder="设置 4 位以上密码" minLength={4}
-                       className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 dark:text-white transition-all"/>
+                       placeholder="设置文章访问密码（至少 4 位）"
+                       className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 dark:text-white"/>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">确认密码</label>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">确认密码</label>
                 <input type="password" value={confirmPwd} onChange={e => setConfirmPwd(e.target.value)}
-                       placeholder="再次输入密码" minLength={4}
-                       className="w-full px-3.5 py-2.5 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 dark:text-white transition-all"/>
+                       placeholder="再次输入密码"
+                       className="w-full px-3 py-2 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 dark:text-white"/>
               </div>
-              <div
-                className="flex items-center gap-2 p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800">
-                <Lock className="w-4 h-4 text-blue-500 flex-shrink-0"/>
-                <p
-                  className="text-xs text-blue-600 dark:text-blue-400">设置密码后，访问者需要输入密码才能查看文章内容。</p>
+              {error && <p className="text-sm text-red-500">{error}</p>}
+              <div className="flex gap-2 pt-1">
+                <button type="button" onClick={onClose}
+                        className="flex-1 px-4 py-2.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                  取消
+                </button>
+                <button type="submit" disabled={loading}
+                        className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-xl hover:bg-blue-700 disabled:opacity-50 transition-colors">
+                  {loading ? '设置中...' : '设置密码'}
+                </button>
               </div>
-            </>
+            </form>
           )}
-
-          {error && (
-            <p className="text-sm text-red-500 dark:text-red-400 flex items-center gap-1.5">
-              <X className="w-3.5 h-3.5"/>{error}
-            </p>
-          )}
-
-          <div className="flex items-center justify-end gap-2 pt-2">
-            <button type="button" onClick={onClose}
-                    className="px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors">
-              取消
-            </button>
-            <button type="submit" disabled={loading}
-                    className={`flex items-center gap-2 px-5 py-2 text-sm font-medium text-white rounded-xl transition-colors disabled:opacity-50 ${
-                      isSet ? 'bg-red-600 hover:bg-red-700' : 'bg-blue-600 hover:bg-blue-700'
-                    }`}>
-              {loading && <Loader2 className="w-4 h-4 animate-spin"/>}
-              {isSet ? '确认移除' : '设置密码'}
-            </button>
-          </div>
-        </form>
+        </div>
       </motion.div>
     </motion.div>
   );
 };
 
-/* ── Stats Card ── */
+/* ── Stat Card ── */
 const StatCard: React.FC<{
-  icon: React.ElementType; label: string; value: number | string;
-  color: string; delay?: number;
+  icon: React.FC<any>; label: string; value: number; color: string; delay?: number;
 }> = ({icon: Icon, label, value, color, delay = 0}) => (
   <motion.div variants={fadeUp}
-              className="flex items-center gap-3 p-4 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-md transition-shadow">
-    <div className={`p-2.5 rounded-xl ${color}`}>
-      <Icon className="w-5 h-5"/>
-    </div>
-    <div>
-      <p className="text-2xl font-bold text-gray-900 dark:text-white">{value}</p>
-      <p className="text-xs text-gray-500 dark:text-gray-400">{label}</p>
+              className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 p-4 sm:p-5 hover:shadow-md transition-shadow">
+    <div className="flex items-center gap-3">
+      <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${color}`}>
+        <Icon className="w-5 h-5"/>
+      </div>
+      <div>
+        <p className="text-2xl font-bold text-gray-900 dark:text-white">{value}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-400">{label}</p>
+      </div>
     </div>
   </motion.div>
 );
 
 /* ── Action Dropdown ── */
 const ActionDropdown: React.FC<{
-  article: Article; onEdit: () => void; onDelete: () => void; onDuplicate: () => void; onPassword: () => void;
+  article: Article;
+  onEdit: () => void;
+  onDelete: () => void;
+  onDuplicate: () => void;
+  onPassword: () => void;
 }> = ({article, onEdit, onDelete, onDuplicate, onPassword}) => {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -235,59 +262,45 @@ const ActionDropdown: React.FC<{
     <div ref={ref} className="relative">
       <button onClick={(e) => {
         e.stopPropagation();
-        e.preventDefault();
         setOpen(!open);
       }}
-              className="p-2 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+              className="p-2 rounded-lg text-gray-400 hover:text-gray-600 hover:bg-gray-100 dark:hover:bg-gray-800 dark:hover:text-gray-300 transition-colors"
+              title="更多操作">
         <MoreHorizontal className="w-4 h-4"/>
       </button>
       <AnimatePresence>
         {open && (
           <motion.div onClick={(e) => e.stopPropagation()} initial={{opacity: 0, scale: 0.95, y: -4}}
                       animate={{opacity: 1, scale: 1, y: 0}} exit={{opacity: 0, scale: 0.95, y: -4}}
-                      transition={{duration: 0.12}}
-                      className="absolute right-0 top-full mt-1 z-50 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 p-1.5 min-w-[180px]">
-            <a href={`/my/posts/edit?id=${article.id}`} onClick={(e) => {
-              e.stopPropagation();
+                      transition={{duration: 0.15}}
+                      className="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-xl z-50 py-1.5 overflow-hidden">
+            <button onClick={() => {
+              onEdit();
               setOpen(false);
             }}
-               className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                    className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
               <Edit className="w-4 h-4"/>编辑文章
-            </a>
-            <a href={`/view?slug=${article.slug}`} target="_blank" rel="noopener" onClick={(e) => {
-              e.stopPropagation();
-              setOpen(false);
-            }}
-               className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-              <Eye className="w-4 h-4"/>查看文章
-            </a>
-            <button onClick={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
+            </button>
+            <button onClick={() => {
               onDuplicate();
               setOpen(false);
             }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                    className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
               <Copy className="w-4 h-4"/>复制链接
             </button>
-            <button onClick={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
+            <button onClick={() => {
               onPassword();
               setOpen(false);
             }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
-              {article.has_password ? <Lock className="w-4 h-4"/> : <KeyRound className="w-4 h-4"/>}
-              {article.has_password ? '管理密码' : '设置密码'}
+                    className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+              <KeyRound className="w-4 h-4"/>{article.has_password ? '管理密码' : '设置密码'}
             </button>
-            <div className="border-t border-gray-100 dark:border-gray-700 my-1"/>
-            <button onClick={(e) => {
-              e.stopPropagation();
-              e.preventDefault();
+            <div className="my-1.5 border-t border-gray-100 dark:border-gray-800"/>
+            <button onClick={() => {
               onDelete();
               setOpen(false);
             }}
-                    className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                    className="w-full flex items-center gap-2.5 px-3.5 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
               <Trash2 className="w-4 h-4"/>删除文章
             </button>
           </motion.div>
@@ -300,7 +313,8 @@ const ActionDropdown: React.FC<{
 /* ── List Item ── */
 const ArticleListItem: React.FC<{
   article: Article; onDelete: () => void; onDuplicate: () => void; onPassword: () => void; index: number;
-}> = ({article, onDelete, onDuplicate, onPassword, index}) => {
+  onTagClick?: (tag: string) => void; onCategoryClick?: (id: number) => void;
+}> = ({article, onDelete, onDuplicate, onPassword, index, onTagClick, onCategoryClick}) => {
   const cover = getFullMediaUrl(article.cover_image);
   const published = isPublished(article.status);
 
@@ -321,11 +335,17 @@ const ArticleListItem: React.FC<{
           <div className="flex items-start justify-between gap-2">
             <div className="flex-1 min-w-0">
               {/* Status + Badges */}
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-2 mb-2 flex-wrap">
                 <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${
                   published ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400'
                     : 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400'
                 }`}>{statusLabel(article.status)}</span>
+                {article.category_name && (
+                  <button onClick={() => onCategoryClick?.(article.category_id || article.category || 0)}
+                          className="px-2 py-0.5 text-xs rounded-full font-medium bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors cursor-pointer">
+                    {article.category_name}
+                  </button>
+                )}
                 {article.hidden && <span className="flex items-center gap-1 text-xs text-gray-400"><EyeOff
                   className="w-3 h-3"/>隐藏</span>}
                 {article.is_vip_only && <span className="flex items-center gap-1 text-xs text-amber-500"><Crown
@@ -343,6 +363,20 @@ const ArticleListItem: React.FC<{
                 <p className="text-sm text-gray-500 dark:text-gray-400 mt-1.5 line-clamp-2 leading-relaxed">
                   {article.excerpt || article.summary}
                 </p>
+              )}
+              {/* Tags */}
+              {article.tags && article.tags.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-2">
+                  {article.tags.slice(0, 4).map(tag => (
+                    <button key={tag} onClick={() => onTagClick?.(tag)}
+                            className="inline-flex items-center gap-0.5 px-2 py-0.5 text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 hover:text-gray-700 dark:hover:text-gray-300 transition-colors cursor-pointer">
+                      <Hash className="w-2.5 h-2.5"/>{tag}
+                    </button>
+                  ))}
+                  {article.tags.length > 4 && (
+                    <span className="text-xs text-gray-400">+{article.tags.length - 4}</span>
+                  )}
+                </div>
               )}
             </div>
             {/* Actions */}
@@ -376,14 +410,14 @@ const ArticleListItem: React.FC<{
 /* ── Grid Card ── */
 const ArticleGridCard: React.FC<{
   article: Article; onDelete: () => void; onDuplicate: () => void; onPassword: () => void;
-}> = ({article, onDelete, onDuplicate, onPassword}) => {
+  onTagClick?: (tag: string) => void; onCategoryClick?: (id: number) => void;
+}> = ({article, onDelete, onDuplicate, onPassword, onTagClick, onCategoryClick}) => {
   const cover = getFullMediaUrl(article.cover_image);
   const published = isPublished(article.status);
 
   return (
     <motion.div variants={fadeUp}
-                className="group bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-lg transition-all duration-300 flex flex-col">
-      {/* Cover */}
+                className="group bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-lg transition-all duration-300">
       <a href={`/my/posts/edit?id=${article.id}`}
          className="block aspect-[16/10] bg-gray-100 dark:bg-gray-800 overflow-hidden relative">
         {cover ? (
@@ -394,43 +428,61 @@ const ArticleGridCard: React.FC<{
             <FileText className="w-10 h-10 text-gray-200 dark:text-gray-700"/>
           </div>
         )}
-        {/* Status badge overlay */}
-        <div className="absolute top-3 left-3 flex items-center gap-1.5">
+        {/* Category badge on image */}
+        {article.category_name && (
+          <div className="absolute top-3 left-3">
+            <button onClick={(e) => {
+              e.preventDefault();
+              onCategoryClick?.(article.category_id || article.category || 0);
+            }}
+                    className="px-2.5 py-1 text-xs font-medium bg-white/90 dark:bg-gray-900/90 text-gray-700 dark:text-gray-300 backdrop-blur-sm rounded-lg hover:bg-white dark:hover:bg-gray-900 transition-colors">
+              {article.category_name}
+            </button>
+          </div>
+        )}
+        {/* Status overlay */}
+        <div className="absolute top-3 right-3">
           <span className={`px-2 py-0.5 text-xs rounded-full font-medium backdrop-blur-sm ${
-            published ? 'bg-emerald-100/90 text-emerald-700 dark:bg-emerald-900/70 dark:text-emerald-300'
-              : 'bg-amber-100/90 text-amber-700 dark:bg-amber-900/70 dark:text-amber-300'
+            published ? 'bg-emerald-500/90 text-white' : 'bg-amber-500/90 text-white'
           }`}>{statusLabel(article.status)}</span>
-          {article.has_password && <span
-            className="px-1.5 py-0.5 text-xs rounded-full font-medium backdrop-blur-sm bg-blue-100/90 text-blue-700 dark:bg-blue-900/70 dark:text-blue-300 flex items-center gap-1"><Lock
-            className="w-3 h-3"/>加密</span>}
-        </div>
-        {/* Actions overlay */}
-        <div
-          className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
-          <a href={`/my/posts/edit?id=${article.id}`}
-             className="p-1.5 rounded-lg bg-white/90 dark:bg-gray-800/90 backdrop-blur-sm text-gray-600 dark:text-gray-300 hover:text-blue-600 transition-colors shadow-sm"
-             title="编辑"><Edit className="w-3.5 h-3.5"/></a>
-          <ActionDropdown article={article}
-                          onEdit={() => window.location.href = `/my/posts/edit?id=${article.id}`}
-                          onDelete={onDelete} onDuplicate={onDuplicate} onPassword={onPassword}/>
         </div>
       </a>
-      {/* Content */}
-      <div className="p-4 flex-1 flex flex-col">
-        <a href={`/my/posts/edit?id=${article.id}`}
-           className="font-semibold text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors line-clamp-2 text-sm leading-snug">
-          {article.title || '无标题'}
-        </a>
+      <div className="p-4">
+        <div className="flex items-start justify-between gap-2 mb-1.5">
+          <a href={`/my/posts/edit?id=${article.id}`}
+             className="font-semibold text-gray-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 transition-colors line-clamp-2 text-sm leading-snug">
+            {article.title || '无标题'}
+          </a>
+          <div className="flex items-center gap-0.5 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+            <ActionDropdown article={article}
+                            onEdit={() => window.location.href = `/my/posts/edit?id=${article.id}`}
+                            onDelete={onDelete} onDuplicate={onDuplicate} onPassword={onPassword}/>
+          </div>
+        </div>
         {(article.excerpt || article.summary) && (
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-1.5 line-clamp-2 leading-relaxed flex-1">
+          <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 mb-2">
             {article.excerpt || article.summary}
           </p>
         )}
-        <div
-          className="flex items-center gap-3 mt-3 pt-3 border-t border-gray-50 dark:border-gray-800 text-xs text-gray-400">
+        {/* Tags */}
+        {article.tags && article.tags.length > 0 && (
+          <div className="flex flex-wrap gap-1 mb-2">
+            {article.tags.slice(0, 3).map(tag => (
+              <button key={tag} onClick={() => onTagClick?.(tag)}
+                      className="inline-flex items-center gap-0.5 px-1.5 py-0.5 text-[11px] text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-800 rounded hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors cursor-pointer">
+                <Hash className="w-2.5 h-2.5"/>{tag}
+              </button>
+            ))}
+            {article.tags.length > 3 && (
+              <span className="text-[11px] text-gray-400">+{article.tags.length - 3}</span>
+            )}
+          </div>
+        )}
+        <div className="flex items-center gap-3 text-xs text-gray-400">
           <span className="flex items-center gap-1"><Calendar
             className="w-3 h-3"/>{article.created_at ? timeAgo(article.created_at) : ''}</span>
           <span className="flex items-center gap-1"><Eye className="w-3 h-3"/>{article.views ?? 0}</span>
+          <span className="flex items-center gap-1"><Heart className="w-3 h-3"/>{article.likes ?? 0}</span>
         </div>
       </div>
     </motion.div>
@@ -462,6 +514,86 @@ const ListSkeleton: React.FC<{ viewMode: ViewMode }> = ({viewMode}) => (
   )
 );
 
+/* ── Category Filter Dropdown ── */
+const CategoryFilter: React.FC<{
+  categories: Category[];
+  selected: number | null;
+  onChange: (id: number | null) => void;
+}> = ({categories, selected, onChange}) => {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  const selectedName = selected ? categories.find(c => c.id === selected)?.name : null;
+
+  return (
+    <div ref={ref} className="relative">
+      <button onClick={() => setOpen(!open)}
+              className={`flex items-center gap-1.5 px-3 py-2 text-sm rounded-xl border transition-colors ${
+                selected
+                  ? 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-600 dark:text-blue-400'
+                  : 'bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-600'
+              }`}>
+        <Filter className="w-3.5 h-3.5"/>
+        <span className="max-w-[100px] truncate">{selectedName || '分类'}</span>
+        <ChevronDown className={`w-3.5 h-3.5 transition-transform ${open ? 'rotate-180' : ''}`}/>
+      </button>
+      <AnimatePresence>
+        {open && (
+          <motion.div initial={{opacity: 0, y: -4}} animate={{opacity: 1, y: 0}} exit={{opacity: 0, y: -4}}
+                      transition={{duration: 0.15}}
+                      className="absolute left-0 top-full mt-1 w-52 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 shadow-xl z-50 py-1.5 max-h-64 overflow-y-auto">
+            <button onClick={() => {
+              onChange(null);
+              setOpen(false);
+            }}
+                    className={`w-full flex items-center justify-between px-3.5 py-2 text-sm transition-colors ${
+                      !selected ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
+                    }`}>
+              <span>全部分类</span>
+            </button>
+            {categories.map(cat => (
+              <button key={cat.id} onClick={() => {
+                onChange(cat.id);
+                setOpen(false);
+              }}
+                      className={`w-full flex items-center justify-between px-3.5 py-2 text-sm transition-colors ${
+                        selected === cat.id ? 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800'
+                      }`}>
+                <span className="truncate">{cat.name}</span>
+                {cat.articles_count != null && (
+                  <span className="text-xs text-gray-400 ml-2">{cat.articles_count}</span>
+                )}
+              </button>
+            ))}
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+};
+
+/* ── Tag Filter Chip ── */
+const TagFilterChip: React.FC<{
+  tag: string;
+  onRemove: () => void;
+}> = ({tag, onRemove}) => (
+  <motion.span initial={{opacity: 0, scale: 0.8}} animate={{opacity: 1, scale: 1}}
+               className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-lg">
+    <Hash className="w-3 h-3"/>{tag}
+    <button onClick={onRemove} className="ml-0.5 hover:text-blue-800 dark:hover:text-blue-200 transition-colors">
+      <X className="w-3 h-3"/>
+    </button>
+  </motion.span>
+);
+
 /* ── Main Component ── */
 function MyPostsInner() {
   const confirm = useConfirm();
@@ -471,6 +603,8 @@ function MyPostsInner() {
   const [debouncedQ, setDebouncedQ] = useState('');
   const [tab, setTab] = useState<StatusTab>('all');
   const [viewMode, setViewMode] = useState<ViewMode>('list');
+  const [categoryId, setCategoryId] = useState<number | null>(null);
+  const [selectedTag, setSelectedTag] = useState<string | null>(null);
   const perPage = 12;
 
   // Debounce search
@@ -482,22 +616,60 @@ function MyPostsInner() {
   // Reset page on filter change
   useEffect(() => {
     setPage(1);
-  }, [debouncedQ, tab]);
+  }, [debouncedQ, tab, categoryId, selectedTag]);
+
+  // Fetch categories
+  const {data: categoriesData} = useQuery({
+    queryKey: ['categories-list'],
+    queryFn: async () => {
+      const res = await apiClient.get('/home/categories', {limit: 100});
+      if (res.success && Array.isArray(res.data)) return res.data as Category[];
+      if (res.success && res.data?.categories) return res.data.categories as Category[];
+      return [] as Category[];
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const categories = categoriesData || [];
+
+  // Collect all unique tags from articles for tag filter
+  const [allTags, setAllTags] = useState<string[]>([]);
 
   const {data, isLoading, isFetching} = useQuery({
-    queryKey: ['my-posts', page, debouncedQ],
+    queryKey: ['my-posts', page, debouncedQ, categoryId, selectedTag],
     queryFn: async () => {
-      const res = await apiClient.get('/dashboard/my/articles', {page, per_page: perPage, q: debouncedQ || undefined});
+      const params: Record<string, any> = {page, per_page: perPage};
+      if (debouncedQ) params.q = debouncedQ;
+      if (categoryId) params.category_id = categoryId;
+      if (selectedTag) params.tag = selectedTag;
+      const res = await apiClient.get('/dashboard/my/articles', params);
       if (!res.success || !res.data) return {articles: [] as Article[], total: 0};
-      if (Array.isArray(res.data)) return {articles: res.data, total: res.data.length};
-      if (res.data.articles) return {
-        articles: res.data.articles as Article[],
-        total: res.data.total || res.data.articles.length
-      };
-      if (res.data.data) return {
-        articles: ((res.data.data as any).articles || []) as Article[],
-        total: (res.data.data as any).total || 0
-      };
+      if (Array.isArray(res.data)) {
+        // Collect tags
+        const tags = new Set<string>();
+        res.data.forEach((a: Article) => a.tags?.forEach(t => tags.add(t)));
+        setAllTags(prev => Array.from(new Set([...prev, ...tags])));
+        return {articles: res.data as Article[], total: res.data.length};
+      }
+      if (res.data.articles) {
+        const tags = new Set<string>();
+        res.data.articles.forEach((a: Article) => a.tags?.forEach(t => tags.add(t)));
+        setAllTags(prev => Array.from(new Set([...prev, ...tags])));
+        return {
+          articles: res.data.articles as Article[],
+          total: res.data.total || res.data.articles.length
+        };
+      }
+      if (res.data.data) {
+        const arts = ((res.data.data as any).articles || []) as Article[];
+        const tags = new Set<string>();
+        arts.forEach(a => a.tags?.forEach(t => tags.add(t)));
+        setAllTags(prev => Array.from(new Set([...prev, ...tags])));
+        return {
+          articles: arts,
+          total: (res.data.data as any).total || 0
+        };
+      }
       return {articles: [] as Article[], total: 0};
     },
   });
@@ -546,6 +718,8 @@ function MyPostsInner() {
     {key: 'drafts', label: '草稿', count: stats.drafts},
   ];
 
+  const hasActiveFilters = categoryId || selectedTag;
+
   return (
     <>
       {pwdArticle && (
@@ -583,54 +757,88 @@ function MyPostsInner() {
           </motion.div>
 
           {/* ── Toolbar ── */}
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
-            {/* Tabs */}
-            <div className="flex items-center bg-gray-100 dark:bg-gray-800/50 rounded-xl p-1">
-              {tabs.map(t => (
-                <button key={t.key} onClick={() => setTab(t.key)}
-                        className={`relative px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
-                          tab === t.key
-                            ? 'text-gray-900 dark:text-white'
-                            : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-                        }`}>
-                  {tab === t.key && (
-                    <motion.div layoutId="activeTab"
-                                className="absolute inset-0 bg-white dark:bg-gray-700 rounded-lg shadow-sm"
-                                transition={{type: 'spring', bounce: 0.2, duration: 0.4}}/>
+          <div className="flex flex-col gap-3 mb-6">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              {/* Tabs */}
+              <div className="flex items-center bg-gray-100 dark:bg-gray-800/50 rounded-xl p-1">
+                {tabs.map(t => (
+                  <button key={t.key} onClick={() => setTab(t.key)}
+                          className={`relative px-4 py-2 text-sm font-medium rounded-lg transition-colors ${
+                            tab === t.key
+                              ? 'text-gray-900 dark:text-white'
+                              : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
+                          }`}>
+                    {tab === t.key && (
+                      <motion.div layoutId="activeTab"
+                                  className="absolute inset-0 bg-white dark:bg-gray-700 rounded-lg shadow-sm"
+                                  transition={{type: 'spring', bounce: 0.2, duration: 0.4}}/>
+                    )}
+                    <span className="relative z-10">{t.label}</span>
+                    <span className={`relative z-10 ml-1.5 text-xs px-1.5 py-0.5 rounded-full ${
+                      tab === t.key ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                    }`}>{t.count}</span>
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-2">
+                {/* Search */}
+                <div className="relative flex-1 sm:w-64">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"/>
+                  <input type="text" value={q} onChange={e => setQ(e.target.value)} placeholder="搜索文章..."
+                         className="w-full pl-9 pr-8 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 dark:text-white transition-all"/>
+                  {q && (
+                    <button onClick={() => setQ('')}
+                            className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                      <X className="w-3.5 h-3.5"/>
+                    </button>
                   )}
-                  <span className="relative z-10">{t.label}</span>
-                  <span className={`relative z-10 ml-1.5 text-xs px-1.5 py-0.5 rounded-full ${
-                    tab === t.key ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
-                  }`}>{t.count}</span>
-                </button>
-              ))}
+                </div>
+                {/* View Toggle */}
+                <div
+                  className="flex items-center bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-0.5">
+                  <button onClick={() => setViewMode('list')}
+                          className={`p-1.5 rounded-lg transition-colors ${viewMode === 'list' ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}>
+                    <LayoutList className="w-4 h-4"/>
+                  </button>
+                  <button onClick={() => setViewMode('grid')}
+                          className={`p-1.5 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}>
+                    <Grid className="w-4 h-4"/>
+                  </button>
+                </div>
+              </div>
             </div>
 
-            <div className="flex items-center gap-2">
-              {/* Search */}
-              <div className="relative flex-1 sm:w-64">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"/>
-                <input type="text" value={q} onChange={e => setQ(e.target.value)} placeholder="搜索文章..."
-                       className="w-full pl-9 pr-8 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500 dark:text-white transition-all"/>
-                {q && (
-                  <button onClick={() => setQ('')}
-                          className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-                    <X className="w-3.5 h-3.5"/>
-                  </button>
-                )}
-              </div>
-              {/* View Toggle */}
-              <div
-                className="flex items-center bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl p-0.5">
-                <button onClick={() => setViewMode('list')}
-                        className={`p-1.5 rounded-lg transition-colors ${viewMode === 'list' ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}>
-                  <LayoutList className="w-4 h-4"/>
+            {/* ── Filters Row ── */}
+            <div className="flex flex-wrap items-center gap-2">
+              <CategoryFilter categories={categories} selected={categoryId} onChange={setCategoryId}/>
+
+              {selectedTag && (
+                <TagFilterChip tag={selectedTag} onRemove={() => setSelectedTag(null)}/>
+              )}
+
+              {hasActiveFilters && (
+                <button onClick={() => {
+                  setCategoryId(null);
+                  setSelectedTag(null);
+                }}
+                        className="flex items-center gap-1 px-2.5 py-2 text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
+                  <X className="w-3 h-3"/>清除筛选
                 </button>
-                <button onClick={() => setViewMode('grid')}
-                        className={`p-1.5 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-white' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}>
-                  <Grid className="w-4 h-4"/>
-                </button>
-              </div>
+              )}
+
+              {/* Quick tag suggestions */}
+              {allTags.length > 0 && !selectedTag && (
+                <div className="flex items-center gap-1.5 ml-auto">
+                  <span className="text-xs text-gray-400 hidden sm:inline">热门标签:</span>
+                  {allTags.slice(0, 5).map(tag => (
+                    <button key={tag} onClick={() => setSelectedTag(tag)}
+                            className="px-2 py-1 text-xs text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 bg-gray-50 dark:bg-gray-800/50 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-md transition-colors">
+                      {tag}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
 
@@ -648,16 +856,25 @@ function MyPostsInner() {
                   <PenSquare className="w-10 h-10 text-blue-300 dark:text-blue-600"/>
                 </div>
                 <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-2">
-                  {debouncedQ ? '没有找到匹配的文章' : '还没有文章'}
+                  {debouncedQ || hasActiveFilters ? '没有找到匹配的文章' : '还没有文章'}
                 </h3>
                 <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 max-w-md mx-auto">
-                  {debouncedQ ? '尝试使用不同的关键词搜索' : '开始你的创作之旅，写下第一篇文章吧'}
+                  {debouncedQ || hasActiveFilters ? '尝试调整筛选条件或使用不同的关键词搜索' : '开始你的创作之旅，写下第一篇文章吧'}
                 </p>
-                {!debouncedQ && (
+                {!debouncedQ && !hasActiveFilters && (
                   <a href="/my/posts/create"
                      className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white text-sm font-medium rounded-xl hover:bg-blue-700 transition-colors">
                     <Plus className="w-4 h-4"/>开始写作
                   </a>
+                )}
+                {hasActiveFilters && (
+                  <button onClick={() => {
+                    setCategoryId(null);
+                    setSelectedTag(null);
+                  }}
+                          className="inline-flex items-center gap-2 px-5 py-2.5 bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 text-sm font-medium rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">
+                    <X className="w-4 h-4"/>清除筛选
+                  </button>
                 )}
               </motion.div>
             ) : viewMode === 'grid' ? (
@@ -667,7 +884,9 @@ function MyPostsInner() {
                   <ArticleGridCard key={a.id} article={a}
                                    onDelete={() => handleDelete(a.id)}
                                    onDuplicate={() => handleCopyLink(a.slug)}
-                                   onPassword={() => setPwdArticle(a)}/>
+                                   onPassword={() => setPwdArticle(a)}
+                                   onTagClick={setSelectedTag}
+                                   onCategoryClick={(id) => setCategoryId(id)}/>
                 ))}
               </motion.div>
             ) : (
@@ -677,7 +896,9 @@ function MyPostsInner() {
                   <ArticleListItem key={a.id} article={a} index={i}
                                    onDelete={() => handleDelete(a.id)}
                                    onDuplicate={() => handleCopyLink(a.slug)}
-                                   onPassword={() => setPwdArticle(a)}/>
+                                   onPassword={() => setPwdArticle(a)}
+                                   onTagClick={setSelectedTag}
+                                   onCategoryClick={(id) => setCategoryId(id)}/>
                 ))}
               </motion.div>
             )}
