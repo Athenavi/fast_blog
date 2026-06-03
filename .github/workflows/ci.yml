@@ -200,3 +200,5 @@ jobs:
           tags: fastblog:ci-test
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          build-contexts: |
+            ffmpeg_src=./tools/ffmpeg
