@@ -311,7 +311,7 @@ const ArticleListItem: React.FC<{
         {/* Cover Image */}
         {cover && (
           <a href={`/my/posts/edit?id=${article.id}`}
-             className="block sm:w-48 md:w-56 h-40 sm:h-auto flex-shrink-0 overflow-hidden bg-gray-100 dark:bg-gray-800">
+             className="block sm:w-48 md:w-56 h-40 sm:h-auto sm:self-stretch flex-shrink-0 overflow-hidden bg-gray-100 dark:bg-gray-800">
             <img src={cover} alt="" loading="lazy"
                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"/>
           </a>

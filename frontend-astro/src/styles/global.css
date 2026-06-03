@@ -826,10 +826,13 @@
 }
 
 /* ── Performance: Image Optimization ── */
-img,
-video {
+/* IMPORTANT: Wrap in @layer base so Tailwind utilities (h-full, aspect-*, etc.) can override */
+@layer base {
+  img,
+  video {
     max-width: 100%;
     height: auto;
+  }
 }
 
 /* 防止图片加载时的布局偏移 (CLS) */
