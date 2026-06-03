@@ -3,6 +3,7 @@
 import React, {lazy, Suspense, useState} from 'react';
 import {Menu} from 'lucide-react';
 import {ErrorBoundary} from '@/components/ui/ErrorBoundary';
+import {ToastProvider} from '@/components/ui/toast-provider';
 import {SidebarSkeleton} from './AdminSidebarSkeleton';
 
 // 懒加载侧边栏组件 — 45+ lucide 图标被分离到独立 chunk
@@ -18,6 +19,7 @@ export const AdminShell: React.FC<{title: string; children: React.ReactNode; act
   const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
+    <ToastProvider>
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex">
       {/* Desktop sidebar — 懒加载 */}
       <Suspense fallback={<SidebarSkeleton collapsed={collapsed}/>}>
@@ -44,5 +46,6 @@ export const AdminShell: React.FC<{title: string; children: React.ReactNode; act
         <main className="flex-1 overflow-y-auto p-4 lg:p-6"><ErrorBoundary>{children}</ErrorBoundary></main>
       </div>
     </div>
+    </ToastProvider>
   );
 };

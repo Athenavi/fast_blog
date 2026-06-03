@@ -1,30 +1,27 @@
 'use client';
 
-import React, {useState, useRef, useEffect, useMemo} from 'react';
-import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
+import React, {useEffect, useMemo, useRef, useState} from 'react';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {apiClient} from '@/lib/api/base-client';
 import {
+  AlertTriangle,
+  Archive,
+  BarChart3,
   ChevronLeft,
   ChevronRight,
-  Database,
-  HardDrive,
-  Download,
-  Trash2,
-  Loader,
-  ShieldAlert,
   Clock,
-  Archive,
-  Search,
-  Filter,
-  AlertTriangle,
+  Database,
+  Download,
   FileDown,
+  HardDrive,
+  Loader,
   Package,
-  BarChart3,
-  Activity,
-  RefreshCw
+  RefreshCw,
+  Search,
+  Trash2
 } from 'lucide-react';
 import {timeAgo} from '@/lib/utils';
 import {StatCard} from '@/components/admin/shared-ui';
@@ -236,6 +233,8 @@ function BackupInner() {
   const [searchQuery, setSearchQuery] = useState('');
   const [backingUp, setBackingUp] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [confirmAction, setConfirmAction] = useState<string | null>(null);
+  const [confirmCleanup, setConfirmCleanup] = useState(false);
   const prevFilterRef = useRef('');
   const filterKey = `${typeFilter}`;
   if (prevFilterRef.current !== filterKey) {
@@ -395,7 +394,7 @@ function BackupInner() {
           <div className="px-6 py-5 border-b border-gray-100 dark:border-gray-800">
             <SectionTitle icon={Download} title="创建备份" subtitle="选择备份类型立即创建系统备份"
                           action={
-                            <button onClick={() => delMut.mutate()}
+                            <button onClick={() => setConfirmCleanup(true)}
                                     className="px-3 py-1.5 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 text-xs font-medium rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-1.5 transition-colors">
                               <Trash2 className="w-3.5 h-3.5"/>清理旧备份
                             </button>
@@ -409,7 +408,7 @@ function BackupInner() {
                 const Icon = config.icon;
                 return (
                     <button key={t} onClick={() => {
-                      if (!isBusy) createMut.mutate(t);
+                      if (!isBusy) setConfirmAction(t);
                     }} disabled={isBusy}
                             className={`relative group flex flex-col items-center gap-3 p-5 rounded-xl border-2 transition-all duration-300 ${
                                 backingUp === t
@@ -484,7 +483,7 @@ function BackupInner() {
               <BackupSkeleton/>
           ) : !backups.length ? (
               <EmptyState icon={Archive} title="暂无备份" desc="点击上方按钮创建您的第一个系统备份"
-                          action={<button onClick={() => createMut.mutate('full')}
+                          action={<button onClick={() => setConfirmAction('full')}
                                           className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-cyan-600 rounded-xl hover:shadow-lg transition-all">立即创建完整备份</button>}
               />
           ) : filteredBackups.length === 0 ? (
@@ -582,6 +581,79 @@ function BackupInner() {
                   isPending={delOneMut.isPending}
               />
           )}
+        </Modal>
+
+        {/* Create Backup Confirmation Modal */}
+        <Modal open={!!confirmAction} onClose={() => setConfirmAction(null)} title="确认创建备份">
+          {confirmAction && (() => {
+            const config = BACKUP_TYPE_CONFIG[confirmAction];
+            const Icon = config?.icon || Database;
+            const labelMap: Record<string, string> = {database: '数据库', files: '文件', full: '完整系统'};
+            const descMap: Record<string, string> = {
+              database: '备份数据库数据',
+              files: '备份上传文件',
+              full: '完整系统备份'
+            };
+            return (
+              <div className="space-y-4">
+                <div
+                  className="flex items-start gap-3 p-4 rounded-xl bg-blue-50 dark:bg-blue-900/20 border border-blue-100 dark:border-blue-800/30">
+                  <Icon className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5"/>
+                  <div>
+                    <p
+                      className="text-sm font-medium text-blue-800 dark:text-blue-300">确认创建{labelMap[confirmAction]}备份？</p>
+                    <p className="text-xs text-blue-600 dark:text-blue-400 mt-1">
+                      即将执行「{descMap[confirmAction]}」操作，备份过程可能需要一些时间。
+                    </p>
+                  </div>
+                </div>
+                <div className="flex justify-end gap-2">
+                  <button onClick={() => setConfirmAction(null)}
+                          className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">取消
+                  </button>
+                  <button onClick={() => {
+                    createMut.mutate(confirmAction);
+                    setConfirmAction(null);
+                  }}
+                          disabled={backingUp !== null}
+                          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-xl hover:bg-blue-700 transition-colors disabled:opacity-50 flex items-center gap-2">
+                    {backingUp !== null && <Loader className="w-3.5 h-3.5 animate-spin"/>}
+                    确认备份
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
+        </Modal>
+
+        {/* Cleanup Confirmation Modal */}
+        <Modal open={confirmCleanup} onClose={() => setConfirmCleanup(false)} title="确认清理旧备份">
+          <div className="space-y-4">
+            <div
+              className="flex items-start gap-3 p-4 rounded-xl bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/30">
+              <AlertTriangle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5"/>
+              <div>
+                <p className="text-sm font-medium text-amber-800 dark:text-amber-300">确认清理旧备份？</p>
+                <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                  此操作将清理过期的旧备份文件，以释放存储空间。清理后的文件无法恢复。
+                </p>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button onClick={() => setConfirmCleanup(false)}
+                      className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 rounded-xl hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors">取消
+              </button>
+              <button onClick={() => {
+                delMut.mutate();
+                setConfirmCleanup(false);
+              }}
+                      disabled={delMut.isPending}
+                      className="px-4 py-2 text-sm font-medium text-white bg-amber-600 rounded-xl hover:bg-amber-700 transition-colors disabled:opacity-50 flex items-center gap-2">
+                {delMut.isPending && <Loader className="w-3.5 h-3.5 animate-spin"/>}
+                {delMut.isPending ? '清理中…' : '确认清理'}
+              </button>
+            </div>
+          </div>
         </Modal>
       </AdminShell>
   );
