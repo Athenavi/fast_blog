@@ -32,13 +32,19 @@
   
   <details open>
     <summary><strong>📄 Articles Page Preview</strong></summary>
-    <img src="docs/assets/ArtclesPage.png" alt="FastBlog home page Preview" width="85%" height="auto" onerror="this.style.display='none'">
+    <img src="docs/assets/ArtclesPage.png" alt="FastBlog Articles page Preview" width="85%" height="auto" onerror="this.style.display='none'">
   </details>
 
   <details>
     <summary><strong>🖼️ Media Page Preview</strong></summary>
     <img src="docs/assets/media.png" alt="FastBlog media page Preview" width="85%" height="auto" onerror="this.style.display='none'">
   </details>
+
+  <details>
+    <summary><strong>📖 Article View Preview</strong></summary>
+    <img src="docs/assets/ArticleViewPage.png" alt="FastBlog Article View Preview" width="85%" height="auto" onerror="this.style.display='none'">
+  </details>
+
 </div>
 
 ---

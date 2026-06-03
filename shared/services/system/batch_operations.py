@@ -21,7 +21,7 @@ from src.unified_logger import default_logger as logger
 class BatchOperationService:
     """
     批量操作服务
-    
+
     参考 WordPress 和 Django Admin 的设计模式
     """
 
@@ -37,17 +37,19 @@ class BatchOperationService:
     ) -> Dict:
         """
         批量删除文章
-        
+
         Args:
             article_ids: 文章ID列表
             operator_id: 操作者ID
             user: 当前用户对象（用于权限检查）
-            
+
         Returns:
             操作结果
         """
         from shared.models.article import Article
         from shared.models.comment import Comment
+        from shared.models.comment_vote import CommentVote
+        from shared.models.comment_subscription import CommentSubscription
         from sqlalchemy import select
 
         if not article_ids:
@@ -71,7 +73,24 @@ class BatchOperationService:
                         'message': f'您没有权限删除 {forbidden_count} 篇文章'
                     }
 
-            # 先删除相关文章的评论
+            # 先删除相关文章的评论投票
+            comment_ids_result = await self.db.execute(
+                select(Comment.id).where(Comment.article_id.in_(article_ids))
+            )
+            comment_ids = [row[0] for row in comment_ids_result.all()]
+            if comment_ids:
+                await self.db.execute(
+                    delete(CommentVote).where(CommentVote.comment_id.in_(comment_ids))
+                )
+
+            # 删除评论订阅
+            await self.db.execute(
+                delete(CommentSubscription).where(
+                    CommentSubscription.article_id.in_(article_ids)
+                )
+            )
+
+            # 删除相关文章的评论
             await self.db.execute(
                 delete(Comment).where(
                     Comment.article_id.in_(article_ids)
@@ -119,13 +138,13 @@ class BatchOperationService:
     ) -> Dict:
         """
         批量更新文章状态
-        
+
         Args:
             article_ids: 文章ID列表
             status: 新状态 (published, draft, archived)
             operator_id: 操作者ID
             user: 当前用户对象（用于权限检查）
-            
+
         Returns:
             操作结果
         """
@@ -197,13 +216,13 @@ class BatchOperationService:
     ) -> Dict:
         """
         批量移动文章到指定分类
-        
+
         Args:
             article_ids: 文章ID列表
             category_id: 目标分类ID
             operator_id: 操作者ID
             user: 当前用户对象（用于权限检查）
-            
+
         Returns:
             操作结果
         """
@@ -277,13 +296,13 @@ class BatchOperationService:
     ) -> Dict:
         """
         批量添加标签
-        
+
         Args:
             article_ids: 文章ID列表
             tags: 标签列表
             operator_id: 操作者ID
             user: 当前用户对象（用于权限检查）
-            
+
         Returns:
             操作结果
         """
@@ -373,11 +392,11 @@ class BatchOperationService:
     ) -> Dict:
         """
         批量删除评论
-        
+
         Args:
             comment_ids: 评论ID列表
             operator_id: 操作者ID
-            
+
         Returns:
             操作结果
         """
@@ -423,12 +442,12 @@ class BatchOperationService:
     ) -> Dict:
         """
         批量更新评论状态
-        
+
         Args:
             comment_ids: 评论ID列表
             status: 新状态 (approved, pending, spam)
             operator_id: 操作者ID
-            
+
         Returns:
             操作结果
         """
@@ -481,12 +500,12 @@ class BatchOperationService:
     ) -> Dict:
         """
         批量删除商品
-        
+
         Args:
             product_ids: 商品ID列表
             operator_id: 操作者ID
             user: 当前用户对象（用于权限检查）
-            
+
         Returns:
             操作结果
         """
@@ -543,14 +562,14 @@ class BatchOperationService:
     ) -> Dict:
         """
         批量更新商品价格
-        
+
         Args:
             product_ids: 商品ID列表
             price: 新价格
             original_price: 原价（可选）
             operator_id: 操作者ID
             user: 当前用户对象（用于权限检查）
-            
+
         Returns:
             操作结果
         """
@@ -610,14 +629,14 @@ class BatchOperationService:
     ) -> Dict:
         """
         批量更新商品库存
-        
+
         Args:
             product_ids: 商品ID列表
             stock: 库存数量
             operation: 操作类型 (set=设置, add=增加, subtract=减少)
             operator_id: 操作者ID
             user: 当前用户对象（用于权限检查）
-            
+
         Returns:
             操作结果
         """
@@ -697,13 +716,13 @@ class BatchOperationService:
     ) -> Dict:
         """
         批量更新商品状态
-        
+
         Args:
             product_ids: 商品ID列表
             status: 新状态 (active/inactive)
             operator_id: 操作者ID
             user: 当前用户对象（用于权限检查）
-            
+
         Returns:
             操作结果
         """
@@ -757,11 +776,11 @@ class BatchOperationService:
     ) -> Dict:
         """
         批量更新分类排序
-        
+
         Args:
             category_orders: 分类排序列表，每个元素包含 {id: 分类ID, sort_order: 排序值}
             operator_id: 操作者ID
-            
+
         Returns:
             操作结果
         """
@@ -820,11 +839,11 @@ class BatchOperationService:
     ) -> Dict:
         """
         批量更新文章排序
-        
+
         Args:
             article_orders: 文章排序列表，每个元素包含 {id: 文章ID, sort_order: 排序值}
             operator_id: 操作者ID
-            
+
         Returns:
             操作结果
         """
@@ -884,7 +903,7 @@ class BatchOperationService:
     ):
         """
         记录操作日志
-        
+
         Args:
             operation_type: 操作类型
             details: 操作详情
@@ -906,7 +925,7 @@ class BatchOperationService:
     def get_operation_log(self) -> List[Dict]:
         """
         获取操作日志
-        
+
         Returns:
             操作日志列表
         """

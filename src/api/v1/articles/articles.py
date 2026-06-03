@@ -924,6 +924,30 @@ async def delete_article_api(
         if article.user != current_user.id and not getattr(current_user, 'is_superuser', False):
             raise HTTPException(status_code=403, detail="Permission denied")
 
+        # 级联删除评论投票（先于评论删除，避免孤立记录）
+        from shared.models.comment import Comment
+        from shared.models.comment_vote import CommentVote
+        from shared.models.comment_subscription import CommentSubscription
+
+        comment_ids_result = await db.execute(
+            select(Comment.id).where(Comment.article_id == article_id)
+        )
+        comment_ids = [row[0] for row in comment_ids_result.all()]
+        if comment_ids:
+            await db.execute(
+                delete(CommentVote).where(CommentVote.comment_id.in_(comment_ids))
+            )
+
+        # 级联删除评论订阅
+        await db.execute(
+            delete(CommentSubscription).where(CommentSubscription.article_id == article_id)
+        )
+
+        # 级联删除评论
+        await db.execute(
+            delete(Comment).where(Comment.article_id == article_id)
+        )
+
         # 级联删除修订历史
         revisions_query = select(ArticleRevision).where(ArticleRevision.article_id == article_id)
         revisions_result = await db.execute(revisions_query)

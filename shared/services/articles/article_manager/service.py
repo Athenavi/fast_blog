@@ -20,11 +20,11 @@ from src.unified_logger import default_logger as logger
 async def get_article_by_id(db: AsyncSession, article_id: int) -> Optional[Article]:
     """
     通过 ID 获取文章
-    
+
     Args:
         db: 异步数据库会话
         article_id: 文章 ID
-        
+
     Returns:
         文章对象，如果不存在则返回 None
     """
@@ -43,13 +43,13 @@ async def get_articles_by_user_id(
 ) -> List[Article]:
     """
     获取用户的文章
-    
+
     Args:
         db: 异步数据库会话
         user_id: 用户 ID
         limit: 数量限制
         status: 文章状态（默认 1=已发布）
-        
+
     Returns:
         文章列表
     """
@@ -69,12 +69,12 @@ async def get_article_count_by_user(
 ) -> int:
     """
     获取用户文章数量
-    
+
     Args:
         db: 异步数据库会话
         user_id: 用户 ID
         status: 文章状态（默认 1=已发布）
-        
+
     Returns:
         文章总数
     """
@@ -92,11 +92,11 @@ async def get_article_with_content(
 ) -> Optional[Tuple[Article, Optional[ArticleContent]]]:
     """
     获取文章及其内容（使用 JOIN 优化查询）
-    
+
     Args:
         db: 异步数据库会话
         article_id: 文章 ID
-        
+
     Returns:
         (文章对象，文章内容对象) 或 None
     """
@@ -123,14 +123,14 @@ async def get_user_articles_with_pagination(
 ) -> Tuple[List[Article], int]:
     """
     分页获取用户文章
-    
+
     Args:
         db: 异步数据库会话
         user_id: 用户 ID
         page: 页码
         per_page: 每页数量
         status: 文章状态
-        
+
     Returns:
         (文章列表，总数)
     """
@@ -141,7 +141,7 @@ async def get_user_articles_with_pagination(
     )
     total_result = await db.execute(count_query)
     total = total_result.scalar() or 0
-    
+
     # 分页查询
     offset = (page - 1) * per_page
     query = (
@@ -151,10 +151,10 @@ async def get_user_articles_with_pagination(
         .offset(offset)
         .limit(per_page)
     )
-    
+
     result = await db.execute(query)
     articles = list(result.scalars().all())
-    
+
     return articles, total
 
 
@@ -173,7 +173,7 @@ async def create_article(
 ) -> Article:
     """
     创建文章
-    
+
     Args:
         db: 异步数据库会话
         user_id: 作者 ID
@@ -186,12 +186,12 @@ async def create_article(
         is_vip_only: 是否仅 VIP 可见
         hidden: 是否隐藏
         **kwargs: 其他字段
-        
+
     Returns:
         创建的文章对象
     """
     now = datetime.now(timezone.utc).replace(tzinfo=None)  # 移除时区信息以匹配数据库字段
-    
+
     # 创建文章
     article = Article(
         user=user_id,
@@ -208,7 +208,7 @@ async def create_article(
     )
     db.add(article)
     await db.flush()
-    
+
     # 创建文章内容
     if content:
         content_obj = ArticleContent(
@@ -218,7 +218,7 @@ async def create_article(
             updated_at=now
         )
         db.add(content_obj)
-    
+
     await db.commit()
     await db.refresh(article)
 
@@ -235,7 +235,7 @@ async def create_article(
         'status': 'published',
         'created_at': article.created_at.isoformat() if article.created_at else None,
     })
-    
+
     return article
 
 
@@ -246,33 +246,33 @@ async def update_article(
 ) -> Optional[Article]:
     """
     更新文章
-    
+
     Args:
         db: 异步数据库会话
         article_id: 文章 ID
         **kwargs: 要更新的字段
-        
+
     Returns:
         更新后的文章对象，如果不存在则返回 None
     """
     article = await get_article_by_id(db, article_id)
     if not article:
         return None
-    
+
     # 允许更新的字段
     allowed_fields = {
-        'title', 'excerpt', 'cover_image', 'tags_list', 
+        'title', 'excerpt', 'cover_image', 'tags_list',
         'is_vip_only', 'hidden', 'status', 'category'
     }
-    
+
     update_data = {
         k: v for k, v in kwargs.items()
         if k in allowed_fields and v is not None
     }
-    
+
     if update_data:
         update_data['updated_at'] = datetime.now(timezone.utc).replace(tzinfo=None)  # 移除时区信息以匹配数据库字段
-        
+
         await db.execute(
             update(Article)
             .where(Article.id == article_id)
@@ -288,7 +288,7 @@ async def update_article(
             'updated_fields': list(update_data.keys()),
             'updated_at': article.updated_at.isoformat() if article.updated_at else None,
         })
-    
+
     return article
 
 
@@ -299,12 +299,12 @@ async def update_article_content(
 ) -> bool:
     """
     更新文章内容（优化：减少查询次数）
-    
+
     Args:
         db: 异步数据库会话
         article_id: 文章 ID
         content: 新内容
-        
+
     Returns:
         是否成功
     """
@@ -326,7 +326,7 @@ async def update_article_content(
             updated_at=now
         )
         db.add(new_content)
-    
+
     await db.commit()
     return True
 
@@ -334,22 +334,45 @@ async def update_article_content(
 async def delete_article(db: AsyncSession, article_id: int) -> bool:
     """
     删除文章（包括内容和修订历史）
-    
+
     Args:
         db: 异步数据库会话
         article_id: 文章 ID
-        
+
     Returns:
         是否成功
     """
     from shared.models.article_revision import ArticleRevision
-    
+    from shared.models.comment import Comment
+    from shared.models.comment_vote import CommentVote
+    from shared.models.comment_subscription import CommentSubscription
+
     article = await get_article_by_id(db, article_id)
     if not article:
         return False
 
     # 保存文章信息用于事件触发
     article_title = article.title
+
+    # 删除评论投票（先于评论删除，避免孤立记录）
+    comment_ids_result = await db.execute(
+        select(Comment.id).where(Comment.article_id == article_id)
+    )
+    comment_ids = [row[0] for row in comment_ids_result.all()]
+    if comment_ids:
+        await db.execute(
+            delete(CommentVote).where(CommentVote.comment_id.in_(comment_ids))
+        )
+
+    # 删除评论订阅
+    await db.execute(
+        delete(CommentSubscription).where(CommentSubscription.article_id == article_id)
+    )
+
+    # 删除评论
+    await db.execute(
+        delete(Comment).where(Comment.article_id == article_id)
+    )
 
     # 删除修订历史
     await db.execute(
@@ -360,7 +383,7 @@ async def delete_article(db: AsyncSession, article_id: int) -> bool:
     await db.execute(
         delete(ArticleContent).where(ArticleContent.article == article_id)
     )
-    
+
     # 删除文章
     await db.delete(article)
     await db.commit()
@@ -371,21 +394,21 @@ async def delete_article(db: AsyncSession, article_id: int) -> bool:
         'title': article_title,
         'deleted_at': datetime.now(timezone.utc).replace(tzinfo=None).isoformat(),  # 移除时区信息以匹配数据库字段
     })
-    
+
     return True
 
 
 async def increment_article_views(db: AsyncSession, article_id: int) -> bool:
     """
     增加文章浏览量（使用 SQLAlchemy ORM 操作）
-    
+
     Args:
         db: 异步数据库会话
         article_id: 文章 ID
-        
+
     Returns:
         是否成功
-    
+
     Note:
         此函数不会自动提交事务，调用者需要负责 commit。
         如果使用统一管理器的 get_db_session()，事务会在请求结束时自动提交。
@@ -397,7 +420,7 @@ async def increment_article_views(db: AsyncSession, article_id: int) -> bool:
     )
     # 注意：不要在这里调用 await db.commit()
     # 让调用者或统一管理器来决定何时提交
-    
+
     return True
 
 
@@ -413,7 +436,7 @@ async def search_articles(
 ) -> Tuple[List[Article], int]:
     """
     搜索文章
-    
+
     Args:
         db: 异步数据库会话
         keyword: 搜索关键词
@@ -423,7 +446,7 @@ async def search_articles(
         per_page: 每页数量
         hidden: 是否包含隐藏文章
         status: 文章状态
-        
+
     Returns:
         (文章列表，总数)
     """
@@ -432,17 +455,17 @@ async def search_articles(
         Article.hidden == hidden,
         Article.status == status
     )
-    
+
     # 搜索条件
     if keyword:
         query = query.where(
             (Article.title.contains(keyword)) |
             (Article.excerpt.contains(keyword))
         )
-    
+
     if category_id:
         query = query.where(Article.category == category_id)
-    
+
     if user_id:
         query = query.where(Article.user == user_id)
 
@@ -460,17 +483,17 @@ async def search_articles(
         count_query = count_query.where(Article.category == category_id)
     if user_id:
         count_query = count_query.where(Article.user == user_id)
-    
+
     total_result = await db.execute(count_query)
     total = total_result.scalar() or 0
-    
+
     # 分页
     offset = (page - 1) * per_page
     query = query.order_by(Article.created_at.desc()).offset(offset).limit(per_page)
-    
+
     result = await db.execute(query)
     articles = list(result.scalars().all())
-    
+
     return articles, total
 
 
@@ -493,7 +516,7 @@ __all__ = [
 def _trigger_article_event(event_name: str, data: dict):
     """
     触发文章相关事件（插件系统）
-    
+
     Args:
         event_name: 事件名称
         data: 事件数据

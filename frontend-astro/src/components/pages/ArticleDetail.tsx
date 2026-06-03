@@ -41,6 +41,7 @@ const ArticleDetail: React.FC<Props> = ({slug: propSlug}) => {
   const [error, setError] = useState('');
     const [readingProgress, setReadingProgress] = useState(0);
     const [toc, setToc] = useState<TocItem[]>([]);
+  const [processedContent, setProcessedContent] = useState('');
     const [activeTocId, setActiveTocId] = useState('');
     const [liked, setLiked] = useState(false);
     const [bookmarked, setBookmarked] = useState(false);
@@ -92,7 +93,7 @@ const ArticleDetail: React.FC<Props> = ({slug: propSlug}) => {
 
             // Extract TOC from content
             if (data.content) {
-                extractToc(data.content);
+              processContentWithToc(data.content);
             }
 
             // Fetch related articles
@@ -174,7 +175,7 @@ const ArticleDetail: React.FC<Props> = ({slug: propSlug}) => {
           const data = artRes.data.article || artRes.data as any;
           setArticle(data);
           setLikeCount(data.likes || 0);
-          if (data.content) extractToc(data.content);
+          if (data.content) processContentWithToc(data.content);
           if (data.category_id || data.id) {
             try {
               const relRes = await apiClient.get('/articles', {
@@ -203,32 +204,24 @@ const ArticleDetail: React.FC<Props> = ({slug: propSlug}) => {
     }
   }, [passwordData, passwordInput, propSlug]);
 
-    // Extract headings for TOC
-    const extractToc = useCallback((html: string) => {
-        if (typeof document === 'undefined') return;
-        const temp = document.createElement('div');
-        temp.innerHTML = html;
-        const headings = temp.querySelectorAll('h1, h2, h3, h4');
+  // Process content: inject heading IDs directly into HTML string for reliable TOC scrolling
+  const processContentWithToc = useCallback((html: string) => {
         const items: TocItem[] = [];
-        headings.forEach((h, i) => {
-            const id = `heading-${i}`;
-            items.push({
-                id,
-                text: h.textContent || '',
-                level: parseInt(h.tagName[1]),
-            });
+    let index = 0;
+    const processed = html.replace(/<h([1-4])([^>]*)>([\s\S]*?)<\/h\1>/gi, (match, level, attrs, content) => {
+      const id = `heading-${index}`;
+      // Extract text content from inner HTML (strip tags)
+      const text = content.replace(/<[^>]*>/g, '').trim();
+      items.push({id, text, level: parseInt(level)});
+      // Avoid duplicate id attribute
+      const cleanAttrs = attrs.replace(/\s*id\s*=\s*["'][^"']*["']/gi, '');
+      const result = `<h${level}${cleanAttrs} id="${id}">${content}</h${level}>`;
+      index++;
+      return result;
         });
         setToc(items);
+    setProcessedContent(processed);
     }, []);
-
-    // Inject IDs into headings for scroll tracking
-    useEffect(() => {
-        if (!contentRef.current || toc.length === 0) return;
-        const headings = contentRef.current.querySelectorAll('h1, h2, h3, h4');
-        headings.forEach((h, i) => {
-            h.id = `heading-${i}`;
-        });
-    }, [toc, article]);
 
     // Reading progress & active TOC tracking
     useEffect(() => {
@@ -266,6 +259,17 @@ const ArticleDetail: React.FC<Props> = ({slug: propSlug}) => {
         const d = new Date(dateStr);
         return d.toLocaleDateString('zh-CN', {year: 'numeric', month: 'long', day: 'numeric'});
     };
+
+  // TOC click handler - reliable scroll in SPA
+  const handleTocClick = useCallback((e: React.MouseEvent<HTMLAnchorElement>, id: string) => {
+    e.preventDefault();
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({behavior: 'smooth', block: 'start'});
+      // Update URL hash without triggering navigation
+      history.replaceState(null, '', `#${id}`);
+    }
+  }, []);
 
     // Share handlers
     const handleCopyLink = () => {
@@ -428,6 +432,7 @@ const ArticleDetail: React.FC<Props> = ({slug: propSlug}) => {
                                       <a
                                           key={item.id}
                                           href={`#${item.id}`}
+                                          onClick={(e) => handleTocClick(e, item.id)}
                                           className={`toc-link ${activeTocId === item.id ? 'active' : ''}`}
                                           style={{paddingLeft: `${(item.level - 1) * 12 + 12}px`}}
                                       >
@@ -532,9 +537,10 @@ const ArticleDetail: React.FC<Props> = ({slug: propSlug}) => {
                           </div>
                       )}
 
-                      {/* Content */}
+                    {/* Content (IDs pre-injected by processContentWithToc) */}
                       <div ref={contentRef} className="prose-custom mb-12">
-                          <div dangerouslySetInnerHTML={{__html: article.content || '<p>暂无内容</p>'}}/>
+                        <div
+                          dangerouslySetInnerHTML={{__html: processedContent || article.content || '<p>暂无内容</p>'}}/>
                       </div>
 
                       {/* ── Article Footer ── */}
@@ -675,6 +681,7 @@ const ArticleDetail: React.FC<Props> = ({slug: propSlug}) => {
                                           <a
                                               key={item.id}
                                               href={`#${item.id}`}
+                                              onClick={(e) => handleTocClick(e, item.id)}
                                               className={`toc-link ${activeTocId === item.id ? 'active' : ''}`}
                                               style={{paddingLeft: `${(item.level - 1) * 12 + 12}px`}}
                                           >
@@ -776,7 +783,10 @@ const ArticleDetail: React.FC<Props> = ({slug: propSlug}) => {
                                   <a
                                       key={item.id}
                                       href={`#${item.id}`}
-                                      onClick={() => setShowToc(false)}
+                                      onClick={(e) => {
+                                        handleTocClick(e, item.id);
+                                        setShowToc(false);
+                                      }}
                                       className={`toc-link ${activeTocId === item.id ? 'active' : ''}`}
                                       style={{paddingLeft: `${(item.level - 1) * 12 + 12}px`}}
                                   >
