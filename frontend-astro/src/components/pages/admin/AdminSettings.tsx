@@ -7,6 +7,8 @@ import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {StatCard} from '@/components/admin/shared-ui';
 import {apiClient} from '@/lib/api/base-client';
+import {getConfig} from '@/lib/config';
+import {getFullMediaUrl} from '@/lib/utils';
 import {type Locale, locales, useTranslation} from '@/lib/i18n';
 import {
   AlertTriangle,
@@ -19,6 +21,7 @@ import {
   Eye,
   FileCode,
   FileText,
+  Film,
   Globe,
   Hash,
   Home,
@@ -37,6 +40,7 @@ import {
   Shield,
   Trash2,
   Type,
+  Upload,
   X,
   XCircle,
   Zap
@@ -134,16 +138,18 @@ const SETTINGS_FIELDS: FieldDef[] = [
   {
     key: 'home_cta_target',
     label: 'CTA 跳转方式',
+    type: 'select',
     category: 'home',
     options: [{label: '当前窗口', value: '_self'}, {label: '新窗口', value: '_blank'}],
     icon: ExternalLink
   },
   {
     key: 'home_hero_background_image',
-    label: 'Hero 背景图片',
+    label: 'Hero 背景媒体',
+    type: 'media',
     category: 'home',
-    placeholder: 'https://...',
-    icon: Image
+    placeholder: '输入媒体 URL 或上传图片/视频',
+    icon: Film
   },
   {key: 'home_featured_title', label: '精选区域标题', category: 'home', placeholder: '精选文章', icon: Layers},
   {key: 'home_main_title', label: '主内容区标题', category: 'home', placeholder: '最新文章', icon: Type},
@@ -246,6 +252,138 @@ const PageSkeleton = () => (
     </div>
 );
 
+// ─── Image Upload Field ───────────────────────────────
+const MediaField: React.FC<{ value: string; onChange: (v: string) => void; placeholder?: string }> = ({
+                                                                                                        value,
+                                                                                                        onChange,
+                                                                                                        placeholder
+                                                                                                      }) => {
+  const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+
+  const isVideo = (url: string) => /\.(mp4|webm|ogg|mov|avi|mkv)(\?|$)/i.test(url);
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const isImage = file.type.startsWith('image/');
+    const isVideoFile = file.type.startsWith('video/');
+    if (!isImage && !isVideoFile) {
+      alert('请选择图片或视频文件');
+      return;
+    }
+    const maxSize = isVideoFile ? 50 * 1024 * 1024 : 8 * 1024 * 1024;
+    if (file.size > maxSize) {
+      alert(isVideoFile ? '视频文件大小不能超过 50MB' : '图片文件大小不能超过 8MB');
+      return;
+    }
+    setUploading(true);
+    setUploadProgress(0);
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      // 从 cookie 读取 JWT token（与 base-client 和 CoverImageUploader 一致）
+      const accessToken = (() => {
+        for (const c of document.cookie.split(';')) {
+          const [n, v] = c.trim().split('=');
+          if (n === 'access_token' && v) return decodeURIComponent(v);
+        }
+        return null;
+      })();
+
+      const xhr = new XMLHttpRequest();
+      const result = await new Promise<{
+        success?: boolean;
+        data?: { url?: string; files?: { url: string }[] }
+      }>((resolve, reject) => {
+        const {API_BASE_URL} = getConfig();
+        xhr.open('POST', `${API_BASE_URL}/api/v2/media/settings/upload`);
+        xhr.withCredentials = true;
+        if (accessToken) {
+          xhr.setRequestHeader('Authorization', `Bearer ${accessToken}`);
+        }
+        xhr.upload.onprogress = (ev) => {
+          if (ev.lengthComputable) setUploadProgress(Math.round((ev.loaded / ev.total) * 100));
+        };
+        xhr.onload = () => {
+          if (xhr.status === 302 || xhr.status === 401 || xhr.status === 403) {
+            reject(new Error('未登录或登录已过期，请重新登录'));
+            return;
+          }
+          try {
+            resolve(JSON.parse(xhr.responseText));
+          } catch {
+            const snippet = xhr.responseText?.slice(0, 120) || '(empty)';
+            reject(new Error(`服务器返回非 JSON 响应 (HTTP ${xhr.status}): ${snippet}`));
+          }
+        };
+        xhr.onerror = () => reject(new Error('网络错误，请检查网络连接'));
+        xhr.send(formData);
+      });
+      const url = result?.data?.url || result?.data?.files?.[0]?.url;
+      if (url) {
+        onChange(url);
+      } else {
+        alert('上传成功但未获取到文件 URL');
+      }
+    } catch (err: any) {
+      alert(err?.message || '上传失败');
+    } finally {
+      setUploading(false);
+      setUploadProgress(0);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+    }
+  };
+
+  const resolvedUrl = value ? getFullMediaUrl(value) : '';
+  const isVideoMedia = value ? isVideo(value) : false;
+
+  return (
+    <div className="space-y-3">
+      {/* Preview */}
+      {value && (
+        <div
+          className="relative group rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 aspect-video max-h-48">
+          {isVideoMedia ? (
+            <video src={resolvedUrl} className="w-full h-full object-cover" controls muted onError={(e) => {
+              (e.target as HTMLVideoElement).style.display = 'none';
+            }}/>
+          ) : (
+            <img src={resolvedUrl} alt="预览" className="w-full h-full object-cover" onError={(e) => {
+              (e.target as HTMLImageElement).style.display = 'none';
+            }}/>
+          )}
+          <div
+            className="absolute inset-0 bg-black/0 group-hover:bg-black/40 transition-all flex items-center justify-center">
+            <button onClick={() => onChange('')}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity p-2 bg-red-500 text-white rounded-lg hover:bg-red-600"
+                    title="移除媒体">
+              <Trash2 className="w-4 h-4"/>
+            </button>
+          </div>
+        </div>
+      )}
+      {/* Upload button + URL input */}
+      <div className="flex gap-2">
+        <input ref={fileInputRef} type="file" accept="image/*,video/*" onChange={handleFileSelect} className="hidden"/>
+        <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading}
+                className="flex-shrink-0 inline-flex items-center gap-1.5 px-3.5 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800/80 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all disabled:opacity-50">
+          {uploading ? <Loader className="w-4 h-4 animate-spin"/> : <Upload className="w-4 h-4"/>}
+          {uploading ? `${uploadProgress}%` : '上传媒体'}
+        </button>
+        <div className="relative flex-1">
+          <Film className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"/>
+          <input type="text" value={value} onChange={e => onChange(e.target.value)}
+                 className="w-full px-4 py-2.5 pl-10 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800/80 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 transition-all"
+                 placeholder={placeholder || '输入媒体 URL'}/>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // ─── Enhanced Field Input ─────────────────────────────
 const FieldInput: React.FC<{field: FieldDef; value: string; onChange: (v: string) => void}> = ({field, value, onChange}) => {
   const baseClass = "w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800/80 text-sm text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 dark:focus:border-blue-500 transition-all duration-200";
@@ -265,6 +403,11 @@ const FieldInput: React.FC<{field: FieldDef; value: string; onChange: (v: string
     return (
       <textarea value={value} onChange={e => onChange(e.target.value)} rows={field.rows||3}
                 className={`${baseClass} resize-none`} placeholder={field.placeholder}/>
+    );
+  }
+  if (field.type === 'image' || field.type === 'media') {
+    return (
+      <MediaField value={value} onChange={onChange} placeholder={field.placeholder}/>
     );
   }
   return (

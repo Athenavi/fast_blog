@@ -17,11 +17,9 @@ import {
   Flame,
   Hash,
   Heart,
-  MessageSquare,
   Sparkles,
   Star,
   TrendingUp,
-  Users,
   Zap,
 } from 'lucide-react';
 
@@ -276,6 +274,8 @@ const LoadingScreen = () => (
 /* ═══════════════════════════════════════
    Main Component
    ═══════════════════════════════════════ */
+const isVideoMedia = (url: string) => /\.(mp4|webm|ogg|mov|avi|mkv)(\?|$)/i.test(url);
+
 export default function ModernHomePage() {
   const [featured, setFeatured] = useState<Article[]>([]);
   const [recent, setRecent] = useState<Article[]>([]);
@@ -354,21 +354,32 @@ export default function ModernHomePage() {
           style={{y: heroParallaxY}}
           className="absolute inset-0 -top-[10%] -bottom-[10%]"
         >
-          {heroArticle?.cover_image ? (
-            <img
-              src={getFullMediaUrl(heroArticle.cover_image)}
-              alt=""
-              className="w-full h-full object-cover"
-            />
-          ) : hero.backgroundImage ? (
-            <img
-              src={getFullMediaUrl(hero.backgroundImage)}
-              alt=""
-              className="w-full h-full object-cover"
-            />
-          ) : (
-            <div className="w-full h-full bg-gradient-to-br from-gray-900 via-blue-950 to-gray-900"/>
-          )}
+          {(() => {
+            const bgUrl = heroArticle?.cover_image || hero.backgroundImage || '';
+            const fullBgUrl = bgUrl ? getFullMediaUrl(bgUrl) : '';
+            if (fullBgUrl && isVideoMedia(bgUrl)) {
+              return (
+                <video
+                  src={fullBgUrl}
+                  className="w-full h-full object-cover"
+                  autoPlay
+                  loop
+                  muted
+                  playsInline
+                />
+              );
+            }
+            if (fullBgUrl) {
+              return (
+                <img
+                  src={fullBgUrl}
+                  alt=""
+                  className="w-full h-full object-cover"
+                />
+              );
+            }
+            return <div className="w-full h-full bg-gradient-to-br from-gray-900 via-blue-950 to-gray-900"/>;
+          })()}
         </motion.div>
 
         {/* Gradient overlays */}
@@ -507,69 +518,6 @@ export default function ModernHomePage() {
           </div>
         </motion.div>
       </section>
-
-
-      {/* ═══════════════════════════════════════════
-          STATS: Minimal Stats Bar
-          ═══════════════════════════════════════════ */}
-      <Section className="py-0">
-        <div className="relative -mt-16 z-10 max-w-5xl mx-auto px-6">
-          <motion.div
-            variants={fadeUp}
-            className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl shadow-black/5 dark:shadow-black/30
-              border border-gray-100 dark:border-gray-800 p-6 sm:p-8"
-          >
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 sm:gap-8">
-              {[
-                {
-                  label: '篇文章',
-                  value: stats.total_articles || 0,
-                  icon: BookOpen,
-                  color: 'text-blue-600 dark:text-blue-400',
-                  bg: 'bg-blue-50 dark:bg-blue-950/50'
-                },
-                {
-                  label: '位用户',
-                  value: stats.total_users || 0,
-                  icon: Users,
-                  color: 'text-emerald-600 dark:text-emerald-400',
-                  bg: 'bg-emerald-50 dark:bg-emerald-950/50'
-                },
-                {
-                  label: '次阅读',
-                  value: stats.total_views || 0,
-                  icon: Eye,
-                  color: 'text-purple-600 dark:text-purple-400',
-                  bg: 'bg-purple-50 dark:bg-purple-950/50'
-                },
-                {
-                  label: '条评论',
-                  value: stats.total_comments || 0,
-                  icon: MessageSquare,
-                  color: 'text-orange-600 dark:text-orange-400',
-                  bg: 'bg-orange-50 dark:bg-orange-950/50'
-                },
-              ].map((stat, i) => (
-                <motion.div
-                  key={i}
-                  variants={fadeUp}
-                  className="text-center group"
-                >
-                  <div className={`inline-flex items-center justify-center w-10 h-10 rounded-xl ${stat.bg} mb-3
-                    group-hover:scale-110 transition-transform duration-300`}>
-                    <stat.icon className={`w-5 h-5 ${stat.color}`}/>
-                  </div>
-                  <div className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tabular-nums">
-                    <AnimatedNumber value={typeof stat.value === 'number' ? stat.value : 0}/>
-                  </div>
-                  <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">{stat.label}</div>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-        </div>
-      </Section>
-
 
       {/* ═══════════════════════════════════════════
           FEATURED: Hero Card + Side List

@@ -11,6 +11,7 @@ from .routes_edit_tools import router as edit_tools_router
 from .routes_enhancement import router as enhancement_router
 from .routes_folders import router as folders_router
 from .routes_list import router as list_router
+from .routes_settings_media import router as settings_media_router
 from .routes_stream import router as stream_router
 from .routes_tags import router as tags_router
 from .routes_thumbnail import router as thumbnail_router
@@ -32,6 +33,7 @@ router.include_router(edit_tools_router, prefix="/edit")  # /edit/process, /edit
 router.include_router(enhancement_router, prefix="")  # /optimize/{file_id} 等（虽然有动态参数，但有前缀）
 router.include_router(thumbnail_router, prefix="")  # /{media_id}/thumbnail - 媒体缩略图
 router.include_router(audio_metadata_router, prefix="")  # /{media_id}/metadata - 音频元数据
+router.include_router(settings_media_router, prefix="")  # /settings/upload - 设置页面专用媒体上传
 
 # 2. 最后注册包含根路径通配符的路由（必须放在最后！）
 router.include_router(stream_router, prefix="")  # /{media_id} - 通配符，必须最后
