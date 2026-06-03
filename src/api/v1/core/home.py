@@ -122,21 +122,24 @@ async def get_home_data(
 async def get_home_config(db: AsyncSession = Depends(get_async_session)):
     """
     获取首页配置信息
-    使用简化查询避免greenlet错误
+    使用 home_ 前缀键名与 AdminSettings 保持一致
     """
     try:
-        # 定义需要的配置键
+        # 定义需要的配置键（使用 home_ 前缀，与 AdminSettings 一致）
         config_keys = [
             'site_name',
-            'hero_title',
-            'hero_subtitle',
-            'hero_background',
-            'hero_cta_text',
-            'hero_cta_link',
-            'featured_title',
-            'recent_title',
-            'popular_title',
-            'categories_title'
+            'home_hero_title',
+            'home_hero_subtitle',
+            'home_hero_cta_text',
+            'home_hero_cta_link',
+            'home_cta_target',
+            'home_hero_background_image',
+            'home_featured_title',
+            'home_main_title',
+            'home_newsletter_title',
+            'home_newsletter_subtitle',
+            'home_newsletter_button_text',
+            'home_no_summary_msg',
         ]
 
         # 简化查询 - 逐个获取配置项避免复杂批量查询
@@ -149,8 +152,6 @@ async def get_home_config(db: AsyncSession = Depends(get_async_session)):
                 if item:
                     config_dict[key] = item.setting_value
             except Exception as key_error:
-                # 单个配置项查询失败不影响其他配置
-
                 from src.unified_logger import default_logger as logger
                 logger.warning(f"获取配置项 {key} 失败：{str(key_error)}")
                 continue
@@ -163,17 +164,26 @@ async def get_home_config(db: AsyncSession = Depends(get_async_session)):
 
         config = {
             "hero": {
-                "title": config_dict.get('hero_title', f"欢迎来到 {site_name}"),
-                "subtitle": config_dict.get('hero_subtitle', "发现精彩内容，连接智慧世界"),
-                "backgroundImage": config_dict.get('hero_background', ""),
-                "ctaText": config_dict.get('hero_cta_text', "开始探索"),
-                "ctaLink": config_dict.get('hero_cta_link', "/blogs")
+                "title": config_dict.get('home_hero_title', f"用文字连接每一个想法"),
+                "subtitle": config_dict.get('home_hero_subtitle',
+                                            f"FastBlog 是一个现代化的内容创作平台，为创作者提供极致的写作体验，让灵感自由流动。"),
+                "backgroundImage": config_dict.get('home_hero_background_image', ""),
+                "ctaText": config_dict.get('home_hero_cta_text', "开始阅读"),
+                "ctaLink": config_dict.get('home_hero_cta_link', "/articles"),
+                "ctaTarget": config_dict.get('home_cta_target', "_self"),
             },
             "sections": {
-                "featuredTitle": config_dict.get('featured_title', "精选文章"),
-                "recentTitle": config_dict.get('recent_title', "最新内容"),
-                "popularTitle": config_dict.get('popular_title', "热门文章"),
-                "categoriesTitle": config_dict.get('categories_title', "内容分类")
+                "featuredTitle": config_dict.get('home_featured_title', "精选推荐"),
+                "mainTitle": config_dict.get('home_main_title', "最新发布"),
+                "categoriesTitle": "探索分类",
+            },
+            "newsletter": {
+                "title": config_dict.get('home_newsletter_title', "订阅更新"),
+                "subtitle": config_dict.get('home_newsletter_subtitle', "获取最新文章推送"),
+                "buttonText": config_dict.get('home_newsletter_button_text', "订阅"),
+            },
+            "messages": {
+                "noSummary": config_dict.get('home_no_summary_msg', "暂无摘要"),
             }
         }
 
@@ -182,23 +192,29 @@ async def get_home_config(db: AsyncSession = Depends(get_async_session)):
 
         from src.unified_logger import default_logger as logger
         logger.error(f"获取首页配置失败: {str(e)}")
-        # 返回默认配置作为回退
-        default_config = {
+        return ApiResponse(success=True, data={
             "hero": {
-                "title": "欢迎来到 FastBlog",
-                "subtitle": "发现精彩内容，连接智慧世界",
+                "title": "用文字连接每一个想法",
+                "subtitle": "FastBlog 是一个现代化的内容创作平台",
                 "backgroundImage": "",
-                "ctaText": "开始探索",
-                "ctaLink": "/blogs"
+                "ctaText": "开始阅读",
+                "ctaLink": "/articles",
+                "ctaTarget": "_self",
             },
             "sections": {
-                "featuredTitle": "精选文章",
-                "recentTitle": "最新内容",
-                "popularTitle": "热门文章",
-                "categoriesTitle": "内容分类"
+                "featuredTitle": "精选推荐",
+                "mainTitle": "最新发布",
+                "categoriesTitle": "探索分类",
+            },
+            "newsletter": {
+                "title": "订阅更新",
+                "subtitle": "获取最新文章推送",
+                "buttonText": "订阅",
+            },
+            "messages": {
+                "noSummary": "暂无摘要",
             }
-        }
-        return ApiResponse(success=True, data=default_config)
+        })
 
 
 @router.get("/featured")

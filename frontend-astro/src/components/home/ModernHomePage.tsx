@@ -1,133 +1,299 @@
-﻿'use client';
+'use client';
 
-import React, {useEffect, useRef, useState} from 'react';
-import {motion, useInView} from 'framer-motion';
+import React, {useCallback, useEffect, useRef, useState} from 'react';
+import {AnimatePresence, motion, useInView, useScroll, useTransform} from 'framer-motion';
 import {apiClient} from '@/lib/api/base-client';
 import {getFullMediaUrl} from '@/lib/utils';
+import {useHomeConfig} from '@/hooks/useHomeConfig';
 import {
   ArrowRight,
+  ArrowUpRight,
   BookOpen,
   Calendar,
+  ChevronLeft,
   ChevronRight,
   Clock,
   Eye,
-  FolderTree,
+  Flame,
   Hash,
   Heart,
   MessageSquare,
+  Sparkles,
+  Star,
   TrendingUp,
   Users,
-  Zap
+  Zap,
 } from 'lucide-react';
 
-// ═══ Types ═══
+/* ═══════════════════════════════════════
+   Types
+   ═══════════════════════════════════════ */
 interface Article {
-    id: number;
-    title: string;
-    slug: string;
-    excerpt?: string;
-    summary?: string;
-    cover_image?: string;
-    content?: string;
-    views: number;
-    likes: number;
-    created_at: string;
-    tags?: string[];
-    category?: string;
-    author?: { username: string; avatar?: string };
+  id: number;
+  title: string;
+  slug: string;
+  excerpt?: string;
+  summary?: string;
+  cover_image?: string;
+  created_at?: string;
+  views?: number;
+  likes?: number;
+  tags?: string[];
+  category?: string;
+  author?: { username?: string; avatar?: string };
 }
 
 interface Category {
-    id: number;
-    name: string;
-    slug: string;
-    count?: number;
-    icon?: string;
-    color?: string;
+  id: number;
+  name: string;
+  slug: string;
+  count?: number;
+  image?: string;
+  description?: string;
 }
 
 interface Stats {
-    total_articles?: number;
-    total_users?: number;
-    total_views?: number;
-    total_comments?: number;
+  total_articles?: number;
+  total_users?: number;
+  total_views?: number;
+  total_comments?: number;
 }
 
-// ═══ Animation Variants ═══
+/* ═══════════════════════════════════════
+   Animation Variants
+   ═══════════════════════════════════════ */
 const fadeUp = {
-    hidden: {opacity: 0, y: 30},
-    visible: {
-        opacity: 1,
-        y: 0,
-        transition: {duration: 0.6, ease: [0.22, 1, 0.36, 1] as [number, number, number, number]}
+  hidden: {opacity: 0, y: 40},
+  visible: {
+    opacity: 1,
+    y: 0,
+    transition: {
+      duration: 0.7,
+      ease: [0.22, 1, 0.36, 1] as [number, number, number, number] as [number, number, number, number]
     }
+  },
 };
 
-const stagger = {
-    visible: {transition: {staggerChildren: 0.1}}
+const fadeIn = {
+  hidden: {opacity: 0},
+  visible: {opacity: 1, transition: {duration: 0.6}},
+};
+
+const staggerContainer = {
+  hidden: {},
+  visible: {transition: {staggerChildren: 0.1, delayChildren: 0.1}},
 };
 
 const scaleIn = {
-    hidden: {opacity: 0, scale: 0.95},
-    visible: {
-        opacity: 1,
-        scale: 1,
-        transition: {duration: 0.5, ease: [0.22, 1, 0.36, 1] as [number, number, number, number]}
-    }
+  hidden: {opacity: 0, scale: 0.9},
+  visible: {
+    opacity: 1,
+    scale: 1,
+    transition: {duration: 0.5, ease: [0.22, 1, 0.36, 1] as [number, number, number, number]}
+  },
 };
 
-// ═══ Animated Section Wrapper ═══
-const AnimatedSection: React.FC<{ children: React.ReactNode; className?: string; delay?: number }> = ({
-                                                                                                          children,
-                                                                                                          className = '',
-                                                                                                          delay = 0
-                                                                                                      }) => {
-    const ref = useRef(null);
-    const isInView = useInView(ref, {once: true, margin: '-80px'});
+const slideFromLeft = {
+  hidden: {opacity: 0, x: -60},
+  visible: {
+    opacity: 1,
+    x: 0,
+    transition: {duration: 0.8, ease: [0.22, 1, 0.36, 1] as [number, number, number, number]}
+  },
+};
 
-    return (
-        <motion.div
-            ref={ref}
-            initial="hidden"
-            animate={isInView ? 'visible' : 'hidden'}
-            variants={stagger}
-            className={className}
+const slideFromRight = {
+  hidden: {opacity: 0, x: 60},
+  visible: {
+    opacity: 1,
+    x: 0,
+    transition: {duration: 0.8, ease: [0.22, 1, 0.36, 1] as [number, number, number, number]}
+  },
+};
+
+/* ═══════════════════════════════════════
+   Reusable: Section Wrapper with scroll animation
+   ═══════════════════════════════════════ */
+const Section: React.FC<{
+  children: React.ReactNode;
+  className?: string;
+  id?: string;
+}> = ({children, className = '', id}) => {
+  const ref = useRef(null);
+  const isInView = useInView(ref, {once: true, margin: '-80px'});
+  return (
+    <motion.section
+      ref={ref}
+      id={id}
+      initial="hidden"
+      animate={isInView ? 'visible' : 'hidden'}
+      variants={staggerContainer}
+      className={className}
+    >
+      {children}
+    </motion.section>
+  );
+};
+
+/* ═══════════════════════════════════════
+   Reusable: Animated Counter
+   ═══════════════════════════════════════ */
+const AnimatedNumber: React.FC<{ value: number; suffix?: string }> = ({value, suffix = ''}) => {
+  const [display, setDisplay] = useState(0);
+  const ref = useRef<HTMLSpanElement>(null);
+  const isInView = useInView(ref, {once: true});
+
+  useEffect(() => {
+    if (!isInView || value === 0) return;
+    const duration = 1800;
+    const startTime = Date.now();
+    const tick = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setDisplay(Math.floor(eased * value));
+      if (progress < 1) requestAnimationFrame(tick);
+    };
+    requestAnimationFrame(tick);
+  }, [isInView, value]);
+
+  return <span ref={ref}>{display.toLocaleString()}{suffix}</span>;
+};
+
+/* ═══════════════════════════════════════
+   Reusable: Horizontal Scroll Container
+   ═══════════════════════════════════════ */
+const HorizontalScroll: React.FC<{
+  children: React.ReactNode;
+  className?: string;
+}> = ({children, className = ''}) => {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+
+  const checkScroll = useCallback(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    setCanScrollLeft(el.scrollLeft > 10);
+    setCanScrollRight(el.scrollLeft < el.scrollWidth - el.clientWidth - 10);
+  }, []);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (!el) return;
+    el.addEventListener('scroll', checkScroll, {passive: true});
+    checkScroll();
+    return () => el.removeEventListener('scroll', checkScroll);
+  }, [checkScroll]);
+
+  const scroll = (direction: 'left' | 'right') => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const amount = el.clientWidth * 0.75;
+    el.scrollBy({left: direction === 'left' ? -amount : amount, behavior: 'smooth'});
+  };
+
+  return (
+    <div className="relative group/scroll">
+      {canScrollLeft && (
+        <button
+          onClick={() => scroll('left')}
+          className="absolute left-0 top-1/2 -translate-y-1/2 z-20 w-12 h-12 flex items-center justify-center
+            bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-full shadow-xl border border-gray-200/50 dark:border-gray-700/50
+            opacity-0 group-hover/scroll:opacity-100 transition-all duration-300 hover:scale-110 -translate-x-2"
+          aria-label="向左滚动"
         >
-            {children}
-        </motion.div>
-    );
+          <ChevronLeft className="w-5 h-5 text-gray-700 dark:text-gray-300"/>
+        </button>
+      )}
+      {canScrollRight && (
+        <button
+          onClick={() => scroll('right')}
+          className="absolute right-0 top-1/2 -translate-y-1/2 z-20 w-12 h-12 flex items-center justify-center
+            bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm rounded-full shadow-xl border border-gray-200/50 dark:border-gray-700/50
+            opacity-0 group-hover/scroll:opacity-100 transition-all duration-300 hover:scale-110 translate-x-2"
+          aria-label="向右滚动"
+        >
+          <ChevronRight className="w-5 h-5 text-gray-700 dark:text-gray-300"/>
+        </button>
+      )}
+      <div
+        ref={scrollRef}
+        className={`flex gap-6 overflow-x-auto scroll-smooth snap-x snap-mandatory pb-4
+          scrollbar-hide [${className}]`}
+        style={{scrollbarWidth: 'none', msOverflowStyle: 'none'}}
+      >
+        {children}
+      </div>
+    </div>
+  );
 };
 
-// ═══ Stat Counter Animation ═══
-const StatNumber: React.FC<{ value: number; suffix?: string }> = ({value, suffix = ''}) => {
-    const [count, setCount] = useState(0);
-    const ref = useRef(null);
-    const isInView = useInView(ref, {once: true});
+/* ═══════════════════════════════════════
+   Loading Skeleton
+   ═══════════════════════════════════════ */
+const LoadingScreen = () => (
+  <div className="min-h-screen bg-white dark:bg-gray-950">
+    {/* Hero skeleton */}
+    <div className="relative h-[85vh] min-h-[600px] bg-gray-100 dark:bg-gray-900 animate-pulse">
+      <div className="absolute inset-0 flex items-center">
+        <div className="max-w-7xl mx-auto px-6 w-full">
+          <div className="max-w-2xl space-y-6">
+            <div className="h-4 w-32 bg-gray-200 dark:bg-gray-800 rounded-full"/>
+            <div className="h-16 w-96 bg-gray-200 dark:bg-gray-800 rounded-xl"/>
+            <div className="h-6 w-80 bg-gray-200 dark:bg-gray-800 rounded-lg"/>
+            <div className="flex gap-4 mt-8">
+              <div className="h-14 w-40 bg-gray-200 dark:bg-gray-800 rounded-xl"/>
+              <div className="h-14 w-36 bg-gray-200 dark:bg-gray-800 rounded-xl"/>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    {/* Content skeletons */}
+    <div className="max-w-7xl mx-auto px-6 py-20 space-y-16">
+      {[1, 2].map(section => (
+        <div key={section}>
+          <div className="h-8 w-48 bg-gray-100 dark:bg-gray-900 rounded-lg mb-8"/>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {[1, 2, 3].map(i => (
+              <div key={i} className="rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-800">
+                <div className="aspect-[16/10] bg-gray-100 dark:bg-gray-900"/>
+                <div className="p-5 space-y-3">
+                  <div className="h-4 w-16 bg-gray-100 dark:bg-gray-900 rounded"/>
+                  <div className="h-6 bg-gray-100 dark:bg-gray-900 rounded"/>
+                  <div className="h-4 w-3/4 bg-gray-100 dark:bg-gray-900 rounded"/>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  </div>
+);
 
-    useEffect(() => {
-        if (!isInView) return;
-        const duration = 1500;
-        const start = Date.now();
-        const step = () => {
-            const elapsed = Date.now() - start;
-            const progress = Math.min(elapsed / duration, 1);
-            const eased = 1 - Math.pow(1 - progress, 3); // easeOutCubic
-            setCount(Math.floor(eased * value));
-            if (progress < 1) requestAnimationFrame(step);
-        };
-        requestAnimationFrame(step);
-    }, [isInView, value]);
-
-    return <span ref={ref}>{count.toLocaleString()}{suffix}</span>;
-};
-
+/* ═══════════════════════════════════════
+   Main Component
+   ═══════════════════════════════════════ */
 export default function ModernHomePage() {
   const [featured, setFeatured] = useState<Article[]>([]);
   const [recent, setRecent] = useState<Article[]>([]);
   const [popular, setPopular] = useState<Article[]>([]);
-    const [categories, setCategories] = useState<Category[]>([]);
-    const [stats, setStats] = useState<Stats>({});
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [stats, setStats] = useState<Stats>({});
   const [loading, setLoading] = useState(true);
+  const [activeHeroSlide, setActiveHeroSlide] = useState(0);
+
+  const {hero, sections, newsletter, messages, loading: configLoading} = useHomeConfig();
+
+  const heroRef = useRef<HTMLDivElement>(null);
+  const {scrollYProgress} = useScroll({
+    target: heroRef,
+    offset: ['start start', 'end start'],
+  });
+  const heroParallaxY = useTransform(scrollYProgress, [0, 1], [0, 150]);
+  const heroOpacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
 
   useEffect(() => {
     (async () => {
@@ -139,552 +305,755 @@ export default function ModernHomePage() {
           apiClient.get('/home/categories'),
           apiClient.get('/home/stats'),
         ]);
-          if (featRes.success) setFeatured(Array.isArray(featRes.data) ? featRes.data : featRes.data?.articles || []);
-          if (recentRes.success) setRecent(Array.isArray(recentRes.data) ? recentRes.data.slice(0, 8) : recentRes.data?.articles?.slice(0, 8) || []);
-          if (popRes.success) setPopular(Array.isArray(popRes.data) ? popRes.data.slice(0, 6) : popRes.data?.articles?.slice(0, 6) || []);
-          if (catRes.success) setCategories(Array.isArray(catRes.data) ? catRes.data : catRes.data?.categories || []);
-          if (statRes.success) setStats(statRes.data || {});
+        if (featRes.success) setFeatured(Array.isArray(featRes.data) ? featRes.data : featRes.data?.articles || []);
+        if (recentRes.success) setRecent(Array.isArray(recentRes.data) ? recentRes.data.slice(0, 12) : recentRes.data?.articles?.slice(0, 12) || []);
+        if (popRes.success) setPopular(Array.isArray(popRes.data) ? popRes.data.slice(0, 8) : popRes.data?.articles?.slice(0, 8) || []);
+        if (catRes.success) setCategories(Array.isArray(catRes.data) ? catRes.data : catRes.data?.categories || []);
+        if (statRes.success) setStats(statRes.data || {});
       } catch {
       } finally {
-          setLoading(false);
+        setLoading(false);
       }
     })();
   }, []);
 
-    // ═══ Loading Skeleton ═══
-  if (loading) return (
-    <div className="min-h-screen bg-white dark:bg-gray-950">
-        {/* Hero skeleton */}
-        <div className="max-w-6xl mx-auto px-4 py-24">
-            <div className="max-w-2xl space-y-4">
-                <div className="h-5 w-24 skeleton rounded-full"/>
-                <div className="h-14 w-96 skeleton rounded-xl"/>
-                <div className="h-6 w-80 skeleton rounded-lg"/>
-                <div className="flex gap-3 mt-6">
-                    <div className="h-11 w-36 skeleton rounded-xl"/>
-                    <div className="h-11 w-28 skeleton rounded-xl"/>
-                </div>
-            </div>
-        </div>
-        {/* Grid skeleton */}
-        <div className="max-w-6xl mx-auto px-4 space-y-8">
-            <div className="h-8 w-48 skeleton rounded-lg"/>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {[1, 2, 3, 4, 5, 6].map(i =>
-                <div key={i} className="rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-800">
-                    <div className="aspect-[16/10] skeleton"/>
-                    <div className="p-5 space-y-3">
-                        <div className="h-4 w-16 skeleton rounded"/>
-                        <div className="h-6 skeleton rounded"/>
-                        <div className="h-4 w-3/4 skeleton rounded"/>
-                    </div>
-                </div>
-            )}
-        </div>
-      </div>
-    </div>
-  );
+  // Auto-rotate hero featured slides
+  useEffect(() => {
+    if (featured.length <= 1) return;
+    const timer = setInterval(() => {
+      setActiveHeroSlide(prev => (prev + 1) % Math.min(featured.length, 5));
+    }, 6000);
+    return () => clearInterval(timer);
+  }, [featured.length]);
 
-  const f = featured.length > 0 ? featured[0] : null;
-  const fSub = featured.length > 1 ? featured.slice(1, 4) : [];
+  if (loading || configLoading) return <LoadingScreen/>;
 
-    const categoryColors = [
-        'from-blue-500 to-cyan-500',
-        'from-purple-500 to-pink-500',
-        'from-emerald-500 to-teal-500',
-        'from-orange-500 to-red-500',
-        'from-indigo-500 to-blue-500',
-        'from-rose-500 to-pink-500',
-    ];
+  const heroFeatured = featured.slice(0, 5);
+  const heroArticle = heroFeatured[activeHeroSlide];
+
+  const categoryGradients = [
+    'from-blue-600 via-blue-500 to-cyan-400',
+    'from-purple-600 via-purple-500 to-pink-400',
+    'from-emerald-600 via-emerald-500 to-teal-400',
+    'from-orange-600 via-orange-500 to-amber-400',
+    'from-indigo-600 via-indigo-500 to-blue-400',
+    'from-rose-600 via-rose-500 to-pink-400',
+  ];
+
+  const categoryIcons = [Sparkles, Star, Flame, Zap, BookOpen, Hash];
 
   return (
-      <div className="bg-white dark:bg-gray-950 overflow-hidden">
-          {/* ═══════════════════════════════════
-          HERO SECTION
-         ═══════════════════════════════════ */}
-          <section className="relative overflow-hidden">
-              {/* Background mesh gradient */}
-              <div className="absolute inset-0 gradient-mesh pointer-events-none"/>
-              <div
-                  className="absolute inset-0 bg-gradient-to-b from-transparent via-transparent to-white dark:to-gray-950 pointer-events-none"/>
+    <div className="bg-white dark:bg-gray-950 overflow-hidden">
 
-              <div className="relative max-w-6xl mx-auto px-4 sm:px-6 py-20 sm:py-28 lg:py-36">
-          <div className="max-w-2xl">
+      {/* ═══════════════════════════════════════════
+          HERO: Cinematic Full-Screen Section
+          ═══════════════════════════════════════════ */}
+      <section ref={heroRef} className="relative h-[90vh] min-h-[650px] max-h-[1000px] overflow-hidden">
+        {/* Background with parallax */}
+        <motion.div
+          style={{y: heroParallaxY}}
+          className="absolute inset-0 -top-[10%] -bottom-[10%]"
+        >
+          {heroArticle?.cover_image ? (
+            <img
+              src={getFullMediaUrl(heroArticle.cover_image)}
+              alt=""
+              className="w-full h-full object-cover"
+            />
+          ) : hero.backgroundImage ? (
+            <img
+              src={getFullMediaUrl(hero.backgroundImage)}
+              alt=""
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <div className="w-full h-full bg-gradient-to-br from-gray-900 via-blue-950 to-gray-900"/>
+          )}
+        </motion.div>
+
+        {/* Gradient overlays */}
+        <div className="absolute inset-0 bg-gradient-to-r from-black/80 via-black/50 to-transparent"/>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/30"/>
+        <div
+          className="absolute bottom-0 left-0 right-0 h-32 bg-gradient-to-t from-white dark:from-gray-950 to-transparent"/>
+
+        {/* Animated background particles */}
+        <div className="absolute inset-0 overflow-hidden pointer-events-none">
+          {[...Array(20)].map((_, i) => (
+            <motion.div
+              key={i}
+              className="absolute w-1 h-1 bg-white/20 rounded-full"
+              initial={{
+                x: Math.random() * (typeof window !== 'undefined' ? window.innerWidth : 1200),
+                y: Math.random() * (typeof window !== 'undefined' ? window.innerHeight : 800),
+              }}
+              animate={{
+                y: [null, Math.random() * -200 - 100],
+                opacity: [0, 0.6, 0],
+              }}
+              transition={{
+                duration: Math.random() * 8 + 6,
+                repeat: Infinity,
+                delay: Math.random() * 5,
+                ease: 'linear',
+              }}
+            />
+          ))}
+        </div>
+
+        {/* Hero Content */}
+        <motion.div
+          style={{opacity: heroOpacity}}
+          className="relative h-full flex items-center"
+        >
+          <div className="max-w-7xl mx-auto px-6 sm:px-8 w-full">
+            <div className="max-w-2xl">
+              {/* Badge */}
               <motion.div
+                initial={{opacity: 0, y: 20}}
+                animate={{opacity: 1, y: 0}}
+                transition={{duration: 0.6, delay: 0.2}}
+              >
+                <span className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-md
+                  rounded-full text-sm font-medium text-white/90 border border-white/20 mb-8">
+                  <Sparkles className="w-4 h-4 text-amber-400"/>
+                  {heroArticle?.category || '精选内容'}
+                </span>
+              </motion.div>
+
+              {/* Title */}
+              <AnimatePresence mode="wait">
+                <motion.h1
+                  key={activeHeroSlide}
+                  initial={{opacity: 0, y: 30}}
+                  animate={{opacity: 1, y: 0}}
+                  exit={{opacity: 0, y: -20}}
+                  transition={{duration: 0.7, ease: [0.22, 1, 0.36, 1] as [number, number, number, number]}}
+                  className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-black text-white
+                    tracking-tight leading-[1.05] mb-6"
+                >
+                  {heroArticle?.title || hero.title}
+                </motion.h1>
+              </AnimatePresence>
+
+              {/* Subtitle */}
+              <AnimatePresence mode="wait">
+                <motion.p
+                  key={`sub-${activeHeroSlide}`}
                   initial={{opacity: 0, y: 20}}
                   animate={{opacity: 1, y: 0}}
-                  transition={{duration: 0.6}}
-              >
-                  <div
-                      className="inline-flex items-center gap-2 px-3.5 py-1.5 bg-blue-50 dark:bg-blue-900/20 rounded-full text-xs font-semibold text-blue-600 dark:text-blue-400 mb-8 border border-blue-100 dark:border-blue-800/30">
-                      <Zap className="w-3.5 h-3.5"/>
-                      <span>全新升级 · 更强大的创作工具</span>
-                  </div>
-              </motion.div>
+                  exit={{opacity: 0, y: -10}}
+                  transition={{duration: 0.6, delay: 0.1}}
+                  className="text-base sm:text-lg lg:text-xl text-white/70 mb-10 leading-relaxed max-w-xl"
+                >
+                  {heroArticle?.excerpt || heroArticle?.summary || hero.subtitle}
+                </motion.p>
+              </AnimatePresence>
 
-              <motion.h1
-                  initial={{opacity: 0, y: 30}}
-                  animate={{opacity: 1, y: 0}}
-                  transition={{duration: 0.7, delay: 0.1}}
-                  className="text-4xl sm:text-5xl lg:text-6xl xl:text-7xl font-extrabold text-gray-900 dark:text-white tracking-tight leading-[1.08] mb-6"
-              >
-                  用文字<span className="gradient-text">连接</span><br/>
-                  每一个<span className="gradient-text">想法</span>
-              </motion.h1>
-
-              <motion.p
-                  initial={{opacity: 0, y: 30}}
-                  animate={{opacity: 1, y: 0}}
-                  transition={{duration: 0.7, delay: 0.2}}
-                  className="text-base sm:text-lg lg:text-xl text-gray-500 dark:text-gray-400 mb-10 leading-relaxed max-w-xl"
-              >
-                  FastBlog 是一个现代化的内容创作平台，为创作者提供极致的写作体验，让灵感自由流动。
-              </motion.p>
-
+              {/* CTAs */}
               <motion.div
-                  initial={{opacity: 0, y: 30}}
-                  animate={{opacity: 1, y: 0}}
-                  transition={{duration: 0.7, delay: 0.3}}
-                  className="flex flex-wrap gap-3"
+                initial={{opacity: 0, y: 20}}
+                animate={{opacity: 1, y: 0}}
+                transition={{duration: 0.6, delay: 0.4}}
+                className="flex flex-wrap gap-4"
               >
-                  <a href="/articles" className="btn-primary text-base !px-8 !py-3.5 flex items-center gap-2.5">
-                      开始阅读 <ArrowRight className="w-4.5 h-4.5"/>
-              </a>
-                  <a href="/categories" className="btn-secondary text-base !px-8 !py-3.5 flex items-center gap-2">
-                      <FolderTree className="w-4.5 h-4.5"/>
-                      浏览分类
-              </a>
-              </motion.div>
-          </div>
-
-                  {/* Decorative floating cards */}
-                  <div className="hidden xl:block absolute right-0 top-1/2 -translate-y-1/2 w-[400px] h-[320px]">
-                      <motion.div
-                          animate={{y: [0, -10, 0]}}
-                          transition={{duration: 4, repeat: Infinity, ease: 'easeInOut'}}
-                          className="absolute top-0 right-8 w-56 p-4 glass rounded-2xl shadow-lg"
-                      >
-                          <div className="flex items-center gap-3 mb-2">
-                              <div
-                                  className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                                  <BookOpen className="w-4 h-4 text-blue-600"/>
-                              </div>
-                              <div>
-                                  <p className="text-xs font-semibold text-gray-900 dark:text-white">最新文章</p>
-                                  <p className="text-[10px] text-gray-500">刚刚发布</p>
-                              </div>
-                          </div>
-                          <div className="h-3 w-full skeleton rounded mb-2"/>
-                          <div className="h-3 w-3/4 skeleton rounded"/>
-                      </motion.div>
-
-                      <motion.div
-                          animate={{y: [0, 10, 0]}}
-                          transition={{duration: 5, repeat: Infinity, ease: 'easeInOut', delay: 1}}
-                          className="absolute bottom-0 right-0 w-48 p-4 glass rounded-2xl shadow-lg"
-                      >
-                          <div className="flex items-center gap-2 mb-2">
-                              <TrendingUp className="w-4 h-4 text-emerald-500"/>
-                              <span className="text-xs font-semibold text-gray-900 dark:text-white">数据趋势</span>
-                          </div>
-                          <div className="flex items-end gap-1 h-10">
-                              {[30, 50, 35, 60, 45, 70, 55].map((h, i) => (
-                                  <div key={i} className="flex-1 rounded-sm bg-blue-500/20" style={{height: `${h}%`}}>
-                                      <div className="w-full rounded-sm bg-blue-500"
-                                           style={{height: `${60 + Math.random() * 40}%`}}/>
-                                  </div>
-                              ))}
-                          </div>
-                      </motion.div>
-          </div>
-        </div>
-      </section>
-
-          {/* ═══════════════════════════════════
-          STATS BAR
-         ═══════════════════════════════════ */}
-          <section className="border-y border-gray-100 dark:border-gray-900 bg-gray-50/50 dark:bg-gray-900/30">
-              <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8">
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 sm:gap-8">
-                      {[
-                          {
-                              label: '篇文章',
-                              value: stats.total_articles || featured.length + recent.length || 0,
-                              icon: BookOpen,
-                              color: 'text-blue-600'
-                          },
-                          {label: '位用户', value: stats.total_users || 0, icon: Users, color: 'text-emerald-600'},
-                          {label: '次阅读', value: stats.total_views || 0, icon: Eye, color: 'text-purple-600'},
-                          {
-                              label: '条评论',
-                              value: stats.total_comments || 0,
-                              icon: MessageSquare,
-                              color: 'text-orange-600'
-                          },
-                      ].map((stat, i) => {
-                          const Icon = stat.icon;
-                          return (
-                              <motion.div
-                                  key={i}
-                                  initial={{opacity: 0, y: 20}}
-                                  whileInView={{opacity: 1, y: 0}}
-                                  viewport={{once: true}}
-                                  transition={{delay: i * 0.1}}
-                                  className="text-center sm:text-left"
-                              >
-                                  <div className="flex items-center justify-center sm:justify-start gap-2 mb-1">
-                                      <Icon className={`w-4 h-4 ${stat.color}`}/>
-                                      <span
-                                          className="font-extrabold text-2xl lg:text-3xl text-gray-900 dark:text-white tabular-nums">
-                      <StatNumber value={typeof stat.value === 'number' ? stat.value : 0}/>
-                    </span>
-                                  </div>
-                                  <p className="text-sm text-gray-500 dark:text-gray-400">{stat.label}</p>
-                              </motion.div>
-                          );
-                      })}
-          </div>
-        </div>
-      </section>
-
-          {/* ═══════════════════════════════════
-          FEATURED ARTICLE
-         ═══════════════════════════════════ */}
-      {f && (
-          <AnimatedSection className="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
-              <motion.div variants={fadeUp} className="flex items-center gap-3 mb-8">
-                  <div className="w-1 h-6 gradient-primary rounded-full"/>
-                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">精选推荐</h2>
+                <a
+                  href={heroArticle ? `/view?slug=${heroArticle.slug}` : hero.ctaLink}
+                  target={hero.ctaTarget as React.HTMLAttributeAnchorTarget}
+                  className="group inline-flex items-center gap-3 px-8 py-4 bg-white text-gray-900
+                    font-bold rounded-xl hover:bg-gray-100 transition-all duration-300
+                    shadow-2xl shadow-black/20 hover:shadow-white/20 hover:-translate-y-0.5"
+                >
+                  {hero.ctaText}
+                  <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1"/>
+                </a>
+                <a
+                  href="/articles"
+                  className="inline-flex items-center gap-3 px-8 py-4 bg-white/10 backdrop-blur-sm text-white
+                    font-medium rounded-xl border border-white/20 hover:bg-white/20 transition-all duration-300
+                    hover:-translate-y-0.5"
+                >
+                  浏览全部
+                  <ArrowUpRight className="w-5 h-5"/>
+                </a>
               </motion.div>
 
-              <motion.div variants={fadeUp} className="grid lg:grid-cols-5 gap-8 items-stretch">
-                  {/* Hero Image */}
+              {/* Hero Slide Indicators */}
+              {heroFeatured.length > 1 && (
+                <motion.div
+                  initial={{opacity: 0}}
+                  animate={{opacity: 1}}
+                  transition={{delay: 0.8}}
+                  className="flex items-center gap-2 mt-12"
+                >
+                  {heroFeatured.map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setActiveHeroSlide(i)}
+                      className={`h-1 rounded-full transition-all duration-500 ${
+                        i === activeHeroSlide
+                          ? 'w-10 bg-white'
+                          : 'w-3 bg-white/30 hover:bg-white/50'
+                      }`}
+                      aria-label={`幻灯片 ${i + 1}`}
+                    />
+                  ))}
+                  <span className="text-white/40 text-sm ml-3 font-mono">
+                    {String(activeHeroSlide + 1).padStart(2, '0')} / {String(heroFeatured.length).padStart(2, '0')}
+                  </span>
+                </motion.div>
+              )}
+            </div>
+          </div>
+        </motion.div>
+      </section>
+
+
+      {/* ═══════════════════════════════════════════
+          STATS: Minimal Stats Bar
+          ═══════════════════════════════════════════ */}
+      <Section className="py-0">
+        <div className="relative -mt-16 z-10 max-w-5xl mx-auto px-6">
+          <motion.div
+            variants={fadeUp}
+            className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl shadow-black/5 dark:shadow-black/30
+              border border-gray-100 dark:border-gray-800 p-6 sm:p-8"
+          >
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-6 sm:gap-8">
+              {[
+                {
+                  label: '篇文章',
+                  value: stats.total_articles || 0,
+                  icon: BookOpen,
+                  color: 'text-blue-600 dark:text-blue-400',
+                  bg: 'bg-blue-50 dark:bg-blue-950/50'
+                },
+                {
+                  label: '位用户',
+                  value: stats.total_users || 0,
+                  icon: Users,
+                  color: 'text-emerald-600 dark:text-emerald-400',
+                  bg: 'bg-emerald-50 dark:bg-emerald-950/50'
+                },
+                {
+                  label: '次阅读',
+                  value: stats.total_views || 0,
+                  icon: Eye,
+                  color: 'text-purple-600 dark:text-purple-400',
+                  bg: 'bg-purple-50 dark:bg-purple-950/50'
+                },
+                {
+                  label: '条评论',
+                  value: stats.total_comments || 0,
+                  icon: MessageSquare,
+                  color: 'text-orange-600 dark:text-orange-400',
+                  bg: 'bg-orange-50 dark:bg-orange-950/50'
+                },
+              ].map((stat, i) => (
+                <motion.div
+                  key={i}
+                  variants={fadeUp}
+                  className="text-center group"
+                >
+                  <div className={`inline-flex items-center justify-center w-10 h-10 rounded-xl ${stat.bg} mb-3
+                    group-hover:scale-110 transition-transform duration-300`}>
+                    <stat.icon className={`w-5 h-5 ${stat.color}`}/>
+                  </div>
+                  <div className="text-2xl sm:text-3xl font-black text-gray-900 dark:text-white tabular-nums">
+                    <AnimatedNumber value={typeof stat.value === 'number' ? stat.value : 0}/>
+                  </div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400 mt-1">{stat.label}</div>
+                </motion.div>
+              ))}
+            </div>
+          </motion.div>
+        </div>
+      </Section>
+
+
+      {/* ═══════════════════════════════════════════
+          FEATURED: Hero Card + Side List
+          ═══════════════════════════════════════════ */}
+      {featured.length > 0 && (
+        <Section className="max-w-7xl mx-auto px-6 sm:px-8 py-20 sm:py-28">
+          <motion.div variants={fadeUp} className="flex items-end justify-between mb-12">
+            <div>
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-1 bg-gradient-to-r from-blue-600 to-cyan-500 rounded-full"/>
+                <span className="text-sm font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-widest">
+                  Featured
+                </span>
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white tracking-tight">
+                {sections.featuredTitle}
+              </h2>
+            </div>
+            <a
+              href="/articles"
+              className="hidden sm:flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-blue-600
+                dark:text-gray-400 dark:hover:text-blue-400 transition-colors group"
+            >
+              查看全部
+              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1"/>
+            </a>
+          </motion.div>
+
+          <div className="grid lg:grid-cols-12 gap-6">
+            {/* Main Featured */}
+            <motion.div variants={fadeUp} className="lg:col-span-7">
+              <a
+                href={`/view?slug=${featured[0].slug}`}
+                className="group block relative aspect-[16/10] rounded-2xl overflow-hidden bg-gray-100 dark:bg-gray-900"
+              >
+                {featured[0].cover_image ? (
+                  <img
+                    src={getFullMediaUrl(featured[0].cover_image)}
+                    alt={featured[0].title}
+                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                    loading="eager"
+                  />
+                ) : (
                   <div
-                      className="lg:col-span-3 relative rounded-2xl overflow-hidden bg-gray-100 dark:bg-gray-900 group">
-                      <a href={`/view?slug=${f.slug}`} className="block aspect-[16/10] lg:aspect-auto lg:h-full">
-                          {f.cover_image ? (
-                              <img
-                                src={getFullMediaUrl(f.cover_image)}
-                                  alt={f.title}
-                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                                  loading="eager"
-                                  fetchPriority="high"
-                              />
-                          ) : (
-                              <div
-                                  className="w-full h-full min-h-[300px] flex items-center justify-center text-gray-200 dark:text-gray-700">
-                                  <BookOpen className="w-16 h-16"/>
-                              </div>
-                          )}
-                          {/* Overlay gradient */}
-                          <div
-                              className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500"/>
-                      </a>
+                    className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/50 dark:to-purple-950/50">
+                    <BookOpen className="w-20 h-20 text-gray-200 dark:text-gray-800"/>
+                  </div>
+                )}
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"/>
+                <div className="absolute bottom-0 left-0 right-0 p-6 sm:p-8">
+                  {featured[0].tags?.[0] && (
+                    <span
+                      className="inline-flex items-center gap-1.5 px-3 py-1 bg-blue-600 text-white text-xs font-semibold rounded-full mb-4">
+                      <Hash className="w-3 h-3"/>
+                      {featured[0].tags[0]}
+                    </span>
+                  )}
+                  <h3
+                    className="text-2xl sm:text-3xl font-bold text-white mb-3 leading-tight line-clamp-2 group-hover:text-blue-200 transition-colors">
+                    {featured[0].title}
+                  </h3>
+                  <p className="text-white/70 text-sm line-clamp-2 max-w-lg mb-4">
+                    {featured[0].excerpt || featured[0].summary || messages.noSummary}
+                  </p>
+                  <div className="flex items-center gap-4 text-xs text-white/50">
+                    {featured[0].created_at && (
+                      <span className="flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5"/>
+                        {new Date(featured[0].created_at).toLocaleDateString('zh-CN')}
+                      </span>
+                    )}
+                    <span className="flex items-center gap-1.5">
+                      <Eye className="w-3.5 h-3.5"/>
+                      {featured[0].views || 0}
+                    </span>
+                    <span className="flex items-center gap-1.5">
+                      <Heart className="w-3.5 h-3.5"/>
+                      {featured[0].likes || 0}
+                    </span>
+                  </div>
+                </div>
+              </a>
+            </motion.div>
+
+            {/* Side Featured List */}
+            <div className="lg:col-span-5 flex flex-col gap-4">
+              {featured.slice(1, 4).map((article, i) => (
+                <motion.a
+                  key={article.id}
+                  variants={fadeUp}
+                  href={`/view?slug=${article.slug}`}
+                  className="group flex gap-4 p-3 rounded-xl border border-gray-100 dark:border-gray-800
+                    hover:border-blue-200 dark:hover:border-blue-800 bg-white dark:bg-gray-900/50
+                    hover:shadow-lg hover:shadow-blue-500/5 transition-all duration-300"
+                >
+                  <div className="flex-shrink-0 w-28 h-20 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
+                    {article.cover_image ? (
+                      <img
+                        src={getFullMediaUrl(article.cover_image)}
+                        alt={article.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <BookOpen className="w-6 h-6 text-gray-300 dark:text-gray-700"/>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0 flex flex-col justify-center">
+                    <h4 className="font-semibold text-gray-900 dark:text-white text-sm line-clamp-2
+                      group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors leading-snug">
+                      {article.title}
+                    </h4>
+                    <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
+                      <span className="flex items-center gap-1">
+                        <Eye className="w-3 h-3"/>{article.views || 0}
+                      </span>
+                      <span className="flex items-center gap-1">
+                        <Heart className="w-3 h-3"/>{article.likes || 0}
+                      </span>
+                    </div>
+                  </div>
+                </motion.a>
+              ))}
+            </div>
+          </div>
+        </Section>
+      )}
+
+
+      {/* ═══════════════════════════════════════════
+          CATEGORIES: Immersive Cards with Horizontal Scroll
+          ═══════════════════════════════════════════ */}
+      {categories.length > 0 && (
+        <Section
+          id="categories"
+          className="py-20 sm:py-28 bg-gray-50 dark:bg-gray-900/50 border-y border-gray-100 dark:border-gray-900"
+        >
+          <div className="max-w-7xl mx-auto px-6 sm:px-8">
+            <motion.div variants={fadeUp} className="flex items-end justify-between mb-12">
+              <div>
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-1 bg-gradient-to-r from-purple-600 to-pink-500 rounded-full"/>
+                  <span
+                    className="text-sm font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-widest">
+                    Explore
+                  </span>
+                </div>
+                <h2 className="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white tracking-tight">
+                  {sections.categoriesTitle}
+                </h2>
+                <p className="text-gray-500 dark:text-gray-400 mt-2">按主题浏览感兴趣的内容</p>
+              </div>
+              <a
+                href="/categories"
+                className="hidden sm:flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-purple-600
+                  dark:text-gray-400 dark:hover:text-purple-400 transition-colors group"
+              >
+                查看全部
+                <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1"/>
+              </a>
+            </motion.div>
+
+            <HorizontalScroll>
+              {categories.map((cat, i) => {
+                const Icon = categoryIcons[i % categoryIcons.length];
+                return (
+                  <motion.a
+                    key={cat.id}
+                    variants={scaleIn}
+                    href={`/category?slug=${cat.slug}`}
+                    className="group flex-shrink-0 w-[260px] snap-start"
+                  >
+                    <div className="relative h-52 rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-800
+                      bg-white dark:bg-gray-900 hover:border-gray-200 dark:hover:border-gray-700
+                      hover:shadow-2xl hover:shadow-black/10 dark:hover:shadow-black/40 transition-all duration-500
+                      hover:-translate-y-2"
+                    >
+                      {/* Gradient background */}
+                      <div
+                        className={`absolute inset-0 bg-gradient-to-br ${categoryGradients[i % categoryGradients.length]} opacity-10
+                        group-hover:opacity-20 transition-opacity duration-500`}/>
+
+                      {/* Content */}
+                      <div className="relative h-full flex flex-col items-center justify-center p-6 text-center">
+                        <div
+                          className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${categoryGradients[i % categoryGradients.length]}
+                          flex items-center justify-center mb-4 shadow-lg group-hover:scale-110
+                          group-hover:rotate-3 transition-all duration-500`}>
+                          <Icon className="w-7 h-7 text-white"/>
+                        </div>
+                        <h3 className="font-bold text-gray-900 dark:text-white text-base mb-1.5">
+                          {cat.name}
+                        </h3>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {cat.count || 0} 篇文章
+                        </p>
+                        <div className="absolute bottom-4 right-4 w-8 h-8 rounded-full bg-gray-100 dark:bg-gray-800
+                          flex items-center justify-center opacity-0 group-hover:opacity-100
+                          translate-y-2 group-hover:translate-y-0 transition-all duration-300">
+                          <ArrowUpRight className="w-4 h-4 text-gray-500 dark:text-gray-400"/>
+                        </div>
+                      </div>
+                    </div>
+                  </motion.a>
+                );
+              })}
+            </HorizontalScroll>
+          </div>
+        </Section>
+      )}
+
+
+      {/* ═══════════════════════════════════════════
+          RECENT ARTICLES: Magazine Grid
+          ═══════════════════════════════════════════ */}
+      {recent.length > 0 && (
+        <Section className="max-w-7xl mx-auto px-6 sm:px-8 py-20 sm:py-28">
+          <motion.div variants={fadeUp} className="flex items-end justify-between mb-12">
+            <div>
+              <div className="flex items-center gap-3 mb-3">
+                <div className="w-10 h-1 bg-gradient-to-r from-emerald-600 to-teal-500 rounded-full"/>
+                <span
+                  className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">
+                  Latest
+                </span>
+              </div>
+              <h2 className="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white tracking-tight">
+                {sections.mainTitle}
+              </h2>
+            </div>
+            <a
+              href="/articles"
+              className="hidden sm:flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-emerald-600
+                dark:text-gray-400 dark:hover:text-emerald-400 transition-colors group"
+            >
+              查看全部
+              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1"/>
+            </a>
+          </motion.div>
+
+          {/* Responsive Grid: Featured first, then grid */}
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            {recent.map((article, i) => (
+              <motion.a
+                key={article.id}
+                variants={fadeUp}
+                href={`/view?slug=${article.slug}`}
+                className="group flex flex-col bg-white dark:bg-gray-900 rounded-2xl border border-gray-100
+                  dark:border-gray-800 overflow-hidden hover:border-gray-200 dark:hover:border-gray-700
+                  hover:shadow-xl hover:shadow-black/5 dark:hover:shadow-black/30 transition-all duration-500
+                  hover:-translate-y-1"
+              >
+                {/* Cover */}
+                <div className="relative aspect-[16/10] bg-gray-50 dark:bg-gray-800 overflow-hidden">
+                  {article.cover_image ? (
+                    <img
+                      src={getFullMediaUrl(article.cover_image)}
+                      alt={article.title}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <BookOpen className="w-10 h-10 text-gray-200 dark:text-gray-700"/>
+                    </div>
+                  )}
+                  {/* Category badge */}
+                  {article.category && (
+                    <div className="absolute top-3 left-3">
+                      <span className="px-2.5 py-1 bg-white/90 dark:bg-gray-900/90 backdrop-blur-sm
+                        text-gray-700 dark:text-gray-300 text-[11px] font-medium rounded-lg
+                        border border-gray-200/50 dark:border-gray-700/50">
+                        {article.category}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 p-5 flex flex-col">
+                  <div className="flex items-center gap-2 text-xs text-gray-400 mb-3">
+                    {article.tags?.[0] && (
+                      <span className="text-blue-600 dark:text-blue-400 font-medium flex items-center gap-0.5">
+                        <Hash className="w-3 h-3"/>{article.tags[0]}
+                      </span>
+                    )}
+                    {article.tags?.[0] && <span>·</span>}
+                    {article.created_at && (
+                      <span className="flex items-center gap-1">
+                        <Clock className="w-3 h-3"/>
+                        {new Date(article.created_at).toLocaleDateString('zh-CN')}
+                      </span>
+                    )}
+                  </div>
+                  <h3 className="font-bold text-gray-900 dark:text-white text-sm line-clamp-2
+                    group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors leading-relaxed mb-3">
+                    {article.title}
+                  </h3>
+                  <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed mb-4 flex-1">
+                    {article.excerpt || article.summary || ''}
+                  </p>
+                  <div
+                    className="flex items-center justify-between text-xs text-gray-400 pt-3 border-t border-gray-50 dark:border-gray-800/50">
+                    <div className="flex items-center gap-3">
+                      <span className="flex items-center gap-1"><Eye className="w-3 h-3"/>{article.views || 0}</span>
+                      <span className="flex items-center gap-1"><Heart className="w-3 h-3"/>{article.likes || 0}</span>
+                    </div>
+                    {article.author && (
+                      <div className="flex items-center gap-1.5">
+                        {article.author.avatar ? (
+                          <img src={article.author.avatar} alt="" className="w-5 h-5 rounded-full"/>
+                        ) : (
+                          <div className="w-5 h-5 rounded-full bg-gradient-to-br from-blue-400 to-purple-400"/>
+                        )}
+                        <span className="font-medium text-gray-500 dark:text-gray-400">{article.author.username}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </motion.a>
+            ))}
+          </div>
+        </Section>
+      )}
+
+
+      {/* ═══════════════════════════════════════════
+          POPULAR / TRENDING: Rank List Style
+          ═══════════════════════════════════════════ */}
+      {popular.length > 0 && (
+        <Section
+          id="trending"
+          className="py-20 sm:py-28 bg-gray-50 dark:bg-gray-900/50 border-y border-gray-100 dark:border-gray-900"
+        >
+          <div className="max-w-7xl mx-auto px-6 sm:px-8">
+            <motion.div variants={fadeUp} className="flex items-end justify-between mb-12">
+              <div>
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-1 bg-gradient-to-r from-orange-500 to-red-500 rounded-full"/>
+                  <span
+                    className="text-sm font-semibold text-orange-600 dark:text-orange-400 uppercase tracking-widest">
+                    Trending
+                  </span>
+                </div>
+                <h2
+                  className="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white tracking-tight flex items-center gap-3">
+                  <Flame className="w-8 h-8 text-orange-500"/>
+                  热门趋势
+                </h2>
+                <p className="text-gray-500 dark:text-gray-400 mt-2">最受欢迎的内容</p>
+              </div>
+            </motion.div>
+
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+              {popular.map((article, i) => (
+                <motion.a
+                  key={article.id}
+                  variants={fadeUp}
+                  href={`/view?slug=${article.slug}`}
+                  className="group relative flex flex-col bg-white dark:bg-gray-900 rounded-2xl border border-gray-100
+                    dark:border-gray-800 overflow-hidden hover:border-gray-200 dark:hover:border-gray-700
+                    hover:shadow-xl hover:shadow-black/5 dark:hover:shadow-black/30 transition-all duration-500
+                    hover:-translate-y-1"
+                >
+                  {/* Rank badge */}
+                  <div className="absolute top-3 left-3 z-10">
+                    <span className={`inline-flex items-center justify-center w-8 h-8 rounded-lg text-sm font-black ${
+                      i === 0 ? 'bg-amber-500 text-white shadow-lg shadow-amber-500/30' :
+                        i === 1 ? 'bg-gray-400 text-white' :
+                          i === 2 ? 'bg-orange-600 text-white' :
+                            'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                    }`}>
+                      {i + 1}
+                    </span>
+                  </div>
+
+                  {/* Cover */}
+                  <div className="relative aspect-[16/10] bg-gray-50 dark:bg-gray-800 overflow-hidden">
+                    {article.cover_image ? (
+                      <img
+                        src={getFullMediaUrl(article.cover_image)}
+                        alt={article.title}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
+                        loading="lazy"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <TrendingUp className="w-10 h-10 text-gray-200 dark:text-gray-700"/>
+                      </div>
+                    )}
                   </div>
 
                   {/* Content */}
-                  <div className="lg:col-span-2 flex flex-col justify-center">
-                      {f.tags?.[0] && (
-                          <span className="badge badge-blue w-fit mb-4">
-                  <Hash className="w-3 h-3 mr-0.5"/>
-                              {f.tags[0]}
-                </span>
-                      )}
-                      <h3 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-4 leading-tight">
-                          <a href={`/view?slug=${f.slug}`}
-                             className="hover:text-blue-600 dark:hover:text-blue-400 transition-colors">
-                              {f.title}
-                          </a>
-                      </h3>
-                      <p className="text-gray-500 dark:text-gray-400 text-sm leading-relaxed mb-6 line-clamp-3">
-                          {f.excerpt || f.summary || '...'}
-                      </p>
-                      <div className="flex items-center gap-4 text-xs text-gray-400 mb-6">
-                          {f.created_at && (
-                              <span className="flex items-center gap-1.5">
-                    <Calendar className="w-3.5 h-3.5"/>
-                                  {new Date(f.created_at).toLocaleDateString('zh-CN')}
-                  </span>
-                          )}
-                          <span className="flex items-center gap-1.5">
-                  <Eye className="w-3.5 h-3.5"/>
-                              {f.views || 0}
-                </span>
-                          <span className="flex items-center gap-1.5">
-                  <Heart className="w-3.5 h-3.5"/>
-                              {f.likes || 0}
-                </span>
-                      </div>
-                      <a
-                          href={`/view?slug=${f.slug}`}
-                          className="btn-primary !w-fit flex items-center gap-2"
-                      >
-                          阅读全文 <ChevronRight className="w-4 h-4"/>
-                      </a>
-                  </div>
-              </motion.div>
-
-          {/* Sub featured */}
-          {fSub.length > 0 && (
-              <div className="grid sm:grid-cols-3 gap-4 mt-8">
-                  {fSub.map((a, i) => (
-                      <motion.a
-                          key={a.id}
-                          variants={scaleIn}
-                          href={`/view?slug=${a.slug}`}
-                          className="group p-5 rounded-xl border border-gray-100 dark:border-gray-800 hover:border-blue-200 dark:hover:border-blue-800 transition-all card-hover bg-white dark:bg-gray-900"
-                      >
-                          <p className="text-xs text-blue-600 dark:text-blue-400 mb-2 font-semibold uppercase tracking-wider flex items-center gap-1">
-                              <Hash className="w-3 h-3"/>
-                              {a.tags?.[0] || '精选'}
-                          </p>
-                          <h3 className="font-semibold text-gray-900 dark:text-white text-sm line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors leading-relaxed">
-                              {a.title}
-                          </h3>
-                          <div className="flex items-center gap-3 text-xs text-gray-400 mt-3">
-                              <span className="flex items-center gap-1"><Eye className="w-3 h-3"/>{a.views || 0}</span>
-                              <span className="flex items-center gap-1"><Heart
-                                  className="w-3 h-3"/>{a.likes || 0}</span>
-                          </div>
-                      </motion.a>
-                  ))}
-              </div>
-          )}
-          </AnimatedSection>
-      )}
-
-          {/* ═══════════════════════════════════
-          CATEGORIES
-         ═══════════════════════════════════ */}
-          {categories.length > 0 && (
-              <section className="bg-gray-50 dark:bg-gray-900/50 border-y border-gray-100 dark:border-gray-900">
-                  <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
-                      <AnimatedSection>
-                          <motion.div variants={fadeUp} className="flex items-center justify-between mb-10">
-                              <div className="flex items-center gap-3">
-                                  <div className="w-1 h-6 gradient-accent rounded-full"/>
-                                  <div>
-                                      <h2 className="text-2xl font-bold text-gray-900 dark:text-white">探索分类</h2>
-                                      <p className="text-sm text-gray-500 mt-1">按主题浏览感兴趣的内容</p>
-                                  </div>
-                              </div>
-                              <a href="/categories"
-                                 className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1">
-                                  查看全部 <ChevronRight className="w-4 h-4"/>
-                </a>
-                          </motion.div>
-
-                          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-                              {categories.slice(0, 6).map((cat, i) => (
-                                  <motion.a
-                                      key={cat.id}
-                                      variants={scaleIn}
-                                      href={`/category?slug=${cat.slug}`}
-                                      className="group relative p-5 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 hover:border-gray-200 dark:hover:border-gray-700 transition-all card-hover text-center overflow-hidden"
-                                  >
-                                      <div
-                                          className={`w-12 h-12 mx-auto mb-3 rounded-xl bg-gradient-to-br ${categoryColors[i % categoryColors.length]} flex items-center justify-center text-white text-lg font-bold shadow-sm`}>
-                                          {cat.name?.[0] || '#'}
-                                      </div>
-                                      <h3 className="font-semibold text-gray-900 dark:text-white text-sm mb-1">{cat.name}</h3>
-                                      <p className="text-xs text-gray-400">{cat.count || 0} 篇文章</p>
-                                  </motion.a>
-                              ))}
-                          </div>
-                      </AnimatedSection>
-                  </div>
-        </section>
-      )}
-
-          {/* ═══════════════════════════════════
-          RECENT ARTICLES
-         ═══════════════════════════════════ */}
-          {recent.length > 0 && (
-              <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
-                  <AnimatedSection>
-                      <motion.div variants={fadeUp} className="flex items-center justify-between mb-10">
-                          <div className="flex items-center gap-3">
-                              <div className="w-1 h-6 gradient-cool rounded-full"/>
-                              <div>
-                                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white">最新发布</h2>
-                                  <p className="text-sm text-gray-500 mt-1">新鲜出炉的优质内容</p>
-                              </div>
-                          </div>
-                          <a href="/articles"
-                             className="text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1">
-                              查看全部 <ChevronRight className="w-4 h-4"/>
-                          </a>
-                      </motion.div>
-
-                      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-                          {recent.map((a, i) => (
-                              <motion.a
-                                  key={a.id}
-                                  variants={fadeUp}
-                                  href={`/view?slug=${a.slug}`}
-                                  className="group bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden card-hover"
-                              >
-                                  {/* Cover */}
-                                  <div className="aspect-[16/10] bg-gray-50 dark:bg-gray-800 overflow-hidden relative">
-                                      {a.cover_image ? (
-                                          <img
-                                            src={getFullMediaUrl(a.cover_image)}
-                                              alt={a.title}
-                                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
-                                              loading="lazy"
-                                          />
-                                      ) : (
-                                          <div className="w-full h-full flex items-center justify-center">
-                                              <BookOpen className="w-8 h-8 text-gray-200 dark:text-gray-700"/>
-                                          </div>
-                                      )}
-                                      {/* Category badge on image */}
-                                      {a.category && (
-                                          <div className="absolute top-3 left-3">
-                        <span
-                            className="badge bg-white/90 dark:bg-gray-900/90 text-gray-700 dark:text-gray-300 backdrop-blur-sm text-[10px]">
-                          {a.category}
-                        </span>
-                                          </div>
-                                      )}
-                                  </div>
-                                  {/* Content */}
-                                  <div className="p-4.5">
-                                      <div className="flex items-center gap-2 text-xs text-gray-400 mb-2.5">
-                                          {a.tags?.[0] && (
-                                              <span
-                                                  className="text-blue-600 dark:text-blue-400 font-medium flex items-center gap-0.5">
-                          <Hash className="w-3 h-3"/>{a.tags[0]}
-                        </span>
-                                          )}
-                                          <span>·</span>
-                                          <span className="flex items-center gap-1">
-                        <Clock className="w-3 h-3"/>
-                                              {a.created_at ? new Date(a.created_at).toLocaleDateString('zh-CN') : ''}
+                  <div className="p-4 flex-1">
+                    <h3 className="font-bold text-gray-900 dark:text-white text-sm line-clamp-2
+                      group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors leading-relaxed mb-3">
+                      {article.title}
+                    </h3>
+                    <div className="flex items-center gap-3 text-xs text-gray-400">
+                      <span className="flex items-center gap-1">
+                        <Eye className="w-3 h-3"/>{article.views || 0}
                       </span>
-                                      </div>
-                                      <h3 className="font-semibold text-gray-900 dark:text-white text-sm line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors leading-relaxed mb-3">
-                                          {a.title}
-                                      </h3>
-                                      <p className="text-xs text-gray-400 line-clamp-2 mb-3 leading-relaxed">{a.excerpt || a.summary || ''}</p>
-                                      <div className="flex items-center justify-between text-xs text-gray-400">
-                                          <div className="flex items-center gap-3">
-                                              <span className="flex items-center gap-1"><Eye
-                                                  className="w-3 h-3"/>{a.views || 0}</span>
-                                              <span className="flex items-center gap-1"><Heart
-                                                  className="w-3 h-3"/>{a.likes || 0}</span>
-                                          </div>
-                                          {a.author && (
-                                              <div className="flex items-center gap-1.5">
-                                                  {a.author.avatar ? (
-                                                      <img src={a.author.avatar} alt=""
-                                                           className="w-4 h-4 rounded-full"/>
-                                                  ) : (
-                                                      <div
-                                                          className="w-4 h-4 rounded-full bg-gray-200 dark:bg-gray-700"/>
-                                                  )}
-                                                  <span>{a.author.username}</span>
-                                              </div>
-                                          )}
-                                      </div>
-                                  </div>
-                              </motion.a>
-                          ))}
-                      </div>
-                  </AnimatedSection>
-              </div>
-          )}
-
-          {/* ═══════════════════════════════════
-          POPULAR / TRENDING
-         ═══════════════════════════════════ */}
-          {popular.length > 0 && (
-              <section className="bg-gray-50 dark:bg-gray-900/50 border-y border-gray-100 dark:border-gray-900">
-                  <div className="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
-                      <AnimatedSection>
-                          <motion.div variants={fadeUp} className="flex items-center gap-3 mb-10">
-                              <div className="w-1 h-6 gradient-warm rounded-full"/>
-                              <div>
-                                  <h2 className="text-2xl font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                                      <TrendingUp className="w-6 h-6 text-orange-500"/>
-                                      热门趋势
-                                  </h2>
-                                  <p className="text-sm text-gray-500 mt-1">最受欢迎的内容</p>
-                              </div>
-                          </motion.div>
-
-                          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                              {popular.map((a, i) => (
-                                  <motion.a
-                                      key={a.id}
-                                      variants={fadeUp}
-                                      href={`/view?slug=${a.slug}`}
-                                      className="group flex gap-4 p-4 rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 card-hover"
-                                  >
-                                      {/* Rank number */}
-                                      <div
-                                          className={`flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center text-lg font-extrabold ${
-                                              i === 0 ? 'bg-yellow-100 dark:bg-yellow-900/20 text-yellow-600' :
-                                                  i === 1 ? 'bg-gray-100 dark:bg-gray-800 text-gray-500' :
-                                                      i === 2 ? 'bg-orange-100 dark:bg-orange-900/20 text-orange-600' :
-                                                          'bg-gray-50 dark:bg-gray-800 text-gray-400'
-                                          }`}>
-                                          {i + 1}
-                                      </div>
-                                      <div className="flex-1 min-w-0">
-                                          <h3 className="font-semibold text-gray-900 dark:text-white text-sm line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors leading-relaxed">
-                                              {a.title}
-                                          </h3>
-                                          <div className="flex items-center gap-3 text-xs text-gray-400 mt-2">
-                                              <span className="flex items-center gap-1"><Eye
-                                                  className="w-3 h-3"/>{a.views || 0}</span>
-                                              <span className="flex items-center gap-1"><Heart
-                                                  className="w-3 h-3"/>{a.likes || 0}</span>
-                                          </div>
-                                      </div>
-                                  </motion.a>
-                              ))}
-                          </div>
-                      </AnimatedSection>
+                      <span className="flex items-center gap-1">
+                        <Heart className="w-3 h-3"/>{article.likes || 0}
+                      </span>
+                    </div>
                   </div>
-              </section>
-          )}
+                </motion.a>
+              ))}
+            </div>
+          </div>
+        </Section>
+      )}
 
-          {/* ═══════════════════════════════════
-          CTA SECTION
-         ═══════════════════════════════════ */}
-          <section className="max-w-6xl mx-auto px-4 sm:px-6 py-16 sm:py-20">
-              <AnimatedSection>
-                  <motion.div
-                      variants={scaleIn}
-                      className="relative rounded-3xl overflow-hidden p-8 sm:p-12 lg:p-16 text-center"
-                  >
-                      {/* Background */}
-                      <div className="absolute inset-0 gradient-primary opacity-90"/>
-                      <div
-                          className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48ZyBmaWxsPSJub25lIiBmaWxsLXJ1bGU9ImV2ZW5vZGQiPjxjaXJjbGUgY3g9IjIwIiBjeT0iMjAiIHI9IjEiIGZpbGw9InJnYmEoMjU1LDI1NSwyNTUsMC4xKSIvPjwvZz48L3N2Zz4=')] opacity-30"/>
 
-                      <div className="relative z-10">
-                          <h2 className="text-3xl sm:text-4xl font-bold text-white mb-4">
-                              准备好开始创作了吗？
-                          </h2>
-                          <p className="text-blue-100 text-lg mb-8 max-w-lg mx-auto">
-                              加入 FastBlog，与数千名创作者一起分享你的知识和想法。
-                          </p>
-                          <div className="flex flex-wrap items-center justify-center gap-4">
-                              <a href="/register"
-                                 className="px-8 py-3.5 bg-white text-blue-600 font-semibold rounded-xl hover:bg-blue-50 transition-colors shadow-lg">
-                                  免费注册
-                              </a>
-                              <a href="/about"
-                                 className="px-8 py-3.5 border-2 border-white/30 text-white font-medium rounded-xl hover:bg-white/10 transition-colors">
-                                  了解更多
-                              </a>
-                          </div>
-                      </div>
-                  </motion.div>
-              </AnimatedSection>
-      </section>
+      {/* ═══════════════════════════════════════════
+          CTA: Newsletter / Registration
+          ═══════════════════════════════════════════ */}
+      <Section className="max-w-7xl mx-auto px-6 sm:px-8 py-20 sm:py-28">
+        <motion.div
+          variants={scaleIn}
+          className="relative rounded-3xl overflow-hidden"
+        >
+          {/* Background */}
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-600 via-purple-600 to-blue-800"/>
+          <div className="absolute inset-0 opacity-30"
+               style={{
+                 backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.08'%3E%3Ccircle cx='30' cy='30' r='2'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`,
+               }}
+          />
+          {/* Gradient blur orbs */}
+          <div className="absolute -top-24 -left-24 w-64 h-64 bg-blue-400/30 rounded-full blur-3xl"/>
+          <div className="absolute -bottom-24 -right-24 w-64 h-64 bg-purple-400/30 rounded-full blur-3xl"/>
+
+          <div className="relative z-10 p-8 sm:p-12 lg:p-16 text-center">
+            <motion.div variants={fadeUp}>
+              <span className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur-sm
+                rounded-full text-sm font-medium text-white/90 border border-white/20 mb-6">
+                <Sparkles className="w-4 h-4 text-amber-300"/>
+                加入我们
+              </span>
+            </motion.div>
+            <motion.h2
+              variants={fadeUp}
+              className="text-3xl sm:text-4xl lg:text-5xl font-black text-white mb-5 leading-tight"
+            >
+              {newsletter.title}
+            </motion.h2>
+            <motion.p
+              variants={fadeUp}
+              className="text-blue-100/80 text-lg mb-10 max-w-xl mx-auto leading-relaxed"
+            >
+              {newsletter.subtitle}
+            </motion.p>
+            <motion.div variants={fadeUp} className="flex flex-wrap items-center justify-center gap-4">
+              <a
+                href="/register"
+                className="group inline-flex items-center gap-3 px-8 py-4 bg-white text-blue-700
+                  font-bold rounded-xl hover:bg-gray-50 transition-all duration-300 shadow-xl
+                  shadow-black/10 hover:shadow-white/20 hover:-translate-y-0.5"
+              >
+                {newsletter.buttonText || '免费注册'}
+                <ArrowRight className="w-5 h-5 transition-transform group-hover:translate-x-1"/>
+              </a>
+              <a
+                href="/about"
+                className="inline-flex items-center gap-3 px-8 py-4 bg-white/10 backdrop-blur-sm
+                  text-white font-medium rounded-xl border border-white/20 hover:bg-white/20
+                  transition-all duration-300 hover:-translate-y-0.5"
+              >
+                了解更多
+              </a>
+            </motion.div>
+          </div>
+        </motion.div>
+      </Section>
+
+
+      {/* ═══════════════════════════════════════════
+          FOOTER SPACER
+          ═══════════════════════════════════════════ */}
+      <div className="h-8"/>
     </div>
   );
 }

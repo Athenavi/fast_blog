@@ -1,50 +1,45 @@
 'use client';
 
-import React, {useState, useMemo, useCallback, useEffect} from 'react';
-import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
+import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {StatCard} from '@/components/admin/shared-ui';
 import {apiClient} from '@/lib/api/base-client';
-import {useTranslation, locales, type Locale} from '@/lib/i18n';
+import {type Locale, locales, useTranslation} from '@/lib/i18n';
 import {
-  Save,
-  Settings as SettingsIcon,
-  Home,
-  Menu,
-  FileText,
-  Shield,
-  Plus,
-  Trash2,
-  X,
-  Edit3,
-  Check,
   AlertTriangle,
-  Loader,
-  ExternalLink,
-  ChevronDown,
-  Globe,
-  Mail,
-  Search,
-  Image,
-  RotateCcw,
-  Download,
-  Upload,
-  Eye,
-  Layers,
-  Zap,
-  Bell,
-  BarChart3,
-  Hash,
-  Type,
-  Link2,
   CheckCircle2,
-  XCircle,
+  ChevronDown,
   Clock,
+  Download,
+  Edit3,
+  ExternalLink,
+  Eye,
   FileCode,
+  FileText,
+  Globe,
+  Hash,
+  Home,
+  Image,
+  Layers,
   Layout,
-  Monitor
+  Link2,
+  Loader,
+  Mail,
+  Menu,
+  Monitor,
+  Plus,
+  Save,
+  Search,
+  Settings as SettingsIcon,
+  Shield,
+  Trash2,
+  Type,
+  X,
+  XCircle,
+  Zap
 } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────
@@ -151,32 +146,7 @@ const SETTINGS_FIELDS: FieldDef[] = [
     icon: Image
   },
   {key: 'home_featured_title', label: '精选区域标题', category: 'home', placeholder: '精选文章', icon: Layers},
-  {
-    key: 'home_featured_count',
-    label: '精选文章数量',
-    category: 'home',
-    type: 'number',
-    placeholder: '6',
-    icon: BarChart3
-  },
-  {key: 'home_featured_empty_title', label: '精选区空标题', category: 'home', placeholder: '暂无精选', icon: Type},
-  {
-    key: 'home_featured_empty_subtitle',
-    label: '精选区空副标题',
-    category: 'home',
-    placeholder: '稍后回来',
-    icon: FileText
-  },
   {key: 'home_main_title', label: '主内容区标题', category: 'home', placeholder: '最新文章', icon: Type},
-  {
-    key: 'home_main_filter_buttons',
-    label: '过滤按钮(JSON)',
-    category: 'home',
-    placeholder: '["latest","popular"]',
-    icon: Layers
-  },
-  {key: 'home_main_empty_title', label: '主区空标题', category: 'home', placeholder: '暂无文章', icon: Type},
-  {key: 'home_main_empty_subtitle', label: '主区空副标题', category: 'home', placeholder: '请稍后访问', icon: FileText},
   {key: 'home_newsletter_title', label: '订阅区标题', category: 'home', placeholder: '订阅更新', icon: Mail},
   {
     key: 'home_newsletter_subtitle',
@@ -185,16 +155,7 @@ const SETTINGS_FIELDS: FieldDef[] = [
     placeholder: '获取最新文章推送',
     icon: Mail
   },
-  {
-    key: 'home_newsletter_placeholder',
-    label: '订阅输入框占位',
-    category: 'home',
-    placeholder: 'your@email.com',
-    icon: Type
-  },
   {key: 'home_newsletter_button_text', label: '订阅按钮文本', category: 'home', placeholder: '订阅', icon: Zap},
-  {key: 'home_no_category_msg', label: '无分类消息', category: 'home', placeholder: '未分类', icon: Layers},
-  {key: 'home_unknown_author_msg', label: '未知作者消息', category: 'home', placeholder: '未知作者', icon: Type},
   {key: 'home_no_summary_msg', label: '无摘要消息', category: 'home', placeholder: '暂无摘要', icon: FileText},
   // system
   {
