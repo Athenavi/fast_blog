@@ -65,9 +65,44 @@ export default function LoginPage() {
   const countdownTimerRef = useRef<NodeJS.Timeout | undefined>(undefined);
   const generateQRRef = useRef<(() => Promise<void>) | null>(null);
 
-  // Auto-redirect if logged in
+  // Auto-redirect if logged in (also try refresh token if access token expired)
   const [checking, setChecking] = useState(true);
-  useEffect(() => {(async()=>{const t=getCookie('access_token');if(t){const r=await apiClient.get('/users/me');if(r.success&&r.data){window.location.href=new URLSearchParams(window.location.search).get('next')||'/profile';return;}}setChecking(false);})();},[]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const accessToken = getCookie('access_token');
+        if (accessToken) {
+          // 有 access_token，验证是否有效
+          const r = await apiClient.get('/users/me');
+          if (r.success && r.data) {
+            window.location.href = new URLSearchParams(window.location.search).get('next') || '/profile';
+            return;
+          }
+        }
+        // access_token 不存在或已失效，尝试用 refresh_token 刷新
+        const refreshToken = getCookie('refresh_token');
+        if (refreshToken) {
+          const refreshResult = await apiClient.post('/auth/token/refresh', {refresh: refreshToken});
+          if (refreshResult.success && refreshResult.data) {
+            const d = refreshResult.data as any;
+            if (d.access_token) setCookie('access_token', d.access_token, 3600);
+            if (d.refresh_token) setCookie('refresh_token', d.refresh_token, 604800);
+            // 刷新成功，重新验证用户
+            const r2 = await apiClient.get('/users/me');
+            if (r2.success && r2.data) {
+              window.location.href = new URLSearchParams(window.location.search).get('next') || '/profile';
+              return;
+            }
+          }
+          // refresh 失效，清除无效的 refresh_token
+          setCookie('refresh_token', '', 0);
+        }
+      } catch {
+        // 忽略错误，显示登录页
+      }
+      setChecking(false);
+    })();
+  }, []);
 
   const next = () => new URLSearchParams(window.location.search).get('next')||'/profile';
 

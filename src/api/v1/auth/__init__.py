@@ -62,12 +62,12 @@ async def authenticate_user_with_session(
 ) -> Optional[UserModel]:
     """
     验证用户凭据（用户名/邮箱 + 密码）
-    
+
     Args:
         username_or_email: 用户名或邮箱
         password: 明文密码
         db: 数据库会话
-        
+
     Returns:
         验证成功返回用户对象，否则返回 None
     """
@@ -210,7 +210,7 @@ async def login_api(
         db: AsyncSession = Depends(get_async_db),
 ):
     """使用用户名或邮箱登录，返回 access / refresh token（PyJWT）
-    
+
     支持两种请求格式：
     1. JSON (application/json) - 推荐
     2. Form Data (application/x-www-form-urlencoded)
@@ -233,7 +233,9 @@ async def login_api(
             form_data = await request.form()
             username = form_data.get('username') or form_data.get('email')
             password = form_data.get('password')
-            remember_me = form_data.get('remember_me')
+            raw_remember = form_data.get('remember_me')
+            # Form 数据中 "false" 字符串在 Python 中是 truthy，需要显式解析
+            remember_me = str(raw_remember).lower() in ('true', '1', 'on') if raw_remember is not None else False
 
         # 验证必填字段
         if not username or not password:
@@ -333,7 +335,8 @@ async def login_api(
 
         # 3. 生成 JWT（未启用2FA的用户）
         access_token = create_jwt_token(subject=str(user.id), token_type="access")
-        refresh_token = create_jwt_token(subject=str(user.id), token_type="refresh")
+        # 仅在勾选"记住我"时才生成 refresh token
+        refresh_token = create_jwt_token(subject=str(user.id), token_type="refresh") if remember_me else None
 
         # 3.5 创建用户会话记录
         try:
@@ -385,22 +388,26 @@ async def login_api(
         except Exception:
             pass
 
+        response_data = {
+            "user": {
+                "id": user.id,
+                "username": user.username,
+                "email": user.email,
+                "profile_picture": user.profile_picture or None,
+                "is_active": user.is_active,
+                "is_superuser": user.is_superuser,
+                "is_staff": user.is_staff,
+                "vip_level": getattr(user, "vip_level", 0),
+            },
+            "access_token": access_token,
+        }
+        # 仅在勾选"记住我"时返回 refresh_token
+        if refresh_token:
+            response_data["refresh_token"] = refresh_token
+
         return ApiResponse(
             success=True,
-            data={
-                "user": {
-                    "id": user.id,
-                    "username": user.username,
-                    "email": user.email,
-                    "profile_picture": user.profile_picture or None,
-                    "is_active": user.is_active,
-                    "is_superuser": user.is_superuser,
-                    "is_staff": user.is_staff,
-                    "vip_level": getattr(user, "vip_level", 0),
-                },
-                "access_token": access_token,
-                "refresh_token": refresh_token,
-            },
+            data=response_data,
         )
     except Exception as e:
         import traceback
@@ -414,7 +421,7 @@ async def register_api(
         db: AsyncSession = Depends(get_async_db),
 ):
     """用户注册并返回 token
-    
+
     支持两种请求格式：
     1. JSON (application/json) - 推荐
     2. Form Data (application/x-www-form-urlencoded)

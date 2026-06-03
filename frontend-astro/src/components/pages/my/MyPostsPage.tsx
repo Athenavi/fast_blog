@@ -320,7 +320,7 @@ const ArticleListItem: React.FC<{
 
   return (
     <motion.div variants={fadeUp}
-                className="group bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-lg transition-all duration-300">
+                className="group bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-lg transition-all duration-300">
       <div className="flex flex-col sm:flex-row">
         {/* Cover Image */}
         {cover && (
@@ -417,7 +417,7 @@ const ArticleGridCard: React.FC<{
 
   return (
     <motion.div variants={fadeUp}
-                className="group bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-lg transition-all duration-300">
+                className="group bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-lg transition-all duration-300">
       <a href={`/my/posts/edit?id=${article.id}`}
          className="block aspect-[16/10] bg-gray-100 dark:bg-gray-800 overflow-hidden relative">
         {cover ? (
@@ -644,12 +644,14 @@ function MyPostsInner() {
       if (selectedTag) params.tag = selectedTag;
       const res = await apiClient.get('/dashboard/my/articles', params);
       if (!res.success || !res.data) return {articles: [] as Article[], total: 0};
+      // Extract pagination total from res.pagination (set by backend ApiResponse)
+      const paginationTotal = (res as any).pagination?.total ?? 0;
       if (Array.isArray(res.data)) {
         // Collect tags
         const tags = new Set<string>();
         res.data.forEach((a: Article) => a.tags?.forEach(t => tags.add(t)));
         setAllTags(prev => Array.from(new Set([...prev, ...tags])));
-        return {articles: res.data as Article[], total: res.data.length};
+        return {articles: res.data as Article[], total: paginationTotal || res.data.length};
       }
       if (res.data.articles) {
         const tags = new Set<string>();
@@ -657,7 +659,7 @@ function MyPostsInner() {
         setAllTags(prev => Array.from(new Set([...prev, ...tags])));
         return {
           articles: res.data.articles as Article[],
-          total: res.data.total || res.data.articles.length
+          total: paginationTotal || res.data.total || res.data.articles.length
         };
       }
       if (res.data.data) {
@@ -667,7 +669,7 @@ function MyPostsInner() {
         setAllTags(prev => Array.from(new Set([...prev, ...tags])));
         return {
           articles: arts,
-          total: (res.data.data as any).total || 0
+          total: paginationTotal || (res.data.data as any).total || 0
         };
       }
       return {articles: [] as Article[], total: 0};

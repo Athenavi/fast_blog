@@ -29,7 +29,16 @@
 
 <div align="center">
   <em>Modern, fast, and beautiful — a blog platform designed for the modern web.</em>
-  <img src="docs/assets/media.png" alt="FastBlog media page Preview" width="85%" height="auto" onerror="this.style.display='none'">
+  
+  <details open>
+    <summary><strong>📄 Articles Page Preview</strong></summary>
+    <img src="docs/assets/ArtclesPage.png" alt="FastBlog home page Preview" width="85%" height="auto" onerror="this.style.display='none'">
+  </details>
+
+  <details>
+    <summary><strong>🖼️ Media Page Preview</strong></summary>
+    <img src="docs/assets/media.png" alt="FastBlog media page Preview" width="85%" height="auto" onerror="this.style.display='none'">
+  </details>
 </div>
 
 ---

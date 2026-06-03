@@ -2,7 +2,7 @@
 
 import React, {useEffect, useState} from 'react';
 import {apiClient} from '@/lib/api/base-client';
-import {getAccessTokenFromCookie} from '@/lib/auth-utils';
+import {getAccessTokenFromCookie, getRefreshTokenFromCookie, setCookie} from '@/lib/auth-utils';
 
 /**
  * AuthGuard - 认证守卫组件
@@ -15,8 +15,21 @@ export function AuthGuard({children}: {children: React.ReactNode}) {
     let cancelled = false;
     const check = async () => {
       try {
-        // 1) 检查本地是否有 token
-          const token = getAccessTokenFromCookie();
+        // 1) 检查本地是否有 access_token
+        let token = getAccessTokenFromCookie();
+        if (!token) {
+          // access_token 不存在，尝试用 refresh_token 刷新
+          const refreshToken = getRefreshTokenFromCookie();
+          if (refreshToken) {
+            const refreshResult = await apiClient.post('/auth/token/refresh', {refresh: refreshToken});
+            if (refreshResult.success && refreshResult.data) {
+              const d = refreshResult.data as any;
+              if (d.access_token) setCookie('access_token', d.access_token, 3600);
+              if (d.refresh_token) setCookie('refresh_token', d.refresh_token, 604800);
+              token = d.access_token;
+            }
+          }
+        }
         if (!token) {
           if (!cancelled) setStatus('unauthenticated');
           return;
