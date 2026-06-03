@@ -1,40 +1,35 @@
 'use client';
 
-import React, {useState, useEffect, useRef, useMemo} from 'react';
+import React, {useEffect, useMemo, useRef, useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
-import {StatCard, SectionTitle, EmptyState, Pagination, Skeleton} from '@/components/admin/shared-ui';
 import {useDebounce} from '@/lib/hooks';
 import {apiClient} from '@/lib/api/base-client';
+import {getFullMediaUrl} from '@/lib/utils';
 import {useConfirm} from '@/components/ui/confirm-provider';
 import {
+  Archive,
+  CheckCircle2,
   ChevronLeft,
   ChevronRight,
-  Edit,
-  Eye,
-  Plus,
-  Search,
-  Trash2,
-  X,
-  FileText,
   Clock,
-  TrendingUp,
-  Tag,
-  MoreHorizontal,
+  Crown,
+  Edit,
   ExternalLink,
-  Archive,
-  AlertCircle,
-  CheckCircle2,
-  Filter,
-  SlidersHorizontal,
+  Eye,
+  EyeOff,
+  FileText,
   LayoutGrid,
   List,
+  MoreHorizontal,
+  Plus,
   RefreshCw,
-  Star,
-  EyeOff,
-  Crown
+  Search,
+  Trash2,
+  TrendingUp,
+  X
 } from 'lucide-react';
 
 const STATUS_OPTIONS = [
@@ -427,7 +422,7 @@ function ArticlesInner() {
                     <td className="px-5 py-4">
                         <div className="flex items-center gap-3">
                             {a.cover_image ? (
-                                <img src={a.cover_image} alt=""
+                              <img src={getFullMediaUrl(a.cover_image)} alt=""
                                      className="w-10 h-10 rounded-lg object-cover border border-gray-100 dark:border-gray-800"/>
                             ) : (
                                 <div
@@ -481,7 +476,8 @@ function ArticlesInner() {
                               <div key={a.id}
                                    className="group rounded-xl border border-gray-100 dark:border-gray-800 hover:border-blue-200 dark:hover:border-blue-800 hover:shadow-md transition-all overflow-hidden">
                                   {a.cover_image ? (
-                                      <div className="h-36 overflow-hidden"><img src={a.cover_image} alt=""
+                                    <div className="h-36 overflow-hidden"><img src={getFullMediaUrl(a.cover_image)}
+                                                                               alt=""
                                                                                  className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"/>
                                       </div>
                                   ) : (

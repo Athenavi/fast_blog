@@ -42,7 +42,7 @@ class FileProcessor:
 
         # 获取MIME类型
         mime_type = self._get_mime_type(file_data, filename)
-        
+
         logger.info(f"[INFO] 验证文件: {filename}")
         logger.info(f"   - 检测到的 MIME 类型: {mime_type}")
         logger.info(f"   - 允许的 MIME 类型数量: {len(self.allowed_mimes)}")
@@ -94,7 +94,7 @@ class FileProcessor:
         """根据扩展名猜测MIME类型"""
         lower_name = filename.lower()
         _, ext = os.path.splitext(lower_name)
-        
+
         # 图片格式
         image_exts = {
             '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png',
@@ -103,7 +103,7 @@ class FileProcessor:
         }
         if ext in image_exts:
             return image_exts[ext]
-        
+
         # 视频格式
         video_exts = {
             '.mp4': 'video/mp4', '.mov': 'video/quicktime', '.avi': 'video/x-msvideo',
@@ -112,7 +112,7 @@ class FileProcessor:
         }
         if ext in video_exts:
             return video_exts[ext]
-        
+
         # 音频格式
         audio_exts = {
             '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.flac': 'audio/flac',
@@ -121,7 +121,7 @@ class FileProcessor:
         }
         if ext in audio_exts:
             return audio_exts[ext]
-        
+
         # 文档格式
         document_exts = {
             '.pdf': 'application/pdf',
@@ -138,7 +138,7 @@ class FileProcessor:
         }
         if ext in document_exts:
             return document_exts[ext]
-        
+
         # 压缩格式
         archive_exts = {
             '.zip': 'application/zip',
@@ -150,7 +150,7 @@ class FileProcessor:
         }
         if ext in archive_exts:
             return archive_exts[ext]
-        
+
         # 其他常见格式
         other_exts = {
             '.json': 'application/json',
@@ -158,7 +158,7 @@ class FileProcessor:
         }
         if ext in other_exts:
             return other_exts[ext]
-        
+
         # 未知类型，返回通用二进制
         return 'application/octet-stream'
 
@@ -222,7 +222,7 @@ class FileProcessor:
 
         if not file_hash_record:
             raise ValueError(f"FileHash record not found for hash: {file_hash}")
-        
+
         from datetime import datetime
         now = datetime.now()
 
@@ -235,7 +235,7 @@ class FileProcessor:
             file_type = 'video'
         elif mime_type.startswith('audio/'):
             file_type = 'audio'
-        
+
         new_media = Media(
             user=self.user_id,
             hash=file_hash,
@@ -253,7 +253,7 @@ class FileProcessor:
         )
         db.add(new_media)
         await db.flush()  # 刷新以获取生成的 ID
-        
+
         # 构建文件URL（使用 media_id）
         new_media.file_url = f"/api/v2/media/{new_media.id}"
         await db.flush()  # 再次刷新以保存 file_url
@@ -263,13 +263,13 @@ class FileProcessor:
             asyncio.create_task(
                 self._process_video_after_upload(new_media, file_hash_record)
             )
-        
+
         return new_media
 
     async def _process_video_after_upload(self, media: Media, file_hash: FileHash):
         """
         视频上传后处理：生成缩略图、转码等
-        
+
         Args:
             media: 媒体记录
             file_hash: 文件哈希记录
@@ -361,12 +361,12 @@ class FileProcessor:
                 # 暂时注释掉，避免大量占用存储空间
                 # resolutions_dir = os.path.join(temp_dir, "resolutions")
                 # os.makedirs(resolutions_dir, exist_ok=True)
-                # 
+                #
                 # resolution_results = video_processor.generate_multiple_resolutions(
                 #     input_path=local_video_path,
                 #     output_dir=resolutions_dir
                 # )
-                # 
+                #
                 # for res_result in resolution_results:
                 #     if res_result.get('success'):
                 #         # 上传每个分辨率版本
@@ -832,12 +832,18 @@ async def process_single_file(processor: FileProcessor, file_data: bytes,
         else:
             # 增加引用计数
             existing_file.reference_count += 1
+            storage_path = existing_file.storage_path
 
         # 创建媒体记录
-        await processor.create_media_record(db, file_hash, filename, check_existing=True)
+        media = await processor.create_media_record(db, file_hash, filename, check_existing=True)
         await db.commit()
 
-        return {'success': True, 'hash': file_hash}
+        return {
+            'success': True,
+            'hash': file_hash,
+            'media_id': media.id,
+            'storage_path': storage_path
+        }
 
     except Exception as e:
         await db.rollback()

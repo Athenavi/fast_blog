@@ -3,6 +3,7 @@
 import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {AnimatePresence, motion} from 'framer-motion';
 import {apiClient} from '@/lib/api/base-client';
+import {getFullMediaUrl} from '@/lib/utils';
 import type {Article} from '@/lib/api/base-types';
 import ArticleComments from './ArticleComments';
 import {
@@ -17,6 +18,7 @@ import {
   Hash,
   Heart,
   List,
+  Lock,
   MessageSquare,
   Share2,
   Tag,
@@ -48,6 +50,17 @@ const ArticleDetail: React.FC<Props> = ({slug: propSlug}) => {
     const [relatedArticles, setRelatedArticles] = useState<any[]>([]);
     const contentRef = useRef<HTMLDivElement>(null);
 
+  // Password protection state
+  const [requiresPassword, setRequiresPassword] = useState(false);
+  const [passwordData, setPasswordData] = useState<{
+    article_id: number;
+    article_title: string;
+    excerpt: string
+  } | null>(null);
+  const [passwordInput, setPasswordInput] = useState('');
+  const [passwordError, setPasswordError] = useState('');
+  const [passwordLoading, setPasswordLoading] = useState(false);
+
     // Load article
   useEffect(() => {
     const slug = propSlug || (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('slug') : '') || '';
@@ -57,9 +70,21 @@ const ArticleDetail: React.FC<Props> = ({slug: propSlug}) => {
           return;
     }
 
-    (async () => {
+    const fetchArticle = async (accessToken?: string) => {
       try {
-          const res = await apiClient.get(`/articles/p/${slug}`);
+        const path = accessToken
+          ? `/articles/p/${slug}?access_token=${encodeURIComponent(accessToken)}`
+          : `/articles/p/${slug}`;
+        const res = await apiClient.get(path);
+
+        // Check if password required
+        if (!res.success && res.data?.requires_password) {
+          setRequiresPassword(true);
+          setPasswordData(res.data);
+          setLoading(false);
+          return;
+        }
+
         if (res.success && res.data) {
             const data = res.data.article || res.data as any;
             setArticle(data);
@@ -93,8 +118,90 @@ const ArticleDetail: React.FC<Props> = ({slug: propSlug}) => {
       } finally {
         setLoading(false);
       }
-    })();
+    };
+
+    // 尝试从 localStorage 或 URL query 获取 access_token
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlToken = urlParams.get('access_token');
+    let storedToken: string | null = null;
+    try {
+      // 尝试匹配当前 slug 对应的文章密码 token
+      const allKeys = Object.keys(localStorage).filter(k => k.startsWith('article_access_'));
+      for (const key of allKeys) {
+        const val = localStorage.getItem(key);
+        if (val) {
+          storedToken = val;
+          break;
+        }
+      }
+    } catch {
+    }
+    const tokenToUse = urlToken || storedToken || undefined;
+    fetchArticle(tokenToUse);
   }, [propSlug]);
+
+  // Handle password verification
+  const handlePasswordSubmit = useCallback(async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!passwordData || !passwordInput.trim()) {
+      setPasswordError('请输入密码');
+      return;
+    }
+    if (passwordInput.length < 4) {
+      setPasswordError('密码至少 4 位');
+      return;
+    }
+
+    setPasswordLoading(true);
+    setPasswordError('');
+
+    try {
+      const res = await apiClient.post(`/articles/${passwordData.article_id}/verify`, {password: passwordInput});
+      if (res.success && res.data?.access_token) {
+        // Store access token in localStorage (cross-origin compatible)
+        try {
+          localStorage.setItem(`article_access_${passwordData.article_id}`, res.data.access_token);
+        } catch {
+        }
+        // Reset password state and refetch
+        setRequiresPassword(false);
+        setPasswordData(null);
+        setPasswordInput('');
+        setLoading(true);
+        const slug = propSlug || (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('slug') : '');
+        const artRes = await apiClient.get(`/articles/p/${slug}?access_token=${encodeURIComponent(res.data.access_token)}`);
+        if (artRes.success && artRes.data) {
+          const data = artRes.data.article || artRes.data as any;
+          setArticle(data);
+          setLikeCount(data.likes || 0);
+          if (data.content) extractToc(data.content);
+          if (data.category_id || data.id) {
+            try {
+              const relRes = await apiClient.get('/articles', {
+                per_page: 4,
+                exclude: data.id,
+                category_id: data.category_id
+              });
+              if (relRes.success && relRes.data) {
+                const articles = relRes.data.data || relRes.data || [];
+                setRelatedArticles(articles.filter((a: any) => a.id !== data.id).slice(0, 3));
+              }
+            } catch {
+            }
+          }
+        } else {
+          setError(artRes.error || '加载失败');
+        }
+      } else {
+        setPasswordError(res.error || '密码错误，请重试');
+      }
+    } catch {
+      setPasswordError('验证失败，请稍后重试');
+    } finally {
+      setLoading(false);
+      setPasswordLoading(false);
+    }
+  }, [passwordData, passwordInput, propSlug]);
 
     // Extract headings for TOC
     const extractToc = useCallback((html: string) => {
@@ -195,6 +302,88 @@ const ArticleDetail: React.FC<Props> = ({slug: propSlug}) => {
             </div>
         </div>
     );
+
+  // ═══ Password Required State ═══
+  if (requiresPassword && passwordData) return (
+    <div className="min-h-[60vh] flex items-center justify-center px-4">
+      <motion.div
+        initial={{opacity: 0, y: 20}}
+        animate={{opacity: 1, y: 0}}
+        transition={{duration: 0.4}}
+        className="w-full max-w-md"
+      >
+        <div
+          className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-800 overflow-hidden">
+          {/* Header */}
+          <div className="p-8 pb-6 text-center border-b border-gray-100 dark:border-gray-800">
+            <div
+              className="w-16 h-16 rounded-2xl bg-amber-50 dark:bg-amber-900/20 flex items-center justify-center mx-auto mb-4">
+              <Lock className="w-8 h-8 text-amber-500 dark:text-amber-400"/>
+            </div>
+            <h1 className="text-xl font-bold text-gray-900 dark:text-white mb-1">需要密码访问</h1>
+            <p className="text-sm text-gray-500 dark:text-gray-400">此文章已加密保护，请输入访问密码</p>
+            {passwordData.article_title && (
+              <p
+                className="mt-3 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800/50 rounded-lg px-3 py-2">
+                {passwordData.article_title}
+              </p>
+            )}
+            {passwordData.excerpt && (
+              <p className="mt-2 text-xs text-gray-400 dark:text-gray-500 line-clamp-2">
+                {passwordData.excerpt}
+              </p>
+            )}
+          </div>
+
+          {/* Form */}
+          <form onSubmit={handlePasswordSubmit} className="p-8 pt-6 space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">访问密码</label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"/>
+                <input
+                  type="password"
+                  value={passwordInput}
+                  onChange={(e) => {
+                    setPasswordInput(e.target.value);
+                    setPasswordError('');
+                  }}
+                  placeholder="请输入文章访问密码"
+                  autoFocus
+                  className={`w-full pl-10 pr-4 py-3 border rounded-xl bg-white dark:bg-gray-800 text-sm text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 transition-all ${
+                    passwordError
+                      ? 'border-red-300 dark:border-red-600 focus:ring-red-500/20 focus:border-red-500'
+                      : 'border-gray-200 dark:border-gray-700 focus:ring-blue-500/20 focus:border-blue-500'
+                  }`}
+                />
+              </div>
+              {passwordError && (
+                <p className="mt-1.5 text-xs text-red-500 dark:text-red-400">{passwordError}</p>
+              )}
+            </div>
+
+            <button
+              type="submit"
+              disabled={passwordLoading || !passwordInput.trim()}
+              className="w-full py-3 bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-medium rounded-xl hover:bg-gray-800 dark:hover:bg-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+            >
+              {passwordLoading ? (
+                <>
+                  <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"/>
+                  验证中...
+                </>
+              ) : '验证密码'}
+            </button>
+
+            <a href="/articles"
+               className="block text-center text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 transition-colors">
+              返回文章列表
+            </a>
+          </form>
+        </div>
+      </motion.div>
+    </div>
+  );
 
     // ═══ Error State ═══
   if (error || !article) return (
@@ -334,7 +523,7 @@ const ArticleDetail: React.FC<Props> = ({slug: propSlug}) => {
                       {article.cover_image && (
                           <div className="mb-10 rounded-2xl overflow-hidden">
                               <img
-                                  src={article.cover_image}
+                                src={getFullMediaUrl(article.cover_image)}
                                   alt={article.title}
                                   className="w-full h-auto object-cover"
                                   loading="eager"
@@ -447,7 +636,7 @@ const ArticleDetail: React.FC<Props> = ({slug: propSlug}) => {
                                           {a.cover_image && (
                                               <div
                                                   className="aspect-[16/10] rounded-lg overflow-hidden mb-3 bg-gray-50 dark:bg-gray-800">
-                                                  <img src={a.cover_image} alt=""
+                                                <img src={getFullMediaUrl(a.cover_image)} alt=""
                                                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                                                        loading="lazy"/>
                                               </div>

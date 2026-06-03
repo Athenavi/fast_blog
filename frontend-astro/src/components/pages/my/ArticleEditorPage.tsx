@@ -1,72 +1,65 @@
 'use client';
 
-import React, {useEffect, useMemo, useState, useRef, useCallback} from 'react';
-import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {useForm} from 'react-hook-form';
 import {z} from 'zod';
 import {zodResolver} from '@hookform/resolvers/zod';
 import {apiClient, CategoryService} from '@/lib/api';
 import type {Category} from '@/lib/api/base-types';
 import {
-  Save,
+  AlertCircle,
+  AlignCenter,
+  AlignLeft,
+  AlignRight,
   ArrowLeft,
-  X,
-  History,
-  Settings2,
+  BarChart3,
   Bold,
-  Italic,
+  Check,
+  ChevronDown,
+  Clock,
+  Code,
+  Copy,
+  Crown,
+  Eye,
+  EyeOff,
+  FileText,
+  FolderTree,
+  Globe,
+  Hash,
   Heading1,
   Heading2,
-  List,
-  Quote,
+  History,
   Image,
+  Italic,
+  Keyboard,
   Link,
-  Sparkles,
-  Eye,
-  Tag,
-  FolderTree,
-  FileText,
-  Hash,
-  Users,
-  Copy,
-  Wifi,
-  WifiOff,
-  Loader as LoaderIcon,
-  Type,
-  AlignLeft,
-  AlignCenter,
-  AlignRight,
-  Underline as UnderlineIcon,
-  Strikethrough,
+  List,
   ListOrdered,
-  Code,
-  Minus,
-  ChevronDown,
-  Check,
-  AlertCircle,
-  Clock,
-  BarChart3,
-  EyeOff,
+  Loader as LoaderIcon,
   Maximize2,
   Minimize2,
-  Keyboard,
-  MoreHorizontal,
-  Sun,
-  Moon,
-  Globe,
-  Lock,
-  Crown,
-  Send,
-  ArrowRight,
-  Columns2,
+  Minus,
   PanelRightClose,
   PanelRightOpen,
+  Quote,
+  Redo2,
+  Save,
+  Send,
+  Strikethrough,
+  Tag,
+  Type,
+  Underline as UnderlineIcon,
   Undo2,
-  Redo2
+  Users,
+  Wifi,
+  WifiOff,
+  X
 } from 'lucide-react';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AuthGuard} from '@/components/AuthGuard';
 import RevisionsSidebar from '@/components/editor/RevisionsSidebar';
+import CoverImageUploader from '@/components/editor/CoverImageUploader';
 import {useYjsCollaboration} from '@/hooks/useYjsCollaboration';
 
 const RichEditor = React.lazy(() => import('@/components/editor/RichEditor'));
@@ -420,6 +413,7 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
                 excerpt: d.article?.excerpt || d.excerpt || '', category_id: d.article?.category_id || undefined,
                 tags: (d.article?.tags || []).join(', '), status: d.article?.status ?? 0,
                 hidden: d.article?.hidden || false, is_vip_only: d.article?.is_vip_only || false,
+              cover_image: d.article?.cover_image || d.cover_image || '',
             });
             setContent(d.content || d.article?.content || '');
         }
@@ -435,7 +429,11 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
           });
           fd.set('content', contentRef.current);
           fd.set('status', String(data.status ?? 0));
-          return mode === 'create' ? apiClient.post('/articles', fd) : apiClient.put(`/articles/${articleId}`, fd);
+        // 使用 apiClient.request 确保 FormData 以 multipart/form-data 发送
+        // apiClient.post/put 会强制设置 Content-Type: application/json，导致后端无法解析 form 字段
+        return mode === 'create'
+          ? apiClient.request('/articles', {method: 'POST', body: fd})
+          : apiClient.request(`/articles/${articleId}`, {method: 'PUT', body: fd});
       },
       onSuccess: (res) => {
           if (res.success) {
@@ -911,25 +909,10 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
 
                       {/* Cover Image */}
                       <Section icon={Image} title="封面图">
-                          <div className="space-y-3">
-                              {coverImage && (
-                                  <div className="relative rounded-xl overflow-hidden group">
-                                      <img src={coverImage} alt="" className="w-full h-32 object-cover"
-                                           onError={e => {
-                                               (e.target as HTMLImageElement).style.display = 'none'
-                                           }}/>
-                                      <div
-                                          className="absolute inset-0 bg-black/0 group-hover:bg-black/30 transition-colors flex items-center justify-center">
-                                          <button type="button" onClick={() => setValue('cover_image', '')}
-                                                  className="opacity-0 group-hover:opacity-100 p-2 bg-white/90 dark:bg-gray-800/90 text-gray-700 dark:text-gray-300 rounded-full shadow-lg transition-opacity hover:bg-white">
-                                              <X className="w-4 h-4"/>
-                                          </button>
-                                      </div>
-                                  </div>
-                              )}
-                              <input type="url" {...register('cover_image')} placeholder="输入封面图片 URL..."
-                                     className="w-full px-3 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:text-white placeholder-gray-400 transition-all"/>
-                          </div>
+                        <CoverImageUploader
+                          value={coverImage}
+                          onChange={(url) => setValue('cover_image', url)}
+                        />
                       </Section>
 
                       {/* Excerpt */}

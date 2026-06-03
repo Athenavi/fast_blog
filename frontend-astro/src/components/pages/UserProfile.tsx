@@ -2,6 +2,7 @@
 
 import {useEffect, useState} from 'react';
 import {apiClient} from '@/lib/api/base-client';
+import {getFullMediaUrl} from '@/lib/utils';
 import {AuthGuard} from '@/components/AuthGuard';
 import {Calendar, Edit3, Eye, FileText, Heart, Link as LinkIcon, Lock, Mail, MapPin, Settings} from 'lucide-react';
 
@@ -88,7 +89,8 @@ function Profile() {
                 <a key={a.id} href={`/view?slug=${a.slug}`}
                 className="block bg-white dark:bg-gray-900 rounded-xl border border-gray-100 dark:border-gray-800 p-4 hover:border-gray-200 dark:hover:border-gray-700 transition-all hover:shadow-sm">
                 <div className="flex gap-4">
-                  {a.cover_image && <img src={a.cover_image} alt="" className="hidden sm:block w-28 h-20 rounded-lg object-cover shrink-0"/>}
+                  {a.cover_image && <img src={getFullMediaUrl(a.cover_image)} alt=""
+                                         className="hidden sm:block w-28 h-20 rounded-lg object-cover shrink-0"/>}
                   <div className="min-w-0 flex-1">
                     <h3 className="font-semibold text-gray-900 dark:text-white truncate">{a.title}</h3>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 line-clamp-1">{a.excerpt || ''}</p>

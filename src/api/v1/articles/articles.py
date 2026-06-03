@@ -594,22 +594,24 @@ async def create_article_api(
     try:
         form_data = await request.form()
 
-        # Slug 自动生成
+        # Slug 处理：用户输入或自动生成，统一规范化
         slug = form_data.get('slug', '').strip()
         if not slug:
             title = form_data.get('title', '')
             if title:
-                slug = re.sub(r'[\s\u3000]+', '-', title.lower().strip())
-                slug = re.sub(r'[^\w\-]+', '-', slug)
-                slug = re.sub(r'-+', '-', slug).strip('-')
-                # 唯一性检查
-                base_slug = slug
-                counter = 1
-                while await db.scalar(select(Article.id).where(Article.slug == slug)):
-                    slug = f"{base_slug}-{counter}"
-                    counter += 1
+                slug = title.lower().strip()
             else:
                 slug = f"untitled-{datetime.now().timestamp()}"
+        # 统一规范化：空格替换为 -，去除特殊字符，合并连续 -
+        slug = re.sub(r'[\s\u3000]+', '-', slug.lower().strip())
+        slug = re.sub(r'[^\w\-]+', '-', slug)
+        slug = re.sub(r'-+', '-', slug).strip('-')
+        # 唯一性检查
+        base_slug = slug
+        counter = 1
+        while await db.scalar(select(Article.id).where(Article.slug == slug)):
+            slug = f"{base_slug}-{counter}"
+            counter += 1
 
         # 处理标签（统一用逗号分隔）
         tags = form_data.get('tags', '')
@@ -767,16 +769,18 @@ async def update_article_api(
         if not slug:
             title = form_data.get('title', '')
             if title:
-                slug = re.sub(r'[\s\u3000]+', '-', title.lower().strip())
-                slug = re.sub(r'[^\w\-]+', '-', slug)
-                slug = re.sub(r'-+', '-', slug).strip('-')
-                base_slug = slug
-                counter = 1
-                while await db.scalar(select(Article.id).where(Article.slug == slug, Article.id != article_id)):
-                    slug = f"{base_slug}-{counter}"
-                    counter += 1
+                slug = title.lower().strip()
             else:
                 slug = f"untitled-{article_id}"
+        # 统一规范化：空格替换为 -，去除特殊字符，合并连续 -
+        slug = re.sub(r'[\s\u3000]+', '-', slug.lower().strip())
+        slug = re.sub(r'[^\w\-]+', '-', slug)
+        slug = re.sub(r'-+', '-', slug).strip('-')
+        base_slug = slug
+        counter = 1
+        while await db.scalar(select(Article.id).where(Article.slug == slug, Article.id != article_id)):
+            slug = f"{base_slug}-{counter}"
+            counter += 1
         article.slug = slug
 
         article.excerpt = form_data.get('excerpt', article.excerpt)

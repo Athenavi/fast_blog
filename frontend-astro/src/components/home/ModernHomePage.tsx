@@ -3,6 +3,7 @@
 import React, {useEffect, useRef, useState} from 'react';
 import {motion, useInView} from 'framer-motion';
 import {apiClient} from '@/lib/api/base-client';
+import {getFullMediaUrl} from '@/lib/utils';
 import {
   ArrowRight,
   BookOpen,
@@ -363,7 +364,7 @@ export default function ModernHomePage() {
                       <a href={`/view?slug=${f.slug}`} className="block aspect-[16/10] lg:aspect-auto lg:h-full">
                           {f.cover_image ? (
                               <img
-                                  src={f.cover_image}
+                                src={getFullMediaUrl(f.cover_image)}
                                   alt={f.title}
                                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                                   loading="eager"
@@ -527,7 +528,7 @@ export default function ModernHomePage() {
                                   <div className="aspect-[16/10] bg-gray-50 dark:bg-gray-800 overflow-hidden relative">
                                       {a.cover_image ? (
                                           <img
-                                              src={a.cover_image}
+                                            src={getFullMediaUrl(a.cover_image)}
                                               alt={a.title}
                                               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                                               loading="lazy"

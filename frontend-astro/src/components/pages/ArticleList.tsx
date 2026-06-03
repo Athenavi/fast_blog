@@ -1,8 +1,9 @@
 'use client';
 
 import React, {useCallback, useEffect, useMemo, useState} from 'react';
-import {motion, AnimatePresence} from 'framer-motion';
+import {AnimatePresence, motion} from 'framer-motion';
 import {ArticleService} from '@/lib/api';
+import {getFullMediaUrl} from '@/lib/utils';
 import type {Article} from '@/lib/api/base-types';
 import {
   BookOpen,
@@ -277,7 +278,7 @@ const ArticleList: React.FC = () => {
                           <div className="aspect-[16/10] bg-gray-50 dark:bg-gray-800 overflow-hidden relative">
                               {article.cover_image ? (
                                   <img
-                                      src={article.cover_image}
+                                    src={getFullMediaUrl(article.cover_image)}
                                       alt={article.title}
                                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                                       loading="lazy"
@@ -344,7 +345,7 @@ const ArticleList: React.FC = () => {
                               className="w-40 h-28 rounded-xl overflow-hidden bg-gray-50 dark:bg-gray-800 flex-shrink-0 hidden sm:block">
                               {article.cover_image ? (
                                   <img
-                                      src={article.cover_image}
+                                    src={getFullMediaUrl(article.cover_image)}
                                       alt=""
                                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700"
                                       loading="lazy"

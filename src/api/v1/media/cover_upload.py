@@ -10,10 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
-from src.setting import app_config
 from src.utils.upload.public_upload import FileProcessor, process_single_file
-
-from src.unified_logger import default_logger as logger
 
 router = APIRouter(tags=["media-cover"])
 
@@ -26,10 +23,10 @@ async def upload_cover(
 ):
     """
     上传文章封面图片
-    
+
     Args:
         request: FastAPI Request对象，包含上传的文件
-        
+
     Returns:
         上传结果，包含封面URL
     """
@@ -66,7 +63,7 @@ async def upload_cover(
 
         # 处理文件并在数据库中创建记录
         try:
-            result = process_single_file(processor, file_data, file.filename, db)
+            result = await process_single_file(processor, file_data, file.filename, db)
         except Exception as e:
             await db.rollback()
             import traceback
@@ -78,22 +75,14 @@ async def upload_cover(
             return JSONResponse({'code': 500, 'msg': '文件处理失败', 'error': result['error']}, status_code=500)
 
         if result['success']:
-            domain = app_config.domain
-            # 确保domain以/结尾
-            if not domain.endswith('/'):
-                domain += '/'
-
-            # 创建特殊URL用于访问缩略图
-            thumbnail_url = domain + "thumbnail?data=" + result['hash']
-            s_url = thumbnail_url
-
-            if s_url:
-                cover_url = "/s/" + s_url
-                return JSONResponse({'code': 200, 'msg': '上传成功', 'data': cover_url})
+            # 使用静态文件服务 URL（无需认证）
+            storage_path = result.get('storage_path', '')
+            if storage_path:
+                cover_url = f"/api/v2/assets/storage/{storage_path}"
             else:
-                # 即使创建短链接失败，也返回文件哈希，让前端可以构造URL
-                cover_url = "/thumbnail?data=" + result['hash']
-                return JSONResponse({'code': 200, 'msg': '上传成功', 'data': cover_url})
+                # fallback: 使用 media_id 构建 API URL
+                cover_url = f"/api/v2/media/{result.get('media_id', '')}"
+            return JSONResponse({'code': 200, 'msg': '上传成功', 'data': cover_url})
         else:
             return JSONResponse({'code': 500, 'msg': '文件处理失败', 'error': result['error']}, status_code=500)
 
