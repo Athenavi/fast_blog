@@ -2,7 +2,7 @@
 企业版功能 API
 提供许可证管理、技术支持、SLA保障、部署脚本和监控告警等功能
 """
-from typing import Optional, Dict, Any, List
+from typing import Optional, List
 
 from fastapi import APIRouter, Depends, Query, Body
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -344,4 +344,4 @@ async def record_monitoring_metric(
 
 
 # 导入MonitoringAlert用于类型提示
-from shared.models.monitoring_alert import MonitoringAlert
+from shared.models.monitoring.monitoring_alert import MonitoringAlert

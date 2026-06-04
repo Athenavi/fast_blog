@@ -11,8 +11,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models import User
-from shared.models.article import Article
-from shared.models.article_seo import ArticleSEO
+from shared.models.article import Article, ArticleSEO
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 
@@ -49,12 +48,12 @@ async def batch_update_seo(
 ):
     """
     批量更新多个文章的SEO元数据
-    
+
     **使用场景**:
     - 批量设置文章的SEO标题和描述
     - 统一修改多个文章的Open Graph配置
     - 批量添加canonical URL
-    
+
     **参数说明**:
     - article_ids: 要更新的文章ID列表
     - 其他字段: 可选，只更新提供的字段
@@ -156,7 +155,7 @@ async def batch_export_seo(
 ):
     """
     批量导出文章SEO数据为CSV格式
-    
+
     **支持筛选**:
     - 按文章ID列表
     - 按分类
@@ -188,10 +187,9 @@ async def batch_export_seo(
         rows = result.all()
 
         # 转换为CSV格式
-        csv_lines = []
+        csv_lines = [
+            "article_id,title,slug,seo_title,seo_description,seo_keywords,og_title,og_description,og_image,canonical_url,robots_meta,status,created_at"]
         # CSV头部
-        csv_lines.append(
-            "article_id,title,slug,seo_title,seo_description,seo_keywords,og_title,og_description,og_image,canonical_url,robots_meta,status,created_at")
 
         for article, seo in rows:
             # 转义CSV字段
@@ -242,7 +240,7 @@ async def batch_import_seo(
 ):
     """
     从CSV内容批量导入SEO数据
-    
+
     **CSV格式要求**:
     - 第一行必须是表头
     - 必须包含article_id列
@@ -369,7 +367,7 @@ async def get_seo_stats(
 ):
     """
     获取SEO数据统计信息
-    
+
     **返回数据**:
     - 总文章数
     - 已优化SEO的文章数

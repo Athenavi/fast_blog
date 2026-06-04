@@ -9,6 +9,8 @@ from fastapi import APIRouter, Depends, Query, Body
 from sqlalchemy import select, desc, func, and_, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from shared.models.chat import ChatGroupMember, PrivateMessage, ChatGroup
+from shared.models.user import User
 from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import jwt_required
 from src.utils.database.main import get_async_session
@@ -23,14 +25,11 @@ async def get_user_groups(
 ):
     """
     获取用户加入的所有群聊
-    
+
     Returns:
         群聊列表，包含未读消息数等信息
     """
     try:
-        from shared.models.chat_group import ChatGroup
-        from shared.models.chat_group_member import ChatGroupMember
-        from shared.models.private_message import PrivateMessage
 
         # 获取用户加入的群聊
         member_query = select(ChatGroupMember).where(
@@ -109,19 +108,16 @@ async def get_group_messages(
 ):
     """
     获取群聊的历史消息
-    
+
     Args:
         group_id: 群聊ID
         limit: 返回数量
         offset: 偏移量
-        
+
     Returns:
         消息列表
     """
     try:
-        from shared.models.private_message import PrivateMessage
-        from shared.models.user import User
-        from shared.models.chat_group_member import ChatGroupMember
 
         # 验证用户是否是群聊成员
         member_query = select(ChatGroupMember).where(
@@ -195,18 +191,16 @@ async def get_private_messages(
 ):
     """
     获取与指定用户的私聊历史
-    
+
     Args:
         user_id: 对方用户ID
         limit: 返回数量
         offset: 偏移量
-        
+
     Returns:
         私聊消息列表
     """
     try:
-        from shared.models.private_message import PrivateMessage
-        from shared.models.user import User
 
         # 获取私聊消息（双方之间的所有消息）
         messages_query = select(PrivateMessage).where(
@@ -281,14 +275,14 @@ async def send_private_message(
 ):
     """
     发送私聊消息
-    
+
     Args:
         user_id: 接收者用户ID
         content: 消息内容
         message_type: 消息类型 (text/image/file)
         attachment_url: 附件URL
         parent_message: 回复的消息ID
-        
+
     Returns:
         发送结果
     """
@@ -348,7 +342,7 @@ async def get_unread_count(
 ):
     """
     获取用户的未读消息总数（包括群聊和私聊）
-    
+
     Returns:
         未读消息统计
     """
@@ -359,10 +353,10 @@ async def get_unread_count(
         private_unread_query = select(func.count(PrivateMessage.id)).where(
             and_(
                 PrivateMessage.recipient == current_user.id,
-                PrivateMessage.group == None,
+                PrivateMessage.group is None,
                 or_(
                     PrivateMessage.is_read == False,
-                    PrivateMessage.is_read == None
+                    PrivateMessage.is_read is None
                 )
             )
         )
@@ -372,11 +366,11 @@ async def get_unread_count(
         # 群聊未读数
         group_unread_query = select(func.count(PrivateMessage.id)).where(
             and_(
-                PrivateMessage.group != None,
+                PrivateMessage.group is not None,
                 PrivateMessage.sender != current_user.id,
                 or_(
                     PrivateMessage.is_read == False,
-                    PrivateMessage.is_read == None
+                    PrivateMessage.is_read is None
                 )
             )
         )
@@ -405,10 +399,10 @@ async def mark_message_read(
 ):
     """
     标记消息为已读
-    
+
     Args:
         message_id: 消息ID
-        
+
     Returns:
         操作结果
     """

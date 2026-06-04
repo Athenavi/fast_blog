@@ -12,7 +12,7 @@ from typing import Dict, List, Any, Optional
 from sqlalchemy import select, update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models.widget_instance import WidgetInstance
+from shared.models.widget import WidgetInstance
 from shared.services.performance.cache_manager import cache_service
 from shared.services.widgets.widget_manager.config import WIDGET_TYPES, WIDGET_AREAS
 from shared.services.widgets.widget_manager.renderer import WidgetRenderer

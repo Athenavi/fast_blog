@@ -8,12 +8,9 @@ from fastapi import APIRouter, Depends, Request, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models.article import Article
-from shared.models.article_like import ArticleLike
+from shared.models.article import Article, ArticleLike
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import cache, get_async_db_session as get_async_db
-
-from src.unified_logger import default_logger as logger
 
 router = APIRouter(tags=["article-interactions"])
 

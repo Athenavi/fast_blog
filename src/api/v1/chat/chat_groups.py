@@ -10,9 +10,7 @@ from pydantic import BaseModel
 from sqlalchemy import select, and_, func, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models.chat_group import ChatGroup
-from shared.models.chat_group_invite import ChatGroupInvite
-from shared.models.chat_group_member import ChatGroupMember
+from shared.models.chat import ChatGroupMember, ChatGroup, ChatGroupInvite
 from shared.models.user import User
 from src.api.v1.core.responses import ApiResponse
 from src.auth import jwt_required_dependency as jwt_required
@@ -41,7 +39,7 @@ async def create_chat_group(
 ):
     """
     创建群聊
-    
+
     Args:
         name: 群聊名称
         description: 群聊描述（可选）
@@ -217,7 +215,7 @@ async def add_group_members(
 ):
     """
     添加群聊成员
-    
+
     Args:
         group_id: 群聊ID
         member_ids: 要添加的成员ID列表
@@ -452,7 +450,7 @@ async def create_invite_link(
 ):
     """
     创建群聊邀请链接
-    
+
     Args:
         group_id: 群聊ID
         expires_hours: 过期时间（小时）
@@ -542,7 +540,7 @@ async def join_group_by_invite(
 ):
     """
     通过邀请链接加入群聊
-    
+
     Args:
         invite_code: 邀请码
     """

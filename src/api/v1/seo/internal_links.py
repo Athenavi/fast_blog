@@ -8,8 +8,7 @@ from fastapi import APIRouter, Depends, Request, Body
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models.article import Article
-from shared.models.article_content import ArticleContent
+from shared.models.article import Article, ArticleContent
 from shared.models.user import User
 from shared.services.seo.internal_link_service import internal_link_service
 from src.api.v1.core.responses import ApiResponse
@@ -31,7 +30,7 @@ async def get_internal_link_suggestions_api(
 ):
     """
     获取内部链接建议API
-    
+
     Request Body:
     {
         "article_id": 123
@@ -39,31 +38,31 @@ async def get_internal_link_suggestions_api(
     """
     try:
         article_id = data.get('article_id')
-        
+
         if not article_id:
             return ApiResponse(success=False, error='缺少文章ID')
-        
+
         # 查询当前文章
         article_query = select(Article).where(Article.id == article_id)
         article_result = await db.execute(article_query)
         article = article_result.scalar_one_or_none()
-        
+
         if not article:
             return ApiResponse(success=False, error='文章不存在')
-        
+
         # 获取文章内容
         content_query = select(ArticleContent).where(ArticleContent.article == article_id)
         content_result = await db.execute(content_query)
         article_content = content_result.scalar_one_or_none()
-        
+
         if not article_content:
             return ApiResponse(success=False, error='文章内容不存在')
-        
+
         # 获取所有已发布文章(简化版:实际应分页)
         all_articles_query = select(Article).where(Article.status == 1)
         all_articles_result = await db.execute(all_articles_query)
         all_articles = all_articles_result.scalars().all()
-        
+
         # 构建文章数据
         articles_data = [
             {
@@ -74,7 +73,7 @@ async def get_internal_link_suggestions_api(
             }
             for a in all_articles
         ]
-        
+
         # 为当前文章添加内容
         current_article_data = {
             'id': article.id,
@@ -82,13 +81,13 @@ async def get_internal_link_suggestions_api(
             'slug': article.slug,
             'content': article_content.content,
         }
-        
+
         # 获取建议
         suggestions = internal_link_service.suggest_internal_links(
             current_article_data,
             articles_data
         )
-        
+
         return ApiResponse(
             success=True,
             data=suggestions
@@ -117,7 +116,7 @@ async def detect_orphan_articles_api(
         articles_query = select(Article).where(Article.status == 1)
         articles_result = await db.execute(articles_query)
         all_articles = articles_result.scalars().all()
-        
+
         articles_data = [
             {
                 'id': a.id,
@@ -126,13 +125,13 @@ async def detect_orphan_articles_api(
             }
             for a in all_articles
         ]
-        
+
         # 简化版:假设没有链接记录
         orphan_articles = internal_link_service.detect_orphan_articles(
             articles_data,
             []  # 实际应从数据库查询链接记录
         )
-        
+
         return ApiResponse(
             success=True,
             data={
@@ -164,7 +163,7 @@ async def internal_link_analysis_api(
         articles_query = select(Article).where(Article.status == 1)
         articles_result = await db.execute(articles_query)
         all_articles = articles_result.scalars().all()
-        
+
         articles_data = [
             {
                 'id': a.id,
@@ -173,13 +172,13 @@ async def internal_link_analysis_api(
             }
             for a in all_articles
         ]
-        
+
         # 简化版:假设没有链接记录
         analysis = internal_link_service.analyze_link_distribution(
             articles_data,
             []  # 实际应从数据库查询链接记录
         )
-        
+
         return ApiResponse(
             success=True,
             data=analysis

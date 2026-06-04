@@ -5,14 +5,15 @@
 from typing import Optional, List
 
 from fastapi import APIRouter, Depends, Query, Body
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models import PermissionAuditLog, Role
+from shared.models.rbac import Capability
 from shared.services.security.rbac_service import rbac_service
 from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
-from shared.models.capability import Capability
 
 router = APIRouter(tags=["rbac"])
 
@@ -31,14 +32,14 @@ async def create_role(
 ):
     """
     创建自定义角色
-    
+
     Args:
         name: 角色名称
         slug: 角色标识
         description: 描述
         permission_codes: 权限代码列表
         parent_role_id: 父角色ID
-        
+
     Returns:
         创建的角色
     """
@@ -95,10 +96,10 @@ async def get_roles(
 ):
     """
     获取所有角色列表
-    
+
     Args:
         include_system: 是否包含系统角色
-        
+
     Returns:
         角色列表
     """
@@ -159,11 +160,11 @@ async def update_role_permissions(
 ):
     """
     更新角色权限
-    
+
     Args:
         role_id: 角色ID
         permission_codes: 权限代码列表
-        
+
     Returns:
         更新结果
     """
@@ -223,10 +224,10 @@ async def delete_role(
 ):
     """
     删除角色（仅自定义角色）
-    
+
     Args:
         role_id: 角色ID
-        
+
     Returns:
         删除结果
     """
@@ -283,10 +284,10 @@ async def get_permissions(
 ):
     """
     获取所有权限列表
-    
+
     Args:
         resource_type: 资源类型过滤
-        
+
     Returns:
         权限列表
     """
@@ -335,11 +336,11 @@ async def assign_role_to_user(
 ):
     """
     为用户分配角色
-    
+
     Args:
         user_id: 用户ID
         role_id: 角色ID
-        
+
     Returns:
         分配结果
     """
@@ -381,11 +382,11 @@ async def remove_role_from_user(
 ):
     """
     从用户移除角色
-    
+
     Args:
         user_id: 用户ID
         role_id: 角色ID
-        
+
     Returns:
         移除结果
     """
@@ -426,10 +427,10 @@ async def get_user_permissions(
 ):
     """
     获取用户的所有权限
-    
+
     Args:
         user_id: 用户ID
-        
+
     Returns:
         权限列表
     """
@@ -458,11 +459,11 @@ async def check_permission(
 ):
     """
     检查用户是否有指定权限
-    
+
     Args:
         user_id: 用户ID
         permission_code: 权限代码
-        
+
     Returns:
         权限检查结果
     """
@@ -495,13 +496,13 @@ async def get_audit_logs(
 ):
     """
     获取权限变更审计日志
-    
+
     Args:
         user_id: 用户ID过滤
         action: 操作类型过滤
         page: 页码
         per_page: 每页数量
-        
+
     Returns:
         审计日志列表和分页信息
     """

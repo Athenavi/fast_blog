@@ -168,7 +168,6 @@ async def like_mobile_comment(
     点赞/取消点赞评论（移动端）
     """
     try:
-        from shared.models.comment_like import CommentLike
 
         # 检查是否已点赞
         like_query = select(CommentLike).where(

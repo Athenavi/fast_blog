@@ -18,7 +18,7 @@ from sqlalchemy import select, func, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.user import User
-from shared.models.user_block import UserBlock
+from shared.models.user import UserBlock
 # 导入原有服务
 from shared.services.users.user_manager import user_csv_service
 # 导入核心依赖

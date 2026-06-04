@@ -10,8 +10,8 @@ from fastapi.responses import FileResponse, Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models.file_hash import FileHash
 from shared.models.media import Media
+from shared.models.media.file_hash import FileHash
 from shared.utils.logger import get_logger
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
@@ -26,10 +26,10 @@ router = APIRouter()
 async def get_cover_image(filename: str):
     """
     获取封面图片（公开访问，无需认证）
-    
+
     Args:
         filename: 封面文件名，格式为 {media_id}_{hash}.{ext}
-    
+
     Returns:
         封面图片文件
     """

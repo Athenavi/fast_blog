@@ -12,15 +12,14 @@ from typing import Optional, Dict, Any, List
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from shared.models.baidu_analytics_config import BaiduAnalyticsConfig
-
+from shared.models.analytics import BaiduAnalyticsConfig
 from src.unified_logger import default_logger as logger
 
 
 class BaiduAnalyticsService:
     """
     百度统计集成服务
-    
+
     支持百度统计 (Baidu Tongji)
     """
 
@@ -30,11 +29,11 @@ class BaiduAnalyticsService:
     async def get_config(self, db: AsyncSession, site_id: Optional[int] = None) -> Optional[BaiduAnalyticsConfig]:
         """
         获取百度统计配置
-        
+
         Args:
             db: 数据库会话
             site_id: 站点 ID（可选，为空则获取全局配置）
-            
+
         Returns:
             百度统计配置对象
         """
@@ -63,7 +62,7 @@ class BaiduAnalyticsService:
     ) -> BaiduAnalyticsConfig:
         """
         创建百度统计配置
-        
+
         Args:
             db: 数据库会话
             site_token: 百度统计 Site Token
@@ -71,7 +70,7 @@ class BaiduAnalyticsService:
             site_id: 站点 ID（可选）
             enable_tracking: 是否启用追踪
             enable_data_sync: 是否启用数据同步
-            
+
         Returns:
             创建的配置对象
         """
@@ -104,12 +103,12 @@ class BaiduAnalyticsService:
     ) -> BaiduAnalyticsConfig:
         """
         更新百度统计配置
-        
+
         Args:
             db: 数据库会话
             config_id: 配置 ID
             updates: 更新字段字典
-            
+
         Returns:
             更新后的配置对象
         """
@@ -130,7 +129,7 @@ class BaiduAnalyticsService:
     async def deactivate_config(self, db: AsyncSession, config_id: int):
         """
         停用百度统计配置
-        
+
         Args:
             db: 数据库会话
             config_id: 配置 ID
@@ -147,10 +146,10 @@ class BaiduAnalyticsService:
     def generate_tracking_code(self, config: BaiduAnalyticsConfig) -> str:
         """
         生成百度统计追踪代码
-        
+
         Args:
             config: 百度统计配置对象
-            
+
         Returns:
             HTML/JavaScript 追踪代码
         """
@@ -163,7 +162,7 @@ var _hmt = _hmt || [];
 (function() {{
   var hm = document.createElement("script");
   hm.src = "https://hm.baidu.com/hm.js?{site_token}";
-  var s = document.getElementsByTagName("script")[0]; 
+  var s = document.getElementsByTagName("script")[0];
   s.parentNode.insertBefore(hm, s);
 }})();
 </script>
@@ -174,11 +173,11 @@ var _hmt = _hmt || [];
     async def get_all_configs(self, db: AsyncSession, include_inactive: bool = False) -> List[BaiduAnalyticsConfig]:
         """
         获取所有百度统计配置
-        
+
         Args:
             db: 数据库会话
             include_inactive: 是否包含非活动配置
-            
+
         Returns:
             配置列表
         """

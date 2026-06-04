@@ -11,16 +11,15 @@ from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models import VIPPlan, VIPFeature
+from shared.models.analytics import UserActivity
 from shared.models.article import Article
 from shared.models.category import Category
-from shared.models.file_hash import FileHash
-from shared.models.media import Media
+from shared.models.media import Media, FileHash
 from shared.models.notification import Notification
 from shared.models.user import User
 # 导入 SQLAlchemy 模型和服务
 from shared.models.user import User as UserModel
-from shared.models.user_activity import UserActivity
-from shared.models.vip_subscription import VIPSubscription
+from shared.models.vip import VIPSubscription
 # 注意：避免在此处直接导入 article_service，防止循环依赖
 # article_service 的导入已移至使用位置
 from src.api.v1.core.responses import ApiResponse

@@ -6,8 +6,8 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models.file_hash import FileHash
 from shared.models.media import Media
+from shared.models.media.file_hash import FileHash
 from shared.services.articles.cover_image_service import cover_image_service
 from shared.utils.logger import get_logger
 from src.api.v1.core.responses import ApiResponse
@@ -26,17 +26,17 @@ async def generate_cover_url(
 ):
     """
     为媒体文件生成封面URL
-    
+
     该接口会：
     1. 验证用户是否有权限访问该媒体文件
     2. 读取原始图片数据
     3. 优化图片（调整大小、压缩）
     4. 保存到公开缓存目录
     5. 返回公开访问的URL
-    
+
     Args:
         media_id: 媒体ID
-    
+
     Returns:
         封面图片的公开URL
     """
@@ -136,10 +136,10 @@ async def remove_cover(
 ):
     """
     删除封面图片
-    
+
     Args:
         media_id: 媒体ID
-    
+
     Returns:
         删除结果
     """

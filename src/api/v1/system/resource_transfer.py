@@ -3,13 +3,14 @@
 提供下载任务管理、进度查询等功能
 """
 from typing import Optional, List
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models.download_task import DownloadTask
-from src.api.v1.core.responses import ApiResponse
+from shared.models.media import DownloadTask
 from shared.services.performance.resource_transfer_service import ResourceTransferService
+from src.api.v1.core.responses import ApiResponse
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 
@@ -26,7 +27,7 @@ async def create_download_task(
 ):
     """
     创建外部资源下载任务
-    
+
     - **url**: 资源的完整URL地址
     - **resource_type**: 资源类型（image/video/audio/document/other）
     - **priority**: 优先级，数字越小优先级越高
@@ -282,7 +283,7 @@ async def process_download_queue(
 ):
     """
     处理下载队列（通常由后台任务调用）
-    
+
     注意：此接口仅供管理员使用
     """
     try:

@@ -9,17 +9,16 @@ from typing import Optional, List, Dict, Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models.menu_items import MenuItems
-from shared.models.menus import Menus
+from shared.models.menu import Menus, MenuItems
 
 
 async def get_menus_list(db: AsyncSession) -> List[Dict[str, Any]]:
     """
     获取所有菜单列表
-    
+
     Args:
         db: 数据库会话
-        
+
     Returns:
         菜单列表
     """
@@ -38,11 +37,11 @@ async def get_menus_list(db: AsyncSession) -> List[Dict[str, Any]]:
 async def get_menu_with_items(db: AsyncSession, menu_id: int) -> Optional[Dict[str, Any]]:
     """
     获取菜单及其所有菜单项（树形结构）
-    
+
     Args:
         db: 数据库会话
         menu_id: 菜单ID
-        
+
     Returns:
         包含菜单项树的菜单详情
     """
@@ -93,13 +92,13 @@ async def create_menu(
 ) -> Optional[Menus]:
     """
     创建新菜单
-    
+
     Args:
         db: 数据库会话
         name: 菜单名称
         slug: 菜单slug
         description: 菜单描述
-        
+
     Returns:
         创建的菜单对象
     """
@@ -134,12 +133,12 @@ async def update_menu(
 ) -> bool:
     """
     更新菜单
-    
+
     Args:
         db: 数据库会话
         menu_id: 菜单ID
         **kwargs: 要更新的字段
-        
+
     Returns:
         是否成功
     """
@@ -169,11 +168,11 @@ async def update_menu(
 async def delete_menu(db: AsyncSession, menu_id: int) -> bool:
     """
     删除菜单（级联删除所有菜单项）
-    
+
     Args:
         db: 数据库会话
         menu_id: 菜单ID
-        
+
     Returns:
         是否成功
     """
@@ -216,7 +215,7 @@ async def add_menu_item(
 ) -> Optional[MenuItems]:
     """
     添加菜单项
-    
+
     Args:
         db: 数据库会话
         menu_id: 菜单ID
@@ -225,7 +224,7 @@ async def add_menu_item(
         parent_id: 父菜单项ID（用于子菜单）
         target: 打开方式（_self, _blank等）
         order_index: 排序索引
-        
+
     Returns:
         创建的菜单项对象
     """
@@ -262,12 +261,12 @@ async def update_menu_item(
 ) -> bool:
     """
     更新菜单项
-    
+
     Args:
         db: 数据库会话
         item_id: 菜单项ID
         **kwargs: 要更新的字段
-        
+
     Returns:
         是否成功
     """
@@ -296,11 +295,11 @@ async def update_menu_item(
 async def delete_menu_item(db: AsyncSession, item_id: int) -> bool:
     """
     删除菜单项（递归删除所有子项）
-    
+
     Args:
         db: 数据库会话
         item_id: 菜单项ID
-        
+
     Returns:
         是否成功
     """
@@ -339,12 +338,12 @@ async def reorder_menu_items(
 ) -> bool:
     """
     批量重新排序菜单项（支持拖拽后的批量更新）
-    
+
     Args:
         db: 数据库会话
         menu_id: 菜单ID
         items_order: 排序后的菜单项列表，每项包含id和parent_id
-        
+
     Returns:
         是否成功
     """
@@ -387,10 +386,10 @@ async def reorder_menu_items(
 async def get_available_pages_for_menu(db: AsyncSession) -> List[Dict[str, Any]]:
     """
     获取可用于添加到菜单的页面列表
-    
+
     Args:
         db: 数据库会话
-        
+
     Returns:
         页面列表
     """
@@ -423,10 +422,10 @@ async def get_available_pages_for_menu(db: AsyncSession) -> List[Dict[str, Any]]
 async def get_available_categories_for_menu(db: AsyncSession) -> List[Dict[str, Any]]:
     """
     获取可用于添加到菜单的分类列表
-    
+
     Args:
         db: 数据库会话
-        
+
     Returns:
         分类列表
     """

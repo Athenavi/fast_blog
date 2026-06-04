@@ -31,7 +31,7 @@ WEBP_CONVERTIBLE_FORMATS = {'JPEG', 'JPG', 'PNG', 'BMP', 'TIFF'}
 class MediaEnhancementService:
     """
     媒体文件增强服务
-    
+
     功能:
     1. 批量上传处理
     2. 图片自动优化(压缩、调整大小)
@@ -174,7 +174,7 @@ class MediaEnhancementService:
         """检测重复文件(基于哈希)"""
         try:
             from sqlalchemy import select
-            from shared.models.file_hash import FileHash
+            from shared.models.media.file_hash import FileHash
             query = select(FileHash).where(FileHash.hash == file_hash)
             result = db_session.execute(query)
             existing_file = result.scalar_one_or_none()

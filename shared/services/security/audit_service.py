@@ -6,9 +6,8 @@ from datetime import datetime
 from typing import Optional, List
 
 from sqlalchemy import select, desc
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models.audit_log import AuditLog
+from shared.models.system import AuditLog
 from src.utils.database.main import get_async_session
 
 

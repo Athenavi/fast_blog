@@ -9,22 +9,20 @@
 5. 搜索历史
 6. 热门搜索统计
 """
-from typing import List, Dict, Optional, Tuple
 from datetime import datetime, timedelta
+from typing import List, Dict, Optional
 
-from sqlalchemy import select, func, or_, and_, desc
+from sqlalchemy import select, func, or_, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models.article import Article
-from shared.models.article_content import ArticleContent
-from shared.models.category import Category
-from shared.models.search_history import SearchHistory
+from shared.models.article import Article, ArticleContent
+from shared.models.search import SearchHistory
 
 
 class ArticleSearchService:
     """
     文章搜索优化服务
-    
+
     提供高性能的全文搜索、高亮、过滤等功能
     """
 
@@ -43,7 +41,7 @@ class ArticleSearchService:
     ) -> Dict:
         """
         搜索文章
-        
+
         Args:
             db: 数据库会话
             query: 搜索关键词
@@ -55,7 +53,7 @@ class ArticleSearchService:
             page: 页码
             per_page: 每页数量
             sort_by: 排序方式 (relevance, date, views)
-            
+
         Returns:
             搜索结果和分页信息
         """
@@ -149,12 +147,12 @@ class ArticleSearchService:
     def _highlight_text(self, text: str, query: str, max_length: int = 200) -> str:
         """
         高亮文本中的搜索关键词
-        
+
         Args:
             text: 原始文本
             query: 搜索关键词
             max_length: 最大长度
-            
+
         Returns:
             高亮后的文本
         """
@@ -199,12 +197,12 @@ class ArticleSearchService:
     ) -> List[str]:
         """
         获取搜索建议（自动完成）
-        
+
         Args:
             db: 数据库会话
             query: 搜索前缀
             limit: 返回数量
-            
+
         Returns:
             搜索建议列表
         """
@@ -232,7 +230,7 @@ class ArticleSearchService:
     ):
         """
         记录搜索历史
-        
+
         Args:
             db: 数据库会话
             query: 搜索关键词
@@ -277,12 +275,12 @@ class ArticleSearchService:
     ) -> List[Dict]:
         """
         获取热门搜索
-        
+
         Args:
             db: 数据库会话
             days: 统计天数
             limit: 返回数量
-            
+
         Returns:
             热门搜索列表
         """
@@ -314,7 +312,7 @@ class ArticleSearchService:
     ):
         """
         清理旧的搜索历史
-        
+
         Args:
             db: 数据库会话
             days: 保留天数

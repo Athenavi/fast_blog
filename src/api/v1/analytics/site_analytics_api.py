@@ -4,6 +4,7 @@
 提供页面浏览量、用户行为、流量来源等分析功能
 """
 
+import json
 from datetime import datetime, timedelta
 from typing import Optional
 
@@ -54,7 +55,7 @@ async def track_custom_event(
         event_name: str = Query(..., description="事件名称"),
         user_id: Optional[str] = Query(None, description="用户ID"),
         session_id: Optional[str] = Query(None, description="会话ID"),
-        properties: Optional[dict] = Query(None, description="事件属性"),
+    properties: Optional[str] = Query(None, description="事件属性（JSON字符串）"),
         current_user=Depends(jwt_required)
 ):
     """
@@ -62,11 +63,19 @@ async def track_custom_event(
 
     记录用户的特定行为（如点击、表单提交等）
     """
+    # 解析 JSON 字符串为 dict
+    parsed_properties = {}
+    if properties:
+        try:
+            parsed_properties = json.loads(properties)
+        except (json.JSONDecodeError, TypeError):
+            parsed_properties = {}
+
     site_analytics.track_event(
         event_name=event_name,
         user_id=user_id,
         session_id=session_id,
-        properties=properties or {}
+        properties=parsed_properties
     )
 
     return ApiResponse(

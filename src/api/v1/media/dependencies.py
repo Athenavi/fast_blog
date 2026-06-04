@@ -6,12 +6,10 @@
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models.file_hash import FileHash
-from shared.models.media import Media
+from shared.models.media import Media, FileHash
 from shared.models.user import User
 from src.extensions import cache
 from src.setting import BaseConfig
-
 from src.unified_logger import default_logger as logger
 
 

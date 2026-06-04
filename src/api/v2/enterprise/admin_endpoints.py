@@ -9,13 +9,9 @@ from fastapi import APIRouter, Depends, Query, Body
 from sqlalchemy import select, func, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models.deployment_log import DeploymentLog
-from shared.models.deployment_script import DeploymentScript
-from shared.models.enterprise_license import EnterpriseLicense
-from shared.models.monitoring_alert import MonitoringAlert
-from shared.models.monitoring_metric import MonitoringMetric
-from shared.models.support_ticket import SupportTicket
-from shared.models.support_ticket_reply import SupportTicketReply
+from shared.models.enterprise import EnterpriseLicense, SupportTicket, SupportTicketReply, DeploymentScript, \
+    DeploymentLog
+from shared.models.monitoring import MonitoringAlert, MonitoringMetric
 from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db

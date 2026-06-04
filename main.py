@@ -82,15 +82,15 @@ def main():
     if args.backend == 'fastapi':
         try:
             import uvicorn
-            # 使用应用实例而不是工厂函数
-            from src.app import app as fastapi_app
+            # 使用模块级已创建的 app 实例（由顶层 create_app 调用产生）
+            fastapi_app = app
             if fastapi_app is None:
                 logger.error("FastAPI 应用实例创建失败")
                 sys.exit(1)
 
             logger.info(f"FastAPI 应用已加载，准备启动服务器...")
             logger.info(f"服务器地址: http://{args.host}:{args.port}")
-            
+
             uvicorn.run(
                 fastapi_app,
                 host=args.host,

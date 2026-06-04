@@ -9,21 +9,20 @@ from typing import Optional, Dict, Any, List
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from shared.models.enterprise_license import EnterpriseLicense
-from shared.models.support_ticket import SupportTicket
-from shared.models.support_ticket_reply import SupportTicketReply
-from shared.models.deployment_script import DeploymentScript
-from shared.models.deployment_log import DeploymentLog
-from shared.models.monitoring_alert import MonitoringAlert
-from shared.models.monitoring_metric import MonitoringMetric
-
+from shared.models.enterprise.deployment_log import DeploymentLog
+from shared.models.enterprise.deployment_script import DeploymentScript
+from shared.models.enterprise.enterprise_license import EnterpriseLicense
+from shared.models.enterprise.support_ticket import SupportTicket
+from shared.models.enterprise.support_ticket_reply import SupportTicketReply
+from shared.models.monitoring.monitoring_alert import MonitoringAlert
+from shared.models.monitoring.monitoring_metric import MonitoringMetric
 from src.unified_logger import default_logger as logger
 
 
 class EnterpriseService:
     """
     企业版服务
-    
+
     功能：
     1. 许可证管理
     2. 优先技术支持
@@ -47,7 +46,7 @@ class EnterpriseService:
     ) -> EnterpriseLicense:
         """
         创建企业许可证
-        
+
         Args:
             db: 数据库会话
             license_type: 许可证类型
@@ -59,7 +58,7 @@ class EnterpriseService:
             support_level: 支持级别
             sla_enabled: 是否启用SLA
             sla_uptime_guarantee: SLA可用性保证
-            
+
         Returns:
             创建的许可证
         """
@@ -93,11 +92,11 @@ class EnterpriseService:
     async def validate_license(self, db: AsyncSession, license_key: str) -> Optional[EnterpriseLicense]:
         """
         验证许可证
-        
+
         Args:
             db: 数据库会话
             license_key: 许可证密钥
-            
+
         Returns:
             许可证对象，如果无效则返回None
         """
@@ -121,11 +120,11 @@ class EnterpriseService:
     async def get_license_info(self, db: AsyncSession, license_key: str) -> Optional[Dict[str, Any]]:
         """
         获取许可证信息
-        
+
         Args:
             db: 数据库会话
             license_key: 许可证密钥
-            
+
         Returns:
             许可证信息字典
         """
@@ -160,7 +159,7 @@ class EnterpriseService:
     ) -> SupportTicket:
         """
         创建技术支持工单
-        
+
         Args:
             db: 数据库会话
             user_id: 用户ID
@@ -169,7 +168,7 @@ class EnterpriseService:
             priority: 优先级
             category: 分类
             license_id: 许可证ID
-            
+
         Returns:
             创建的工单
         """
@@ -204,7 +203,7 @@ class EnterpriseService:
     ) -> SupportTicketReply:
         """
         添加工单回复
-        
+
         Args:
             db: 数据库会话
             ticket_id: 工单ID
@@ -212,7 +211,7 @@ class EnterpriseService:
             content: 回复内容
             is_staff: 是否为工作人员
             attachments: 附件列表
-            
+
         Returns:
             创建的回复
         """
@@ -247,12 +246,12 @@ class EnterpriseService:
     ) -> List[SupportTicket]:
         """
         获取用户的工单列表
-        
+
         Args:
             db: 数据库会话
             user_id: 用户ID
             status: 状态过滤
-            
+
         Returns:
             工单列表
         """
@@ -279,7 +278,7 @@ class EnterpriseService:
     ) -> DeploymentScript:
         """
         创建部署脚本
-        
+
         Args:
             db: 数据库会话
             name: 脚本名称
@@ -289,7 +288,7 @@ class EnterpriseService:
             description: 描述
             parameters: 参数定义
             created_by: 创建者ID
-            
+
         Returns:
             创建的脚本
         """
@@ -318,12 +317,12 @@ class EnterpriseService:
     ) -> DeploymentLog:
         """
         执行部署脚本
-        
+
         Args:
             db: 数据库会话
             script_id: 脚本ID
             user_id: 执行者ID
-            
+
         Returns:
             部署日志
         """
@@ -380,7 +379,7 @@ class EnterpriseService:
     ) -> MonitoringAlert:
         """
         创建监控告警
-        
+
         Args:
             db: 数据库会话
             alert_type: 告警类型
@@ -391,7 +390,7 @@ class EnterpriseService:
             metric_name: 指标名称
             metric_value: 指标值
             threshold: 阈值
-            
+
         Returns:
             创建的告警
         """
@@ -424,7 +423,7 @@ class EnterpriseService:
     ) -> MonitoringMetric:
         """
         记录监控指标
-        
+
         Args:
             db: 数据库会话
             metric_name: 指标名称
@@ -432,7 +431,7 @@ class EnterpriseService:
             metric_type: 指标类型
             labels: 标签
             site_id: 站点ID
-            
+
         Returns:
             创建的指标记录
         """

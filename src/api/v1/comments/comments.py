@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models.comment import Comment
+from shared.models.comment import Comment, CommentVote
 from shared.services.comments.comment_manager import comment_like_service, comment_notification_service
 from shared.services.notifications.webhook_service import webhook_service
 from shared.services.plugins.plugin_manager.init import trigger_plugin_event
@@ -56,7 +56,7 @@ async def create_comment(
 ):
     """
     创建新评论（支持登录用户和访客）
-    
+
     自动进行垃圾评论检测:
     - 低风险: 直接发布
     - 中风险: 标记为待审核
@@ -325,7 +325,7 @@ async def get_article_comments(
         db: AsyncSession = Depends(get_async_db)
 ):
     """获取文章的评论
-    
+
     Args:
         article_id: 文章ID
         page: 页码
@@ -835,17 +835,16 @@ async def like_comment(
 ):
     """
     点赞/取消点赞评论（增强版）
-    
+
     支持：
     - 首次点赞
     - 取消点赞
     - 从反对改为点赞
-    
+
     Args:
         comment_id: 评论ID
     """
     try:
-        from shared.models.comment_vote import CommentVote
         from sqlalchemy import select
         from datetime import datetime
 
@@ -919,12 +918,12 @@ async def dislike_comment(
 ):
     """
     反对/取消反对评论
-    
+
     支持：
     - 首次反对
     - 取消反对
     - 从点赞改为反对
-    
+
     Args:
         comment_id: 评论ID
     """
@@ -1000,7 +999,7 @@ async def get_comment_likes(
 ):
     """
     获取评论的点赞数
-    
+
     Args:
         comment_id: 评论ID
     """
@@ -1030,10 +1029,10 @@ async def get_user_vote(
 ):
     """
     获取用户对评论的投票状态
-    
+
     Args:
         comment_id: 评论ID
-        
+
     Returns:
         vote_type: 1 (赞) | -1 (踩) | null
     """
@@ -1070,10 +1069,10 @@ async def notify_comment_reply(
 ):
     """
     通知评论被回复（通常在创建回复评论后调用）
-    
+
     Args:
         comment_id: 新评论ID
-        
+
     Returns:
         通知结果
     """
@@ -1133,10 +1132,10 @@ async def notify_comment_reply(
 def _build_comment_tree(comments: list) -> list:
     """
     构建评论树形结构
-    
+
     Args:
         comments: 评论列表（字典格式）
-        
+
     Returns:
         树形结构的评论列表
     """
@@ -1174,7 +1173,7 @@ async def get_comment_notifications(
 ):
     """
     获取用户的评论相关通知
-    
+
     Args:
         page: 页码
         per_page: 每页数量
@@ -1229,7 +1228,7 @@ async def update_notification_preferences(
 ):
     """
     更新用户的通知偏好设置
-    
+
     Body参数:
         preferences: 偏好设置字典
             - notify_on_reply: 回复时通知 (bool)

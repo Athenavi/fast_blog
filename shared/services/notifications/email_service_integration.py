@@ -14,15 +14,14 @@ import aiohttp
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
-from shared.models.email_service_config import EmailServiceConfig
-
+from shared.models.integration import EmailServiceConfig
 from src.unified_logger import default_logger as logger
 
 
 class EmailServiceIntegration:
     """
     邮件服务集成
-    
+
     支持 SendGrid、Mailgun 和 SMTP
     """
 
@@ -33,12 +32,12 @@ class EmailServiceIntegration:
     Optional[EmailServiceConfig]:
         """
         获取邮件服务配置
-        
+
         Args:
             db: 数据库会话
             provider: 邮件提供商（可选）
             site_id: 站点 ID（可选）
-            
+
         Returns:
             邮件服务配置对象
         """
@@ -77,7 +76,7 @@ class EmailServiceIntegration:
     ) -> EmailServiceConfig:
         """
         创建邮件服务配置
-        
+
         Args:
             db: 数据库会话
             provider: 邮件提供商（sendgrid/mailgun/smtp）
@@ -92,7 +91,7 @@ class EmailServiceIntegration:
             enable_batch_sending: 是否启用批量发送
             batch_size: 批量发送大小
             daily_limit: 每日发送限制
-            
+
         Returns:
             创建的配置对象
         """
@@ -132,12 +131,12 @@ class EmailServiceIntegration:
     ) -> EmailServiceConfig:
         """
         更新邮件服务配置
-        
+
         Args:
             db: 数据库会话
             config_id: 配置 ID
             updates: 更新字段字典
-            
+
         Returns:
             更新后的配置对象
         """
@@ -158,7 +157,7 @@ class EmailServiceIntegration:
     async def deactivate_config(self, db: AsyncSession, config_id: int):
         """
         停用邮件服务配置
-        
+
         Args:
             db: 数据库会话
             config_id: 配置 ID
@@ -183,7 +182,7 @@ class EmailServiceIntegration:
     ) -> bool:
         """
         发送邮件
-        
+
         Args:
             config: 邮件服务配置
             to_email: 收件人邮箱
@@ -191,7 +190,7 @@ class EmailServiceIntegration:
             html_content: HTML 内容
             text_content: 纯文本内容
             from_name: 发件人名称
-            
+
         Returns:
             是否发送成功
         """
@@ -345,14 +344,14 @@ class EmailServiceIntegration:
     ) -> Dict[str, int]:
         """
         批量发送邮件
-        
+
         Args:
             config: 邮件服务配置
             recipients: 收件人列表 [{'email': '...', 'name': '...'}]
             subject: 邮件主题
             html_content: HTML 内容
             text_content: 纯文本内容
-            
+
         Returns:
             发送结果统计 {'success': count, 'failed': count}
         """
@@ -389,11 +388,11 @@ class EmailServiceIntegration:
     ) -> List[EmailServiceConfig]:
         """
         获取所有邮件服务配置
-        
+
         Args:
             db: 数据库会话
             include_inactive: 是否包含非活动配置
-            
+
         Returns:
             配置列表
         """

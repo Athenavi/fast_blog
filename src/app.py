@@ -273,6 +273,58 @@ def register_all_routes(app: FastAPI, worker_info: str):
         loaded_count = 0
         failed_count = 0
 
+        # Phase 0: 预热 shared.models 子包，避免并行导入时 _DeadlockError
+        # Python 的 import 系统对包 __init__.py 使用模块锁，
+        # 多线程同时触发同一子包导入会产生死锁（如 collaboration/__init__.py）
+        _prewarm_start = _time.monotonic()
+        try:
+            _shared_subpkgs = [
+                'shared.models',
+                'shared.models.article',
+                'shared.models.collaboration',
+                'shared.models.media',
+                'shared.models.enterprise',
+                'shared.models.security',
+                'shared.models.user',
+                'shared.models.comment',
+                'shared.models.category',
+                'shared.models.notification',
+                'shared.models.chat',
+                'shared.models.search',
+                'shared.models.ecommerce',
+                'shared.models.payment',
+                'shared.models.revenue',
+                'shared.models.rbac',
+                'shared.models.system',
+                'shared.models.analytics',
+                'shared.models.integration',
+                'shared.models.monitoring',
+                'shared.models.migration',
+                'shared.models.form',
+                'shared.models.menu',
+                'shared.models.page',
+                'shared.models.theme',
+                'shared.models.plugin',
+                'shared.models.widget',
+                'shared.models.vip',
+                'shared.models.webhook',
+                'shared.models.multisite',
+                'shared.models.report',
+                'shared.models.content',
+                'shared.models.social',
+                'shared.models.ad',
+                'shared.models.ai',
+            ]
+            for _pkg in _shared_subpkgs:
+                try:
+                    importlib.import_module(_pkg)
+                except Exception:
+                    pass
+            _prewarm_elapsed = _time.monotonic() - _prewarm_start
+            print(f"{worker_info} 🔥 shared.models 预热完成 ({_prewarm_elapsed:.2f}s)")
+        except Exception as _pw_err:
+            print(f"{worker_info} [Warning] shared.models 预热失败: {_pw_err}")
+
         # Phase 1: 并行加载所有模块和路由器（ThreadPoolExecutor）
         # importlib + getattr(mod, "router") 触发 _build_router() 是 CPU/IO 密集操作，可并行
         load_start = _time.monotonic()

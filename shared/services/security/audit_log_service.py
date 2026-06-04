@@ -3,17 +3,15 @@
 记录系统中的关键操作和事件，用于安全审计和合规性检查
 """
 import json
-
 from datetime import datetime, timedelta
-from typing import Dict, Any, Optional, List
 from enum import Enum
+from typing import Dict, Any, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.sql.functions import func
 
-from shared.models.audit_log import AuditLog
-
+from shared.models.system import AuditLog
 from src.unified_logger import default_logger as logger
 
 
@@ -46,7 +44,7 @@ class AuditLogLevel(Enum):
 class AuditLogService:
     """
     审计日志服务
-    
+
     功能:
     1. 操作日志记录
     2. 登录日志记录
@@ -62,13 +60,11 @@ class AuditLogService:
     async def initialize(self, db: AsyncSession):
         """
         初始化审计日志服务
-        
+
         Args:
             db: 数据库会话
         """
         # 确保表已创建
-        from sqlalchemy import create_engine
-        from sqlalchemy.orm import sessionmaker
 
         # 注意：在实际应用中，表创建可能在数据库初始化时完成
         pass
@@ -89,7 +85,7 @@ class AuditLogService:
     ):
         """
         记录审计日志
-        
+
         Args:
             db: 数据库会话
             user_id: 用户ID
@@ -149,7 +145,7 @@ class AuditLogService:
     ) -> Dict[str, Any]:
         """
         查询审计日志
-        
+
         Args:
             db: 数据库会话
             user_id: 用户ID过滤
@@ -162,7 +158,7 @@ class AuditLogService:
             end_date: 结束日期
             page: 页码
             per_page: 每页数量
-            
+
         Returns:
             日志列表和分页信息
         """
@@ -244,12 +240,12 @@ class AuditLogService:
     ) -> str:
         """
         导出审计日志
-        
+
         Args:
             db: 数据库会话
             output_format: 输出格式 ('json', 'csv', 'excel')
             **filters: 过滤条件
-            
+
         Returns:
             导出的数据
         """
@@ -336,7 +332,7 @@ class AuditLogService:
     async def cleanup_old_logs(self, db: AsyncSession, days: int = None):
         """
         清理旧的审计日志
-        
+
         Args:
             db: 数据库会话
             days: 保留天数，默认使用实例配置

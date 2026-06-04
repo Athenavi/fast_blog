@@ -6,8 +6,7 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.article import Article
-from shared.models.category import Category
-from shared.models.category_subscription import CategorySubscription
+from shared.models.category import Category, CategorySubscription
 from src.api.v1.core.responses import ApiResponse
 from src.auth import jwt_required_dependency as jwt_required
 from src.utils.database.main import get_async_session
@@ -280,7 +279,7 @@ async def reorder_categories_api(
 ):
     """
     分类拖拽排序
-    
+
     请求体格式：
     {
         "categories": [

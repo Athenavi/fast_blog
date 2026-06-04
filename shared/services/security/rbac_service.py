@@ -2,12 +2,8 @@
 RBAC (基于角色的访问控制) 服务实现
 """
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models.role import Role
-from shared.models.user_role import UserRole
-from shared.models.role_capability import RoleCapability
-from shared.models.capability import Capability
+from shared.models.rbac import UserRole, RoleCapability, Capability, Role
 from src.utils.database.main import get_async_session
 
 

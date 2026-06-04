@@ -428,7 +428,7 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
                 return limits
 
         # 返回默认限制
-        return (self.DEFAULT_MAX_REQUESTS, self.DEFAULT_WINDOW_SECONDS)
+        return self.DEFAULT_MAX_REQUESTS, self.DEFAULT_WINDOW_SECONDS
 
     def _check_rate_limit(self, client_ip: str, path: str, max_requests: int, window_seconds: int) -> bool:
         """检查是否超过速率限制"""

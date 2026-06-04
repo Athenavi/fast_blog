@@ -103,24 +103,66 @@ from shared.models import Base
 target_metadata = Base.metadata
 
 # ============================================================
-# 显式导入所有模型模块，确保它们注册到 Base.metadata
-# 懒加载模式下，仅 import Base 不会触发模型类的加载
+# 自动发现并加载所有 ORM 模型模块
+# 懒加载模式下，仅 import Base 不会触发模型类的加载，
+# 需要显式导入所有模型模块才能注册到 Base.metadata
+#
+# 策略：从 shared.models 的 _LAZY_IMPORTS 字典自动获取所有模型，
+# 无需手动维护模型列表（每次 generate-all 后自动同步）
 # ============================================================
 import importlib
-
-_model_modules = [
-
-]
+import re
 
 _loaded_count = 0
-for _mod_name in _model_modules:
-    try:
-        importlib.import_module(_mod_name)
-        _loaded_count += 1
-    except ImportError as e:
-        print(f"[Alembic] Warning: Could not import {_mod_name}: {e}")
+_failed_count = 0
 
-print(f"[Alembic] Loaded {_loaded_count}/{len(_model_modules)} model modules")
+# 策略 1: 从 _LAZY_IMPORTS 字典自动加载（由代码生成器维护）
+try:
+    from shared.models import _LAZY_IMPORTS
+
+    for _model_name, _module_path in _LAZY_IMPORTS.items():
+        try:
+            _mod = importlib.import_module(_module_path, package='shared.models')
+            # 触发类加载以注册到 Base.metadata
+            getattr(_mod, _model_name)
+            _loaded_count += 1
+        except Exception as e:
+            _failed_count += 1
+            print(f"[Alembic] Warning: Could not load {_model_name} from {_module_path}: {e}")
+except ImportError:
+    print("[Alembic] Warning: _LAZY_IMPORTS not found, falling back to directory scan")
+
+# 策略 2: 扫描 shared/models/ 目录中的手动模型文件（未在 _LAZY_IMPORTS 中注册的）
+_shared_models_dir = project_root / "shared" / "models"
+_known_modules = set()
+if '_LAZY_IMPORTS' in dir():
+    _known_modules = {v.lstrip('.') for v in _LAZY_IMPORTS.values()}
+
+for _py_file in sorted(_shared_models_dir.rglob("*.py")):
+    if _py_file.name.startswith('_') or _py_file.name == '__init__.py':
+        continue
+    try:
+        _content = _py_file.read_text(encoding='utf-8')
+    except (UnicodeDecodeError, OSError):
+        continue
+    # 只处理包含 class XXX(Base): 的文件
+    if 'from . import Base' not in _content.replace(' ', '') and 'from shared.models' not in _content:
+        if not re.search(r'class\s+\w+\s*\([^)]*Base[^)]*\)\s*:', _content):
+            continue
+    # 计算模块路径
+    _rel_path = _py_file.relative_to(_shared_models_dir)
+    _module_dot = '.'.join(_rel_path.with_suffix('').parts)
+    _full_module = f"shared.models.{_module_dot}"
+    if _module_dot in _known_modules or _full_module in _known_modules:
+        continue
+    try:
+        importlib.import_module(f".{_module_dot}", package='shared.models')
+        _loaded_count += 1
+    except Exception as e:
+        _failed_count += 1
+        print(f"[Alembic] Warning: Could not load {_full_module}: {e}")
+
+print(f"[Alembic] Loaded {_loaded_count} model modules ({_failed_count} failed)")
 print(f"[Alembic] Registered {len(target_metadata.tables)} tables in metadata")
 
 # other values from the config, defined by the needs of env.py,
