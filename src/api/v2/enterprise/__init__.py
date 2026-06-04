@@ -1,18 +1,32 @@
 """
 企业管理API聚合路由器 - V2统一入口
 整合许可证管理、技术支持工单、部署脚本和监控告警
+
+使用懒加载模式：仅在首次访问 router 时才导入 V1 子模块。
 """
 from fastapi import APIRouter
 
-# 导入V1的企业模块（基础功能）
-from src.api.v1.enterprise.enterprise_api import router as base_enterprise_router
-# 导入V2的管理增强端点
-from src.api.v2.enterprise.admin_endpoints import router as admin_enterprise_router
+_router = None
 
-# 创建聚合路由器
-router = APIRouter(tags=["enterprise-v2"])
 
-# 包含V1基础路由（许可证验证、创建工单、回复等用户端功能）
-router.include_router(base_enterprise_router, prefix="")
-# 包含V2管理增强路由（管理员列表/详情/更新/删除等CRUD）
-router.include_router(admin_enterprise_router, prefix="/admin")
+def _build_router():
+    global _router
+    if _router is not None:
+        return _router
+
+    router = APIRouter(tags=["enterprise-v2"])
+
+    from src.api.v1.enterprise.enterprise_api import router as base_enterprise_router
+    from src.api.v2.enterprise.admin_endpoints import router as admin_enterprise_router
+
+    router.include_router(base_enterprise_router, prefix="")
+    router.include_router(admin_enterprise_router, prefix="/admin")
+
+    _router = router
+    return _router
+
+
+def __getattr__(name):
+    if name == "router":
+        return _build_router()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

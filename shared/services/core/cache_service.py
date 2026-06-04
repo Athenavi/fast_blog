@@ -24,7 +24,7 @@ except ImportError:
 
 class CacheService:
     """缓存服务 - 支持内存和Redis
-    
+
     使用cachetools.TTLCache实现高效的内存缓存(如果可用)
     支持Redis作为后端缓存(可选)
     """
@@ -33,7 +33,7 @@ class CacheService:
                  max_size: int = 1000, default_ttl: int = 3600):
         """
         初始化缓存服务
-        
+
         Args:
             use_redis: 是否使用Redis
             redis_config: Redis配置字典
@@ -58,12 +58,13 @@ class CacheService:
                     'host': 'localhost',
                     'port': 6379,
                     'db': 0,
-                    'decode_responses': True  # 自动解码为字符串
+                    'decode_responses': True,  # 自动解码为字符串
+                    'socket_connect_timeout': 1,  # 连接超时 1 秒
+                    'socket_timeout': 1,  # 读写超时 1 秒
                 }
                 self.redis_client = redis.Redis(**config)
-                # 测试连接
-                self.redis_client.ping()
-                print("[CacheService] Redis连接成功")
+                # 移除 ping()：redis.Redis() 本身是惰性的，首次实际操作时才连接
+                print("[CacheService] Redis客户端已创建（惰性连接）")
             except Exception as e:
                 print(f"[CacheService] Redis连接失败: {e}, 使用内存缓存")
                 self.use_redis = False
@@ -74,10 +75,10 @@ class CacheService:
 
     def get(self, key: str) -> Optional[Any]:
         """获取缓存
-        
+
         Args:
             key: 缓存键
-            
+
         Returns:
             缓存值,不存在则返回None
         """
@@ -111,7 +112,7 @@ class CacheService:
 
     def set(self, key: str, value: Any, ttl: int = None):
         """设置缓存
-        
+
         Args:
             key: 缓存键
             value: 缓存值
@@ -146,7 +147,7 @@ class CacheService:
 
     def delete(self, key: str):
         """删除缓存
-        
+
         Args:
             key: 缓存键
         """
@@ -166,7 +167,7 @@ class CacheService:
                 self.redis_client.flushdb()
             except Exception as e:
                 print(f"[CacheService] Redis清空失败: {e}")
-        
+
         self.cache.clear()
 
 
@@ -176,16 +177,16 @@ class LazyLoadService:
     def generate_lazy_html(self, image_url: str, alt: str = "", class_name: str = "") -> str:
         """
         生成懒加载HTML
-        
+
         Args:
             image_url: 图片URL
             alt: 替代文本
             class_name: CSS类名
         """
         return f'''
-        <img 
-            data-src="{image_url}" 
-            alt="{alt}" 
+        <img
+            data-src="{image_url}"
+            alt="{alt}"
             class="lazyload {class_name}"
             loading="lazy"
             onload="this.src=this.dataset.src"
@@ -239,7 +240,7 @@ class AssetMinifier:
     def combine_files(self, file_paths: List[str], output_path: str, file_type: str = 'css'):
         """
         合并多个文件
-        
+
         Args:
             file_paths: 文件路径列表
             output_path: 输出文件路径
@@ -291,7 +292,7 @@ def cached(ttl: int = 3600):
 
 class PageCacheService:
     """页面级缓存服务 - 生成静态HTML缓存
-    
+
     用于缓存完整的页面HTML,提升访问速度
     """
 
@@ -324,10 +325,10 @@ class PageCacheService:
     def get_page(self, url: str) -> Optional[Dict[str, Any]]:
         """
         获取缓存的页面
-        
+
         Args:
             url: 页面URL
-            
+
         Returns:
             包含content、status_code、headers的字典,不存在返回None
         """
@@ -371,7 +372,7 @@ class PageCacheService:
                  headers: Dict[str, str] = None, ttl: int = None):
         """
         缓存页面
-        
+
         Args:
             url: 页面URL
             content: HTML内容
@@ -463,7 +464,7 @@ class CacheWarmer:
     def add_url(self, url: str, priority: int = 10):
         """
         添加需要预热的URL
-        
+
         Args:
             url: 页面URL
             priority: 优先级(数字越小优先级越高)
@@ -475,7 +476,7 @@ class CacheWarmer:
     async def warmup(self, fetch_func=None):
         """
         执行缓存预热
-        
+
         Args:
             fetch_func: 获取页面内容的函数,接收url参数
         """

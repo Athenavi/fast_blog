@@ -1,122 +1,151 @@
+"""
+Models 包 - 懒加载版本
+
+所有模型类通过 __getattr__ 按需导入，避免启动时一次性加载 90+ 个模型文件。
+Base 保持立即导入（SQLAlchemy 元数据初始化必需）。
+"""
+
 from sqlalchemy.orm import declarative_base
 
 Base = declarative_base()
 
+# ==================== 懒加载映射表 ====================
+# 模型名 -> 相对模块路径（不含 shared.models 前缀）
+_LAZY_IMPORTS = {
+    'AuditLog': '.audit_log',
+    'AIWorkflow': '.ai_workflow',
+    'PageBuilder': '.page_builder',
+    'GlobalStyle': '.global_style',
+    'FieldPermission': '.field_permission',
+    'User': '.user',
+    'Article': '.article',
+    'Category': '.category',
+    'CategorySubscription': '.category_subscription',
+    'Media': '.media',
+    'MediaFolder': '.media_folder',
+    'MediaOptimization': '.media_optimization',
+    'ArticleRevisionNote': '.article_revision_note',
+    'SystemSettings': '.system_settings',
+    'ArticleContent': '.article_content',
+    'ArticleLike': '.article_like',
+    'FileHash': '.file_hash',
+    'Menus': '.menus',
+    'MenuItems': '.menu_items',
+    'MenuLocation': '.menu_location',
+    'MenuLocationAssignment': '.menu_location_assignment',
+    'Pages': '.pages',
+    'UploadTask': '.upload_task',
+    'UploadChunk': '.upload_chunk',
+    'DownloadTask': '.download_task',
+    'Notification': '.notification',
+    'PrivateMessage': '.private_message',
+    'UserBlock': '.user_block',
+    'SearchHistory': '.search_history',
+    'SearchIndex': '.search_index',
+    'PageView': '.page_view',
+    'UserActivity': '.user_activity',
+    'VIPPlan': '.vip_plan',
+    'VIPSubscription': '.vip_subscription',
+    'VIPFeature': '.vip_feature',
+    'CustomField': '.custom_field',
+    'EmailSubscription': '.email_subscription',
+    'ArticleRevision': '.article_revision',
+    'Plugin': '.plugin',
+    'Theme': '.theme',
+    'Form': '.form',
+    'FormField': '.form_field',
+    'FormSubmission': '.form_submission',
+    'WidgetInstance': '.widget_instance',
+    'BlockPattern': '.block_pattern',
+    'CustomPostType': '.custom_post_type',
+    'CommentVote': '.comment_vote',
+    'CommentSubscription': '.comment_subscription',
+    'Comment': '.comment',
+    'OAuthAccount': '.o_auth_account',
+    'ArticleSEO': '.article_seo',
+    'ShareStat': '.share_stat',
+    'Product': '.product',
+    'Cart': '.cart',
+    'CartItem': '.cart_item',
+    'Order': '.order',
+    'SensitiveWord': '.sensitive_word',
+    'UserSession': '.user_session',
+    'LoginAttempt': '.login_attempt',
+    'TokenBlacklist': '.token_blacklist',
+    'AdPlacement': '.ad_placement',
+    'Ad': '.ad',
+    'AdClick': '.ad_click',
+    'AdImpression': '.ad_impression',
+    'RevenueRecord': '.revenue_record',
+    'RevenueSharingConfig': '.revenue_sharing_config',
+    'PayoutRequest': '.payout_request',
+    'UserRevenueStats': '.user_revenue_stats',
+    'ChatGroup': '.chat_group',
+    'ChatGroupMember': '.chat_group_member',
+    'ChatGroupInvite': '.chat_group_invite',
+    'ScheduledReport': '.scheduled_report',
+    'ReportHistory': '.report_history',
+    'ArticleAnnotation': '.article_annotation',
+    'Webhook': '.webhook',
+    'WebhookDelivery': '.webhook_delivery',
+    'Role': '.role',
+    'Capability': '.capability',
+    'RoleCapability': '.role_capability',
+    'UserRole': '.user_role',
+    'PermissionAuditLog': '.permission_audit_log',
+    'Workspace': '.workspace',
+    'WorkspaceMember': '.workspace_member',
+    'Task': '.task',
+    'ApprovalRecord': '.approval_record',
+    'ApprovalStep': '.approval_step',
+    'Site': '.site',
+    'SiteUser': '.site_user',
+    'ContentMapping': '.content_mapping',
+    'GoogleAnalyticsConfig': '.google_analytics_config',
+    'BaiduAnalyticsConfig': '.baidu_analytics_config',
+    'NotificationIntegration': '.notification_integration',
+    'EmailServiceConfig': '.email_service_config',
+    'SAMLConfig': '.saml_config',
+    'LDAPConfig': '.ldap_config',
+    'SSOProvider': '.sso_provider',
+    'PaymentGateway': '.payment_gateway',
+    'PaymentTransaction': '.payment_transaction',
+    'CryptoPayment': '.crypto_payment',
+    'TaxConfig': '.tax_config',
+    'OrderItem': '.order_item',
+    'EnterpriseLicense': '.enterprise_license',
+    'SupportTicket': '.support_ticket',
+    'SupportTicketReply': '.support_ticket_reply',
+    'DeploymentScript': '.deployment_script',
+    'DeploymentLog': '.deployment_log',
+    'MonitoringAlert': '.monitoring_alert',
+    'MonitoringMetric': '.monitoring_metric',
+    'MigrationTask': '.migration_task',
+    'MigrationLog': '.migration_log',
+    'GlobalStyleConfig': '.global_style_config',
+}
 
-from .audit_log import AuditLog
-from .ai_workflow import AIWorkflow
-from .page_builder import PageBuilder
-from .global_style import GlobalStyle
-from .field_permission import FieldPermission
-from .user import User
-from .article import Article
-from .category import Category
-from .category_subscription import CategorySubscription
-from .media import Media
-from .media_folder import MediaFolder
-from .media_optimization import MediaOptimization
-from .article_revision_note import ArticleRevisionNote
-from .system_settings import SystemSettings
-from .article_content import ArticleContent
-from .article_like import ArticleLike
-from .file_hash import FileHash
-from .menus import Menus
-from .menu_items import MenuItems
-from .menu_location import MenuLocation
-from .menu_location_assignment import MenuLocationAssignment
-from .pages import Pages
-from .upload_task import UploadTask
-from .upload_chunk import UploadChunk
-from .download_task import DownloadTask
-from .notification import Notification
-from .private_message import PrivateMessage
-from .user_block import UserBlock
-from .search_history import SearchHistory
-from .search_index import SearchIndex
-from .page_view import PageView
-from .user_activity import UserActivity
-from .vip_plan import VIPPlan
-from .vip_subscription import VIPSubscription
-from .vip_feature import VIPFeature
-from .custom_field import CustomField
-from .email_subscription import EmailSubscription
-from .article_revision import ArticleRevision
-from .plugin import Plugin
-from .theme import Theme
-from .form import Form
-from .form_field import FormField
-from .form_submission import FormSubmission
-from .widget_instance import WidgetInstance
-from .block_pattern import BlockPattern
-from .custom_post_type import CustomPostType
-from .comment_vote import CommentVote
-from .comment_subscription import CommentSubscription
-from .comment import Comment
-from .o_auth_account import OAuthAccount
-from .article_seo import ArticleSEO
-from .share_stat import ShareStat
-from .product import Product
-from .cart import Cart
-from .cart_item import CartItem
-from .order import Order
-from .sensitive_word import SensitiveWord
-from .user_session import UserSession
-from .login_attempt import LoginAttempt
-from .token_blacklist import TokenBlacklist
-from .ad_placement import AdPlacement
-from .ad import Ad
-from .ad_click import AdClick
-from .ad_impression import AdImpression
-from .revenue_record import RevenueRecord
-from .revenue_sharing_config import RevenueSharingConfig
-from .payout_request import PayoutRequest
-from .user_revenue_stats import UserRevenueStats
-from .chat_group import ChatGroup
-from .chat_group_member import ChatGroupMember
-from .chat_group_invite import ChatGroupInvite
-from .scheduled_report import ScheduledReport
-from .report_history import ReportHistory
-from .article_annotation import ArticleAnnotation
-from .webhook import Webhook
-from .webhook_delivery import WebhookDelivery
-from .role import Role
-from .capability import Capability
-from .role_capability import RoleCapability
-from .user_role import UserRole
-from .permission_audit_log import PermissionAuditLog
-from .workspace import Workspace
-from .workspace_member import WorkspaceMember
-from .task import Task
-from .approval_record import ApprovalRecord
-from .approval_step import ApprovalStep
-from .site import Site
-from .site_user import SiteUser
-from .content_mapping import ContentMapping
-from .google_analytics_config import GoogleAnalyticsConfig
-from .baidu_analytics_config import BaiduAnalyticsConfig
-from .notification_integration import NotificationIntegration
-from .email_service_config import EmailServiceConfig
-from .saml_config import SAMLConfig
-from .ldap_config import LDAPConfig
-from .sso_provider import SSOProvider
-from .payment_gateway import PaymentGateway
-from .payment_transaction import PaymentTransaction
-from .crypto_payment import CryptoPayment
-from .tax_config import TaxConfig
-from .order_item import OrderItem
-from .enterprise_license import EnterpriseLicense
-from .support_ticket import SupportTicket
-from .support_ticket_reply import SupportTicketReply
-from .deployment_script import DeploymentScript
-from .deployment_log import DeploymentLog
-from .monitoring_alert import MonitoringAlert
-from .monitoring_metric import MonitoringMetric
-from .migration_task import MigrationTask
-from .migration_log import MigrationLog
-from .global_style_config import GlobalStyleConfig
+# 已加载的模型缓存（避免重复导入）
+_loaded_models = {}
 
-# ==================== 自动生成的导入 - 由 routes.yaml 管理 ====================
-# 此部分由脚本自动生成 - 请勿手动修改
+
+def __getattr__(name):
+    """模块级 __getattr__：按需懒加载模型类"""
+    if name in _loaded_models:
+        return _loaded_models[name]
+
+    module_path = _LAZY_IMPORTS.get(name)
+    if module_path is not None:
+        import importlib
+        module = importlib.import_module(module_path, package='shared.models')
+        cls = getattr(module, name)
+        # 缓存到模块命名空间，后续访问直接命中
+        globals()[name] = cls
+        _loaded_models[name] = cls
+        return cls
+
+    raise AttributeError(f"module 'shared.models' has no attribute {name!r}")
+
 
 __all__ = [
     'Base',
