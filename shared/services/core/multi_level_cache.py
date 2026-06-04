@@ -33,7 +33,7 @@ except ImportError:
 class MultiLevelCache:
     """
     多级缓存服务
-    
+
     自动在多个缓存层级间同步数据
     支持缓存预热、统计和监控
     """
@@ -50,7 +50,7 @@ class MultiLevelCache:
     ):
         """
         初始化多级缓存
-        
+
         Args:
             memory_max_size: L1内存缓存最大条目数
             memory_ttl: L1内存缓存TTL(秒)
@@ -85,10 +85,12 @@ class MultiLevelCache:
                     'port': 6379,
                     'db': 0,
                     'decode_responses': True,
+                    'socket_connect_timeout': 1,  # 连接超时 1 秒
+                    'socket_timeout': 1,  # 读写超时 1 秒
                 }
                 self.redis_client = redis.Redis(**config)
-                self.redis_client.ping()
-                print("[MultiLevelCache] L2 Redis缓存连接成功")
+                # 移除 ping()：redis.Redis() 本身是惰性的，首次实际操作时才连接
+                print("[MultiLevelCache] L2 Redis客户端已创建（惰性连接）")
             except Exception as e:
                 print(f"[MultiLevelCache] L2 Redis连接失败: {e}")
                 self.redis_enabled = False
@@ -123,10 +125,10 @@ class MultiLevelCache:
     def get(self, key: str) -> Optional[Any]:
         """
         获取缓存值 (从L1 -> L2 -> L3逐级查找)
-        
+
         Args:
             key: 缓存键
-        
+
         Returns:
             缓存值,不存在返回None
         """
@@ -172,7 +174,7 @@ class MultiLevelCache:
     def set(self, key: str, value: Any, ttl: Optional[int] = None):
         """
         设置缓存值 (同时写入L1, L2, L3)
-        
+
         Args:
             key: 缓存键
             value: 缓存值
@@ -195,7 +197,7 @@ class MultiLevelCache:
     def delete(self, key: str):
         """
         删除缓存 (从所有层级删除)
-        
+
         Args:
             key: 缓存键
         """
@@ -240,7 +242,7 @@ class MultiLevelCache:
     def warmup(self, keys_data: List[Dict[str, Any]]):
         """
         缓存预热
-        
+
         Args:
             keys_data: 预热的数据列表,每项包含 {'key': ..., 'value': ..., 'ttl': ...}
         """
@@ -259,7 +261,7 @@ class MultiLevelCache:
     def get_stats(self) -> Dict[str, Any]:
         """
         获取缓存统计信息
-        
+
         Returns:
             统计信息字典
         """

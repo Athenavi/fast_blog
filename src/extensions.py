@@ -37,8 +37,24 @@ Base = declarative_base()
 
 # 缓存
 try:
-    _redis_client = redis.Redis(host='localhost', port=6379, db=0, decode_responses=True)
-    _redis_client.ping()  # 测试连接
+    # 从环境变量读取 Redis 配置（与 token_blacklist.py 保持一致）
+    _redis_host = os.environ.get('REDIS_HOST', os.getenv('REDIS_HOST', 'localhost'))
+    _redis_port = int(os.environ.get('REDIS_PORT', os.getenv('REDIS_PORT', 6379)))
+    _redis_db = int(os.environ.get('REDIS_DB', os.getenv('REDIS_DB', 0)))
+    _redis_password = os.environ.get('REDIS_PASSWORD', os.getenv('REDIS_PASSWORD')) or None
+
+    _redis_client = redis.Redis(
+        host=_redis_host,
+        port=_redis_port,
+        db=_redis_db,
+        password=_redis_password,
+        decode_responses=True,
+        socket_connect_timeout=1,  # 连接超时 1 秒，避免启动阻塞
+        socket_timeout=1,  # 读写超时 1 秒
+        retry_on_timeout=False,  # 启动时不重试，快速失败
+    )
+    # 移除 ping()：redis.Redis() 本身是惰性的，首次实际操作时才连接
+    logger.info(f"Redis 客户端已创建（惰性连接）: {_redis_host}:{_redis_port}/{_redis_db}")
 
 
     # 为 Redis 对象添加兼容的装饰器方法
@@ -177,8 +193,8 @@ try:
 
     cache = RedisCacheWrapper(_redis_client)
 
-except (redis.ConnectionError, ImportError):
-    # 如果 Redis 不可用，使用简单内存缓存
+except (redis.ConnectionError, redis.TimeoutError, redis.RedisError, OSError, ImportError):
+    # 如果 Redis 不可用（连接拒绝、超时、其他错误），使用简单内存缓存
     class SimpleCache:
         def __init__(self):
             self._cache = {}
@@ -234,7 +250,7 @@ except (redis.ConnectionError, ImportError):
 
         def mset(self, mapping, ex=None):
             """批量设置缓存值
-            
+
             Args:
                 mapping: 字典，{key: value}
                 ex: 过期时间（秒），对所有键相同
@@ -272,7 +288,7 @@ except (redis.ConnectionError, ImportError):
 
         def warm_up(self, data_dict, ex=None):
             """缓存预热：批量加载数据到缓存
-            
+
             Args:
                 data_dict: 预热的数据字典 {cache_key: data}
                 ex: 过期时间（秒）
@@ -281,12 +297,12 @@ except (redis.ConnectionError, ImportError):
 
         def fallback_get(self, key, fallback_func, ex=300):
             """带降级策略的获取：如果缓存未命中，执行回调函数并缓存结果
-            
+
             Args:
                 key: 缓存键
                 fallback_func: 回调函数，当缓存未命中时执行
                 ex: 过期时间（秒）
-            
+
             Returns:
                 缓存值或回调函数返回值
             """
@@ -310,12 +326,12 @@ except (redis.ConnectionError, ImportError):
 
         async def fallback_get_async(self, key, fallback_func, ex=300):
             """异步版本的降级获取
-            
+
             Args:
                 key: 缓存键
                 fallback_func: 异步回调函数
                 ex: 过期时间（秒）
-            
+
             Returns:
                 缓存值或回调函数返回值
             """
@@ -535,7 +551,7 @@ _AsyncSessionLocal_instance = None  # 指向统一管理器的会话工厂
 def _get_async_engine():
     """
     延迟获取异步引擎实例（向后兼容）
-    
+
     注意：这个方法已被弃用，请使用 unified_manager.db_manager
     """
     global _async_engine_instance, _AsyncSessionLocal_instance
@@ -610,10 +626,10 @@ from contextlib import asynccontextmanager
 async def get_async_session_context() -> AsyncGenerator:
     """
     获取异步数据库会话的上下文管理器（用于直接调用）
-    
+
     这是一个异步上下文管理器，用于在代码中直接使用 async with 语法。
     不应用于 FastAPI 的 Depends() 依赖注入。
-    
+
     使用示例（直接调用）：
         async with get_async_session_context() as session:
             result = await session.execute(query)
@@ -633,7 +649,7 @@ def get_sync_db():
 async def get_async_db_session():
     """
     FastAPI依赖注入：获取异步数据库会话（用于 FastAPI Depends）
-    
+
     这是一个异步生成器，专门用于 FastAPI 的 Depends() 依赖注入。
     如果需要在代码中直接使用，请使用 get_async_session_context()。
     """

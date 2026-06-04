@@ -15,7 +15,18 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.models.user import User as UserModel
 from src.extensions import get_async_db_session as get_async_db
 from src.setting import settings
-from src.utils.token_blacklist import token_blacklist
+
+# token_blacklist 改为惰性导入：避免模块加载时触发 Redis .ping() 导致启动缓慢
+
+_tb_instance = None
+
+
+def _get_token_blacklist():
+    global _tb_instance
+    if _tb_instance is None:
+        from src.utils.token_blacklist import token_blacklist
+        _tb_instance = token_blacklist
+    return _tb_instance
 
 
 # ---------------------------------------------------------------------------
@@ -58,7 +69,8 @@ def decode_jwt_token(token: str) -> dict:
 
         # 黑名单检查
         jti = payload.get("jti")
-        if jti and token_blacklist.is_available and token_blacklist.is_blacklisted(jti):
+        _tb = _get_token_blacklist()
+        if jti and _tb.is_available and _tb.is_blacklisted(jti):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Token has been revoked",
@@ -119,7 +131,8 @@ async def get_current_active_user(
 
     # 黑名单检查
     jti = payload.get("jti")
-    if jti and token_blacklist.is_available and token_blacklist.is_blacklisted(jti):
+    _tb = _get_token_blacklist()
+    if jti and _tb.is_available and _tb.is_blacklisted(jti):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token has been revoked",
@@ -158,7 +171,8 @@ async def get_current_user_optional(
 
     # 黑名单检查
     jti = payload.get("jti")
-    if jti and token_blacklist.is_available and token_blacklist.is_blacklisted(jti):
+    _tb = _get_token_blacklist()
+    if jti and _tb.is_available and _tb.is_blacklisted(jti):
         return None
 
     result = await db.execute(select(UserModel).where(UserModel.id == user_id))

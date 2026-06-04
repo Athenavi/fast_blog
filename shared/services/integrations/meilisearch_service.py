@@ -11,7 +11,6 @@ Meilisearch 全文搜索引擎集成服务
 7. 增量索引更新
 """
 import hashlib
-
 from datetime import datetime
 from typing import List, Dict, Optional, Any
 
@@ -23,23 +22,31 @@ from src.unified_logger import default_logger as logger
 class MeilisearchService:
     """
     Meilisearch 搜索引擎服务
-    
+
     提供完整的全文搜索功能，包括索引管理、搜索、高亮等
+    注意：客户端采用懒加载模式，首次使用时才创建连接，避免启动时阻塞
     """
 
     def __init__(self, host: str = "http://localhost:7700", api_key: str = ""):
         """
-        初始化 Meilisearch 客户端
-        
+        初始化 Meilisearch 客户端（懒加载）
+
         Args:
             host: Meilisearch 服务器地址
             api_key: API密钥（可选）
         """
         self.host = host
         self.api_key = api_key
-        self.client = Client(host, api_key) if api_key else Client(host)
+        self._client = None  # 懒加载：首次访问时才创建
         self.index_name = "articles"
         self.index = None
+
+    @property
+    def client(self):
+        """懒加载 Meilisearch 客户端，首次访问时才创建"""
+        if self._client is None:
+            self._client = Client(self.host, self.api_key) if self.api_key else Client(self.host)
+        return self._client
 
     async def initialize(self):
         """初始化搜索引擎和索引配置"""
@@ -125,10 +132,10 @@ class MeilisearchService:
     async def index_article(self, article_data: Dict[str, Any]) -> bool:
         """
         索引单篇文章
-        
+
         Args:
             article_data: 文章数据字典
-            
+
         Returns:
             是否成功
         """
@@ -146,10 +153,10 @@ class MeilisearchService:
     async def update_article(self, article_data: Dict[str, Any]) -> bool:
         """
         更新文章索引
-        
+
         Args:
             article_data: 文章数据字典
-            
+
         Returns:
             是否成功
         """
@@ -167,10 +174,10 @@ class MeilisearchService:
     async def delete_article(self, article_id: int) -> bool:
         """
         删除文章索引
-        
+
         Args:
             article_id: 文章ID
-            
+
         Returns:
             是否成功
         """
@@ -188,10 +195,10 @@ class MeilisearchService:
     async def bulk_index_articles(self, articles: List[Dict[str, Any]]) -> bool:
         """
         批量索引文章
-        
+
         Args:
             articles: 文章数据列表
-            
+
         Returns:
             是否成功
         """
@@ -223,7 +230,7 @@ class MeilisearchService:
     ) -> Dict[str, Any]:
         """
         搜索文章
-        
+
         Args:
             query: 搜索关键词
             category_id: 分类ID过滤
@@ -234,7 +241,7 @@ class MeilisearchService:
             page: 页码
             per_page: 每页数量
             sort_by: 排序方式 (relevance, date, views)
-            
+
         Returns:
             搜索结果和分页信息
         """
@@ -342,11 +349,11 @@ class MeilisearchService:
     ) -> List[str]:
         """
         获取搜索建议（自动完成）
-        
+
         Args:
             query: 搜索前缀
             limit: 返回数量
-            
+
         Returns:
             搜索建议列表
         """
@@ -368,10 +375,10 @@ class MeilisearchService:
     async def rebuild_index(self, articles: List[Dict[str, Any]]) -> bool:
         """
         重建整个索引
-        
+
         Args:
             articles: 所有文章数据列表
-            
+
         Returns:
             是否成功
         """
@@ -393,7 +400,7 @@ class MeilisearchService:
     async def get_index_stats(self) -> Dict[str, Any]:
         """
         获取索引统计信息
-        
+
         Returns:
             统计信息
         """
@@ -413,10 +420,10 @@ class MeilisearchService:
     def calculate_content_hash(self, article_data: Dict[str, Any]) -> str:
         """
         计算文章内容哈希（用于检测变更）
-        
+
         Args:
             article_data: 文章数据
-            
+
         Returns:
             SHA256哈希字符串
         """

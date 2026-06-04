@@ -5,60 +5,27 @@ from pathlib import Path
 from fastapi import APIRouter, Request, Depends, Query, HTTPException
 from fastapi.logger import logger
 from fastapi.responses import FileResponse, JSONResponse
-from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from shared.models import User
-# 导入 AI 辅助功能路由
-from src.api.v1.ai.ai_assist_routes import router as ai_router
-# 导入第三方发布路由
-from src.api.v1.articles.third_party_publish_routes import router as publish_router
-# 导入安全监控路由
-from src.api.v1.system.security_monitor_routes import router as security_router
-# 导入 Webhook 路由
-from src.api.v1.system.webhook_routes import router as webhook_router
-# 导入插件市场路由
-from src.api.v1.plugins.marketplace_routes import router as plugin_market_router
-# 导入移动端同步路由
-from src.api.v1.user_utils.mobile_sync_routes import router as mobile_router
-# 导入多端分发路由
-from src.api.v1.utils.feed_routes import router as feed_router
-# 导入页面构建器路由
-from src.api.v1.content_management.page_builder_routes import router as page_builder_router
-# 导入组件库路由
-from src.api.v1.content_management.component_routes import router as component_router
-# 导入主题市场路由
-from src.api.v1.content_management.theme_market_routes import router as theme_market_router
-from src.auth import get_current_user
-from src.extensions import cache, get_async_db_session as get_async_db
-from src.setting import app_config
-from src.utils.image.processing import generate_thumbnail, get_file_mime_type
-from src.utils.security.safe import is_valid_hash
 
 api_v1_router = APIRouter(prefix="/api/v1", tags=["api-v1"])
 
 
 # ------------------------------------------------------------
-# 3. 自定义端点（保持原有功能不变）
+# QR 登录相关（延迟导入依赖）
 # ------------------------------------------------------------
-# QR 登录相关
 @api_v1_router.get("/qr/generate")
 async def api_generate_qr(request: Request):
     from src.api.v1.user_utils.qrlogin_utils import qr_login
+    from src.extensions import cache
+    from src.setting import app_config
     try:
-        # 优先使用前端传递的回调域名，否则使用请求的实际地址
         callback_domain = request.query_params.get('callback_domain')
 
         if callback_domain:
-            # 使用前端传递的回调域名
             request_domain = callback_domain
-            # print(f"[QR Login] Using callback domain from frontend: {request_domain}")
         else:
-            # 尝试多种方式获取真实请求地址
             host = request.headers.get('host', 'localhost:9421')
             scheme = request.url.scheme
 
-            # 检查是否有反向代理头
             forwarded_proto = request.headers.get('x-forwarded-proto')
             forwarded_host = request.headers.get('x-forwarded-host')
 
@@ -68,7 +35,6 @@ async def api_generate_qr(request: Request):
                 host = forwarded_host
 
             request_domain = f"{scheme}://{host}/"
-            # print(f"[QR Login] Using request domain: {request_domain}")
 
         return await qr_login(
             request,
@@ -85,6 +51,7 @@ async def api_generate_qr(request: Request):
 @api_v1_router.get("/qr/status")
 async def api_check_qr_status(request: Request):
     from src.api.v1.user_utils.qrlogin_utils import check_qr_login_back
+    from src.extensions import cache
     try:
         return await check_qr_login_back(request, cache)
     except Exception as e:
@@ -95,9 +62,11 @@ async def api_check_qr_status(request: Request):
 @api_v1_router.get("/phone/verify")
 async def api_phone_verify(
         request: Request,
-        db: AsyncSession = Depends(get_async_db)
+    db=Depends(lambda: __import__('src.extensions', fromlist=['get_async_db_session']).get_async_db_session()),
 ):
     from src.api.v1.user_utils.qrlogin_utils import phone_scan_back
+    from src.auth import get_current_user
+    from src.extensions import cache
     try:
         current_user = await get_current_user(request, db)
     except HTTPException as e:
@@ -118,7 +87,10 @@ async def api_phone_verify(
 
 # 用户名/邮箱可用性检查
 @api_v1_router.get("/check-username")
-async def api_check_username(username: str, db: AsyncSession = Depends(get_async_db)):
+async def api_check_username(username: str, db=Depends(
+    lambda: __import__('src.extensions', fromlist=['get_async_db_session']).get_async_db_session())):
+    from shared.models import User
+    from sqlalchemy import func, select
     try:
         existing = await db.scalar(
             select(User).where(func.lower(User.username) == func.lower(username))
@@ -130,7 +102,10 @@ async def api_check_username(username: str, db: AsyncSession = Depends(get_async
 
 
 @api_v1_router.get("/check-email")
-async def api_check_email(email: str, db: AsyncSession = Depends(get_async_db)):
+async def api_check_email(email: str, db=Depends(
+    lambda: __import__('src.extensions', fromlist=['get_async_db_session']).get_async_db_session())):
+    from shared.models import User
+    from sqlalchemy import func, select
     try:
         existing = await db.scalar(
             select(User).where(func.lower(User.email) == func.lower(email))
@@ -149,14 +124,15 @@ async def public_media_thumbnail(
 ):
     """
     ⚠️ 此 API 已废弃
-    
+
     请使用新的基于 media_id 的 API: GET /api/v2/media/{media_id}/thumbnail
-    
+
     旧 API 使用文件 hash 作为参数，新 API 使用媒体 ID，更加 RESTful 且易于管理。
     """
     import traceback
     from fastapi.responses import Response
     from shared.utils.logger import get_logger
+    from src.utils.security.safe import is_valid_hash
 
     logger = get_logger(__name__)
 
@@ -296,11 +272,12 @@ async def public_media_thumbnail(
 
 async def generate_thumbnail_async(source_path: Path, thumb_path: Path, filehash: str) -> bool:
     """异步生成缩略图（在线程池中执行）
-    
+
     Returns:
         bool: 是否成功生成缩略图
     """
     import os
+    from src.utils.image.processing import generate_thumbnail, get_file_mime_type
 
     try:
         mime_type = await get_file_mime_type(filehash)
@@ -347,39 +324,74 @@ async def generate_thumbnail_async(source_path: Path, thumb_path: Path, filehash
 
 
 # ------------------------------------------------------------
-# 一定要最后注册通配符路由，必须在所有具体路由之后）
+# 子路由懒加载注册（避免模块级导入重量级子路由）
 # ------------------------------------------------------------
 
-# 注册 AI 辅助功能路由
-api_v1_router.include_router(ai_router)
-# 注册移动端同步路由
-api_v1_router.include_router(mobile_router)
-# 注册多端分发路由
-api_v1_router.include_router(feed_router)
-# 注册安全监控路由
-api_v1_router.include_router(security_router)
-# 注册第三方发布路由
-api_v1_router.include_router(publish_router)
-# 注册 Webhook 路由
-api_v1_router.include_router(webhook_router)
-# 注册插件市场路由
-api_v1_router.include_router(plugin_market_router)
-# 注册页面构建器路由
-api_v1_router.include_router(page_builder_router)
-# 注册组件库路由
-api_v1_router.include_router(component_router)
-# 注册主题市场路由
-api_v1_router.include_router(theme_market_router)
+# 子路由映射：(属性名, 模块路径)
+_V1_SUB_ROUTERS = [
+    ('ai_router', 'src.api.v1.ai.ai_assist_routes'),
+    ('mobile_router', 'src.api.v1.user_utils.mobile_sync_routes'),
+    ('feed_router', 'src.api.v1.utils.feed_routes'),
+    ('security_router', 'src.api.v1.system.security_monitor_routes'),
+    ('publish_router', 'src.api.v1.articles.third_party_publish_routes'),
+    ('webhook_router', 'src.api.v1.system.webhook_routes'),
+    ('plugin_market_router', 'src.api.v1.plugins.marketplace_routes'),
+    ('page_builder_router', 'src.api.v1.content_management.page_builder_routes'),
+    ('component_router', 'src.api.v1.content_management.component_routes'),
+    ('theme_market_router', 'src.api.v1.content_management.theme_market_routes'),
+]
 
-# 注册 GraphQL 接口 (Headless CMS)
-try:
-    from strawberry.fastapi import GraphQLRouter
-    from src.api.v1.core.graphql_schema import schema
 
-    graphql_router = GraphQLRouter(schema, prefix="/graphql")
-    api_v1_router.include_router(graphql_router)
-except ImportError:
-    pass
+def _lazy_include_sub_routers():
+    """延迟加载并注册所有 V1 子路由"""
+    import importlib
+
+    for attr_name, module_path in _V1_SUB_ROUTERS:
+        try:
+            mod = importlib.import_module(module_path)
+            sub_router = getattr(mod, 'router', None)
+            if sub_router is not None:
+                api_v1_router.include_router(sub_router)
+        except ImportError as e:
+            logger.warning(f"[V1] 子路由 {module_path} 加载失败: {e}")
+        except Exception as e:
+            logger.warning(f"[V1] 子路由 {module_path} 注册异常: {e}")
+
+    # 注册 GraphQL 接口 (Headless CMS)
+    try:
+        from strawberry.fastapi import GraphQLRouter
+        from src.api.v1.core.graphql_schema import schema
+        graphql_router = GraphQLRouter(schema, prefix="/graphql")
+        api_v1_router.include_router(graphql_router)
+    except ImportError:
+        pass
+
+
+# 延迟执行子路由注册（首次访问 router 属性时触发）
+_sub_routers_loaded = False
+
+
+def _ensure_sub_routers():
+    global _sub_routers_loaded
+    if not _sub_routers_loaded:
+        _lazy_include_sub_routers()
+        _sub_routers_loaded = True
+
 
 # 为路由自动发现系统提供统一的 router 名称
-router = api_v1_router
+# 使用延迟加载包装
+class _RouterProxy:
+    """路由代理，首次访问时才加载子路由"""
+
+    def __init__(self, target_router):
+        object.__setattr__(self, '_target', target_router)
+
+    def __getattr__(self, name):
+        _ensure_sub_routers()
+        return getattr(object.__getattribute__(self, '_target'), name)
+
+    def __repr__(self):
+        return repr(object.__getattribute__(self, '_target'))
+
+
+router = _RouterProxy(api_v1_router)

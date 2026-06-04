@@ -27,7 +27,18 @@ from src.auth.auth_deps import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 from src.setting import settings
 from src.unified_logger import default_logger as logger
-from src.utils.token_blacklist import token_blacklist
+
+# token_blacklist 改为惰性导入：避免模块加载时触发 Redis .ping() 导致启动缓慢
+
+_tb_instance = None
+
+
+def _get_token_blacklist():
+    global _tb_instance
+    if _tb_instance is None:
+        from src.utils.token_blacklist import token_blacklist
+        _tb_instance = token_blacklist
+    return _tb_instance
 
 router = APIRouter(tags=["auth"])
 
@@ -127,7 +138,8 @@ def decode_jwt_token(token: str) -> dict:
 
         # 黑名单检查
         jti = payload.get("jti")
-        if jti and token_blacklist.is_available and token_blacklist.is_blacklisted(jti):
+        _tb = _get_token_blacklist()
+        if jti and _tb.is_available and _tb.is_blacklisted(jti):
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Token has been revoked",
@@ -685,7 +697,7 @@ async def logout_api(
                 exp = payload.get("exp")
                 if jti and exp:
                     expires_at = datetime.fromtimestamp(exp, tz=timezone.utc)
-                    token_blacklist.add_to_blacklist(jti, expires_at)
+                    _get_token_blacklist().add_to_blacklist(jti, expires_at)
             except Exception:
                 pass
 
@@ -747,7 +759,8 @@ async def refresh_token_api(request: Request):
         # 黑名单检查：检查 refresh token 的 JTI 是否在黑名单中
         jti = payload.get("jti")
         exp = payload.get("exp")
-        if jti and token_blacklist.is_available and token_blacklist.is_blacklisted(jti):
+        _tb = _get_token_blacklist()
+        if jti and _tb.is_available and _tb.is_blacklisted(jti):
             return ApiResponse(success=False, error="Token 已被撤销，请重新登录")
 
         # 生成新的 access token 和 refresh token（token 轮换）
@@ -756,7 +769,7 @@ async def refresh_token_api(request: Request):
 
         # 将旧的 refresh token 加入黑名单（token 轮换策略）
         if jti and exp:
-            token_blacklist.add_to_blacklist(
+            _get_token_blacklist().add_to_blacklist(
                 jti,
                 datetime.fromtimestamp(exp, tz=timezone.utc)
             )

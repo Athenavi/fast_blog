@@ -3,7 +3,9 @@ FastBlog 应用入口
 """
 import importlib
 import os
+import time as _time
 import traceback
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import asynccontextmanager
 from datetime import datetime
 from typing import AsyncGenerator
@@ -242,43 +244,105 @@ ROUTE_REGISTRY_DEPRECATED = [
 ]
 
 
+def _load_single_module(module_path: str, required: bool):
+    """并行加载单个模块并获取其 router（线程安全）"""
+    mod_start = _time.monotonic()
+    mod = importlib.import_module(module_path)
+    router = getattr(mod, "router", None)
+    mod_elapsed = _time.monotonic() - mod_start
+    return module_path, router, mod_elapsed, required, None
+
+
+def _load_single_module_safe(module_path: str, required: bool):
+    """安全版本：捕获异常并返回错误信息"""
+    try:
+        return _load_single_module(module_path, required, )
+    except Exception as e:
+        return module_path, None, 0.0, required, e
+
+
 def register_all_routes(app: FastAPI, worker_info: str):
     """注册 API v2 和 v3 路由（已移除 v1）"""
 
-    # 注册 v2 路由（新规范）
+    # 注册 v2 路由（新规范）— 并行加载 + 顺序注册
     print(f"\n{worker_info} {'=' * 60}")
     print(f"{worker_info} 开始注册 API v2 路由...")
+    routes_start = _time.monotonic()
     try:
         from src.api.v2 import ROUTE_REGISTRY_V2
         loaded_count = 0
         failed_count = 0
 
-        for module_path, prefix, tags, required in ROUTE_REGISTRY_V2:
+        # Phase 1: 并行加载所有模块和路由器（ThreadPoolExecutor）
+        # importlib + getattr(mod, "router") 触发 _build_router() 是 CPU/IO 密集操作，可并行
+        load_start = _time.monotonic()
+        load_results = []
+
+        # 根据核心数自适应线程池大小，最少 4 最多 16
+        max_workers = min(max(4, (os.cpu_count() or 4)), 16, len(ROUTE_REGISTRY_V2))
+
+        with ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="route_loader") as executor:
+            future_map = {
+                executor.submit(_load_single_module_safe, module_path, required): module_path
+                for module_path, prefix, tags, required in ROUTE_REGISTRY_V2
+            }
+            # 保持结果顺序与 ROUTE_REGISTRY_V2 一致
+            result_by_path = {}
+            for future in as_completed(future_map):
+                result = future.result()
+                result_by_path[result[0]] = result
+
+            for module_path, prefix, tags, required in ROUTE_REGISTRY_V2:
+                load_results.append((module_path, prefix, tags, result_by_path.get(module_path)))
+
+        load_elapsed = _time.monotonic() - load_start
+        print(f"{worker_info} 📦 模块并行加载完成 (线程池: {max_workers}, 耗时: {load_elapsed:.2f}s)")
+
+        # Phase 2: 顺序注册路由器到 app（FastAPI include_router 非线程安全）
+        register_start = _time.monotonic()
+        for module_path, prefix, tags, result in load_results:
+            if result is None:
+                failed_count += 1
+                print(f"{worker_info} [Warning] v2/{module_path} 未找到加载结果")
+                continue
+
+            _, router, mod_elapsed, req, error = result
+
+            if error is not None:
+                if req:
+                    print(f"{worker_info} [ERROR] v2 必需模块加载失败: {module_path} - {error}")
+                    raise error
+                else:
+                    failed_count += 1
+                    print(f"{worker_info} [Warning] v2/{module_path} 未能加载: {error}")
+                    continue
+
+            if router is None:
+                failed_count += 1
+                print(f"{worker_info} [Warning] v2/{module_path} 未找到 router 属性")
+                continue
+
             try:
-                mod = importlib.import_module(module_path)
-                router = getattr(mod, "router", None)
-                if router is None:
-                    raise AttributeError("No 'router' found")
                 if prefix:
                     app.include_router(router, prefix=prefix, tags=tags if tags else [])
                 else:
                     app.include_router(router)
                 loaded_count += 1
-                print(f"{worker_info} [OK] v2/{module_path.split('.')[-1]} 已加载")
-            except ImportError as e:
-                if required:
-                    print(f"{worker_info} [ERROR] v2 必需模块加载失败: {module_path} - {e}")
-                    raise
+                short_name = module_path.split('.')[-1]
+                if mod_elapsed > 1.0:
+                    print(f"{worker_info} [SLOW] v2/{short_name} 已加载 ({mod_elapsed:.2f}s)")
                 else:
-                    failed_count += 1
-                    print(f"{worker_info} [Warning] v2/{module_path} 未能加载: {e}")
+                    print(f"{worker_info} [OK] v2/{short_name} 已加载 ({mod_elapsed:.2f}s)")
             except Exception as e:
-                if required:
+                if req:
                     raise
                 failed_count += 1
                 print(f"{worker_info} [Warning] v2/{module_path} 注册异常: {e}")
 
-        print(f"{worker_info} ✅ API v2 路由注册完成 (成功: {loaded_count}, 失败: {failed_count})\n")
+        routes_elapsed = _time.monotonic() - routes_start
+        register_elapsed = _time.monotonic() - register_start
+        print(f"{worker_info} ✅ API v2 路由注册完成 (成功: {loaded_count}, 失败: {failed_count}, "
+              f"加载: {load_elapsed:.2f}s, 注册: {register_elapsed:.2f}s, 总耗时: {routes_elapsed:.2f}s)\n")
     except ImportError as e:
         print(f"{worker_info} [ERROR] API v2 模块未找到: {e}\n")
         raise
@@ -300,45 +364,68 @@ def register_all_routes(app: FastAPI, worker_info: str):
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """应用生命周期管理（结构化）"""
+    lifespan_start = _time.monotonic()
+
     # 1. 安装状态检查
+    step_start = _time.monotonic()
     is_installed = check_installation()
+    print(f"[lifespan] 安装检查耗时: {_time.monotonic() - step_start:.2f}s")
 
     # 2. 数据库管理器（仅安装后）
     if is_installed:
+        step_start = _time.monotonic()
         await safe_run_async("数据库管理器", _init_database)
+        print(f"[lifespan] 数据库初始化耗时: {_time.monotonic() - step_start:.2f}s")
 
     # 2.5 懒加载系统初始化
     try:
         from src.utils.lazy_loader import init_lazy_loading
+        step_start = _time.monotonic()
         safe_run("懒加载系统", init_lazy_loading)
+        print(f"[lifespan] 懒加载系统耗时: {_time.monotonic() - step_start:.2f}s")
     except ImportError as e:
         print(f"[懒加载系统] ⚠️ 跳过: {e}")
 
     # 3. 扩展、调度器
     try:
         from src.extensions import init_extensions
+        step_start = _time.monotonic()
         safe_run("扩展初始化", lambda: init_extensions(app))
+        print(f"[lifespan] 扩展初始化耗时: {_time.monotonic() - step_start:.2f}s")
     except ImportError as e:
         print(f"[扩展初始化] ⚠️ 跳过: {e}")
 
     try:
         from src.scheduler import init_scheduler
+        step_start = _time.monotonic()
         safe_run("调度器初始化", lambda: init_scheduler(app))
+        print(f"[lifespan] 调度器初始化耗时: {_time.monotonic() - step_start:.2f}s")
     except ImportError as e:
         print(f"[调度器初始化] ⚠️ 跳过: {e}")
 
     if is_installed:
+        step_start = _time.monotonic()
         await safe_run_async("定时发布调度器", _start_scheduled_publisher)
+        print(f"[lifespan] 定时发布调度器耗时: {_time.monotonic() - step_start:.2f}s")
 
     # 4. 插件系统
     try:
+        step_start = _time.monotonic()
         safe_run("插件系统", _init_plugins)
+        print(f"[lifespan] 插件系统耗时: {_time.monotonic() - step_start:.2f}s")
     except ImportError as e:
         print(f"[插件系统] ⚠️ 跳过: {e}")
 
     # 5. 下载队列处理器
     if is_installed:
+        step_start = _time.monotonic()
         await safe_run_async("下载队列处理器", _init_download_processor)
+        print(f"[lifespan] 下载队列处理器耗时: {_time.monotonic() - step_start:.2f}s")
+
+    total_elapsed = _time.monotonic() - lifespan_start
+    print(f"\n{'=' * 60}")
+    print(f"[lifespan] 🚀 应用启动完成，总耗时: {total_elapsed:.2f}s")
+    print(f"{'=' * 60}\n")
 
     yield
 
@@ -387,6 +474,26 @@ async def _close_database():
 
 
 # ---------- 中间件注册 ----------
+def _make_lazy_middleware(module_path: str, class_name: str):
+    """创建惰性中间件代理类：首次实例化时才导入目标模块（避免启动时加载 psutil 等重依赖）"""
+    _cache = {}
+
+    class _LazyProxy:
+        def __init__(self, app, **kwargs):
+            if 'cls' not in _cache:
+                import importlib
+                mod = importlib.import_module(module_path)
+                _cache['cls'] = getattr(mod, class_name)
+            self._impl = _cache['cls'](app=app, **kwargs)
+
+        async def __call__(self, scope, receive, send):
+            return await self._impl(scope, receive, send)
+
+    _LazyProxy.__name__ = f"Lazy_{class_name}"
+    _LazyProxy.__qualname__ = f"_make_lazy_middleware.<locals>.Lazy_{class_name}"
+    return _LazyProxy
+
+
 def register_middleware(app: FastAPI):
     """统一注册所有中间件（调试、安全、缓存等）"""
     # 获取 worker 信息（用于日志）
@@ -466,12 +573,12 @@ def register_middleware(app: FastAPI):
     except ImportError:
         pass
 
-    # 安全中间件（不包含速率限制）
+    # 安全中间件（惰性加载：首次请求时才导入 security_middleware 模块）
     try:
-        from src.auth.security_middleware import create_security_middleware_stack
-        # 注意：这里不再传递速率限制参数，因为我们将使用装饰器方式
-        create_security_middleware_stack(app)
-    except ImportError:
+        app.add_middleware(
+            _make_lazy_middleware("src.auth.security_middleware", "CSRFProtectionMiddleware")
+        )
+    except Exception:
         pass
 
     # 速率限制已移除全局中间件，改为在特定路由上使用装饰器
@@ -486,19 +593,21 @@ def register_middleware(app: FastAPI):
     app.add_middleware(APIVersionMiddleware)
     print("[API Version] 已添加版本响应头中间件")
 
-    # 性能监控中间件
+    # 性能监控中间件（惰性加载：避免启动时 import psutil）
     try:
-        from src.middleware.performance_monitor import PerformanceMonitoringMiddleware
-        app.add_middleware(PerformanceMonitoringMiddleware)
-        print("[Performance Monitor] 已添加性能监控中间件")
-    except ImportError as e:
+        app.add_middleware(
+            _make_lazy_middleware("src.middleware.performance_monitor", "PerformanceMonitoringMiddleware")
+        )
+        print("[Performance Monitor] 已添加性能监控中间件（惰性加载）")
+    except Exception as e:
         print(f"[Performance Monitor] 加载失败: {e}")
 
-    # 多站点
+    # 多站点（惰性加载：避免启动时导入 Site 模型）
     try:
-        from src.middleware.multisite_middleware import MultiSiteMiddleware
-        app.add_middleware(MultiSiteMiddleware)
-    except ImportError:
+        app.add_middleware(
+            _make_lazy_middleware("src.middleware.multisite_middleware", "MultiSiteMiddleware")
+        )
+    except Exception:
         pass
 
 
@@ -603,6 +712,8 @@ def register_error_handlers(app: FastAPI):
 # ---------- 应用工厂 ----------
 def create_app(config=None):
     """创建 FastAPI 应用实例"""
+    app_start = _time.monotonic()
+
     if config is None:
         from src.setting import ProductionConfig
         config = ProductionConfig()
@@ -623,10 +734,14 @@ def create_app(config=None):
     )
 
     # 注册中间件
+    step_start = _time.monotonic()
     register_middleware(app)
+    print(f"{worker_info} [create_app] 中间件注册耗时: {_time.monotonic() - step_start:.2f}s")
 
     # 注册所有 API 路由
+    step_start = _time.monotonic()
     register_all_routes(app, worker_info)
+    print(f"{worker_info} [create_app] 路由注册耗时: {_time.monotonic() - step_start:.2f}s")
 
     # 错误处理和 SPA 回退
     register_error_handlers(app)
@@ -652,6 +767,9 @@ def create_app(config=None):
     themes_dir = os.path.join(os.path.dirname(__file__), "..", "themes")
     if os.path.exists(themes_dir):
         app.mount("/api/v2/assets/themes", StaticFiles(directory=themes_dir), name="themes")
+
+    app_elapsed = _time.monotonic() - app_start
+    print(f"{worker_info} [create_app] 🏭 应用工厂完成，总耗时: {app_elapsed:.2f}s")
 
     return app
 

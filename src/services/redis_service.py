@@ -3,7 +3,6 @@ Redis 缓存服务
 提供异步 Redis 操作和缓存管理
 """
 import json
-
 from datetime import timedelta
 from typing import Optional, Any, Union
 
@@ -27,6 +26,9 @@ class RedisService:
                 encoding="utf-8",
                 decode_responses=True,
                 max_connections=50,
+                socket_connect_timeout=3,  # 连接超时 3 秒，避免启动阻塞
+                socket_timeout=3,  # 读写超时 3 秒
+                retry_on_timeout=True,  # 超时时自动重试
             )
             # 测试连接
             await self._redis.ping()
@@ -276,12 +278,12 @@ class RedisService:
     ) -> Any:
         """
         获取缓存，如果不存在则执行回调函数并缓存结果
-        
+
         Args:
             key: 缓存键
             fallback_func: 回调函数（异步或同步）
             expire: 过期时间（秒）
-        
+
         Returns:
             缓存值或回调结果
         """

@@ -15,7 +15,21 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.models.user import User as UserModel
 from src.setting import settings
 from src.utils.database.main import get_async_session
-from src.utils.token_blacklist import token_blacklist
+
+# token_blacklist 改为惰性导入：避免模块加载时触发 Redis .ping() 导致启动缓慢
+# from src.utils.token_blacklist import token_blacklist  →  移至 _authenticate_user 内部
+
+
+# ---------- 缓存 token_blacklist 单例，避免重复导入 ----------
+_tb_instance = None
+
+
+def _get_token_blacklist():
+    global _tb_instance
+    if _tb_instance is None:
+        from src.utils.token_blacklist import token_blacklist
+        _tb_instance = token_blacklist
+    return _tb_instance
 
 
 # ---------- JWT 工具 ----------
@@ -105,15 +119,17 @@ async def _authenticate_user(
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid user ID")
         return None
 
-    # 黑名单检查
+    # 黑名单检查（惰性导入 token_blacklist，首次使用时才触发 Redis 连接）
     jti = payload.get("jti")
-    if jti and token_blacklist.is_available and token_blacklist.is_blacklisted(jti):
-        if required:
-            raise HTTPException(
-                status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Token has been revoked",
-            )
-        return None
+    if jti:
+        _tb = _get_token_blacklist()
+        if _tb.is_available and _tb.is_blacklisted(jti):
+            if required:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Token has been revoked",
+                )
+            return None
 
     # 从数据库加载用户
     result = await db.execute(select(UserModel).where(UserModel.id == user_id))
