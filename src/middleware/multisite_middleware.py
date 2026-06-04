@@ -8,7 +8,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette.middleware.base import BaseHTTPMiddleware
 
-from shared.models.site import Site
+from shared.models.multisite import Site
 
 
 class MultiSiteMiddleware(BaseHTTPMiddleware):
