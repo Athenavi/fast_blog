@@ -745,22 +745,56 @@ class RouteGenerator:
     def _create_module_init_files(self, output_base: Path, used_modules: set):
         """为每个使用的子模块目录创建 __init__.py 文件
 
+        扫描子模块目录中的所有 .py 文件，提取类名，并生成正确的
+        重新导出语句，以支持 `from shared.models.<module> import <Model>` 风格的导入。
+
         Args:
             output_base: shared/models/ 基础路径
             used_modules: 使用的子模块路径集合（如 {'intel', 'knowledge', 'workflow'}）
         """
+        import re as _re
         for module_path in sorted(used_modules):
             module_dir = output_base / module_path
             module_dir.mkdir(parents=True, exist_ok=True)
             init_file = module_dir / "__init__.py"
-            if not init_file.exists():
+
+            # 扫描模块目录中的所有 .py 文件，提取类定义
+            imports = []
+            exports = []
+            for py_file in sorted(module_dir.iterdir()):
+                if py_file.name.startswith('_') or py_file.suffix != '.py':
+                    continue
+                try:
+                    content = py_file.read_text(encoding='utf-8')
+                except (UnicodeDecodeError, OSError):
+                    continue
+                # 提取 class XXX(Base): 或 class XXX(BaseMixin, Base): 等形式
+                class_matches = _re.findall(r'class\s+(\w+)\s*\([^)]*Base[^)]*\)\s*:', content)
+                if class_matches:
+                    module_name = py_file.stem  # 不带 .py 的文件名
+                    for class_name in class_matches:
+                        imports.append(f"from .{module_name} import {class_name}")
+                        exports.append(class_name)
+
+            if imports:
+                imports_section = "\n".join(imports)
+                all_section = ", ".join(f"'{name}'" for name in sorted(exports))
+                init_content = f'''"""
+{module_path} 子模块 - 模型定义
+由代码生成器自动生成 - 请勿手动修改
+"""
+{imports_section}
+
+__all__ = [{all_section}]
+'''
+            else:
                 init_content = f'''"""
 {module_path} 子模块 - 模型定义
 由代码生成器自动生成 - 请勿手动修改
 """
 '''
-                self._write_file(init_file, init_content)
-                print(f"  [OK] Module __init__.py: {init_file}")
+            self._write_file(init_file, init_content)
+            print(f"  [OK] Module __init__.py: {init_file} ({len(exports)} 个模型)")
 
     def _update_shared_models_init_from_orm(self, orm_models_config: Dict):
         """更新 shared/models/__init__.py 文件（懒加载版本）

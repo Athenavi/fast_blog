@@ -51,6 +51,7 @@ models:
         type: string
         format: date-time
         description: 创建时间
+    module: system
     orm: true
     table: audit_logs
     indexes:
@@ -122,6 +123,7 @@ models:
         format: date-time
         nullable: true
         description: 完成时间
+    module: ai
     orm: true
     table: ai_workflows
     indexes:
@@ -174,6 +176,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: page
     orm: true
     table: page_builder
     indexes:
@@ -206,6 +209,7 @@ models:
         type: string
         format: date-time
         description: 创建时间
+    module: theme
     orm: true
     table: global_styles
   FieldPermission:
@@ -240,6 +244,7 @@ models:
         type: string
         format: date-time
         description: 创建时间
+    module: security
     orm: true
     table: field_permissions
   User:
@@ -330,6 +335,7 @@ models:
         type: text
         nullable: true
         description: 备用码(JSON格式存储)
+    module: user
     orm: true
     table: users
     indexes:
@@ -648,6 +654,7 @@ models:
           - created_at
         order: DESC
         comment: 用户文章列表查询索引
+    module: article
     orm: true
     relationships:
       revisions:
@@ -861,6 +868,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: category
     orm: true
     table: categories
     indexes:
@@ -940,6 +948,7 @@ models:
         type: string
         format: date-time
         description: 创建时间
+    module: category
     orm: true
     table: category_subscriptions
   Media:
@@ -1051,6 +1060,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: media
     orm: true
     table: media
     indexes:
@@ -1126,6 +1136,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: media
     orm: true
     table: media_folders
     indexes:
@@ -1180,6 +1191,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: media
     orm: true
     table: media_optimizations
     indexes:
@@ -1214,6 +1226,7 @@ models:
         type: string
         format: date-time
         description: 创建时间
+    module: article
     orm: true
     table: article_revision_notes
     indexes:
@@ -1262,6 +1275,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: system
     orm: true
     table: system_settings
   AdminSettings:
@@ -1319,6 +1333,7 @@ models:
         type: string
         default: zh-CN
         description: 语言代码（文章国际化）
+    module: article
     orm: true
     table: article_content
   ArticleLike:
@@ -1341,6 +1356,7 @@ models:
         type: string
         format: date-time
         description: 创建时间
+    module: article
     orm: true
     table: article_likes
   FileHash:
@@ -1380,6 +1396,7 @@ models:
         type: string
         maxLength: 512
         description: 存储路径
+    module: media
     orm: true
     table: file_hashs
   Menus:
@@ -1414,6 +1431,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: menu
     orm: true
     indexes:
       - name: idx_menus_slug
@@ -1463,6 +1481,7 @@ models:
         type: string
         format: date-time
         description: 创建时间
+    module: menu
     orm: true
     indexes:
       - name: idx_menu_items_menu_id
@@ -1508,6 +1527,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: menu
     orm: true
     table: menu_locations
     indexes:
@@ -1535,6 +1555,7 @@ models:
         type: string
         format: date-time
         description: 创建时间
+    module: menu
     orm: true
     table: menu_location_assignments
     indexes:
@@ -1617,6 +1638,7 @@ models:
         format: date-time
         nullable: true
         description: 发布时间
+    module: page
     orm: true
     indexes:
       - name: idx_pages_slug
@@ -1685,6 +1707,7 @@ models:
         format: date-time
         default: datetime.utcnow
         description: 更新时间
+    module: media
     orm: true
     table: upload_tasks
   UploadChunk:
@@ -1718,6 +1741,7 @@ models:
         format: date-time
         default: datetime.utcnow
         description: 创建时间
+    module: media
     orm: true
     table: upload_chunks
   DownloadTask:
@@ -1814,6 +1838,7 @@ models:
         format: date-time
         nullable: true
         description: 完成时间
+    module: media
     orm: true
     table: download_tasks
     indexes:
@@ -1875,6 +1900,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: notification
     orm: true
     table: notifications
   PrivateMessage:
@@ -1940,6 +1966,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: chat
     orm: true
     table: private_messages
     indexes:
@@ -1992,6 +2019,7 @@ models:
         type: string
         format: date-time
         description: 屏蔽时间
+    module: user
     orm: true
     table: user_blocks
     indexes:
@@ -2032,6 +2060,7 @@ models:
         type: string
         format: date-time
         description: 创建时间
+    module: search
     orm: true
     table: search_history
     indexes:
@@ -2083,6 +2112,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: search
     orm: true
     table: search_index
     indexes:
@@ -2171,6 +2201,7 @@ models:
         type: string
         format: date-time
         description: 访问时间
+    module: analytics
     orm: true
     table: page_views
   UserActivity:
@@ -2214,6 +2245,7 @@ models:
         type: string
         format: date-time
         description: 活动时间
+    module: analytics
     orm: true
     table: user_activities
   VIPPlan:
@@ -2262,6 +2294,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: vip
     orm: true
     table: vip_plans
   VIPSubscription:
@@ -2305,6 +2338,7 @@ models:
         type: string
         format: date-time
         description: 创建时间
+    module: vip
     orm: true
     table: vip_subscriptions
   VIPFeature:
@@ -2339,6 +2373,7 @@ models:
         type: string
         format: date-time
         description: 创建时间
+    module: vip
     orm: true
     table: vip_features
   CustomField:
@@ -2360,6 +2395,7 @@ models:
       field_value:
         type: string
         description: 字段值
+    module: content
     orm: true
     table: custom_fields
   EmailSubscription:
@@ -2382,6 +2418,7 @@ models:
         type: string
         format: date-time
         description: 创建时间
+    module: notification
     orm: true
     table: email_subscriptions
   ArticleRevision:
@@ -2464,6 +2501,7 @@ models:
         type: string
         format: date-time
         description: 修订创建时间
+    module: article
     orm: true
     table: article_revisions
     relationships:
@@ -2549,6 +2587,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: plugin
     orm: true
     table: plugins
     indexes:
@@ -2645,6 +2684,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: theme
     orm: true
     table: themes
     indexes:
@@ -2709,6 +2749,7 @@ models:
         format: date-time
         nullable: true
         description: 发布时间
+    module: form
     orm: true
     table: forms
     indexes:
@@ -2780,6 +2821,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: form
     orm: true
     table: form_fields
     indexes:
@@ -2826,6 +2868,7 @@ models:
         type: string
         format: date-time
         description: 提交时间
+    module: form
     orm: true
     table: form_submissions
     indexes:
@@ -2882,6 +2925,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: widget
     orm: true
     table: widget_instances
     indexes:
@@ -2953,6 +2997,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: widget
     orm: true
     table: block_patterns
     indexes:
@@ -3023,6 +3068,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: content
     orm: true
     table: custom_post_types
     indexes:
@@ -3065,6 +3111,7 @@ models:
         type: string
         format: date-time
         description: 投票时间
+    module: comment
     orm: true
     table: comment_votes
     indexes:
@@ -3124,6 +3171,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: comment
     orm: true
     table: comment_subscriptions
     indexes:
@@ -3218,6 +3266,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: comment
     orm: true
     table: comments
     indexes:
@@ -3306,6 +3355,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: user
     orm: true
     table: oauth_accounts
     indexes:
@@ -3412,6 +3462,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: article
     orm: true
     table: article_seo
     relationships:
@@ -3462,6 +3513,7 @@ models:
         type: string
         format: date-time
         description: 分享时间
+    module: social
     orm: true
     table: share_stats
     indexes:
@@ -3557,6 +3609,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: ecommerce
     orm: true
     table: products
     indexes:
@@ -3605,6 +3658,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: ecommerce
     orm: true
     table: carts
     indexes:
@@ -3649,6 +3703,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: ecommerce
     orm: true
     table: cart_items
     indexes:
@@ -3764,6 +3819,7 @@ models:
         format: date-time
         nullable: true
         description: 送达时间
+    module: ecommerce
     orm: true
     table: orders
     indexes:
@@ -3865,6 +3921,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: security
     orm: true
     table: sensitive_words
     indexes:
@@ -3935,6 +3992,7 @@ models:
         type: string
         format: date-time
         description: 创建时间
+    module: user
     orm: true
     table: user_sessions
     indexes:
@@ -3991,6 +4049,7 @@ models:
         type: string
         format: date-time
         description: 尝试时间
+    module: security
     orm: true
     table: login_attempts
     indexes:
@@ -4038,6 +4097,7 @@ models:
         maxLength: 255
         nullable: true
         description: 撤销原因
+    module: security
     orm: true
     table: token_blacklist
     unlogged: true
@@ -4096,6 +4156,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: ad
     orm: true
     table: ad_placements
     indexes:
@@ -4210,6 +4271,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: ad
     orm: true
     table: ads
     indexes:
@@ -4265,6 +4327,7 @@ models:
         type: string
         format: date-time
         description: 点击时间
+    module: ad
     orm: true
     table: ad_clicks
     indexes:
@@ -4311,6 +4374,7 @@ models:
         type: string
         format: date-time
         description: 展示时间
+    module: ad
     orm: true
     table: ad_impressions
     indexes:
@@ -4375,6 +4439,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: revenue
     orm: true
     table: revenue_records
     indexes:
@@ -4436,6 +4501,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: revenue
     orm: true
     table: revenue_sharing_configs
     indexes:
@@ -4497,6 +4563,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: revenue
     orm: true
     table: payout_requests
     indexes:
@@ -4550,6 +4617,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: revenue
     orm: true
     table: user_revenue_stats
     indexes:
@@ -4604,6 +4672,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: chat
     orm: true
     table: chat_groups
     indexes:
@@ -4658,6 +4727,7 @@ models:
         type: boolean
         default: false
         description: 是否静音
+    module: chat
     orm: true
     table: chat_group_members
     indexes:
@@ -4719,6 +4789,7 @@ models:
         type: string
         format: date-time
         description: 创建时间
+    module: chat
     orm: true
     table: chat_group_invites
     indexes:
@@ -4786,6 +4857,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: report
     orm: true
     table: scheduled_reports
     indexes:
@@ -4829,6 +4901,7 @@ models:
         type: string
         format: date-time
         description: 生成时间
+    module: report
     orm: true
     table: report_history
     indexes:
@@ -4886,6 +4959,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: article
     orm: true
     table: article_annotations
     indexes:
@@ -4941,6 +5015,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: webhook
     orm: true
     table: webhooks
     indexes:
@@ -4992,6 +5067,7 @@ models:
         type: string
         format: date-time
         description: 创建时间
+    module: webhook
     orm: true
     table: webhook_deliveries
     indexes:
@@ -5054,6 +5130,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: rbac
     orm: true
     table: roles
     indexes:
@@ -5115,6 +5192,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: rbac
     orm: true
     table: capabilities
     indexes:
@@ -5151,6 +5229,7 @@ models:
         type: string
         format: date-time
         description: 创建时间
+    module: rbac
     orm: true
     table: role_capabilities
     indexes:
@@ -5190,6 +5269,7 @@ models:
         type: string
         format: date-time
         description: 分配时间
+    module: rbac
     orm: true
     table: user_role_assignments
     indexes:
@@ -5246,6 +5326,7 @@ models:
         format: date-time
         description: 创建时间
         index: true
+    module: rbac
     orm: true
     table: permission_audit_logs
     indexes:
@@ -5304,6 +5385,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: collaboration
     orm: true
     table: workspaces
     indexes:
@@ -5346,6 +5428,7 @@ models:
         type: boolean
         default: true
         description: 是否激活
+    module: collaboration
     orm: true
     table: workspace_members
     indexes:
@@ -5423,6 +5506,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: collaboration
     orm: true
     table: tasks
     indexes:
@@ -5485,6 +5569,7 @@ models:
         format: date-time
         nullable: true
         description: 完成时间
+    module: collaboration
     orm: true
     table: approval_records
     indexes:
@@ -5542,6 +5627,7 @@ models:
         type: string
         format: date-time
         description: 创建时间
+    module: collaboration
     orm: true
     table: approval_steps
     indexes:
@@ -5634,6 +5720,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: multisite
     orm: true
     table: sites
     indexes:
@@ -5676,6 +5763,7 @@ models:
         type: string
         format: date-time
         description: 加入时间
+    module: multisite
     orm: true
     table: site_users
     indexes:
@@ -5736,6 +5824,7 @@ models:
         type: string
         format: date-time
         description: 创建时间
+    module: multisite
     orm: true
     table: content_mappings
     indexes:
@@ -5811,6 +5900,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: analytics
     orm: true
     table: google_analytics_configs
     indexes:
@@ -5861,6 +5951,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: analytics
     orm: true
     table: baidu_analytics_configs
     indexes:
@@ -5928,6 +6019,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: integration
     orm: true
     table: notification_integrations
     indexes:
@@ -6014,6 +6106,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: integration
     orm: true
     table: email_service_configs
     indexes:
@@ -6105,6 +6198,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: integration
     orm: true
     table: saml_configs
     indexes:
@@ -6200,6 +6294,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: integration
     orm: true
     table: ldap_configs
     indexes:
@@ -6286,6 +6381,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: integration
     orm: true
     table: sso_providers
     indexes:
@@ -6334,6 +6430,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: payment
     orm: true
     table: payment_gateways
     indexes:
@@ -6406,6 +6503,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: payment
     orm: true
     table: payment_transactions
     indexes:
@@ -6496,6 +6594,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: payment
     orm: true
     table: crypto_payments
     indexes:
@@ -6567,6 +6666,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: payment
     orm: true
     table: tax_configs
     indexes:
@@ -6629,6 +6729,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: ecommerce
     orm: true
     table: order_items
     indexes:
@@ -6717,6 +6818,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: enterprise
     orm: true
     table: enterprise_licenses
     indexes:
@@ -6814,6 +6916,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: enterprise
     orm: true
     table: support_tickets
     indexes:
@@ -6867,6 +6970,7 @@ models:
         type: string
         format: date-time
         description: 创建时间
+    module: enterprise
     orm: true
     table: support_ticket_replies
     indexes:
@@ -6933,6 +7037,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: enterprise
     orm: true
     table: deployment_scripts
     indexes:
@@ -6996,6 +7101,7 @@ models:
         type: string
         format: date-time
         description: 创建时间
+    module: enterprise
     orm: true
     table: deployment_logs
     indexes:
@@ -7080,6 +7186,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: monitoring
     orm: true
     table: monitoring_alerts
     indexes:
@@ -7134,6 +7241,7 @@ models:
         description: 关联站点 ID
         foreignKey: Site
         index: true
+    module: monitoring
     orm: true
     table: monitoring_metrics
     indexes:
@@ -7226,6 +7334,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: migration
     orm: true
     table: migration_tasks
     indexes:
@@ -7281,6 +7390,7 @@ models:
         type: string
         format: date-time
         description: 创建时间
+    module: migration
     orm: true
     table: migration_logs
     indexes:
@@ -7371,6 +7481,7 @@ models:
         type: string
         format: date-time
         description: 更新时间
+    module: theme
     orm: true
     table: global_style_configs
     indexes:
