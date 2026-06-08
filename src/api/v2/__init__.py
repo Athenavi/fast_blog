@@ -198,6 +198,10 @@ ROUTE_REGISTRY_V2 = [
     # ==================== 企业管理（V2 聚合路由器）====================
     # V2 Enterprise 模块整合许可证、工单、部署脚本、监控告警
     ("src.api.v2.enterprise", "/api/v2/enterprise", ["enterprise-v2"], False),
+
+    # ==================== MCP AI 代理（V2 独立路由）====================
+    # 提供 MCP 代理 API，供 AI Chat 前端调用
+    ("src.api.v2.mcp", "/api/v2", ["mcp-proxy-v2"], False),
 ]
 
 # v1 到 v2 的路径映射表（用于自动重定向）

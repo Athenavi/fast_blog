@@ -339,6 +339,12 @@ _V1_SUB_ROUTERS = [
     ('page_builder_router', 'src.api.v1.content_management.page_builder_routes'),
     ('component_router', 'src.api.v1.content_management.component_routes'),
     ('theme_market_router', 'src.api.v1.content_management.theme_market_routes'),
+    # MCP Server
+    ('mcp_router', 'src.api.v1.mcp.mcp_api'),
+    # AI 相关
+    ('ai_agent_router', 'src.api.v1.ai.ai_agent_routes'),
+    ('ai_content_router', 'src.api.v1.ai.content_creator_api'),
+    ('ai_skills_router', 'src.api.v1.ai.skills_api'),
 ]
 
 
