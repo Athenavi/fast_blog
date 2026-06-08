@@ -9,9 +9,8 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select, and_, or_, func, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models.private_message import PrivateMessage
-from shared.models.user import User
-from shared.models.user_block import UserBlock
+from shared.models.chat import PrivateMessage
+from shared.models.user import User, UserBlock
 from src.api.v1.core.responses import ApiResponse
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
@@ -31,7 +30,7 @@ async def send_private_message(
 ):
     """
     发送私信
-    
+
     Args:
         recipient_id: 接收者用户ID
         content: 消息内容
@@ -119,7 +118,7 @@ async def send_private_message(
         # WebSocket real-time push notification
         # Example implementation:
         # from src.api.v1.websocket import broadcast_to_user
-        # 
+        #
         # notification = {
         #     'type': 'new_message',
         #     'message_id': new_message.id,
@@ -128,7 +127,7 @@ async def send_private_message(
         #     'content': content[:100],  # Preview
         #     'created_at': new_message.created_at.isoformat(),
         # }
-        # 
+        #
         # await broadcast_to_user(recipient_id, notification)
 
         return ApiResponse(
@@ -156,7 +155,7 @@ async def get_conversations(
 ):
     """
     获取会话列表(按联系人分组,显示最新消息)
-    
+
     返回与当前用户有过对话的所有用户及其最新消息
     """
     try:
@@ -263,7 +262,7 @@ async def get_conversation_messages(
 ):
     """
     获取与特定用户的对话消息历史
-    
+
     Args:
         user_id: 对话的另一方用户ID
     """
@@ -386,7 +385,7 @@ async def delete_message(
 ):
     """
     删除消息(软删除,仅对当前用户可见)
-    
+
     Args:
         message_id: 消息ID
     """
@@ -429,7 +428,7 @@ async def recall_message(
 ):
     """
     撤回消息(仅发送者可在2分钟内撤回)
-    
+
     Args:
         message_id: 消息ID
     """
@@ -460,14 +459,14 @@ async def recall_message(
         # WebSocket notification for message recall
         # Example implementation:
         # from src.api.v1.websocket import broadcast_to_user
-        # 
+        #
         # notification = {
         #     'type': 'message_recalled',
         #     'message_id': message_id,
         #     'sender_id': current_user.id,
         #     'recipient_id': message.recipient,
         # }
-        # 
+        #
         # await broadcast_to_user(message.recipient, notification)
 
         return ApiResponse(success=True, message="消息已撤回")

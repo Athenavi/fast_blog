@@ -5,15 +5,13 @@
 基于现有 Product 模型的 stock 字段实现
 """
 import json
-
 from datetime import datetime
 from typing import Dict, List
 
 from sqlalchemy import select, update, func, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models.product import Product
-
+from shared.models.ecommerce import Product
 from src.unified_logger import default_logger as logger
 
 
@@ -26,11 +24,11 @@ class InventoryService:
     async def check_inventory(self, product_id: int, quantity: int) -> Dict:
         """
         检查产品库存是否充足
-        
+
         Args:
             product_id: 产品ID
             quantity: 需要的数量
-            
+
         Returns:
             检查结果
         """
@@ -60,13 +58,13 @@ class InventoryService:
     async def deduct_inventory(self, product_id: int, quantity: int, order_id: int = None, user_id: int = None) -> Dict:
         """
         扣减库存（订单支付成功后）
-        
+
         Args:
             product_id: 产品ID
             quantity: 扣减数量
             order_id: 关联订单ID
             user_id: 操作用户ID
-            
+
         Returns:
             扣减结果
         """
@@ -126,13 +124,13 @@ class InventoryService:
                                 user_id: int = None) -> Dict:
         """
         恢复库存（订单取消或退款时）
-        
+
         Args:
             product_id: 产品ID
             quantity: 恢复数量
             order_id: 关联订单ID
             user_id: 操作用户ID
-            
+
         Returns:
             恢复结果
         """
@@ -185,13 +183,13 @@ class InventoryService:
     async def adjust_inventory(self, product_id: int, new_quantity: int, reason: str = '', user_id: int = None) -> Dict:
         """
         手动调整库存（管理员操作）
-        
+
         Args:
             product_id: 产品ID
             new_quantity: 新的库存数量
             reason: 调整原因
             user_id: 操作用户ID
-            
+
         Returns:
             调整结果
         """
@@ -246,10 +244,10 @@ class InventoryService:
     async def get_low_stock_products(self, threshold: int = 10) -> List[Dict]:
         """
         获取低库存产品列表
-        
+
         Args:
             threshold: 低库存阈值
-            
+
         Returns:
             低库存产品列表
         """
@@ -286,7 +284,7 @@ class InventoryService:
     async def get_inventory_report(self) -> Dict:
         """
         生成库存报告
-        
+
         Returns:
             库存报告数据
         """
@@ -349,7 +347,7 @@ class InventoryService:
     ):
         """
         记录库存变更历史到日志文件
-        
+
         Args:
             product_id: 产品ID
             change_type: 变更类型 (sale/cancellation/restock/adjustment)

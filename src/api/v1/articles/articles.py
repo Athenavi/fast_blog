@@ -11,12 +11,10 @@ from sqlalchemy import func, select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from shared.models.article import Article
-from shared.models.article_content import ArticleContent
-from shared.models.article_revision import ArticleRevision
+from shared.models.article import Article, ArticleContent, ArticleRevision
 from shared.models.category import Category
 from shared.models.user import User
-from shared.models.vip_plan import VIPPlan
+from shared.models.vip import VIPPlan
 from shared.services.articles.article_manager import article_query_service, password_protection_service, \
     save_article_revision
 from shared.services.content_management.shortcode_service import shortcode_service

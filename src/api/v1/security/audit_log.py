@@ -8,7 +8,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.services.security.audit_log_service import AuditLog as AuditLogModel
+from shared.models.system import AuditLog as AuditLogModel
 from shared.services.security.audit_log_service import AuditLogAction, AuditLogLevel, audit_log_service
 from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
@@ -34,7 +34,7 @@ async def get_audit_logs(
 ):
     """
     查询审计日志
-    
+
     Args:
         user_id: 用户ID过滤
         action: 操作类型 (login, logout, create, update, delete等)
@@ -46,7 +46,7 @@ async def get_audit_logs(
         end_date: 结束日期 (ISO格式字符串)
         page: 页码
         per_page: 每页数量
-        
+
     Returns:
         审计日志列表和分页信息
     """
@@ -122,7 +122,7 @@ async def export_audit_logs(
 ):
     """
     导出审计日志
-    
+
     Args:
         format: 导出格式 (json或csv)
         user_id: 用户ID过滤
@@ -133,7 +133,7 @@ async def export_audit_logs(
         ip_address: IP地址
         start_date: 开始日期 (ISO格式字符串)
         end_date: 结束日期 (ISO格式字符串)
-        
+
     Returns:
         导出的数据（JSON或CSV格式）
     """
@@ -205,10 +205,10 @@ async def get_audit_log_stats(
 ):
     """
     获取审计日志统计数据
-    
+
     Args:
         days: 统计天数
-        
+
     Returns:
         统计数据
     """
@@ -284,10 +284,10 @@ async def cleanup_old_logs(
 ):
     """
     清理旧的审计日志
-    
+
     Args:
         days: 保留天数，超过此天数的日志将被删除
-        
+
     Returns:
         清理结果
     """

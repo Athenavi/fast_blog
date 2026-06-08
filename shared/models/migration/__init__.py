@@ -1,0 +1,8 @@
+"""
+migration 子模块 - 模型定义
+由代码生成器自动生成 - 请勿手动修改
+"""
+from .migration_log import MigrationLog
+from .migration_task import MigrationTask
+
+__all__ = ['MigrationLog', 'MigrationTask']

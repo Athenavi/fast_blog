@@ -3,17 +3,11 @@
 提供多级审批、审批意见、审批历史和自动流转功能
 """
 
-from typing import Dict, Any, Optional, List
 from datetime import datetime
 from enum import Enum
+from typing import Dict, Any, Optional, List
 
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
-from sqlalchemy.sql.functions import func
-
-from shared.models.approval_record import ApprovalRecord
-from shared.models.approval_step import ApprovalStep
-
+from shared.models.collaboration import ApprovalStep, ApprovalRecord
 from src.unified_logger import default_logger as logger
 
 
@@ -28,7 +22,7 @@ class ApprovalStatus(Enum):
 class ContentApprovalService:
     """
     内容审批服务
-    
+
     功能:
     1. 多级审批流程
     2. 审批意见记录
@@ -45,7 +39,7 @@ class ContentApprovalService:
                                       approvers: List[int] = None) -> ApprovalRecord:
         """
         创建审批请求
-        
+
         Args:
             db: 数据库会话
             content_type: 内容类型 (article/comment)
@@ -53,13 +47,14 @@ class ContentApprovalService:
             applicant_id: 申请人ID
             max_level: 最大审批级别
             approvers: 各级审批人ID列表
-            
+
         Returns:
             创建的审批记录
         """
         from sqlalchemy import select
 
         # 检查是否已有待审批的记录
+        from shared.models.collaboration import ApprovalRecord
         stmt = select(ApprovalRecord).where(
             ApprovalRecord.content_type == content_type,
             ApprovalRecord.content_id == content_id,
@@ -104,13 +99,13 @@ class ContentApprovalService:
                            comment: str = None) -> ApprovalRecord:
         """
         审批通过
-        
+
         Args:
             db: 数据库会话
             record_id: 审批记录ID
             approver_id: 审批人ID
             comment: 审批意见
-            
+
         Returns:
             更新后的审批记录
         """
@@ -166,13 +161,13 @@ class ContentApprovalService:
                           comment: str = None) -> ApprovalRecord:
         """
         审批拒绝
-        
+
         Args:
             db: 数据库会话
             record_id: 审批记录ID
             approver_id: 审批人ID
             comment: 拒绝意见
-            
+
         Returns:
             更新后的审批记录
         """
@@ -221,12 +216,12 @@ class ContentApprovalService:
     async def cancel_approval(self, db, record_id: int, user_id: int) -> ApprovalRecord:
         """
         取消审批（仅申请人或管理员）
-        
+
         Args:
             db: 数据库会话
             record_id: 审批记录ID
             user_id: 用户ID
-            
+
         Returns:
             更新后的审批记录
         """
@@ -258,11 +253,11 @@ class ContentApprovalService:
     async def get_approval_history(self, db, record_id: int) -> Dict[str, Any]:
         """
         获取审批历史
-        
+
         Args:
             db: 数据库会话
             record_id: 审批记录ID
-            
+
         Returns:
             审批历史
         """
@@ -320,14 +315,14 @@ class ContentApprovalService:
                                     page: int = 1, per_page: int = 20) -> Dict[str, Any]:
         """
         获取待审批列表
-        
+
         Args:
             db: 数据库会话
             approver_id: 审批人ID
             content_type: 内容类型过滤
             page: 页码
             per_page: 每页数量
-            
+
         Returns:
             待审批列表和分页信息
         """
@@ -385,12 +380,12 @@ class ContentApprovalService:
     async def check_approval_status(self, db, content_type: str, content_id: int) -> Optional[Dict[str, Any]]:
         """
         检查内容的审批状态
-        
+
         Args:
             db: 数据库会话
             content_type: 内容类型
             content_id: 内容ID
-            
+
         Returns:
             审批状态信息
         """

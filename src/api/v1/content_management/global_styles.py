@@ -9,8 +9,7 @@ from fastapi import APIRouter, Depends, Body
 from sqlalchemy import select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models.global_style import GlobalStyle
-from shared.models.global_style_config import GlobalStyleConfig
+from shared.models.theme import GlobalStyle, GlobalStyleConfig
 from src.api.v1.core.responses import ApiResponse
 from src.auth import jwt_required_dependency as jwt_required
 from src.utils.database.main import get_async_session

@@ -11,8 +11,8 @@ from fastapi.responses import Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models.file_hash import FileHash
 from shared.models.media import Media
+from shared.models.media.file_hash import FileHash
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 from src.utils.image.processing import generate_thumbnail as sync_generate_thumbnail
@@ -32,14 +32,14 @@ async def get_user_media_file(
 ):
     """
     获取用户媒体文件（支持流式传输和范围请求）
-    
+
     Args:
         media_id: 媒体文件ID
         request: FastAPI请求对象
         range_header: HTTP Range头，用于断点续传
         current_user_obj: 当前用户对象
         db: 数据库会话
-        
+
     Returns:
         流式响应或FileResponse
     """
@@ -180,10 +180,10 @@ async def get_media_thumbnail(
 ):
     """
     获取媒体文件的缩略图
-    
+
     Args:
         media_id: 媒体文件ID
-        
+
     Returns:
         缩略图文件或404
     """

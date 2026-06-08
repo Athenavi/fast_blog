@@ -303,7 +303,7 @@ async def login_api(
             failed_count = await login_security_service.get_failed_attempts_count_async(username, db)
             remaining_attempts = login_security_service.max_failures - failed_count
 
-            if remaining_attempts <= 2 and remaining_attempts > 0:
+            if 2 >= remaining_attempts > 0:
                 return ApiResponse(
                     success=False,
                     error=f"用户名或密码错误（还剩 {remaining_attempts} 次尝试机会）"

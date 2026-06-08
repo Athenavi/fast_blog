@@ -11,7 +11,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models.custom_post_type import CustomPostType
+from shared.models.content import CustomPostType
 from src.api.v1.core.responses import ApiResponse
 from src.utils.database.unified_manager import get_db_session
 
@@ -59,7 +59,7 @@ async def list_custom_post_types(
             select(CustomPostType).offset(skip).limit(limit)
         )
         items = result.scalars().all()
-        
+
         return ApiResponse(
             success=True,
             data={
@@ -92,11 +92,11 @@ async def create_custom_post_type(
             created_at=datetime.now(),
             updated_at=datetime.now()
         )
-        
+
         db.add(cpt)
         await db.commit()
         await db.refresh(cpt)
-        
+
         return ApiResponse(
             success=True,
             message="创建成功",
@@ -115,10 +115,10 @@ async def get_custom_post_type(cpt_id: int, db: AsyncSession = Depends(get_db_se
             select(CustomPostType).where(CustomPostType.id == cpt_id)
         )
         cpt = result.scalar_one_or_none()
-        
+
         if not cpt:
             return ApiResponse(success=False, error="内容类型不存在")
-        
+
         return ApiResponse(success=True, data=cpt.to_dict())
     except Exception as e:
         return ApiResponse(success=False, error=f"获取详情失败: {str(e)}")
@@ -136,10 +136,10 @@ async def update_custom_post_type(
             select(CustomPostType).where(CustomPostType.id == cpt_id)
         )
         cpt = result.scalar_one_or_none()
-        
+
         if not cpt:
             return ApiResponse(success=False, error="内容类型不存在")
-        
+
         if data.name is not None:
             cpt.name = data.name
         if data.description is not None:
@@ -159,7 +159,7 @@ async def update_custom_post_type(
 
         await db.commit()
         await db.refresh(cpt)
-        
+
         return ApiResponse(
             success=True,
             message="更新成功",
@@ -178,13 +178,13 @@ async def delete_custom_post_type(cpt_id: int, db: AsyncSession = Depends(get_db
             select(CustomPostType).where(CustomPostType.id == cpt_id)
         )
         cpt = result.scalar_one_or_none()
-        
+
         if not cpt:
             return ApiResponse(success=False, error="内容类型不存在")
 
         await db.delete(cpt)
         await db.commit()
-        
+
         return ApiResponse(success=True, message="删除成功")
     except Exception as e:
         await db.rollback()

@@ -612,11 +612,11 @@ async def get_menu_data(
 ):
     """获取菜单数据"""
     try:
-        from shared.models.menu import Menu, MenuItem
+        from shared.models.menu import Menus, MenuItems
         from sqlalchemy import select
 
         # 查询菜单
-        menu_stmt = select(Menu).where(Menu.slug == slug)
+        menu_stmt = select(Menus).where(Menus.slug == slug)
         menu_result = await db.execute(menu_stmt)
         menu = menu_result.scalar_one_or_none()
 
@@ -628,10 +628,10 @@ async def get_menu_data(
 
         # 查询菜单项（包括层级关系）
         items_stmt = (
-            select(MenuItem)
-            .where(MenuItem.menu_id == menu.id)
-            .where(MenuItem.is_active == True)
-            .order_by(MenuItem.order_index)
+            select(MenuItems)
+            .where(MenuItems.menu_id == menu.id)
+            .where(MenuItems.is_active == True)
+            .order_by(MenuItems.order_index)
         )
         items_result = await db.execute(items_stmt)
         menu_items = items_result.scalars().all()

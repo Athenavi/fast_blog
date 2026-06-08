@@ -10,9 +10,7 @@ from fastapi import APIRouter, Depends, Query, Body, BackgroundTasks
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models.form import Form
-from shared.models.form_field import FormField
-from shared.models.form_submission import FormSubmission
+from shared.models.form import Form, FormField, FormSubmission
 from shared.services.content_management.form_builder import form_builder
 from src.api.v1.core.responses import ApiResponse
 from src.auth.auth_deps import admin_required as admin_required_api

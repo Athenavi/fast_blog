@@ -4,8 +4,6 @@
 """
 import asyncio
 import hashlib
-
-import os
 from datetime import datetime
 from pathlib import Path
 from typing import Optional, Dict, Any
@@ -14,10 +12,7 @@ import aiohttp
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models.download_task import DownloadTask
-from shared.models.media import Media
-from shared.models.file_hash import FileHash
-
+from shared.models.media import Media, DownloadTask, FileHash
 from src.unified_logger import default_logger as logger
 
 

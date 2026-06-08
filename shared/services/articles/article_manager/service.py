@@ -12,8 +12,8 @@ from typing import Optional, List, Tuple
 from sqlalchemy import select, update, delete, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models.article import Article
-from shared.models.article_content import ArticleContent
+from shared.models.article import Article, ArticleContent, ArticleRevision
+from shared.models.comment import Comment, CommentVote, CommentSubscription
 from src.unified_logger import default_logger as logger
 
 
@@ -342,10 +342,6 @@ async def delete_article(db: AsyncSession, article_id: int) -> bool:
     Returns:
         是否成功
     """
-    from shared.models.article_revision import ArticleRevision
-    from shared.models.comment import Comment
-    from shared.models.comment_vote import CommentVote
-    from shared.models.comment_subscription import CommentSubscription
 
     article = await get_article_by_id(db, article_id)
     if not article:

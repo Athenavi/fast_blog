@@ -9,8 +9,8 @@ from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy import select, func, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models.share_stat import ShareStat
 from shared.models.article import Article
+from shared.models.social import ShareStat
 from src.api.v1.core.responses import ApiResponse
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
@@ -28,7 +28,7 @@ async def track_share(
 ):
     """
     记录分享行为
-    
+
     Args:
         article_id: 被分享的文章ID
         platform: 分享平台
@@ -79,7 +79,7 @@ async def get_article_share_stats(
 ):
     """
     获取文章的分享统计数据
-    
+
     Args:
         article_id: 文章ID
         days: 统计天数
@@ -172,7 +172,7 @@ async def get_share_ranking(
 ):
     """
     获取热门文章分享排行榜
-    
+
     Args:
         days: 统计天数
         limit: 返回数量
@@ -231,7 +231,7 @@ async def get_platform_statistics(
 ):
     """
     获取各分享平台的总体统计
-    
+
     Args:
         days: 统计天数
     """

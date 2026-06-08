@@ -2,28 +2,20 @@
 多站点管理服务
 提供站点配置隔离、独立域名绑定、共享用户体系和跨站点内容同步功能
 """
-import json
 
-from typing import Dict, Any, Optional, List
 from datetime import datetime
+from typing import Dict, Any, Optional, List
 
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
 from sqlalchemy import delete as sqlalchemy_delete
 
-from shared.models.site import Site
-from shared.models.site_user import SiteUser
-from shared.models.content_mapping import ContentMapping
-
+from shared.models.multisite import Site, SiteUser, ContentMapping
 from src.unified_logger import default_logger as logger
-
-
 
 
 class MultiSiteService:
     """
     多站点管理服务
-    
+
     功能:
     1. 站点配置隔离
     2. 独立域名绑定
@@ -39,7 +31,7 @@ class MultiSiteService:
                           settings: Dict = None) -> Site:
         """
         创建新站点
-        
+
         Args:
             db: 数据库会话
             name: 站点名称
@@ -48,7 +40,7 @@ class MultiSiteService:
             description: 描述
             is_default: 是否为默认站点
             settings: 站点设置
-            
+
         Returns:
             创建的站点
         """
@@ -94,12 +86,12 @@ class MultiSiteService:
     async def update_site(self, db, site_id: int, updates: Dict[str, Any]) -> Site:
         """
         更新站点配置
-        
+
         Args:
             db: 数据库会话
             site_id: 站点ID
             updates: 更新字段
-            
+
         Returns:
             更新后的站点
         """
@@ -120,7 +112,7 @@ class MultiSiteService:
     async def delete_site(self, db, site_id: int):
         """
         删除站点
-        
+
         Args:
             db: 数据库会话
             site_id: 站点ID
@@ -153,7 +145,7 @@ class MultiSiteService:
     async def add_domain(self, db, site_id: int, domain: str):
         """
         添加附加域名
-        
+
         Args:
             db: 数据库会话
             site_id: 站点ID
@@ -195,7 +187,7 @@ class MultiSiteService:
     async def remove_domain(self, db, site_id: int, domain: str):
         """
         移除附加域名
-        
+
         Args:
             db: 数据库会话
             site_id: 站点ID
@@ -221,11 +213,11 @@ class MultiSiteService:
     async def get_site_by_domain(self, db, domain: str) -> Optional[Site]:
         """
         根据域名获取站点
-        
+
         Args:
             db: 数据库会话
             domain: 域名
-            
+
         Returns:
             站点对象
         """
@@ -262,7 +254,7 @@ class MultiSiteService:
     async def add_user_to_site(self, db, site_id: int, user_id: int, role: str = 'subscriber'):
         """
         添加用户到站点（共享用户体系）
-        
+
         Args:
             db: 数据库会话
             site_id: 站点ID
@@ -297,7 +289,7 @@ class MultiSiteService:
     async def remove_user_from_site(self, db, site_id: int, user_id: int):
         """
         从站点移除用户
-        
+
         Args:
             db: 数据库会话
             site_id: 站点ID
@@ -321,11 +313,11 @@ class MultiSiteService:
     async def get_user_sites(self, db, user_id: int) -> List[Dict[str, Any]]:
         """
         获取用户所属的所有站点
-        
+
         Args:
             db: 数据库会话
             user_id: 用户ID
-            
+
         Returns:
             站点列表
         """
@@ -362,7 +354,7 @@ class MultiSiteService:
                            sync_mode: str = 'manual') -> ContentMapping:
         """
         同步内容到其他站点
-        
+
         Args:
             db: 数据库会话
             source_site_id: 源站点ID
@@ -370,7 +362,7 @@ class MultiSiteService:
             content_type: 内容类型
             source_content_id: 源内容ID
             sync_mode: 同步模式 (manual/auto)
-            
+
         Returns:
             内容映射记录
         """
@@ -409,11 +401,11 @@ class MultiSiteService:
     async def get_all_sites(self, db, include_inactive: bool = False) -> List[Site]:
         """
         获取所有站点
-        
+
         Args:
             db: 数据库会话
             include_inactive: 是否包含非活动站点
-            
+
         Returns:
             站点列表
         """

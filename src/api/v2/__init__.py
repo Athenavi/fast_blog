@@ -185,7 +185,7 @@ ROUTE_REGISTRY_V2 = [
 
     # ==================== 其他系统模块（misc 模块已完全清理并删除）====================
     ("src.api.v1.analytics.site_analytics_api", "/api/v2/analytics/site", ["site-analytics"], False),
-    ("src.api.v1.articles.anomaly_detection", "/api/v2/system/anomaly-detection", ["anomaly-detection"], False),
+    # ("src.api.v1.articles.anomaly_detection", "/api/v2/system/anomaly-detection", ["anomaly-detection"], False),  # 模块不存在，已禁用
     # ==================== 社交（V2 聚合路由器）====================
     # V2 Social 模块采用包级别聚合模式，所有子模块通过 __init__.py 统一注册
     ("src.api.v2.social", "/api/v2/social", ["social-v2"], True),

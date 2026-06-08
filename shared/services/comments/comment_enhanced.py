@@ -8,20 +8,17 @@
 4. 评论通知
 """
 from typing import List, Dict, Optional
-from datetime import datetime
 
 from sqlalchemy import select, desc, asc
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models.comment import Comment
-from shared.models.comment_vote import CommentVote
-from shared.models.user import User
+from shared.models.comment import Comment, CommentVote
 
 
 class CommentEnhancedService:
     """
     评论增强服务
-    
+
     提供评论的树形结构、点赞、排序等功能
     """
 
@@ -36,7 +33,7 @@ class CommentEnhancedService:
     ) -> Dict:
         """
         获取文章的评论树（嵌套结构）
-        
+
         Args:
             db: 数据库会话
             article_id: 文章ID
@@ -44,7 +41,7 @@ class CommentEnhancedService:
             page: 页码
             per_page: 每页数量
             include_unapproved: 是否包含未审核评论
-            
+
         Returns:
             评论树和分页信息
         """
@@ -92,10 +89,10 @@ class CommentEnhancedService:
     def _build_comment_tree(self, comments: List[Comment]) -> List[Dict]:
         """
         构建评论树形结构
-        
+
         Args:
             comments: 评论列表
-            
+
         Returns:
             树形结构的评论列表
         """
@@ -131,12 +128,12 @@ class CommentEnhancedService:
     ) -> Dict:
         """
         点赞评论
-        
+
         Args:
             db: 数据库会话
             comment_id: 评论ID
             user_id: 用户ID
-            
+
         Returns:
             操作结果
         """
@@ -194,12 +191,12 @@ class CommentEnhancedService:
     ) -> Dict:
         """
         反对评论
-        
+
         Args:
             db: 数据库会话
             comment_id: 评论ID
             user_id: 用户ID
-            
+
         Returns:
             操作结果
         """
@@ -256,12 +253,12 @@ class CommentEnhancedService:
     ) -> Optional[str]:
         """
         获取用户对评论的投票
-        
+
         Args:
             db: 数据库会话
             comment_id: 评论ID
             user_id: 用户ID
-            
+
         Returns:
             'like', 'dislike', 或 None
         """
@@ -281,11 +278,11 @@ class CommentEnhancedService:
     ) -> Dict:
         """
         通知评论被回复
-        
+
         Args:
             db: 数据库会话
             comment_id: 新评论ID
-            
+
         Returns:
             通知结果
         """

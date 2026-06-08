@@ -8,14 +8,26 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-# 加载 .env 文件
+# 加载 .env 文件 - 支持多个位置
 project_root = Path(__file__).parent.parent
-env_file = project_root / '.env'
-if env_file.exists():
-    load_dotenv(env_file)
-    print(f"[Alembic] Loaded .env from {env_file}")
-else:
-    print(f"[Alembic] Warning: .env file not found at {env_file}")
+
+# 按优先级尝试加载 .env 文件
+env_candidates = [
+    project_root / '.env',              # 根目录 .env
+    project_root / 'config' / '.env',   # config 目录 .env（安装向导写入位置）
+]
+env_loaded = False
+for env_file in env_candidates:
+    if env_file.exists():
+        load_dotenv(env_file, override=True)
+        print(f"[Alembic] Loaded .env from {env_file}")
+        env_loaded = True
+        break
+
+if not env_loaded:
+    print(f"[Alembic] Warning: .env file not found. Searched:")
+    for p in env_candidates:
+        print(f"  - {p}")
 
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
@@ -35,7 +47,7 @@ if config.config_file_name is not None:
 def get_database_url():
     """
     从环境变量构建数据库URL（仅支持 PostgreSQL）
-    
+
     优先级:
     1. DATABASE_URL 环境变量 (完整URL)
     2. 分别的 DB_* 环境变量
@@ -59,28 +71,99 @@ def get_database_url():
         raise ValueError(
             f"数据库配置不完整: host={db_host}, user={db_user}, name={db_name}"
         )
-    
+
     # 构建 PostgreSQL URL
     return f"postgresql://{db_user}:{db_password}@{db_host}:{db_port}/{db_name}"
 
 # Set the database URL
 db_url = get_database_url()
-print(f"[Alembic] Database URL: {db_url.split('@')[1].split('/')[0] if '@' in db_url else db_url}")  # 隐藏密码
+# 隐藏密码打印
+safe_url = db_url
+if '@' in db_url:
+    parts = db_url.split('@')
+    prefix = parts[0]
+    suffix = parts[1]
+    # 把密码部分替换为 ***
+    if ':' in prefix.split('://', 1)[-1]:
+        user_part = prefix.split('://', 1)[0] + '://' + prefix.split('://', 1)[-1].split(':')[0]
+        safe_url = f"{user_part}:***@{suffix}"
+print(f"[Alembic] Database URL: {safe_url}")
 config.set_main_option("sqlalchemy.url", db_url)
 
 # add your model's MetaData object here
 # for 'autogenerate' support
 import sys
-from pathlib import Path
 
 # 添加项目根目录到路径
-project_root = Path(__file__).parent.parent
 if str(project_root) not in sys.path:
     sys.path.insert(0, str(project_root))
 
-# 导入所有模型的 Base
+# 导入 Base
 from shared.models import Base
 target_metadata = Base.metadata
+
+# ============================================================
+# 自动发现并加载所有 ORM 模型模块
+# 懒加载模式下，仅 import Base 不会触发模型类的加载，
+# 需要显式导入所有模型模块才能注册到 Base.metadata
+#
+# 策略：从 shared.models 的 _LAZY_IMPORTS 字典自动获取所有模型，
+# 无需手动维护模型列表（每次 generate-all 后自动同步）
+# ============================================================
+import importlib
+import re
+
+_loaded_count = 0
+_failed_count = 0
+
+# 策略 1: 从 _LAZY_IMPORTS 字典自动加载（由代码生成器维护）
+try:
+    from shared.models import _LAZY_IMPORTS
+
+    for _model_name, _module_path in _LAZY_IMPORTS.items():
+        try:
+            _mod = importlib.import_module(_module_path, package='shared.models')
+            # 触发类加载以注册到 Base.metadata
+            getattr(_mod, _model_name)
+            _loaded_count += 1
+        except Exception as e:
+            _failed_count += 1
+            print(f"[Alembic] Warning: Could not load {_model_name} from {_module_path}: {e}")
+except ImportError:
+    print("[Alembic] Warning: _LAZY_IMPORTS not found, falling back to directory scan")
+
+# 策略 2: 扫描 shared/models/ 目录中的手动模型文件（未在 _LAZY_IMPORTS 中注册的）
+_shared_models_dir = project_root / "shared" / "models"
+_known_modules = set()
+if '_LAZY_IMPORTS' in dir():
+    _known_modules = {v.lstrip('.') for v in _LAZY_IMPORTS.values()}
+
+for _py_file in sorted(_shared_models_dir.rglob("*.py")):
+    if _py_file.name.startswith('_') or _py_file.name == '__init__.py':
+        continue
+    try:
+        _content = _py_file.read_text(encoding='utf-8')
+    except (UnicodeDecodeError, OSError):
+        continue
+    # 只处理包含 class XXX(Base): 的文件
+    if 'from . import Base' not in _content.replace(' ', '') and 'from shared.models' not in _content:
+        if not re.search(r'class\s+\w+\s*\([^)]*Base[^)]*\)\s*:', _content):
+            continue
+    # 计算模块路径
+    _rel_path = _py_file.relative_to(_shared_models_dir)
+    _module_dot = '.'.join(_rel_path.with_suffix('').parts)
+    _full_module = f"shared.models.{_module_dot}"
+    if _module_dot in _known_modules or _full_module in _known_modules:
+        continue
+    try:
+        importlib.import_module(f".{_module_dot}", package='shared.models')
+        _loaded_count += 1
+    except Exception as e:
+        _failed_count += 1
+        print(f"[Alembic] Warning: Could not load {_full_module}: {e}")
+
+print(f"[Alembic] Loaded {_loaded_count} model modules ({_failed_count} failed)")
+print(f"[Alembic] Registered {len(target_metadata.tables)} tables in metadata")
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:

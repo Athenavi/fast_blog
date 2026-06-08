@@ -2,17 +2,16 @@
 页面构建器 API 路由
 提供页面的创建、保存、加载、发布和删除功能
 """
-from typing import List, Optional
 from datetime import datetime
+from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy import select, desc
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models.page_builder import PageBuilder
-from src.auth.auth_deps import jwt_required_dependency as jwt_required
+from shared.models.page import PageBuilder
 from shared.models.user import User
+from src.auth.auth_deps import jwt_required_dependency as jwt_required
 from src.utils.database.main import get_async_session
 
 router = APIRouter(prefix="/page-builder", tags=["Page Builder"])
@@ -53,11 +52,11 @@ async def create_page(
         current_user: User = Depends(jwt_required)
 ):
     """P2-1: 创建新页面
-    
+
     Args:
         req: 页面创建请求
         current_user: 当前登录用户
-        
+
     Returns:
         创建的页面对象
     """
@@ -76,8 +75,8 @@ async def create_page(
             blocks_data=str(req.blocks_data),  # 存储为 JSON 字符串
             template_name=req.template_name,
             is_published=req.is_published,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
+            created_at=datetime.now(),
+            updated_at=datetime.now()
         )
 
         db.add(new_page)
@@ -111,12 +110,12 @@ async def list_pages(
         current_user: User = Depends(jwt_required)
 ):
     """P2-1: 获取页面列表
-    
+
     Args:
         skip: 跳过数量
         limit: 限制数量
         published_only: 仅返回已发布页面
-        
+
     Returns:
         页面列表
     """
@@ -159,10 +158,10 @@ async def get_page(
         current_user: User = Depends(jwt_required)
 ):
     """P2-1: 获取单个页面详情
-    
+
     Args:
         page_id: 页面 ID
-        
+
     Returns:
         页面对象
     """
@@ -200,11 +199,11 @@ async def update_page(
         current_user: User = Depends(jwt_required)
 ):
     """P2-1: 更新页面
-    
+
     Args:
         page_id: 页面 ID
         req: 更新请求
-        
+
     Returns:
         更新后的页面对象
     """
@@ -256,10 +255,10 @@ async def delete_page(
         current_user: User = Depends(jwt_required)
 ):
     """P2-1: 删除页面
-    
+
     Args:
         page_id: 页面 ID
-        
+
     Returns:
         删除结果
     """
@@ -284,10 +283,10 @@ async def publish_page(
         current_user: User = Depends(jwt_required)
 ):
     """P2-1: 发布页面
-    
+
     Args:
         page_id: 页面 ID
-        
+
     Returns:
         发布结果
     """
@@ -314,10 +313,10 @@ async def unpublish_page(
         current_user: User = Depends(jwt_required)
 ):
     """P2-1: 取消发布页面
-    
+
     Args:
         page_id: 页面 ID
-        
+
     Returns:
         取消发布结果
     """
@@ -341,10 +340,10 @@ async def unpublish_page(
 @router.get("/pages/slug/{slug}", response_model=PageResponse)
 async def get_page_by_slug(slug: str):
     """P2-1: 通过 slug 获取公开页面（无需认证）
-    
+
     Args:
         slug: 页面路径标识
-        
+
     Returns:
         页面对象（仅已发布的）
     """
@@ -622,7 +621,7 @@ PAGE_TEMPLATES = [
 @router.get("/templates")
 async def list_templates():
     """P6-4: 获取所有预建页面模板
-    
+
     Returns:
         模板列表
     """
@@ -632,10 +631,10 @@ async def list_templates():
 @router.get("/templates/{template_id}")
 async def get_template(template_id: str):
     """P6-4: 获取单个模板详情
-    
+
     Args:
         template_id: 模板 ID
-        
+
     Returns:
         模板对象
     """
@@ -653,12 +652,12 @@ async def create_page_from_template(
         current_user: User = Depends(jwt_required)
 ):
     """P6-4: 从模板创建页面
-    
+
     Args:
         template_id: 模板 ID
         title: 页面标题
         slug: 页面路径
-        
+
     Returns:
         创建的页面对象
     """

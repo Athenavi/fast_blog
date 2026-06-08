@@ -10,7 +10,7 @@ from pydantic import BaseModel
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models.sensitive_word import SensitiveWord
+from shared.models.security import SensitiveWord
 from src.api.v1.core.responses import ApiResponse
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db

@@ -8,8 +8,7 @@ from datetime import datetime
 import httpx
 from sqlalchemy import select
 
-from shared.models.webhook import Webhook
-from shared.models.webhook_delivery import WebhookDelivery
+from shared.models.webhook import Webhook, WebhookDelivery
 from src.utils.database.main import get_async_session
 
 

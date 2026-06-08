@@ -3,18 +3,11 @@
 提供团队工作区、成员管理、协作编辑和任务分配功能
 """
 
-from typing import Dict, Any, Optional, List
 from datetime import datetime
 from enum import Enum
+from typing import Dict, Any, List
 
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy.future import select
-from sqlalchemy.sql.functions import func
-
-from shared.models.workspace import Workspace
-from shared.models.workspace_member import WorkspaceMember
-from shared.models.task import Task
-
+from shared.models.collaboration import Workspace, WorkspaceMember, Task
 from src.unified_logger import default_logger as logger
 
 
@@ -29,7 +22,7 @@ class TeamRole(Enum):
 class CollaborationService:
     """
     团队协作服务
-    
+
     功能:
     1. 团队工作区管理
     2. 成员权限管理
@@ -44,7 +37,7 @@ class CollaborationService:
                                description: str = None, settings: Dict = None) -> Workspace:
         """
         创建工作区
-        
+
         Args:
             db: 数据库会话
             name: 工作区名称
@@ -52,7 +45,7 @@ class CollaborationService:
             owner_id: 所有者ID
             description: 描述
             settings: 设置
-            
+
         Returns:
             创建的工作区
         """
@@ -96,13 +89,13 @@ class CollaborationService:
                          role: str = TeamRole.VIEWER.value) -> WorkspaceMember:
         """
         添加成员到工作区
-        
+
         Args:
             db: 数据库会话
             workspace_id: 工作区ID
             user_id: 用户ID
             role: 角色
-            
+
         Returns:
             创建的成员记录
         """
@@ -151,7 +144,7 @@ class CollaborationService:
     async def remove_member(self, db, workspace_id: int, user_id: int):
         """
         从工作区移除成员
-        
+
         Args:
             db: 数据库会话
             workspace_id: 工作区ID
@@ -181,7 +174,7 @@ class CollaborationService:
     async def update_member_role(self, db, workspace_id: int, user_id: int, new_role: str):
         """
         更新成员角色
-        
+
         Args:
             db: 数据库会话
             workspace_id: 工作区ID
@@ -214,7 +207,7 @@ class CollaborationService:
                           priority: str = 'medium', due_date: datetime = None) -> Task:
         """
         创建任务
-        
+
         Args:
             db: 数据库会话
             workspace_id: 工作区ID
@@ -224,7 +217,7 @@ class CollaborationService:
             assigned_to: 分配给的用户ID
             priority: 优先级
             due_date: 截止日期
-            
+
         Returns:
             创建的任务
         """
@@ -249,13 +242,13 @@ class CollaborationService:
                                  completed_by: int = None) -> Task:
         """
         更新任务状态
-        
+
         Args:
             db: 数据库会话
             task_id: 任务ID
             status: 新状态
             completed_by: 完成者ID（当状态为completed时）
-            
+
         Returns:
             更新后的任务
         """
@@ -286,11 +279,11 @@ class CollaborationService:
     async def get_workspace_members(self, db, workspace_id: int) -> List[Dict[str, Any]]:
         """
         获取工作区成员列表
-        
+
         Args:
             db: 数据库会话
             workspace_id: 工作区ID
-            
+
         Returns:
             成员列表
         """
@@ -328,7 +321,7 @@ class CollaborationService:
                                   page: int = 1, per_page: int = 20) -> Dict[str, Any]:
         """
         获取工作区任务列表
-        
+
         Args:
             db: 数据库会话
             workspace_id: 工作区ID
@@ -336,12 +329,11 @@ class CollaborationService:
             assigned_to: 分配给用户过滤
             page: 页码
             per_page: 每页数量
-            
+
         Returns:
             任务列表和分页信息
         """
         from sqlalchemy import select, func
-        from shared.models.user import User
 
         query = select(Task).where(Task.workspace_id == workspace_id)
 
@@ -392,13 +384,13 @@ class CollaborationService:
                                required_role: TeamRole = TeamRole.VIEWER) -> bool:
         """
         检查用户权限
-        
+
         Args:
             db: 数据库会话
             workspace_id: 工作区ID
             user_id: 用户ID
             required_role: 所需角色
-            
+
         Returns:
             是否有权限
         """

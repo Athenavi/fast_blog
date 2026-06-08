@@ -10,8 +10,8 @@ from fastapi.responses import JSONResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models.file_hash import FileHash
 from shared.models.media import Media
+from shared.models.media.file_hash import FileHash
 from shared.services.media.image_tool import image_editor, image_processor
 from shared.services.media.media_manager import media_library_service
 from src.api.v1.core.responses import ApiResponse

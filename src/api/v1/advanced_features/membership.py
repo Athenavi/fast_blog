@@ -13,7 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.models import VIPSubscription
 from shared.models.article import Article
 from shared.models.user import User
-from shared.models.vip_feature import VIPFeature
+from shared.models.vip import VIPFeature
 from shared.services.core.membership import create_membership_service
 from src.api.v1.core.responses import ApiResponse
 from src.auth import jwt_required_dependency as jwt_required
@@ -36,11 +36,11 @@ async def get_vip_status(
 ):
     """
     获取用户 VIP 状态
-    
+
     Args:
         user_id: 用户ID
         db: 数据库会话
-        
+
     Returns:
         VIP 状态信息
     """
@@ -65,13 +65,13 @@ async def check_content_access(
 ):
     """
     检查内容访问权限
-    
+
     Args:
         user_id: 用户ID
         article_id: 文章ID
         required_level: 所需VIP等级
         db: 数据库会话
-        
+
     Returns:
         访问权限结果
     """
@@ -95,12 +95,12 @@ async def create_subscription(
 ):
     """
     创建订阅
-    
+
     Args:
         request: 订阅请求
         user_id: 用户ID
         db: 数据库会话
-        
+
     Returns:
         订阅结果
     """
@@ -131,12 +131,12 @@ async def cancel_subscription(
 ):
     """
     取消订阅
-    
+
     Args:
         subscription_id: 订阅ID
         user_id: 用户ID
         db: 数据库会话
-        
+
     Returns:
         操作结果
     """
@@ -160,10 +160,10 @@ async def get_available_plans(
 ):
     """
     获取可用套餐列表
-    
+
     Args:
         db: 数据库会话
-        
+
     Returns:
         套餐列表
     """
@@ -186,11 +186,11 @@ async def get_user_subscriptions(
 ):
     """
     获取用户订阅历史
-    
+
     Args:
         user_id: 用户ID
         db: 数据库会话
-        
+
     Returns:
         订阅列表
     """
