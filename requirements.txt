@@ -81,4 +81,4 @@ aiohttp==3.14.0
 aioboto3==15.5.0
 
 # Utilities
-secure-python-utils==0.1.4
+secure-python-utils==0.1.5
