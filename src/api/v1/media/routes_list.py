@@ -56,7 +56,7 @@ async def list_media(
 
         # 如果指定了文件夹名称（支持路径，如 folder1/folder2）
         if folder_name:
-            from shared.models.media_folder import MediaFolder
+            from shared.models import MediaFolder
 
             # 解码 URL 编码的路径
             from urllib.parse import unquote
