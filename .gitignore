@@ -136,3 +136,6 @@ apps/*/migrations/*.py
 *.tfstate
 *.tfstate.*
 .terraform/
+
+# Reasonix AI config
+.reasonix/
