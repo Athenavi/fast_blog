@@ -55,32 +55,49 @@ const HISTORY_KEY = 'fastblog-ai-chat-history';
 // ─── Component ──────────────────────────────────
 
 export default function AIChat() {
-  const [config, setConfig] = useState<LLMConfig>(() => {
-    try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      return saved ? {...DEFAULT_CONFIG, ...JSON.parse(saved)} : DEFAULT_CONFIG;
-    } catch { return DEFAULT_CONFIG; }
-  });
-  const [messages, setMessages] = useState<ChatMessage[]>(() => {
-    try {
-      const saved = localStorage.getItem(HISTORY_KEY);
-      return saved ? JSON.parse(saved) : [];
-    } catch { return []; }
-  });
+  const [config, setConfig] = useState<LLMConfig>(DEFAULT_CONFIG);
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [showConfig, setShowConfig] = useState(!config.apiKey);
-  const [darkMode, setDarkMode] = useState(() => {
-    if (typeof document === 'undefined') return false;
-    return document.documentElement.classList.contains('dark');
-  });
+  const [showConfig, setShowConfig] = useState(true);
+  const [darkMode, setDarkMode] = useState(false);
+  const [mounted, setMounted] = useState(false); // hydration guard
 
   const msgEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
-  // ── Save to localStorage ──
-  useEffect(() => { localStorage.setItem(STORAGE_KEY, JSON.stringify(config)); }, [config]);
-  useEffect(() => { localStorage.setItem(HISTORY_KEY, JSON.stringify(messages)); }, [messages]);
+  // ── Hydrate from localStorage after mount ──
+  useEffect(() => {
+    setMounted(true);
+    let changed = false;
+    // Restore config
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved) {
+        const parsed = {...DEFAULT_CONFIG, ...JSON.parse(saved)};
+        setConfig(parsed);
+        setShowConfig(!parsed.apiKey);
+        changed = true;
+      }
+    } catch { /* ignore */ }
+    // Restore history
+    try {
+      const saved = localStorage.getItem(HISTORY_KEY);
+      if (saved) { setMessages(JSON.parse(saved)); changed = true; }
+    } catch { /* ignore */ }
+    // Detect dark mode
+    setDarkMode(document.documentElement.classList.contains('dark'));
+  }, []);
+
+  // ── Persist to localStorage (always after initial mount) ──
+  useEffect(() => {
+    if (!mounted) return;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(config));
+  }, [config]);
+  useEffect(() => {
+    if (!mounted) return;
+    localStorage.setItem(HISTORY_KEY, JSON.stringify(messages));
+  }, [messages]);
 
   // ── Auto scroll ──
   useEffect(() => { msgEndRef.current?.scrollIntoView({behavior: 'smooth'}); }, [messages]);

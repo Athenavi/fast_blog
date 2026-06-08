@@ -253,7 +253,7 @@ async def move_media_to_folder(
         target_folder_id = None
         if folder_path:
             from urllib.parse import unquote
-            from shared.models.media_folder import MediaFolder
+            from shared.models import MediaFolder
             
             # 解码 URL 编码的路径
             decoded_path = unquote(folder_path)
