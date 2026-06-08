@@ -80,8 +80,8 @@ const Pagination: React.FC<{page:number;total:number;perPage:number;onChange:(p:
   );
 };
 
-// ─── Main component ───────────────────────────────────
-function AuditLogsInner() {
+// ─── AuditLogsContent — renders inside AdminShell (which provides ToastProvider) ──
+function AuditLogsContent() {
   const confirm = useConfirm();
   const toast = useToast();
   const [page, setPage] = useState(1);
@@ -145,7 +145,7 @@ function AuditLogsInner() {
   });
 
   return (
-    <AdminShell title="审计日志">
+    <>
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatCard icon={ScrollText} label="30 天日志总量" value={stats.total_logs ?? '—'} />
@@ -252,10 +252,10 @@ function AuditLogsInner() {
         )}
         <Pagination page={page} total={pagination.total||0} perPage={20} onChange={setPage} />
       </div>
-    </AdminShell>
+    </>
   );
 }
 
 export default function AdminAuditLogs() {
-  return <AuthGuard><QueryProvider><AuditLogsInner /></QueryProvider></AuthGuard>;
+  return <AuthGuard><QueryProvider><AdminShell title="审计日志"><AuditLogsContent /></AdminShell></QueryProvider></AuthGuard>;
 }
