@@ -401,6 +401,7 @@ function AIChatInner() {
       const base = getConfig().API_BASE_URL;
       const resp = await fetch(`${base}/api/v2/mcp/chat/stream`, {
         method: 'POST', headers: {'Content-Type': 'application/json'}, body, signal: controller.signal,
+        credentials: 'include',
       });
       if (!resp.ok) {
         acc.push({role: 'assistant', content: `⚠️ 请求失败 (${resp.status})`});
