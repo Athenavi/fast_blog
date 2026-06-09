@@ -133,10 +133,9 @@ class FastBlogLLM(BaseChatModel):
         if stop:
             body["stop"] = stop
 
-        headers = {
-            "Authorization": f"Bearer {cfg['api_key']}",
-            "Content-Type": "application/json",
-        }
+        headers = {"Content-Type": "application/json"}
+        if cfg['api_key']:
+            headers["Authorization"] = f"Bearer {cfg['api_key']}"
         url = f"{cfg['endpoint'].rstrip('/')}/chat/completions"
 
         logger.info(f"LLM call: model={cfg['model']} msg_count={len(messages)} url={url}")
@@ -189,10 +188,9 @@ class FastBlogLLM(BaseChatModel):
             "temperature": cfg["temperature"],
             "stream": True,
         }
-        headers = {
-            "Authorization": f"Bearer {cfg['api_key']}",
-            "Content-Type": "application/json",
-        }
+        headers = {"Content-Type": "application/json"}
+        if cfg['api_key']:
+            headers["Authorization"] = f"Bearer {cfg['api_key']}"
         url = f"{cfg['endpoint'].rstrip('/')}/chat/completions"
 
         async with httpx.AsyncClient(timeout=180.0) as client:
