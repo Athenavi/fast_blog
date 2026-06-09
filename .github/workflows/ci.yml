@@ -51,7 +51,7 @@ jobs:
 
       - name: Run type check
         run: |
-          python -m mypy src/ --ignore-missing-imports --no-error-summary || true
+          python -m mypy src/ --ignore-missing-imports --no-error-summary 2>&1 || echo "mypy found issues (non-blocking)"
 
   # ============================================================================
   # Quick Unit Tests (mock-based, no external services)
