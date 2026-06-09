@@ -2,6 +2,7 @@
 
 import React, {useState, useRef, useEffect, useCallback} from 'react';
 import {apiClient} from '@/lib/api/base-client';
+import {getConfig} from '@/lib/config';
 import {
   Send, Plus, Trash2, Settings, X, Bot, User, Wrench,
   Sparkles, MessageSquare, Loader2, Moon, Sun, PanelLeftOpen,
@@ -288,7 +289,8 @@ export default function AIChat() {
     const streamingAccumulator: ChatMessage[] = [...newMessages];
 
     try {
-      const response = await fetch('/api/v2/mcp/chat/stream', {
+      const apiBase = getConfig().API_BASE_URL;
+      const response = await fetch(`${apiBase}/api/v2/mcp/chat/stream`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
         body,
