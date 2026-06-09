@@ -24,7 +24,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from src.mcp.graph import (
-    Graph, State, Executor, build_chat_graph,
+    Graph, Command, Executor, build_chat_graph,
     InMemoryCheckpointer, FileCheckpointer,
     ShortTermMemory, LongTermMemory,
 )
@@ -81,8 +81,8 @@ async def chat_non_stream(req: ChatRequest):
     conv_id = req.conversation_id or uuid.uuid4().hex[:12]
 
     # Build initial state from messages
-    messages = [{"role": m.role, "content": m.content} for m in req.messages if m.content]
-    state = State(messages=messages, conversation_id=conv_id)
+    messages_list = [{"role": m.role, "content": m.content} for m in req.messages if m.content]
+    state = {"messages": messages_list, "conversation_id": conv_id}
 
     executor = _get_executor()
     ctx = _build_context(req)
@@ -91,16 +91,16 @@ async def chat_non_stream(req: ChatRequest):
         final_state, _ = await executor.run(state, ctx=ctx)
 
         # Extract last assistant message
-        assistant_msgs = [m for m in final_state.messages if m.get("role") == "assistant"]
+        assistant_msgs = [m for m in final_state.get("messages", []) if m.get("role") == "assistant"]
         last_content = assistant_msgs[-1].get("content", "") if assistant_msgs else ""
         last_tool_calls = assistant_msgs[-1].get("tool_calls") if assistant_msgs else None
 
         return ChatResponse(
-            success=not bool(final_state.errors),
+            success=not bool(final_state.get("errors")),
             conversation_id=conv_id,
             content=last_content,
             tool_calls=last_tool_calls,
-            message=final_state.errors[-1] if final_state.errors else None,
+            message=final_state.get("errors", [None])[-1] if final_state.get("errors") else None,
         )
     except Exception as e:
         logger.exception("Chat non-stream error")
@@ -114,8 +114,8 @@ async def chat_stream(req: ChatRequest):
     """SSE streaming chat — yields state updates as Server-Sent Events."""
     conv_id = req.conversation_id or uuid.uuid4().hex[:12]
 
-    messages = [{"role": m.role, "content": m.content} for m in req.messages if m.content]
-    state = State(messages=messages, conversation_id=conv_id)
+    messages_list = [{"role": m.role, "content": m.content} for m in req.messages if m.content]
+    state = {"messages": messages_list, "conversation_id": conv_id}
 
     executor = _get_executor()
     ctx = _build_context(req)
@@ -123,23 +123,22 @@ async def chat_stream(req: ChatRequest):
     async def event_generator():
         try:
             async for current_state, cid in executor.stream(state, ctx=ctx):
-                # Find the latest assistant message delta
-                assistant_msgs = [m for m in current_state.messages if m.get("role") == "assistant"]
-                tool_msgs = [m for m in current_state.messages if m.get("role") == "tool"]
+                assistant_msgs = [m for m in current_state.get("messages", []) if m.get("role") == "assistant"]
+                tool_msgs = [m for m in current_state.get("messages", []) if m.get("role") == "tool"]
 
                 payload = {
                     "type": "state_update",
                     "conversation_id": conv_id,
-                    "step": current_state.step,
-                    "current_node": current_state.current_node,
+                    "step": current_state.get("step", 0),
+                    "current_node": current_state.get("current_node"),
                     "checkpoint_id": cid,
-                    "has_errors": bool(current_state.errors),
-                    "errors": current_state.errors[-1:] if current_state.errors else [],
+                    "has_errors": bool(current_state.get("errors")),
+                    "errors": current_state.get("errors", [])[-1:] if current_state.get("errors") else [],
                     "assistant_content": assistant_msgs[-1].get("content", "") if assistant_msgs else None,
                     "tool_calls": assistant_msgs[-1].get("tool_calls") if assistant_msgs else None,
-                    "tool_results": {k: v for k, v in current_state.tool_results.items()},
-                    "messages_count": len(current_state.messages),
-                    "interrupted": current_state.interrupted,
+                    "tool_results": {k: v for k, v in current_state.get("tool_results", {}).items()},
+                    "messages_count": len(current_state.get("messages", [])),
+                    "interrupted": current_state.get("interrupted", False),
                 }
 
                 yield f"data: {json.dumps(payload, ensure_ascii=False, default=str)}\n\n"
@@ -184,9 +183,9 @@ async def backtrack(conv_id: str, step: int = Query(..., description="Target ste
     return {
         "success": True,
         "data": {
-            "step": state.step,
-            "messages": state.messages,
-            "has_errors": bool(state.errors),
+            "step": state.get("step", 0),
+            "messages": state.get("messages", []),
+            "has_errors": bool(state.get("errors")),
         },
     }
 
@@ -216,15 +215,15 @@ async def resume_conversation(conv_id: str, req: ChatRequest):
     async def event_generator():
         try:
             async for current_state, cid in executor.resume(conv_id, last_user_msg):
-                assistant_msgs = [m for m in current_state.messages if m.get("role") == "assistant"]
+                assistant_msgs = [m for m in current_state.get("messages", []) if m.get("role") == "assistant"]
                 payload = {
                     "type": "resume_update",
                     "conversation_id": conv_id,
-                    "step": current_state.step,
+                    "step": current_state.get("step", 0),
                     "checkpoint_id": cid,
                     "assistant_content": assistant_msgs[-1].get("content", "") if assistant_msgs else None,
                     "tool_calls": assistant_msgs[-1].get("tool_calls") if assistant_msgs else None,
-                    "interrupted": current_state.interrupted,
+                    "interrupted": current_state.get("interrupted", False),
                 }
                 yield f"data: {json.dumps(payload, ensure_ascii=False, default=str)}\n\n"
             yield f"data: {json.dumps({'type': 'done', 'conversation_id': conv_id}, ensure_ascii=False)}\n\n"

@@ -41,8 +41,8 @@ class ShortTermMemory(Memory):
     _store: Dict[str, Any] = field(default_factory=dict)
 
     async def save(self, state: Any) -> None:
-        conv_id = state.conversation_id or state.graph_id
-        self._store[conv_id] = state.copy()
+        conv_id = state.get("conversation_id") or state.get("graph_id", "default")
+        self._store[conv_id] = dict(state) if isinstance(state, dict) else state
 
     async def load(self, conversation_id: str) -> Optional[Any]:
         return self._store.get(conversation_id)
@@ -67,11 +67,15 @@ class LongTermMemory(Memory):
         return os.path.join(self.base_dir, f"{safe}.json")
 
     async def save(self, state: Any) -> None:
-        conv_id = state.conversation_id or state.graph_id
+        conv_id = state.get("conversation_id") or state.get("graph_id", "default")
         path = self._path(conv_id)
 
+        messages = state.get("messages", [])
+        tool_results = state.get("tool_results", {})
+        errors = state.get("errors", [])
+
         # Build a summary from messages
-        summary = self._summarize(state.messages)
+        summary = self._summarize(messages)
 
         existing = {}
         if os.path.exists(path):
@@ -80,10 +84,10 @@ class LongTermMemory(Memory):
 
         existing['conversation_id'] = conv_id
         existing['updated_at'] = time.time()
-        existing['message_count'] = len(state.messages)
+        existing['message_count'] = len(messages)
         existing['summary'] = summary
-        existing['tool_results'] = list(state.tool_results.keys())
-        existing['last_error'] = state.errors[-1] if state.errors else None
+        existing['tool_results'] = list(tool_results.keys())
+        existing['last_error'] = errors[-1] if errors else None
 
         with open(path, 'w', encoding='utf-8') as f:
             json.dump(existing, f, ensure_ascii=False, indent=2, default=str)
@@ -94,11 +98,11 @@ class LongTermMemory(Memory):
             return None
         with open(path, 'r', encoding='utf-8') as f:
             data = json.load(f)
-        # Return a lightweight state with memory metadata
-        return State(
-            conversation_id=conversation_id,
-            metadata={k: v for k, v in data.items() if k != 'conversation_id'},
-        )
+        # Return a lightweight dict with memory metadata
+        return {
+            "conversation_id": conversation_id,
+            "metadata": {k: v for k, v in data.items() if k != 'conversation_id'},
+        }
 
     async def clear(self, conversation_id: str) -> None:
         path = self._path(conversation_id)

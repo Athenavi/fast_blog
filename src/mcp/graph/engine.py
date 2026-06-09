@@ -1,6 +1,13 @@
 """
-Core graph engine — nodes, edges, state, and executor with
-interrupt/backtrack/stream support.
+LangGraph-inspired graph engine.
+
+Core concepts:
+  State     → plain dict[str, Any], no dataclass overhead
+  Node      → async fn (state, ctx) → dict | Command
+  Edge      → unconditional or conditional (fn(state) → str | None)
+  Command   → {"goto": node_id | END, "update": dict}  (ala langgraph)
+  END       → special sentinel stops execution
+  Executor  → runs graph with streaming, interrupts, checkpointing
 """
 
 import asyncio
@@ -8,7 +15,6 @@ import json
 import logging
 import time
 import uuid
-from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import (
@@ -20,196 +26,65 @@ from src.mcp.graph.memory import Memory, ShortTermMemory
 
 logger = logging.getLogger('mcp_graph')
 
+# ─── Constants ───────────────────────────────────────────────────────
 
-# ─── Types ───────────────────────────────────────────────────────────
-
+END = "__end__"           # sentinel: stop execution
 NodeId = str
-EdgeId = str
-RouterCondition = Callable[['State'], str]  # returns next node_id
+RouterFn = Callable[['CommandContext'], Optional[str]]  # returns next node_id or None
+
+class StreamMode(Enum):
+    """Analogous to langgraph's stream_mode."""
+    VALUES = "values"       # yield full state each step
+    UPDATES = "updates"     # yield only the node's returned update dict
 
 
-class NodeType(Enum):
-    INPUT = "input"
-    OUTPUT = "output"
-    AGENT = "agent"
-    TOOL = "tool"
-    ROUTER = "router"
-    SUBGRAPH = "subgraph"
-
-
-# ─── State ───────────────────────────────────────────────────────────
+# ─── Command ─────────────────────────────────────────────────────────
 
 @dataclass
-class State:
-    """Serializable execution state — the 'whiteboard' passed between nodes."""
-    messages: List[Dict[str, Any]] = field(default_factory=list)
-    tool_results: Dict[str, Any] = field(default_factory=dict)
-    metadata: Dict[str, Any] = field(default_factory=dict)
-    errors: List[str] = field(default_factory=list)
-    current_node: Optional[str] = None
-    step: int = 0
-    graph_id: str = ""
-    conversation_id: Optional[str] = None
-    interrupted: bool = False
-    interrupt_reason: Optional[str] = None
+class Command:
+    """
+    LangGraph-inspired control-flow primitive.
 
-    def to_dict(self) -> Dict[str, Any]:
-        return {
-            "messages": self.messages,
-            "tool_results": self.tool_results,
-            "metadata": self.metadata,
-            "errors": self.errors,
-            "current_node": self.current_node,
-            "step": self.step,
-            "graph_id": self.graph_id,
-            "conversation_id": self.conversation_id,
-            "interrupted": self.interrupted,
-            "interrupt_reason": self.interrupt_reason,
-        }
+    - goto: next node to execute (default None = follow edges).
+            Use END to stop.
+    - update: state keys to merge before next node.
+    """
+    goto: Optional[str] = None
+    update: Optional[Dict[str, Any]] = None
+
+    @staticmethod
+    def END() -> 'Command':
+        return Command(goto="__end__")
+
+    def to_dict(self) -> Dict:
+        d: Dict = {}
+        if self.goto:
+            d["goto"] = self.goto
+        if self.update:
+            d["update"] = self.update
+        return d
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any]) -> 'State':
-        return cls(**{k: v for k, v in data.items() if k in cls.__dataclass_fields__})
-
-    def copy(self) -> 'State':
-        return State.from_dict(json.loads(json.dumps(self.to_dict(), default=str)))
-
-
-# ─── Edge ────────────────────────────────────────────────────────────
-
-@dataclass
-class Edge:
-    """Connects two nodes, optionally with a condition."""
-    source: NodeId
-    target: NodeId
-    condition: Optional[RouterCondition] = None
-    id: str = field(default_factory=lambda: uuid.uuid4().hex[:8])
-
-
-# ─── Node ────────────────────────────────────────────────────────────
-
-class Node(ABC):
-    """Base class for all graph nodes."""
-
-    def __init__(
-        self,
-        id: NodeId,
-        label: str = "",
-        node_type: NodeType = NodeType.INPUT,
-        config: Optional[Dict[str, Any]] = None,
-    ):
-        self.id = id
-        self.label = label or id
-        self.node_type = node_type
-        self.config = config or {}
-
-    @abstractmethod
-    async def run(self, state: State, ctx: 'ExecutionContext') -> State:
-        """Execute the node. Returns updated state."""
-        ...
-
-    async def stream(self, state: State, ctx: 'ExecutionContext') -> AsyncGenerator[State, None]:
-        """Stream updates chunk by chunk. Default: yield final state."""
-        result = await self.run(state, ctx)
-        yield result
-
-
-# ─── SubgraphNode ────────────────────────────────────────────────────
-
-class SubgraphNode(Node):
-    """A node that runs an entire sub-graph."""
-
-    def __init__(self, id: str, graph: 'Graph', label: str = "", config: Optional[Dict] = None):
-        super().__init__(id, label=label, node_type=NodeType.SUBGRAPH, config=config)
-        self.subgraph = graph
-
-    async def run(self, state: State, ctx: 'ExecutionContext') -> State:
-        sub_ctx = ExecutionContext(
-            graph=self.subgraph,
-            checkpointer=ctx.checkpointer,
-            memories=ctx.memories,
-            parent_ctx=ctx,
-        )
-        executor = Executor(self.subgraph, checkpointer=ctx.checkpointer)
-        final_state, _ = await executor.run(state, ctx=sub_ctx)
-        return final_state
-
-    async def stream(self, state: State, ctx: 'ExecutionContext') -> AsyncGenerator[State, None]:
-        sub_ctx = ExecutionContext(
-            graph=self.subgraph,
-            checkpointer=ctx.checkpointer,
-            memories=ctx.memories,
-            parent_ctx=ctx,
-        )
-        executor = Executor(self.subgraph, checkpointer=ctx.checkpointer)
-        async for s in executor.stream(state, ctx=sub_ctx):
-            yield s
-
-
-# ─── Graph ───────────────────────────────────────────────────────────
-
-@dataclass
-class Graph:
-    """A directed graph of Nodes connected by Edges."""
-    id: str
-    nodes: Dict[NodeId, Node] = field(default_factory=dict)
-    edges: List[Edge] = field(default_factory=list)
-    entry_point: Optional[NodeId] = None
-    metadata: Dict[str, Any] = field(default_factory=dict)
-
-    def add_node(self, node: Node) -> 'Graph':
-        self.nodes[node.id] = node
-        if self.entry_point is None:
-            self.entry_point = node.id
-        return self
-
-    def add_edge(self, source: NodeId, target: NodeId, condition: Optional[RouterCondition] = None) -> 'Graph':
-        self.edges.append(Edge(source=source, target=target, condition=condition))
-        return self
-
-    def set_entry_point(self, node_id: NodeId) -> 'Graph':
-        self.entry_point = node_id
-        return self
-
-    def get_next_nodes(self, current: NodeId, state: State) -> List[Tuple[NodeId, Edge]]:
-        """Find all valid next nodes from current, evaluating conditions."""
-        results = []
-        for edge in self.edges:
-            if edge.source != current:
-                continue
-            if edge.condition:
-                target = edge.condition(state)
-                if target and target == edge.target:
-                    results.append((edge.target, edge))
-            else:
-                results.append((edge.target, edge))
-        return results
-
-    def validate(self) -> List[str]:
-        errors = []
-        if not self.entry_point:
-            errors.append("No entry_point set")
-        elif self.entry_point not in self.nodes:
-            errors.append(f"entry_point '{self.entry_point}' not found in nodes")
-        for edge in self.edges:
-            if edge.source not in self.nodes:
-                errors.append(f"Edge source '{edge.source}' not found in nodes")
-            if edge.target not in self.nodes:
-                errors.append(f"Edge target '{edge.target}' not found in nodes")
-        return errors
+    def from_dict(cls, d: dict) -> Optional['Command']:
+        if not d:
+            return None
+        return cls(goto=d.get("goto"), update=d.get("update"))
 
 
 # ─── Execution Context ──────────────────────────────────────────────
 
 @dataclass
 class ExecutionContext:
-    """Shared context passed between nodes during execution."""
-    graph: Graph
+    """Shared context — akin to langgraph's RunnableConfig."""
+    graph_id: str = ""
     checkpointer: Optional[Checkpointer] = None
     memories: List[Memory] = field(default_factory=list)
     parent_ctx: Optional['ExecutionContext'] = None
     user_id: Optional[str] = None
     extra: Dict[str, Any] = field(default_factory=dict)
+    step: int = 0
+    stream_mode: StreamMode = StreamMode.VALUES
+    node: Optional[str] = None
 
     @property
     def root_ctx(self) -> 'ExecutionContext':
@@ -219,10 +94,96 @@ class ExecutionContext:
         return ctx
 
 
-# ─── Executor ───────────────────────────────────────────────────────
+# ─── Edge ───────────────────────────────────────────────────────────
+
+@dataclass
+class Edge:
+    """A directed edge between two nodes."""
+    source: str
+    target: str
+    condition: Optional[RouterFn] = None
+    id: str = field(default_factory=lambda: uuid.uuid4().hex[:8])
+
+
+# ─── Graph ──────────────────────────────────────────────────────────
+
+NodeFn = Callable[[Dict[str, Any], ExecutionContext], Any]
+"""A node function: receives (state_dict, ctx), returns a dict (state update)
+   or a Command. If it returns None, no update is applied."""
+
+
+class Graph:
+    """A directed graph of named node functions connected by edges."""
+
+    def __init__(self, id: str = "graph"):
+        self.id = id
+        self.nodes: Dict[str, NodeFn] = {}
+        self.edges: List[Edge] = []
+        self.entry_point: Optional[str] = None
+        self.metadata: Dict[str, Any] = {}
+
+    def add_node(self, name: str, fn: NodeFn) -> 'Graph':
+        self.nodes[name] = fn
+        if self.entry_point is None:
+            self.entry_point = name
+        return self
+
+    def set_entry_point(self, name: str) -> 'Graph':
+        self.entry_point = name
+        return self
+
+    def add_edge(self, source: str, target: str, condition: Optional[RouterFn] = None) -> 'Graph':
+        self.edges.append(Edge(source=source, target=target, condition=condition))
+        return self
+
+    def get_next(self, current: str, ctx: 'CommandContext') -> Optional[str]:
+        """Evaluate edges from `current`; return the first matching target or None."""
+        for edge in self.edges:
+            if edge.source != current:
+                continue
+            if edge.condition:
+                target = edge.condition(ctx)
+                if target and target == edge.target:
+                    return target
+            else:
+                return edge.target
+        return None
+
+    def validate(self) -> List[str]:
+        errs = []
+        if not self.entry_point:
+            errs.append("No entry_point set")
+        elif self.entry_point not in self.nodes:
+            errs.append(f"entry_point '{self.entry_point}' not in nodes")
+        for e in self.edges:
+            if e.source not in self.nodes:
+                errs.append(f"edge source '{e.source}' not in nodes")
+            if e.target not in self.nodes and e.target != END:
+                errs.append(f"edge target '{e.target}' not in nodes/END")
+        return errs
+
+
+# ─── CommandContext (passed to router fns) ─────────────────────────
+
+@dataclass
+class CommandContext:
+    """Minimal context for router conditions — just what they need."""
+    state: Dict[str, Any]
+    step: int
+    current_node: str
+    prev_node: Optional[str] = None
+
+    def get(self, key: str, default: Any = None) -> Any:
+        return self.state.get(key, default)
+
+
+# ─── Executor ──────────────────────────────────────────────────────
 
 class Executor:
-    """Runs a Graph with streaming, interrupt, and backtrack support."""
+    """
+    Runs a Graph with streaming, interrupt, and checkpoint support.
+    Analogous to langgraph's `.invoke()` / `.stream()`.
+    """
 
     def __init__(
         self,
@@ -236,163 +197,177 @@ class Executor:
 
     async def run(
         self,
-        initial_state: Optional[State] = None,
+        initial_state: Optional[Dict[str, Any]] = None,
         ctx: Optional[ExecutionContext] = None,
-    ) -> Tuple[State, str]:
-        """Run the graph to completion. Returns (final_state, checkpoint_id)."""
-        final_state = None
-        checkpoint_id = ""
-        async for state, cid in self._execute(initial_state or State(), ctx or ExecutionContext(graph=self.graph)):
-            final_state = state
-            checkpoint_id = cid
-        return final_state, checkpoint_id
+    ) -> Tuple[Dict[str, Any], str]:
+        """Run to completion. Returns (final_state, checkpoint_id)."""
+        final = None
+        cid = ""
+        async for s, c in self._execute(initial_state or {}, ctx or ExecutionContext(graph_id=self.graph.id)):
+            final = s
+            cid = c
+        return final, cid
 
     async def stream(
         self,
-        initial_state: Optional[State] = None,
+        initial_state: Optional[Dict[str, Any]] = None,
         ctx: Optional[ExecutionContext] = None,
-    ) -> AsyncGenerator[Tuple[State, str], None]:
-        """Stream state updates through the graph."""
-        async for state, cid in self._execute(initial_state or State(), ctx or ExecutionContext(graph=self.graph)):
-            yield state, cid
+    ) -> AsyncGenerator[Tuple[Dict[str, Any], str], None]:
+        """Stream state after each node execution."""
+        async for s, c in self._execute(initial_state or {}, ctx or ExecutionContext(graph_id=self.graph.id)):
+            yield s, c
 
     async def _execute(
         self,
-        state: State,
+        state: Dict[str, Any],
         ctx: ExecutionContext,
-    ) -> AsyncGenerator[Tuple[State, str], None]:
-        errors = self.graph.validate()
-        if errors:
-            raise ValueError(f"Graph validation failed: {'; '.join(errors)}")
+    ) -> AsyncGenerator[Tuple[Dict[str, Any], str], None]:
+        errs = self.graph.validate()
+        if errs:
+            raise ValueError(f"Graph validation: {'; '.join(errs)}")
 
-        state.graph_id = self.graph.id
-        current_id = self.graph.entry_point
-        visited: Set[str] = set()
+        state.setdefault("messages", [])
+        state.setdefault("tool_results", {})
+        state.setdefault("errors", [])
+        state.setdefault("metadata", {})
+        state.setdefault("interrupted", False)
+        state.setdefault("interrupt_reason", None)
+        state["graph_id"] = self.graph.id
+        state["step"] = 0
+        state["current_node"] = None
+
+        current = self.graph.entry_point
         max_steps = 100
 
-        while current_id and state.step < max_steps:
-            # Check for interrupts
-            if state.interrupted:
-                state.current_node = current_id
+        while current and current != END and state.get("step", 0) < max_steps:
+            # Interrupt check
+            if state.get("interrupted"):
                 cid = await self._checkpoint(state, ctx)
                 yield state, cid
                 break
 
-            node = self.graph.nodes.get(current_id)
-            if not node:
-                state.errors.append(f"Node '{current_id}' not found")
+            if current not in self.graph.nodes:
+                state.setdefault("errors", []).append(f"Unknown node: '{current}'")
                 break
 
-            state.current_node = current_id
-            visited.add(current_id)
+            state["current_node"] = current
+            node_fn = self.graph.nodes[current]
+            ctx.node = current
+            ctx.step = state.get("step", 0)
 
-            # Save pre-execution checkpoint
+            # Pre-execution checkpoint
             cid = await self._checkpoint(state, ctx)
             yield state, cid
 
-            logger.info(f"[Graph:{self.graph.id}] Running node: {node.id} ({node.label}) step={state.step}")
+            logger.info(f"[{self.graph.id}] step={state['step']} node={current}")
 
-            # Run node with streaming
-            async for chunk_state in node.stream(state, ctx):
-                chunk_state.step = state.step
-                cid = await self._checkpoint(chunk_state, ctx)
-                yield chunk_state, cid
+            # Execute node
+            try:
+                result = await node_fn(state, ctx)
+            except Exception as e:
+                logger.exception(f"Node '{current}' failed")
+                state.setdefault("errors", []).append(f"Node '{current}': {str(e)[:200]}")
+                state["messages"].append({"role": "assistant", "content": f"❌ 执行出错：{str(e)[:200]}"})
+                # On error, try to continue to next node or stop
+                result = None
 
-            state = chunk_state
-            state.step += 1
+            # Process result: Command or dict update
+            if isinstance(result, Command):
+                if result.update:
+                    state.update(result.update)
+                if result.goto == END:
+                    break
+                if result.goto:
+                    current = result.goto
+                    state["step"] = state.get("step", 0) + 1
+                    continue
+            elif isinstance(result, dict):
+                state.update(result)
 
-            # Check for interrupt after node execution
-            if state.interrupted:
+            state["step"] = state.get("step", 0) + 1
+
+            # Post-execution interrupt
+            if state.get("interrupted"):
                 cid = await self._checkpoint(state, ctx)
                 yield state, cid
                 break
 
-            # Find next node
-            next_nodes = self.graph.get_next_nodes(current_id, state)
-            if not next_nodes:
-                logger.info(f"[Graph:{self.graph.id}] No outgoing edges from '{current_id}' — graph complete")
+            # Route to next node via edges
+            cmd_ctx = CommandContext(
+                state=state,
+                step=state["step"],
+                current_node=current,
+                prev_node=state.get("current_node"),
+            )
+            next_id = self.graph.get_next(current, cmd_ctx)
+            if next_id is None:
+                logger.info(f"[{self.graph.id}] No outgoing edge from '{current}' — done")
                 break
+            current = next_id
 
-            if len(next_nodes) > 1:
-                logger.warning(f"[Graph:{self.graph.id}] Multiple next nodes from '{current_id}', taking first")
-            current_id = next_nodes[0][0]
-
-            # Loop detection
-            if current_id in visited and len(visited) > 10:
-                logger.warning(f"[Graph:{self.graph.id}] Possible loop detected at '{current_id}'")
-                # Allow up to 3 visits per node
-                if visited.count(current_id) >= 3:
-                    state.errors.append(f"Loop detected: '{current_id}' visited {visited.count(current_id)} times")
-                    break
-
-        state.current_node = None
+        state["current_node"] = None
         cid = await self._checkpoint(state, ctx)
 
-        # Save to memory
+        # Save to memories
         for mem in ctx.memories:
-            await mem.save(state)
+            try:
+                await mem.save(state)
+            except Exception:
+                pass
 
         yield state, cid
 
-    async def _checkpoint(self, state: State, ctx: ExecutionContext) -> str:
+    async def _checkpoint(self, state: Dict[str, Any], ctx: ExecutionContext) -> str:
         if not self.checkpointer:
             return ""
         cp = Checkpoint(
             graph_id=self.graph.id,
-            conversation_id=state.conversation_id or "",
-            state=state.copy(),
+            conversation_id=state.get("conversation_id", ""),
+            state=state,
             timestamp=time.time(),
         )
         return await self.checkpointer.save(cp)
 
-    async def interrupt(self, conv_id: str, reason: str = "User requested interrupt") -> bool:
-        """Interrupt a running conversation."""
+    async def interrupt(self, conv_id: str, reason: str = "User interrupted") -> bool:
         cp = await self.checkpointer.latest(conv_id)
         if not cp:
             return False
-        cp.state.interrupted = True
-        cp.state.interrupt_reason = reason
+        cp.state["interrupted"] = True
+        cp.state["interrupt_reason"] = reason
         await self.checkpointer.save(cp)
         return True
 
-    async def resume(self, conv_id: str, user_input: str) -> AsyncGenerator[Tuple[State, str], None]:
-        """Resume an interrupted conversation with new input."""
+    async def resume(self, conv_id: str, user_input: str):
         cp = await self.checkpointer.latest(conv_id)
         if not cp:
-            raise ValueError(f"No checkpoint for conversation '{conv_id}'")
+            raise ValueError(f"No checkpoint for '{conv_id}'")
+        state = cp.state
+        state["interrupted"] = False
+        state["interrupt_reason"] = None
+        state["messages"].append({"role": "user", "content": user_input})
+        ctx = ExecutionContext(
+            graph_id=self.graph.id,
+            checkpointer=self.checkpointer,
+            memories=self.memories,
+        )
+        async for s, c in self._execute(state, ctx):
+            yield s, c
 
-        state = cp.state.copy()
-        state.interrupted = False
-        state.interrupt_reason = None
-
-        # Add user message
-        state.messages.append({"role": "user", "content": user_input})
-        state.step = cp.state.step
-
-        ctx = ExecutionContext(graph=self.graph, checkpointer=self.checkpointer, memories=self.memories)
-        async for s, cid in self._execute(state, ctx):
-            yield s, cid
-
-    async def backtrack(self, conv_id: str, target_step: int) -> Optional[State]:
-        """Backtrack to a specific step in conversation history."""
-        checkpoints = await self.checkpointer.list(conv_id)
-        # Find the checkpoint at or just before target_step
-        for cp in reversed(checkpoints):
-            if cp.state.step <= target_step:
-                logger.info(f"[Backtrack] Restoring step {cp.state.step} for conv '{conv_id}'")
-                return cp.state.copy()
+    async def backtrack(self, conv_id: str, target_step: int) -> Optional[Dict]:
+        for cp in reversed(await self.checkpointer.list(conv_id)):
+            if cp.state.get("step", 0) <= target_step:
+                return cp.state
         return None
 
-    async def list_checkpoints(self, conv_id: str) -> List[Dict[str, Any]]:
-        checkpoints = await self.checkpointer.list(conv_id)
+    async def list_checkpoints(self, conv_id: str) -> List[Dict]:
         return [
             {
                 "id": cp.id,
-                "step": cp.state.step,
-                "current_node": cp.state.current_node,
-                "messages_count": len(cp.state.messages),
-                "interrupted": cp.state.interrupted,
+                "step": cp.state.get("step", 0),
+                "current_node": cp.state.get("current_node"),
+                "messages_count": len(cp.state.get("messages", [])),
+                "interrupted": cp.state.get("interrupted", False),
                 "timestamp": cp.timestamp,
             }
-            for cp in checkpoints
+            for cp in await self.checkpointer.list(conv_id)
         ]

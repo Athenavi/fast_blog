@@ -33,25 +33,20 @@ class Checkpoint:
             "graph_id": self.graph_id,
             "conversation_id": self.conversation_id,
             "timestamp": self.timestamp,
-            "state": self.state.to_dict() if hasattr(self.state, 'to_dict') else self.state,
+            "state": self.state if isinstance(self.state, dict) else self.state.to_dict() if hasattr(self.state, 'to_dict') else self.state,
             "metadata": self.metadata,
         }
 
     @classmethod
-    def from_dict(cls, data: Dict[str, Any], state_class=None) -> 'Checkpoint':
-        from src.mcp.graph.engine import State as GraphState
+    def from_dict(cls, data: Dict[str, Any], **kwargs) -> 'Checkpoint':
         state_data = data.get("state", {})
-        if state_class:
-            state = state_class.from_dict(state_data) if hasattr(state_class, 'from_dict') else state_data
-        else:
-            state = GraphState.from_dict(state_data) if isinstance(state_data, dict) else state_data
         return cls(
             id=data.get("id", ""),
             parent_id=data.get("parent_id"),
             graph_id=data.get("graph_id", ""),
             conversation_id=data.get("conversation_id", ""),
             timestamp=data.get("timestamp", time.time()),
-            state=state,
+            state=state_data,
             metadata=data.get("metadata", {}),
         )
 
