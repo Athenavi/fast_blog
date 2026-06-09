@@ -150,7 +150,7 @@ const Footer: React.FC = () => {
                         <div key={key}>
                             <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">{section.title}</h4>
                             <ul className="space-y-2.5">
-                                {section.links.map((link) => (
+                                {section.links.map((link: {name:string;href:string;external?:boolean}) => (
                                     <li key={link.name}>
                                         <a
                                             href={link.href}

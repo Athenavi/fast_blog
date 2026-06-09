@@ -572,7 +572,7 @@ function PageBuilderInner() {
                                 <h4 className="text-sm font-semibold mb-3 text-gray-700 dark:text-gray-300">📄
                                     预建页面模板（一键导入）</h4>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                  {components?.filter((c) => c.id).map((template) => {
+                                  {components?.filter((c: any) => c.id).map((template: any) => {
                                         const Icon = COMPONENT_ICONS[template.blocks?.[0]?.type] || Layout;
                                         return (
                                             <div
@@ -606,7 +606,7 @@ function PageBuilderInner() {
                                 <h4 className="text-sm font-semibold mb-3 text-gray-700 dark:text-gray-300">🧩
                                     单个组件（添加到当前页面）</h4>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                  {components?.filter((c) => !c.id).map((comp: ComponentTemplate) => {
+                                  {components?.filter((c: any) => !c.id).map((comp: ComponentTemplate) => {
                                         const Icon = COMPONENT_ICONS[comp.name] || Layout;
                                         return (
                                             <div

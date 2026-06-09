@@ -106,7 +106,7 @@ const ArticleDetail: React.FC<Props> = ({slug: propSlug}) => {
                     });
                     if (relRes.success && relRes.data) {
                         const articles = relRes.data.data || relRes.data || [];
-                      setRelatedArticles(articles.filter((a) => a.id !== data.id).slice(0, 3));
+                      setRelatedArticles(articles.filter((a: any) => a.id !== data.id).slice(0, 3));
                     }
                 } catch {
                 }

@@ -268,7 +268,7 @@ function BackupInner() {
   const filteredBackups = useMemo(() => {
     if (!searchQuery.trim()) return backups;
     const q = searchQuery.toLowerCase();
-    return backups.filter((b) => {
+    return backups.filter((b: any) => {
       const filename = b.filename || b.path?.split('/').pop() || b.backup_dir?.split('/').pop() || '';
       return filename.toLowerCase().includes(q) || (b.type || '').toLowerCase().includes(q);
     });

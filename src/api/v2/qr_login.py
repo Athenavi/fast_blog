@@ -12,6 +12,7 @@ from fastapi.logger import logger
 from fastapi.responses import HTMLResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from src.api.v1.core.responses import ApiResponse
 from src.auth import get_current_user
 from src.extensions import cache
 from src.extensions import get_async_db_session as get_async_db
@@ -104,18 +105,18 @@ async def v2_generate_qr(request: Request):
         result = await qr_login(request, sys_version, global_encoding, domain, cache)
         # v2 响应格式：将 qr_login 返回的顶层字段包装到 data 中
         if result.get("success"):
-            return {
-                "success": True,
-                "data": {
+            return ApiResponse(
+                success=True,
+                data={
                     "token": result.get("token"),
                     "qr_code": result.get("qr_code"),
                     "expires_at": result.get("expires_at"),
                 }
-            }
-        return result
+            )
+        return ApiResponse(success=False, error=result.get("message", "登录二维码生成失败"))
     except Exception as e:
         logger.error(f"QR generation failed: {e}")
-        return {"success": False, "message": "Failed to generate QR code"}
+        return ApiResponse(success=False, error="生成二维码失败")
 
 
 @router.get("/status")
@@ -126,22 +127,22 @@ async def v2_check_qr_status(request: Request):
         result = await check_qr_login_back(request, cache)
         # v2 响应格式：将 check_qr_login_back 返回的顶层字段包装到 data 中
         if result.get("success"):
-            resp = {
-                "success": True,
-                "data": {
+            resp = ApiResponse(
+                success=True,
+                data={
                     "status": result.get("status", "pending"),
                     "refresh_token": result.get("refresh_token"),
                     "next_url": result.get("next_url"),
                 }
-            }
+            )
             logger.info(
-                f"[QR Status] token={request.query_params.get('token', '')[:8]}... status={resp['data']['status']}")
+                f"[QR Status] token={request.query_params.get('token', '')[:8]}... status={resp.data['status']}")
             return resp
         logger.warning(f"[QR Status] check_qr_login_back returned success=False: {result}")
-        return result
+        return ApiResponse(success=False, error=result.get("message", "二维码状态检查失败"))
     except Exception as e:
         logger.error(f"QR status check failed: {e}")
-        return {"success": False, "message": "Failed to check QR code status"}
+        return ApiResponse(success=False, error="检查二维码状态失败")
 
 
 @router.post("/confirm")
@@ -162,17 +163,21 @@ async def v2_phone_confirm(request: Request, db: AsyncSession = Depends(get_asyn
         login_token = request.query_params.get('login_token') or request.query_params.get('token')
 
     if not login_token:
-        return {"success": False, "message": "Missing login_token"}
+        return ApiResponse(success=False, error="缺少登录令牌 login_token")
 
     try:
         current_user = await get_current_user(request, db)
     except HTTPException as e:
         if e.status_code == 401:
-            return {"success": False, "requires_auth": True, "message": "请先登录后再扫码"}
+            return ApiResponse(success=False, error="请先登录后再扫码", data={"requires_auth": True})
         raise e
 
     try:
-        return await phone_scan_back(request, current_user, cache, login_token=login_token)
+        result = await phone_scan_back(request, current_user, cache, login_token=login_token)
+        if isinstance(result, dict) and result.get("success"):
+            return ApiResponse(success=True, message=result.get("message", "登录确认成功"))
+        error_msg = result.get("message") if isinstance(result, dict) else "确认失败"
+        return ApiResponse(success=False, error=error_msg)
     except Exception as e:
         logger.error(f"Phone confirm failed: {e}")
-        return {"success": False, "message": "确认失败"}
+        return ApiResponse(success=False, error="确认失败")

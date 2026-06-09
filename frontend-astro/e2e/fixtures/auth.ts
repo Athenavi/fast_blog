@@ -19,7 +19,7 @@ async function loginViaAPI(page: Page, baseURL: string, creds = ADMIN_CREDENTIAL
 
   // 通过 API 登录获取 token
   const resp = await page.evaluate(async ({url, username, password}) => {
-    const r = await fetch(`${url}/api/v1/auth/login`, {
+    const r = await fetch(`${url}/api/v2/auth/login`, {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({username, password}),

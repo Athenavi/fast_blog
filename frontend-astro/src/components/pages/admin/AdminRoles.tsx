@@ -230,7 +230,7 @@ function RoleModal({mode, role, permissions, onClose}: {
   const [desc, setDesc] = useState(role?.description || '');
   const [selectedPerms, setSelectedPerms] = useState<Set<string>>(() => {
     if (!role?.permission_codes) return new Set<string>();
-    return new Set(role.permission_codes.map((c) => typeof c === 'string' ? c : String(c)));
+    return new Set(role.permission_codes.map((c: any) => typeof c === 'string' ? c : String(c)));
   });
   const [error, setError] = useState('');
   const [searchPerms, setSearchPerms] = useState('');
@@ -455,8 +455,8 @@ function UsersModal({roleId, roleName, onClose}: {roleId: number; roleName: stri
       return Array.isArray(res.data) ? res.data : (res.data.users || []);
     },
   });
-  const assigned = (users || []).filter((u) =>
-    u.roles?.some((r) => r.id === roleId)
+  const assigned = (users || []).filter((u: any) =>
+    u.roles?.some((r: any) => r.id === roleId)
   );
 
   return (
@@ -484,7 +484,7 @@ function UsersModal({roleId, roleName, onClose}: {roleId: number; roleName: stri
             </div>
         ) : (
             <div className="space-y-2">
-              {assigned.map((u) => {
+              {assigned.map((u: any) => {
                 const initial = u.username?.[0]?.toUpperCase() || '?';
                 const colors = ['from-blue-500 to-cyan-500', 'from-purple-500 to-pink-500', 'from-emerald-500 to-teal-500', 'from-amber-500 to-orange-500', 'from-rose-500 to-red-500'];
                 const colorIdx = (u.id || 0) % colors.length;
@@ -559,7 +559,7 @@ function RolesInner() {
     if (!roles) return [];
     if (!searchQuery) return roles;
     const q = searchQuery.toLowerCase();
-    return roles.filter((r) =>
+    return roles.filter((r: any) =>
         r.name?.toLowerCase().includes(q) || r.slug?.toLowerCase().includes(q) || r.description?.toLowerCase().includes(q)
     );
   }, [roles, searchQuery]);
@@ -567,10 +567,10 @@ function RolesInner() {
   // Stats
   const stats = useMemo(() => ({
     totalRoles: roles?.length || 0,
-    systemRoles: roles?.filter((r) => r.is_system).length || 0,
-    customRoles: roles?.filter((r) => !r.is_system).length || 0,
+    systemRoles: roles?.filter((r: any) => r.is_system).length || 0,
+    customRoles: roles?.filter((r: any) => !r.is_system).length || 0,
     totalPermissions: permissions?.length || 0,
-    totalUsers: roles?.reduce((sum, r) => sum + (r.user_count || 0), 0) || 0,
+    totalUsers: roles?.reduce((sum: number, r: any) => sum + (r.user_count || 0), 0) || 0,
   }), [roles, permissions]);
 
   return (
@@ -630,7 +630,7 @@ function RolesInner() {
                   </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-50 dark:divide-gray-800/50">
-                  {filteredRoles.map((r) => (
+                  {filteredRoles.map((r: any) => (
                       <tr key={r.id} className="group hover:bg-gray-50/80 dark:hover:bg-gray-800/30 transition-colors">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">

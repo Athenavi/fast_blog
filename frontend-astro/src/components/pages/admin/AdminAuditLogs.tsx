@@ -140,7 +140,7 @@ function AuditLogsContent() {
 
   // Get level breakdown for stats
   const levelStats: Record<string,number> = {};
-  (stats.by_level || []).forEach((s) => {
+  (stats.by_level || []).forEach((s: any) => {
     levelStats[s.level] = s.count;
   });
 
@@ -227,7 +227,7 @@ function AuditLogsContent() {
                 </th>
               </tr>
             </thead><tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-            {logs.map((log) => (
+            {logs.map((log: any) => (
                 <tr key={log.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50 text-sm">
                   <td className="px-5 py-3">
                     <div>

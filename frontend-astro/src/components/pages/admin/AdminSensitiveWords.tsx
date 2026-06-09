@@ -373,7 +373,7 @@ function SensitiveWordsInner() {
                 </th>
               </tr>
               </thead><tbody className="divide-y">
-              {items.map((w) => (
+              {items.map((w: any) => (
                   <tr key={w.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/50">
                     <td className="px-5 py-4">
                       <span className={`px-3 py-1 rounded-lg text-sm font-mono ${
