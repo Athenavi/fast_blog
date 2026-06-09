@@ -6,7 +6,9 @@ import {MediaService} from '@/lib/api';
 import {UploadArea} from '@/components/pages/media/UploadArea';
 import {StorageStats} from '@/components/pages/media/StorageStats';
 import {useMediaUpload} from '@/components/pages/media/useMediaUpload';
-import {PreviewModal, DeleteConfirm} from '@/components/pages/media/MediaDialogs';
+import {PreviewModal, DeleteConfirm, MoveDialog, CreateFolderDialog} from '@/components/pages/media/MediaDialogs';
+import {FolderTree} from '@/components/pages/media/FolderTree';
+import type {FolderNode} from '@/components/pages/media/FolderTree';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {motion} from 'framer-motion';
@@ -47,61 +49,6 @@ const _File: React.FC<{ className?: string }> = p => <svg className={p.className
 </svg>;
 
 /* ---------- FolderTree ---------- */
-interface FolderNode {
-  id: number; name: string; children?: FolderNode[];
-}
-
-const FolderTree: React.FC<{
-  folders: FolderNode[]; selectedId: number | null; onSelect: (f: FolderNode | null) => void;
-  onCreate: () => void; onDelete: (id: number) => void; loading: boolean;
-}> = ({folders, selectedId, onSelect, onCreate, onDelete, loading}) => {
-  const [expanded, setExpanded] = useState<Set<number>>(new Set());
-
-  const toggle = (id: number) => {
-    const s = new Set(expanded);
-    s.has(id) ? s.delete(id) : s.add(id);
-    setExpanded(s);
-  };
-
-  const renderNode = (node: FolderNode, depth: number = 0) => (
-    <div key={node.id}>
-      <div className={`group flex items-center gap-1 px-2 py-1.5 rounded-lg cursor-pointer text-sm transition-colors ${
-        selectedId === node.id ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
-      }`} style={{paddingLeft: `${12 + depth * 16}px`}}>
-        <button onClick={() => toggle(node.id)} className="p-0.5 hover:bg-gray-200 dark:hover:bg-gray-700 rounded">
-          {node.children?.length ? (expanded.has(node.id) ? <ChevronDown className="w-3.5 h-3.5"/> : <ChevronRight className="w-3.5 h-3.5"/>) : <span className="w-3.5"/>}
-        </button>
-        <div className="flex-1 flex items-center gap-1.5" onClick={() => onSelect(node)}>
-          {expanded.has(node.id) ? <FolderOpen className="w-4 h-4 text-yellow-500"/> : <FolderClosed className="w-4 h-4 text-yellow-600"/>}
-          <span className="truncate">{node.name}</span>
-        </div>
-        <button onClick={e => {e.stopPropagation(); onDelete(node.id);}} className="opacity-0 group-hover:opacity-100 p-0.5 hover:bg-red-100 dark:hover:bg-red-900/30 rounded text-gray-400 hover:text-red-500"><X className="w-3 h-3"/></button>
-      </div>
-      {expanded.has(node.id) && node.children?.map(child => renderNode(child, depth + 1))}
-    </div>
-  );
-
-  return (
-    <div>
-      <div className="flex items-center justify-between mb-2">
-        <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">文件夹</h3>
-        <button onClick={onCreate} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded text-gray-400 hover:text-blue-600"><Plus className="w-4 h-4"/></button>
-      </div>
-      {loading ? (
-        <div className="space-y-2">{[1,2,3].map(i => <div key={i} className="h-8 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse"/>)}</div>
-      ) : (
-        <div className="space-y-0.5">
-          <div onClick={() => onSelect(null)}
-            className={`flex items-center gap-2 px-3 py-1.5 rounded-lg cursor-pointer text-sm transition-colors ${selectedId === null ? 'bg-blue-50 text-blue-700 dark:bg-blue-900/20 dark:text-blue-400' : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'}`}>
-            <Grid3X3 className="w-4 h-4"/><span>全部文件</span>
-          </div>
-          {folders.map(n => renderNode(n))}
-        </div>
-      )}
-    </div>
-  );
-};
-
 /* ---------- StorageStats ---------- */
 /* ---------- UploadArea ---------- */
 /* ---------- MediaGrid ---------- */
@@ -1345,40 +1292,6 @@ const AudioLayer: React.FC<{ media: MediaFile; onClose: () => void }> = ({media,
 };
 
 /* ---------- PreviewModal (仅非音频) ---------- */
-const MoveDialog: React.FC<{open: boolean; onClose: ()=>void; folders: FolderNode[]; mediaCount: number; onMove: (folderPath: string|null)=>void}> = ({open, onClose, folders, mediaCount, onMove}) => {
-  if(!open) return null;
-  const renderNode = (node: FolderNode, depth=0) => (
-    <button key={node.id} onClick={()=>onMove(node.name)} className="w-full flex items-center gap-3 px-4 py-3 text-left rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-500 transition-colors" style={{paddingLeft:`${16+depth*20}px`}}>
-      <FolderClosed className="w-5 h-5 text-yellow-600"/> <span className="font-medium">{node.name}</span>
-    </button>
-  );
-  return (<div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={onClose}>
-    <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 max-w-md w-full shadow-xl" onClick={e=>e.stopPropagation()}>
-      <h3 className="text-lg font-bold mb-2">移动文件</h3>
-      <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">将选中的 {mediaCount} 个文件移动到：</p>
-      <div className="space-y-2 max-h-64 overflow-y-auto mb-4">
-        <button onClick={()=>onMove(null)} className="w-full flex items-center gap-3 px-4 py-3 text-left rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-500 transition-colors">
-          <Grid3X3 className="w-5 h-5 text-gray-500 dark:text-gray-400"/><span className="font-medium">根目录</span>
-        </button>
-        {folders.map(n=>renderNode(n))}
-      </div>
-      <div className="flex justify-end"><button onClick={onClose} className="px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg text-sm font-medium">取消</button></div>
-    </div>
-  </div>);
-};
-
-const CreateFolderDialog: React.FC<{open: boolean; onClose: ()=>void; onCreate: (name: string)=>void}> = ({open, onClose, onCreate}) => {
-  const [name, setName] = useState('');
-  if(!open) return null;
-  return (<div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={onClose}>
-    <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 max-w-sm w-full shadow-xl" onClick={e=>e.stopPropagation()}>
-      <h3 className="text-lg font-bold mb-4">新建文件夹</h3>
-      <input type="text" value={name} onChange={e=>setName(e.target.value)} placeholder="文件夹名称" className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white mb-4" autoFocus onKeyDown={e=>{if(e.key==='Enter' && name.trim()) {onCreate(name.trim()); setName('');}}}/>
-      <div className="flex justify-end gap-3"><button onClick={onClose} className="px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg text-sm font-medium">取消</button><button onClick={()=>{if(name.trim()){onCreate(name.trim()); setName('');}}} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">创建</button></div>
-    </div>
-  </div>);
-};
-
 /* ---------- Upload hook ---------- */
 /* ========== Main MediaPage ========== */
 const MediaPage: React.FC = () => {
