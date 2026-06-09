@@ -1,29 +1,31 @@
 'use client';
 
 import React, {useState, useRef, useEffect, useCallback} from 'react';
-import {apiClient} from '@/lib/api/base-client';
 import {getConfig} from '@/lib/config';
-import {
-  Send, Plus, Trash2, Settings, X, Bot, User, Wrench,
-  Sparkles, MessageSquare, Loader2, Moon, Sun, PanelLeftOpen,
-  PanelLeftClose, FileText, Search, BarChart3, Hash, CornerDownLeft,
-  Copy, Check, Undo2, Pause, Play, History,
-} from 'lucide-react';
+
+// ─── Icons (inline SVG for zero dependencies) ─────────────────────
+
+const Icons = {
+  send: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4Z"/></svg>,
+  sparkle: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 2 15.09 8.26 22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2Z"/></svg>,
+  plus: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14"/></svg>,
+  trash: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>,
+  settings: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>,
+  sun: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>,
+  moon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79Z"/></svg>,
+  chat: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"/></svg>,
+  stop: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><rect x="4" y="4" width="16" height="16" rx="2"/></svg>,
+  history: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>,
+};
 
 // ─── Types ──────────────────────────────────────
 
 interface ChatMessage {
-  role: 'system' | 'user' | 'assistant' | 'tool';
+  role: 'user' | 'assistant' | 'tool';
   content: string;
-  tool_calls?: ToolCall[];
+  tool_calls?: {id: string; type: string; function: {name: string; arguments: string}}[];
   tool_call_id?: string;
   name?: string;
-}
-
-interface ToolCall {
-  id: string;
-  type: string;
-  function: {name: string; arguments: string};
 }
 
 interface Conversation {
@@ -31,7 +33,6 @@ interface Conversation {
   title: string;
   messages: ChatMessage[];
   createdAt: number;
-  interrupted?: boolean;
 }
 
 interface LLMConfig {
@@ -41,165 +42,244 @@ interface LLMConfig {
   systemPrompt: string;
 }
 
-interface CheckpointInfo {
-  id: string;
-  step: number;
-  current_node: string;
-  messages_count: number;
-  interrupted: boolean;
-  timestamp: number;
-}
-
 const DEFAULT_CONFIG: LLMConfig = {
-  endpoint: 'https://api.openai.com/v1',
+  endpoint: '',
   apiKey: '',
-  model: 'gpt-4o-mini',
-  systemPrompt: `你是 FastBlog 的 AI 助手，可以帮助用户管理博客内容。
+  model: '',
+  systemPrompt: `你是 FastBlog 的 AI 助手，可以通过 MCP 工具管理博客内容。
 
-你可以通过调用工具来执行以下操作：
-1. 创建文章 - 提供标题和内容
-2. 更新文章 - 指定文章 ID
-3. 删除文章 - 指定文章 ID
-4. 搜索文章 - 提供关键词
-5. 查看分类列表
-6. 创建分类
-7. 查看系统统计信息
+可用操作：
+1. 创建文章 — 提供标题和内容
+2. 更新文章 — 指定文章 ID
+3. 删除文章 — 指定文章 ID
+4. 搜索文章 — 提供关键词
+5. 查看/创建分类
+6. 查看系统统计
 
-请使用中文回复，保持专业且友好的语气。`,
+请使用中文回复。`,
 };
 
 const CFG_KEY = 'fastblog-aichat-config';
 const CONS_KEY = 'fastblog-aichat-conversations';
 
 function genId(): string { return Date.now().toString(36) + Math.random().toString(36).slice(2, 8); }
-function truncate(s: string, n: number): string { return s.length > n ? s.slice(0, n) + '…' : s; }
+function trunc(s: string, n: number): string { return s.length > n ? s.slice(0, n) + '…' : s; }
 
-function fmtDate(ts: number): string {
-  const d = new Date(ts); const now = new Date(); const diff = now.getTime() - d.getTime();
-  if (diff < 60_000) return '刚刚'; if (diff < 3600_000) return `${Math.floor(diff / 60_000)} 分钟前`;
+function ago(ts: number): string {
+  const d = new Date(ts);
+  const diff = Date.now() - d.getTime();
+  if (diff < 60_000) return '刚刚';
+  if (diff < 3600_000) return `${Math.floor(diff / 60_000)} 分钟前`;
   if (diff < 86_400_000) return `${Math.floor(diff / 3600_000)} 小时前`;
   return d.toLocaleDateString('zh-CN', {month: 'short', day: 'numeric'});
 }
 
-// ─── ChatBubble ────────────────────────────────
+// ─── Preset templates ───────────────────────────
 
-function ChatBubble({msg, onCopy}: {msg: ChatMessage; onCopy: (t: string) => void}) {
-  const [copied, setCopied] = useState(false);
-  const isUser = msg.role === 'user';
-
-  const copyText = useCallback(() => {
-    const text = msg.content || '';
-    navigator.clipboard.writeText(text).then(() => { setCopied(true); setTimeout(() => setCopied(false), 2000); });
-    onCopy(text);
-  }, [msg.content, onCopy]);
-
-  return (
-    <div className={`flex gap-3 sm:gap-4 group ${isUser ? 'flex-row-reverse' : ''}`}>
-      <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ring-2 ring-white dark:ring-gray-800 ${
-        isUser ? 'bg-blue-500' : 'bg-gradient-to-br from-violet-500 to-indigo-500'}`}>
-        {isUser ? <span className="text-white text-xs font-bold">U</span> : <Bot className="w-4 h-4 text-white"/>}
-      </div>
-      <div className={`max-w-[80%] sm:max-w-[70%] ${isUser ? 'items-end' : 'items-start'} flex flex-col`}>
-        <div className={`flex items-center gap-2 mb-1 px-1 ${isUser ? 'flex-row-reverse' : ''}`}>
-          <span className="text-[11px] font-medium text-gray-400 dark:text-gray-500">{isUser ? '你' : 'AI 助手'}</span>
-        </div>
-        {msg.content && (
-          <div className={`relative rounded-2xl px-4 py-3 text-sm leading-relaxed ${
-            isUser
-              ? 'bg-blue-500 text-white rounded-tr-sm'
-              : 'bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 border border-gray-100 dark:border-gray-700/50 rounded-tl-sm shadow-sm'
-          }`}>
-            <div className="whitespace-pre-wrap">{msg.content}</div>
-            {!isUser && msg.content && (
-              <button onClick={copyText}
-                      className="absolute -bottom-2 right-2 p-1 rounded-md bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 shadow-sm opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
-                {copied ? <Check className="w-3 h-3 text-green-500"/> : <Copy className="w-3 h-3"/>}
-              </button>
-            )}
-          </div>
-        )}
-        {msg.tool_calls && msg.tool_calls.length > 0 && (
-          <div className="mt-1.5 space-y-1 w-full">
-            {msg.tool_calls.map((tc, j) => {
-              let args: any = {}; try { args = JSON.parse(tc.function.arguments); } catch {}
-              return (
-                <div key={j} className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-violet-50 dark:bg-violet-900/20 border border-violet-200 dark:border-violet-800/50 text-[11px]">
-                  <Wrench className="w-3 h-3 text-violet-500"/>
-                  <span className="font-medium text-violet-700 dark:text-violet-300">{tc.function.name}</span>
-                  <span className="text-gray-400 dark:text-gray-500">{Object.entries(args).map(([k, v]) => `${k}=${typeof v === 'string' ? truncate(v, 20) : JSON.stringify(v)}`).join(', ')}</span>
-                </div>
-              );
-            })}
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-function ThinkingDots() {
-  return (
-    <div className="flex gap-3 sm:gap-4">
-      <div className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center bg-gradient-to-br from-violet-500 to-indigo-500 ring-2 ring-white dark:ring-gray-800">
-        <Bot className="w-4 h-4 text-white"/>
-      </div>
-      <div className="max-w-[80%] flex flex-col">
-        <span className="text-[11px] font-medium text-gray-400 dark:text-gray-500 mb-1 px-1">AI 助手</span>
-        <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700/50 rounded-2xl rounded-tl-sm px-5 py-4 shadow-sm">
-          <div className="flex items-center gap-1.5">
-            <span className="w-2 h-2 rounded-full bg-violet-400 animate-bounce" style={{animationDelay: '0ms'}}/>
-            <span className="w-2 h-2 rounded-full bg-violet-400 animate-bounce" style={{animationDelay: '150ms'}}/>
-            <span className="w-2 h-2 rounded-full bg-violet-400 animate-bounce" style={{animationDelay: '300ms'}}/>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+const PRESETS = [
+  {endpoint: 'https://api.deepseek.com/v1', apiKey: '', model: 'deepseek-chat', label: 'DeepSeek'},
+  {endpoint: 'https://api.openai.com/v1', apiKey: '', model: 'gpt-4o-mini', label: 'OpenAI'},
+  {endpoint: 'https://api.openai.com/v1', apiKey: '', model: 'gpt-4o', label: 'GPT-4o'},
+];
 
 const SUGGESTIONS = [
-  {icon: FileText, title: '写一篇文章', text: '帮我写一篇关于技术趋势的文章，标题为「2026 年值得关注的十大技术」'},
-  {icon: Search, title: '搜索内容', text: '帮我搜索一下标题包含 Python 的文章'},
-  {icon: BarChart3, title: '查看统计', text: '我的博客目前有多少篇文章和用户？'},
-  {icon: Hash, title: '管理分类', text: '帮我列出所有文章分类'},
+  {icon: '✍️', title: '写文章', text: '帮我写一篇关于 AI 趋势的文章'},
+  {icon: '🔍', title: '找文章', text: '搜索标题包含 Python 的文章'},
+  {icon: '📊', title: '看统计', text: '博客现有多少篇文章？'},
+  {icon: '📂', title: '看分类', text: '列出所有文章分类'},
 ];
+
+// ─── Message Bubble ─────────────────────────────
+
+function Bubble({msg}: {msg: ChatMessage}) {
+  const isUser = msg.role === 'user';
+  const isTool = msg.role === 'tool';
+
+  return (
+    <div className={`flex gap-3 ${isUser ? 'flex-row-reverse' : ''}`}>
+      <div className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-semibold ${
+        isUser ? 'bg-blue-500 text-white' : isTool ? 'bg-amber-100 text-amber-700' : 'bg-violet-500 text-white'
+      }`}>
+        {isUser ? 'U' : isTool ? '🔧' : 'AI'}
+      </div>
+      <div className={`max-w-[80%] ${isUser ? 'items-end' : 'items-start'} flex flex-col`}>
+        <div className={`text-sm leading-relaxed whitespace-pre-wrap px-4 py-2.5 rounded-2xl ${
+          isUser
+            ? 'bg-blue-500 text-white rounded-br-md'
+            : isTool
+              ? 'bg-amber-50 dark:bg-amber-900/10 text-gray-600 dark:text-gray-400 border border-amber-200 dark:border-amber-800/30 rounded-tl-md font-mono text-[12px]'
+              : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-tl-md'
+        }`}>
+          {isUser || !msg.content ? msg.content : (
+            <div className="prose prose-sm dark:prose-invert max-w-none">{msg.content}</div>
+          )}
+        </div>
+        {!isUser && !isTool && msg.tool_calls && msg.tool_calls.length > 0 && (
+          <div className="mt-1.5 flex flex-wrap gap-1">
+            {msg.tool_calls.map((tc, i) => (
+              <span key={i} className="inline-flex items-center gap-1 px-2 py-0.5 bg-violet-50 dark:bg-violet-900/20 text-violet-700 dark:text-violet-300 rounded-md text-[11px] font-medium">
+                🔧 {tc.function.name}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Thinking dots ──────────────────────────────
+
+function Thinking() {
+  return (
+    <div className="flex gap-3">
+      <div className="flex-shrink-0 w-7 h-7 rounded-full bg-violet-500 flex items-center justify-center text-white text-[11px] font-semibold">AI</div>
+      <div className="px-5 py-3 bg-gray-100 dark:bg-gray-800 rounded-2xl rounded-tl-md">
+        <div className="flex gap-1.5">
+          <span className="w-2 h-2 rounded-full bg-violet-400 animate-bounce" style={{animationDelay: '0ms'}}/>
+          <span className="w-2 h-2 rounded-full bg-violet-400 animate-bounce" style={{animationDelay: '150ms'}}/>
+          <span className="w-2 h-2 rounded-full bg-violet-400 animate-bounce" style={{animationDelay: '300ms'}}/>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Sidebar ────────────────────────────────────
+
+function Sidebar({conversations, activeId, onSelect, onNew, onDelete, collapsed, onToggle, onSettings}: {
+  conversations: Conversation[];
+  activeId: string | null;
+  onSelect: (id: string) => void;
+  onNew: () => void;
+  onDelete: (e: React.MouseEvent, id: string) => void;
+  collapsed: boolean;
+  onToggle: () => void;
+  onSettings: () => void;
+}) {
+  return (
+    <aside className={`${collapsed ? 'w-0' : 'w-60'} transition-all duration-300 flex-shrink-0 bg-gray-50 dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 overflow-hidden flex flex-col`}>
+      {/* Header */}
+      <div className="flex items-center justify-between h-12 px-3 border-b border-gray-200 dark:border-gray-800 flex-shrink-0">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-base" role="img" aria-label="sparkle">✨</span>
+          <span className="font-semibold text-sm text-gray-800 dark:text-gray-200">AI Chat</span>
+        </div>
+        <button onClick={onNew} className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+          {Icons.plus}
+        </button>
+      </div>
+
+      {/* Conversations */}
+      <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
+        {conversations.length === 0 && (
+          <div className="text-center py-8 text-gray-400 dark:text-gray-500 text-xs">暂无对话</div>
+        )}
+        {conversations.map(conv => (
+          <div key={conv.id} onClick={() => onSelect(conv.id)} role="button" tabIndex={0}
+               onKeyDown={e => e.key === 'Enter' && onSelect(conv.id)}
+               className={`flex items-center gap-2 px-2.5 py-2 rounded-lg text-sm cursor-pointer transition-colors group ${
+                 conv.id === activeId
+                   ? 'bg-white dark:bg-gray-800 shadow-sm'
+                   : 'hover:bg-gray-100 dark:hover:bg-gray-800/50'
+               }`}>
+            <span className="text-gray-400 flex-shrink-0">{Icons.chat}</span>
+            <div className="flex-1 min-w-0">
+              <div className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate">{conv.title}</div>
+              <div className="text-[10px] text-gray-400">{ago(conv.createdAt)}</div>
+            </div>
+            <button onClick={(e) => onDelete(e, conv.id)}
+                    className="p-1 rounded text-gray-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0">
+              {Icons.trash}
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {/* Footer */}
+      <div className="p-2 border-t border-gray-200 dark:border-gray-800 flex-shrink-0 space-y-1">
+        <button onClick={onNew}
+                className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg border border-dashed border-gray-300 dark:border-gray-600 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-sm hover:border-gray-400 dark:hover:border-gray-500 transition-colors">
+          {Icons.plus}<span>新对话</span>
+        </button>
+        <button onClick={onSettings}
+                className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-sm hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+          {Icons.settings}<span>设置</span>
+        </button>
+      </div>
+    </aside>
+  );
+}
 
 // ─── Settings Modal ─────────────────────────────
 
-function SettingsModal({config, onChange, onClose}: {
-  config: LLMConfig; onChange: (patch: Partial<LLMConfig>) => void; onClose: () => void;
-}) {
+function SettingsModal({config, onChange, onClose, show}: {config: LLMConfig; onChange: (p: Partial<LLMConfig>) => void; onClose: () => void; show: boolean}) {
   const [showKey, setShowKey] = useState(false);
+  if (!show) return null;
+
+  const applyPreset = (preset: typeof PRESETS[0]) => {
+    onChange({endpoint: preset.endpoint, model: preset.model, apiKey: preset.apiKey});
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm" onClick={onClose}>
-      <div className="w-full max-w-lg bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden" onClick={e => e.stopPropagation()}>
-        <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 dark:border-gray-800">
-          <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-violet-500 to-blue-500 flex items-center justify-center"><Settings className="w-4 h-4 text-white"/></div>
-            <h2 className="text-base font-bold text-gray-900 dark:text-white">LLM 配置</h2>
-          </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400"><X className="w-5 h-5"/></button>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm" onClick={onClose}>
+      <div className="w-full max-w-md bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 overflow-hidden" onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-5 py-3 border-b border-gray-100 dark:border-gray-800">
+          <h2 className="text-base font-semibold text-gray-900 dark:text-white">设置</h2>
+          <button onClick={onClose} className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><path d="M18 6 6 18M6 6l12 12"/></svg>
+          </button>
         </div>
-        <div className="px-5 py-5 space-y-4">
-          <div><label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">API 端点</label>
-            <input type="text" value={config.endpoint} onChange={e => onChange({endpoint: e.target.value})} placeholder="https://api.openai.com/v1"
-                   className="w-full px-3.5 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800/50 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-white placeholder-gray-400"/></div>
-          <div><label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">API Key</label>
+
+        <div className="px-5 py-4 space-y-4">
+          {/* Presets */}
+          <div>
+            <label className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 block">快速选择</label>
+            <div className="flex gap-2">
+              {PRESETS.map((p, i) => (
+                <button key={i} onClick={() => applyPreset(p)}
+                        className="flex-1 px-3 py-2 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors">
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Endpoint */}
+          <div>
+            <label className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 block">API 端点</label>
+            <input value={config.endpoint} onChange={e => onChange({endpoint: e.target.value})} placeholder="https://api.openai.com/v1"
+                   className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-white placeholder-gray-400"/>
+          </div>
+
+          {/* API Key */}
+          <div>
+            <label className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 block">API Key</label>
             <div className="relative">
               <input type={showKey ? 'text' : 'password'} value={config.apiKey} onChange={e => onChange({apiKey: e.target.value})} placeholder="sk-..."
-                     className="w-full px-3.5 py-2.5 pr-10 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800/50 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-white placeholder-gray-400 font-mono"/>
-              <button onClick={() => setShowKey(!showKey)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs font-medium">{showKey ? '隐藏' : '显示'}</button>
-            </div></div>
-          <div><label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">模型</label>
-            <input type="text" value={config.model} onChange={e => onChange({model: e.target.value})} placeholder="gpt-4o-mini"
-                   className="w-full px-3.5 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800/50 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-white placeholder-gray-400"/></div>
-          <div><label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5">系统提示词</label>
-            <textarea value={config.systemPrompt} onChange={e => onChange({systemPrompt: e.target.value})} rows={5}
-                      className="w-full px-3.5 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800/50 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-white placeholder-gray-400 resize-none font-mono text-[12px]"/></div>
+                     className="w-full px-3 py-2 pr-16 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-white placeholder-gray-400 font-mono"/>
+              <button onClick={() => setShowKey(!showKey)} className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-gray-400 hover:text-gray-600">{showKey ? '隐藏' : '显示'}</button>
+            </div>
+          </div>
+
+          {/* Model */}
+          <div>
+            <label className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 block">模型</label>
+            <input value={config.model} onChange={e => onChange({model: e.target.value})} placeholder="gpt-4o-mini"
+                   className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-white placeholder-gray-400"/>
+          </div>
+
+          {/* System Prompt */}
+          <div>
+            <label className="text-[11px] font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-1.5 block">系统提示</label>
+            <textarea value={config.systemPrompt} onChange={e => onChange({systemPrompt: e.target.value})} rows={4}
+                      className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-xs focus:outline-none focus:ring-2 focus:ring-violet-500 dark:text-white resize-none"/>
+          </div>
         </div>
-        <div className="flex items-center justify-between px-5 py-4 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30">
-          <span className="text-[11px] text-gray-400 dark:text-gray-500">配置保存在浏览器本地</span>
-          <button onClick={onClose} className="px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium rounded-xl transition-colors">完成</button>
+
+        <div className="flex items-center justify-between px-5 py-3 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/30">
+          <span className="text-[10px] text-gray-400">配置仅保存在浏览器本地</span>
+          <button onClick={onClose} className="px-4 py-1.5 bg-violet-600 text-white text-sm font-medium rounded-lg hover:bg-violet-700 transition-colors">完成</button>
         </div>
       </div>
     </div>
@@ -215,11 +295,8 @@ export default function AIChat() {
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [streaming, setStreaming] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [settingsOpen, setSettingsOpen] = useState(false);
-  const [checkpoints, setCheckpoints] = useState<CheckpointInfo[]>([]);
-  const [showHistory, setShowHistory] = useState(false);
   const [darkMode, setDarkMode] = useState(false);
   const [mounted, setMounted] = useState(false);
 
@@ -232,8 +309,21 @@ export default function AIChat() {
   // ── Hydrate ──
   useEffect(() => {
     setMounted(true);
-    try { const s = localStorage.getItem(CFG_KEY); if (s) setConfig(prev => ({...prev, ...JSON.parse(s)})); } catch {}
-    try { const s = localStorage.getItem(CONS_KEY); if (s) { const list: Conversation[] = JSON.parse(s); setConversations(list); if (list.length > 0 && !activeConvId) setActiveConvId(list[0].id); } } catch {}
+    try {
+      const saved = localStorage.getItem(CFG_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed.endpoint || parsed.apiKey || parsed.model) setConfig(prev => ({...prev, ...parsed}));
+      }
+    } catch {}
+    try {
+      const saved = localStorage.getItem(CONS_KEY);
+      if (saved) {
+        const list: Conversation[] = JSON.parse(saved);
+        setConversations(list);
+        if (list.length > 0) setActiveConvId(list[0].id);
+      }
+    } catch {}
     setDarkMode(document.documentElement.classList.contains('dark'));
   }, []);
 
@@ -241,305 +331,197 @@ export default function AIChat() {
   useEffect(() => { if (!mounted) return; localStorage.setItem(CONS_KEY, JSON.stringify(conversations)); }, [conversations, mounted]);
   useEffect(() => { msgEndRef.current?.scrollIntoView({behavior: 'smooth'}); }, [messages, loading]);
 
-  const toggleDark = useCallback(() => { setDarkMode(p => { const n = !p; document.documentElement.classList.toggle('dark', n); return n; }); }, []);
+  const toggleDark = useCallback(() => {
+    setDarkMode(p => { const n = !p; document.documentElement.classList.toggle('dark', n); return n; });
+  }, []);
 
   const newConversation = useCallback(() => {
-    const id = genId(); setConversations(prev => [{id, title: '新对话', messages: [], createdAt: Date.now()}, ...prev]); setActiveConvId(id); setInput(''); setCheckpoints([]); setShowHistory(false);
+    const id = genId();
+    setConversations(prev => [{id, title: '新对话', messages: [], createdAt: Date.now()}, ...prev]);
+    setActiveConvId(id);
   }, []);
 
-  const updateConv = useCallback((convId: string, msgs: ChatMessage[], title?: string) => {
-    setConversations(prev => prev.map(c => c.id !== convId ? c : {...c, messages: msgs, title: title || c.title, interrupted: false}));
+  const deleteConversation = useCallback((e: React.MouseEvent, id: string) => {
+    e.stopPropagation();
+    setConversations(prev => {
+      const next = prev.filter(c => c.id !== id);
+      if (activeConvId === id) setActiveConvId(next.length > 0 ? next[0].id : null);
+      return next;
+    });
+  }, [activeConvId]);
+
+  const updateConfig = useCallback((patch: Partial<LLMConfig>) => {
+    setConfig(prev => ({...prev, ...patch}));
   }, []);
 
-  // ── Send message (SSE streaming via EventSource) ──
+  // ── Send message ──
   const sendMessage = useCallback(async () => {
     const text = input.trim();
-    if (!text || loading || !config.apiKey) return;
+    if (!text || loading) return;
     setInput('');
 
-    let convId = activeConvId;
-    if (!convId) {
-      const newId = genId();
-      convId = newId;
-      setConversations(prev => [{id: newId, title: truncate(text, 40), messages: [], createdAt: Date.now()}, ...prev]);
-      setActiveConvId(convId);
+    // Validate config
+    if (!config.endpoint || !config.model) {
+      setSettingsOpen(true);
+      return;
     }
 
-    const curMsgs = conversations.find(c => c.id === convId)?.messages || [];
-    const newMessages = [...curMsgs, {role: 'user', content: text} as ChatMessage];
-    updateConv(convId, newMessages, undefined);
-    setLoading(true);
-    setStreaming(true);
+    const finalConvId = activeConvId || genId();
+    const isNew = !activeConvId;
+    if (isNew) {
+      setConversations(prev => [{id: finalConvId, title: trunc(text, 40), messages: [], createdAt: Date.now()}, ...prev]);
+      setActiveConvId(finalConvId);
+    }
 
-    // Build request body
+    const curMsgs = conversations.find(c => c.id === finalConvId)?.messages || [];
+    const newMessages: ChatMessage[] = [...curMsgs, {role: 'user', content: text}];
+    setConversations(prev => prev.map(c => c.id !== finalConvId ? c : {...c, messages: newMessages, title: c.messages.length === 0 ? trunc(text, 40) : c.title}));
+    setLoading(true);
+
+    const controller = new AbortController();
+    abortRef.current = controller;
+    const acc: ChatMessage[] = [...newMessages];
+
     const body = JSON.stringify({
       endpoint: config.endpoint,
       api_key: config.apiKey,
       model: config.model,
-      messages: newMessages.map(m => ({
-        role: m.role, content: m.content || null,
-        tool_calls: m.tool_calls, tool_call_id: m.tool_call_id, name: m.name,
-      })),
-      conversation_id: convId,
+      messages: newMessages.map(m => ({role: m.role, content: m.content})),
+      conversation_id: finalConvId,
       system_prompt: config.systemPrompt,
     });
 
-    const controller = new AbortController();
-    abortRef.current = controller;
-    const streamingAccumulator: ChatMessage[] = [...newMessages];
-
     try {
-      const apiBase = getConfig().API_BASE_URL;
-      const response = await fetch(`${apiBase}/api/v2/mcp/chat/stream`, {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body,
-        signal: controller.signal,
+      const base = getConfig().API_BASE_URL;
+      const resp = await fetch(`${base}/api/v2/mcp/chat/stream`, {
+        method: 'POST', headers: {'Content-Type': 'application/json'}, body, signal: controller.signal,
       });
-
-      if (!response.ok) {
-        streamingAccumulator.push({role: 'assistant', content: `⚠️ 请求失败 (${response.status})，请检查配置`});
-        updateConv(convId, streamingAccumulator);
+      if (!resp.ok) {
+        acc.push({role: 'assistant', content: `⚠️ 请求失败 (${resp.status})`});
+        setConversations(p => p.map(c => c.id !== finalConvId ? c : {...c, messages: [...acc]}));
         return;
       }
 
-      const reader = response.body?.getReader();
-      if (!reader) {
-        streamingAccumulator.push({role: 'assistant', content: '❌ 无法读取响应流'});
-        updateConv(convId, streamingAccumulator);
-        return;
-      }
-
+      const reader = resp.body?.getReader();
+      if (!reader) return;
       const decoder = new TextDecoder();
-      let buffer = '';
-      let lastUiUpdate = 0;
+      let buf = '';
 
       while (true) {
         const {done, value} = await reader.read();
         if (done) break;
-
-        buffer += decoder.decode(value, {stream: true});
-        const lines = buffer.split('\n');
-        buffer = lines.pop() || '';
+        buf += decoder.decode(value, {stream: true});
+        const lines = buf.split('\n');
+        buf = lines.pop() || '';
 
         for (const line of lines) {
           if (!line.startsWith('data: ')) continue;
-          const data = JSON.parse(line.slice(6));
-
-          if (data.type === 'done') {
-            // Final content
-            if (data.content && streamingAccumulator.length > 0) {
-              const last = streamingAccumulator[streamingAccumulator.length - 1];
+          try {
+            const data = JSON.parse(line.slice(6));
+            if (data.type === 'done') break;
+            if (data.type === 'error') {
+              acc.push({role: 'assistant', content: `❌ ${data.message}`});
+              setConversations(p => p.map(c => c.id !== finalConvId ? c : {...c, messages: [...acc]}));
+              return;
+            }
+            if (data.type === 'token' && data.content) {
+              const last = acc[acc.length - 1];
               if (last?.role === 'assistant') {
-                last.content = data.content;
+                last.content = (last.content || '') + data.content;
+              } else {
+                acc.push({role: 'assistant', content: data.content});
               }
+              setConversations(p => p.map(c => c.id !== finalConvId ? c : {...c, messages: [...acc]}));
             }
-            break;
-          }
-          if (data.type === 'error') {
-            streamingAccumulator.push({role: 'assistant', content: `❌ ${data.message}`});
-            updateConv(convId, streamingAccumulator);
-            return;
-          }
-
-          // Token streaming
-          if (data.type === 'token' && data.content) {
-            const last = streamingAccumulator[streamingAccumulator.length - 1];
-            if (last?.role === 'assistant') {
-              last.content = (last.content || '') + data.content;
-            } else {
-              streamingAccumulator.push({role: 'assistant', content: data.content});
+            if (data.type === 'tool_call') {
+              // Show tool call
             }
-          }
-
-          // Throttle UI updates
-          const now = Date.now();
-          if (now - lastUiUpdate > 100) {
-            setConversations(prev => prev.map(c => c.id !== convId ? c : {
-              ...c, messages: [...streamingAccumulator]
-            }));
-            lastUiUpdate = now;
-          }
+          } catch {}
         }
       }
-
-      // Final UI sync
-      setConversations(prev => prev.map(c => c.id !== convId ? c : {
-        ...c, messages: streamingAccumulator
-      }));
+      setConversations(p => p.map(c => c.id !== finalConvId ? c : {...c, messages: [...acc]}));
     } catch (err: any) {
       if (err.name !== 'AbortError') {
-        streamingAccumulator.push({role: 'assistant', content: `❌ ${err?.message || '请求失败'}`});
-        updateConv(convId, streamingAccumulator);
+        acc.push({role: 'assistant', content: `❌ ${err?.message || '请求失败'}`});
+        setConversations(p => p.map(c => c.id !== finalConvId ? c : {...c, messages: [...acc]}));
       }
     } finally {
       setLoading(false);
-      setStreaming(false);
       abortRef.current = null;
     }
-  }, [input, loading, config, activeConvId, conversations, updateConv]);
+  }, [input, loading, config, activeConvId, conversations]);
 
-  // ── Interrupt ──
-  const handleInterrupt = useCallback(() => {
-    if (abortRef.current) {
-      abortRef.current.abort();
-      abortRef.current = null;
-    }
-    setLoading(false);
-    setStreaming(false);
-  }, []);
-
-  // ── Load checkpoints ──
-  const loadCheckpoints = useCallback(async () => {
-    if (!activeConvId) return;
-    try {
-      const res = await apiClient.get(`/mcp/chat/${activeConvId}/checkpoints`);
-      if (res.success) setCheckpoints(res.data || []);
-    } catch {}
-  }, [activeConvId]);
-
-  // ── Backtrack to step ──
-  const handleBacktrack = useCallback(async (step: number) => {
-    if (!activeConvId) return;
-    try {
-      const res = await apiClient.post(`/mcp/chat/${activeConvId}/backtrack?step=${step}`);
-      if (res.success && res.data) {
-        setConversations(prev => prev.map(c => c.id !== activeConvId ? c : {...c, messages: res.data.messages || []}));
-        setShowHistory(false);
-      }
-    } catch {}
-  }, [activeConvId]);
-
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+  const handleKey = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
   }, [sendMessage]);
 
-  const [toastMsg, setToastMsg] = useState('');
-  const showToast = useCallback((t: string) => { setToastMsg(t); setTimeout(() => setToastMsg(''), 2000); }, []);
-  const updateConfig = useCallback((patch: Partial<LLMConfig>) => setConfig(prev => ({...prev, ...patch})), []);
+  const handleInterrupt = useCallback(() => {
+    abortRef.current?.abort();
+    abortRef.current = null;
+    setLoading(false);
+  }, []);
 
-  const handleSuggestion = useCallback((text: string) => { setInput(text); }, []);
+  const needsConfig = !config.endpoint || !config.model;
 
   return (
     <div className="h-dvh flex bg-white dark:bg-gray-950 text-gray-900 dark:text-gray-100 overflow-hidden">
-      {toastMsg && <div className="fixed top-4 left-1/2 -translate-x-1/2 z-[60] px-4 py-2 bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 text-sm rounded-xl shadow-lg animate-fade-in">{toastMsg}</div>}
-
       {/* ─── Sidebar ── */}
-      <aside className={`${sidebarOpen ? 'w-64' : 'w-0'} transition-all duration-300 flex-shrink-0 border-r border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 overflow-hidden flex flex-col`}>
-        <div className="flex items-center justify-between h-14 px-4 border-b border-gray-100 dark:border-gray-800 flex-shrink-0">
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-violet-500 to-blue-500 flex items-center justify-center"><Sparkles className="w-3.5 h-3.5 text-white"/></div>
-            <span className="font-bold text-sm text-gray-900 dark:text-white">AI Chat</span>
-          </div>
-          <button onClick={newConversation} className="p-1.5 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-400"><Plus className="w-4 h-4"/></button>
-        </div>
-        <div className="flex-1 overflow-y-auto p-2 space-y-0.5">
-          {conversations.length === 0 && (
-            <div className="text-center py-8"><MessageSquare className="w-8 h-8 mx-auto mb-2 text-gray-300 dark:text-gray-600"/><p className="text-xs text-gray-400 dark:text-gray-500">暂无对话</p></div>
-          )}
-          {conversations.map(conv => (
-            <div key={conv.id} onClick={() => { setActiveConvId(conv.id); setShowHistory(false); }} role="button" tabIndex={0}
-                 onKeyDown={(e) => e.key === 'Enter' && setActiveConvId(conv.id)}
-                 className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-left text-sm transition-colors group cursor-pointer ${
-                   conv.id === activeConvId ? 'bg-white dark:bg-gray-800 shadow-sm border border-gray-200 dark:border-gray-700' : 'hover:bg-gray-100 dark:hover:bg-gray-800/50 border border-transparent'}`}>
-              <MessageSquare className="w-4 h-4 flex-shrink-0 text-gray-400"/>
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate flex items-center gap-1">
-                  {conv.title}
-                  {conv.interrupted && <Pause className="w-3 h-3 text-amber-500 flex-shrink-0"/>}
-                </div>
-                <div className="text-[10px] text-gray-400 dark:text-gray-500">{fmtDate(conv.createdAt)}</div>
-              </div>
-              <button onClick={(e) => { e.stopPropagation(); setConversations(prev => { const n = prev.filter(c => c.id !== conv.id); if (activeConvId === conv.id) setActiveConvId(n.length > 0 ? n[0].id : null); return n; }); }}
-                      className="p-1 rounded-md text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0">
-                <Trash2 className="w-3.5 h-3.5"/></button>
-            </div>
-          ))}
-        </div>
-        <div className="p-3 border-t border-gray-100 dark:border-gray-800 flex-shrink-0">
-          <button onClick={newConversation} className="w-full flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border-2 border-dashed border-gray-200 dark:border-gray-700 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600 text-sm transition-colors">
-            <Plus className="w-4 h-4"/><span>新对话</span>
-          </button>
-        </div>
-      </aside>
+      <Sidebar conversations={conversations} activeId={activeConvId} onSelect={setActiveConvId}
+               onNew={newConversation} onDelete={deleteConversation}
+               collapsed={!sidebarOpen} onToggle={() => setSidebarOpen(!sidebarOpen)}
+               onSettings={() => setSettingsOpen(true)}/>
 
       {/* ─── Main ── */}
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="h-14 flex items-center justify-between px-4 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 flex-shrink-0">
+        {/* Top Bar */}
+        <header className="h-12 flex items-center justify-between px-4 border-b border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 flex-shrink-0">
           <div className="flex items-center gap-2">
             <button onClick={() => setSidebarOpen(!sidebarOpen)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400">
-              {sidebarOpen ? <PanelLeftClose className="w-4 h-4"/> : <PanelLeftOpen className="w-4 h-4"/>}
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
             </button>
-            {activeConv && <h1 className="text-sm font-semibold text-gray-800 dark:text-gray-200 truncate max-w-[200px] sm:max-w-sm">{activeConv.title}</h1>}
-            {!config.apiKey && <span className="ml-2 px-2 py-0.5 text-[10px] font-medium rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400">未配置</span>}
-            {activeConv?.interrupted && <span className="ml-2 px-2 py-0.5 text-[10px] font-medium rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400">已中断</span>}
+            {activeConv && <span className="text-sm font-medium text-gray-800 dark:text-gray-200 truncate max-w-[200px]">{activeConv.title}</span>}
           </div>
           <div className="flex items-center gap-1">
             {activeConv && messages.length > 0 && (
-              <>
-                <button onClick={() => { loadCheckpoints(); setShowHistory(!showHistory); }}
-                        className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 transition-colors" title="历史状态">
-                  <History className="w-4 h-4"/>
-                </button>
-                <button onClick={() => { setConversations(prev => prev.map(c => c.id === activeConvId ? {...c, messages: []} : c)); setInput(''); }}
-                        className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-red-500 transition-colors" title="清空">
-                  <Trash2 className="w-4 h-4"/>
-                </button>
-              </>
+              <button onClick={() => {
+                setConversations(prev => prev.map(c => c.id === activeConvId ? {...c, messages: []} : c));
+              }} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 hover:text-red-500 transition-colors" title="清空">
+                {Icons.trash}
+              </button>
             )}
-            <button onClick={toggleDark} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400">{darkMode ? <Sun className="w-4 h-4"/> : <Moon className="w-4 h-4"/>}</button>
-            <button onClick={() => setSettingsOpen(true)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400"><Settings className="w-4 h-4"/></button>
+            <button onClick={toggleDark} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 transition-colors">
+              {darkMode ? Icons.sun : Icons.moon}
+            </button>
+            <button onClick={() => setSettingsOpen(true)} className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-400 transition-colors">
+              {Icons.settings}
+            </button>
           </div>
         </header>
 
-        {/* ─── Checkpoint History Panel ── */}
-        {showHistory && checkpoints.length > 0 && (
-          <div className="border-b border-gray-200 dark:border-gray-800 bg-amber-50/50 dark:bg-amber-900/10 px-4 py-3 animate-slide-down">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 flex items-center gap-1"><Undo2 className="w-3 h-3"/>状态回溯</span>
-              <button onClick={() => setShowHistory(false)} className="text-gray-400 hover:text-gray-600"><X className="w-3.5 h-3.5"/></button>
-            </div>
-            <div className="flex gap-2 overflow-x-auto pb-1">
-              {checkpoints.map((cp) => (
-                <button key={cp.id} onClick={() => handleBacktrack(cp.step)}
-                        className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs border transition-colors ${
-                          cp.interrupted
-                            ? 'border-amber-300 dark:border-amber-700 bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
-                            : 'border-gray-200 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-400'
-                        }`}>
-                  <div className="font-medium">#{cp.step} {cp.current_node}</div>
-                  <div className="opacity-70">{cp.messages_count} 条消息</div>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* ─── Messages ── */}
+        {/* Messages */}
         <div className="flex-1 overflow-y-auto">
-          <div className="max-w-3xl mx-auto px-4 sm:px-6 py-6 space-y-5">
+          <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
             {messages.length === 0 ? (
               <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-                <div className="w-20 h-20 rounded-3xl bg-gradient-to-br from-violet-100 via-blue-100 to-indigo-100 dark:from-violet-900/30 dark:via-blue-900/30 dark:to-indigo-900/30 flex items-center justify-center mb-6 shadow-lg shadow-violet-200/20 dark:shadow-none">
-                  <Sparkles className="w-10 h-10 text-violet-500 dark:text-violet-400"/>
-                </div>
-                <h2 className="text-xl font-bold text-gray-900 dark:text-white mb-2">有什么我可以帮你的？</h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400 mb-8 max-w-md">
-                  {config.apiKey ? '通过自然语言管理你的博客内容，AI 会自动调用 MCP 工具完成操作' : '请先点击右上角设置按钮配置 LLM API 端点'}
+                <div className="text-5xl mb-4">✨</div>
+                <h2 className="text-lg font-semibold text-gray-900 dark:text-white mb-1">开始 AI 对话</h2>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mb-6 max-w-sm">
+                  {needsConfig ? '请先点击右上角设置 API 端点和模型' : '通过自然语言管理博客内容'}
                 </p>
-                {!config.apiKey ? (
-                  <button onClick={() => setSettingsOpen(true)} className="px-6 py-3 bg-gradient-to-r from-violet-600 to-blue-600 text-white text-sm font-medium rounded-xl hover:opacity-90 transition-all shadow-lg shadow-violet-500/20">配置 API</button>
+
+                {needsConfig ? (
+                  <button onClick={() => setSettingsOpen(true)} className="px-5 py-2.5 bg-violet-600 text-white text-sm font-medium rounded-xl hover:bg-violet-700 transition-colors shadow-sm">
+                    打开设置
+                  </button>
                 ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-lg">
+                  <div className="grid grid-cols-2 gap-2 w-full max-w-sm">
                     {SUGGESTIONS.map((item, i) => (
-                      <button key={i} onClick={() => handleSuggestion(item.text)}
-                              className="flex items-start gap-3 p-4 rounded-2xl bg-white dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700/50 hover:border-violet-200 dark:hover:border-violet-700/50 hover:shadow-md transition-all text-left group">
-                        <div className="w-9 h-9 rounded-xl bg-violet-50 dark:bg-violet-900/20 flex items-center justify-center flex-shrink-0 group-hover:bg-violet-100 dark:group-hover:bg-violet-900/30 transition-colors">
-                          <item.icon className="text-violet-600 dark:text-violet-400" style={{width: 18, height: 18}}/>
-                        </div>
-                        <div className="min-w-0">
-                          <div className="text-sm font-semibold text-gray-900 dark:text-white mb-0.5">{item.title}</div>
-                          <div className="text-[11px] text-gray-400 dark:text-gray-500 leading-relaxed line-clamp-2">{item.text}</div>
+                      <button key={i} onClick={() => setInput(item.text)}
+                              className="flex items-center gap-2 p-3 rounded-xl border border-gray-200 dark:border-gray-700 hover:border-violet-300 dark:hover:border-violet-700 text-left text-sm transition-colors group">
+                        <span className="text-lg">{item.icon}</span>
+                        <div>
+                          <div className="font-medium text-gray-800 dark:text-gray-200 text-xs">{item.title}</div>
+                          <div className="text-[10px] text-gray-400 line-clamp-2">{item.text}</div>
                         </div>
                       </button>
                     ))}
@@ -547,33 +529,30 @@ export default function AIChat() {
                 )}
               </div>
             ) : (
-              messages.map((msg, i) => <ChatBubble key={i} msg={msg} onCopy={showToast}/>)
+              messages.map((msg, i) => <Bubble key={i} msg={msg}/>)
             )}
-            {loading && !streaming && <ThinkingDots/>}
+            {loading && <Thinking/>}
             <div ref={msgEndRef}/>
           </div>
         </div>
 
-        {/* ── Input ── */}
+        {/* Input */}
         <div className="border-t border-gray-200 dark:border-gray-800 bg-white dark:bg-gray-900 flex-shrink-0">
-          <div className="max-w-3xl mx-auto px-4 sm:px-6 py-3">
-            <div className="flex items-end gap-2 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-2xl px-4 py-3 focus-within:ring-2 focus-within:ring-violet-500 focus-within:border-violet-500 transition-all">
-              <textarea
-                value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKeyDown}
-                placeholder={config.apiKey ? '输入消息...' : '请先配置 API Key'}
-                disabled={!config.apiKey || loading} rows={1}
-                className="flex-1 bg-transparent text-sm dark:text-white placeholder-gray-400 resize-none outline-none max-h-32 leading-relaxed"
-                onInput={e => { const el = e.currentTarget; el.style.height = 'auto'; el.style.height = `${Math.min(el.scrollHeight, 128)}px`; }}
-              />
-              <div className="flex items-center gap-1.5 flex-shrink-0">
+          <div className="max-w-2xl mx-auto px-4 py-3">
+            <div className="flex items-end gap-2 bg-gray-50 dark:bg-gray-800/50 border border-gray-200 dark:border-gray-700 rounded-xl px-3 py-2 focus-within:ring-2 focus-within:ring-violet-500 transition-all">
+              <textarea value={input} onChange={e => setInput(e.target.value)} onKeyDown={handleKey}
+                        placeholder="输入消息，Enter 发送" disabled={loading} rows={1}
+                        className="flex-1 bg-transparent text-sm dark:text-white placeholder-gray-400 resize-none outline-none max-h-32 leading-relaxed"
+                        onInput={e => { const el = e.currentTarget; el.style.height = 'auto'; el.style.height = `${Math.min(el.scrollHeight, 120)}px`; }}/>
+              <div className="flex items-center gap-1">
                 {loading ? (
-                  <button onClick={handleInterrupt} className="p-2 rounded-xl bg-red-500 text-white hover:bg-red-600 transition-all flex-shrink-0 shadow-sm">
-                    <Pause className="w-4 h-4"/>
+                  <button onClick={handleInterrupt} className="p-2 rounded-lg bg-red-500 text-white hover:bg-red-600 transition-colors">
+                    {Icons.stop}
                   </button>
                 ) : (
-                  <button onClick={sendMessage} disabled={!input.trim() || !config.apiKey}
-                          className="p-2 rounded-xl bg-gradient-to-r from-violet-600 to-blue-600 text-white hover:opacity-90 disabled:opacity-30 disabled:cursor-not-allowed transition-all flex-shrink-0 shadow-sm">
-                    <Send className="w-4 h-4"/>
+                  <button onClick={sendMessage} disabled={!input.trim() || needsConfig}
+                          className="p-2 rounded-lg bg-violet-600 text-white hover:bg-violet-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors">
+                    {Icons.send}
                   </button>
                 )}
               </div>
@@ -582,15 +561,7 @@ export default function AIChat() {
         </div>
       </div>
 
-      {settingsOpen && <SettingsModal config={config} onChange={updateConfig} onClose={() => setSettingsOpen(false)}/>}
-
-      <style>{`
-        @keyframes fade-in { from { opacity: 0; transform: translateY(-8px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes slide-down { from { opacity: 0; max-height: 0; } to { opacity: 1; max-height: 300px; } }
-        .animate-fade-in { animation: fade-in 0.2s ease-out; }
-        .animate-slide-down { animation: slide-down 0.3s ease-out; overflow: hidden; }
-        .line-clamp-2 { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-      `}</style>
+      {settingsOpen && <SettingsModal config={config} onChange={updateConfig} onClose={() => setSettingsOpen(false)} show={settingsOpen}/>}
     </div>
   );
 }
