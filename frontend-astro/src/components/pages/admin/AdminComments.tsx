@@ -389,13 +389,13 @@ function CommentsInner() {
     queryKey: ['admin-comments', activeTab],
     queryFn: async (): Promise<Comment[]> => {
       if (activeTab === 'pending') {
-        const res = await apiClient.get<Comment[]>('/comments/admin/comments/pending');
+        const res = await apiClient.get<Comment[]>('/comments/pending');
         return res.success && res.data ? (Array.isArray(res.data) ? res.data : []) : [];
       }
       if (activeTab === 'subscriptions' || activeTab === 'analytics') return [];
       const res = await apiClient.get<Comment[] | {
         comments: Comment[]
-      }>('/comments/admin/comments', {status: activeTab || undefined});
+      }>('/comments/', {status: activeTab || undefined});
       if (!res.success || !res.data) return [];
       return Array.isArray(res.data) ? res.data : res.data.comments || [];
     },
@@ -406,7 +406,7 @@ function CommentsInner() {
   const {data: allCommentsData} = useQuery({
     queryKey: ['admin-comments-all'],
     queryFn: async (): Promise<Comment[]> => {
-      const res = await apiClient.get<Comment[] | { comments: Comment[] }>('/comments/admin/comments', {});
+      const res = await apiClient.get<Comment[] | { comments: Comment[] }>('/comments/', {});
       if (!res.success || !res.data) return [];
       return Array.isArray(res.data) ? res.data : res.data.comments || [];
     },
@@ -428,17 +428,17 @@ function CommentsInner() {
 
   /* ── Mutations ── */
   const approveMut = useMutation({
-    mutationFn: (id: number) => apiClient.post(`/comments/admin/comments/${id}/approve`),
+    mutationFn: (id: number) => apiClient.post(`/comments/${id}/approve`),
     onSuccess: () => qc.invalidateQueries({queryKey: ['admin-comments']}),
   });
 
   const rejectMut = useMutation({
-    mutationFn: (id: number) => apiClient.post(`/comments/admin/comments/${id}/reject`),
+    mutationFn: (id: number) => apiClient.post(`/comments/${id}/reject`),
     onSuccess: () => qc.invalidateQueries({queryKey: ['admin-comments']}),
   });
 
   const deleteMut = useMutation({
-    mutationFn: (id: number) => apiClient.delete(`/comments/admin/comments/${id}`),
+    mutationFn: (id: number) => apiClient.delete(`/comments/${id}`),
     onSuccess: () => qc.invalidateQueries({queryKey: ['admin-comments']}),
   });
 

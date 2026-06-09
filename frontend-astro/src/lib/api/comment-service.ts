@@ -283,7 +283,7 @@ class CommentService {
    */
   async getPendingComments(): Promise<{ success: boolean; data?: Comment[]; error?: string }> {
     try {
-      const res = await apiClient.get<unknown[]>('/comments/admin/comments/pending');
+      const res = await apiClient.get<unknown[]>('/comments/pending');
       return {
         success: !!res.success,
         data: Array.isArray(res.data) ? (res.data as Comment[]) : [],
@@ -300,7 +300,7 @@ class CommentService {
    */
   async getAdminComments(status?: string): Promise<{ success: boolean; data?: Comment[]; error?: string }> {
     try {
-      const res = await apiClient.get<unknown[]>('/comments/admin/comments', {status: status || undefined});
+      const res = await apiClient.get<unknown[]>('/comments/', {status: status || undefined});
       const comments = res.success && res.data
         ? (Array.isArray(res.data) ? res.data : (res.data as { comments?: Comment[] }).comments || [])
         : [];
@@ -317,7 +317,7 @@ class CommentService {
    */
   async approveComment(commentId: number): Promise<{ success: boolean; error?: string }> {
     try {
-      const res = await apiClient.post(`/comments/admin/comments/${commentId}/approve`);
+      const res = await apiClient.post(`/comments/${commentId}/approve`);
       return {success: !!res.success};
     } catch (error) {
       console.error('[CommentService] Failed to approve comment:', error);
@@ -331,7 +331,7 @@ class CommentService {
    */
   async rejectComment(commentId: number): Promise<{ success: boolean; error?: string }> {
     try {
-      const res = await apiClient.post(`/comments/admin/comments/${commentId}/reject`);
+      const res = await apiClient.post(`/comments/${commentId}/reject`);
       return {success: !!res.success};
     } catch (error) {
       console.error('[CommentService] Failed to reject comment:', error);
@@ -345,7 +345,7 @@ class CommentService {
    */
   async adminDeleteComment(commentId: number): Promise<{ success: boolean; error?: string }> {
     try {
-      const res = await apiClient.delete(`/comments/admin/comments/${commentId}`);
+      const res = await apiClient.delete(`/comments/${commentId}`);
       return {success: !!res.success};
     } catch (error) {
       console.error('[CommentService] Failed to delete comment (admin):', error);
