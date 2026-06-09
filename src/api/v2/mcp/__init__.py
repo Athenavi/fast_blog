@@ -12,12 +12,13 @@ import logging
 import uuid
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from src.mcp.agent import LLMConfig, run_agent, stream_agent
 from src.mcp.server import mcp_server
+from src.auth.auth_deps import jwt_required_dependency as jwt_required
 
 logger = logging.getLogger("mcp_proxy")
 router = APIRouter(prefix="/mcp", tags=["MCP AI Agent"])
@@ -87,7 +88,7 @@ def _to_dicts(messages: List[ChatMessage]) -> List[Dict]:
 # ─── Non-streaming chat ──────────────────────────────────────────
 
 @router.post("/chat")
-async def chat_non_stream(req: ChatRequest):
+async def chat_non_stream(req: ChatRequest, current_user=Depends(jwt_required)):
     """Non-streaming chat."""
     conv_id = req.conversation_id or uuid.uuid4().hex[:12]
     cfg = _to_cfg(req)
@@ -113,7 +114,7 @@ async def chat_non_stream(req: ChatRequest):
 # ─── SSE streaming chat ──────────────────────────────────────────
 
 @router.post("/chat/stream")
-async def chat_stream(req: ChatRequest):
+async def chat_stream(req: ChatRequest, current_user=Depends(jwt_required)):
     """SSE streaming chat."""
     conv_id = req.conversation_id or uuid.uuid4().hex[:12]
     cfg = _to_cfg(req)
@@ -141,12 +142,12 @@ async def chat_stream(req: ChatRequest):
 # ─── Info ─────────────────────────────────────────────────────────
 
 @router.get("/tools")
-async def list_mcp_tools():
+async def list_mcp_tools(current_user=Depends(jwt_required)):
     return {"success": True, "data": mcp_server.get_openai_tools()}
 
 
 @router.get("/info")
-async def mcp_proxy_info():
+async def mcp_proxy_info(current_user=Depends(jwt_required)):
     info = mcp_server.get_server_info()
     info["backend"] = "mcp.agent"
     return {"success": True, "data": info}
