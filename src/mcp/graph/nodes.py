@@ -182,6 +182,8 @@ class AgentNode(Node):
         api_key = ctx.extra.get("llm_api_key", "")
         model = ctx.extra.get("llm_model", "gpt-4o-mini")
         system_prompt = ctx.extra.get("system_prompt", self.system_prompt or "You are a helpful AI assistant.")
+        if not system_prompt:
+            system_prompt = "You are a helpful AI assistant."
         tools = mcp_server.get_openai_tools()
 
         # Build OpenAI-style messages
@@ -265,6 +267,8 @@ class AgentNode(Node):
         api_key = ctx.extra.get("llm_api_key", "")
         model = ctx.extra.get("llm_model", "gpt-4o-mini")
         system_prompt = ctx.extra.get("system_prompt", self.system_prompt or "You are a helpful AI assistant.")
+        if not system_prompt:
+            system_prompt = "You are a helpful AI assistant."
         tools = mcp_server.get_openai_tools()
 
         openai_messages = [{"role": "system", "content": system_prompt}]
@@ -403,8 +407,11 @@ def build_chat_graph() -> 'Graph':
     graph.set_entry_point("input")
     graph.add_edge("input", "agent")
     graph.add_edge("agent", "router")
-    graph.add_edge("router", "tools")
-    graph.add_edge("router", "output")
+    # Conditional routing: router stores decision in state.metadata["next_node"]
+    graph.add_edge("router", "tools",
+                   condition=lambda s: s.metadata.get("next_node") == "tools" and "tools")
+    graph.add_edge("router", "output",
+                   condition=lambda s: s.metadata.get("next_node") != "tools" and "output")
     graph.add_edge("tools", "agent")  # Loop back for multi-turn tool use
 
     return graph

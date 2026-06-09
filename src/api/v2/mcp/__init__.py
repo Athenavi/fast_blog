@@ -269,6 +269,14 @@ async def mcp_proxy_info():
 
 def _build_context(req: ChatRequest) -> 'ExecutionContext':
     from src.mcp.graph.engine import ExecutionContext
+
+    # Determine system prompt — must be a non-null string
+    system_prompt = req.system_prompt
+    if not system_prompt and req.messages and req.messages[0].role == "system":
+        system_prompt = req.messages[0].content or ""
+    if not system_prompt:
+        system_prompt = "You are a helpful AI assistant."
+
     return ExecutionContext(
         graph=_graph,
         checkpointer=_checkpointer,
@@ -277,6 +285,8 @@ def _build_context(req: ChatRequest) -> 'ExecutionContext':
             "llm_endpoint": req.endpoint,
             "llm_api_key": req.api_key,
             "llm_model": req.model,
-            "system_prompt": req.system_prompt or req.messages[0].content if req.messages and req.messages[0].role == "system" else None,
+            "system_prompt": system_prompt,
+            "max_tokens": req.max_tokens,
+            "temperature": req.temperature,
         },
     )
