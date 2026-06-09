@@ -129,16 +129,23 @@ class ArticleViewStatsService:
         pattern = self.VIEW_COUNT_KEY.format("*")
         keys = []
 
-        # 检查是否是 Redis 缓存（具有 redis 属性）
-        if hasattr(cache, 'redis'):
+        # 检测缓存类型并扫描键
+        # RedisCacheWrapper 具有 _client 属性
+        # SimpleCache 具有 _cache 属性
+        if hasattr(cache, '_client'):
             # 使用 Redis 的 scan_iter 方法
-            async for key in cache.redis.scan_iter(match=pattern):
-                keys.append(key)
-        else:
-            # 对于 SimpleCache，我们需要遍历所有键来匹配模式
+            try:
+                async for key in cache._client.scan_iter(match=pattern):
+                    keys.append(key)
+            except Exception:
+                # fallback: 同步 scan
+                for key in cache._client.scan_iter(match=pattern):
+                    keys.append(key)
+        elif hasattr(cache, '_cache'):
+            # 对于 SimpleCache，遍历所有键来匹配模式
             import re
             pattern_regex = pattern.replace('*', '.*')
-            for key in cache._cache.keys():
+            for key in list(cache._cache.keys()):
                 if re.match(pattern_regex, key):
                     keys.append(key)
 
