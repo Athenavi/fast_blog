@@ -27,7 +27,7 @@ from src.mcp.graph.memory import (
 from src.mcp.graph.nodes import (
     InputNode, OutputNode,
     AgentNode, ToolNode, RouterNode,
-    MCPToolNode,
+    MCPToolNode, build_chat_graph,
 )
 
 __all__ = [
@@ -39,5 +39,5 @@ __all__ = [
     'Memory', 'ShortTermMemory', 'LongTermMemory',
     'InputNode', 'OutputNode',
     'AgentNode', 'ToolNode', 'RouterNode',
-    'MCPToolNode',
+    'MCPToolNode', 'build_chat_graph',
 ]
