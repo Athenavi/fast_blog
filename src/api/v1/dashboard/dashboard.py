@@ -52,7 +52,7 @@ async def get_activities(
         }
         for a in activities
     ]
-    return ApiResponse.success_response(data=data)
+    return ApiResponse(success=True, data=data)
 
 
 @router.get("/stats")
