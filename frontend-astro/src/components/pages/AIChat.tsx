@@ -1,6 +1,8 @@
 'use client';
 
 import React, {useState, useRef, useEffect, useCallback} from 'react';
+import {AuthGuard} from '@/components/AuthGuard';
+import {QueryProvider} from '@/components/QueryProvider';
 import {getConfig} from '@/lib/config';
 
 // ─── Icons (inline SVG for zero dependencies) ─────────────────────
@@ -289,7 +291,11 @@ function SettingsModal({config, onChange, onClose, show}: {config: LLMConfig; on
 
 // ─── Main Component ────────────────────────────
 
-export default function AIChat() {
+export default function AIChatGuard() {
+  return <AuthGuard><QueryProvider><AIChatInner/></QueryProvider></AuthGuard>;
+}
+
+function AIChatInner() {
   const [config, setConfig] = useState<LLMConfig>(DEFAULT_CONFIG);
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [activeConvId, setActiveConvId] = useState<string | null>(null);
