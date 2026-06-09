@@ -1,28 +1,53 @@
 """
-FastBlog MCP Chat Proxy API v2
+FastBlog MCP AI Agent API v2
 
-AI 对话代理 — 接收用户配置的 LLM 端点和 API Key，转发请求并执行 MCP 工具
-不存储任何 LLM 凭据（凭据仅在前端 localStorage 中）
+Uses the MCP Graph engine for stateful, interruptable, streamable AI agent execution.
+Endpoints:
+  POST /api/v2/mcp/chat        — Non-streaming chat (returns final response)
+  POST /api/v2/mcp/chat/stream — SSE streaming chat
+  GET  /api/v2/mcp/chat/{conv_id}/checkpoints — List checkpoints
+  POST /api/v2/mcp/chat/{conv_id}/backtrack  — Backtrack to a step
+  POST /api/v2/mcp/chat/{conv_id}/interrupt  — Interrupt execution
+  POST /api/v2/mcp/chat/{conv_id}/resume     — Resume interrupted
+  DELETE /api/v2/mcp/chat/{conv_id}          — Clear conversation
+  GET  /api/v2/mcp/tools      — List MCP tools
+  GET  /api/v2/mcp/info       — Server info
 """
 
 import json
 import logging
-from typing import Any, List, Dict, Optional
+import uuid
+from typing import Any, Dict, List, Optional
 
-import httpx
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Query, HTTPException
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
+from src.mcp.graph import (
+    Graph, State, Executor, build_chat_graph,
+    InMemoryCheckpointer, FileCheckpointer,
+    ShortTermMemory, LongTermMemory,
+)
 from src.mcp.server import mcp_server
 
 logger = logging.getLogger('mcp_proxy')
-router = APIRouter(prefix="/mcp", tags=["MCP Chat Proxy"])
+router = APIRouter(prefix="/mcp", tags=["MCP AI Agent"])
+
+# ─── Graph engine singleton ────────────────────────────────────────
+
+_checkpointer = InMemoryCheckpointer()
+_memories = [ShortTermMemory(), LongTermMemory()]
+_graph = build_chat_graph()
 
 
-# ─── 请求/响应模型 ─────────────────────────────────────
+def _get_executor() -> Executor:
+    return Executor(_graph, checkpointer=_checkpointer, memories=_memories)
+
+
+# ─── Request/Response models ──────────────────────────────────────
 
 class ChatMessage(BaseModel):
-    role: str  # system | user | assistant | tool
+    role: str
     content: Optional[str] = None
     tool_calls: Optional[List[Dict[str, Any]]] = None
     tool_call_id: Optional[str] = None
@@ -30,178 +55,228 @@ class ChatMessage(BaseModel):
 
 
 class ChatRequest(BaseModel):
-    endpoint: str  # LLM API 地址，如 https://api.openai.com/v1
-    api_key: str   # API Key
-    model: str     # 模型名，如 gpt-4o, deepseek-chat, claude-3-opus
+    endpoint: str
+    api_key: str
+    model: str
     messages: List[ChatMessage]
+    conversation_id: Optional[str] = None
     max_tokens: int = 4096
     temperature: float = 0.7
+    system_prompt: Optional[str] = None
 
 
 class ChatResponse(BaseModel):
     success: bool
+    conversation_id: str
     message: Optional[str] = None
     content: Optional[str] = None
     tool_calls: Optional[List[Dict[str, Any]]] = None
 
 
-# ─── 代理端点 ──────────────────────────────────────────
+# ─── Non-streaming chat ──────────────────────────────────────────
 
-@router.post("/chat/completions")
-async def chat_completions(req: ChatRequest):
-    """
-    AI 对话代理
-    
-    将用户消息转发到用户指定的 LLM 端点，同时注入 MCP 工具定义。
-    当 LLM 调用工具时，由服务器端执行并将结果返回给 LLM。
-    
-    工作流程:
-    1. 首次调用：发送消息 + MCP 工具定义给 LLM
-    2. 如 LLM 返回 tool_calls → 执行工具 → 发送结果给 LLM
-    3. 重复直到 LLM 返回纯文本响应
-    """
+@router.post("/chat")
+async def chat_non_stream(req: ChatRequest):
+    """Non-streaming chat — runs graph to completion, returns final result."""
+    conv_id = req.conversation_id or uuid.uuid4().hex[:12]
+
+    # Build initial state from messages
+    messages = [{"role": m.role, "content": m.content} for m in req.messages if m.content]
+    state = State(messages=messages, conversation_id=conv_id)
+
+    executor = _get_executor()
+    ctx = _build_context(req)
+
     try:
-        # 构建请求体
-        openai_messages = _build_openai_messages(req.messages)
-        tools = mcp_server.get_openai_tools()
+        final_state, _ = await executor.run(state, ctx=ctx)
 
-        # 最多 5 轮工具调用
-        max_rounds = 5
-        for _round in range(max_rounds):
-            # 调用 LLM
-            llm_response = await _call_llm(
-                endpoint=req.endpoint.rstrip("/"),
-                api_key=req.api_key,
-                model=req.model,
-                messages=openai_messages,
-                tools=tools if _round == 0 else None,  # 仅首轮注入工具定义
-                max_tokens=req.max_tokens,
-                temperature=req.temperature,
-            )
+        # Extract last assistant message
+        assistant_msgs = [m for m in final_state.messages if m.get("role") == "assistant"]
+        last_content = assistant_msgs[-1].get("content", "") if assistant_msgs else ""
+        last_tool_calls = assistant_msgs[-1].get("tool_calls") if assistant_msgs else None
 
-            choice = llm_response.get("choices", [{}])[0]
-            message = choice.get("message", {})
-            finish_reason = choice.get("finish_reason", "")
-
-            # 提取消息内容
-            content = message.get("content") or ""
-            tool_calls = message.get("tool_calls")
-
-            # 如果没有工具调用，返回最终结果
-            if not tool_calls:
-                return ChatResponse(success=True, content=content)
-
-            # 执行工具调用
-            openai_messages.append({"role": "assistant", "content": content or None, "tool_calls": tool_calls})
-
-            for tc in tool_calls:
-                tool_name = tc["function"]["name"]
-                try:
-                    tool_args = json.loads(tc["function"]["arguments"])
-                except json.JSONDecodeError:
-                    tool_args = {}
-
-                tool_result = await _execute_mcp_tool(tool_name, tool_args)
-                openai_messages.append({
-                    "role": "tool",
-                    "tool_call_id": tc["id"],
-                    "content": json.dumps(tool_result, ensure_ascii=False, default=str),
-                })
-
-        # 达到最大轮数后返回最后的消息
-        return ChatResponse(success=True, content="已达到最大工具调用轮数，请简化操作")
-
-    except httpx.HTTPStatusError as e:
-        logger.error(f"LLM 调用失败: {e.response.status_code} {e.response.text[:500]}")
-        raise HTTPException(status_code=502, detail=f"LLM 调用失败: {e.response.status_code}")
-    except httpx.RequestError as e:
-        logger.error(f"LLM 连接失败: {e}")
-        raise HTTPException(status_code=502, detail=f"无法连接到 {req.endpoint}")
+        return ChatResponse(
+            success=not bool(final_state.errors),
+            conversation_id=conv_id,
+            content=last_content,
+            tool_calls=last_tool_calls,
+            message=final_state.errors[-1] if final_state.errors else None,
+        )
     except Exception as e:
-        logger.exception("MCP 代理异常")
+        logger.exception("Chat non-stream error")
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# ─── SSE streaming chat ──────────────────────────────────────────
+
+@router.post("/chat/stream")
+async def chat_stream(req: ChatRequest):
+    """SSE streaming chat — yields state updates as Server-Sent Events."""
+    conv_id = req.conversation_id or uuid.uuid4().hex[:12]
+
+    messages = [{"role": m.role, "content": m.content} for m in req.messages if m.content]
+    state = State(messages=messages, conversation_id=conv_id)
+
+    executor = _get_executor()
+    ctx = _build_context(req)
+
+    async def event_generator():
+        try:
+            async for current_state, cid in executor.stream(state, ctx=ctx):
+                # Find the latest assistant message delta
+                assistant_msgs = [m for m in current_state.messages if m.get("role") == "assistant"]
+                tool_msgs = [m for m in current_state.messages if m.get("role") == "tool"]
+
+                payload = {
+                    "type": "state_update",
+                    "conversation_id": conv_id,
+                    "step": current_state.step,
+                    "current_node": current_state.current_node,
+                    "checkpoint_id": cid,
+                    "has_errors": bool(current_state.errors),
+                    "errors": current_state.errors[-1:] if current_state.errors else [],
+                    "assistant_content": assistant_msgs[-1].get("content", "") if assistant_msgs else None,
+                    "tool_calls": assistant_msgs[-1].get("tool_calls") if assistant_msgs else None,
+                    "tool_results": {k: v for k, v in current_state.tool_results.items()},
+                    "messages_count": len(current_state.messages),
+                    "interrupted": current_state.interrupted,
+                }
+
+                yield f"data: {json.dumps(payload, ensure_ascii=False, default=str)}\n\n"
+
+            # Final done event
+            yield f"data: {json.dumps({'type': 'done', 'conversation_id': conv_id}, ensure_ascii=False)}\n\n"
+
+        except Exception as e:
+            logger.exception("Streaming error")
+            yield f"data: {json.dumps({'type': 'error', 'message': str(e)}, ensure_ascii=False)}\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+            "Content-Type": "text/event-stream; charset=utf-8",
+        },
+    )
+
+
+# ─── Checkpoints & State management ──────────────────────────────
+
+@router.get("/chat/{conv_id}/checkpoints")
+async def list_checkpoints(conv_id: str):
+    """List all checkpoints for a conversation."""
+    executor = _get_executor()
+    checkpoints = await executor.list_checkpoints(conv_id)
+    return {"success": True, "data": checkpoints}
+
+
+@router.post("/chat/{conv_id}/backtrack")
+async def backtrack(conv_id: str, step: int = Query(..., description="Target step number")):
+    """Backtrack to a specific step."""
+    executor = _get_executor()
+    state = await executor.backtrack(conv_id, step)
+    if state is None:
+        raise HTTPException(status_code=404, detail=f"No checkpoint found at step {step}")
+    # Restore messages up to that point
+    return {
+        "success": True,
+        "data": {
+            "step": state.step,
+            "messages": state.messages,
+            "has_errors": bool(state.errors),
+        },
+    }
+
+
+@router.post("/chat/{conv_id}/interrupt")
+async def interrupt(conv_id: str, reason: str = "User interrupted"):
+    """Interrupt a running conversation."""
+    executor = _get_executor()
+    ok = await executor.interrupt(conv_id, reason)
+    if not ok:
+        raise HTTPException(status_code=404, detail=f"No active conversation '{conv_id}'")
+    return {"success": True, "message": "Interrupted"}
+
+
+@router.post("/chat/{conv_id}/resume")
+async def resume_conversation(conv_id: str, req: ChatRequest):
+    """Resume an interrupted conversation with new input."""
+    executor = _get_executor()
+
+    if not req.messages:
+        raise HTTPException(status_code=400, detail="No messages provided")
+
+    last_user_msg = req.messages[-1].content or ""
+    if not last_user_msg.strip():
+        raise HTTPException(status_code=400, detail="Last message must have content")
+
+    async def event_generator():
+        try:
+            async for current_state, cid in executor.resume(conv_id, last_user_msg):
+                assistant_msgs = [m for m in current_state.messages if m.get("role") == "assistant"]
+                payload = {
+                    "type": "resume_update",
+                    "conversation_id": conv_id,
+                    "step": current_state.step,
+                    "checkpoint_id": cid,
+                    "assistant_content": assistant_msgs[-1].get("content", "") if assistant_msgs else None,
+                    "tool_calls": assistant_msgs[-1].get("tool_calls") if assistant_msgs else None,
+                    "interrupted": current_state.interrupted,
+                }
+                yield f"data: {json.dumps(payload, ensure_ascii=False, default=str)}\n\n"
+            yield f"data: {json.dumps({'type': 'done', 'conversation_id': conv_id}, ensure_ascii=False)}\n\n"
+        except Exception as e:
+            yield f"data: {json.dumps({'type': 'error', 'message': str(e)}, ensure_ascii=False)}\n\n"
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "Connection": "keep-alive", "X-Accel-Buffering": "no"},
+    )
+
+
+@router.delete("/chat/{conv_id}")
+async def clear_conversation(conv_id: str):
+    """Delete a conversation and its checkpoints."""
+    await _checkpointer.delete(conv_id)
+    for mem in _memories:
+        await mem.clear(conv_id)
+    return {"success": True, "message": f"Conversation '{conv_id}' cleared"}
+
+
+# ─── MCP info endpoints ──────────────────────────────────────────
+
 @router.get("/tools")
 async def list_mcp_tools():
-    """列出 MCP 工具（OpenAI function-calling 格式）"""
+    """List MCP tools in OpenAI function-calling format."""
     return {"success": True, "data": mcp_server.get_openai_tools()}
 
 
 @router.get("/info")
 async def mcp_proxy_info():
-    """获取 MCP 代理信息"""
+    """Get MCP proxy and graph info."""
     info = mcp_server.get_server_info()
-    info["proxy_version"] = "1.0.0"
+    info["graph_id"] = _graph.id
+    info["graph_nodes"] = list(_graph.nodes.keys())
+    info["graph_edges"] = [f"{e.source}→{e.target}" for e in _graph.edges]
     return {"success": True, "data": info}
 
 
-# ─── 内部函数 ──────────────────────────────────────────
+# ─── Helper ──────────────────────────────────────────────────────
 
-def _build_openai_messages(messages: List[ChatMessage]) -> List[Dict]:
-    """将我们的消息格式转为 OpenAI API 格式"""
-    result = []
-    for msg in messages:
-        entry = {"role": msg.role}
-        if msg.content is not None:
-            entry["content"] = msg.content
-        if msg.tool_calls:
-            entry["tool_calls"] = msg.tool_calls
-        if msg.tool_call_id:
-            entry["tool_call_id"] = msg.tool_call_id
-        if msg.name:
-            entry["name"] = msg.name
-        result.append(entry)
-    return result
-
-
-async def _call_llm(
-    endpoint: str,
-    api_key: str,
-    model: str,
-    messages: List[Dict],
-    tools: Optional[List[Dict]] = None,
-    max_tokens: int = 4096,
-    temperature: float = 0.7,
-) -> Dict:
-    """调用 LLM API（OpenAI-compatible 格式）"""
-    body = {
-        "model": model,
-        "messages": messages,
-        "max_tokens": max_tokens,
-        "temperature": temperature,
-    }
-    if tools:
-        body["tools"] = tools
-
-    headers = {
-        "Authorization": f"Bearer {api_key}",
-        "Content-Type": "application/json",
-    }
-
-    async with httpx.AsyncClient(timeout=120.0) as client:
-        response = await client.post(
-            f"{endpoint}/chat/completions",
-            json=body,
-            headers=headers,
-        )
-        response.raise_for_status()
-        return response.json()
-
-
-async def _execute_mcp_tool(name: str, arguments: Dict) -> Any:
-    """执行 MCP 工具并返回结果"""
-    mcp_request = {
-        "method": "tools/call",
-        "params": {"name": name, "arguments": arguments},
-        "id": "proxy-1",
-    }
-    response = await mcp_server.handle_request(mcp_request)
-    if "error" in response:
-        raise ValueError(response["error"]["message"])
-
-    content = response.get("result", {}).get("content", [])
-    if content:
-        text = content[0].get("text", "{}")
-        return json.loads(text)
-    return {"success": True}
+def _build_context(req: ChatRequest) -> 'ExecutionContext':
+    from src.mcp.graph.engine import ExecutionContext
+    return ExecutionContext(
+        graph=_graph,
+        checkpointer=_checkpointer,
+        memories=_memories,
+        extra={
+            "llm_endpoint": req.endpoint,
+            "llm_api_key": req.api_key,
+            "llm_model": req.model,
+            "system_prompt": req.system_prompt or req.messages[0].content if req.messages and req.messages[0].role == "system" else None,
+        },
+    )
