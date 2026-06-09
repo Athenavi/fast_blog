@@ -1,6 +1,7 @@
-import React, {useEffect} from 'react';
-import {FileText} from 'lucide-react';
+import React, {useEffect, useState} from 'react';
+import {FileText, FolderClosed, Grid3X3} from 'lucide-react';
 import type {MediaFile} from '@/lib/api';
+import type {FolderNode} from '@/components/pages/media/FolderTree';
 import {getFullMediaUrl} from '@/lib/utils';
 
 /** 预览模态框 */
@@ -49,3 +50,39 @@ export const DeleteConfirm: React.FC<{item: MediaFile; onCancel: ()=>void; onCon
     </div>
   </div>
 );
+
+/** 移动文件对话框 */
+export const MoveDialog: React.FC<{open: boolean; onClose: ()=>void; folders: FolderNode[]; mediaCount: number; onMove: (folderPath: string|null)=>void}> = ({open, onClose, folders, mediaCount, onMove}) => {
+  if(!open) return null;
+  const renderNode = (node: FolderNode, depth=0) => (
+    <button key={node.id} onClick={()=>onMove(node.name)} className="w-full flex items-center gap-3 px-4 py-3 text-left rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-500 transition-colors" style={{paddingLeft:`${16+depth*20}px`}}>
+      <FolderClosed className="w-5 h-5 text-yellow-600"/> <span className="font-medium">{node.name}</span>
+    </button>
+  );
+  return (<div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={onClose}>
+    <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 max-w-md w-full shadow-xl" onClick={e=>e.stopPropagation()}>
+      <h3 className="text-lg font-bold mb-2">移动文件</h3>
+      <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">将选中的 {mediaCount} 个文件移动到：</p>
+      <div className="space-y-2 max-h-64 overflow-y-auto mb-4">
+        <button onClick={()=>onMove(null)} className="w-full flex items-center gap-3 px-4 py-3 text-left rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-500 transition-colors">
+          <Grid3X3 className="w-5 h-5 text-gray-500 dark:text-gray-400"/><span className="font-medium">根目录</span>
+        </button>
+        {folders.map(n=>renderNode(n))}
+      </div>
+      <div className="flex justify-end"><button onClick={onClose} className="px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg text-sm font-medium">取消</button></div>
+    </div>
+  </div>);
+};
+
+/** 新建文件夹对话框 */
+export const CreateFolderDialog: React.FC<{open: boolean; onClose: ()=>void; onCreate: (name: string)=>void}> = ({open, onClose, onCreate}) => {
+  const [name, setName] = useState('');
+  if(!open) return null;
+  return (<div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={onClose}>
+    <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 max-w-sm w-full shadow-xl" onClick={e=>e.stopPropagation()}>
+      <h3 className="text-lg font-bold mb-4">新建文件夹</h3>
+      <input type="text" value={name} onChange={e=>setName(e.target.value)} placeholder="文件夹名称" className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white mb-4" autoFocus onKeyDown={e=>{if(e.key==='Enter' && name.trim()) {onCreate(name.trim()); setName('');}}}/>
+      <div className="flex justify-end gap-3"><button onClick={onClose} className="px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg text-sm font-medium">取消</button><button onClick={()=>{if(name.trim()){onCreate(name.trim()); setName('');}}} className="px-4 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700">创建</button></div>
+    </div>
+  </div>);
+};
