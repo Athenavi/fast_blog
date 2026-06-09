@@ -1,9 +1,12 @@
-﻿'use client';
+'use client';
 
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import type {MediaFile} from '@/lib/api';
 import {MediaService} from '@/lib/api';
 import {UploadArea} from '@/components/pages/media/UploadArea';
+import {StorageStats} from '@/components/pages/media/StorageStats';
+import {useMediaUpload} from '@/components/pages/media/useMediaUpload';
+import {PreviewModal, DeleteConfirm} from '@/components/pages/media/MediaDialogs';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {motion} from 'framer-motion';
@@ -100,27 +103,6 @@ const FolderTree: React.FC<{
 };
 
 /* ---------- StorageStats ---------- */
-const StorageStats: React.FC<{ stats: any; loading: boolean }> = ({stats, loading}) => {
-  const items = [
-    {label: '图片', count: stats.image_count || 0, color: 'from-blue-500 to-cyan-500', icon: ImageIcon},
-    {label: '视频', count: stats.video_count || 0, color: 'from-purple-500 to-pink-500', icon: Video},
-    {label: '已用空间', count: stats.storage_used || '0 MB', color: 'from-green-500 to-emerald-500', icon: Upload},
-  ];
-  return (<div className="space-y-3">
-    <h3 className="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">存储</h3>
-    {items.map(item => {const Icon = item.icon; return (
-      <div key={item.label} className={`p-4 rounded-xl bg-gradient-to-br ${item.color} text-white`}>
-        <div className="flex items-center gap-2 text-sm opacity-80"><Icon className="w-4 h-4"/>{item.label}</div>
-        <p className="text-xl font-bold mt-1">{loading ? '...' : item.count}</p>
-      </div>
-    );})}
-    {!loading && stats.storage_percentage !== undefined && (<div>
-      <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mb-1">
-        <span>存储</span><span>{stats.storage_percentage}%</span></div>
-      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2"><div className="bg-blue-600 h-2 rounded-full" style={{width: `${stats.storage_percentage}%`}}/></div></div>)}
-  </div>);
-};
-
 /* ---------- UploadArea ---------- */
 /* ---------- MediaGrid ---------- */
 /** 按分类分组：返回 Map<分类名, MediaFile[]> */
@@ -1363,56 +1345,6 @@ const AudioLayer: React.FC<{ media: MediaFile; onClose: () => void }> = ({media,
 };
 
 /* ---------- PreviewModal (仅非音频) ---------- */
-const PreviewModal: React.FC<{media: MediaFile|null; onClose: ()=>void}> = ({media, onClose}) => {
-  if(!media) return null;
-  const fullUrl = getFullMediaUrl(media.url);
-
-  // ESC 关闭
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
-  }, [onClose]);
-
-  return (<div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80" onClick={onClose}>
-    <div
-        className="w-[90vw] max-w-7xl max-h-[95vh] bg-white dark:bg-gray-900 rounded-2xl overflow-hidden shadow-2xl flex flex-col"
-        onClick={e => e.stopPropagation()}>
-      {media.mime_type === 'application/pdf' && fullUrl ? (
-          <div className="flex-1 bg-gray-100 dark:bg-gray-800 min-h-[80vh]">
-            <embed src={fullUrl} type="application/pdf" className="w-full h-full" style={{minHeight: '80vh', maxHeight: '85vh'}}/>
-          </div>
-      ) : media.mime_type?.startsWith('video/') && fullUrl ? (
-        <div className="bg-black flex-1 flex items-center justify-center">
-          <video src={fullUrl} controls autoPlay preload="auto"
-                 className="max-w-full max-h-[85vh] w-full h-full object-contain" playsInline>您的浏览器不支持视频播放
-          </video>
-        </div>
-      ) : media.mime_type?.startsWith('image/') && fullUrl ? (
-          <img src={fullUrl} alt={media.original_filename} className="max-w-full max-h-[70vh] object-contain" loading="eager" decoding="async"/>
-      ) : (
-          <div className="p-16 text-center"><FileText className="w-16 h-16 text-gray-400 mx-auto mb-4"/><p className="text-gray-600">{media.original_filename}</p></div>
-      )}
-      <div className="p-6 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
-        <h3 className="font-bold text-gray-900 dark:text-white">{media.original_filename}</h3>
-        <p
-          className="text-sm text-gray-500 dark:text-gray-400 mt-1">{media.file_size ? `${(media.file_size / 1024).toFixed(1)} KB` : ''} · {media.mime_type}</p>
-      </div>
-    </div>
-  </div>);
-};
-
-const DeleteConfirm: React.FC<{item: MediaFile; onCancel: ()=>void; onConfirm: ()=>void}> = ({item, onCancel, onConfirm}) => (
-  <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={onCancel}>
-    <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 max-w-sm w-full shadow-xl" onClick={e=>e.stopPropagation()}>
-      <h3 className="text-lg font-bold text-gray-900 dark:text-white mb-2">确认删除</h3>
-      <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">确定要删除 <span
-        className="font-medium">{item.original_filename}</span> 吗？</p>
-      <div className="flex justify-end gap-3"><button onClick={onCancel} className="px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg text-sm font-medium">取消</button><button onClick={onConfirm} className="px-4 py-2 bg-red-600 text-white rounded-lg text-sm font-medium hover:bg-red-700">删除</button></div>
-    </div>
-  </div>
-);
-
 const MoveDialog: React.FC<{open: boolean; onClose: ()=>void; folders: FolderNode[]; mediaCount: number; onMove: (folderPath: string|null)=>void}> = ({open, onClose, folders, mediaCount, onMove}) => {
   if(!open) return null;
   const renderNode = (node: FolderNode, depth=0) => (
@@ -1448,25 +1380,6 @@ const CreateFolderDialog: React.FC<{open: boolean; onClose: ()=>void; onCreate: 
 };
 
 /* ---------- Upload hook ---------- */
-const useMediaUpload = (onComplete?: () => void) => {
-  const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [uploadStatus, setUploadStatus] = useState('');
-  const uploadFiles = async (files: File[]) => {
-    if (!files.length) return;
-    setUploading(true); setUploadProgress(0); setUploadStatus(`开始上传 ${files.length} 个文件...`);
-    try {
-      for (let i = 0; i < files.length; i++) {
-        await MediaService.uploadMediaFileWithProgress(files[i], (p) => { setUploadProgress(((i/files.length)*100)+(p/files.length)); });
-        setUploadStatus(`已上传: ${files[i].name} (${i+1}/${files.length})`);
-      }
-      setUploadStatus('上传完成!'); if (onComplete) onComplete();
-    } catch (e: any) { setUploadStatus(`上传失败: ${e.message}`); }
-    finally { setTimeout(()=>{setUploading(false);setUploadProgress(0);setUploadStatus('');},2000); }
-  };
-  return {uploading, uploadProgress, uploadStatus, uploadFiles};
-};
-
 /* ========== Main MediaPage ========== */
 const MediaPage: React.FC = () => {
   const confirm = useConfirm();
