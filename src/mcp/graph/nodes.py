@@ -187,9 +187,13 @@ class AgentNode(Node):
         # Build OpenAI-style messages
         openai_messages = [{"role": "system", "content": system_prompt}]
         for msg in state.messages:
-            entry = {"role": msg.get("role", "user")}
-            if msg.get("content"):
-                entry["content"] = msg["content"]
+            role = msg.get("role", "user")
+            entry: Dict[str, Any] = {"role": role}
+            content_val = msg.get("content")
+            if role in ("tool", "user"):
+                entry["content"] = content_val or ""
+            else:
+                entry["content"] = content_val
             if msg.get("tool_calls"):
                 entry["tool_calls"] = msg["tool_calls"]
             if msg.get("tool_call_id"):
@@ -199,11 +203,18 @@ class AgentNode(Node):
             openai_messages.append(entry)
 
         for _round in range(self.max_tool_rounds):
-            response = await self._call_llm(
-                endpoint=endpoint, api_key=api_key, model=model,
-                messages=openai_messages,
-                tools=tools if _round == 0 else None,
-            )
+            try:
+                response = await self._call_llm(
+                    endpoint=endpoint, api_key=api_key, model=model,
+                    messages=openai_messages,
+                    tools=tools if _round == 0 else None,
+                )
+            except Exception as e:
+                err = str(e)
+                logger.error(f"[run] LLM call failed: {err}")
+                state.messages.append({"role": "assistant", "content": f"❌ LLM 调用失败：{err}"})
+                state.errors.append(f"LLM error: {err}")
+                break
 
             choice = response.get("choices", [{}])[0]
             message = choice.get("message", {})
@@ -258,9 +269,13 @@ class AgentNode(Node):
 
         openai_messages = [{"role": "system", "content": system_prompt}]
         for msg in state.messages:
-            entry = {"role": msg.get("role", "user")}
-            if msg.get("content"):
-                entry["content"] = msg["content"]
+            role = msg.get("role", "user")
+            entry: Dict[str, Any] = {"role": role}
+            content_val = msg.get("content")
+            if role in ("tool", "user"):
+                entry["content"] = content_val or ""
+            else:
+                entry["content"] = content_val
             if msg.get("tool_calls"):
                 entry["tool_calls"] = msg["tool_calls"]
             if msg.get("tool_call_id"):
@@ -270,25 +285,19 @@ class AgentNode(Node):
             openai_messages.append(entry)
 
         for _round in range(self.max_tool_rounds):
-            response = await self._call_llm(
-                endpoint=endpoint, api_key=api_key, model=model,
-                messages=openai_messages,
-                tools=tools if _round == 0 else None,
-            )
-
-            choice = response.get("choices", [{}])[0]
-            message = choice.get("message", {})
-            content = message.get("content") or ""
-            tool_calls = message.get("tool_calls")
-
-            if not tool_calls:
-                state.messages.append({"role": "assistant", "content": content})
+            try:
+                response = await self._call_llm(
+                    endpoint=endpoint, api_key=api_key, model=model,
+                    messages=openai_messages,
+                    tools=tools if _round == 0 else None,
+                )
+            except Exception as e:
+                err = str(e)
+                logger.error(f"[stream] LLM call failed: {err}")
+                state.messages.append({"role": "assistant", "content": f"❌ LLM 调用失败：{err}"})
+                state.errors.append(f"LLM error: {err}")
                 yield state
                 break
-
-            state.messages.append({"role": "assistant", "content": content or None, "tool_calls": tool_calls})
-            yield state
-            openai_messages.append({"role": "assistant", "content": content or None, "tool_calls": tool_calls})
 
             for tc in tool_calls:
                 func_name = tc["function"]["name"]
@@ -323,8 +332,14 @@ class AgentNode(Node):
             body["tools"] = tools
         headers = {"Authorization": f"Bearer {api_key}", "Content-Type": "application/json"}
 
+        # Debug log (truncated)
+        msg_summary = [(m.get("role"), len(m.get("content","") or ""), bool(m.get("tool_calls"))) for m in messages]
+        logger.info(f"LLM call: model={model} messages={msg_summary} tools={len(tools) if tools else 0}")
+
         async with httpx.AsyncClient(timeout=120.0) as client:
             resp = await client.post(f"{endpoint.rstrip('/')}/chat/completions", json=body, headers=headers)
+            if resp.status_code != 200:
+                logger.error(f"LLM API error {resp.status_code}: {resp.text[:1000]}")
             resp.raise_for_status()
             return resp.json()
 
