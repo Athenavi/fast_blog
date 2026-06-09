@@ -1,31 +1,18 @@
 """
-P8-3: 定时备份任务调度器
+P8-3: 定时备份任务调度器（已迁移到 src/scheduler.py）
 使用 APScheduler 实现自动化备份调度
+
+此模块仅保留任务函数供中心调度器调用
 """
 import asyncio
 from datetime import datetime
-
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
-from apscheduler.triggers.cron import CronTrigger
 
 from shared.services.ops.backup_manager import backup_manager
 from shared.services.ops.health_checker import health_checker
 from src.unified_logger import default_logger as logger
 
 
-class BackupScheduler:
-    """
-    P8-3: 备份任务调度器
-    
-    功能：
-    1. 每日凌晨 2 点自动备份数据库
-    2. 每周日凌晨 3 点执行完整备份
-    3. 每月 1 号凌晨 4 点执行月度备份
-    4. 每小时健康检查
-    """
-
-    def __init__(self):
-        self.scheduler = AsyncIOScheduler()
+# 任务函数已迁移到 src/scheduler.py，此文件仅作兼容引用
 
     async def daily_backup_job(self):
         """每日备份任务"""
