@@ -86,6 +86,9 @@ class FastBlogLLM(BaseChatModel):
         return self.bind(tools=formatted, **kwargs)
 
     def _get_config(self, config: Optional[RunnableConfig] = None) -> Dict[str, Any]:
+        # config can be RunnableConfig (dict) or CallbackManagerForLLMRun (object with .config)
+        if hasattr(config, 'config'):
+            config = config.config  # CallbackManagerForLLMRun → RunnableConfig
         configurable = (config or {}).get("configurable", {}) or {}
         return {
             "endpoint": configurable.get(CFG_ENDPOINT, "https://api.openai.com/v1"),
