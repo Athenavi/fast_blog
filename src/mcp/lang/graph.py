@@ -17,7 +17,7 @@ from langgraph.graph.message import add_messages
 from langgraph.prebuilt import ToolNode, tools_condition
 from typing_extensions import Annotated, TypedDict
 
-from src.mcp.lang.llm import FastBlogLLM, CFG_ENDPOINT, CFG_API_KEY, CFG_MODEL
+from src.mcp.lang.llm import FastBlogLLM, CFG_ENDPOINT, CFG_API_KEY, CFG_MODEL, CFG_MAX_TOKENS, CFG_TEMPERATURE
 from src.mcp.lang.tools import MCP_TOOLS
 
 logger = logging.getLogger('mcp.lang.graph')
