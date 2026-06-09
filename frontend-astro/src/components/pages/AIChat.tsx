@@ -506,22 +506,23 @@ export default function AIChat() {
             </div>
           )}
           {conversations.map(conv => (
-            <button key={conv.id} onClick={() => setActiveConvId(conv.id)}
-                    className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-left text-sm transition-colors group ${
-                      conv.id === activeConvId
-                        ? 'bg-white dark:bg-gray-800 shadow-sm border border-gray-200 dark:border-gray-700'
-                        : 'hover:bg-gray-100 dark:hover:bg-gray-800/50 border border-transparent'
-                    }`}>
+            <div key={conv.id} onClick={() => setActiveConvId(conv.id)} role="button" tabIndex={0}
+                 onKeyDown={(e) => e.key === 'Enter' && setActiveConvId(conv.id)}
+                 className={`w-full flex items-center gap-2 px-3 py-2.5 rounded-xl text-left text-sm transition-colors group cursor-pointer ${
+                   conv.id === activeConvId
+                     ? 'bg-white dark:bg-gray-800 shadow-sm border border-gray-200 dark:border-gray-700'
+                     : 'hover:bg-gray-100 dark:hover:bg-gray-800/50 border border-transparent'
+                 }`}>
               <MessageSquare className="w-4 h-4 flex-shrink-0 text-gray-400"/>
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{conv.title}</div>
                 <div className="text-[10px] text-gray-400 dark:text-gray-500">{fmtDate(conv.createdAt)}</div>
               </div>
-              <button onClick={(e) => deleteConversation(e, conv.id)}
+              <button onClick={(e) => { e.stopPropagation(); deleteConversation(e, conv.id); }}
                       className="p-1 rounded-md text-gray-300 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 opacity-0 group-hover:opacity-100 transition-all flex-shrink-0">
                 <Trash2 className="w-3.5 h-3.5"/>
               </button>
-            </button>
+            </div>
           ))}
         </div>
 
