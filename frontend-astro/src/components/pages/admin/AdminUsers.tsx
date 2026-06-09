@@ -170,9 +170,9 @@ function UsersInner() {
 
     // Stats
     const stats = useMemo(() => {
-      const active = users.filter((u) => u.is_active !== false).length;
-      const banned = users.filter((u) => u.is_active === false).length;
-      const admins = users.filter((u) => u.roles?.some((r) => r.name === 'admin') || u.role === 'admin').length;
+      const active = users.filter((u: any) => u.is_active !== false).length;
+      const banned = users.filter((u: any) => u.is_active === false).length;
+      const admins = users.filter((u: any) => u.roles?.some((r: any) => r.name === 'admin') || u.role === 'admin').length;
         return {active, banned, admins};
     }, [users]);
 
@@ -353,7 +353,7 @@ function UsersInner() {
                           </tr>
                           </thead>
                           <tbody className="divide-y divide-gray-50 dark:divide-gray-800/50">
-                          {users.map((u) => {
+                          {users.map((u: any) => {
                               const isActive = u.is_active !== false;
                               const role = u.roles?.[0]?.name || u.role || 'user';
                               const roleConfig = ROLE_COLORS[role] || ROLE_COLORS.user;

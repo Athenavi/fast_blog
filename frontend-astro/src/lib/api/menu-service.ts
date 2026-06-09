@@ -34,7 +34,7 @@ export class MenuService {
             if (response.success && response.data && response.data.menus) {
                 const menus = response.data.menus;
                 // 查找指定 slug 的菜单
-              const targetMenu = menus.find((menu) => menu.slug === slug);
+              const targetMenu = menus.find((menu: any) => menu.slug === slug);
 
                 if (targetMenu) {
                     return {

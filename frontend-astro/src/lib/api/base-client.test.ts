@@ -244,11 +244,11 @@ describe('base-client', () => {
       });
 
       const client = await getClient();
-      await client.get('/api/v1/old-endpoint');
+      await client.get('/api/v2/old-endpoint');
 
       const [url] = fetchSpy.mock.calls[0];
-      expect(url).toContain('/api/v1/old-endpoint');
-      expect(url).not.toContain('/api/v2/api/v1');
+      expect(url).toContain('/api/v2/old-endpoint');
+      expect(url).not.toContain('/api/v2/api/v2');
     });
 
     it('should use absolute URL as-is', async () => {

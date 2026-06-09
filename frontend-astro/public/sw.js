@@ -197,7 +197,7 @@ async function syncDrafts() {
 
     for (const draft of drafts) {
       try {
-        const response = await fetch('/api/v1/articles', {
+        const response = await fetch('/api/v2/articles', {
           method: 'POST',
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify(draft),

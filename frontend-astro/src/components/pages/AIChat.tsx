@@ -97,6 +97,23 @@ function Bubble({msg}: {msg: ChatMessage}) {
   const isUser = msg.role === 'user';
   const isTool = msg.role === 'tool';
 
+  if (isTool) {
+    try {
+      const toolData = JSON.parse(msg.content);
+      return (
+        <div className="flex gap-3">
+          <div className="flex-shrink-0 w-7 h-7 rounded-full bg-amber-100 text-amber-700 flex items-center justify-center text-[11px] font-semibold">🔧</div>
+          <div className="max-w-[80%] flex flex-col gap-1.5">
+            <ToolCallCard toolCall={{name: toolData.name, args: toolData.args}}
+                          result={toolData.result} done={toolData.done !== false}/>
+          </div>
+        </div>
+      );
+    } catch {
+      return null;
+    }
+  }
+
   return (
     <div className={`flex gap-3 ${isUser ? 'flex-row-reverse' : ''}`}>
       <div className={`flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-semibold ${
@@ -130,7 +147,72 @@ function Bubble({msg}: {msg: ChatMessage}) {
   );
 }
 
-// ─── Thinking dots ──────────────────────────────
+// ─── Tool Call Card ────────────────────────────
+
+function ToolCallCard({toolCall, result, done}: {
+  toolCall: {name: string; args: Record<string, any>};
+  result?: string;
+  done: boolean;
+}) {
+  const [expanded, setExpanded] = useState(false);
+
+  return (
+    <div className={`border rounded-xl overflow-hidden transition-colors ${
+      done
+        ? 'border-green-200 dark:border-green-800/30 bg-green-50/50 dark:bg-green-900/5'
+        : 'border-violet-200 dark:border-violet-800/30 bg-violet-50/50 dark:bg-violet-900/5'
+    }`}>
+      {/* Header */}
+      <button onClick={() => setExpanded(!expanded)}
+              className="w-full flex items-center gap-2 px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-300 hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+        <span className="text-base">{done ? '✅' : '⏳'}</span>
+        <span className="font-mono font-semibold">{toolCall.name}</span>
+        <span className="text-[10px] text-gray-400 ml-auto">
+          {done ? '完成' : '执行中…'}
+        </span>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
+             className={`w-3 h-3 transition-transform ${expanded ? 'rotate-180' : ''}`}>
+          <path d="M6 9l6 6 6-6"/>
+        </svg>
+      </button>
+
+      {/* Expanded: args + result */}
+      {expanded && (
+        <div className="px-3 pb-2 space-y-1.5">
+          {/* Parameters */}
+          <div>
+            <div className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase mb-0.5">参数</div>
+            <pre className="text-[11px] bg-white/60 dark:bg-black/20 rounded-lg p-2 overflow-x-auto text-gray-600 dark:text-gray-400 font-mono leading-relaxed">
+              {JSON.stringify(toolCall.args, null, 2)}
+            </pre>
+          </div>
+
+          {/* Result (only when done) */}
+          {done && result && (
+            <div>
+              <div className="text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase mb-0.5">结果</div>
+              <pre className="text-[11px] bg-white/60 dark:bg-black/20 rounded-lg p-2 overflow-x-auto text-gray-600 dark:text-gray-400 font-mono leading-relaxed max-h-40 overflow-y-auto">
+                {(() => {
+                  try { return JSON.stringify(JSON.parse(result), null, 2); }
+                  catch { return result; }
+                })()}
+              </pre>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Inline progress indicator when not expanded and not done */}
+      {!expanded && !done && (
+        <div className="px-3 pb-2">
+          <div className="h-1 bg-violet-100 dark:bg-violet-900/30 rounded-full overflow-hidden">
+            <div className="h-full bg-violet-500 rounded-full animate-pulse" style={{width: '60%'}}/>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function Thinking() {
   return (
@@ -441,7 +523,28 @@ function AIChatInner() {
               setConversations(p => p.map(c => c.id !== finalConvId ? c : {...c, messages: [...acc]}));
             }
             if (data.type === 'tool_call') {
-              // Show tool call
+              acc.push({role: 'tool', content: JSON.stringify({
+                name: data.name, args: data.args,
+                result: null, done: false,
+              })});
+              setConversations(p => p.map(c => c.id !== finalConvId ? c : {...c, messages: [...acc]}));
+            }
+            if (data.type === 'tool_result') {
+              // Update the last tool message with the result
+              for (let i = acc.length - 1; i >= 0; i--) {
+                if (acc[i].role === 'tool') {
+                  try {
+                    const td = JSON.parse(acc[i].content);
+                    if (td.name === data.name) {
+                      td.result = data.content;
+                      td.done = true;
+                      acc[i] = {...acc[i], content: JSON.stringify(td)};
+                      break;
+                    }
+                  } catch {}
+                }
+              }
+              setConversations(p => p.map(c => c.id !== finalConvId ? c : {...c, messages: [...acc]}));
             }
           } catch {}
         }

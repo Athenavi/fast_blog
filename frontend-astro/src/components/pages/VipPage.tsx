@@ -48,7 +48,7 @@ function VipInner() {
                 <h2 className="text-lg font-bold text-gray-900 dark:text-white">{t.name}</h2>
                 <div className="my-4"><span className="text-3xl font-black text-gray-900 dark:text-white">{t.price}</span><span className="text-sm text-gray-400">{t.period}</span></div>
                 <ul className="space-y-2.5 mb-6 text-left">
-                  {t.features.map((f,i) => (
+                  {t.features.map((f: any, i: number) => (
                     <li key={i} className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400"><Check className="w-4 h-4 text-green-500 shrink-0"/>{f}</li>
                   ))}
                 </ul>

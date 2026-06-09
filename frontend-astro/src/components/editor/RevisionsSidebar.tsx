@@ -59,7 +59,7 @@ const RevisionsSidebar: React.FC<Props> = ({articleId,open,onClose,onCollapse,on
         <div className={`${selected?'w-1/2':'flex-1'} overflow-y-auto p-4 space-y-2 border-r border-gray-100 dark:border-gray-800`}>
           {isLoading?<div className="space-y-3">{[1,2,3].map(i=><div key={i} className="h-16 bg-gray-100 dark:bg-gray-800 rounded-lg animate-pulse"/>)}</div>
           : !revisions?.length ? <div className="text-center py-8 text-gray-400"><FileText className="w-10 h-10 mx-auto mb-2 opacity-50"/><p className="text-sm">暂无版本记录</p></div>
-          : revisions.map(rev=>(
+          : revisions.map((rev: any)=>(
                 <button key={rev.id} onClick={async () => viewRevision(rev)}
               className={`w-full text-left p-3 rounded-xl border transition-colors ${selected?.id===rev.id&&!compareWith?'border-blue-500 bg-blue-50 dark:bg-blue-900/20':compareWith?.id===rev.id?'border-orange-400 bg-orange-50 dark:bg-orange-900/20':'border-gray-200 dark:border-gray-700 hover:border-gray-300'}`}>
               <div className="flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-white"><Clock className="w-3.5 h-3.5 text-gray-400"/>v{rev.revision_number}</div>

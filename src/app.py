@@ -11,7 +11,7 @@ from datetime import datetime
 from typing import AsyncGenerator
 
 from fastapi import FastAPI, HTTPException, Request
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.staticfiles import StaticFiles
 
@@ -667,6 +667,22 @@ def register_middleware(app: FastAPI):
 def register_error_handlers(app: FastAPI):
     """注册全局错误处理器和 SPA 回退"""
 
+    def _is_api_request(request: Request) -> bool:
+        """判断是否为 API 请求（需要 JSON 响应）"""
+        path = request.url.path
+        if path.startswith('/api/'):
+            return True
+        accept = request.headers.get('accept', '')
+        return 'application/json' in accept or 'text/plain' in accept
+
+    def _api_error_response(status_code: int, message: str) -> JSONResponse:
+        """统一 API 错误响应格式"""
+        from src.api.v1.core.responses import ApiResponse
+        return JSONResponse(
+            status_code=status_code,
+            content=ApiResponse(success=False, error=message).model_dump()
+        )
+
     @app.get("/api/v2/health", tags=["system"])
     async def health_check():
         # 原逻辑简化
@@ -689,17 +705,21 @@ def register_error_handlers(app: FastAPI):
         html = _MOBILE_LOGIN_HTML.replace("{{FRONTEND_ORIGIN}}", frontend_origin)
         return HTMLResponse(content=html)
 
-    # 注意：不再注册 catch-all 路由（如 @app.get('/{full_path:path}')），
-    # 因为它会拦截所有请求（包括 API 请求），导致 API 路由（如 /api/v2/articles）
-    # 在缺少尾部斜杠时返回 404 而非正确匹配。
-    # SPA 回退逻辑已移至 404 异常处理器中处理。
-
     @app.exception_handler(401)
     async def unauthorized_handler(request: Request, exc: HTTPException):
-        if request.url.path.startswith('/api/') or 'application/json' in request.headers.get('accept', ''):
-            from fastapi.responses import JSONResponse
-            return JSONResponse(status_code=401, content={"detail": exc.detail})
+        if _is_api_request(request):
+            return _api_error_response(401, exc.detail)
         return RedirectResponse(url=f"/login?next={request.url}")
+
+    @app.exception_handler(403)
+    async def forbidden_handler(request: Request, exc: HTTPException):
+        if _is_api_request(request):
+            return _api_error_response(403, exc.detail)
+        from src.api.v1.core.responses import ApiResponse
+        return JSONResponse(
+            status_code=403,
+            content=ApiResponse(success=False, error=exc.detail).model_dump()
+        )
 
     @app.exception_handler(404)
     async def custom_404_handler(request: Request, exc: HTTPException):
@@ -721,16 +741,14 @@ def register_error_handlers(app: FastAPI):
         except Exception as e:
             print(f"[Plugin] 404 hook error: {e}")
 
-        # 2. API 路径直接返回 JSON 404
-        path = request.url.path
-        if path.startswith('/api/') or 'application/json' in request.headers.get('accept', ''):
-            from src.error import error
-            return error(404, "Page Not Found")
+        # 2. API 请求返回 JSON
+        if _is_api_request(request):
+            return _api_error_response(404, "Page Not Found")
 
         # 3. 非 API 路径尝试返回前端 SPA 页面
         excluded_prefixes = ['api/v2/static/', 'api/v2/assets/', 'api/v2/docs', 'api/v2/redoc', 'api/v2/openapi.json',
                              'api/v2/health']
-        if not any(path.lstrip('/').startswith(prefix) for prefix in excluded_prefixes):
+        if not any(request.url.path.lstrip('/').startswith(prefix) for prefix in excluded_prefixes):
             try:
                 frontend_index = os.path.join(os.path.dirname(__file__), "..", "frontend", "index.html")
                 if os.path.exists(frontend_index):
@@ -745,8 +763,26 @@ def register_error_handlers(app: FastAPI):
         from src.error import error
         return error(404, "Page Not Found")
 
+    @app.exception_handler(422)
+    async def validation_error_handler(request: Request, exc: Exception):
+        """处理 FastAPI 请求验证错误"""
+        if _is_api_request(request):
+            from fastapi.exceptions import RequestValidationError
+            if isinstance(exc, RequestValidationError):
+                errors = exc.errors()
+                # 提取有意义的错误消息
+                first = errors[0] if errors else {}
+                field = " → ".join(str(p) for p in first.get("loc", [])) if first.get("loc") else ""
+                msg = first.get("msg", "Validation error") if first else "Validation error"
+                detail = f"'{field}' {msg}" if field else msg
+                return _api_error_response(422, detail)
+            return _api_error_response(422, "Validation Error")
+        raise exc
+
     @app.exception_handler(500)
     async def custom_500_handler(request: Request, exc: HTTPException):
+        if _is_api_request(request):
+            return _api_error_response(500, "Internal Server Error")
         from src.error import error
         return error(500, "Internal Server Error")
 
@@ -755,8 +791,12 @@ def register_error_handlers(app: FastAPI):
         from src.unified_logger import default_logger as logger
         logger.error(f"General error: {exc}")
         if any(kw in str(exc).lower() for kw in ["not found", "no result", "does not exist"]):
+            if _is_api_request(request):
+                return _api_error_response(404, "Page Not Found")
             from src.error import error
             return error(404, "Page Not Found")
+        if _is_api_request(request):
+            return _api_error_response(500, "Internal Server Error")
         from src.error import error
         return error(500, "Internal Server Error")
 

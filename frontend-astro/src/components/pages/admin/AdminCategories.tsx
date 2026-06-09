@@ -409,7 +409,7 @@ function CategoriesInner() {
       const res = await apiClient.get('/api/v2/categories');
       if (!res.success || !res.data) return [];
       const categoriesData = (res.data as any).categories || [];
-      return categoriesData.map((item) => ({
+      return categoriesData.map((item: any) => ({
         ...item.category,
         article_count: item.article_count || 0
       }));
@@ -428,7 +428,7 @@ function CategoriesInner() {
   const stats = useMemo(() => {
     if (!cats) return {total: 0, totalArticles: 0, maxArticles: 0, topCategory: ''};
     const total = cats.length;
-    const totalArticles = cats.reduce((sum, c) => sum + (c.articles_count || c.article_count || 0), 0);
+    const totalArticles = cats.reduce((sum: number, c: any) => sum + (c.articles_count || c.article_count || 0), 0);
     const sorted = [...cats].sort((a: any, b: any) =>
         ((b.articles_count || b.article_count || 0) - (a.articles_count || a.article_count || 0))
     );
@@ -446,7 +446,7 @@ function CategoriesInner() {
     let result = cats;
     if (searchInput.trim()) {
       const q = searchInput.toLowerCase();
-      result = result.filter((c) =>
+      result = result.filter((c: any) =>
           c.name?.toLowerCase().includes(q) || c.slug?.toLowerCase().includes(q)
       );
     }

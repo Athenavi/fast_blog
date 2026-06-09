@@ -19,6 +19,7 @@ from pydantic import BaseModel
 from src.mcp.agent import LLMConfig, run_agent, stream_agent
 from src.mcp.server import mcp_server
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
+from src.api.v1.core.responses import ApiResponse
 
 logger = logging.getLogger("mcp_proxy")
 router = APIRouter(prefix="/mcp", tags=["MCP AI Agent"])
@@ -45,11 +46,7 @@ class ChatRequest(BaseModel):
     system_prompt: Optional[str] = None
 
 
-class ChatResponse(BaseModel):
-    success: bool
-    conversation_id: str
-    content: Optional[str] = None
-    message: Optional[str] = None
+# ApiResponse from src.api.v1.core.responses is used instead of ChatResponse
 
 
 # ─── Helpers ──────────────────────────────────────────────────────
@@ -100,11 +97,10 @@ async def chat_non_stream(req: ChatRequest, current_user=Depends(jwt_required)):
         last = state.messages[-1] if state.messages else {}
         content = last.get("content", "") if last.get("role") == "assistant" else ""
 
-        return ChatResponse(
+        return ApiResponse(
             success=not state.errors,
-            conversation_id=conv_id,
-            content=content,
-            message=state.errors[-1] if state.errors else None,
+            data={"conversation_id": conv_id, "content": content},
+            error=state.errors[-1] if state.errors else None,
         )
     except Exception as e:
         logger.exception("Chat error")
@@ -143,11 +139,11 @@ async def chat_stream(req: ChatRequest, current_user=Depends(jwt_required)):
 
 @router.get("/tools")
 async def list_mcp_tools(current_user=Depends(jwt_required)):
-    return {"success": True, "data": mcp_server.get_openai_tools()}
+    return ApiResponse(success=True, data=mcp_server.get_openai_tools())
 
 
 @router.get("/info")
 async def mcp_proxy_info(current_user=Depends(jwt_required)):
     info = mcp_server.get_server_info()
     info["backend"] = "mcp.agent"
-    return {"success": True, "data": info}
+    return ApiResponse(success=True, data=info)
