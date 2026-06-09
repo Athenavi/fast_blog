@@ -1,7 +1,9 @@
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.interval import IntervalTrigger
+from apscheduler.triggers.cron import CronTrigger
 
 from shared.services.articles.article_view_stats import article_view_stats
+from shared.services.ops.backup_manager import backup_manager
 from src.unified_logger import default_logger as logger
 
 
@@ -61,6 +63,53 @@ class SessionScheduler:
             sync_article_views_job,
             trigger=IntervalTrigger(minutes=5),
             id='sync_article_views',
+            replace_existing=True
+        )
+
+        # 每日备份任务（凌晨 2 点）
+        async def daily_backup():
+            logger.info("Starting daily database backup...")
+            result = await backup_manager.create_database_backup('daily')
+            if result['success']:
+                logger.info(f"Daily backup completed: {result['filename']}")
+            else:
+                logger.error(f"Daily backup failed: {result.get('error')}")
+
+        def daily_backup_job():
+            loop = asyncio.new_event_loop()
+            try:
+                loop.run_until_complete(daily_backup())
+            finally:
+                loop.close()
+
+        self.scheduler.add_job(
+            daily_backup_job,
+            trigger=CronTrigger(hour=2, minute=0),
+            id='daily_backup',
+            replace_existing=True
+        )
+
+        # 每周完整备份（周日凌晨 3 点）
+        async def weekly_backup():
+            logger.info("Starting weekly full backup...")
+            db_result = await backup_manager.create_database_backup('weekly')
+            files_result = await backup_manager.create_files_backup()
+            if db_result['success'] and files_result['success']:
+                logger.info(f"Weekly backup completed")
+            else:
+                logger.error(f"Weekly backup had issues")
+
+        def weekly_backup_job():
+            loop = asyncio.new_event_loop()
+            try:
+                loop.run_until_complete(weekly_backup())
+            finally:
+                loop.close()
+
+        self.scheduler.add_job(
+            weekly_backup_job,
+            trigger=CronTrigger(day_of_week='sun', hour=3, minute=0),
+            id='weekly_backup',
             replace_existing=True
         )
 
