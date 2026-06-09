@@ -1,21 +1,14 @@
 """
-MCP Graph — LangGraph-style execution engine for AI agent workflows.
-
-Architecture:
-  Graph  ── composed of ──► Nodes + Edges
-  State  ◄── checkpointed ──► Checkpointer (persistence)
-  Executor ── runs ──► stream() / run() with interrupt/backtrack
-  Memory  ── stores ──► short-term (conversation) + long-term (knowledge)
-  Subgraph ── a Graph used as a Node in another Graph
+MCP Graph — LangGraph-inspired execution engine.
 
 Usage:
-  from src.mcp.graph import Graph, AgentNode, ToolNode, RouterNode
+  from src.mcp.graph import Graph, Executor, build_chat_graph
 """
 
 from src.mcp.graph.engine import (
-    Graph, Node, Edge, State,
+    Graph, Edge, Command, END,
     Executor, ExecutionContext,
-    RouterCondition,
+    CommandContext,
 )
 from src.mcp.graph.checkpointer import (
     Checkpointer, Checkpoint,
@@ -25,19 +18,19 @@ from src.mcp.graph.memory import (
     Memory, ShortTermMemory, LongTermMemory,
 )
 from src.mcp.graph.nodes import (
-    InputNode, OutputNode,
-    AgentNode, ToolNode, RouterNode,
-    MCPToolNode, build_chat_graph,
+    build_chat_graph,
+    input_node, agent_node, execute_tools_node,
+    output_node,
 )
 
 __all__ = [
-    'Graph', 'Node', 'Edge', 'State',
+    'Graph', 'Edge', 'Command', 'END',
     'Executor', 'ExecutionContext',
-    'RouterCondition',
+    'CommandContext',
     'Checkpointer', 'Checkpoint',
     'FileCheckpointer', 'InMemoryCheckpointer',
     'Memory', 'ShortTermMemory', 'LongTermMemory',
-    'InputNode', 'OutputNode',
-    'AgentNode', 'ToolNode', 'RouterNode',
-    'MCPToolNode', 'build_chat_graph',
+    'build_chat_graph',
+    'input_node', 'agent_node', 'execute_tools_node',
+    'output_node',
 ]
