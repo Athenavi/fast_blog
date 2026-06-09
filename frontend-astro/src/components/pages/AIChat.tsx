@@ -326,36 +326,37 @@ export default function AIChat() {
           if (!line.startsWith('data: ')) continue;
           const data = JSON.parse(line.slice(6));
 
-          if (data.type === 'done') break;
+          if (data.type === 'done') {
+            // Final content
+            if (data.content && streamingAccumulator.length > 0) {
+              const last = streamingAccumulator[streamingAccumulator.length - 1];
+              if (last?.role === 'assistant') {
+                last.content = data.content;
+              }
+            }
+            break;
+          }
           if (data.type === 'error') {
             streamingAccumulator.push({role: 'assistant', content: `❌ ${data.message}`});
             updateConv(convId, streamingAccumulator);
             return;
           }
 
-          // Accumulate content
-          if (data.assistant_content) {
+          // Token streaming
+          if (data.type === 'token' && data.content) {
             const last = streamingAccumulator[streamingAccumulator.length - 1];
             if (last?.role === 'assistant') {
-              last.content = data.assistant_content;
+              last.content = (last.content || '') + data.content;
             } else {
-              streamingAccumulator.push({role: 'assistant', content: data.assistant_content, tool_calls: data.tool_calls});
-            }
-          }
-          if (data.tool_calls && streamingAccumulator[streamingAccumulator.length - 1]?.role === 'assistant') {
-            streamingAccumulator[streamingAccumulator.length - 1].tool_calls = data.tool_calls;
-          }
-          if (data.tool_results) {
-            for (const [name, result] of Object.entries(data.tool_results)) {
-              streamingAccumulator.push({role: 'tool', content: JSON.stringify(result, null, 2), name});
+              streamingAccumulator.push({role: 'assistant', content: data.content});
             }
           }
 
-          // Throttle UI updates to every 100ms or on interrupt
+          // Throttle UI updates
           const now = Date.now();
-          if (now - lastUiUpdate > 100 || data.interrupted) {
+          if (now - lastUiUpdate > 100) {
             setConversations(prev => prev.map(c => c.id !== convId ? c : {
-              ...c, messages: [...streamingAccumulator], interrupted: data.interrupted || false
+              ...c, messages: [...streamingAccumulator]
             }));
             lastUiUpdate = now;
           }
