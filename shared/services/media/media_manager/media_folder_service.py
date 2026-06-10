@@ -108,11 +108,19 @@ class MediaFolderService:
             result = await db.execute(query)
             folders = result.scalars().all()
             
-            if include_media_count:
+            if include_media_count and folders:
+                # 批量查询所有文件夹的媒体数量，避免 N+1
+                folder_ids = [f.id for f in folders]
+                count_query = select(
+                    Media.folder_id,
+                    func.count(Media.id).label('cnt')
+                ).where(
+                    Media.folder_id.in_(folder_ids)
+                ).group_by(Media.folder_id)
+                count_result = await db.execute(count_query)
+                count_map = {row.folder_id: row.cnt for row in count_result.all()}
                 for folder in folders:
-                    count_query = select(func.count(Media.id)).where(Media.folder_id == folder.id)
-                    count_result = await db.execute(count_query)
-                    folder.media_count = count_result.scalar() or 0
+                    folder.media_count = count_map.get(folder.id, 0)
             
             folder_dict = {}
             for folder in folders:
