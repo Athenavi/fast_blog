@@ -110,6 +110,36 @@ async function request<T = any>(
 
     let res = await fetch(url, opts);
 
+    // ── 404 开发检测工具 ──
+    if (res.status === 404 && typeof window !== 'undefined' && window.location.hostname === 'localhost') {
+      const baseUrl = getConfig().API_BASE_URL || '';
+      const requestUrl = url.replace(baseUrl, '');
+      const suggestions = [];
+      if (requestUrl.includes('/api/v2/')) {
+        suggestions.push('🔍 路径包含 /api/v2/，若仍为 404，请检查 src/api/v2/__init__.py 中的路由注册表');
+      }
+      if (requestUrl.match(/\/api\/v1\//)) {
+        suggestions.push('⚠️ 路径使用 /api/v1/，已被禁用！请改为 V2 对应路径或在 api-paths.ts 中查找');
+      }
+      if (requestUrl.endsWith('/')) {
+        suggestions.push('💡 路径末尾有不必要的 "/"，可能影响路由匹配');
+      }
+      if (!requestUrl.match(/^\/api\//)) {
+        suggestions.push('💡 路径不是 /api/* 格式，buildUrl 会自动添加 /api/v2 前缀');
+      }
+      if (requestUrl.includes('/api/v2') && !requestUrl.match(/^\/api\/v2\/(articles|categories|comments|auth|search|media|dashboard|users|home|system|seo|security|plugins|mcp|chat|backup)\b/)) {
+        suggestions.push('💡 /api/v2 下不识别的路径前缀，可能拼写错误或路由未注册');
+      }
+      console.groupCollapsed(`%c[404] ${requestUrl}`, 'color: #e74c3c; font-weight: bold');
+      console.log(`完整 URL: ${res.url}`);
+      if (suggestions.length > 0) {
+        suggestions.forEach(s => console.log(s));
+      } else {
+        console.log('💡 请检查路径拼写或后端路由是否已注册');
+      }
+      console.groupEnd();
+    }
+
     // ── Auto-refresh on 401 ──
     if (res.status === 401 && !path.includes('/auth/token/refresh') && !path.includes('/auth/login')) {
       const refreshed = await ensureTokenFresh();
