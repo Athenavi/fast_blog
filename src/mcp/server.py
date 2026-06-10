@@ -155,8 +155,30 @@ class MCPServer:
             },
             handler=self._create_category_tool
         )
-
-        # 评论管理工具
+        self.register_tool(
+            name="update_category",
+            description="更新分类信息",
+            parameters={
+                "category_id": {"type": "integer", "description": "分类ID", "required": True},
+                "name": {"type": "string", "description": "新分类名称", "required": False},
+                "description": {"type": "string", "description": "新分类描述", "required": False},
+            },
+            handler=self._update_category_tool
+        )
+        self.register_tool(
+            name="delete_category",
+            description="删除分类",
+            parameters={
+                "category_id": {"type": "integer", "description": "分类ID", "required": True},
+            },
+            handler=self._delete_category_tool
+        )
+        self.register_tool(
+            name="list_tags",
+            description="获取所有标签列表（从文章中聚合）",
+            parameters={},
+            handler=self._list_tags_tool
+        )
         self.register_tool(
             name="list_comments",
             description="获取评论列表，支持按状态筛选（pending/approved/rejected）",
@@ -716,6 +738,91 @@ class MCPServer:
             except Exception as e:
                 await db.rollback()
                 raise ValueError(f"创建分类失败: {str(e)}")
+
+    async def _update_category_tool(self, arguments: Dict) -> Dict:
+        """更新分类信息"""
+        category_id = arguments.get("category_id")
+        if not category_id:
+            raise ValueError("分类ID不能为空")
+
+        async with get_async_session_context() as db:
+            try:
+                query = select(Category).where(Category.id == int(category_id))
+                result = await db.execute(query)
+                category = result.scalar_one_or_none()
+                if not category:
+                    raise ValueError(f"分类 #{category_id} 不存在")
+
+                if "name" in arguments:
+                    category.name = arguments["name"].strip()
+                if "description" in arguments:
+                    category.description = arguments["description"].strip()
+                category.updated_at = datetime.now(timezone.utc)
+
+                await db.commit()
+                return {
+                    "success": True,
+                    "message": f"分类 #{category_id} 已更新",
+                    "category_id": category_id,
+                }
+            except ValueError:
+                raise
+            except Exception as e:
+                await db.rollback()
+                raise ValueError(f"更新分类失败: {str(e)}")
+
+    async def _delete_category_tool(self, arguments: Dict) -> Dict:
+        """删除分类"""
+        category_id = arguments.get("category_id")
+        if not category_id:
+            raise ValueError("分类ID不能为空")
+
+        async with get_async_session_context() as db:
+            try:
+                query = select(Category).where(Category.id == int(category_id))
+                result = await db.execute(query)
+                category = result.scalar_one_or_none()
+                if not category:
+                    raise ValueError(f"分类 #{category_id} 不存在")
+
+                await db.delete(category)
+                await db.commit()
+                return {
+                    "success": True,
+                    "message": f"分类 #{category_id} 已删除",
+                }
+            except ValueError:
+                raise
+            except Exception as e:
+                await db.rollback()
+                raise ValueError(f"删除分类失败: {str(e)}")
+
+    async def _list_tags_tool(self, arguments: Dict) -> Dict:
+        """获取所有标签（从文章标签中聚合去重）"""
+        async with get_async_session_context() as db:
+            try:
+                query = select(Article.tags_list).where(Article.tags_list.isnot(None))
+                result = await db.execute(query)
+                rows = result.scalars().all()
+
+                # 聚合去重所有标签
+                all_tags = set()
+                for row in rows:
+                    if row:
+                        for tag in row.split(","):
+                            tag = tag.strip()
+                            if tag:
+                                all_tags.add(tag)
+
+                sorted_tags = sorted(all_tags)
+                return {
+                    "success": True,
+                    "tags": [{"name": t, "articles_count": 0} for t in sorted_tags],
+                    "total": len(sorted_tags),
+                }
+            except Exception as e:
+                logger.exception(f"获取标签列表失败")
+                return {"success": False, "error": f"获取标签列表失败: {str(e)}"}
 
     # ==================== 评论管理工具 ====================
 
