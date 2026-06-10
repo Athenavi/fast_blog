@@ -10,7 +10,7 @@ from shared.services.users.login_security_service import login_security_service
 from shared.services.users.session_management_service import session_management_service
 from shared.services.users.two_factor_auth import two_factor_auth
 from src.api.v2._base import ApiResponse
-from src.api.v2.users.user_management import create_jwt_token
+from src.api.v2.auth_v1pack import create_jwt_token
 from src.auth import jwt_required_dependency as jwt_required
 from src.utils.database.main import get_async_session as get_async_db
 
