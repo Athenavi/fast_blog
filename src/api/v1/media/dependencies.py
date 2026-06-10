@@ -6,19 +6,16 @@
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models.media import Media, FileHash
+from shared.models.media import Media
 from shared.models.user import User
-from src.extensions import cache
 from src.setting import BaseConfig
 from src.unified_logger import default_logger as logger
 
 
 async def get_user_storage_used(user_id: int, db: AsyncSession):
-    """获取用户已使用的存储空间"""
+    """获取用户已使用的存储空间（直接使用 Media.file_size，避免 FileHash JOIN）"""
     try:
-        storage_used_query = select(func.sum(FileHash.file_size)).join(
-            Media, Media.hash == FileHash.hash
-        ).where(Media.user == user_id)
+        storage_used_query = select(func.sum(Media.file_size)).where(Media.user == user_id)
         storage_used_result = await db.execute(storage_used_query)
         storage_used = storage_used_result.scalar() or 0
         return int(storage_used)
@@ -27,7 +24,6 @@ async def get_user_storage_used(user_id: int, db: AsyncSession):
         return 0
 
 
-@cache.memoize(60)
 async def get_user_storage_limit(user_id: int, db: AsyncSession):
     """根据用户VIP等级获取存储限制"""
     try:
