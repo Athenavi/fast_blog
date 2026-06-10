@@ -41,22 +41,21 @@ let isRefreshing = false;
 let refreshPromise: Promise<boolean> | null = null;
 
 async function doRefreshToken(): Promise<boolean> {
-  const refreshToken = getCookie('refresh_token');
-  if (!refreshToken) return false;
+  if (typeof document === 'undefined') return false;
   try {
     const base = getConfig().API_BASE_URL || '';
     const url = `${base}${AUTH.REFRESH_TOKEN_FULL}`;
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ refresh: refreshToken }),
+      credentials: 'include',
+      body: JSON.stringify({}),  // 仅触发请求，后端从 httponly cookie 中读取 refresh_token
     });
     if (!res.ok) return false;
     const json = await res.json();
     if (!json.success || !json.data) return false;
     const { access_token, refresh_token } = json.data;
-    if (access_token) setCookie('access_token', access_token, 3600);
-    if (refresh_token) setCookie('refresh_token', refresh_token, 604800);
+    // 服务端已通过 Set-Cookie 更新 httponly cookie，JS 无需额外操作
     return true;
   } catch {
     return false;

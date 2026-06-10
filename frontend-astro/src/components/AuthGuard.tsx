@@ -2,12 +2,11 @@
 
 import React, {useEffect, useState} from 'react';
 import {apiClient} from '@/lib/api/base-client';
-import {AUTH, USERS} from '@/lib/api/api-paths';
-import {getAccessTokenFromCookie, getRefreshTokenFromCookie, setCookie} from '@/lib/auth-utils';
+import {USERS} from '@/lib/api/api-paths';
 
 /**
  * AuthGuard - 认证守卫组件
- * 包裹需要登录才能访问的页面，未登录自动跳转 /login
+ * 直接调用 /api/v2/users/me 验证登录状态（cookie 自动发送，httponly 兼容）
  */
 export function AuthGuard({children}: {children: React.ReactNode}) {
   const [status, setStatus] = useState<'loading' | 'authenticated' | 'unauthenticated'>('loading');
@@ -16,26 +15,8 @@ export function AuthGuard({children}: {children: React.ReactNode}) {
     let cancelled = false;
     const check = async () => {
       try {
-        // 1) 检查本地是否有 access_token
-        let token = getAccessTokenFromCookie();
-        if (!token) {
-          // access_token 不存在，尝试用 refresh_token 刷新
-          const refreshToken = getRefreshTokenFromCookie();
-          if (refreshToken) {
-            const refreshResult = await apiClient.post(AUTH.REFRESH_TOKEN, {refresh: refreshToken});
-            if (refreshResult.success && refreshResult.data) {
-              const d = refreshResult.data as any;
-              if (d.access_token) setCookie('access_token', d.access_token, 3600);
-              if (d.refresh_token) setCookie('refresh_token', d.refresh_token, 604800);
-              token = d.access_token;
-            }
-          }
-        }
-        if (!token) {
-          if (!cancelled) setStatus('unauthenticated');
-          return;
-        }
-        // 2) 验证 token 有效性
+        // 直接调用 /users/me 验证 cookie 中的 token
+        // 浏览器会自动发送 httponly 的 access_token/refresh_token
         const res = await apiClient.get(USERS.ME);
         if (res.success && res.data) {
           if (!cancelled) setStatus('authenticated');
@@ -72,4 +53,3 @@ export function AuthGuard({children}: {children: React.ReactNode}) {
 
   return <>{children}</>;
 }
-
