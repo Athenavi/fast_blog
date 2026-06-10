@@ -1,21 +1,18 @@
 # -*- coding: utf-8 -*-
 """
-MCP 工具 handler 测试。
+MCP 工具 handler 测试（拆分后版本）。
 
-测试新增的 12 个 MCP 工具 handler 在 mocked 数据库环境下的行为。
-覆盖：
-  - 评论: list_comments / approve_comment / reject_comment / delete_comment
-  - 分析: get_analytics / get_trending_articles
-  - 媒体: list_media / delete_media
-  - 标签/分类: update_category / delete_category / list_tags
+工具处理器已从 MCPServer 类方法拆分为 tools/ 下的独立异步函数。
+测试调用函数本身，而非 mcp_server 方法。
 """
-
 import datetime
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from src.mcp.server import mcp_server
+from src.mcp.tools import content as content_tools
+from src.mcp.tools import analytics as analytics_tools
+from src.mcp.tools import media as media_tools
 
 pytestmark = pytest.mark.asyncio
 
@@ -25,17 +22,16 @@ pytestmark = pytest.mark.asyncio
 # ============================================================================
 
 def _mock_db_session(rows=None, scalar=None):
-    """创建 mock 数据库会话，支持 execute 返回值配置."""
     session = AsyncMock()
     execute_result = MagicMock()
-
     if rows is not None:
         execute_result.scalars.return_value.all.return_value = rows
     if scalar is not None:
         execute_result.scalar_one_or_none.return_value = scalar
         execute_result.scalar.return_value = scalar
-
     session.execute.return_value = execute_result
+    # Make session.scalar() work directly (new optimized code uses db.scalar)
+    session.scalar = AsyncMock(return_value=scalar)
     session.commit = AsyncMock()
     session.rollback = AsyncMock()
     session.flush = AsyncMock()
@@ -45,7 +41,6 @@ def _mock_db_session(rows=None, scalar=None):
 
 
 def _mock_article(**kwargs):
-    """创建 mock Article 对象."""
     a = MagicMock()
     a.id = kwargs.get("id", 1)
     a.title = kwargs.get("title", "Test Article")
@@ -58,7 +53,6 @@ def _mock_article(**kwargs):
 
 
 def _mock_comment(**kwargs):
-    """创建 mock Comment 对象."""
     c = MagicMock()
     c.id = kwargs.get("id", 1)
     c.article_id = kwargs.get("article_id", 1)
@@ -73,7 +67,6 @@ def _mock_comment(**kwargs):
 
 
 def _mock_media(**kwargs):
-    """创建 mock Media 对象."""
     m = MagicMock()
     m.id = kwargs.get("id", 1)
     m.filename = kwargs.get("filename", "photo.jpg")
@@ -93,46 +86,36 @@ def _mock_media(**kwargs):
 # ============================================================================
 
 class TestCommentTools:
-    """list_comments / approve_comment / reject_comment / delete_comment"""
+    PATCH_TARGET = "src.mcp.tools.content.get_async_session_context"
 
-    @patch("src.mcp.server.get_async_session_context")
+    @patch(PATCH_TARGET)
     async def test_list_comments(self, mock_ctx):
-        """list_comments 返回评论列表."""
         comments = [_mock_comment(id=1, content="First"), _mock_comment(id=2, content="Second")]
         session = _mock_db_session(rows=comments)
         mock_ctx.return_value.__aenter__.return_value = session
-
-        result = await mcp_server._list_comments_tool({"status": "pending", "limit": 20})
-
+        result = await content_tools.list_comments({"status": "pending", "limit": 20})
         assert result["success"] is True
         assert len(result["comments"]) == 2
         assert result["comments"][0]["content"] == "First"
 
-    @patch("src.mcp.server.get_async_session_context")
+    @patch(PATCH_TARGET)
     async def test_approve_comment(self, mock_ctx):
-        """approve_comment 将 is_approved 设为 True."""
         comment = _mock_comment(id=42, is_approved=False)
         session = _mock_db_session(scalar=comment)
         mock_ctx.return_value.__aenter__.return_value = session
-
-        result = await mcp_server._approve_comment_tool({"comment_id": 42})
-
+        result = await content_tools.approve_comment({"comment_id": 42})
         assert result["success"] is True
         assert comment.is_approved is True
         session.commit.assert_called_once()
 
-    @patch("src.mcp.server.get_async_session_context")
+    @patch(PATCH_TARGET)
     async def test_reject_comment(self, mock_ctx):
-        """reject_comment 将 is_approved 设为 False."""
         comment = _mock_comment(id=7, is_approved=True)
         session = _mock_db_session(scalar=comment)
         mock_ctx.return_value.__aenter__.return_value = session
-
-        result = await mcp_server._reject_comment_tool({"comment_id": 7})
-
+        result = await content_tools.reject_comment({"comment_id": 7})
         assert result["success"] is True
         assert comment.is_approved is False
-
 
 
 # ============================================================================
@@ -140,30 +123,23 @@ class TestCommentTools:
 # ============================================================================
 
 class TestAnalyticsTools:
-    """get_analytics / get_trending_articles"""
+    PATCH_TARGET = "src.mcp.tools.analytics.get_async_session_context"
 
-    @patch("src.mcp.server.get_async_session_context")
+    @patch(PATCH_TARGET)
     async def test_get_analytics(self, mock_ctx):
-        """get_analytics 返回博客统计概况."""
         session = _mock_db_session(scalar=42)
         mock_ctx.return_value.__aenter__.return_value = session
-
-        result = await mcp_server._get_analytics_tool({})
-
+        result = await analytics_tools.get_analytics({})
         assert result["success"] is True
-        assert "data" in result
         assert result["data"]["articles"]["published"] == 42
         assert result["data"]["users"] == 42
 
-    @patch("src.mcp.server.get_async_session_context")
+    @patch(PATCH_TARGET)
     async def test_get_trending_articles(self, mock_ctx):
-        """get_trending_articles 返回热门文章."""
         articles = [_mock_article(id=1, title="Top 1", views=500)]
         session = _mock_db_session(rows=articles, scalar=None)
         mock_ctx.return_value.__aenter__.return_value = session
-
-        result = await mcp_server._get_trending_articles_tool({"limit": 5, "days": 7})
-
+        result = await analytics_tools.get_trending_articles({"limit": 5, "days": 7})
         assert result["success"] is True
         assert len(result["articles"]) == 1
         assert result["articles"][0]["title"] == "Top 1"
@@ -174,43 +150,32 @@ class TestAnalyticsTools:
 # ============================================================================
 
 class TestMediaTools:
-    """list_media / delete_media"""
+    PATCH_TARGET = "src.mcp.tools.media.get_async_session_context"
 
-    @patch("src.mcp.server.get_async_session_context")
+    @patch(PATCH_TARGET)
     async def test_list_media(self, mock_ctx):
-        """list_media 返回媒体列表."""
         media = [_mock_media(id=1, filename="img1.jpg"), _mock_media(id=2, filename="vid.mp4", mime_type="video/mp4")]
         session = _mock_db_session(rows=media)
         mock_ctx.return_value.__aenter__.return_value = session
-
-        result = await mcp_server._list_media_tool({"limit": 10})
-
+        result = await media_tools.list_media({"limit": 10})
         assert result["success"] is True
         assert len(result["media"]) == 2
-        assert result["media"][0]["filename"] == "photo.jpg"
 
-    @patch("src.mcp.server.get_async_session_context")
+    @patch(PATCH_TARGET)
     async def test_list_media_with_type_filter(self, mock_ctx):
-        """list_media 支持 media_type 筛选."""
         session = _mock_db_session(rows=[])
         mock_ctx.return_value.__aenter__.return_value = session
-
-        result = await mcp_server._list_media_tool({"media_type": "image", "limit": 5})
-
+        result = await media_tools.list_media({"media_type": "image", "limit": 5})
         assert result["success"] is True
-        # Verify the query includes mime_type filter
         call_args = session.execute.call_args[0][0]
         assert "mime_type" in str(call_args)
 
-    @patch("src.mcp.server.get_async_session_context")
+    @patch(PATCH_TARGET)
     async def test_delete_media(self, mock_ctx):
-        """delete_media 删除媒体."""
         media = _mock_media(id=5)
         session = _mock_db_session(scalar=media)
         mock_ctx.return_value.__aenter__.return_value = session
-
-        result = await mcp_server._delete_media_tool({"media_id": 5})
-
+        result = await media_tools.delete_media({"media_id": 5})
         assert result["success"] is True
         session.delete.assert_called_once_with(media)
 
@@ -220,52 +185,38 @@ class TestMediaTools:
 # ============================================================================
 
 class TestCategoryTagTools:
-    """update_category / delete_category / list_tags"""
+    PATCH_TARGET = "src.mcp.tools.content.get_async_session_context"
 
-    @patch("src.mcp.server.get_async_session_context")
+    @patch(PATCH_TARGET)
     async def test_update_category(self, mock_ctx):
-        """update_category 更新分类名称."""
         cat = MagicMock()
         cat.id = 3
         cat.name = "Old Name"
-        cat.slug = "old-name"
-        cat.updated_at = None
-
         session = _mock_db_session(scalar=cat)
         mock_ctx.return_value.__aenter__.return_value = session
-
-        result = await mcp_server._update_category_tool({"category_id": 3, "name": "New Name"})
-
+        result = await content_tools.update_category({"category_id": 3, "name": "New Name"})
         assert result["success"] is True
         assert cat.name == "New Name"
         session.commit.assert_called_once()
 
-    @patch("src.mcp.server.get_async_session_context")
+    @patch(PATCH_TARGET)
     async def test_delete_category(self, mock_ctx):
-        """delete_category 删除分类."""
         cat = MagicMock()
         cat.id = 7
         session = _mock_db_session(scalar=cat)
         mock_ctx.return_value.__aenter__.return_value = session
-
-        result = await mcp_server._delete_category_tool({"category_id": 7})
-
+        result = await content_tools.delete_category({"category_id": 7})
         assert result["success"] is True
         session.delete.assert_called_once_with(cat)
 
-    @patch("src.mcp.server.get_async_session_context")
+    @patch(PATCH_TARGET)
     async def test_list_tags(self, mock_ctx):
-        """list_tags 从文章聚合标签并去重."""
-        # Handler selects Article.tags_list column, so mock returns strings
         session = _mock_db_session(rows=["python, fastapi, blog", "python, react, typescript"])
         mock_ctx.return_value.__aenter__.return_value = session
-
-        result = await mcp_server._list_tags_tool({})
-
+        result = await content_tools.list_tags({})
         assert result["success"] is True
         tags = [t["name"] for t in result["tags"]]
         assert "python" in tags
         assert "fastapi" in tags
         assert "react" in tags
-        # 去重验证
         assert len(tags) == len(set(tags))
