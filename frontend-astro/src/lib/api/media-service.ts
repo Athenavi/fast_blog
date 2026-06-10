@@ -80,7 +80,7 @@ export class MediaService {
             // 视频格式
             'video/mp4', 'video/mpeg', 'video/quicktime', 'video/x-msvideo', 'video/webm', 'video/x-matroska',
             // 音频格式
-            'audio/mpeg', 'audio/wav', 'audio/x-wav', 'audio/flac', 'audio/aac', 'audio/mp4', 'audio/ogg', 'audio/mp3',
+            'audio/mpeg', 'audio/wav', 'audio/x-wav', 'audio/flac', 'audio/x-flac', 'audio/aac', 'audio/mp4', 'audio/ogg', 'audio/mp3',
             // 文档格式
             'application/pdf',
             'application/msword',  // .doc

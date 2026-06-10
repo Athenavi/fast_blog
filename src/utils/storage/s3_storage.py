@@ -39,6 +39,16 @@ class S3Storage:
         """获取文件 URL"""
         return f"/api/v2/assets/storage/{key}"
 
+    def save_file(self, file_hash: str, file_data: bytes, original_filename: str) -> str:
+        """保存文件到存储（同步，兼容 FileProcessor.save_file 调用）"""
+        _, ext = os.path.splitext(original_filename)
+        key = f"{file_hash[:2]}/{file_hash}{ext}"
+        full_path = self.base_path / key
+        full_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(full_path, "wb") as f:
+            f.write(file_data)
+        return key
+
     async def download_file(self, key: str) -> Optional[bytes]:
         """下载文件内容"""
         full_path = self.base_path / key
