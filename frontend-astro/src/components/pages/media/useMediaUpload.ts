@@ -14,7 +14,7 @@ export const useMediaUpload = (onComplete?: () => void) => {
         setUploadStatus(`已上传: ${files[i].name} (${i+1}/${files.length})`);
       }
       setUploadStatus('上传完成!'); if (onComplete) onComplete();
-    } catch (e: any) { setUploadStatus(`上传失败: ${e.message}`); }
+    } catch (e: unknown) { setUploadStatus(`上传失败: ${(e as Error).message}`); }
     finally { setTimeout(()=>{setUploading(false);setUploadProgress(0);setUploadStatus('');},2000); }
   };
   return {uploading, uploadProgress, uploadStatus, uploadFiles};
