@@ -20,6 +20,7 @@ import Collaboration from '@tiptap/extension-collaboration';
 import CollaborationCursor from '@tiptap/extension-collaboration-cursor';
 import {WebsocketProvider} from 'y-websocket';
 import * as Y from 'yjs';
+import {AI_RECOMMENDATIONS, MEDIA} from '@/lib/api/api-paths';
 import {Image as ImageIcon2, ImageIcon, LayoutGrid, Loader, Palette, Sparkles, X} from 'lucide-react';
 import {apiClient} from '@/lib/api/base-client';
 
@@ -95,16 +96,16 @@ function StyleManager({onClose}: { onClose: () => void }) {
   </div>;
 }
 const AI_ENDPOINTS:Record<string,string> = {
-  polish:'/ext/ai-recommendations/writing/polish',grammar:'/ext/ai-recommendations/writing/check-grammar',
-  titles:'/ext/ai-recommendations/writing/generate-titles',keywords:'/ext/ai-recommendations/recommend-tags',
-  continue:'/ext/ai-recommendations/writing/continue',summary:'/ext/ai-recommendations/extract-summary',
-  style:'/ext/ai-recommendations/writing/transform-style',
+  polish:AI_RECOMMENDATIONS.WRITING_POLISH,grammar:AI_RECOMMENDATIONS.WRITING_GRAMMAR,
+  titles:AI_RECOMMENDATIONS.WRITING_GENERATE_TITLES,keywords:AI_RECOMMENDATIONS.RECOMMEND_TAGS,
+  continue:AI_RECOMMENDATIONS.WRITING_CONTINUE,summary:AI_RECOMMENDATIONS.WRITING_EXTRACT_SUMMARY,
+  style:AI_RECOMMENDATIONS.WRITING_TRANSFORM_STYLE,
 };
 
 /* ── Media Browser ── */
 function MediaBrowser({onSelect,onClose}:{onSelect:(url:string)=>void;onClose:()=>void}) {
   const [files,setFiles]=useState<any[]>([]);const [loading,setLoading]=useState(true);
-  React.useEffect(()=>{apiClient.get('/media/files/list',{page:1,per_page:30}).then(r=>{setFiles(r.success&&r.data?((r.data as any).files||(r.data as any).media_items||[]):[])}).finally(()=>setLoading(false));},[]);
+  React.useEffect(()=>{apiClient.get(MEDIA.FILES_LIST,{page:1,per_page:30}).then(r=>{setFiles(r.success&&r.data?((r.data as any).files||(r.data as any).media_items||[]):[])}).finally(()=>setLoading(false));},[]);
   return <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40" onClick={onClose}>
     <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-2xl max-h-[80vh] flex flex-col shadow-2xl" onClick={e=>e.stopPropagation()}>
       <div className="flex items-center justify-between px-6 py-4 border-b shrink-0"><h3 className="font-bold text-gray-900 dark:text-white">媒体库</h3><button onClick={onClose} className="p-1 rounded hover:bg-gray-100"><X className="w-5 h-5"/></button></div>

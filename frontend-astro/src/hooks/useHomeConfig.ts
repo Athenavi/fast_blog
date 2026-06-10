@@ -1,5 +1,6 @@
 import {useEffect, useState} from 'react';
 import {apiClient} from '@/lib/api/base-client';
+import {HOME} from '@/lib/api/api-paths';
 
 export interface HomeConfig {
   hero?: {
@@ -61,7 +62,7 @@ export function useHomeConfig() {
   useEffect(() => {
     (async () => {
       try {
-        const res = await apiClient.get('/home/config');
+        const res = await apiClient.get(HOME.CONFIG);
         if (res.success && res.data) {
           setConfig(res.data);
         }

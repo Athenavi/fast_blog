@@ -3,6 +3,7 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {AnimatePresence, motion, useInView, useScroll, useTransform} from 'framer-motion';
 import {apiClient} from '@/lib/api/base-client';
+import {HOME} from '@/lib/api/api-paths';
 import {getFullMediaUrl} from '@/lib/utils';
 import {useHomeConfig} from '@/hooks/useHomeConfig';
 import {
@@ -299,11 +300,11 @@ export default function ModernHomePage() {
     (async () => {
       try {
         const [featRes, recentRes, popRes, catRes, statRes] = await Promise.all([
-          apiClient.get('/home/featured'),
-          apiClient.get('/home/recent'),
-          apiClient.get('/home/popular'),
-          apiClient.get('/home/categories'),
-          apiClient.get('/home/stats'),
+          apiClient.get(HOME.FEATURED),
+          apiClient.get(HOME.RECENT),
+          apiClient.get(HOME.POPULAR),
+          apiClient.get(HOME.CATEGORIES),
+          apiClient.get(HOME.STATS),
         ]);
         if (featRes.success) setFeatured(Array.isArray(featRes.data) ? featRes.data : featRes.data?.articles || []);
         if (recentRes.success) setRecent(Array.isArray(recentRes.data) ? recentRes.data.slice(0, 12) : recentRes.data?.articles?.slice(0, 12) || []);

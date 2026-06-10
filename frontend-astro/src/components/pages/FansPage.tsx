@@ -5,6 +5,7 @@ import {useQuery} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {apiClient} from '@/lib/api/base-client';
+import {USERS} from '@/lib/api/api-paths';
 import {UserPlus, Users} from 'lucide-react';
 
 function FansInner() {
@@ -12,7 +13,7 @@ function FansInner() {
     const {data: fans, isLoading} = useQuery<any[]>({
     queryKey: ['fans'],
     queryFn: async () => {
-      const r = await apiClient.get('/users/me/followers');
+      const r = await apiClient.get(USERS.ME_FOLLOWERS);
       return r.success && r.data ? (Array.isArray(r.data) ? r.data : r.data.followers||r.data.users||[]) : [];
     },
   });

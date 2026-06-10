@@ -6,6 +6,7 @@ import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {apiClient} from '@/lib/api/base-client';
+import {SECURITY} from '@/lib/api/api-paths';
 import {useConfirm} from '@/components/ui/confirm-provider';
 import {useToast} from '@/components/ui/toast-provider';
 import {
@@ -99,7 +100,7 @@ function AuditLogsContent() {
   const {data, isLoading, refetch} = useQuery({
     queryKey: ['admin-audit-logs', page, searchUser, filterAction, filterLevel],
     queryFn: async () => {
-      const res = await apiClient.get('/security/audit-log/logs', params);
+      const res = await apiClient.get(SECURITY.AUDIT_LOG_LOGS, params);
       return res.success && res.data ? res.data : {logs: [], pagination: {total: 0}};
     },
   });
@@ -107,7 +108,7 @@ function AuditLogsContent() {
   const {data: statsData} = useQuery({
     queryKey: ['admin-audit-logs-stats'],
     queryFn: async () => {
-      const res = await apiClient.get('/security/audit-log/stats', {days: 30});
+      const res = await apiClient.get(SECURITY.AUDIT_LOG_STATS, {days: 30});
       return res.success && res.data ? res.data : {total_logs: 0, active_users: 0, by_action: [], by_level: []};
     },
     staleTime: 60_000,
@@ -118,7 +119,7 @@ function AuditLogsContent() {
   const stats = statsData || {};
 
   const handleExport = useCallback(async () => {
-    const res = await apiClient.get('/security/audit-log/export', {page, per_page: 200, ...filterAction && {action: filterAction}, ...filterLevel && {level: filterLevel}});
+    const res = await apiClient.get(SECURITY.AUDIT_LOG_EXPORT, {page, per_page: 200, ...filterAction && {action: filterAction}, ...filterLevel && {level: filterLevel}});
     if (res.success && res.data) {
       const blob = new Blob([JSON.stringify(res.data, null, 2)], {type: 'application/json'});
       const url = URL.createObjectURL(blob);
@@ -129,7 +130,7 @@ function AuditLogsContent() {
 
   const handleCleanup = useCallback(async () => {
     if (!await confirm({message: '确定清理 90 天前的审计日志？此操作不可撤销。', variant: 'warning'})) return;
-    const res = await apiClient.post('/security/audit-log/cleanup', {days: 90});
+    const res = await apiClient.post(SECURITY.AUDIT_LOG_CLEANUP, {days: 90});
     if (res.success) {
       toast.success('清理完成');
       refetch();

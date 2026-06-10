@@ -2,6 +2,7 @@
 
 import {useCallback, useEffect, useRef, useState} from 'react';
 import {apiClient} from '@/lib/api/base-client';
+import {NOTIFICATIONS} from '@/lib/api/api-paths';
 import {Bell, Check, ChevronLeft, Hash, MessageCircle, Plus, Send, Trash2, UserPlus, Users, X,} from 'lucide-react';
 import {useConfirm} from '@/components/ui/confirm-provider';
 
@@ -437,7 +438,7 @@ function NotificationsTab() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const r = await apiClient.get('/notifications/messages');
+    const r = await apiClient.get(NOTIFICATIONS.MESSAGES);
     if (r.success && r.data) {
       setNotifs(Array.isArray(r.data) ? r.data : r.data.notifications || r.data.data || []);
     }
@@ -452,13 +453,13 @@ function NotificationsTab() {
   };
 
   const markAllRead = async () => {
-    await apiClient.post('/notifications/messages/read_all');
+    await apiClient.post(NOTIFICATIONS.MESSAGES_READ_ALL);
     setNotifs(prev => prev.map(n => ({...n, is_read: true})));
   };
 
   const cleanAll = async () => {
     if (!await confirm({message: '清理所有通知？', variant: 'warning'})) return;
-    await apiClient.delete('/notifications/messages/clean');
+    await apiClient.delete(NOTIFICATIONS.MESSAGES_CLEAN);
     setNotifs([]);
   };
 

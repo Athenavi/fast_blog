@@ -4,6 +4,7 @@ import React, {useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {DeleteConfirm, EmptyState, Modal} from '@/components/admin/shared-ui';
 import {apiClient} from '@/lib/api/base-client';
+import {USERS} from '@/lib/api/api-paths';
 import {useToast} from '@/components/ui/toast-provider';
 import {ChevronLeft, ChevronRight, Edit3, Lock as LockIcon, Plus, Trash2, Unlock} from 'lucide-react';
 import {FieldPermission, Input, Pagination} from './shared';
@@ -19,13 +20,13 @@ const FieldPermissionsTab: React.FC = () => {
 
   const {data, isLoading} = useQuery({
     queryKey: ['field-permissions', page],
-    queryFn: () => apiClient.get('/users/security/field-permissions', {page, per_page: 15}),
+    queryFn: () => apiClient.get(USERS.SECURITY_FIELD_PERMISSIONS, {page, per_page: 15}),
   });
   const items: FieldPermission[] = data?.data?.field_permissions || [];
   const pagination: Pagination | undefined = data?.data?.pagination;
 
   const createMut = useMutation({
-    mutationFn: (d: any) => apiClient.post('/users/security/field-permissions', d),
+    mutationFn: (d: any) => apiClient.post(USERS.SECURITY_FIELD_PERMISSIONS, d),
     onSuccess: (r: ApiResponse) => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['field-permissions']});

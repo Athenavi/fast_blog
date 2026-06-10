@@ -6,6 +6,7 @@ import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {apiClient} from '@/lib/api/base-client';
+import {ADS} from '@/lib/api/api-paths';
 import {useConfirm} from '@/components/ui/confirm-provider';
 import {
   AlertTriangle,
@@ -105,7 +106,7 @@ const CreateAdModal: React.FC<{open: boolean; onClose: () => void; slots: AdSlot
   const [error, setError] = useState('');
 
   const createMut = useMutation({
-    mutationFn: (data: any) => apiClient.post('/ads/create', data),
+    mutationFn: (data: any) => apiClient.post(ADS.CREATE, data),
     onSuccess: (res) => {
       if (res.success) { onCreated(); onClose(); reset(); }
       else setError(res.error || '创建失败');
@@ -235,7 +236,7 @@ function AdsInner() {
   const {data: slots, isLoading: slotsLoading} = useQuery({
     queryKey: ['ads-slots'],
     queryFn: async () => {
-      const r = await apiClient.get('/ads/slots');
+      const r = await apiClient.get(ADS.SLOTS);
       if (r.success) {
         const raw = r.data?.slots || r.data || [];
         return Array.isArray(raw) ? raw : [];
@@ -247,7 +248,7 @@ function AdsInner() {
   const {data: adsData, isLoading: adsLoading} = useQuery({
     queryKey: ['ads-list', filterSlot],
     queryFn: async () => {
-      const r = await apiClient.get('/ads/list', filterSlot ? {slot_id: filterSlot} : undefined);
+      const r = await apiClient.get(ADS.LIST, filterSlot ? {slot_id: filterSlot} : undefined);
       if (r.success) {
         const raw = r.data?.ads || r.data || [];
         return Array.isArray(raw) ? raw : [];

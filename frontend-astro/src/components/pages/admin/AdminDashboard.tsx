@@ -6,6 +6,7 @@ import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {apiClient} from '@/lib/api/base-client';
+import {DASHBOARD} from '@/lib/api/api-paths';
 import {motion} from 'framer-motion';
 import {
   ArrowUpRight,
@@ -132,7 +133,7 @@ function DashboardInner() {
           articles: number; users: number; comments: number;
           visitors: number; views_today: number; views_trend?: number;
           users_trend?: number; articles_trend?: number; comments_trend?: number;
-      }>('/dashboard/stats');
+      }>(DASHBOARD.STATS);
         return res.success && res.data ? res.data : {} as any;
     },
   });
@@ -140,7 +141,7 @@ function DashboardInner() {
     const {data: activities} = useQuery({
     queryKey: ['admin-activity'],
     queryFn: async () => {
-      const res = await apiClient.get<unknown[]>('/dashboard/activities', {page: 1, per_page: 8});
+      const res = await apiClient.get<unknown[]>(DASHBOARD.ACTIVITIES, {page: 1, per_page: 8});
       return res.success && res.data ? (Array.isArray(res.data) ? res.data : []) : [];
     },
   });

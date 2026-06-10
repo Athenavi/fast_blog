@@ -2,6 +2,7 @@
 
 import {useEffect, useState} from 'react';
 import {apiClient} from '@/lib/api/base-client';
+import {AUTH} from '@/lib/api/api-paths';
 import {CheckCircle, Loader, Smartphone, XCircle} from 'lucide-react';
 
 export default function MobileLoginPage() {
@@ -14,7 +15,7 @@ export default function MobileLoginPage() {
     setStatus('confirming');
     (async () => {
       try {
-        const r = await apiClient.post('/auth/qr/confirm', {login_token: token});
+        const r = await apiClient.post(AUTH.QR_CONFIRM, {login_token: token});
         if (r.success) { setStatus('success'); setMsg('登录确认成功，请返回电脑端继续'); }
         else setStatus('error'), setMsg(r.error||'确认失败');
       } catch { setStatus('error'); setMsg('网络错误'); }

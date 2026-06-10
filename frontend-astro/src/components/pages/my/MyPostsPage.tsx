@@ -4,6 +4,7 @@ import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {AnimatePresence, motion} from 'framer-motion';
 import {apiClient} from '@/lib/api/base-client';
+import {HOME, DASHBOARD} from '@/lib/api/api-paths';
 import {getFullMediaUrl, timeAgo} from '@/lib/utils';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AuthGuard} from '@/components/AuthGuard';
@@ -622,7 +623,7 @@ function MyPostsInner() {
   const {data: categoriesData} = useQuery({
     queryKey: ['categories-list'],
     queryFn: async () => {
-      const res = await apiClient.get('/home/categories', {limit: 100});
+      const res = await apiClient.get(HOME.CATEGORIES, {limit: 100});
       if (res.success && Array.isArray(res.data)) return res.data as Category[];
       if (res.success && res.data?.categories) return res.data.categories as Category[];
       return [] as Category[];
@@ -642,7 +643,7 @@ function MyPostsInner() {
       if (debouncedQ) params.q = debouncedQ;
       if (categoryId) params.category_id = categoryId;
       if (selectedTag) params.tag = selectedTag;
-      const res = await apiClient.get('/dashboard/my/articles', params);
+      const res = await apiClient.get(DASHBOARD.MY_ARTICLES, params);
       if (!res.success || !res.data) return {articles: [] as Article[], total: 0};
       // Extract pagination total from res.pagination (set by backend ApiResponse)
       const paginationTotal = (res as any).pagination?.total ?? 0;

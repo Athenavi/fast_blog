@@ -3,6 +3,7 @@
 import React, {useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {apiClient} from '@/lib/api/base-client';
+import {SYSTEM} from '@/lib/api/api-paths';
 import {useToast} from '@/components/ui/toast-provider';
 import {Trash2} from 'lucide-react';
 import {SiteUser} from './shared';
@@ -22,7 +23,7 @@ const SiteUsersPanel: React.FC<{ siteId: number | null }> = ({siteId}) => {
   const users: SiteUser[] = data?.data?.users || [];
 
   const addUserMut = useMutation({
-    mutationFn: (d: any) => apiClient.post('/system/multisite/users', {site_id: siteId, ...d}),
+    mutationFn: (d: any) => apiClient.post(SYSTEM.MULTISITE_USERS, {site_id: siteId, ...d}),
     onSuccess: (r: ApiResponse) => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['site-users', siteId]});

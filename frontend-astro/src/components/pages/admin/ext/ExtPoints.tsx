@@ -6,6 +6,7 @@ import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {apiClient} from '@/lib/api/base-client';
+import {POINTS} from '@/lib/api/api-paths';
 import {useToast} from '@/components/ui/toast-provider';
 import {Coins, Loader, Minus, Plus, TrendingUp, Users} from 'lucide-react';
 
@@ -16,7 +17,7 @@ function PointsInner() {
   const {data: stats} = useQuery({
     queryKey: ['ext-points-stats'],
     queryFn: async () => {
-      const r = await apiClient.get('/ext/points/admin/stats');
+      const r = await apiClient.get(POINTS.ADMIN_STATS);
       return r.success && r.data ? r.data : {};
     },
   });
@@ -24,7 +25,7 @@ function PointsInner() {
   const {data: rules} = useQuery({
     queryKey: ['ext-points-rules'],
     queryFn: async () => {
-      const r = await apiClient.get('/ext/points/points-rules');
+      const r = await apiClient.get(POINTS.POINTS_RULES);
       const raw = r.success && r.data ? (r.data.rules || r.data) : [];
       return Array.isArray(raw) ? raw : [];
     },
@@ -33,7 +34,7 @@ function PointsInner() {
   const {data: exchangeRules} = useQuery({
     queryKey: ['ext-points-exchange'],
     queryFn: async () => {
-      const r = await apiClient.get('/ext/points/exchange-rules');
+      const r = await apiClient.get(POINTS.EXCHANGE_RULES);
       const raw = r.success && r.data ? (r.data.rules || r.data) : [];
       return Array.isArray(raw) ? raw : [];
     },
@@ -42,7 +43,7 @@ function PointsInner() {
   const {data: leaderboard} = useQuery({
     queryKey: ['ext-points-leaderboard'],
     queryFn: async () => {
-      const r = await apiClient.get('/ext/points/leaderboard', {limit: 20, period: 'all'});
+      const r = await apiClient.get(POINTS.LEADERBOARD, {limit: 20, period: 'all'});
       const raw = r.success && r.data ? (r.data.leaderboard || r.data) : [];
       return Array.isArray(raw) ? raw : [];
     },
@@ -54,7 +55,7 @@ function PointsInner() {
   const [reason, setReason] = useState('');
 
   const addMut = useMutation({
-    mutationFn: (data: any) => apiClient.post('/ext/points/admin/add-points', data),
+    mutationFn: (data: any) => apiClient.post(POINTS.ADD_POINTS, data),
     onSuccess: (r) => {
       if (r.success) {
         toast.success(r.message || '操作成功');
@@ -66,7 +67,7 @@ function PointsInner() {
     },
   });
   const deductMut = useMutation({
-    mutationFn: (data: any) => apiClient.post('/ext/points/admin/deduct-points', data),
+    mutationFn: (data: any) => apiClient.post(POINTS.DEDUCT_POINTS, data),
     onSuccess: (r) => {
       if (r.success) {
         toast.success(r.message || '操作成功');

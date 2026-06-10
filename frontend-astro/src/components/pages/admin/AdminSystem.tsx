@@ -6,6 +6,7 @@ import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {apiClient} from '@/lib/api/base-client';
+import {SYSTEM} from '@/lib/api/api-paths';
 import {Server, Activity, Database, HardDrive, Shield, Zap, CheckCircle, XCircle, AlertTriangle} from 'lucide-react';
 
 const statusIcon = (status: string) => {
@@ -24,14 +25,14 @@ function SystemInner() {
   const {data: infoRes} = useQuery({
     queryKey: ['admin-system-info'],
     queryFn: async () => {
-      const res = await apiClient.get('/system/info');
+      const res = await apiClient.get(SYSTEM.INFO);
       return res.success && res.data ? res.data : {};
     },
   });
   const {data: healthRes} = useQuery({
     queryKey: ['admin-system-health'],
     queryFn: async () => {
-      const res = await apiClient.get('/system/health');
+      const res = await apiClient.get(SYSTEM.HEALTH);
       return res.success && res.data ? res.data : {};
     },
   });

@@ -4,6 +4,7 @@ import React, {useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {EmptyState} from '@/components/admin/shared-ui';
 import {apiClient} from '@/lib/api/base-client';
+import {USERS} from '@/lib/api/api-paths';
 import {useConfirm} from '@/components/ui/confirm-provider';
 import {ChevronLeft, ChevronRight, Mail, Trash2} from 'lucide-react';
 import {EmailSubscription, Pagination} from './shared';
@@ -15,7 +16,7 @@ const EmailSubscriptionsTab: React.FC = () => {
 
   const {data, isLoading} = useQuery({
     queryKey: ['email-subscriptions', page],
-    queryFn: () => apiClient.get('/users/security/email-subscriptions', {page, per_page: 15}),
+    queryFn: () => apiClient.get(USERS.SECURITY_EMAIL_SUBSCRIPTIONS, {page, per_page: 15}),
   });
   const items: EmailSubscription[] = data?.data?.email_subscriptions || [];
   const pagination: Pagination | undefined = data?.data?.pagination;

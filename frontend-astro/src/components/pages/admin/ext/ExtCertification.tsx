@@ -6,6 +6,7 @@ import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {apiClient} from '@/lib/api/base-client';
+import {CERTIFICATION} from '@/lib/api/api-paths';
 import {Check, Eye, FileText, Loader, Medal, X} from 'lucide-react';
 import {useConfirm} from '@/components/ui/confirm-provider';
 
@@ -16,7 +17,7 @@ function CertificationInner() {
   const {data: stats} = useQuery({
     queryKey: ['ext-cert-stats'],
     queryFn: async () => {
-      const r = await apiClient.get('/ext/expert-certification/admin/stats');
+      const r = await apiClient.get(CERTIFICATION.ADMIN_STATS);
       return r.success && r.data ? r.data : {};
     },
   });
@@ -24,7 +25,7 @@ function CertificationInner() {
   const {data: fields} = useQuery({
     queryKey: ['ext-cert-fields'],
     queryFn: async () => {
-      const r = await apiClient.get('/ext/expert-certification/fields');
+      const r = await apiClient.get(CERTIFICATION.FIELDS);
       const raw = r.success && r.data ? (r.data.fields || r.data) : [];
       return Array.isArray(raw) ? raw : [];
     },
@@ -33,7 +34,7 @@ function CertificationInner() {
   const {data: pendingApps} = useQuery({
     queryKey: ['ext-cert-pending'],
     queryFn: async () => {
-      const r = await apiClient.get('/ext/expert-certification/admin/pending-applications');
+      const r = await apiClient.get(CERTIFICATION.PENDING_APPLICATIONS);
       const raw = r.success && r.data ? (r.data.applications || r.data) : [];
       return Array.isArray(raw) ? raw : [];
     },
@@ -42,7 +43,7 @@ function CertificationInner() {
   const {data: experts} = useQuery({
     queryKey: ['ext-cert-experts'],
     queryFn: async () => {
-      const r = await apiClient.get('/ext/expert-certification/experts', {limit: 50});
+      const r = await apiClient.get(CERTIFICATION.EXPERTS, {limit: 50});
       const raw = r.success && r.data ? (r.data.experts || r.data) : [];
       return Array.isArray(raw) ? raw : [];
     },
@@ -50,11 +51,11 @@ function CertificationInner() {
 
   // Review mutation
   const reviewMut = useMutation({
-    mutationFn: (data: any) => apiClient.post('/ext/expert-certification/admin/review', data),
+    mutationFn: (data: any) => apiClient.post(CERTIFICATION.REVIEW, data),
     onSuccess: () => qc.invalidateQueries({queryKey: ['ext-cert-pending', 'ext-cert-stats', 'ext-cert-experts']}),
   });
   const revokeMut = useMutation({
-    mutationFn: (data: any) => apiClient.post('/ext/expert-certification/admin/revoke', data),
+    mutationFn: (data: any) => apiClient.post(CERTIFICATION.REVOKE, data),
     onSuccess: () => qc.invalidateQueries({queryKey: ['ext-cert-experts']}),
   });
 

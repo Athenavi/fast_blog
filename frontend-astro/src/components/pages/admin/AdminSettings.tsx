@@ -7,6 +7,7 @@ import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {StatCard} from '@/components/admin/shared-ui';
 import {apiClient} from '@/lib/api/base-client';
+import {SYSTEM} from '@/lib/api/api-paths';
 import {getConfig} from '@/lib/config';
 import {getFullMediaUrl} from '@/lib/utils';
 import {type Locale, locales, useTranslation} from '@/lib/i18n';
@@ -571,7 +572,7 @@ function SettingsInner() {
   const {data: fullData, isLoading} = useQuery({
     queryKey: ['admin-system-settings'],
     queryFn: async () => {
-      const r = await apiClient.get('/system/settings/');
+      const r = await apiClient.get(SYSTEM.SETTINGS);
       if (r.success && r.data) {
         const raw = r.data.settings || {};
         const norm: Record<string, string> = {};
@@ -602,7 +603,7 @@ function SettingsInner() {
   const saveSettings = async () => {
     setSaving(true); setSaveMsg(null);
     try {
-      const r = await apiClient.post('/system/settings/', {settings: localSettings, action: 'update_settings'});
+      const r = await apiClient.post(SYSTEM.SETTINGS, {settings: localSettings, action: 'update_settings'});
       setSaveMsg({type: r.success ? 'ok' : 'err', text: r.success ? '✓ 保存成功' : (r.error || '保存失败')});
       if (r.success) {
         qc.invalidateQueries({queryKey: ['admin-system-settings']});
@@ -632,14 +633,14 @@ function SettingsInner() {
   }, [localSettings, menus, menuItems, pages]);
 
   // ── Menu mutations ──
-  const createMenuMut = useMutation({mutationFn:(d:any)=>apiClient.post('/system/settings/menus', d), onSuccess:()=>qc.invalidateQueries({queryKey:['admin-system-settings']})});
+  const createMenuMut = useMutation({mutationFn:(d:any)=>apiClient.post(SYSTEM.SETTINGS_MENUS, d), onSuccess:()=>qc.invalidateQueries({queryKey:['admin-system-settings']})});
   const updateMenuMut = useMutation({mutationFn:({id,...d}:any)=>apiClient.put(`/system/settings/menus/${id}`, d), onSuccess:()=>qc.invalidateQueries({queryKey:['admin-system-settings']})});
   const delMenuMut = useMutation({mutationFn:(id:number)=>apiClient.delete(`/system/settings/menus/${id}`), onSuccess:()=>qc.invalidateQueries({queryKey:['admin-system-settings']})});
-  const createMenuItemMut = useMutation({mutationFn:(d:any)=>apiClient.post('/system/settings/menu-items', d), onSuccess:()=>qc.invalidateQueries({queryKey:['admin-system-settings']})});
+  const createMenuItemMut = useMutation({mutationFn:(d:any)=>apiClient.post(SYSTEM.SETTINGS_MENU_ITEMS, d), onSuccess:()=>qc.invalidateQueries({queryKey:['admin-system-settings']})});
   const delMenuItemMut = useMutation({mutationFn:(id:number)=>apiClient.delete(`/system/settings/menu-items/${id}`), onSuccess:()=>qc.invalidateQueries({queryKey:['admin-system-settings']})});
 
   // ── Page mutations ──
-  const createPageMut = useMutation({mutationFn:(d:any)=>apiClient.post('/system/settings/pages', d), onSuccess:()=>qc.invalidateQueries({queryKey:['admin-system-settings']})});
+  const createPageMut = useMutation({mutationFn:(d:any)=>apiClient.post(SYSTEM.SETTINGS_PAGES, d), onSuccess:()=>qc.invalidateQueries({queryKey:['admin-system-settings']})});
   const delPageMut = useMutation({mutationFn:(id:number)=>apiClient.delete(`/system/settings/pages/${id}`), onSuccess:()=>qc.invalidateQueries({queryKey:['admin-system-settings']})});
 
   // ── Menus dialog state ──

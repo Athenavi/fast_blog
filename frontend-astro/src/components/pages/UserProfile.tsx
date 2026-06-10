@@ -2,6 +2,7 @@
 
 import {useEffect, useState} from 'react';
 import {apiClient} from '@/lib/api/base-client';
+import {USERS} from '@/lib/api/api-paths';
 import {getFullMediaUrl} from '@/lib/utils';
 import {AuthGuard} from '@/components/AuthGuard';
 import {Calendar, Edit3, Eye, FileText, Heart, Link as LinkIcon, Lock, Mail, MapPin, Settings} from 'lucide-react';
@@ -44,7 +45,7 @@ function Profile() {
   useEffect(() => {
     (async () => {
       try {
-        const r = await apiClient.get('/users/me');
+        const r = await apiClient.get(USERS.ME);
         if (!r.success || !r.data) return;
         const user = r.data as ProfileData['user'];
         setData({user, recent_articles: r.data.recent_articles, stats: r.data.stats});

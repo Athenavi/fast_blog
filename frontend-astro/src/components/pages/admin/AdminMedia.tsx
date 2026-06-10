@@ -7,6 +7,7 @@ import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {StatCard} from '@/components/admin/shared-ui';
 import {apiClient} from '@/lib/api/base-client';
+import {MEDIA} from '@/lib/api/api-paths';
 import {DASHBOARD, SYSTEM} from '@/lib/api/api-paths';
 import {useDebounce} from '@/lib/hooks';
 import {getFullMediaUrl, formatBytes} from '@/lib/utils';
@@ -606,13 +607,13 @@ function FilesTab() {
   const {data: folders = []} = useQuery({
     queryKey: ['admin-media-folders'],
     queryFn: async () => {
-      const res = await apiClient.get('/media/folders/list');
+      const res = await apiClient.get(MEDIA.FOLDERS_LIST);
       return (res.data || []) as FolderItem[];
     },
   });
 
   const delMut = useMutation({
-    mutationFn: (id: number) => apiClient.delete(`/media/detail/${id}`),
+    mutationFn: (id: number) => apiClient.delete(MEDIA.DETAIL(id)),
     onSuccess: () => {
       qc.invalidateQueries({queryKey: ['admin-media']});
       setDeleteTarget(null);
@@ -620,7 +621,7 @@ function FilesTab() {
   });
 
   const batchDelMut = useMutation({
-    mutationFn: (ids: number[]) => apiClient.post('/media/batch-delete', {media_ids: ids}),
+    mutationFn: (ids: number[]) => apiClient.post(MEDIA.BATCH_DELETE, {media_ids: ids}),
     onSuccess: () => {
       qc.invalidateQueries({queryKey: ['admin-media']});
       setSelectedIds(new Set());

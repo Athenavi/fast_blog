@@ -4,6 +4,7 @@ import React, {useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
 import {EmptyState, Pagination} from '@/components/admin/shared-ui';
 import {apiClient} from '@/lib/api/base-client';
+import {SECURITY} from '@/lib/api/api-paths';
 import {FileText} from 'lucide-react';
 import {ApprovalRecord, StatusBadge} from './shared';
 
@@ -13,7 +14,7 @@ const MyRequestsTab: React.FC = () => {
 
   const {data, isLoading} = useQuery({
     queryKey: ['my-approval-requests', page, statusFilter],
-    queryFn: () => apiClient.get('/security/content-approval/my-requests', {
+    queryFn: () => apiClient.get(SECURITY.CONTENT_APPROVAL_MY_REQUESTS, {
       page, per_page: 15,
       status: statusFilter || undefined,
     }),

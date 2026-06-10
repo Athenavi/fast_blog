@@ -4,6 +4,7 @@ import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {apiClient} from '@/lib/api/base-client';
+import {WEBHOOKS} from '@/lib/api/api-paths';
 import {formatDateTime as formatTime} from '@/lib/utils';
 import {useConfirm} from '@/components/ui/confirm-provider';
 import {useToast} from '@/components/ui/toast-provider';
@@ -69,7 +70,7 @@ function WebhooksInner() {
     const {data: deliveries} = useQuery({
         queryKey: ['webhook-deliveries'],
         queryFn: async () => {
-            const res = await apiClient.get('/webhooks/deliveries');
+            const res = await apiClient.get(WEBHOOKS.DELIVERIES);
             return res.data || [];
         }
     });

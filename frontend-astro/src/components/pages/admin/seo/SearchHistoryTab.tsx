@@ -4,6 +4,7 @@ import React, {useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
 import {EmptyState, Pagination} from '@/components/admin/shared-ui';
 import {apiClient} from '@/lib/api/base-client';
+import {SEARCH} from '@/lib/api/api-paths';
 import {Search} from 'lucide-react';
 import {SearchHistory} from './shared';
 
@@ -12,7 +13,7 @@ const SearchHistoryTab: React.FC = () => {
 
   const {data, isLoading} = useQuery({
     queryKey: ['search-history', page],
-    queryFn: () => apiClient.get('/search/history', {page, per_page: 20}),
+    queryFn: () => apiClient.get(SEARCH.HISTORY, {page, per_page: 20}),
   });
 
   const items: SearchHistory[] = data?.data?.history || data?.data?.items || [];

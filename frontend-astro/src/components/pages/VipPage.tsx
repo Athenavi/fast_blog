@@ -4,20 +4,21 @@
 import {useQuery} from '@tanstack/react-query';
 import {QueryProvider} from '@/components/QueryProvider';
 import {apiClient} from '@/lib/api/base-client';
+import {MEMBERSHIP} from '@/lib/api/api-paths';
 import {Check, Crown, Star, Zap} from 'lucide-react';
 
 function VipInner() {
   const {data: features} = useQuery({
     queryKey: ['vip-features'],
     queryFn: async () => {
-      const r = await apiClient.get<any[]>('/membership/features');
+      const r = await apiClient.get<any[]>(MEMBERSHIP.FEATURES);
       return r.success && r.data ? (Array.isArray(r.data) ? r.data : []) : [];
     },
   });
   const {data: status} = useQuery({
     queryKey: ['vip-status'],
     queryFn: async () => {
-      const r = await apiClient.get('/membership/status');
+      const r = await apiClient.get(MEMBERSHIP.STATUS);
       return r.success && r.data ? r.data : {};
     },
   });

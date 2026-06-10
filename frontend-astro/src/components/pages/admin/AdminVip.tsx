@@ -7,6 +7,7 @@ import {AdminShell} from '@/components/admin/AdminShell';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {apiClient} from '@/lib/api/base-client';
+import {DASHBOARD} from '@/lib/api/api-paths';
 import {VipMgmtData} from './vip/shared';
 
 const LazyPlansTab = lazy(() => import('./vip/PlansTab'));
@@ -34,7 +35,7 @@ function VipAdminInner() {
   const {data: mgmt, isLoading, refetch} = useQuery({
     queryKey: ['admin-vip'],
     queryFn: async () => {
-      const r = await apiClient.get('/dashboard/vip-management');
+      const r = await apiClient.get(DASHBOARD.VIP_MANAGEMENT);
       return (r.success && r.data) ? (r.data as VipMgmtData) : {stats: {}, members: [], plans: [], features: []};
     },
   });
