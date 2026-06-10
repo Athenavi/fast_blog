@@ -1,113 +1,90 @@
 """
-文章密码保护API
+文章密码保护 API - V2 优化版
 """
-from typing import Optional
+from functools import wraps
 
-from fastapi import APIRouter, Depends, Path, Body, Request
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.services.articles.article_manager import password_protection_service
+from shared.models.article import Article
 from src.api.v2._base import ApiResponse
-from src.auth.auth_deps import jwt_required_dependency as jwt_required
-from src.utils.database.main import get_async_session
-
-router = APIRouter()
-
-
-@router.post("/{article_id}/password",
-             summary="设置文章密码",
-             description="为文章设置访问密码或清除密码，需要管理员或作者权限",
-             response_description="返回操作结果")
-async def set_article_password_api(
-        article_id: int = Path(..., description="文章ID"),
-        password: Optional[str] = Body(None, embed=True, description="密码，传null清除密码"),
-        current_user=Depends(jwt_required),
-        db: AsyncSession = Depends(get_async_session)
-):
-    """设置文章密码"""
-    try:
-        from sqlalchemy import select
-        from shared.models.article import Article
-        
-        # 检查权限
-        article_query = select(Article).where(Article.id == article_id)
-        article_result = await db.execute(article_query)
-        article = article_result.scalar_one_or_none()
-        
-        if not article:
-            return ApiResponse(success=False, error="Article not found")
-        
-        # 仅管理员或作者可设置密码（不限制必须是隐藏文章）
-        if (not getattr(current_user, 'is_staff', False) and 
-            not getattr(current_user, 'is_superuser', False) and
-            article.user != current_user.id):
-            from fastapi import HTTPException
-            raise HTTPException(status_code=403, detail="Permission denied")
-        
-        result = await password_protection_service.set_article_password(db, article_id, password)
-        
-        return ApiResponse(
-            success=True,
-            data=result
-        )
-    except Exception as e:
-        import traceback
-        print(f"Error in set_article_password_api: {str(e)}")
-        print(traceback.format_exc())
-        return ApiResponse(success=False, error=str(e))
+from src.api.v2._helpers import ok, fail
+from src.auth import jwt_required_dependency as jwt_required
+from src.utils.database.main import get_async_session as get_async_db
 
 
-@router.post("/{article_id}/verify",
-             summary="验证文章密码",
-             description="验证用户输入的文章访问密码",
-             response_description="返回验证结果和访问token")
-async def verify_article_password_api(
-        article_id: int = Path(..., description="文章ID"),
-        password: str = Body(..., embed=True, description="用户输入的密码"),
-        db: AsyncSession = Depends(get_async_session)
-):
+router = APIRouter(tags=["article-password"])
+
+
+def _catch(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except Exception as e:
+            return fail(str(e))
+    return wrapper
+
+
+@router.get("/access/{article_id}")
+@_catch
+async def check_article_access(article_id: int, password: str = Query(""),
+                                db: AsyncSession = Depends(get_async_db)):
     """验证文章密码"""
-    try:
-        result = await password_protection_service.verify_article_password(db, article_id, password)
-        
-        if result['success']:
-            # 生成访问token
-            access_token = password_protection_service.generate_access_token(article_id)
-            result['access_token'] = access_token
-        
-        return ApiResponse(
-            success=result['success'],
-            data=result
-        )
-    except Exception as e:
-        import traceback
-        print(f"Error in verify_article_password_api: {str(e)}")
-        print(traceback.format_exc())
-        return ApiResponse(success=False, error=str(e))
+    article = await db.scalar(select(Article).where(Article.id == article_id))
+    if not article:
+        return fail("文章不存在")
+    if not article.password:
+        return ok({"has_password": False})
+    if password == article.password:
+        return ok({"has_password": True, "access_granted": True})
+    return ok({"has_password": True, "access_granted": False})
 
 
-@router.get("/{article_id}/access",
-            summary="检查文章访问权限",
-            description="检查当前用户是否有权限访问受密码保护的文章",
-            response_description="返回访问权限信息")
-async def check_article_access_api(
-        request: Request,
-        article_id: int = Path(..., description="文章ID"),
-        db: AsyncSession = Depends(get_async_session)
-):
-    """检查文章访问权限"""
-    try:
-        # 从cookie或query参数获取access_token
-        access_token = request.query_params.get('access_token') or request.cookies.get(f'article_access_{article_id}')
-        
-        result = await password_protection_service.check_article_access(db, article_id, access_token)
-        
-        return ApiResponse(
-            success=True,
-            data=result
-        )
-    except Exception as e:
-        import traceback
-        print(f"Error in check_article_access_api: {str(e)}")
-        print(traceback.format_exc())
-        return ApiResponse(success=False, error=str(e))
+@router.post("/verify/{article_id}")
+@_catch
+async def verify_article_password(article_id: int, data: dict,
+                                   db: AsyncSession = Depends(get_async_db)):
+    """验证文章访问密码"""
+    article = await db.scalar(select(Article).where(Article.id == article_id))
+    if not article:
+        return fail("文章不存在")
+    if not article.password:
+        return ok({"verified": True})
+    if data.get('password') == article.password:
+        return ok({"verified": True})
+    return ok({"verified": False})
+
+
+@router.post("/set/{article_id}")
+@_catch
+async def set_article_password(article_id: int, data: dict,
+                                db: AsyncSession = Depends(get_async_db),
+                                current_user=Depends(jwt_required)):
+    """设置/更改文章密码"""
+    article = await db.scalar(select(Article).where(Article.id == article_id))
+    if not article:
+        return fail("文章不存在")
+    if article.user_id != current_user.id and not getattr(current_user, 'is_superuser', False):
+        return fail("无权限修改此文章密码")
+    article.password = data.get('password', '')
+    await db.commit()
+    return ok(msg="密码更新成功")
+
+
+@router.delete("/remove/{article_id}")
+@_catch
+async def remove_article_password(article_id: int,
+                                   db: AsyncSession = Depends(get_async_db),
+                                   current_user=Depends(jwt_required)):
+    """移除文章密码"""
+    article = await db.scalar(select(Article).where(Article.id == article_id))
+    if not article:
+        return fail("文章不存在")
+    if article.user_id != current_user.id and not getattr(current_user, 'is_superuser', False):
+        return fail("无权限移除密码")
+    article.password = None
+    article.password_hint = None
+    await db.commit()
+    return ok(msg="密码已移除")
