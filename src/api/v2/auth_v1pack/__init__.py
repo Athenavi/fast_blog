@@ -171,7 +171,7 @@ async def login_api(request: Request, db: AsyncSession = Depends(get_async_db)):
         return fail("用户名或密码错误")
 
     await login_security_service.record_login_attempt_async(username, ip, ua, True, db=db)
-    await login_security_service.reset_login_attempts_async(username, db)
+    await login_security_service.clear_failed_attempts_async(username, db)
 
     if not user.is_active:
         return fail("账户已停用")
