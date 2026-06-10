@@ -1,5 +1,7 @@
 ﻿import {apiClient} from "@/lib/api/base-client";
 
+import {getConfig} from '@/lib/config';
+
 export {apiClient} from "@/lib/api/base-client";
 export {ArticleService} from './article-service';
 export type {Article, Category, ApiResponse, Pagination} from './base-types';
@@ -41,7 +43,7 @@ export const MediaService = {
         form.append('file', file);
         const xhr = new XMLHttpRequest();
         return new Promise((resolve, reject) => {
-            xhr.open('POST', '/api/v2/media/upload');
+            xhr.open('POST', `${getConfig().API_BASE_URL}/api/v2/media/upload`);
             xhr.withCredentials = true;
             if (onProgress) {
                 xhr.upload.onprogress = (e) => {
