@@ -33,6 +33,8 @@ import {
 import {useDarkMode} from '@/lib/dark-mode-manager';
 import {getAccessTokenFromCookie} from '@/lib/auth-utils';
 import {MenuService, type MenuTreeItem} from '@/lib/api/menu-service';
+import {AUTH, SEARCH} from '@/lib/api/api-paths';
+import {getConfig} from '@/lib/config';
 
 interface NavbarProps {
   title?: string;
@@ -181,7 +183,7 @@ const Navbar: React.FC<NavbarProps> = ({title, subtitle, showBackButton = false,
     setSearchLoading(true);
     searchTimeoutRef.current = setTimeout(async () => {
       try {
-        const res = await fetch(`/api/v2/search?q=${encodeURIComponent(value)}&per_page=5`);
+        const res = await fetch(`${getConfig().API_BASE_URL}${SEARCH.QUICK}?q=${encodeURIComponent(value)}&per_page=5`);
         const data = await res.json();
         setSearchResults(data?.data?.articles || data?.data || []);
       } catch {

@@ -2,6 +2,7 @@
 
 import React, {useEffect, useState} from 'react';
 import {apiClient} from '@/lib/api/base-client';
+import {AUTH, USERS} from '@/lib/api/api-paths';
 import {getAccessTokenFromCookie, getRefreshTokenFromCookie, setCookie} from '@/lib/auth-utils';
 
 /**
@@ -21,7 +22,7 @@ export function AuthGuard({children}: {children: React.ReactNode}) {
           // access_token 不存在，尝试用 refresh_token 刷新
           const refreshToken = getRefreshTokenFromCookie();
           if (refreshToken) {
-            const refreshResult = await apiClient.post('/auth/token/refresh', {refresh: refreshToken});
+            const refreshResult = await apiClient.post(AUTH.REFRESH_TOKEN, {refresh: refreshToken});
             if (refreshResult.success && refreshResult.data) {
               const d = refreshResult.data as any;
               if (d.access_token) setCookie('access_token', d.access_token, 3600);
@@ -35,7 +36,7 @@ export function AuthGuard({children}: {children: React.ReactNode}) {
           return;
         }
         // 2) 验证 token 有效性
-        const res = await apiClient.get('/users/me');
+        const res = await apiClient.get(USERS.ME);
         if (res.success && res.data) {
           if (!cancelled) setStatus('authenticated');
         } else {

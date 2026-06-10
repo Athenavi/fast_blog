@@ -30,6 +30,7 @@ import {
   Trash2,
   User
 } from 'lucide-react';
+import {AUTH, USERS, SECURITY} from '@/lib/api/api-paths';
 
 const TABS = [
     {id: 'profile', label: '个人资料', icon: User, desc: '管理你的基本信息'},
@@ -64,7 +65,7 @@ function Settings() {
   useEffect(() => {
     (async () => {
       try {
-        const r = await apiClient.get('/users/me');
+        const r = await apiClient.get(USERS.ME);
         if (r.success && r.data) {
           const u = (r.data as any).user || r.data;
           setP(u); setUn(u.username||''); setBio(u.bio||''); setLoc(u.locale||'zh_CN'); setPriv(u.profile_private||false);
@@ -75,7 +76,7 @@ function Settings() {
           }
           setAv(url||`https://ui-avatars.com/api/?name=${encodeURIComponent(u.username||'U')}&background=random`);
         }
-        const f = await apiClient.get('/security/2fa/status');
+        const f = await apiClient.get(SECURITY.TWO_FA_STATUS);
         if (f.success && f.data) setFa((f.data as any).is_2fa_enabled||false);
       } catch {}
     })();
@@ -101,7 +102,7 @@ function Settings() {
   const save = async (field: string, value: any) => {
     setBusy(true);
     try {
-      const r = await apiClient.put('/users/me', {[field]: value});
+      const r = await apiClient.put(USERS.ME, {[field]: value});
         if (r.success) flashSaved(field);
         else alert(r.error || '保存失败');
     } catch { alert('网络错误'); }
@@ -143,11 +144,11 @@ function Settings() {
     } catch{} finally{setBusy(false);}
   };
 
-  const setup2FA = async () => { const r = await apiClient.get('/security/2fa/setup'); if(r.success&&r.data){setQr(r.data.qr_code);setSecret(r.data.secret);} };
-  const enable2FA = async () => { if(vc.length!==6){alert('输入6位验证码');return;} const r = await apiClient.post('/security/2fa/enable',{totp_token:vc}); if(r.success){setFa(true);setQr('');setCodes((r.data as any)?.backup_codes||[]);} };
+  const setup2FA = async () => { const r = await apiClient.get(SECURITY.TWO_FA_SETUP); if(r.success&&r.data){setQr(r.data.qr_code);setSecret(r.data.secret);} };
+  const enable2FA = async () => { if(vc.length!==6){alert('输入6位验证码');return;} const r = await apiClient.post(SECURITY.TWO_FA_ENABLE,{totp_token:vc}); if(r.success){setFa(true);setQr('');setCodes((r.data as any)?.backup_codes||[]);} };
   const disable2FA = async () => {
     if (!await confirm({message: '禁用2FA？', variant: 'warning'})) return;
-    const r = await apiClient.post('/security/2fa/disable');
+    const r = await apiClient.post(SECURITY.TWO_FA_DISABLE);
     if (r.success) {
       setFa(false);
       setQr('');
@@ -157,7 +158,7 @@ function Settings() {
   };
 
   const loadS = async () => {
-    const r = await apiClient.get('/security/admin/session/my-sessions');
+    const r = await apiClient.get(SECURITY.MY_SESSIONS);
     if (r.success && r.data) {
       const raw = r.data.sessions || r.data.data?.sessions || [];
       setSessions(Array.isArray(raw) ? raw : []);
@@ -166,21 +167,21 @@ function Settings() {
   useEffect(()=>{if(tab===3)loadS();},[tab]);
 
   const revokeSession = async (sessionId: string) => {
-    const r = await apiClient.post('/security/admin/session/revoke', {session_id: sessionId});
+    const r = await apiClient.post(SECURITY.REVOKE_SESSION, {session_id: sessionId});
       if (r.success) setSessions(prev => prev.filter(s => s.session_id !== sessionId && s.id !== sessionId));
       else alert(r.error || '注销失败');
   };
 
   const revokeAllOther = async () => {
     if (!await confirm({message: '这将注销所有其他设备，确定继续？', variant: 'warning'})) return;
-    const r = await apiClient.post('/security/admin/session/revoke-all', {});
+    const r = await apiClient.post(SECURITY.REVOKE_ALL_SESSIONS, {});
       if (r.success) loadS();
       else alert(r.error || '操作失败');
   };
 
   const handleLogout = async () => {
       try {
-          await apiClient.post('/auth/logout');
+          await apiClient.post(AUTH.LOGOUT);
       } catch {
       }
     document.cookie='access_token=;path=/;expires=Thu,01 Jan 1970 00:00:00 UTC';

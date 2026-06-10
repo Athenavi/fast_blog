@@ -8,6 +8,7 @@ import {StorageStats} from '@/components/pages/media/StorageStats';
 import {useMediaUpload} from '@/components/pages/media/useMediaUpload';
 import {PreviewModal, DeleteConfirm, MoveDialog, CreateFolderDialog} from '@/components/pages/media/MediaDialogs';
 import {FolderTree} from '@/components/pages/media/FolderTree';
+import {MEDIA} from '@/lib/api/api-paths';
 import type {FolderNode} from '@/components/pages/media/FolderTree';
 import {MediaGrid} from '@/components/pages/media/MediaGrid';
 import {AudioLayer} from '@/components/pages/media/AudioPlayer';
@@ -94,14 +95,14 @@ const MediaPage: React.FC = () => {
   const loadFolders = useCallback(async () => {
     setFolderLoading(true);
     try {
-      const res = await apiClient.get('/media/folders/tree');
+      const res = await apiClient.get(MEDIA.FOLDERS_TREE);
       if (res.success && res.data) setFolders((res.data as any).tree || []);
     } catch {} finally { setFolderLoading(false); }
   }, []);
 
   const loadTags = useCallback(async () => {
     try {
-      const res = await apiClient.get('/media/tags');
+      const res = await apiClient.get(MEDIA.TAGS_LIST);
       if (res.success && res.data) {
         const d = res.data as any;
         setAllTags((d.tags || []).map((t: {name: string; count: number}) => ({id: t.name, name: t.name, count: t.count})));
@@ -111,7 +112,7 @@ const MediaPage: React.FC = () => {
 
   const loadCategories = useCallback(async () => {
     try {
-      const res = await apiClient.get('/media/categories');
+      const res = await apiClient.get(MEDIA.CATEGORIES);
       if (res.success && res.data) {
         const d = res.data as any;
         setAllCategories((d.categories || []).map((c: {name: string; count: number}) => ({id: c.name, name: c.name, count: c.count})));
@@ -154,7 +155,7 @@ const MediaPage: React.FC = () => {
   const {uploading, uploadProgress, uploadStatus, uploadFiles} = useMediaUpload(() => loadFiles());
 
   const handleDelete = async (id: number) => {
-    const res = await apiClient.delete('/media/?file-id-list=' + id);
+    const res = await apiClient.delete(MEDIA.DELETE(id));
     if (res.success) {
       setDeleteItem(null);
       await loadFiles();
@@ -162,7 +163,7 @@ const MediaPage: React.FC = () => {
   };
 
   const handleCreateFolder = async (name: string) => {
-    const res = await apiClient.post('/media/folders/', {name});
+    const res = await apiClient.post(MEDIA.FOLDERS_CREATE, {name});
     if (res.success) {
       setShowCreateFolder(false);
       await loadFolders();
@@ -172,7 +173,7 @@ const MediaPage: React.FC = () => {
 
   const handleMoveToFolder = async (folderPath: string|null) => {
     if (!selected.length) return;
-    const res = await apiClient.post('/media/folders/move-media', {media_ids: selected, folder_path: folderPath});
+    const res = await apiClient.post(MEDIA.FOLDERS_MOVE, {media_ids: selected, folder_path: folderPath});
     if (res.success) {
       setSelected([]);
       setShowMoveDialog(false);
@@ -183,7 +184,7 @@ const MediaPage: React.FC = () => {
 
   const handleDeleteFolder = async (id: number) => {
     if (!await confirm({message: '确定删除此文件夹？', variant: 'danger'})) return;
-    const res = await apiClient.delete(`/media/folders/${id}`);
+    const res = await apiClient.delete(MEDIA.FOLDERS_DELETE(id));
     if (res.success) {
       if (selectedFolder === id) setSelectedFolder(null);
       await loadFolders();
@@ -193,7 +194,7 @@ const MediaPage: React.FC = () => {
 
   const handleSaveTags = async (mediaId: number, tags: string[], mode: 'add' | 'replace') => {
     try {
-      const res = await apiClient.post(`/media/${mediaId}/tags`, {tags, mode});
+      const res = await apiClient.post(MEDIA.TAGS(mediaId), {tags, mode});
       if (res.success) {
         await loadFiles();
         loadTags();
@@ -208,7 +209,7 @@ const MediaPage: React.FC = () => {
 
   const handleSaveCategory = async (mediaId: number, category: string | null) => {
     try {
-      const res = await apiClient.put(`/media/detail/${mediaId}`, {category});
+      const res = await apiClient.put(MEDIA.DETAIL(mediaId), {category});
       if (res.success) {
         await loadFiles();
         loadCategories();
@@ -221,7 +222,7 @@ const MediaPage: React.FC = () => {
   const handleSaveBatchCategory = async (category: string) => {
     if (!selected.length) return;
     try {
-      const res = await apiClient.post('/media/batch-categorize', {media_ids: selected, category});
+      const res = await apiClient.post(MEDIA.BATCH_CATEGORIZE, {media_ids: selected, category});
       if (res.success) {
         await loadFiles();
         loadCategories();
@@ -233,7 +234,7 @@ const MediaPage: React.FC = () => {
   const handleSaveBatchTags = async (tag: string) => {
     if (!selected.length) return;
     try {
-      const res = await apiClient.post('/media/batch-tags', {media_ids: selected, tags: [tag], mode: 'add'});
+      const res = await apiClient.post(MEDIA.BATCH_TAGS, {media_ids: selected, tags: [tag], mode: 'add'});
       if (res.success) {
         await loadFiles();
         loadTags();
