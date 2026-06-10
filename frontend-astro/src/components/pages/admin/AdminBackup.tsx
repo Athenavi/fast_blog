@@ -6,6 +6,7 @@ import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {apiClient} from '@/lib/api/base-client';
+import {SYSTEM} from '@/lib/api/api-paths';
 import {
   AlertTriangle,
   Archive,
@@ -247,7 +248,7 @@ function BackupInner() {
     queryFn: async () => {
       const params: Record<string, any> = {page, per_page: 15};
       if (typeFilter) params.backup_type = typeFilter;
-      const res = await apiClient.get('/api/v2/system/backup/list', params);
+      const res = await apiClient.get(SYSTEM.BACKUP_LIST, params);
       if (res.success && res.data) return res.data;
       return {backups: [], total: 0, page: 1, per_page: 15, total_pages: 1};
     },
@@ -256,7 +257,7 @@ function BackupInner() {
   const {data: stats, refetch: refetchStats} = useQuery({
     queryKey: ['admin-backup-stats'],
     queryFn: async () => {
-      const res = await apiClient.get('/api/v2/system/backup/stats');
+      const res = await apiClient.get(SYSTEM.BACKUP_STATS);
       return res.success && res.data ? res.data : {};
     },
   });
@@ -308,7 +309,7 @@ function BackupInner() {
   const createMut = useMutation({
     mutationFn: async (type: string) => {
       setBackingUp(type);
-      const res = await apiClient.post(`/api/v2/system/backup/${type}`);
+      const res = await apiClient.post(SYSTEM.BACKUP_CREATE(type));
       return {type, res};
     },
     onSuccess: ({type}) => {
@@ -320,7 +321,7 @@ function BackupInner() {
   });
 
   const delOneMut = useMutation({
-    mutationFn: (filename: string) => apiClient.delete(`/api/v2/system/backup/${encodeURIComponent(filename)}`),
+    mutationFn: (filename: string) => apiClient.delete(SYSTEM.BACKUP_DELETE(filename)),
     onSuccess: () => {
       setDeleteTarget(null);
       qc.invalidateQueries({queryKey: ['admin-backups']});
@@ -329,7 +330,7 @@ function BackupInner() {
   });
 
   const delMut = useMutation({
-    mutationFn: () => apiClient.post('/api/v2/system/backup/cleanup'),
+    mutationFn: () => apiClient.post(SYSTEM.BACKUP_CLEANUP),
     onSuccess: () => {
       qc.invalidateQueries({queryKey: ['admin-backups']});
       refetchStats();
@@ -503,7 +504,7 @@ function BackupInner() {
                 {filteredBackups.map((b: any, i: number) => {
                   const filename = b.filename || b.path?.split('/').pop() || b.backup_dir?.split('/').pop() || '';
                   const isFull = b.type === 'full';
-                  const downloadUrl = `/api/v2/system/backup/download/${encodeURIComponent(filename)}`;
+                  const downloadUrl = SYSTEM.BACKUP_DOWNLOAD(filename);
                   return (
                       <tr key={b.filename || i}
                           className="group hover:bg-gray-50/80 dark:hover:bg-gray-800/30 transition-colors">

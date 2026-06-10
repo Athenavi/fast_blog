@@ -5,6 +5,7 @@ import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
+import {RBAC, DASHBOARD} from '@/lib/api/api-paths';
 import {apiClient} from '@/lib/api/base-client';
 import {StatCard} from '@/components/admin/shared-ui';
 import {
@@ -294,9 +295,9 @@ function RoleModal({mode, role, permissions, onClose}: {
       if (!slug.trim()) throw new Error('角色标识不能为空');
       const perms = [...selectedPerms];
       if (mode === 'create') {
-        return apiClient.post('/api/v2/security/rbac/roles', {name, slug, description: desc, permission_codes: perms});
+        return apiClient.post(RBAC.ROLES, {name, slug, description: desc, permission_codes: perms});
       } else {
-        return apiClient.put(`/api/v2/security/rbac/roles/${role!.id}/permissions`, {permission_codes: perms});
+        return apiClient.put(RBAC.ROLE_PERMISSIONS(role!.id), {permission_codes: perms});
       }
     },
     onSuccess: (res: any) => {
@@ -450,7 +451,7 @@ function UsersModal({roleId, roleName, onClose}: {roleId: number; roleName: stri
   const {data: users, isLoading} = useQuery({
     queryKey: ['admin-role-users', roleId],
     queryFn: async () => {
-      const res = await apiClient.get('/api/v2/dashboard/user-management/users', {per_page: 100});
+      const res = await apiClient.get(DASHBOARD.USER_MGMT_USERS, {per_page: 100});
       if (!res.success || !res.data) return [];
       return Array.isArray(res.data) ? res.data : (res.data.users || []);
     },
@@ -532,7 +533,7 @@ function RolesInner() {
   const {data: roles, isLoading} = useQuery({
     queryKey: ['admin-roles'],
     queryFn: async () => {
-      const res = await apiClient.get('/api/v2/security/rbac/roles');
+      const res = await apiClient.get(RBAC.ROLES);
       return res.success && res.data ? (Array.isArray(res.data) ? res.data : res.data.roles || []) : [];
     },
   });
@@ -540,13 +541,13 @@ function RolesInner() {
   const {data: permissions} = useQuery({
     queryKey: ['admin-permissions'],
     queryFn: async () => {
-      const res = await apiClient.get('/api/v2/security/rbac/permissions');
+      const res = await apiClient.get(RBAC.PERMISSIONS);
       return res.success && res.data ? (Array.isArray(res.data) ? res.data : res.data.permissions || []) : [];
     },
   });
 
   const deleteMut = useMutation({
-    mutationFn: (id: number) => apiClient.delete(`/api/v2/security/rbac/roles/${id}`),
+    mutationFn: (id: number) => apiClient.delete(RBAC.ROLE(id)),
     onSuccess: (res: any) => {
       if (!res.success) return;
       qc.invalidateQueries({queryKey: ['admin-roles']});

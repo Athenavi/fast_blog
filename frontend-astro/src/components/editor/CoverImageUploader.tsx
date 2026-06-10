@@ -17,7 +17,8 @@ type UploadMode = 'file' | 'url';
 /* ── Constants ── */
 const ACCEPTED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
 const MAX_FILE_SIZE = 8 * 1024 * 1024; // 8MB
-const COVER_UPLOAD_ENDPOINT = '/api/v2/media/cover';
+import {MEDIA} from '@/lib/api/api-paths';
+const COVER_UPLOAD_ENDPOINT = MEDIA.COVER_UPLOAD;
 const ASPECT_RATIO = 16 / 9;
 
 /* ── Upload Progress ── */
