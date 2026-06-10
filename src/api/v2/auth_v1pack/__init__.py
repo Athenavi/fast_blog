@@ -179,7 +179,7 @@ async def login_api(request: Request, db: AsyncSession = Depends(get_async_db)):
     access_token = create_jwt_token(subject=str(user.id), token_type="access")
     refresh_token = create_jwt_token(subject=str(user.id), token_type="refresh") if remember_me else None
 
-    await session_management_service.create_session_async(user.id, ip, ua, db)
+    session_management_service.create_session(user.id, {"ip": ip, "user_agent": ua}, ip, ua)
 
     resp_data = {"access_token": access_token, "token_type": "bearer"}
     if refresh_token:
@@ -270,7 +270,7 @@ async def logout_api(request: Request, current_user=Depends(jwt_required)):
         try:
             payload = decode_jwt_token(token)
             tb.blacklist(payload['jti'], payload['exp'])
-            await session_management_service.invalidate_user_sessions_async(current_user.id)
+            session_management_service.revoke_all_sessions(current_user.id)
         except Exception:
             pass
     resp = JSONResponse(content={"success": True, "message": "已登出"})
