@@ -11,7 +11,7 @@ from sqlalchemy import select, update, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.media import Media
-from shared.models.media_folder import MediaFolder
+from shared.models.media.media_folder import MediaFolder
 
 from src.unified_logger import default_logger as logger
 
