@@ -6,20 +6,21 @@ import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {apiClient} from '@/lib/api/base-client';
+import {TEMPLATES} from '@/lib/api/api-paths';
 import {GitBranch} from 'lucide-react';
 
 function TemplatesInner() {
     const {data, isLoading} = useQuery<any[]>({
     queryKey: ['admin-templates'],
     queryFn: async () => {
-      const r = await apiClient.get('/templates/templates/list');
+      const r = await apiClient.get(TEMPLATES.LIST);
       return r.success && r.data ? (Array.isArray(r.data) ? r.data : r.data.templates||[]) : [];
     },
   });
     const {data: cats} = useQuery<any[]>({
     queryKey: ['admin-template-cats'],
     queryFn: async () => {
-      const r = await apiClient.get('/templates/templates/categories');
+      const r = await apiClient.get(TEMPLATES.CATEGORIES);
       return r.success && r.data ? (Array.isArray(r.data) ? r.data : r.data.categories||[]) : [];
     },
   });

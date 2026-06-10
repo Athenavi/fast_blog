@@ -6,20 +6,21 @@ import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {apiClient} from '@/lib/api/base-client';
+import {COLLABORATION} from '@/lib/api/api-paths';
 import {CheckSquare, Handshake, MessageSquare, Users} from 'lucide-react';
 
 function CollabInner() {
     const {data: workspaces, isLoading} = useQuery<any[]>({
     queryKey: ['admin-collab-workspaces'],
     queryFn: async () => {
-      const r = await apiClient.get('/collaboration/team/workspaces');
+      const r = await apiClient.get(COLLABORATION.WORKSPACES);
       return r.success && r.data ? (Array.isArray(r.data) ? r.data : r.data.workspaces||[]) : [];
     },
   });
   const {data: comments} = useQuery({
     queryKey: ['admin-collab-comments'],
     queryFn: async () => {
-      const r = await apiClient.get('/collaboration/comments/statistics');
+      const r = await apiClient.get(COLLABORATION.COMMENTS_STATS);
       return r.success && r.data ? r.data : {};
     },
   });

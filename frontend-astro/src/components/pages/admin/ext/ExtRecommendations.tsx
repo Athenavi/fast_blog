@@ -6,13 +6,14 @@ import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {apiClient} from '@/lib/api/base-client';
+import {RECOMMENDATIONS} from '@/lib/api/api-paths';
 import {Eye, Star, ThumbsUp, TrendingUp, Zap} from 'lucide-react';
 
 function RecsInner() {
   const {data: trending} = useQuery({
     queryKey: ['ext-recs-trending'],
     queryFn: async () => {
-      const r = await apiClient.get('/ext/recommendations/trending', {window: '7d', limit: 10});
+      const r = await apiClient.get(RECOMMENDATIONS.TRENDING, {window: '7d', limit: 10});
       const raw = r.success && r.data ? (r.data.trending || r.data) : [];
       return Array.isArray(raw) ? raw : [];
     },
@@ -21,7 +22,7 @@ function RecsInner() {
   const {data: risingStars} = useQuery({
     queryKey: ['ext-recs-rising'],
     queryFn: async () => {
-      const r = await apiClient.get('/ext/recommendations/rising-stars', {limit: 10});
+      const r = await apiClient.get(RECOMMENDATIONS.RISING_STARS, {limit: 10});
       const raw = r.success && r.data ? (r.data.rising_stars || r.data) : [];
       return Array.isArray(raw) ? raw : [];
     },
@@ -30,7 +31,7 @@ function RecsInner() {
   const {data: personalized} = useQuery({
     queryKey: ['ext-recs-personalized'],
     queryFn: async () => {
-      const r = await apiClient.get('/ext/recommendations/personalized', {limit: 10});
+      const r = await apiClient.get(RECOMMENDATIONS.PERSONALIZED, {limit: 10});
       const raw = r.success && r.data ? (r.data.recommendations || r.data) : [];
       return Array.isArray(raw) ? raw : [];
     },

@@ -6,6 +6,7 @@ import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {apiClient} from '@/lib/api/base-client';
+import {SECURITY} from '@/lib/api/api-paths';
 import {useDebounce} from '@/lib/hooks';
 import {StatCard} from '@/components/admin/shared-ui';
 import {
@@ -283,7 +284,7 @@ function SecurityDashboardInner() {
   const {data: summary, refetch: refetchSummary} = useQuery({
     queryKey: ['security-summary'],
     queryFn: async () => {
-      const res = await apiClient.get('/security/dashboard/summary');
+      const res = await apiClient.get(SECURITY.DASHBOARD_SUMMARY);
       return (res as any).data || (res as any) || {};
     },
   });
@@ -294,7 +295,7 @@ function SecurityDashboardInner() {
       const params: any = {};
       if (filterAction !== 'all') params.action = filterAction;
       if (filterStatus !== 'all') params.status = filterStatus;
-      const res = await apiClient.get('/security/audit/logs', {params});
+      const res = await apiClient.get(SECURITY.AUDIT_LOGS, {params});
       return (res as any).data || (res as any) || [];
     },
   });

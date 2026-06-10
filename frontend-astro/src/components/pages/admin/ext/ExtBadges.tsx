@@ -6,6 +6,7 @@ import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {apiClient} from '@/lib/api/base-client';
+import {BADGES} from '@/lib/api/api-paths';
 import {Award, Filter, Users} from 'lucide-react';
 
 const CATEGORY_LABEL: Record<string, string> = {writing:'写作', consistency:'坚持', quality:'质量', community:'社区', social:'社交', special:'特殊'};
@@ -14,7 +15,7 @@ function BadgesInner() {
   const {data: stats} = useQuery({
     queryKey: ['ext-badges-stats'],
     queryFn: async () => {
-      const r = await apiClient.get('/ext/badges/admin/stats');
+      const r = await apiClient.get(BADGES.ADMIN_STATS);
       return r.success && r.data ? r.data : {};
     },
   });
@@ -22,7 +23,7 @@ function BadgesInner() {
   const {data: available} = useQuery({
     queryKey: ['ext-badges-available'],
     queryFn: async () => {
-      const r = await apiClient.get('/ext/badges/available');
+      const r = await apiClient.get(BADGES.AVAILABLE);
       const raw = r.success && r.data ? (r.data.badges || r.data) : [];
       return Array.isArray(raw) ? raw : [];
     },

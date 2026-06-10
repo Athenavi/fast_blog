@@ -4,6 +4,7 @@ import React, {useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {EmptyState} from '@/components/admin/shared-ui';
 import {apiClient} from '@/lib/api/base-client';
+import {USERS} from '@/lib/api/api-paths';
 import {useConfirm} from '@/components/ui/confirm-provider';
 import {useToast} from '@/components/ui/toast-provider';
 import {ChevronLeft, ChevronRight, Clock, Monitor, PowerOff, Smartphone, Trash2} from 'lucide-react';
@@ -17,7 +18,7 @@ const SessionsTab: React.FC = () => {
 
   const {data, isLoading} = useQuery({
     queryKey: ['user-sessions', page],
-    queryFn: () => apiClient.get('/users/security/sessions', {page, per_page: 15}),
+    queryFn: () => apiClient.get(USERS.SECURITY_SESSIONS, {page, per_page: 15}),
   });
   const items: UserSession[] = data?.data?.sessions || [];
   const pagination: Pagination | undefined = data?.data?.pagination;

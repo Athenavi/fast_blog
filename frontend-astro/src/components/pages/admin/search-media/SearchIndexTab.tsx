@@ -4,6 +4,7 @@ import React, {useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {EmptyState} from '@/components/admin/shared-ui';
 import {apiClient} from '@/lib/api/base-client';
+import {SEARCH} from '@/lib/api/api-paths';
 import {useConfirm} from '@/components/ui/confirm-provider';
 import {useToast} from '@/components/ui/toast-provider';
 import {CheckCircle, ChevronLeft, ChevronRight, Plus, RefreshCw, Search, Trash2, XCircle} from 'lucide-react';
@@ -19,7 +20,7 @@ const SearchIndexTab: React.FC = () => {
 
   const {data, isLoading} = useQuery({
     queryKey: ['search-index', page, indexedFilter],
-    queryFn: () => apiClient.get('/search/management/search-index', {
+    queryFn: () => apiClient.get(SEARCH.SEARCH_INDEX, {
       page, per_page: 15,
       indexed: indexedFilter !== '' ? indexedFilter === 'true' : undefined,
     }),
@@ -28,7 +29,7 @@ const SearchIndexTab: React.FC = () => {
   const pagination: Pagination | undefined = data?.data?.pagination;
 
   const createMut = useMutation({
-    mutationFn: (d: any) => apiClient.post('/search/management/search-index', d),
+    mutationFn: (d: any) => apiClient.post(SEARCH.SEARCH_INDEX, d),
     onSuccess: (r: ApiResponse) => {
       if (r.success) qc.invalidateQueries({queryKey: ['search-index']}); else toast.error(r.error || '操作失败');
     },
@@ -42,7 +43,7 @@ const SearchIndexTab: React.FC = () => {
     onSuccess: () => qc.invalidateQueries({queryKey: ['search-index']}),
   });
   const batchReindexMut = useMutation({
-    mutationFn: (articleIds?: number[]) => apiClient.post('/search/management/search-index/batch-reindex', {article_ids: articleIds}),
+    mutationFn: (articleIds?: number[]) => apiClient.post(SEARCH.SEARCH_INDEX_BATCH_REINDEX, {article_ids: articleIds}),
     onSuccess: (r: ApiResponse) => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['search-index']});

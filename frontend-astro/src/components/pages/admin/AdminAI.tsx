@@ -6,6 +6,7 @@ import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {apiClient} from '@/lib/api/base-client';
+import {AI} from '@/lib/api/api-paths';
 import {Brain, Loader, Sparkles} from 'lucide-react';
 
 function AIInner() {
@@ -16,7 +17,7 @@ function AIInner() {
     const {data: skills} = useQuery<any[]>({
     queryKey: ['admin-ai-skills'],
     queryFn: async () => {
-      const r = await apiClient.get('/ai/skills/ai-skills/list');
+      const r = await apiClient.get(AI.SKILLS_LIST);
       return r.success && r.data ? (Array.isArray(r.data) ? r.data : r.data.skills||[]) : [];
     },
   });
@@ -24,9 +25,9 @@ function AIInner() {
   const analyzeMut = useMutation({
     mutationFn: async () => {
       let ep = '';
-      if (mode==='keywords') ep = '/ai/content/ai-content/extract-keywords';
-      else if (mode==='description') ep = '/ai/content/ai-content/generate-meta-description';
-      else ep = '/ai/content/ai-content/generate-outline';
+      if (mode==='keywords') ep = AI.CONTENT_EXTRACT_KEYWORDS;
+      else if (mode==='description') ep = AI.CONTENT_GENERATE_META;
+      else ep = AI.CONTENT_GENERATE_OUTLINE;
       const r = await apiClient.post(ep, {content: text});
       return r;
     },

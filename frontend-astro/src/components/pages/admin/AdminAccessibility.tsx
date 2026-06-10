@@ -6,6 +6,7 @@ import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {apiClient} from '@/lib/api/base-client';
+import {SYSTEM} from '@/lib/api/api-paths';
 import {Activity, BookOpen, Check, ExternalLink, Eye, Keyboard, Monitor, Sun, Wrench,} from 'lucide-react';
 
 // ─── WCAG color ───────────────────────────────────────
@@ -23,12 +24,12 @@ function AccessInner() {
   const {data: userConfig} = useQuery({
     queryKey: ['admin-a11y-config'],
     queryFn: async () => {
-      const r = await apiClient.get('/system/accessibility/config');
+      const r = await apiClient.get(SYSTEM.ACCESSIBILITY_CONFIG);
       return r.success && r.data ? r.data : {};
     },
   });
   const configMut = useMutation({
-    mutationFn: (data: any) => apiClient.post('/system/accessibility/config', data),
+    mutationFn: (data: any) => apiClient.post(SYSTEM.ACCESSIBILITY_CONFIG, data),
     onSuccess: () => qc.invalidateQueries({queryKey: ['admin-a11y-config']}),
   });
 

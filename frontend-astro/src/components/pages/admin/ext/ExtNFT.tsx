@@ -6,6 +6,7 @@ import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {apiClient} from '@/lib/api/base-client';
+import {NFT} from '@/lib/api/api-paths';
 import {Check, Diamond, Loader, Search} from 'lucide-react';
 
 function NFTInner() {
@@ -28,7 +29,7 @@ function NFTInner() {
   const [mintAddress, setMintAddress] = useState('');
   const [mintResult, setMintResult] = useState<any>(null);
   const mintMut = useMutation({
-    mutationFn: (data: any) => apiClient.post('/ext/nft/mint', data),
+    mutationFn: (data: any) => apiClient.post(NFT.MINT, data),
     onSuccess: (r) => { if (r.success) setMintResult(r.data); else setMintResult({error: r.error}); },
     onError: () => setMintResult({error: '铸造失败'}),
   });

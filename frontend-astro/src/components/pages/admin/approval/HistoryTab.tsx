@@ -3,6 +3,7 @@
 import React, {useState} from 'react';
 import {useQuery} from '@tanstack/react-query';
 import {apiClient} from '@/lib/api/base-client';
+import {SECURITY} from '@/lib/api/api-paths';
 import {CheckCircle, Clock, FileText, XCircle} from 'lucide-react';
 import {ApprovalStep, ApprovalStats, StatCard} from './shared';
 
@@ -12,7 +13,7 @@ const HistoryTab: React.FC = () => {
 
   const {data, isLoading} = useQuery({
     queryKey: ['approval-history', page],
-    queryFn: () => apiClient.get('/security/content-approval/stats'),
+    queryFn: () => apiClient.get(SECURITY.CONTENT_APPROVAL_STATS),
   });
 
   const stats: ApprovalStats = data?.data || {};

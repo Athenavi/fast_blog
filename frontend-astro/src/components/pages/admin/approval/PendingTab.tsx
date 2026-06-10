@@ -4,6 +4,7 @@ import React, {useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {EmptyState, Modal, Pagination} from '@/components/admin/shared-ui';
 import {apiClient} from '@/lib/api/base-client';
+import {SECURITY} from '@/lib/api/api-paths';
 import {Check, CheckCircle, Eye, X} from 'lucide-react';
 import {ApprovalRecord, StatusBadge, PriorityBadge} from './shared';
 import {useToast} from '@/components/ui/toast-provider';
@@ -18,7 +19,7 @@ const PendingTab: React.FC = () => {
 
   const {data, isLoading} = useQuery({
     queryKey: ['pending-approvals', page, typeFilter],
-    queryFn: () => apiClient.get('/security/content-approval/pending', {
+    queryFn: () => apiClient.get(SECURITY.CONTENT_APPROVAL_PENDING, {
       page, per_page: 15,
       content_type: typeFilter || undefined,
     }),

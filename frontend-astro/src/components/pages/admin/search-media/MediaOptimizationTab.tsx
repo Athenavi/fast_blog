@@ -4,6 +4,7 @@ import React, {useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {EmptyState, Modal} from '@/components/admin/shared-ui';
 import {apiClient} from '@/lib/api/base-client';
+import {SEARCH} from '@/lib/api/api-paths';
 import {useConfirm} from '@/components/ui/confirm-provider';
 import {useToast} from '@/components/ui/toast-provider';
 import {ChevronLeft, ChevronRight, Edit3, Plus, Trash2, Zap} from 'lucide-react';
@@ -20,7 +21,7 @@ const MediaOptimizationTab: React.FC = () => {
 
   const {data, isLoading} = useQuery({
     queryKey: ['media-optimization', page, statusFilter],
-    queryFn: () => apiClient.get('/search/management/media-optimization', {
+    queryFn: () => apiClient.get(SEARCH.MEDIA_OPTIMIZATION, {
       page,
       per_page: 15,
       status: statusFilter || undefined
@@ -30,7 +31,7 @@ const MediaOptimizationTab: React.FC = () => {
   const pagination: Pagination | undefined = data?.data?.pagination;
 
   const createMut = useMutation({
-    mutationFn: (d: any) => apiClient.post('/search/management/media-optimization', d),
+    mutationFn: (d: any) => apiClient.post(SEARCH.MEDIA_OPTIMIZATION, d),
     onSuccess: (r: ApiResponse) => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['media-optimization']});

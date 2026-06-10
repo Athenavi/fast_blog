@@ -3,6 +3,7 @@
 import React, {useState} from 'react';
 import {useMutation, useQueryClient} from '@tanstack/react-query';
 import {apiClient} from '@/lib/api/base-client';
+import {DASHBOARD} from '@/lib/api/api-paths';
 import {useConfirm} from '@/components/ui/confirm-provider';
 import {useToast} from '@/components/ui/toast-provider';
 import {Shield, Plus, Edit3, Check, Trash2} from 'lucide-react';
@@ -28,7 +29,7 @@ const FeaturesTab: React.FC<{ features: VIPFeature[]; onChanged: () => void }> =
   };
 
   const createMut = useMutation({
-    mutationFn: (d: FeatureForm) => apiClient.post('/dashboard/vip/features', d),
+    mutationFn: (d: FeatureForm) => apiClient.post(DASHBOARD.VIP_FEATURES, d),
     onSuccess: (r) => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['admin-vip']});

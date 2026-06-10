@@ -4,13 +4,14 @@
 import {useQuery} from '@tanstack/react-query';
 import {QueryProvider} from '@/components/QueryProvider';
 import {apiClient} from '@/lib/api/base-client';
+import {SYSTEM} from '@/lib/api/api-paths';
 import {Calendar, GitBranch, Info, Server} from 'lucide-react';
 
 function VersionInner() {
   const {data, isLoading} = useQuery({
     queryKey: ['version'],
     queryFn: async () => {
-      const r = await apiClient.get('/system/version/full');
+      const r = await apiClient.get(SYSTEM.VERSION_FULL);
       return r.success && r.data ? r.data : {};
     },
   });

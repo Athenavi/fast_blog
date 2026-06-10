@@ -4,6 +4,7 @@ import React, {useState} from 'react';
 import {useForm, FormProvider} from 'react-hook-form';
 import {zodResolver} from '@hookform/resolvers/zod';
 import {apiClient} from '@/lib/api/base-client';
+import {AUTH} from '@/lib/api/api-paths';
 import {registerSchema, type RegisterFormData} from '@/lib/schemas';
 import {useTranslation} from '@/lib/i18n';
 import {
@@ -145,7 +146,7 @@ export default function RegisterPage() {
   const onSubmit = async (data: RegisterFormData) => {
     setBusy(true); setErr('');
     try {
-      const r = await apiClient.postForm('/auth/register', {
+      const r = await apiClient.postForm(AUTH.REGISTER, {
         username: data.username,
         email: data.email,
         password: data.password

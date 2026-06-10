@@ -7,6 +7,7 @@ import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {StatCard} from '@/components/admin/shared-ui';
 import {apiClient} from '@/lib/api/base-client';
+import {DASHBOARD} from '@/lib/api/api-paths';
 import {
   TrendingUp,
   Eye,
@@ -264,7 +265,7 @@ function AnalyticsInner() {
   const {data: overview, isLoading: overviewLoading} = useQuery({
     queryKey: ['analytics-overview', days],
     queryFn: async () => {
-      const res = await apiClient.get('/dashboard/analytics/overview', {days});
+      const res = await apiClient.get(DASHBOARD.ANALYTICS_OVERVIEW, {days});
       return res.success && res.data ? res.data : {};
     },
   });
@@ -272,7 +273,7 @@ function AnalyticsInner() {
   const {data: trend, isLoading: trendLoading} = useQuery({
     queryKey: ['analytics-trend', days],
     queryFn: async () => {
-      const res = await apiClient.get('/dashboard/analytics/article-views-trend', {days});
+      const res = await apiClient.get(DASHBOARD.ARTICLE_VIEWS_TREND, {days});
       return res.success && res.data ? res.data : [];
     },
   });
@@ -280,7 +281,7 @@ function AnalyticsInner() {
   const {data: popular, isLoading: popularLoading} = useQuery({
     queryKey: ['analytics-popular', days],
     queryFn: async () => {
-      const res = await apiClient.get('/dashboard/analytics/popular-articles', {limit: 10, days});
+      const res = await apiClient.get(DASHBOARD.POPULAR_ARTICLES, {limit: 10, days});
       return res.success && res.data ? res.data : [];
     },
   });
@@ -288,7 +289,7 @@ function AnalyticsInner() {
   const {data: categories} = useQuery({
     queryKey: ['analytics-categories'],
     queryFn: async () => {
-      const res = await apiClient.get('/dashboard/analytics/category-distribution');
+      const res = await apiClient.get(DASHBOARD.CATEGORY_DISTRIBUTION);
       return res.success && res.data ? res.data : [];
     },
   });
@@ -296,7 +297,7 @@ function AnalyticsInner() {
   const {data: activity} = useQuery({
     queryKey: ['analytics-activity', days],
     queryFn: async () => {
-      const res = await apiClient.get('/dashboard/analytics/user-activity', {days});
+      const res = await apiClient.get(DASHBOARD.USER_ACTIVITY, {days});
       return res.success && res.data ? res.data : {};
     },
   });
@@ -304,7 +305,7 @@ function AnalyticsInner() {
   const {data: trafficSources} = useQuery({
     queryKey: ['analytics-traffic', days],
     queryFn: async () => {
-      const res = await apiClient.get('/dashboard/analytics/traffic-sources', {days});
+      const res = await apiClient.get(DASHBOARD.TRAFFIC_SOURCES, {days});
       return res.success && res.data ? res.data : [];
     },
   });
@@ -312,7 +313,7 @@ function AnalyticsInner() {
   const {data: deviceStats} = useQuery({
     queryKey: ['analytics-devices', days],
     queryFn: async () => {
-      const res = await apiClient.get('/dashboard/analytics/device-stats', {days});
+      const res = await apiClient.get(DASHBOARD.DEVICE_STATS, {days});
       return res.success && res.data ? res.data : [];
     },
   });

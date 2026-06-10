@@ -4,6 +4,7 @@ import React, {useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {DeleteConfirm, EmptyState, Modal} from '@/components/admin/shared-ui';
 import {apiClient} from '@/lib/api/base-client';
+import {SYSTEM} from '@/lib/api/api-paths';
 import {useToast} from '@/components/ui/toast-provider';
 import {Edit3, Globe, Map, Plus, Search, Trash2, Users} from 'lucide-react';
 import {Site, Input, StatusBadge} from './shared';
@@ -24,14 +25,14 @@ const SitesTab: React.FC = () => {
 
   const {data, isLoading} = useQuery({
     queryKey: ['sites', page, search],
-    queryFn: () => apiClient.get('/system/multisite', {page, per_page: 15, search: search || undefined}),
+    queryFn: () => apiClient.get(SYSTEM.MULTISITE, {page, per_page: 15, search: search || undefined}),
   });
 
   const sites: Site[] = data?.data?.sites || data?.data?.items || [];
   const _total: number = data?.data?.total || 0;
 
   const createMut = useMutation({
-    mutationFn: (d: any) => apiClient.post('/system/multisite', d),
+    mutationFn: (d: any) => apiClient.post(SYSTEM.MULTISITE, d),
     onSuccess: (r: ApiResponse) => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['sites']});

@@ -6,6 +6,8 @@ import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {apiClient} from '@/lib/api/base-client';
+import {RECOMMENDATIONS} from '@/lib/api/api-paths';
+import {AI_RECOMMENDATIONS} from '@/lib/api/api-paths';
 import {FileText, Loader, Sparkles} from 'lucide-react';
 
 function ExtAIWritingInner() {
@@ -16,12 +18,12 @@ function ExtAIWritingInner() {
   ];
 
   const epMap: Record<string,string> = {
-    polish:'/ext/ai-recommendations/writing/polish',
-    grammar:'/ext/ai-recommendations/writing/check-grammar',
-    continue:'/ext/ai-recommendations/writing/continue',
-    titles:'/ext/ai-recommendations/writing/generate-titles',
-    summary:'/ext/ai-recommendations/extract-summary',
-    style:'/ext/ai-recommendations/writing/transform-style',
+    polish:AI_RECOMMENDATIONS.WRITING_POLISH,
+    grammar:AI_RECOMMENDATIONS.WRITING_GRAMMAR,
+    continue:AI_RECOMMENDATIONS.WRITING_CONTINUE,
+    titles:AI_RECOMMENDATIONS.WRITING_GENERATE_TITLES,
+    summary:AI_RECOMMENDATIONS.WRITING_EXTRACT_SUMMARY,
+    style:AI_RECOMMENDATIONS.WRITING_TRANSFORM_STYLE,
   };
 
   const runMut = useMutation({
@@ -36,7 +38,7 @@ function ExtAIWritingInner() {
 
     const {data: trending} = useQuery({
         queryKey: ['ext-writer-trending'], queryFn: async () => {
-        const r = await apiClient.get('/ext/recommendations/trending');
+        const r = await apiClient.get(RECOMMENDATIONS.TRENDING);
             return r.success && r.data ? (Array.isArray(r.data) ? r.data : r.data.articles || []) : []
         }
     });

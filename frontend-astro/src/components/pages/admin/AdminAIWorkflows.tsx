@@ -4,6 +4,7 @@ import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {apiClient} from '@/lib/api/base-client';
+import {AI} from '@/lib/api/api-paths';
 import {formatDateTime as formatTime} from '@/lib/utils';
 import {Bot, Clock, CheckCircle, XCircle, Loader2, RefreshCw, Eye} from 'lucide-react';
 
@@ -42,7 +43,7 @@ function AIWorkflowsInner() {
     const {data: workflows, isLoading} = useQuery({
         queryKey: ['ai-workflows'],
         queryFn: async () => {
-            const res = await apiClient.get('/ai/workflows');
+            const res = await apiClient.get(AI.WORKFLOWS);
             return res.data || [];
         }
     });

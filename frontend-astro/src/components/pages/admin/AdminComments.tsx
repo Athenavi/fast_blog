@@ -6,6 +6,7 @@ import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {apiClient} from '@/lib/api/base-client';
+import {COMMENTS} from '@/lib/api/api-paths';
 import {useConfirm} from '@/components/ui/confirm-provider';
 import {
   Check,
@@ -389,13 +390,13 @@ function CommentsInner() {
     queryKey: ['admin-comments', activeTab],
     queryFn: async (): Promise<Comment[]> => {
       if (activeTab === 'pending') {
-        const res = await apiClient.get<Comment[]>('/comments/pending');
+        const res = await apiClient.get<Comment[]>(COMMENTS.PENDING);
         return res.success && res.data ? (Array.isArray(res.data) ? res.data : []) : [];
       }
       if (activeTab === 'subscriptions' || activeTab === 'analytics') return [];
       const res = await apiClient.get<Comment[] | {
         comments: Comment[]
-      }>('/comments/', {status: activeTab || undefined});
+      }>(COMMENTS.CREATE, {status: activeTab || undefined});
       if (!res.success || !res.data) return [];
       return Array.isArray(res.data) ? res.data : res.data.comments || [];
     },
@@ -406,7 +407,7 @@ function CommentsInner() {
   const {data: allCommentsData} = useQuery({
     queryKey: ['admin-comments-all'],
     queryFn: async (): Promise<Comment[]> => {
-      const res = await apiClient.get<Comment[] | { comments: Comment[] }>('/comments/', {});
+      const res = await apiClient.get<Comment[] | { comments: Comment[] }>(COMMENTS.CREATE, {});
       if (!res.success || !res.data) return [];
       return Array.isArray(res.data) ? res.data : res.data.comments || [];
     },
@@ -417,7 +418,7 @@ function CommentsInner() {
     queryKey: ['admin-comment-subscriptions'],
     queryFn: async () => {
       const res = await apiClient.get<{ subscriptions: CommentSubscription[]; total: number }>(
-        '/comments/subscriptions/my-subscriptions'
+        COMMENTS.SUBSCRIPTIONS
       );
       return res.success && res.data ? res.data : {subscriptions: [] as CommentSubscription[], total: 0};
     },
@@ -445,12 +446,12 @@ function CommentsInner() {
   const toggleSubMut = useMutation({
     mutationFn: async (sub: CommentSubscription) => {
       if (sub.is_active) {
-        return apiClient.post('/comments/subscriptions/unsubscribe', {
+        return apiClient.post(COMMENTS.UNSUBSCRIBE, {
           article_id: sub.article_id,
           email: sub.email,
         });
       }
-      return apiClient.post('/comments/subscriptions/subscribe', {
+      return apiClient.post(COMMENTS.SUBSCRIBE, {
         article_id: sub.article_id,
         email: sub.email,
         notify_type: sub.notify_type,
@@ -709,7 +710,7 @@ function CommentsInner() {
                         message: `确认删除此订阅？`,
                         variant: 'danger'
                       })) {
-                        await apiClient.post('/comments/subscriptions/unsubscribe', {
+                        await apiClient.post(COMMENTS.UNSUBSCRIBE, {
                           article_id: sub.article_id,
                           email: sub.email,
                         });

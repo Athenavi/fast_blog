@@ -7,6 +7,7 @@ import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {StatCard} from '@/components/admin/shared-ui';
 import {apiClient} from '@/lib/api/base-client';
+import {PLUGINS} from '@/lib/api/api-paths';
 import {
   Puzzle,
   Download,
@@ -344,7 +345,7 @@ function PluginsInner() {
   const {data: installedPlugins, isLoading: installedLoading} = useQuery({
     queryKey: ['plugins-installed'],
     queryFn: async () => {
-      const res = await apiClient.get('/plugins/active');
+      const res = await apiClient.get(PLUGINS.ACTIVE);
       return res.data || [];
     },
     enabled: activeTab === 'installed'
@@ -354,7 +355,7 @@ function PluginsInner() {
   const {data: marketplacePlugins, isLoading: marketplaceLoading} = useQuery({
     queryKey: ['plugins-marketplace'],
     queryFn: async () => {
-      const res = await apiClient.get('/plugins/marketplace');
+      const res = await apiClient.get(PLUGINS.MARKETPLACE);
       return res.data || [];
     },
     enabled: activeTab === 'marketplace'
@@ -362,7 +363,7 @@ function PluginsInner() {
 
   // 安装插件
   const installMut = useMutation({
-    mutationFn: (slug: string) => apiClient.post('/plugins/install', {slug, capabilities: []}),
+    mutationFn: (slug: string) => apiClient.post(PLUGINS.INSTALL, {slug, capabilities: []}),
     onSuccess: () => {
       qc.invalidateQueries({queryKey: ['plugins-installed']});
       qc.invalidateQueries({queryKey: ['plugins-marketplace']});
