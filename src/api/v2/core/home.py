@@ -14,7 +14,7 @@ from shared.models.article import Article
 from shared.models.category import Category
 from shared.models.user import User
 from src.api.v2._base import ApiResponse
-from src.utils.database.main import get_async_session as get_async_db_session
+from src.utils.database.main import get_async_session
 
 router = APIRouter(tags=["home"])
 

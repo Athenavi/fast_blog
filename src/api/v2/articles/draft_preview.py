@@ -9,8 +9,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models.article import Article
-from shared.models.article_content import ArticleContent
+from shared.models.article import Article, ArticleContent
 from shared.services.articles.draft_preview_service import draft_preview_service
 from src.api.v2._base import ApiResponse
 from src.api.v2._helpers import ok, fail
