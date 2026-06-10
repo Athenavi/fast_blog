@@ -208,6 +208,25 @@ class MCPServer:
             handler=self._get_trending_articles_tool
         )
 
+        # 媒体管理工具
+        self.register_tool(
+            name="list_media",
+            description="获取媒体文件列表",
+            parameters={
+                "limit": {"type": "integer", "description": "返回数量（默认 20，最多 50）", "required": False},
+                "media_type": {"type": "string", "description": "筛选类型: image/video/audio/document", "required": False},
+            },
+            handler=self._list_media_tool
+        )
+        self.register_tool(
+            name="delete_media",
+            description="删除媒体文件",
+            parameters={
+                "media_id": {"type": "integer", "description": "媒体ID", "required": True},
+            },
+            handler=self._delete_media_tool
+        )
+
         # 统计工具
         self.register_tool(
             name="get_system_stats",
@@ -908,6 +927,74 @@ class MCPServer:
             except Exception as e:
                 logger.exception(f"获取热门文章失败")
                 return {"success": False, "error": f"获取热门文章失败: {str(e)}"}
+
+    # ==================== 媒体管理工具 ====================
+
+    async def _list_media_tool(self, arguments: Dict) -> Dict:
+        """获取媒体文件列表"""
+        limit = min(arguments.get("limit", 20), 50)
+        media_type = arguments.get("media_type", "").strip().lower()
+
+        async with get_async_session_context() as db:
+            try:
+                query = select(Media).order_by(Media.created_at.desc()).limit(limit)
+                if media_type:
+                    type_map = {"image": "image", "video": "video", "audio": "audio", "document": "application"}
+                    prefix = type_map.get(media_type, media_type)
+                    query = query.where(Media.mime_type.startswith(prefix))
+
+                result = await db.execute(query)
+                media_list = result.scalars().all()
+
+                return {
+                    "success": True,
+                    "media": [
+                        {
+                            "id": m.id,
+                            "filename": m.original_filename or m.filename or "unknown",
+                            "mime_type": m.mime_type or "",
+                            "file_size": m.file_size or 0,
+                            "url": m.file_url or f"/media/{m.filename or ''}" if m.filename else "",
+                            "alt_text": m.alt_text or "",
+                            "category": m.category or "",
+                            "created_at": m.created_at.isoformat() if m.created_at else "",
+                        }
+                        for m in media_list
+                    ],
+                    "total": len(media_list),
+                }
+            except Exception as e:
+                logger.exception(f"获取媒体列表失败")
+                return {"success": False, "error": f"获取媒体列表失败: {str(e)}"}
+
+    async def _delete_media_tool(self, arguments: Dict) -> Dict:
+        """删除媒体文件"""
+        media_id = arguments.get("media_id")
+        if not media_id:
+            raise ValueError("媒体ID不能为空")
+
+        async with get_async_session_context() as db:
+            try:
+                query = select(Media).where(Media.id == int(media_id))
+                result = await db.execute(query)
+                media = result.scalar_one_or_none()
+                if not media:
+                    raise ValueError(f"媒体 #{media_id} 不存在")
+
+                await db.delete(media)
+                await db.commit()
+
+                return {
+                    "success": True,
+                    "message": f"媒体 #{media_id} 已删除",
+                    "media_id": media_id,
+                }
+            except ValueError:
+                raise
+            except Exception as e:
+                await db.rollback()
+                logger.exception(f"删除媒体失败")
+                raise ValueError(f"删除媒体失败: {str(e)}")
 
     async def _get_system_stats_tool(self, arguments: Dict) -> Dict:
         """获取系统统计信息"""
