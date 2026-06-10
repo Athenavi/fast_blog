@@ -284,7 +284,9 @@ async def logout_api(request: Request, current_user=Depends(jwt_required)):
 @router.post("/token/refresh")
 @_catch
 async def refresh_token_api(request: Request):
-    refresh_token = extract_token_from_request(request)
+    refresh_token = request.cookies.get("refresh_token")
+    if not refresh_token:
+        refresh_token = extract_token_from_request(request)
     if not refresh_token:
         return fail("未提供刷新令牌")
 
