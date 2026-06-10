@@ -192,6 +192,24 @@ jobs:
         run: |
           python -m pytest tests/ -v --tb=short
 
+      - name: Test Alembic migration rollback
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USER: postgres
+          DB_PASSWORD: postgres
+          DB_NAME: fast_blog_test
+          PGPASSWORD: postgres
+        run: |
+          # 使用测试数据库测试迁移回滚
+          psql -h $DB_HOST -U $DB_USER -d $DB_NAME -c "DROP TABLE IF EXISTS alembic_version;" 2>/dev/null || true
+          alembic upgrade head
+          echo "✅ Upgrade to head succeeded"
+          alembic downgrade -1
+          echo "✅ Downgrade -1 succeeded"
+          alembic upgrade head
+          echo "✅ Re-upgrade to head succeeded"
+
   # ============================================================================
   # Frontend Build
   # ============================================================================
