@@ -13,7 +13,6 @@ from sqlalchemy import select, func, case
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.media import Media
-from shared.models.media.file_hash import FileHash
 from src.api.v1.core.responses import ApiResponse
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
@@ -43,44 +42,34 @@ async def list_media(
         min_size: Optional[int] = Query(None),
         max_size: Optional[int] = Query(None)
 ):
-    """获取媒体文件列表（增强版）"""
+    """获取媒体文件列表（优化版：移除 FileHash JOIN 提升性能）"""
     try:
         user_id = current_user_obj.id
         offset = (page - 1) * per_page
 
-        base_query = (
-            select(Media, FileHash)
-            .join(FileHash, Media.hash == FileHash.hash)
-            .where(Media.user == user_id)
-        )
+        base_query = select(Media).where(Media.user == user_id)
 
         # 如果指定了文件夹名称（支持路径，如 folder1/folder2）
         if folder_name:
-            from shared.models import MediaFolder
+            from shared.models.media.media_folder import MediaFolder as MF
 
-            # 解码 URL 编码的路径
             from urllib.parse import unquote
             folder_path = unquote(folder_name)
-
-            # 分割路径，过滤空字符串
             path_parts = [p.strip() for p in folder_path.split('/') if p.strip()]
 
             if path_parts:
-                # 逐级查找文件夹
                 current_parent_id = None
                 target_folder_id = None
 
                 for i, part_name in enumerate(path_parts):
-                    folder_query = select(MediaFolder.id).where(
-                        MediaFolder.name == part_name,
-                        MediaFolder.user == user_id,
-                        MediaFolder.parent_id == current_parent_id
+                    folder_query = select(MF.id).where(
+                        MF.name == part_name,
+                        MF.user == user_id,
+                        MF.parent_id == current_parent_id
                     )
                     folder_result = await db.execute(folder_query)
                     folder_id = folder_result.scalar_one_or_none()
-
                     if not folder_id:
-                        # 路径中的某一级不存在，返回空列表
                         return {
                             "success": True,
                             "data": {
@@ -97,19 +86,14 @@ async def list_media(
                                 }
                             }
                         }
-
-                    # 如果是最后一级，记录目标文件夹 ID
                     if i == len(path_parts) - 1:
                         target_folder_id = folder_id
                     else:
-                        # 否则继续查找下一级
                         current_parent_id = folder_id
 
-                # 使用找到的文件夹 ID 过滤媒体
                 if target_folder_id:
                     base_query = base_query.where(Media.folder_id == target_folder_id)
         else:
-            # 如果没有指定文件夹，只显示根目录的文件（folder_id IS NULL）
             base_query = base_query.where(Media.folder_id.is_(None))
 
         if q:
@@ -118,19 +102,18 @@ async def list_media(
             base_query = base_query.where(Media.category == category)
 
         mime_filters = {
-            'image': FileHash.mime_type.startswith('image'),
-            'video': FileHash.mime_type.startswith('video'),
-            'audio': FileHash.mime_type.startswith('audio'),
-            'document': FileHash.mime_type.in_([
+            'image': Media.mime_type.startswith('image'),
+            'video': Media.mime_type.startswith('video'),
+            'audio': Media.mime_type.startswith('audio'),
+            'document': Media.mime_type.in_([
                 'application/pdf', 'application/msword',
                 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
                 'application/vnd.ms-excel',
                 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                 'text/plain', 'text/markdown'
             ]),
-            # 支持直接按 MIME 类型筛选
-            'application/pdf': FileHash.mime_type == 'application/pdf',
-            'application/zip': FileHash.mime_type.in_([
+            'application/pdf': Media.mime_type == 'application/pdf',
+            'application/zip': Media.mime_type.in_([
                 'application/zip', 'application/x-rar-compressed',
                 'application/x-7z-compressed', 'application/gzip',
                 'application/x-tar', 'application/x-bzip2'
@@ -144,80 +127,71 @@ async def list_media(
         if date_to:
             base_query = base_query.where(Media.created_at <= date_to)
         if min_size is not None:
-            base_query = base_query.where(FileHash.file_size >= min_size)
+            base_query = base_query.where(Media.file_size >= min_size)
         if max_size is not None:
-            base_query = base_query.where(FileHash.file_size <= max_size)
+            base_query = base_query.where(Media.file_size <= max_size)
 
         sort_mapping = {
             'created_at_desc': Media.created_at.desc(),
             'created_at_asc': Media.created_at.asc(),
             'filename_asc': Media.original_filename.asc(),
             'filename_desc': Media.original_filename.desc(),
-            'size_desc': FileHash.file_size.desc(),
-            'size_asc': FileHash.file_size.asc()
         }
         order_by = sort_mapping.get(sort_by, Media.created_at.desc())
 
         paginated_query = base_query.order_by(order_by).offset(offset).limit(per_page)
         media_result = await db.execute(paginated_query)
-        media_files = media_result.all()  # 返回 (Media, FileHash) 元组列表
+        media_list = media_result.scalars().all()
 
         count_query = select(func.count()).select_from(base_query.subquery())
         total_result = await db.execute(count_query)
         total = total_result.scalar() or 0
 
-        # Windows + asyncpg 兼容性修复：顺序执行而不是并发执行
-        # asyncio.gather 会在同一个会话上并发执行，导致 "another operation is in progress" 错误
         storage_used = await get_user_storage_used(user_id, db)
         storage_total_bytes = await get_user_storage_limit(user_id, db)
         storage_total_bytes = Decimal(str(storage_total_bytes))
 
-        stats_subquery = (
-            select(FileHash.mime_type, FileHash.file_size, Media.id)
-            .join(Media, FileHash.hash == Media.hash)
-            .where(Media.user == user_id)
-            .subquery()
-        )
+        # N+1 修复: 使用独立的轻量查询获取统计
+        user_media_subq = select(Media.id, Media.mime_type, Media.file_size).where(Media.user == user_id).subquery()
         stats_query = select(
             func.count().label('total_count'),
-            func.sum(case((stats_subquery.c.mime_type.startswith('image'), 1), else_=0)).label('image_count'),
-            func.sum(case((stats_subquery.c.mime_type.startswith('video'), 1), else_=0)).label('video_count'),
-            func.sum(case((stats_subquery.c.mime_type.startswith('audio'), 1), else_=0)).label('audio_count'),
-            func.sum(case((stats_subquery.c.mime_type.in_([
+            func.sum(case((user_media_subq.c.mime_type.startswith('image'), 1), else_=0)).label('image_count'),
+            func.sum(case((user_media_subq.c.mime_type.startswith('video'), 1), else_=0)).label('video_count'),
+            func.sum(case((user_media_subq.c.mime_type.startswith('audio'), 1), else_=0)).label('audio_count'),
+            func.sum(case((user_media_subq.c.mime_type.in_([
                 'application/pdf', 'application/msword',
                 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
                 'application/vnd.ms-excel',
                 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
                 'text/plain', 'text/markdown'
             ]), 1), else_=0)).label('document_count')
-        ).select_from(stats_subquery)
+        ).select_from(user_media_subq)
         stats_result = await db.execute(stats_query)
         stats_row = stats_result.first()
 
         storage_percentage = min(100, int((storage_used / storage_total_bytes * 100))) if storage_total_bytes > 0 else 0
 
         media_items = []
-        for media, fh in media_files:  # 解包元组
-            # 注意：不访问 media.categories 和 media.tags 关系字段，避免触发懒加载
+        for media in media_list:
             media_items.append({
                 'id': media.id,
                 'filename': media.filename,
                 'original_filename': media.original_filename,
-                'title': media.original_filename,  # 使用文件名作为标题
+                'title': media.original_filename,
                 'hash': media.hash,
                 'file_path': media.file_path,
                 'file_url': media.file_url,
                 'url': media.file_url,
                 'thumbnail_url': media.thumbnail_url,
-                'mime_type': fh.mime_type if fh else None,
+                'mime_type': media.mime_type,
                 'media_type': media.file_type,
-                'file_size': fh.file_size if fh else 0,
+                'file_size': media.file_size,
                 'width': media.width,
                 'height': media.height,
                 'description': media.description,
                 'alt_text': media.alt_text,
-                'category': media.category,  # 这是列字段，不是关系
-                'tags': media.tags,  # 这是列字段（String），不是关系
+                'category': media.category,
+                'tags': media.tags,
                 'created_at': media.created_at.isoformat() if media.created_at else None,
                 'updated_at': media.updated_at.isoformat() if media.updated_at else None
             })
