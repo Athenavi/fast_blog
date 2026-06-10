@@ -9,8 +9,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.user import User as UserModel
-from src.api.v1.auth import create_jwt_token
-from src.api.v1.core.responses import ApiResponse
+from src.api.v2.auth_v1pack import create_jwt_token
+from src.api.v2._base import ApiResponse
 from src.utils.database.main import get_async_session
 from src.utils.security.password_validator import verify_password, hash_password
 

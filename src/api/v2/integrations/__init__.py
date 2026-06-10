@@ -16,12 +16,12 @@ def _build_router():
 
     router = APIRouter(tags=["integrations"])
 
-    from src.api.v1.integrations.baidu_analytics import router as baidu_analytics_router
-    from src.api.v1.integrations.google_analytics import router as google_analytics_router
-    from src.api.v1.integrations.ipfs import router as ipfs_router
-    from src.api.v1.integrations.oauth_login import router as oauth_login_router
-    from src.api.v1.integrations.sso import router as sso_router
-    from src.api.v1.integrations.wordpress_import import router as wordpress_import_router
+    from src.api.v2.integrations.baidu_analytics import router as baidu_analytics_router
+    from src.api.v2.integrations.google_analytics import router as google_analytics_router
+    from src.api.v2.integrations.ipfs import router as ipfs_router
+    from src.api.v2.integrations.oauth_login import router as oauth_login_router
+    from src.api.v2.integrations.sso import router as sso_router
+    from src.api.v2.integrations.wordpress_import import router as wordpress_import_router
 
     router.include_router(baidu_analytics_router, prefix="/analytics/baidu")
     router.include_router(google_analytics_router, prefix="/analytics/google")

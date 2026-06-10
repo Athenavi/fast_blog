@@ -9,7 +9,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
 
 from shared.services.articles.anomaly_detector import anomaly_detector
-from src.api.v1.core.responses import ApiResponse
+from src.api.v2._base import ApiResponse
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 
 router = APIRouter()

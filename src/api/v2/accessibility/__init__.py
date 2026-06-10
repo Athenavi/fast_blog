@@ -1,8 +1,5 @@
 """
-无障碍API聚合路由器 - V2统一入口
-整合V1的accessibility相关模块
-
-使用懒加载模式：仅在首次访问 router 时才导入 V1 子模块。
+可访问性API - V2 统一入口
 """
 from fastapi import APIRouter
 
@@ -14,10 +11,10 @@ def _build_router():
     if _router is not None:
         return _router
 
-    router = APIRouter(tags=["accessibility"])
+    router = APIRouter(tags=["accessibility-v2"])
 
-    from src.api.v1.accessibility.accessibility_audit import router as accessibility_audit_router
-    from src.api.v1.accessibility.amp import router as amp_router
+    from src.api.v2.accessibility.accessibility_audit import router as accessibility_audit_router
+    from src.api.v2.accessibility.amp import router as amp_router
 
     router.include_router(accessibility_audit_router, prefix="/audit")
     router.include_router(amp_router, prefix="/amp")

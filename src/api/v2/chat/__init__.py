@@ -16,9 +16,9 @@ def _build_router():
 
     router = APIRouter(tags=["chat"])
 
-    from src.api.v1.chat.chat import router as chat_router
-    from src.api.v1.chat.chat_groups import router as chat_groups_router
-    from src.api.v1.chat.private_messages import router as private_messages_router
+    from src.api.v2.chat.chat import router as chat_router
+    from src.api.v2.chat.chat_groups import router as chat_groups_router
+    from src.api.v2.chat.private_messages import router as private_messages_router
 
     router.include_router(chat_groups_router, prefix="/groups")
     router.include_router(private_messages_router, prefix="/messages/private")

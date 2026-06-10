@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.models.article import Article
 from shared.models.category import Category
 from shared.models.user import User
-from src.api.v1.core.responses import ApiResponse
+from src.api.v2._base import ApiResponse
 from src.auth.auth_deps import jwt_optional_dependency
 from src.utils.database.main import get_async_session
 

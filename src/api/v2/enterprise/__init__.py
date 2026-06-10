@@ -1,8 +1,5 @@
 """
-企业管理API聚合路由器 - V2统一入口
-整合许可证管理、技术支持工单、部署脚本和监控告警
-
-使用懒加载模式：仅在首次访问 router 时才导入 V1 子模块。
+企业功能API - V2 统一入口
 """
 from fastapi import APIRouter
 
@@ -16,11 +13,8 @@ def _build_router():
 
     router = APIRouter(tags=["enterprise-v2"])
 
-    from src.api.v1.enterprise.enterprise_api import router as base_enterprise_router
-    from src.api.v2.enterprise.admin_endpoints import router as admin_enterprise_router
-
-    router.include_router(base_enterprise_router, prefix="")
-    router.include_router(admin_enterprise_router, prefix="/admin")
+    from src.api.v2.enterprise.enterprise_api import router as enterprise_router
+    router.include_router(enterprise_router)
 
     _router = router
     return _router

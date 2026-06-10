@@ -11,7 +11,7 @@ from fastapi.responses import FileResponse
 
 from shared.models.user import User
 from shared.services.system.backup_service import BackupService
-from src.api.v1.core.responses import ApiResponse
+from src.api.v2._base import ApiResponse
 from src.auth import jwt_required_dependency as jwt_required
 
 router = APIRouter(prefix="/backup", tags=["Backup Management"])

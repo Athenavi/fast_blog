@@ -34,7 +34,7 @@ const AI_TOOLS = [
 function PatternLibrary({onSelect, onClose}: { onSelect: (blocks: any) => void; onClose: () => void }) {
   const [patterns, setPatterns] = useState<any[]>([]);
   React.useEffect(() => {
-    apiClient.get('/block-patterns/list').then(r => {
+    apiClient.get('/cms/block-patterns/list').then(r => {
       if (r.success) setPatterns(r.data || [])
     }).catch(console.error);
   }, []);
@@ -66,12 +66,12 @@ function PatternLibrary({onSelect, onClose}: { onSelect: (blocks: any) => void; 
 function StyleManager({onClose}: { onClose: () => void }) {
   const [styles, setStyles] = useState<any[]>([]);
   React.useEffect(() => {
-    apiClient.get('/global-styles/list').then(r => {
+    apiClient.get('/cms/global-styles/list').then(r => {
       if (r.success) setStyles(r.data || [])
     }).catch(console.error);
   }, []);
   const activate = (id: number) => {
-    apiClient.post(`/global-styles/${id}/activate`).then(r => {
+    apiClient.post(`/cms/global-styles/${id}/activate`).then(r => {
       if (r.success) onClose()
     });
   };

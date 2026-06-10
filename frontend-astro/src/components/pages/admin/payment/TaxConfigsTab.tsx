@@ -1,4 +1,4 @@
-ï»¿'use client';
+'use client';
 
 import React, {useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
@@ -27,37 +27,37 @@ const TaxConfigsTab: React.FC = () => {
 
   const {data, isLoading} = useQuery({
     queryKey: ['tax-configs', page],
-    queryFn: () => apiClient.get('/payment-management/tax-configs', {page, per_page: 15}),
+    queryFn: () => apiClient.get('/shop/admin/tax-configs', {page, per_page: 15}),
   });
 
   const items: TaxConfig[] = data?.data?.tax_configs || [];
   const pagination: Pagination | undefined = data?.data?.pagination;
 
   const createMut = useMutation({
-    mutationFn: (d: any) => apiClient.post('/payment-management/tax-configs', d),
+    mutationFn: (d: any) => apiClient.post('/shop/admin/tax-configs', d),
     onSuccess: (r: ApiResponse) => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['tax-configs']});
         setShowForm(false);
-      } else toast.error(r.error || 'æ“ä½œå¤±è´¥');
+      } else toast.error(r.error || '²Ù×÷Ê§°Ü');
     },
   });
   const updateMut = useMutation({
-    mutationFn: ({id, ...d}: any) => apiClient.put(`/payment-management/tax-configs/${id}`, d),
+    mutationFn: ({id, ...d}: any) => apiClient.put(`/shop/admin/tax-configs/${id}`, d),
     onSuccess: (r: ApiResponse) => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['tax-configs']});
         setShowForm(false);
-      } else toast.error(r.error || 'æ“ä½œå¤±è´¥');
+      } else toast.error(r.error || '²Ù×÷Ê§°Ü');
     },
   });
   const deleteMut = useMutation({
-    mutationFn: (id: number) => apiClient.delete(`/payment-management/tax-configs/${id}`),
+    mutationFn: (id: number) => apiClient.delete(`/shop/admin/tax-configs/${id}`),
     onSuccess: (r: ApiResponse) => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['tax-configs']});
         setDeleteId(null);
-      } else toast.error(r.error || 'æ“ä½œå¤±è´¥');
+      } else toast.error(r.error || '²Ù×÷Ê§°Ü');
     },
   });
 
@@ -80,7 +80,7 @@ const TaxConfigsTab: React.FC = () => {
   };
   const submit = () => {
     if (!form.country.trim() || !form.rate) {
-      toast.error('è¯·å¡«å†™å›½å®¶å’Œç¨ç‡');
+      toast.error('ÇëÌîĞ´¹ú¼ÒºÍË°ÂÊ');
       return;
     }
     const payload = {...form, rate: parseFloat(form.rate), is_active: form.is_active === 'true'};
@@ -93,29 +93,29 @@ const TaxConfigsTab: React.FC = () => {
       <div className="flex items-center justify-end mb-4">
         <button onClick={openCreate}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-xl flex items-center gap-1.5">
-          <Plus className="w-4 h-4"/>æ–°å»ºç¨åŠ¡é…ç½®
+          <Plus className="w-4 h-4"/>ĞÂ½¨Ë°ÎñÅäÖÃ
         </button>
       </div>
       {isLoading ? <div className="animate-pulse space-y-2">{[1, 2, 3].map(i => <div key={i}
                                                                                      className="h-16 bg-gray-100 dark:bg-gray-800 rounded-xl"/>)}</div> :
-        items.length === 0 ? <EmptyState icon={FileText} title="æš‚æ— ç¨åŠ¡é…ç½®" desc="åˆ›å»ºç¨åŠ¡é…ç½®ä»¥è‡ªåŠ¨è®¡ç®—ç¨è´¹"/> :
+        items.length === 0 ? <EmptyState icon={FileText} title="ÔİÎŞË°ÎñÅäÖÃ" desc="´´½¨Ë°ÎñÅäÖÃÒÔ×Ô¶¯¼ÆËãË°·Ñ"/> :
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
               <tr className="border-b border-gray-100 dark:border-gray-800">
-                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">å›½å®¶</th>
-                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">åœ°åŒº</th>
-                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">ç¨ç§</th>
-                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">ç¨ç‡</th>
-                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">çŠ¶æ€</th>
-                <th className="text-right py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">æ“ä½œ</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">¹ú¼Ò</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">µØÇø</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">Ë°ÖÖ</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">Ë°ÂÊ</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">×´Ì¬</th>
+                <th className="text-right py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">²Ù×÷</th>
               </tr>
               </thead>
               <tbody>{items.map(t => (
                 <tr key={t.id}
                     className="border-b border-gray-50 dark:border-gray-800/50 hover:bg-gray-50 dark:hover:bg-gray-800/30">
                   <td className="py-3 px-4 font-medium text-gray-900 dark:text-white">{t.country}</td>
-                  <td className="py-3 px-4 text-gray-600 dark:text-gray-400">{t.region || 'â€”'}</td>
+                  <td className="py-3 px-4 text-gray-600 dark:text-gray-400">{t.region || '¡ª'}</td>
                   <td className="py-3 px-4 text-gray-600 dark:text-gray-400">{t.tax_type}</td>
                   <td className="py-3 px-4 font-semibold text-gray-900 dark:text-white">{(t.rate * 100).toFixed(1)}%
                   </td>
@@ -134,7 +134,7 @@ const TaxConfigsTab: React.FC = () => {
           </div>}
       {pagination && pagination.total_pages > 1 && (
         <div className="flex items-center justify-between mt-4">
-          <span className="text-xs text-gray-500 dark:text-gray-400">å…± {pagination.total} æ¡</span>
+          <span className="text-xs text-gray-500 dark:text-gray-400">¹² {pagination.total} Ìõ</span>
           <div className="flex items-center gap-1">
             <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}
                     className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30">
@@ -146,33 +146,33 @@ const TaxConfigsTab: React.FC = () => {
           </div>
         </div>
       )}
-      <Modal open={showForm} onClose={() => setShowForm(false)} title={editing ? 'ç¼–è¾‘ç¨åŠ¡é…ç½®' : 'æ–°å»ºç¨åŠ¡é…ç½®'}>
-        <Input label="å›½å®¶ *" value={form.country} onChange={v => setForm({...form, country: v})}
-               placeholder="ä¾‹å¦‚ï¼šCN"/>
-        <Input label="åœ°åŒº" value={form.region} onChange={v => setForm({...form, region: v})} placeholder="ä¾‹å¦‚ï¼šä¸Šæµ·"/>
-        <Input label="ç¨ç§" value={form.tax_type} onChange={v => setForm({...form, tax_type: v})}
-               placeholder="ä¾‹å¦‚ï¼šVAT"/>
-        <Input label="ç¨ç‡ (å°æ•°) *" value={form.rate} onChange={v => setForm({...form, rate: v})} type="number"
-               placeholder="ä¾‹å¦‚ï¼š0.13 è¡¨ç¤º 13%"/>
-        <Input label="æè¿°" value={form.description} onChange={v => setForm({...form, description: v})} rows={2}/>
+      <Modal open={showForm} onClose={() => setShowForm(false)} title={editing ? '±à¼­Ë°ÎñÅäÖÃ' : 'ĞÂ½¨Ë°ÎñÅäÖÃ'}>
+        <Input label="¹ú¼Ò *" value={form.country} onChange={v => setForm({...form, country: v})}
+               placeholder="ÀıÈç£ºCN"/>
+        <Input label="µØÇø" value={form.region} onChange={v => setForm({...form, region: v})} placeholder="ÀıÈç£ºÉÏº£"/>
+        <Input label="Ë°ÖÖ" value={form.tax_type} onChange={v => setForm({...form, tax_type: v})}
+               placeholder="ÀıÈç£ºVAT"/>
+        <Input label="Ë°ÂÊ (Ğ¡Êı) *" value={form.rate} onChange={v => setForm({...form, rate: v})} type="number"
+               placeholder="ÀıÈç£º0.13 ±íÊ¾ 13%"/>
+        <Input label="ÃèÊö" value={form.description} onChange={v => setForm({...form, description: v})} rows={2}/>
         <div className="mb-3">
-          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">çŠ¶æ€</label>
+          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">×´Ì¬</label>
           <select value={form.is_active} onChange={e => setForm({...form, is_active: e.target.value})}
                   className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white">
-            <option value="true">å¯ç”¨</option>
-            <option value="false">ç¦ç”¨</option>
+            <option value="true">ÆôÓÃ</option>
+            <option value="false">½ûÓÃ</option>
           </select>
         </div>
         <div className="flex justify-end gap-2 mt-4">
           <button onClick={() => setShowForm(false)}
-                  className="px-4 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300">å–æ¶ˆ
+                  className="px-4 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300">È¡Ïû
           </button>
           <button onClick={submit}
-                  className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg">{editing ? 'æ›´æ–°' : 'åˆ›å»º'}</button>
+                  className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg">{editing ? '¸üĞÂ' : '´´½¨'}</button>
         </div>
       </Modal>
       {deleteId !== null && (
-        <Modal open={true} onClose={() => setDeleteId(null)} title="ç¡®è®¤åˆ é™¤">
+        <Modal open={true} onClose={() => setDeleteId(null)} title="È·ÈÏÉ¾³ı">
           <DeleteConfirm itemName={items.find(t => t.id === deleteId)?.country}
                          onConfirm={() => deleteMut.mutate(deleteId)} onCancel={() => setDeleteId(null)}
                          isPending={deleteMut.isPending}/>

@@ -16,15 +16,15 @@ def _build_router():
 
     router = APIRouter(tags=["articles"])
 
-    from src.api.v1.articles.article_analytics import router as article_analytics_router
-    from src.api.v1.articles.article_annotations import router as article_annotations_router
-    from src.api.v1.articles.article_password import router as article_password_router
-    from src.api.v1.articles.article_revisions import router as article_revisions_router
-    from src.api.v1.articles.article_search import router as article_search_router
-    from src.api.v1.articles.article_stats import router as article_stats_router
-    from src.api.v1.articles.articles import router as articles_crud_router
-    from src.api.v1.articles.draft_preview import router as draft_preview_router
-    from src.api.v1.articles.scheduled_publish import router as scheduled_publish_router
+    from src.api.v2.articles.article_analytics import router as article_analytics_router
+    from src.api.v2.articles.article_annotations import router as article_annotations_router
+    from src.api.v2.articles.article_password import router as article_password_router
+    from src.api.v2.articles.article_revisions import router as article_revisions_router
+    from src.api.v2.articles.article_search import router as article_search_router
+    from src.api.v2.articles.article_stats import router as article_stats_router
+    from src.api.v2.articles.articles import router as articles_crud_router
+    from src.api.v2.articles.draft_preview import router as draft_preview_router
+    from src.api.v2.articles.scheduled_publish import router as scheduled_publish_router
 
     router.include_router(articles_crud_router, prefix="")
     router.include_router(article_password_router, prefix="")

@@ -129,7 +129,7 @@ class V1ToV2RedirectMiddleware(BaseHTTPMiddleware):
         module_prefixes = {
             '/api/v1/users/': '/api/v2/users/',
             '/api/v1/articles/': '/api/v2/articles/',
-            '/api/v1/categories/': '/api/v2/categories/',
+            '/api/v1/categories/': '/api/v2/cms/categories/',
             '/api/v1/comments/': '/api/v2/comments/',
             '/api/v1/chats/': '/api/v2/chats/',
             '/api/v1/messages/': '/api/v2/messages/',
@@ -161,7 +161,7 @@ class V1ToV2RedirectMiddleware(BaseHTTPMiddleware):
             '/api/v2/analytics/': '/api/v2/analytics/',
             '/api/v2/social/': '/api/v2/social/',
             '/api/v2/membership/': '/api/v2/membership/',
-            '/api/v2/install/': '/api/v2/install/',
+            '/api/v2/install/': '/api/v2/system/install/',
             '/api/v2/sites/': '/api/v2/sites/',
             '/api/v2/static-site/': '/api/v2/static-site/',
             '/api/v2/cms/': '/api/v2/cms/',

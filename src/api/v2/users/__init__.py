@@ -16,11 +16,13 @@ def _build_router():
 
     router = APIRouter(tags=["users"])
 
-    from src.api.v1.users.unified_users import router as user_router
-    from src.api.v1.users.user_settings import router as user_settings_router
+    from src.api.v2.users.unified_users import router as user_router
+    from src.api.v2.users.user_settings import router as user_settings_router
+    from src.api.v2.users.user_security_management import router as user_security_router
 
     router.include_router(user_router, prefix="/users")
     router.include_router(user_settings_router, prefix="/settings")
+    router.include_router(user_security_router, prefix="/users/security")
 
     _router = router
     return _router

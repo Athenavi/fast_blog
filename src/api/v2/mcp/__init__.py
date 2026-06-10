@@ -19,7 +19,7 @@ from pydantic import BaseModel
 from src.mcp.agent import LLMConfig, run_agent, stream_agent
 from src.mcp.server import mcp_server
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
-from src.api.v1.core.responses import ApiResponse
+from src.api.v2._base import ApiResponse
 
 logger = logging.getLogger("mcp_proxy")
 router = APIRouter(prefix="/mcp", tags=["MCP AI Agent"])

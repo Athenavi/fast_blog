@@ -12,8 +12,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.user import User
 from shared.services.integrations.wordpress_import import WordPressImportService
-from src.api.v1.core.responses import ApiResponse
-from src.api.v1.users.user_management import jwt_required
+from src.api.v2._base import ApiResponse
+from src.auth.auth_deps import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 
 router = APIRouter(prefix="/wordpress", tags=["WordPress Migration"])

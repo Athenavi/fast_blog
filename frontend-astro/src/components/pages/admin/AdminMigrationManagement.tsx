@@ -1,4 +1,4 @@
-ï»¿'use client';
+'use client';
 
 import React, {useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
@@ -25,7 +25,7 @@ import {
   XCircle
 } from 'lucide-react';
 import type {ApiResponse} from '@/lib/api/base-types';
-/* â”€â”€â”€ Types â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ©¤©¤©¤ Types ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤ */
 interface MigrationTask {
   id: number;
   task_name: string;
@@ -60,7 +60,7 @@ interface Pagination {
   total_pages: number;
 }
 
-/* â”€â”€â”€ Helpers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ©¤©¤©¤ Helpers ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤ */
 const Input: React.FC<{
   label: string;
   value: string;
@@ -105,7 +105,7 @@ const StatusBadge: React.FC<{ status: string }> = ({status}) => {
     paused: 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400',
   };
   const labels: Record<string, string> = {
-    completed: 'å·²å®Œæˆ', running: 'è¿è¡Œä¸­', pending: 'ç­‰å¾…ä¸­', failed: 'å¤±è´¥', paused: 'å·²æš‚åœ',
+    completed: 'ÒÑÍê³É', running: 'ÔËĞĞÖĞ', pending: 'µÈ´ıÖĞ', failed: 'Ê§°Ü', paused: 'ÒÑÔİÍ£',
   };
   return <span
     className={`px-2 py-0.5 text-[10px] rounded-full font-medium ${colors[status] || 'bg-gray-100 dark:bg-gray-800 text-gray-500 dark:text-gray-400'}`}>{labels[status] || status}</span>;
@@ -122,7 +122,7 @@ const LogLevelBadge: React.FC<{ level: string }> = ({level}) => {
     className={`text-[10px] font-mono font-semibold uppercase ${colors[level] || 'text-gray-500 dark:text-gray-400'}`}>{level}</span>;
 };
 
-/* â”€â”€â”€ Tasks Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ©¤©¤©¤ Tasks Tab ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤ */
 const TasksTab: React.FC = () => {
   const qc = useQueryClient();
   const toast = useToast();
@@ -137,7 +137,7 @@ const TasksTab: React.FC = () => {
 
   const {data, isLoading} = useQuery({
     queryKey: ['migration-tasks', page, search, statusFilter],
-    queryFn: () => apiClient.get('/migration-management/tasks', {
+    queryFn: () => apiClient.get('/system/migration-management/tasks', {
       page,
       per_page: 15,
       search: search || undefined,
@@ -149,30 +149,30 @@ const TasksTab: React.FC = () => {
   const pagination: Pagination | undefined = data?.data?.pagination;
 
   const createMut = useMutation({
-    mutationFn: (d: any) => apiClient.post('/migration-management/tasks', d),
+    mutationFn: (d: any) => apiClient.post('/system/migration-management/tasks', d),
     onSuccess: (r: ApiResponse) => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['migration-tasks']});
         setShowForm(false);
-      } else toast.error(r.error || 'æ“ä½œå¤±è´¥');
+      } else toast.error(r.error || '²Ù×÷Ê§°Ü');
     },
   });
   const updateMut = useMutation({
-    mutationFn: ({id, ...d}: any) => apiClient.put(`/migration-management/tasks/${id}`, d),
+    mutationFn: ({id, ...d}: any) => apiClient.put(`/system/migration-management/tasks/${id}`, d),
     onSuccess: (r: ApiResponse) => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['migration-tasks']});
         setShowForm(false);
-      } else toast.error(r.error || 'æ“ä½œå¤±è´¥');
+      } else toast.error(r.error || '²Ù×÷Ê§°Ü');
     },
   });
   const deleteMut = useMutation({
-    mutationFn: (id: number) => apiClient.delete(`/migration-management/tasks/${id}`),
+    mutationFn: (id: number) => apiClient.delete(`/system/migration-management/tasks/${id}`),
     onSuccess: (r: ApiResponse) => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['migration-tasks']});
         setDeleteId(null);
-      } else toast.error(r.error || 'æ“ä½œå¤±è´¥');
+      } else toast.error(r.error || '²Ù×÷Ê§°Ü');
     },
   });
 
@@ -193,7 +193,7 @@ const TasksTab: React.FC = () => {
   };
   const submit = () => {
     if (!form.task_name.trim()) {
-      toast.error('è¯·å¡«å†™ä»»åŠ¡åç§°');
+      toast.error('ÇëÌîĞ´ÈÎÎñÃû³Æ');
       return;
     }
     if (editing) updateMut.mutate({id: editing.id, ...form});
@@ -210,7 +210,7 @@ const TasksTab: React.FC = () => {
               setSearch(e.target.value);
               setPage(1);
             }}
-                   placeholder="æœç´¢ä»»åŠ¡..."
+                   placeholder="ËÑË÷ÈÎÎñ..."
                    className="pl-9 pr-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white w-48"/>
           </div>
           <select value={statusFilter} onChange={e => {
@@ -218,23 +218,23 @@ const TasksTab: React.FC = () => {
             setPage(1);
           }}
                   className="px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white">
-            <option value="">å…¨éƒ¨çŠ¶æ€</option>
-            <option value="pending">ç­‰å¾…ä¸­</option>
-            <option value="running">è¿è¡Œä¸­</option>
-            <option value="completed">å·²å®Œæˆ</option>
-            <option value="failed">å¤±è´¥</option>
-            <option value="paused">å·²æš‚åœ</option>
+            <option value="">È«²¿×´Ì¬</option>
+            <option value="pending">µÈ´ıÖĞ</option>
+            <option value="running">ÔËĞĞÖĞ</option>
+            <option value="completed">ÒÑÍê³É</option>
+            <option value="failed">Ê§°Ü</option>
+            <option value="paused">ÒÑÔİÍ£</option>
           </select>
         </div>
         <button onClick={openCreate}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-xl flex items-center gap-1.5">
-          <Plus className="w-4 h-4"/>æ–°å»ºä»»åŠ¡
+          <Plus className="w-4 h-4"/>ĞÂ½¨ÈÎÎñ
         </button>
       </div>
       {isLoading ? <div className="animate-pulse space-y-2">{[1, 2, 3].map(i => <div key={i}
                                                                                      className="h-20 bg-gray-100 dark:bg-gray-800 rounded-xl"/>)}</div> :
         items.length === 0 ?
-          <EmptyState icon={ArrowRightLeft} title="æš‚æ— è¿ç§»ä»»åŠ¡" desc="åˆ›å»ºè¿ç§»ä»»åŠ¡ä»¥å¼€å§‹æ•°æ®è¿ç§»"/> :
+          <EmptyState icon={ArrowRightLeft} title="ÔİÎŞÇ¨ÒÆÈÎÎñ" desc="´´½¨Ç¨ÒÆÈÎÎñÒÔ¿ªÊ¼Êı¾İÇ¨ÒÆ"/> :
           <div className="space-y-3">
             {items.map(t => (
               <div key={t.id}
@@ -256,7 +256,7 @@ const TasksTab: React.FC = () => {
                   <div className="flex items-center gap-1">
                     <button onClick={() => setViewLogsId(viewLogsId === t.id ? null : t.id)}
                             className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400"
-                            title="æŸ¥çœ‹æ—¥å¿—"><ScrollText className="w-3.5 h-3.5"/></button>
+                            title="²é¿´ÈÕÖ¾"><ScrollText className="w-3.5 h-3.5"/></button>
                     <button onClick={() => openEdit(t)}
                             className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400">
                       <Edit3
@@ -271,7 +271,7 @@ const TasksTab: React.FC = () => {
                   <div className="mt-3">
                     <div
                       className="flex items-center justify-between text-[10px] text-gray-500 dark:text-gray-400 mb-1">
-                      <span>{t.migrated_items}/{t.total_items} é¡¹</span>
+                      <span>{t.migrated_items}/{t.total_items} Ïî</span>
                       <span>{t.progress}%</span>
                     </div>
                     <div className="h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
@@ -292,7 +292,7 @@ const TasksTab: React.FC = () => {
           </div>}
       {pagination && pagination.total_pages > 1 && (
         <div className="flex items-center justify-between mt-4">
-          <span className="text-xs text-gray-500 dark:text-gray-400">å…± {pagination.total} æ¡</span>
+          <span className="text-xs text-gray-500 dark:text-gray-400">¹² {pagination.total} Ìõ</span>
           <div className="flex items-center gap-1">
             <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}
                     className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30">
@@ -304,35 +304,35 @@ const TasksTab: React.FC = () => {
           </div>
         </div>
       )}
-      <Modal open={showForm} onClose={() => setShowForm(false)} title={editing ? 'ç¼–è¾‘è¿ç§»ä»»åŠ¡' : 'æ–°å»ºè¿ç§»ä»»åŠ¡'}>
-        <Input label="ä»»åŠ¡åç§° *" value={form.task_name} onChange={v => setForm({...form, task_name: v})}
-               placeholder="ä¾‹å¦‚ï¼šWordPress å…¨ç«™è¿ç§»"/>
-        <Input label="æºå¹³å°" value={form.source_platform} onChange={v => setForm({...form, source_platform: v})}
-               placeholder="ä¾‹å¦‚ï¼šwordpress"/>
-        <Input label="é…ç½® (JSON)" value={form.config} onChange={v => setForm({...form, config: v})} rows={3}/>
+      <Modal open={showForm} onClose={() => setShowForm(false)} title={editing ? '±à¼­Ç¨ÒÆÈÎÎñ' : 'ĞÂ½¨Ç¨ÒÆÈÎÎñ'}>
+        <Input label="ÈÎÎñÃû³Æ *" value={form.task_name} onChange={v => setForm({...form, task_name: v})}
+               placeholder="ÀıÈç£ºWordPress È«Õ¾Ç¨ÒÆ"/>
+        <Input label="Ô´Æ½Ì¨" value={form.source_platform} onChange={v => setForm({...form, source_platform: v})}
+               placeholder="ÀıÈç£ºwordpress"/>
+        <Input label="ÅäÖÃ (JSON)" value={form.config} onChange={v => setForm({...form, config: v})} rows={3}/>
         {editing && (
           <div className="mb-3">
-            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">çŠ¶æ€</label>
+            <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">×´Ì¬</label>
             <select value={form.status} onChange={e => setForm({...form, status: e.target.value})}
                     className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white">
-              <option value="pending">ç­‰å¾…ä¸­</option>
-              <option value="running">è¿è¡Œä¸­</option>
-              <option value="completed">å·²å®Œæˆ</option>
-              <option value="failed">å¤±è´¥</option>
-              <option value="paused">å·²æš‚åœ</option>
+              <option value="pending">µÈ´ıÖĞ</option>
+              <option value="running">ÔËĞĞÖĞ</option>
+              <option value="completed">ÒÑÍê³É</option>
+              <option value="failed">Ê§°Ü</option>
+              <option value="paused">ÒÑÔİÍ£</option>
             </select>
           </div>
         )}
         <div className="flex justify-end gap-2 mt-4">
           <button onClick={() => setShowForm(false)}
-                  className="px-4 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300">å–æ¶ˆ
+                  className="px-4 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300">È¡Ïû
           </button>
           <button onClick={submit}
-                  className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg">{editing ? 'æ›´æ–°' : 'åˆ›å»º'}</button>
+                  className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg">{editing ? '¸üĞÂ' : '´´½¨'}</button>
         </div>
       </Modal>
       {deleteId !== null && (
-        <Modal open={true} onClose={() => setDeleteId(null)} title="ç¡®è®¤åˆ é™¤">
+        <Modal open={true} onClose={() => setDeleteId(null)} title="È·ÈÏÉ¾³ı">
           <DeleteConfirm itemName={items.find(t => t.id === deleteId)?.task_name}
                          onConfirm={() => deleteMut.mutate(deleteId)} onCancel={() => setDeleteId(null)}
                          isPending={deleteMut.isPending}/>
@@ -342,15 +342,15 @@ const TasksTab: React.FC = () => {
   );
 };
 
-/* â”€â”€â”€ Task Logs Inline â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ©¤©¤©¤ Task Logs Inline ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤ */
 const TaskLogs: React.FC<{ taskId: number }> = ({taskId}) => {
   const {data, isLoading} = useQuery({
     queryKey: ['migration-logs', taskId],
-    queryFn: () => apiClient.get('/migration-management/logs', {task_id: taskId, per_page: 50}),
+    queryFn: () => apiClient.get('/system/migration-management/logs', {task_id: taskId, per_page: 50}),
   });
   const logs: MigrationLog[] = data?.data?.logs || [];
   if (isLoading) return <div className="mt-3 animate-pulse h-20 bg-gray-100 dark:bg-gray-800 rounded-lg"/>;
-  if (logs.length === 0) return <div className="mt-3 text-xs text-gray-400 p-3">æš‚æ— æ—¥å¿—</div>;
+  if (logs.length === 0) return <div className="mt-3 text-xs text-gray-400 p-3">ÔİÎŞÈÕÖ¾</div>;
   return (
     <div className="mt-3 bg-gray-900 dark:bg-black rounded-lg p-3 max-h-48 overflow-y-auto">
       {logs.map(l => (
@@ -365,7 +365,7 @@ const TaskLogs: React.FC<{ taskId: number }> = ({taskId}) => {
   );
 };
 
-/* â”€â”€â”€ Logs Tab â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ©¤©¤©¤ Logs Tab ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤ */
 const LogsTab: React.FC = () => {
   const [page, setPage] = useState(1);
   const [levelFilter, setLevelFilter] = useState('');
@@ -373,7 +373,7 @@ const LogsTab: React.FC = () => {
 
   const {data, isLoading} = useQuery({
     queryKey: ['migration-all-logs', page, levelFilter],
-    queryFn: () => apiClient.get('/migration-management/logs', {
+    queryFn: () => apiClient.get('/system/migration-management/logs', {
       page,
       per_page: 20,
       log_level: levelFilter || undefined
@@ -384,7 +384,7 @@ const LogsTab: React.FC = () => {
   const pagination: Pagination | undefined = data?.data?.pagination;
 
   const deleteMut = useMutation({
-    mutationFn: (id: number) => apiClient.delete(`/migration-management/logs/${id}`),
+    mutationFn: (id: number) => apiClient.delete(`/system/migration-management/logs/${id}`),
     onSuccess: () => qc.invalidateQueries({queryKey: ['migration-all-logs']}),
   });
 
@@ -396,7 +396,7 @@ const LogsTab: React.FC = () => {
           setPage(1);
         }}
                 className="px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white">
-          <option value="">å…¨éƒ¨çº§åˆ«</option>
+          <option value="">È«²¿¼¶±ğ</option>
           <option value="info">Info</option>
           <option value="warning">Warning</option>
           <option value="error">Error</option>
@@ -405,7 +405,7 @@ const LogsTab: React.FC = () => {
       </div>
       {isLoading ? <div className="animate-pulse space-y-2">{[1, 2, 3, 4].map(i => <div key={i}
                                                                                         className="h-12 bg-gray-100 dark:bg-gray-800 rounded-xl"/>)}</div> :
-        items.length === 0 ? <EmptyState icon={ScrollText} title="æš‚æ— æ—¥å¿—" desc="è¿ç§»æ—¥å¿—å°†åœ¨æ­¤æ˜¾ç¤º"/> :
+        items.length === 0 ? <EmptyState icon={ScrollText} title="ÔİÎŞÈÕÖ¾" desc="Ç¨ÒÆÈÕÖ¾½«ÔÚ´ËÏÔÊ¾"/> :
           <div className="bg-gray-900 dark:bg-black rounded-xl p-4 max-h-96 overflow-y-auto">
             {items.map(l => (
               <div key={l.id} className="flex items-start gap-2 py-1.5 border-b border-gray-800 last:border-0 group">
@@ -423,7 +423,7 @@ const LogsTab: React.FC = () => {
           </div>}
       {pagination && pagination.total_pages > 1 && (
         <div className="flex items-center justify-between mt-4">
-          <span className="text-xs text-gray-500 dark:text-gray-400">å…± {pagination.total} æ¡</span>
+          <span className="text-xs text-gray-500 dark:text-gray-400">¹² {pagination.total} Ìõ</span>
           <div className="flex items-center gap-1">
             <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}
                     className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30">
@@ -439,18 +439,18 @@ const LogsTab: React.FC = () => {
   );
 };
 
-/* â”€â”€â”€ Main Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€ */
+/* ©¤©¤©¤ Main Component ©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤©¤ */
 type TabKey = 'tasks' | 'logs';
 const TABS: { key: TabKey; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-  {key: 'tasks', label: 'è¿ç§»ä»»åŠ¡', icon: ArrowRightLeft},
-  {key: 'logs', label: 'è¿ç§»æ—¥å¿—', icon: ScrollText},
+  {key: 'tasks', label: 'Ç¨ÒÆÈÎÎñ', icon: ArrowRightLeft},
+  {key: 'logs', label: 'Ç¨ÒÆÈÕÖ¾', icon: ScrollText},
 ];
 
 function MigrationManagementInner() {
   const [tab, setTab] = useState<TabKey>('tasks');
 
   return (
-    <AdminShell title="è¿ç§»ç®¡ç†" actions={<ArrowRightLeft className="w-5 h-5 text-blue-500"/>}>
+    <AdminShell title="Ç¨ÒÆ¹ÜÀí" actions={<ArrowRightLeft className="w-5 h-5 text-blue-500"/>}>
       <div className="space-y-6">
         <div className="flex gap-1 bg-gray-100 dark:bg-gray-800 rounded-xl p-1">
           {TABS.map(t => (

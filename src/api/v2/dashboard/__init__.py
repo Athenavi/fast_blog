@@ -16,9 +16,9 @@ def _build_router():
 
     router = APIRouter(tags=["dashboard"])
 
-    from src.api.v1.dashboard.analytics import router as analytics_router
-    from src.api.v1.dashboard.dashboard import router as dashboard_router
-    from src.api.v1.dashboard.realtime_monitor import router as realtime_monitor_router
+    from src.api.v2.dashboard.analytics import router as analytics_router
+    from src.api.v2.dashboard.dashboard import router as dashboard_router
+    from src.api.v2.dashboard.realtime_monitor import router as realtime_monitor_router
 
     router.include_router(dashboard_router, prefix="")
     router.include_router(analytics_router, prefix="/analytics")

@@ -16,9 +16,11 @@ def _build_router():
 
     router = APIRouter(tags=["search"])
 
-    from src.api.v1.search.fulltext_search import router as fulltext_search_router
+    from src.api.v2.search.fulltext_search import router as fulltext_search_router
+    from src.api.v2.search.search_media_management import router as search_media_management_router
 
     router.include_router(fulltext_search_router, prefix="/fulltext")
+    router.include_router(search_media_management_router, prefix="/management")
 
     _router = router
     return _router

@@ -1,4 +1,4 @@
-ï»¿'use client';
+'use client';
 
 import React, {useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
@@ -27,37 +27,37 @@ const GatewaysTab: React.FC = () => {
 
   const {data, isLoading} = useQuery({
     queryKey: ['payment-gateways', page, search],
-    queryFn: () => apiClient.get('/payment-management/gateways', {page, per_page: 15, search: search || undefined}),
+    queryFn: () => apiClient.get('/shop/admin/gateways', {page, per_page: 15, search: search || undefined}),
   });
 
   const items: PaymentGateway[] = data?.data?.gateways || [];
   const pagination: Pagination | undefined = data?.data?.pagination;
 
   const createMut = useMutation({
-    mutationFn: (d: any) => apiClient.post('/payment-management/gateways', d),
+    mutationFn: (d: any) => apiClient.post('/shop/admin/gateways', d),
     onSuccess: (r: ApiResponse) => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['payment-gateways']});
         setShowForm(false);
-      } else toast.error(r.error || 'æ“ä½œå¤±è´¥');
+      } else toast.error(r.error || '²Ù×÷Ê§°Ü');
     },
   });
   const updateMut = useMutation({
-    mutationFn: ({id, ...d}: any) => apiClient.put(`/payment-management/gateways/${id}`, d),
+    mutationFn: ({id, ...d}: any) => apiClient.put(`/shop/admin/gateways/${id}`, d),
     onSuccess: (r: ApiResponse) => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['payment-gateways']});
         setShowForm(false);
-      } else toast.error(r.error || 'æ“ä½œå¤±è´¥');
+      } else toast.error(r.error || '²Ù×÷Ê§°Ü');
     },
   });
   const deleteMut = useMutation({
-    mutationFn: (id: number) => apiClient.delete(`/payment-management/gateways/${id}`),
+    mutationFn: (id: number) => apiClient.delete(`/shop/admin/gateways/${id}`),
     onSuccess: (r: ApiResponse) => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['payment-gateways']});
         setDeleteId(null);
-      } else toast.error(r.error || 'æ“ä½œå¤±è´¥');
+      } else toast.error(r.error || '²Ù×÷Ê§°Ü');
     },
   });
 
@@ -79,7 +79,7 @@ const GatewaysTab: React.FC = () => {
   };
   const submit = () => {
     if (!form.name.trim() || !form.provider.trim()) {
-      toast.error('è¯·å¡«å†™åç§°å’Œæä¾›å•†');
+      toast.error('ÇëÌîĞ´Ãû³ÆºÍÌá¹©ÉÌ');
       return;
     }
     const payload = {...form, is_active: form.is_active === 'true'};
@@ -97,28 +97,28 @@ const GatewaysTab: React.FC = () => {
               setSearch(e.target.value);
               setPage(1);
             }}
-                   placeholder="æœç´¢ç½‘å…³..."
+                   placeholder="ËÑË÷Íø¹Ø..."
                    className="pl-9 pr-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white w-48"/>
           </div>
         </div>
         <button onClick={openCreate}
                 className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-xl flex items-center gap-1.5">
-          <Plus className="w-4 h-4"/>æ–°å»ºç½‘å…³
+          <Plus className="w-4 h-4"/>ĞÂ½¨Íø¹Ø
         </button>
       </div>
       {isLoading ? <div className="animate-pulse space-y-2">{[1, 2, 3].map(i => <div key={i}
                                                                                      className="h-16 bg-gray-100 dark:bg-gray-800 rounded-xl"/>)}</div> :
         items.length === 0 ?
-          <EmptyState icon={CreditCard} title="æš‚æ— æ”¯ä»˜ç½‘å…³" desc="åˆ›å»ºç¬¬ä¸€ä¸ªæ”¯ä»˜ç½‘å…³ä»¥å¼€å§‹æ¥å—æ”¯ä»˜"/> :
+          <EmptyState icon={CreditCard} title="ÔİÎŞÖ§¸¶Íø¹Ø" desc="´´½¨µÚÒ»¸öÖ§¸¶Íø¹ØÒÔ¿ªÊ¼½ÓÊÜÖ§¸¶"/> :
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
               <tr className="border-b border-gray-100 dark:border-gray-800">
-                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">åç§°</th>
-                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">æä¾›å•†</th>
-                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">æ”¯æŒè´§å¸</th>
-                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">çŠ¶æ€</th>
-                <th className="text-right py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">æ“ä½œ</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">Ãû³Æ</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">Ìá¹©ÉÌ</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">Ö§³Ö»õ±Ò</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">×´Ì¬</th>
+                <th className="text-right py-3 px-4 text-xs font-semibold text-gray-500 dark:text-gray-400">²Ù×÷</th>
               </tr>
               </thead>
               <tbody>{items.map(g => (
@@ -127,7 +127,7 @@ const GatewaysTab: React.FC = () => {
                   <td className="py-3 px-4 font-medium text-gray-900 dark:text-white">{g.name}</td>
                   <td className="py-3 px-4 text-gray-600 dark:text-gray-400">{g.provider}</td>
                   <td
-                    className="py-3 px-4 text-gray-500 dark:text-gray-400 text-xs">{g.supported_currencies || 'â€”'}</td>
+                    className="py-3 px-4 text-gray-500 dark:text-gray-400 text-xs">{g.supported_currencies || '¡ª'}</td>
                   <td className="py-3 px-4"><Badge active={g.is_active}/></td>
                   <td className="py-3 px-4 text-right">
                     <button onClick={() => openEdit(g)}
@@ -143,7 +143,7 @@ const GatewaysTab: React.FC = () => {
           </div>}
       {pagination && pagination.total_pages > 1 && (
         <div className="flex items-center justify-between mt-4">
-          <span className="text-xs text-gray-500 dark:text-gray-400">å…± {pagination.total} æ¡</span>
+          <span className="text-xs text-gray-500 dark:text-gray-400">¹² {pagination.total} Ìõ</span>
           <div className="flex items-center gap-1">
             <button disabled={page <= 1} onClick={() => setPage(p => p - 1)}
                     className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 disabled:opacity-30">
@@ -155,32 +155,32 @@ const GatewaysTab: React.FC = () => {
           </div>
         </div>
       )}
-      <Modal open={showForm} onClose={() => setShowForm(false)} title={editing ? 'ç¼–è¾‘æ”¯ä»˜ç½‘å…³' : 'æ–°å»ºæ”¯ä»˜ç½‘å…³'}>
-        <Input label="åç§° *" value={form.name} onChange={v => setForm({...form, name: v})} placeholder="ä¾‹å¦‚ï¼šStripe"/>
-        <Input label="æä¾›å•† *" value={form.provider} onChange={v => setForm({...form, provider: v})}
-               placeholder="ä¾‹å¦‚ï¼šstripe"/>
-        <Input label="æ”¯æŒè´§å¸" value={form.supported_currencies}
-               onChange={v => setForm({...form, supported_currencies: v})} placeholder="ä¾‹å¦‚ï¼šUSD,EUR,CNY"/>
-        <Input label="é…ç½®æ•°æ® (JSON)" value={form.config_data} onChange={v => setForm({...form, config_data: v})}
+      <Modal open={showForm} onClose={() => setShowForm(false)} title={editing ? '±à¼­Ö§¸¶Íø¹Ø' : 'ĞÂ½¨Ö§¸¶Íø¹Ø'}>
+        <Input label="Ãû³Æ *" value={form.name} onChange={v => setForm({...form, name: v})} placeholder="ÀıÈç£ºStripe"/>
+        <Input label="Ìá¹©ÉÌ *" value={form.provider} onChange={v => setForm({...form, provider: v})}
+               placeholder="ÀıÈç£ºstripe"/>
+        <Input label="Ö§³Ö»õ±Ò" value={form.supported_currencies}
+               onChange={v => setForm({...form, supported_currencies: v})} placeholder="ÀıÈç£ºUSD,EUR,CNY"/>
+        <Input label="ÅäÖÃÊı¾İ (JSON)" value={form.config_data} onChange={v => setForm({...form, config_data: v})}
                rows={3}/>
         <div className="mb-3">
-          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">çŠ¶æ€</label>
+          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 mb-1">×´Ì¬</label>
           <select value={form.is_active} onChange={e => setForm({...form, is_active: e.target.value})}
                   className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white">
-            <option value="true">å¯ç”¨</option>
-            <option value="false">ç¦ç”¨</option>
+            <option value="true">ÆôÓÃ</option>
+            <option value="false">½ûÓÃ</option>
           </select>
         </div>
         <div className="flex justify-end gap-2 mt-4">
           <button onClick={() => setShowForm(false)}
-                  className="px-4 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300">å–æ¶ˆ
+                  className="px-4 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300">È¡Ïû
           </button>
           <button onClick={submit}
-                  className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg">{editing ? 'æ›´æ–°' : 'åˆ›å»º'}</button>
+                  className="px-4 py-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-lg">{editing ? '¸üĞÂ' : '´´½¨'}</button>
         </div>
       </Modal>
       {deleteId !== null && (
-        <Modal open={true} onClose={() => setDeleteId(null)} title="ç¡®è®¤åˆ é™¤">
+        <Modal open={true} onClose={() => setDeleteId(null)} title="È·ÈÏÉ¾³ı">
           <DeleteConfirm itemName={items.find(g => g.id === deleteId)?.name}
                          onConfirm={() => deleteMut.mutate(deleteId)} onCancel={() => setDeleteId(null)}
                          isPending={deleteMut.isPending}/>

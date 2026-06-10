@@ -7,7 +7,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.category import Category
-from src.api.v1.core.responses import ApiResponse
+from src.api.v2._base import ApiResponse
 from src.utils.database.main import get_async_session
 
 router = APIRouter(tags=["mobile-categories"])

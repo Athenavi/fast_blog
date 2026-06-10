@@ -33,21 +33,21 @@ v2 版本采用以下原则：
 # v2 路由注册表：(模块路径, v2前缀, 标签列表, 是否必需)
 ROUTE_REGISTRY_V2 = [
     # ==================== 核心模块（必需）====================
-    ("src.api.v1.core.home", "/api/v2/home", ["home"], True),
+    ("src.api.v2.home", "/api/v2/home", ["home"], True),
     # ==================== 仪表板（V2 聚合路由器）====================
     # V2 Dashboard 模块采用包级别聚合模式，所有子模块通过 __init__.py 统一注册
     ("src.api.v2.dashboard", "/api/v2/dashboard", ["dashboard-v2"], True),
-    ("src.api.v1.core.system", "/api/v2/system", ["system"], True),
+    # core.system 已迁移：health/info 路由现已直接内联在 v2.system 聚合器中
 
     # ==================== 文章核心（V2 聚合路由器）====================
     # V2 Articles 模块采用包级别聚合模式，所有子模块通过 __init__.py 统一注册
     ("src.api.v2.articles", "/api/v2/articles", ["articles-v2"], True),
 
-    # ==================== 分类管理 ====================
-    ("src.api.v1.content_management.category_management", "/api/v2/categories", ["categories"], True),
+    # ==================== 分类管理（已迁移到 /api/v2/cms/categories）====================
+    # 移除理由：V2 content_management 聚合器已在 /api/v2/cms 下以 /categories 前缀注册了 category_management 路由
 
-    # ==================== 标签管理（新增）====================
-    ("src.api.v1.articles.tags", "/api/v2/tags", ["tags"], False),
+    # ==================== 标签管理（V2 聚合路由器）====================
+    ("src.api.v2.tags", "/api/v2/tags", ["tags"], False),
 
     # ==================== 搜索（V2 聚合路由器）====================
     # V2 Search 模块采用包级别聚合模式，所有子模块通过 __init__.py 统一注册
@@ -72,22 +72,19 @@ ROUTE_REGISTRY_V2 = [
     ("src.api.v2.content_management", "/api/v2/cms", ["cms-v2"], True),
     # V1 content_management 各子模块已废弃，功能已迁移到 V2 聚合路由器
 
-    # ==================== 块模式库（独立顶级路由）====================
-    # 前端直接调用 /api/v2/block-patterns/list
-    ("src.api.v1.content_management.block_patterns", "/api/v2/block-patterns", ["block-patterns"], False),
+    # ==================== 块模式库（已迁移到 /api/v2/cms/block-patterns）====================
+    # 移除理由：V2 content_management 聚合器已在 /api/v2/cms 下以 /block-patterns 前缀注册了 block_patterns 路由
 
-    # ==================== 全局样式（独立顶级路由）====================
-    # 前端直接调用 /api/v2/global-styles/list
-    ("src.api.v1.content_management.global_styles", "/api/v2/global-styles", ["global-styles"], False),
+    # ==================== 全局样式（已迁移到 /api/v2/cms/global-styles）====================
+    # 移除理由：V2 content_management 聚合器已在 /api/v2/cms 下以 /global-styles 前缀注册了 global_styles 路由
 
     # ==================== 电商功能（V2 聚合路由器）====================
     # V2 Ecommerce 模块采用包级别聚合模式，所有子模块通过 __init__.py 统一注册
     ("src.api.v2.ecommerce", "/api/v2/shop", ["ecommerce-v2"], True),
     # V1 ecommerce 各子模块已废弃，功能已迁移到 V2 聚合路由器
 
-    # ==================== 媒体管理 ====================
-    ("src.api.v1.media", "/api/v2/media", ["media"], False),
-    ("src.api.v1.media.cover_upload", "/api/v2/media", ["cover-upload"], False),
+    # ==================== 媒体管理（V2 聚合路由器）====================
+    ("src.api.v2.media", "/api/v2/media", ["media"], False),
 
     # ==================== SEO 优化（V2 聚合路由器）====================
     # V2 SEO 模块采用包级别聚合模式，所有子模块通过 __init__.py 统一注册
@@ -98,8 +95,8 @@ ROUTE_REGISTRY_V2 = [
     ("src.api.v2.security", "/api/v2/security", ["security-v2"], True),
     # V1 security 各子模块已废弃，功能已迁移到 V2 聚合路由器
 
-    # ==================== 认证模块（新增）====================
-    ("src.api.v1.auth", "/api/v2/auth", ["auth"], False),
+    # ==================== 认证模块（V2 聚合路由器）====================
+    ("src.api.v2.auth", "/api/v2/auth", ["auth"], False),
     ("src.api.v2.qr_login", "/api/v2/auth/qr", ["qr-login"], False),
 
     # ==================== 用户管理（V2 聚合路由器）====================
@@ -117,9 +114,8 @@ ROUTE_REGISTRY_V2 = [
     # V2 System 模块采用包级别聚合模式，所有子模块通过 __init__.py 统一注册
     ("src.api.v2.system", "/api/v2/system", ["system-v2"], True),
 
-    # ==================== 安装向导（独立顶级路由）====================
-    # 安装功能作为独立顶级资源，便于前端访问
-    ("src.api.v1.system.installation", "/api/v2/install", ["installation"], False),
+    # ==================== 安装向导（已迁移到 /api/v2/system/install）====================
+    # 移除理由：V2 system 聚合器已在 /api/v2/system 下以 /install 前缀注册了 installation 路由
 
     # ==================== GDPR 合规（V2 完整版）====================
     # V1 gdpr_compliance 已废弃，功能已整合到 V2 compliance_api
@@ -154,24 +150,20 @@ ROUTE_REGISTRY_V2 = [
     # V1 static_generation 各子模块已废弃，功能已迁移到 V2 聚合路由器
     # ("src.api.v1.static_generation.static_site_generation", "/api/v2/static-site", ["static-site-generation"], False),
 
-    # ==================== 支付工具 ====================
-    ("src.api.v1.utils.payment", "/api/v2/payments", ["payment"], False),
+    # ==================== 支付（已迁移到 /api/v2/shop/payment + /api/v2/shop/admin）====================
+    # 移除理由：utils.payment 和 payment_management 已加入 v2.ecommerce 聚合器
 
-    # ==================== 支付系统管理（网关/交易/税务配置）====================
-    ("src.api.v1.payment.payment_management", "/api/v2/payment-management", ["payment-management"], False),
+    # ==================== 迁移系统管理（已迁移到 /api/v2/system/migration-management）====================
+    # 移除理由：migration_management 已加入 v2.system 聚合器
 
-    # ==================== 迁移系统管理（任务/日志）====================
-    ("src.api.v1.system.migration_management", "/api/v2/migration-management", ["migration-management"], False),
+    # ==================== 内容管理扩展（已整合到 /api/v2/cms/management）====================
+    # 移除理由：content_management_ext 已加入 v2.content_management 聚合器
 
-    # ==================== 内容管理扩展（修订注释/菜单位置）====================
-    ("src.api.v1.content_management.content_management_ext", "/api/v2/cms/management", ["content-management-ext"],
-     False),
+    # ==================== 用户安全管理（已整合到 /api/v2/users/security）====================
+    # 移除理由：user_security_management 已加入 v2.users 聚合器
 
-    # ==================== 用户安全管理（字段权限/会话/邮件订阅）====================
-    ("src.api.v1.users.user_security_management", "/api/v2/users/security", ["user-security-management"], False),
-
-    # ==================== 搜索与媒体管理（索引/优化）====================
-    ("src.api.v1.search.search_media_management", "/api/v2/search/management", ["search-media-management"], False),
+    # ==================== 搜索与媒体管理（已整合到 /api/v2/search/management）====================
+    # 移除理由：search_media_management 已加入 v2.search 聚合器
 
     # ==================== 可访问性（V2 聚合路由器）====================
     # V2 Accessibility 模块采用包级别聚合模式，所有子模块通过 __init__.py 统一注册
@@ -183,8 +175,8 @@ ROUTE_REGISTRY_V2 = [
     ("src.api.v2.advanced_features", "/api/v2/ext", ["advanced-features-v2"], True),
     # V1 advanced_features 各子模块已废弃，功能已迁移到 V2 聚合路由器
 
-    # ==================== 其他系统模块（misc 模块已完全清理并删除）====================
-    ("src.api.v1.analytics.site_analytics_api", "/api/v2/analytics/site", ["site-analytics"], False),
+    # ==================== 其他系统模块（V2 聚合路由器）====================
+    ("src.api.v2.analytics", "/api/v2/analytics", ["analytics-v2"], False),
     # ("src.api.v1.articles.anomaly_detection", "/api/v2/system/anomaly-detection", ["anomaly-detection"], False),  # 模块不存在，已禁用
     # ==================== 社交（V2 聚合路由器）====================
     # V2 Social 模块采用包级别聚合模式，所有子模块通过 __init__.py 统一注册

@@ -4,7 +4,7 @@
 """
 from fastapi import APIRouter
 
-from src.api.v1.core.responses import ApiResponse
+from src.api.v2._base import ApiResponse
 
 router = APIRouter(tags=["examples-tools"])
 

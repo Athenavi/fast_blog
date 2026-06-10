@@ -12,7 +12,7 @@ from fastapi.logger import logger
 from fastapi.responses import HTMLResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.api.v1.core.responses import ApiResponse
+from src.api.v2._base import ApiResponse
 from src.auth import get_current_user
 from src.extensions import cache
 from src.extensions import get_async_db_session as get_async_db
@@ -96,7 +96,7 @@ async def mobile_login_page(request: Request):
 @router.get("/generate")
 async def v2_generate_qr(request: Request):
     """生成登录二维码"""
-    from src.api.v1.user_utils.qrlogin_utils import qr_login
+from src.api.v2.user_utils.qrlogin_utils import qr_login
     from src.setting import app_config
     try:
         sys_version = "2.0"
@@ -122,7 +122,7 @@ async def v2_generate_qr(request: Request):
 @router.get("/status")
 async def v2_check_qr_status(request: Request):
     """PC 端轮询检查扫码状态"""
-    from src.api.v1.user_utils.qrlogin_utils import check_qr_login_back
+from src.api.v2.user_utils.qrlogin_utils import check_qr_login_back
     try:
         result = await check_qr_login_back(request, cache)
         # v2 响应格式：将 check_qr_login_back 返回的顶层字段包装到 data 中
@@ -148,7 +148,7 @@ async def v2_check_qr_status(request: Request):
 @router.post("/confirm")
 async def v2_phone_confirm(request: Request, db: AsyncSession = Depends(get_async_db)):
     """手机端扫码后确认登录（支持 JSON body 或 query params）"""
-    from src.api.v1.user_utils.qrlogin_utils import phone_scan_back
+from src.api.v2.user_utils.qrlogin_utils import phone_scan_back
 
     # 读取 login_token：优先从 JSON body，其次 query params
     login_token = None

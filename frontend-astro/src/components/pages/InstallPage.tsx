@@ -28,7 +28,7 @@ export default function InstallPage() {
 
     useEffect(() => {
         if (step === 0) {
-            apiClient.get('/install/prerequisites').then(r => {
+            apiClient.get('/system/install/prerequisites').then(r => {
                 if (r.success && r.data) {
                     // 将对象转换为数组格式
                     const prereqArray = Object.entries(r.data)
@@ -52,7 +52,7 @@ export default function InstallPage() {
 
   const checkDb = async () => {
     setBusy(true); setErr('');
-    const r = await apiClient.post('/install/check-database', db);
+    const r = await apiClient.post('/system/install/check-database', db);
     if (!r.success) setErr(r.error||'连接失败');
     setBusy(false);
     return r.success;
@@ -63,7 +63,7 @@ export default function InstallPage() {
         setErr('');
         try {
             // 先配置数据库
-            const dbResult = await apiClient.post('/install/configure-database', {
+            const dbResult = await apiClient.post('/system/install/configure-database', {
                 db_type: 'postgresql',
                 host: db.host,
                 port: db.port,
@@ -79,7 +79,7 @@ export default function InstallPage() {
             }
 
             // 再执行数据库迁移
-            const r = await apiClient.post('/install/confirm-database-and-migrate');
+            const r = await apiClient.post('/system/install/confirm-database-and-migrate');
             if (r.success) {
                 setMigrationStatus({success: true, message: r.data?.message || '迁移成功'});
                 return true;
@@ -104,7 +104,7 @@ export default function InstallPage() {
         // 这里只需要配置站点、创建管理员和完成安装
 
         // 配置站点
-        await apiClient.post('/install/configure-site', {
+        await apiClient.post('/system/install/configure-site', {
             site_name: site.name,
             site_description: site.desc,
             site_url: site.url,
@@ -112,10 +112,10 @@ export default function InstallPage() {
         });
 
         // 创建管理员
-      await apiClient.post('/install/create-admin', admin);
+      await apiClient.post('/system/install/create-admin', admin);
 
         // 完成安装
-        const r = await apiClient.post('/install/complete', {
+        const r = await apiClient.post('/system/install/complete', {
             import_sample_data: false
         });
 

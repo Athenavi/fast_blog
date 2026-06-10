@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends, Body
 
 from shared.models.user import User
 from shared.services.compliance.compliance_service import ComplianceService
-from src.api.v1.core.responses import ApiResponse
+from src.api.v2._base import ApiResponse
 from src.auth import jwt_required_dependency as jwt_required
 
 router = APIRouter(prefix="/compliance", tags=["Compliance Management"])

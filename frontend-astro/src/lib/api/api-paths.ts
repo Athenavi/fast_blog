@@ -75,15 +75,15 @@ export const COMMENTS = {
 
 // ─── Categories 分类 ────────────────────────────
 export const CATEGORIES = {
-  LIST: '/categories/',
-  CREATE: '/categories/',
-  DETAIL: (name: string) => `/categories/${name}`,
-  UPDATE: (id: number) => `/categories/${id}`,
-  DELETE: (id: number) => `/categories/${id}`,
-  REORDER: '/categories/reorder',
+  LIST: '/cms/categories/',
+  CREATE: '/cms/categories/',
+  DETAIL: (name: string) => `/cms/categories/${name}`,
+  UPDATE: (id: number) => `/cms/categories/${id}`,
+  DELETE: (id: number) => `/cms/categories/${id}`,
+  REORDER: '/cms/categories/reorder',
   HOME: '/home/categories',
-  BY_NAME: (name: string) => `/categories/name/${name}`,
-  POPULAR: '/categories/popular',
+  BY_NAME: (name: string) => `/cms/categories/name/${name}`,
+  POPULAR: '/cms/categories/popular',
 } as const;
 
 // ─── Media 媒体 ─────────────────────────────────

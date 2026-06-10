@@ -677,7 +677,7 @@ def register_error_handlers(app: FastAPI):
 
     def _api_error_response(status_code: int, message: str) -> JSONResponse:
         """统一 API 错误响应格式"""
-        from src.api.v1.core.responses import ApiResponse
+        from src.api.v2._base import ApiResponse
         return JSONResponse(
             status_code=status_code,
             content=ApiResponse(success=False, error=message).model_dump()
@@ -715,7 +715,7 @@ def register_error_handlers(app: FastAPI):
     async def forbidden_handler(request: Request, exc: HTTPException):
         if _is_api_request(request):
             return _api_error_response(403, exc.detail)
-        from src.api.v1.core.responses import ApiResponse
+        from src.api.v2._base import ApiResponse
         return JSONResponse(
             status_code=403,
             content=ApiResponse(success=False, error=exc.detail).model_dump()

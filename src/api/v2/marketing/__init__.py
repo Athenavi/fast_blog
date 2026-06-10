@@ -1,8 +1,5 @@
 """
-营销API聚合路由器 - V2统一入口
-整合V1的marketing相关模块
-
-使用懒加载模式：仅在首次访问 router 时才导入 V1 子模块。
+广告营销API - V2 统一入口
 """
 from fastapi import APIRouter
 
@@ -14,13 +11,13 @@ def _build_router():
     if _router is not None:
         return _router
 
-    router = APIRouter(tags=["marketing"])
+    router = APIRouter(tags=["marketing-v2"])
 
-    from src.api.v1.marketing.ad_management import router as ad_management_router
-    from src.api.v1.marketing.advertisement_system import router as advertisement_system_router
+    from src.api.v2.marketing.ad_management import router as ad_management_router
+    from src.api.v2.marketing.advertisement_system import router as advertisement_system_router
 
-    router.include_router(ad_management_router, prefix="/admin/ad")
-    router.include_router(advertisement_system_router, prefix="")
+    router.include_router(ad_management_router, prefix="/management")
+    router.include_router(advertisement_system_router, prefix="/system")
 
     _router = router
     return _router

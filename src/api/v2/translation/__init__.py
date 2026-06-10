@@ -16,11 +16,11 @@ def _build_router():
 
     router = APIRouter(tags=["i18n"])
 
-    from src.api.v1.translation.i18n import router as i18n_router
-    from src.api.v1.translation.translation_io import router as translation_io_router
-    from src.api.v1.translation.translation_progress import router as translation_progress_router
-    from src.api.v1.translation.translation_service import router as translation_service_router
-    from src.api.v1.translation.translations import router as translations_router
+    from src.api.v2.translation.i18n import router as i18n_router
+    from src.api.v2.translation.translation_io import router as translation_io_router
+    from src.api.v2.translation.translation_progress import router as translation_progress_router
+    from src.api.v2.translation.translation_service import router as translation_service_router
+    from src.api.v2.translation.translations import router as translations_router
 
     router.include_router(i18n_router, prefix="/i18n")
     router.include_router(translation_io_router, prefix="/io")

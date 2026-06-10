@@ -16,17 +16,17 @@ def _build_router():
 
     router = APIRouter(tags=["advanced-features"])
 
-    from src.api.v1.advanced_features.achievement_badges import router as achievement_badges_router
-    from src.api.v1.advanced_features.ai_recommendations import router as ai_recommendations_router
-    from src.api.v1.advanced_features.edge_functions import router as edge_functions_router
-    from src.api.v1.advanced_features.expert_certification import router as expert_certification_router
-    from src.api.v1.advanced_features.membership import router as membership_router
-    from src.api.v1.advanced_features.nft import router as nft_router
-    from src.api.v1.advanced_features.personalized_feed import router as personalized_feed_router
-    from src.api.v1.advanced_features.points_system import router as points_system_router
-    from src.api.v1.advanced_features.recommendations import router as recommendations_router
-    from src.api.v1.advanced_features.tipping_system import router as tipping_system_router
-    from src.api.v1.advanced_features.websocket import router as websocket_router
+    from src.api.v2.advanced_features.achievement_badges import router as achievement_badges_router
+    from src.api.v2.advanced_features.ai_recommendations import router as ai_recommendations_router
+    from src.api.v2.advanced_features.edge_functions import router as edge_functions_router
+    from src.api.v2.advanced_features.expert_certification import router as expert_certification_router
+    from src.api.v2.advanced_features.membership import router as membership_router
+    from src.api.v2.advanced_features.nft import router as nft_router
+    from src.api.v2.advanced_features.personalized_feed import router as personalized_feed_router
+    from src.api.v2.advanced_features.points_system import router as points_system_router
+    from src.api.v2.advanced_features.recommendations import router as recommendations_router
+    from src.api.v2.advanced_features.tipping_system import router as tipping_system_router
+    from src.api.v2.advanced_features.websocket import router as websocket_router
 
     router.include_router(membership_router, prefix="/membership")
     router.include_router(edge_functions_router, prefix="/edge-func")

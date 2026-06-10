@@ -16,9 +16,9 @@ def _build_router():
 
     router = APIRouter(tags=["notifications"])
 
-    from src.api.v1.notifications.email_service import router as email_service_router
-    from src.api.v1.notifications.notifications import router as notifications_router
-    from src.api.v1.notifications.push_notifications import router as push_notifications_router
+    from src.api.v2.notifications.email_service import router as email_service_router
+    from src.api.v2.notifications.notifications import router as notifications_router
+    from src.api.v2.notifications.push_notifications import router as push_notifications_router
 
     router.include_router(notifications_router, prefix="")
     router.include_router(email_service_router, prefix="/email")

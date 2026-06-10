@@ -16,18 +16,18 @@ def _build_router():
 
     router = APIRouter(tags=["seo"])
 
-    from src.api.v1.seo.batch_seo import router as batch_seo_router
-    from src.api.v1.seo.breadcrumbs import router as breadcrumbs_router
-    from src.api.v1.seo.content_quality import router as content_quality_router
-    from src.api.v1.seo.hreflang_api import router as hreflang_router
-    from src.api.v1.seo.internal_links import router as internal_links_router
-    from src.api.v1.seo.redirect_management import router as redirect_router
-    from src.api.v1.seo.schema_generator import router as schema_generator_router
-    from src.api.v1.seo.seo_dashboard import router as seo_dashboard_router
-    from src.api.v1.seo.seo_management import router as seo_management_router
-    from src.api.v1.seo.seo_optimization import router as seo_optimization_router
-    from src.api.v1.seo.seo_tracking import router as seo_tracking_router
-    from src.api.v1.seo.sitemap import router as sitemap_router
+    from src.api.v2.seo.batch_seo import router as batch_seo_router
+    from src.api.v2.seo.breadcrumbs import router as breadcrumbs_router
+    from src.api.v2.seo.content_quality import router as content_quality_router
+    from src.api.v2.seo.hreflang_api import router as hreflang_router
+    from src.api.v2.seo.internal_links import router as internal_links_router
+    from src.api.v2.seo.redirect_management import router as redirect_router
+    from src.api.v2.seo.schema_generator import router as schema_generator_router
+    from src.api.v2.seo.seo_dashboard import router as seo_dashboard_router
+    from src.api.v2.seo.seo_management import router as seo_management_router
+    from src.api.v2.seo.seo_optimization import router as seo_optimization_router
+    from src.api.v2.seo.seo_tracking import router as seo_tracking_router
+    from src.api.v2.seo.sitemap import router as sitemap_router
 
     router.include_router(sitemap_router, prefix="/sitemap")
     router.include_router(breadcrumbs_router, prefix="/breadcrumbs")

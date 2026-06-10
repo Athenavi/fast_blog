@@ -15,7 +15,7 @@ const TransactionsTab: React.FC = () => {
 
   const {data, isLoading} = useQuery({
     queryKey: ['payment-transactions', page, search, statusFilter],
-    queryFn: () => apiClient.get('/payment-management/transactions', {
+    queryFn: () => apiClient.get('/shop/admin/transactions', {
       page,
       per_page: 15,
       search: search || undefined,

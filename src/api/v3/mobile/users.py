@@ -6,7 +6,7 @@ from fastapi import APIRouter, Depends, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.api.v1.core.responses import ApiResponse
+from src.api.v2._base import ApiResponse
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 from src.utils.database.main import get_async_session
 

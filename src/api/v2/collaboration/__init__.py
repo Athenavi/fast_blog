@@ -16,11 +16,11 @@ def _build_router():
 
     router = APIRouter(tags=["collaboration"])
 
-    from src.api.v1.collaboration.collaboration_invites import router as collaboration_invites_router
-    from src.api.v1.collaboration.collaboration_save import router as collaboration_save_router
-    from src.api.v1.collaboration.team_collaboration import router as team_collaboration_router
-    from src.api.v1.collaboration.team_comments import router as team_comments_router
-    from src.api.v1.collaboration.yjs_collaboration import router as yjs_collaboration_router
+    from src.api.v2.collaboration.collaboration_invites import router as collaboration_invites_router
+    from src.api.v2.collaboration.collaboration_save import router as collaboration_save_router
+    from src.api.v2.collaboration.team_collaboration import router as team_collaboration_router
+    from src.api.v2.collaboration.team_comments import router as team_comments_router
+    from src.api.v2.collaboration.yjs_collaboration import router as yjs_collaboration_router
 
     router.include_router(collaboration_invites_router, prefix="/invites")
     router.include_router(collaboration_save_router, prefix="/collaboration")

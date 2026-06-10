@@ -16,10 +16,10 @@ def _build_router():
 
     router = APIRouter(tags=["comments"])
 
-    from src.api.v1.comments.comment_config import router as comment_config_router
-    from src.api.v1.comments.comment_subscriptions import router as comment_subscriptions_router
-    from src.api.v1.comments.comments import router as comments_router
-    from src.api.v1.comments.comments_enhanced import router as comments_enhanced_router
+    from src.api.v2.comments.comment_config import router as comment_config_router
+    from src.api.v2.comments.comment_subscriptions import router as comment_subscriptions_router
+    from src.api.v2.comments.comments import router as comments_router
+    from src.api.v2.comments.comments_enhanced import router as comments_enhanced_router
 
     router.include_router(comments_router, prefix="")
     router.include_router(comments_enhanced_router, prefix="/enhanced")

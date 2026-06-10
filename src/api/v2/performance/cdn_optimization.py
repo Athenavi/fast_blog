@@ -8,7 +8,7 @@ from fastapi import APIRouter, Depends
 
 from shared.models.user import User
 from shared.services.performance.cdn_integration import cdn_service
-from src.api.v1.core.responses import ApiResponse
+from src.api.v2._base import ApiResponse
 from src.auth import jwt_required_dependency as jwt_required
 
 router = APIRouter(prefix="/cdn", tags=["CDN Optimization"])

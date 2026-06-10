@@ -1,0 +1,27 @@
+"""
+媒体API聚合路由器 - V2统一入口
+包装 V1 media 包（13 个子路由），后续逐步迁移为原生 V2 实现
+"""
+from fastapi import APIRouter
+
+_router = None
+
+
+def _build_router():
+    global _router
+    if _router is not None:
+        return _router
+
+    router = APIRouter(tags=["media"])
+
+    from src.api.v2.media_v1pack import router as media_router
+    router.include_router(media_router)
+
+    _router = router
+    return _router
+
+
+def __getattr__(name):
+    if name == "router":
+        return _build_router()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
