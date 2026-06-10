@@ -163,8 +163,8 @@ async function request<T = any>(
 
     const text = await res.text();
     try { return JSON.parse(text); } catch { return {success: false, error: text}; }
-  } catch (e: any) {
-    return {success: false, error: e.message || '网络异常'};
+  } catch (e: unknown) {
+    return {success: false, error: (e as Error).message || '网络异常'};
   }
 }
 

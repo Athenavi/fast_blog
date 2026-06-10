@@ -88,8 +88,8 @@ export default function InstallPage() {
                 setMigrationStatus({success: false, message: r.error || '迁移失败'});
                 return false;
             }
-        } catch (e: any) {
-            setErr('迁移过程出错: ' + (e.message || '未知错误'));
+        } catch (e: unknown) {
+            setErr('迁移过程出错: ' + ((e as Error).message || '未知错误'));
             setMigrationStatus({success: false, message: '迁移过程出错'});
             return false;
         } finally {
@@ -121,8 +121,8 @@ export default function InstallPage() {
 
       if (r.success) window.location.href = '/login';
       else setErr(r.error||'安装失败');
-    } catch (e: any) {
-        setErr('安装失败: ' + (e.message || '未知错误'));
+    } catch (e: unknown) {
+        setErr('安装失败: ' + ((e as Error).message || '未知错误'));
     } finally {
         setBusy(false);
     }

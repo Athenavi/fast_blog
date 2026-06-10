@@ -104,7 +104,7 @@ const MediaPage: React.FC = () => {
       const res = await apiClient.get('/media/tags');
       if (res.success && res.data) {
         const d = res.data as any;
-        setAllTags((d.tags || []).map((t) => ({id: t.name, name: t.name, count: t.count})));
+        setAllTags((d.tags || []).map((t: {name: string; count: number}) => ({id: t.name, name: t.name, count: t.count})));
       }
     } catch {}
   }, []);
@@ -114,7 +114,7 @@ const MediaPage: React.FC = () => {
       const res = await apiClient.get('/media/categories');
       if (res.success && res.data) {
         const d = res.data as any;
-        setAllCategories((d.categories || []).map((c) => ({id: c.name, name: c.name, count: c.count})));
+        setAllCategories((d.categories || []).map((c: {name: string; count: number}) => ({id: c.name, name: c.name, count: c.count})));
       }
     } catch {}
   }, []);
