@@ -4,6 +4,7 @@ import React, {useEffect, useRef, useState} from 'react';
 import {Controller, FormProvider, useForm} from 'react-hook-form';
 import {zodResolver} from '@hookform/resolvers/zod';
 import {apiClient} from '@/lib/api/base-client';
+import {AUTH, USERS, SECURITY} from '@/lib/api/api-paths';
 import {getCookie, setCookie} from '@/lib/auth-utils';
 import {type LoginFormData, loginSchema, type TwoFactorFormData, twoFactorSchema} from '@/lib/schemas';
 import {useTranslation} from '@/lib/i18n';
@@ -73,7 +74,7 @@ export default function LoginPage() {
         const accessToken = getCookie('access_token');
         if (accessToken) {
           // 有 access_token，验证是否有效
-          const r = await apiClient.get('/users/me');
+          const r = await apiClient.get(USERS.ME);
           if (r.success && r.data) {
             window.location.href = new URLSearchParams(window.location.search).get('next') || '/profile';
             return;
@@ -82,13 +83,13 @@ export default function LoginPage() {
         // access_token 不存在或已失效，尝试用 refresh_token 刷新
         const refreshToken = getCookie('refresh_token');
         if (refreshToken) {
-          const refreshResult = await apiClient.post('/auth/token/refresh', {refresh: refreshToken});
+          const refreshResult = await apiClient.post(AUTH.REFRESH_TOKEN, {refresh: refreshToken});
           if (refreshResult.success && refreshResult.data) {
             const d = refreshResult.data as any;
             if (d.access_token) setCookie('access_token', d.access_token, 3600);
             if (d.refresh_token) setCookie('refresh_token', d.refresh_token, 604800);
             // 刷新成功，重新验证用户
-            const r2 = await apiClient.get('/users/me');
+            const r2 = await apiClient.get(USERS.ME);
             if (r2.success && r2.data) {
               window.location.href = new URLSearchParams(window.location.search).get('next') || '/profile';
               return;
@@ -156,7 +157,7 @@ export default function LoginPage() {
   const generateQR = async () => {
     setErr(''); setQrStatus('loading'); setQrImg(''); setQrToken(''); cancelRef.current = false;
     try {
-      const r = await apiClient.get('/auth/qr/generate');
+      const r = await apiClient.get(AUTH.QR_GENERATE);
       if (!r.success || !r.data) {
         setErr(r.error || t('login.qrGenerateFailed'));
         setQrStatus('idle');
@@ -195,7 +196,7 @@ export default function LoginPage() {
     pollRef.current = setTimeout(async () => {
       if (cancelRef.current) return;
       try {
-        const r = await apiClient.get(`/auth/qr/status`, {token, 'no-cache': '1'});
+        const r = await apiClient.get(AUTH.QR_STATUS, {token, 'no-cache': '1'});
         const data = r.success && r.data ? r.data : {status: 'pending'};
         const st = data.status;
         if (st === 'confirmed' || st === 'success') {
@@ -203,7 +204,7 @@ export default function LoginPage() {
           setQrStatus('success');
           const refreshToken = data.refresh_token;
           if (refreshToken) setCookie('refresh_token', refreshToken, 604800);
-          const accessR = await apiClient.post('/auth/token/refresh', {refresh: refreshToken});
+          const accessR = await apiClient.post(AUTH.REFRESH_TOKEN, {refresh: refreshToken});
           if (accessR.success && accessR.data) {
             setCookie('access_token', (accessR.data as any).access_token || (accessR.data as any).access || '', 3600);
             window.location.href = next();
@@ -232,7 +233,7 @@ export default function LoginPage() {
     setBusy(true);
     setErr('');
     try {
-      const r = await apiClient.postForm('/auth/login', {
+      const r = await apiClient.postForm(AUTH.LOGIN, {
         username: data.username,
         password: data.password,
         remember_me: data.remember
@@ -258,7 +259,7 @@ export default function LoginPage() {
     if (!fa) return;
     setBusy(true); setErr('');
     try {
-      const r = await apiClient.post('/security/2fa/verify-login', {user_id: fa.userId, token: data.code});
+      const r = await apiClient.post(SECURITY.TWO_FA_VERIFY_LOGIN, {user_id: fa.userId, token: data.code});
       if (r.success && r.data) {
         const d = r.data as any; if (d.access_token) setCookie('access_token', d.access_token, 3600);
         if (d.refresh_token) setCookie('refresh_token', d.refresh_token, 604800);

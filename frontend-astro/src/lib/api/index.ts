@@ -1,6 +1,7 @@
 ﻿import {apiClient} from "@/lib/api/base-client";
 
 import {getConfig} from '@/lib/config';
+import {MEDIA} from '@/lib/api/api-paths';
 
 export {apiClient} from "@/lib/api/base-client";
 export {ArticleService} from './article-service';
@@ -33,10 +34,10 @@ export {CategoryService} from './category-service';
 
 export const MediaService = {
     async getMediaFiles(params: Record<string, any> = {}) {
-        return apiClient.get('/media/files', params);
+        return apiClient.get(MEDIA.LIST, params);
     },
     async deleteMediaFile(ids: number[]) {
-        return apiClient.post('/media/batch-delete', {media_ids: ids});
+        return apiClient.post(MEDIA.BATCH_DELETE, {media_ids: ids});
     },
     async uploadMediaFileWithProgress(file: File, onProgress?: (pct: number) => void): Promise<any> {
         const form = new FormData();

@@ -3,6 +3,7 @@
  */
 
 import {apiClient} from '../api/base-client';
+import {CATEGORIES} from '../api/api-paths';
 import type {Category, ApiResponse} from '../api/base-types';
 
 export interface PaginatedResponse<T> {
@@ -22,20 +23,20 @@ export class CategoryService {
      * 获取分类列表
      */
     static async getCategories(params?: { page?: number; per_page?: number }) {
-        return apiClient.get<ApiResponse<PaginatedResponse<Category>>>('/api/v2/categories', params);
+        return apiClient.get<ApiResponse<PaginatedResponse<Category>>>(CATEGORIES.LIST, params);
     }
 
     /**
      * 获取分类详情
      */
     static async getCategoryByName(name: string) {
-        return apiClient.get<ApiResponse<Category>>(`/api/v2/categories/name/${encodeURIComponent(name)}`);
+        return apiClient.get<ApiResponse<Category>>(CATEGORIES.BY_NAME(encodeURIComponent(name)));
     }
 
     /**
      * 获取热门分类
      */
     static async getPopularCategories(limit = 10) {
-        return apiClient.get<ApiResponse<Category[]>>('/api/v2/categories/popular', {limit});
+        return apiClient.get<ApiResponse<Category[]>>(CATEGORIES.POPULAR, {limit});
     }
 }
