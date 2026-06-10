@@ -191,6 +191,23 @@ class MCPServer:
             handler=self._delete_comment_tool
         )
 
+        # 分析工具
+        self.register_tool(
+            name="get_analytics",
+            description="获取博客分析概况（文章数/用户数/评论数/浏览量等）",
+            parameters={},
+            handler=self._get_analytics_tool
+        )
+        self.register_tool(
+            name="get_trending_articles",
+            description="获取热门文章排行",
+            parameters={
+                "limit": {"type": "integer", "description": "返回数量（默认 10，最多 30）", "required": False},
+                "days": {"type": "integer", "description": "统计天数（默认 7）", "required": False},
+            },
+            handler=self._get_trending_articles_tool
+        )
+
         # 统计工具
         self.register_tool(
             name="get_system_stats",
@@ -810,6 +827,87 @@ class MCPServer:
                 await db.rollback()
                 logger.exception(f"删除评论失败: {e}")
                 raise ValueError(f"删除评论失败: {str(e)}")
+
+    # ==================== 分析工具 ====================
+
+    async def _get_analytics_tool(self, arguments: Dict) -> Dict:
+        """获取博客分析概况"""
+        async with get_async_session_context() as db:
+            try:
+                # 文章统计
+                published_q = select(func.count(Article.id)).where(Article.status == 1)
+                published = (await db.execute(published_q)).scalar() or 0
+                draft_q = select(func.count(Article.id)).where(Article.status == 0)
+                draft = (await db.execute(draft_q)).scalar() or 0
+
+                # 用户统计
+                user_q = select(func.count(User.id))
+                users = (await db.execute(user_q)).scalar() or 0
+
+                # 评论统计
+                comment_q = select(func.count(Comment.id))
+                total_comments = (await db.execute(comment_q)).scalar() or 0
+                pending_q = select(func.count(Comment.id)).where(Comment.is_approved == False)
+                pending_comments = (await db.execute(pending_q)).scalar() or 0
+
+                # 分类统计
+                cat_q = select(func.count(Category.id))
+                categories = (await db.execute(cat_q)).scalar() or 0
+
+                # 总浏览量
+                views_q = select(func.coalesce(func.sum(Article.views), 0)).where(Article.status == 1)
+                total_views = (await db.execute(views_q)).scalar() or 0
+
+                return {
+                    "success": True,
+                    "data": {
+                        "articles": {"published": published, "draft": draft, "total": published + draft},
+                        "users": users,
+                        "comments": {"total": total_comments, "pending_approval": pending_comments},
+                        "categories": categories,
+                        "total_views": total_views,
+                    }
+                }
+            except Exception as e:
+                logger.exception(f"获取分析数据失败")
+                return {"success": False, "error": f"获取分析数据失败: {str(e)}"}
+
+    async def _get_trending_articles_tool(self, arguments: Dict) -> Dict:
+        """获取热门文章排行"""
+        limit = min(arguments.get("limit", 10), 30)
+        days = arguments.get("days", 7)
+
+        async with get_async_session_context() as db:
+            try:
+                from datetime import timedelta
+                cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+
+                query = (
+                    select(Article)
+                    .where(Article.status == 1, Article.created_at >= cutoff)
+                    .order_by(Article.views.desc())
+                    .limit(limit)
+                )
+                result = await db.execute(query)
+                articles = result.scalars().all()
+
+                return {
+                    "success": True,
+                    "articles": [
+                        {
+                            "id": a.id,
+                            "title": a.title,
+                            "slug": a.slug or "",
+                            "views": a.views or 0,
+                            "likes": a.likes or 0,
+                            "created_at": a.created_at.isoformat() if a.created_at else "",
+                        }
+                        for a in articles
+                    ],
+                }
+            except Exception as e:
+                logger.exception(f"获取热门文章失败")
+                return {"success": False, "error": f"获取热门文章失败: {str(e)}"}
 
     async def _get_system_stats_tool(self, arguments: Dict) -> Dict:
         """获取系统统计信息"""
