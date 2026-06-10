@@ -12,7 +12,9 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select, delete, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models.security import FieldPermission, UserSession, EmailSubscription
+from shared.models.security import FieldPermission
+from shared.models.user import UserSession
+from shared.models.notification import EmailSubscription
 from src.api.v2._base import ApiResponse
 from src.api.v2._helpers import ok, fail
 from src.auth.auth_deps import admin_required
