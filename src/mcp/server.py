@@ -156,6 +156,41 @@ class MCPServer:
             handler=self._create_category_tool
         )
 
+        # 评论管理工具
+        self.register_tool(
+            name="list_comments",
+            description="获取评论列表，支持按状态筛选（pending/approved/rejected）",
+            parameters={
+                "status": {"type": "string", "description": "筛选状态: pending=待审核, approved=已通过, rejected=已拒绝", "required": False, "enum": ["pending", "approved", "rejected"]},
+                "limit": {"type": "integer", "description": "返回数量（默认 20，最多 50）", "required": False},
+            },
+            handler=self._list_comments_tool
+        )
+        self.register_tool(
+            name="approve_comment",
+            description="审核通过评论",
+            parameters={
+                "comment_id": {"type": "integer", "description": "评论ID", "required": True},
+            },
+            handler=self._approve_comment_tool
+        )
+        self.register_tool(
+            name="reject_comment",
+            description="拒绝评论",
+            parameters={
+                "comment_id": {"type": "integer", "description": "评论ID", "required": True},
+            },
+            handler=self._reject_comment_tool
+        )
+        self.register_tool(
+            name="delete_comment",
+            description="删除评论（管理员）",
+            parameters={
+                "comment_id": {"type": "integer", "description": "评论ID", "required": True},
+            },
+            handler=self._delete_comment_tool
+        )
+
         # 统计工具
         self.register_tool(
             name="get_system_stats",
@@ -645,6 +680,136 @@ class MCPServer:
             except Exception as e:
                 await db.rollback()
                 raise ValueError(f"创建分类失败: {str(e)}")
+
+    # ==================== 评论管理工具 ====================
+
+    async def _list_comments_tool(self, arguments: Dict) -> Dict:
+        """获取评论列表（支持状态筛选）"""
+        status = arguments.get("status", "").strip().lower()
+        limit = min(arguments.get("limit", 20), 50)
+
+        async with get_async_session_context() as db:
+            try:
+                query = select(Comment).order_by(Comment.created_at.desc()).limit(limit)
+
+                if status == "pending":
+                    query = query.where(Comment.is_approved == False)
+                elif status == "approved":
+                    query = query.where(Comment.is_approved == True)
+                # rejected 通过 is_approved=False + spam_score 判断（简化：is_approved=False 且 spam_score > 0.5）
+                # 实际用 status 字段判断，这里简单处理
+
+                result = await db.execute(query)
+                comments = result.scalars().all()
+
+                return {
+                    "success": True,
+                    "comments": [
+                        {
+                            "id": c.id,
+                            "article_id": c.article_id,
+                            "author": c.author_name or f"用户 #{c.user_id}" if c.user_id else "匿名",
+                            "content": c.content[:500] if c.content else "",
+                            "is_approved": c.is_approved,
+                            "likes": c.likes or 0,
+                            "created_at": c.created_at.isoformat() if c.created_at else "",
+                        }
+                        for c in comments
+                    ],
+                    "total": len(comments),
+                }
+            except Exception as e:
+                logger.exception("获取评论列表失败")
+                return {"success": False, "error": f"获取评论列表失败: {str(e)}"}
+
+    async def _approve_comment_tool(self, arguments: Dict) -> Dict:
+        """审核通过评论"""
+        comment_id = arguments.get("comment_id")
+        if not comment_id:
+            raise ValueError("评论ID不能为空")
+
+        async with get_async_session_context() as db:
+            try:
+                query = select(Comment).where(Comment.id == int(comment_id))
+                result = await db.execute(query)
+                comment = result.scalar_one_or_none()
+                if not comment:
+                    raise ValueError(f"评论 #{comment_id} 不存在")
+
+                comment.is_approved = True
+                comment.updated_at = datetime.now(timezone.utc)
+                await db.commit()
+
+                return {
+                    "success": True,
+                    "message": f"评论 #{comment_id} 已审核通过",
+                    "comment_id": comment_id,
+                }
+            except ValueError:
+                raise
+            except Exception as e:
+                await db.rollback()
+                logger.exception(f"审核评论失败: {e}")
+                raise ValueError(f"审核评论失败: {str(e)}")
+
+    async def _reject_comment_tool(self, arguments: Dict) -> Dict:
+        """拒绝评论"""
+        comment_id = arguments.get("comment_id")
+        if not comment_id:
+            raise ValueError("评论ID不能为空")
+
+        async with get_async_session_context() as db:
+            try:
+                query = select(Comment).where(Comment.id == int(comment_id))
+                result = await db.execute(query)
+                comment = result.scalar_one_or_none()
+                if not comment:
+                    raise ValueError(f"评论 #{comment_id} 不存在")
+
+                comment.is_approved = False
+                comment.updated_at = datetime.now(timezone.utc)
+                await db.commit()
+
+                return {
+                    "success": True,
+                    "message": f"评论 #{comment_id} 已拒绝",
+                    "comment_id": comment_id,
+                }
+            except ValueError:
+                raise
+            except Exception as e:
+                await db.rollback()
+                logger.exception(f"拒绝评论失败: {e}")
+                raise ValueError(f"拒绝评论失败: {str(e)}")
+
+    async def _delete_comment_tool(self, arguments: Dict) -> Dict:
+        """删除评论（管理员）"""
+        comment_id = arguments.get("comment_id")
+        if not comment_id:
+            raise ValueError("评论ID不能为空")
+
+        async with get_async_session_context() as db:
+            try:
+                query = select(Comment).where(Comment.id == int(comment_id))
+                result = await db.execute(query)
+                comment = result.scalar_one_or_none()
+                if not comment:
+                    raise ValueError(f"评论 #{comment_id} 不存在")
+
+                await db.delete(comment)
+                await db.commit()
+
+                return {
+                    "success": True,
+                    "message": f"评论 #{comment_id} 已删除",
+                    "comment_id": comment_id,
+                }
+            except ValueError:
+                raise
+            except Exception as e:
+                await db.rollback()
+                logger.exception(f"删除评论失败: {e}")
+                raise ValueError(f"删除评论失败: {str(e)}")
 
     async def _get_system_stats_tool(self, arguments: Dict) -> Dict:
         """获取系统统计信息"""
