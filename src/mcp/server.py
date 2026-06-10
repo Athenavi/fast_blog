@@ -26,6 +26,7 @@ from shared.models.article import Article, ArticleContent
 from shared.models.category import Category
 from shared.models.user import User
 from shared.models.media import Media
+from shared.models.comment import Comment
 from shared.models.system import SystemSettings
 from src.utils.database.main import get_async_session_context
 
