@@ -1,6 +1,7 @@
 // API client for frontend
 
 import {getConfig} from '@/lib/config';
+import {AUTH} from '@/lib/api/api-paths';
 import type {ApiResponse} from '@/lib/api/base-types';
 
 // ─── Cookie helpers ──────────────────────────────
@@ -44,7 +45,7 @@ async function doRefreshToken(): Promise<boolean> {
   if (!refreshToken) return false;
   try {
     const base = getConfig().API_BASE_URL || '';
-    const url = `${base}/api/v2/auth/token/refresh`;
+    const url = `${base}${AUTH.REFRESH_TOKEN_FULL}`;
     const res = await fetch(url, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

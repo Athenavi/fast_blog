@@ -7,6 +7,7 @@ import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {useDebounce} from '@/lib/hooks';
 import {apiClient} from '@/lib/api/base-client';
+import {DASHBOARD, ARTICLES} from '@/lib/api/api-paths';
 import {getFullMediaUrl} from '@/lib/utils';
 import {useConfirm} from '@/components/ui/confirm-provider';
 import {
@@ -173,7 +174,7 @@ function ArticlesInner() {
       const params: Record<string, any> = {page, per_page: 15};
       if (status) params.status = status;
       if (debouncedSearch) params.search = debouncedSearch;
-      const res = await apiClient.get('/api/v2/dashboard/blog-management/articles', params);
+      const res = await apiClient.get(DASHBOARD.BLOG_MGMT_ARTICLES, params);
       if (!res.success || !res.data) return {articles: [], total: 0};
       const articles = Array.isArray(res.data) ? res.data : [];
       const pagination = (res as any).pagination || {};
@@ -183,7 +184,7 @@ function ArticlesInner() {
   });
 
   const delMut = useMutation({
-    mutationFn: (id: number) => apiClient.delete(`/api/v2/articles/${id}`),
+    mutationFn: (id: number) => apiClient.delete(ARTICLES.DELETE(id)),
     onSuccess: () => qc.invalidateQueries({queryKey: ['admin-articles']}),
   });
 

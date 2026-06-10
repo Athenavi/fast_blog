@@ -7,6 +7,7 @@ import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {StatCard} from '@/components/admin/shared-ui';
 import {apiClient} from '@/lib/api/base-client';
+import {DASHBOARD, SYSTEM} from '@/lib/api/api-paths';
 import {useDebounce} from '@/lib/hooks';
 import {getFullMediaUrl, formatBytes} from '@/lib/utils';
 import {
@@ -583,7 +584,7 @@ function FilesTab() {
       if (sortOrder) params.order = sortOrder;
       if (debouncedSearch) params.q = debouncedSearch;
 
-      const res = await apiClient.get('/api/v2/dashboard/media-management/files', params);
+      const res = await apiClient.get(DASHBOARD.MEDIA_MGMT_FILES, params);
       if (!res.success || !res.data) return {files: [] as MediaFileItem[], total: 0, totalPages: 1};
 
       const files = (Array.isArray(res.data.files) ? res.data.files :
@@ -855,7 +856,7 @@ function DownloadTasksTab() {
     queryFn: async () => {
       const params: Record<string, string | number> = {page, per_page: 20};
       if (statusFilter) params.status = statusFilter;
-      const res = await apiClient.get('/api/v2/system/transfer/tasks', params);
+      const res = await apiClient.get(SYSTEM.TRANSFER_TASKS, params);
       return {
         tasks: (res.data || []) as DownloadTaskItem[],
         total: res.pagination?.total || 0,
@@ -997,7 +998,7 @@ function UploadTasksTab() {
       const params: Record<string, string | number> = {page, per_page: 20};
       if (statusFilter) params.status = statusFilter;
       try {
-        const res = await apiClient.get('/api/v2/dashboard/media-management/upload-tasks', params);
+        const res = await apiClient.get(DASHBOARD.MEDIA_MGMT_UPLOAD_TASKS, params);
         return {
           tasks: (res.data || []) as {
             id: string;

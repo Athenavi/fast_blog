@@ -7,6 +7,7 @@ import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {StatCard} from '@/components/admin/shared-ui';
 import {apiClient} from '@/lib/api/base-client';
+import {CATEGORIES} from '@/lib/api/api-paths';
 import {
   FolderTree,
   Plus,
@@ -250,8 +251,8 @@ const CategoryForm: React.FC<{
   const saveMut = useMutation({
     mutationFn: async () => {
       const body: any = {name, slug: slug || undefined, description: description || undefined};
-      if (editing) return apiClient.put(`/api/v2/categories/${editing.id}`, body);
-      return apiClient.post('/api/v2/categories', body);
+      if (editing) return apiClient.put(CATEGORIES.UPDATE(editing.id), body);
+      return apiClient.post(CATEGORIES.CREATE, body);
     },
     onSuccess: () => {
       qc.invalidateQueries({queryKey: ['admin-categories']});
@@ -406,7 +407,7 @@ function CategoriesInner() {
   const {data: cats, isLoading} = useQuery({
     queryKey: ['admin-categories'],
     queryFn: async () => {
-      const res = await apiClient.get('/api/v2/categories');
+      const res = await apiClient.get(CATEGORIES.LIST);
       if (!res.success || !res.data) return [];
       const categoriesData = (res.data as any).categories || [];
       return categoriesData.map((item: any) => ({
@@ -417,7 +418,7 @@ function CategoriesInner() {
   });
 
   const delMut = useMutation({
-    mutationFn: (id: number) => apiClient.delete(`/api/v2/categories/${id}`),
+    mutationFn: (id: number) => apiClient.delete(CATEGORIES.DELETE(id)),
     onSuccess: () => {
       qc.invalidateQueries({queryKey: ['admin-categories']});
       setDeleteTarget(null);

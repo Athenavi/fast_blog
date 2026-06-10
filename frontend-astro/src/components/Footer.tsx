@@ -14,6 +14,7 @@ import React, {useEffect, useState} from 'react';
 import {motion, AnimatePresence} from 'framer-motion';
 import {Rss, GitBranch, Share2, Mail, ArrowUp, Heart, BookOpen, Shield, Globe} from 'lucide-react';
 import LanguageSwitcher from './LanguageSwitcher';
+import {FEED} from '@/lib/api/api-paths';
 
 const Footer: React.FC = () => {
     const [showTop, setShowTop] = useState(false);
@@ -54,8 +55,8 @@ const Footer: React.FC = () => {
             title: '资源',
             links: [
                 {name: '关于我们', href: '/about'},
-                {name: 'RSS 订阅', href: '/api/v2/feed/rss', external: true},
-                {name: 'Atom 订阅', href: '/api/v2/feed/atom', external: true},
+                {name: 'RSS 订阅', href: FEED.RSS, external: true},
+                {name: 'Atom 订阅', href: FEED.ATOM, external: true},
                 {name: '版本日志', href: '/version'},
             ]
         },
@@ -73,7 +74,7 @@ const Footer: React.FC = () => {
     const socialLinks = [
         {name: 'GitHub', href: '#', icon: GitBranch},
         {name: 'Twitter', href: '#', icon: Share2},
-        {name: 'RSS', href: '/api/v2/feed/rss', icon: Rss, external: true},
+        {name: 'RSS', href: FEED.RSS, icon: Rss, external: true},
     ];
 
     return (

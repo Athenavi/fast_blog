@@ -5,6 +5,7 @@ import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
+import {SECURITY} from '@/lib/api/api-paths';
 import {apiClient} from '@/lib/api/base-client';
 import {
   ChevronLeft,
@@ -72,7 +73,7 @@ function SensitiveWordsInner() {
       if (keyword) params.keyword = keyword;
       if (levelFilter !== '') params.level = levelFilter;
       if (actionFilter) params.action = actionFilter;
-      const res = await apiClient.get('/api/v2/security/sensitive-words/', params);
+      const res = await apiClient.get(SECURITY.SENSITIVE_WORDS, params);
       if (res.success && res.data?.items) return res.data;
       return {items: [], total: 0, page: 1, total_pages: 1};
     },
@@ -83,7 +84,7 @@ function SensitiveWordsInner() {
     staleTime: 0,
     gcTime: 0,
     queryFn: async () => {
-      const res = await apiClient.get('/api/v2/security/sensitive-words/statistics');
+      const res = await apiClient.get(SECURITY.SENSITIVE_WORDS_STATS);
       return res.success && res.data ? res.data : {};
     },
   });
@@ -103,10 +104,10 @@ function SensitiveWordsInner() {
         category: formCategory || null,
       };
       if (editing) {
-        const res = await apiClient.put(`/api/v2/security/sensitive-words/${editing.id}`, body);
+        const res = await apiClient.put(SECURITY.SENSITIVE_WORDS_DETAIL(editing.id), body);
         return res;
       } else {
-        const res = await apiClient.post('/api/v2/security/sensitive-words/', body);
+        const res = await apiClient.post(SECURITY.SENSITIVE_WORDS, body);
         return res;
       }
     },
@@ -118,12 +119,12 @@ function SensitiveWordsInner() {
   });
 
   const delMut = useMutation({
-    mutationFn: (id: number) => apiClient.delete(`/api/v2/security/sensitive-words/${id}`),
+    mutationFn: (id: number) => apiClient.delete(SECURITY.SENSITIVE_WORDS_DETAIL(id)),
     onSuccess: () => qc.invalidateQueries({queryKey: ['admin-sensitive-words']}),
   });
 
   const refreshMut = useMutation({
-    mutationFn: () => apiClient.post('/api/v2/security/sensitive-words/refresh-cache'),
+    mutationFn: () => apiClient.post(SECURITY.SENSITIVE_WORDS_REFRESH_CACHE),
     onSuccess: () => toast.success('缓存已刷新'),
   });
 
@@ -137,7 +138,7 @@ function SensitiveWordsInner() {
         replacement: null,
         category: null,
       }));
-      const res = await apiClient.post('/api/v2/security/sensitive-words/batch-import', {items});
+      const res = await apiClient.post(SECURITY.SENSITIVE_WORDS_BATCH_IMPORT, {items});
       return res;
     },
     onSuccess: () => {
