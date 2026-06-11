@@ -87,7 +87,12 @@ async def call_llm(
 # ─── MCP tool execution ────────────────────────────────────────────
 
 async def execute_mcp_tool(tool_name: str, arguments: Dict) -> str:
-    """Execute an MCP tool and return a readable result string."""
+    """Execute an MCP tool and return a **Markdown-formatted** result string.
+    
+    The output is designed to be read by both the LLM (in follow-up rounds)
+    and the end-user (when tool → assistant conversion happens). Using Markdown
+    ensures consistent rendering across both consumption paths.
+    """
     req = {
         "method": "tools/call",
         "params": {"name": tool_name, "arguments": arguments},
@@ -95,15 +100,46 @@ async def execute_mcp_tool(tool_name: str, arguments: Dict) -> str:
     }
     resp = await mcp_server.handle_request(req)
     if "error" in resp:
-        return json.dumps({"error": resp["error"]["message"]}, ensure_ascii=False)
+        return f"> ❌ **{tool_name}** 执行失败：{resp['error']['message']}"
 
     content = resp.get("result", {}).get("content", [])
     text = content[0].get("text", "{}") if content else "{}"
+
     try:
         data = json.loads(text)
-        return json.dumps(data, ensure_ascii=False, indent=2)
     except json.JSONDecodeError:
         return text
+
+    # ── Format as structured Markdown ──
+    lines = [f"> ✅ **{tool_name}** 执行成功"]
+
+    if isinstance(data, dict):
+        # success/error wrapper
+        inner = data.get("data", data)
+
+        if isinstance(inner, dict):
+            for k, v in inner.items():
+                if isinstance(v, (list, dict)):
+                    v_str = json.dumps(v, ensure_ascii=False, indent=2)
+                    lines.append(f">   - **{k}**:\n>     ```json\n>     {v_str}\n>     ```")
+                else:
+                    lines.append(f">   - **{k}**: {v}")
+        elif isinstance(inner, list):
+            if len(inner) > 0 and isinstance(inner[0], dict):
+                lines.append(f">   - 共 **{len(inner)}** 条记录")
+            else:
+                lines.append(f">   - 结果：{json.dumps(inner, ensure_ascii=False)}")
+        else:
+            lines.append(f">   - 结果：{inner}")
+
+        if data.get("message"):
+            lines.append(f">\n> 📝 {data['message']}")
+    elif isinstance(data, list):
+        lines.append(f">   - 共 **{len(data)}** 条记录")
+
+    result = "\n".join(lines)
+    logger.debug(f"Tool result [{tool_name}]: {result[:200]}")
+    return result
 
 
 # ─── Tool definitions (OpenAI function-calling format) ─────────────
