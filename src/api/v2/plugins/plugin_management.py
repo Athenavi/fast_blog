@@ -238,10 +238,18 @@ async def execute_plugin_action(
 
     method = getattr(plugin, action)
 
-    if asyncio.iscoroutinefunction(method):
-        result = await method(**params)
-    else:
-        result = method(**params)
+    try:
+        if asyncio.iscoroutinefunction(method):
+            result = await method(**params)
+        else:
+            result = method(**params)
+    except TypeError:
+        # 某些插件方法接受单个 dict 参数而非 **kwargs
+        # 尝试将 params 作为单个位置参数传递
+        if asyncio.iscoroutinefunction(method):
+            result = await method(params)
+        else:
+            result = method(params)
 
     return ok(data=result)
 

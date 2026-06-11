@@ -133,14 +133,13 @@ class ArticleViewStatsService:
         # RedisCacheWrapper 具有 _client 属性
         # SimpleCache 具有 _cache 属性
         if hasattr(cache, '_client'):
-            # 使用 Redis 的 scan_iter 方法
+            # Redis 缓存：同步 scan_iter（scan_iter 是生成器，非异步）
             try:
-                async for key in cache._client.scan_iter(match=pattern):
-                    keys.append(key)
-            except Exception:
-                # fallback: 同步 scan
                 for key in cache._client.scan_iter(match=pattern):
                     keys.append(key)
+            except Exception:
+                # Redis 不可用时优雅降级（如未启动、连接超时）
+                keys = []
         elif hasattr(cache, '_cache'):
             # 对于 SimpleCache，遍历所有键来匹配模式
             import re
