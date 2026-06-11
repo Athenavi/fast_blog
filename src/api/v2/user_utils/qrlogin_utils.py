@@ -40,9 +40,15 @@ def qr_login(request: Request, sys_version: str, global_encoding: str, domain: s
     user_agent = request.headers.get("User-Agent", "Unknown")
 
     if not domain.startswith(("http://", "https://")):
-        host = request.headers.get("host", "localhost:9421")
-        scheme = request.url.scheme if hasattr(request.url, "scheme") else "http"
-        full_domain = f"{scheme}://{host}/"
+        # 优先使用 Origin 请求头（前端页面发出的请求会自动携带）
+        origin = request.headers.get("Origin") or request.headers.get("Referer") or ""
+        if origin and origin.startswith(("http://", "https://")):
+            full_domain = origin.rstrip("/") + "/"
+        else:
+            # 回退到 Host 头（可能返回后端地址）
+            host = request.headers.get("host", "localhost:4321")
+            scheme = request.url.scheme if hasattr(request.url, "scheme") else "http"
+            full_domain = f"{scheme}://{host}/"
     else:
         full_domain = domain
 
