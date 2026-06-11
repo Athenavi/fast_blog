@@ -57,6 +57,14 @@ class S3Storage:
         with open(full_path, "rb") as f:
             return f.read()
 
+    def read_file(self, key: str) -> Optional[bytes]:
+        """同步读取文件内容（兼容其他路由的同步调用）"""
+        full_path = self.base_path / key
+        if not full_path.exists():
+            return None
+        with open(full_path, "rb") as f:
+            return f.read()
+
 
 # 全局实例
 s3_storage = S3Storage()
