@@ -17,6 +17,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from src.mcp.agent import LLMConfig, run_agent, stream_agent
+from src.mcp.agent.format import format_tool_result
 from src.mcp._context import set_user_ctx, UserCtx
 from src.mcp.server import mcp_server
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
@@ -81,25 +82,12 @@ def _to_dicts(messages: List[ChatMessage]) -> List[Dict]:
         if m.role == "tool" and not last_had_tool_calls:
             try:
                 parsed = json.loads(m.content) if m.content else {}
-                name = parsed.get("name", m.name or "tool")
-                result_data = parsed.get("result", "")
-                status = "✅" if parsed.get("done") else "❌"
-                summary = f"> {status} **{name}** 执行成功\n"
-                if isinstance(result_data, dict):
-                    for k, v in result_data.items():
-                        if k in ("success",): continue
-                        if isinstance(v, (list, dict)):
-                            v_str = json.dumps(v, ensure_ascii=False, indent=2)
-                            summary += f">   - **{k}**:\n>     ```json\n>     {v_str}\n>     ```\n"
-                        else:
-                            summary += f">   - **{k}**: {v}\n"
-                elif isinstance(result_data, list):
-                    summary += f">   - 共 **{len(result_data)}** 条记录\n"
-                else:
-                    summary += f">   - 结果：{result_data}\n"
-                if isinstance(result_data, dict) and result_data.get("message"):
-                    summary += f">\n> 📝 {result_data['message']}\n"
-            except (json.JSONDecodeError, TypeError):
+                tool_name = m.name or parsed.get("name", "tool")
+                raw_result = parsed.get("result", "")
+                raw_text = json.dumps(raw_result, ensure_ascii=False) if raw_result else "{}"
+                success = parsed.get("done", False)
+                summary = format_tool_result(tool_name, raw_text, success=success)
+            except (json.JSONDecodeError, TypeError, Exception):
                 summary = m.content or "(空工具结果)"
             result.append({"role": "assistant", "content": summary})
             last_had_tool_calls = False

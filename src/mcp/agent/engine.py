@@ -14,6 +14,7 @@ from typing import Any, AsyncGenerator, Dict, List, Optional, Tuple
 import httpx
 
 from src.mcp.server import mcp_server
+from src.mcp.agent.format import format_tool_result
 
 logger = logging.getLogger("mcp.agent")
 
@@ -87,12 +88,7 @@ async def call_llm(
 # ─── MCP tool execution ────────────────────────────────────────────
 
 async def execute_mcp_tool(tool_name: str, arguments: Dict) -> str:
-    """Execute an MCP tool and return a **Markdown-formatted** result string.
-    
-    The output is designed to be read by both the LLM (in follow-up rounds)
-    and the end-user (when tool → assistant conversion happens). Using Markdown
-    ensures consistent rendering across both consumption paths.
-    """
+    """Execute an MCP tool and return a **Markdown-formatted** result string."""
     req = {
         "method": "tools/call",
         "params": {"name": tool_name, "arguments": arguments},
@@ -100,44 +96,12 @@ async def execute_mcp_tool(tool_name: str, arguments: Dict) -> str:
     }
     resp = await mcp_server.handle_request(req)
     if "error" in resp:
-        return f"> ❌ **{tool_name}** 执行失败：{resp['error']['message']}"
+        return format_tool_result(tool_name, "", success=False, error_msg=resp["error"]["message"])
 
     content = resp.get("result", {}).get("content", [])
     text = content[0].get("text", "{}") if content else "{}"
 
-    try:
-        data = json.loads(text)
-    except json.JSONDecodeError:
-        return text
-
-    # ── Format as structured Markdown ──
-    lines = [f"> ✅ **{tool_name}** 执行成功"]
-
-    if isinstance(data, dict):
-        # success/error wrapper
-        inner = data.get("data", data)
-
-        if isinstance(inner, dict):
-            for k, v in inner.items():
-                if isinstance(v, (list, dict)):
-                    v_str = json.dumps(v, ensure_ascii=False, indent=2)
-                    lines.append(f">   - **{k}**:\n>     ```json\n>     {v_str}\n>     ```")
-                else:
-                    lines.append(f">   - **{k}**: {v}")
-        elif isinstance(inner, list):
-            if len(inner) > 0 and isinstance(inner[0], dict):
-                lines.append(f">   - 共 **{len(inner)}** 条记录")
-            else:
-                lines.append(f">   - 结果：{json.dumps(inner, ensure_ascii=False)}")
-        else:
-            lines.append(f">   - 结果：{inner}")
-
-        if data.get("message"):
-            lines.append(f">\n> 📝 {data['message']}")
-    elif isinstance(data, list):
-        lines.append(f">   - 共 **{len(data)}** 条记录")
-
-    result = "\n".join(lines)
+    result = format_tool_result(tool_name, text)
     logger.debug(f"Tool result [{tool_name}]: {result[:200]}")
     return result
 
@@ -175,31 +139,14 @@ def build_messages(state: AgentState, system_prompt: str) -> List[Dict]:
 
         # ── Tool message without preceding tool_calls → convert to assistant text ──
         if role == "tool" and not last_had_tool_calls:
-            # Try to extract a readable summary from the tool content
-            summary = content or ""
             try:
                 parsed = json.loads(content) if content else {}
-                if isinstance(parsed, dict):
-                    name = parsed.get("name", m.get("name", "tool"))
-                    result = parsed.get("result", "")
-                    status = "✅" if parsed.get("done") else "❌"
-                    lines = [f"> {status} **{name}** 执行成功"]
-                    if isinstance(result, dict):
-                        for k, v in result.items():
-                            if k in ("success",): continue
-                            if isinstance(v, (list, dict)):
-                                v_str = json.dumps(v, ensure_ascii=False, indent=2)
-                                lines.append(f">   - **{k}**:\n>     ```json\n>     {v_str}\n>     ```")
-                            else:
-                                lines.append(f">   - **{k}**: {v}")
-                        if result.get("message"):
-                            lines.append(f">\n> 📝 {result['message']}")
-                    elif isinstance(result, list):
-                        lines.append(f">   - 共 **{len(result)}** 条记录")
-                    else:
-                        lines.append(f">   - 结果：{result}")
-                    summary = "\n".join(lines)
-            except (json.JSONDecodeError, TypeError):
+                tool_name = m.get("name", parsed.get("name", "tool"))
+                raw_result = parsed.get("result", "")
+                raw_text = json.dumps(raw_result, ensure_ascii=False) if raw_result else "{}"
+                success = parsed.get("done", False)
+                summary = format_tool_result(tool_name, raw_text, success=success)
+            except (json.JSONDecodeError, TypeError, Exception):
                 summary = content or "(空工具结果)"
 
             entry: Dict[str, Any] = {
