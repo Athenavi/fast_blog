@@ -112,6 +112,12 @@ export const MEDIA = {
   BATCH_CATEGORIZE: '/media/batch-categorize',
   BATCH_TAGS: '/media/batch-tags',
   SETTINGS_UPLOAD: '/api/v2/media/settings/upload',
+  // VIP 离线下载
+  OFFLINE_DOWNLOAD_LIMITS: '/media/offline-download/limits',
+  OFFLINE_DOWNLOAD_TASKS: '/media/offline-download/tasks',
+  OFFLINE_DOWNLOAD_TASK: (id: number) => `/media/offline-download/tasks/${id}`,
+  OFFLINE_DOWNLOAD_CANCEL: (id: number) => `/media/offline-download/tasks/${id}/cancel`,
+  OFFLINE_DOWNLOAD_RETRY: (id: number) => `/media/offline-download/tasks/${id}/retry`,
 } as const;
 
 // ─── Home 首页 ──────────────────────────────────

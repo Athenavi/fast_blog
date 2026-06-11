@@ -7,6 +7,7 @@ import {UploadArea} from '@/components/pages/media/UploadArea';
 import {StorageStats} from '@/components/pages/media/StorageStats';
 import {useMediaUpload} from '@/components/pages/media/useMediaUpload';
 import {PreviewModal, DeleteConfirm, MoveDialog, CreateFolderDialog} from '@/components/pages/media/MediaDialogs';
+import {OfflineDownloadDialog} from '@/components/pages/media/OfflineDownloadDialog';
 import {FolderTree} from '@/components/pages/media/FolderTree';
 import {MEDIA} from '@/lib/api/api-paths';
 import type {FolderNode} from '@/components/pages/media/FolderTree';
@@ -19,6 +20,7 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
+  CloudDownload,
   FileText,
   Filter,
   FolderClosed,
@@ -88,6 +90,9 @@ const MediaPage: React.FC = () => {
     const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
     const [selectedCategoryId, setSelectedCategoryId] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
+
+  // Offline download dialog
+  const [showOfflineDownload, setShowOfflineDownload] = useState(false);
 
   // Tag editor state (单文件 + 批量)
   const [tagEditorMedia, setTagEditorMedia] = useState<{id: number; tags: string; multiple?: boolean} | null>(null);
@@ -249,6 +254,11 @@ const MediaPage: React.FC = () => {
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold text-gray-900 dark:text-white">媒体库</h1>
           <div className="flex items-center gap-2">
+            <button onClick={()=>setShowOfflineDownload(true)}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium transition-colors shadow-sm">
+              <CloudDownload className="w-4 h-4"/>
+              <span className="hidden sm:inline">离线下载</span>
+            </button>
             <button onClick={()=>setSidebarCollapsed(!sidebarCollapsed)} className="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800">{sidebarCollapsed?<ChevronRight className="w-5 h-5"/>:<ChevronLeft className="w-5 h-5"/>}</button>
             <button onClick={()=>setViewMode('grid')} className={`p-2 rounded-lg ${viewMode==='grid'?'bg-blue-100 text-blue-600':'hover:bg-gray-100 dark:hover:bg-gray-800'}`}><Grid3X3 className="w-5 h-5"/></button>
             <button onClick={()=>setViewMode('list')} className={`p-2 rounded-lg ${viewMode==='list'?'bg-blue-100 text-blue-600':'hover:bg-gray-100 dark:hover:bg-gray-800'}`}><List className="w-5 h-5"/></button>
@@ -468,6 +478,7 @@ const MediaPage: React.FC = () => {
           onSave={handleSaveBatchCategory}
           allCategories={allCategories}
       />
+      <OfflineDownloadDialog open={showOfflineDownload} onClose={()=>setShowOfflineDownload(false)}/>
     </div>
   );
 };

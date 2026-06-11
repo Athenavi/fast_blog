@@ -17,6 +17,10 @@ def _build_router():
     from src.api.v2.media_v1pack import router as media_router
     router.include_router(media_router)
 
+    # VIP 离线下载路由
+    from src.api.v2.media.offline_download import router as offline_download_router
+    router.include_router(offline_download_router)
+
     _router = router
     return _router
 
