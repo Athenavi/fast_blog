@@ -33,12 +33,12 @@ class CreateSubscriptionRequest(BaseModel):
 @router.get("/status")
 @_catch
 async def get_vip_status(
-        user_id: int = Query(..., description="用户ID"),
+        current_user: User = Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
-    """获取用户 VIP 状态"""
+    """获取当前用户的 VIP 状态"""
     service = create_membership_service(db)
-    status = await service.get_user_vip_status(user_id)
+    status = await service.get_user_vip_status(current_user.id)
     return ok(data=status)
 
 

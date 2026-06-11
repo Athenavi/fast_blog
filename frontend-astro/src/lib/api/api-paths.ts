@@ -262,12 +262,12 @@ export const BACKUP = {
 
 // ─── Membership / VIP ──────────────────────────
 export const MEMBERSHIP = {
-  PLANS: '/membership/plans',
-  FEATURES: '/membership/features',
-  MY_SUBSCRIPTION: '/membership/my-subscription',
-  PREMIUM_CONTENT: '/membership/premium-content',
-  SUBSCRIBE: '/membership/subscribe',
-  STATUS: '/membership/status',
+  PLANS: '/ext/membership/plans',
+  FEATURES: '/ext/membership/features',
+  MY_SUBSCRIPTION: '/ext/membership/my-subscription',
+  PREMIUM_CONTENT: '/ext/membership/premium-content',
+  SUBSCRIBE: '/ext/membership/subscribe',
+  STATUS: '/ext/membership/status',
 } as const;
 
 // ─── Tipping 打赏 ──────────────────────────────

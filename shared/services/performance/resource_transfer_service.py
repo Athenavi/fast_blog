@@ -223,7 +223,7 @@ class ResourceTransferService:
 
             # 创建Media记录
             media = Media(
-                user_id=task.user_id,
+                user=task.user_id,
                 hash=file_hash,
                 original_filename=task.filename or f"downloaded_{datetime.now().strftime('%Y%m%d_%H%M%S')}{ext}",
                 file_path=str(final_path),
@@ -255,7 +255,7 @@ class ResourceTransferService:
             status: str,
             error_message: Optional[str] = None
     ):
-        """更新任务状态"""
+        """更新任务状态（只用 flush，由外部统一 commit）"""
         now = datetime.now()
 
         updates = {
@@ -275,10 +275,7 @@ class ResourceTransferService:
             .where(DownloadTask.id == task.id)
             .values(**updates)
         )
-        await self.db.commit()
-
-        # 刷新本地对象
-        await self.db.refresh(task)
+        await self.db.flush()
 
     async def _update_task_progress(
             self,
@@ -286,7 +283,7 @@ class ResourceTransferService:
             total_size: Optional[int],
             downloaded_size: int
     ):
-        """更新下载进度"""
+        """更新下载进度（只用 flush，由外部统一 commit）"""
         progress = 0
         if total_size and total_size > 0:
             progress = min(int((downloaded_size / total_size) * 100), 100)
@@ -301,7 +298,7 @@ class ResourceTransferService:
                 updated_at=datetime.now()
             )
         )
-        await self.db.commit()
+        await self.db.flush()
 
     async def _handle_download_error(self, task: DownloadTask, error: Exception):
         """处理下载错误（支持重试）"""
