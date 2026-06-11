@@ -1,12 +1,31 @@
 import base64
 import hashlib
 import io
-import json
 import secrets
 import time
 
 import qrcode
 from fastapi import Request
+
+# 内存缓存用于 QR 登录令牌（避免同步 Redis 操作阻塞事件循环）
+_qr_cache: dict[str, dict] = {}
+_qr_cache_expiry: dict[str, float] = {}
+
+
+def _cache_set(key: str, value, ttl: int = 180):
+    """内存缓存写入 QR 令牌"""
+    _qr_cache[key] = value if isinstance(value, dict) else {"data": value}
+    _qr_cache_expiry[key] = time.time() + ttl
+
+
+def _cache_get(key: str):
+    """内存缓存读取 QR 令牌，自动清理过期项"""
+    expiry = _qr_cache_expiry.get(key)
+    if expiry and time.time() > expiry:
+        _qr_cache.pop(key, None)
+        _qr_cache_expiry.pop(key, None)
+        return None
+    return _qr_cache.get(key)
 
 
 def gen_qr_token(user_agent: str, timestamp: str, sys_version: str, encoding: str = "utf-8") -> str:
@@ -15,44 +34,11 @@ def gen_qr_token(user_agent: str, timestamp: str, sys_version: str, encoding: st
     return hashlib.sha256(data.encode(encoding)).hexdigest()
 
 
-def _cache_set(cache, key: str, value, ttl: int = 180):
-    """统一缓存写入，兼容不同缓存接口。
-    对 dict/list 类型自动序列化为 JSON 字符串再存储，避免 Redis 存储 Python repr 导致反序列化失败。
-    """
-    # 将 dict/list 序列化为 JSON 字符串，确保 Redis 中存储的是合法 JSON
-    if isinstance(value, (dict, list)):
-        value = json.dumps(value, ensure_ascii=False)
-    try:
-        cache.set(key, value, timeout=ttl)
-    except TypeError:
-        try:
-            cache.set(key, value, ex=ttl)
-        except Exception:
-            cache.set(key, value)  # 最后的兜底，无过期时间
-
-
-def _cache_get(cache, key: str):
-    """统一缓存读取，自动尝试 JSON 反序列化。
-    解决 Redis 返回字符串而代码期望 dict 的兼容性问题。
-    """
-    raw = cache.get(key)
-    if raw is None:
-        return None
-    # 尝试 JSON 反序列化（兼容 dict/list 的 JSON 字符串）
-    if isinstance(raw, str):
-        try:
-            return json.loads(raw)
-        except (json.JSONDecodeError, ValueError):
-            return raw
-    return raw
-
-
-async def qr_login(request: Request, sys_version: str, global_encoding: str, domain: str, cache):
-    """生成登录二维码，返回 base64 图片与 token"""
+def qr_login(request: Request, sys_version: str, global_encoding: str, domain: str, cache=None):
+    """生成登录二维码，返回 base64 图片与 token（同步函数，使用内存缓存）"""
     ct = str(int(time.time()))
     user_agent = request.headers.get("User-Agent", "Unknown")
 
-    # 构造完整的回调地址
     if not domain.startswith(("http://", "https://")):
         host = request.headers.get("host", "localhost:9421")
         scheme = request.url.scheme if hasattr(request.url, "scheme") else "http"
@@ -69,8 +55,8 @@ async def qr_login(request: Request, sys_version: str, global_encoding: str, dom
     img.save(buf, format="PNG")
     qr_b64 = base64.b64encode(buf.getvalue()).decode(global_encoding)
 
-    # 存储待扫码状态（JSON 序列化由 _cache_set 自动处理）
-    _cache_set(cache, f"QR-token_{token}", {"status": "pending", "created_at": ct}, ttl=180)
+    # 内存缓存待扫码状态
+    _cache_set(f"QR-token_{token}", {"status": "pending", "created_at": ct}, ttl=180)
 
     return {
         "success": True,
@@ -80,65 +66,55 @@ async def qr_login(request: Request, sys_version: str, global_encoding: str, dom
     }
 
 
-async def phone_scan_back(request: Request, current_user, cache, login_token: str = None):
+async def phone_scan_back(request: Request, current_user, cache=None, login_token: str = None):
     """手机扫码确认，将当前用户的 refresh_token 写入缓存"""
     token = login_token or request.query_params.get("login_token") or request.query_params.get("token")
     if not token:
         return {"success": False, "message": "Missing login token"}
 
-    # 验证二维码 token 是否有效（使用 _cache_get 自动反序列化）
-    cached = _cache_get(cache, f"QR-token_{token}")
+    cached = _cache_get(f"QR-token_{token}")
     if not cached:
         return {"success": False, "message": "Invalid or expired token"}
 
     refresh_token = request.cookies.get("refresh_token")
     if not refresh_token:
-        # 如果 cookie 中没有 refresh_token，从当前用户生成一个新的
         from src.api.v2.auth_v1pack import create_jwt_token
         refresh_token = create_jwt_token(subject=str(current_user.id), token_type="refresh")
-    current_user_id = current_user.id
 
-    # 写入授权信息（包含 refresh_token）（JSON 序列化由 _cache_set 自动处理）
     allow_data = {
         "status": "success",
         "refresh_token": refresh_token,
-        "user_id": current_user_id,
+        "user_id": current_user.id,
     }
-    _cache_set(cache, f"QR-allow_{token}", allow_data, ttl=180)
-    # 更新二维码状态为 success
-    _cache_set(cache, f"QR-token_{token}", {"status": "success"}, ttl=180)
+    _cache_set(f"QR-allow_{token}", allow_data, ttl=180)
+    _cache_set(f"QR-token_{token}", {"status": "success"}, ttl=180)
 
     return {"success": True, "message": "授权成功，请在两分钟内完成登录"}
 
 
-async def check_qr_login_back(request: Request, cache):
-    """PC 端轮询检查扫码状态，优先检查二维码有效性，成功时返回 refresh_token"""
+async def check_qr_login_back(request: Request, cache=None):
+    """PC 端轮询检查扫码状态"""
     token = request.query_params.get("token")
     next_url = request.query_params.get("next", "/profile")
 
     if not token:
         return {"success": False, "status": "error", "message": "Missing token parameter"}
 
-    # 1. 先检查二维码本身的状态（是否过期）（使用 _cache_get 自动反序列化）
-    qr_status = _cache_get(cache, f"QR-token_{token}")
+    qr_status = _cache_get(f"QR-token_{token}")
     if not qr_status:
         return {"success": True, "status": "expired", "message": "QR code expired"}
 
-    # 安全获取 status 字段（兼容 dict 和意外的字符串格式）
     if isinstance(qr_status, dict):
         status = qr_status.get("status", "pending")
     else:
-        # 如果是意外的字符串格式，尝试提取状态
         status = "success" if "success" in str(qr_status) else "pending"
 
-    # 2. 如果是成功状态，再去读取授权信息（使用 _cache_get 自动反序列化）
     if status == "success":
         import asyncio
-        allow_info = _cache_get(cache, f"QR-allow_{token}")
+        allow_info = _cache_get(f"QR-allow_{token}")
         if not allow_info:
-            # 极少数并发情况：授权信息还在写入中，稍作重试
             await asyncio.sleep(0.5)
-            allow_info = _cache_get(cache, f"QR-allow_{token}")
+            allow_info = _cache_get(f"QR-allow_{token}")
         if allow_info and isinstance(allow_info, dict):
             return {
                 "success": True,
@@ -147,5 +123,4 @@ async def check_qr_login_back(request: Request, cache):
                 "refresh_token": allow_info.get("refresh_token", ""),
             }
 
-    # 3. 返回当前状态（pending 或 success 但授权信息尚未就绪）
     return {"success": True, "status": status}

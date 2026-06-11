@@ -7,15 +7,21 @@ FastBlog API v2 二维码登录
     ("src.api.v2.qr_login", "/api/v2/auth/qr", ["qr-login"], False),
 """
 
+import asyncio
+
+import asyncio
+
 from fastapi import APIRouter, Request, Depends, HTTPException
 from fastapi.logger import logger
 from fastapi.responses import HTMLResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.api.v2._base import ApiResponse
+from src.api.v2.user_utils.qrlogin_utils import qr_login, check_qr_login_back, phone_scan_back
 from src.auth import get_current_user
 from src.extensions import cache
 from src.extensions import get_async_db_session as get_async_db
+from src.setting import app_config
 
 router = APIRouter(tags=["qr-login"])
 
@@ -96,14 +102,13 @@ async def mobile_login_page(request: Request):
 @router.get("/generate")
 async def v2_generate_qr(request: Request):
     """生成登录二维码"""
-    from src.api.v2.user_utils.qrlogin_utils import qr_login
-    from src.setting import app_config
     try:
         sys_version = "2.0"
         global_encoding = app_config.global_encoding
         domain = request.query_params.get('callback_domain') or ""
-        result = await qr_login(request, sys_version, global_encoding, domain, cache)
-        # v2 响应格式：将 qr_login 返回的顶层字段包装到 data 中
+
+        # 使用 asyncio.to_thread 避免同步 Redis 操作阻塞事件循环
+        result = await asyncio.to_thread(qr_login, request, sys_version, global_encoding, domain, cache)
         if result.get("success"):
             return ApiResponse(
                 success=True,
@@ -122,7 +127,6 @@ async def v2_generate_qr(request: Request):
 @router.get("/status")
 async def v2_check_qr_status(request: Request):
     """PC 端轮询检查扫码状态"""
-    from src.api.v2.user_utils.qrlogin_utils import check_qr_login_back
     try:
         result = await check_qr_login_back(request, cache)
         # v2 响应格式：将 check_qr_login_back 返回的顶层字段包装到 data 中
@@ -148,7 +152,6 @@ async def v2_check_qr_status(request: Request):
 @router.post("/confirm")
 async def v2_phone_confirm(request: Request, db: AsyncSession = Depends(get_async_db)):
     """手机端扫码后确认登录（支持 JSON body 或 query params）"""
-    from src.api.v2.user_utils.qrlogin_utils import phone_scan_back
 
     # 读取 login_token：优先从 JSON body，其次 query params
     login_token = None
