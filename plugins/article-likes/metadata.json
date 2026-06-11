@@ -1,0 +1,8 @@
+{
+  "name": "Article Likes",
+  "slug": "article-likes",
+  "version": "1.0.0",
+  "description": "Add like/unlike functionality to articles. Uses local SQLite for independence.",
+  "icon": "❤️",
+  "price": "free"
+}

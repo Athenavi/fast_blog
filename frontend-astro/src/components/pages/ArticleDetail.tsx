@@ -33,6 +33,11 @@ interface Props {
     initialLoadError?: string;
 }
 
+// Lazy import for plugin LikeButton (gracefully degrades if plugin not installed)
+const PluginLikeButton = React.lazy(
+  () => import('@/.plugin-pages/article-likes/LikeButton').catch(() => ({default: () => null as any}))
+);
+
 interface TocItem {
     id: string;
     text: string;
@@ -591,30 +596,14 @@ const ArticleDetail: React.FC<Props> = ({
 
                           {/* Action Buttons */}
                           <div className="flex items-center gap-3 flex-wrap">
-                              {/* Like */}
-                              <button
-                                  onClick={async () => {
-                                    if (likeLoading) return;
-                                    setLikeLoading(true);
-                                    try {
-                                      await apiClient.post(`/articles/${article.id}/like`, { liked: !liked });
-                                      setLiked(!liked);
-                                      setLikeCount(prev => liked ? prev - 1 : prev + 1);
-                                    } catch (e) {
-                                      console.error('点赞失败', e);
-                                    } finally {
-                                      setLikeLoading(false);
-                                    }
-                                  }}
-                                  className={`flex items-center gap-2 px-5 py-2.5 rounded-xl border transition-all text-sm font-medium ${
-                                      liked
-                                          ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-600 dark:text-red-400'
-                                          : 'border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 hover:border-red-200 hover:text-red-500'
-                                  }`}
-                              >
-                                  <Heart className={`w-4 h-4 ${liked ? 'fill-current' : ''}`}/>
-                                  <span>{likeCount || '点赞'}</span>
-                              </button>
+                              {/* Like — 由 article-likes 插件提供 */}
+                              <React.Suspense fallback={
+                                <button className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-400 text-sm font-medium">
+                                  <Heart className="w-4 h-4"/><span>{article.likes || 0}</span>
+                                </button>
+                              }>
+                                <PluginLikeButton articleId={article.id} userId={0} initialCount={article.likes || 0}/>
+                              </React.Suspense>
 
                               {/* Bookmark */}
                               <button
