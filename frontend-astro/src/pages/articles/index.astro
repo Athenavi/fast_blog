@@ -1,12 +1,36 @@
 ---
-// 文章列表页
+// 文章列表页 — SSR：服务端获取文章列表，渲染真实 HTML
+export const prerender = false;
 import Layout from '@/layouts/Layout.astro';
 import ArticleList from '@/components/pages/ArticleList';
+import {ArticleService} from '@/lib/api';
+
+// 服务端获取初始文章列表
+let initialArticles: any[] = [];
+let initialTotalPages = 1;
+let initialTotalCount = 0;
+
+try {
+  const res = await ArticleService.getArticles({ page: 1, per_page: 12 });
+  if (res.success && res.data) {
+    const d = res.data as any;
+    initialArticles = d.data || d.articles || [];
+    initialTotalPages = d.pagination?.total_pages || d.total_pages || 1;
+    initialTotalCount = d.pagination?.total || d.total || 0;
+  }
+} catch (e) {
+  console.error('[SSR] 文章列表数据获取失败:', e);
+}
 ---
 
 <Layout title="文章列表 - FastBlog" description="浏览所有文章">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-8">文章列表</h1>
-    <ArticleList client:load />
+    <ArticleList
+      initialArticles={initialArticles}
+      initialTotalPages={initialTotalPages}
+      initialTotalCount={initialTotalCount}
+      client:load
+    />
   </div>
 </Layout>

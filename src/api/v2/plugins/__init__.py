@@ -14,10 +14,8 @@ def _build_router():
     router = APIRouter(tags=["plugins"])
 
     from src.api.v2.plugins.plugin_management import router as plugin_management_router
-    from src.api.v2.plugins.article_rating import router as article_rating_router
 
     router.include_router(plugin_management_router, prefix="")
-    router.include_router(article_rating_router, prefix="")
 
     _router = router
     return _router

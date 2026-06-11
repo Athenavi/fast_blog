@@ -4,8 +4,9 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "astro dev",
-    "build": "astro build",
+    "prescan": "node ../scripts/scan-plugin-frontend.mjs",
+    "dev": "npm run prescan && astro dev",
+    "build": "npm run prescan && astro build",
     "preview": "astro preview",
     "astro": "astro",
     "test": "vitest run",

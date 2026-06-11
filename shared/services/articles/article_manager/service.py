@@ -519,13 +519,13 @@ def _trigger_article_event(event_name: str, data: dict):
     """
     try:
         import asyncio
-        from shared.services.plugins.plugin_manager.init import trigger_plugin_event
+        from shared.services.plugins.event_bus import event_bus
 
         # 检查是否有运行的事件循环
         try:
             loop = asyncio.get_running_loop()
             # 如果有运行的事件循环，创建任务
-            asyncio.create_task(trigger_plugin_event(event_name, data))
+            asyncio.create_task(event_bus.emit(event_name, data))
         except RuntimeError:
             # 没有运行的事件循环，记录日志但不抛出异常
             logger.debug(f"No running event loop, skipping {event_name} event trigger")

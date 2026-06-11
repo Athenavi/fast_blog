@@ -4,6 +4,7 @@ import React, {useEffect, useState} from 'react';
 import {apiClient} from '@/lib/api/base-client';
 import {HOME} from '@/lib/api/api-paths';
 import {useHomeConfig} from '@/hooks/useHomeConfig';
+import type {HomeConfig} from '@/hooks/useHomeConfig';
 import {Article, Category} from './_shared';
 import HomeHero from './HomeHero';
 import HomeFeatured from './HomeFeatured';
@@ -11,6 +12,15 @@ import HomeCategories from './HomeCategories';
 import HomeLatest from './HomeLatest';
 import HomePopular from './HomePopular';
 import HomeNewsletter from './HomeNewsletter';
+
+interface Props {
+    /** SSR 注入的初始数据 — 有值则跳过客户端首次请求 */
+    initialFeatured?: Article[];
+    initialRecent?: Article[];
+    initialPopular?: Article[];
+    initialCategories?: Category[];
+    initialConfig?: HomeConfig | null;
+}
 
 const LoadingScreen = () => (
   <div className="min-h-screen bg-white dark:bg-gray-950">
@@ -51,15 +61,23 @@ const LoadingScreen = () => (
   </div>
 );
 
-export default function ModernHomePage() {
-  const [featured, setFeatured] = useState<Article[]>([]);
-  const [recent, setRecent] = useState<Article[]>([]);
-  const [popular, setPopular] = useState<Article[]>([]);
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
-  const {hero, sections, newsletter, messages, loading: cfgLoading} = useHomeConfig();
+export default function ModernHomePage({
+  initialFeatured = [],
+  initialRecent = [],
+  initialPopular = [],
+  initialCategories = [],
+  initialConfig = null,
+}: Props) {
+  const hasSsrData = initialFeatured.length > 0 || initialRecent.length > 0;
+  const [featured, setFeatured] = useState<Article[]>(initialFeatured);
+  const [recent, setRecent] = useState<Article[]>(initialRecent);
+  const [popular, setPopular] = useState<Article[]>(initialPopular);
+  const [categories, setCategories] = useState<Category[]>(initialCategories);
+  const [loading, setLoading] = useState(!hasSsrData);
+  const {hero, sections, newsletter, messages, loading: cfgLoading} = useHomeConfig(initialConfig);
 
   useEffect(() => {
+    if (hasSsrData) return; // SSR 已提供数据，跳过客户端首次请求
     (async () => {
       try {
         const [f, r, p, c] = await Promise.all([

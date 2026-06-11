@@ -21,6 +21,7 @@ from shared.services.content_management.shortcode_service import shortcode_servi
 from shared.services.core.api_embed import APIEmbedService
 from shared.services.notifications.webhook_service import webhook_service
 from shared.services.static_generation.isr_service import isr_service
+from shared.services.plugins.event_bus import event_bus, ArticlePublishedPayload, ArticleUpdatedPayload, ArticleDeletedPayload
 from src.api.v2._base import ApiResponse
 from src.api.v2._helpers import ok, fail
 from src.auth.auth_deps import jwt_optional_dependency, jwt_required_dependency as jwt_required
@@ -108,6 +109,14 @@ async def _get_article_detail(request: Request, db: AsyncSession, article: Artic
         html = shortcode_service.parse(markdown_to_html(markdown_text=raw, theme=theme, enable_toc=True))
     else:
         html = ""
+
+    # 运行 article.content 管道，允许插件修改文章 HTML 内容
+    try:
+        content_payload = {"html": html}
+        content_payload = await event_bus.pipeline("article.content", content_payload, article_id=article.id)
+        html = content_payload.get("html", html)
+    except Exception:
+        pass
 
     author_info = await _get_article_author(db, article.user)
     seo = article.seo_data.to_dict() if article.seo_data else {}
@@ -300,6 +309,12 @@ async def create_article_api(data: dict, request: Request, current_user=Depends(
     try:
         await isr_service.invalidate(article.slug)
         await webhook_service.trigger('article.created', {'article_id': article.id})
+        await event_bus.emit('article.published', ArticlePublishedPayload(
+            article_id=article.id, slug=article.slug, title=article.title,
+            author_id=current_user.id, excerpt=article.excerpt or '',
+            tags=[t.strip() for t in article.tags_list.split(',') if t.strip()] if article.tags_list else [],
+            category_id=article.category,
+        ))
     except Exception:
         pass
 
@@ -339,6 +354,10 @@ async def update_article_api(article_id: int, data: dict, request: Request, curr
     try:
         await isr_service.invalidate(article.slug)
         await webhook_service.trigger('article.updated', {'article_id': article_id})
+        await event_bus.emit('article.updated', ArticleUpdatedPayload(
+            article_id=article.id, slug=article.slug, title=article.title,
+            author_id=current_user.id,
+        ))
     except Exception:
         pass
 
@@ -360,6 +379,9 @@ async def delete_article_api(article_id: int, current_user=Depends(jwt_required)
 
     try:
         await webhook_service.trigger('article.deleted', {'article_id': article_id})
+        await event_bus.emit('article.deleted', ArticleDeletedPayload(
+            article_id=article.id, slug=article.slug, title=article.title,
+        ))
     except Exception:
         pass
     return ApiResponse(success=True, message="文章已删除")

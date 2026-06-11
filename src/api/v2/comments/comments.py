@@ -12,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.models.comment import Comment, CommentVote
 from shared.services.comments.comment_manager import comment_like_service, comment_notification_service
 from shared.services.notifications.webhook_service import webhook_service
-from shared.services.plugins.plugin_manager.init import trigger_plugin_event
+from shared.services.plugins.event_bus import event_bus
 from shared.services.security.spam_filter_manager import spam_filter
 from shared.services.users.user_manager import gravatar_service
 from src.api.v2._helpers import ok, fail
@@ -176,7 +176,7 @@ async def create_comment(
             try:
                 commenter_id = current_user.id if current_user else None
                 if commenter_id and article:
-                    await trigger_plugin_event('comment_created', {
+                    await event_bus.emit('comment.created', {
                         'user_id': str(commenter_id),
                         'article_id': article.id,
                         'article_title': article.title,

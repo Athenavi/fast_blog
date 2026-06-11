@@ -67,6 +67,9 @@ frontend/dist/
 frontend-astro/dist/
 frontend-astro/.astro/
 frontend-astro/*.tsbuildinfo
+frontend-astro/src/.plugin-pages/
+frontend-astro/src/.plugin-registry.ts
+frontend-astro/src/pages/admin/plugin-pages/
 frontend-next/.next/
 frontend-next/node_modules/
 

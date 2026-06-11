@@ -27,6 +27,10 @@ import {
 
 interface Props {
     slug?: string;
+    /** SSR 注入的初始文章数据 — 有值则跳过客户端首次请求 */
+    initialArticle?: Article | null;
+    initialRelated?: any[];
+    initialLoadError?: string;
 }
 
 interface TocItem {
@@ -35,10 +39,16 @@ interface TocItem {
     level: number;
 }
 
-const ArticleDetail: React.FC<Props> = ({slug: propSlug}) => {
-  const [article, setArticle] = useState<Article | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+const ArticleDetail: React.FC<Props> = ({
+  slug: propSlug,
+  initialArticle = null,
+  initialRelated: initRelated = [],
+  initialLoadError = '',
+}) => {
+  const hasSsrData = !!initialArticle;
+  const [article, setArticle] = useState<Article | null>(initialArticle);
+  const [loading, setLoading] = useState(!hasSsrData);
+  const [error, setError] = useState(initialLoadError);
     const [readingProgress, setReadingProgress] = useState(0);
     const [toc, setToc] = useState<TocItem[]>([]);
   const [processedContent, setProcessedContent] = useState('');
@@ -49,7 +59,7 @@ const ArticleDetail: React.FC<Props> = ({slug: propSlug}) => {
     const [likeLoading, setLikeLoading] = useState(false);
     const [copied, setCopied] = useState(false);
     const [showToc, setShowToc] = useState(false);
-    const [relatedArticles, setRelatedArticles] = useState<any[]>([]);
+    const [relatedArticles, setRelatedArticles] = useState<any[]>(initRelated);
     const contentRef = useRef<HTMLDivElement>(null);
 
   // Password protection state
@@ -63,8 +73,23 @@ const ArticleDetail: React.FC<Props> = ({slug: propSlug}) => {
   const [passwordError, setPasswordError] = useState('');
   const [passwordLoading, setPasswordLoading] = useState(false);
 
+    const ssrDone = useRef(false);
+
     // Load article
   useEffect(() => {
+    // SSR 已提供数据，跳过客户端首次请求
+    if (hasSsrData && initialArticle) {
+      if (!ssrDone.current) {
+        ssrDone.current = true;
+        setLikeCount(initialArticle.likes || 0);
+        if (initialArticle.content) {
+          processContentWithToc(initialArticle.content);
+        }
+        setLoading(false);
+      }
+      return;
+    }
+
     const slug = propSlug || (typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('slug') : '') || '';
       if (!slug) {
       setError('缺少文章参数');

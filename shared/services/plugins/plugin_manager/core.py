@@ -1,13 +1,13 @@
 """
 插件系统核心模块
 
-提供插件基类、钩子系统和插件管理功能
+提供插件基类和插件管理功能
+事件系统使用 EventBus（shared.services.plugins.event_bus）
 """
 
-import asyncio
 import json
 from pathlib import Path
-from typing import Dict, List, Any, Callable, Optional
+from typing import Dict, List, Any, Optional
 
 # 导入 manifest 模块
 from shared.services.plugins.plugin_manager.manifest import ManifestValidator, get_capability_description
@@ -19,88 +19,9 @@ except ImportError:
     audit_logger = None
 
 
-class PluginHook:
-    """
-    插件钩子系统
-
-    支持两种类型的钩子:
-    1. Action: 执行动作,无返回值
-    2. Filter: 过滤数据,有返回值
-    """
-
-    def __init__(self):
-        # 动作钩子: {hook_name: [(callback, priority), ...]}
-        self.actions: Dict[str, List[tuple]] = {}
-        # 过滤器钩子: {hook_name: [(callback, priority), ...]}
-        self.filters: Dict[str, List[tuple]] = {}
-
-    def add_action(self, hook_name: str, callback: Callable, priority: int = 10):
-        """添加动作钩子"""
-        if hook_name not in self.actions:
-            self.actions[hook_name] = []
-        self.actions[hook_name].append((callback, priority))
-        self.actions[hook_name].sort(key=lambda x: x[1])
-
-    def add_filter(self, hook_name: str, callback: Callable, priority: int = 10):
-        """添加过滤器钩子"""
-        if hook_name not in self.filters:
-            self.filters[hook_name] = []
-        self.filters[hook_name].append((callback, priority))
-        self.filters[hook_name].sort(key=lambda x: x[1])
-
-    async def do_action(self, hook_name: str, *args, **kwargs):
-        """执行动作钩子（异步版本）"""
-        if hook_name not in self.actions:
-            return
-        for callback, priority in self.actions[hook_name]:
-            try:
-                result = callback(*args, **kwargs)
-                if asyncio.iscoroutine(result):
-                    await result
-            except Exception as e:
-                print(f"[PluginHook] Error in action '{hook_name}': {str(e)}")
-
-    def do_action_sync(self, hook_name: str, *args, **kwargs):
-        """执行动作钩子（同步版本）"""
-        if hook_name not in self.actions:
-            return
-        for callback, priority in self.actions[hook_name]:
-            try:
-                callback(*args, **kwargs)
-            except Exception as e:
-                print(f"[PluginHook] Error in action '{hook_name}': {str(e)}")
-
-    def apply_filters(self, hook_name: str, value: Any, *args, **kwargs) -> Any:
-        """应用过滤器钩子"""
-        if hook_name not in self.filters:
-            return value
-        result = value
-        for callback, priority in self.filters[hook_name]:
-            try:
-                result = callback(result, *args, **kwargs)
-            except Exception as e:
-                print(f"[PluginHook] Error in filter '{hook_name}': {str(e)}")
-        return result
-
-    def remove_action(self, hook_name: str, callback: Callable):
-        """移除动作钩子"""
-        if hook_name in self.actions:
-            self.actions[hook_name] = [
-                (cb, p) for cb, p in self.actions[hook_name]
-                if cb != callback
-            ]
-
-    def remove_filter(self, hook_name: str, callback: Callable):
-        """移除过滤器钩子"""
-        if hook_name in self.filters:
-            self.filters[hook_name] = [
-                (cb, p) for cb, p in self.filters[hook_name]
-                if cb != callback
-            ]
+from shared.services.plugins.event_bus import event_bus
 
 
-# 全局钩子实例
-plugin_hooks = PluginHook()
 
 
 class BasePlugin:
@@ -161,6 +82,11 @@ class BasePlugin:
 
         self.active = True
         self.register_hooks()
+        # 注册 EventBus 订阅（新方式）
+        subs = self.subscribers()
+        if subs:
+            event_bus.register(subs)
+            self._subscriptions = subs
         print(f"[Plugin] Activated: {self.name} v{self.version}")
 
     def deactivate(self):
@@ -169,6 +95,10 @@ class BasePlugin:
             return
 
         self.unregister_hooks()
+        # 注销 EventBus 订阅
+        if hasattr(self, '_subscriptions') and self._subscriptions:
+            event_bus.unregister(self._subscriptions)
+            self._subscriptions = []
         self.active = False
         print(f"[Plugin] Deactivated: {self.name}")
 
@@ -191,6 +121,18 @@ class BasePlugin:
     def register_hooks(self):
         """注册钩子 - 子类应重写此方法"""
         pass
+
+    def subscribers(self) -> list:
+        """
+        注册 EventBus 订阅 - 子类重写此方法。
+
+        返回格式:
+            [
+                ("article.published", self.on_article_published),
+                ("article.content", self.modify_content, "pipeline"),
+            ]
+        """
+        return []
 
     def unregister_hooks(self):
         """注销钩子 - 子类可以重写此方法"""
@@ -243,6 +185,40 @@ class BasePlugin:
         except Exception as e:
             print(f"[Plugin] Failed to initialize database: {e}")
             raise
+
+    # ─── 持久化助手 ────────────────────────────
+    def get_storage_path(self) -> Path:
+        """获取插件专属存储目录（storage/plugins/<slug>/），自动创建"""
+        p = Path("storage/plugins") / self.slug
+        p.mkdir(parents=True, exist_ok=True)
+        return p
+
+    def get_db_path(self) -> Path:
+        """获取插件本地 SQLite 数据库路径"""
+        return self.get_storage_path() / "data.db"
+
+    def get_db_engine(self):
+        """
+        获取插件本地 SQLite 数据库引擎（lazy init）
+        返回 SQLAlchemy 引擎，插件可用它定义 ORM 模型，完全独立于主库。
+        """
+        try:
+            from sqlalchemy import create_engine
+        except ImportError:
+            raise RuntimeError("SQLAlchemy is required for plugin database support")
+        if not hasattr(self, '_db_engine') or self._db_engine is None:
+            db_path = self.get_db_path()
+            self._db_engine = create_engine(f"sqlite:///{db_path}", echo=False)
+        return self._db_engine
+
+    def init_db(self, base):
+        """
+        在插件本地 SQLite 数据库中创建 base 中定义的所有表
+        用法：在 activate() 中调用 self.init_db(MyBase)
+        """
+        engine = self.get_db_engine()
+        base.metadata.create_all(engine)
+        print(f"[Plugin] Database tables created for {self.name}")
 
     def save_settings(self):
         """保存插件设置"""

@@ -1,11 +1,44 @@
 ---
-// 首页 — Astro 静态外壳
+// 首页 — SSR：服务端获取数据，渲染真实 HTML 内容
+export const prerender = false;
 import Layout from '@/layouts/Layout.astro';
 import ModernHomePage from '@/components/home/ModernHomePage';
+import {apiClient} from '@/lib/api/base-client';
+
+// 服务端获取首页数据（SSR 渲染，爬虫/用户看到真实内容）
+let featured: any[] = [];
+let recent: any[] = [];
+let popular: any[] = [];
+let categories: any[] = [];
+let homeConfig: any = null;
+
+try {
+  const [f, r, p, c, cfg] = await Promise.all([
+    apiClient.get('/home/featured'),
+    apiClient.get('/home/recent'),
+    apiClient.get('/home/popular'),
+    apiClient.get('/home/categories'),
+    apiClient.get('/home/config'),
+  ]);
+  if (f.success) featured = Array.isArray(f.data) ? f.data : f.data?.articles || [];
+  if (r.success) recent = Array.isArray(r.data) ? r.data.slice(0, 12) : r.data?.articles?.slice(0, 12) || [];
+  if (p.success) popular = Array.isArray(p.data) ? p.data.slice(0, 8) : p.data?.articles?.slice(0, 8) || [];
+  if (c.success) categories = Array.isArray(c.data) ? c.data : c.data?.categories || [];
+  if (cfg.success) homeConfig = cfg.data;
+} catch (e) {
+  console.error('[SSR] 首页数据获取失败:', e);
+}
 ---
 
 <Layout title="FastBlog - 首页" description="发现精彩内容，连接智慧世界">
   <div class="min-h-screen">
-    <ModernHomePage client:load />
+    <ModernHomePage
+      initialFeatured={featured}
+      initialRecent={recent}
+      initialPopular={popular}
+      initialCategories={categories}
+      initialConfig={homeConfig}
+      client:load
+    />
   </div>
 </Layout>

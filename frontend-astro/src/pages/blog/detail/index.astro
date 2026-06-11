@@ -1,13 +1,61 @@
 ---
-// 文章详情页 - 客户端渲染（优化版）
+// 文章详情页 — SSR：服务端获取文章内容，渲染真实 HTML
+export const prerender = false;
 import Layout from '@/layouts/Layout.astro';
 import ArticleDetail from '@/components/pages/ArticleDetail';
+import {apiClient} from '@/lib/api/base-client';
+
+const slug = Astro.url.searchParams.get('slug') || '';
+
+// SSR：服务端预取文章数据
+let initialArticle: any = null;
+let initialRelated: any[] = [];
+let initialLoadError = '';
+
+if (slug) {
+  try {
+    const res = await apiClient.get(`/articles/p/${slug}`);
+    if (res.success && res.data) {
+      const data = res.data.article || res.data;
+      initialArticle = data;
+
+      // 服务端预取相关文章
+      if (data.category_id || data.id) {
+        try {
+          const relRes = await apiClient.get('/articles', {
+            per_page: 4,
+            exclude: data.id,
+            category_id: data.category_id,
+          });
+          if (relRes.success && relRes.data) {
+            const items = relRes.data.data || relRes.data || [];
+            initialRelated = items.filter((a: any) => a.id !== data.id).slice(0, 3);
+          }
+        } catch { /* 相关文章非关键，静默失败 */ }
+      }
+    } else if (res.data?.requires_password) {
+      // 密码保护文章 — 不传递初始数据，让组件完全客户端处理
+      initialArticle = null;
+      initialRelated = [];
+      initialLoadError = '';
+    } else {
+      initialLoadError = res.error || '文章不存在';
+    }
+  } catch {
+    initialLoadError = '加载失败';
+  }
+}
 ---
 
-<Layout title="文章详情 - FastBlog">
+<Layout title={initialArticle?.title ? `${initialArticle.title} - FastBlog` : '文章详情 - FastBlog'}>
   <main class="max-w-full py-8 pt-20">
-    <!-- client:load 比 client:only 更好：SSR 输出骨架 HTML，减少 FCP -->
-    <ArticleDetail client:load />
+    <ArticleDetail
+      slug={slug}
+      initialArticle={initialArticle}
+      initialRelated={initialRelated}
+      initialLoadError={initialLoadError}
+      client:load
+    />
   </main>
 </Layout>
 

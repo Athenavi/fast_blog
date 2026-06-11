@@ -723,18 +723,17 @@ def register_error_handlers(app: FastAPI):
 
     @app.exception_handler(404)
     async def custom_404_handler(request: Request, exc: HTTPException):
-        # 1. 尝试插件钩子拦截
+        # 1. 尝试 EventBus 事件拦截
         try:
-            from shared.services.plugins.plugin_manager.core import plugin_hooks
+            from shared.services.plugins.event_bus import event_bus
             error_data = {
                 'url': str(request.url),
                 'ip': request.client.host if request.client else '',
                 'method': request.method,
                 'timestamp': datetime.now().isoformat(),
             }
-            # 同步触发
-            plugin_hooks.do_action_sync('response_404', error_data)
-            response_data = plugin_hooks.apply_filters('response_404', error_data)
+            await event_bus.emit('response.404', error_data)
+            response_data = await event_bus.pipeline('response.404', error_data)
             if isinstance(response_data, dict) and response_data.get('intercepted'):
                 return HTMLResponse(content=response_data.get('html_content', ''),
                                     status_code=response_data.get('status_code', 404))

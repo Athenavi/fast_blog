@@ -3,7 +3,7 @@
 
 统一的插件管理包，提供完整的插件生命周期管理功能：
 - 插件加载和激活
-- 钩子系统（Actions & Filters）
+- EventBus 事件系统（观察者模式）
 - 插件市场（浏览、搜索、安装）
 - 依赖管理
 - 版本更新和回滚
@@ -13,8 +13,6 @@
 from shared.services.plugins.plugin_manager.core import (
     BasePlugin,
     PluginManager,
-    PluginHook,
-    plugin_hooks,
     plugin_manager,
 )
 from shared.services.plugins.plugin_manager.dependency import (
@@ -23,8 +21,6 @@ from shared.services.plugins.plugin_manager.dependency import (
 )
 from shared.services.plugins.plugin_manager.init import (
     initialize_plugins,
-    trigger_plugin_event,
-    apply_plugin_filter,
 )
 from shared.services.plugins.plugin_manager.installer import (
     PluginInstaller,
@@ -51,14 +47,28 @@ from shared.services.plugins.plugin_manager.version_utils import (
     compare_versions,
     check_version_match,
 )
+from shared.services.plugins.event_bus import (
+    event_bus,
+    ArticlePublishedPayload,
+    ArticleUpdatedPayload,
+    ArticleDeletedPayload,
+    CommentCreatedPayload,
+    UserRegisteredPayload,
+)
 
 __all__ = [
     # Core
     'BasePlugin',
     'PluginManager',
-    'PluginHook',
-    'plugin_hooks',
     'plugin_manager',
+
+    # EventBus
+    'event_bus',
+    'ArticlePublishedPayload',
+    'ArticleUpdatedPayload',
+    'ArticleDeletedPayload',
+    'CommentCreatedPayload',
+    'UserRegisteredPayload',
 
     # Manifest
     'PluginManifest',
@@ -81,16 +91,12 @@ __all__ = [
     'PluginDependencyManager',
     'plugin_dependency_manager',
 
-    # Updater
-
     # Public API
     'PluginPublicAPI',
     'plugin_api',
 
     # Init
     'initialize_plugins',
-    'trigger_plugin_event',
-    'apply_plugin_filter',
 
     # Version Utils
     'compare_versions',

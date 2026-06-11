@@ -1,11 +1,12 @@
 """
 插件系统初始化
 在应用启动时自动加载和激活插件
+使用 EventBus 事件系统
 """
 
 from pathlib import Path
 
-from shared.services.plugins.plugin_manager.core import plugin_hooks, plugin_manager
+from shared.services.plugins.plugin_manager.core import plugin_manager
 
 
 def initialize_plugins():
@@ -56,32 +57,3 @@ def initialize_plugins():
         print(f"[PluginSystem] Failed to initialize: {str(e)}")
         print(traceback.format_exc())
         return False
-
-
-async def trigger_plugin_event(event_name: str, *args, **kwargs):
-    """
-    触发插件事件
-
-    Args:
-        event_name: 事件名称
-        *args: 位置参数
-        **kwargs: 关键字参数
-    """
-    await plugin_hooks.do_action(event_name, *args, **kwargs)
-
-
-def apply_plugin_filter(filter_name: str, value, *args, **kwargs):
-    """
-    应用插件过滤器
-
-    Args:
-        filter_name: 过滤器名称
-        value: 要过滤的值
-        *args: 额外位置参数
-        **kwargs: 额外关键字参数
-
-    Returns:
-        过滤后的值
-    """
-
-    return plugin_hooks.apply_filters(filter_name, value, *args, **kwargs)

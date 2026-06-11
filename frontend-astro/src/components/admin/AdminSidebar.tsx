@@ -11,6 +11,7 @@ import {
   CheckSquare,
   ChevronLeft,
   Coins,
+  Code,
   CreditCard,
   Crown,
   Database,
@@ -44,6 +45,15 @@ import {
   Zap
 } from 'lucide-react';
 import {useTranslation} from '@/lib/i18n';
+import {pluginNavItems as _pluginNavItems} from '@/.plugin-registry';
+
+/** 根据图标名称获取 lucide 组件 */
+function resolveIcon(name: string): React.FC<{ className?: string }> {
+  const iconMap: Record<string, React.FC<{ className?: string }>> = {
+    Code, Puzzle, Package, Star, FileText, Settings, Globe,
+  };
+  return iconMap[name] || Puzzle;
+}
 
 /** 导航项配置（使用 i18n key） */
 interface NavItem {
@@ -96,6 +106,12 @@ export const navConfig: NavItem[] = [
   {labelKey: 'nav.certification', href: '/admin/ext/certification', icon: Medal},
   {labelKey: 'nav.nft', href: '/admin/ext/nft', icon: Diamond},
   {labelKey: 'nav.recommendations', href: '/admin/ext/recommendations', icon: Star},
+  // ── 插件注册项（自动导入） ──
+  ...(_pluginNavItems || []).map(item => ({
+    labelKey: item.label,
+    href: item.href,
+    icon: resolveIcon(item.icon),
+  })),
   {labelKey: 'nav.settings', href: '/admin/settings', icon: Settings},
 ];
 

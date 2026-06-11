@@ -55,11 +55,12 @@ const DEFAULT_CONFIG: Required<{
   },
 };
 
-export function useHomeConfig() {
-  const [config, setConfig] = useState<HomeConfig>({});
-  const [loading, setLoading] = useState(true);
+export function useHomeConfig(initialConfig?: HomeConfig | null) {
+  const [config, setConfig] = useState<HomeConfig>(initialConfig || {});
+  const [loading, setLoading] = useState(!initialConfig);
 
   useEffect(() => {
+    if (initialConfig) return; // SSR 已提供配置
     (async () => {
       try {
         const res = await apiClient.get(HOME.CONFIG);

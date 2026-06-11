@@ -24,15 +24,24 @@ import {
 type ViewMode = 'grid' | 'list';
 type SortBy = 'newest' | 'oldest' | 'popular' | 'views';
 
-const ArticleList: React.FC = () => {
-  const [articles, setArticles] = useState<Article[]>([]);
-  const [loading, setLoading] = useState(true);
+const ArticleList: React.FC<{
+  initialArticles?: Article[];
+  initialTotalPages?: number;
+  initialTotalCount?: number;
+}> = ({
+  initialArticles = [],
+  initialTotalPages: initPages = 1,
+  initialTotalCount: initCount = 0,
+}) => {
+  const hasSsrData = initialArticles.length > 0;
+  const [articles, setArticles] = useState<Article[]>(initialArticles);
+  const [loading, setLoading] = useState(!hasSsrData);
     const [searchQuery, setSearchQuery] = useState('');
     const [viewMode, setViewMode] = useState<ViewMode>('grid');
     const [sortBy, setSortBy] = useState<SortBy>('newest');
     const [currentPage, setCurrentPage] = useState(1);
-    const [totalPages, setTotalPages] = useState(1);
-    const [totalCount, setTotalCount] = useState(0);
+    const [totalPages, setTotalPages] = useState(initPages);
+    const [totalCount, setTotalCount] = useState(initCount);
     const [selectedTag, setSelectedTag] = useState<string | null>(null);
     const [showFilters, setShowFilters] = useState(false);
     const perPage = 12;
@@ -66,7 +75,13 @@ const ArticleList: React.FC = () => {
         }
     }, [currentPage, searchQuery]);
 
+    const initialLoadDone = useRef(hasSsrData);
+
     useEffect(() => {
+        if (initialLoadDone.current) {
+            initialLoadDone.current = false;
+            return;
+        }
         fetchArticles();
         return () => abortRef.current?.abort();
     }, [fetchArticles]);
