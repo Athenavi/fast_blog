@@ -287,7 +287,7 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
         try {
             const res = await apiClient.post(`/articles/draft/generate`, {
                 article_id: Number(articleId),
-                expiry_hours: 72,
+                expires_hours: 72,
             });
             if (res.success && res.data) {
                 const token = res.data.token || res.data.preview_token;

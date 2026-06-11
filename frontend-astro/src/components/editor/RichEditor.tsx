@@ -35,7 +35,10 @@ function PatternLibrary({onSelect, onClose}: { onSelect: (blocks: any) => void; 
   const [patterns, setPatterns] = useState<any[]>([]);
   React.useEffect(() => {
     apiClient.get('/cms/block-patterns/list').then(r => {
-      if (r.success) setPatterns(r.data || [])
+      if (r.success) {
+        const d: any = r.data;
+        setPatterns(Array.isArray(d) ? d : (d?.patterns || []));
+      }
     }).catch(console.error);
   }, []);
   return <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40" onClick={onClose}>
