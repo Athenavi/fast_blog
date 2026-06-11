@@ -91,7 +91,7 @@ async def delete_user_media_api(
 @router.post("/batch-delete")
 @_catch
 async def batch_delete_media(
-        media_ids: list = Body(...),
+        media_ids: list = Body(..., embed=True),
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):

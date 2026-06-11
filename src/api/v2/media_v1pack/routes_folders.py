@@ -277,7 +277,7 @@ async def move_media_to_folder(
     )
     
     if result['success']:
-        return ok(message=result['message'], data={"moved_count": result['moved_count']})
+        return ok(msg=result['message'], data={"moved_count": result['moved_count']})
     else:
         return fail(result['error'])
 
