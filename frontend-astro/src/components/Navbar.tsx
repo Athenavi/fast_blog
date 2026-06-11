@@ -31,7 +31,7 @@ import {
   X
 } from 'lucide-react';
 import {useDarkMode} from '@/lib/dark-mode-manager';
-import {getAccessTokenFromCookie} from '@/lib/auth-utils';
+import {getAccessTokenFromCookie, getLocalAuthState} from '@/lib/auth-utils';
 import {MenuService, type MenuTreeItem} from '@/lib/api/menu-service';
 import {AUTH, SEARCH} from '@/lib/api/api-paths';
 import {getConfig} from '@/lib/config';
@@ -83,44 +83,74 @@ const Navbar: React.FC<NavbarProps> = ({title, subtitle, showBackButton = false,
 
   useEffect(() => {
     setPathname(window.location.pathname);
-    const token = getAccessTokenFromCookie();
-    setIsLoggedIn(!!token);
 
-    // Fetch user info if logged in
-    if (token) {
-      import('@/lib/config').then(({getConfig}) => {
-        const {API_BASE_URL} = getConfig();
-        return fetch(`${API_BASE_URL}/api/v2/users/me`, {
-          headers: {Authorization: `Bearer ${token}`}
-        })
-          .then(r => r.json())
-          .then(data => {
-            if (data?.data) {
-              setUserAvatar(data.data.avatar ? `${API_BASE_URL}${data.data.avatar}` : null);
-              setUsername(data.data.username || '');
-            } else {
-              // Token exists but invalid — not logged in
-              setIsLoggedIn(false);
-            }
-          })
-          .catch(() => {
-            // Network error — keep optimistic isLoggedIn=true from token
+    // 双重检测：cookie + localStorage（解决 Astro 岛屿生命周期问题）
+    const checkAuth = () => {
+      const hasToken = !!getAccessTokenFromCookie() || getLocalAuthState();
+      setIsLoggedIn(hasToken);
+
+      if (hasToken) {
+        const token = getAccessTokenFromCookie();
+        if (token) {
+          import('@/lib/config').then(({getConfig}) => {
+            const {API_BASE_URL} = getConfig();
+            return fetch(`${API_BASE_URL}/api/v2/users/me`, {
+              headers: {Authorization: `Bearer ${token}`}
+            })
+              .then(r => r.json())
+              .then(data => {
+                if (data?.data) {
+                  setUserAvatar(data.data.avatar ? `${API_BASE_URL}${data.data.avatar}` : null);
+                  setUsername(data.data.username || '');
+                } else {
+                  // 浏览器有 local 标记但 API 返回无效 → 未登录
+                  setIsLoggedIn(false);
+                }
+              })
+              .catch(() => {});
           });
-      });
-    }
-
-    // 监听页面导航（popstate）以重新检查登录状态
-    const handleRouteChange = () => {
-      setPathname(window.location.pathname);
-      const currentToken = getAccessTokenFromCookie();
-      setIsLoggedIn(!!currentToken);
-      if (!currentToken) {
-        setUserAvatar(null);
-        setUsername('');
+        } else {
+          // 有 localStorage 标记但 cookie 失效 → 尝试刷新或标记为未登录
+          setIsLoggedIn(true);
+        }
       }
     };
-    window.addEventListener('popstate', handleRouteChange);
-    return () => window.removeEventListener('popstate', handleRouteChange);
+
+    checkAuth();
+
+    // 监听 auth:changed 自定义事件（同一页面内同步）
+    const onAuthChanged = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail?.loggedIn !== undefined) {
+        setIsLoggedIn(detail.loggedIn);
+        if (!detail.loggedIn) {
+          setUserAvatar(null);
+          setUsername('');
+        }
+      }
+    };
+
+    // 监听 storage 事件（跨标签页同步）
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === 'fastblog_auth') {
+        checkAuth();
+      }
+    };
+
+    // 页面获得焦点时重新检查（覆盖 Astro 页面导航后状态不同步）
+    const onFocus = () => checkAuth();
+
+    window.addEventListener('auth:changed', onAuthChanged);
+    window.addEventListener('storage', onStorage);
+    window.addEventListener('focus', onFocus);
+    window.addEventListener('popstate', checkAuth);
+
+    return () => {
+      window.removeEventListener('auth:changed', onAuthChanged);
+      window.removeEventListener('storage', onStorage);
+      window.removeEventListener('focus', onFocus);
+      window.removeEventListener('popstate', checkAuth);
+    };
   }, []);
 
   // 从 API 动态获取导航菜单
@@ -452,6 +482,8 @@ const Navbar: React.FC<NavbarProps> = ({title, subtitle, showBackButton = false,
                         onClick={() => {
                           document.cookie = 'access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
                           document.cookie = 'refresh_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
+                          localStorage.removeItem('fastblog_auth');
+                          window.dispatchEvent(new CustomEvent('auth:changed', { detail: { loggedIn: false } }));
                           window.location.href = '/';
                         }}
                         className="flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/10 transition-colors w-full"

@@ -5,7 +5,7 @@ import {useForm} from 'react-hook-form';
 import {zodResolver} from '@hookform/resolvers/zod';
 import {apiClient} from '@/lib/api/base-client';
 import {AUTH, USERS, SECURITY} from '@/lib/api/api-paths';
-import {getCookie, setCookie} from '@/lib/auth-utils';
+import {getCookie, setCookie, dispatchAuthEvent} from '@/lib/auth-utils';
 import {type LoginFormData, loginSchema, type TwoFactorFormData, twoFactorSchema} from '@/lib/schemas';
 import {useTranslation} from '@/lib/i18n';
 
@@ -66,6 +66,7 @@ export function useLoginState() {
             if (d.refresh_token) setCookie('refresh_token', d.refresh_token, 604800);
             const r2 = await apiClient.get(USERS.ME);
             if (r2.success && r2.data) {
+              dispatchAuthEvent(true);
               window.location.href = new URLSearchParams(window.location.search).get('next') || '/profile';
               return;
             }
@@ -171,6 +172,7 @@ export function useLoginState() {
           const accessR = await apiClient.post(AUTH.REFRESH_TOKEN, {refresh: refreshToken});
           if (accessR.success && accessR.data) {
             setCookie('access_token', (accessR.data as any).access_token || (accessR.data as any).access || '', 3600);
+            dispatchAuthEvent(true);
             window.location.href = next();
             return;
           }
@@ -198,6 +200,7 @@ export function useLoginState() {
       if (d.requires_2fa && d.temp_token) { setFa({tempToken: d.temp_token, userId: d.user_id}); setBusy(false); return; }
       if (d.access_token) setCookie('access_token', d.access_token, 3600);
       if (d.refresh_token) setCookie('refresh_token', d.refresh_token, 604800);
+      dispatchAuthEvent(true);
       window.location.href = next();
     } catch { setErr(t('login.networkError')); setBusy(false); }
   };
@@ -212,6 +215,7 @@ export function useLoginState() {
         const d = r.data as any;
         if (d.access_token) setCookie('access_token', d.access_token, 3600);
         if (d.refresh_token) setCookie('refresh_token', d.refresh_token, 604800);
+        dispatchAuthEvent(true);
         window.location.href = next();
       } else setErr(r.error || t('login.verificationFailed'));
     } catch { setErr(t('login.verificationFailed')); }
