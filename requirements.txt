@@ -16,6 +16,7 @@ mdit-py-plugins==0.6.1
 mdit-py-toc==1.0.0
 mdit-py-emoji==0.1.1
 pygments==2.20.0
+markitdown==0.1.6
 
 # Database
 sqlalchemy==2.0.50
