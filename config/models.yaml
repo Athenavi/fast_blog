@@ -1071,8 +1071,7 @@ models:
       - name: idx_media_hash
         columns:
           - hash
-        unique: true
-        comment: 文件哈希唯一索引（去重）
+        comment: 文件哈希索引（允许重复文件）
       - name: idx_media_file_type
         columns:
           - file_type

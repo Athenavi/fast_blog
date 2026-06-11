@@ -249,33 +249,22 @@ class ResourceTransferService:
                 file_hash, file_size, mime_type, str(final_path.relative_to(Path(".")))
             )
 
-            # 检查数据库中是否已有相同 hash 的 Media 记录
-            existing_media = await self.db.execute(
-                select(Media).where(Media.hash == file_hash)
+            # 创建Media记录（允许重复 hash）
+            media = Media(
+                user=task.user_id,
+                hash=file_hash,
+                original_filename=task.filename or f"downloaded_{datetime.now().strftime('%Y%m%d_%H%M%S')}{ext}",
+                file_path=str(final_path),
+                file_size=file_size,
+                file_type=self._get_media_type(mime_type),
+                mime_type=mime_type,
+                description=f"从 {task.source_url} 下载"
             )
-            media = existing_media.scalar_one_or_none()
+            self.db.add(media)
+            await self.db.flush()
+            await self.db.refresh(media)
 
-            if media:
-                logger.info(f"Media 已存在 (hash={file_hash}, id={media.id})，直接关联任务")
-            else:
-                # 创建新的Media记录
-                media = Media(
-                    user=task.user_id,
-                    hash=file_hash,
-                    original_filename=task.filename or f"downloaded_{datetime.now().strftime('%Y%m%d_%H%M%S')}{ext}",
-                    file_path=str(final_path),
-                    file_size=file_size,
-                    file_type=self._get_media_type(mime_type),
-                    mime_type=mime_type,
-                    description=f"从 {task.source_url} 下载"
-                )
-                self.db.add(media)
-                await self.db.flush()
-                await self.db.refresh(media)
-                logger.info(f"媒体创建成功: {media.id}, 文件: {filename}")
-
-            # 更新任务状态 - 使用原始SQL避免session状态问题
-            task.media_id = media.id
+            # 更新任务状态
             await self.db.execute(
                 update(DownloadTask)
                 .where(DownloadTask.id == task.id)
@@ -287,12 +276,11 @@ class ResourceTransferService:
                 )
             )
             await self.db.flush()
+            logger.info(f"媒体创建成功: {media.id}, 文件: {filename}")
             return media
 
         except Exception as e:
             logger.error(f"完成下载失败: {e}", exc_info=True)
-            # 不在这里调用 _update_task_status，因为 flush 异常后 session 已不可用
-            # 让外层 execute_download 的 except 块处理
             raise
 
     async def _update_task_status(
