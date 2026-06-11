@@ -1,0 +1,8 @@
+{
+  "name": "KaTeX Render",
+  "slug": "katex-render",
+  "version": "1.0.0",
+  "description": "Render LaTeX math formulas in comments using KaTeX. Write $...$ for inline and $$...$$ for display math.",
+  "icon": "∑",
+  "price": "free"
+}

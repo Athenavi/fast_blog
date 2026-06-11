@@ -20,6 +20,24 @@ from src.auth import jwt_required_dependency as jwt_required
 from src.auth.auth_deps import jwt_optional_dependency
 from src.extensions import get_async_db_session as get_async_db
 
+
+# ─── 插件管道处理 ────────────────────────────
+async def _process_comment_content(comment_dict: dict) -> dict:
+    """将评论内容通过 EventBus comment.content 管道处理"""
+    if not comment_dict:
+        return comment_dict
+    content = comment_dict.get('content', '')
+    if content:
+        try:
+            result = await event_bus.pipeline('comment.content', content)
+            if isinstance(result, str):
+                comment_dict['content'] = result
+            elif isinstance(result, dict):
+                comment_dict['content'] = result.get('content', result.get('html', content))
+        except Exception:
+            pass
+    return comment_dict
+
 router = APIRouter(tags=["comments"])
 
 
@@ -300,7 +318,7 @@ async def get_comment(
         return fail("评论不存在")
 
     return ok(
-        data=comment.to_dict()
+        data=await _process_comment_content(comment.to_dict())
     )
 
 
@@ -368,6 +386,9 @@ async def get_article_comments(
     comments_data = []
     for comment in comments:
         comment_dict = comment.to_dict()
+
+        # 通过插件管道处理评论内容
+        comment_dict = await _process_comment_content(comment_dict)
 
         # 添加用户信息
         user = users.get(comment.user_id)

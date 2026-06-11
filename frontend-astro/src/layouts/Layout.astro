@@ -43,6 +43,12 @@ const {title = 'FastBlog', description = 'A modern blog platform', dir = 'ltr', 
         } catch(e) {}
       })();
     </script>
+
+    <!-- KaTeX: LaTeX formula rendering (used by katex-render plugin) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous"/>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" crossorigin="anonymous"
+            onload="document.addEventListener('astro:after-swap', function(){try{renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true}]});}catch(e){}});renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true}]});"></script>
   </head>
   <body class="antialiased" suppressHydrationWarning>
     <Navbar client:load />

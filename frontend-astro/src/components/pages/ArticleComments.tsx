@@ -91,10 +91,9 @@ const CommentItem: React.FC<{
           </div>
         </div>
 
-        {/* Content */}
-        <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed mb-3 whitespace-pre-wrap break-words">
-          {comment.content}
-        </div>
+        {/* Content — 渲染为 HTML（支持 KaTeX 公式等插件管道输出） */}
+        <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed mb-3 break-words"
+             dangerouslySetInnerHTML={{__html: comment.content}}/>
 
         {/* Actions */}
         <div className="flex items-center gap-3 text-xs text-gray-400">
