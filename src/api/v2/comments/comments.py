@@ -1014,3 +1014,147 @@ async def update_notification_preferences(
         )
     else:
         return fail("更新失败")
+
+
+# ==================== 评论管理（管理员） ====================
+
+@router.get("/")
+@_catch
+async def list_comments(
+    page: int = 1,
+    per_page: int = 20,
+    status: Optional[str] = None,
+    article_id: Optional[int] = None,
+    db: AsyncSession = Depends(get_async_db),
+    current_user=Depends(jwt_required)
+):
+    """获取评论列表（管理员用，支持分页和筛选）"""
+    from sqlalchemy import select, func, desc
+
+    query = select(Comment)
+
+    # 管理员可看所有评论，普通用户只看自己的
+    if not getattr(current_user, 'is_staff', False) and not getattr(current_user, 'is_superuser', False):
+        query = query.where(Comment.user_id == current_user.id)
+
+    if status == 'pending':
+        query = query.where(Comment.is_approved == False)
+    elif status == 'approved':
+        query = query.where(Comment.is_approved == True)
+    elif status == 'deleted':
+        query = query.where(Comment.content == '[评论已被删除]')
+
+    if article_id:
+        query = query.where(Comment.article_id == article_id)
+
+    total = await db.scalar(select(func.count(Comment.id)).select_from(query.subquery())) or 0
+    query = query.order_by(desc(Comment.created_at)).offset((page - 1) * per_page).limit(per_page)
+    result = await db.execute(query)
+    comments = result.scalars().all()
+
+    comments_data = [c.to_dict() for c in comments]
+    return ok(data={
+        "comments": comments_data,
+        "total": total,
+        "page": page,
+        "per_page": per_page,
+        "total_pages": max(1, (total + per_page - 1) // per_page),
+    })
+
+
+@router.get("/pending")
+@_catch
+async def list_pending_comments(
+    page: int = 1,
+    per_page: int = 20,
+    db: AsyncSession = Depends(get_async_db),
+    current_user=Depends(jwt_required)
+):
+    """获取待审核评论列表（管理员用）"""
+    from sqlalchemy import select, func, desc
+
+    if not getattr(current_user, 'is_staff', False) and not getattr(current_user, 'is_superuser', False):
+        return fail("需要管理员权限")
+
+    query = select(Comment).where(Comment.is_approved == False)
+    total = await db.scalar(select(func.count(Comment.id)).where(Comment.is_approved == False)) or 0
+    query = query.order_by(desc(Comment.created_at)).offset((page - 1) * per_page).limit(per_page)
+    result = await db.execute(query)
+    comments = result.scalars().all()
+
+    # 附上文章标题和用户信息
+    from shared.models.article import Article
+    from shared.models.user import User
+
+    article_ids = list(set(c.article_id for c in comments if c.article_id))
+    user_ids = list(set(c.user_id for c in comments if c.user_id))
+
+    articles = {}
+    if article_ids:
+        art_result = await db.execute(select(Article).where(Article.id.in_(article_ids)))
+        articles = {a.id: a for a in art_result.scalars().all()}
+
+    users = {}
+    if user_ids:
+        usr_result = await db.execute(select(User).where(User.id.in_(user_ids)))
+        users = {u.id: u for u in usr_result.scalars().all()}
+
+    comments_data = []
+    for c in comments:
+        d = c.to_dict()
+        d['article_title'] = articles[c.article_id].title if c.article_id in articles else None
+        d['user'] = {'id': users[c.user_id].id, 'username': users[c.user_id].username} if c.user_id in users else None
+        comments_data.append(d)
+
+    return ok(data={
+        "comments": comments_data,
+        "total": total,
+        "page": page,
+        "total_pages": max(1, (total + per_page - 1) // per_page),
+    })
+
+
+@router.post("/{comment_id}/approve")
+@_catch
+async def approve_comment(
+    comment_id: int,
+    db: AsyncSession = Depends(get_async_db),
+    current_user=Depends(jwt_required)
+):
+    """审核通过评论（管理员用）"""
+    from sqlalchemy import select
+
+    if not getattr(current_user, 'is_staff', False) and not getattr(current_user, 'is_superuser', False):
+        return fail("需要管理员权限")
+
+    result = await db.execute(select(Comment).where(Comment.id == comment_id))
+    comment = result.scalar_one_or_none()
+    if not comment:
+        return fail("评论不存在")
+
+    comment.is_approved = True
+    await db.flush()
+    return ok(data=comment.to_dict(), msg="评论已通过")
+
+
+@router.post("/{comment_id}/reject")
+@_catch
+async def reject_comment(
+    comment_id: int,
+    db: AsyncSession = Depends(get_async_db),
+    current_user=Depends(jwt_required)
+):
+    """驳回评论（管理员用）"""
+    from sqlalchemy import select
+
+    if not getattr(current_user, 'is_staff', False) and not getattr(current_user, 'is_superuser', False):
+        return fail("需要管理员权限")
+
+    result = await db.execute(select(Comment).where(Comment.id == comment_id))
+    comment = result.scalar_one_or_none()
+    if not comment:
+        return fail("评论不存在")
+
+    comment.is_approved = False
+    await db.flush()
+    return ok(msg="评论已驳回")

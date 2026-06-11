@@ -75,7 +75,7 @@ export const COMMENTS = {
 
 // ─── Categories 分类 ────────────────────────────
 export const CATEGORIES = {
-  LIST: '/cms/categories/',
+  LIST: '/cms/categories',
   CREATE: '/cms/categories/',
   DETAIL: (name: string) => `/cms/categories/${name}`,
   UPDATE: (id: number) => `/cms/categories/${id}`,
@@ -147,9 +147,9 @@ export const DASHBOARD = {
   BLOG_MGMT_ARTICLES: '/dashboard/blog-management/articles',
   BLOG_MGMT_ARTICLE_STATS: '/dashboard/blog-management/articles/stats',
   BLOG_MGMT_ARTICLE: (id: number) => `/dashboard/blog-management/articles/${id}`,
-  USER_MGMT_USERS: '/dashboard/user-management/users',
-  USER_MGMT_USER_ACTION: (id: number, action: string) => `/dashboard/user-management/users/${id}/${action}`,
-  MEDIA_MGMT_FILES: '/api/v2/dashboard/media-management/files',
+  USER_MGMT_USERS: '/users/',
+  USER_MGMT_USER_ACTION: (id: number, action: string) => `/users/${id}/${action}`,
+  MEDIA_MGMT_FILES: '/media/files',
   MEDIA_MGMT_UPLOAD_TASKS: '/api/v2/dashboard/media-management/upload-tasks',
   ACTIVITIES: '/dashboard/activities',
   VIP_MANAGEMENT: '/dashboard/blog-management/vip',
