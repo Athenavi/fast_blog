@@ -23,7 +23,7 @@ class ResourceTransferService:
         self.db = db_session
         self.max_file_size = 100 * 1024 * 1024  # 100MB
         self.chunk_size = 1024 * 1024  # 1MB chunks for progress tracking
-        self.download_dir = Path("storage/objects")
+        self.download_dir = Path("storage")
         self.download_dir.mkdir(parents=True, exist_ok=True)
 
     async def create_download_task(

@@ -92,7 +92,7 @@ async def get_media_thumbnail(
     logger.info(f"缩略图不存在，开始生成 - media_id: {media_id}")
 
     # 查找原始文件
-    original_dir = Path(f"storage/objects/{media.hash[:2]}")
+    original_dir = Path(f"storage/{media.hash[:2]}")
     original_path = None
 
     # 尝试查找带扩展名或不带扩展名的文件

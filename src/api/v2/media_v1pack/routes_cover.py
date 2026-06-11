@@ -85,14 +85,14 @@ async def generate_cover_url(
     # 尝试从多个路径读取文件
     image_data = None
     possible_paths = [
-        Path(f"storage/objects/{media.hash[:2]}/{media.hash}"),
-        Path(f"storage/objects/{media.hash[:2]}/{media.hash}.png"),
+        Path(f"storage/{media.hash[:2]}/{media.hash}"),
+        Path(f"storage/{media.hash[:2]}/{media.hash}.png"),
     ]
 
     # 如果 storage_path 中有扩展名信息
     if file_hash.storage_path and '.' in Path(file_hash.storage_path).name:
         ext = Path(file_hash.storage_path).suffix
-        possible_paths.append(Path(f"storage/objects/{media.hash[:2]}/{media.hash}{ext}"))
+        possible_paths.append(Path(f"storage/{media.hash[:2]}/{media.hash}{ext}"))
 
     # 尝试读取文件
     for file_path in possible_paths:

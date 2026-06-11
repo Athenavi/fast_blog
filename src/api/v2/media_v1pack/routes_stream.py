@@ -122,13 +122,13 @@ async def get_media_file_by_id(
 
     # 确定文件路径（用于生成 ETag）
     # 注意：文件可能带扩展名或不带扩展名，需要尝试两种情况
-    file_path_without_ext = Path(f"storage/objects/{media.hash[:2]}/{media.hash}")
-    file_path_with_ext = Path(f"storage/objects/{media.hash[:2]}/{media.hash}.png")  # 默认尝试 .png
+    file_path_without_ext = Path(f"storage/{media.hash[:2]}/{media.hash}")
+    file_path_with_ext = Path(f"storage/{media.hash[:2]}/{media.hash}.png")  # 默认尝试 .png
 
     # 如果 storage_path 中有扩展名信息，使用它
     if file_hash.storage_path and '.' in Path(file_hash.storage_path).name:
         ext = Path(file_hash.storage_path).suffix
-        file_path_with_ext = Path(f"storage/objects/{media.hash[:2]}/{media.hash}{ext}")
+        file_path_with_ext = Path(f"storage/{media.hash[:2]}/{media.hash}{ext}")
 
     # 优先使用带扩展名的路径，如果不存在则使用不带扩展名的路径
     if file_path_with_ext.exists():
