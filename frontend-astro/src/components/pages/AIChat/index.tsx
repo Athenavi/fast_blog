@@ -289,8 +289,11 @@ function AIChatInner() {
       setLoading(true);
       for (const tc of toolCalls) {
         const toolResult = await executeToolCall(tc.name, tc.args);
+        const toolId = `fb-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
         const toolMsg: ChatMessage = {
           role: 'tool',
+          tool_call_id: toolId,
+          name: tc.name,
           content: JSON.stringify({name: tc.name, args: tc.args, result: toolResult.success ? toolResult.result : null, done: true}),
         };
 

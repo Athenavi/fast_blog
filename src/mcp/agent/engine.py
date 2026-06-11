@@ -116,7 +116,11 @@ def get_tool_defs() -> List[Dict]:
 # ─── Message builder ───────────────────────────────────────────────
 
 def build_messages(state: AgentState, system_prompt: str) -> List[Dict]:
-    """Build OpenAI-format messages from state."""
+    """Build OpenAI-format messages from state.
+    
+    Defensively ensures every ``tool`` message carries a ``tool_call_id``
+    (generates a synthetic id when the frontend ReAct loop omits it).
+    """
     msgs = [{"role": "system", "content": system_prompt}]
     for m in state.messages:
         role = m.get("role", "user")
@@ -130,6 +134,9 @@ def build_messages(state: AgentState, system_prompt: str) -> List[Dict]:
             entry["tool_calls"] = m["tool_calls"]
         if m.get("tool_call_id"):
             entry["tool_call_id"] = m["tool_call_id"]
+        elif role == "tool":
+            # 前端 ReAct 循环生成的 tool 消息可能缺少 id
+            entry["tool_call_id"] = f"synthetic-{uuid.uuid4().hex[:8]}"
         if m.get("name"):
             entry["name"] = m["name"]
         msgs.append(entry)
@@ -152,7 +159,7 @@ async def run_agent(
         openai_msgs = build_messages(state, cfg.system_prompt)
 
         try:
-            response = await call_llm(cfg, openai_msgs, tools=tools if _round == 0 else None)
+            response = await call_llm(cfg, openai_msgs, tools=tools)
         except Exception as e:
             err = str(e)[:300]
             logger.error(f"LLM call failed: {err}")
@@ -233,7 +240,7 @@ async def stream_agent(
         openai_msgs = build_messages(state, cfg.system_prompt)
 
         try:
-            response = await call_llm(cfg, openai_msgs, tools=tools if _round == 0 else None)
+            response = await call_llm(cfg, openai_msgs, tools=tools)
         except Exception as e:
             err = str(e)[:300]
             logger.error(f"LLM call failed: {err}")

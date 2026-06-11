@@ -67,7 +67,12 @@ def _to_cfg(req: ChatRequest) -> LLMConfig:
 
 
 def _to_dicts(messages: List[ChatMessage]) -> List[Dict]:
-    """Convert pydantic ChatMessage list to plain dicts."""
+    """Convert pydantic ChatMessage list to plain dicts.
+    
+    Frontend-generated tool messages (from the client-side ReAct loop)
+    may lack ``tool_call_id``. DeepSeek and other providers require this
+    field on every ``role=tool`` message, so we auto-fill it here.
+    """
     result = []
     for m in messages:
         d: Dict[str, Any] = {"role": m.role}
@@ -77,6 +82,9 @@ def _to_dicts(messages: List[ChatMessage]) -> List[Dict]:
             d["tool_calls"] = m.tool_calls
         if m.tool_call_id:
             d["tool_call_id"] = m.tool_call_id
+        # ── 前端 ReAct 工具消息缺少 tool_call_id，自动补全 ──
+        elif m.role == "tool":
+            d["tool_call_id"] = f"frontend-{uuid.uuid4().hex[:8]}"
         if m.name:
             d["name"] = m.name
         result.append(d)
