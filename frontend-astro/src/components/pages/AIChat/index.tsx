@@ -9,6 +9,7 @@ import {useDarkMode} from '@/lib/dark-mode-manager';
 
 import type {Conversation, ChatMessage} from './types';
 import {DEFAULT_CONFIG, CFG_KEY, CONS_KEY, genId, trunc} from './types';
+import {parseToolCalls, executeToolCall} from './tools';
 import Sidebar from './Sidebar';
 import ChatBubble, {ThinkingIndicator} from './ChatBubble';
 import ChatInput from './ChatInput';
@@ -23,6 +24,9 @@ interface LLMConfig {
   model: string;
   systemPrompt: string;
 }
+
+/** ReAct 循环最大迭代次数 */
+const MAX_REACT_ITERATIONS = 5;
 
 // ─── Main Component ────────────────────────────
 
@@ -105,39 +109,20 @@ function AIChatInner() {
     setConfig(prev => ({...prev, ...patch}));
   }, []);
 
-  // ── Send message ──
-  const sendMessage = useCallback(async () => {
-    const text = input.trim();
-    if (!text || loading) return;
-    setInput('');
-
-    // Validate config
-    if (!config.endpoint || !config.model) {
-      setSettingsOpen(true);
-      return;
-    }
-
-    const finalConvId = activeConvId || genId();
-    const isNew = !activeConvId;
-    if (isNew) {
-      setConversations(prev => [{id: finalConvId, title: trunc(text, 40), messages: [], createdAt: Date.now()}, ...prev]);
-      setActiveConvId(finalConvId);
-    }
-
-    const curMsgs = conversations.find(c => c.id === finalConvId)?.messages || [];
-    const newMessages: ChatMessage[] = [...curMsgs, {role: 'user', content: text}];
-    setConversations(prev => prev.map(c => c.id !== finalConvId ? c : {...c, messages: newMessages, title: c.messages.length === 0 ? trunc(text, 40) : c.title}));
-    setLoading(true);
-
-    const controller = new AbortController();
-    abortRef.current = controller;
-    const acc: ChatMessage[] = [...newMessages];
+  // ── 核心：执行一次 SSE 流式请求 ──
+  const doStream = useCallback(async (
+    finalConvId: string,
+    msgs: ChatMessage[],
+    controller: AbortController,
+    onUpdate: (updated: ChatMessage[]) => void,
+  ): Promise<ChatMessage[]> => {
+    const acc: ChatMessage[] = [...msgs];
 
     const body = JSON.stringify({
       endpoint: config.endpoint,
       api_key: config.apiKey,
       model: config.model,
-      messages: newMessages.map(m => ({role: m.role, content: m.content})),
+      messages: msgs.map(m => ({role: m.role, content: m.content})),
       conversation_id: finalConvId,
       system_prompt: config.systemPrompt,
     });
@@ -150,12 +135,11 @@ function AIChatInner() {
       });
       if (!resp.ok) {
         acc.push({role: 'assistant', content: `⚠️ 请求失败 (${resp.status})`});
-        setConversations(p => p.map(c => c.id !== finalConvId ? c : {...c, messages: [...acc]}));
-        return;
+        return acc;
       }
 
       const reader = resp.body?.getReader();
-      if (!reader) return;
+      if (!reader) return acc;
       const decoder = new TextDecoder();
       let buf = '';
 
@@ -173,8 +157,8 @@ function AIChatInner() {
             if (data.type === 'done') break;
             if (data.type === 'error') {
               acc.push({role: 'assistant', content: `❌ ${data.message}`});
-              setConversations(p => p.map(c => c.id !== finalConvId ? c : {...c, messages: [...acc]}));
-              return;
+              onUpdate([...acc]);
+              return acc;
             }
             if (data.type === 'token' && data.content) {
               const last = acc[acc.length - 1];
@@ -183,14 +167,14 @@ function AIChatInner() {
               } else {
                 acc.push({role: 'assistant', content: data.content});
               }
-              setConversations(p => p.map(c => c.id !== finalConvId ? c : {...c, messages: [...acc]}));
+              onUpdate([...acc]);
             }
             if (data.type === 'tool_call') {
               acc.push({role: 'tool', content: JSON.stringify({
                 name: data.name, args: data.args,
                 result: null, done: false,
               })});
-              setConversations(p => p.map(c => c.id !== finalConvId ? c : {...c, messages: [...acc]}));
+              onUpdate([...acc]);
             }
             if (data.type === 'tool_result') {
               for (let i = acc.length - 1; i >= 0; i--) {
@@ -206,22 +190,117 @@ function AIChatInner() {
                   } catch { /* ignore */ }
                 }
               }
-              setConversations(p => p.map(c => c.id !== finalConvId ? c : {...c, messages: [...acc]}));
+              onUpdate([...acc]);
             }
           } catch { /* ignore */ }
         }
       }
-      setConversations(p => p.map(c => c.id !== finalConvId ? c : {...c, messages: [...acc]}));
+      return acc;
     } catch (err: any) {
       if (err.name !== 'AbortError') {
         acc.push({role: 'assistant', content: `❌ ${err?.message || '请求失败'}`});
-        setConversations(p => p.map(c => c.id !== finalConvId ? c : {...c, messages: [...acc]}));
+        onUpdate([...acc]);
       }
-    } finally {
-      setLoading(false);
-      abortRef.current = null;
+      return acc;
     }
-  }, [input, loading, config, activeConvId, conversations]);
+  }, [config]);
+
+  // ── 发送消息（含 ReAct 循环） ──
+  const sendMessage = useCallback(async () => {
+    const text = input.trim();
+    if (!text || loading) return;
+    setInput('');
+
+    if (!config.endpoint || !config.model) {
+      setSettingsOpen(true);
+      return;
+    }
+
+    const finalConvId = activeConvId || genId();
+    const isNew = !activeConvId;
+    if (isNew) {
+      setConversations(prev => [{id: finalConvId, title: trunc(text, 40), messages: [], createdAt: Date.now()}, ...prev]);
+      setActiveConvId(finalConvId);
+    }
+
+    // 获取最新消息并追加用户输入
+    const latestConv = isNew ? null : conversations.find(c => c.id === finalConvId);
+    let msgs: ChatMessage[] = latestConv
+      ? [...latestConv.messages, {role: 'user', content: text}]
+      : [{role: 'user', content: text}];
+
+    // ─── ReAct 循环 ───
+    let reactIter = 0;
+
+    while (reactIter < MAX_REACT_ITERATIONS) {
+      reactIter++;
+      setLoading(true);
+
+      const controller = new AbortController();
+      abortRef.current = controller;
+
+      // 推送目前消息到 UI
+      setConversations(p => p.map(c => c.id !== finalConvId ? c : {
+        ...c, messages: msgs,
+        title: c.messages.length === 0 ? trunc(text, 40) : c.title,
+      }));
+
+      // 增量更新 UI 的回调（保持流式效果）
+      const onUpdate = (updated: ChatMessage[]) => {
+        setConversations(p => p.map(c => c.id !== finalConvId ? c : {...c, messages: updated}));
+      };
+
+      const result = await doStream(finalConvId, msgs, controller, onUpdate);
+      abortRef.current = null;
+      setLoading(false);
+
+      msgs = result;
+
+      // ── 检查 assistant 文本中是否嵌有工具调用 ──
+      const lastMsg = msgs[msgs.length - 1];
+      if (!lastMsg || lastMsg.role !== 'assistant') break;
+
+      const toolCalls = parseToolCalls(lastMsg.content || '');
+      if (toolCalls.length === 0) break;
+
+      // 清除助手消息中的原始工具调用文本
+      let cleanContent = lastMsg.content || '';
+      cleanContent = cleanContent.replace(/<tool_calls>[\s\S]*?<\/tool_calls>/g, '');
+      cleanContent = cleanContent.replace(/```(?:json)?\s*\{[\s\S]*?\}\s*```/g, '');
+      cleanContent = cleanContent.replace(/\{\s*"(?:function|name|tool)"\s*:\s*"[^"]+"[\s\S]*?\}/g, '').trim();
+
+      const hasCleanContent = cleanContent.length > 0;
+
+      // 批量执行工具（期间保持 loading）
+      setLoading(true);
+      for (const tc of toolCalls) {
+        const toolResult = await executeToolCall(tc.name, tc.args);
+
+        const toolMsg: ChatMessage = {
+          role: 'tool',
+          content: JSON.stringify({
+            name: tc.name,
+            args: tc.args,
+            result: toolResult.success ? toolResult.result : null,
+            done: true,
+          }),
+        };
+
+        if (hasCleanContent && (toolCalls.length === 1 || tc === toolCalls[0])) {
+          // 有文字 + 第一个工具 → 更新 assistant 消息再追加工具结果
+          msgs[msgs.length - 1] = {...msgs[msgs.length - 1], content: cleanContent};
+          msgs.push(toolMsg);
+        } else {
+          msgs.push(toolMsg);
+        }
+
+        setConversations(p => p.map(c => c.id !== finalConvId ? c : {...c, messages: msgs}));
+      }
+      setLoading(false);
+
+      // 继续循环：让 LLM 看到工具结果后继续推理
+    }
+  }, [input, loading, config, activeConvId, conversations, doStream]);
 
   const handleInterrupt = useCallback(() => {
     abortRef.current?.abort();
@@ -303,7 +382,6 @@ function AIChatInner() {
               />
             ) : (
               <>
-                {/* Context hint */}
                 <div className="flex items-center justify-center mb-2">
                   <div className="px-3 py-1 bg-violet-50 dark:bg-violet-900/20 rounded-full border border-violet-100 dark:border-violet-800/30">
                     <span className="text-[10px] text-violet-600 dark:text-violet-400 font-medium">
@@ -330,7 +408,6 @@ function AIChatInner() {
         />
       </div>
 
-      {/* Settings Modal */}
       <SettingsModal config={config} onChange={updateConfig} onClose={() => setSettingsOpen(false)} show={settingsOpen} />
     </div>
   );
