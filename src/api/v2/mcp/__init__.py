@@ -84,7 +84,21 @@ def _to_dicts(messages: List[ChatMessage]) -> List[Dict]:
                 name = parsed.get("name", m.name or "tool")
                 result_data = parsed.get("result", "")
                 status = "✅" if parsed.get("done") else "❌"
-                summary = f"[工具执行结果] {name}: {status}\n{json.dumps(result_data, ensure_ascii=False, indent=2) if result_data else '(空)'}"
+                summary = f"> {status} **{name}** 执行成功\n"
+                if isinstance(result_data, dict):
+                    for k, v in result_data.items():
+                        if k in ("success",): continue
+                        if isinstance(v, (list, dict)):
+                            v_str = json.dumps(v, ensure_ascii=False, indent=2)
+                            summary += f">   - **{k}**:\n>     ```json\n>     {v_str}\n>     ```\n"
+                        else:
+                            summary += f">   - **{k}**: {v}\n"
+                elif isinstance(result_data, list):
+                    summary += f">   - 共 **{len(result_data)}** 条记录\n"
+                else:
+                    summary += f">   - 结果：{result_data}\n"
+                if isinstance(result_data, dict) and result_data.get("message"):
+                    summary += f">\n> 📝 {result_data['message']}\n"
             except (json.JSONDecodeError, TypeError):
                 summary = m.content or "(空工具结果)"
             result.append({"role": "assistant", "content": summary})

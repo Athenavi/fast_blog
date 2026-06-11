@@ -183,7 +183,22 @@ def build_messages(state: AgentState, system_prompt: str) -> List[Dict]:
                     name = parsed.get("name", m.get("name", "tool"))
                     result = parsed.get("result", "")
                     status = "✅" if parsed.get("done") else "❌"
-                    summary = f"[工具执行结果] {name}: {status}\n{json.dumps(result, ensure_ascii=False, indent=2) if result else '(空)'}"
+                    lines = [f"> {status} **{name}** 执行成功"]
+                    if isinstance(result, dict):
+                        for k, v in result.items():
+                            if k in ("success",): continue
+                            if isinstance(v, (list, dict)):
+                                v_str = json.dumps(v, ensure_ascii=False, indent=2)
+                                lines.append(f">   - **{k}**:\n>     ```json\n>     {v_str}\n>     ```")
+                            else:
+                                lines.append(f">   - **{k}**: {v}")
+                        if result.get("message"):
+                            lines.append(f">\n> 📝 {result['message']}")
+                    elif isinstance(result, list):
+                        lines.append(f">   - 共 **{len(result)}** 条记录")
+                    else:
+                        lines.append(f">   - 结果：{result}")
+                    summary = "\n".join(lines)
             except (json.JSONDecodeError, TypeError):
                 summary = content or "(空工具结果)"
 
