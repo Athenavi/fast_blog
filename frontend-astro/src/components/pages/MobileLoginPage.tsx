@@ -27,7 +27,14 @@ export default function MobileLoginPage() {
   }, []);
 
   // 携带 next 参数去登录页，登录后跳回当前确认页
-  const loginUrl = `/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`;
+  const [loginUrl, setLoginUrl] = useState('/login');
+
+  useEffect(() => {
+    // 在浏览器环境下才能访问 window.location
+    if (typeof window !== 'undefined') {
+      setLoginUrl(`/login?next=${encodeURIComponent(window.location.pathname + window.location.search)}`);
+    }
+  }, []);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-gray-950 dark:to-gray-900 p-4">
