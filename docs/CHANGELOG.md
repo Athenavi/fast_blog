@@ -5,6 +5,31 @@
 格式基于 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.0.0/)，
 并且此项目遵循 [语义化版本](https://semver.org/lang/zh-CN/)。
 
+## [0.6.26.0611] - 2026-06-11
+
+### 重构
+- 🔥 **插件系统全面重构** — 删除旧 PluginHook，替换为 EventBus（观察者模式）
+  - 新增 `shared/services/plugins/event_bus.py`（emit 广播 + pipeline 管道）
+  - BasePlugin 新增 `subscribers()` + SQLite 持久化助手
+  - 删除 14 个重复/脚手架插件，保留 code-snippets 和 newsletter
+- 🆕 **新增 Newsletter 插件** — SQLite 持久化 + EventBus 自动推送
+  - 公开订阅/退订，新文章发布时自动发送邮件
+  - 前端管理页面（订阅者列表 + 统计）
+- 🆕 **code-snippets 前端管理页** — 完整的 CRUD + 嵌入代码复制
+- 🆕 **前端插件引擎** — 构建时自动扫描 `plugins/*/frontend/`
+  - 自动生成 Astro 代理页面和侧边栏菜单
+  - 新插件只需 manifest.json 声明
+- **SSR 迁移** — 首页/文章列表/文章详情/分类页 4 页 SSR
+  - `@astrojs/node` adapter，React 组件接受 SSR initial props
+
+### V2 API 接入 EventBus
+- 文章创建 → `article.published` | 文章更新 → `article.updated`
+- 文章详情 → `article.content` 管道 | 评论创建 → `comment.created`
+
+### 文档
+- 重写 PLUGIN_DEVELOPMENT_GUIDE.md（EventBus）
+- 更新 TECHNICAL.md、QUICK_START.md
+
 ## [0.3.26.0520] - 2026-05-20
 
 ### 新增

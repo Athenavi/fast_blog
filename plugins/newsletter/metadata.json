@@ -1,0 +1,12 @@
+{
+  "name": "Newsletter",
+  "slug": "newsletter",
+  "version": "1.0.0",
+  "description": "Email newsletter subscription and auto-send on new articles",
+  "author": "FastBlog Team",
+  "category": "content",
+  "tags": ["newsletter", "email", "subscription"],
+  "requires": ">=0.0.2.0",
+  "icon": "📧",
+  "price": "free"
+}

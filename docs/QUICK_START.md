@@ -1,6 +1,6 @@
 # FastBlog 快速入门指南
 
-**当前版本**: V0.3.26.0521
+**当前版本**: V0.6.26.0611
 
 ## 💻 手动部署
 
@@ -39,10 +39,12 @@ python main.py
 ```bash
 cd frontend-astro
 npm install
-npm run dev     # 开发模式（默认端口 4321）
-# npm run build  # 生产构建
-# npm run preview # 预览生产构建
+npm run dev     # 开发模式（自动扫描插件前端，默认端口 4321）
+npm run build   # 生产构建（自动扫描插件前端）
+npm run preview # 预览生产构建
 ```
+
+> 插件前端：`npm run prescan` 会扫描 `plugins/*/frontend/manifest.json`，自动生成管理页面和侧边栏菜单。`dev` 和 `build` 命令已包含此步骤。
 
 ### Docker 部署
 

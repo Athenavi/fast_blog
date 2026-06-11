@@ -26,6 +26,7 @@ import {
   Image,
   Lock,
   LogOut,
+  Mail,
   Medal,
   MessageSquare,
   Newspaper,
@@ -50,7 +51,7 @@ import {pluginNavItems as _pluginNavItems} from '@/.plugin-registry';
 /** 根据图标名称获取 lucide 组件 */
 function resolveIcon(name: string): React.FC<{ className?: string }> {
   const iconMap: Record<string, React.FC<{ className?: string }>> = {
-    Code, Puzzle, Package, Star, FileText, Settings, Globe,
+    Code, Puzzle, Package, Star, FileText, Settings, Globe, Mail,
   };
   return iconMap[name] || Puzzle;
 }
