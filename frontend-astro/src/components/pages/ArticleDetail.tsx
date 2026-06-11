@@ -46,6 +46,7 @@ const ArticleDetail: React.FC<Props> = ({slug: propSlug}) => {
     const [liked, setLiked] = useState(false);
     const [bookmarked, setBookmarked] = useState(false);
     const [likeCount, setLikeCount] = useState(0);
+    const [likeLoading, setLikeLoading] = useState(false);
     const [copied, setCopied] = useState(false);
     const [showToc, setShowToc] = useState(false);
     const [relatedArticles, setRelatedArticles] = useState<any[]>([]);
@@ -568,8 +569,19 @@ const ArticleDetail: React.FC<Props> = ({slug: propSlug}) => {
                               {/* Like */}
                               <button
                                   onClick={() => {
-                                      setLiked(!liked);
-                                      setLikeCount(prev => liked ? prev - 1 : prev + 1);
+                                      onClick={async () => {
+                                        if (likeLoading) return;
+                                        setLikeLoading(true);
+                                        try {
+                                          await apiClient.post(`/articles/${article.id}/like`, { liked: !liked });
+                                          setLiked(!liked);
+                                          setLikeCount(prev => liked ? prev - 1 : prev + 1);
+                                        } catch (e) {
+                                          console.error('点赞失败', e);
+                                        } finally {
+                                          setLikeLoading(false);
+                                        }
+                                      }}
                                   }}
                                   className={`flex items-center gap-2 px-5 py-2.5 rounded-xl border transition-all text-sm font-medium ${
                                       liked

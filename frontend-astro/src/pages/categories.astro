@@ -1,12 +1,48 @@
 ---
-// 分类列表页
+// 分类列表页 — SSR 渲染（静态分类数据无需客户端 hydration）
 import Layout from '@/layouts/Layout.astro';
-import CategoriesPage from '@/components/pages/CategoriesPage';
+
+// SSR 获取分类数据（服务端渲染时执行）
+let categories: Array<{ id: number; name: string; slug: string; description?: string; article_count?: number }> = [];
+let fetchError = '';
+try {
+  const res = await fetch(`${import.meta.env.API_BASE_URL || 'http://localhost:9421'}/api/v2/media/categories`, {
+    headers: { 'Accept': 'application/json' },
+  });
+  if (res.ok) {
+    const json = await res.json();
+    categories = json.data?.categories || [];
+  }
+} catch (e) {
+  fetchError = '分类数据加载失败';
+}
 ---
 
 <Layout title="分类 - FastBlog">
   <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
     <h1 class="text-3xl font-bold text-gray-900 dark:text-white mb-8">内容分类</h1>
-    <CategoriesPage client:load />
+    
+    {fetchError ? (
+      <div class="text-center py-12">
+        <p class="text-gray-500 dark:text-gray-400">{fetchError}</p>
+      </div>
+    ) : categories.length === 0 ? (
+      <div class="text-center py-12">
+        <p class="text-gray-500 dark:text-gray-400">暂无分类</p>
+      </div>
+    ) : (
+      <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
+        {categories.map(cat => (
+          <a href={`/articles?category=${cat.slug || cat.id}`}
+            class="p-6 bg-white dark:bg-gray-900 rounded-xl border border-gray-200 dark:border-gray-700 hover:shadow-lg hover:border-blue-500 transition-all group">
+            <h3 class="text-xl font-bold text-gray-900 dark:text-white mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">{cat.name}</h3>
+            {cat.description && <p class="text-sm text-gray-600 dark:text-gray-400">{cat.description}</p>}
+            {cat.article_count !== undefined && (
+              <span class="inline-block mt-3 text-xs px-2 py-1 bg-gray-100 dark:bg-gray-800 rounded-full text-gray-500 dark:text-gray-400">{cat.article_count} 篇文章</span>
+            )}
+          </a>
+        ))}
+      </div>
+    )}
   </div>
 </Layout>

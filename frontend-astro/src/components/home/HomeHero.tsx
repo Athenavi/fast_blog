@@ -49,7 +49,7 @@ export default function HomeHero({
         {fullBg && isVideo(current.cover_image || '') ? (
           <video src={fullBg} className="w-full h-full object-cover" autoPlay loop muted playsInline />
         ) : fullBg ? (
-          <img src={fullBg} alt="" className="w-full h-full object-cover" />
+          <img src={fullBg} alt="" className="w-full h-full object-cover" loading="lazy" />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-gray-900 via-blue-950 to-gray-900" />
         )}

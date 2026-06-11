@@ -1,13 +1,13 @@
 ---
-// 文章详情页 - 静态模式，纯客户端渲染
+// 文章详情页 - 客户端渲染（优化版）
 import Layout from '@/layouts/Layout.astro';
 import ArticleDetail from '@/components/pages/ArticleDetail';
 ---
 
 <Layout title="文章详情 - FastBlog">
-    <main class="max-w-full py-8 pt-20">
-    {/* 使用 client:only 确保完全在客户端渲染 */}
-    <ArticleDetail client:only="react"/>
+  <main class="max-w-full py-8 pt-20">
+    <!-- client:load 比 client:only 更好：SSR 输出骨架 HTML，减少 FCP -->
+    <ArticleDetail client:load />
   </main>
 </Layout>
 

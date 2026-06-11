@@ -36,7 +36,7 @@ export default function HomeFeatured({featured, title, noSummaryMsg = '暂无摘
           <a href={`/view?slug=${featured[0].slug}`} className="group block relative aspect-[16/10] rounded-2xl overflow-hidden bg-gray-100 dark:bg-gray-900">
             {featured[0].cover_image ? (
               <img src={getFullMediaUrl(featured[0].cover_image)} alt={featured[0].title}
-                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" loading="eager" />
+                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" loading="lazy" />
             ) : (
               <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-950/50 dark:to-purple-950/50">
                 <BookOpen className="w-20 h-20 text-gray-200 dark:text-gray-800" />

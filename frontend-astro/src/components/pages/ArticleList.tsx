@@ -37,29 +37,32 @@ const ArticleList: React.FC = () => {
     const [showFilters, setShowFilters] = useState(false);
     const perPage = 12;
 
-    // Fetch articles
-    const fetchArticles = useCallback(async () => {
+    // Fetch articles with AbortController to prevent race conditions
+    const fetchArticles = useCallback(async (signal?: AbortSignal) => {
         setLoading(true);
         try {
             const res = await ArticleService.getArticles({
                 page: currentPage,
                 per_page: perPage,
                 search: searchQuery || undefined,
-            } as any);
+            } as any, { signal });
             if (res.success && res.data) {
                 const d = res.data as any;
                 setArticles(d.data || d.articles || []);
                 setTotalPages(d.pagination?.total_pages || d.total_pages || Math.ceil((d.pagination?.total || d.total || 0) / perPage));
                 setTotalCount(d.pagination?.total || d.total || 0);
             }
-        } catch {
+        } catch (err: any) {
+            if (err?.name === 'AbortError') return; // 静默忽略取消请求
         } finally {
             setLoading(false);
         }
-    }, [currentPage, searchQuery, sortBy, selectedTag]);
+    }, [currentPage, searchQuery]);
 
     useEffect(() => {
-        fetchArticles();
+        const abortController = new AbortController();
+        fetchArticles(abortController.signal);
+        return () => abortController.abort(); // 卸载时取消未完成的请求
     }, [fetchArticles]);
 
     // Debounced search
