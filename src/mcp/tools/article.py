@@ -1,7 +1,7 @@
 """
 MCP 文章工具处理器
 """
-from datetime import datetime, timezone
+from datetime import datetime
 
 from sqlalchemy import select
 
@@ -18,7 +18,7 @@ async def create_article(arguments: dict) -> dict:
     if not content:
         raise ValueError("文章内容不能为空")
 
-    now = datetime.now(timezone.utc)
+    now = datetime.utcnow()
     slug = title.lower().replace(" ", "-")[:200]
     status_str = arguments.get("status", "draft")
 
@@ -48,7 +48,7 @@ async def update_article(arguments: dict) -> dict:
     if not article_id:
         raise ValueError("文章ID不能为空")
 
-    now = datetime.now(timezone.utc)
+    now = datetime.utcnow()
     async with get_async_session_context() as db:
         article = await db.scalar(select(Article).where(Article.id == int(article_id)))
         if not article:
@@ -84,7 +84,7 @@ async def delete_article(arguments: dict) -> dict:
             raise ValueError(f"文章 #{article_id} 不存在")
 
         article.status = -1
-        article.updated_at = datetime.now(timezone.utc)
+        article.updated_at = datetime.utcnow()
         await db.commit()
         return {"success": True, "message": f"文章 #{article_id} 已删除", "article_id": article_id}
 

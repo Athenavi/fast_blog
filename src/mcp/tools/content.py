@@ -1,7 +1,7 @@
 """
 MCP 内容管理工具处理器 — 分类/标签/评论
 """
-from datetime import datetime, timezone
+from datetime import datetime
 
 from sqlalchemy import select
 
@@ -33,7 +33,7 @@ async def create_category(arguments: dict) -> dict:
     async with get_async_session_context() as db:
         try:
             cat = Category(name=name, slug=slug, description=arguments.get("description", ""),
-                           created_at=datetime.now(timezone.utc), updated_at=datetime.now(timezone.utc))
+                           created_at=datetime.utcnow(), updated_at=datetime.utcnow())
             db.add(cat)
             await db.commit()
             return {"success": True, "message": f"分类「{name}」创建成功", "category_id": cat.id}
@@ -55,7 +55,7 @@ async def update_category(arguments: dict) -> dict:
             cat.name = arguments["name"].strip()
         if "description" in arguments:
             cat.description = arguments["description"].strip()
-        cat.updated_at = datetime.now(timezone.utc)
+        cat.updated_at = datetime.utcnow()
         await db.commit()
         return {"success": True, "message": f"分类 #{cid} 已更新", "category_id": cid}
 
@@ -117,7 +117,7 @@ async def approve_comment(arguments: dict) -> dict:
         if not comment:
             raise ValueError(f"评论 #{cid} 不存在")
         comment.is_approved = True
-        comment.updated_at = datetime.now(timezone.utc)
+        comment.updated_at = datetime.utcnow()
         await db.commit()
         return {"success": True, "message": f"评论 #{cid} 已审核通过", "comment_id": cid}
 
@@ -132,7 +132,7 @@ async def reject_comment(arguments: dict) -> dict:
         if not comment:
             raise ValueError(f"评论 #{cid} 不存在")
         comment.is_approved = False
-        comment.updated_at = datetime.now(timezone.utc)
+        comment.updated_at = datetime.utcnow()
         await db.commit()
         return {"success": True, "message": f"评论 #{cid} 已拒绝", "comment_id": cid}
 

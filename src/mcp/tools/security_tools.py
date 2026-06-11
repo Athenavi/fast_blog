@@ -47,8 +47,8 @@ async def export_audit_log(arguments: dict) -> dict:
 
     async with get_async_session_context() as db:
         from shared.models.system import AuditLog
-        from datetime import datetime, timedelta, timezone
-        cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+        from datetime import datetime, timedelta
+        cutoff = datetime.utcnow() - timedelta(days=days)
         logs = (await db.execute(
             select(AuditLog).where(AuditLog.created_at >= cutoff).order_by(desc(AuditLog.created_at))
         )).scalars().all()

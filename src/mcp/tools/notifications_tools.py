@@ -85,7 +85,7 @@ async def send_bulk_notification(arguments: dict) -> dict:
     async with get_async_session_context() as db:
         from shared.models.user import User
         from shared.models.notification import Notification
-        from datetime import datetime, timezone
+        from datetime import datetime
 
         users = (await db.execute(select(User.id).limit(500))).scalars().all()
         sent = 0
@@ -93,7 +93,7 @@ async def send_bulk_notification(arguments: dict) -> dict:
             db.add(Notification(
                 user_id=uid, type="system", title=title,
                 message=message, is_read=False,
-                created_at=datetime.now(timezone.utc),
+                created_at=datetime.utcnow(),
             ))
             sent += 1
             if sent % 50 == 0:

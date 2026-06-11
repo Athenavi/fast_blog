@@ -1,7 +1,7 @@
 """
 MCP 分析/统计/SEO 工具处理器
 """
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta
 
 from sqlalchemy import select, func
 
@@ -34,7 +34,7 @@ async def get_trending_articles(arguments: dict) -> dict:
     """获取热门文章排行"""
     limit = min(arguments.get("limit", 10), 30)
     days = arguments.get("days", 7)
-    cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+    cutoff = datetime.utcnow() - timedelta(days=days)
 
     async with get_async_session_context() as db:
         articles = (await db.execute(
