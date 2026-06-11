@@ -120,7 +120,7 @@ def list_revenue_records(
         {
             "id": r.id,
             "user_id": r.user_id,
-            "revenue_type": r.revenue_type.value,
+            "revenue_type": r.revenue_type,
             "amount": r.amount,
             "platform_fee": r.platform_fee,
             "creator_earnings": r.creator_earnings,
@@ -284,7 +284,7 @@ def list_sharing_configs(
         config = service.get_sharing_config(rev_type)
         if config:
             configs.append({
-                "revenue_type": config.revenue_type.value,
+                "revenue_type": config.revenue_type,
                 "platform_percentage": config.platform_percentage,
                 "creator_percentage": config.creator_percentage,
                 "min_payout_amount": config.min_payout_amount,
@@ -316,7 +316,7 @@ def update_sharing_config(
     if not updated:
         raise HTTPException(status_code=404, detail="配置不存在")
 
-    return ok(data={"revenue_type": updated.revenue_type.value}, msg="配置更新成功")
+    return ok(data={"revenue_type": updated.revenue_type}, msg="配置更新成功")
 
 
 # ==================== 平台统计 API ====================

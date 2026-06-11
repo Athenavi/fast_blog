@@ -7,7 +7,18 @@ from typing import List, Optional, Dict, Any
 
 from sqlalchemy.orm import Session
 
+from enum import Enum
+
 from shared.models import RevenueSharingConfig, UserRevenueStats, PayoutRequest, RevenueRecord
+
+
+class RevenueType(str, Enum):
+    """收益类型枚举"""
+    ADVERTISEMENT = "advertisement"
+    VIP_SUBSCRIPTION = "vip_subscription"
+    ARTICLE_PURCHASE = "article_purchase"
+    DONATION = "donation"
+    OTHER = "other"
 
 
 class RevenueSharingService:
