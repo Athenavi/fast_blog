@@ -8,7 +8,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 
-from sqlalchemy import select, func, desc, asc
+from sqlalchemy import select, func, desc, asc, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.unified_logger import default_logger as logger
@@ -124,7 +124,7 @@ class MediaLibraryService:
         media_ids: List[int]
     ) -> Dict[str, Any]:
         """批量删除媒体文件"""
-        from shared.models.media import Media
+        from shared.models.media import Media, DownloadTask
         
         try:
             deleted_count = 0
@@ -137,6 +137,12 @@ class MediaLibraryService:
                     media = result.scalar_one_or_none()
                     
                     if media:
+                        # 解除 DownloadTask 的 media_id 外键引用
+                        await db.execute(
+                            update(DownloadTask)
+                            .where(DownloadTask.media_id == media_id)
+                            .values(media_id=None)
+                        )
                         for file_path_attr in ['file_path', 'thumbnail_path']:
                             file_path = getattr(media, file_path_attr)
                             if file_path:
