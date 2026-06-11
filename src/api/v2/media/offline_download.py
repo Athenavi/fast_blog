@@ -45,9 +45,7 @@ async def get_offline_download_limits(
 @router.post("/tasks", summary="创建离线下载任务")
 @_catch
 async def create_offline_download_task(
-    url: str = Query(..., description="资源 URL"),
-    resource_type: str = Query("image", description="资源类型: image/video/audio/document"),
-    filename: Optional[str] = Query(None, description="自定义文件名"),
+    body: dict,
     current_user: User = Depends(jwt_required),
     db: AsyncSession = Depends(get_async_db),
 ):
@@ -58,6 +56,13 @@ async def create_offline_download_task(
     - 高级 VIP：最多 5 个并发，单文件 ≤200MB，最多 20 个待处理
     - Pro VIP：最多 10 个并发，单文件 ≤500MB，最多 50 个待处理
     """
+    url = body.get("url")
+    resource_type = body.get("resource_type", "image")
+    filename = body.get("filename")
+
+    if not url:
+        return fail("url 是必填项")
+
     service = OfflineDownloadService(db, current_user)
     task, error = await service.create_download_task(
         source_url=url,
