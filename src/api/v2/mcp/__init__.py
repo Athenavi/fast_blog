@@ -70,19 +70,37 @@ def _to_dicts(messages: List[ChatMessage]) -> List[Dict]:
     """Convert pydantic ChatMessage list to plain dicts.
     
     Frontend-generated tool messages (from the client-side ReAct loop)
-    may lack ``tool_call_id``. DeepSeek and other providers require this
-    field on every ``role=tool`` message, so we auto-fill it here.
+    may lack ``tool_call_id`` or may not follow an assistant ``tool_calls``
+    message. Both cases are handled here to satisfy the OpenAI API contract.
     """
     result = []
+    last_had_tool_calls = False
+
     for m in messages:
+        # ── Tool message without preceding tool_calls → convert to assistant text ──
+        if m.role == "tool" and not last_had_tool_calls:
+            try:
+                parsed = json.loads(m.content) if m.content else {}
+                name = parsed.get("name", m.name or "tool")
+                result_data = parsed.get("result", "")
+                status = "✅" if parsed.get("done") else "❌"
+                summary = f"[工具执行结果] {name}: {status}\n{json.dumps(result_data, ensure_ascii=False, indent=2) if result_data else '(空)'}"
+            except (json.JSONDecodeError, TypeError):
+                summary = m.content or "(空工具结果)"
+            result.append({"role": "assistant", "content": summary})
+            last_had_tool_calls = False
+            continue
+
         d: Dict[str, Any] = {"role": m.role}
         if m.content is not None:
             d["content"] = m.content
         if m.tool_calls:
             d["tool_calls"] = m.tool_calls
+            last_had_tool_calls = True
+        elif m.role == "assistant":
+            last_had_tool_calls = False
         if m.tool_call_id:
             d["tool_call_id"] = m.tool_call_id
-        # ── 前端 ReAct 工具消息缺少 tool_call_id，自动补全 ──
         elif m.role == "tool":
             d["tool_call_id"] = f"frontend-{uuid.uuid4().hex[:8]}"
         if m.name:

@@ -117,29 +117,71 @@ def get_tool_defs() -> List[Dict]:
 
 def build_messages(state: AgentState, system_prompt: str) -> List[Dict]:
     """Build OpenAI-format messages from state.
-    
-    Defensively ensures every ``tool`` message carries a ``tool_call_id``
-    (generates a synthetic id when the frontend ReAct loop omits it).
+
+    Defensively ensures:
+    1. Every ``tool`` message carries a ``tool_call_id``
+       (synthetic id when frontend ReAct loop omits it).
+    2. ``tool`` messages without a preceding ``tool_calls`` message
+       are converted to ``assistant`` text, because OpenAI/DeepSeek
+       require ``role=tool`` to follow a message with ``tool_calls``.
+       (This happens when the frontend ReAct loop parses XML tool
+       calls from assistant text and creates tool messages without
+       a corresponding ``tool_calls`` array.)
     """
-    msgs = [{"role": "system", "content": system_prompt}]
+    msgs: List[Dict[str, Any]] = [{"role": "system", "content": system_prompt}]
+    last_had_tool_calls = False
+
     for m in state.messages:
         role = m.get("role", "user")
-        entry: Dict[str, Any] = {"role": role}
         content = m.get("content")
+        tool_calls = m.get("tool_calls")
+        tool_call_id = m.get("tool_call_id")
+
+        # ── Tool message without preceding tool_calls → convert to assistant text ──
+        if role == "tool" and not last_had_tool_calls:
+            # Try to extract a readable summary from the tool content
+            summary = content or ""
+            try:
+                parsed = json.loads(content) if content else {}
+                if isinstance(parsed, dict):
+                    name = parsed.get("name", m.get("name", "tool"))
+                    result = parsed.get("result", "")
+                    status = "✅" if parsed.get("done") else "❌"
+                    summary = f"[工具执行结果] {name}: {status}\n{json.dumps(result, ensure_ascii=False, indent=2) if result else '(空)'}"
+            except (json.JSONDecodeError, TypeError):
+                summary = content or "(空工具结果)"
+
+            entry: Dict[str, Any] = {
+                "role": "assistant",
+                "content": summary,
+            }
+            msgs.append(entry)
+            last_had_tool_calls = False
+            continue
+
+        # ── Normal message ──
+        entry: Dict[str, Any] = {"role": role}
         if role in ("tool", "user"):
             entry["content"] = content or ""
         else:
             entry["content"] = content
-        if m.get("tool_calls"):
-            entry["tool_calls"] = m["tool_calls"]
-        if m.get("tool_call_id"):
-            entry["tool_call_id"] = m["tool_call_id"]
+
+        if tool_calls:
+            entry["tool_calls"] = tool_calls
+            last_had_tool_calls = True
+        elif role == "assistant":
+            last_had_tool_calls = False
+
+        if tool_call_id:
+            entry["tool_call_id"] = tool_call_id
         elif role == "tool":
-            # 前端 ReAct 循环生成的 tool 消息可能缺少 id
             entry["tool_call_id"] = f"synthetic-{uuid.uuid4().hex[:8]}"
+
         if m.get("name"):
             entry["name"] = m["name"]
+
         msgs.append(entry)
+
     return msgs
 
 
