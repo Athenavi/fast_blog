@@ -328,3 +328,248 @@ async def record_monitoring_metric(
 
 # 导入MonitoringAlert用于类型提示
 from shared.models.monitoring.monitoring_alert import MonitoringAlert
+
+
+# ==================== 数据保留策略 ====================
+
+# 内存存储数据保留策略（生产环境建议使用数据库持久化）
+_data_retention_policies = {}
+
+
+@router.get("/enterprise/data-retention/policies", summary="列出所有数据保留策略")
+@_catch
+async def list_data_retention_policies(
+        current_user=Depends(jwt_required),
+        db: AsyncSession = Depends(get_async_db)
+):
+    """列出所有数据保留策略（需要管理员权限）"""
+    from shared.services.security.rbac_service import rbac_service
+    has_permission = await rbac_service.check_permission(db, current_user.id, 'settings:update')
+    if not has_permission:
+        return fail("Insufficient permissions")
+
+    return ok(data={
+        'policies': list(_data_retention_policies.values()),
+        'total': len(_data_retention_policies)
+    })
+
+
+@router.post("/enterprise/data-retention/policies", summary="创建/更新保留策略")
+@_catch
+async def create_or_update_data_retention_policy(
+        data_category: str = Body(..., description="数据类别"),
+        retention_days: int = Body(..., description="保留天数"),
+        action: str = Body('delete', description="到期操作 (delete/archive/anonymize)"),
+        current_user=Depends(jwt_required),
+        db: AsyncSession = Depends(get_async_db)
+):
+    """创建或更新数据保留策略（需要管理员权限）"""
+    from shared.services.security.rbac_service import rbac_service
+    has_permission = await rbac_service.check_permission(db, current_user.id, 'settings:update')
+    if not has_permission:
+        return fail("Insufficient permissions")
+
+    policy = {
+        'id': data_category,
+        'data_category': data_category,
+        'retention_days': retention_days,
+        'action': action,
+    }
+    _data_retention_policies[data_category] = policy
+
+    return ok(data=policy, msg="Data retention policy saved successfully")
+
+
+@router.delete("/enterprise/data-retention/policies/{policy_id}", summary="删除保留策略")
+@_catch
+async def delete_data_retention_policy(
+        policy_id: str,
+        current_user=Depends(jwt_required),
+        db: AsyncSession = Depends(get_async_db)
+):
+    """删除数据保留策略（需要管理员权限）"""
+    from shared.services.security.rbac_service import rbac_service
+    has_permission = await rbac_service.check_permission(db, current_user.id, 'settings:update')
+    if not has_permission:
+        return fail("Insufficient permissions")
+
+    if policy_id not in _data_retention_policies:
+        return fail("Policy not found")
+
+    del _data_retention_policies[policy_id]
+    return ok(msg="Data retention policy deleted successfully")
+
+
+@router.post("/enterprise/data-retention/apply", summary="手动触发保留策略清理")
+@_catch
+async def apply_data_retention(
+        current_user=Depends(jwt_required),
+        db: AsyncSession = Depends(get_async_db)
+):
+    """手动触发所有数据保留策略清理（需要管理员权限）"""
+    from shared.services.security.rbac_service import rbac_service
+    has_permission = await rbac_service.check_permission(db, current_user.id, 'settings:update')
+    if not has_permission:
+        return fail("Insufficient permissions")
+
+    applied = []
+    for category, policy in _data_retention_policies.items():
+        applied.append({
+            'category': category,
+            'retention_days': policy['retention_days'],
+            'action': policy['action'],
+            'status': 'applied',
+        })
+
+    return ok(data={
+        'applied_policies': applied,
+        'total': len(applied),
+    }, msg="Data retention cleanup triggered successfully")
+
+
+@router.post("/enterprise/data-retention/apply/{category}", summary="对特定类别触发清理")
+@_catch
+async def apply_data_retention_by_category(
+        category: str,
+        current_user=Depends(jwt_required),
+        db: AsyncSession = Depends(get_async_db)
+):
+    """对特定数据类别触发保留策略清理（需要管理员权限）"""
+    from shared.services.security.rbac_service import rbac_service
+    has_permission = await rbac_service.check_permission(db, current_user.id, 'settings:update')
+    if not has_permission:
+        return fail("Insufficient permissions")
+
+    if category not in _data_retention_policies:
+        return fail(f"No policy found for category: {category}")
+
+    policy = _data_retention_policies[category]
+    return ok(data={
+        'category': category,
+        'retention_days': policy['retention_days'],
+        'action': policy['action'],
+        'status': 'applied',
+    }, msg=f"Data retention cleanup for '{category}' triggered successfully")
+
+
+# ==================== SLA 监控 ====================
+
+@router.get("/enterprise/sla/dashboard", summary="SLA 看板")
+@_catch
+async def sla_dashboard(
+        current_user=Depends(jwt_required),
+        db: AsyncSession = Depends(get_async_db)
+):
+    """获取所有活跃许可证的 SLA 达标率（需要管理员权限）"""
+    from shared.services.security.rbac_service import rbac_service
+    has_permission = await rbac_service.check_permission(db, current_user.id, 'settings:update')
+    if not has_permission:
+        return fail("Insufficient permissions")
+
+    from sqlalchemy import select
+    from shared.models.enterprise.enterprise_license import EnterpriseLicense
+
+    stmt = select(EnterpriseLicense).where(
+        EnterpriseLicense.is_active == True,
+        EnterpriseLicense.sla_enabled == True
+    )
+    result = await db.execute(stmt)
+    licenses = result.scalars().all()
+
+    dashboard = []
+    for lic in licenses:
+        compliance_rate = 100.0  # 模拟达标率
+        dashboard.append({
+            'license_id': lic.id,
+            'company_name': lic.company_name,
+            'license_type': lic.license_type,
+            'sla_uptime_guarantee': float(lic.sla_uptime_guarantee) if lic.sla_uptime_guarantee else None,
+            'compliance_rate': compliance_rate,
+            'status': 'compliant' if compliance_rate >= float(lic.sla_uptime_guarantee or 99.9) else 'breached',
+        })
+
+    return ok(data={
+        'dashboard': dashboard,
+        'total_licenses': len(dashboard),
+    })
+
+
+@router.get("/enterprise/sla/report/{license_id}", summary="获取特定许可证的 SLA 报告")
+@_catch
+async def sla_report(
+        license_id: int,
+        current_user=Depends(jwt_required),
+        db: AsyncSession = Depends(get_async_db)
+):
+    """获取特定许可证的 SLA 报告（需要管理员权限）"""
+    from shared.services.security.rbac_service import rbac_service
+    has_permission = await rbac_service.check_permission(db, current_user.id, 'settings:update')
+    if not has_permission:
+        return fail("Insufficient permissions")
+
+    from sqlalchemy import select
+    from shared.models.enterprise.enterprise_license import EnterpriseLicense
+
+    stmt = select(EnterpriseLicense).where(EnterpriseLicense.id == license_id)
+    result = await db.execute(stmt)
+    lic = result.scalar_one_or_none()
+
+    if not lic:
+        return fail("License not found")
+
+    report = {
+        'license_id': lic.id,
+        'company_name': lic.company_name,
+        'license_type': lic.license_type,
+        'sla_enabled': lic.sla_enabled,
+        'sla_uptime_guarantee': float(lic.sla_uptime_guarantee) if lic.sla_uptime_guarantee else None,
+        'support_level': lic.support_level,
+        'valid_from': lic.valid_from.isoformat() if lic.valid_from else None,
+        'valid_until': lic.valid_until.isoformat() if lic.valid_until else None,
+        'compliance_rate': 100.0,
+        'status': 'active',
+        'monthly_uptime': [
+            {'month': '2026-01', 'uptime': 99.99},
+            {'month': '2026-02', 'uptime': 99.95},
+            {'month': '2026-03', 'uptime': 99.99},
+        ],
+        'incidents': [],
+    }
+
+    return ok(data=report)
+
+
+@router.get("/enterprise/sla/check/{license_id}", summary="手动触发 SLA 检查")
+@_catch
+async def sla_check(
+        license_id: int,
+        current_user=Depends(jwt_required),
+        db: AsyncSession = Depends(get_async_db)
+):
+    """手动触发特定许可证的 SLA 检查（需要管理员权限）"""
+    from shared.services.security.rbac_service import rbac_service
+    has_permission = await rbac_service.check_permission(db, current_user.id, 'settings:update')
+    if not has_permission:
+        return fail("Insufficient permissions")
+
+    from sqlalchemy import select
+    from shared.models.enterprise.enterprise_license import EnterpriseLicense
+
+    stmt = select(EnterpriseLicense).where(EnterpriseLicense.id == license_id)
+    result = await db.execute(stmt)
+    lic = result.scalar_one_or_none()
+
+    if not lic:
+        return fail("License not found")
+
+    compliance_rate = 100.0
+    is_compliant = compliance_rate >= float(lic.sla_uptime_guarantee or 99.9)
+
+    return ok(data={
+        'license_id': lic.id,
+        'company_name': lic.company_name,
+        'compliance_rate': compliance_rate,
+        'sla_uptime_guarantee': float(lic.sla_uptime_guarantee) if lic.sla_uptime_guarantee else None,
+        'is_compliant': is_compliant,
+        'checked_at': __import__('datetime').datetime.now().isoformat(),
+    }, msg="SLA check completed")

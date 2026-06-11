@@ -4,5 +4,6 @@ monitoring 子模块 - 模型定义
 """
 from .monitoring_alert import MonitoringAlert
 from .monitoring_metric import MonitoringMetric
+from .sla_report import SLAReport
 
-__all__ = ['MonitoringAlert', 'MonitoringMetric']
+__all__ = ['MonitoringAlert', 'MonitoringMetric', 'SLAReport']

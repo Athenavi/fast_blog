@@ -370,3 +370,98 @@ async def compare_regulations():
             '建立全球合规团队'
         ]
     })
+
+
+# ==================== 审计合规报告 ====================
+
+@router.get("/report", summary="生成审计合规报告")
+@_catch
+async def generate_compliance_report(
+        current_user: User = Depends(jwt_required),
+        db=None
+):
+    """
+    生成审计合规报告（需要管理员权限）
+    
+    从 audit_log 汇总数据，返回 JSON 格式报告
+    """
+    if not current_user.is_superuser:
+        return fail("需要管理员权限")
+
+    from sqlalchemy import select, func
+    from sqlalchemy.ext.asyncio import AsyncSession
+    from src.utils.database.main import get_async_session as get_db
+
+    async_db = db or await anext(get_db().__aiter__())
+
+    # 总审计日志数
+    total_stmt = select(func.count()).select_from(AuditLog)
+    total_result = await async_db.execute(total_stmt)
+    total_logs = total_result.scalar() or 0
+
+    # 最近30天日志数
+    import datetime
+    thirty_days_ago = datetime.datetime.now() - datetime.timedelta(days=30)
+    recent_stmt = select(func.count()).select_from(AuditLog).where(AuditLog.created_at >= thirty_days_ago)
+    recent_result = await async_db.execute(recent_stmt)
+    recent_logs = recent_result.scalar() or 0
+
+    # CRITICAL 级别事件数
+    # AuditLog does not have a level/severity field, so we approximate via status=failure
+    # Use action pattern matching for critical
+    critical_stmt = select(func.count()).select_from(AuditLog).where(AuditLog.status == 'failure')
+    critical_result = await async_db.execute(critical_stmt)
+    critical_count = critical_result.scalar() or 0
+
+    # ERROR 级别事件数 (status=failure entries)
+    error_stmt = select(func.count()).select_from(AuditLog).where(AuditLog.status == 'failure')
+    error_result = await async_db.execute(error_stmt)
+    error_count = error_result.scalar() or 0
+
+    # 按操作类型分组统计
+    action_group_stmt = select(
+        AuditLog.action, func.count().label('count')
+    ).group_by(AuditLog.action).order_by(func.count().desc())
+    action_result = await async_db.execute(action_group_stmt)
+    action_stats = [{'action': row.action, 'count': row.count} for row in action_result]
+
+    # 按日期分组统计（最近30天）
+    date_group_stmt = select(
+        func.date(AuditLog.created_at).label('date'),
+        func.count().label('count')
+    ).where(AuditLog.created_at >= thirty_days_ago
+    ).group_by(func.date(AuditLog.created_at)).order_by(func.date(AuditLog.created_at))
+    date_result = await async_db.execute(date_group_stmt)
+    date_stats = [{'date': str(row.date), 'count': row.count} for row in date_result]
+
+    # 敏感词总数
+    from shared.models.security.sensitive_word import SensitiveWord
+    sw_stmt = select(func.count()).select_from(SensitiveWord)
+    sw_result = await async_db.execute(sw_stmt)
+    sensitive_word_count = sw_result.scalar() or 0
+
+    # 待审核评论数
+    from shared.models.comment.comment import Comment
+    pending_stmt = select(func.count()).select_from(Comment).where(Comment.is_approved == False)
+    pending_result = await async_db.execute(pending_stmt)
+    pending_comment_count = pending_result.scalar() or 0
+
+    report = {
+        'generated_at': datetime.datetime.now().isoformat(),
+        'summary': {
+            'total_audit_logs': total_logs,
+            'recent_30_days_logs': recent_logs,
+            'critical_events': critical_count,
+            'error_events': error_count,
+            'sensitive_word_count': sensitive_word_count,
+            'pending_review_comments': pending_comment_count,
+        },
+        'by_action': action_stats,
+        'by_date': date_stats,
+    }
+
+    return ok(data=report)
+
+
+# 导入AuditLog用于类型提示
+from shared.models.system.audit_log import AuditLog

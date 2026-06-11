@@ -22,6 +22,8 @@ def _build_router():
     from src.api.v2.integrations.oauth_login import router as oauth_login_router
     from src.api.v2.integrations.sso import router as sso_router
     from src.api.v2.integrations.wordpress_import import router as wordpress_import_router
+    from src.api.v2.integrations.session_policy import router as session_policy_router
+    from src.api.v2.integrations.scim import router as scim_router
 
     router.include_router(baidu_analytics_router, prefix="/analytics/baidu")
     router.include_router(google_analytics_router, prefix="/analytics/google")
@@ -29,6 +31,8 @@ def _build_router():
     router.include_router(oauth_login_router, prefix="/oauth")
     router.include_router(wordpress_import_router, prefix="/wordpress")
     router.include_router(sso_router, prefix="/sso")
+    router.include_router(session_policy_router)
+    router.include_router(scim_router)
 
     _router = router
     return _router
