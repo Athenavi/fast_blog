@@ -114,6 +114,17 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
         mode === 'edit' && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('collab') === '1'
     );
 
+    // Preview link state
+    const [previewLink, setPreviewLink] = useState('');
+    const [previewToken, setPreviewToken] = useState('');
+    const [previewLoading, setPreviewLoading] = useState(false);
+    const [previewCopied, setPreviewCopied] = useState(false);
+
+    // Scheduled publish state
+    const [scheduledAt, setScheduledAt] = useState('');
+    const [scheduling, setScheduling] = useState(false);
+    const [scheduledTime, setScheduledTime] = useState('');
+
   // Collaborative editing
   const collabDocId = mode === 'edit' && articleId ? `article-${articleId}` : null;
   const collab = useYjsCollaboration(
@@ -267,6 +278,58 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
     const saveDraftAction = () => {
         setValue('status', 0 as any);
         handleSubmit(submit as any)();
+    };
+
+    // Generate shareable preview link
+    const generatePreview = async () => {
+        if (!articleId) return;
+        setPreviewLoading(true);
+        try {
+            const res = await apiClient.post(`/articles/draft/generate`, {
+                article_id: Number(articleId),
+                expiry_hours: 72,
+            });
+            if (res.success && res.data) {
+                const token = res.data.token || res.data.preview_token;
+                setPreviewToken(token);
+                setPreviewLink(`${window.location.origin}/view?slug=${getValues('slug')}&preview=${token}`);
+            }
+        } catch { /* ignore */ }
+        setPreviewLoading(false);
+    };
+
+    // Revoke preview link
+    const revokePreview = async () => {
+        if (!previewToken) return;
+        try {
+            await apiClient.post(`/articles/draft/revoke`, {token: previewToken});
+        } catch { /* ignore */ }
+        setPreviewLink('');
+        setPreviewToken('');
+    };
+
+    // Schedule publish
+    const schedulePublish = async () => {
+        if (!scheduledAt || !articleId) return;
+        setScheduling(true);
+        try {
+            await apiClient.post(`/articles/scheduler/schedule`, {
+                article_id: Number(articleId),
+                scheduled_at: new Date(scheduledAt).toISOString(),
+            });
+            setScheduledTime(scheduledAt);
+        } catch { /* ignore */ }
+        setScheduling(false);
+    };
+
+    // Cancel schedule
+    const cancelSchedule = async () => {
+        if (!articleId) return;
+        try {
+            await apiClient.post(`/articles/scheduler/cancel/${articleId}`);
+        } catch { /* ignore */ }
+        setScheduledAt('');
+        setScheduledTime('');
     };
 
     // Toolbar exec
@@ -695,6 +758,65 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
                               </label>
                           </div>
                       </Section>
+
+                      {/* Preview Link (edit mode only) */}
+                      {mode === 'edit' && articleId && (
+                        <Section icon={Eye} title="预览链接">
+                          <div className="space-y-3">
+                            {previewLink ? (
+                              <>
+                                <div className="flex items-center gap-2 p-2.5 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-100 dark:border-blue-800/30">
+                                  <input type="text" value={previewLink} readOnly
+                                         className="flex-1 text-xs bg-transparent text-blue-700 dark:text-blue-300 outline-none truncate"
+                                         onClick={e => (e.target as HTMLInputElement).select()}/>
+                                  <button onClick={() => { navigator.clipboard.writeText(previewLink); setPreviewCopied(true); setTimeout(() => setPreviewCopied(false), 2000); }}
+                                          className="shrink-0 p-1.5 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-800/40 text-blue-600 dark:text-blue-400 transition-colors">
+                                    {previewCopied ? <Check className="w-3.5 h-3.5"/> : <Copy className="w-3.5 h-3.5"/>}
+                                  </button>
+                                </div>
+                                <button onClick={revokePreview}
+                                        className="w-full px-3 py-2 text-xs border border-red-200 dark:border-red-800 text-red-500 dark:text-red-400 rounded-xl hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                                  撤销预览链接
+                                </button>
+                              </>
+                            ) : (
+                              <button onClick={generatePreview} disabled={previewLoading}
+                                      className="w-full px-3 py-2.5 text-xs border border-gray-200 dark:border-gray-700 rounded-xl text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 disabled:opacity-50 transition-colors flex items-center justify-center gap-1.5">
+                                {previewLoading ? <LoaderIcon className="w-3.5 h-3.5 animate-spin"/> : <Eye className="w-3.5 h-3.5"/>}
+                                生成预览链接（72小时有效）
+                              </button>
+                            )}
+                          </div>
+                        </Section>
+                      )}
+
+                      {/* Scheduled Publish (edit mode only) */}
+                      {mode === 'edit' && articleId && (
+                        <Section icon={Clock} title="定时发布">
+                          <div className="space-y-3">
+                            {scheduledTime ? (
+                              <div className="text-sm text-gray-600 dark:text-gray-400">
+                                <p>已安排于：{new Date(scheduledTime).toLocaleString('zh-CN')}</p>
+                                <button onClick={cancelSchedule}
+                                        className="mt-2 w-full px-3 py-2 text-xs border border-gray-200 dark:border-gray-700 rounded-xl text-gray-500 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors">
+                                  取消定时发布
+                                </button>
+                              </div>
+                            ) : (
+                              <>
+                                <input type="datetime-local" value={scheduledAt}
+                                       onChange={e => setScheduledAt(e.target.value)}
+                                       className="w-full px-3 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:text-white transition-all"/>
+                                <button onClick={schedulePublish} disabled={!scheduledAt || scheduling}
+                                        className="w-full px-3 py-2 text-xs bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-xl hover:from-blue-700 hover:to-indigo-700 disabled:opacity-50 transition-colors flex items-center justify-center gap-1.5">
+                                  {scheduling ? <LoaderIcon className="w-3.5 h-3.5 animate-spin"/> : <Clock className="w-3.5 h-3.5"/>}
+                                  设置定时发布
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </Section>
+                      )}
 
                       {/* Category */}
                       <Section icon={FolderTree} title="分类">

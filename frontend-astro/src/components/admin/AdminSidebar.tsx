@@ -10,6 +10,7 @@ import {
   Building2,
   CheckSquare,
   ChevronLeft,
+  Clock,
   Coins,
   Code,
   CreditCard,
@@ -25,6 +26,7 @@ import {
   Handshake,
   Heart,
   Image,
+  Layout,
   Lock,
   LogOut,
   Mail,
@@ -52,7 +54,7 @@ import {pluginNavItems as _pluginNavItems} from '@/.plugin-registry';
 /** 根据图标名称获取 lucide 组件 */
 function resolveIcon(name: string): React.FC<{ className?: string }> {
   const iconMap: Record<string, React.FC<{ className?: string }>> = {
-    Code, Heart, Puzzle, Package, Star, FileText, Settings, Globe, Mail,
+    Clock, Code, Heart, Layout, Puzzle, Package, Star, FileText, Settings, Globe, Mail,
   };
   return iconMap[name] || Puzzle;
 }
@@ -108,6 +110,9 @@ export const navConfig: NavItem[] = [
   {labelKey: 'nav.certification', href: '/admin/ext/certification', icon: Medal},
   {labelKey: 'nav.nft', href: '/admin/ext/nft', icon: Diamond},
   {labelKey: 'nav.recommendations', href: '/admin/ext/recommendations', icon: Star},
+  // ── Content Management ──
+  {labelKey: 'Scheduled', href: '/admin/scheduled-articles', icon: Clock},
+  {labelKey: 'Block Patterns', href: '/admin/block-patterns', icon: Layout},
   // ── 插件注册项（自动导入） ──
   ...(_pluginNavItems || []).map(item => ({
     labelKey: item.label,
