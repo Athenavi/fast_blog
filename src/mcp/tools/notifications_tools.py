@@ -18,7 +18,7 @@ async def list_notifications(arguments: dict) -> dict:
 
     async with get_async_session_context() as db:
         from shared.models.notification import Notification
-        query = select(Notification).where(Notification.user_id == int(user_id))
+        query = select(Notification).where(Notification.recipient == int(user_id))
         if unread_only:
             query = query.where(Notification.is_read == False)
 
@@ -91,7 +91,7 @@ async def send_bulk_notification(arguments: dict) -> dict:
         sent = 0
         for uid in users:
             db.add(Notification(
-                user_id=uid, type="system", title=title,
+                recipient=uid, type="system", title=title,
                 message=message, is_read=False,
                 created_at=datetime.utcnow(),
             ))
