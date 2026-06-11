@@ -110,10 +110,22 @@ class ResourceTransferService:
 
         except Exception as e:
             logger.error(f"执行下载任务失败 (task_id={task_id}): {e}", exc_info=True)
-            if task:
-                await self._update_task_status(
-                    task, "failed", error_message=str(e)
+            # 先回滚 session 使其可重用
+            try:
+                await self.db.rollback()
+            except Exception:
+                pass
+            # 用 raw SQL 更新任务状态
+            try:
+                from sqlalchemy import update
+                await self.db.execute(
+                    update(DownloadTask)
+                    .where(DownloadTask.id == task_id)
+                    .values(status="failed", error_message=str(e)[:500], updated_at=datetime.now())
                 )
+                await self.db.flush()
+            except Exception as e2:
+                logger.error(f"无法更新任务 {task_id} 状态: {e2}")
             return None
 
         finally:
@@ -180,8 +192,24 @@ class ResourceTransferService:
 
         except Exception as e:
             logger.error(f"下载失败: {e}")
-            await self._handle_download_error(task, e)
-            return None
+            task_id = task.id
+            try:
+                await self.db.execute(
+                    update(DownloadTask)
+                    .where(DownloadTask.id == task_id)
+                    .values(
+                        error_message=str(e)[:500],
+                        status="failed",
+                        updated_at=datetime.now()
+                    )
+                )
+                await self.db.flush()
+            except Exception:
+                logger.error(f"无法更新任务 {task_id} 状态（session 已损坏）")
+                try:
+                    await self.db.rollback()
+                except Exception:
+                    pass
 
     async def _finalize_download(
             self,
@@ -209,7 +237,7 @@ class ResourceTransferService:
             final_path = self.download_dir / filename[:2] / filename
             final_path.parent.mkdir(parents=True, exist_ok=True)
 
-            # 如果文件已存在，跳过
+            # 如果文件已存在，跳过写入
             if final_path.exists():
                 logger.info(f"文件已存在: {filename}")
             else:
@@ -217,37 +245,55 @@ class ResourceTransferService:
                     f.write(file_data)
 
             # 创建或获取FileHash记录
-            file_hash_record = await self._get_or_create_file_hash(
+            await self._get_or_create_file_hash(
                 file_hash, file_size, mime_type, str(final_path.relative_to(Path(".")))
             )
 
-            # 创建Media记录
-            media = Media(
-                user=task.user_id,
-                hash=file_hash,
-                original_filename=task.filename or f"downloaded_{datetime.now().strftime('%Y%m%d_%H%M%S')}{ext}",
-                file_path=str(final_path),
-                file_size=file_size,
-                file_type=self._get_media_type(mime_type),
-                mime_type=mime_type,
-                description=f"从 {task.source_url} 下载"
+            # 检查数据库中是否已有相同 hash 的 Media 记录
+            existing_media = await self.db.execute(
+                select(Media).where(Media.hash == file_hash)
             )
+            media = existing_media.scalar_one_or_none()
 
-            self.db.add(media)
-            await self.db.flush()
-            await self.db.refresh(media)
+            if media:
+                logger.info(f"Media 已存在 (hash={file_hash}, id={media.id})，直接关联任务")
+            else:
+                # 创建新的Media记录
+                media = Media(
+                    user=task.user_id,
+                    hash=file_hash,
+                    original_filename=task.filename or f"downloaded_{datetime.now().strftime('%Y%m%d_%H%M%S')}{ext}",
+                    file_path=str(final_path),
+                    file_size=file_size,
+                    file_type=self._get_media_type(mime_type),
+                    mime_type=mime_type,
+                    description=f"从 {task.source_url} 下载"
+                )
+                self.db.add(media)
+                await self.db.flush()
+                await self.db.refresh(media)
+                logger.info(f"媒体创建成功: {media.id}, 文件: {filename}")
 
-            # 更新任务状态
+            # 更新任务状态 - 使用原始SQL避免session状态问题
             task.media_id = media.id
-            await self._update_task_status(task, "completed")
-
-            logger.info(f"媒体创建成功: {media.id}, 文件: {filename}")
+            await self.db.execute(
+                update(DownloadTask)
+                .where(DownloadTask.id == task.id)
+                .values(
+                    media_id=media.id,
+                    status="completed",
+                    completed_at=datetime.now(),
+                    updated_at=datetime.now()
+                )
+            )
+            await self.db.flush()
             return media
 
         except Exception as e:
             logger.error(f"完成下载失败: {e}", exc_info=True)
-            await self._update_task_status(task, "failed", error_message=str(e))
-            return None
+            # 不在这里调用 _update_task_status，因为 flush 异常后 session 已不可用
+            # 让外层 execute_download 的 except 块处理
+            raise
 
     async def _update_task_status(
             self,
