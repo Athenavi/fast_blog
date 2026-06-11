@@ -8,8 +8,13 @@
 export function getCookie(name: string): string | null {
     if (typeof document === 'undefined') return null;
     for (const c of document.cookie.split(';')) {
-        const [n, v] = c.trim().split('=');
-        if (n === name && v) return decodeURIComponent(v);
+        const eqIdx = c.trim().indexOf('=');
+        if (eqIdx === -1) continue;
+        const n = c.trim().substring(0, eqIdx).trim();
+        if (n === name) {
+            const v = c.trim().substring(eqIdx + 1);
+            return v ? decodeURIComponent(v) : null;
+        }
     }
     return null;
 }

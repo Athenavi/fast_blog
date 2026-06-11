@@ -98,12 +98,29 @@ const Navbar: React.FC<NavbarProps> = ({title, subtitle, showBackButton = false,
             if (data?.data) {
               setUserAvatar(data.data.avatar ? `${API_BASE_URL}${data.data.avatar}` : null);
               setUsername(data.data.username || '');
+            } else {
+              // Token exists but invalid — not logged in
+              setIsLoggedIn(false);
             }
           })
           .catch(() => {
+            // Network error — keep optimistic isLoggedIn=true from token
           });
       });
     }
+
+    // 监听页面导航（popstate）以重新检查登录状态
+    const handleRouteChange = () => {
+      setPathname(window.location.pathname);
+      const currentToken = getAccessTokenFromCookie();
+      setIsLoggedIn(!!currentToken);
+      if (!currentToken) {
+        setUserAvatar(null);
+        setUsername('');
+      }
+    };
+    window.addEventListener('popstate', handleRouteChange);
+    return () => window.removeEventListener('popstate', handleRouteChange);
   }, []);
 
   // 从 API 动态获取导航菜单
