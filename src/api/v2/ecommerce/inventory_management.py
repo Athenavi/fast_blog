@@ -4,20 +4,34 @@
 提供库存检查、库存调整、低库存警告、库存报告等功能
 """
 from typing import Optional
+from functools import wraps
 
-from fastapi import APIRouter, Depends, Query, Body
+from fastapi import APIRouter, Depends, Query, Body, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.user import User
 from shared.services.ecommerce.inventory_service import create_inventory_service
-from src.api.v2._base import ApiResponse
+from src.api.v2._helpers import ok, fail
 from src.auth.auth_deps import jwt_required_dependency as jwt_required, admin_required as admin_required_api
 from src.utils.database.main import get_async_session as get_async_db
 
 router = APIRouter(tags=["inventory"])
 
 
+def _catch(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except HTTPException:
+            raise
+        except Exception as e:
+            return fail(str(e))
+    return wrapper
+
+
 @router.get("/check/{product_id}")
+@_catch
 async def check_product_inventory(
         product_id: int,
         quantity: int = Query(1, ge=1, description="需要检查的数量"),
@@ -33,22 +47,14 @@ async def check_product_inventory(
     Returns:
         库存检查结果
     """
-    try:
-        service = create_inventory_service(db)
-        result = await service.check_inventory(product_id, quantity)
+    service = create_inventory_service(db)
+    result = await service.check_inventory(product_id, quantity)
 
-        return ApiResponse(
-            success=True,
-            data=result
-        )
-    except Exception as e:
-        import traceback
-        print(f"Error checking inventory: {str(e)}")
-        print(traceback.format_exc())
-        return ApiResponse(success=False, error=str(e))
+    return ok(data=result)
 
 
 @router.post("/deduct")
+@_catch
 async def deduct_product_inventory(
         product_id: int = Body(..., embed=True, description="产品ID"),
         quantity: int = Body(..., embed=True, ge=1, description="扣减数量"),
@@ -67,30 +73,22 @@ async def deduct_product_inventory(
     Returns:
         扣减结果
     """
-    try:
-        service = create_inventory_service(db)
-        result = await service.deduct_inventory(
-            product_id=product_id,
-            quantity=quantity,
-            order_id=order_id,
-            user_id=current_user.id
-        )
+    service = create_inventory_service(db)
+    result = await service.deduct_inventory(
+        product_id=product_id,
+        quantity=quantity,
+        order_id=order_id,
+        user_id=current_user.id
+    )
 
-        if not result['success']:
-            return ApiResponse(success=False, error=result['message'])
+    if not result['success']:
+        return fail(result['message'])
 
-        return ApiResponse(
-            success=True,
-            data=result
-        )
-    except Exception as e:
-        import traceback
-        print(f"Error deducting inventory: {str(e)}")
-        print(traceback.format_exc())
-        return ApiResponse(success=False, error=str(e))
+    return ok(data=result)
 
 
 @router.post("/restore")
+@_catch
 async def restore_product_inventory(
         product_id: int = Body(..., embed=True, description="产品ID"),
         quantity: int = Body(..., embed=True, ge=1, description="恢复数量"),
@@ -109,30 +107,22 @@ async def restore_product_inventory(
     Returns:
         恢复结果
     """
-    try:
-        service = create_inventory_service(db)
-        result = await service.restore_inventory(
-            product_id=product_id,
-            quantity=quantity,
-            order_id=order_id,
-            user_id=current_user.id
-        )
+    service = create_inventory_service(db)
+    result = await service.restore_inventory(
+        product_id=product_id,
+        quantity=quantity,
+        order_id=order_id,
+        user_id=current_user.id
+    )
 
-        if not result['success']:
-            return ApiResponse(success=False, error=result['message'])
+    if not result['success']:
+        return fail(result['message'])
 
-        return ApiResponse(
-            success=True,
-            data=result
-        )
-    except Exception as e:
-        import traceback
-        print(f"Error restoring inventory: {str(e)}")
-        print(traceback.format_exc())
-        return ApiResponse(success=False, error=str(e))
+    return ok(data=result)
 
 
 @router.post("/adjust")
+@_catch
 async def adjust_product_inventory(
         product_id: int = Body(..., embed=True, description="产品ID"),
         new_quantity: int = Body(..., embed=True, ge=0, description="新的库存数量"),
@@ -151,30 +141,22 @@ async def adjust_product_inventory(
     Returns:
         调整结果
     """
-    try:
-        service = create_inventory_service(db)
-        result = await service.adjust_inventory(
-            product_id=product_id,
-            new_quantity=new_quantity,
-            reason=reason,
-            user_id=current_user.id
-        )
+    service = create_inventory_service(db)
+    result = await service.adjust_inventory(
+        product_id=product_id,
+        new_quantity=new_quantity,
+        reason=reason,
+        user_id=current_user.id
+    )
 
-        if not result['success']:
-            return ApiResponse(success=False, error=result['message'])
+    if not result['success']:
+        return fail(result['message'])
 
-        return ApiResponse(
-            success=True,
-            data=result
-        )
-    except Exception as e:
-        import traceback
-        print(f"Error adjusting inventory: {str(e)}")
-        print(traceback.format_exc())
-        return ApiResponse(success=False, error=str(e))
+    return ok(data=result)
 
 
 @router.get("/low-stock")
+@_catch
 async def get_low_stock_products(
         threshold: int = Query(10, ge=0, description="低库存阈值"),
         current_user: User = Depends(jwt_required),
@@ -189,26 +171,18 @@ async def get_low_stock_products(
     Returns:
         低库存产品列表
     """
-    try:
-        service = create_inventory_service(db)
-        low_stock_products = await service.get_low_stock_products(threshold)
+    service = create_inventory_service(db)
+    low_stock_products = await service.get_low_stock_products(threshold)
 
-        return ApiResponse(
-            success=True,
-            data={
-                'products': low_stock_products,
-                'count': len(low_stock_products),
-                'threshold': threshold
-            }
-        )
-    except Exception as e:
-        import traceback
-        print(f"Error getting low stock products: {str(e)}")
-        print(traceback.format_exc())
-        return ApiResponse(success=False, error=str(e))
+    return ok(data={
+        'products': low_stock_products,
+        'count': len(low_stock_products),
+        'threshold': threshold
+    })
 
 
 @router.get("/report")
+@_catch
 async def get_inventory_report(
         current_user: User = Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
@@ -219,16 +193,7 @@ async def get_inventory_report(
     Returns:
         库存报告数据
     """
-    try:
-        service = create_inventory_service(db)
-        report = await service.get_inventory_report()
+    service = create_inventory_service(db)
+    report = await service.get_inventory_report()
 
-        return ApiResponse(
-            success=True,
-            data=report
-        )
-    except Exception as e:
-        import traceback
-        print(f"Error generating inventory report: {str(e)}")
-        print(traceback.format_exc())
-        return ApiResponse(success=False, error=str(e))
+    return ok(data=report)

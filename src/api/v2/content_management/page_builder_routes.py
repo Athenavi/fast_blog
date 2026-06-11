@@ -3,6 +3,7 @@
 提供页面的创建、保存、加载、发布和删除功能
 """
 from datetime import datetime
+from functools import wraps
 from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -12,7 +13,8 @@ from sqlalchemy import select, desc
 from shared.models.page import PageBuilder
 from shared.models.user import User
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
-from src.utils.database.main import get_async_session
+from src.extensions import get_async_db_session as get_async_db
+from src.api.v2._helpers import ok, fail
 
 router = APIRouter(prefix="/page-builder", tags=["Page Builder"])
 
@@ -46,7 +48,20 @@ class PageResponse(BaseModel):
     updated_at: Optional[str] = None
 
 
+def _catch(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except HTTPException:
+            raise
+        except Exception as e:
+            return fail(str(e))
+    return wrapper
+
+
 @router.post("/pages", response_model=PageResponse)
+@_catch
 async def create_page(
         req: PageCreateRequest,
         current_user: User = Depends(jwt_required)
@@ -60,7 +75,7 @@ async def create_page(
     Returns:
         创建的页面对象
     """
-    async for db in get_async_session():
+    async for db in get_async_db():
         # 检查 slug 是否已存在
         existing = await db.execute(
             select(PageBuilder).where(PageBuilder.slug == req.slug)
@@ -103,6 +118,7 @@ async def create_page(
 
 
 @router.get("/pages", response_model=List[PageResponse])
+@_catch
 async def list_pages(
         skip: int = Query(0, ge=0),
         limit: int = Query(20, ge=1, le=100),
@@ -119,7 +135,7 @@ async def list_pages(
     Returns:
         页面列表
     """
-    async for db in get_async_session():
+    async for db in get_async_db():
         query = select(PageBuilder)
 
         if published_only:
@@ -153,6 +169,7 @@ async def list_pages(
 
 
 @router.get("/pages/{page_id}", response_model=PageResponse)
+@_catch
 async def get_page(
         page_id: int,
         current_user: User = Depends(jwt_required)
@@ -165,7 +182,7 @@ async def get_page(
     Returns:
         页面对象
     """
-    async for db in get_async_session():
+    async for db in get_async_db():
         result = await db.execute(
             select(PageBuilder).where(PageBuilder.id == page_id)
         )
@@ -193,6 +210,7 @@ async def get_page(
 
 
 @router.put("/pages/{page_id}", response_model=PageResponse)
+@_catch
 async def update_page(
         page_id: int,
         req: PageUpdateRequest,
@@ -207,7 +225,7 @@ async def update_page(
     Returns:
         更新后的页面对象
     """
-    async for db in get_async_session():
+    async for db in get_async_db():
         result = await db.execute(
             select(PageBuilder).where(PageBuilder.id == page_id)
         )
@@ -250,6 +268,7 @@ async def update_page(
 
 
 @router.delete("/pages/{page_id}")
+@_catch
 async def delete_page(
         page_id: int,
         current_user: User = Depends(jwt_required)
@@ -262,7 +281,7 @@ async def delete_page(
     Returns:
         删除结果
     """
-    async for db in get_async_session():
+    async for db in get_async_db():
         result = await db.execute(
             select(PageBuilder).where(PageBuilder.id == page_id)
         )
@@ -274,10 +293,11 @@ async def delete_page(
         await db.delete(page)
         await db.commit()
 
-        return {"success": True, "message": "页面已删除"}
+        return ok(msg="页面已删除")
 
 
 @router.post("/pages/{page_id}/publish")
+@_catch
 async def publish_page(
         page_id: int,
         current_user: User = Depends(jwt_required)
@@ -290,7 +310,7 @@ async def publish_page(
     Returns:
         发布结果
     """
-    async for db in get_async_session():
+    async for db in get_async_db():
         result = await db.execute(
             select(PageBuilder).where(PageBuilder.id == page_id)
         )
@@ -304,10 +324,11 @@ async def publish_page(
 
         await db.commit()
 
-        return {"success": True, "message": "页面已发布"}
+        return ok(msg="页面已发布")
 
 
 @router.post("/pages/{page_id}/unpublish")
+@_catch
 async def unpublish_page(
         page_id: int,
         current_user: User = Depends(jwt_required)
@@ -320,7 +341,7 @@ async def unpublish_page(
     Returns:
         取消发布结果
     """
-    async for db in get_async_session():
+    async for db in get_async_db():
         result = await db.execute(
             select(PageBuilder).where(PageBuilder.id == page_id)
         )
@@ -334,10 +355,11 @@ async def unpublish_page(
 
         await db.commit()
 
-        return {"success": True, "message": "页面已取消发布"}
+        return ok(msg="页面已取消发布")
 
 
 @router.get("/pages/slug/{slug}", response_model=PageResponse)
+@_catch
 async def get_page_by_slug(slug: str):
     """P2-1: 通过 slug 获取公开页面（无需认证）
 
@@ -347,7 +369,7 @@ async def get_page_by_slug(slug: str):
     Returns:
         页面对象（仅已发布的）
     """
-    async for db in get_async_session():
+    async for db in get_async_db():
         result = await db.execute(
             select(PageBuilder).where(
                 (PageBuilder.slug == slug) &
@@ -619,6 +641,7 @@ PAGE_TEMPLATES = [
 
 
 @router.get("/templates")
+@_catch
 async def list_templates():
     """P6-4: 获取所有预建页面模板
 
@@ -629,6 +652,7 @@ async def list_templates():
 
 
 @router.get("/templates/{template_id}")
+@_catch
 async def get_template(template_id: str):
     """P6-4: 获取单个模板详情
 
@@ -645,6 +669,7 @@ async def get_template(template_id: str):
 
 
 @router.post("/pages/from-template")
+@_catch
 async def create_page_from_template(
         template_id: str,
         title: str,
@@ -665,7 +690,7 @@ async def create_page_from_template(
     if not template:
         raise HTTPException(status_code=404, detail="模板不存在")
 
-    async for db in get_async_session():
+    async for db in get_async_db():
         # 检查 slug 是否已存在
         existing = await db.execute(
             select(PageBuilder).where(PageBuilder.slug == slug)

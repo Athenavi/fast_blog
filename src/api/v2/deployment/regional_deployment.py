@@ -2,16 +2,29 @@
 区域化部署最佳实践 API - V2 版本
 提供全球各地区的部署指南、云服务配置和最佳实践
 """
+from functools import wraps
+
 from fastapi import APIRouter, Depends
 
 from shared.models.user import User
-from src.api.v2._base import ApiResponse
+from src.api.v2._helpers import ok, fail
 from src.auth import jwt_required_dependency as jwt_required
 
 router = APIRouter(prefix="/deployment", tags=["Regional Deployment"])
 
 
+def _catch(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except Exception as e:
+            return fail(f"操作失败: {e}")
+    return wrapper
+
+
 @router.get("/guide/{region}", summary="获取区域部署指南")
+@_catch
 async def get_deployment_guide(
         region: str,
         current_user: User = Depends(jwt_required)
@@ -494,205 +507,195 @@ resource "aws_db_instance" "postgres" {
 
     guide = guides.get(region)
     if not guide:
-        return ApiResponse(
-            success=False,
-            error=f"不支持的区域: {region}。支持的区域: {', '.join(guides.keys())}"
-        )
+        return fail(f"不支持的区域: {region}。支持的区域: {', '.join(guides.keys())}")
 
-    return ApiResponse(
-        success=True,
-        data=guide
-    )
+    return ok(data=guide)
 
 
 @router.get("/comparison", summary="云平台对比")
+@_catch
 async def compare_cloud_providers():
     """
     对比主流云服务提供商的特性、价格和适用场景
     """
-    return ApiResponse(
-        success=True,
-        data={
-            'title': '主流云平台对比',
-            'providers': [
-                {
-                    'name': 'AWS',
-                    'strengths': [
-                        '最全面的云服务',
-                        '全球覆盖最广',
-                        '成熟的生态系统',
-                        '丰富的文档和社区'
-                    ],
-                    'weaknesses': [
-                        '学习曲线陡峭',
-                        '定价复杂',
-                        '控制台界面复杂'
-                    ],
-                    'best_for': '大型企业、全球化应用、复杂架构',
-                    'pricing_model': '按使用量付费，预留实例折扣'
-                },
-                {
-                    'name': 'Azure',
-                    'strengths': [
-                        '与 Microsoft 生态集成好',
-                        '混合云解决方案强',
-                        '企业级支持',
-                        'Active Directory 集成'
-                    ],
-                    'weaknesses': [
-                        '某些服务不如 AWS 成熟',
-                        '文档质量参差不齐',
-                        '价格相对较高'
-                    ],
-                    'best_for': 'Microsoft 技术栈、企业客户、混合云',
-                    'pricing_model': '按使用量付费，预留实例折扣'
-                },
-                {
-                    'name': 'GCP',
-                    'strengths': [
-                        'Kubernetes 原生支持',
-                        '数据分析和 AI/ML 能力强',
-                        '网络性能优秀',
-                        '定价透明简单'
-                    ],
-                    'weaknesses': [
-                        '服务数量相对较少',
-                        '企业支持不如 AWS/Azure',
-                        '部分地区覆盖有限'
-                    ],
-                    'best_for': '数据驱动应用、AI/ML 工作负载、初创公司',
-                    'pricing_model': '持续使用折扣，承诺使用折扣'
-                },
-                {
-                    'name': '阿里云',
-                    'strengths': [
-                        '中国大陆速度最快',
-                        '本地化服务好',
-                        '性价比高',
-                        '完整的备案支持'
-                    ],
-                    'weaknesses': [
-                        '国际节点较少',
-                        '英文文档不够完善',
-                        '需要实名认证'
-                    ],
-                    'best_for': '面向中国用户的业务、电商、直播',
-                    'pricing_model': '按量付费、包年包月、抢占式实例'
-                }
-            ],
-            'selection_criteria': [
-                '目标用户地理位置',
-                '预算和成本预期',
-                '技术栈兼容性',
-                '合规性要求',
-                '团队熟悉度',
-                '支持和服务质量'
-            ]
-        }
-    )
+    return ok(data={
+        'title': '主流云平台对比',
+        'providers': [
+            {
+                'name': 'AWS',
+                'strengths': [
+                    '最全面的云服务',
+                    '全球覆盖最广',
+                    '成熟的生态系统',
+                    '丰富的文档和社区'
+                ],
+                'weaknesses': [
+                    '学习曲线陡峭',
+                    '定价复杂',
+                    '控制台界面复杂'
+                ],
+                'best_for': '大型企业、全球化应用、复杂架构',
+                'pricing_model': '按使用量付费，预留实例折扣'
+            },
+            {
+                'name': 'Azure',
+                'strengths': [
+                    '与 Microsoft 生态集成好',
+                    '混合云解决方案强',
+                    '企业级支持',
+                    'Active Directory 集成'
+                ],
+                'weaknesses': [
+                    '某些服务不如 AWS 成熟',
+                    '文档质量参差不齐',
+                    '价格相对较高'
+                ],
+                'best_for': 'Microsoft 技术栈、企业客户、混合云',
+                'pricing_model': '按使用量付费，预留实例折扣'
+            },
+            {
+                'name': 'GCP',
+                'strengths': [
+                    'Kubernetes 原生支持',
+                    '数据分析和 AI/ML 能力强',
+                    '网络性能优秀',
+                    '定价透明简单'
+                ],
+                'weaknesses': [
+                    '服务数量相对较少',
+                    '企业支持不如 AWS/Azure',
+                    '部分地区覆盖有限'
+                ],
+                'best_for': '数据驱动应用、AI/ML 工作负载、初创公司',
+                'pricing_model': '持续使用折扣，承诺使用折扣'
+            },
+            {
+                'name': '阿里云',
+                'strengths': [
+                    '中国大陆速度最快',
+                    '本地化服务好',
+                    '性价比高',
+                    '完整的备案支持'
+                ],
+                'weaknesses': [
+                    '国际节点较少',
+                    '英文文档不够完善',
+                    '需要实名认证'
+                ],
+                'best_for': '面向中国用户的业务、电商、直播',
+                'pricing_model': '按量付费、包年包月、抢占式实例'
+            }
+        ],
+        'selection_criteria': [
+            '目标用户地理位置',
+            '预算和成本预期',
+            '技术栈兼容性',
+            '合规性要求',
+            '团队熟悉度',
+            '支持和服务质量'
+        ]
+    })
 
 
 @router.get("/checklist", summary="部署检查清单")
+@_catch
 async def get_deployment_checklist():
     """
     获取完整的部署前检查清单
     
     确保所有必要的配置和安全措施都已到位
     """
-    return ApiResponse(
-        success=True,
-        data={
-            'title': '部署前检查清单',
-            'categories': [
-                {
-                    'category': '基础设施',
-                    'items': [
-                        '✓ 选择合适的云平台和区域',
-                        '✓ 配置 VPC/虚拟网络',
-                        '✓ 设置安全组和防火墙规则',
-                        '✓ 配置负载均衡器（如需要）',
-                        '✓ 设置域名和 DNS',
-                        '✓ 申请和配置 SSL 证书'
-                    ]
-                },
-                {
-                    'category': '数据库',
-                    'items': [
-                        '✓ 选择数据库引擎和版本',
-                        '✓ 配置数据库实例规格',
-                        '✓ 设置备份策略',
-                        '✓ 配置连接池',
-                        '✓ 设置访问控制和白名单',
-                        '✓ 启用慢查询日志'
-                    ]
-                },
-                {
-                    'category': '应用配置',
-                    'items': [
-                        '✓ 设置环境变量',
-                        '✓ 配置 SECRET_KEY',
-                        '✓ 设置数据库连接字符串',
-                        '✓ 配置 Redis 连接',
-                        '✓ 设置邮件服务',
-                        '✓ 配置文件存储（S3/OSS等）'
-                    ]
-                },
-                {
-                    'category': '安全',
-                    'items': [
-                        '✓ 更新系统和依赖包',
-                        '✓ 禁用 root SSH 登录',
-                        '✓ 配置 SSH 密钥认证',
-                        '✓ 设置 fail2ban',
-                        '✓ 启用防火墙',
-                        '✓ 配置速率限制',
-                        '✓ 设置 CORS 策略',
-                        '✓ 启用 HTTPS 强制跳转'
-                    ]
-                },
-                {
-                    'category': '监控',
-                    'items': [
-                        '✓ 安装监控代理',
-                        '✓ 配置 CPU/内存/磁盘告警',
-                        '✓ 设置应用性能监控',
-                        '✓ 配置日志聚合',
-                        '✓ 设置错误追踪',
-                        '✓ 配置 uptime 监控'
-                    ]
-                },
-                {
-                    'category': '备份',
-                    'items': [
-                        '✓ 配置数据库自动备份',
-                        '✓ 设置文件备份策略',
-                        '✓ 测试恢复流程',
-                        '✓ 配置备份保留策略',
-                        '✓ 设置异地备份'
-                    ]
-                },
-                {
-                    'category': '性能优化',
-                    'items': [
-                        '✓ 启用 Gzip/Brotli 压缩',
-                        '✓ 配置浏览器缓存',
-                        '✓ 设置 CDN',
-                        '✓ 优化图片',
-                        '✓ 启用 HTTP/2',
-                        '✓ 配置数据库索引'
-                    ]
-                },
-                {
-                    'category': '合规性',
-                    'items': [
-                        '✓ 隐私政策页面',
-                        '✓ Cookie 同意横幅',
-                        '✓ GDPR/CCPA 合规检查',
-                        '✓ ICP 备案（如在中国）',
-                        '✓ 数据保留策略',
-                        '✓ 用户数据导出功能'
-                    ]
-                }
-            ]
-        }
-    )
+    return ok(data={
+        'title': '部署前检查清单',
+        'categories': [
+            {
+                'category': '基础设施',
+                'items': [
+                    '✓ 选择合适的云平台和区域',
+                    '✓ 配置 VPC/虚拟网络',
+                    '✓ 设置安全组和防火墙规则',
+                    '✓ 配置负载均衡器（如需要）',
+                    '✓ 设置域名和 DNS',
+                    '✓ 申请和配置 SSL 证书'
+                ]
+            },
+            {
+                'category': '数据库',
+                'items': [
+                    '✓ 选择数据库引擎和版本',
+                    '✓ 配置数据库实例规格',
+                    '✓ 设置备份策略',
+                    '✓ 配置连接池',
+                    '✓ 设置访问控制和白名单',
+                    '✓ 启用慢查询日志'
+                ]
+            },
+            {
+                'category': '应用配置',
+                'items': [
+                    '✓ 设置环境变量',
+                    '✓ 配置 SECRET_KEY',
+                    '✓ 设置数据库连接字符串',
+                    '✓ 配置 Redis 连接',
+                    '✓ 设置邮件服务',
+                    '✓ 配置文件存储（S3/OSS等）'
+                ]
+            },
+            {
+                'category': '安全',
+                'items': [
+                    '✓ 更新系统和依赖包',
+                    '✓ 禁用 root SSH 登录',
+                    '✓ 配置 SSH 密钥认证',
+                    '✓ 设置 fail2ban',
+                    '✓ 启用防火墙',
+                    '✓ 配置速率限制',
+                    '✓ 设置 CORS 策略',
+                    '✓ 启用 HTTPS 强制跳转'
+                ]
+            },
+            {
+                'category': '监控',
+                'items': [
+                    '✓ 安装监控代理',
+                    '✓ 配置 CPU/内存/磁盘告警',
+                    '✓ 设置应用性能监控',
+                    '✓ 配置日志聚合',
+                    '✓ 设置错误追踪',
+                    '✓ 配置 uptime 监控'
+                ]
+            },
+            {
+                'category': '备份',
+                'items': [
+                    '✓ 配置数据库自动备份',
+                    '✓ 设置文件备份策略',
+                    '✓ 测试恢复流程',
+                    '✓ 配置备份保留策略',
+                    '✓ 设置异地备份'
+                ]
+            },
+            {
+                'category': '性能优化',
+                'items': [
+                    '✓ 启用 Gzip/Brotli 压缩',
+                    '✓ 配置浏览器缓存',
+                    '✓ 设置 CDN',
+                    '✓ 优化图片',
+                    '✓ 启用 HTTP/2',
+                    '✓ 配置数据库索引'
+                ]
+            },
+            {
+                'category': '合规性',
+                'items': [
+                    '✓ 隐私政策页面',
+                    '✓ Cookie 同意横幅',
+                    '✓ GDPR/CCPA 合规检查',
+                    '✓ ICP 备案（如在中国）',
+                    '✓ 数据保留策略',
+                    '✓ 用户数据导出功能'
+                ]
+            }
+        ]
+    })

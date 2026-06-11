@@ -3,36 +3,41 @@
 """
 import asyncio
 import json
+from functools import wraps
 
-from fastapi import APIRouter, Body
+from fastapi import APIRouter, Body, HTTPException
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from shared.services.install.install_manager.installation_wizard import installation_wizard_service
 from shared.services.install.install_manager.migration_service import migration_service
-from src.api.v2._base import ApiResponse
+from src.api.v2._helpers import ok, fail
 
 router = APIRouter()
+
+
+def _catch(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except HTTPException:
+            raise
+        except Exception as e:
+            return fail(str(e))
+    return wrapper
 
 
 @router.get("/prerequisites",
             summary="检查安装前置条件",
             description="检查系统环境是否满足安装要求",
             response_description="返回前置条件检查结果")
+@_catch
 async def check_prerequisites_api():
     """检查安装前置条件"""
-    try:
-        result = installation_wizard_service.check_prerequisites()
+    result = installation_wizard_service.check_prerequisites()
 
-        return ApiResponse(
-            success=True,
-            data=result
-        )
-    except Exception as e:
-        import traceback
-        print(f"Error in check_prerequisites_api: {str(e)}")
-        print(traceback.format_exc())
-        return ApiResponse(success=False, error=str(e))
+    return ok(data=result)
 
 
 class DatabaseConfigRequest(BaseModel):
@@ -82,38 +87,27 @@ class SampleDataRequest(BaseModel):
              summary="配置数据库",
              description="配置数据库连接信息",
              response_description="返回配置结果")
+@_catch
 async def configure_database_api(
         request: DatabaseConfigFullRequest
 ):
     """配置数据库"""
-    try:
-        # 检查是否已安装
-        if installation_wizard_service.is_installed():
-            return ApiResponse(
-                success=False,
-                error="System already installed"
-            )
+    # 检查是否已安装
+    if installation_wizard_service.is_installed():
+        return fail("System already installed")
 
-        config = {
-            'db_type': request.db_type,
-            'host': request.host,
-            'port': request.port,
-            'database': request.database,
-            'username': request.username,
-            'password': request.password
-        }
+    config = {
+        'db_type': request.db_type,
+        'host': request.host,
+        'port': request.port,
+        'database': request.database,
+        'username': request.username,
+        'password': request.password
+    }
 
-        result = installation_wizard_service.configure_database(config)
+    result = installation_wizard_service.configure_database(config)
 
-        return ApiResponse(
-            success=result['success'],
-            data=result
-        )
-    except Exception as e:
-        import traceback
-        print(f"Error in configure_database_api: {str(e)}")
-        print(traceback.format_exc())
-        return ApiResponse(success=False, error=str(e))
+    return ok(data=result)
 
 
 async def _import_sample_data_helper(import_articles: bool, import_categories: bool):
@@ -129,14 +123,11 @@ async def _import_sample_data_helper(import_articles: bool, import_categories: b
     """
     # 如果都不导入，直接返回成功
     if not import_articles and not import_categories:
-        return ApiResponse(
-            success=True,
-            data={
-                'success': True,
-                'message': '已跳过示例数据导入',
-                'imported': {'articles': 0, 'categories': 0}
-            }
-        )
+        return ok(data={
+            'success': True,
+            'message': '已跳过示例数据导入',
+            'imported': {'articles': 0, 'categories': 0}
+        })
 
     from sqlalchemy import select
     from src.utils.database.unified_manager import db_manager as unified_db_manager
@@ -234,14 +225,11 @@ async def _import_sample_data_helper(import_articles: bool, import_categories: b
 
                     await session.commit()
 
-            return ApiResponse(
-                success=True,
-                data={
-                    'success': True,
-                    'message': f'示例数据导入成功：{imported["categories"]} 个分类，{imported["articles"]} 篇文章',
-                    'imported': imported
-                }
-            )
+            return ok(data={
+                'success': True,
+                'message': f'示例数据导入成功：{imported["categories"]} 个分类，{imported["articles"]} 篇文章',
+                'imported': imported
+            })
         except Exception:
             await session.rollback()
             raise
@@ -251,405 +239,298 @@ async def _import_sample_data_helper(import_articles: bool, import_categories: b
              summary="导入示例数据",
              description="导入示例文章和分类",
              response_description="返回导入结果")
+@_catch
 async def import_sample_data_api(
         request: SampleDataRequest
 ):
     """导入示例数据"""
-    try:
-        # 检查是否已安装
-        if installation_wizard_service.is_installed():
-            return ApiResponse(
-                success=False,
-                error="System already installed"
-            )
+    # 检查是否已安装
+    if installation_wizard_service.is_installed():
+        return fail("System already installed")
 
-        # 调用辅助函数
-        return await _import_sample_data_helper(
-            import_articles=request.import_articles,
-            import_categories=request.import_categories
-        )
-
-    except Exception as e:
-        import traceback
-        print(f"Error in import_sample_data_api: {str(e)}")
-        print(traceback.format_exc())
-        return ApiResponse(success=False, error=str(e))
+    # 调用辅助函数
+    return await _import_sample_data_helper(
+        import_articles=request.import_articles,
+        import_categories=request.import_categories
+    )
 
 
 @router.get("/status",
             summary="获取安装状态",
             description="检查系统是否已安装及当前进度",
             response_description="返回安装状态")
+@_catch
 async def get_installation_status_api():
     """获取安装状态"""
-    try:
-        status = installation_wizard_service.get_installation_status()
+    status = installation_wizard_service.get_installation_status()
 
-        return ApiResponse(
-            success=True,
-            data=status
-        )
-    except Exception as e:
-        import traceback
-        print(f"Error in get_installation_status_api: {str(e)}")
-        print(traceback.format_exc())
-        return ApiResponse(success=False, error=str(e))
+    return ok(data=status)
 
 
 @router.get("/steps",
             summary="获取安装步骤",
             description="获取完整的安装步骤列表",
             response_description="返回安装步骤")
+@_catch
 async def get_installation_steps_api():
     """获取安装步骤"""
-    try:
-        steps = installation_wizard_service.get_installation_steps()
+    steps = installation_wizard_service.get_installation_steps()
 
-        return ApiResponse(
-            success=True,
-            data={
-                "steps": steps,
-                "total_steps": len(steps)
-            }
-        )
-    except Exception as e:
-        import traceback
-        print(f"Error in get_installation_steps_api: {str(e)}")
-        print(traceback.format_exc())
-        return ApiResponse(success=False, error=str(e))
+    return ok(data={
+        "steps": steps,
+        "total_steps": len(steps)
+    })
 
 
 @router.post("/check-database",
              summary="检查数据库连接",
              description="验证数据库连接配置是否正确",
              response_description="返回检查结果")
+@_catch
 async def check_database_connection_api(
         request: DatabaseConfigRequest
 ):
     """检查数据库连接"""
-    try:
-        result = installation_wizard_service.check_database_connection(request.db_url)
+    result = installation_wizard_service.check_database_connection(request.db_url)
 
-        return ApiResponse(
-            success=result['success'],
-            data=result
-        )
-    except Exception as e:
-        import traceback
-        print(f"Error in check_database_connection_api: {str(e)}")
-        print(traceback.format_exc())
-        return ApiResponse(success=False, error=str(e))
+    return ok(data=result)
 
 
 @router.post("/create-admin",
              summary="创建管理员账户",
              description="创建第一个管理员账户",
              response_description="返回创建结果")
+@_catch
 async def create_admin_user_api(
         request: AdminUserRequest
 ):
     """创建管理员账户"""
-    try:
-        # 检查是否已安装
-        if installation_wizard_service.is_installed():
-            return ApiResponse(
-                success=False,
-                error="System already installed"
+    # 检查是否已安装
+    if installation_wizard_service.is_installed():
+        return fail("System already installed")
+
+    # 直接调用内部异步函数
+    from shared.services.install.install_manager.installation_wizard import installation_wizard_service as wizard
+
+    # 验证输入
+    if not request.username or not request.email or not request.password:
+        return fail('用户名、邮箱和密码不能为空')
+
+    if len(request.password) < 6:
+        return fail('密码长度至少为6个字符')
+
+    import re
+    if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', request.email):
+        return fail('邮箱格式不正确')
+
+    # 使用 Argon2 密码哈希
+    from src.utils.security.password_validator import hash_password
+    hashed_password = hash_password(request.password)
+
+    # 使用统一管理器获取会话
+    from src.utils.database.unified_manager import db_manager as unified_db_manager
+    from sqlalchemy import select
+    from shared.models import User
+    from datetime import datetime
+
+    # 确保数据库管理器已初始化
+    if unified_db_manager._async_session_factory is None:
+        print("[Install] 检测到数据库管理器未初始化，尝试重新加载配置...")
+        try:
+            # 强制重新加载 .env 文件和配置
+            import importlib
+            from dotenv import load_dotenv
+
+            # 重新加载 .env 文件
+            load_dotenv(override=True)
+            print("  ✓ .env 文件已重新加载")
+
+            # 重新导入并初始化设置
+            import src.setting
+            importlib.reload(src.setting)
+            from src.setting import settings as new_settings
+            print(f"  ✓ 配置已重新加载，数据库 URL: {new_settings.database_url[:50]}..." if new_settings.database_url else "  ⚠ 数据库 URL 仍为空")
+
+            # 重置并重新初始化数据库管理器
+            unified_db_manager._async_engine = None
+            unified_db_manager._async_session_factory = None
+            unified_db_manager.initialize()
+
+            if unified_db_manager._async_session_factory is not None:
+                print("✓ 数据库连接池初始化成功")
+            else:
+                return fail('数据库连接池初始化失败。请确认已完成"确认数据库配置并执行迁移"步骤。')
+        except Exception as init_err:
+            import traceback
+            print(f"数据库管理器初始化失败: {init_err}")
+            print(traceback.format_exc())
+            return fail(f'数据库管理器初始化失败: {str(init_err)}')
+
+    async with unified_db_manager.get_session_no_auto_commit() as session:
+        try:
+            # 检查用户是否已存在
+            result = await session.execute(
+                select(User).where(User.username == request.username)
+            )
+            existing_user = result.scalar_one_or_none()
+
+            if existing_user:
+                return fail(f'用户名 "{request.username}" 已存在')
+
+            # 检查邮箱是否已存在
+            result = await session.execute(
+                select(User).where(User.email == request.email)
+            )
+            existing_email = result.scalar_one_or_none()
+
+            if existing_email:
+                return fail(f'邮箱 "{request.email}" 已被注册')
+
+            # 创建新用户
+            new_user = User(
+                username=request.username,
+                email=request.email,
+                password=hashed_password,
+                is_active=True,
+                is_superuser=True,
+                is_staff=True,
+                date_joined=datetime.now(),
             )
 
-        # 直接调用内部异步函数
-        from shared.services.install.install_manager.installation_wizard import installation_wizard_service as wizard
+            session.add(new_user)
+            await session.commit()
+            await session.refresh(new_user)
 
-        # 验证输入
-        if not request.username or not request.email or not request.password:
-            return ApiResponse(
-                success=False,
-                error='用户名、邮箱和密码不能为空'
-            )
-
-        if len(request.password) < 6:
-            return ApiResponse(
-                success=False,
-                error='密码长度至少为6个字符'
-            )
-
-        import re
-        if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', request.email):
-            return ApiResponse(
-                success=False,
-                error='邮箱格式不正确'
-            )
-
-        # 使用 Argon2 密码哈希
-        from src.utils.security.password_validator import hash_password
-        hashed_password = hash_password(request.password)
-
-        # 使用统一管理器获取会话
-        from src.utils.database.unified_manager import db_manager as unified_db_manager
-        from sqlalchemy import select
-        from shared.models import User
-        from datetime import datetime
-
-        # 确保数据库管理器已初始化
-        if unified_db_manager._async_session_factory is None:
-            print("[Install] 检测到数据库管理器未初始化，尝试重新加载配置...")
-            try:
-                # 强制重新加载 .env 文件和配置
-                import importlib
-                from dotenv import load_dotenv
-
-                # 重新加载 .env 文件
-                load_dotenv(override=True)
-                print("  ✓ .env 文件已重新加载")
-
-                # 重新导入并初始化设置
-                import src.setting
-                importlib.reload(src.setting)
-                from src.setting import settings as new_settings
-                print(f"  ✓ 配置已重新加载，数据库 URL: {new_settings.database_url[:50]}..." if new_settings.database_url else "  ⚠ 数据库 URL 仍为空")
-
-                # 重置并重新初始化数据库管理器
-                unified_db_manager._async_engine = None
-                unified_db_manager._async_session_factory = None
-                unified_db_manager.initialize()
-
-                if unified_db_manager._async_session_factory is not None:
-                    print("✓ 数据库连接池初始化成功")
-                else:
-                    return ApiResponse(
-                        success=False,
-                        error='数据库连接池初始化失败。请确认已完成“确认数据库配置并执行迁移”步骤。'
-                    )
-            except Exception as init_err:
-                import traceback
-                print(f"数据库管理器初始化失败: {init_err}")
-                print(traceback.format_exc())
-                return ApiResponse(
-                    success=False,
-                    error=f'数据库管理器初始化失败: {str(init_err)}'
-                )
-
-        async with unified_db_manager.get_session_no_auto_commit() as session:
-            try:
-                # 检查用户是否已存在
-                result = await session.execute(
-                    select(User).where(User.username == request.username)
-                )
-                existing_user = result.scalar_one_or_none()
-
-                if existing_user:
-                    return ApiResponse(
-                        success=False,
-                        error=f'用户名 "{request.username}" 已存在'
-                    )
-
-                # 检查邮箱是否已存在
-                result = await session.execute(
-                    select(User).where(User.email == request.email)
-                )
-                existing_email = result.scalar_one_or_none()
-
-                if existing_email:
-                    return ApiResponse(
-                        success=False,
-                        error=f'邮箱 "{request.email}" 已被注册'
-                    )
-
-                # 创建新用户
-                new_user = User(
-                    username=request.username,
-                    email=request.email,
-                    password=hashed_password,
-                    is_active=True,
-                    is_superuser=True,
-                    is_staff=True,
-                    date_joined=datetime.now(),
-                )
-
-                session.add(new_user)
-                await session.commit()
-                await session.refresh(new_user)
-
-                return ApiResponse(
-                    success=True,
-                    data={
-                        'success': True,
-                        'message': f'管理员账号 "{request.username}" 创建成功',
-                        'data': {
-                            'user_id': new_user.id,
-                            'username': new_user.username,
-                            'email': new_user.email
-                        }
-                    }
-                )
-            except Exception:
-                await session.rollback()
-                raise
-
-    except Exception as e:
-        import traceback
-        print(f"Error in create_admin_user_api: {str(e)}")
-        print(traceback.format_exc())
-        return ApiResponse(success=False, error=str(e))
+            return ok(data={
+                'success': True,
+                'message': f'管理员账号 "{request.username}" 创建成功',
+                'data': {
+                    'user_id': new_user.id,
+                    'username': new_user.username,
+                    'email': new_user.email
+                }
+            })
+        except Exception:
+            await session.rollback()
+            raise
 
 
 @router.post("/configure-site",
              summary="配置站点设置",
              description="配置站点基本信息",
              response_description="返回配置结果")
+@_catch
 async def configure_site_settings_api(
         request: SiteSettingsRequest
 ):
     """配置站点设置"""
-    try:
-        # 检查是否已安装
-        if installation_wizard_service.is_installed():
-            return ApiResponse(
-                success=False,
-                error="System already installed"
-            )
+    # 检查是否已安装
+    if installation_wizard_service.is_installed():
+        return fail("System already installed")
 
-        config = {
-            'site_name': request.site_name,
-            'site_url': request.site_url,
-            'site_description': request.site_description,
-            'admin_email': request.admin_email,
-            'language': request.language
-        }
+    config = {
+        'site_name': request.site_name,
+        'site_url': request.site_url,
+        'site_description': request.site_description,
+        'admin_email': request.admin_email,
+        'language': request.language
+    }
 
-        result = installation_wizard_service.configure_site_settings(
-            site_name=request.site_name,
-            site_url=request.site_url,
-            admin_email=request.admin_email,
-            site_description=request.site_description,
-            language=request.language
-        )
+    result = installation_wizard_service.configure_site_settings(
+        site_name=request.site_name,
+        site_url=request.site_url,
+        admin_email=request.admin_email,
+        site_description=request.site_description,
+        language=request.language
+    )
 
-        return ApiResponse(
-            success=result['success'],
-            data=result
-        )
-    except Exception as e:
-        import traceback
-        print(f"Error in configure_site_settings_api: {str(e)}")
-        print(traceback.format_exc())
-        return ApiResponse(success=False, error=str(e))
+    return ok(data=result)
 
 
 @router.post("/complete",
              summary="完成安装",
              description="确认所有配置并完成安装",
              response_description="返回完成结果")
+@_catch
 async def complete_installation_api(
         install_info: dict = Body(default={}, description="安装信息")
 ):
     """完成安装"""
-    try:
-        # 检查是否已安装
-        if installation_wizard_service.is_installed():
-            return ApiResponse(
-                success=False,
-                error="System already installed"
+    # 检查是否已安装
+    if installation_wizard_service.is_installed():
+        return fail("System already installed")
+
+    # 标记安装完成
+    from datetime import datetime
+    install_info['completed_at'] = datetime.now().isoformat()
+    install_info['is_installed'] = True
+
+    # 保存安装标志
+    with open(installation_wizard_service.install_flag_file, 'w', encoding='utf-8') as f:
+        json.dump(install_info, f, ensure_ascii=False, indent=2)
+
+    print("\n" + "=" * 60)
+    print("✓ 安装完成！")
+    print("=" * 60)
+
+    # 如果选择导入示例数据，调用辅助函数
+    sample_data_imported = False
+    if install_info.get('import_sample_data', False):
+        print("\n正在导入示例数据...")
+        try:
+            result = await _import_sample_data_helper(
+                import_articles=install_info.get('import_articles', True),
+                import_categories=install_info.get('import_categories', True)
             )
 
-        # 标记安装完成
-        from datetime import datetime
-        install_info['completed_at'] = datetime.now().isoformat()
-        install_info['is_installed'] = True
+            if result.success:
+                print(f"✓ {result.data.get('message', '示例数据导入成功')}")
+                sample_data_imported = True
+            else:
+                print(f"✗ 示例数据导入失败: {result.error}")
+        except Exception as e:
+            print(f"✗ 示例数据导入失败: {str(e)}")
 
-        # 保存安装标志
-        with open(installation_wizard_service.install_flag_file, 'w', encoding='utf-8') as f:
-            import json
-            json.dump(install_info, f, ensure_ascii=False, indent=2)
-
-        print("\n" + "=" * 60)
-        print("✓ 安装完成！")
-        print("=" * 60)
-
-        # 如果选择导入示例数据，调用辅助函数
-        sample_data_imported = False
-        if install_info.get('import_sample_data', False):
-            print("\n正在导入示例数据...")
-            try:
-                result = await _import_sample_data_helper(
-                    import_articles=install_info.get('import_articles', True),
-                    import_categories=install_info.get('import_categories', True)
-                )
-
-                if result.success:
-                    print(f"✓ {result.data.get('message', '示例数据导入成功')}")
-                    sample_data_imported = True
-                else:
-                    print(f"✗ 示例数据导入失败: {result.error}")
-            except Exception as e:
-                print(f"✗ 示例数据导入失败: {str(e)}")
-
-        return ApiResponse(
-            success=True,
-            data={
-                "success": True,
-                "message": "安装完成",
-                "sample_data_imported": sample_data_imported
-            }
-        )
-    except Exception as e:
-        import traceback
-        print(f"Error in complete_installation_api: {str(e)}")
-        print(traceback.format_exc())
-        return ApiResponse(success=False, error=str(e))
+    return ok(data={
+        "success": True,
+        "message": "安装完成",
+        "sample_data_imported": sample_data_imported
+    })
 
 
 @router.post("/confirm-database-and-migrate",
              summary="确认数据库配置并执行迁移",
              description="二次确认数据库配置并自动执行 Alembic 迁移",
              response_description="返回确认和迁移结果")
+@_catch
 async def confirm_database_and_migrate_api():
     """确认数据库配置并执行迁移"""
-    try:
-        # 检查是否已安装
-        if installation_wizard_service.is_installed():
-            return ApiResponse(
-                success=False,
-                error="System already installed"
-            )
+    # 检查是否已安装
+    if installation_wizard_service.is_installed():
+        return fail("System already installed")
 
-        result = installation_wizard_service.confirm_database_and_migrate()
+    result = installation_wizard_service.confirm_database_and_migrate()
 
-        return ApiResponse(
-            success=result['success'],
-            data=result
-        )
-    except Exception as e:
-        import traceback
-        print(f"Error in confirm_database_and_migrate_api: {str(e)}")
-        print(traceback.format_exc())
-        return ApiResponse(success=False, error=str(e))
+    return ok(data=result)
 
 
 @router.post("/reset",
              summary="重置安装状态",
              description="重置安装状态（仅用于开发/测试）",
              response_description="返回重置结果")
+@_catch
 async def reset_installation_api():
     """重置安装状态"""
-    try:
-        result = installation_wizard_service.reset_installation()
+    result = installation_wizard_service.reset_installation()
 
-        return ApiResponse(
-            success=result['success'],
-            data=result
-        )
-    except Exception as e:
-        import traceback
-        print(f"Error in reset_installation_api: {str(e)}")
-        print(traceback.format_exc())
-        return ApiResponse(success=False, error=str(e))
+    return ok(data=result)
 
 
 @router.get("/migration/stream",
             summary="数据库迁移实时日志流",
             description="通过 SSE 实时推送 Alembic 迁移日志到前端",
             response_description="SSE 流式响应")
+@_catch
 async def stream_migration_logs():
     """
     Server-Sent Events (SSE) 端点，实时推送迁移日志

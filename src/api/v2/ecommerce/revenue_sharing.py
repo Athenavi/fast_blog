@@ -3,15 +3,29 @@
 """
 from datetime import datetime
 from typing import Optional
+from functools import wraps
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
-from shared.services.ecommerce.revenue_sharing_service import RevenueSharingService
+from shared.services.ecommerce.revenue_sharing_service import RevenueSharingService, RevenueType
 from src.extensions import get_db
+from src.api.v2._helpers import ok, fail
 
 router = APIRouter(tags=["收益分成"])
+
+
+def _catch(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except HTTPException:
+            raise
+        except Exception as e:
+            return fail(str(e))
+    return wrapper
 
 
 # ==================== Pydantic 模型 ====================
@@ -52,37 +66,32 @@ def get_revenue_service(db: Session = Depends(get_db)) -> RevenueSharingService:
 # ==================== 收益记录 API ====================
 
 @router.post("/records", response_model=dict)
+@_catch
 def create_revenue_record(
         record: RevenueRecordCreate,
         service: RevenueSharingService = Depends(get_revenue_service)
 ):
     """创建收益记录"""
+    # 转换收益类型
     try:
-        # 转换收益类型
-        try:
-            revenue_type = RevenueType(record.revenue_type)
-        except ValueError:
-            raise HTTPException(status_code=400, detail=f"无效的收益类型: {record.revenue_type}")
+        rev_type = RevenueType(record.revenue_type)
+    except ValueError:
+        raise HTTPException(status_code=400, detail=f"无效的收益类型: {record.revenue_type}")
 
-        new_record = service.record_revenue(
-            user_id=record.user_id,
-            revenue_type=revenue_type,
-            amount=record.amount,
-            description=record.description,
-            reference_id=record.reference_id,
-            reference_type=record.reference_type
-        )
+    new_record = service.record_revenue(
+        user_id=record.user_id,
+        revenue_type=rev_type,
+        amount=record.amount,
+        description=record.description,
+        reference_id=record.reference_id,
+        reference_type=record.reference_type
+    )
 
-        return {
-            "success": True,
-            "data": {"id": new_record.id},
-            "message": "收益记录创建成功"
-        }
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    return ok(data={"id": new_record.id}, msg="收益记录创建成功")
 
 
 @router.get("/records", response_model=dict)
+@_catch
 def list_revenue_records(
         user_id: int = Query(..., description="用户ID"),
         revenue_type: Optional[str] = Query(None, description="收益类型"),
@@ -107,27 +116,24 @@ def list_revenue_records(
         limit=limit
     )
 
-    return {
-        "success": True,
-        "data": [
-            {
-                "id": r.id,
-                "user_id": r.user_id,
-                "revenue_type": r.revenue_type.value,
-                "amount": r.amount,
-                "platform_fee": r.platform_fee,
-                "creator_earnings": r.creator_earnings,
-                "description": r.description,
-                "status": r.status,
-                "created_at": r.created_at.isoformat() if r.created_at else None,
-            }
-            for r in records
-        ],
-        "total": len(records)
-    }
+    return ok(data=[
+        {
+            "id": r.id,
+            "user_id": r.user_id,
+            "revenue_type": r.revenue_type.value,
+            "amount": r.amount,
+            "platform_fee": r.platform_fee,
+            "creator_earnings": r.creator_earnings,
+            "description": r.description,
+            "status": r.status,
+            "created_at": r.created_at.isoformat() if r.created_at else None,
+        }
+        for r in records
+    ])
 
 
 @router.get("/summary/{user_id}", response_model=dict)
+@_catch
 def get_revenue_summary(
         user_id: int,
         start_date: Optional[datetime] = Query(None, description="开始日期"),
@@ -137,15 +143,13 @@ def get_revenue_summary(
     """获取用户收益汇总"""
     summary = service.get_user_revenue_summary(user_id, start_date, end_date)
 
-    return {
-        "success": True,
-        "data": summary
-    }
+    return ok(data=summary)
 
 
 # ==================== 用户统计 API ====================
 
 @router.get("/stats/{user_id}", response_model=dict)
+@_catch
 def get_user_stats(
         user_id: int,
         service: RevenueSharingService = Depends(get_revenue_service)
@@ -153,50 +157,40 @@ def get_user_stats(
     """获取用户收益统计"""
     stats = service.get_user_stats(user_id)
 
-    return {
-        "success": True,
-        "data": {
-            "user_id": stats.user_id,
-            "total_earnings": stats.total_earnings,
-            "total_paid": stats.total_paid,
-            "pending_earnings": stats.pending_earnings,
-            "available_balance": stats.available_balance,
-            "last_payout_at": stats.last_payout_at.isoformat() if stats.last_payout_at else None,
-            "updated_at": stats.updated_at.isoformat() if stats.updated_at else None,
-        }
-    }
+    return ok(data={
+        "user_id": stats.user_id,
+        "total_earnings": stats.total_earnings,
+        "total_paid": stats.total_paid,
+        "pending_earnings": stats.pending_earnings,
+        "available_balance": stats.available_balance,
+        "last_payout_at": stats.last_payout_at.isoformat() if stats.last_payout_at else None,
+        "updated_at": stats.updated_at.isoformat() if stats.updated_at else None,
+    })
 
 
 # ==================== 提现管理 API ====================
 
 @router.post("/payouts", response_model=dict)
+@_catch
 def create_payout_request(
         payout: PayoutRequestCreate,
         user_id: int = Query(..., description="用户ID"),
         service: RevenueSharingService = Depends(get_revenue_service)
 ):
     """创建提现申请"""
-    try:
-        new_payout = service.create_payout_request(
-            user_id=user_id,
-            amount=payout.amount,
-            payment_method=payout.payment_method,
-            payment_account=payout.payment_account,
-            account_name=payout.account_name
-        )
+    new_payout = service.create_payout_request(
+        user_id=user_id,
+        amount=payout.amount,
+        payment_method=payout.payment_method,
+        payment_account=payout.payment_account,
+        account_name=payout.account_name
+    )
 
-        return {
-            "success": True,
-            "data": {"id": new_payout.id},
-            "message": "提现申请提交成功"
-        }
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    return ok(data={"id": new_payout.id}, msg="提现申请提交成功")
 
 
 @router.get("/payouts", response_model=dict)
+@_catch
 def list_payout_requests(
         user_id: Optional[int] = Query(None, description="用户ID"),
         status: Optional[str] = Query(None, description="状态"),
@@ -212,28 +206,25 @@ def list_payout_requests(
         limit=limit
     )
 
-    return {
-        "success": True,
-        "data": [
-            {
-                "id": p.id,
-                "user_id": p.user_id,
-                "amount": p.amount,
-                "payment_method": p.payment_method,
-                "payment_account": p.payment_account,
-                "account_name": p.account_name,
-                "status": p.status,
-                "admin_notes": p.admin_notes,
-                "created_at": p.created_at.isoformat() if p.created_at else None,
-                "processed_at": p.processed_at.isoformat() if p.processed_at else None,
-            }
-            for p in payouts
-        ],
-        "total": len(payouts)
-    }
+    return ok(data=[
+        {
+            "id": p.id,
+            "user_id": p.user_id,
+            "amount": p.amount,
+            "payment_method": p.payment_method,
+            "payment_account": p.payment_account,
+            "account_name": p.account_name,
+            "status": p.status,
+            "admin_notes": p.admin_notes,
+            "created_at": p.created_at.isoformat() if p.created_at else None,
+            "processed_at": p.processed_at.isoformat() if p.processed_at else None,
+        }
+        for p in payouts
+    ])
 
 
 @router.post("/payouts/{payout_id}/approve", response_model=dict)
+@_catch
 def approve_payout(
         payout_id: int,
         admin_id: int = Query(..., description="管理员ID"),
@@ -241,21 +232,15 @@ def approve_payout(
         service: RevenueSharingService = Depends(get_revenue_service)
 ):
     """批准提现"""
-    try:
-        payout = service.approve_payout(payout_id, admin_id, notes)
-        if not payout:
-            raise HTTPException(status_code=404, detail="提现申请不存在")
+    payout = service.approve_payout(payout_id, admin_id, notes)
+    if not payout:
+        raise HTTPException(status_code=404, detail="提现申请不存在")
 
-        return {
-            "success": True,
-            "data": {"id": payout.id, "status": payout.status},
-            "message": "提现已批准"
-        }
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    return ok(data={"id": payout.id, "status": payout.status}, msg="提现已批准")
 
 
 @router.post("/payouts/{payout_id}/complete", response_model=dict)
+@_catch
 def complete_payout(
         payout_id: int,
         admin_id: int = Query(..., description="管理员ID"),
@@ -263,21 +248,15 @@ def complete_payout(
         service: RevenueSharingService = Depends(get_revenue_service)
 ):
     """完成提现"""
-    try:
-        payout = service.complete_payout(payout_id, admin_id, notes)
-        if not payout:
-            raise HTTPException(status_code=404, detail="提现申请不存在")
+    payout = service.complete_payout(payout_id, admin_id, notes)
+    if not payout:
+        raise HTTPException(status_code=404, detail="提现申请不存在")
 
-        return {
-            "success": True,
-            "data": {"id": payout.id, "status": payout.status},
-            "message": "提现已完成"
-        }
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    return ok(data={"id": payout.id, "status": payout.status}, msg="提现已完成")
 
 
 @router.post("/payouts/{payout_id}/reject", response_model=dict)
+@_catch
 def reject_payout(
         payout_id: int,
         admin_id: int = Query(..., description="管理员ID"),
@@ -285,23 +264,17 @@ def reject_payout(
         service: RevenueSharingService = Depends(get_revenue_service)
 ):
     """拒绝提现"""
-    try:
-        payout = service.reject_payout(payout_id, admin_id, notes)
-        if not payout:
-            raise HTTPException(status_code=404, detail="提现申请不存在")
+    payout = service.reject_payout(payout_id, admin_id, notes)
+    if not payout:
+        raise HTTPException(status_code=404, detail="提现申请不存在")
 
-        return {
-            "success": True,
-            "data": {"id": payout.id, "status": payout.status},
-            "message": "提现已拒绝"
-        }
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    return ok(data={"id": payout.id, "status": payout.status}, msg="提现已拒绝")
 
 
 # ==================== 分成配置 API ====================
 
 @router.get("/configs", response_model=dict)
+@_catch
 def list_sharing_configs(
         service: RevenueSharingService = Depends(get_revenue_service)
 ):
@@ -319,13 +292,11 @@ def list_sharing_configs(
                 "description": config.description,
             })
 
-    return {
-        "success": True,
-        "data": configs
-    }
+    return ok(data=configs)
 
 
 @router.put("/configs/{revenue_type}", response_model=dict)
+@_catch
 def update_sharing_config(
         revenue_type: str,
         config_update: SharingConfigUpdate,
@@ -339,22 +310,19 @@ def update_sharing_config(
 
     updated = service.update_sharing_config(
         rev_type,
-        **config_update.dict(exclude_unset=True)
+        **config_update.model_dump(exclude_unset=True)
     )
 
     if not updated:
         raise HTTPException(status_code=404, detail="配置不存在")
 
-    return {
-        "success": True,
-        "data": {"revenue_type": updated.revenue_type.value},
-        "message": "配置更新成功"
-    }
+    return ok(data={"revenue_type": updated.revenue_type.value}, msg="配置更新成功")
 
 
 # ==================== 平台统计 API ====================
 
 @router.get("/stats/platform", response_model=dict)
+@_catch
 def get_platform_stats(
         start_date: Optional[datetime] = Query(None, description="开始日期"),
         end_date: Optional[datetime] = Query(None, description="结束日期"),
@@ -363,7 +331,4 @@ def get_platform_stats(
     """获取平台统计"""
     stats = service.get_platform_stats(start_date, end_date)
 
-    return {
-        "success": True,
-        "data": stats
-    }
+    return ok(data=stats)

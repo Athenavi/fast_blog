@@ -3,7 +3,9 @@
 提供菜单和菜单项的完整管理功能
 """
 
-from fastapi import APIRouter, Depends, Request
+from functools import wraps
+
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.services.content_management.menu_service import (
@@ -19,33 +21,40 @@ from shared.services.content_management.menu_service import (
     get_available_pages_for_menu,
     get_available_categories_for_menu
 )
-from src.api.v2._base import ApiResponse
+from src.api.v2._helpers import ok, fail
 from src.auth import jwt_required_dependency as jwt_required
-from src.utils.database.main import get_async_session as get_async_db
+from src.extensions import get_async_db_session as get_async_db
 
 router = APIRouter(tags=["menus"])
 
 
+def _catch(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except HTTPException:
+            raise
+        except Exception as e:
+            return fail(str(e))
+    return wrapper
+
+
 @router.get("")
+@_catch
 async def list_menus(
         db: AsyncSession = Depends(get_async_db)
 ):
     """
     获取所有菜单列表
     """
-    try:
-        menus = await get_menus_list(db=db)
+    menus = await get_menus_list(db=db)
 
-        return ApiResponse(
-            success=True,
-            data={"menus": menus}
-        )
-
-    except Exception as e:
-        return ApiResponse(success=False, error=str(e))
+    return ok(data={"menus": menus})
 
 
 @router.get("/{menu_id}")
+@_catch
 async def get_menu_detail(
         menu_id: int,
         db: AsyncSession = Depends(get_async_db)
@@ -56,25 +65,16 @@ async def get_menu_detail(
     Args:
         menu_id: 菜单ID
     """
-    try:
-        menu = await get_menu_with_items(db=db, menu_id=menu_id)
+    menu = await get_menu_with_items(db=db, menu_id=menu_id)
 
-        if not menu:
-            return ApiResponse(
-                success=False,
-                error="菜单不存在"
-            )
+    if not menu:
+        return fail("菜单不存在")
 
-        return ApiResponse(
-            success=True,
-            data=menu
-        )
-
-    except Exception as e:
-        return ApiResponse(success=False, error=str(e))
+    return ok(data=menu)
 
 
 @router.post("")
+@_catch
 async def create_new_menu(
         request: Request,
         current_user=Depends(jwt_required),
@@ -88,45 +88,33 @@ async def create_new_menu(
         slug: 菜单slug（必填）
         description: 菜单描述（可选）
     """
-    try:
-        form_data = await request.form()
+    form_data = await request.form()
 
-        name = form_data.get('name', '').strip()
-        slug = form_data.get('slug', '').strip()
-        description = form_data.get('description', None)
+    name = form_data.get('name', '').strip()
+    slug = form_data.get('slug', '').strip()
+    description = form_data.get('description', None)
 
-        if not name or not slug:
-            return ApiResponse(
-                success=False,
-                error="菜单名称和slug不能为空"
-            )
+    if not name or not slug:
+        return fail("菜单名称和slug不能为空")
 
-        menu = await create_menu(
-            db=db,
-            name=name,
-            slug=slug,
-            description=description
-        )
+    menu = await create_menu(
+        db=db,
+        name=name,
+        slug=slug,
+        description=description
+    )
 
-        if not menu:
-            return ApiResponse(
-                success=False,
-                error="创建菜单失败"
-            )
+    if not menu:
+        return fail("创建菜单失败")
 
-        return ApiResponse(
-            success=True,
-            data={
-                "message": "菜单创建成功",
-                "menu_id": menu.id
-            }
-        )
-
-    except Exception as e:
-        return ApiResponse(success=False, error=str(e))
+    return ok(data={
+        "message": "菜单创建成功",
+        "menu_id": menu.id
+    })
 
 
 @router.put("/{menu_id}")
+@_catch
 async def update_existing_menu(
         menu_id: int,
         request: Request,
@@ -145,44 +133,32 @@ async def update_existing_menu(
         description: 菜单描述（可选）
         is_active: 是否激活（可选）
     """
-    try:
-        form_data = await request.form()
+    form_data = await request.form()
 
-        update_data = {}
+    update_data = {}
 
-        if 'name' in form_data:
-            update_data['name'] = form_data.get('name')
-        if 'slug' in form_data:
-            update_data['slug'] = form_data.get('slug')
-        if 'description' in form_data:
-            update_data['description'] = form_data.get('description')
-        if 'is_active' in form_data:
-            update_data['is_active'] = form_data.get('is_active').lower() == 'true'
+    if 'name' in form_data:
+        update_data['name'] = form_data.get('name')
+    if 'slug' in form_data:
+        update_data['slug'] = form_data.get('slug')
+    if 'description' in form_data:
+        update_data['description'] = form_data.get('description')
+    if 'is_active' in form_data:
+        update_data['is_active'] = form_data.get('is_active').lower() == 'true'
 
-        if not update_data:
-            return ApiResponse(
-                success=False,
-                error="没有提供要更新的字段"
-            )
+    if not update_data:
+        return fail("没有提供要更新的字段")
 
-        success = await update_menu(db=db, menu_id=menu_id, **update_data)
+    success = await update_menu(db=db, menu_id=menu_id, **update_data)
 
-        if not success:
-            return ApiResponse(
-                success=False,
-                error="更新菜单失败，菜单可能不存在"
-            )
+    if not success:
+        return fail("更新菜单失败，菜单可能不存在")
 
-        return ApiResponse(
-            success=True,
-            data={"message": "菜单更新成功"}
-        )
-
-    except Exception as e:
-        return ApiResponse(success=False, error=str(e))
+    return ok(data={"message": "菜单更新成功"})
 
 
 @router.delete("/{menu_id}")
+@_catch
 async def delete_existing_menu(
         menu_id: int,
         current_user=Depends(jwt_required),
@@ -194,25 +170,16 @@ async def delete_existing_menu(
     Args:
         menu_id: 菜单ID
     """
-    try:
-        success = await delete_menu(db=db, menu_id=menu_id)
+    success = await delete_menu(db=db, menu_id=menu_id)
 
-        if not success:
-            return ApiResponse(
-                success=False,
-                error="删除菜单失败，菜单可能不存在"
-            )
+    if not success:
+        return fail("删除菜单失败，菜单可能不存在")
 
-        return ApiResponse(
-            success=True,
-            data={"message": "菜单删除成功"}
-        )
-
-    except Exception as e:
-        return ApiResponse(success=False, error=str(e))
+    return ok(data={"message": "菜单删除成功"})
 
 
 @router.post("/{menu_id}/items")
+@_catch
 async def add_item_to_menu(
         menu_id: int,
         request: Request,
@@ -232,59 +199,47 @@ async def add_item_to_menu(
         target: 打开方式（_self或_blank，默认_self）
         order_index: 排序索引（默认0）
     """
+    form_data = await request.form()
+
+    title = form_data.get('title', '').strip()
+    url = form_data.get('url', '').strip()
+
+    if not title or not url:
+        return fail("标题和URL不能为空")
+
     try:
-        form_data = await request.form()
+        parent_id = int(form_data.get('parent_id')) if form_data.get('parent_id') else None
+    except ValueError:
+        parent_id = None
 
-        title = form_data.get('title', '').strip()
-        url = form_data.get('url', '').strip()
+    target = form_data.get('target', '_self')
 
-        if not title or not url:
-            return ApiResponse(
-                success=False,
-                error="标题和URL不能为空"
-            )
+    try:
+        order_index = int(form_data.get('order_index', 0))
+    except ValueError:
+        order_index = 0
 
-        try:
-            parent_id = int(form_data.get('parent_id')) if form_data.get('parent_id') else None
-        except ValueError:
-            parent_id = None
+    item = await add_menu_item(
+        db=db,
+        menu_id=menu_id,
+        title=title,
+        url=url,
+        parent_id=parent_id,
+        target=target,
+        order_index=order_index
+    )
 
-        target = form_data.get('target', '_self')
+    if not item:
+        return fail("添加菜单项失败")
 
-        try:
-            order_index = int(form_data.get('order_index', 0))
-        except ValueError:
-            order_index = 0
-
-        item = await add_menu_item(
-            db=db,
-            menu_id=menu_id,
-            title=title,
-            url=url,
-            parent_id=parent_id,
-            target=target,
-            order_index=order_index
-        )
-
-        if not item:
-            return ApiResponse(
-                success=False,
-                error="添加菜单项失败"
-            )
-
-        return ApiResponse(
-            success=True,
-            data={
-                "message": "菜单项添加成功",
-                "item_id": item.id
-            }
-        )
-
-    except Exception as e:
-        return ApiResponse(success=False, error=str(e))
+    return ok(data={
+        "message": "菜单项添加成功",
+        "item_id": item.id
+    })
 
 
 @router.put("/items/{item_id}")
+@_catch
 async def update_menu_item_detail(
         item_id: int,
         request: Request,
@@ -305,54 +260,42 @@ async def update_menu_item_detail(
         order_index: 排序索引（可选）
         is_active: 是否激活（可选）
     """
-    try:
-        form_data = await request.form()
+    form_data = await request.form()
 
-        update_data = {}
+    update_data = {}
 
-        if 'title' in form_data:
-            update_data['title'] = form_data.get('title')
-        if 'url' in form_data:
-            update_data['url'] = form_data.get('url')
-        if 'parent_id' in form_data:
-            try:
-                update_data['parent_id'] = int(form_data.get('parent_id')) if form_data.get('parent_id') else None
-            except ValueError:
-                update_data['parent_id'] = None
-        if 'target' in form_data:
-            update_data['target'] = form_data.get('target')
-        if 'order_index' in form_data:
-            try:
-                update_data['order_index'] = int(form_data.get('order_index', 0))
-            except ValueError:
-                pass
-        if 'is_active' in form_data:
-            update_data['is_active'] = form_data.get('is_active').lower() == 'true'
+    if 'title' in form_data:
+        update_data['title'] = form_data.get('title')
+    if 'url' in form_data:
+        update_data['url'] = form_data.get('url')
+    if 'parent_id' in form_data:
+        try:
+            update_data['parent_id'] = int(form_data.get('parent_id')) if form_data.get('parent_id') else None
+        except ValueError:
+            update_data['parent_id'] = None
+    if 'target' in form_data:
+        update_data['target'] = form_data.get('target')
+    if 'order_index' in form_data:
+        try:
+            update_data['order_index'] = int(form_data.get('order_index', 0))
+        except ValueError:
+            pass
+    if 'is_active' in form_data:
+        update_data['is_active'] = form_data.get('is_active').lower() == 'true'
 
-        if not update_data:
-            return ApiResponse(
-                success=False,
-                error="没有提供要更新的字段"
-            )
+    if not update_data:
+        return fail("没有提供要更新的字段")
 
-        success = await update_menu_item(db=db, item_id=item_id, **update_data)
+    success = await update_menu_item(db=db, item_id=item_id, **update_data)
 
-        if not success:
-            return ApiResponse(
-                success=False,
-                error="更新菜单项失败，菜单项可能不存在"
-            )
+    if not success:
+        return fail("更新菜单项失败，菜单项可能不存在")
 
-        return ApiResponse(
-            success=True,
-            data={"message": "菜单项更新成功"}
-        )
-
-    except Exception as e:
-        return ApiResponse(success=False, error=str(e))
+    return ok(data={"message": "菜单项更新成功"})
 
 
 @router.delete("/items/{item_id}")
+@_catch
 async def delete_menu_item_detail(
         item_id: int,
         current_user=Depends(jwt_required),
@@ -364,25 +307,16 @@ async def delete_menu_item_detail(
     Args:
         item_id: 菜单项ID
     """
-    try:
-        success = await delete_menu_item(db=db, item_id=item_id)
+    success = await delete_menu_item(db=db, item_id=item_id)
 
-        if not success:
-            return ApiResponse(
-                success=False,
-                error="删除菜单项失败，菜单项可能不存在"
-            )
+    if not success:
+        return fail("删除菜单项失败，菜单项可能不存在")
 
-        return ApiResponse(
-            success=True,
-            data={"message": "菜单项删除成功"}
-        )
-
-    except Exception as e:
-        return ApiResponse(success=False, error=str(e))
+    return ok(data={"message": "菜单项删除成功"})
 
 
 @router.post("/{menu_id}/reorder")
+@_catch
 async def reorder_menu(
         menu_id: int,
         request: Request,
@@ -398,72 +332,47 @@ async def reorder_menu(
     Body参数:
         items: JSON数组，包含排序后的菜单项结构
     """
-    try:
-        import json
+    import json
 
-        body = await request.json()
-        items_order = body.get('items', [])
+    body = await request.json()
+    items_order = body.get('items', [])
 
-        if not items_order:
-            return ApiResponse(
-                success=False,
-                error="没有提供菜单项数据"
-            )
+    if not items_order:
+        return fail("没有提供菜单项数据")
 
-        success = await reorder_menu_items(
-            db=db,
-            menu_id=menu_id,
-            items_order=items_order
-        )
+    success = await reorder_menu_items(
+        db=db,
+        menu_id=menu_id,
+        items_order=items_order
+    )
 
-        if not success:
-            return ApiResponse(
-                success=False,
-                error="重新排序失败"
-            )
+    if not success:
+        return fail("重新排序失败")
 
-        return ApiResponse(
-            success=True,
-            data={"message": "菜单项排序已更新"}
-        )
-
-    except Exception as e:
-        return ApiResponse(success=False, error=str(e))
+    return ok(data={"message": "菜单项排序已更新"})
 
 
 @router.get("/available/pages")
+@_catch
 async def get_available_pages(
         db: AsyncSession = Depends(get_async_db)
 ):
     """
     获取可用于添加到菜单的页面列表
     """
-    try:
-        pages = await get_available_pages_for_menu(db=db)
+    pages = await get_available_pages_for_menu(db=db)
 
-        return ApiResponse(
-            success=True,
-            data={"pages": pages}
-        )
-
-    except Exception as e:
-        return ApiResponse(success=False, error=str(e))
+    return ok(data={"pages": pages})
 
 
 @router.get("/available/categories")
+@_catch
 async def get_available_categories(
         db: AsyncSession = Depends(get_async_db)
 ):
     """
     获取可用于添加到菜单的分类列表
     """
-    try:
-        categories = await get_available_categories_for_menu(db=db)
+    categories = await get_available_categories_for_menu(db=db)
 
-        return ApiResponse(
-            success=True,
-            data={"categories": categories}
-        )
-
-    except Exception as e:
-        return ApiResponse(success=False, error=str(e))
+    return ok(data={"categories": categories})

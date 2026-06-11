@@ -3,19 +3,36 @@
 提供插件的激活、停用、配置等功能
 """
 import asyncio
+from functools import wraps
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models import User
 from shared.services.plugins.plugin_manager.core import plugin_manager
+from src.api.v2._helpers import ok, fail
 from src.auth import jwt_required_dependency as jwt_required
-from src.utils.database.main import get_async_session as get_async_db
+from src.extensions import get_async_db_session as get_async_db
 
 router = APIRouter(tags=["plugins"])
 
 
+def _catch(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except HTTPException:
+            raise
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return fail(str(e))
+    return wrapper
+
+
 @router.get("/")
+@_catch
 async def list_plugins(
         current_user: User = Depends(jwt_required)
 ):
@@ -25,27 +42,15 @@ async def list_plugins(
     Returns:
         插件列表
     """
-    try:
-        plugins = plugin_manager.get_installed_plugins()
+    plugins = plugin_manager.get_installed_plugins()
 
-        return {
-            'success': True,
-            'data': {
-                'plugins': plugins,  # 包装成 plugins 字段以匹配前端期望
-            },
-        }
-
-    except Exception as e:
-        import traceback
-        print(f"Error listing plugins: {str(e)}")
-        print(traceback.format_exc())
-        return {
-            'success': False,
-            'error': str(e)
-        }
+    return ok(data={
+        'plugins': plugins,
+    })
 
 
 @router.post("/load")
+@_catch
 async def load_all_plugins(
         current_user: User = Depends(jwt_required)
 ):
@@ -55,29 +60,16 @@ async def load_all_plugins(
     Returns:
         加载结果
     """
-    try:
+    plugin_manager.load_all_plugins()
 
-        plugin_manager.load_all_plugins()
-
-        return {
-            'success': True,
-            'data': {
-                'message': f'Loaded {len(plugin_manager.plugins)} plugins',
-                'plugins': plugin_manager.get_installed_plugins(),
-            }
-        }
-
-    except Exception as e:
-        import traceback
-        print(f"Error loading plugins: {str(e)}")
-        print(traceback.format_exc())
-        return {
-            'success': False,
-            'error': str(e)
-        }
+    return ok(data={
+        'message': f'Loaded {len(plugin_manager.plugins)} plugins',
+        'plugins': plugin_manager.get_installed_plugins(),
+    })
 
 
 @router.post("/{plugin_slug}/activate")
+@_catch
 async def activate_plugin(
         plugin_slug: str,
         current_user: User = Depends(jwt_required)
@@ -91,38 +83,21 @@ async def activate_plugin(
     Returns:
         激活结果
     """
-    try:
+    if plugin_slug not in plugin_manager.plugins:
+        plugin_manager.load_plugin(plugin_slug)
 
-        # 先加载插件(如果未加载)
-        if plugin_slug not in plugin_manager.plugins:
-            plugin_manager.load_plugin(plugin_slug)
+    success = plugin_manager.activate_plugin(plugin_slug)
 
-        success = plugin_manager.activate_plugin(plugin_slug)
-
-        if success:
-            return {
-                'success': True,
-                'data': {
-                    'message': f'Plugin {plugin_slug} activated',
-                }
-            }
-        else:
-            return {
-                'success': False,
-                'error': 'Failed to activate plugin',
-            }
-
-    except Exception as e:
-        import traceback
-        print(f"Error activating plugin: {str(e)}")
-        print(traceback.format_exc())
-        return {
-            'success': False,
-            'error': str(e)
-        }
+    if success:
+        return ok(data={
+            'message': f'Plugin {plugin_slug} activated',
+        })
+    else:
+        return fail('Failed to activate plugin')
 
 
 @router.post("/{plugin_slug}/deactivate")
+@_catch
 async def deactivate_plugin(
         plugin_slug: str,
         current_user: User = Depends(jwt_required)
@@ -136,34 +111,18 @@ async def deactivate_plugin(
     Returns:
         停用结果
     """
-    try:
+    success = plugin_manager.deactivate_plugin(plugin_slug)
 
-        success = plugin_manager.deactivate_plugin(plugin_slug)
-
-        if success:
-            return {
-                'success': True,
-                'data': {
-                    'message': f'Plugin {plugin_slug} deactivated',
-                }
-            }
-        else:
-            return {
-                'success': False,
-                'error': 'Failed to deactivate plugin',
-            }
-
-    except Exception as e:
-        import traceback
-        print(f"Error deactivating plugin: {str(e)}")
-        print(traceback.format_exc())
-        return {
-            'success': False,
-            'error': str(e)
-        }
+    if success:
+        return ok(data={
+            'message': f'Plugin {plugin_slug} deactivated',
+        })
+    else:
+        return fail('Failed to deactivate plugin')
 
 
 @router.get("/{plugin_slug}")
+@_catch
 async def get_plugin_info(
         plugin_slug: str,
         current_user: User = Depends(jwt_required)
@@ -177,32 +136,16 @@ async def get_plugin_info(
     Returns:
         插件信息
     """
-    try:
+    plugin = plugin_manager.get_plugin(plugin_slug)
 
-        plugin = plugin_manager.get_plugin(plugin_slug)
+    if not plugin:
+        return fail('Plugin not found')
 
-        if not plugin:
-            return {
-                'success': False,
-                'error': 'Plugin not found',
-            }
-
-        return {
-            'success': True,
-            'data': plugin.get_info(),
-        }
-
-    except Exception as e:
-        import traceback
-        print(f"Error getting plugin info: {str(e)}")
-        print(traceback.format_exc())
-        return {
-            'success': False,
-            'error': str(e)
-        }
+    return ok(data=plugin.get_info())
 
 
 @router.get("/{plugin_slug}/settings")
+@_catch
 async def get_plugin_settings(
         plugin_slug: str,
         current_user: User = Depends(jwt_required)
@@ -216,37 +159,21 @@ async def get_plugin_settings(
     Returns:
         插件设置和UI配置
     """
-    try:
+    plugin = plugin_manager.get_plugin(plugin_slug)
 
-        plugin = plugin_manager.get_plugin(plugin_slug)
+    if not plugin:
+        return fail('Plugin not found')
 
-        if not plugin:
-            return {
-                'success': False,
-                'error': 'Plugin not found',
-            }
+    settings_ui = plugin.get_settings_ui()
 
-        settings_ui = plugin.get_settings_ui()
-
-        return {
-            'success': True,
-            'data': {
-                'settings': plugin.settings,
-                'ui': settings_ui,
-            }
-        }
-
-    except Exception as e:
-        import traceback
-        print(f"Error getting plugin settings: {str(e)}")
-        print(traceback.format_exc())
-        return {
-            'success': False,
-            'error': str(e)
-        }
+    return ok(data={
+        'settings': plugin.settings,
+        'ui': settings_ui,
+    })
 
 
 @router.put("/{plugin_slug}/settings")
+@_catch
 async def update_plugin_settings(
         plugin_slug: str,
         request: Request,
@@ -264,37 +191,21 @@ async def update_plugin_settings(
     Returns:
         更新结果
     """
-    try:
+    body = await request.json()
+    settings = body.get('settings', {})
 
-        body = await request.json()
-        settings = body.get('settings', {})
+    success = plugin_manager.update_plugin_settings(plugin_slug, settings)
 
-        success = plugin_manager.update_plugin_settings(plugin_slug, settings)
-
-        if success:
-            return {
-                'success': True,
-                'data': {
-                    'message': 'Settings updated',
-                }
-            }
-        else:
-            return {
-                'success': False,
-                'error': 'Failed to update settings',
-            }
-
-    except Exception as e:
-        import traceback
-        print(f"Error updating plugin settings: {str(e)}")
-        print(traceback.format_exc())
-        return {
-            'success': False,
-            'error': str(e)
-        }
+    if success:
+        return ok(data={
+            'message': 'Settings updated',
+        })
+    else:
+        return fail('Failed to update settings')
 
 
 @router.post("/{plugin_slug}/action")
+@_catch
 async def execute_plugin_action(
         plugin_slug: str,
         request: Request,
@@ -313,51 +224,30 @@ async def execute_plugin_action(
     Returns:
         执行结果
     """
-    try:
+    body = await request.json()
+    action = body.get('action')
+    params = body.get('params', {})
 
-        body = await request.json()
-        action = body.get('action')
-        params = body.get('params', {})
+    plugin = plugin_manager.get_plugin(plugin_slug)
 
-        plugin = plugin_manager.get_plugin(plugin_slug)
+    if not plugin:
+        return fail('Plugin not found')
 
-        if not plugin:
-            return {
-                'success': False,
-                'error': 'Plugin not found',
-            }
+    if not hasattr(plugin, action):
+        return fail(f'Action {action} not found')
 
-        # 检查插件是否有该方法
-        if not hasattr(plugin, action):
-            return {
-                'success': False,
-                'error': f'Action {action} not found',
-            }
+    method = getattr(plugin, action)
 
-        # 执行动作
-        method = getattr(plugin, action)
+    if asyncio.iscoroutinefunction(method):
+        result = await method(**params)
+    else:
+        result = method(**params)
 
-        if asyncio.iscoroutinefunction(method):
-            result = await method(**params)
-        else:
-            result = method(**params)
-
-        return {
-            'success': True,
-            'data': result,
-        }
-
-    except Exception as e:
-        import traceback
-        print(f"Error executing plugin action: {str(e)}")
-        print(traceback.format_exc())
-        return {
-            'success': False,
-            'error': str(e)
-        }
+    return ok(data=result)
 
 
 @router.get("/active")
+@_catch
 async def get_active_plugins(
         current_user: User = Depends(jwt_required)
 ):
@@ -367,26 +257,13 @@ async def get_active_plugins(
     Returns:
         激活的插件列表
     """
-    try:
+    active_plugins = plugin_manager.get_active_plugins()
 
-        active_plugins = plugin_manager.get_active_plugins()
-
-        return {
-            'success': True,
-            'data': [p.get_info() for p in active_plugins],
-        }
-
-    except Exception as e:
-        import traceback
-        print(f"Error getting active plugins: {str(e)}")
-        print(traceback.format_exc())
-        return {
-            'success': False,
-            'error': str(e)
-        }
+    return ok(data=[p.get_info() for p in active_plugins])
 
 
 @router.delete("/{plugin_slug}")
+@_catch
 async def uninstall_plugin(
         plugin_slug: str,
         current_user: User = Depends(jwt_required),
@@ -401,34 +278,18 @@ async def uninstall_plugin(
     Returns:
         卸载结果
     """
-    try:
+    success = plugin_manager.uninstall_plugin(plugin_slug)
 
-        success = plugin_manager.uninstall_plugin(plugin_slug)
-
-        if success:
-            return {
-                'success': True,
-                'data': {
-                    'message': f'Plugin {plugin_slug} uninstalled',
-                }
-            }
-        else:
-            return {
-                'success': False,
-                'error': 'Failed to uninstall plugin',
-            }
-
-    except Exception as e:
-        import traceback
-        print(f"Error uninstalling plugin: {str(e)}")
-        print(traceback.format_exc())
-        return {
-            'success': False,
-            'error': str(e)
-        }
+    if success:
+        return ok(data={
+            'message': f'Plugin {plugin_slug} uninstalled',
+        })
+    else:
+        return fail('Failed to uninstall plugin')
 
 
 @router.post("/sync-config")
+@_catch
 async def sync_plugin_config(
         current_user: User = Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
@@ -445,162 +306,133 @@ async def sync_plugin_config(
     Returns:
         同步结果
     """
-    try:
-        from pathlib import Path
-        import json
-        from datetime import datetime
-        from shared.models import Plugin
-        from sqlalchemy import select
+    from pathlib import Path
+    import json
+    from datetime import datetime
+    from shared.models import Plugin
+    from sqlalchemy import select
 
-        # 1. 读取本地 plugin_state.json
-        state_file = Path("storage/plugin_state.json")
-        if not state_file.exists():
-            return {
-                'success': False,
-                'error': 'plugin_state.json 不存在'
-            }
+    state_file = Path("storage/plugin_state.json")
+    if not state_file.exists():
+        return fail('plugin_state.json 不存在')
 
-        with open(state_file, 'r', encoding='utf-8') as f:
-            plugin_states = json.load(f)
+    with open(state_file, 'r', encoding='utf-8') as f:
+        plugin_states = json.load(f)
 
-        # 2. 扫描本地插件目录
-        plugins_dir = Path("plugins")
-        local_plugins = []
-        if plugins_dir.exists():
-            for item in plugins_dir.iterdir():
-                if item.is_dir():
-                    metadata_file = item / "metadata.json"
-                    if metadata_file.exists():
-                        try:
-                            with open(metadata_file, 'r', encoding='utf-8') as mf:
-                                metadata = json.load(mf)
-                                local_plugins.append({
-                                    'slug': item.name,
-                                    'metadata': metadata
-                                })
-                        except Exception as e:
-                            print(f"读取插件元数据失败 {item.name}: {e}")
-
-        # 3. 获取数据库中现有的插件 (使用异步会话)
-        result = await db.execute(select(Plugin))
-        db_plugins = result.scalars().all()
-        existing_plugins = {plugin.slug: plugin for plugin in db_plugins}
-
-        # 4. 同步状态
-        synced_count = 0
-        created_count = 0
-        updated_count = 0
-        settings_synced = 0
-
-        try:
-            for local_plugin in local_plugins:
-                slug = local_plugin['slug']
-                metadata = local_plugin['metadata']
-
-                # 从 plugin_state.json 获取激活状态
-                state = plugin_states.get(slug, {})
-                is_active = state.get('active', False)
-                # 如果 active 为 true，则 installed 也必须为 true
-                is_installed = state.get('installed', True) or is_active
-
-                # 读取插件设置文件 (如果存在)
-                settings_data = None
-                settings_file = Path("plugins") / slug / "settings.json"
-                if settings_file.exists():
+    plugins_dir = Path("plugins")
+    local_plugins = []
+    if plugins_dir.exists():
+        for item in plugins_dir.iterdir():
+            if item.is_dir():
+                metadata_file = item / "metadata.json"
+                if metadata_file.exists():
                     try:
-                        with open(settings_file, 'r', encoding='utf-8') as sf:
-                            settings_data = json.load(sf)
+                        with open(metadata_file, 'r', encoding='utf-8') as mf:
+                            metadata = json.load(mf)
+                            local_plugins.append({
+                                'slug': item.name,
+                                'metadata': metadata
+                            })
                     except Exception as e:
-                        print(f"读取插件设置失败 {slug}: {e}")
+                        print(f"读取插件元数据失败 {item.name}: {e}")
 
-                # 检查数据库中是否存在
-                if slug in existing_plugins:
-                    # 更新现有记录
-                    plugin = existing_plugins[slug]
-                    needs_update = False
+    result = await db.execute(select(Plugin))
+    db_plugins = result.scalars().all()
+    existing_plugins = {plugin.slug: plugin for plugin in db_plugins}
 
-                    # 检查激活状态
-                    if plugin.is_active != is_active:
-                        plugin.is_active = is_active
+    synced_count = 0
+    created_count = 0
+    updated_count = 0
+    settings_synced = 0
+
+    try:
+        for local_plugin in local_plugins:
+            slug = local_plugin['slug']
+            metadata = local_plugin['metadata']
+
+            state = plugin_states.get(slug, {})
+            is_active = state.get('active', False)
+            is_installed = state.get('installed', True) or is_active
+
+            settings_data = None
+            settings_file = Path("plugins") / slug / "settings.json"
+            if settings_file.exists():
+                try:
+                    with open(settings_file, 'r', encoding='utf-8') as sf:
+                        settings_data = json.load(sf)
+                except Exception as e:
+                    print(f"读取插件设置失败 {slug}: {e}")
+
+            if slug in existing_plugins:
+                plugin = existing_plugins[slug]
+                needs_update = False
+
+                if plugin.is_active != is_active:
+                    plugin.is_active = is_active
+                    needs_update = True
+
+                if plugin.is_installed != is_installed:
+                    plugin.is_installed = is_installed
+                    needs_update = True
+
+                if settings_data is not None:
+                    settings_json = json.dumps(settings_data, ensure_ascii=False)
+                    if plugin.settings != settings_json:
+                        plugin.settings = settings_json
                         needs_update = True
-
-                    if plugin.is_installed != is_installed:
-                        plugin.is_installed = is_installed
-                        needs_update = True
-
-                    # 同步设置
-                    if settings_data is not None:
-                        settings_json = json.dumps(settings_data, ensure_ascii=False)
-                        if plugin.settings != settings_json:
-                            plugin.settings = settings_json
-                            needs_update = True
-                            settings_synced += 1
-
-                    if needs_update:
-                        plugin.updated_at = datetime.now()
-                        updated_count += 1
-                        print(
-                            f"[SyncConfig] Updated plugin: {slug} (active={is_active}, settings={'yes' if settings_data else 'no'})")
-                else:
-                    # 创建新记录
-                    settings_json = json.dumps(settings_data, ensure_ascii=False) if settings_data else None
-
-                    plugin = Plugin(
-                        slug=slug,
-                        name=metadata.get('name', slug),
-                        version=metadata.get('version', '1.0.0'),
-                        description=metadata.get('description', ''),
-                        author=metadata.get('author', ''),
-                        author_url=metadata.get('author_url', ''),
-                        plugin_url=metadata.get('plugin_url', ''),
-                        is_active=is_active,
-                        is_installed=is_installed,
-                        settings=settings_json,
-                        priority=metadata.get('priority', 0),
-                        created_at=datetime.now(),
-                        updated_at=datetime.now()
-                    )
-                    db.add(plugin)
-                    created_count += 1
-                    if settings_data:
                         settings_synced += 1
-                    print(f"[SyncConfig] Created plugin: {slug} (with settings={'yes' if settings_data else 'no'})")
 
-                synced_count += 1
+                if needs_update:
+                    plugin.updated_at = datetime.now()
+                    updated_count += 1
+                    print(f"[SyncConfig] Updated plugin: {slug} (active={is_active}, settings={'yes' if settings_data else 'no'})")
+            else:
+                settings_json = json.dumps(settings_data, ensure_ascii=False) if settings_data else None
 
-            # 提交更改
-            await db.commit()
+                plugin = Plugin(
+                    slug=slug,
+                    name=metadata.get('name', slug),
+                    version=metadata.get('version', '1.0.0'),
+                    description=metadata.get('description', ''),
+                    author=metadata.get('author', ''),
+                    author_url=metadata.get('author_url', ''),
+                    plugin_url=metadata.get('plugin_url', ''),
+                    is_active=is_active,
+                    is_installed=is_installed,
+                    settings=settings_json,
+                    priority=metadata.get('priority', 0),
+                    created_at=datetime.now(),
+                    updated_at=datetime.now()
+                )
+                db.add(plugin)
+                created_count += 1
+                if settings_data:
+                    settings_synced += 1
+                print(f"[SyncConfig] Created plugin: {slug} (with settings={'yes' if settings_data else 'no'})")
 
-            return {
-                'success': True,
-                'data': {
-                    'message': '插件配置同步成功',
-                    'synced': synced_count,
-                    'created': created_count,
-                    'updated': updated_count,
-                    'settings_synced': settings_synced,
-                    'total_local_plugins': len(local_plugins),
-                    'total_db_plugins': len(existing_plugins) + created_count
-                }
-            }
+            synced_count += 1
 
-        except Exception as e:
-            await db.rollback()
-            raise e
+        await db.commit()
 
-    except Exception as e:
-        import traceback
-        print(f"Error syncing plugin config: {str(e)}")
-        print(traceback.format_exc())
-        return {
-            'success': False,
-            'error': str(e)
-        }
+        return ok(data={
+            'message': '插件配置同步成功',
+            'synced': synced_count,
+            'created': created_count,
+            'updated': updated_count,
+            'settings_synced': settings_synced,
+            'total_local_plugins': len(local_plugins),
+            'total_db_plugins': len(existing_plugins) + created_count
+        })
+
+    except Exception:
+        await db.rollback()
+        raise
 
 
 # ==================== 热插拔 API ====================
 
 @router.post("/{plugin_slug}/hot-reload")
+@_catch
 async def hot_reload_plugin(
         plugin_slug: str,
         current_user: User = Depends(jwt_required)
@@ -620,33 +452,18 @@ async def hot_reload_plugin(
     Returns:
         重载结果
     """
-    try:
-        success = plugin_manager.hot_reload_plugin(plugin_slug)
+    success = plugin_manager.hot_reload_plugin(plugin_slug)
 
-        if success:
-            return {
-                'success': True,
-                'data': {
-                    'message': f'插件 {plugin_slug} 已热重载',
-                }
-            }
-        else:
-            return {
-                'success': False,
-                'error': '热重载失败，请查看日志',
-            }
-
-    except Exception as e:
-        import traceback
-        print(f"Error hot reloading plugin: {str(e)}")
-        print(traceback.format_exc())
-        return {
-            'success': False,
-            'error': str(e)
-        }
+    if success:
+        return ok(data={
+            'message': f'插件 {plugin_slug} 已热重载',
+        })
+    else:
+        return fail('热重载失败，请查看日志')
 
 
 @router.post("/{plugin_slug}/hot-load")
+@_catch
 async def hot_load_plugin(
         plugin_slug: str,
         current_user: User = Depends(jwt_required)
@@ -660,33 +477,18 @@ async def hot_load_plugin(
     Returns:
         加载结果
     """
-    try:
-        success = plugin_manager.hot_load_plugin(plugin_slug)
+    success = plugin_manager.hot_load_plugin(plugin_slug)
 
-        if success:
-            return {
-                'success': True,
-                'data': {
-                    'message': f'插件 {plugin_slug} 已热加载并激活',
-                }
-            }
-        else:
-            return {
-                'success': False,
-                'error': '热加载失败，请查看日志',
-            }
-
-    except Exception as e:
-        import traceback
-        print(f"Error hot loading plugin: {str(e)}")
-        print(traceback.format_exc())
-        return {
-            'success': False,
-            'error': str(e)
-        }
+    if success:
+        return ok(data={
+            'message': f'插件 {plugin_slug} 已热加载并激活',
+        })
+    else:
+        return fail('热加载失败，请查看日志')
 
 
 @router.post("/{plugin_slug}/hot-unload")
+@_catch
 async def hot_unload_plugin(
         plugin_slug: str,
         current_user: User = Depends(jwt_required)
@@ -700,33 +502,18 @@ async def hot_unload_plugin(
     Returns:
         卸载结果
     """
-    try:
-        success = plugin_manager.hot_unload_plugin(plugin_slug)
+    success = plugin_manager.hot_unload_plugin(plugin_slug)
 
-        if success:
-            return {
-                'success': True,
-                'data': {
-                    'message': f'插件 {plugin_slug} 已热卸载',
-                }
-            }
-        else:
-            return {
-                'success': False,
-                'error': '热卸载失败，请查看日志',
-            }
-
-    except Exception as e:
-        import traceback
-        print(f"Error hot unloading plugin: {str(e)}")
-        print(traceback.format_exc())
-        return {
-            'success': False,
-            'error': str(e)
-        }
+    if success:
+        return ok(data={
+            'message': f'插件 {plugin_slug} 已热卸载',
+        })
+    else:
+        return fail('热卸载失败，请查看日志')
 
 
 @router.get("/scan-new")
+@_catch
 async def scan_new_plugins(
         current_user: User = Depends(jwt_required)
 ):
@@ -736,23 +523,10 @@ async def scan_new_plugins(
     Returns:
         新发现的插件列表
     """
-    try:
-        new_plugins = plugin_manager.scan_for_new_plugins()
+    new_plugins = plugin_manager.scan_for_new_plugins()
 
-        return {
-            'success': True,
-            'data': {
-                'new_plugins': new_plugins,
-                'count': len(new_plugins),
-                'message': f'发现 {len(new_plugins)} 个新插件'
-            }
-        }
-
-    except Exception as e:
-        import traceback
-        print(f"Error scanning new plugins: {str(e)}")
-        print(traceback.format_exc())
-        return {
-            'success': False,
-            'error': str(e)
-        }
+    return ok(data={
+        'new_plugins': new_plugins,
+        'count': len(new_plugins),
+        'message': f'发现 {len(new_plugins)} 个新插件'
+    })

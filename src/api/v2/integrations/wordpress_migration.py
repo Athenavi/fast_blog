@@ -5,21 +5,37 @@ WordPress 迁移 API - V2 版本
 import json
 import os
 import tempfile
+from functools import wraps
 from typing import Optional
 
-from fastapi import APIRouter, UploadFile, File, Depends, Form, BackgroundTasks
+from fastapi import APIRouter, UploadFile, File, Depends, Form, BackgroundTasks, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.user import User
 from shared.services.integrations.wordpress_import import WordPressImportService
-from src.api.v2._base import ApiResponse
+from src.api.v2._helpers import ok, fail
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 
 router = APIRouter(prefix="/wordpress", tags=["WordPress Migration"])
 
 
+def _catch(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except HTTPException:
+            raise
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return fail(str(e))
+    return wrapper
+
+
 @router.post("/parse", summary="解析 WordPress XML 文件")
+@_catch
 async def parse_wordpress_xml(
         file: UploadFile = File(..., description="WordPress WXR 导出文件"),
         current_user: User = Depends(jwt_required)
@@ -38,10 +54,7 @@ async def parse_wordpress_xml(
     - 媒体文件列表
     """
     if not file.filename.endswith('.xml'):
-        return ApiResponse(
-            success=False,
-            error="只支持 .xml 格式的 WordPress 导出文件"
-        )
+        return fail("只支持 .xml 格式的 WordPress 导出文件")
 
     tmp_path = None
     try:
@@ -54,13 +67,9 @@ async def parse_wordpress_xml(
         result = importer.parse_wxr_file(tmp_path)
 
         if not result['success']:
-            return ApiResponse(
-                success=False,
-                error=result.get('error', '解析失败')
-            )
+            return fail(result.get('error', '解析失败'))
 
-        return ApiResponse(
-            success=True,
+        return ok(
             data={
                 'site_info': result['data']['site_info'],
                 'authors': result['data']['authors'],
@@ -68,17 +77,13 @@ async def parse_wordpress_xml(
             }
         )
 
-    except Exception as e:
-        return ApiResponse(
-            success=False,
-            error=f"解析失败: {str(e)}"
-        )
     finally:
         if tmp_path and os.path.exists(tmp_path):
             os.unlink(tmp_path)
 
 
 @router.post("/import", summary="导入 WordPress 数据")
+@_catch
 async def import_wordpress_data(
         background_tasks: BackgroundTasks,
         file: UploadFile = File(..., description="WordPress WXR 导出文件"),
@@ -104,10 +109,7 @@ async def import_wordpress_data(
     - 媒体文件引用（可选下载）
     """
     if not file.filename.endswith('.xml'):
-        return ApiResponse(
-            success=False,
-            error="只支持 .xml 格式的 WordPress 导出文件"
-        )
+        return fail("只支持 .xml 格式的 WordPress 导出文件")
 
     tmp_path = None
     try:
@@ -122,10 +124,7 @@ async def import_wordpress_data(
         parse_result = importer.parse_wxr_file(tmp_path)
 
         if not parse_result['success']:
-            return ApiResponse(
-                success=False,
-                error=parse_result.get('error', '解析失败')
-            )
+            return fail(parse_result.get('error', '解析失败'))
 
         # 解析用户映射
         mapping_dict = {}
@@ -133,10 +132,7 @@ async def import_wordpress_data(
             try:
                 mapping_dict = json.loads(user_mapping)
             except json.JSONDecodeError:
-                return ApiResponse(
-                    success=False,
-                    error="用户映射格式错误，请使用有效的 JSON 格式"
-                )
+                return fail("用户映射格式错误，请使用有效的 JSON 格式")
 
         # 导入到数据库
         import_result = await importer.import_to_database(
@@ -146,11 +142,7 @@ async def import_wordpress_data(
         )
 
         if not import_result['success']:
-            return ApiResponse(
-                success=False,
-                error=import_result.get('error', '导入失败'),
-                data=import_result.get('results', {})
-            )
+            return fail(import_result.get('error', '导入失败'))
 
         # 如果需要，异步下载媒体文件
         media_download_task = None
@@ -179,19 +171,11 @@ async def import_wordpress_data(
             response_data['redirects_count'] = len(import_result['results']['redirects'])
             response_data['redirects_sample'] = import_result['results']['redirects'][:5]
 
-        return ApiResponse(
-            success=True,
+        return ok(
             data=response_data,
-            message=f"成功导入 {import_result['results']['imported_articles']} 篇文章"
+            msg=f"成功导入 {import_result['results']['imported_articles']} 篇文章"
         )
 
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return ApiResponse(
-            success=False,
-            error=f"导入失败: {str(e)}"
-        )
     finally:
         if tmp_path and os.path.exists(tmp_path):
             os.unlink(tmp_path)
@@ -220,8 +204,7 @@ async def get_import_template():
 
     返回详细的导入步骤、支持的内容类型和注意事项
     """
-    return ApiResponse(
-        success=True,
+    return ok(
         data={
             'title': 'WordPress 迁移指南',
             'steps': [
@@ -288,6 +271,7 @@ async def get_import_template():
 
 
 @router.post("/validate", summary="验证 WordPress 文件")
+@_catch
 async def validate_wordpress_file(
         file: UploadFile = File(..., description="WordPress WXR 导出文件")
 ):
@@ -297,10 +281,7 @@ async def validate_wordpress_file(
     检查文件格式、必需字段和数据结构完整性
     """
     if not file.filename.endswith('.xml'):
-        return ApiResponse(
-            success=False,
-            error="只支持 .xml 格式的文件"
-        )
+        return fail("只支持 .xml 格式的文件")
 
     tmp_path = None
     try:
@@ -313,11 +294,7 @@ async def validate_wordpress_file(
         result = importer.parse_wxr_file(tmp_path)
 
         if not result['success']:
-            return ApiResponse(
-                success=False,
-                error=f"文件验证失败: {result.get('error')}",
-                data={'valid': False}
-            )
+            return fail(f"文件验证失败: {result.get('error')}")
 
         # 额外验证
         stats = result['stats']
@@ -329,8 +306,7 @@ async def validate_wordpress_file(
         if stats['total_categories'] == 0:
             warnings.append("文件中没有找到分类")
 
-        return ApiResponse(
-            success=True,
+        return ok(
             data={
                 'valid': True,
                 'stats': stats,
@@ -338,20 +314,16 @@ async def validate_wordpress_file(
                 'file_size': len(content),
                 'site_info': result['data']['site_info']
             },
-            message="文件验证通过"
+            msg="文件验证通过"
         )
 
-    except Exception as e:
-        return ApiResponse(
-            success=False,
-            error=f"验证失败: {str(e)}"
-        )
     finally:
         if tmp_path and os.path.exists(tmp_path):
             os.unlink(tmp_path)
 
 
 @router.get("/status/{task_id}", summary="查询导入任务状态")
+@_catch
 async def get_import_status(
         task_id: str,
         current_user: User = Depends(jwt_required)
@@ -370,8 +342,7 @@ async def get_import_status(
         pass
 
     if task_data and isinstance(task_data, dict):
-        return ApiResponse(
-            success=True,
+        return ok(
             data={
                 'task_id': task_id,
                 'status': task_data.get('status', 'unknown'),
@@ -382,8 +353,7 @@ async def get_import_status(
         )
 
     # 如果 Redis 中没有数据，返回默认状态
-    return ApiResponse(
-        success=True,
+    return ok(
         data={
             'task_id': task_id,
             'status': 'completed',

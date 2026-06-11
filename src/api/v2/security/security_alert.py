@@ -3,20 +3,36 @@
 
 提供告警配置、发送和查看功能
 """
-
+import logging
+from functools import wraps
 from typing import Optional, List
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
 
 from shared.services.security.security_alert import security_alert_service, EmailAlertChannel, \
     WebhookAlertChannel
-from src.api.v2._base import ApiResponse
+from src.api.v2._helpers import ok, fail
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
+
+
+def _catch(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"[{func.__name__}] {e}")
+            return fail(str(e))
+    return wrapper
 
 
 @router.post("/send", summary="发送告警", description="手动发送安全告警")
+@_catch
 async def send_alert(
         alert_type: str = Body(..., description="告警类型"),
         title: str = Body(..., description="标题"),
@@ -41,13 +57,11 @@ async def send_alert(
         force_send=force_send,
     )
 
-    return ApiResponse(
-        success=result['success'],
-        data=result
-    )
+    return ok(data=result)
 
 
 @router.get("/history", summary="获取告警历史", description="获取告警历史记录")
+@_catch
 async def get_alert_history(
         hours: int = Query(24, ge=1, le=168, description="最近多少小时"),
         alert_type: Optional[str] = Query(None, description="告警类型过滤"),
@@ -66,16 +80,14 @@ async def get_alert_history(
         severity=severity,
     )
 
-    return ApiResponse(
-        success=True,
-        data={
-            'alerts': history,
-            'count': len(history),
-        }
-    )
+    return ok(data={
+        'alerts': history,
+        'count': len(history),
+    })
 
 
 @router.get("/statistics", summary="获取统计信息", description="获取告警统计信息")
+@_catch
 async def get_statistics(
         hours: int = Query(24, ge=1, le=168, description="统计最近多少小时"),
         current_user=Depends(jwt_required),
@@ -88,13 +100,11 @@ async def get_statistics(
 
     stats = security_alert_service.get_statistics(hours=hours)
 
-    return ApiResponse(
-        success=True,
-        data=stats
-    )
+    return ok(data=stats)
 
 
 @router.post("/channel/email", summary="添加邮件渠道", description="添加邮件告警渠道")
+@_catch
 async def add_email_channel(
         channel_id: str = Body(..., description="渠道ID"),
         smtp_server: str = Body(..., description="SMTP服务器"),
@@ -124,13 +134,11 @@ async def add_email_channel(
 
     security_alert_service.add_channel(channel_id, channel)
 
-    return ApiResponse(
-        success=True,
-        message=f"Email channel '{channel_id}' added"
-    )
+    return ok(msg=f"Email channel '{channel_id}' added")
 
 
 @router.post("/channel/webhook", summary="添加Webhook渠道", description="添加Webhook告警渠道")
+@_catch
 async def add_webhook_channel(
         channel_id: str = Body(..., description="渠道ID"),
         webhook_url: str = Body(..., description="Webhook URL"),
@@ -150,13 +158,11 @@ async def add_webhook_channel(
 
     security_alert_service.add_channel(channel_id, channel)
 
-    return ApiResponse(
-        success=True,
-        message=f"Webhook channel '{channel_id}' added"
-    )
+    return ok(msg=f"Webhook channel '{channel_id}' added")
 
 
 @router.delete("/channel/{channel_id}", summary="删除告警渠道", description="删除告警渠道")
+@_catch
 async def remove_channel(
         channel_id: str,
         current_user=Depends(jwt_required),
@@ -169,13 +175,11 @@ async def remove_channel(
 
     security_alert_service.remove_channel(channel_id)
 
-    return ApiResponse(
-        success=True,
-        message=f"Channel '{channel_id}' removed"
-    )
+    return ok(msg=f"Channel '{channel_id}' removed")
 
 
 @router.post("/rule", summary="添加告警规则", description="添加告警规则")
+@_catch
 async def add_rule(
         rule_id: str = Body(..., description="规则ID"),
         alert_type: str = Body(..., description="告警类型"),
@@ -198,13 +202,11 @@ async def add_rule(
         enabled=enabled,
     )
 
-    return ApiResponse(
-        success=True,
-        message=f"Rule '{rule_id}' added"
-    )
+    return ok(msg=f"Rule '{rule_id}' added")
 
 
 @router.post("/config/rate-limit", summary="更新频率限制", description="更新告警频率限制")
+@_catch
 async def update_rate_limit(
         minutes: int = Body(..., ge=1, le=60, description="最小间隔分钟数"),
         current_user=Depends(jwt_required),
@@ -217,8 +219,4 @@ async def update_rate_limit(
 
     security_alert_service.update_rate_limit(minutes)
 
-    return ApiResponse(
-        success=True,
-        message=f"Rate limit updated to {minutes} minutes"
-    )
-
+    return ok(msg=f"Rate limit updated to {minutes} minutes")

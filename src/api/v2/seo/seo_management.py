@@ -3,18 +3,19 @@
 
 提供SEO分析、评分和优化建议功能
 """
-
+from functools import wraps
 from typing import Optional, List
 
-from fastapi import APIRouter, Query, Body
+from fastapi import APIRouter, HTTPException, Query, Body
 
 from shared.services.seo.seo_analyzer import seo_analyzer
-from src.api.v2._base import ApiResponse
+from src.api.v2._helpers import ok, fail, _catch
 
 router = APIRouter()
 
 
 @router.post("/analyze", summary="分析SEO", description="分析内容的SEO质量")
+@_catch
 async def analyze_seo(
         title: str = Body(..., description="页面标题"),
         description: str = Body(..., description="页面描述"),
@@ -44,14 +45,11 @@ async def analyze_seo(
         images=images or [],
         internal_links=internal_links,
     )
-
-    return ApiResponse(
-        success=True,
-        data=result
-    )
+    return ok(data=result)
 
 
 @router.get("/quick-check", summary="快速检查", description="快速检查标题和描述的SEO")
+@_catch
 async def quick_check(
         title: str = Query(..., description="页面标题"),
         description: str = Query(..., description="页面描述"),
@@ -66,19 +64,17 @@ async def quick_check(
     suggestions.extend(title_analysis.get('suggestions', []))
     suggestions.extend(description_analysis.get('suggestions', []))
 
-    return ApiResponse(
-        success=True,
-        data={
-            'overall_score': round(overall_score * 100, 2),
-            'grade': seo_analyzer._get_grade(overall_score),
-            'title': title_analysis,
-            'description': description_analysis,
-            'suggestions': suggestions,
-        }
-    )
+    return ok(data={
+        'overall_score': round(overall_score * 100, 2),
+        'grade': seo_analyzer._get_grade(overall_score),
+        'title': title_analysis,
+        'description': description_analysis,
+        'suggestions': suggestions,
+    })
 
 
 @router.get("/guidelines", summary="SEO指南", description="获取SEO最佳实践指南")
+@_catch
 async def get_seo_guidelines():
     """获取SEO指南"""
     guidelines = {
@@ -189,8 +185,4 @@ async def get_seo_guidelines():
             }
         }
     }
-
-    return ApiResponse(
-        success=True,
-        data=guidelines
-    )
+    return ok(data=guidelines)

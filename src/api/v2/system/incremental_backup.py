@@ -1,19 +1,33 @@
 """
 增量备份 API 端点
 """
+from functools import wraps
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.services.system.incremental_backup_service import incremental_backup_service
-from src.api.v2._base import ApiResponse
+from src.api.v2._helpers import ok, fail
 from src.auth.auth_deps import admin_required as admin_required_api
-from src.utils.database.main import get_async_session as get_async_db
+from src.extensions import get_async_db_session as get_async_db
 
 router = APIRouter(tags=["Incremental Backup"])
 
 
+def _catch(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except HTTPException:
+            raise
+        except Exception as e:
+            return fail(str(e))
+    return wrapper
+
+
 @router.post("/create")
+@_catch
 async def create_incremental_backup(
         request: Request,
         current_user=Depends(admin_required_api),
@@ -26,47 +40,34 @@ async def create_incremental_backup(
         base_backup_id: 基础备份ID（可选，默认使用最新完整备份）
         tables: 要备份的表列表（可选，默认全部）
     """
-    try:
-        body = await request.json()
-        base_backup_id = body.get('base_backup_id')
-        tables = body.get('tables')
+    body = await request.json()
+    base_backup_id = body.get('base_backup_id')
+    tables = body.get('tables')
 
-        # 获取数据库配置
-        import os
-        db_config = {
-            'host': os.getenv('DB_HOST', 'localhost'),
-            'port': os.getenv('DB_PORT', '5432'),
-            'database': os.getenv('DB_NAME', 'fast_blog'),
-            'user': os.getenv('DB_USER', 'postgres'),
-            'password': os.getenv('DB_PASSWORD', ''),
-        }
+    # 获取数据库配置
+    import os
+    db_config = {
+        'host': os.getenv('DB_HOST', 'localhost'),
+        'port': os.getenv('DB_PORT', '5432'),
+        'database': os.getenv('DB_NAME', 'fast_blog'),
+        'user': os.getenv('DB_USER', 'postgres'),
+        'password': os.getenv('DB_PASSWORD', ''),
+    }
 
-        result = await incremental_backup_service.create_incremental_backup(
-            db_config,
-            base_backup_id,
-            tables
-        )
+    result = await incremental_backup_service.create_incremental_backup(
+        db_config,
+        base_backup_id,
+        tables
+    )
 
-        if result['success']:
-            return ApiResponse(
-                success=True,
-                data=result,
-                message=result.get('message', '增量备份创建成功')
-            )
-        else:
-            return ApiResponse(
-                success=False,
-                error=result.get('error', '未知错误')
-            )
-
-    except Exception as e:
-        import traceback
-        print(f"Error creating incremental backup: {str(e)}")
-        print(traceback.format_exc())
-        return ApiResponse(success=False, error=str(e))
+    if result['success']:
+        return ok(data=result, msg=result.get('message', '增量备份创建成功'))
+    else:
+        return fail(result.get('error', '未知错误'))
 
 
 @router.post("/create-differential")
+@_catch
 async def create_differential_backup(
         request: Request,
         current_user=Depends(admin_required_api),
@@ -79,47 +80,34 @@ async def create_differential_backup(
         base_backup_id: 基础备份ID（可选，默认使用最新完整备份）
         tables: 要备份的表列表（可选，默认全部）
     """
-    try:
-        body = await request.json()
-        base_backup_id = body.get('base_backup_id')
-        tables = body.get('tables')
+    body = await request.json()
+    base_backup_id = body.get('base_backup_id')
+    tables = body.get('tables')
 
-        # 获取数据库配置
-        import os
-        db_config = {
-            'host': os.getenv('DB_HOST', 'localhost'),
-            'port': os.getenv('DB_PORT', '5432'),
-            'database': os.getenv('DB_NAME', 'fast_blog'),
-            'user': os.getenv('DB_USER', 'postgres'),
-            'password': os.getenv('DB_PASSWORD', ''),
-        }
+    # 获取数据库配置
+    import os
+    db_config = {
+        'host': os.getenv('DB_HOST', 'localhost'),
+        'port': os.getenv('DB_PORT', '5432'),
+        'database': os.getenv('DB_NAME', 'fast_blog'),
+        'user': os.getenv('DB_USER', 'postgres'),
+        'password': os.getenv('DB_PASSWORD', ''),
+    }
 
-        result = await incremental_backup_service.create_differential_backup(
-            db_config,
-            base_backup_id,
-            tables
-        )
+    result = await incremental_backup_service.create_differential_backup(
+        db_config,
+        base_backup_id,
+        tables
+    )
 
-        if result['success']:
-            return ApiResponse(
-                success=True,
-                data=result,
-                message=result.get('message', '差异备份创建成功')
-            )
-        else:
-            return ApiResponse(
-                success=False,
-                error=result.get('error', '未知错误')
-            )
-
-    except Exception as e:
-        import traceback
-        print(f"Error creating differential backup: {str(e)}")
-        print(traceback.format_exc())
-        return ApiResponse(success=False, error=str(e))
+    if result['success']:
+        return ok(data=result, msg=result.get('message', '差异备份创建成功'))
+    else:
+        return fail(result.get('error', '未知错误'))
 
 
 @router.post("/restore")
+@_catch
 async def restore_incremental_backup(
         request: Request,
         current_user=Depends(admin_required_api),
@@ -131,78 +119,53 @@ async def restore_incremental_backup(
     Body参数:
         target_backup_id: 目标备份ID
     """
-    try:
+    body = await request.json()
+    target_backup_id = body.get('target_backup_id')
 
-        body = await request.json()
-        target_backup_id = body.get('target_backup_id')
+    if not target_backup_id:
+        return fail('target_backup_id is required')
 
-        if not target_backup_id:
-            return ApiResponse(success=False, error='target_backup_id is required')
+    # 获取备份链
+    backup_chain = incremental_backup_service.get_backup_chain(target_backup_id)
+    if not backup_chain:
+        return fail(f'无法找到备份链: {target_backup_id}')
 
-        # 获取备份链
-        backup_chain = incremental_backup_service.get_backup_chain(target_backup_id)
-        if not backup_chain:
-            return ApiResponse(success=False, error=f'无法找到备份链: {target_backup_id}')
+    # 获取数据库配置
+    import os
+    db_config = {
+        'host': os.getenv('DB_HOST', 'localhost'),
+        'port': os.getenv('DB_PORT', '5432'),
+        'database': os.getenv('DB_NAME', 'fast_blog'),
+        'user': os.getenv('DB_USER', 'postgres'),
+        'password': os.getenv('DB_PASSWORD', ''),
+    }
 
-        # 获取数据库配置
-        import os
-        db_config = {
-            'host': os.getenv('DB_HOST', 'localhost'),
-            'port': os.getenv('DB_PORT', '5432'),
-            'database': os.getenv('DB_NAME', 'fast_blog'),
-            'user': os.getenv('DB_USER', 'postgres'),
-            'password': os.getenv('DB_PASSWORD', ''),
-        }
+    result = await incremental_backup_service.restore_incremental_backup(
+        backup_chain,
+        db_config
+    )
 
-        result = await incremental_backup_service.restore_incremental_backup(
-            backup_chain,
-            db_config
-        )
-
-        if result['success']:
-            return ApiResponse(
-                success=True,
-                data=result,
-                message=result.get('message', '备份恢复成功')
-            )
-        else:
-            return ApiResponse(
-                success=False,
-                error=result.get('error', '恢复失败'),
-                data={'restored_so_far': result.get('restored_so_far', [])}
-            )
-
-    except Exception as e:
-        import traceback
-        print(f"Error restoring incremental backup: {str(e)}")
-        print(traceback.format_exc())
-        return ApiResponse(success=False, error=str(e))
+    if result['success']:
+        return ok(data=result, msg=result.get('message', '备份恢复成功'))
+    else:
+        return fail(result.get('error', '恢复失败'))
 
 
 @router.get("/statistics")
+@_catch
 async def get_backup_statistics(
         current_user=Depends(admin_required_api)
 ):
     """
     获取备份统计信息
     """
-    try:
+    stats = incremental_backup_service.get_backup_statistics()
 
-        stats = incremental_backup_service.get_backup_statistics()
-
-        return ApiResponse(
-            success=True,
-            data=stats
-        )
-
-    except Exception as e:
-        import traceback
-        print(f"Error getting backup statistics: {str(e)}")
-        print(traceback.format_exc())
-        return ApiResponse(success=False, error=str(e))
+    return ok(data=stats)
 
 
 @router.get("/chain/{backup_id}")
+@_catch
 async def get_backup_chain(
         backup_id: str,
         current_user=Depends(admin_required_api)
@@ -213,45 +176,32 @@ async def get_backup_chain(
     Args:
         backup_id: 备份ID
     """
-    try:
+    chain = incremental_backup_service.get_backup_chain(backup_id)
 
-        chain = incremental_backup_service.get_backup_chain(backup_id)
+    if not chain:
+        return fail(f'无法找到备份链: {backup_id}')
 
-        if not chain:
-            return ApiResponse(
-                success=False,
-                error=f'无法找到备份链: {backup_id}'
-            )
+    # 获取每个备份的详细信息
+    chain_details = []
+    for bid in chain:
+        backup_info = incremental_backup_service.metadata.get(bid)
+        if backup_info:
+            chain_details.append({
+                'id': bid,
+                'type': backup_info.get('type'),
+                'filename': backup_info.get('filename'),
+                'created_at': backup_info.get('created_at')
+            })
 
-        # 获取每个备份的详细信息
-        chain_details = []
-        for bid in chain:
-            backup_info = incremental_backup_service.metadata.get(bid)
-            if backup_info:
-                chain_details.append({
-                    'id': bid,
-                    'type': backup_info.get('type'),
-                    'filename': backup_info.get('filename'),
-                    'created_at': backup_info.get('created_at')
-                })
-
-        return ApiResponse(
-            success=True,
-            data={
-                'backup_id': backup_id,
-                'chain': chain_details,
-                'chain_length': len(chain)
-            }
-        )
-
-    except Exception as e:
-        import traceback
-        print(f"Error getting backup chain: {str(e)}")
-        print(traceback.format_exc())
-        return ApiResponse(success=False, error=str(e))
+    return ok(data={
+        'backup_id': backup_id,
+        'chain': chain_details,
+        'chain_length': len(chain)
+    })
 
 
 @router.post("/cleanup")
+@_catch
 async def cleanup_old_backups(
         request: Request,
         current_user=Depends(admin_required_api)
@@ -262,21 +212,9 @@ async def cleanup_old_backups(
     Body参数:
         keep_days: 保留天数（默认30天）
     """
-    try:
+    body = await request.json()
+    keep_days = body.get('keep_days', 30)
 
-        body = await request.json()
-        keep_days = body.get('keep_days', 30)
+    result = incremental_backup_service.cleanup_old_backups(keep_days)
 
-        result = incremental_backup_service.cleanup_old_backups(keep_days)
-
-        return ApiResponse(
-            success=True,
-            data=result,
-            message=result.get('message', '清理完成')
-        )
-
-    except Exception as e:
-        import traceback
-        print(f"Error cleaning up old backups: {str(e)}")
-        print(traceback.format_exc())
-        return ApiResponse(success=False, error=str(e))
+    return ok(data=result, msg=result.get('message', '清理完成'))

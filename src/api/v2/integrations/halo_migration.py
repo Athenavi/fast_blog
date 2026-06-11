@@ -2,21 +2,37 @@
 Halo 博客迁移 API - V2 版本
 提供完整的 Halo 博客内容迁移功能
 """
+from functools import wraps
 from typing import Optional
 
-from fastapi import APIRouter, Depends, BackgroundTasks
+from fastapi import APIRouter, Depends, BackgroundTasks, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.user import User
 from shared.services.integrations.halo_import import HaloImportService
-from src.api.v2._base import ApiResponse
+from src.api.v2._helpers import ok, fail
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 
 router = APIRouter(prefix="/halo", tags=["Halo Migration"])
 
 
+def _catch(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except HTTPException:
+            raise
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return fail(str(e))
+    return wrapper
+
+
 @router.post("/connect", summary="连接到 Halo 博客")
+@_catch
 async def connect_to_halo(
         halo_url: str,
         api_token: str,
@@ -31,36 +47,26 @@ async def connect_to_halo(
     
     返回连接状态和基本信息
     """
-    try:
-        service = HaloImportService(halo_url=halo_url, api_token=api_token)
+    service = HaloImportService(halo_url=halo_url, api_token=api_token)
 
-        # 测试获取文章列表
-        result = await service.fetch_posts(page=1, size=1)
+    # 测试获取文章列表
+    result = await service.fetch_posts(page=1, size=1)
 
-        if not result['success']:
-            return ApiResponse(
-                success=False,
-                error=f"连接失败: {result.get('error')}"
-            )
+    if not result['success']:
+        return fail(f"连接失败: {result.get('error')}")
 
-        return ApiResponse(
-            success=True,
-            data={
-                'connected': True,
-                'total_posts': result.get('total', 0),
-                'halo_url': halo_url
-            },
-            message="成功连接到 Halo 博客"
-        )
-
-    except Exception as e:
-        return ApiResponse(
-            success=False,
-            error=f"连接失败: {str(e)}"
-        )
+    return ok(
+        data={
+            'connected': True,
+            'total_posts': result.get('total', 0),
+            'halo_url': halo_url
+        },
+        msg="成功连接到 Halo 博客"
+    )
 
 
 @router.get("/preview", summary="预览 Halo 博客内容")
+@_catch
 async def preview_halo_content(
         halo_url: str,
         api_token: str,
@@ -71,40 +77,33 @@ async def preview_halo_content(
     
     返回统计信息，包括文章数、分类数等
     """
-    try:
-        service = HaloImportService(halo_url=halo_url, api_token=api_token)
+    service = HaloImportService(halo_url=halo_url, api_token=api_token)
 
-        # 获取文章统计
-        posts_result = await service.fetch_posts(page=1, size=1)
+    # 获取文章统计
+    posts_result = await service.fetch_posts(page=1, size=1)
 
-        # 获取分类
-        categories_result = await service.fetch_categories()
+    # 获取分类
+    categories_result = await service.fetch_categories()
 
-        # 获取标签
-        tags_result = await service.fetch_tags()
+    # 获取标签
+    tags_result = await service.fetch_tags()
 
-        stats = {
-            'total_posts': posts_result.get('total', 0) if posts_result['success'] else 0,
-            'total_categories': len(categories_result.get('data', [])) if categories_result['success'] else 0,
-            'total_tags': len(tags_result.get('data', [])) if tags_result['success'] else 0,
+    stats = {
+        'total_posts': posts_result.get('total', 0) if posts_result['success'] else 0,
+        'total_categories': len(categories_result.get('data', [])) if categories_result['success'] else 0,
+        'total_tags': len(tags_result.get('data', [])) if tags_result['success'] else 0,
+    }
+
+    return ok(
+        data={
+            'stats': stats,
+            'halo_url': halo_url
         }
-
-        return ApiResponse(
-            success=True,
-            data={
-                'stats': stats,
-                'halo_url': halo_url
-            }
-        )
-
-    except Exception as e:
-        return ApiResponse(
-            success=False,
-            error=f"预览失败: {str(e)}"
-        )
+    )
 
 
 @router.post("/import", summary="导入 Halo 博客数据")
+@_catch
 async def import_halo_data(
         background_tasks: BackgroundTasks,
         halo_url: str,
@@ -128,62 +127,45 @@ async def import_halo_data(
     """
     import json
 
-    try:
-        service = HaloImportService(halo_url=halo_url, api_token=api_token)
+    service = HaloImportService(halo_url=halo_url, api_token=api_token)
 
-        # 解析用户映射
-        mapping_dict = {}
-        if user_mapping:
-            try:
-                mapping_dict = json.loads(user_mapping)
-            except json.JSONDecodeError:
-                return ApiResponse(
-                    success=False,
-                    error="用户映射格式错误，请使用有效的 JSON 格式"
-                )
+    # 解析用户映射
+    mapping_dict = {}
+    if user_mapping:
+        try:
+            mapping_dict = json.loads(user_mapping)
+        except json.JSONDecodeError:
+            return fail("用户映射格式错误，请使用有效的 JSON 格式")
 
-        # 进度回调
-        progress_data = {'current': 0, 'total': 0}
+    # 进度回调
+    progress_data = {'current': 0, 'total': 0}
 
-        def progress_callback(current, total):
-            progress_data['current'] = current
-            progress_data['total'] = total
-            print(f"Halo 导入进度: {current}/{total}")
+    def progress_callback(current, total):
+        progress_data['current'] = current
+        progress_data['total'] = total
+        print(f"Halo 导入进度: {current}/{total}")
 
-        # 导入数据
-        import_result = await service.import_to_database(
-            db_session=db,
-            user_mapping=mapping_dict,
-            progress_callback=progress_callback
-        )
+    # 导入数据
+    import_result = await service.import_to_database(
+        db_session=db,
+        user_mapping=mapping_dict,
+        progress_callback=progress_callback
+    )
 
-        if not import_result['success']:
-            return ApiResponse(
-                success=False,
-                error=import_result.get('error', '导入失败'),
-                data=import_result.get('results', {})
-            )
+    if not import_result['success']:
+        return fail(import_result.get('error', '导入失败'))
 
-        # 生成报告
-        report = service.generate_import_report(import_result)
+    # 生成报告
+    report = service.generate_import_report(import_result)
 
-        return ApiResponse(
-            success=True,
-            data={
-                'results': import_result['results'],
-                'report': report,
-                'progress': progress_data
-            },
-            message=f"成功导入 {import_result['results']['imported_articles']} 篇文章"
-        )
-
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return ApiResponse(
-            success=False,
-            error=f"导入失败: {str(e)}"
-        )
+    return ok(
+        data={
+            'results': import_result['results'],
+            'report': report,
+            'progress': progress_data
+        },
+        msg=f"成功导入 {import_result['results']['imported_articles']} 篇文章"
+    )
 
 
 @router.get("/guide", summary="获取 Halo 迁移指南")
@@ -193,8 +175,7 @@ async def get_halo_migration_guide():
     
     返回详细的迁移步骤和注意事项
     """
-    return ApiResponse(
-        success=True,
+    return ok(
         data={
             'title': 'Halo 博客迁移指南',
             'prerequisites': [

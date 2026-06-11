@@ -3,18 +3,31 @@ RSS/Atom Feed API
 提供博客内容的 RSS 和 Atom 订阅源
 """
 from datetime import datetime
+from functools import wraps
 
-from fastapi import APIRouter, Depends, Query, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from fastapi.responses import PlainTextResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models import User, Article, Category
-from src.utils.database.main import get_async_session as get_async_db
+from src.extensions import get_async_db_session as get_async_db
 from src.setting import AppConfig
 from src.utils.feed_generator import FeedItem, RSSFeedGenerator
 
 router = APIRouter(tags=["feed"])
+
+
+def _catch(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except HTTPException:
+            raise
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+    return wrapper
 
 
 async def get_feed_items(
@@ -64,6 +77,7 @@ async def get_feed_items(
 
 @router.get("/feed")
 @router.get("/rss")
+@_catch
 async def get_rss_feed(
         request: Request,
         db: AsyncSession = Depends(get_async_db),
@@ -125,6 +139,7 @@ async def get_rss_feed(
 
 
 @router.get("/atom")
+@_catch
 async def get_atom_feed(
         request: Request,
         db: AsyncSession = Depends(get_async_db),
@@ -135,6 +150,7 @@ async def get_atom_feed(
 
 
 @router.get("/category/{slug}/feed")
+@_catch
 async def get_category_feed(
         slug: str,
         request: Request,
@@ -191,6 +207,7 @@ async def get_category_feed(
 
 
 @router.get("/tag/{name}/feed")
+@_catch
 async def get_tag_feed(
         name: str,
         request: Request,
@@ -247,6 +264,7 @@ async def get_tag_feed(
 
 
 @router.get("/author/{user_id}/feed")
+@_catch
 async def get_author_feed(
         user_id: int,
         request: Request,

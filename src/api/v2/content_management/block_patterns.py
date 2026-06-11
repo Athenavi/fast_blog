@@ -2,17 +2,32 @@
 块模式（Block Patterns）API 端点
 """
 
-from fastapi import APIRouter, Depends, Query
+from functools import wraps
+
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from shared.services.content_management.block_pattern_library import block_pattern_library
-from src.api.v2._base import ApiResponse
+from src.api.v2._helpers import ok, fail
 from src.auth import jwt_required_dependency as jwt_required
 
 router = APIRouter(tags=["block-patterns"])
 
 
+def _catch(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except HTTPException:
+            raise
+        except Exception as e:
+            return fail(str(e))
+    return wrapper
+
+
 @router.get("")
 @router.get("/list")
+@_catch
 async def list_block_patterns(
     category: str = Query(None, description="分类过滤"),
     current_user=Depends(jwt_required)
@@ -26,24 +41,17 @@ async def list_block_patterns(
     Returns:
         块模式列表
     """
-    try:
-        patterns = block_pattern_library.get_all_patterns(category=category)
+    patterns = block_pattern_library.get_all_patterns(category=category)
 
-        return ApiResponse(
-            success=True,
-            data={
-                "patterns": patterns,
-                "total": len(patterns),
-                "categories": block_pattern_library.get_categories()
-            }
-        )
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return ApiResponse(success=False, error=str(e))
+    return ok(data={
+        "patterns": patterns,
+        "total": len(patterns),
+        "categories": block_pattern_library.get_categories()
+    })
 
 
 @router.get("/categories")
+@_catch
 async def get_pattern_categories(
     current_user=Depends(jwt_required)
 ):
@@ -53,18 +61,13 @@ async def get_pattern_categories(
     Returns:
         分类列表
     """
-    try:
-        categories = block_pattern_library.get_categories()
+    categories = block_pattern_library.get_categories()
 
-        return ApiResponse(
-            success=True,
-            data={"categories": categories}
-        )
-    except Exception as e:
-        return ApiResponse(success=False, error=str(e))
+    return ok(data={"categories": categories})
 
 
 @router.get("/search")
+@_catch
 async def search_block_patterns(
     q: str = Query(..., description="搜索关键词"),
     current_user=Depends(jwt_required)
@@ -78,30 +81,20 @@ async def search_block_patterns(
     Returns:
         匹配的块模式列表
     """
-    try:
-        if not q or len(q.strip()) == 0:
-            return ApiResponse(
-                success=False,
-                error="请提供搜索关键词"
-            )
+    if not q or len(q.strip()) == 0:
+        return fail("请提供搜索关键词")
 
-        patterns = block_pattern_library.search_patterns(q)
+    patterns = block_pattern_library.search_patterns(q)
 
-        return ApiResponse(
-            success=True,
-            data={
-                "patterns": patterns,
-                "total": len(patterns),
-                "query": q
-            }
-        )
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return ApiResponse(success=False, error=str(e))
+    return ok(data={
+        "patterns": patterns,
+        "total": len(patterns),
+        "query": q
+    })
 
 
 @router.get("/{pattern_slug}")
+@_catch
 async def get_block_pattern(
     pattern_slug: str,
     current_user=Depends(jwt_required)
@@ -115,20 +108,9 @@ async def get_block_pattern(
     Returns:
         块模式详情
     """
-    try:
-        pattern = block_pattern_library.get_pattern_by_slug(pattern_slug)
+    pattern = block_pattern_library.get_pattern_by_slug(pattern_slug)
 
-        if not pattern:
-            return ApiResponse(
-                success=False,
-                error=f"块模式不存在: {pattern_slug}"
-            )
+    if not pattern:
+        return fail(f"块模式不存在: {pattern_slug}")
 
-        return ApiResponse(
-            success=True,
-            data={"pattern": pattern}
-        )
-    except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return ApiResponse(success=False, error=str(e))
+    return ok(data={"pattern": pattern})

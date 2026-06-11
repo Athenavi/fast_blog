@@ -3,19 +3,35 @@
 
 提供异常行为的检测、查看和管理功能
 """
-
+import logging
+from functools import wraps
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
 
 from shared.services.articles.anomaly_detector import anomaly_detector
-from src.api.v2._base import ApiResponse
+from src.api.v2._helpers import ok, fail
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
+
+
+def _catch(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"[{func.__name__}] {e}")
+            return fail(str(e))
+    return wrapper
 
 
 @router.get("/anomalies", summary="获取异常事件", description="获取检测到的异常行为事件")
+@_catch
 async def get_anomalies(
         hours: int = Query(24, ge=1, le=168, description="最近多少小时"),
         anomaly_type: Optional[str] = Query(None, description="异常类型过滤"),
@@ -29,16 +45,14 @@ async def get_anomalies(
 
     anomalies = anomaly_detector.get_anomalies(hours=hours, anomaly_type=anomaly_type)
 
-    return ApiResponse(
-        success=True,
-        data={
-            'anomalies': anomalies,
-            'count': len(anomalies),
-        }
-    )
+    return ok(data={
+        'anomalies': anomalies,
+        'count': len(anomalies),
+    })
 
 
 @router.get("/statistics", summary="获取统计信息", description="获取异常行为统计信息")
+@_catch
 async def get_statistics(
         hours: int = Query(24, ge=1, le=168, description="统计最近多少小时"),
         current_user=Depends(jwt_required),
@@ -51,13 +65,11 @@ async def get_statistics(
 
     stats = anomaly_detector.get_statistics(hours=hours)
 
-    return ApiResponse(
-        success=True,
-        data=stats
-    )
+    return ok(data=stats)
 
 
 @router.post("/record-login", summary="记录登录尝试", description="记录登录尝试用于检测")
+@_catch
 async def record_login_attempt(
         ip_address: str = Body(..., description="IP地址"),
         username: str = Body(..., description="用户名"),
@@ -76,13 +88,11 @@ async def record_login_attempt(
         success=success,
     )
 
-    return ApiResponse(
-        success=True,
-        message="Login attempt recorded"
-    )
+    return ok(msg="Login attempt recorded")
 
 
 @router.post("/record-activity", summary="记录用户活动", description="记录用户活动用于检测")
+@_catch
 async def record_user_activity(
         user_id: int = Body(..., description="用户ID"),
         action: str = Body(..., description="操作类型"),
@@ -101,13 +111,11 @@ async def record_user_activity(
         details=details,
     )
 
-    return ApiResponse(
-        success=True,
-        message="User activity recorded"
-    )
+    return ok(msg="User activity recorded")
 
 
 @router.post("/config", summary="更新配置", description="更新检测阈值配置")
+@_catch
 async def update_config(
         login_failures_per_hour: Optional[int] = Body(None, ge=1, description="每小时失败登录次数阈值"),
         requests_per_minute: Optional[int] = Body(None, ge=1, description="每分钟请求数阈值"),
@@ -130,8 +138,7 @@ async def update_config(
 
     anomaly_detector.update_thresholds(**updates)
 
-    return ApiResponse(
-        success=True,
-        message="Configuration updated",
+    return ok(
+        msg="Configuration updated",
         data=anomaly_detector.thresholds
     )

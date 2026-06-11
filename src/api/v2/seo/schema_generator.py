@@ -4,14 +4,14 @@ Schema.org 结构化数据生成 API
 提供自动生成各种 Schema.org JSON-LD 结构化数据的接口
 支持: Article, Organization, Person, WebSite, FAQPage, BreadcrumbList, ImageObject, VideoObject
 """
-
+from functools import wraps
 from typing import List, Optional, Dict
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 
 from shared.services.system.schema_generator import schema_generator
-from src.api.v2._base import ApiResponse
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 
 router = APIRouter(tags=["Schema.org"])
@@ -106,6 +106,7 @@ class VideoSchemaRequest(BaseModel):
 # ==================== API 端点 ====================
 
 @router.post("/article")
+@_catch
 async def generate_article_schema(request: ArticleSchemaRequest, current_user=Depends(jwt_required)):
     """生成文章 Schema.org 结构化数据"""
     schema = schema_generator.generate_article_schema(
@@ -120,18 +121,15 @@ async def generate_article_schema(request: ArticleSchemaRequest, current_user=De
         keywords=request.keywords,
         category=request.category
     )
-
-    return ApiResponse(
-        success=True,
-        data={
-            "schema": schema,
-            "json_ld": schema_generator.to_json_ld(schema),
-            "script_tag": schema_generator.to_script_tag(schema)
-        }
-    )
+    return ok(data={
+        "schema": schema,
+        "json_ld": schema_generator.to_json_ld(schema),
+        "script_tag": schema_generator.to_script_tag(schema)
+    })
 
 
 @router.post("/organization")
+@_catch
 async def generate_organization_schema(request: OrganizationSchemaRequest, current_user=Depends(jwt_required)):
     """生成组织 Schema.org 结构化数据"""
     schema = schema_generator.generate_organization_schema(
@@ -143,18 +141,15 @@ async def generate_organization_schema(request: OrganizationSchemaRequest, curre
         contact_email=request.contact_email,
         phone=request.phone
     )
-
-    return ApiResponse(
-        success=True,
-        data={
-            "schema": schema,
-            "json_ld": schema_generator.to_json_ld(schema),
-            "script_tag": schema_generator.to_script_tag(schema)
-        }
-    )
+    return ok(data={
+        "schema": schema,
+        "json_ld": schema_generator.to_json_ld(schema),
+        "script_tag": schema_generator.to_script_tag(schema)
+    })
 
 
 @router.post("/person")
+@_catch
 async def generate_person_schema(request: PersonSchemaRequest, current_user=Depends(jwt_required)):
     """生成人物 Schema.org 结构化数据"""
     schema = schema_generator.generate_person_schema(
@@ -165,18 +160,15 @@ async def generate_person_schema(request: PersonSchemaRequest, current_user=Depe
         url=request.url,
         social_profiles=request.social_profiles
     )
-
-    return ApiResponse(
-        success=True,
-        data={
-            "schema": schema,
-            "json_ld": schema_generator.to_json_ld(schema),
-            "script_tag": schema_generator.to_script_tag(schema)
-        }
-    )
+    return ok(data={
+        "schema": schema,
+        "json_ld": schema_generator.to_json_ld(schema),
+        "script_tag": schema_generator.to_script_tag(schema)
+    })
 
 
 @router.post("/website")
+@_catch
 async def generate_website_schema(request: WebsiteSchemaRequest, current_user=Depends(jwt_required)):
     """生成网站 Schema.org 结构化数据"""
     schema = schema_generator.generate_website_schema(
@@ -185,50 +177,41 @@ async def generate_website_schema(request: WebsiteSchemaRequest, current_user=De
         description=request.description,
         search_url=request.search_url
     )
-
-    return ApiResponse(
-        success=True,
-        data={
-            "schema": schema,
-            "json_ld": schema_generator.to_json_ld(schema),
-            "script_tag": schema_generator.to_script_tag(schema)
-        }
-    )
+    return ok(data={
+        "schema": schema,
+        "json_ld": schema_generator.to_json_ld(schema),
+        "script_tag": schema_generator.to_script_tag(schema)
+    })
 
 
 @router.post("/faq")
+@_catch
 async def generate_faq_schema(request: FAQSchemaRequest, current_user=Depends(jwt_required)):
     """生成 FAQ Schema.org 结构化数据"""
     questions = [{"question": q.question, "answer": q.answer} for q in request.questions]
     schema = schema_generator.generate_faq_schema(questions=questions)
-
-    return ApiResponse(
-        success=True,
-        data={
-            "schema": schema,
-            "json_ld": schema_generator.to_json_ld(schema),
-            "script_tag": schema_generator.to_script_tag(schema)
-        }
-    )
+    return ok(data={
+        "schema": schema,
+        "json_ld": schema_generator.to_json_ld(schema),
+        "script_tag": schema_generator.to_script_tag(schema)
+    })
 
 
 @router.post("/breadcrumb")
+@_catch
 async def generate_breadcrumb_schema(request: BreadcrumbSchemaRequest, current_user=Depends(jwt_required)):
     """生成面包屑导航 Schema.org 结构化数据"""
     items = [{"name": item.name, "url": item.url} for item in request.items]
     schema = schema_generator.generate_breadcrumb_schema(items=items)
-
-    return ApiResponse(
-        success=True,
-        data={
-            "schema": schema,
-            "json_ld": schema_generator.to_json_ld(schema),
-            "script_tag": schema_generator.to_script_tag(schema)
-        }
-    )
+    return ok(data={
+        "schema": schema,
+        "json_ld": schema_generator.to_json_ld(schema),
+        "script_tag": schema_generator.to_script_tag(schema)
+    })
 
 
 @router.post("/image")
+@_catch
 async def generate_image_schema(request: ImageSchemaRequest, current_user=Depends(jwt_required)):
     """生成图片 Schema.org 结构化数据"""
     schema = schema_generator.generate_image_schema(
@@ -237,18 +220,15 @@ async def generate_image_schema(request: ImageSchemaRequest, current_user=Depend
         width=request.width,
         height=request.height
     )
-
-    return ApiResponse(
-        success=True,
-        data={
-            "schema": schema,
-            "json_ld": schema_generator.to_json_ld(schema),
-            "script_tag": schema_generator.to_script_tag(schema)
-        }
-    )
+    return ok(data={
+        "schema": schema,
+        "json_ld": schema_generator.to_json_ld(schema),
+        "script_tag": schema_generator.to_script_tag(schema)
+    })
 
 
 @router.post("/video")
+@_catch
 async def generate_video_schema(request: VideoSchemaRequest, current_user=Depends(jwt_required)):
     """生成视频 Schema.org 结构化数据"""
     schema = schema_generator.generate_video_schema(
@@ -260,32 +240,26 @@ async def generate_video_schema(request: VideoSchemaRequest, current_user=Depend
         embed_url=request.embed_url,
         duration=request.duration
     )
-
-    return ApiResponse(
-        success=True,
-        data={
-            "schema": schema,
-            "json_ld": schema_generator.to_json_ld(schema),
-            "script_tag": schema_generator.to_script_tag(schema)
-        }
-    )
+    return ok(data={
+        "schema": schema,
+        "json_ld": schema_generator.to_json_ld(schema),
+        "script_tag": schema_generator.to_script_tag(schema)
+    })
 
 
 @router.get("/types")
+@_catch
 async def get_supported_schema_types(current_user=Depends(jwt_required)):
     """获取支持的 Schema.org 类型列表"""
-    return ApiResponse(
-        success=True,
-        data={
-            "types": [
-                {"type": "Article", "endpoint": "/schema/article", "description": "文章"},
-                {"type": "Organization", "endpoint": "/schema/organization", "description": "组织"},
-                {"type": "Person", "endpoint": "/schema/person", "description": "人物"},
-                {"type": "WebSite", "endpoint": "/schema/website", "description": "网站"},
-                {"type": "FAQPage", "endpoint": "/schema/faq", "description": "常见问题"},
-                {"type": "BreadcrumbList", "endpoint": "/schema/breadcrumb", "description": "面包屑导航"},
-                {"type": "ImageObject", "endpoint": "/schema/image", "description": "图片"},
-                {"type": "VideoObject", "endpoint": "/schema/video", "description": "视频"}
-            ]
-        }
-    )
+    return ok(data={
+        "types": [
+            {"type": "Article", "endpoint": "/schema/article", "description": "文章"},
+            {"type": "Organization", "endpoint": "/schema/organization", "description": "组织"},
+            {"type": "Person", "endpoint": "/schema/person", "description": "人物"},
+            {"type": "WebSite", "endpoint": "/schema/website", "description": "网站"},
+            {"type": "FAQPage", "endpoint": "/schema/faq", "description": "常见问题"},
+            {"type": "BreadcrumbList", "endpoint": "/schema/breadcrumb", "description": "面包屑导航"},
+            {"type": "ImageObject", "endpoint": "/schema/image", "description": "图片"},
+            {"type": "VideoObject", "endpoint": "/schema/video", "description": "视频"}
+        ]
+    })

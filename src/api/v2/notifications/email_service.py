@@ -3,21 +3,37 @@
 
 提供邮件服务配置管理和邮件发送功能
 """
+from functools import wraps
 from typing import Optional, Dict, Any, List
 
-from fastapi import APIRouter, Depends, Query, Body
+from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.services.notifications.email_service_integration import email_service_integration
-from src.api.v2._base import ApiResponse
+from src.api.v2._helpers import ok, fail
 from src.api.v2.system.multisite import check_admin_permission
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
-from src.utils.database.main import get_async_session as get_async_db
+from src.extensions import get_async_db_session as get_async_db
 
 router = APIRouter(tags=["email-service"])
 
 
+def _catch(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except HTTPException:
+            raise
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return fail(str(e))
+    return wrapper
+
+
 @router.get("/config/{provider}", summary="获取邮件服务配置")
+@_catch
 async def get_email_config(
         provider: str,
         site_id: Optional[int] = Query(None, description="站点 ID"),
@@ -34,35 +50,25 @@ async def get_email_config(
     Returns:
         邮件服务配置
     """
-    try:
-        config = await email_service_integration.get_config(db, provider, site_id)
+    config = await email_service_integration.get_config(db, provider, site_id)
 
-        if not config:
-            return ApiResponse(
-                success=True,
-                data=None,
-                message=f"No {provider} configuration found"
-            )
+    if not config:
+        return ok(data=None, msg=f"No {provider} configuration found")
 
-        return ApiResponse(
-            success=True,
-            data={
-                'id': config.id,
-                'provider': config.provider,
-                'from_email': config.from_email,
-                'from_name': config.from_name,
-                'enable_batch_sending': config.enable_batch_sending,
-                'batch_size': config.batch_size,
-                'daily_limit': config.daily_limit,
-                'is_active': config.is_active,
-            }
-        )
-
-    except Exception as e:
-        return ApiResponse(success=False, error=str(e))
+    return ok(data={
+        'id': config.id,
+        'provider': config.provider,
+        'from_email': config.from_email,
+        'from_name': config.from_name,
+        'enable_batch_sending': config.enable_batch_sending,
+        'batch_size': config.batch_size,
+        'daily_limit': config.daily_limit,
+        'is_active': config.is_active,
+    })
 
 
 @router.post("/config/{provider}", summary="创建邮件服务配置")
+@_catch
 async def create_email_config(
         provider: str,
         from_email: str = Body(..., description="发件人邮箱"),
@@ -88,45 +94,37 @@ async def create_email_config(
     Returns:
         创建的配置
     """
-    try:
-        # 检查权限
-        
-        has_permission = await check_admin_permission(db, current_user.id)
-        if not has_permission:
-            return ApiResponse(success=False, error="Insufficient permissions")
+    has_permission = await check_admin_permission(db, current_user.id)
+    if not has_permission:
+        return fail("Insufficient permissions")
 
-        config = await email_service_integration.create_config(
-            db=db,
-            provider=provider,
-            from_email=from_email,
-            api_key=api_key,
-            smtp_host=smtp_host,
-            smtp_port=smtp_port,
-            smtp_username=smtp_username,
-            smtp_password=smtp_password,
-            from_name=from_name,
-            site_id=site_id,
-            enable_batch_sending=enable_batch_sending,
-            batch_size=batch_size,
-            daily_limit=daily_limit,
-        )
+    config = await email_service_integration.create_config(
+        db=db,
+        provider=provider,
+        from_email=from_email,
+        api_key=api_key,
+        smtp_host=smtp_host,
+        smtp_port=smtp_port,
+        smtp_username=smtp_username,
+        smtp_password=smtp_password,
+        from_name=from_name,
+        site_id=site_id,
+        enable_batch_sending=enable_batch_sending,
+        batch_size=batch_size,
+        daily_limit=daily_limit,
+    )
 
-        return ApiResponse(
-            success=True,
-            data={
-                'id': config.id,
-                'provider': config.provider,
-            },
-            message=f"{provider.capitalize()} configuration created successfully"
-        )
-
-    except ValueError as e:
-        return ApiResponse(success=False, error=str(e))
-    except Exception as e:
-        return ApiResponse(success=False, error=str(e))
+    return ok(
+        data={
+            'id': config.id,
+            'provider': config.provider,
+        },
+        msg=f"{provider.capitalize()} configuration created successfully"
+    )
 
 
 @router.put("/config/{config_id}", summary="更新邮件服务配置")
+@_catch
 async def update_email_config(
         config_id: int,
         updates: Dict[str, Any] = Body(..., description="更新字段"),
@@ -143,31 +141,23 @@ async def update_email_config(
     Returns:
         更新后的配置
     """
-    try:
-        # 检查权限
-        
-        has_permission = await check_admin_permission(db, current_user.id)
-        if not has_permission:
-            return ApiResponse(success=False, error="Insufficient permissions")
+    has_permission = await check_admin_permission(db, current_user.id)
+    if not has_permission:
+        return fail("Insufficient permissions")
 
-        config = await email_service_integration.update_config(db, config_id, updates)
+    config = await email_service_integration.update_config(db, config_id, updates)
 
-        return ApiResponse(
-            success=True,
-            data={
-                'id': config.id,
-                'provider': config.provider,
-            },
-            message="Email service configuration updated successfully"
-        )
-
-    except ValueError as e:
-        return ApiResponse(success=False, error=str(e))
-    except Exception as e:
-        return ApiResponse(success=False, error=str(e))
+    return ok(
+        data={
+            'id': config.id,
+            'provider': config.provider,
+        },
+        msg="Email service configuration updated successfully"
+    )
 
 
 @router.delete("/config/{config_id}", summary="停用邮件服务配置")
+@_catch
 async def deactivate_email_config(
         config_id: int,
         current_user=Depends(jwt_required),
@@ -182,27 +172,17 @@ async def deactivate_email_config(
     Returns:
         操作结果
     """
-    try:
-        # 检查权限
-        
-        has_permission = await check_admin_permission(db, current_user.id)
-        if not has_permission:
-            return ApiResponse(success=False, error="Insufficient permissions")
+    has_permission = await check_admin_permission(db, current_user.id)
+    if not has_permission:
+        return fail("Insufficient permissions")
 
-        await email_service_integration.deactivate_config(db, config_id)
+    await email_service_integration.deactivate_config(db, config_id)
 
-        return ApiResponse(
-            success=True,
-            message="Email service configuration deactivated successfully"
-        )
-
-    except ValueError as e:
-        return ApiResponse(success=False, error=str(e))
-    except Exception as e:
-        return ApiResponse(success=False, error=str(e))
+    return ok(msg="Email service configuration deactivated successfully")
 
 
 @router.post("/send", summary="发送邮件")
+@_catch
 async def send_email(
         provider: str = Body(..., description="邮件提供商"),
         to_email: str = Body(..., description="收件人邮箱"),
@@ -223,40 +203,28 @@ async def send_email(
     Returns:
         发送结果
     """
-    try:
-        config = await email_service_integration.get_config(db, provider, site_id)
+    config = await email_service_integration.get_config(db, provider, site_id)
 
-        if not config:
-            return ApiResponse(
-                success=False,
-                error=f"No {provider} configuration found"
-            )
+    if not config:
+        return fail(f"No {provider} configuration found")
 
-        success = await email_service_integration.send_email(
-            config,
-            to_email,
-            subject,
-            html_content,
-            text_content,
-            from_name,
-        )
+    success = await email_service_integration.send_email(
+        config,
+        to_email,
+        subject,
+        html_content,
+        text_content,
+        from_name,
+    )
 
-        if success:
-            return ApiResponse(
-                success=True,
-                message="Email sent successfully"
-            )
-        else:
-            return ApiResponse(
-                success=False,
-                error="Failed to send email"
-            )
-
-    except Exception as e:
-        return ApiResponse(success=False, error=str(e))
+    if success:
+        return ok(msg="Email sent successfully")
+    else:
+        return fail("Failed to send email")
 
 
 @router.post("/send-batch", summary="批量发送邮件")
+@_catch
 async def send_batch_emails(
         provider: str = Body(..., description="邮件提供商"),
         recipients: List[Dict[str, str]] = Body(..., description="收件人列表"),
@@ -277,34 +245,27 @@ async def send_batch_emails(
     Returns:
         发送结果统计
     """
-    try:
-        config = await email_service_integration.get_config(db, provider, site_id)
+    config = await email_service_integration.get_config(db, provider, site_id)
 
-        if not config:
-            return ApiResponse(
-                success=False,
-                error=f"No {provider} configuration found"
-            )
+    if not config:
+        return fail(f"No {provider} configuration found")
 
-        result = await email_service_integration.send_batch_emails(
-            config,
-            recipients,
-            subject,
-            html_content,
-            text_content,
-        )
+    result = await email_service_integration.send_batch_emails(
+        config,
+        recipients,
+        subject,
+        html_content,
+        text_content,
+    )
 
-        return ApiResponse(
-            success=True,
-            data=result,
-            message=f"Batch email completed: {result['success']} succeeded, {result['failed']} failed"
-        )
-
-    except Exception as e:
-        return ApiResponse(success=False, error=str(e))
+    return ok(
+        data=result,
+        msg=f"Batch email completed: {result['success']} succeeded, {result['failed']} failed"
+    )
 
 
 @router.get("/configs", summary="获取所有邮件服务配置")
+@_catch
 async def get_all_configs(
         include_inactive: bool = Query(False, description="是否包含非活动配置"),
         current_user=Depends(jwt_required),
@@ -319,37 +280,28 @@ async def get_all_configs(
     Returns:
         配置列表
     """
-    try:
-        # 检查权限
-        
-        has_permission = await check_admin_permission(db, current_user.id)
-        if not has_permission:
-            return ApiResponse(success=False, error="Insufficient permissions")
+    has_permission = await check_admin_permission(db, current_user.id)
+    if not has_permission:
+        return fail("Insufficient permissions")
 
-        configs = await email_service_integration.get_all_configs(db, include_inactive)
+    configs = await email_service_integration.get_all_configs(db, include_inactive)
 
-        configs_list = []
-        for config in configs:
-            configs_list.append({
-                'id': config.id,
-                'provider': config.provider,
-                'site_id': config.site_id,
-                'from_email': config.from_email,
-                'from_name': config.from_name,
-                'enable_batch_sending': config.enable_batch_sending,
-                'batch_size': config.batch_size,
-                'daily_limit': config.daily_limit,
-                'is_active': config.is_active,
-                'created_at': config.created_at.isoformat() if config.created_at else None,
-            })
+    configs_list = []
+    for config in configs:
+        configs_list.append({
+            'id': config.id,
+            'provider': config.provider,
+            'site_id': config.site_id,
+            'from_email': config.from_email,
+            'from_name': config.from_name,
+            'enable_batch_sending': config.enable_batch_sending,
+            'batch_size': config.batch_size,
+            'daily_limit': config.daily_limit,
+            'is_active': config.is_active,
+            'created_at': config.created_at.isoformat() if config.created_at else None,
+        })
 
-        return ApiResponse(
-            success=True,
-            data={
-                'configs': configs_list,
-                'total': len(configs_list)
-            }
-        )
-
-    except Exception as e:
-        return ApiResponse(success=False, error=str(e))
+    return ok(data={
+        'configs': configs_list,
+        'total': len(configs_list)
+    })

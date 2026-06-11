@@ -2,8 +2,9 @@
 协作编辑 HTTP API
 """
 from datetime import datetime
+from functools import wraps
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,11 +13,25 @@ from shared.models import ArticleRevision
 from shared.services.chat.collaboration import collaboration_service, CollaborativeDocument
 from src.auth import jwt_required_dependency as jwt_required
 from src.utils.database.main import get_async_session as get_async_db
+from src.api.v2._helpers import ok, fail
 
 router = APIRouter(tags=["collaboration"])
 
 
+def _catch(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except HTTPException:
+            raise
+        except Exception as e:
+            return fail(str(e))
+    return wrapper
+
+
 @router.post("/documents/{document_id}/save")
+@_catch
 async def save_collaborative_document(
         document_id: str,
         save_data: dict,
@@ -51,39 +66,29 @@ async def save_collaborative_document(
             collaboration_service.documents[document_id] = doc
 
         doc.set_content(content)
-    try:
-        # 保存到修订版本
-        change_summary = save_data.get("change_summary", "协作编辑保存")
-        # 计算下一个版本号
-        max_rev_query = select(func.max(ArticleRevision.revision_number)).where(
-            ArticleRevision.article_id == doc.article_id
-        )
-        max_rev_result = await db.execute(max_rev_query)
-        next_revision = (max_rev_result.scalar() or 0) + 1
-        revision = ArticleRevision(
-            article_id=doc.article_id,
-            revision_number=next_revision,
-            content=save_data["content"],
-            change_summary=change_summary,
-            created_at=datetime.now().replace(tzinfo=None)  # 移除时区信息以匹配数据库字段
-        )
 
-        db.add(revision)
-        await db.commit()
-        await db.refresh(revision)
-        print(f"[Collab Save] Successfully saved document {document_id}")
-        return {
-            "success": True,
-            "message": "Document saved successfully",
-            "data": {
-                "document_id": document_id,
-                "article_id": doc.article_id if doc else None,
-                "saved_at": doc.last_modified.isoformat() if doc else None
-            }
-        }
-    except Exception as e:
-        print(f"[Collab Save] Failed to save document {document_id}")
-        return JSONResponse(
-            status_code=500,
-            content={"success": False, "error": f"Failed to save to revision:{e}"}
-        )
+    # 保存到修订版本
+    change_summary = save_data.get("change_summary", "协作编辑保存")
+    # 计算下一个版本号
+    max_rev_query = select(func.max(ArticleRevision.revision_number)).where(
+        ArticleRevision.article_id == doc.article_id
+    )
+    max_rev_result = await db.execute(max_rev_query)
+    next_revision = (max_rev_result.scalar() or 0) + 1
+    revision = ArticleRevision(
+        article_id=doc.article_id,
+        revision_number=next_revision,
+        content=save_data["content"],
+        change_summary=change_summary,
+        created_at=datetime.now().replace(tzinfo=None)  # 移除时区信息以匹配数据库字段
+    )
+
+    db.add(revision)
+    await db.commit()
+    await db.refresh(revision)
+    print(f"[Collab Save] Successfully saved document {document_id}")
+    return ok(data={
+        "document_id": document_id,
+        "article_id": doc.article_id if doc else None,
+        "saved_at": doc.last_modified.isoformat() if doc else None
+    }, msg="Document saved successfully")

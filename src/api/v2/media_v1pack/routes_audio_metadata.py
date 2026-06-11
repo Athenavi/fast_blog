@@ -3,6 +3,7 @@
 提供音频文件的封面图片和歌词信息
 """
 import base64
+from functools import wraps
 from pathlib import Path
 from typing import Optional
 
@@ -11,6 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.media import Media
+from src.api.v2._helpers import ok, fail
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 from src.unified_logger import default_logger as logger
@@ -18,7 +20,21 @@ from src.unified_logger import default_logger as logger
 router = APIRouter(tags=["audio-metadata"])
 
 
+def _catch(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"[{func.__name__}] {e}")
+            return fail(str(e))
+    return wrapper
+
+
 @router.get("/{media_id}/metadata")
+@_catch
 async def get_audio_metadata(
         media_id: int,
         current_user_obj=Depends(jwt_required),
@@ -33,56 +49,46 @@ async def get_audio_metadata(
     Returns:
         包含封面图片(base64)和歌词的JSON数据
     """
-    try:
-        # 查询媒体文件
-        media_query = select(Media).where(Media.id == media_id)
-        media_result = await db.execute(media_query)
-        media = media_result.scalar_one_or_none()
+    # 查询媒体文件
+    media_query = select(Media).where(Media.id == media_id)
+    media_result = await db.execute(media_query)
+    media = media_result.scalar_one_or_none()
 
-        if not media:
-            raise HTTPException(status_code=404, detail="媒体文件不存在")
+    if not media:
+        raise HTTPException(status_code=404, detail="媒体文件不存在")
 
-        # 检查权限
-        if media.user != current_user_obj.id and not media.is_public:
-            raise HTTPException(status_code=403, detail="无权访问该媒体文件")
+    # 检查权限
+    if media.user != current_user_obj.id and not media.is_public:
+        raise HTTPException(status_code=403, detail="无权访问该媒体文件")
 
-        # 检查是否为音频文件
-        if not media.mime_type or not media.mime_type.startswith('audio/'):
-            raise HTTPException(status_code=400, detail="不是音频文件")
+    # 检查是否为音频文件
+    if not media.mime_type or not media.mime_type.startswith('audio/'):
+        raise HTTPException(status_code=400, detail="不是音频文件")
 
-        result = {
-            "success": True,
-            "data": {
-                "cover_image": None,  # base64编码的封面图片
-                "lyrics": [],  # 歌词数组 [{time: 秒, text: 文本}]
-                "title": media.original_filename,
-                "duration": media.duration
-            }
-        }
+    result = {
+        "cover_image": None,  # base64编码的封面图片
+        "lyrics": [],  # 歌词数组 [{time: 秒, text: 文本}]
+        "title": media.original_filename,
+        "duration": media.duration
+    }
 
-        # 提取封面图片
-        cover_data = extract_cover_from_audio(media)
-        if cover_data:
-            # 转换为base64
-            cover_base64 = base64.b64encode(cover_data).decode('utf-8')
-            # 检测图片格式
-            mime_type = detect_image_mime_type(cover_data)
-            result["data"]["cover_image"] = f"data:{mime_type};base64,{cover_base64}"
-            logger.info(f"成功提取音频封面: media_id={media_id}")
+    # 提取封面图片
+    cover_data = extract_cover_from_audio(media)
+    if cover_data:
+        # 转换为base64
+        cover_base64 = base64.b64encode(cover_data).decode('utf-8')
+        # 检测图片格式
+        mime_type = detect_image_mime_type(cover_data)
+        result["cover_image"] = f"data:{mime_type};base64,{cover_base64}"
+        logger.info(f"成功提取音频封面: media_id={media_id}")
 
-        # 提取歌词
-        lyrics = extract_lyrics_from_audio(media)
-        if lyrics:
-            result["data"]["lyrics"] = lyrics
-            logger.info(f"成功提取音频歌词: media_id={media_id}, 共{len(lyrics)}行")
+    # 提取歌词
+    lyrics = extract_lyrics_from_audio(media)
+    if lyrics:
+        result["lyrics"] = lyrics
+        logger.info(f"成功提取音频歌词: media_id={media_id}, 共{len(lyrics)}行")
 
-        return result
-
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"获取音频元数据失败: {e}", exc_info=True)
-        return {"success": False, "error": str(e)}
+    return ok(data=result)
 
 
 def extract_cover_from_audio(media: Media) -> Optional[bytes]:

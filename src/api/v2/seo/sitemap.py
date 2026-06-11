@@ -3,14 +3,16 @@ XML 站点地图 API
 提供标准的 Sitemap 协议支持，包括多语言 hreflang 标签
 """
 import re
+from functools import wraps
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, Request, Response
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models import Article, Category, Media, User, ArticleContent
-from src.utils.database.main import get_async_session as get_async_db
+from src.api.v2._helpers import ok, fail, _catch
+from src.extensions import get_async_db_session as get_async_db
 from src.setting import AppConfig
 from src.utils.sitemap_generator import SitemapGenerator, SitemapUrl, SitemapIndex
 
@@ -18,6 +20,7 @@ router = APIRouter(tags=["sitemap"])
 
 
 @router.get("/sitemap.xml")
+@_catch
 async def get_sitemap_index(request: Request):
     """
     获取站点地图索引
@@ -33,10 +36,10 @@ async def get_sitemap_index(request: Request):
     index.add_sitemap(f"{site_url}/sitemap-categories.xml", datetime.now())
     index.add_sitemap(f"{site_url}/sitemap-tags.xml", datetime.now())
     index.add_sitemap(f"{site_url}/sitemap-pages.xml", datetime.now())
-    index.add_sitemap(f"{site_url}/sitemap-authors.xml", datetime.now())  # 作者站点地图
-    index.add_sitemap(f"{site_url}/sitemap-images.xml", datetime.now())  # 图片站点地图
-    index.add_sitemap(f"{site_url}/sitemap-videos.xml", datetime.now())  # 视频站点地图
-    index.add_sitemap(f"{site_url}/sitemap-multilingual.xml", datetime.now())  # 多语言版本
+    index.add_sitemap(f"{site_url}/sitemap-authors.xml", datetime.now())
+    index.add_sitemap(f"{site_url}/sitemap-images.xml", datetime.now())
+    index.add_sitemap(f"{site_url}/sitemap-videos.xml", datetime.now())
+    index.add_sitemap(f"{site_url}/sitemap-multilingual.xml", datetime.now())
 
     content = index.generate_xml()
 
@@ -44,12 +47,13 @@ async def get_sitemap_index(request: Request):
         content=content,
         media_type='application/xml',
         headers={
-            'Cache-Control': 'public, max-age=3600',  # 缓存 1 小时
+            'Cache-Control': 'public, max-age=3600',
         }
     )
 
 
 @router.get("/sitemap-posts.xml")
+@_catch
 async def get_posts_sitemap(
         request: Request,
         db: AsyncSession = Depends(get_async_db),
@@ -99,12 +103,13 @@ async def get_posts_sitemap(
         content=content,
         media_type='application/xml',
         headers={
-            'Cache-Control': 'public, max-age=7200',  # 缓存 2 小时
+            'Cache-Control': 'public, max-age=7200',
         }
     )
 
 
 @router.get("/sitemap-categories.xml")
+@_catch
 async def get_categories_sitemap(
         request: Request,
         db: AsyncSession = Depends(get_async_db),
@@ -151,6 +156,7 @@ async def get_categories_sitemap(
 
 
 @router.get("/sitemap-tags.xml")
+@_catch
 async def get_tags_sitemap(
         request: Request,
         db: AsyncSession = Depends(get_async_db),
@@ -209,6 +215,7 @@ async def get_tags_sitemap(
 
 
 @router.get("/sitemap-pages.xml")
+@_catch
 async def get_pages_sitemap(
         request: Request,
 ):
@@ -249,12 +256,13 @@ async def get_pages_sitemap(
         content=content,
         media_type='application/xml',
         headers={
-            'Cache-Control': 'public, max-age=86400',  # 缓存 24 小时
+            'Cache-Control': 'public, max-age=86400',
         }
     )
 
 
 @router.get("/sitemap-multilingual.xml")
+@_catch
 async def get_multilingual_sitemap(
         request: Request,
         db: AsyncSession = Depends(get_async_db),
@@ -334,6 +342,7 @@ async def get_multilingual_sitemap(
 
 
 @router.get("/sitemap-authors.xml")
+@_catch
 async def get_authors_sitemap(
         request: Request,
         db: AsyncSession = Depends(get_async_db),
@@ -349,7 +358,7 @@ async def get_authors_sitemap(
     stmt = (
         select(User)
         .join(Article, User.id == Article.user)
-        .where(Article.status == 1)  # 已发布
+        .where(Article.status == 1)
         .distinct()
         .order_by(User.username)
     )
@@ -391,6 +400,7 @@ async def get_authors_sitemap(
 
 
 @router.get("/sitemap-images.xml")
+@_catch
 async def get_images_sitemap(
         request: Request,
         db: AsyncSession = Depends(get_async_db),
@@ -450,12 +460,13 @@ async def get_images_sitemap(
         content=content,
         media_type='application/xml',
         headers={
-            'Cache-Control': 'public, max-age=86400',  # 缓存 24 小时
+            'Cache-Control': 'public, max-age=86400',
         }
     )
 
 
 @router.get("/sitemap-videos.xml")
+@_catch
 async def get_videos_sitemap(
         request: Request,
         db: AsyncSession = Depends(get_async_db),
@@ -492,7 +503,6 @@ async def get_videos_sitemap(
             thumbnail_url = f"{site_url}{thumbnail_url}" if not thumbnail_url.startswith(
                 '/') else f"{site_url}{thumbnail_url}"
         elif not thumbnail_url:
-            # 如果没有缩略图，使用默认占位符
             thumbnail_url = f"{site_url}/api/v2/static/video-placeholder.jpg"
 
         # 构建视频元数据
@@ -528,12 +538,13 @@ async def get_videos_sitemap(
         content=content,
         media_type='application/xml',
         headers={
-            'Cache-Control': 'public, max-age=86400',  # 缓存 24 小时
+            'Cache-Control': 'public, max-age=86400',
         }
     )
 
 
 @router.get("/robots.txt")
+@_catch
 async def get_robots_txt(request: Request):
     """
     生成 robots.txt 文件
@@ -571,6 +582,6 @@ Crawl-delay: 1
         content=robots_content,
         media_type='text/plain',
         headers={
-            'Cache-Control': 'public, max-age=86400',  # 缓存 24 小时
+            'Cache-Control': 'public, max-age=86400',
         }
     )

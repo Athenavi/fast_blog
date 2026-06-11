@@ -4,18 +4,34 @@
 """
 
 from datetime import datetime
+from functools import wraps
 
-from fastapi import APIRouter, Depends, Query, Body
+from fastapi import APIRouter, Depends, HTTPException, Query, Body
 
 from shared.models.user import User as UserModel
 from shared.services.marketing.advertisement_system import advertisement_system
-from src.api.v2._base import ApiResponse
+from src.api.v2._helpers import ok, fail
 from src.auth.auth_deps import admin_required
 
 router = APIRouter(tags=["advertisements"])
 
 
+def _catch(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except HTTPException:
+            raise
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return fail(str(e))
+    return wrapper
+
+
 @router.get("/slots", summary="获取所有广告位")
+@_catch
 async def get_ad_slots():
     """
     获取所有可用的广告位信息
@@ -23,21 +39,16 @@ async def get_ad_slots():
     Returns:
         广告位列表
     """
-    try:
-        slots = advertisement_system.get_all_slots()
+    slots = advertisement_system.get_all_slots()
 
-        return ApiResponse(
-            success=True,
-            data={
-                'slots': slots,
-                'count': len(slots),
-            }
-        )
-    except Exception as e:
-        return ApiResponse(success=False, error=f"获取广告位失败: {str(e)}")
+    return ok(data={
+        'slots': slots,
+        'count': len(slots),
+    })
 
 
 @router.post("/create", summary="创建广告")
+@_catch
 async def create_ad(
         title: str = Body(..., description="广告标题"),
         slot_id: str = Body(..., description="广告位ID"),
@@ -71,41 +82,35 @@ async def create_ad(
     Returns:
         创建结果
     """
-    try:
-        # 解析时间
-        parsed_start = datetime.fromisoformat(start_date) if start_date else None
-        parsed_end = datetime.fromisoformat(end_date) if end_date else None
+    parsed_start = datetime.fromisoformat(start_date) if start_date else None
+    parsed_end = datetime.fromisoformat(end_date) if end_date else None
 
-        ad = advertisement_system.create_ad(
-            title=title,
-            slot_id=slot_id,
-            ad_type=ad_type,
-            content=content,
-            image_url=image_url,
-            link_url=link_url,
-            html_code=html_code,
-            start_date=parsed_start,
-            end_date=parsed_end,
-            priority=priority,
-            budget=budget,
-        )
+    ad = advertisement_system.create_ad(
+        title=title,
+        slot_id=slot_id,
+        ad_type=ad_type,
+        content=content,
+        image_url=image_url,
+        link_url=link_url,
+        html_code=html_code,
+        start_date=parsed_start,
+        end_date=parsed_end,
+        priority=priority,
+        budget=budget,
+    )
 
-        return ApiResponse(
-            success=True,
-            message='广告创建成功',
-            data={
-                'ad_id': ad['ad_id'],
-                'title': ad['title'],
-                'slot_id': ad['slot_id'],
-            }
-        )
-    except ValueError as e:
-        return ApiResponse(success=False, error=str(e))
-    except Exception as e:
-        return ApiResponse(success=False, error=f"创建广告失败: {str(e)}")
+    return ok(
+        msg='广告创建成功',
+        data={
+            'ad_id': ad['ad_id'],
+            'title': ad['title'],
+            'slot_id': ad['slot_id'],
+        }
+    )
 
 
 @router.get("/list", summary="获取广告列表")
+@_catch
 async def get_ads(
         slot_id: str = Query(None, description="广告位ID过滤"),
         status: str = Query(None, enum=['active', 'paused', 'expired'], description="状态过滤"),
@@ -121,27 +126,21 @@ async def get_ads(
     Returns:
         广告列表
     """
-    try:
-        ads = advertisement_system.get_user_ads()
+    ads = advertisement_system.get_user_ads()
 
-        # 过滤
-        if slot_id:
-            ads = [ad for ad in ads if ad['slot_id'] == slot_id]
-        if status:
-            ads = [ad for ad in ads if ad['status'] == status]
+    if slot_id:
+        ads = [ad for ad in ads if ad['slot_id'] == slot_id]
+    if status:
+        ads = [ad for ad in ads if ad['status'] == status]
 
-        return ApiResponse(
-            success=True,
-            data={
-                'ads': ads,
-                'count': len(ads),
-            }
-        )
-    except Exception as e:
-        return ApiResponse(success=False, error=f"获取广告列表失败: {str(e)}")
+    return ok(data={
+        'ads': ads,
+        'count': len(ads),
+    })
 
 
 @router.post("/{ad_id}/pause", summary="暂停广告")
+@_catch
 async def pause_ad(
         ad_id: str,
         current_user: UserModel = Depends(admin_required)
@@ -155,21 +154,16 @@ async def pause_ad(
     Returns:
         操作结果
     """
-    try:
-        success = advertisement_system.pause_ad(ad_id)
+    success = advertisement_system.pause_ad(ad_id)
 
-        if success:
-            return ApiResponse(
-                success=True,
-                message='广告已暂停'
-            )
-        else:
-            return ApiResponse(success=False, error='广告不存在')
-    except Exception as e:
-        return ApiResponse(success=False, error=f"暂停广告失败: {str(e)}")
+    if success:
+        return ok(msg='广告已暂停')
+    else:
+        return fail('广告不存在')
 
 
 @router.post("/{ad_id}/activate", summary="激活广告")
+@_catch
 async def activate_ad(
         ad_id: str,
         current_user: UserModel = Depends(admin_required)
@@ -183,21 +177,16 @@ async def activate_ad(
     Returns:
         操作结果
     """
-    try:
-        success = advertisement_system.activate_ad(ad_id)
+    success = advertisement_system.activate_ad(ad_id)
 
-        if success:
-            return ApiResponse(
-                success=True,
-                message='广告已激活'
-            )
-        else:
-            return ApiResponse(success=False, error='广告不存在')
-    except Exception as e:
-        return ApiResponse(success=False, error=f"激活广告失败: {str(e)}")
+    if success:
+        return ok(msg='广告已激活')
+    else:
+        return fail('广告不存在')
 
 
 @router.delete("/{ad_id}", summary="删除广告")
+@_catch
 async def delete_ad(
         ad_id: str,
         current_user: UserModel = Depends(admin_required)
@@ -211,21 +200,16 @@ async def delete_ad(
     Returns:
         操作结果
     """
-    try:
-        success = advertisement_system.delete_ad(ad_id)
+    success = advertisement_system.delete_ad(ad_id)
 
-        if success:
-            return ApiResponse(
-                success=True,
-                message='广告已删除'
-            )
-        else:
-            return ApiResponse(success=False, error='广告不存在')
-    except Exception as e:
-        return ApiResponse(success=False, error=f"删除广告失败: {str(e)}")
+    if success:
+        return ok(msg='广告已删除')
+    else:
+        return fail('广告不存在')
 
 
 @router.get("/{ad_id}/stats", summary="获取广告统计")
+@_catch
 async def get_ad_stats(
         ad_id: str,
         current_user: UserModel = Depends(admin_required)
@@ -239,20 +223,15 @@ async def get_ad_stats(
     Returns:
         统计数据
     """
-    try:
-        stats = advertisement_system.get_ad_stats(ad_id)
+    stats = advertisement_system.get_ad_stats(ad_id)
 
-        return ApiResponse(
-            success=True,
-            data=stats
-        )
-    except Exception as e:
-        return ApiResponse(success=False, error=f"获取统计失败: {str(e)}")
+    return ok(data=stats)
 
 
 # ==================== 广告联盟配置 API ====================
 
 @router.post("/network/configure", summary="配置广告联盟")
+@_catch
 async def configure_ad_network(
         network: str = Body(..., enum=['adsense', 'baidu'], description="广告联盟名称"),
         config: dict = Body(..., description="配置信息"),
@@ -268,21 +247,16 @@ async def configure_ad_network(
     Returns:
         配置结果
     """
-    try:
-        success = advertisement_system.configure_ad_network(network, config)
+    success = advertisement_system.configure_ad_network(network, config)
 
-        if success:
-            return ApiResponse(
-                success=True,
-                message=f'{network} 配置成功'
-            )
-        else:
-            return ApiResponse(success=False, error='不支持的广告联盟')
-    except Exception as e:
-        return ApiResponse(success=False, error=f"配置失败: {str(e)}")
+    if success:
+        return ok(msg=f'{network} 配置成功')
+    else:
+        return fail('不支持的广告联盟')
 
 
 @router.get("/network/{network}/config", summary="获取广告联盟配置")
+@_catch
 async def get_ad_network_config(
         network: str,
         current_user: UserModel = Depends(admin_required)
@@ -296,18 +270,13 @@ async def get_ad_network_config(
     Returns:
         配置信息
     """
-    try:
-        config = advertisement_system.get_ad_network_config(network)
+    config = advertisement_system.get_ad_network_config(network)
 
-        return ApiResponse(
-            success=True,
-            data=config
-        )
-    except Exception as e:
-        return ApiResponse(success=False, error=f"获取配置失败: {str(e)}")
+    return ok(data=config)
 
 
 @router.get("/network/adsense/code", summary="生成AdSense代码")
+@_catch
 async def generate_adsense_code(
         slot_id: str = Query(..., description="广告位ID"),
         ad_format: str = Query('auto', enum=['auto', 'display', 'article', 'match_content'], description="广告格式"),
@@ -323,21 +292,16 @@ async def generate_adsense_code(
     Returns:
         HTML代码
     """
-    try:
-        code = advertisement_system.generate_adsense_code(slot_id, ad_format)
-        
-        return ApiResponse(
-            success=True,
-            data={
-                'code': code,
-                'slot_id': slot_id,
-            }
-        )
-    except Exception as e:
-        return ApiResponse(success=False, error=f"生成代码失败: {str(e)}")
+    code = advertisement_system.generate_adsense_code(slot_id, ad_format)
+
+    return ok(data={
+        'code': code,
+        'slot_id': slot_id,
+    })
 
 
 @router.get("/network/baidu/code", summary="生成百度联盟代码")
+@_catch
 async def generate_baidu_code(
         slot_id: str = Query(..., description="广告位ID"),
         current_user: UserModel = Depends(admin_required)
@@ -351,21 +315,16 @@ async def generate_baidu_code(
     Returns:
         HTML代码
     """
-    try:
-        code = advertisement_system.generate_baidu_code(slot_id)
+    code = advertisement_system.generate_baidu_code(slot_id)
 
-        return ApiResponse(
-            success=True,
-            data={
-                'code': code,
-                'slot_id': slot_id,
-            }
-        )
-    except Exception as e:
-        return ApiResponse(success=False, error=f"生成代码失败: {str(e)}")
+    return ok(data={
+        'code': code,
+        'slot_id': slot_id,
+    })
 
 
 @router.get("/revenue/report", summary="获取收益报表")
+@_catch
 async def get_revenue_report(
         start_date: str = Query(None, description="开始日期(ISO格式)"),
         end_date: str = Query(None, description="结束日期(ISO格式)"),
@@ -381,15 +340,9 @@ async def get_revenue_report(
     Returns:
         收益统计数据
     """
-    try:
-        parsed_start = datetime.fromisoformat(start_date) if start_date else None
-        parsed_end = datetime.fromisoformat(end_date) if end_date else None
+    parsed_start = datetime.fromisoformat(start_date) if start_date else None
+    parsed_end = datetime.fromisoformat(end_date) if end_date else None
 
-        report = advertisement_system.get_revenue_report(parsed_start, parsed_end)
+    report = advertisement_system.get_revenue_report(parsed_start, parsed_end)
 
-        return ApiResponse(
-            success=True,
-            data=report
-        )
-    except Exception as e:
-        return ApiResponse(success=False, error=f"获取报表失败: {str(e)}")
+    return ok(data=report)

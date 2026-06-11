@@ -2,20 +2,34 @@
 电子商务 API - 商品管理
 """
 from typing import Optional
+from functools import wraps
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models import Product
-from src.api.v2._base import ApiResponse
+from src.api.v2._helpers import ok, fail
 from src.auth import jwt_required_dependency as jwt_required
 from src.utils.database.main import get_async_session as get_async_db
 
 router = APIRouter(tags=["products"])
 
 
+def _catch(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except HTTPException:
+            raise
+        except Exception as e:
+            return fail(str(e))
+    return wrapper
+
+
 @router.get("/")
+@_catch
 async def list_products(
         page: int = Query(1, ge=1, description="页码"),
         per_page: int = Query(10, ge=1, le=100, description="每页数量"),
@@ -29,60 +43,55 @@ async def list_products(
     
     支持分页、分类筛选、搜索和推荐筛选
     """
-    try:
-        # 构建查询
-        query = select(Product).where(Product.is_active == True)
+    # 构建查询
+    query = select(Product).where(Product.is_active == True)
 
-        # 分类筛选
-        if category_id:
-            query = query.where(Product.category_id == category_id)
+    # 分类筛选
+    if category_id:
+        query = query.where(Product.category_id == category_id)
 
-        # 搜索
-        if search:
-            query = query.where(
-                (Product.name.ilike(f"%{search}%")) |
-                (Product.description.ilike(f"%{search}%"))
-            )
-
-        # 推荐筛选
-        if is_featured is not None:
-            query = query.where(Product.is_featured == is_featured)
-
-        # 排序(推荐商品优先,然后按创建时间降序)
-        query = query.order_by(Product.is_featured.desc(), Product.created_at.desc())
-
-        # 获取总数
-        count_query = select(func.count()).select_from(query.subquery())
-        total_result = await db.execute(count_query)
-        total = total_result.scalar()
-
-        # 分页
-        offset = (page - 1) * per_page
-        query = query.offset(offset).limit(per_page)
-
-        result = await db.execute(query)
-        products = result.scalars().all()
-
-        # 转换为字典
-        products_data = [product.to_dict() for product in products]
-
-        return ApiResponse(
-            success=True,
-            data={
-                "products": products_data,
-                "pagination": {
-                    "page": page,
-                    "per_page": per_page,
-                    "total": total,
-                    "total_pages": (total + per_page - 1) // per_page
-                }
-            }
+    # 搜索
+    if search:
+        query = query.where(
+            (Product.name.ilike(f"%{search}%")) |
+            (Product.description.ilike(f"%{search}%"))
         )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+
+    # 推荐筛选
+    if is_featured is not None:
+        query = query.where(Product.is_featured == is_featured)
+
+    # 排序(推荐商品优先,然后按创建时间降序)
+    query = query.order_by(Product.is_featured.desc(), Product.created_at.desc())
+
+    # 获取总数
+    count_query = select(func.count()).select_from(query.subquery())
+    total_result = await db.execute(count_query)
+    total = total_result.scalar()
+
+    # 分页
+    offset = (page - 1) * per_page
+    query = query.offset(offset).limit(per_page)
+
+    result = await db.execute(query)
+    products = result.scalars().all()
+
+    # 转换为字典
+    products_data = [product.to_dict() for product in products]
+
+    return ok(data={
+        "products": products_data,
+        "pagination": {
+            "page": page,
+            "per_page": per_page,
+            "total": total,
+            "total_pages": (total + per_page - 1) // per_page
+        }
+    })
 
 
 @router.get("/{product_id}")
+@_catch
 async def get_product(
         product_id: int,
         db: AsyncSession = Depends(get_async_db)
@@ -90,20 +99,18 @@ async def get_product(
     """
     获取商品详情
     """
-    try:
-        query = select(Product).where(Product.id == product_id)
-        result = await db.execute(query)
-        product = result.scalar_one_or_none()
+    query = select(Product).where(Product.id == product_id)
+    result = await db.execute(query)
+    product = result.scalar_one_or_none()
 
-        if not product:
-            return ApiResponse(success=False, error="商品不存在", data=None)
+    if not product:
+        return fail("商品不存在")
 
-        return ApiResponse(success=True, data=product.to_dict())
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return ok(data=product.to_dict())
 
 
 @router.post("/")
+@_catch
 async def create_product(
         product_data: dict,
         current_user=Depends(jwt_required),
@@ -112,30 +119,27 @@ async def create_product(
     """
     创建商品(需要管理员权限)
     """
-    try:
-        # 检查管理员权限
-        is_admin = getattr(current_user, 'is_superuser', False) or getattr(current_user, 'is_staff', False)
-        if not is_admin:
-            raise HTTPException(status_code=403, detail="Permission denied. Admin access required.")
+    # 检查管理员权限
+    is_admin = getattr(current_user, 'is_superuser', False) or getattr(current_user, 'is_staff', False)
+    if not is_admin:
+        raise HTTPException(status_code=403, detail="Permission denied. Admin access required.")
 
+    try:
         # 创建商品实例
         product = Product(**product_data)
 
         db.add(product)
         await db.commit()
         await db.refresh(product)
-
-        return ApiResponse(
-            success=True,
-            data=product.to_dict(),
-            message="商品创建成功"
-        )
-    except Exception as e:
+    except Exception:
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise
+
+    return ok(data=product.to_dict(), msg="商品创建成功")
 
 
 @router.put("/{product_id}")
+@_catch
 async def update_product(
         product_id: int,
         product_data: dict,
@@ -145,14 +149,14 @@ async def update_product(
     """
     更新商品(需要管理员权限)
     """
+    query = select(Product).where(Product.id == product_id)
+    result = await db.execute(query)
+    product = result.scalar_one_or_none()
+
+    if not product:
+        return fail("商品不存在")
+
     try:
-        query = select(Product).where(Product.id == product_id)
-        result = await db.execute(query)
-        product = result.scalar_one_or_none()
-
-        if not product:
-            return ApiResponse(success=False, error="商品不存在", data=None)
-
         # 更新字段
         for key, value in product_data.items():
             if hasattr(product, key):
@@ -160,18 +164,15 @@ async def update_product(
 
         await db.commit()
         await db.refresh(product)
-
-        return ApiResponse(
-            success=True,
-            data=product.to_dict(),
-            message="商品更新成功"
-        )
-    except Exception as e:
+    except Exception:
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise
+
+    return ok(data=product.to_dict(), msg="商品更新成功")
 
 
 @router.delete("/{product_id}")
+@_catch
 async def delete_product(
         product_id: int,
         current_user=Depends(jwt_required),
@@ -180,21 +181,18 @@ async def delete_product(
     """
     删除商品(需要管理员权限)
     """
+    query = select(Product).where(Product.id == product_id)
+    result = await db.execute(query)
+    product = result.scalar_one_or_none()
+
+    if not product:
+        return fail("商品不存在")
+
     try:
-        query = select(Product).where(Product.id == product_id)
-        result = await db.execute(query)
-        product = result.scalar_one_or_none()
-
-        if not product:
-            return ApiResponse(success=False, error="商品不存在", data=None)
-
         await db.delete(product)
         await db.commit()
-
-        return ApiResponse(
-            success=True,
-            message="商品删除成功"
-        )
-    except Exception as e:
+    except Exception:
         await db.rollback()
-        raise HTTPException(status_code=500, detail=str(e))
+        raise
+
+    return ok(msg="商品删除成功")

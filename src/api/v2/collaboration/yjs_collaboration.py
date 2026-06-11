@@ -6,18 +6,31 @@ Yjs 实时协作编辑 WebSocket API
 """
 import json
 import uuid as uuid_lib
+from functools import wraps
 from typing import Optional
 
 import jwt
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query, Depends
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.services.chat.yjs_collaboration import yjs_collaboration_service
 from src.setting import settings
 from src.utils.database.main import get_async_session as get_async_db
-from src.api.v2._base import ApiResponse
+from src.api.v2._helpers import ok, fail
 
 router = APIRouter(tags=["collaboration-yjs"])
+
+
+def _catch(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except HTTPException:
+            raise
+        except Exception as e:
+            return fail(str(e))
+    return wrapper
 
 
 async def _verify_token(token: Optional[str], cookie: Optional[str]) -> Optional[dict]:
@@ -218,28 +231,24 @@ async def yjs_websocket_endpoint(
 
 
 @router.get("/documents")
+@_catch
 async def list_yjs_documents():
     """获取所有活跃的 Yjs 文档列表"""
     documents = yjs_collaboration_service.get_active_documents()
-    return {
-        "success": True,
-        "data": {
-            "documents": documents,
-            "count": len(documents)
-        }
-    }
+    return ok(data={
+        "documents": documents,
+        "count": len(documents)
+    })
 
 
 @router.post("/save/{document_id}")
+@_catch
 async def save_yjs_document(
         document_id: str,
         db: AsyncSession = Depends(get_async_db),
 ):
     """手动保存 Yjs 文档到数据库（HTTP 端点）"""
-    try:
-        success = await yjs_collaboration_service.save_to_database(
-            document_id, db, 0, "HTTP 保存"
-        )
-        return ApiResponse(success=success, data={"message": "保存成功" if success else "无可保存内容"})
-    except Exception as e:
-        return ApiResponse(success=False, error=str(e))
+    success = await yjs_collaboration_service.save_to_database(
+        document_id, db, 0, "HTTP 保存"
+    )
+    return ok(data={"message": "保存成功" if success else "无可保存内容"})

@@ -4,21 +4,44 @@ WordPress 导入 API 端点
 
 import os
 import tempfile
+from functools import wraps
 from typing import Optional
 
-from fastapi import APIRouter, UploadFile, File, Depends, Form
+from fastapi import APIRouter, UploadFile, File, Depends, Form, HTTPException
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models import User
 from shared.services.integrations.wordpress_import import WordPressImportService
 from src.auth import jwt_required_dependency as jwt_required
-from src.utils.database.main import get_async_session as get_async_db
+from src.extensions import get_async_db_session as get_async_db
 
 router = APIRouter(tags=["wordpress-import"])
 
 
+def _catch(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except HTTPException:
+            raise
+        except Exception as e:
+            import traceback
+            print(f"Error: {str(e)}")
+            print(traceback.format_exc())
+            return JSONResponse(
+                status_code=500,
+                content={
+                    'success': False,
+                    'error': str(e)
+                }
+            )
+    return wrapper
+
+
 @router.post("/parse")
+@_catch
 async def parse_wordpress_xml(
         file: UploadFile = File(...),
         current_user: User = Depends(jwt_required)
@@ -32,55 +55,41 @@ async def parse_wordpress_xml(
     Returns:
         解析结果和统计信息
     """
+    # 保存临时文件
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.xml') as tmp_file:
+        content = await file.read()
+        tmp_file.write(content)
+        tmp_path = tmp_file.name
+
     try:
+        # 解析文件
+        from shared.services.integrations.wordpress_import import WordPressImportService
+        importer = WordPressImportService()
+        result = importer.parse_wxr_file(tmp_path)
 
+        if not result['success']:
+            return JSONResponse(
+                status_code=400,
+                content={
+                    'success': False,
+                    'error': result.get('error', '解析失败')
+                }
+            )
 
-        # 保存临时文件
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.xml') as tmp_file:
-            content = await file.read()
-            tmp_file.write(content)
-            tmp_path = tmp_file.name
+        return {
+            'success': True,
+            'data': result['data'],
+            'stats': result['stats']
+        }
 
-        try:
-            # 解析文件
-            from shared.services.integrations.wordpress_import import WordPressImportService
-            importer = WordPressImportService()
-            result = importer.parse_wxr_file(tmp_path)
-
-            if not result['success']:
-                return JSONResponse(
-                    status_code=400,
-                    content={
-                        'success': False,
-                        'error': result.get('error', '解析失败')
-                    }
-                )
-
-            return {
-                'success': True,
-                'data': result['data'],
-                'stats': result['stats']
-            }
-
-        finally:
-            # 清理临时文件
-            if os.path.exists(tmp_path):
-                os.unlink(tmp_path)
-
-    except Exception as e:
-        import traceback
-        print(f"Error parsing WordPress XML: {str(e)}")
-        print(traceback.format_exc())
-        return JSONResponse(
-            status_code=500,
-            content={
-                'success': False,
-                'error': str(e)
-            }
-        )
+    finally:
+        # 清理临时文件
+        if os.path.exists(tmp_path):
+            os.unlink(tmp_path)
 
 
 @router.post("/import")
+@_catch
 async def import_wordpress_data(
         file: UploadFile = File(...),
         user_mapping: Optional[str] = Form(None),
@@ -99,73 +108,60 @@ async def import_wordpress_data(
     Returns:
         导入结果
     """
+    import json
+
+    # 保存临时文件
+    with tempfile.NamedTemporaryFile(delete=False, suffix='.xml') as tmp_file:
+        content = await file.read()
+        tmp_file.write(content)
+        tmp_path = tmp_file.name
+
     try:
-        import json
+        # 解析文件
+        importer = WordPressImportService()
+        parse_result = importer.parse_wxr_file(tmp_path)
 
-        # 保存临时文件
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.xml') as tmp_file:
-            content = await file.read()
-            tmp_file.write(content)
-            tmp_path = tmp_file.name
-
-        try:
-            # 解析文件
-            importer = WordPressImportService()
-            parse_result = importer.parse_wxr_file(tmp_path)
-
-            if not parse_result['success']:
-                return JSONResponse(
-                    status_code=400,
-                    content={
-                        'success': False,
-                        'error': parse_result.get('error', '解析失败')
-                    }
-                )
-
-            # 解析用户映射
-            mapping_dict = {}
-            if user_mapping:
-                try:
-                    mapping_dict = json.loads(user_mapping)
-                except:
-                    pass
-
-            # 导入到数据库
-            import_result = await importer.import_to_database(
-                parsed_data=parse_result['data'],
-                db_session=db,
-                user_mapping=mapping_dict
+        if not parse_result['success']:
+            return JSONResponse(
+                status_code=400,
+                content={
+                    'success': False,
+                    'error': parse_result.get('error', '解析失败')
+                }
             )
 
-            # 如果需要，下载媒体文件
-            if download_media and import_result['success']:
-                media_list = parse_result['data'].get('media', [])
-                if media_list:
-                    media_result = await importer.download_media_files(media_list)
-                    import_result['media_download'] = media_result
+        # 解析用户映射
+        mapping_dict = {}
+        if user_mapping:
+            try:
+                mapping_dict = json.loads(user_mapping)
+            except:
+                pass
 
-            # 生成导入报告
-            report = importer.generate_import_report(import_result)
-            import_result['report'] = report
-
-            return import_result
-
-        finally:
-            # 清理临时文件
-            if os.path.exists(tmp_path):
-                os.unlink(tmp_path)
-
-    except Exception as e:
-        import traceback
-        print(f"Error importing WordPress data: {str(e)}")
-        print(traceback.format_exc())
-        return JSONResponse(
-            status_code=500,
-            content={
-                'success': False,
-                'error': str(e)
-            }
+        # 导入到数据库
+        import_result = await importer.import_to_database(
+            parsed_data=parse_result['data'],
+            db_session=db,
+            user_mapping=mapping_dict
         )
+
+        # 如果需要，下载媒体文件
+        if download_media and import_result['success']:
+            media_list = parse_result['data'].get('media', [])
+            if media_list:
+                media_result = await importer.download_media_files(media_list)
+                import_result['media_download'] = media_result
+
+        # 生成导入报告
+        report = importer.generate_import_report(import_result)
+        import_result['report'] = report
+
+        return import_result
+
+    finally:
+        # 清理临时文件
+        if os.path.exists(tmp_path):
+            os.unlink(tmp_path)
 
 
 @router.get("/template")

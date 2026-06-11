@@ -3,6 +3,7 @@
 提供块类型查询、验证和渲染的 REST API
 """
 
+from functools import wraps
 from typing import Dict, Any, List, Optional
 import re
 
@@ -57,7 +58,20 @@ class BlockTypeInfo(BaseModel):
     is_inline: bool
 
 
+def _catch(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except HTTPException:
+            raise
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+    return wrapper
+
+
 @router.get("/block-types", response_model=List[BlockTypeInfo])
+@_catch
 async def get_block_types(category: Optional[str] = None):
     """
     获取所有块类型
@@ -88,6 +102,7 @@ async def get_block_types(category: Optional[str] = None):
 
 
 @router.get("/block-categories", response_model=List[str])
+@_catch
 async def get_block_categories():
     """
     获取所有块分类
@@ -100,6 +115,7 @@ async def get_block_categories():
 
 
 @router.post("/validate", response_model=BlockValidationResponse)
+@_catch
 async def validate_block(request: BlockValidationRequest):
     """
     验证块数据
@@ -120,6 +136,7 @@ async def validate_block(request: BlockValidationRequest):
 
 
 @router.post("/render", response_model=BlockRenderResponse)
+@_catch
 async def render_blocks(request: BlockRenderRequest):
     """
     将块数据渲染为 HTML
@@ -137,6 +154,7 @@ async def render_blocks(request: BlockRenderRequest):
 
 
 @router.post("/convert/html-to-blocks")
+@_catch
 async def convert_html_to_blocks(html: str):
     """
     将 HTML 转换为块数据
@@ -242,6 +260,7 @@ async def convert_html_to_blocks(html: str):
 
 
 @router.get("/example")
+@_catch
 async def get_example_blocks():
     """
     获取示例块数据
@@ -321,6 +340,7 @@ async def get_example_blocks():
 
 
 @router.post("/convert-type")
+@_catch
 async def convert_block_type(
         block: BlockData,
         new_type: str
@@ -345,6 +365,7 @@ async def convert_block_type(
 
 
 @router.post("/duplicate")
+@_catch
 async def duplicate_block(block: BlockData):
     """
     复制块
@@ -362,6 +383,7 @@ async def duplicate_block(block: BlockData):
 
 
 @router.post("/merge")
+@_catch
 async def merge_blocks(
         block1: BlockData,
         block2: BlockData
@@ -385,6 +407,7 @@ async def merge_blocks(
 
 
 @router.post("/split")
+@_catch
 async def split_block(
         block: BlockData,
         position: int
@@ -405,6 +428,7 @@ async def split_block(
 
 
 @router.post("/export")
+@_catch
 async def export_blocks(blocks: List[BlockData]):
     """
     导出块数据为 JSON
@@ -422,6 +446,7 @@ async def export_blocks(blocks: List[BlockData]):
 
 
 @router.post("/import")
+@_catch
 async def import_blocks(json_str: str):
     """
     从 JSON 导入块数据
@@ -438,6 +463,7 @@ async def import_blocks(json_str: str):
 
 
 @router.post("/statistics")
+@_catch
 async def get_statistics(blocks: List[BlockData]):
     """
     获取块统计信息

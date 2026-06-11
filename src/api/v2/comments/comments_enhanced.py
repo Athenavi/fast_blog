@@ -2,17 +2,35 @@
 评论增强 API
 """
 
+from functools import wraps
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.services.comments.comment_enhanced import comment_enhanced_service
+from src.api.v2._helpers import ok, fail
 from src.auth import jwt_required_dependency as jwt_required
-from src.utils.database.main import get_async_session as get_async_db
+from src.extensions import get_async_db_session as get_async_db
 
 router = APIRouter(tags=["comments-enhanced"])
 
 
+def _catch(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except HTTPException:
+            raise
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            raise HTTPException(status_code=500, detail=str(e))
+    return wrapper
+
+
 @router.get("/article/{article_id}")
+@_catch
 async def get_article_comments(
         article_id: int,
         sort_by: str = Query(default='latest', enum=['latest', 'oldest', 'popular']),
@@ -32,24 +50,22 @@ async def get_article_comments(
     Returns:
         评论树和分页信息
     """
-    try:
-        result = await comment_enhanced_service.get_comments_tree(
-            db=db,
-            article_id=article_id,
-            sort_by=sort_by,
-            page=page,
-            per_page=per_page
-        )
+    result = await comment_enhanced_service.get_comments_tree(
+        db=db,
+        article_id=article_id,
+        sort_by=sort_by,
+        page=page,
+        per_page=per_page
+    )
 
-        return {
-            "success": True,
-            "data": result
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return {
+        "success": True,
+        "data": result
+    }
 
 
 @router.post("/{comment_id}/like")
+@_catch
 async def like_comment(
         comment_id: int,
         current_user=Depends(jwt_required),
@@ -64,24 +80,20 @@ async def like_comment(
     Returns:
         操作结果
     """
-    try:
-        result = await comment_enhanced_service.like_comment(
-            db=db,
-            comment_id=comment_id,
-            user_id=current_user.id
-        )
+    result = await comment_enhanced_service.like_comment(
+        db=db,
+        comment_id=comment_id,
+        user_id=current_user.id
+    )
 
-        return {
-            "success": True,
-            "data": result
-        }
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return {
+        "success": True,
+        "data": result
+    }
 
 
 @router.post("/{comment_id}/dislike")
+@_catch
 async def dislike_comment(
         comment_id: int,
         current_user=Depends(jwt_required),
@@ -96,24 +108,20 @@ async def dislike_comment(
     Returns:
         操作结果
     """
-    try:
-        result = await comment_enhanced_service.dislike_comment(
-            db=db,
-            comment_id=comment_id,
-            user_id=current_user.id
-        )
+    result = await comment_enhanced_service.dislike_comment(
+        db=db,
+        comment_id=comment_id,
+        user_id=current_user.id
+    )
 
-        return {
-            "success": True,
-            "data": result
-        }
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return {
+        "success": True,
+        "data": result
+    }
 
 
 @router.get("/{comment_id}/vote")
+@_catch
 async def get_user_vote(
         comment_id: int,
         current_user=Depends(jwt_required),
@@ -128,24 +136,22 @@ async def get_user_vote(
     Returns:
         投票类型 (like, dislike, null)
     """
-    try:
-        vote_type = await comment_enhanced_service.get_user_vote(
-            db=db,
-            comment_id=comment_id,
-            user_id=current_user.id
-        )
+    vote_type = await comment_enhanced_service.get_user_vote(
+        db=db,
+        comment_id=comment_id,
+        user_id=current_user.id
+    )
 
-        return {
-            "success": True,
-            "data": {
-                "vote_type": vote_type
-            }
+    return {
+        "success": True,
+        "data": {
+            "vote_type": vote_type
         }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    }
 
 
 @router.post("/{comment_id}/notify-reply")
+@_catch
 async def notify_comment_reply(
         comment_id: int,
         current_user=Depends(jwt_required),
@@ -160,15 +166,12 @@ async def notify_comment_reply(
     Returns:
         通知结果
     """
-    try:
-        result = await comment_enhanced_service.notify_comment_reply(
-            db=db,
-            comment_id=comment_id
-        )
+    result = await comment_enhanced_service.notify_comment_reply(
+        db=db,
+        comment_id=comment_id
+    )
 
-        return {
-            "success": result['success'],
-            "data": result
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return {
+        "success": result['success'],
+        "data": result
+    }

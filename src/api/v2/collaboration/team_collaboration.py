@@ -4,23 +4,37 @@
 """
 from datetime import datetime
 from typing import Optional
+from functools import wraps
 
-from fastapi import APIRouter, Depends, Query, Body
+from fastapi import APIRouter, Depends, Query, Body, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models import WorkspaceMember, Workspace
 from shared.services.chat.collaboration import collaboration_service
 from shared.services.chat.collaboration_service import TeamRole
-from src.api.v2._base import ApiResponse
+from src.api.v2._helpers import ok, fail
 from src.auth.auth_deps import get_current_user
 from src.utils.database.main import get_async_session as get_async_db
 
 router = APIRouter(tags=["collaboration"])
 
 
+def _catch(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except HTTPException:
+            raise
+        except Exception as e:
+            return fail(str(e))
+    return wrapper
+
+
 # ==================== 工作区管理 ====================
 
 @router.post("/workspaces", summary="创建工作区")
+@_catch
 async def create_workspace(
         name: str = Body(..., description="工作区名称"),
         slug: str = Body(..., description="工作区标识"),
@@ -39,35 +53,29 @@ async def create_workspace(
     Returns:
         创建的工作区
     """
-    try:
-        workspace = await collaboration_service.create_workspace(
-            db=db,
-            name=name,
-            slug=slug,
-            owner_id=current_user.id,
-            description=description
-        )
+    workspace = await collaboration_service.create_workspace(
+        db=db,
+        name=name,
+        slug=slug,
+        owner_id=current_user.id,
+        description=description
+    )
 
-        return ApiResponse(
-            success=True,
-            data={
-                'id': workspace.id,
-                'name': workspace.name,
-                'slug': workspace.slug,
-                'description': workspace.description,
-                'owner_id': workspace.owner_id,
-                'created_at': workspace.created_at.isoformat() if workspace.created_at else None,
-            },
-            message="Workspace created successfully"
-        )
-
-    except ValueError as e:
-        return ApiResponse(success=False, error=str(e))
-    except Exception as e:
-        return ApiResponse(success=False, error=str(e))
+    return ok(
+        data={
+            'id': workspace.id,
+            'name': workspace.name,
+            'slug': workspace.slug,
+            'description': workspace.description,
+            'owner_id': workspace.owner_id,
+            'created_at': workspace.created_at.isoformat() if workspace.created_at else None,
+        },
+        msg="Workspace created successfully"
+    )
 
 
 @router.get("/workspaces", summary="获取我的工作区列表")
+@_catch
 async def get_my_workspaces(
         current_user=Depends(get_current_user),
         db: AsyncSession = Depends(get_async_db)
@@ -78,54 +86,48 @@ async def get_my_workspaces(
     Returns:
         工作区列表
     """
-    try:
-        from sqlalchemy import select
+    from sqlalchemy import select
 
-        stmt = (
-            select(Workspace)
-            .join(WorkspaceMember, Workspace.id == WorkspaceMember.workspace_id)
-            .where(
-                WorkspaceMember.user_id == current_user.id,
-                WorkspaceMember.is_active == True,
-                Workspace.is_active == True
-            )
+    stmt = (
+        select(Workspace)
+        .join(WorkspaceMember, Workspace.id == WorkspaceMember.workspace_id)
+        .where(
+            WorkspaceMember.user_id == current_user.id,
+            WorkspaceMember.is_active == True,
+            Workspace.is_active == True
         )
+    )
 
-        result = await db.execute(stmt)
-        workspaces = result.scalars().all()
+    result = await db.execute(stmt)
+    workspaces = result.scalars().all()
 
-        workspace_list = []
-        for ws in workspaces:
-            # 获取用户在该工作区的角色
-            member_stmt = select(WorkspaceMember).where(
-                WorkspaceMember.workspace_id == ws.id,
-                WorkspaceMember.user_id == current_user.id
-            )
-            member_result = await db.execute(member_stmt)
-            member = member_result.scalar_one_or_none()
-
-            workspace_list.append({
-                'id': ws.id,
-                'name': ws.name,
-                'slug': ws.slug,
-                'description': ws.description,
-                'role': member.role if member else None,
-                'created_at': ws.created_at.isoformat() if ws.created_at else None,
-            })
-
-        return ApiResponse(
-            success=True,
-            data={
-                'workspaces': workspace_list,
-                'total': len(workspace_list)
-            }
+    workspace_list = []
+    for ws in workspaces:
+        # 获取用户在该工作区的角色
+        member_stmt = select(WorkspaceMember).where(
+            WorkspaceMember.workspace_id == ws.id,
+            WorkspaceMember.user_id == current_user.id
         )
+        member_result = await db.execute(member_stmt)
+        member = member_result.scalar_one_or_none()
 
-    except Exception as e:
-        return ApiResponse(success=False, error=str(e))
+        workspace_list.append({
+            'id': ws.id,
+            'name': ws.name,
+            'slug': ws.slug,
+            'description': ws.description,
+            'role': member.role if member else None,
+            'created_at': ws.created_at.isoformat() if ws.created_at else None,
+        })
+
+    return ok(data={
+        'workspaces': workspace_list,
+        'total': len(workspace_list)
+    })
 
 
 @router.get("/workspaces/{workspace_slug}", summary="获取工作区详情")
+@_catch
 async def get_workspace(
         workspace_slug: str,
         current_user=Depends(get_current_user),
@@ -140,54 +142,48 @@ async def get_workspace(
     Returns:
         工作区详情
     """
-    try:
-        from sqlalchemy import select
-        stmt = select(Workspace).where(Workspace.slug == workspace_slug)
-        result = await db.execute(stmt)
-        workspace = result.scalar_one_or_none()
+    from sqlalchemy import select
+    stmt = select(Workspace).where(Workspace.slug == workspace_slug)
+    result = await db.execute(stmt)
+    workspace = result.scalar_one_or_none()
 
-        if not workspace:
-            return ApiResponse(success=False, error="Workspace not found")
+    if not workspace:
+        return fail("Workspace not found")
 
-        # 检查权限
-        has_permission = await collaboration_service.check_permission(
-            db, workspace.id, current_user.id, TeamRole.VIEWER
-        )
+    # 检查权限
+    has_permission = await collaboration_service.check_permission(
+        db, workspace.id, current_user.id, TeamRole.VIEWER
+    )
 
-        if not has_permission:
-            return ApiResponse(success=False, error="Access denied")
+    if not has_permission:
+        return fail("Access denied")
 
-        # 获取成员数量
-        member_count_stmt = select(func.count()).select_from(
-            WorkspaceMember
-        ).where(
-            WorkspaceMember.workspace_id == workspace.id,
-            WorkspaceMember.is_active == True
-        )
-        member_count_result = await db.execute(member_count_stmt)
-        member_count = member_count_result.scalar()
+    # 获取成员数量
+    member_count_stmt = select(func.count()).select_from(
+        WorkspaceMember
+    ).where(
+        WorkspaceMember.workspace_id == workspace.id,
+        WorkspaceMember.is_active == True
+    )
+    member_count_result = await db.execute(member_count_stmt)
+    member_count = member_count_result.scalar()
 
-        return ApiResponse(
-            success=True,
-            data={
-                'id': workspace.id,
-                'name': workspace.name,
-                'slug': workspace.slug,
-                'description': workspace.description,
-                'owner_id': workspace.owner_id,
-                'member_count': member_count,
-                'created_at': workspace.created_at.isoformat() if workspace.created_at else None,
-                'updated_at': workspace.updated_at.isoformat() if workspace.updated_at else None,
-            }
-        )
-
-    except Exception as e:
-        return ApiResponse(success=False, error=str(e))
+    return ok(data={
+        'id': workspace.id,
+        'name': workspace.name,
+        'slug': workspace.slug,
+        'description': workspace.description,
+        'owner_id': workspace.owner_id,
+        'member_count': member_count,
+        'created_at': workspace.created_at.isoformat() if workspace.created_at else None,
+        'updated_at': workspace.updated_at.isoformat() if workspace.updated_at else None,
+    })
 
 
 # ==================== 成员管理 ====================
 
 @router.post("/workspaces/{workspace_id}/members", summary="添加成员")
+@_catch
 async def add_member(
         workspace_id: int,
         user_id: int = Body(..., description="用户ID"),
@@ -206,40 +202,34 @@ async def add_member(
     Returns:
         添加结果
     """
-    try:
-        # 检查权限（需要admin或以上）
-        has_permission = await collaboration_service.check_permission(
-            db, workspace_id, current_user.id, TeamRole.ADMIN
-        )
+    # 检查权限（需要admin或以上）
+    has_permission = await collaboration_service.check_permission(
+        db, workspace_id, current_user.id, TeamRole.ADMIN
+    )
 
-        if not has_permission:
-            return ApiResponse(success=False, error="Insufficient permissions")
+    if not has_permission:
+        return fail("Insufficient permissions")
 
-        member = await collaboration_service.add_member(
-            db=db,
-            workspace_id=workspace_id,
-            user_id=user_id,
-            role=role
-        )
+    member = await collaboration_service.add_member(
+        db=db,
+        workspace_id=workspace_id,
+        user_id=user_id,
+        role=role
+    )
 
-        return ApiResponse(
-            success=True,
-            data={
-                'id': member.id,
-                'user_id': member.user_id,
-                'role': member.role,
-                'joined_at': member.joined_at.isoformat() if member.joined_at else None,
-            },
-            message="Member added successfully"
-        )
-
-    except ValueError as e:
-        return ApiResponse(success=False, error=str(e))
-    except Exception as e:
-        return ApiResponse(success=False, error=str(e))
+    return ok(
+        data={
+            'id': member.id,
+            'user_id': member.user_id,
+            'role': member.role,
+            'joined_at': member.joined_at.isoformat() if member.joined_at else None,
+        },
+        msg="Member added successfully"
+    )
 
 
 @router.delete("/workspaces/{workspace_id}/members/{user_id}", summary="移除成员")
+@_catch
 async def remove_member(
         workspace_id: int,
         user_id: int,
@@ -256,33 +246,25 @@ async def remove_member(
     Returns:
         移除结果
     """
-    try:
-        # 检查权限（需要admin或以上）
-        has_permission = await collaboration_service.check_permission(
-            db, workspace_id, current_user.id, TeamRole.ADMIN
-        )
+    # 检查权限（需要admin或以上）
+    has_permission = await collaboration_service.check_permission(
+        db, workspace_id, current_user.id, TeamRole.ADMIN
+    )
 
-        if not has_permission:
-            return ApiResponse(success=False, error="Insufficient permissions")
+    if not has_permission:
+        return fail("Insufficient permissions")
 
-        await collaboration_service.remove_member(
-            db=db,
-            workspace_id=workspace_id,
-            user_id=user_id
-        )
+    await collaboration_service.remove_member(
+        db=db,
+        workspace_id=workspace_id,
+        user_id=user_id
+    )
 
-        return ApiResponse(
-            success=True,
-            message="Member removed successfully"
-        )
-
-    except ValueError as e:
-        return ApiResponse(success=False, error=str(e))
-    except Exception as e:
-        return ApiResponse(success=False, error=str(e))
+    return ok(msg="Member removed successfully")
 
 
 @router.put("/workspaces/{workspace_id}/members/{user_id}/role", summary="更新成员角色")
+@_catch
 async def update_member_role(
         workspace_id: int,
         user_id: int,
@@ -301,34 +283,26 @@ async def update_member_role(
     Returns:
         更新结果
     """
-    try:
-        # 检查权限（需要owner）
-        has_permission = await collaboration_service.check_permission(
-            db, workspace_id, current_user.id, TeamRole.OWNER
-        )
+    # 检查权限（需要owner）
+    has_permission = await collaboration_service.check_permission(
+        db, workspace_id, current_user.id, TeamRole.OWNER
+    )
 
-        if not has_permission:
-            return ApiResponse(success=False, error="Insufficient permissions")
+    if not has_permission:
+        return fail("Insufficient permissions")
 
-        await collaboration_service.update_member_role(
-            db=db,
-            workspace_id=workspace_id,
-            user_id=user_id,
-            new_role=role
-        )
+    await collaboration_service.update_member_role(
+        db=db,
+        workspace_id=workspace_id,
+        user_id=user_id,
+        new_role=role
+    )
 
-        return ApiResponse(
-            success=True,
-            message="Member role updated successfully"
-        )
-
-    except ValueError as e:
-        return ApiResponse(success=False, error=str(e))
-    except Exception as e:
-        return ApiResponse(success=False, error=str(e))
+    return ok(msg="Member role updated successfully")
 
 
 @router.get("/workspaces/{workspace_id}/members", summary="获取成员列表")
+@_catch
 async def get_members(
         workspace_id: int,
         current_user=Depends(get_current_user),
@@ -343,32 +317,26 @@ async def get_members(
     Returns:
         成员列表
     """
-    try:
-        # 检查权限
-        has_permission = await collaboration_service.check_permission(
-            db, workspace_id, current_user.id, TeamRole.VIEWER
-        )
+    # 检查权限
+    has_permission = await collaboration_service.check_permission(
+        db, workspace_id, current_user.id, TeamRole.VIEWER
+    )
 
-        if not has_permission:
-            return ApiResponse(success=False, error="Access denied")
+    if not has_permission:
+        return fail("Access denied")
 
-        members = await collaboration_service.get_workspace_members(db, workspace_id)
+    members = await collaboration_service.get_workspace_members(db, workspace_id)
 
-        return ApiResponse(
-            success=True,
-            data={
-                'members': members,
-                'total': len(members)
-            }
-        )
-
-    except Exception as e:
-        return ApiResponse(success=False, error=str(e))
+    return ok(data={
+        'members': members,
+        'total': len(members)
+    })
 
 
 # ==================== 任务管理 ====================
 
 @router.post("/workspaces/{workspace_id}/tasks", summary="创建任务")
+@_catch
 async def create_task(
         workspace_id: int,
         title: str = Body(..., description="任务标题"),
@@ -393,51 +361,45 @@ async def create_task(
     Returns:
         创建的任务
     """
-    try:
-        # 检查权限（需要editor或以上）
-        has_permission = await collaboration_service.check_permission(
-            db, workspace_id, current_user.id, TeamRole.EDITOR
-        )
+    # 检查权限（需要editor或以上）
+    has_permission = await collaboration_service.check_permission(
+        db, workspace_id, current_user.id, TeamRole.EDITOR
+    )
 
-        if not has_permission:
-            return ApiResponse(success=False, error="Insufficient permissions")
+    if not has_permission:
+        return fail("Insufficient permissions")
 
-        # 解析日期
-        due_dt = None
-        if due_date:
-            due_dt = datetime.fromisoformat(due_date.replace('Z', '+00:00'))
+    # 解析日期
+    due_dt = None
+    if due_date:
+        due_dt = datetime.fromisoformat(due_date.replace('Z', '+00:00'))
 
-        task = await collaboration_service.create_task(
-            db=db,
-            workspace_id=workspace_id,
-            title=title,
-            description=description,
-            created_by=current_user.id,
-            assigned_to=assigned_to,
-            priority=priority,
-            due_date=due_dt
-        )
+    task = await collaboration_service.create_task(
+        db=db,
+        workspace_id=workspace_id,
+        title=title,
+        description=description,
+        created_by=current_user.id,
+        assigned_to=assigned_to,
+        priority=priority,
+        due_date=due_dt
+    )
 
-        return ApiResponse(
-            success=True,
-            data={
-                'id': task.id,
-                'title': task.title,
-                'status': task.status,
-                'priority': task.priority,
-                'assigned_to': task.assigned_to,
-                'created_at': task.created_at.isoformat() if task.created_at else None,
-            },
-            message="Task created successfully"
-        )
-
-    except ValueError as e:
-        return ApiResponse(success=False, error=str(e))
-    except Exception as e:
-        return ApiResponse(success=False, error=str(e))
+    return ok(
+        data={
+            'id': task.id,
+            'title': task.title,
+            'status': task.status,
+            'priority': task.priority,
+            'assigned_to': task.assigned_to,
+            'created_at': task.created_at.isoformat() if task.created_at else None,
+        },
+        msg="Task created successfully"
+    )
 
 
 @router.put("/tasks/{task_id}/status", summary="更新任务状态")
+@_catch
 async def update_task_status(
         task_id: int,
         status: str = Body(..., description="新状态 (pending/in_progress/completed/cancelled)"),
@@ -454,31 +416,25 @@ async def update_task_status(
     Returns:
         更新后的任务
     """
-    try:
-        task = await collaboration_service.update_task_status(
-            db=db,
-            task_id=task_id,
-            status=status,
-            completed_by=current_user.id if status == 'completed' else None
-        )
+    task = await collaboration_service.update_task_status(
+        db=db,
+        task_id=task_id,
+        status=status,
+        completed_by=current_user.id if status == 'completed' else None
+    )
 
-        return ApiResponse(
-            success=True,
-            data={
-                'id': task.id,
-                'status': task.status,
-                'completed_at': task.completed_at.isoformat() if task.completed_at else None,
-            },
-            message="Task status updated successfully"
-        )
-
-    except ValueError as e:
-        return ApiResponse(success=False, error=str(e))
-    except Exception as e:
-        return ApiResponse(success=False, error=str(e))
+    return ok(
+        data={
+            'id': task.id,
+            'status': task.status,
+            'completed_at': task.completed_at.isoformat() if task.completed_at else None,
+        },
+        msg="Task status updated successfully"
+    )
 
 
 @router.get("/workspaces/{workspace_id}/tasks", summary="获取任务列表")
+@_catch
 async def get_tasks(
         workspace_id: int,
         status: Optional[str] = Query(None, description="状态过滤"),
@@ -501,31 +457,24 @@ async def get_tasks(
     Returns:
         任务列表和分页信息
     """
-    try:
-        # 检查权限
-        has_permission = await collaboration_service.check_permission(
-            db, workspace_id, current_user.id, TeamRole.VIEWER
-        )
+    # 检查权限
+    has_permission = await collaboration_service.check_permission(
+        db, workspace_id, current_user.id, TeamRole.VIEWER
+    )
 
-        if not has_permission:
-            return ApiResponse(success=False, error="Access denied")
+    if not has_permission:
+        return fail("Access denied")
 
-        result = await collaboration_service.get_workspace_tasks(
-            db=db,
-            workspace_id=workspace_id,
-            status=status,
-            assigned_to=assigned_to,
-            page=page,
-            per_page=per_page
-        )
+    result = await collaboration_service.get_workspace_tasks(
+        db=db,
+        workspace_id=workspace_id,
+        status=status,
+        assigned_to=assigned_to,
+        page=page,
+        per_page=per_page
+    )
 
-        return ApiResponse(
-            success=True,
-            data=result
-        )
-
-    except Exception as e:
-        return ApiResponse(success=False, error=str(e))
+    return ok(data=result)
 
 
 # 导入func

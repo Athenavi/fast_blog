@@ -2,15 +2,30 @@
 翻译管理 API
 """
 from typing import Optional
+from functools import wraps
 
 from fastapi import APIRouter, HTTPException, Query
 
 from shared.services.translation.translation import translation_service
+from src.api.v2._helpers import ok, fail
 
 router = APIRouter(tags=["translations"])
 
 
+def _catch(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except HTTPException:
+            raise
+        except Exception as e:
+            return fail(str(e))
+    return wrapper
+
+
 @router.get("/items/{locale}/{key}")
+@_catch
 async def get_translation(
         locale: str,
         key: str,
@@ -27,22 +42,17 @@ async def get_translation(
     Returns:
         翻译文本
     """
-    try:
-        value = translation_service.get_translation(locale, key, default)
+    value = translation_service.get_translation(locale, key, default)
 
-        return {
-            'success': True,
-            'data': {
-                'locale': locale,
-                'key': key,
-                'value': value,
-            }
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return ok(data={
+        'locale': locale,
+        'key': key,
+        'value': value,
+    })
 
 
 @router.post("/items/{locale}/{key}")
+@_catch
 async def set_translation(
         locale: str,
         key: str,
@@ -59,18 +69,13 @@ async def set_translation(
     Returns:
         操作结果
     """
-    try:
-        translation_service.set_translation(locale, key, value)
+    translation_service.set_translation(locale, key, value)
 
-        return {
-            'success': True,
-            'message': 'Translation updated',
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return ok(msg='Translation updated')
 
 
 @router.get("/items/{locale}")
+@_catch
 async def get_all_translations(locale: str):
     """
     获取所有翻译
@@ -81,18 +86,13 @@ async def get_all_translations(locale: str):
     Returns:
         翻译字典
     """
-    try:
-        translations = translation_service.get_all_translations(locale)
+    translations = translation_service.get_all_translations(locale)
 
-        return {
-            'success': True,
-            'data': translations,
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return ok(data=translations)
 
 
 @router.get("/progress")
+@_catch
 async def get_translation_progress(
         source_locale: str = Query('zh-CN', description="源语言")
 ):
@@ -105,18 +105,13 @@ async def get_translation_progress(
     Returns:
         各语言的翻译进度
     """
-    try:
-        progress = translation_service.get_translation_progress(source_locale)
+    progress = translation_service.get_translation_progress(source_locale)
 
-        return {
-            'success': True,
-            'data': progress,
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return ok(data=progress)
 
 
 @router.get("/missing/{locale}")
+@_catch
 async def get_missing_translations(
         locale: str,
         source_locale: str = Query('zh-CN', description="源语言")
@@ -131,22 +126,17 @@ async def get_missing_translations(
     Returns:
         缺失的翻译键列表
     """
-    try:
-        missing = translation_service.get_missing_translations(locale, source_locale)
+    missing = translation_service.get_missing_translations(locale, source_locale)
 
-        return {
-            'success': True,
-            'data': {
-                'locale': locale,
-                'missing_keys': missing,
-                'count': len(missing),
-            }
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return ok(data={
+        'locale': locale,
+        'missing_keys': missing,
+        'count': len(missing),
+    })
 
 
 @router.get("/export")
+@_catch
 async def export_translations(
         format: str = Query('json', enum=['json'], description="导出格式")
 ):
@@ -159,12 +149,6 @@ async def export_translations(
     Returns:
         导出的文件
     """
-    try:
-        content = translation_service.export_translations(format)
+    content = translation_service.export_translations(format)
 
-        return {
-            'success': True,
-            'data': content.decode('utf-8'),
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return ok(data=content.decode('utf-8'))

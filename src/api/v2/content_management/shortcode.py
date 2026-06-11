@@ -3,11 +3,13 @@ Shortcode短代码API
 提供短代码解析和管理功能
 """
 
-from fastapi import APIRouter
+from functools import wraps
+
+from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from shared.services.content_management.shortcode_service import shortcode_service
-from src.api.v2._base import ApiResponse
+from src.api.v2._helpers import ok, fail
 
 router = APIRouter(tags=["shortcode"])
 
@@ -17,61 +19,64 @@ class ShortcodeParseRequest(BaseModel):
     content: str
 
 
+def _catch(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except HTTPException:
+            raise
+        except Exception as e:
+            return fail(str(e))
+    return wrapper
+
+
 @router.post("/parse")
+@_catch
 async def parse_shortcodes(request_data: ShortcodeParseRequest):
     """
     解析内容中的短代码
-    
+
     Args:
         request_data: 包含内容的请求体
-        
+
     Returns:
         解析后的内容
     """
-    try:
-        parsed_content = shortcode_service.parse(request_data.content)
-        
-        return ApiResponse(
-            success=True,
-            data={
-                'original': request_data.content,
-                'parsed': parsed_content
-            }
-        )
-    except Exception as e:
-        return ApiResponse(success=False, error=f"解析失败: {str(e)}")
+    parsed_content = shortcode_service.parse(request_data.content)
+
+    return ok(data={
+        'original': request_data.content,
+        'parsed': parsed_content
+    })
 
 
 @router.get("/list")
+@_catch
 async def list_shortcodes():
     """
     获取所有已注册的短代码列表
-    
+
     Returns:
         短代码名称列表
     """
-    try:
-        shortcodes = list(shortcode_service.shortcodes.keys())
-        
-        return ApiResponse(
-            success=True,
-            data={
-                'shortcodes': shortcodes,
-                'count': len(shortcodes)
-            }
-        )
-    except Exception as e:
-        return ApiResponse(success=False, error=f"获取失败: {str(e)}")
+    shortcodes = list(shortcode_service.shortcodes.keys())
+
+    return ok(data={
+        'shortcodes': shortcodes,
+        'count': len(shortcodes)
+    })
 
 
 @router.get("/help/{name}")
+@_catch
 async def get_shortcode_help(name: str):
     """
     获取短代码使用说明
-    
+
     Args:
         name: 短代码名称
-        
+
     Returns:
         使用说明
     """
@@ -123,14 +128,8 @@ async def get_shortcode_help(name: str):
             'example': '[caption align="center"]这是一张图片的说明[/caption]'
         }
     }
-    
+
     if name in help_docs:
-        return ApiResponse(
-            success=True,
-            data=help_docs[name]
-        )
+        return ok(data=help_docs[name])
     else:
-        return ApiResponse(
-            success=False,
-            error=f"未找到短代码 '{name}' 的说明"
-        )
+        return fail(f"未找到短代码 '{name}' 的说明")

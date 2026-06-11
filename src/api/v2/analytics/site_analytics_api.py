@@ -6,19 +6,31 @@
 
 import json
 from datetime import datetime, timedelta
+from functools import wraps
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, Request
 
 from shared.services.analytics.site_analytics import site_analytics
-from src.api.v2._base import ApiResponse
+from src.api.v2._helpers import ok, fail
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 from src.utils.security.ip_utils import get_client_ip
 
 router = APIRouter(prefix="/site-analytics", tags=["Site Analytics"])
 
 
+def _catch(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except Exception as e:
+            return fail(f"操作失败: {e}")
+    return wrapper
+
+
 @router.post("/track/page-view")
+@_catch
 async def track_page_view(
     request: Request,
         page_path: str = Query(..., description="页面路径"),
@@ -44,13 +56,11 @@ async def track_page_view(
         ip_address=ip_address
     )
 
-    return ApiResponse(
-        success=True,
-        message="页面浏览已记录"
-    )
+    return ok(msg="页面浏览已记录")
 
 
 @router.post("/track/event")
+@_catch
 async def track_custom_event(
         event_name: str = Query(..., description="事件名称"),
         user_id: Optional[str] = Query(None, description="用户ID"),
@@ -78,13 +88,11 @@ async def track_custom_event(
         properties=parsed_properties
     )
 
-    return ApiResponse(
-        success=True,
-        message="事件已记录"
-    )
+    return ok(msg="事件已记录")
 
 
 @router.get("/page-views")
+@_catch
 async def get_page_views(
         page_path: Optional[str] = Query(None, description="页面路径过滤"),
         current_user=Depends(jwt_required)
@@ -94,16 +102,14 @@ async def get_page_views(
     """
     views = site_analytics.get_page_views(page_path=page_path)
 
-    return ApiResponse(
-        success=True,
-        data={
-            "page_views": views,
-            "total_pages": len(views)
-        }
-    )
+    return ok(data={
+        "page_views": views,
+        "total_pages": len(views)
+    })
 
 
 @router.get("/popular-pages")
+@_catch
 async def get_popular_pages(
         limit: int = Query(20, ge=1, le=100, description="返回数量"),
         current_user=Depends(jwt_required)
@@ -113,16 +119,14 @@ async def get_popular_pages(
     """
     popular = site_analytics.get_popular_pages(limit=limit)
 
-    return ApiResponse(
-        success=True,
-        data={
-            "popular_pages": popular,
-            "total": len(popular)
-        }
-    )
+    return ok(data={
+        "popular_pages": popular,
+        "total": len(popular)
+    })
 
 
 @router.get("/traffic-sources")
+@_catch
 async def get_traffic_sources(
         limit: int = Query(20, ge=1, le=100, description="返回数量"),
         current_user=Depends(jwt_required)
@@ -134,16 +138,14 @@ async def get_traffic_sources(
     """
     sources = site_analytics.get_traffic_sources(limit=limit)
 
-    return ApiResponse(
-        success=True,
-        data={
-            "traffic_sources": sources,
-            "total": len(sources)
-        }
-    )
+    return ok(data={
+        "traffic_sources": sources,
+        "total": len(sources)
+    })
 
 
 @router.get("/user-activity/{user_id}")
+@_catch
 async def get_user_activity(
         user_id: str,
         days: int = Query(30, ge=1, le=365, description="统计天数"),
@@ -156,13 +158,11 @@ async def get_user_activity(
     """
     activity = site_analytics.get_user_activity(user_id=user_id, days=days)
 
-    return ApiResponse(
-        success=True,
-        data=activity
-    )
+    return ok(data=activity)
 
 
 @router.get("/session/{session_id}")
+@_catch
 async def get_session_stats(
         session_id: str,
         current_user=Depends(jwt_required)
@@ -175,18 +175,13 @@ async def get_session_stats(
     stats = site_analytics.get_session_stats(session_id=session_id)
 
     if stats is None:
-        return ApiResponse(
-            success=False,
-            error="会话不存在或已过期"
-        )
+        return fail("会话不存在或已过期")
 
-    return ApiResponse(
-        success=True,
-        data=stats
-    )
+    return ok(data=stats)
 
 
 @router.get("/daily-stats")
+@_catch
 async def get_daily_stats(
         days: int = Query(30, ge=1, le=365, description="统计天数"),
         current_user=Depends(jwt_required)
@@ -198,22 +193,20 @@ async def get_daily_stats(
     """
     stats = site_analytics.get_daily_stats(days=days)
 
-    return ApiResponse(
-        success=True,
-        data={
-            "daily_stats": stats,
-            "period_days": days,
-            "summary": {
-                "total_page_views": sum(s["page_views"] for s in stats),
-                "total_unique_visitors": sum(s["unique_visitors"] for s in stats),
-                "total_events": sum(s["events"] for s in stats),
-                "avg_daily_views": sum(s["page_views"] for s in stats) / len(stats) if stats else 0
-            }
+    return ok(data={
+        "daily_stats": stats,
+        "period_days": days,
+        "summary": {
+            "total_page_views": sum(s["page_views"] for s in stats),
+            "total_unique_visitors": sum(s["unique_visitors"] for s in stats),
+            "total_events": sum(s["events"] for s in stats),
+            "avg_daily_views": sum(s["page_views"] for s in stats) / len(stats) if stats else 0
         }
-    )
+    })
 
 
 @router.get("/real-time")
+@_catch
 async def get_real_time_stats(
         current_user=Depends(jwt_required)
 ):
@@ -241,18 +234,16 @@ async def get_real_time_stats(
         if event.get("event_type") == "page_view":
             page_views_last_5min += 1
 
-    return ApiResponse(
-        success=True,
-        data={
-            "active_users": len(active_sessions),
-            "page_views_last_5min": page_views_last_5min,
-            "total_events_last_5min": len(recent_events),
-            "timestamp": datetime.now().isoformat()
-        }
-    )
+    return ok(data={
+        "active_users": len(active_sessions),
+        "page_views_last_5min": page_views_last_5min,
+        "total_events_last_5min": len(recent_events),
+        "timestamp": datetime.now().isoformat()
+    })
 
 
 @router.get("/dashboard/overview")
+@_catch
 async def get_analytics_overview(
         days: int = Query(30, ge=1, le=365, description="统计天数"),
         current_user=Depends(jwt_required)
@@ -276,27 +267,25 @@ async def get_analytics_overview(
     # 获取流量来源
     traffic_sources = site_analytics.get_traffic_sources(limit=10)
 
-    return ApiResponse(
-        success=True,
-        data={
-            "period_days": days,
-            "summary": {
-                "total_page_views": total_page_views,
-                "total_unique_visitors": total_unique_visitors,
-                "avg_daily_page_views": round(avg_daily_views, 2),
-            },
-            "trends": {
-                "daily_stats": daily_stats,
-            },
-            "top_content": {
-                "popular_pages": popular_pages,
-            },
-            "traffic_sources": traffic_sources,
-        }
-    )
+    return ok(data={
+        "period_days": days,
+        "summary": {
+            "total_page_views": total_page_views,
+            "total_unique_visitors": total_unique_visitors,
+            "avg_daily_page_views": round(avg_daily_views, 2),
+        },
+        "trends": {
+            "daily_stats": daily_stats,
+        },
+        "top_content": {
+            "popular_pages": popular_pages,
+        },
+        "traffic_sources": traffic_sources,
+    })
 
 
 @router.get("/export")
+@_catch
 async def export_analytics_data(
         start_date: str = Query(..., description="开始日期 (YYYY-MM-DD)"),
         end_date: str = Query(..., description="结束日期 (YYYY-MM-DD)"),
@@ -308,60 +297,48 @@ async def export_analytics_data(
 
     将指定时间段的数据导出为JSON或CSV格式
     """
-    try:
-        start = datetime.strptime(start_date, "%Y-%m-%d")
-        end = datetime.strptime(end_date, "%Y-%m-%d")
+    start = datetime.strptime(start_date, "%Y-%m-%d")
+    end = datetime.strptime(end_date, "%Y-%m-%d")
 
-        # 收集指定日期范围内的事件
-        all_events = []
-        current = start
-        while current <= end:
-            date_str = current.strftime("%Y-%m-%d")
-            events = site_analytics.load_events_from_file(date_str)
-            all_events.extend(events)
-            current += timedelta(days=1)
+    # 收集指定日期范围内的事件
+    all_events = []
+    current = start
+    while current <= end:
+        date_str = current.strftime("%Y-%m-%d")
+        events = site_analytics.load_events_from_file(date_str)
+        all_events.extend(events)
+        current += timedelta(days=1)
 
-        if format == "csv":
-            # 转换为CSV格式
-            import csv
-            import io
+    if format == "csv":
+        # 转换为CSV格式
+        import csv
+        import io
 
-            output = io.StringIO()
-            if all_events:
-                writer = csv.DictWriter(output, fieldnames=all_events[0].keys())
-                writer.writeheader()
-                writer.writerows(all_events)
+        output = io.StringIO()
+        if all_events:
+            writer = csv.DictWriter(output, fieldnames=all_events[0].keys())
+            writer.writeheader()
+            writer.writerows(all_events)
 
-            csv_data = output.getvalue()
-            output.close()
+        csv_data = output.getvalue()
+        output.close()
 
-            return ApiResponse(
-                success=True,
-                data={
-                    "format": "csv",
-                    "content": csv_data,
-                    "total_events": len(all_events)
-                }
-            )
-        else:
-            # JSON格式
-            return ApiResponse(
-                success=True,
-                data={
-                    "format": "json",
-                    "events": all_events,
-                    "total_events": len(all_events)
-                }
-            )
-
-    except Exception as e:
-        return ApiResponse(
-            success=False,
-            error=f"导出失败: {str(e)}"
-        )
+        return ok(data={
+            "format": "csv",
+            "content": csv_data,
+            "total_events": len(all_events)
+        })
+    else:
+        # JSON格式
+        return ok(data={
+            "format": "json",
+            "events": all_events,
+            "total_events": len(all_events)
+        })
 
 
 @router.get("/guide")
+@_catch
 async def get_analytics_guide(current_user=Depends(jwt_required)):
     """
     获取数据分析使用指南
@@ -424,7 +401,4 @@ async def get_analytics_guide(current_user=Depends(jwt_required)):
         ]
     }
 
-    return ApiResponse(
-        success=True,
-        data=guide
-    )
+    return ok(data=guide)

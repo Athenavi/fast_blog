@@ -4,19 +4,32 @@
 """
 
 import json
+from functools import wraps
 from typing import List, Optional, Dict, Any
 
-from fastapi import APIRouter, Depends, Query, Body, BackgroundTasks
+from fastapi import APIRouter, Depends, Query, Body, BackgroundTasks, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.form import Form, FormField, FormSubmission
 from shared.services.content_management.form_builder import form_builder
-from src.api.v2._base import ApiResponse
+from src.api.v2._helpers import ok, fail
 from src.auth.auth_deps import admin_required as admin_required_api
-from src.utils.database.main import get_async_session as get_async_db
+from src.extensions import get_async_db_session as get_async_db
 
 router = APIRouter(tags=["form-builder"])
+
+
+def _catch(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except HTTPException:
+            raise
+        except Exception as e:
+            return fail(str(e))
+    return wrapper
 
 
 async def send_form_notification_email(
@@ -74,36 +87,25 @@ async def send_form_notification_email(
 
 
 @router.get("/field-types")
+@_catch
 async def get_field_types():
     """获取所有支持的字段类型"""
-    try:
-        field_types = form_builder.get_field_types()
+    field_types = form_builder.get_field_types()
 
-        return ApiResponse(
-            success=True,
-            data={'field_types': field_types}
-        )
-
-    except Exception as e:
-        return ApiResponse(success=False, error=f"获取字段类型失败: {str(e)}")
+    return ok(data={'field_types': field_types})
 
 
 @router.get("/templates")
+@_catch
 async def get_form_templates():
     """获取表单模板列表"""
-    try:
-        templates = form_builder.get_templates()
+    templates = form_builder.get_templates()
 
-        return ApiResponse(
-            success=True,
-            data={'templates': templates}
-        )
-
-    except Exception as e:
-        return ApiResponse(success=False, error=f"获取模板失败: {str(e)}")
+    return ok(data={'templates': templates})
 
 
 @router.get("/")
+@_catch
 async def list_forms(
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
@@ -119,65 +121,59 @@ async def list_forms(
         per_page: 每页数量
         status: 按状态筛选 (draft, published, archived)
     """
-    try:
-        from sqlalchemy import func
+    from sqlalchemy import func
 
-        query = select(Form)
-        if status:
-            query = query.where(Form.status == status)
+    query = select(Form)
+    if status:
+        query = query.where(Form.status == status)
 
-        # 获取总数
-        count_stmt = select(func.count(Form.id))
-        if status:
-            count_stmt = count_stmt.where(Form.status == status)
-        count_result = await db.execute(count_stmt)
-        total = count_result.scalar() or 0
+    # 获取总数
+    count_stmt = select(func.count(Form.id))
+    if status:
+        count_stmt = count_stmt.where(Form.status == status)
+    count_result = await db.execute(count_stmt)
+    total = count_result.scalar() or 0
 
-        # 分页查询
-        offset = (page - 1) * per_page
-        stmt = query.order_by(Form.created_at.desc()).offset(offset).limit(per_page)
-        result = await db.execute(stmt)
-        forms = result.scalars().all()
+    # 分页查询
+    offset = (page - 1) * per_page
+    stmt = query.order_by(Form.created_at.desc()).offset(offset).limit(per_page)
+    result = await db.execute(stmt)
+    forms = result.scalars().all()
 
-        form_list = []
-        for f in forms:
-            # 统计每个表单的提交数量
-            sub_count_stmt = select(func.count(FormSubmission.id)).where(
-                FormSubmission.form_id == f.id
-            )
-            sub_count_result = await db.execute(sub_count_stmt)
-            submission_count = sub_count_result.scalar() or 0
-
-            form_list.append({
-                'id': f.id,
-                'title': f.title,
-                'slug': f.slug,
-                'description': f.description,
-                'status': f.status,
-                'submission_count': submission_count,
-                'email_notification': f.email_notification,
-                'notification_email': f.notification_email,
-                'store_submissions': f.store_submissions,
-                'created_at': f.created_at.isoformat() if f.created_at else None,
-                'updated_at': f.updated_at.isoformat() if f.updated_at else None,
-                'published_at': f.published_at.isoformat() if f.published_at else None,
-            })
-
-        return ApiResponse(
-            success=True,
-            data={
-                'forms': form_list,
-                'total': total,
-                'page': page,
-                'per_page': per_page
-            }
+    form_list = []
+    for f in forms:
+        # 统计每个表单的提交数量
+        sub_count_stmt = select(func.count(FormSubmission.id)).where(
+            FormSubmission.form_id == f.id
         )
+        sub_count_result = await db.execute(sub_count_stmt)
+        submission_count = sub_count_result.scalar() or 0
 
-    except Exception as e:
-        return ApiResponse(success=False, error=f"获取表单列表失败: {str(e)}")
+        form_list.append({
+            'id': f.id,
+            'title': f.title,
+            'slug': f.slug,
+            'description': f.description,
+            'status': f.status,
+            'submission_count': submission_count,
+            'email_notification': f.email_notification,
+            'notification_email': f.notification_email,
+            'store_submissions': f.store_submissions,
+            'created_at': f.created_at.isoformat() if f.created_at else None,
+            'updated_at': f.updated_at.isoformat() if f.updated_at else None,
+            'published_at': f.published_at.isoformat() if f.published_at else None,
+        })
+
+    return ok(data={
+        'forms': form_list,
+        'total': total,
+        'page': page,
+        'per_page': per_page
+    })
 
 
 @router.post("/")
+@_catch
 async def create_form(
         title: str = Body(...),
         description: str = Body(''),
@@ -196,29 +192,22 @@ async def create_form(
         template: 使用预设模板
         settings: 表单设置
     """
-    try:
-        result = form_builder.create_form(
-            title=title,
-            description=description,
-            fields=fields,
-            template=template,
-            settings=settings
-        )
+    result = form_builder.create_form(
+        title=title,
+        description=description,
+        fields=fields,
+        template=template,
+        settings=settings
+    )
 
-        if result['success']:
-            return ApiResponse(
-                success=True,
-                data=result['data'],
-                message="表单创建成功"
-            )
-        else:
-            return ApiResponse(success=False, error=result.get('error'))
-
-    except Exception as e:
-        return ApiResponse(success=False, error=f"创建表单失败: {str(e)}")
+    if result['success']:
+        return ok(data=result['data'], msg="表单创建成功")
+    else:
+        return fail(result.get('error'))
 
 
 @router.post("/validate")
+@_catch
 async def validate_form_submission(
         form_id: int = Body(...),
         submission: Dict[str, Any] = Body(...),
@@ -231,72 +220,61 @@ async def validate_form_submission(
         form_id: 表单ID
         submission: 提交的表单数据
     """
-    try:
-        # 从数据库获取表单配置
-        stmt = select(Form).where(Form.id == form_id)
-        result = await db.execute(stmt)
-        form = result.scalar_one_or_none()
+    # 从数据库获取表单配置
+    stmt = select(Form).where(Form.id == form_id)
+    result = await db.execute(stmt)
+    form = result.scalar_one_or_none()
 
-        if not form:
-            return ApiResponse(success=False, error="表单不存在")
+    if not form:
+        return fail("表单不存在")
 
-        # 获取表单字段
-        stmt = select(FormField).where(
-            FormField.form_id == form_id,
-            FormField.is_active == True
-        ).order_by(FormField.order_index)
-        result = await db.execute(stmt)
-        fields = result.scalars().all()
+    # 获取表单字段
+    stmt = select(FormField).where(
+        FormField.form_id == form_id,
+        FormField.is_active == True
+    ).order_by(FormField.order_index)
+    result = await db.execute(stmt)
+    fields = result.scalars().all()
 
-        # 构建表单数据
-        form_data = {
-            'id': form.id,
-            'title': form.title,
-            'description': form.description,
-            'fields': [
-                {
-                    'type': field.field_type,
-                    'name': field.label.lower().replace(' ', '_'),
-                    'label': field.label,
-                    'config': {
-                        'required': field.required,
-                        'placeholder': field.placeholder,
-                        'help_text': field.help_text,
-                        'default_value': field.default_value,
-                        'options': json.loads(field.options) if field.options else None,
-                        'validation_rules': json.loads(field.validation_rules) if field.validation_rules else None
-                    }
+    # 构建表单数据
+    form_data = {
+        'id': form.id,
+        'title': form.title,
+        'description': form.description,
+        'fields': [
+            {
+                'type': field.field_type,
+                'name': field.label.lower().replace(' ', '_'),
+                'label': field.label,
+                'config': {
+                    'required': field.required,
+                    'placeholder': field.placeholder,
+                    'help_text': field.help_text,
+                    'default_value': field.default_value,
+                    'options': json.loads(field.options) if field.options else None,
+                    'validation_rules': json.loads(field.validation_rules) if field.validation_rules else None
                 }
-                for field in fields
-            ]
-        }
+            }
+            for field in fields
+        ]
+    }
 
-        validation_result = form_builder.validate_form_submission(
-            form_data=form_data,
-            submission=submission
-        )
+    validation_result = form_builder.validate_form_submission(
+        form_data=form_data,
+        submission=submission
+    )
 
-        if validation_result['valid']:
-            return ApiResponse(
-                success=True,
-                data={'valid': True, 'message': '验证通过'},
-                message="表单验证通过"
-            )
-        else:
-            return ApiResponse(
-                success=False,
-                data={
-                    'valid': False,
-                    'errors': validation_result['errors']
-                },
-                error="表单验证失败"
-            )
-
-    except Exception as e:
-        return ApiResponse(success=False, error=f"验证失败: {str(e)}")
+    if validation_result['valid']:
+        return ok(data={'valid': True, 'message': '验证通过'}, msg="表单验证通过")
+    else:
+        return ok(data={
+            'valid': False,
+            'errors': validation_result['errors']
+        }, msg="表单验证失败")
 
 
 @router.get("/{form_id}/html")
+@_catch
 async def generate_form_html(
         form_id: int,
         db: AsyncSession = Depends(get_async_db)
@@ -307,59 +285,53 @@ async def generate_form_html(
     Args:
         form_id: 表单ID
     """
-    try:
-        # 从数据库获取表单配置
-        stmt = select(Form).where(Form.id == form_id)
-        result = await db.execute(stmt)
-        form = result.scalar_one_or_none()
+    # 从数据库获取表单配置
+    stmt = select(Form).where(Form.id == form_id)
+    result = await db.execute(stmt)
+    form = result.scalar_one_or_none()
 
-        if not form:
-            return ApiResponse(success=False, error="表单不存在")
+    if not form:
+        return fail("表单不存在")
 
-        # 获取表单字段
-        stmt = select(FormField).where(
-            FormField.form_id == form_id,
-            FormField.is_active == True
-        ).order_by(FormField.order_index)
-        result = await db.execute(stmt)
-        fields = result.scalars().all()
+    # 获取表单字段
+    stmt = select(FormField).where(
+        FormField.form_id == form_id,
+        FormField.is_active == True
+    ).order_by(FormField.order_index)
+    result = await db.execute(stmt)
+    fields = result.scalars().all()
 
-        # 构建表单数据
-        sample_form = {
-            'title': form.title,
-            'description': form.description,
-            'fields': [
-                {
-                    'type': field.field_type,
-                    'name': field.label.lower().replace(' ', '_'),
-                    'label': field.label,
-                    'config': {
-                        'required': field.required,
-                        'placeholder': field.placeholder,
-                        'help_text': field.help_text,
-                        'rows': 6 if field.field_type == 'textarea' else None,
-                        'options': json.loads(field.options) if field.options else None
-                    }
+    # 构建表单数据
+    sample_form = {
+        'title': form.title,
+        'description': form.description,
+        'fields': [
+            {
+                'type': field.field_type,
+                'name': field.label.lower().replace(' ', '_'),
+                'label': field.label,
+                'config': {
+                    'required': field.required,
+                    'placeholder': field.placeholder,
+                    'help_text': field.help_text,
+                    'rows': 6 if field.field_type == 'textarea' else None,
+                    'options': json.loads(field.options) if field.options else None
                 }
-                for field in fields
-            ],
-            'settings': {
-                'submit_button_text': '提交'
             }
+            for field in fields
+        ],
+        'settings': {
+            'submit_button_text': '提交'
         }
+    }
 
-        html = form_builder.generate_form_html(sample_form, f'form-{form_id}')
+    html = form_builder.generate_form_html(sample_form, f'form-{form_id}')
 
-        return ApiResponse(
-            success=True,
-            data={'html': html}
-        )
-
-    except Exception as e:
-        return ApiResponse(success=False, error=f"生成HTML失败: {str(e)}")
+    return ok(data={'html': html})
 
 
 @router.post("/{form_id}/submit")
+@_catch
 async def submit_form(
         form_id: int,
         submission: Dict[str, Any] = Body(...),
@@ -373,83 +345,73 @@ async def submit_form(
         form_id: 表单ID
         submission: 表单数据
     """
-    try:
-        # 1. 从数据库获取表单配置
-        stmt = select(Form).where(Form.id == form_id)
-        result = await db.execute(stmt)
-        form = result.scalar_one_or_none()
+    # 1. 从数据库获取表单配置
+    stmt = select(Form).where(Form.id == form_id)
+    result = await db.execute(stmt)
+    form = result.scalar_one_or_none()
 
-        if not form:
-            return ApiResponse(success=False, error="表单不存在")
+    if not form:
+        return fail("表单不存在")
 
-        if form.status != 'published':
-            return ApiResponse(success=False, error="表单未发布")
+    if form.status != 'published':
+        return fail("表单未发布")
 
-        # 获取表单字段
-        stmt = select(FormField).where(
-            FormField.form_id == form_id,
-            FormField.is_active == True
-        ).order_by(FormField.order_index)
-        result = await db.execute(stmt)
-        fields = result.scalars().all()
+    # 获取表单字段
+    stmt = select(FormField).where(
+        FormField.form_id == form_id,
+        FormField.is_active == True
+    ).order_by(FormField.order_index)
+    result = await db.execute(stmt)
+    fields = result.scalars().all()
 
-        form_data = {
-            'fields': [
-                {
-                    'type': field.field_type,
-                    'name': field.label.lower().replace(' ', '_'),
-                    'label': field.label,
-                    'config': {'required': field.required}
-                }
-                for field in fields
-            ]
-        }
+    form_data = {
+        'fields': [
+            {
+                'type': field.field_type,
+                'name': field.label.lower().replace(' ', '_'),
+                'label': field.label,
+                'config': {'required': field.required}
+            }
+            for field in fields
+        ]
+    }
 
-        # 2. 验证提交数据
-        validation_result = form_builder.validate_form_submission(
-            form_data=form_data,
-            submission=submission
+    # 2. 验证提交数据
+    validation_result = form_builder.validate_form_submission(
+        form_data=form_data,
+        submission=submission
+    )
+
+    if not validation_result['valid']:
+        return ok(data={'errors': validation_result['errors']}, msg="表单验证失败")
+
+    # 3. 保存提交记录
+    from datetime import datetime
+    submission_record = FormSubmission(
+        form_id=form_id,
+        data=json.dumps(submission, ensure_ascii=False),
+        ip_address=None,  # 可以从request中获取
+        user_agent=None,
+        status='new',
+        created_at=datetime.now()
+    )
+    db.add(submission_record)
+    await db.commit()
+
+    # 4. 后台发送通知邮件(如果配置) - 不阻塞主进程
+    if background_tasks and form.notification_email:
+        background_tasks.add_task(
+            send_form_notification_email,
+            form_title=form.title,
+            notification_email=form.notification_email,
+            submission_data=submission
         )
 
-        if not validation_result['valid']:
-            return ApiResponse(
-                success=False,
-                data={'errors': validation_result['errors']},
-                error="表单验证失败"
-            )
-
-        # 3. 保存提交记录
-        from datetime import datetime
-        submission_record = FormSubmission(
-            form_id=form_id,
-            data=json.dumps(submission, ensure_ascii=False),
-            ip_address=None,  # 可以从request中获取
-            user_agent=None,
-            status='new',
-            created_at=datetime.now()
-        )
-        db.add(submission_record)
-        await db.commit()
-
-        # 4. 后台发送通知邮件(如果配置) - 不阻塞主进程
-        if background_tasks and form.notification_email:
-            background_tasks.add_task(
-                send_form_notification_email,
-                form_title=form.title,
-                notification_email=form.notification_email,
-                submission_data=submission
-            )
-
-        return ApiResponse(
-            success=True,
-            message="表单提交成功"
-        )
-
-    except Exception as e:
-        return ApiResponse(success=False, error=f"提交失败: {str(e)}")
+    return ok(msg="表单提交成功")
 
 
 @router.get("/{form_id}/submissions")
+@_catch
 async def get_form_submissions(
         form_id: int,
         page: int = Query(1, ge=1),
@@ -465,59 +427,53 @@ async def get_form_submissions(
         page: 页码
         per_page: 每页数量
     """
-    try:
-        # 从数据库查询提交记录
-        from sqlalchemy import func
+    # 从数据库查询提交记录
+    from sqlalchemy import func
 
-        # 获取总数
-        count_stmt = select(func.count(FormSubmission.id)).where(
-            FormSubmission.form_id == form_id
-        )
-        count_result = await db.execute(count_stmt)
-        total = count_result.scalar()
+    # 获取总数
+    count_stmt = select(func.count(FormSubmission.id)).where(
+        FormSubmission.form_id == form_id
+    )
+    count_result = await db.execute(count_stmt)
+    total = count_result.scalar()
 
-        # 分页查询
-        offset = (page - 1) * per_page
-        stmt = select(FormSubmission).where(
-            FormSubmission.form_id == form_id
-        ).order_by(
-            FormSubmission.created_at.desc()
-        ).offset(offset).limit(per_page)
-        result = await db.execute(stmt)
-        submissions = result.scalars().all()
+    # 分页查询
+    offset = (page - 1) * per_page
+    stmt = select(FormSubmission).where(
+        FormSubmission.form_id == form_id
+    ).order_by(
+        FormSubmission.created_at.desc()
+    ).offset(offset).limit(per_page)
+    result = await db.execute(stmt)
+    submissions = result.scalars().all()
 
-        # 转换为字典
-        submission_list = []
-        for sub in submissions:
-            try:
-                data = json.loads(sub.data) if sub.data else {}
-            except:
-                data = {}
+    # 转换为字典
+    submission_list = []
+    for sub in submissions:
+        try:
+            data = json.loads(sub.data) if sub.data else {}
+        except:
+            data = {}
 
-            submission_list.append({
-                'id': sub.id,
-                'data': data,
-                'ip_address': sub.ip_address,
-                'user_agent': sub.user_agent,
-                'status': sub.status,
-                'created_at': sub.created_at.isoformat() if sub.created_at else None
-            })
+        submission_list.append({
+            'id': sub.id,
+            'data': data,
+            'ip_address': sub.ip_address,
+            'user_agent': sub.user_agent,
+            'status': sub.status,
+            'created_at': sub.created_at.isoformat() if sub.created_at else None
+        })
 
-        return ApiResponse(
-            success=True,
-            data={
-                'submissions': submission_list,
-                'total': total,
-                'page': page,
-                'per_page': per_page
-            }
-        )
-
-    except Exception as e:
-        return ApiResponse(success=False, error=f"获取提交记录失败: {str(e)}")
+    return ok(data={
+        'submissions': submission_list,
+        'total': total,
+        'page': page,
+        'per_page': per_page
+    })
 
 
 @router.get("/{form_id}/statistics")
+@_catch
 async def get_form_statistics(
         form_id: int,
         db: AsyncSession = Depends(get_async_db),
@@ -529,48 +485,42 @@ async def get_form_statistics(
     Args:
         form_id: 表单ID
     """
-    try:
-        # 从数据库统计表单数据
-        from sqlalchemy import func
-        from datetime import datetime, timedelta
+    # 从数据库统计表单数据
+    from sqlalchemy import func
+    from datetime import datetime, timedelta
 
-        # 总提交数
-        count_stmt = select(func.count(FormSubmission.id)).where(
-            FormSubmission.form_id == form_id
-        )
-        count_result = await db.execute(count_stmt)
-        total_submissions = count_result.scalar() or 0
+    # 总提交数
+    count_stmt = select(func.count(FormSubmission.id)).where(
+        FormSubmission.form_id == form_id
+    )
+    count_result = await db.execute(count_stmt)
+    total_submissions = count_result.scalar() or 0
 
-        # 最近7天提交数
-        seven_days_ago = datetime.now() - timedelta(days=7)
-        recent_stmt = select(func.count(FormSubmission.id)).where(
-            FormSubmission.form_id == form_id,
-            FormSubmission.created_at >= seven_days_ago
-        )
-        recent_result = await db.execute(recent_stmt)
-        recent_submissions = recent_result.scalar() or 0
+    # 最近7天提交数
+    seven_days_ago = datetime.now() - timedelta(days=7)
+    recent_stmt = select(func.count(FormSubmission.id)).where(
+        FormSubmission.form_id == form_id,
+        FormSubmission.created_at >= seven_days_ago
+    )
+    recent_result = await db.execute(recent_stmt)
+    recent_submissions = recent_result.scalar() or 0
 
-        # 完成率 (这里简化处理,实际需要更复杂的逻辑)
-        completion_rate = 100.0 if total_submissions > 0 else 0
+    # 完成率 (这里简化处理,实际需要更复杂的逻辑)
+    completion_rate = 100.0 if total_submissions > 0 else 0
 
-        stats = {
-            'form_id': form_id,
-            'total_submissions': total_submissions,
-            'recent_submissions': recent_submissions,
-            'completion_rate': completion_rate,
-            'average_completion_time': None
-        }
+    stats = {
+        'form_id': form_id,
+        'total_submissions': total_submissions,
+        'recent_submissions': recent_submissions,
+        'completion_rate': completion_rate,
+        'average_completion_time': None
+    }
 
-        return ApiResponse(
-            success=True,
-            data=stats
-        )
-
-    except Exception as e:
-        return ApiResponse(success=False, error=f"获取统计数据失败: {str(e)}")
+    return ok(data=stats)
 
 
 @router.delete("/{form_id}")
+@_catch
 async def delete_form(
         form_id: int,
         db: AsyncSession = Depends(get_async_db),
@@ -582,33 +532,26 @@ async def delete_form(
     Args:
         form_id: 表单ID
     """
-    try:
-        # 从数据库删除表单及其提交记录
-        # 先检查表单是否存在
-        stmt = select(Form).where(Form.id == form_id)
-        result = await db.execute(stmt)
-        form = result.scalar_one_or_none()
+    # 从数据库删除表单及其提交记录
+    # 先检查表单是否存在
+    stmt = select(Form).where(Form.id == form_id)
+    result = await db.execute(stmt)
+    form = result.scalar_one_or_none()
 
-        if not form:
-            return ApiResponse(success=False, error="表单不存在")
+    if not form:
+        return fail("表单不存在")
 
-        # 删除相关字段
-        from sqlalchemy import delete
-        stmt = delete(FormField).where(FormField.form_id == form_id)
-        await db.execute(stmt)
+    # 删除相关字段
+    from sqlalchemy import delete
+    stmt = delete(FormField).where(FormField.form_id == form_id)
+    await db.execute(stmt)
 
-        # 删除相关提交记录
-        stmt = delete(FormSubmission).where(FormSubmission.form_id == form_id)
-        await db.execute(stmt)
+    # 删除相关提交记录
+    stmt = delete(FormSubmission).where(FormSubmission.form_id == form_id)
+    await db.execute(stmt)
 
-        # 删除表单
-        await db.delete(form)
-        await db.commit()
+    # 删除表单
+    await db.delete(form)
+    await db.commit()
 
-        return ApiResponse(
-            success=True,
-            message="表单删除成功"
-        )
-
-    except Exception as e:
-        return ApiResponse(success=False, error=f"删除失败: {str(e)}")
+    return ok(msg="表单删除成功")

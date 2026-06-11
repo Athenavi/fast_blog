@@ -3,18 +3,34 @@
 提供系统性能、在线用户、访问量等实时数据
 """
 
+from functools import wraps
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
 
 from shared.services.analytics.realtime_monitor import realtime_monitor_service
-from src.api.v2._base import ApiResponse
+from src.api.v2._helpers import ok, fail
 from src.auth.auth_deps import admin_required as admin_required_api
 
 router = APIRouter(tags=["monitoring"])
 
 
+def _catch(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except HTTPException:
+            raise
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return fail(str(e))
+    return wrapper
+
+
 @router.get("/dashboard", summary="获取监控仪表板数据")
+@_catch
 async def get_monitor_dashboard(
         current_user=Depends(admin_required_api)
 ):
@@ -27,18 +43,13 @@ async def get_monitor_dashboard(
     Returns:
         仪表板完整数据
     """
-    try:
-        data = realtime_monitor_service.get_dashboard_data()
+    data = realtime_monitor_service.get_dashboard_data()
 
-        return ApiResponse(
-            success=True,
-            data=data
-        )
-    except Exception as e:
-        return ApiResponse(success=False, error=f"获取监控数据失败: {str(e)}")
+    return ok(data=data)
 
 
 @router.get("/online-users", summary="获取在线用户")
+@_catch
 async def get_online_users(
         limit: int = Query(50, ge=1, le=200, description="返回数量"),
         current_user=Depends(admin_required_api)
@@ -52,22 +63,19 @@ async def get_online_users(
     Returns:
         在线用户列表和总数
     """
-    try:
-        count = realtime_monitor_service.get_online_users_count()
-        users = realtime_monitor_service.get_online_users_list(limit=limit)
+    count = realtime_monitor_service.get_online_users_count()
+    users = realtime_monitor_service.get_online_users_list(limit=limit)
 
-        return ApiResponse(
-            success=True,
-            data={
-                'count': count,
-                'users': users,
-            }
-        )
-    except Exception as e:
-        return ApiResponse(success=False, error=f"获取在线用户失败: {str(e)}")
+    return ok(
+        data={
+            'count': count,
+            'users': users,
+        }
+    )
 
 
 @router.get("/visits/today", summary="获取今日访问量")
+@_catch
 async def get_today_visits(
         current_user=Depends(admin_required_api)
 ):
@@ -77,20 +85,17 @@ async def get_today_visits(
     Returns:
         今日访问次数
     """
-    try:
-        visits = realtime_monitor_service.get_today_visits()
+    visits = realtime_monitor_service.get_today_visits()
 
-        return ApiResponse(
-            success=True,
-            data={
-                'today_visits': visits,
-            }
-        )
-    except Exception as e:
-        return ApiResponse(success=False, error=f"获取访问量失败: {str(e)}")
+    return ok(
+        data={
+            'today_visits': visits,
+        }
+    )
 
 
 @router.get("/visits/realtime", summary="获取实时访问量")
+@_catch
 async def get_realtime_visits(
         window: int = Query(5, ge=1, le=60, description="时间窗口(分钟)"),
         current_user=Depends(admin_required_api)
@@ -104,21 +109,18 @@ async def get_realtime_visits(
     Returns:
         实时访问次数
     """
-    try:
-        visits = realtime_monitor_service.get_realtime_visits(window_minutes=window)
+    visits = realtime_monitor_service.get_realtime_visits(window_minutes=window)
 
-        return ApiResponse(
-            success=True,
-            data={
-                'window_minutes': window,
-                'visits': visits,
-            }
-        )
-    except Exception as e:
-        return ApiResponse(success=False, error=f"获取实时访问量失败: {str(e)}")
+    return ok(
+        data={
+            'window_minutes': window,
+            'visits': visits,
+        }
+    )
 
 
 @router.get("/visits/popular-endpoints", summary="获取热门访问端点")
+@_catch
 async def get_popular_endpoints(
         limit: int = Query(10, ge=1, le=50, description="返回数量"),
         window: int = Query(60, ge=1, le=1440, description="时间窗口(分钟)"),
@@ -134,24 +136,21 @@ async def get_popular_endpoints(
     Returns:
         热门端点列表
     """
-    try:
-        endpoints = realtime_monitor_service.get_popular_endpoints(
-            limit=limit,
-            window_minutes=window
-        )
+    endpoints = realtime_monitor_service.get_popular_endpoints(
+        limit=limit,
+        window_minutes=window
+    )
 
-        return ApiResponse(
-            success=True,
-            data={
-                'window_minutes': window,
-                'endpoints': endpoints,
-            }
-        )
-    except Exception as e:
-        return ApiResponse(success=False, error=f"获取热门端点失败: {str(e)}")
+    return ok(
+        data={
+            'window_minutes': window,
+            'endpoints': endpoints,
+        }
+    )
 
 
 @router.get("/system-metrics", summary="获取系统指标")
+@_catch
 async def get_system_metrics(
         current_user=Depends(admin_required_api)
 ):
@@ -161,18 +160,13 @@ async def get_system_metrics(
     Returns:
         系统指标数据
     """
-    try:
-        metrics = realtime_monitor_service.get_system_metrics()
+    metrics = realtime_monitor_service.get_system_metrics()
 
-        return ApiResponse(
-            success=True,
-            data=metrics
-        )
-    except Exception as e:
-        return ApiResponse(success=False, error=f"获取系统指标失败: {str(e)}")
+    return ok(data=metrics)
 
 
 @router.get("/health", summary="获取系统健康状态")
+@_catch
 async def get_health_status(
         current_user=Depends(admin_required_api)
 ):
@@ -182,18 +176,13 @@ async def get_health_status(
     Returns:
         健康状态和告警信息
     """
-    try:
-        health = realtime_monitor_service.get_health_status()
+    health = realtime_monitor_service.get_health_status()
 
-        return ApiResponse(
-            success=True,
-            data=health
-        )
-    except Exception as e:
-        return ApiResponse(success=False, error=f"获取健康状态失败: {str(e)}")
+    return ok(data=health)
 
 
 @router.get("/trending-articles", summary="获取实时热门文章")
+@_catch
 async def get_trending_articles(
         limit: int = Query(10, ge=1, le=50, description="返回数量"),
         current_user=Depends(admin_required_api)
@@ -207,21 +196,18 @@ async def get_trending_articles(
     Returns:
         热门文章列表
     """
-    try:
-        articles = realtime_monitor_service.get_trending_articles(limit=limit)
+    articles = realtime_monitor_service.get_trending_articles(limit=limit)
 
-        return ApiResponse(
-            success=True,
-            data={
-                'articles': articles,
-                'count': len(articles),
-            }
-        )
-    except Exception as e:
-        return ApiResponse(success=False, error=f"获取热门文章失败: {str(e)}")
+    return ok(
+        data={
+            'articles': articles,
+            'count': len(articles),
+        }
+    )
 
 
 @router.post("/record-activity", summary="记录用户活动")
+@_catch
 async def record_user_activity(
         user_id: int = Query(..., description="用户ID"),
 ):
@@ -236,18 +222,13 @@ async def record_user_activity(
     Returns:
         操作结果
     """
-    try:
-        realtime_monitor_service.record_user_activity(user_id)
+    realtime_monitor_service.record_user_activity(user_id)
 
-        return ApiResponse(
-            success=True,
-            message='活动已记录'
-        )
-    except Exception as e:
-        return ApiResponse(success=False, error=f"记录活动失败: {str(e)}")
+    return ok(msg='活动已记录')
 
 
 @router.post("/record-page-view", summary="记录页面访问")
+@_catch
 async def record_page_view(
         endpoint: str = Query(..., description="访问的端点"),
         article_id: Optional[int] = Query(None, description="文章ID"),
@@ -262,12 +243,6 @@ async def record_page_view(
     Returns:
         操作结果
     """
-    try:
-        realtime_monitor_service.record_page_view(endpoint, article_id)
+    realtime_monitor_service.record_page_view(endpoint, article_id)
 
-        return ApiResponse(
-            success=True,
-            message='访问已记录'
-        )
-    except Exception as e:
-        return ApiResponse(success=False, error=f"记录访问失败: {str(e)}")
+    return ok(msg='访问已记录')

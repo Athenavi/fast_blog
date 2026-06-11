@@ -4,18 +4,32 @@
 提供WCAG 2.1标准的自动化审计功能
 """
 
+from functools import wraps
 from typing import Optional, List
 
 from fastapi import APIRouter, Depends, HTTPException, Body
 
 from shared.services.advanced_features.accessibility_auditor import accessibility_auditor
-from src.api.v2._base import ApiResponse
+from src.api.v2._helpers import ok, fail
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 
 router = APIRouter()
 
 
+def _catch(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except HTTPException:
+            raise
+        except Exception as e:
+            return fail(f"操作失败: {e}")
+    return wrapper
+
+
 @router.post("", summary="审计页面", description="审计单个页面的无障碍性")
+@_catch
 async def audit_page(
         html_content: str = Body(..., description="HTML内容"),
         url: Optional[str] = Body(None, description="页面URL"),
@@ -29,13 +43,11 @@ async def audit_page(
         level=level
     )
 
-    return ApiResponse(
-        success=True,
-        data=report
-    )
+    return ok(data=report)
 
 
 @router.post("/batch", summary="批量审计", description="审计多个页面")
+@_catch
 async def audit_batch(
         pages: List[dict] = Body(..., description="页面列表 [{url, html}]"),
         level: str = Body('AA', regex='^(A|AA|AAA)$', description="审计级别"),
@@ -52,24 +64,20 @@ async def audit_batch(
         level=level
     )
 
-    return ApiResponse(
-        success=True,
-        data=report
-    )
+    return ok(data=report)
 
 
 @router.get("/guidelines", summary="WCAG指南", description="获取WCAG 2.1指南说明")
+@_catch
 async def get_wcag_guidelines():
     """获取WCAG指南"""
     guidelines = accessibility_auditor.get_wcag_guidelines()
 
-    return ApiResponse(
-        success=True,
-        data=guidelines
-    )
+    return ok(data=guidelines)
 
 
 @router.get("/checklist", summary="检查清单", description="获取无障碍性检查清单")
+@_catch
 async def get_accessibility_checklist():
     """获取检查清单"""
     checklist = {
@@ -165,13 +173,11 @@ async def get_accessibility_checklist():
         }
     }
 
-    return ApiResponse(
-        success=True,
-        data=checklist
-    )
+    return ok(data=checklist)
 
 
 @router.get("/tools", summary="辅助工具", description="获取无障碍性测试工具推荐")
+@_catch
 async def get_accessibility_tools():
     """获取工具推荐"""
     tools = {
@@ -254,7 +260,4 @@ async def get_accessibility_tools():
         }
     }
 
-    return ApiResponse(
-        success=True,
-        data=tools
-    )
+    return ok(data=tools)

@@ -3,7 +3,8 @@
 
 提供安全报告的生成和查看功能
 """
-
+import logging
+from functools import wraps
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -12,13 +13,28 @@ from shared.services.articles.anomaly_detector import anomaly_detector
 from shared.services.security.security_alert import security_alert_service
 from shared.services.security.security_report import report_generator
 from shared.services.security.audit_service import audit_service
-from src.api.v2._base import ApiResponse
+from src.api.v2._helpers import ok, fail
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
+
+
+def _catch(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"[{func.__name__}] {e}")
+            return fail(str(e))
+    return wrapper
 
 
 @router.get("/daily", summary="生成日报", description="生成今日安全日报")
+@_catch
 async def generate_daily_report(
         current_user=Depends(jwt_required),
 ):
@@ -39,13 +55,11 @@ async def generate_daily_report(
         audit_logs=audit_logs,
     )
 
-    return ApiResponse(
-        success=True,
-        data=report
-    )
+    return ok(data=report)
 
 
 @router.get("/weekly", summary="生成周报", description="生成本周安全周报")
+@_catch
 async def generate_weekly_report(
         current_user=Depends(jwt_required),
 ):
@@ -66,13 +80,11 @@ async def generate_weekly_report(
         audit_logs=audit_logs,
     )
 
-    return ApiResponse(
-        success=True,
-        data=report
-    )
+    return ok(data=report)
 
 
 @router.get("/monthly", summary="生成月报", description="生成本月安全月报")
+@_catch
 async def generate_monthly_report(
         current_user=Depends(jwt_required),
 ):
@@ -93,13 +105,11 @@ async def generate_monthly_report(
         audit_logs=audit_logs,
     )
 
-    return ApiResponse(
-        success=True,
-        data=report
-    )
+    return ok(data=report)
 
 
 @router.get("/history", summary="获取报告历史", description="获取历史报告列表")
+@_catch
 async def get_report_history(
         report_type: Optional[str] = Query(None, description="报告类型过滤 (daily, weekly, monthly)"),
         limit: int = Query(10, ge=1, le=50, description="返回数量限制"),
@@ -116,10 +126,7 @@ async def get_report_history(
         limit=limit,
     )
 
-    return ApiResponse(
-        success=True,
-        data={
-            'reports': history,
-            'count': len(history),
-        }
-    )
+    return ok(data={
+        'reports': history,
+        'count': len(history),
+    })

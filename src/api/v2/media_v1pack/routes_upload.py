@@ -5,7 +5,7 @@ import hashlib
 
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, HTTPException
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -18,147 +18,121 @@ from src.utils.upload.public_upload import ChunkedUploadProcessor, FileProcessor
 router = APIRouter()
 from src.unified_logger import default_logger as logger
 
+from functools import wraps
+from src.api.v2._helpers import ok, fail
+
+
+def _catch(func):
+    """统一错误处理装饰器"""
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"[{func.__name__}] {e}")
+            return fail(str(e))
+    return wrapper
+
 
 # ---------- 普通上传 ----------
 @router.post("/upload")
+@_catch
 async def upload_media_file(
         request: Request,
         current_user_obj=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
-    try:
-        upload_limit = getattr(app_config, 'UPLOAD_LIMIT', 10 * 1024 * 1024)
-        allowed_mimes = getattr(app_config, 'ALLOWED_MIMES', [
-            # 图片格式
-            'image/jpeg', 'image/png', 'image/gif', 'image/bmp', 'image/webp', 'image/svg+xml', 'image/tiff',
-            # 视频格式
-            'video/mp4', 'video/mpeg', 'video/quicktime', 'video/x-msvideo', 'video/webm', 'video/x-matroska',
-            # 音频格式
-            'audio/mpeg', 'audio/wav', 'audio/flac', 'audio/x-flac', 'audio/aac', 'audio/ogg', 'audio/mp3', 'audio/x-wav',
-            # 文档格式
-            'application/pdf',
-            'application/msword',  # .doc
-            'application/vnd.openxmlformats-officedocument.wordprocessingml.document',  # .docx
-            'application/vnd.ms-excel',  # .xls
-            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',  # .xlsx
-            'application/vnd.ms-powerpoint',  # .ppt
-            'application/vnd.openxmlformats-officedocument.presentationml.presentation',  # .pptx
-            'text/plain',  # .txt
-            'text/markdown',  # .md
-            'text/csv',  # .csv
-            'text/html',  # .html
-            # 压缩文件格式
-            'application/zip',
-            'application/x-rar-compressed',
-            'application/x-7z-compressed',
-            'application/gzip',
-            'application/x-tar',
-            'application/x-bzip2',
-            # 其他常见格式
-            'application/json',
-            'application/xml',
-            'application/octet-stream',  # 通用二进制文件
-        ])
+    upload_limit = getattr(app_config, 'UPLOAD_LIMIT', 10 * 1024 * 1024)
+    allowed_mimes = getattr(app_config, 'ALLOWED_MIMES', [
+        'image/jpeg', 'image/png', 'image/gif', 'image/bmp', 'image/webp', 'image/svg+xml', 'image/tiff',
+        'video/mp4', 'video/mpeg', 'video/quicktime', 'video/x-msvideo', 'video/webm', 'video/x-matroska',
+        'audio/mpeg', 'audio/wav', 'audio/flac', 'audio/x-flac', 'audio/aac', 'audio/ogg', 'audio/mp3', 'audio/x-wav',
+        'application/pdf', 'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/vnd.ms-powerpoint',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'text/plain', 'text/markdown', 'text/csv', 'text/html',
+        'application/zip', 'application/x-rar-compressed', 'application/x-7z-compressed',
+        'application/gzip', 'application/x-tar', 'application/x-bzip2',
+        'application/json', 'application/xml', 'application/octet-stream',
+    ])
 
-        form = await request.form()
-        files = form.getlist('file')
-        if not files:
-            return JSONResponse({'success': False, 'message': '未找到上传的文件'}, status_code=400)
+    form = await request.form()
+    files = form.getlist('file')
+    if not files:
+        return JSONResponse({'success': False, 'message': '未找到上传的文件'}, status_code=400)
 
-        results = []
-        for file in files:
-            if hasattr(file, 'filename') and hasattr(file, 'read'):
-                try:
-                    file_data = await file.read()
-                    result = await _process_single_file(
-                        current_user_obj.id, file_data, file.filename,
-                        upload_limit, allowed_mimes, db
-                    )
-                    results.append(result)
-                except Exception as e:
-                    logger.error(f"处理文件 {file.filename} 失败: {str(e)}")
-                    results.append({'success': False, 'error': str(e)})
-
-        successful = [r for r in results if r.get('success')]
-        if successful:
-            # 触发 Webhook 事件
+    results = []
+    for file in files:
+        if hasattr(file, 'filename') and hasattr(file, 'read'):
             try:
-                for file_result in successful:
-                    if file_result.get('data'):
-                        file_data = file_result['data']
-                        await webhook_service.trigger_event(
-                            'media.uploaded',
-                            {
-                                'file_id': file_data.get('id'),
-                                'filename': file_data.get('filename'),
-                                'file_type': file_data.get('mime_type'),
-                                'file_size': file_data.get('size'),
-                                'url': file_data.get('url'),
-                                'uploaded_by': current_user_obj.id,
-                                'uploaded_at': datetime.now().isoformat(),
-                            },
-                            db=db
-                        )
-            except Exception as webhook_err:
-                logger.error(f"Webhook trigger failed: {webhook_err}")
-            
-            return JSONResponse({'success': True, 'message': '上传成功', 'data': {'files': successful}})
-        errors = '; '.join([r.get('error', '未知错误') for r in results if not r.get('success')])
-        return JSONResponse({'success': False, 'message': '文件上传失败', 'error': errors}, status_code=400)
-    except Exception as e:
-        logger.error(f"上传媒体文件错误: {str(e)}", exc_info=True)
-        return JSONResponse({'success': False, 'message': '服务器内部错误', 'error': str(e)}, status_code=500)
+                file_data = await file.read()
+                result = await _process_single_file(
+                    current_user_obj.id, file_data, file.filename,
+                    upload_limit, allowed_mimes, db
+                )
+                results.append(result)
+            except Exception as e:
+                logger.error(f"处理文件 {file.filename} 失败: {str(e)}")
+                results.append({'success': False, 'error': str(e)})
+
+    successful = [r for r in results if r.get('success')]
+    if successful:
+        try:
+            for file_result in successful:
+                if file_result.get('data'):
+                    fd = file_result['data']
+                    await webhook_service.trigger_event(
+                        'media.uploaded',
+                        {
+                            'file_id': fd.get('id'),
+                            'filename': fd.get('filename'),
+                            'file_type': fd.get('mime_type'),
+                            'file_size': fd.get('size'),
+                            'url': fd.get('url'),
+                            'uploaded_by': current_user_obj.id,
+                            'uploaded_at': datetime.now().isoformat(),
+                        },
+                        db=db
+                    )
+        except Exception as webhook_err:
+            logger.error(f"Webhook trigger failed: {webhook_err}")
+
+        return ok(data={'files': successful}, msg='上传成功')
+
+    errors = '; '.join([r.get('error', '未知错误') for r in results if not r.get('success')])
+    return JSONResponse({'success': False, 'message': '文件上传失败', 'error': errors}, status_code=400)
 
 
 async def _process_single_file(user_id, file_data, filename, allowed_size, allowed_mimes, db):
     allowed_set = set(str(m) for m in allowed_mimes) if allowed_mimes else {
-        # 图片格式
         'image/jpeg', 'image/png', 'image/gif', 'image/bmp', 'image/webp', 'image/svg+xml', 'image/tiff',
-        # 视频格式
         'video/mp4', 'video/mpeg', 'video/quicktime', 'video/x-msvideo', 'video/webm', 'video/x-matroska',
-        # 音频格式
         'audio/mpeg', 'audio/wav', 'audio/flac', 'audio/x-flac', 'audio/aac', 'audio/ogg', 'audio/mp3', 'audio/x-wav',
-        # 文档格式
-        'application/pdf',
-        'application/msword',  # .doc
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',  # .docx
-        'application/vnd.ms-excel',  # .xls
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',  # .xlsx
-        'application/vnd.ms-powerpoint',  # .ppt
-        'application/vnd.openxmlformats-officedocument.presentationml.presentation',  # .pptx
-        'text/plain',  # .txt
-        'text/markdown',  # .md
-        'text/csv',  # .csv
-        'text/html',  # .html
-        # 压缩文件格式
-        'application/zip',
-        'application/x-rar-compressed',
-        'application/x-7z-compressed',
-        'application/gzip',
-        'application/x-tar',
-        'application/x-bzip2',
-        # 其他常见格式
-        'application/json',
-        'application/xml',
-        'application/octet-stream',  # 通用二进制文件
+        'application/pdf', 'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/vnd.ms-powerpoint',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'text/plain', 'text/markdown', 'text/csv', 'text/html',
+        'application/zip', 'application/x-rar-compressed', 'application/x-7z-compressed',
+        'application/gzip', 'application/x-tar', 'application/x-bzip2',
+        'application/json', 'application/xml', 'application/octet-stream',
     }
-    
-    # 调试日志
-    logger.info(f"处理文件: {filename}")
-    logger.info(f"允许的 MIME 类型数量: {len(allowed_set)}")
-    
+
     processor = FileProcessor(user_id, allowed_mimes=allowed_set, allowed_size=allowed_size)
     is_valid, validation_result = processor.validate_file(file_data, filename)
-    
+
     if not is_valid:
-        logger.error(f"文件验证失败: {filename} - {validation_result}")
         return {'success': False, 'error': validation_result}
-    
-    logger.info(f"文件验证通过: {filename}")
-    
+
     try:
         result = await process_single_file(processor, file_data, filename, db)
-        logger.info(f"文件处理成功: {filename}")
         return result
     except Exception as e:
         logger.error(f"文件处理失败: {filename} - {str(e)}", exc_info=True)
@@ -167,68 +141,32 @@ async def _process_single_file(user_id, file_data, filename, allowed_size, allow
 
 # ---------- 分块上传 ----------
 @router.post('/upload/chunked/init')
+@_catch
 async def chunked_upload_init(
         request: Request,
         current_user_obj=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
-    try:
-        # 读取原始请求体用于调试
-        raw_body = await request.body()
-        logger.info(f"分块上传初始化 - 原始请求体: {raw_body[:200]}")
-        
-        # 尝试解析 JSON
-        try:
-            data = await request.json()
-            logger.info(f"分块上传初始化请求: {data}")
-        except Exception as json_err:
-            logger.error(f"JSON 解析失败: {json_err}")
-            return JSONResponse({
-                'success': False, 
-                'error': f'JSON 解析失败: {str(json_err)}',
-                'debug_raw_body': raw_body.decode('utf-8', errors='ignore')[:200]
-            }, status_code=400)
-        
-        filename = data.get('filename')
-        total_size = data.get('total_size')
-        total_chunks = data.get('total_chunks')
-        file_hash = data.get('file_hash')
-        existing_upload_id = data.get('existing_upload_id')
-        
-        logger.info(f"   - filename: {filename} (type: {type(filename).__name__})")
-        logger.info(f"   - total_size: {total_size} (type: {type(total_size).__name__})")
-        logger.info(f"   - total_chunks: {total_chunks} (type: {type(total_chunks).__name__})")
-        logger.info(f"   - file_hash: {file_hash}")
-        logger.info(f"   - existing_upload_id: {existing_upload_id}")
-        
-        if not all([filename, total_size, total_chunks]):
-            logger.error(f"缺少必要参数: filename={filename}, total_size={total_size}, total_chunks={total_chunks}")
-            return JSONResponse({
-                'success': False, 
-                'error': '缺少必要参数',
-                'received': {
-                    'filename': filename,
-                    'total_size': total_size,
-                    'total_chunks': total_chunks
-                }
-            }, status_code=400)
-        
-        logger.info(f"参数验证通过，开始初始化上传任务...")
-        processor = ChunkedUploadProcessor(current_user_obj.id)
-        result = await processor.init_upload(filename, total_size, total_chunks, file_hash, existing_upload_id, db)
-        
-        if result.get('success'):
-            logger.info(f"分块上传初始化成功: upload_id={result.get('upload_id')}")
-        else:
-            logger.error(f"分块上传初始化失败: {result.get('error')}")
-        
-        return JSONResponse(result, status_code=200 if result.get('success') else 400)
-    except Exception as e:
-        logger.error(f"分块上传初始化异常: {str(e)}", exc_info=True)
-        return JSONResponse({'success': False, 'error': str(e)}, status_code=500)
+    data = await request.json()
+    filename = data.get('filename')
+    total_size = data.get('total_size')
+    total_chunks = data.get('total_chunks')
+    file_hash = data.get('file_hash')
+    existing_upload_id = data.get('existing_upload_id')
+
+    if not all([filename, total_size, total_chunks]):
+        return JSONResponse({
+            'success': False, 'error': '缺少必要参数',
+            'received': {'filename': filename, 'total_size': total_size, 'total_chunks': total_chunks}
+        }, status_code=400)
+
+    processor = ChunkedUploadProcessor(current_user_obj.id)
+    result = await processor.init_upload(filename, total_size, total_chunks, file_hash, existing_upload_id, db)
+    return JSONResponse(result, status_code=200 if result.get('success') else 400)
 
 
 @router.post('/upload/chunked/chunk')
+@_catch
 async def chunked_upload_chunk(
         request: Request,
         current_user_obj=Depends(jwt_required),
@@ -268,6 +206,7 @@ async def chunked_upload_chunk(
 
 
 @router.post('/upload/chunked/complete')
+@_catch
 async def chunked_upload_complete(
         request: Request,
         current_user_obj=Depends(jwt_required),
@@ -285,6 +224,7 @@ async def chunked_upload_complete(
 
 
 @router.get('/upload/chunked/progress')
+@_catch
 async def chunked_upload_progress(
         request: Request,
         current_user_obj=Depends(jwt_required),
@@ -299,6 +239,7 @@ async def chunked_upload_progress(
 
 
 @router.get('/upload/chunked/chunks')
+@_catch
 async def chunked_upload_chunks(
         request: Request,
         current_user_obj=Depends(jwt_required),
@@ -313,6 +254,7 @@ async def chunked_upload_chunks(
 
 
 @router.post('/upload/chunked/cancel')
+@_catch
 async def chunked_upload_cancel(
         request: Request,
         current_user_obj=Depends(jwt_required),

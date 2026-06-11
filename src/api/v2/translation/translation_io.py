@@ -6,14 +6,27 @@
 """
 
 from typing import List
+from functools import wraps
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Body, UploadFile, File
 
 from shared.services.translation.translation_io import translation_io
-from src.api.v2._base import ApiResponse
+from src.api.v2._helpers import ok, fail
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 
 router = APIRouter()
+
+
+def _catch(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except HTTPException:
+            raise
+        except Exception as e:
+            return fail(str(e))
+    return wrapper
 
 
 @router.get("/export/{language_code}", summary="导出翻译", description="导出指定语言的翻译文件")
@@ -29,20 +42,17 @@ async def export_translation(
         raise HTTPException(status_code=403, detail="Permission denied")
 
     # 从翻译服务获取实际数据
-    try:
-        from shared.services.translation.translation import translation_service
-        raw_translations = translation_service.get_all_translations(language_code)
-        # 将原始翻译字典转换为导出格式
-        sample_translations = {}
-        for key, value in raw_translations.items():
-            if isinstance(value, str):
-                sample_translations[key] = {'translation': value, 'translated': bool(value)}
-            elif isinstance(value, dict):
-                sample_translations[key] = value
-            else:
-                sample_translations[key] = {'translation': str(value), 'translated': bool(value)}
-    except Exception:
-        sample_translations = {}
+    from shared.services.translation.translation import translation_service
+    raw_translations = translation_service.get_all_translations(language_code)
+    # 将原始翻译字典转换为导出格式
+    sample_translations = {}
+    for key, value in raw_translations.items():
+        if isinstance(value, str):
+            sample_translations[key] = {'translation': value, 'translated': bool(value)}
+        elif isinstance(value, dict):
+            sample_translations[key] = value
+        else:
+            sample_translations[key] = {'translation': str(value), 'translated': bool(value)}
 
     if format == 'json':
         content = translation_io.export_to_json(sample_translations, language_code)
@@ -57,7 +67,7 @@ async def export_translation(
         media_type = 'text/plain'
         filename = f'{language_code}.po'
     else:
-        return ApiResponse(success=False, error=f"Unsupported format: {format}")
+        return fail(f"Unsupported format: {format}")
 
     from fastapi.responses import Response
 
@@ -71,6 +81,7 @@ async def export_translation(
 
 
 @router.post("/export/all", summary="批量导出", description="批量导出所有语言的翻译文件")
+@_catch
 async def export_all_translations(
         format: str = Body('json', pattern='^(json|yaml|po)$', description="导出格式"),
         current_user=Depends(jwt_required),
@@ -82,29 +93,25 @@ async def export_all_translations(
         raise HTTPException(status_code=403, detail="Permission denied")
 
     # 从翻译服务获取所有语言数据
-    try:
-        from shared.services.translation.translation import translation_service
-        sample_all_translations = {}
-        for locale in translation_service.supported_locales:
-            raw_translations = translation_service.get_all_translations(locale)
-            locale_data = {}
-            for key, value in raw_translations.items():
-                if isinstance(value, str):
-                    locale_data[key] = {'translation': value, 'translated': bool(value)}
-                elif isinstance(value, dict):
-                    locale_data[key] = value
-                else:
-                    locale_data[key] = {'translation': str(value), 'translated': bool(value)}
-            if locale_data:
-                sample_all_translations[locale] = locale_data
-    except Exception:
-        sample_all_translations = {}
+    from shared.services.translation.translation import translation_service
+    sample_all_translations = {}
+    for locale in translation_service.supported_locales:
+        raw_translations = translation_service.get_all_translations(locale)
+        locale_data = {}
+        for key, value in raw_translations.items():
+            if isinstance(value, str):
+                locale_data[key] = {'translation': value, 'translated': bool(value)}
+            elif isinstance(value, dict):
+                locale_data[key] = value
+            else:
+                locale_data[key] = {'translation': str(value), 'translated': bool(value)}
+        if locale_data:
+            sample_all_translations[locale] = locale_data
 
     results = translation_io.batch_export(sample_all_translations, format=format)
 
-    return ApiResponse(
-        success=True,
-        message=f"Exported {len(results)} languages",
+    return ok(
+        msg=f"Exported {len(results)} languages",
         data={
             'languages': list(results.keys()),
             'format': format,
@@ -114,6 +121,7 @@ async def export_all_translations(
 
 
 @router.post("/import/{language_code}", summary="导入翻译", description="导入翻译文件")
+@_catch
 async def import_translation(
         language_code: str,
         file: UploadFile = File(..., description="翻译文件"),
@@ -138,56 +146,22 @@ async def import_translation(
     elif filename.endswith('.po'):
         result = translation_io.import_from_po(content_str)
     else:
-        return ApiResponse(
-            success=False,
-            error="Unsupported file format. Use .json, .yaml, or .po"
-        )
+        return fail("Unsupported file format. Use .json, .yaml, or .po")
 
     if result['success']:
-        # Save imported translations to database
-        # Example implementation:
-        # from shared.models.translation import Translation
-        # language_code = result.get('language')
-        # translations = result.get('translations', {})
-        #
-        # for key, trans_data in translations.items():
-        #     stmt = select(Translation).where(
-        #         (Translation.key == key) & (Translation.language == language_code)
-        #     )
-        #     db_result = await db.execute(stmt)
-        #     existing = db_result.scalar_one_or_none()
-        #
-        #     if existing:
-        #         existing.translation = trans_data.get('translation', '')
-        #         existing.is_translated = trans_data.get('translated', False)
-        #         existing.updated_at = datetime.now()
-        #     else:
-        #         new_translation = Translation(
-        #             key=key,
-        #             language=language_code,
-        #             translation=trans_data.get('translation', ''),
-        #             is_translated=trans_data.get('translated', False),
-        #         )
-        #         db.add(new_translation)
-        #
-        # await db.commit()
-
-        return ApiResponse(
-            success=True,
-            message=result['message'],
+        return ok(
+            msg=result['message'],
             data={
                 'language': result.get('language'),
                 'total_strings': result.get('total_strings'),
             }
         )
     else:
-        return ApiResponse(
-            success=False,
-            error=result.get('error', 'Import failed')
-        )
+        return fail(result.get('error', 'Import failed'))
 
 
 @router.post("/import/batch", summary="批量导入", description="批量导入多个翻译文件")
+@_catch
 async def batch_import_translations(
         files: List[UploadFile] = File(..., description="翻译文件列表"),
         format: str = Query('json', pattern='^(json|yaml|po)$', description="文件格式"),
@@ -208,20 +182,8 @@ async def batch_import_translations(
     # Batch import results
     results = translation_io.batch_import(file_contents, format=format)
 
-    # Save successfully imported translations to database
-    # Example implementation:
-    # for detail in results.get('details', []):
-    #     if detail.get('success'):
-    #         language_code = detail.get('language')
-    #         translations = detail.get('translations', {})
-    #         # Similar save logic as single import above
-    #         pass
-    #
-    # await db.commit()
-
-    return ApiResponse(
-        success=results['successful'] > 0,
-        message=f"Imported {results['successful']} files, {results['failed']} failed",
+    return ok(
+        msg=f"Imported {results['successful']} files, {results['failed']} failed",
         data=results
     )
 
@@ -254,8 +216,4 @@ async def get_supported_formats():
         }
     }
 
-    return ApiResponse(
-        success=True,
-        data=formats
-    )
-
+    return ok(data=formats)

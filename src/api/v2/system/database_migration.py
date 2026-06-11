@@ -2,19 +2,33 @@
 数据库 URL 替换 API
 用于网站迁移时批量替换数据库中的URL
 """
+from functools import wraps
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Request, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.services.system.database_url_replacer import database_url_replacer
-from src.api.v2._base import ApiResponse
+from src.api.v2._helpers import ok, fail
 from src.auth.auth_deps import admin_required as admin_required_api
-from src.utils.database.main import get_async_session as get_async_db
+from src.extensions import get_async_db_session as get_async_db
 
 router = APIRouter(tags=["Migration"])
 
 
+def _catch(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except HTTPException:
+            raise
+        except Exception as e:
+            return fail(str(e))
+    return wrapper
+
+
 @router.post("/url-replace/preview")
+@_catch
 async def preview_url_replace(
         request: Request,
         current_user=Depends(admin_required_api),
@@ -22,53 +36,35 @@ async def preview_url_replace(
 ):
     """
     预览URL替换（不实际执行）
-    
-    Body参数:
-        search: 搜索字符串
-        replace: 替换字符串
-        tables: 要处理的表列表（可选）
-        exclude_tables: 排除的表列表（可选）
-        use_regex: 是否使用正则表达式（默认false）
-        case_sensitive: 是否区分大小写（默认true）
     """
-    try:
-        body = await request.json()
-        search = body.get('search', '')
-        replace = body.get('replace', '')
-        tables = body.get('tables')
-        exclude_tables = body.get('exclude_tables')
-        use_regex = body.get('use_regex', False)
-        case_sensitive = body.get('case_sensitive', True)
+    body = await request.json()
+    search = body.get('search', '')
+    replace = body.get('replace', '')
+    tables = body.get('tables')
+    exclude_tables = body.get('exclude_tables')
+    use_regex = body.get('use_regex', False)
+    case_sensitive = body.get('case_sensitive', True)
 
-        if not search or not replace:
-            return ApiResponse(success=False, error='search和replace参数不能为空')
+    if not search or not replace:
+        return fail('search和replace参数不能为空')
 
-        # 执行预览
-        result = await database_url_replacer.search_replace(
-            db=db,
-            search=search,
-            replace=replace,
-            tables=tables,
-            exclude_tables=exclude_tables,
-            use_regex=use_regex,
-            dry_run=True,  # 预览模式
-            case_sensitive=case_sensitive
-        )
+    # 执行预览
+    result = await database_url_replacer.search_replace(
+        db=db,
+        search=search,
+        replace=replace,
+        tables=tables,
+        exclude_tables=exclude_tables,
+        use_regex=use_regex,
+        dry_run=True,
+        case_sensitive=case_sensitive
+    )
 
-        return ApiResponse(
-            success=result['success'],
-            data=result,
-            message=f"预览完成，将替换 {result.get('total_replacements', 0)} 处"
-        )
-
-    except Exception as e:
-        import traceback
-        print(f"Error in preview_url_replace: {str(e)}")
-        print(traceback.format_exc())
-        return ApiResponse(success=False, error=str(e))
+    return ok(data=result, msg=f"预览完成，将替换 {result.get('total_replacements', 0)} 处")
 
 
 @router.post("/url-replace/execute")
+@_catch
 async def execute_url_replace(
         request: Request,
         current_user=Depends(admin_required_api),
@@ -76,59 +72,38 @@ async def execute_url_replace(
 ):
     """
     执行URL替换
-    
-    Body参数:
-        search: 搜索字符串
-        replace: 替换字符串
-        tables: 要处理的表列表（可选）
-        exclude_tables: 排除的表列表（可选）
-        use_regex: 是否使用正则表达式（默认false）
-        case_sensitive: 是否区分大小写（默认true）
     """
-    try:
-        body = await request.json()
-        search = body.get('search', '')
-        replace = body.get('replace', '')
-        tables = body.get('tables')
-        exclude_tables = body.get('exclude_tables')
-        use_regex = body.get('use_regex', False)
-        case_sensitive = body.get('case_sensitive', True)
+    body = await request.json()
+    search = body.get('search', '')
+    replace = body.get('replace', '')
+    tables = body.get('tables')
+    exclude_tables = body.get('exclude_tables')
+    use_regex = body.get('use_regex', False)
+    case_sensitive = body.get('case_sensitive', True)
 
-        if not search or not replace:
-            return ApiResponse(success=False, error='search和replace参数不能为空')
+    if not search or not replace:
+        return fail('search和replace参数不能为空')
 
-        # 执行替换
-        result = await database_url_replacer.search_replace(
-            db=db,
-            search=search,
-            replace=replace,
-            tables=tables,
-            exclude_tables=exclude_tables,
-            use_regex=use_regex,
-            dry_run=False,  # 实际执行
-            case_sensitive=case_sensitive
-        )
+    # 执行替换
+    result = await database_url_replacer.search_replace(
+        db=db,
+        search=search,
+        replace=replace,
+        tables=tables,
+        exclude_tables=exclude_tables,
+        use_regex=use_regex,
+        dry_run=False,
+        case_sensitive=case_sensitive
+    )
 
-        if result['success']:
-            return ApiResponse(
-                success=True,
-                data=result,
-                message=f"成功替换 {result.get('total_replacements', 0)} 处"
-            )
-        else:
-            return ApiResponse(
-                success=False,
-                error=result.get('error', '替换失败')
-            )
-
-    except Exception as e:
-        import traceback
-        print(f"Error in execute_url_replace: {str(e)}")
-        print(traceback.format_exc())
-        return ApiResponse(success=False, error=str(e))
+    if result['success']:
+        return ok(data=result, msg=f"成功替换 {result.get('total_replacements', 0)} 处")
+    else:
+        return fail(result.get('error', '替换失败'))
 
 
 @router.post("/url-replace/validate")
+@_catch
 async def validate_url_replace(
         request: Request,
         current_user=Depends(admin_required_api),
@@ -136,42 +111,28 @@ async def validate_url_replace(
 ):
     """
     验证URL替换的正确性
-    
-    Body参数:
-        old_url: 旧URL
-        new_url: 新URL
-        sample_size: 采样数量（默认10）
     """
-    try:
-        body = await request.json()
-        old_url = body.get('old_url', '')
-        new_url = body.get('new_url', '')
-        sample_size = body.get('sample_size', 10)
+    body = await request.json()
+    old_url = body.get('old_url', '')
+    new_url = body.get('new_url', '')
+    sample_size = body.get('sample_size', 10)
 
-        if not old_url or not new_url:
-            return ApiResponse(success=False, error='old_url和new_url参数不能为空')
+    if not old_url or not new_url:
+        return fail('old_url和new_url参数不能为空')
 
-        # 执行验证
-        result = await database_url_replacer.validate_urls(
-            db=db,
-            old_url=old_url,
-            new_url=new_url,
-            sample_size=sample_size
-        )
+    # 执行验证
+    result = await database_url_replacer.validate_urls(
+        db=db,
+        old_url=old_url,
+        new_url=new_url,
+        sample_size=sample_size
+    )
 
-        return ApiResponse(
-            success=result['success'],
-            data=result
-        )
-
-    except Exception as e:
-        import traceback
-        print(f"Error in validate_url_replace: {str(e)}")
-        print(traceback.format_exc())
-        return ApiResponse(success=False, error=str(e))
+    return ok(data=result)
 
 
 @router.get("/url-replace/common-patterns")
+@_catch
 async def get_common_patterns(
         current_user=Depends(admin_required_api)
 ):
@@ -247,7 +208,4 @@ async def get_common_patterns(
         }
     }
 
-    return ApiResponse(
-        success=True,
-        data=patterns
-    )
+    return ok(data=patterns)

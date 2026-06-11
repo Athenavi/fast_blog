@@ -2,17 +2,34 @@
 API限流管理 API
 提供限流配置、监控和管理功能
 """
+import logging
+from functools import wraps
 from typing import Optional, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
 
 from shared.services.security.rate_limiter import rate_limiter
-from src.api.v2._base import ApiResponse
+from src.api.v2._helpers import ok, fail
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 
 router = APIRouter(tags=["rate-limit"])
+logger = logging.getLogger(__name__)
+
+
+def _catch(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except HTTPException:
+            raise
+        except Exception as e:
+            logger.error(f"[{func.__name__}] {e}")
+            return fail(str(e))
+    return wrapper
 
 
 @router.get("/status", summary="获取限流状态")
+@_catch
 async def get_rate_limit_status(
         user_id: Optional[int] = Query(None, description="用户ID"),
         ip_address: Optional[str] = Query(None, description="IP地址"),
@@ -28,32 +45,26 @@ async def get_rate_limit_status(
     Returns:
         限流状态信息
     """
-    try:
-        result = {}
+    result = {}
 
-        # 获取用户配额信息
-        if user_id:
-            quota_info = await rate_limiter.get_quota_info(user_id)
-            result['user_quota'] = quota_info
+    # 获取用户配额信息
+    if user_id:
+        quota_info = await rate_limiter.get_quota_info(user_id)
+        result['user_quota'] = quota_info
 
-        # 获取IP限流信息
-        if ip_address:
-            limited, info = await rate_limiter.check_ip_limit(ip_address)
-            result['ip_status'] = {
-                'limited': limited,
-                'info': info
-            }
+    # 获取IP限流信息
+    if ip_address:
+        limited, info = await rate_limiter.check_ip_limit(ip_address)
+        result['ip_status'] = {
+            'limited': limited,
+            'info': info
+        }
 
-        return ApiResponse(
-            success=True,
-            data=result
-        )
-
-    except Exception as e:
-        return ApiResponse(success=False, error=str(e))
+    return ok(data=result)
 
 
 @router.post("/config", summary="设置自定义限流配置")
+@_catch
 async def set_custom_rate_limit(
         identifier: str = Body(..., description="标识符（IP或用户ID）"),
         limit_type: str = Body(..., description="限流类型 (ip/user/endpoint)"),
@@ -73,36 +84,32 @@ async def set_custom_rate_limit(
     Returns:
         设置结果
     """
-    try:
-        # 验证参数
-        if limit_type not in ['ip', 'user', 'endpoint']:
-            return ApiResponse(success=False, error="Invalid limit_type. Must be 'ip', 'user', or 'endpoint'")
+    # 验证参数
+    if limit_type not in ['ip', 'user', 'endpoint']:
+        return fail("Invalid limit_type. Must be 'ip', 'user', or 'endpoint'")
 
-        if requests <= 0:
-            return ApiResponse(success=False, error="requests must be positive")
+    if requests <= 0:
+        return fail("requests must be positive")
 
-        if window <= 0:
-            return ApiResponse(success=False, error="window must be positive")
+    if window <= 0:
+        return fail("window must be positive")
 
-        # 设置自定义限流
-        await rate_limiter.set_custom_limit(identifier, limit_type, requests, window)
+    # 设置自定义限流
+    await rate_limiter.set_custom_limit(identifier, limit_type, requests, window)
 
-        return ApiResponse(
-            success=True,
-            message=f"Rate limit configured for {identifier}",
-            data={
-                'identifier': identifier,
-                'limit_type': limit_type,
-                'requests': requests,
-                'window': window
-            }
-        )
-
-    except Exception as e:
-        return ApiResponse(success=False, error=str(e))
+    return ok(
+        msg=f"Rate limit configured for {identifier}",
+        data={
+            'identifier': identifier,
+            'limit_type': limit_type,
+            'requests': requests,
+            'window': window
+        }
+    )
 
 
 @router.post("/reset", summary="重置限流计数器")
+@_catch
 async def reset_rate_limit(
         identifier: str = Body(..., description="标识符（IP或用户ID）"),
         limit_type: str = Body(..., description="限流类型 (ip/user)"),
@@ -118,22 +125,16 @@ async def reset_rate_limit(
     Returns:
         重置结果
     """
-    try:
-        if limit_type not in ['ip', 'user']:
-            return ApiResponse(success=False, error="Invalid limit_type. Must be 'ip' or 'user'")
+    if limit_type not in ['ip', 'user']:
+        return fail("Invalid limit_type. Must be 'ip' or 'user'")
 
-        await rate_limiter.reset_limit(identifier, limit_type)
+    await rate_limiter.reset_limit(identifier, limit_type)
 
-        return ApiResponse(
-            success=True,
-            message=f"Rate limit reset for {identifier}"
-        )
-
-    except Exception as e:
-        return ApiResponse(success=False, error=str(e))
+    return ok(msg=f"Rate limit reset for {identifier}")
 
 
 @router.get("/config/default", summary="获取默认限流配置")
+@_catch
 async def get_default_config(current_user=Depends(jwt_required)):
     """
     获取默认限流配置
@@ -141,24 +142,18 @@ async def get_default_config(current_user=Depends(jwt_required)):
     Returns:
         默认配置
     """
-    try:
-        config = {
-            'global': rate_limiter.default_limits['global'],
-            'ip': rate_limiter.default_limits['ip'],
-            'user': rate_limiter.default_limits['user'],
-            'endpoints': rate_limiter.default_limits['endpoint']
-        }
+    config = {
+        'global': rate_limiter.default_limits['global'],
+        'ip': rate_limiter.default_limits['ip'],
+        'user': rate_limiter.default_limits['user'],
+        'endpoints': rate_limiter.default_limits['endpoint']
+    }
 
-        return ApiResponse(
-            success=True,
-            data=config
-        )
-
-    except Exception as e:
-        return ApiResponse(success=False, error=str(e))
+    return ok(data=config)
 
 
 @router.post("/config/update", summary="更新默认限流配置")
+@_catch
 async def update_default_config(
         limit_type: str = Body(..., description="限流类型 (global/ip/user)"),
         requests: int = Body(..., description="最大请求数"),
@@ -176,37 +171,33 @@ async def update_default_config(
     Returns:
         更新结果
     """
-    try:
-        if limit_type not in ['global', 'ip', 'user']:
-            return ApiResponse(success=False, error="Invalid limit_type. Must be 'global', 'ip', or 'user'")
+    if limit_type not in ['global', 'ip', 'user']:
+        return fail("Invalid limit_type. Must be 'global', 'ip', or 'user'")
 
-        if requests <= 0:
-            return ApiResponse(success=False, error="requests must be positive")
+    if requests <= 0:
+        return fail("requests must be positive")
 
-        if window <= 0:
-            return ApiResponse(success=False, error="window must be positive")
+    if window <= 0:
+        return fail("window must be positive")
 
-        # 更新配置
-        rate_limiter.default_limits[limit_type] = {
+    # 更新配置
+    rate_limiter.default_limits[limit_type] = {
+        'requests': requests,
+        'window': window
+    }
+
+    return ok(
+        msg=f"Default rate limit updated for {limit_type}",
+        data={
+            'limit_type': limit_type,
             'requests': requests,
             'window': window
         }
-
-        return ApiResponse(
-            success=True,
-            message=f"Default rate limit updated for {limit_type}",
-            data={
-                'limit_type': limit_type,
-                'requests': requests,
-                'window': window
-            }
-        )
-
-    except Exception as e:
-        return ApiResponse(success=False, error=str(e))
+    )
 
 
 @router.get("/monitoring", summary="获取限流监控数据")
+@_catch
 async def get_monitoring_data(
         period: str = Query("1h", description="统计周期 (1h/24h/7d)"),
         current_user=Depends(jwt_required)
@@ -220,37 +211,31 @@ async def get_monitoring_data(
     Returns:
         监控数据
     """
-    try:
-        # 解析周期
-        period_map = {
-            '1h': {'hours': 1, 'label': '过去1小时'},
-            '24h': {'hours': 24, 'label': '过去24小时'},
-            '7d': {'hours': 168, 'label': '过去7天'}
-        }
+    # 解析周期
+    period_map = {
+        '1h': {'hours': 1, 'label': '过去1小时'},
+        '24h': {'hours': 24, 'label': '过去24小时'},
+        '7d': {'hours': 168, 'label': '过去7天'}
+    }
 
-        period_config = period_map.get(period, period_map['1h'])
+    period_config = period_map.get(period, period_map['1h'])
 
-        # 这里可以返回更详细的监控数据
-        # 在实际应用中，应该从数据库或Redis中获取统计数据
-        monitoring_data = {
-            'period': period_config['label'],
-            'total_requests': 0,  # 需要从存储中获取
-            'blocked_requests': 0,  # 被限流的请求数
-            'top_blocked_ips': [],  # 被限流最多的IP
-            'top_blocked_users': [],  # 被限流最多的用户
-            'average_response_time': 0,  # 平均响应时间
-        }
+    # 这里可以返回更详细的监控数据
+    # 在实际应用中，应该从数据库或Redis中获取统计数据
+    monitoring_data = {
+        'period': period_config['label'],
+        'total_requests': 0,  # 需要从存储中获取
+        'blocked_requests': 0,  # 被限流的请求数
+        'top_blocked_ips': [],  # 被限流最多的IP
+        'top_blocked_users': [],  # 被限流最多的用户
+        'average_response_time': 0,  # 平均响应时间
+    }
 
-        return ApiResponse(
-            success=True,
-            data=monitoring_data
-        )
-
-    except Exception as e:
-        return ApiResponse(success=False, error=str(e))
+    return ok(data=monitoring_data)
 
 
 @router.get("/whitelist", summary="获取白名单")
+@_catch
 async def get_whitelist(current_user=Depends(jwt_required)):
     """
     获取限流白名单
@@ -258,28 +243,22 @@ async def get_whitelist(current_user=Depends(jwt_required)):
     Returns:
         白名单列表
     """
-    try:
-        # 白名单可以从配置文件或数据库中读取
-        whitelist = {
-            'ips': [
-                # '127.0.0.1',
-                # '192.168.1.1'
-            ],
-            'users': [
-                # 管理员用户ID
-            ]
-        }
+    # 白名单可以从配置文件或数据库中读取
+    whitelist = {
+        'ips': [
+            # '127.0.0.1',
+            # '192.168.1.1'
+        ],
+        'users': [
+            # 管理员用户ID
+        ]
+    }
 
-        return ApiResponse(
-            success=True,
-            data=whitelist
-        )
-
-    except Exception as e:
-        return ApiResponse(success=False, error=str(e))
+    return ok(data=whitelist)
 
 
 @router.post("/whitelist/add", summary="添加到白名单")
+@_catch
 async def add_to_whitelist(
         item_type: str = Body(..., description="类型 (ip/user)"),
         value: str = Body(..., description="值（IP地址或用户ID）"),
@@ -295,27 +274,23 @@ async def add_to_whitelist(
     Returns:
         添加结果
     """
-    try:
-        if item_type not in ['ip', 'user']:
-            return ApiResponse(success=False, error="Invalid type. Must be 'ip' or 'user'")
+    if item_type not in ['ip', 'user']:
+        return fail("Invalid type. Must be 'ip' or 'user'")
 
-        # 在实际应用中，应该将白名单保存到数据库
-        # 这里只是示例
+    # 在实际应用中，应该将白名单保存到数据库
+    # 这里只是示例
 
-        return ApiResponse(
-            success=True,
-            message=f"Added {value} to whitelist",
-            data={
-                'type': item_type,
-                'value': value
-            }
-        )
-
-    except Exception as e:
-        return ApiResponse(success=False, error=str(e))
+    return ok(
+        msg=f"Added {value} to whitelist",
+        data={
+            'type': item_type,
+            'value': value
+        }
+    )
 
 
 @router.delete("/whitelist/remove", summary="从白名单移除")
+@_catch
 async def remove_from_whitelist(
         item_type: str = Body(..., description="类型 (ip/user)"),
         value: str = Body(..., description="值（IP地址或用户ID）"),
@@ -331,16 +306,9 @@ async def remove_from_whitelist(
     Returns:
         移除结果
     """
-    try:
-        if item_type not in ['ip', 'user']:
-            return ApiResponse(success=False, error="Invalid type. Must be 'ip' or 'user'")
+    if item_type not in ['ip', 'user']:
+        return fail("Invalid type. Must be 'ip' or 'user'")
 
-        # 在实际应用中，应该从数据库中删除白名单记录
+    # 在实际应用中，应该从数据库中删除白名单记录
 
-        return ApiResponse(
-            success=True,
-            message=f"Removed {value} from whitelist"
-        )
-
-    except Exception as e:
-        return ApiResponse(success=False, error=str(e))
+    return ok(msg=f"Removed {value} from whitelist")

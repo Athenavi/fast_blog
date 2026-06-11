@@ -3,6 +3,7 @@
 解决异步greenlet问题，提供稳定的首页数据服务
 """
 import re
+from functools import wraps
 from typing import Optional, Dict, Any
 
 from fastapi import APIRouter, Depends, Query, Request
@@ -13,10 +14,20 @@ from shared.models import SystemSettings
 from shared.models.article import Article
 from shared.models.category import Category
 from shared.models.user import User
-from src.api.v2._base import ApiResponse
+from src.api.v2._helpers import ok, fail
 from src.utils.database.main import get_async_session
 
 router = APIRouter(tags=["home"])
+
+
+def _catch(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except Exception as e:
+            return fail(str(e))
+    return wrapper
 
 
 async def send_subscription_confirmation_email(email: str):
@@ -76,6 +87,7 @@ async def send_subscription_confirmation_email(email: str):
 
 
 @router.get("/data")
+@_catch
 async def get_home_data(
         limit_featured: int = Query(4, description="特色文章数量"),
         limit_popular: int = Query(5, description="热门文章数量"),
@@ -87,137 +99,97 @@ async def get_home_data(
     获取首页数据（不含配置）
     使用简化查询避免 greenlet 错误
     """
-    try:
-        # 简化数据获取 - 逐一查询避免复杂并行查询
-        featured_articles = await _get_featured_articles(db, limit_featured)
-        recent_articles = await _get_recent_articles_simple(db, limit_recent)
-        popular_articles = await _get_popular_articles(db, limit_popular)
-        categories = await _get_categories(db, limit_categories)
-        stats = await _get_site_stats(db)
+    featured_articles = await _get_featured_articles(db, limit_featured)
+    recent_articles = await _get_recent_articles_simple(db, limit_recent)
+    popular_articles = await _get_popular_articles(db, limit_popular)
+    categories = await _get_categories(db, limit_categories)
+    stats = await _get_site_stats(db)
 
-        data = {
-            "featuredArticles": featured_articles,
-            "recentArticles": recent_articles,
-            "popularArticles": popular_articles,
-            "categories": categories,
-            "stats": stats
-        }
+    data = {
+        "featuredArticles": featured_articles,
+        "recentArticles": recent_articles,
+        "popularArticles": popular_articles,
+        "categories": categories,
+        "stats": stats
+    }
 
-        return ApiResponse(success=True, data=data)
-    except Exception as e:
-
-        from src.unified_logger import default_logger as logger
-        logger.error(f"获取首页数据失败：{str(e)}")
-        # 返回简化数据而不是错误
-        return ApiResponse(success=True, data={
-            "featuredArticles": [],
-            "recentArticles": [],
-            "popularArticles": [],
-            "categories": [],
-            "stats": {"totalArticles": 0, "totalUsers": 0, "totalViews": 0}
-        })
+    return ok(data=data)
 
 
 @router.get("/config")
+@_catch
 async def get_home_config(db: AsyncSession = Depends(get_async_session)):
     """
     获取首页配置信息
     使用 home_ 前缀键名与 AdminSettings 保持一致
     """
-    try:
-        # 定义需要的配置键（使用 home_ 前缀，与 AdminSettings 一致）
-        config_keys = [
-            'site_name',
-            'home_hero_title',
-            'home_hero_subtitle',
-            'home_hero_cta_text',
-            'home_hero_cta_link',
-            'home_cta_target',
-            'home_hero_background_image',
-            'home_featured_title',
-            'home_main_title',
-            'home_newsletter_title',
-            'home_newsletter_subtitle',
-            'home_newsletter_button_text',
-            'home_no_summary_msg',
-        ]
+    # 定义需要的配置键（使用 home_ 前缀，与 AdminSettings 一致）
+    config_keys = [
+        'site_name',
+        'home_hero_title',
+        'home_hero_subtitle',
+        'home_hero_cta_text',
+        'home_hero_cta_link',
+        'home_cta_target',
+        'home_hero_background_image',
+        'home_featured_title',
+        'home_main_title',
+        'home_newsletter_title',
+        'home_newsletter_subtitle',
+        'home_newsletter_button_text',
+        'home_no_summary_msg',
+    ]
 
-        # 简化查询 - 逐个获取配置项避免复杂批量查询
-        config_dict = {}
-        for key in config_keys:
-            try:
-                query = select(SystemSettings).where(SystemSettings.setting_key == key)
-                result = await db.execute(query)
-                item = result.scalar_one_or_none()
-                if item:
-                    config_dict[key] = item.setting_value
-            except Exception as key_error:
-                from src.unified_logger import default_logger as logger
-                logger.warning(f"获取配置项 {key} 失败：{str(key_error)}")
-                continue
+    # 简化查询 - 逐个获取配置项避免复杂批量查询
+    config_dict = {}
+    for key in config_keys:
+        try:
+            query = select(SystemSettings).where(SystemSettings.setting_key == key)
+            result = await db.execute(query)
+            item = result.scalar_one_or_none()
+            if item:
+                config_dict[key] = item.setting_value
+        except Exception as key_error:
+            from src.unified_logger import default_logger as logger
+            logger.warning(f"获取配置项 {key} 失败：{str(key_error)}")
+            continue
 
-        # 获取站点名称
-        site_name = config_dict.get('site_name')
-        if not site_name:
-            from src.setting import app_config
-            site_name = getattr(app_config, "sitename", "FastBlog")
+    # 获取站点名称
+    site_name = config_dict.get('site_name')
+    if not site_name:
+        from src.setting import app_config
+        site_name = getattr(app_config, "sitename", "FastBlog")
 
-        config = {
-            "hero": {
-                "title": config_dict.get('home_hero_title', f"用文字连接每一个想法"),
-                "subtitle": config_dict.get('home_hero_subtitle',
-                                            f"FastBlog 是一个现代化的内容创作平台，为创作者提供极致的写作体验，让灵感自由流动。"),
-                "backgroundImage": config_dict.get('home_hero_background_image', ""),
-                "ctaText": config_dict.get('home_hero_cta_text', "开始阅读"),
-                "ctaLink": config_dict.get('home_hero_cta_link', "/articles"),
-                "ctaTarget": config_dict.get('home_cta_target', "_self"),
-            },
-            "sections": {
-                "featuredTitle": config_dict.get('home_featured_title', "精选推荐"),
-                "mainTitle": config_dict.get('home_main_title', "最新发布"),
-                "categoriesTitle": "探索分类",
-            },
-            "newsletter": {
-                "title": config_dict.get('home_newsletter_title', "订阅更新"),
-                "subtitle": config_dict.get('home_newsletter_subtitle', "获取最新文章推送"),
-                "buttonText": config_dict.get('home_newsletter_button_text', "订阅"),
-            },
-            "messages": {
-                "noSummary": config_dict.get('home_no_summary_msg', "暂无摘要"),
-            }
+    config = {
+        "hero": {
+            "title": config_dict.get('home_hero_title', f"用文字连接每一个想法"),
+            "subtitle": config_dict.get('home_hero_subtitle',
+                                        f"FastBlog 是一个现代化的内容创作平台，为创作者提供极致的写作体验，让灵感自由流动。"),
+            "backgroundImage": config_dict.get('home_hero_background_image', ""),
+            "ctaText": config_dict.get('home_hero_cta_text', "开始阅读"),
+            "ctaLink": config_dict.get('home_hero_cta_link', "/articles"),
+            "ctaTarget": config_dict.get('home_cta_target', "_self"),
+        },
+        "sections": {
+            "featuredTitle": config_dict.get('home_featured_title', "精选推荐"),
+            "mainTitle": config_dict.get('home_main_title', "最新发布"),
+            "categoriesTitle": "探索分类",
+        },
+        "newsletter": {
+            "title": config_dict.get('home_newsletter_title', "订阅更新"),
+            "subtitle": config_dict.get('home_newsletter_subtitle', "获取最新文章推送"),
+            "buttonText": config_dict.get('home_newsletter_button_text', "订阅"),
+        },
+        "messages": {
+            "noSummary": config_dict.get('home_no_summary_msg', "暂无摘要"),
         }
+    }
 
-        return ApiResponse(success=True, data=config)
-    except Exception as e:
-
-        from src.unified_logger import default_logger as logger
-        logger.error(f"获取首页配置失败: {str(e)}")
-        return ApiResponse(success=True, data={
-            "hero": {
-                "title": "用文字连接每一个想法",
-                "subtitle": "FastBlog 是一个现代化的内容创作平台",
-                "backgroundImage": "",
-                "ctaText": "开始阅读",
-                "ctaLink": "/articles",
-                "ctaTarget": "_self",
-            },
-            "sections": {
-                "featuredTitle": "精选推荐",
-                "mainTitle": "最新发布",
-                "categoriesTitle": "探索分类",
-            },
-            "newsletter": {
-                "title": "订阅更新",
-                "subtitle": "获取最新文章推送",
-                "buttonText": "订阅",
-            },
-            "messages": {
-                "noSummary": "暂无摘要",
-            }
-        })
+    return ok(data=config)
 
 
 @router.get("/featured")
+@_catch
 async def get_featured_articles(
         limit: int = Query(4, description="返回文章数量"),
         db: AsyncSession = Depends(get_async_session)
@@ -225,14 +197,12 @@ async def get_featured_articles(
     """
     获取特色文章
     """
-    try:
-        articles = await _get_featured_articles(db, limit)
-        return ApiResponse(success=True, data=articles)
-    except Exception as e:
-        return ApiResponse(success=False, error=str(e))
+    articles = await _get_featured_articles(db, limit)
+    return ok(data=articles)
 
 
 @router.get("/articles")
+@_catch
 async def get_home_articles_api(
         request: Request,
         page: int = Query(1, ge=1),
@@ -243,61 +213,54 @@ async def get_home_articles_api(
     获取首页文章列表（分页）
     用于前端首页展示最新文章
     """
-    try:
-        # 构建查询 - 只获取已发布、非隐藏、非VIP的文章
-        query = select(Article).where(
-            Article.hidden == False,
-            Article.status == 1,
-            Article.is_vip_only == False
-        ).order_by(desc(Article.created_at))
+    # 构建查询 - 只获取已发布、非隐藏、非VIP的文章
+    query = select(Article).where(
+        Article.hidden == False,
+        Article.status == 1,
+        Article.is_vip_only == False
+    ).order_by(desc(Article.created_at))
 
-        # 获取总数
-        count_query = select(func.count(Article.id)).where(
-            Article.hidden == False,
-            Article.status == 1,
-            Article.is_vip_only == False
-        )
-        total_result = await db.execute(count_query)
-        total = total_result.scalar() or 0
+    # 获取总数
+    count_query = select(func.count(Article.id)).where(
+        Article.hidden == False,
+        Article.status == 1,
+        Article.is_vip_only == False
+    )
+    total_result = await db.execute(count_query)
+    total = total_result.scalar() or 0
 
-        # 分页
-        offset = (page - 1) * per_page
-        articles_result = await db.execute(query.offset(offset).limit(per_page))
-        articles = articles_result.scalars().unique().all()
+    # 分页
+    offset = (page - 1) * per_page
+    articles_result = await db.execute(query.offset(offset).limit(per_page))
+    articles = articles_result.scalars().unique().all()
 
-        # 批量加载分类信息（避免 N+1）
-        category_ids = [art.category for art in articles if art.category]
-        categories_dict = {}
-        if category_ids:
-            cat_query = select(Category).where(Category.id.in_(category_ids))
-            cat_result = await db.execute(cat_query)
-            for cat in cat_result.scalars().all():
-                categories_dict[cat.id] = cat
+    # 批量加载分类信息（避免 N+1）
+    category_ids = [art.category for art in articles if art.category]
+    categories_dict = {}
+    if category_ids:
+        cat_query = select(Category).where(Category.id.in_(category_ids))
+        cat_result = await db.execute(cat_query)
+        for cat in cat_result.scalars().all():
+            categories_dict[cat.id] = cat
 
-        # 格式化文章数据
-        articles_data = [_format_article_with_category(article, categories_dict) for article in articles]
+    # 格式化文章数据
+    articles_data = [_format_article_with_category(article, categories_dict) for article in articles]
 
-        return ApiResponse(
-            success=True,
-            data={
-                "data": articles_data,
-                "pagination": {
-                    "current_page": page,
-                    "per_page": per_page,
-                    "total": total,
-                    "total_pages": (total + per_page - 1) // per_page,
-                    "has_next": page < (total + per_page - 1) // per_page,
-                    "has_prev": page > 1
-                }
-            }
-        )
-    except Exception as e:
-        import traceback
-        print(f"Error in get_home_articles_api: {e}\n{traceback.format_exc()}")
-        return ApiResponse(success=False, error=str(e))
+    return ok(data={
+        "data": articles_data,
+        "pagination": {
+            "current_page": page,
+            "per_page": per_page,
+            "total": total,
+            "total_pages": (total + per_page - 1) // per_page,
+            "has_next": page < (total + per_page - 1) // per_page,
+            "has_prev": page > 1
+        }
+    })
 
 
 @router.get("/recent")
+@_catch
 async def get_recent_articles(
         page: int = Query(1, ge=1, description="页码"),
         per_page: int = Query(9, ge=1, le=50, description="每页数量"),
@@ -307,17 +270,15 @@ async def get_recent_articles(
     """
     获取最新文章（分页）- 别名接口，与 /articles 相同
     """
-    try:
-        articles, pagination = None, None
-        return ApiResponse(success=True, data={
-            "articles": articles,
-            "pagination": pagination
-        })
-    except Exception as e:
-        return ApiResponse(success=False, error=str(e))
+    articles, pagination = None, None
+    return ok(data={
+        "articles": articles,
+        "pagination": pagination
+    })
 
 
 @router.get("/popular")
+@_catch
 async def get_popular_articles(
         limit: int = Query(5, description="返回文章数量"),
         days: int = Query(30, description="统计天数"),
@@ -326,14 +287,12 @@ async def get_popular_articles(
     """
     获取热门文章（按浏览量排序）
     """
-    try:
-        articles = await _get_popular_articles(db, limit, days)
-        return ApiResponse(success=True, data=articles)
-    except Exception as e:
-        return ApiResponse(success=False, error=str(e))
+    articles = await _get_popular_articles(db, limit, days)
+    return ok(data=articles)
 
 
 @router.get("/categories")
+@_catch
 async def get_home_categories(
         limit: int = Query(8, description="返回分类数量"),
         db: AsyncSession = Depends(get_async_session)
@@ -341,73 +300,53 @@ async def get_home_categories(
     """
     获取首页显示的分类
     """
-    try:
-        categories = await _get_categories(db, limit)
-        return ApiResponse(success=True, data=categories)
-    except Exception as e:
-        return ApiResponse(success=False, error=str(e))
+    categories = await _get_categories(db, limit)
+    return ok(data=categories)
 
 
 @router.get("/stats")
+@_catch
 async def get_home_stats(db: AsyncSession = Depends(get_async_session)):
     """
     获取网站统计数据
     """
-    try:
-        stats = await _get_site_stats(db)
-        return ApiResponse(success=True, data=stats)
-    except Exception as e:
-        return ApiResponse(success=False, error=str(e))
+    stats = await _get_site_stats(db)
+    return ok(data=stats)
 
 
 @router.get("/menus")
+@_catch
 async def get_home_menus(request: Request = None):
     """
     获取首页菜单配置
     从数据库获取所有已激活的菜单及其菜单项
     """
-    try:
-        from src.utils.database.main import get_async_session as get_async_db_session
-        from src.utils.menu_builder import get_all_menus_with_items_async
+    from src.utils.database.main import get_async_session as get_async_db_session
+    from src.utils.menu_builder import get_all_menus_with_items_async
 
-        # 获取数据库会话
-        async for db in get_async_db_session():
-            try:
-                menus_dict = await get_all_menus_with_items_async(db)
+    # 获取数据库会话
+    async for db in get_async_db_session():
+        try:
+            menus_dict = await get_all_menus_with_items_async(db)
 
-                # 将字典转为列表格式，方便前端使用
-                menus_list = []
-                for menu_id, menu_data in menus_dict.items():
-                    menus_list.append({
-                        "id": menu_data['id'],
-                        "name": menu_data['name'],
-                        "slug": menu_data['slug'],
-                        "description": menu_data.get('description', ''),
-                        "items": menu_data.get('items', [])
-                    })
+            # 将字典转为列表格式，方便前端使用
+            menus_list = []
+            for menu_id, menu_data in menus_dict.items():
+                menus_list.append({
+                    "id": menu_data['id'],
+                    "name": menu_data['name'],
+                    "slug": menu_data['slug'],
+                    "description": menu_data.get('description', ''),
+                    "items": menu_data.get('items', [])
+                })
 
-                return ApiResponse(success=True, data={"menus": menus_list})
-            finally:
-                await db.close()
-    except Exception as e:
-        import traceback
-        print(f"Error in get_home_menus: {str(e)}")
-        print(traceback.format_exc())
-        # 出错时返回默认菜单
-        from src.utils.menu_builder import get_default_menu
-        default_items = get_default_menu()
-        return ApiResponse(success=True, data={
-            "menus": [{
-                "id": 0,
-                "name": "默认菜单",
-                "slug": "default",
-                "description": "系统默认菜单",
-                "items": default_items
-            }]
-        })
+            return ok(data={"menus": menus_list})
+        finally:
+            await db.close()
 
 
 @router.get("/search")
+@_catch
 async def search_home_articles(
         q: str = Query(..., description="搜索关键词"),
         page: int = Query(1, ge=1, description="页码"),
@@ -417,74 +356,68 @@ async def search_home_articles(
     """
     首页文章搜索 - 使用批量查询优化
     """
-    try:
-        # 构建搜索查询
-        query = select(Article).where(
-            Article.status == 1,
-            Article.hidden == False,
-            Article.is_vip_only == False
+    # 构建搜索查询
+    query = select(Article).where(
+        Article.status == 1,
+        Article.hidden == False,
+        Article.is_vip_only == False
+    )
+
+    # 添加搜索条件
+    if q:
+        query = query.where(
+            Article.title.contains(q) |
+            Article.excerpt.contains(q)
         )
 
-        # 添加搜索条件
-        if q:
-            query = query.where(
-                Article.title.contains(q) |
-                Article.excerpt.contains(q)
-            )
+    # 分页
+    offset = (page - 1) * per_page
+    articles_result = await db.execute(
+        query.order_by(desc(Article.created_at))
+        .offset(offset)
+        .limit(per_page)
+    )
+    articles = articles_result.scalars().all()
 
-        # 分页
-        offset = (page - 1) * per_page
-        articles_result = await db.execute(
-            query.order_by(desc(Article.created_at))
-            .offset(offset)
-            .limit(per_page)
+    # 批量加载分类信息（避免 N+1）
+    category_ids = [art.category_id for art in articles if art.category_id]
+    categories_dict = {}
+    if category_ids:
+        cat_query = select(Category).where(Category.id.in_(category_ids))
+        cat_result = await db.execute(cat_query)
+        for cat in cat_result.scalars().all():
+            categories_dict[cat.id] = cat
+
+    # 获取总数
+    count_query = select(func.count(Article.id)).where(
+        Article.status == 1,
+        Article.hidden == False,
+        Article.is_vip_only == False
+    )
+    if q:
+        count_query = count_query.where(
+            Article.title.contains(q) |
+            Article.excerpt.contains(q)
         )
-        articles = articles_result.scalars().all()
+    total_result = await db.execute(count_query)
+    total = total_result.scalar()
 
-        # 批量加载分类信息（避免 N+1）
-        category_ids = [art.category_id for art in articles if art.category_id]
-        categories_dict = {}
-        if category_ids:
-            cat_query = select(Category).where(Category.id.in_(category_ids))
-            cat_result = await db.execute(cat_query)
-            for cat in cat_result.scalars().all():
-                categories_dict[cat.id] = cat
+    # 格式化文章数据
+    articles_data = [_format_article_with_category(article, categories_dict) for article in articles]
 
-        # 获取总数
-        count_query = select(func.count(Article.id)).where(
-            Article.status == 1,
-            Article.hidden == False,
-            Article.is_vip_only == False
-        )
-        if q:
-            count_query = count_query.where(
-                Article.title.contains(q) |
-                Article.excerpt.contains(q)
-            )
-        total_result = await db.execute(count_query)
-        total = total_result.scalar()
+    pagination = {
+        "current_page": page,
+        "per_page": per_page,
+        "total": total or 0,
+        "total_pages": (total + per_page - 1) // per_page if total else 1,
+        "has_next": page < ((total + per_page - 1) // per_page if total else 1),
+        "has_prev": page > 1
+    }
 
-        # 格式化文章数据
-        articles_data = [_format_article_with_category(article, categories_dict) for article in articles]
-
-        pagination = {
-            "current_page": page,
-            "per_page": per_page,
-            "total": total or 0,
-            "total_pages": (total + per_page - 1) // per_page if total else 1,
-            "has_next": page < ((total + per_page - 1) // per_page if total else 1),
-            "has_prev": page > 1
-        }
-
-        return ApiResponse(success=True, data={
-            "articles": articles_data,
-            "pagination": pagination
-        })
-    except Exception as e:
-
-        from src.unified_logger import default_logger as logger
-        logger.error(f"搜索接口错误：{str(e)}")
-        return ApiResponse(success=False, error="搜索服务暂时不可用")
+    return ok(data={
+        "articles": articles_data,
+        "pagination": pagination
+    })
 
 
 # 简化版辅助函数

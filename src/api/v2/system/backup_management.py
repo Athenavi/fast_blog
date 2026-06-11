@@ -4,17 +4,31 @@
 """
 import os
 import asyncio
+from functools import wraps
 from typing import Optional
 
-from fastapi import APIRouter, Depends, BackgroundTasks
+from fastapi import APIRouter, Depends, BackgroundTasks, HTTPException
 from fastapi.responses import FileResponse
 
 from shared.models.user import User
 from shared.services.system.backup_service import BackupService
-from src.api.v2._base import ApiResponse
+from src.api.v2._helpers import ok, fail
 from src.auth import jwt_required_dependency as jwt_required
 
 router = APIRouter(prefix="/backup", tags=["Backup Management"])
+
+
+def _catch(func):
+    @wraps(func)
+    async def wrapper(*args, **kwargs):
+        try:
+            return await func(*args, **kwargs)
+        except HTTPException:
+            raise
+        except Exception as e:
+            return fail(str(e))
+    return wrapper
+
 
 # 初始化备份服务
 backup_service = BackupService()
@@ -24,6 +38,7 @@ _backup_lock = asyncio.Lock()
 
 
 @router.post("/database", summary="备份数据库")
+@_catch
 async def backup_database(
         background_tasks: BackgroundTasks,
         backup_type: str = 'full',
@@ -39,34 +54,19 @@ async def backup_database(
     """
     # 检查权限（需要管理员权限）
     if not current_user.is_superuser:
-        return ApiResponse(
-            success=False,
-            error="需要管理员权限"
-        )
+        return fail("需要管理员权限")
 
     async with _backup_lock:
-        try:
-            result = await backup_service.backup_database(backup_type=backup_type)
+        result = await backup_service.backup_database(backup_type=backup_type)
 
-            if result['success']:
-                return ApiResponse(
-                    success=True,
-                    data=result['metadata'],
-                    message=f"数据库备份成功: {result['metadata']['size_human']}"
-                )
-            else:
-                return ApiResponse(
-                    success=False,
-                    error=result.get('error', '备份失败')
-                )
-        except Exception as e:
-            return ApiResponse(
-                success=False,
-                error=f"备份失败: {str(e)}"
-            )
+        if result['success']:
+            return ok(data=result['metadata'], msg=f"数据库备份成功: {result['metadata']['size_human']}")
+        else:
+            return fail(result.get('error', '备份失败'))
 
 
 @router.post("/files", summary="备份文件")
+@_catch
 async def backup_files(
         background_tasks: BackgroundTasks,
         current_user: User = Depends(jwt_required)
@@ -83,41 +83,22 @@ async def backup_files(
     """
     # 检查权限
     if not current_user.is_superuser:
-        return ApiResponse(
-            success=False,
-            error="需要管理员权限"
-        )
+        return fail("需要管理员权限")
 
     async with _backup_lock:
-        try:
-            result = await backup_service.backup_files()
+        result = await backup_service.backup_files()
 
-            if result['success']:
-                if result.get('backup_path'):
-                    return ApiResponse(
-                        success=True,
-                        data=result.get('metadata', {}),
-                        message=f"文件备份成功: {result['metadata'].get('size_human', 'N/A')}"
-                    )
-                else:
-                    return ApiResponse(
-                        success=True,
-                        data={},
-                        message="没有需要备份的文件"
-                    )
+        if result['success']:
+            if result.get('backup_path'):
+                return ok(data=result.get('metadata', {}), msg=f"文件备份成功: {result['metadata'].get('size_human', 'N/A')}")
             else:
-                return ApiResponse(
-                    success=False,
-                    error=result.get('error', '备份失败')
-                )
-        except Exception as e:
-            return ApiResponse(
-                success=False,
-                error=f"备份失败: {str(e)}"
-            )
+                return ok(data={}, msg="没有需要备份的文件")
+        else:
+            return fail(result.get('error', '备份失败'))
 
 
 @router.post("/full", summary="完整备份")
+@_catch
 async def backup_full(
         background_tasks: BackgroundTasks,
         current_user: User = Depends(jwt_required)
@@ -129,34 +110,19 @@ async def backup_full(
     """
     # 检查权限
     if not current_user.is_superuser:
-        return ApiResponse(
-            success=False,
-            error="需要管理员权限"
-        )
+        return fail("需要管理员权限")
 
     async with _backup_lock:
-        try:
-            result = await backup_service.backup_full()
+        result = await backup_service.backup_full()
 
-            if result['success']:
-                return ApiResponse(
-                    success=True,
-                    data=result.get('metadata', {}),
-                    message="完整备份成功"
-                )
-            else:
-                return ApiResponse(
-                    success=False,
-                    error=result.get('error', '备份失败')
-                )
-        except Exception as e:
-            return ApiResponse(
-                success=False,
-                error=f"备份失败: {str(e)}"
-            )
+        if result['success']:
+            return ok(data=result.get('metadata', {}), msg="完整备份成功")
+        else:
+            return fail(result.get('error', '备份失败'))
 
 
 @router.get("/list", summary="列出所有备份")
+@_catch
 async def list_backups(
         backup_type: Optional[str] = None,
         page: int = 1,
@@ -173,37 +139,28 @@ async def list_backups(
     
     返回备份列表，按时间倒序排列
     """
-    try:
-        all_backups = backup_service.list_backups(backup_type=backup_type, limit=0)
-        total = len(all_backups)
-        total_pages = max(1, (total + per_page - 1) // per_page)
-        start = (page - 1) * per_page
-        backups = all_backups[start:start + per_page]
+    all_backups = backup_service.list_backups(backup_type=backup_type, limit=0)
+    total = len(all_backups)
+    total_pages = max(1, (total + per_page - 1) // per_page)
+    start = (page - 1) * per_page
+    backups = all_backups[start:start + per_page]
 
-        return ApiResponse(
-            success=True,
-            data={
-                'backups': backups,
-                'total': total,
-                'page': page,
-                'per_page': per_page,
-                'total_pages': total_pages,
-                'backup_types': {
-                    'database': sum(1 for b in backups if b.get('type') == 'database'),
-                    'files': sum(1 for b in backups if b.get('type') == 'files'),
-                    'full': sum(1 for b in backups if b.get('type') == 'full'),
-                }
-            }
-        )
-
-    except Exception as e:
-        return ApiResponse(
-            success=False,
-            error=f"获取备份列表失败: {str(e)}"
-        )
+    return ok(data={
+        'backups': backups,
+        'total': total,
+        'page': page,
+        'per_page': per_page,
+        'total_pages': total_pages,
+        'backup_types': {
+            'database': sum(1 for b in backups if b.get('type') == 'database'),
+            'files': sum(1 for b in backups if b.get('type') == 'files'),
+            'full': sum(1 for b in backups if b.get('type') == 'full'),
+        }
+    })
 
 
 @router.post("/restore", summary="恢复备份")
+@_catch
 async def restore_backup(
         backup_file: str,
         backup_type: str = 'database',
@@ -220,44 +177,25 @@ async def restore_backup(
     """
     # 检查权限
     if not current_user.is_superuser:
-        return ApiResponse(
-            success=False,
-            error="需要管理员权限"
-        )
+        return fail("需要管理员权限")
 
-    try:
-        if backup_type == 'database':
-            result = await backup_service.restore_database(backup_file)
-            message = "数据库恢复成功"
-        elif backup_type == 'files':
-            result = await backup_service.restore_files(backup_file)
-            message = "文件恢复成功"
-        else:
-            return ApiResponse(
-                success=False,
-                error=f"不支持的恢复类型: {backup_type}"
-            )
+    if backup_type == 'database':
+        result = await backup_service.restore_database(backup_file)
+        message = "数据库恢复成功"
+    elif backup_type == 'files':
+        result = await backup_service.restore_files(backup_file)
+        message = "文件恢复成功"
+    else:
+        return fail(f"不支持的恢复类型: {backup_type}")
 
-        if result['success']:
-            return ApiResponse(
-                success=True,
-                data=result.get('metadata', {}),
-                message=message
-            )
-        else:
-            return ApiResponse(
-                success=False,
-                error=result.get('error', '恢复失败')
-            )
-
-    except Exception as e:
-        return ApiResponse(
-            success=False,
-            error=f"恢复失败: {str(e)}"
-        )
+    if result['success']:
+        return ok(data=result.get('metadata', {}), msg=message)
+    else:
+        return fail(result.get('error', '恢复失败'))
 
 
 @router.delete("/{backup_id}", summary="删除备份")
+@_catch
 async def delete_backup(
         backup_id: str,
         current_user: User = Depends(jwt_required)
@@ -270,33 +208,18 @@ async def delete_backup(
     """
     # 检查权限
     if not current_user.is_superuser:
-        return ApiResponse(
-            success=False,
-            error="需要管理员权限"
-        )
+        return fail("需要管理员权限")
 
-    try:
-        result = backup_service.delete_backup(backup_id)
+    result = backup_service.delete_backup(backup_id)
 
-        if result['success']:
-            return ApiResponse(
-                success=True,
-                message="备份删除成功"
-            )
-        else:
-            return ApiResponse(
-                success=False,
-                error=result.get('error', '删除失败')
-            )
-
-    except Exception as e:
-        return ApiResponse(
-            success=False,
-            error=f"删除失败: {str(e)}"
-        )
+    if result['success']:
+        return ok(msg="备份删除成功")
+    else:
+        return fail(result.get('error', '删除失败'))
 
 
 @router.get("/schedule", summary="获取备份计划")
+@_catch
 async def get_backup_schedule(
         current_user: User = Depends(jwt_required)
 ):
@@ -305,22 +228,13 @@ async def get_backup_schedule(
     
     返回当前的备份计划和设置
     """
-    try:
-        schedule = backup_service.get_backup_schedule()
+    schedule = backup_service.get_backup_schedule()
 
-        return ApiResponse(
-            success=True,
-            data=schedule
-        )
-
-    except Exception as e:
-        return ApiResponse(
-            success=False,
-            error=f"获取备份计划失败: {str(e)}"
-        )
+    return ok(data=schedule)
 
 
 @router.post("/schedule", summary="更新备份计划")
+@_catch
 async def update_backup_schedule(
         auto_backup_enabled: bool,
         auto_backup_schedule: str = 'daily',
@@ -339,35 +253,22 @@ async def update_backup_schedule(
     """
     # 检查权限
     if not current_user.is_superuser:
-        return ApiResponse(
-            success=False,
-            error="需要管理员权限"
-        )
+        return fail("需要管理员权限")
 
-    try:
-        config = {
-            'auto_backup_enabled': auto_backup_enabled,
-            'auto_backup_schedule': auto_backup_schedule,
-            'retention_days': retention_days,
-            'compress_backups': compress_backups,
-        }
+    config = {
+        'auto_backup_enabled': auto_backup_enabled,
+        'auto_backup_schedule': auto_backup_schedule,
+        'retention_days': retention_days,
+        'compress_backups': compress_backups,
+    }
 
-        backup_service.update_backup_schedule(config)
+    backup_service.update_backup_schedule(config)
 
-        return ApiResponse(
-            success=True,
-            data=config,
-            message="备份计划更新成功"
-        )
-
-    except Exception as e:
-        return ApiResponse(
-            success=False,
-            error=f"更新备份计划失败: {str(e)}"
-        )
+    return ok(data=config, msg="备份计划更新成功")
 
 
 @router.get("/stats", summary="获取备份统计")
+@_catch
 async def get_backup_stats(
         current_user: User = Depends(jwt_required)
 ):
@@ -376,29 +277,20 @@ async def get_backup_stats(
     
     返回备份总数、总大小、最新备份时间等
     """
-    try:
-        stats = backup_service.get_backup_stats()
+    stats = backup_service.get_backup_stats()
 
-        return ApiResponse(
-            success=True,
-            data=stats
-        )
-
-    except Exception as e:
-        return ApiResponse(
-            success=False,
-            error=f"获取统计信息失败: {str(e)}"
-        )
+    return ok(data=stats)
 
 
 @router.get("/download/{filename:path}", summary="下载备份文件")
+@_catch
 async def download_backup(
         filename: str,
         current_user: User = Depends(jwt_required)
 ):
     """下载指定的备份文件"""
     if not current_user.is_superuser:
-        return ApiResponse(success=False, error="需要管理员权限")
+        return fail("需要管理员权限")
 
     # 在所有备份目录中查找文件
     for base_dir in [backup_service.database_backup_dir,
@@ -410,17 +302,17 @@ async def download_backup(
         # 完整备份是目录，尝试查找内部的 meta / db / files
         dirpath = os.path.join(base_dir, filename)
         if os.path.isdir(dirpath):
-            # 返回目录打包下载太复杂，返回目录内的 database 备份或提示
             for fname in os.listdir(dirpath):
                 fpath = os.path.join(dirpath, fname)
                 if os.path.isfile(fpath) and (fname.endswith('.gz') or fname.endswith('.sql') or fname.endswith('.tar.gz')):
                     return FileResponse(fpath, filename=fname)
-            return ApiResponse(success=False, error="备份目录中没有可下载的文件")
+            return fail("备份目录中没有可下载的文件")
 
-    return ApiResponse(success=False, error="备份文件不存在")
+    return fail("备份文件不存在")
 
 
 @router.post("/cleanup", summary="清理过期备份")
+@_catch
 async def cleanup_old_backups(
         days_to_keep: Optional[int] = None,
         current_user: User = Depends(jwt_required)
@@ -435,27 +327,16 @@ async def cleanup_old_backups(
     """
     # 检查权限
     if not current_user.is_superuser:
-        return ApiResponse(
-            success=False,
-            error="需要管理员权限"
-        )
+        return fail("需要管理员权限")
 
-    try:
-        result = backup_service.cleanup_old_backups(days_to_keep=days_to_keep)
+    result = backup_service.cleanup_old_backups(days_to_keep=days_to_keep)
 
-        return ApiResponse(
-            success=True,
-            data={
-                'deleted_count': result.get('deleted_count', 0),
-                'freed_space': result.get('freed_space', 0),
-                'freed_space_human': result.get('freed_space_human', '0 B'),
-                'deleted_backups': result.get('deleted_backups', [])
-            },
-            message=f"清理完成，删除 {result.get('deleted_count', 0)} 个备份文件"
-        )
-
-    except Exception as e:
-        return ApiResponse(
-            success=False,
-            error=f"清理失败: {str(e)}"
-        )
+    return ok(
+        data={
+            'deleted_count': result.get('deleted_count', 0),
+            'freed_space': result.get('freed_space', 0),
+            'freed_space_human': result.get('freed_space_human', '0 B'),
+            'deleted_backups': result.get('deleted_backups', [])
+        },
+        msg=f"清理完成，删除 {result.get('deleted_count', 0)} 个备份文件"
+    )
