@@ -152,7 +152,7 @@ export const DASHBOARD = {
   MEDIA_MGMT_FILES: '/api/v2/dashboard/media-management/files',
   MEDIA_MGMT_UPLOAD_TASKS: '/api/v2/dashboard/media-management/upload-tasks',
   ACTIVITIES: '/dashboard/activities',
-  VIP_MANAGEMENT: '/dashboard/vip-management',
+  VIP_MANAGEMENT: '/dashboard/blog-management/vip',
   VIP_FEATURES: '/dashboard/vip/features',
   VIP_PLANS: '/dashboard/vip/plans',
   MY_ARTICLES: '/dashboard/my/articles',

@@ -439,27 +439,28 @@ async def get_vip_management_data(
     )
     monthly_new = monthly_result.scalar() or 0
 
-    # 查询所有订阅
+    # 查询所有订阅（含用户和套餐信息）
     subscriptions_query = (
-        select(VIPSubscription)
+        select(VIPSubscription, User, VIPPlan)
+        .join(User, VIPSubscription.user == User.id, isouter=True)
         .join(VIPPlan, VIPSubscription.plan == VIPPlan.id, isouter=True)
     )
     subscriptions_result = await db.execute(subscriptions_query)
-    subscriptions = subscriptions_result.scalars().all()
+    rows = subscriptions_result.all()
 
     monthly_revenue = 0.0
     members_data = []
-    for sub in subscriptions:
+    for sub, user_obj, plan_obj in rows:
         amt = float(sub.payment_amount) if sub.payment_amount else 0.0
         if sub.created_at and sub.created_at >= month_ago:
             monthly_revenue += amt
         is_active = bool(sub.status == 1 and sub.expires_at and sub.expires_at > now)
-        username = sub.user.username if sub.user else "Unknown"
-        plan_name = sub.plan.name if sub.plan else "Unknown"
-        level = sub.plan.level if sub.plan else 0
+        username = user_obj.username if user_obj else "Unknown"
+        plan_name = plan_obj.name if plan_obj else "Unknown"
+        level = plan_obj.level if plan_obj else 0
         members_data.append({
             "id": sub.id,
-            "user_id": sub.user_id,
+            "user_id": sub.user,  # FK 列名是 user
             "username": username,
             "plan_name": plan_name,
             "level": level,
