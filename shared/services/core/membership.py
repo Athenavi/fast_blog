@@ -37,9 +37,9 @@ class MembershipService:
         # 查询当前有效的订阅
         now = datetime.now()
         stmt = select(VIPSubscription).join(
-            VIPPlan, VIPSubscription.plan_id == VIPPlan.id
+            VIPPlan, VIPSubscription.plan == VIPPlan.id
         ).where(
-            VIPSubscription.user_id == user_id,
+            VIPSubscription.user == user_id,
             VIPSubscription.status == 1,
             VIPSubscription.expires_at > now
         ).order_by(
@@ -146,8 +146,8 @@ class MembershipService:
         expires_at = now + timedelta(days=plan.duration_days)
 
         subscription = VIPSubscription(
-            user_id=user_id,
-            plan_id=plan_id,
+            user=user_id,
+            plan=plan_id,
             starts_at=now,
             expires_at=expires_at,
             status=1,
@@ -186,7 +186,7 @@ class MembershipService:
         if not subscription:
             return {'success': False, 'message': '订阅不存在'}
 
-        if subscription.user_id != user_id:
+        if subscription.user != user_id:
             return {'success': False, 'message': '无权操作此订阅'}
 
         subscription.status = 0
@@ -246,9 +246,9 @@ class MembershipService:
         from sqlalchemy import select
 
         stmt = select(VIPSubscription).join(
-            VIPPlan, VIPSubscription.plan_id == VIPPlan.id
+            VIPPlan, VIPSubscription.plan == VIPPlan.id
         ).where(
-            VIPSubscription.user_id == user_id
+            VIPSubscription.user == user_id
         ).order_by(
             VIPSubscription.created_at.desc()
         )

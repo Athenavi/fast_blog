@@ -614,15 +614,15 @@ async def admin_create_vip_plan(
     db: AsyncSession = Depends(get_async_db)
 ):
     """创建 VIP 套餐"""
-    form = await request.form()
+    body = await request.json()
     plan = VIPPlan(
-        name=form.get('name'),
-        description=form.get('description', ''),
-        price=float(form.get('price', 0)),
-        original_price=float(form.get('original_price', 0)) if form.get('original_price') else None,
-        duration_days=int(form.get('duration_days', 30)),
-        level=int(form.get('level', 1)),
-        features=form.get('features', '[]'),
+        name=body.get('name'),
+        description=body.get('description', ''),
+        price=float(body.get('price', 0)),
+        original_price=float(body.get('original_price', 0)) if body.get('original_price') else None,
+        duration_days=int(body.get('duration_days', 30)),
+        level=int(body.get('level', 1)),
+        features=body.get('features', '[]'),
     )
     db.add(plan)
     await db.commit()
@@ -644,17 +644,17 @@ async def admin_update_vip_plan(
     if not plan:
         return fail("套餐不存在")
 
-    form = await request.form()
-    plan.name = form.get('name', plan.name)
-    plan.description = form.get('description', plan.description)
-    plan.price = float(form.get('price', plan.price))
-    plan.original_price = float(form.get('original_price', plan.original_price)) if form.get('original_price') else plan.original_price
-    plan.duration_days = int(form.get('duration_days', plan.duration_days))
-    plan.level = int(form.get('level', plan.level))
-    plan.features = form.get('features', plan.features)
-    is_active = form.get('is_active')
+    body = await request.json()
+    plan.name = body.get('name', plan.name)
+    plan.description = body.get('description', plan.description)
+    plan.price = float(body.get('price', plan.price))
+    plan.original_price = float(body.get('original_price', plan.original_price)) if body.get('original_price') else plan.original_price
+    plan.duration_days = int(body.get('duration_days', plan.duration_days))
+    plan.level = int(body.get('level', plan.level))
+    plan.features = body.get('features', plan.features)
+    is_active = body.get('is_active')
     if is_active is not None:
-        plan.is_active = is_active in ('1', 'true', 'True', True)
+        plan.is_active = bool(is_active) if isinstance(is_active, (bool, int)) else str(is_active) in ('1', 'true', 'True')
     await db.commit()
     await db.refresh(plan)
     return ok(data=plan.to_dict())
@@ -687,12 +687,12 @@ async def admin_create_vip_feature(
     db: AsyncSession = Depends(get_async_db)
 ):
     """创建 VIP 功能"""
-    form = await request.form()
+    body = await request.json()
     feature = VIPFeature(
-        code=form.get('code'),
-        name=form.get('name'),
-        description=form.get('description', ''),
-        required_level=int(form.get('required_level', 1)),
+        code=body.get('code'),
+        name=body.get('name'),
+        description=body.get('description', ''),
+        required_level=int(body.get('required_level', 1)),
     )
     db.add(feature)
     await db.commit()
@@ -714,14 +714,14 @@ async def admin_update_vip_feature(
     if not feature:
         return fail("功能不存在")
 
-    form = await request.form()
-    feature.code = form.get('code', feature.code)
-    feature.name = form.get('name', feature.name)
-    feature.description = form.get('description', feature.description)
-    feature.required_level = int(form.get('required_level', feature.required_level))
-    is_active = form.get('is_active')
+    body = await request.json()
+    feature.code = body.get('code', feature.code)
+    feature.name = body.get('name', feature.name)
+    feature.description = body.get('description', feature.description)
+    feature.required_level = int(body.get('required_level', feature.required_level))
+    is_active = body.get('is_active')
     if is_active is not None:
-        feature.is_active = is_active in ('1', 'true', 'True', True)
+        feature.is_active = bool(is_active) if isinstance(is_active, (bool, int)) else str(is_active) in ('1', 'true', 'True')
     await db.commit()
     await db.refresh(feature)
     return ok(data=feature.to_dict())
