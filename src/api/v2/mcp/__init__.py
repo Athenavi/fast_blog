@@ -17,6 +17,7 @@ from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
 
 from src.mcp.agent import LLMConfig, run_agent, stream_agent
+from src.mcp._context import set_user_ctx, UserCtx
 from src.mcp.server import mcp_server
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 from src.api.v2._base import ApiResponse
@@ -92,6 +93,13 @@ async def chat_non_stream(req: ChatRequest, current_user=Depends(jwt_required)):
     messages = _to_dicts(req.messages)
 
     try:
+        # 注入当前用户上下文以供工具处理器校验权限
+        set_user_ctx(UserCtx(
+            id=current_user.id,
+            username=getattr(current_user, 'username', ''),
+            is_superuser=getattr(current_user, 'is_superuser', False),
+            role="superuser" if getattr(current_user, 'is_superuser', False) else "user",
+        ))
         state = await run_agent(cfg, messages, conversation_id=conv_id)
 
         last = state.messages[-1] if state.messages else {}
@@ -105,6 +113,8 @@ async def chat_non_stream(req: ChatRequest, current_user=Depends(jwt_required)):
     except Exception as e:
         logger.exception("Chat error")
         raise HTTPException(status_code=500, detail=str(e))
+    finally:
+        set_user_ctx(None)
 
 
 # ─── SSE streaming chat ──────────────────────────────────────────
@@ -118,11 +128,20 @@ async def chat_stream(req: ChatRequest, current_user=Depends(jwt_required)):
 
     async def event_generator():
         try:
+            # 注入用户上下文（异步生成器内继承父级 contextvar）
+            set_user_ctx(UserCtx(
+                id=current_user.id,
+                username=getattr(current_user, 'username', ''),
+                is_superuser=getattr(current_user, 'is_superuser', False),
+                role="superuser" if getattr(current_user, 'is_superuser', False) else "user",
+            ))
             async for event in stream_agent(cfg, messages, conversation_id=conv_id):
                 yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
         except Exception as e:
             logger.exception("SSE error")
             yield f"data: {json.dumps({'type': 'error', 'message': str(e)}, ensure_ascii=False)}\n\n"
+        finally:
+            set_user_ctx(None)
 
     return StreamingResponse(
         event_generator(),

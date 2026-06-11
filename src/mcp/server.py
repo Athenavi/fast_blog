@@ -18,9 +18,12 @@ from shared.models.user import User
 from shared.models.media import Media
 from shared.models.system import SystemSettings
 from src.mcp.tools import register_all as register_all_tools
+from src.mcp._context import set_user_ctx, get_user_ctx, UserCtx
 from src.utils.database.main import get_async_session_context
 
 logger = logging.getLogger('mcp_server')
+
+
 
 
 class MCPServer:
