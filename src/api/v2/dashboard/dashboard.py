@@ -614,6 +614,7 @@ async def admin_create_vip_plan(
     db: AsyncSession = Depends(get_async_db)
 ):
     """创建 VIP 套餐"""
+    from datetime import datetime
     body = await request.json()
     plan = VIPPlan(
         name=body.get('name'),
@@ -623,10 +624,11 @@ async def admin_create_vip_plan(
         duration_days=int(body.get('duration_days', 30)),
         level=int(body.get('level', 1)),
         features=body.get('features', '[]'),
+        created_at=datetime.now(),
+        updated_at=datetime.now(),
     )
     db.add(plan)
-    await db.commit()
-    await db.refresh(plan)
+    await db.flush()
     return ok(data=plan.to_dict())
 
 
@@ -639,25 +641,39 @@ async def admin_update_vip_plan(
     db: AsyncSession = Depends(get_async_db)
 ):
     """更新 VIP 套餐"""
-    result = await db.execute(select(VIPPlan).where(VIPPlan.id == plan_id))
-    plan = result.scalar_one_or_none()
-    if not plan:
-        return fail("套餐不存在")
-
+    from datetime import datetime
+    from sqlalchemy import update
     body = await request.json()
-    plan.name = body.get('name', plan.name)
-    plan.description = body.get('description', plan.description)
-    plan.price = float(body.get('price', plan.price))
-    plan.original_price = float(body.get('original_price', plan.original_price)) if body.get('original_price') else plan.original_price
-    plan.duration_days = int(body.get('duration_days', plan.duration_days))
-    plan.level = int(body.get('level', plan.level))
-    plan.features = body.get('features', plan.features)
-    is_active = body.get('is_active')
-    if is_active is not None:
-        plan.is_active = bool(is_active) if isinstance(is_active, (bool, int)) else str(is_active) in ('1', 'true', 'True')
-    await db.commit()
-    await db.refresh(plan)
-    return ok(data=plan.to_dict())
+
+    vals = {}
+    if body.get('name') is not None:
+        vals['name'] = body['name']
+    if body.get('description') is not None:
+        vals['description'] = body['description']
+    if body.get('price') is not None:
+        vals['price'] = float(body['price'])
+    if body.get('original_price') is not None and body['original_price']:
+        vals['original_price'] = float(body['original_price'])
+    if body.get('duration_days') is not None:
+        vals['duration_days'] = int(body['duration_days'])
+    if body.get('level') is not None:
+        vals['level'] = int(body['level'])
+    if body.get('features') is not None:
+        vals['features'] = body['features']
+    if body.get('is_active') is not None:
+        val = body['is_active']
+        vals['is_active'] = bool(val) if isinstance(val, (bool, int)) else str(val) in ('1', 'true', 'True')
+
+    if not vals:
+        return fail("没有要更新的字段")
+
+    vals['updated_at'] = datetime.now()
+
+    await db.execute(
+        update(VIPPlan).where(VIPPlan.id == plan_id).values(**vals)
+    )
+    await db.flush()
+    return ok(data={"message": "更新成功"})
 
 
 @router.delete("/vip/plans/{plan_id}")
@@ -673,7 +689,7 @@ async def admin_delete_vip_plan(
     if not plan:
         return fail("套餐不存在")
     await db.delete(plan)
-    await db.commit()
+    await db.flush()
     return ok(data={"message": "已删除"})
 
 
@@ -687,16 +703,17 @@ async def admin_create_vip_feature(
     db: AsyncSession = Depends(get_async_db)
 ):
     """创建 VIP 功能"""
+    from datetime import datetime
     body = await request.json()
     feature = VIPFeature(
         code=body.get('code'),
         name=body.get('name'),
         description=body.get('description', ''),
         required_level=int(body.get('required_level', 1)),
+        created_at=datetime.now(),
     )
     db.add(feature)
-    await db.commit()
-    await db.refresh(feature)
+    await db.flush()
     return ok(data=feature.to_dict())
 
 
@@ -709,22 +726,30 @@ async def admin_update_vip_feature(
     db: AsyncSession = Depends(get_async_db)
 ):
     """更新 VIP 功能"""
-    result = await db.execute(select(VIPFeature).where(VIPFeature.id == feature_id))
-    feature = result.scalar_one_or_none()
-    if not feature:
-        return fail("功能不存在")
-
+    from sqlalchemy import update
     body = await request.json()
-    feature.code = body.get('code', feature.code)
-    feature.name = body.get('name', feature.name)
-    feature.description = body.get('description', feature.description)
-    feature.required_level = int(body.get('required_level', feature.required_level))
-    is_active = body.get('is_active')
-    if is_active is not None:
-        feature.is_active = bool(is_active) if isinstance(is_active, (bool, int)) else str(is_active) in ('1', 'true', 'True')
-    await db.commit()
-    await db.refresh(feature)
-    return ok(data=feature.to_dict())
+
+    vals = {}
+    if body.get('code') is not None:
+        vals['code'] = body['code']
+    if body.get('name') is not None:
+        vals['name'] = body['name']
+    if body.get('description') is not None:
+        vals['description'] = body['description']
+    if body.get('required_level') is not None:
+        vals['required_level'] = int(body['required_level'])
+    if body.get('is_active') is not None:
+        val = body['is_active']
+        vals['is_active'] = bool(val) if isinstance(val, (bool, int)) else str(val) in ('1', 'true', 'True')
+
+    if not vals:
+        return fail("没有要更新的字段")
+
+    await db.execute(
+        update(VIPFeature).where(VIPFeature.id == feature_id).values(**vals)
+    )
+    await db.flush()
+    return ok(data={"message": "更新成功"})
 
 
 @router.delete("/vip/features/{feature_id}")
