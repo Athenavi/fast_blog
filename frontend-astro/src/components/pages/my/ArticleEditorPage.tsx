@@ -291,8 +291,9 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
             });
             if (res.success && res.data) {
                 const token = res.data.token || res.data.preview_token;
+                const url = res.data.preview_url || `${window.location.origin}/view?preview=${token}`;
                 setPreviewToken(token);
-                setPreviewLink(`${window.location.origin}/view?slug=${getValues('slug')}&preview=${token}`);
+                setPreviewLink(url);
             }
         } catch { /* ignore */ }
         setPreviewLoading(false);

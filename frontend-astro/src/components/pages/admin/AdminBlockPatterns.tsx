@@ -26,7 +26,8 @@ function BlockPatternsManager() {
     queryKey: ['block-patterns'],
     queryFn: async () => {
       const res = await apiClient.get('/cms/block-patterns/list');
-      return (res.data as any)?.patterns || res.data || [];
+      const d: any = res.data;
+      return Array.isArray(d) ? d : (d?.patterns || []);
     },
   });
 
