@@ -36,7 +36,7 @@ class MembershipService:
 
         # 查询当前有效的订阅
         now = datetime.now()
-        stmt = select(VIPSubscription).join(
+        stmt = select(VIPSubscription, VIPPlan).join(
             VIPPlan, VIPSubscription.plan == VIPPlan.id
         ).where(
             VIPSubscription.user == user_id,
@@ -47,9 +47,9 @@ class MembershipService:
         ).limit(1)
 
         result = await self.db.execute(stmt)
-        subscription = result.scalar_one_or_none()
+        row = result.one_or_none()
 
-        if not subscription:
+        if not row:
             return {
                 'is_vip': False,
                 'level': 0,
@@ -57,11 +57,12 @@ class MembershipService:
                 'plan_name': None,
             }
 
+        subscription, plan = row
         return {
             'is_vip': True,
-            'level': subscription.plan.level,
+            'level': plan.level,
             'expires_at': subscription.expires_at.isoformat(),
-            'plan_name': subscription.plan.name,
+            'plan_name': plan.name,
             'subscription_id': subscription.id,
         }
 
@@ -245,7 +246,7 @@ class MembershipService:
         from shared.models.vip_plan import VIPPlan
         from sqlalchemy import select
 
-        stmt = select(VIPSubscription).join(
+        stmt = select(VIPSubscription, VIPPlan).join(
             VIPPlan, VIPSubscription.plan == VIPPlan.id
         ).where(
             VIPSubscription.user == user_id
@@ -254,20 +255,20 @@ class MembershipService:
         )
 
         result = await self.db.execute(stmt)
-        subscriptions = result.scalars().all()
+        rows = result.all()
 
         return [
             {
                 'id': sub.id,
-                'plan_name': sub.plan.name,
-                'level': sub.plan.level,
+                'plan_name': plan.name,
+                'level': plan.level,
                 'starts_at': sub.starts_at.isoformat(),
                 'expires_at': sub.expires_at.isoformat(),
                 'status': sub.status,
                 'payment_amount': sub.payment_amount,
                 'created_at': sub.created_at.isoformat(),
             }
-            for sub in subscriptions
+            for sub, plan in rows
         ]
 
 

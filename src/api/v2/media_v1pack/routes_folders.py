@@ -141,7 +141,7 @@ async def create_folder(
     )
     
     if result['success']:
-        return ok(message="文件夹创建成功", data=result['folder'])
+        return ok(msg="文件夹创建成功", data=result['folder'])
     else:
         return fail(result['error'])
 
@@ -177,7 +177,7 @@ async def update_folder(
     )
     
     if result['success']:
-        return ok(message="文件夹更新成功", data=result['folder'])
+        return ok(msg="文件夹更新成功", data=result['folder'])
     else:
         return fail(result['error'])
 
@@ -210,7 +210,7 @@ async def delete_folder(
     )
     
     if result['success']:
-        return ok(message=result['message'])
+        return ok(msg=result['message'])
     else:
         return fail(result['error'])
 
@@ -312,6 +312,6 @@ async def copy_media_to_folder(
     )
     
     if result['success']:
-        return ok(message=result['message'], data={"copied_count": result['moved_count']})
+        return ok(msg=result['message'], data={"copied_count": result['moved_count']})
     else:
         return fail(result['error'])

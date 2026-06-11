@@ -85,6 +85,32 @@ async def get_cover_image(filename: str):
     )
 
 
+
+@router.head("/{media_id}")
+@_catch
+async def head_media_file_by_id(
+        media_id: int,
+        current_user_obj=Depends(jwt_required),
+        db: AsyncSession = Depends(get_async_db)
+):
+    """HEAD 请求 - 检查媒体文件是否存在（不返回内容）"""
+    media_query = select(Media).where(Media.id == media_id)
+    media_result = await db.execute(media_query)
+    media = media_result.scalar_one_or_none()
+
+    if not media:
+        raise HTTPException(status_code=404, detail="文件不存在")
+
+    if media.user != current_user_obj.id and not media.is_public:
+        raise HTTPException(status_code=403, detail="无权访问该媒体文件")
+
+    return Response(status_code=200, headers={
+        "Accept-Ranges": "bytes",
+        "Content-Type": media.mime_type or 'application/octet-stream',
+        "Content-Length": str(media.file_size or 0),
+    })
+
+
 @router.get("/{media_id}")
 @_catch
 async def get_media_file_by_id(
