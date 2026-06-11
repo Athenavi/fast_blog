@@ -53,6 +53,16 @@ def _is_author_or_admin(user, article_user_id: int) -> bool:
     return user and (user.id == article_user_id or _is_admin(user))
 
 
+async def _parse_body(request: Request) -> dict:
+    """解析请求体，兼容 JSON 和 FormData"""
+    content_type = request.headers.get('content-type', '')
+    if 'application/json' in content_type:
+        return await request.json()
+    else:
+        form = await request.form()
+        return {k: v for k, v in form.items()}
+
+
 def _split_tags(tags_str: str) -> list:
     return [t.strip() for t in re.split(r'[,;]', tags_str) if t.strip()] if tags_str else []
 
@@ -284,9 +294,10 @@ async def get_article_raw_content_api(article_id: int, db: AsyncSession = Depend
 
 @router.post("/")
 @_catch
-async def create_article_api(data: dict, request: Request, current_user=Depends(jwt_required),
+async def create_article_api(request: Request, current_user=Depends(jwt_required),
                               db: AsyncSession = Depends(get_async_session)):
     """创建文章"""
+    data = await _parse_body(request)
     article = Article(
         title=data.get('title', ''), slug=data.get('slug', ''),
         excerpt=data.get('excerpt', ''), user=current_user.id,
@@ -323,9 +334,10 @@ async def create_article_api(data: dict, request: Request, current_user=Depends(
 
 @router.put("/{article_id}")
 @_catch
-async def update_article_api(article_id: int, data: dict, request: Request, current_user=Depends(jwt_required),
+async def update_article_api(article_id: int, request: Request, current_user=Depends(jwt_required),
                               db: AsyncSession = Depends(get_async_session)):
     """更新文章"""
+    data = await _parse_body(request)
     article = await db.scalar(select(Article).where(Article.id == article_id))
     if not article:
         raise HTTPException(404, "文章不存在")
