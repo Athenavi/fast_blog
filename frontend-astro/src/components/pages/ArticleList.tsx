@@ -1,6 +1,6 @@
 'use client';
 
-import React, {useCallback, useEffect, useMemo, useState} from 'react';
+import React, {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import {AnimatePresence, motion} from 'framer-motion';
 import {ArticleService} from '@/lib/api';
 import {getFullMediaUrl} from '@/lib/utils';
@@ -37,15 +37,22 @@ const ArticleList: React.FC = () => {
     const [showFilters, setShowFilters] = useState(false);
     const perPage = 12;
 
-    // Fetch articles with AbortController to prevent race conditions
-    const fetchArticles = useCallback(async (signal?: AbortSignal) => {
+    // Fetch articles — 使用 ref 取消机制防止竞态
+    const abortRef = useRef<AbortController | null>(null);
+    const fetchArticles = useCallback(async () => {
+        // 取消前一个未完成的请求
+        abortRef.current?.abort();
+        const controller = new AbortController();
+        abortRef.current = controller;
+
         setLoading(true);
         try {
             const res = await ArticleService.getArticles({
                 page: currentPage,
                 per_page: perPage,
                 search: searchQuery || undefined,
-            } as any, { signal });
+            } as any);
+            if (controller.signal.aborted) return; // 已被新请求取消
             if (res.success && res.data) {
                 const d = res.data as any;
                 setArticles(d.data || d.articles || []);
@@ -53,16 +60,15 @@ const ArticleList: React.FC = () => {
                 setTotalCount(d.pagination?.total || d.total || 0);
             }
         } catch (err: any) {
-            if (err?.name === 'AbortError') return; // 静默忽略取消请求
+            if (err?.name === 'AbortError') return;
         } finally {
-            setLoading(false);
+            if (!controller.signal.aborted) setLoading(false);
         }
     }, [currentPage, searchQuery]);
 
     useEffect(() => {
-        const abortController = new AbortController();
-        fetchArticles(abortController.signal);
-        return () => abortController.abort(); // 卸载时取消未完成的请求
+        fetchArticles();
+        return () => abortRef.current?.abort();
     }, [fetchArticles]);
 
     // Debounced search

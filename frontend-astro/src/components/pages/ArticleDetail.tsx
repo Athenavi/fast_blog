@@ -568,20 +568,18 @@ const ArticleDetail: React.FC<Props> = ({slug: propSlug}) => {
                           <div className="flex items-center gap-3 flex-wrap">
                               {/* Like */}
                               <button
-                                  onClick={() => {
-                                      onClick={async () => {
-                                        if (likeLoading) return;
-                                        setLikeLoading(true);
-                                        try {
-                                          await apiClient.post(`/articles/${article.id}/like`, { liked: !liked });
-                                          setLiked(!liked);
-                                          setLikeCount(prev => liked ? prev - 1 : prev + 1);
-                                        } catch (e) {
-                                          console.error('点赞失败', e);
-                                        } finally {
-                                          setLikeLoading(false);
-                                        }
-                                      }}
+                                  onClick={async () => {
+                                    if (likeLoading) return;
+                                    setLikeLoading(true);
+                                    try {
+                                      await apiClient.post(`/articles/${article.id}/like`, { liked: !liked });
+                                      setLiked(!liked);
+                                      setLikeCount(prev => liked ? prev - 1 : prev + 1);
+                                    } catch (e) {
+                                      console.error('点赞失败', e);
+                                    } finally {
+                                      setLikeLoading(false);
+                                    }
                                   }}
                                   className={`flex items-center gap-2 px-5 py-2.5 rounded-xl border transition-all text-sm font-medium ${
                                       liked
