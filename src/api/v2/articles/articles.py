@@ -54,13 +54,23 @@ def _is_author_or_admin(user, article_user_id: int) -> bool:
 
 
 async def _parse_body(request: Request) -> dict:
-    """解析请求体，兼容 JSON 和 FormData"""
+    """解析请求体，兼容 JSON 和 FormData，FormData 的值自动转换类型"""
     content_type = request.headers.get('content-type', '')
     if 'application/json' in content_type:
         return await request.json()
     else:
         form = await request.form()
-        return {k: v for k, v in form.items()}
+        data = {}
+        for k, v in form.items():
+            # FormData 所有值都是字符串，按字段名自动转类型
+            s = str(v)
+            if k in ('hidden', 'is_vip_only', 'is_featured'):
+                data[k] = s.lower() in ('true', '1', 'yes')
+            elif k in ('status', 'category_id', 'required_vip_level'):
+                data[k] = int(s) if s else 0
+            else:
+                data[k] = s
+        return data
 
 
 def _split_tags(tags_str: str) -> list:
