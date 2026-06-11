@@ -139,3 +139,9 @@ apps/*/migrations/*.py
 
 # Reasonix AI config
 .reasonix/
+.codegraph/
+.cursor/
+AGENTS.md
+AGENTS.local.md
+reasonix.toml
+temp_models.txt
