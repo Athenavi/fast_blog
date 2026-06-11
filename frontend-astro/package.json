@@ -1,6 +1,6 @@
 {
   "name": "@fast_blog/frontend-astro",
-  "version": "0.1.0",
+  "version": "0.4.26.0611",
   "private": true,
   "type": "module",
   "scripts": {
