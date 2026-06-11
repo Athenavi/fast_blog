@@ -32,7 +32,7 @@ async def create_article(arguments: dict) -> dict:
             db.add(article)
             await db.flush()
 
-            db.add(ArticleContent(article_id=article.id, content=content, created_at=now, updated_at=now))
+            db.add(ArticleContent(article=article.id, content=content, created_at=now, updated_at=now))
             await db.commit()
 
             return {"success": True, "message": f"文章「{title}」创建成功",
@@ -60,12 +60,12 @@ async def update_article(arguments: dict) -> dict:
             article.status = 1 if arguments["status"] == "published" else 0
         if "content" in arguments:
             text = arguments["content"].strip()
-            ac = await db.scalar(select(ArticleContent).where(ArticleContent.article_id == int(article_id)))
+            ac = await db.scalar(select(ArticleContent).where(ArticleContent.article == int(article_id)))
             if ac:
                 ac.content = text
                 ac.updated_at = now
             else:
-                db.add(ArticleContent(article_id=int(article_id), content=text, created_at=now, updated_at=now))
+                db.add(ArticleContent(article=int(article_id), content=text, created_at=now, updated_at=now))
 
         article.updated_at = now
         await db.commit()
