@@ -341,12 +341,12 @@ function PluginsInner() {
   const [configPlugin, setConfigPlugin] = useState<Plugin | null>(null);
   const [uninstallTarget, setUninstallTarget] = useState<string | null>(null);
 
-  // 查询已安装插件
+  // 查询已安装插件 — 调用 GET /api/v2/plugins/
   const {data: installedPlugins, isLoading: installedLoading} = useQuery({
     queryKey: ['plugins-installed'],
     queryFn: async () => {
-      const res = await apiClient.get(PLUGINS.ACTIVE);
-      return res.data || [];
+      const res = await apiClient.get('/plugins/');
+      return res.data?.plugins || res.data || [];
     },
     enabled: activeTab === 'installed'
   });
@@ -355,7 +355,7 @@ function PluginsInner() {
   const {data: marketplacePlugins, isLoading: marketplaceLoading} = useQuery({
     queryKey: ['plugins-marketplace'],
     queryFn: async () => {
-      const res = await apiClient.get(PLUGINS.MARKETPLACE);
+      const res = await apiClient.get('/plugins/marketplace');
       return res.data || [];
     },
     enabled: activeTab === 'marketplace'

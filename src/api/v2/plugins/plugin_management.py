@@ -31,6 +31,27 @@ def _catch(func):
     return wrapper
 
 
+@router.get("/marketplace")
+@_catch
+async def list_marketplace_plugins(
+        current_user: User = Depends(jwt_required)
+):
+    """
+    获取插件市场列表（扫描 plugins/ 目录发现所有可安装的插件）
+    
+    Returns:
+        所有可发现的插件列表
+    """
+    # 先扫描发现新插件
+    new_slugs = plugin_manager.scan_for_new_plugins()
+    for slug in new_slugs:
+        plugin_manager.load_plugin(slug)
+
+    # 返回所有已加载插件的信息
+    plugins = [p.get_info() for p in plugin_manager.plugins.values()]
+    return ok(data=plugins)
+
+
 @router.get("/")
 @_catch
 async def list_plugins(
