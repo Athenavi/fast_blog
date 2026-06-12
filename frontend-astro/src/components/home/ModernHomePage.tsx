@@ -23,7 +23,7 @@ interface Props {
 }
 
 const LoadingScreen = () => (
-  <div className="min-h-screen bg-white dark:bg-gray-950">
+  <div className="min-h-screen theme-bg">
     <div className="relative h-[85vh] min-h-[600px] bg-gray-100 dark:bg-gray-900 animate-pulse">
       <div className="absolute inset-0 flex items-center">
         <div className="max-w-7xl mx-auto px-6 w-full">
@@ -95,7 +95,7 @@ export default function ModernHomePage({
   if (loading || cfgLoading) return <LoadingScreen />;
 
   return (
-    <div className="bg-white dark:bg-gray-950 overflow-hidden">
+    <div className="theme-bg overflow-hidden">
       <HomeHero featured={featured} heroTitle={hero.title || ''} heroSubtitle={hero.subtitle || ''}
         heroCtaText={hero.ctaText || ''} heroCtaLink={hero.ctaLink || ''} ctaTarget={hero.ctaTarget || ''} heroBg={hero.backgroundImage || ''} />
       <HomeFeatured featured={featured} title={sections.featuredTitle || ''} noSummaryMsg={messages?.noSummary || '暂无摘要'} />
