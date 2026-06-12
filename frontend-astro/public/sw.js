@@ -1,11 +1,13 @@
 // P10-2: PWA Service Worker - 离线支持和缓存策略
-const CACHE_NAME = 'fastblog-v1';
+const CACHE_NAME = 'fastblog-v2';
 const OFFLINE_PAGE = '/offline.html';
+const VAPID_PUBLIC_KEY = 'BGY5F-UlT_qHEx1FJE1wN_lV2fGKH_v5fLTPZzhnQPxBfjjZ_0kY6JAfFgvzYNouFWR3cLXjlFPySGO4VlPQ-YE';
 
 // 需要预缓存的资源
 const PRECACHE_URLS = [
     '/',
     '/config.js',
+    '/offline.html',
 ];
 
 // API 缓存策略： stale-while-revalidate
@@ -46,6 +48,12 @@ self.addEventListener('fetch', (event) => {
 
     // 1. API 请求：Network First, fallback to cache
     if (url.pathname.startsWith('/api/')) {
+        // V3 admin API — 缓存优先（免认证查询可离线）
+        if (url.pathname.startsWith('/api/v3/admin/cache-stats') ||
+            url.pathname.startsWith('/api/v3/admin/health')) {
+            event.respondWith(staleWhileRevalidateStrategy(request, 600));
+            return;
+        }
         event.respondWith(networkFirstStrategy(request));
         return;
     }
@@ -134,7 +142,7 @@ async function cacheFirstStrategy(request) {
 }
 
 // Stale-while-revalidate 策略（页面导航）
-async function staleWhileRevalidateStrategy(request) {
+async function staleWhileRevalidateStrategy(request, customTtl) {
     const cache = await caches.open(CACHE_NAME);
     const cachedResponse = await cache.match(request);
 
@@ -237,15 +245,16 @@ function removeFromIndexedDB(dbName, storeName, key) {
   });
 }
 
-// 推送通知支持
+// 推送通知支持 — 需要后端 VAPID keys 配合
 self.addEventListener('push', (event) => {
     const data = event.data ? event.data.json() : {};
     const title = data.title || 'FastBlog 通知';
     const options = {
         body: data.body || '您有新的消息',
-        icon: '/icon-192.png',
+        icon: data.icon || '/icon-192.png',
         badge: '/badge-72.png',
-        data: data.url || '/',
+        data: { url: data.url || '/' },
+        vibrate: [200, 100, 200],
     };
 
     event.waitUntil(
@@ -258,6 +267,6 @@ self.addEventListener('notificationclick', (event) => {
     event.notification.close();
 
     event.waitUntil(
-        clients.openWindow(event.notification.data)
+        clients.openWindow(event.notification.data.url)
     );
 });
