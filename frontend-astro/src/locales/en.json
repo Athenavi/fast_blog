@@ -113,6 +113,7 @@
     "recommendations": "Recommendations",
     "appearance": "Appearance",
     "cache": "Cache",
+    "emailTemplates": "Email Templates",
     "settings": "Settings",
     "backToFront": "Back to Site"
   },

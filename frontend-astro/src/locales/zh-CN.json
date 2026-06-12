@@ -113,6 +113,7 @@
     "recommendations": "推荐系统",
     "appearance": "外观设置",
     "cache": "缓存管理",
+    "emailTemplates": "邮件模板",
     "settings": "系统设置",
     "backToFront": "返回前台"
   },
