@@ -7,7 +7,7 @@ import {useDebounce} from '@/lib/hooks';
 import {StatCard} from '@/components/admin/shared-ui';
 import {formatBytes} from '@/lib/utils';
 import {
-  ArrowUp, ArrowDown, CheckCircle2, ChevronLeft, ChevronRight, FileText,
+  ArrowUp, ArrowDown, CheckCircle2, ChevronLeft, ChevronRight, Edit3, FileText,
   Grid, HardDrive, Image, List, Music, Search, Square, CheckSquare, Trash2,
   Upload, Video, X, File
 } from 'lucide-react';
@@ -16,6 +16,7 @@ import {
   BatchActionBar, MoveDialog, Pagination, DeleteConfirm, ImagePreview
 } from './MediaUI';
 import {type MediaFileItem, type FolderItem, getFileType, TYPE_OPTIONS, type TabKey} from './MediaTypes';
+import ImageEditorModal from './ImageEditorModal';
 
 export function FilesTab() {
   const qc = useQueryClient();
@@ -27,6 +28,7 @@ export function FilesTab() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [deleteTarget, setDeleteTarget] = useState<MediaFileItem | null>(null);
   const [previewFile, setPreviewFile] = useState<MediaFileItem | null>(null);
+  const [editFile, setEditFile] = useState<MediaFileItem | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [showMoveDialog, setShowMoveDialog] = useState(false);
   const [batchDeleteConfirm, setBatchDeleteConfirm] = useState(false);
@@ -278,7 +280,13 @@ export function FilesTab() {
       <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage}/>
 
         {/* 图片预览 */}
-        {previewFile && <ImagePreview file={previewFile} onClose={() => setPreviewFile(null)}/>}
+        {previewFile && <ImagePreview file={previewFile} onClose={() => setPreviewFile(null)} onEdit={(f) => { setPreviewFile(null); setEditFile(f); }}/>}
+
+        {/* 图片编辑器 */}
+        {editFile && (
+          <ImageEditorModal mediaId={editFile.id} filename={editFile.original_filename || editFile.filename || ''}
+                            onClose={() => setEditFile(null)} onSaved={() => { setEditFile(null); qc.invalidateQueries({queryKey: ['media-files']}); }}/>
+        )}
 
       {/* 单文件删除确认 */}
         {deleteTarget && (

@@ -1,7 +1,7 @@
 import React, {useState} from 'react';
 import {
   AlertTriangle, ArrowUp, ArrowDown, CheckCircle2, ChevronLeft, ChevronRight,
-  Clock, Copy, Download, Eye, FileText, FolderOpen, Grid, Image, List, Music,
+  Clock, Copy, Download, Edit3, Eye, FileText, FolderOpen, Grid, Image, List, Music,
   Search, Square, CheckSquare, Trash2, Upload, Video, X
 } from 'lucide-react';
 import {getFullMediaUrl, formatBytes} from '@/lib/utils';
@@ -214,7 +214,8 @@ export const MediaListRow: React.FC<{
 export const ImagePreview: React.FC<{
   file: MediaFileItem;
   onClose: () => void;
-}> = ({file, onClose}) => (
+  onEdit?: (f: MediaFileItem) => void;
+}> = ({file, onClose, onEdit}) => (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={onClose}>
       <div className="relative max-w-4xl max-h-[90vh] p-4" onClick={e => e.stopPropagation()}>
         <img src={getFullMediaUrl(file.url)} alt={file.original_filename}
@@ -225,6 +226,12 @@ export const ImagePreview: React.FC<{
             <p className="text-white/60 text-xs">{file.mime_type} · {file.file_size ? formatBytes(file.file_size) : '-'}</p>
           </div>
           <div className="flex items-center gap-2">
+            {onEdit && (
+              <button onClick={() => onEdit(file)}
+                      className="p-2 bg-white/10 hover:bg-white/20 rounded-lg text-white transition-colors">
+                <Edit3 className="w-4 h-4"/>
+              </button>
+            )}
             <button onClick={() => navigator.clipboard.writeText(getFullMediaUrl(file.url))}
                     className="p-2 bg-white/10 hover:bg-white/20 rounded-lg text-white transition-colors">
               <Copy className="w-4 h-4"/>
