@@ -1,0 +1,20 @@
+{
+  "name": "Popular Articles",
+  "slug": "popular-articles",
+  "version": "1.0.0",
+  "description": "Show popular/trending articles in sidebar widget",
+  "author": "FastBlog Team",
+  "category": "widget",
+  "tags": ["popular", "widget", "sidebar"],
+  "requires": {"fastblog": ">=1.0.0", "python": ">=3.8"},
+  "icon": "🔥",
+  "price": "free",
+  "capabilities": [
+    "read:popular-articles"
+  ],
+  "settings_schema": {
+    "max_items": {"type": "number", "label": "显示数量", "default": 5, "min": 3, "max": 20},
+    "days": {"type": "number", "label": "统计天数", "default": 30, "min": 1, "max": 365},
+    "show_views": {"type": "boolean", "label": "显示浏览数", "default": true}
+  }
+}

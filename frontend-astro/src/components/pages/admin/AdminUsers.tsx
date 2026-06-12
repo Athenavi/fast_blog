@@ -5,8 +5,9 @@ import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
-import {apiClient} from '@/lib/api/base-client';
-import {DASHBOARD} from '@/lib/api/api-paths';
+import {PermissionGuard} from '@/components/admin/PermissionGuard';
+import {useCapability} from '@/lib/hooks/useCapability';
+import {adminService} from '@/lib/api/admin-service';
 import {useDebounce} from '@/lib/hooks';
 import {
   ChevronLeft,
@@ -131,12 +132,13 @@ const UserSkeleton = () => (
     </tr>
 );
 
-function UsersInner() {
+function AdminUsersInner() {
   const qc = useQueryClient();
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState('');
   const [status, setStatus] = useState('');
   const debouncedSearch = useDebounce(searchInput, 400);
+  const canEdit = useCapability('user:edit');
 
   const prevFilters = useRef('');
   useEffect(() => {
@@ -150,7 +152,7 @@ function UsersInner() {
     queryFn: async () => {
       const params: Record<string, any> = {page, per_page: 20};
       if (debouncedSearch) params.search = debouncedSearch;
-      const res = await apiClient.get(DASHBOARD.USER_MGMT_USERS, params);
+      const res = await adminService.users.list(params);
       if (!res.success || !res.data) return {users: [], total: 0};
       const users = Array.isArray(res.data) ? res.data : (res.data.users || []);
       const pagination = res.data.pagination || res.pagination || {};
@@ -161,7 +163,7 @@ function UsersInner() {
 
   const toggleMut = useMutation({
     mutationFn: ({id, action}: {id: number; action: 'ban' | 'unban'}) =>
-        apiClient.post(DASHBOARD.USER_MGMT_USER_ACTION(id, action)),
+        adminService.users.update(id, {is_active: action === 'unban'}),
     onSuccess: () => qc.invalidateQueries({queryKey: ['admin-users']}),
   });
 
@@ -401,6 +403,7 @@ function UsersInner() {
                                       </td>
                                       <td className="px-5 py-4 text-right">
                                           <div className="flex items-center justify-end gap-1">
+                                              {canEdit && (
                                               <button onClick={() => toggleMut.mutate({
                                                   id: u.id,
                                                   action: isActive ? 'ban' : 'unban'
@@ -413,6 +416,7 @@ function UsersInner() {
                                                   {isActive ? <Ban className="w-4 h-4"/> :
                                                       <CheckCircle className="w-4 h-4"/>}
                                               </button>
+                                              )}
                                               <UserActions user={u}
                                                            onToggle={(action) => toggleMut.mutate({id: u.id, action})}/>
                                           </div>
@@ -431,5 +435,13 @@ function UsersInner() {
 }
 
 export default function AdminUsers() {
-  return <AuthGuard><QueryProvider><UsersInner /></QueryProvider></AuthGuard>;
+  return (
+    <QueryProvider>
+      <AuthGuard>
+        <PermissionGuard capability="user:view">
+          <AdminUsersInner />
+        </PermissionGuard>
+      </AuthGuard>
+    </QueryProvider>
+  );
 }

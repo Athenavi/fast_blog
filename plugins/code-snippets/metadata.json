@@ -6,8 +6,12 @@
   "author": "FastBlog Team",
   "category": "content",
   "tags": ["code", "snippets", "syntax-highlighting"],
-  "requires": ">=0.0.2.0",
-  "tested_up_to": "0.0.2.0",
+  "requires": {"fastblog": ">=1.0.0", "python": ">=3.8"},
   "icon": "💻",
-  "price": "free"
+  "price": "free",
+  "settings_schema": {
+    "default_language": {"type": "select", "label": "默认语言", "default": "javascript", "options": [{"value": "javascript", "label": "JavaScript"}, {"value": "python", "label": "Python"}, {"value": "typescript", "label": "TypeScript"}, {"value": "go", "label": "Go"}, {"value": "rust", "label": "Rust"}], "help": "新建代码片段时的默认语言"},
+    "snippets_per_page": {"type": "number", "label": "每页数量", "default": 20, "min": 5, "max": 100, "help": "代码片段列表每页显示数量"},
+    "show_line_numbers": {"type": "boolean", "label": "显示行号", "default": true, "help": "代码片段默认是否显示行号"}
+  }
 }

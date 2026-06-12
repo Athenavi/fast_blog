@@ -4,6 +4,7 @@ import {useState, useRef} from 'react';
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
+import {PermissionGuard} from '@/components/admin/PermissionGuard';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {SECURITY} from '@/lib/api/api-paths';
 import {apiClient} from '@/lib/api/base-client';
@@ -424,5 +425,13 @@ function SensitiveWordsInner() {
 }
 
 export default function AdminSensitiveWords() {
-  return <AuthGuard><QueryProvider><SensitiveWordsInner/></QueryProvider></AuthGuard>;
+  return (
+    <AuthGuard>
+      <QueryProvider>
+        <PermissionGuard capability="settings:view">
+          <SensitiveWordsInner/>
+        </PermissionGuard>
+      </QueryProvider>
+    </AuthGuard>
+  );
 }

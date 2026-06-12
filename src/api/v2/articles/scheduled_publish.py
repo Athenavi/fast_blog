@@ -65,10 +65,12 @@ async def publish_due_articles(db: AsyncSession = Depends(get_async_session)):
 
 @router.get("/list")
 @_catch
-async def get_scheduled_articles(limit: int = Query(50, ge=1, le=200), offset: int = Query(0, ge=0),
+async def get_scheduled_articles(page: int = Query(1, ge=1), per_page: int = Query(20, ge=1, le=200),
                                   db: AsyncSession = Depends(get_async_session)):
     """获取待发布文章列表"""
     service = create_scheduled_publish_service(db)
+    limit = per_page
+    offset = (page - 1) * per_page
     articles = await service.get_scheduled_articles(limit, offset)
     return {'success': True, 'data': articles, 'count': len(articles)}
 

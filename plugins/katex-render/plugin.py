@@ -24,7 +24,7 @@ class KatexRenderPlugin(BasePlugin):
 
     def __init__(self):
         super().__init__(
-            plugin_id=0,
+            plugin_id=3001,
             name="KaTeX Render",
             slug="katex-render",
             version="1.0.0",

@@ -5,8 +5,8 @@ import {useQuery} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
-import {apiClient} from '@/lib/api/base-client';
-import {DASHBOARD} from '@/lib/api/api-paths';
+import {PermissionGuard} from '@/components/admin/PermissionGuard';
+import {adminService} from '@/lib/api/admin-service';
 import {motion} from 'framer-motion';
 import {
   ArrowUpRight,
@@ -125,15 +125,11 @@ const ActivityItem: React.FC<{ activity: any; index: number }> = ({activity, ind
     );
 };
 
-function DashboardInner() {
+function AdminDashboardInner() {
     const {data: stats} = useQuery({
     queryKey: ['admin-dashboard'],
     queryFn: async () => {
-      const res = await apiClient.get<{
-          articles: number; users: number; comments: number;
-          visitors: number; views_today: number; views_trend?: number;
-          users_trend?: number; articles_trend?: number; comments_trend?: number;
-      }>(DASHBOARD.STATS);
+      const res = await adminService.dashboard.stats();
         return res.success && res.data ? res.data : {} as any;
     },
   });
@@ -141,7 +137,7 @@ function DashboardInner() {
     const {data: activities} = useQuery({
     queryKey: ['admin-activity'],
     queryFn: async () => {
-      const res = await apiClient.get<unknown[]>(DASHBOARD.ACTIVITIES, {page: 1, per_page: 8});
+      const res = await adminService.dashboard.traffic();
       return res.success && res.data ? (Array.isArray(res.data) ? res.data : []) : [];
     },
   });
@@ -319,7 +315,15 @@ const Settings = ({className}: { className?: string }) => (
 );
 
 export default function AdminDashboard() {
-  return <AuthGuard><QueryProvider><DashboardInner /></QueryProvider></AuthGuard>;
+  return (
+    <QueryProvider>
+      <AuthGuard>
+        <PermissionGuard capability="settings:view">
+          <AdminDashboardInner />
+          </PermissionGuard>
+      </AuthGuard>
+    </QueryProvider>
+  );
 }
 
 const PenSquare = ({className}: { className?: string }) => (

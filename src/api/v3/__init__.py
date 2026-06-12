@@ -1,13 +1,9 @@
 """
-FastBlog API v3 - 移动端专用API
+FastBlog API v3
 
-为移动端App提供优化的API接口，包括：
-- 文章阅读（列表、详情、分类浏览、搜索）
-- 评论功能（查看、发表、回复、点赞）
-- 用户管理（登录、注册、个人资料）
-- 媒体上传（图片上传、压缩）
-- 推送通知
-- 离线缓存支持
+分层结构:
+  /api/v3/mobile/*  — 移动端 API（现有，不变）
+  /api/v3/admin/*   — 管理端 API（新增，权限驱动）
 """
 
 from fastapi import APIRouter
@@ -31,11 +27,31 @@ ROUTE_REGISTRY_V3 = [
 
     # ==================== 分类模块 ====================
     ("src.api.v3.mobile.categories", "/api/v3/categories", ["mobile-categories"], True),
+
+    # ==================== 管理端 API ====================
+    ("src.api.v3.admin.users", "/api/v3/admin", ["admin-users"], False),
+    ("src.api.v3.admin.articles", "/api/v3/admin", ["admin-articles"], False),
+    ("src.api.v3.admin.media", "/api/v3/admin", ["admin-media"], False),
+    ("src.api.v3.admin.system", "/api/v3/admin", ["admin-system"], False),
+    ("src.api.v3.admin.roles", "/api/v3/admin", ["admin-roles"], False),
+    ("src.api.v3.admin.dashboard", "/api/v3/admin", ["admin-dashboard"], False),
+    ("src.api.v3.admin.comments", "/api/v3/admin", ["admin-comments"], False),
+    ("src.api.v3.admin.plugins", "/api/v3/admin", ["admin-plugins"], False),
+    ("src.api.v3.admin.themes", "/api/v3/admin", ["admin-themes"], False),
+    ("src.api.v3.admin.seo", "/api/v3/admin", ["admin-seo"], False),
+    ("src.api.v3.admin.backup", "/api/v3/admin", ["admin-backup"], False),
+    ("src.api.v3.admin.permission", "/api/v3/admin", ["admin-permission"], False),
+    ("src.api.v3.admin.categories", "/api/v3/admin", ["admin-categories"], False),
+    ("src.api.v3.admin.analytics", "/api/v3/admin", ["admin-analytics"], False),
+    ("src.api.v3.admin.notifications", "/api/v3/admin", ["admin-notifications"], False),
+    ("src.api.v3.admin.search_analytics", "/api/v3/admin", ["admin-search-analytics"], False),
+    ("src.api.v3.admin.webhooks", "/api/v3/admin", ["admin-webhooks"], False),
+    ("src.api.v3.admin.widgets", "/api/v3/admin", ["admin-widgets"], False),
 ]
 
 
 def register_v3_routes(app):
-    """注册v3移动端API路由"""
+    """注册 v3 API 路由"""
     from importlib import import_module
 
     for module_path, prefix, tags, required in ROUTE_REGISTRY_V3:

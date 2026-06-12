@@ -5,8 +5,10 @@ import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
+import {PermissionGuard} from '@/components/admin/PermissionGuard';
 import {apiClient} from '@/lib/api/base-client';
 import {SYSTEM} from '@/lib/api/api-paths';
+import {adminService} from '@/lib/api/admin-service';
 import {
   AlertTriangle,
   Archive,
@@ -309,7 +311,7 @@ function BackupInner() {
   const createMut = useMutation({
     mutationFn: async (type: string) => {
       setBackingUp(type);
-      const res = await apiClient.post(SYSTEM.BACKUP_CREATE(type));
+      const res = await adminService.backup.create();
       return {type, res};
     },
     onSuccess: ({type}) => {
@@ -661,5 +663,5 @@ function BackupInner() {
 }
 
 export default function AdminBackup() {
-  return <AuthGuard><QueryProvider><BackupInner/></QueryProvider></AuthGuard>;
+  return <AuthGuard><QueryProvider><PermissionGuard capability="backup:create"><BackupInner/></PermissionGuard></QueryProvider></AuthGuard>;
 }

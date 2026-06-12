@@ -9,7 +9,6 @@ from sqlalchemy.orm import relationship
 
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
 
-
 class Role(Base):
     """角色模型模型"""
     __tablename__ = 'roles'

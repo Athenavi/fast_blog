@@ -3,6 +3,7 @@
 import React, {lazy, Suspense, useState} from 'react';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
+import {PermissionGuard} from '@/components/admin/PermissionGuard';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {BarChart3, Database, Globe, Shield, Upload} from 'lucide-react';
 import {Toast} from './integrations/shared';
@@ -83,5 +84,13 @@ function IntegrationsInner() {
 }
 
 export default function AdminIntegrations() {
-  return <AuthGuard><QueryProvider><IntegrationsInner/></QueryProvider></AuthGuard>;
+  return (
+    <AuthGuard>
+      <QueryProvider>
+        <PermissionGuard capability="settings:view">
+          <IntegrationsInner/>
+        </PermissionGuard>
+      </QueryProvider>
+    </AuthGuard>
+  );
 }

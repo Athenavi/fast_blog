@@ -5,8 +5,10 @@ import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
+import {PermissionGuard} from '@/components/admin/PermissionGuard';
 import {StatCard} from '@/components/admin/shared-ui';
 import {apiClient} from '@/lib/api/base-client';
+import {adminService} from '@/lib/api/admin-service';
 import {PLUGINS} from '@/lib/api/api-paths';
 import {
   Puzzle,
@@ -44,6 +46,8 @@ interface Plugin {
   is_active: boolean;
   is_installed: boolean;
   capabilities?: string[];
+  settings_schema?: Record<string, any>;
+  settings?: Record<string, any>;
   created_at?: string;
   updated_at?: string;
   downloads?: number;
@@ -240,6 +244,84 @@ const PluginCard: React.FC<{
   );
 };
 
+/* ── 设置表单 ── */
+const SettingsForm: React.FC<{plugin: Plugin; onClose: () => void}> = ({plugin, onClose}) => {
+  const qc = useQueryClient();
+  const [values, setValues] = useState<Record<string, any>>({...((plugin as any).settings || {})});
+  const [saving, setSaving] = useState(false);
+
+  // 初始化默认值
+  React.useEffect(() => {
+    const schema = (plugin as any).settings_schema || {};
+    const defaults: Record<string, any> = {...((plugin as any).settings || {})};
+    Object.entries(schema).forEach(([key, field]: [string, any]) => {
+      if (defaults[key] === undefined && field.default !== undefined) {
+        defaults[key] = field.default;
+      }
+    });
+    setValues(defaults);
+  }, [plugin.slug]);
+
+  const handleSave = async () => {
+    setSaving(true);
+    try {
+      await apiClient.put(`/plugins/${plugin.slug}/settings`, {settings: values});
+      qc.invalidateQueries({queryKey: ['plugins-installed']});
+      onClose();
+    } catch { /* ignore */ }
+    setSaving(false);
+  };
+
+  const schema = (plugin as any).settings_schema || {};
+  if (Object.keys(schema).length === 0) return null;
+
+  return (
+    <div className="space-y-4">
+      <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300">插件设置</h4>
+      {Object.entries(schema).map(([key, field]: [string, any]) => (
+        <div key={key}>
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+            {field.label || key}
+            {field.help && <span className="text-xs text-gray-400 ml-2 font-normal">({field.help})</span>}
+          </label>
+          {field.type === 'select' ? (
+            <select value={values[key] ?? field.default ?? ''}
+              onChange={e => setValues({...values, [key]: e.target.value})}
+              className="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500">
+              {(field.options || []).map((opt: any) => (
+                <option key={opt.value || opt} value={opt.value || opt}>{opt.label || opt}</option>
+              ))}
+            </select>
+          ) : field.type === 'boolean' ? (
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input type="checkbox" checked={!!values[key]}
+                onChange={e => setValues({...values, [key]: e.target.checked})}
+                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"/>
+              <span className="text-sm text-gray-500">{field.label || key}</span>
+            </label>
+          ) : field.type === 'number' ? (
+            <input type="number" value={values[key] ?? field.default ?? ''}
+              onChange={e => setValues({...values, [key]: Number(e.target.value)})}
+              min={field.min} max={field.max}
+              className="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+          ) : (
+            <input type="text" value={values[key] ?? field.default ?? ''}
+              onChange={e => setValues({...values, [key]: e.target.value})}
+              className="w-full px-3 py-2 border rounded-lg text-sm bg-white dark:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"/>
+          )}
+        </div>
+      ))}
+      <div className="flex gap-3 justify-end pt-2">
+        <button onClick={onClose} className="px-4 py-2 border rounded-lg text-sm hover:bg-gray-50 dark:hover:bg-gray-800">取消</button>
+        <button onClick={handleSave} disabled={saving}
+          className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-xl transition-colors disabled:opacity-50">
+          {saving ? '保存中...' : '保存设置'}
+        </button>
+      </div>
+    </div>
+  );
+};
+
 /* ── 配置弹窗 ── */
 const ConfigModal: React.FC<{
   plugin: Plugin;
@@ -307,7 +389,13 @@ const ConfigModal: React.FC<{
               </div>
           )}
 
-          {/* 提示 */}
+          {/* 插件设置 */}
+          {plugin.settings_schema && Object.keys(plugin.settings_schema).length > 0 && (
+            <SettingsForm plugin={plugin} onClose={onClose}/>
+          )}
+
+          {/* 无设置时显示提示 */}
+          {(!plugin.settings_schema || Object.keys(plugin.settings_schema).length === 0) && (
           <div
               className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-xl p-4">
             <div className="flex items-start gap-2.5">
@@ -320,6 +408,7 @@ const ConfigModal: React.FC<{
               </div>
             </div>
           </div>
+          )}
         </div>
 
         {/* 底部 */}
@@ -341,12 +430,12 @@ function PluginsInner() {
   const [configPlugin, setConfigPlugin] = useState<Plugin | null>(null);
   const [uninstallTarget, setUninstallTarget] = useState<string | null>(null);
 
-  // 查询已安装插件
+  // 查询已安装插件 — 调用 GET /api/v2/plugins/
   const {data: installedPlugins, isLoading: installedLoading} = useQuery({
     queryKey: ['plugins-installed'],
     queryFn: async () => {
-      const res = await apiClient.get(PLUGINS.ACTIVE);
-      return res.data || [];
+      const res = await apiClient.get('/plugins/');
+      return res.data?.plugins || res.data || [];
     },
     enabled: activeTab === 'installed'
   });
@@ -355,7 +444,7 @@ function PluginsInner() {
   const {data: marketplacePlugins, isLoading: marketplaceLoading} = useQuery({
     queryKey: ['plugins-marketplace'],
     queryFn: async () => {
-      const res = await apiClient.get(PLUGINS.MARKETPLACE);
+      const res = await apiClient.get('/plugins/marketplace');
       return res.data || [];
     },
     enabled: activeTab === 'marketplace'
@@ -565,5 +654,5 @@ function PluginsInner() {
 }
 
 export default function AdminPlugins() {
-  return <AuthGuard><QueryProvider><PluginsInner/></QueryProvider></AuthGuard>;
+  return <AuthGuard><QueryProvider><PermissionGuard capability="plugin:view"><PluginsInner/></PermissionGuard></QueryProvider></AuthGuard>;
 }

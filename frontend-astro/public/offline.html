@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>离线中 - FastBlog</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+           display: flex; justify-content: center; align-items: center;
+           min-height: 100vh; margin: 0; background: #f8fafc; color: #1e293b; }
+    .card { text-align: center; padding: 2rem; }
+    .icon { font-size: 4rem; margin-bottom: 1rem; }
+    h1 { font-size: 1.5rem; margin-bottom: 0.5rem; }
+    p { color: #64748b; }
+    .retry-btn { margin-top: 1.5rem; padding: 0.75rem 2rem;
+                 background: #3b82f6; color: white; border: none;
+                 border-radius: 0.75rem; font-size: 1rem; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="icon">📡</div>
+    <h1>网络已断开</h1>
+    <p>请检查网络连接后重试</p>
+    <button class="retry-btn" onclick="window.location.reload()">重新连接</button>
+  </div>
+</body>
+</html>

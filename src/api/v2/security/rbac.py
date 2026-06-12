@@ -2,16 +2,18 @@
 角色权限管理 API
 提供细粒度权限控制、自定义角色、权限继承和审计功能
 """
+import json
 import logging
+from datetime import datetime, timezone
 from functools import wraps
 from typing import Optional, List
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models import PermissionAuditLog, Role
-from shared.models.rbac import Capability
+from shared.models import PermissionAuditLog
+from shared.models.rbac import Role, Capability, RoleCapability, UserRole
 from shared.services.security.rbac_service import rbac_service
 from src.api.v2._helpers import ok, fail
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
@@ -47,42 +49,36 @@ async def create_role(
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
-    """
-    创建自定义角色
-
-    Args:
-        name: 角色名称
-        slug: 角色标识
-        description: 描述
-        permission_codes: 权限代码列表
-        parent_role_id: 父角色ID
-
-    Returns:
-        创建的角色
-    """
-    # 检查权限（需要admin权限）
-    has_permission = await rbac_service.check_permission(db, current_user.id, 'user:update')
-    if not has_permission:
+    """创建自定义角色"""
+    # 权限检查
+    if not await rbac_service.has_permission(db, current_user.id, 'user', 'manage_roles'):
         return fail("Insufficient permissions")
 
-    role = await rbac_service.create_custom_role(
-        db=db,
+    now = datetime.now(timezone.utc)
+    role = Role(
         name=name,
         slug=slug,
-        description=description,
-        permission_codes=permission_codes,
-        parent_role_id=parent_role_id
+        description=description or '',
+        is_system=False,
+        parent_id=parent_role_id,
+        is_active=True,
+        created_at=now,
+        updated_at=now,
     )
+    db.add(role)
+    await db.flush()
+    await db.refresh(role)
 
-    # 记录审计日志
-    await rbac_service.log_permission_change(
-        db=db,
-        user_id=current_user.id,
-        action='create_role',
-        resource_type='role',
-        resource_id=role.id,
-        details={'name': name, 'slug': slug}
-    )
+    # 分配权限
+    if permission_codes:
+        cap_stmt = select(Capability).where(Capability.code.in_(permission_codes))
+        cap_result = await db.execute(cap_stmt)
+        role.capabilities = list(cap_result.scalars().all())
+
+    # 审计日志
+    await _log_audit(db, current_user.id, 'create_role', 'role', role.id,
+                     {'name': name, 'slug': slug})
+    await db.commit()
 
     return ok(data={
         'id': role.id,
@@ -102,17 +98,7 @@ async def get_roles(
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
-    """
-    获取所有角色列表
-
-    Args:
-        include_system: 是否包含系统角色
-
-    Returns:
-        角色列表
-    """
-    from sqlalchemy import select
-
+    """获取所有角色列表（含用户计数）"""
     query = select(Role)
     if not include_system:
         query = query.where(Role.is_system == False)
@@ -120,17 +106,12 @@ async def get_roles(
     result = await db.execute(query)
     roles = result.scalars().all()
 
-    # 查询每个角色的用户数
-    from shared.models.user_role import UserRole
-    from sqlalchemy import func
-
-    user_counts = {}
+    # 每个角色的用户数
     count_result = await db.execute(
         select(UserRole.role_id, func.count(UserRole.user_id).label('cnt'))
         .group_by(UserRole.role_id)
     )
-    for row in count_result:
-        user_counts[row.role_id] = row.cnt
+    user_counts = {row.role_id: row.cnt for row in count_result}
 
     roles_list = []
     for role in roles:
@@ -146,10 +127,7 @@ async def get_roles(
             'created_at': role.created_at.isoformat() if role.created_at else None,
         })
 
-    return ok(data={
-        'roles': roles_list,
-        'total': len(roles_list)
-    })
+    return ok(data={'roles': roles_list, 'total': len(roles_list)})
 
 
 @router.put("/roles/{role_id}/permissions", summary="更新角色权限")
@@ -160,53 +138,28 @@ async def update_role_permissions(
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
-    """
-    更新角色权限
-
-    Args:
-        role_id: 角色ID
-        permission_codes: 权限代码列表
-
-    Returns:
-        更新结果
-    """
-    # 检查权限
-    has_permission = await rbac_service.check_permission(db, current_user.id, 'user:update')
-    if not has_permission:
+    """更新角色权限"""
+    if not await rbac_service.has_permission(db, current_user.id, 'user', 'manage_roles'):
         return fail("Insufficient permissions")
 
     role = await db.get(Role, role_id)
-
     if not role:
         return fail("Role not found")
-
     if role.is_system:
         return fail("Cannot modify system role permissions")
 
-    # 清空现有 capability 关联
+    # 清空后重新添加
     role.capabilities = []
-
-    # 添加新 capability
-    from sqlalchemy import select
-
-    for code in permission_codes:
-        cap_stmt = select(Capability).where(Capability.code == code)
+    if permission_codes:
+        cap_stmt = select(Capability).where(Capability.code.in_(permission_codes))
         cap_result = await db.execute(cap_stmt)
-        cap = cap_result.scalar_one_or_none()
-        if cap:
-            role.capabilities.append(cap)
+        role.capabilities = list(cap_result.scalars().all())
 
+    role.updated_at = datetime.now(timezone.utc)
+
+    await _log_audit(db, current_user.id, 'update_role_permissions', 'role', role_id,
+                     {'permission_codes': permission_codes})
     await db.commit()
-
-    # 记录审计日志
-    await rbac_service.log_permission_change(
-        db=db,
-        user_id=current_user.id,
-        action='update_role_permissions',
-        resource_type='role',
-        resource_id=role_id,
-        details={'permission_codes': permission_codes}
-    )
 
     return ok(msg="Role permissions updated successfully")
 
@@ -218,47 +171,27 @@ async def delete_role(
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
-    """
-    删除角色（仅自定义角色）
-
-    Args:
-        role_id: 角色ID
-
-    Returns:
-        删除结果
-    """
-    # 检查权限
-    has_permission = await rbac_service.check_permission(db, current_user.id, 'user:update')
-    if not has_permission:
+    """删除角色（仅自定义角色）"""
+    if not await rbac_service.has_permission(db, current_user.id, 'user', 'manage_roles'):
         return fail("Insufficient permissions")
 
     role = await db.get(Role, role_id)
-
     if not role:
         return fail("Role not found")
-
     if role.is_system:
         return fail("Cannot delete system role")
 
-    # 移除所有用户的该角色
-    from shared.models.user_role import UserRole
-
-    user_role_stmt = select(UserRole).where(UserRole.role_id == role_id)
-    user_role_result = await db.execute(user_role_stmt)
-    for ur in user_role_result.scalars().all():
+    # 移除所有用户的该角色关联
+    user_roles = await db.execute(
+        select(UserRole).where(UserRole.role_id == role_id)
+    )
+    for ur in user_roles.scalars().all():
         await db.delete(ur)
 
     await db.delete(role)
-    await db.commit()
 
-    # 记录审计日志
-    await rbac_service.log_permission_change(
-        db=db,
-        user_id=current_user.id,
-        action='delete_role',
-        resource_type='role',
-        resource_id=role_id
-    )
+    await _log_audit(db, current_user.id, 'delete_role', 'role', role_id)
+    await db.commit()
 
     return ok(msg="Role deleted successfully")
 
@@ -272,40 +205,24 @@ async def get_permissions(
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
-    """
-    获取所有权限列表
-
-    Args:
-        resource_type: 资源类型过滤
-
-    Returns:
-        权限列表
-    """
-    from sqlalchemy import select
-
+    """获取所有权限列表"""
     query = select(Capability).where(Capability.is_active == True)
-
     if resource_type:
         query = query.where(Capability.resource_type == resource_type)
 
     result = await db.execute(query)
     capabilities = result.scalars().all()
 
-    perms_list = []
-    for cap in capabilities:
-        perms_list.append({
-            'id': cap.id,
-            'name': cap.name,
-            'code': cap.code,
-            'description': cap.description,
-            'resource_type': cap.resource_type,
-            'action': cap.action,
-        })
+    perms_list = [{
+        'id': cap.id,
+        'name': cap.name,
+        'code': cap.code,
+        'description': cap.description,
+        'resource_type': cap.resource_type,
+        'action': cap.action,
+    } for cap in capabilities]
 
-    return ok(data={
-        'permissions': perms_list,
-        'total': len(perms_list)
-    })
+    return ok(data={'permissions': perms_list, 'total': len(perms_list)})
 
 
 # ==================== 用户角色分配 ====================
@@ -318,32 +235,19 @@ async def assign_role_to_user(
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
-    """
-    为用户分配角色
-
-    Args:
-        user_id: 用户ID
-        role_id: 角色ID
-
-    Returns:
-        分配结果
-    """
-    # 检查权限
-    has_permission = await rbac_service.check_permission(db, current_user.id, 'user:update')
-    if not has_permission:
+    """为用户分配角色"""
+    if not await rbac_service.has_permission(db, current_user.id, 'user', 'manage_roles'):
         return fail("Insufficient permissions")
 
-    await rbac_service.assign_role_to_user(db, user_id, role_id)
+    role = await db.get(Role, role_id)
+    if not role:
+        return fail("Role not found")
 
-    # 记录审计日志
-    await rbac_service.log_permission_change(
-        db=db,
-        user_id=current_user.id,
-        action='assign_role',
-        resource_type='user',
-        resource_id=user_id,
-        details={'role_id': role_id}
-    )
+    await rbac_service.assign_role(db, user_id, role.slug, assigned_by=current_user.id)
+
+    await _log_audit(db, current_user.id, 'assign_role', 'user', user_id,
+                     {'role_id': role_id, 'role_slug': role.slug})
+    await db.commit()
 
     return ok(msg="Role assigned successfully")
 
@@ -356,32 +260,19 @@ async def remove_role_from_user(
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
-    """
-    从用户移除角色
-
-    Args:
-        user_id: 用户ID
-        role_id: 角色ID
-
-    Returns:
-        移除结果
-    """
-    # 检查权限
-    has_permission = await rbac_service.check_permission(db, current_user.id, 'user:update')
-    if not has_permission:
+    """从用户移除角色"""
+    if not await rbac_service.has_permission(db, current_user.id, 'user', 'manage_roles'):
         return fail("Insufficient permissions")
 
-    await rbac_service.remove_role_from_user(db, user_id, role_id)
+    role = await db.get(Role, role_id)
+    if not role:
+        return fail("Role not found")
 
-    # 记录审计日志
-    await rbac_service.log_permission_change(
-        db=db,
-        user_id=current_user.id,
-        action='remove_role',
-        resource_type='user',
-        resource_id=user_id,
-        details={'role_id': role_id}
-    )
+    await rbac_service.remove_role(db, user_id, role.slug)
+
+    await _log_audit(db, current_user.id, 'remove_role', 'user', user_id,
+                     {'role_id': role_id, 'role_slug': role.slug})
+    await db.commit()
 
     return ok(msg="Role removed successfully")
 
@@ -393,21 +284,13 @@ async def get_user_permissions(
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
-    """
-    获取用户的所有权限
-
-    Args:
-        user_id: 用户ID
-
-    Returns:
-        权限列表
-    """
-    permissions = await rbac_service.get_user_permissions(db, user_id)
+    """获取用户的所有权限代码列表"""
+    codes = await rbac_service.get_user_permission_codes(db, user_id)
 
     return ok(data={
         'user_id': user_id,
-        'permissions': permissions,
-        'total': len(permissions)
+        'permissions': codes,
+        'total': len(codes),
     })
 
 
@@ -415,26 +298,17 @@ async def get_user_permissions(
 @_catch
 async def check_permission(
         user_id: int = Body(..., description="用户ID"),
-        permission_code: str = Body(..., description="权限代码"),
+        permission_code: str = Body(..., description="权限代码 (格式: resource.action)"),
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
-    """
-    检查用户是否有指定权限
-
-    Args:
-        user_id: 用户ID
-        permission_code: 权限代码
-
-    Returns:
-        权限检查结果
-    """
-    has_permission = await rbac_service.check_permission(db, user_id, permission_code)
+    """检查用户是否有指定权限"""
+    has = await rbac_service.has_capability(db, user_id, permission_code)
 
     return ok(data={
         'user_id': user_id,
         'permission_code': permission_code,
-        'has_permission': has_permission
+        'has_permission': has,
     })
 
 
@@ -450,51 +324,39 @@ async def get_audit_logs(
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
-    """
-    获取权限变更审计日志
-
-    Args:
-        user_id: 用户ID过滤
-        action: 操作类型过滤
-        page: 页码
-        per_page: 每页数量
-
-    Returns:
-        审计日志列表和分页信息
-    """
-    from sqlalchemy import select, func
+    """获取权限变更审计日志"""
     query = select(PermissionAuditLog)
 
     if user_id:
         query = query.where(PermissionAuditLog.user_id == user_id)
-
     if action:
         query = query.where(PermissionAuditLog.action == action)
 
-    # 计算总数
-    count_query = select(func.count()).select_from(query.subquery())
-    total_result = await db.execute(count_query)
+    # 总数
+    total_result = await db.execute(
+        select(func.count()).select_from(query.subquery())
+    )
     total = total_result.scalar()
 
     # 分页
     offset = (page - 1) * per_page
-    query = query.offset(offset).limit(per_page).order_by(PermissionAuditLog.created_at.desc())
+    query = query.offset(offset).limit(per_page).order_by(
+        PermissionAuditLog.created_at.desc()
+    )
 
     result = await db.execute(query)
     logs = result.scalars().all()
 
-    logs_list = []
-    for log in logs:
-        logs_list.append({
-            'id': log.id,
-            'user_id': log.user_id,
-            'action': log.action,
-            'resource_type': log.resource_type,
-            'resource_id': log.resource_id,
-            'details': log.details,
-            'ip_address': log.ip_address,
-            'created_at': log.created_at.isoformat() if log.created_at else None,
-        })
+    logs_list = [{
+        'id': log.id,
+        'user_id': log.user_id,
+        'action': log.action,
+        'resource_type': log.resource_type,
+        'resource_id': log.resource_id,
+        'details': log.details,
+        'ip_address': log.ip_address,
+        'created_at': log.created_at.isoformat() if log.created_at else None,
+    } for log in logs]
 
     return ok(data={
         'logs': logs_list,
@@ -502,6 +364,25 @@ async def get_audit_logs(
             'current_page': page,
             'per_page': per_page,
             'total': total,
-            'total_pages': (total + per_page - 1) // per_page
-        }
+            'total_pages': (total + per_page - 1) // per_page,
+        },
     })
+
+
+# ==================== 辅助函数 ====================
+
+async def _log_audit(
+    db: AsyncSession, user_id: int, action: str,
+    resource_type: str, resource_id: int, details: Optional[dict] = None,
+):
+    """写入权限审计日志"""
+    log = PermissionAuditLog(
+        user_id=user_id,
+        action=action,
+        resource_type=resource_type,
+        resource_id=str(resource_id),
+        details=json.dumps(details, ensure_ascii=False) if details else None,
+        created_at=datetime.now(timezone.utc),
+    )
+    db.add(log)
+    # 注意：不在这里 commit，由调用方统一 commit

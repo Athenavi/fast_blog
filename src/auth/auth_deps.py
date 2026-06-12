@@ -13,6 +13,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.user import User as UserModel
+from shared.services.security.rbac_service import rbac_service
 from src.setting import settings
 from src.utils.database.main import get_async_session
 
@@ -191,18 +192,43 @@ async def admin_required_page(
 
 # ---------- 角色 / 权限检查 ----------
 def require_permission(permission_code: str):
-    """API：检查特定权限"""
-    async def checker(user: UserModel = Depends(get_current_user)) -> UserModel:
-        if not user.has_permission(permission_code):
+    """API：检查特定权限代码（格式: resource.action）"""
+    async def checker(
+        user: UserModel = Depends(get_current_user),
+        db: AsyncSession = Depends(get_async_session),
+    ) -> UserModel:
+        if user.is_superuser:
+            return user
+        if not await rbac_service.has_capability(db, user.id, permission_code):
             raise HTTPException(status_code=403, detail="Insufficient permissions")
         return user
     return checker
 
 
-def require_role(role_name: str):
-    """API：检查特定角色"""
-    async def checker(user: UserModel = Depends(get_current_user)) -> UserModel:
-        if not user.has_role(role_name):
+def require_resource_permission(resource: str, action: str):
+    """API：检查指定资源的操作权限"""
+    async def checker(
+        user: UserModel = Depends(get_current_user),
+        db: AsyncSession = Depends(get_async_session),
+    ) -> UserModel:
+        if user.is_superuser:
+            return user
+        if not await rbac_service.has_permission(db, user.id, resource, action):
+            raise HTTPException(status_code=403, detail="Insufficient permissions")
+        return user
+    return checker
+
+
+def require_role(role_slug: str):
+    """API：检查用户是否拥有指定角色"""
+    async def checker(
+        user: UserModel = Depends(get_current_user),
+        db: AsyncSession = Depends(get_async_session),
+    ) -> UserModel:
+        if user.is_superuser:
+            return user
+        roles = await rbac_service.get_user_roles(db, user.id)
+        if not any(r.slug == role_slug for r in roles):
             raise HTTPException(status_code=403, detail="Insufficient role permissions")
         return user
     return checker
@@ -213,24 +239,31 @@ def require_permission_page(permission_code: str):
     async def checker(
         request: Request,
         user_or_redirect=Depends(get_current_user_or_redirect),
+        db: AsyncSession = Depends(get_async_session),
     ):
         if isinstance(user_or_redirect, RedirectResponse):
             return user_or_redirect
-        if not user_or_redirect.has_permission(permission_code):
+        if user_or_redirect.is_superuser:
+            return user_or_redirect
+        if not await rbac_service.has_capability(db, user_or_redirect.id, permission_code):
             return RedirectResponse(url=f"/login?next={request.url}")
         return user_or_redirect
     return checker
 
 
-def require_role_page(role_name: str):
+def require_role_page(role_slug: str):
     """页面：检查特定角色，未认证重定向"""
     async def checker(
         request: Request,
         user_or_redirect=Depends(get_current_user_or_redirect),
+        db: AsyncSession = Depends(get_async_session),
     ):
         if isinstance(user_or_redirect, RedirectResponse):
             return user_or_redirect
-        if not user_or_redirect.has_role(role_name):
+        if user_or_redirect.is_superuser:
+            return user_or_redirect
+        roles = await rbac_service.get_user_roles(db, user_or_redirect.id)
+        if not any(r.slug == role_slug for r in roles):
             return RedirectResponse(url=f"/login?next={request.url}")
         return user_or_redirect
     return checker

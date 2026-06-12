@@ -128,6 +128,9 @@ ROUTE_REGISTRY_V2 = [
     # V2 Plugins 模块采用包级别聚合模式，所有子模块通过 __init__.py 统一注册
     ("src.api.v2.plugins", "/api/v2/plugins", ["plugins-v2"], True),
 
+    # ==================== 主题管理（V2 独立路由，主题以 category="theme" 插件形式存在）====================
+    ("src.api.v2.plugins.theme_routes", "/api/v2/themes", ["themes-v2"], False),
+
     # ==================== 翻译（V2 聚合路由器）====================
     # V2 Translation 模块采用包级别聚合模式，所有子模块通过 __init__.py 统一注册
     ("src.api.v2.translation", "/api/v2", ["translation-v2"], True),

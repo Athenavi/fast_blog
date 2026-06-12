@@ -78,16 +78,16 @@ const Footer: React.FC = () => {
     ];
 
     return (
-        <footer className="relative bg-gray-50 dark:bg-gray-950 border-t border-gray-200 dark:border-gray-800">
+        <footer className="relative theme-bg-muted border-t theme-border">
             {/* Newsletter Section */}
-            <div className="border-b border-gray-200 dark:border-gray-800">
+            <div className="border-b theme-border">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
                     <div className="grid lg:grid-cols-2 gap-8 items-center">
                         <div>
-                            <h3 className="text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                            <h3 className="text-2xl font-bold theme-text mb-2">
                                 订阅我们的<span className="gradient-text"> Newsletter</span>
                             </h3>
-                            <p className="text-gray-500 dark:text-gray-400 text-sm">
+                            <p className="theme-text-secondary text-sm">
                                 获取最新文章、技术分享和社区动态，直达你的收件箱。
                             </p>
                         </div>
@@ -121,9 +121,9 @@ const Footer: React.FC = () => {
                                           d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
                                 </svg>
                             </div>
-                            <span className="text-xl font-bold text-gray-900 dark:text-white">FastBlog</span>
+                            <span className="text-xl font-bold theme-text">FastBlog</span>
                         </a>
-                        <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed mb-6">
+                        <p className="text-sm theme-text-secondary leading-relaxed mb-6">
                             一个现代化的内容创作与分享平台，致力于为创作者提供最佳的写作体验。
                         </p>
                         {/* Social Links */}
@@ -136,7 +136,7 @@ const Footer: React.FC = () => {
                                         href={social.href}
                                         target={social.external ? '_blank' : undefined}
                                         rel={social.external ? 'noopener noreferrer' : undefined}
-                                        className="w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white transition-all"
+                                        className="w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center theme-text-secondary hover:text-gray-900 dark:hover:text-white transition-all"
                                         title={social.name}
                                     >
                                         <Icon className="w-4 h-4"/>
@@ -149,7 +149,7 @@ const Footer: React.FC = () => {
                     {/* Link Columns */}
                     {Object.entries(footerLinks).map(([key, section]) => (
                         <div key={key}>
-                            <h4 className="text-sm font-semibold text-gray-900 dark:text-white mb-4">{section.title}</h4>
+                            <h4 className="text-sm font-semibold theme-text mb-4">{section.title}</h4>
                             <ul className="space-y-2.5">
                                 {section.links.map((link: {name:string;href:string;external?:boolean}) => (
                                     <li key={link.name}>
@@ -157,7 +157,7 @@ const Footer: React.FC = () => {
                                             href={link.href}
                                             target={link.external ? '_blank' : undefined}
                                             rel={link.external ? 'noopener noreferrer' : undefined}
-                                            className="text-sm text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                                            className="text-sm theme-text-secondary theme-hover-text-primary transition-colors"
                                         >
                                             {link.name}
                                         </a>
@@ -170,10 +170,10 @@ const Footer: React.FC = () => {
             </div>
 
             {/* Bottom Bar */}
-            <div className="border-t border-gray-200 dark:border-gray-800">
+            <div className="border-t theme-border">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-5">
                     <div
-                        className="flex flex-col sm:flex-row items-center justify-between gap-3 text-sm text-gray-500 dark:text-gray-400">
+                        className="flex flex-col sm:flex-row items-center justify-between gap-3 text-sm theme-text-secondary">
                         <p className="flex items-center gap-1.5">
                             © {year} FastBlog. Made with <Heart
                             className="w-3.5 h-3.5 text-red-500 fill-red-500"/> using FastAPI & Astro

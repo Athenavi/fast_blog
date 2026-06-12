@@ -4,6 +4,7 @@ import React, {useState} from 'react';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
+import {PermissionGuard} from '@/components/admin/PermissionGuard';
 import {Upload} from 'lucide-react';
 import {FilesTab} from './media/FilesTab';
 import {UploadTasksTab} from './media/UploadTasksTab';
@@ -47,5 +48,5 @@ function AdminMediaInner() {
 }
 
 export default function AdminMedia() {
-  return <AuthGuard><QueryProvider><AdminMediaInner/></QueryProvider></AuthGuard>;
+  return <AuthGuard><QueryProvider><PermissionGuard capability="media:view"><AdminMediaInner/></PermissionGuard></QueryProvider></AuthGuard>;
 }

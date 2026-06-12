@@ -1,0 +1,19 @@
+{
+  "name": "Popular Articles",
+  "slug": "popular-articles",
+  "version": "1.0.0",
+  "routes": [
+    {
+      "path": "/admin/plugin-pages/popular-articles",
+      "component": "./admin/Page.tsx",
+      "title": "Popular Articles"
+    }
+  ],
+  "navItems": [
+    {
+      "label": "🔥 阅读排行",
+      "href": "/admin/plugin-pages/popular-articles",
+      "icon": "TrendingUp"
+    }
+  ]
+}

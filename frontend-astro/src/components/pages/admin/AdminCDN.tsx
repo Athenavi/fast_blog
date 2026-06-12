@@ -4,6 +4,7 @@ import React, {useState} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
+import {PermissionGuard} from '@/components/admin/PermissionGuard';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {apiClient} from '@/lib/api/base-client';
 import {
@@ -244,4 +245,14 @@ function CDNInner() {
   );
 }
 
-export default function AdminCDN() { return <AuthGuard><QueryProvider><CDNInner/></QueryProvider></AuthGuard>; }
+export default function AdminCDN() {
+  return (
+    <AuthGuard>
+      <QueryProvider>
+        <PermissionGuard capability="settings:view">
+          <CDNInner/>
+        </PermissionGuard>
+      </QueryProvider>
+    </AuthGuard>
+  );
+}

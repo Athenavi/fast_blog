@@ -5,9 +5,11 @@ import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
+import {PermissionGuard} from '@/components/admin/PermissionGuard';
 import {StatCard} from '@/components/admin/shared-ui';
 import {apiClient} from '@/lib/api/base-client';
 import {SYSTEM} from '@/lib/api/api-paths';
+import {adminService} from '@/lib/api/admin-service';
 import {getConfig} from '@/lib/config';
 import {type Locale, locales, useTranslation} from '@/lib/i18n';
 import {
@@ -21,7 +23,7 @@ import {TABS, SETTINGS_FIELDS} from './settings/SettingsTypes';
 import type {SiteMenu as Menu, MenuItem, Page, FieldDef} from './settings/SettingsTypes';
 import {SectionTitle, SettingsSkeleton, MenuSkeleton, PageSkeleton, FieldInput, MediaField, Modal, StatusBadge, TemplateBadge, EmptyState, DeleteConfirm} from './settings/SettingsUI';
 // ─── Main Component ───────────────────────────────────
-function SettingsInner() {
+function AdminSettingsInner() {
   const qc = useQueryClient();
   const {locale, setLocale, t} = useTranslation();
   const [activeTab, setActiveTab] = useState('basic');
@@ -42,7 +44,7 @@ function SettingsInner() {
   const {data: fullData, isLoading} = useQuery({
     queryKey: ['admin-system-settings'],
     queryFn: async () => {
-      const r = await apiClient.get(SYSTEM.SETTINGS);
+      const r = await adminService.system.getSettings();
       if (r.success && r.data) {
         const raw = r.data.settings || {};
         const norm: Record<string, string> = {};
@@ -774,5 +776,13 @@ function SettingsInner() {
 }
 
 export default function AdminSettings() {
-  return <AuthGuard><QueryProvider><SettingsInner/></QueryProvider></AuthGuard>;
+  return (
+    <QueryProvider>
+      <AuthGuard>
+        <PermissionGuard capability="settings:view">
+          <AdminSettingsInner />
+          </PermissionGuard>
+      </AuthGuard>
+    </QueryProvider>
+  );
 }

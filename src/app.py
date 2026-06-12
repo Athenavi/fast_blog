@@ -5,6 +5,7 @@ import importlib
 import os
 import time as _time
 import traceback
+import asyncio
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import asynccontextmanager
 from datetime import datetime
@@ -474,6 +475,15 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         await safe_run_async("下载队列处理器", _init_download_processor)
         print(f"[lifespan] 下载队列处理器耗时: {_time.monotonic() - step_start:.2f}s")
 
+    # 6. 权限缓存预热 + 广播订阅
+    if is_installed:
+        step_start = _time.monotonic()
+        await safe_run_async("权限缓存预热", _warm_permission_cache)
+        print(f"[lifespan] 权限缓存预热耗时: {_time.monotonic() - step_start:.2f}s")
+        # 启动 Redis 广播订阅（后台任务）
+        asyncio.ensure_future(_start_redis_subscriber())
+        print(f"[lifespan] Redis 广播订阅已启动")
+
     total_elapsed = _time.monotonic() - lifespan_start
     print(f"\n{'=' * 60}")
     print(f"[lifespan] 🚀 应用启动完成，总耗时: {total_elapsed:.2f}s")
@@ -513,6 +523,47 @@ def _init_plugins():
 async def _init_download_processor():
     from shared.services.media.download_queue_processor import init_download_processor
     await init_download_processor()
+
+
+async def _warm_permission_cache():
+    """预热超级管理员的权限缓存，避免首请求冷启动 DB 查询"""
+    try:
+        from sqlalchemy import select
+        from shared.models.user import User
+        from shared.models.rbac import Capability
+        from src.api.v3._permission import _memory_cache
+        from src.utils.database.unified_manager import db_manager
+
+        async with db_manager.get_async_session() as db:
+            # 找出所有 superuser
+            result = await db.execute(
+                select(User.id).where(User.is_superuser == True, User.is_active == True)
+            )
+            superadmin_ids = [row[0] for row in result.all()]
+
+            if not superadmin_ids:
+                return
+
+            # 加载所有 capability codes
+            caps_result = await db.execute(select(Capability.code))
+            all_codes = {row[0] for row in caps_result.all() if row[0]}
+
+            # 预写入内存缓存
+            for uid in superadmin_ids:
+                await _memory_cache.set(uid, all_codes)
+
+            print(f"[lifespan] 权限缓存预热: {len(superadmin_ids)} 个超级管理员, {len(all_codes)} 个权限代码")
+    except Exception as e:
+        print(f"[lifespan] 权限缓存预热跳过: {e}")
+
+
+async def _start_redis_subscriber():
+    """启动 Redis 缓存广播订阅（后台任务，失败不阻塞）"""
+    try:
+        from src.api.v3._permission import _redis_subscribe_invalidate
+        await _redis_subscribe_invalidate()
+    except Exception as e:
+        print(f"[lifespan] Redis 广播订阅启动失败: {e}")
 
 
 async def _shutdown_download_processor():

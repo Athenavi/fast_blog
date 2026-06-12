@@ -375,6 +375,11 @@ models:
       - is_vip
       - get_display_name
     defs_target: mydef.py
+    relationships:
+      roles:
+        target: Role
+        secondary: user_role_assignments
+        back_populates: users
   UserCreate:
     type: schema
     description: 用户创建请求模型
@@ -5147,6 +5152,10 @@ models:
       capabilities:
         target: Capability
         secondary: role_capabilities
+        back_populates: roles
+      users:
+        target: User
+        secondary: user_role_assignments
         back_populates: roles
   Capability:
     description: 权限能力模型

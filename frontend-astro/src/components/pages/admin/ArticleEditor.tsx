@@ -4,6 +4,7 @@ import React, {useState} from 'react';
 import {useMutation} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
+import {PermissionGuard} from '@/components/admin/PermissionGuard';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {apiClient} from '@/lib/api/base-client';
 import {Save} from 'lucide-react';
@@ -65,5 +66,13 @@ function EditorInner() {
 }
 
 export default function ArticleEditor() {
-  return <AuthGuard><QueryProvider><EditorInner /></QueryProvider></AuthGuard>;
+  return (
+    <AuthGuard>
+      <QueryProvider>
+        <PermissionGuard capability="settings:view">
+          <EditorInner />
+        </PermissionGuard>
+      </QueryProvider>
+    </AuthGuard>
+  );
 }

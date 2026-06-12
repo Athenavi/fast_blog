@@ -4,6 +4,7 @@ import {useState} from 'react';
 import {useMutation, useQuery} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
+import {PermissionGuard} from '@/components/admin/PermissionGuard';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {apiClient} from '@/lib/api/base-client';
 import {BookOpen, Check, Clock, Download, ExternalLink, FileText, Globe, Loader, Shield, X,} from 'lucide-react';
@@ -332,5 +333,13 @@ function GDPRInner() {
 }
 
 export default function AdminGDPR() {
-  return <AuthGuard><QueryProvider><GDPRInner/></QueryProvider></AuthGuard>;
+  return (
+    <AuthGuard>
+      <QueryProvider>
+        <PermissionGuard capability="settings:view">
+          <GDPRInner/>
+        </PermissionGuard>
+      </QueryProvider>
+    </AuthGuard>
+  );
 }

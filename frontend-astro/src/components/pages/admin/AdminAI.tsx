@@ -7,6 +7,7 @@ import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {apiClient} from '@/lib/api/base-client';
 import {AI} from '@/lib/api/api-paths';
+import {PermissionGuard} from '@/components/admin/PermissionGuard';
 import {Brain, Loader, Sparkles} from 'lucide-react';
 
 function AIInner() {
@@ -76,4 +77,14 @@ function AIInner() {
     </AdminShell>
   );
 }
-export default function AdminAI() { return <AuthGuard><QueryProvider><AIInner/></QueryProvider></AuthGuard>; }
+export default function AdminAI() {
+  return (
+    <AuthGuard>
+      <QueryProvider>
+        <PermissionGuard capability="plugin:view">
+          <AIInner />
+        </PermissionGuard>
+      </QueryProvider>
+    </AuthGuard>
+  );
+}

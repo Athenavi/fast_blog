@@ -5,6 +5,7 @@ import {useQuery} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
+import {PermissionGuard} from '@/components/admin/PermissionGuard';
 import {apiClient} from '@/lib/api/base-client';
 import {SECURITY} from '@/lib/api/api-paths';
 import {useConfirm} from '@/components/ui/confirm-provider';
@@ -146,7 +147,7 @@ function AuditLogsContent() {
   });
 
   return (
-    <>
+    <AdminShell title="审计日志">
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <StatCard icon={ScrollText} label="30 天日志总量" value={stats.total_logs ?? '—'} />
@@ -253,10 +254,18 @@ function AuditLogsContent() {
         )}
         <Pagination page={page} total={pagination.total||0} perPage={20} onChange={setPage} />
       </div>
-    </>
+    </AdminShell>
   );
 }
 
 export default function AdminAuditLogs() {
-  return <AuthGuard><QueryProvider><AdminShell title="审计日志"><AuditLogsContent /></AdminShell></QueryProvider></AuthGuard>;
+  return (
+    <AuthGuard>
+      <QueryProvider>
+        <PermissionGuard capability="settings:view">
+          <AuditLogsContent />
+        </PermissionGuard>
+      </QueryProvider>
+    </AuthGuard>
+  );
 }

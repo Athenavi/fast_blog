@@ -5,8 +5,8 @@ import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
-import {RBAC, DASHBOARD} from '@/lib/api/api-paths';
-import {apiClient} from '@/lib/api/base-client';
+import {PermissionGuard} from '@/components/admin/PermissionGuard';
+import {adminService} from '@/lib/api/admin-service';
 import {StatCard} from '@/components/admin/shared-ui';
 import {
   Shield,
@@ -295,9 +295,9 @@ function RoleModal({mode, role, permissions, onClose}: {
       if (!slug.trim()) throw new Error('角色标识不能为空');
       const perms = [...selectedPerms];
       if (mode === 'create') {
-        return apiClient.post(RBAC.ROLES, {name, slug, description: desc, permission_codes: perms});
+        return adminService.roles.createRole({name, slug, description: desc, permission_codes: perms});
       } else {
-        return apiClient.put(RBAC.ROLE_PERMISSIONS(role!.id), {permission_codes: perms});
+        return adminService.roles.updateRolePermissions(role!.id, perms);
       }
     },
     onSuccess: (res: any) => {
@@ -451,7 +451,7 @@ function UsersModal({roleId, roleName, onClose}: {roleId: number; roleName: stri
   const {data: users, isLoading} = useQuery({
     queryKey: ['admin-role-users', roleId],
     queryFn: async () => {
-      const res = await apiClient.get(DASHBOARD.USER_MGMT_USERS, {per_page: 100});
+      const res = await adminService.users.list({per_page: 100});
       if (!res.success || !res.data) return [];
       return Array.isArray(res.data) ? res.data : (res.data.users || []);
     },
@@ -523,7 +523,7 @@ function UsersModal({roleId, roleName, onClose}: {roleId: number; roleName: stri
 /* ═══════════════════════════════════════════════════════
    Main Component
    ═══════════════════════════════════════════════════════ */
-function RolesInner() {
+function AdminRolesInner() {
   const qc = useQueryClient();
   const [modal, setModal] = useState<{mode: 'create' | 'edit'; role?: any} | null>(null);
   const [usersModal, setUsersModal] = useState<{id: number; name: string} | null>(null);
@@ -533,7 +533,7 @@ function RolesInner() {
   const {data: roles, isLoading} = useQuery({
     queryKey: ['admin-roles'],
     queryFn: async () => {
-      const res = await apiClient.get(RBAC.ROLES);
+      const res = await adminService.roles.listRoles();
       return res.success && res.data ? (Array.isArray(res.data) ? res.data : res.data.roles || []) : [];
     },
   });
@@ -541,13 +541,13 @@ function RolesInner() {
   const {data: permissions} = useQuery({
     queryKey: ['admin-permissions'],
     queryFn: async () => {
-      const res = await apiClient.get(RBAC.PERMISSIONS);
+      const res = await adminService.roles.listPermissions();
       return res.success && res.data ? (Array.isArray(res.data) ? res.data : res.data.permissions || []) : [];
     },
   });
 
   const deleteMut = useMutation({
-    mutationFn: (id: number) => apiClient.delete(RBAC.ROLE(id)),
+    mutationFn: (id: number) => adminService.roles.deleteRole(id),
     onSuccess: (res: any) => {
       if (!res.success) return;
       qc.invalidateQueries({queryKey: ['admin-roles']});
@@ -724,5 +724,13 @@ function RolesInner() {
 }
 
 export default function AdminRoles() {
-  return <AuthGuard><QueryProvider><RolesInner/></QueryProvider></AuthGuard>;
+  return (
+    <QueryProvider>
+      <AuthGuard>
+        <PermissionGuard capability="user:manage_roles">
+          <AdminRolesInner />
+          </PermissionGuard>
+      </AuthGuard>
+    </QueryProvider>
+  );
 }

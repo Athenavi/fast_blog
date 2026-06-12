@@ -795,8 +795,8 @@ def generate_plugin(name: str, description: str = "", author: str = ""):
 
 
 def generate_theme(name: str, description: str = "", author: str = ""):
-    """生成主题脚手架的便捷函数"""
-    generator = ThemeScaffold(Path("themes"))
+    """生成主题插件的便捷函数（主题以 category='theme' 的插件形式存在）"""
+    generator = ThemeScaffold(Path("plugins"))
     generator.generate(name, description, author)
 
 

@@ -23,9 +23,9 @@ export default function HomeFeatured({featured, title, noSummaryMsg = '暂无摘
             <div className="w-10 h-1 bg-gradient-to-r from-blue-600 to-cyan-500 rounded-full" />
             <span className="text-sm font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-widest">Featured</span>
           </div>
-          <h2 className="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white tracking-tight">{title}</h2>
+          <h2 className="text-3xl sm:text-4xl font-black theme-text tracking-tight">{title}</h2>
         </div>
-        <a href="/articles" className="hidden sm:flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-blue-600 dark:text-gray-400 dark:hover:text-blue-400 transition-colors group">
+        <a href="/articles" className="hidden sm:flex items-center gap-2 text-sm font-semibold theme-text-secondary hover:theme-text-primary transition-colors group">
           查看全部 <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
         </a>
       </motion.div>
@@ -33,7 +33,7 @@ export default function HomeFeatured({featured, title, noSummaryMsg = '暂无摘
       <div className="grid lg:grid-cols-12 gap-6">
         {/* Main */}
         <motion.div variants={fadeUp} className="lg:col-span-7">
-          <a href={`/view?slug=${featured[0].slug}`} className="group block relative aspect-[16/10] rounded-2xl overflow-hidden bg-gray-100 dark:bg-gray-900">
+          <a href={`/view?slug=${featured[0].slug}`} className="group block relative aspect-[16/10] rounded-2xl overflow-hidden theme-bg-muted">
             {featured[0].cover_image ? (
               <img src={getFullMediaUrl(featured[0].cover_image)} alt={featured[0].title}
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" loading="lazy" />
@@ -64,7 +64,7 @@ export default function HomeFeatured({featured, title, noSummaryMsg = '暂无摘
         <div className="lg:col-span-5 flex flex-col gap-4">
           {featured.slice(1, 4).map(article => (
             <motion.a key={article.id} variants={fadeUp} href={`/view?slug=${article.slug}`}
-              className="group flex gap-4 p-3 rounded-xl border border-gray-100 dark:border-gray-800 hover:border-blue-200 dark:hover:border-blue-800 bg-white dark:bg-gray-900/50 hover:shadow-lg hover:shadow-blue-500/5 transition-all duration-300">
+              className="group flex gap-4 p-3 rounded-xl border theme-border hover:theme-border-primary theme-bg transition-all duration-300">
               <div className="flex-shrink-0 w-28 h-20 rounded-lg overflow-hidden bg-gray-100 dark:bg-gray-800">
                 {article.cover_image ? (
                   <img src={getFullMediaUrl(article.cover_image)} alt={article.title}
@@ -74,7 +74,7 @@ export default function HomeFeatured({featured, title, noSummaryMsg = '暂无摘
                 )}
               </div>
               <div className="flex-1 min-w-0 flex flex-col justify-center">
-                <h4 className="font-semibold text-gray-900 dark:text-white text-sm line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors leading-snug">{article.title}</h4>
+                <h4 className="font-semibold theme-text text-sm line-clamp-2 group-hover:theme-text-primary transition-colors leading-snug">{article.title}</h4>
                 <div className="flex items-center gap-3 mt-2 text-xs text-gray-400">
                   <span><Eye className="w-3 h-3 inline" /> {article.views || 0}</span>
                   <span><Heart className="w-3 h-3 inline" /> {article.likes || 0}</span>

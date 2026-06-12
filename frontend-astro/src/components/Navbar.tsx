@@ -261,8 +261,8 @@ const Navbar: React.FC<NavbarProps> = ({title, subtitle, showBackButton = false,
       <header
         className={`fixed top-0 left-0 right-0 z-[9999] w-full transition-all duration-300 safe-top ${
           scrolled
-            ? 'glass-strong shadow-md border-b border-gray-200/60 dark:border-gray-700/60'
-            : 'bg-white/95 dark:bg-gray-950/95 border-b border-gray-100 dark:border-gray-900'
+            ? 'glass-strong shadow-md border-b theme-border'
+            : 'theme-bg border-b theme-border'
         }`}
         suppressHydrationWarning
       >
@@ -281,16 +281,16 @@ const Navbar: React.FC<NavbarProps> = ({title, subtitle, showBackButton = false,
                   </svg>
                 </div>
                 <span
-                  className="text-xl font-bold text-gray-900 dark:text-white hidden sm:block tracking-tight">FastBlog</span>
+                  className="text-xl font-bold theme-text hidden sm:block tracking-tight">FastBlog</span>
               </a>
 
               {/* Page title (for admin pages) */}
               {title && (
                 <div
                   className="ml-2 pl-4 border-l border-gray-200 dark:border-gray-800 max-w-[140px] sm:max-w-none truncate">
-                  <h1 className="text-sm sm:text-base font-semibold text-gray-900 dark:text-white truncate">{title}</h1>
+                  <h1 className="text-sm sm:text-base font-semibold theme-text truncate">{title}</h1>
                   {subtitle &&
-                    <p className="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">{subtitle}</p>}
+                    <p className="text-xs theme-text-secondary hidden sm:block">{subtitle}</p>}
                 </div>
               )}
 
@@ -306,7 +306,7 @@ const Navbar: React.FC<NavbarProps> = ({title, subtitle, showBackButton = false,
                       className={`relative px-3.5 py-2 rounded-lg transition-all duration-200 flex items-center gap-2 text-sm font-medium ${
                         isActive
                           ? 'text-blue-600 dark:text-blue-400 bg-blue-50/80 dark:bg-blue-900/20'
-                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/80 dark:hover:bg-gray-800/50'
+                          : 'theme-text-secondary hover:theme-text hover:theme-bg-muted'
                       }`}
                     >
                       <Icon className="w-4 h-4"/>
@@ -330,13 +330,13 @@ const Navbar: React.FC<NavbarProps> = ({title, subtitle, showBackButton = false,
               {/* Search Button */}
               <button
                 onClick={() => setIsSearchOpen(true)}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-sm border border-gray-200 dark:border-gray-700"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg theme-text-muted hover:theme-bg-muted transition-colors text-sm border theme-border"
                 title="搜索 (⌘K)"
               >
                 <Search className="w-4 h-4"/>
-                <span className="hidden sm:inline text-gray-400">搜索...</span>
+                <span className="hidden sm:inline theme-text-secondary">搜索...</span>
                 <kbd
-                  className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded text-[10px] font-mono text-gray-400">
+                  className="hidden sm:inline-flex items-center gap-0.5 px-1.5 py-0.5 theme-bg-muted border theme-border rounded text-[10px] font-mono theme-text-secondary">
                   <Command className="w-3 h-3"/>K
                 </kbd>
               </button>
@@ -349,7 +349,7 @@ const Navbar: React.FC<NavbarProps> = ({title, subtitle, showBackButton = false,
                       setNotifOpen(!notifOpen);
                       setIsUserMenuOpen(false);
                     }}
-                    className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors relative"
+                    className="p-2 rounded-lg theme-text-secondary theme-hover-bg-muted transition-colors relative"
                     title="通知"
                   >
                     <Bell className="w-5 h-5"/>
@@ -363,17 +363,17 @@ const Navbar: React.FC<NavbarProps> = ({title, subtitle, showBackButton = false,
                         animate={{opacity: 1, y: 0, scale: 1}}
                         exit={{opacity: 0, y: -8, scale: 0.96}}
                         transition={{duration: 0.15}}
-                        className="absolute right-0 mt-2 w-80 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 overflow-hidden"
+                        className="absolute right-0 mt-2 w-80 rounded-xl shadow-xl border theme-border theme-bg overflow-hidden"
                       >
                         <div
-                          className="flex items-center justify-between px-4 py-3 border-b border-gray-100 dark:border-gray-800">
-                          <h3 className="font-semibold text-gray-900 dark:text-white text-sm">通知</h3>
+                          className="flex items-center justify-between px-4 py-3 border-b theme-border">
+                          <h3 className="font-semibold theme-text text-sm">通知</h3>
                           <button
-                            className="text-xs text-blue-600 hover:text-blue-700">全部标为已读
+                            className="text-xs theme-text-primary">全部标为已读
                           </button>
                         </div>
                         <div className="max-h-80 overflow-y-auto">
-                          <div className="py-12 text-center text-gray-400 text-sm">
+                          <div className="py-12 text-center theme-text-secondary text-sm">
                             <Bell className="w-8 h-8 mx-auto mb-2 opacity-30"/>
                             暂无新通知
                           </div>
@@ -387,7 +387,7 @@ const Navbar: React.FC<NavbarProps> = ({title, subtitle, showBackButton = false,
               {/* Theme Toggle */}
               <button
                 onClick={toggleTheme}
-                className="p-2 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                className="p-2 rounded-lg theme-text-secondary theme-hover-bg-muted transition-colors"
                 title={theme === 'dark' ? '切换为亮色' : '切换为暗色'}
                 suppressHydrationWarning
               >
@@ -416,18 +416,18 @@ const Navbar: React.FC<NavbarProps> = ({title, subtitle, showBackButton = false,
                       setIsUserMenuOpen(!isUserMenuOpen);
                       setNotifOpen(false);
                     }}
-                    className="flex items-center gap-2 p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+                    className="flex items-center gap-2 p-1.5 rounded-lg theme-hover-bg-muted transition-colors"
                   >
                     {userAvatar ? (
                       <img src={userAvatar} alt=""
-                           className="w-7 h-7 rounded-full object-cover ring-2 ring-gray-200 dark:ring-gray-700"/>
+                           className="w-7 h-7 rounded-full object-cover ring-2 theme-border"/>
                     ) : (
                       <div
                         className="w-7 h-7 rounded-full gradient-primary flex items-center justify-center text-white text-xs font-bold">
                         {username ? username[0].toUpperCase() : 'U'}
                       </div>
                     )}
-                    <ChevronDown className="w-3.5 h-3.5 text-gray-400 hidden sm:block"/>
+                    <ChevronDown className="w-3.5 h-3.5 theme-text-secondary hidden sm:block"/>
                   </button>
                 ) : (
                   <a href="/login" className="btn-primary text-sm !px-4 !py-2 !rounded-lg">
@@ -442,13 +442,13 @@ const Navbar: React.FC<NavbarProps> = ({title, subtitle, showBackButton = false,
                       animate={{opacity: 1, y: 0, scale: 1}}
                       exit={{opacity: 0, y: -8, scale: 0.96}}
                       transition={{duration: 0.15}}
-                      className="absolute right-0 mt-2 w-56 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 py-1.5 bg-white dark:bg-gray-900 overflow-hidden"
+                      className="absolute right-0 mt-2 w-56 rounded-xl shadow-xl border theme-border py-1.5 theme-bg overflow-hidden"
                     >
                       {/* User info header */}
-                      <div className="px-4 py-3 border-b border-gray-100 dark:border-gray-800">
+                      <div className="px-4 py-3 border-b theme-border">
                         <p
-                          className="text-sm font-semibold text-gray-900 dark:text-white truncate">{username || '用户'}</p>
-                        <p className="text-xs text-gray-500 mt-0.5">欢迎回来</p>
+                          className="text-sm font-semibold theme-text truncate">{username || '用户'}</p>
+                        <p className="text-xs theme-text-secondary mt-0.5">欢迎回来</p>
                       </div>
 
                       {userMenuItems.map((item) => {
@@ -458,9 +458,9 @@ const Navbar: React.FC<NavbarProps> = ({title, subtitle, showBackButton = false,
                             key={item.href}
                             href={item.href}
                             onClick={() => setIsUserMenuOpen(false)}
-                            className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                            className="flex items-center gap-3 px-4 py-2.5 text-sm theme-text theme-hover-bg-muted transition-colors"
                           >
-                            <Icon className="w-4 h-4 text-gray-400"/>
+                            <Icon className="w-4 h-4 theme-text-secondary"/>
                             <span>{item.name}</span>
                           </a>
                         );
@@ -470,13 +470,13 @@ const Navbar: React.FC<NavbarProps> = ({title, subtitle, showBackButton = false,
                       <a
                         href="/admin"
                         onClick={() => setIsUserMenuOpen(false)}
-                        className="flex items-center gap-3 px-4 py-2.5 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                        className="flex items-center gap-3 px-4 py-2.5 text-sm theme-text theme-hover-bg-muted transition-colors"
                       >
-                        <Settings className="w-4 h-4 text-gray-400"/>
+                        <Settings className="w-4 h-4 theme-text-secondary"/>
                         <span>管理后台</span>
                       </a>
 
-                      <div className="border-t border-gray-100 dark:border-gray-800 my-1"/>
+                      <div className="border-t theme-border my-1"/>
 
                       <button
                         onClick={() => {
@@ -502,7 +502,7 @@ const Navbar: React.FC<NavbarProps> = ({title, subtitle, showBackButton = false,
 
       {/* Mobile Bottom Nav */}
       <nav
-        className="fixed bottom-0 left-0 right-0 z-[9998] md:hidden glass-strong border-t border-gray-200/60 dark:border-gray-700/60"
+        className="fixed bottom-0 left-0 right-0 z-[9998] md:hidden glass-strong border-t theme-border"
         style={{paddingBottom: 'env(safe-area-inset-bottom, 0px)'}}>
         <div className="flex items-center justify-around h-14">
           {navItems.map((item) => {
@@ -513,7 +513,7 @@ const Navbar: React.FC<NavbarProps> = ({title, subtitle, showBackButton = false,
                 key={item.href}
                 href={item.href}
                 className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors min-w-[56px] ${
-                  isActive ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'
+                  isActive ? 'text-blue-600 dark:text-blue-400' : 'theme-text-secondary'
                 }`}
               >
                 <Icon className="w-5 h-5"/>
@@ -531,7 +531,7 @@ const Navbar: React.FC<NavbarProps> = ({title, subtitle, showBackButton = false,
             <a
               href="/settings"
               className={`flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg transition-colors min-w-[56px] ${
-                pathname.startsWith('/settings') || pathname.startsWith('/profile') || pathname.startsWith('/my') ? 'text-blue-600 dark:text-blue-400' : 'text-gray-500 dark:text-gray-400'
+                pathname.startsWith('/settings') || pathname.startsWith('/profile') || pathname.startsWith('/my') ? 'text-blue-600 dark:text-blue-400' : 'theme-text-secondary'
               }`}
             >
               {userAvatar ? (
@@ -543,7 +543,7 @@ const Navbar: React.FC<NavbarProps> = ({title, subtitle, showBackButton = false,
             </a>
           ) : (
             <a href="/login"
-               className="flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg text-gray-500 dark:text-gray-400 min-w-[56px]">
+               className="flex flex-col items-center gap-0.5 px-3 py-1 rounded-lg theme-text-secondary min-w-[56px]">
               <User className="w-5 h-5"/>
               <span className="text-[10px] font-medium">登录</span>
             </a>
@@ -572,24 +572,24 @@ const Navbar: React.FC<NavbarProps> = ({title, subtitle, showBackButton = false,
               animate={{opacity: 1, y: 0, scale: 1}}
               exit={{opacity: 0, y: -20, scale: 0.96}}
               transition={{duration: 0.2}}
-              className="relative w-full max-w-2xl mx-3 sm:mx-4 bg-white dark:bg-gray-900 rounded-xl sm:rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden max-h-[80vh] sm:max-h-none flex flex-col"
+              className="relative w-full max-w-2xl mx-3 sm:mx-4 theme-bg rounded-xl sm:rounded-2xl shadow-2xl border theme-border overflow-hidden max-h-[80vh] sm:max-h-none flex flex-col"
             >
               {/* Search Input */}
               <form onSubmit={handleSearchSubmit}
-                    className="flex items-center gap-3 px-5 py-4 border-b border-gray-100 dark:border-gray-800">
-                <Search className="w-5 h-5 text-gray-400 flex-shrink-0"/>
+                    className="flex items-center gap-3 px-5 py-4 border-b theme-border">
+                <Search className="w-5 h-5 theme-text-secondary flex-shrink-0"/>
                 <input
                   ref={searchInputRef}
                   type="text"
                   value={searchQuery}
                   onChange={(e) => handleSearch(e.target.value)}
                   placeholder="搜索文章、分类、标签..."
-                  className="flex-1 bg-transparent text-gray-900 dark:text-white placeholder-gray-400 outline-none text-base min-h-[44px]"
+                  className="flex-1 bg-transparent theme-text placeholder-gray-400 outline-none text-base min-h-[44px]"
                 />
                 <kbd
-                  className="hidden sm:inline px-2 py-0.5 bg-gray-100 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded text-xs text-gray-400">ESC</kbd>
+                  className="hidden sm:inline px-2 py-0.5 theme-bg-muted border theme-border rounded text-xs theme-text-secondary">ESC</kbd>
                 <button type="button" onClick={() => setIsSearchOpen(false)}
-                        className="sm:hidden p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300">
+                        className="sm:hidden p-2 theme-text-secondary hover:text-gray-600 dark:hover:text-gray-300">
                   <X className="w-5 h-5"/>
                 </button>
               </form>
@@ -600,7 +600,7 @@ const Navbar: React.FC<NavbarProps> = ({title, subtitle, showBackButton = false,
                   <div className="py-12 text-center">
                     <div
                       className="animate-spin w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full mx-auto"/>
-                    <p className="text-sm text-gray-400 mt-3">搜索中...</p>
+                    <p className="text-sm theme-text-secondary mt-3">搜索中...</p>
                   </div>
                 ) : searchResults.length > 0 ? (
                   <div className="py-2">
@@ -609,41 +609,41 @@ const Navbar: React.FC<NavbarProps> = ({title, subtitle, showBackButton = false,
                         key={i}
                         href={`/view?slug=${item.slug || item.id}`}
                         onClick={() => setIsSearchOpen(false)}
-                        className="flex items-start gap-3 px-5 py-3 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                        className="flex items-start gap-3 px-5 py-3 theme-hover-bg-muted transition-colors"
                       >
                         <div
                           className="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-900/20 flex items-center justify-center flex-shrink-0 mt-0.5">
                           <BookOpen className="w-4 h-4 text-blue-600 dark:text-blue-400"/>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{item.title}</p>
+                          <p className="text-sm font-medium theme-text truncate">{item.title}</p>
                           <p
-                            className="text-xs text-gray-500 mt-0.5 line-clamp-1">{item.excerpt || item.summary || ''}</p>
+                            className="text-xs theme-text-secondary mt-0.5 line-clamp-1">{item.excerpt || item.summary || ''}</p>
                         </div>
                       </a>
                     ))}
                     <a
                       href={`/search?q=${encodeURIComponent(searchQuery)}`}
                       onClick={() => setIsSearchOpen(false)}
-                      className="flex items-center justify-center py-3 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-900/10 transition-colors border-t border-gray-100 dark:border-gray-800"
+                      className="flex items-center justify-center py-3 text-sm theme-text-primary theme-hover-bg-muted transition-colors border-t theme-border"
                     >
                       查看所有搜索结果 →
                     </a>
                   </div>
                 ) : searchQuery ? (
-                  <div className="py-12 text-center text-gray-400 text-sm">
+                  <div className="py-12 text-center theme-text-secondary text-sm">
                     <Search className="w-8 h-8 mx-auto mb-2 opacity-30"/>
                     未找到相关内容
                   </div>
                 ) : (
                   <div className="py-8 px-5">
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">快捷搜索</p>
+                    <p className="text-xs font-semibold theme-text-secondary uppercase tracking-wider mb-3">快捷搜索</p>
                     <div className="flex flex-wrap gap-2">
                       {['技术', '前端', '后端', 'AI', '设计'].map(tag => (
                         <button
                           key={tag}
                           onClick={() => handleSearch(tag)}
-                          className="px-3 py-1.5 text-sm bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                          className="px-3 py-1.5 text-sm theme-bg-muted text-gray-600 dark:theme-text-secondary rounded-lg theme-hover-bg-muted transition-colors"
                         >
                           {tag}
                         </button>

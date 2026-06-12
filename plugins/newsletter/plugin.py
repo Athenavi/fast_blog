@@ -16,6 +16,7 @@ from sqlalchemy import Column, Integer, String, DateTime, Boolean, Text, create_
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 from shared.services.plugins.plugin_manager.core import BasePlugin
+from shared.services.plugins.plugin_manager import requires_capability
 from shared.services.plugins.event_bus import event_bus, ArticlePublishedPayload
 
 # ── 插件本地 ORM ──
@@ -49,7 +50,7 @@ class NewsletterPlugin(BasePlugin):
 
     def __init__(self):
         super().__init__(
-            plugin_id=0,
+            plugin_id=3002,
             name="Newsletter",
             slug="newsletter",
             version="1.0.0"
@@ -64,6 +65,7 @@ class NewsletterPlugin(BasePlugin):
             'smtp_password': '',
             'smtp_from_email': '',
             'smtp_from_name': 'FastBlog',
+            'site_url': '',
             # 自动推送
             'auto_send_on_publish': True,
             'email_template': '''
@@ -149,6 +151,7 @@ class NewsletterPlugin(BasePlugin):
         finally:
             session.close()
 
+    @requires_capability("read:newsletter")
     def list_subscribers(self, page: int = 1, per_page: int = 50) -> Dict[str, Any]:
         """列出订阅者（仅活跃）"""
         session = self._get_session()
@@ -185,6 +188,24 @@ class NewsletterPlugin(BasePlugin):
         finally:
             session.close()
 
+    @requires_capability("write:newsletter")
+    def admin_unsubscribe(self, subscriber_id: int) -> Dict[str, Any]:
+        """管理员从后台取消订阅"""
+        session = self._get_session()
+        try:
+            sub = session.query(SubscriberModel).filter_by(id=subscriber_id).first()
+            if not sub:
+                return {'success': False, 'error': 'Subscriber not found'}
+            sub.is_active = False
+            sub.unsubscribed_at = datetime.now(timezone.utc)
+            session.commit()
+            return {'success': True, 'message': f'{sub.email} unsubscribed'}
+        except Exception as e:
+            session.rollback()
+            return {'success': False, 'error': str(e)}
+        finally:
+            session.close()
+
     # ── EventBus 事件处理 ──
 
     async def on_article_published(self, payload: ArticlePublishedPayload):
@@ -201,7 +222,7 @@ class NewsletterPlugin(BasePlugin):
             if not subscribers:
                 return
 
-            site_url = "https://fastblog.example.com"  # TODO: 从设置读取
+            site_url = self.settings.get('site_url', 'https://fastblog.example.com').rstrip('/')
             article_url = f"{site_url}/blog/detail?slug={payload.slug}"
             unsubscribe_url = f"{site_url}/unsubscribe?email="
             html = self.settings['email_template'].format(
