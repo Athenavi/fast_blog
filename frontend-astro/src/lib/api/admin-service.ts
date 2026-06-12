@@ -293,6 +293,27 @@ export const adminNotificationService = {
 };
 
 // ================================================================
+// Webhook 管理
+// ================================================================
+
+export const adminWebhookService = {
+  list: () =>
+    adminApi.get('/api/v3/admin/webhooks', '/webhooks'),
+
+  create: (data: {name: string; url: string; events: string[]; is_active?: boolean}) =>
+    adminApi.post('/api/v3/admin/webhooks', '/webhooks', data),
+
+  update: (id: number, data: {name?: string; url?: string; events?: string[]; is_active?: boolean}) =>
+    adminApi.put(`/api/v3/admin/webhooks/${id}`, `/webhooks/${id}`, data),
+
+  delete: (id: number) =>
+    adminApi.delete(`/api/v3/admin/webhooks/${id}`, `/webhooks/${id}`),
+
+  test: (id: number) =>
+    adminApi.post(`/api/v3/admin/webhooks/${id}/test`, `/webhooks/${id}/test`),
+};
+
+// ================================================================
 // 统一导出
 // ================================================================
 
@@ -312,4 +333,5 @@ export const adminService = {
   categories: adminCategoryService,
   analytics: adminAnalyticsService,
   notifications: adminNotificationService,
+  webhooks: adminWebhookService,
 };

@@ -6,6 +6,7 @@ import {QueryProvider} from '@/components/QueryProvider';
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {apiClient} from '@/lib/api/base-client';
 import {WEBHOOKS} from '@/lib/api/api-paths';
+import {adminService} from '@/lib/api/admin-service';
 import {formatDateTime as formatTime} from '@/lib/utils';
 import {useConfirm} from '@/components/ui/confirm-provider';
 import {useToast} from '@/components/ui/toast-provider';
@@ -62,7 +63,7 @@ function WebhooksInner() {
     const {data: webhooks, isLoading: webhooksLoading} = useQuery({
         queryKey: ['webhooks'],
         queryFn: async () => {
-            const res = await apiClient.get('/webhooks');
+            const res = await adminService.webhooks.list();
             return res.data || [];
         }
     });
@@ -78,7 +79,7 @@ function WebhooksInner() {
 
     // 创建 Webhook
     const createMut = useMutation({
-        mutationFn: (data: any) => apiClient.post('/webhooks', data),
+        mutationFn: (data: any) => adminService.webhooks.create(data),
         onSuccess: () => {
             qc.invalidateQueries({queryKey: ['webhooks']});
             setShowCreateDialog(false);
@@ -90,7 +91,7 @@ function WebhooksInner() {
     // 更新 Webhook
     const updateMut = useMutation({
         mutationFn: ({id, data}: { id: number; data: any }) =>
-            apiClient.put(`/webhooks/${id}`, data),
+            adminService.webhooks.update(id, data),
         onSuccess: () => {
             qc.invalidateQueries({queryKey: ['webhooks']});
             setEditingWebhook(null);
@@ -100,7 +101,7 @@ function WebhooksInner() {
 
     // 删除 Webhook
     const deleteMut = useMutation({
-        mutationFn: (id: number) => apiClient.delete(`/webhooks/${id}`),
+        mutationFn: (id: number) => adminService.webhooks.delete(id),
         onSuccess: () => {
             qc.invalidateQueries({queryKey: ['webhooks']});
           toast.success('Webhook 已删除！');
@@ -109,7 +110,7 @@ function WebhooksInner() {
 
     // 测试 Webhook
     const testMut = useMutation({
-        mutationFn: (id: number) => apiClient.post(`/webhooks/${id}/test`),
+        mutationFn: (id: number) => adminService.webhooks.test(id),
         onSuccess: () => {
             qc.invalidateQueries({queryKey: ['webhook-deliveries']});
           toast.success('测试事件已发送！');
