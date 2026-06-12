@@ -3,6 +3,7 @@
 import React, {lazy, Suspense, useState} from 'react';
 import {CreditCard, DollarSign, Settings, Banknote, PieChart, ArrowLeftRight} from 'lucide-react';
 import {AdminShell} from '@/components/admin/AdminShell';
+import {QueryProvider} from '@/components/QueryProvider';
 
 // ── Payment sub-tabs ──
 const LazyGatewaysTab = lazy(() => import('./payment/GatewaysTab'));
@@ -42,7 +43,7 @@ const TabSkeleton = () => (
   </div>
 );
 
-export default function AdminFinance() {
+function FinanceInner() {
   const [tab, setTab] = useState<TabKey>('gateways');
   const [group, setGroup] = useState<'payment' | 'revenue'>('payment');
 
@@ -94,4 +95,8 @@ export default function AdminFinance() {
       </div>
     </AdminShell>
   );
+}
+
+export default function AdminFinance() {
+  return <QueryProvider><FinanceInner/></QueryProvider>;
 }
