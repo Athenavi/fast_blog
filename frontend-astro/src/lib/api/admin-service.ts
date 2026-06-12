@@ -225,6 +225,18 @@ export const adminBackupService = {
 };
 
 // ================================================================
+// 权限校验
+// ================================================================
+
+export const adminPermissionService = {
+  check: (permissionCode: string) =>
+    adminApi.post('/api/v3/admin/check-permission', '/security/rbac/check-permission', {
+      permission_code: permissionCode,
+      user_id: 0,
+    }),
+};
+
+// ================================================================
 // 统一导出
 // ================================================================
 
@@ -240,4 +252,5 @@ export const adminService = {
   themes: adminThemeService,
   seo: adminSeoService,
   backup: adminBackupService,
+  permission: adminPermissionService,
 };

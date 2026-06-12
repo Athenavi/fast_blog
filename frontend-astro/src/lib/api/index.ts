@@ -33,7 +33,7 @@ export interface MediaResponse {
 export {CategoryService} from './category-service';
 
 // V3 管理端 API（带 V3→V2 自动降级）
-export {adminService, adminUserService, adminArticleService, adminMediaService, adminSystemService, adminRoleService} from './admin-service';
+export {adminService, adminUserService, adminArticleService, adminMediaService, adminSystemService, adminRoleService, adminDashboardService, adminCommentService, adminPluginService, adminThemeService, adminSeoService, adminBackupService, adminPermissionService} from './admin-service';
 export {adminApi} from './admin-api-client';
 
 export const MediaService = {
