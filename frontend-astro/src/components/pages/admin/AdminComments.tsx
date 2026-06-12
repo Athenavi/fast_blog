@@ -3,6 +3,7 @@
 import React, {useState, useEffect, useRef, useMemo} from 'react';
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
+import {adminService} from '@/lib/api/admin-service';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {PermissionGuard} from '@/components/admin/PermissionGuard';
@@ -391,8 +392,10 @@ function AdminCommentsInner() {
     queryKey: ['admin-comments', activeTab],
     queryFn: async (): Promise<Comment[]> => {
       if (activeTab === 'pending') {
-        const res = await apiClient.get<Comment[]>(COMMENTS.PENDING);
-        return res.success && res.data ? (Array.isArray(res.data) ? res.data : []) : [];
+        const res = await adminService.comments.pending();
+        return res.success && res.data
+          ? (Array.isArray(res.data) ? res.data : (res.data as any).comments || [])
+          : [];
       }
       if (activeTab === 'subscriptions' || activeTab === 'analytics') return [];
       const res = await apiClient.get<Comment[] | {
@@ -430,17 +433,17 @@ function AdminCommentsInner() {
 
   /* ── Mutations ── */
   const approveMut = useMutation({
-    mutationFn: (id: number) => apiClient.post(`/comments/${id}/approve`),
+    mutationFn: (id: number) => adminService.comments.approve(id),
     onSuccess: () => qc.invalidateQueries({queryKey: ['admin-comments']}),
   });
 
   const rejectMut = useMutation({
-    mutationFn: (id: number) => apiClient.post(`/comments/${id}/reject`),
+    mutationFn: (id: number) => adminService.comments.reject(id),
     onSuccess: () => qc.invalidateQueries({queryKey: ['admin-comments']}),
   });
 
   const deleteMut = useMutation({
-    mutationFn: (id: number) => apiClient.delete(`/comments/${id}`),
+    mutationFn: (id: number) => adminService.comments.delete(id),
     onSuccess: () => qc.invalidateQueries({queryKey: ['admin-comments']}),
   });
 
