@@ -2,39 +2,23 @@
 
 import React from 'react';
 import {
-  AlertTriangle,
   Award,
   Banknote,
   BarChart3,
   Bell,
   ChevronLeft,
-  Clock,
   Coins,
-  Code,
-  Crown,
-  Database,
   Diamond,
   FileText,
   FolderTree,
-  Globe,
-  Heart,
   Image,
-  Layout,
   LogOut,
-  Mail,
   Medal,
   MessageSquare,
-  Newspaper,
-  Package,
-  Puzzle,
-  Radio,
-  ScrollText,
-  Search,
   Server,
   Settings,
   Shield,
   Star,
-  TrendingUp,
   Users,
   X
 } from 'lucide-react';
@@ -49,6 +33,7 @@ interface NavItem {
 }
 
 export const navConfig: NavItem[] = [
+  // ── 核心（高频） ──
   {labelKey: 'nav.dashboard', href: '/admin', icon: BarChart3},
   {labelKey: 'nav.articles', href: '/admin/articles', icon: FileText},
   {labelKey: 'nav.categories', href: '/admin/categories', icon: FolderTree},
@@ -56,24 +41,14 @@ export const navConfig: NavItem[] = [
   {labelKey: 'nav.comments', href: '/admin/comments', icon: MessageSquare},
   {labelKey: 'nav.users', href: '/admin/users', icon: Users},
   {labelKey: 'nav.roles', href: '/admin/roles', icon: Shield},
-  {labelKey: 'nav.plugins', href: '/admin/plugins', icon: Puzzle},
-  {labelKey: 'nav.backup', href: '/admin/backup', icon: Database},
-  {labelKey: 'nav.sensitiveWords', href: '/admin/sensitive-words', icon: AlertTriangle},
-  {labelKey: 'nav.analytics', href: '/admin/analytics', icon: TrendingUp},
-  {labelKey: 'nav.auditLogs', href: '/admin/audit-logs', icon: ScrollText},
-  {labelKey: 'nav.system', href: '/admin/system', icon: Server},
-  {labelKey: 'nav.vip', href: '/admin/vip', icon: Crown},
-  {labelKey: 'nav.ads', href: '/admin/ads', icon: Newspaper},
-  {labelKey: 'nav.notifications', href: '/admin/notifications', icon: Bell},
-  {labelKey: 'nav.integrations', href: '/admin/integrations', icon: Globe},
-  {labelKey: 'nav.cdn', href: '/admin/cdn', icon: Radio},
-  {labelKey: 'nav.gdpr', href: '/admin/gdpr', icon: Shield},
-  {sepKey: 'nav.advancedManagement'},
-  {labelKey: 'nav.payment', href: '/admin/finance', icon: Banknote},
-  {labelKey: 'nav.ecommerce', href: '/admin/ecommerce', icon: Package},
-  {labelKey: 'nav.multisite', href: '/admin/multisite', icon: Globe},
-  {labelKey: 'nav.chatGroups', href: '/admin/chat-groups', icon: MessageSquare},
-  {labelKey: 'nav.seo', href: '/admin/seo', icon: Search},
+
+  // ── 系统 ──
+  {labelKey: 'nav.systemHub', href: '/admin/system-hub', icon: Server},
+  {labelKey: 'nav.operations', href: '/admin/operations', icon: Bell},
+  {labelKey: 'nav.commerce', href: '/admin/commerce', icon: Banknote},
+  {labelKey: 'nav.social', href: '/admin/social', icon: MessageSquare},
+
+  // ── 扩展功能 ──
   {sepKey: 'nav.extensions'},
   {labelKey: 'nav.badges', href: '/admin/ext/badges', icon: Award},
   {labelKey: 'nav.points', href: '/admin/ext/points', icon: Coins},
@@ -81,11 +56,8 @@ export const navConfig: NavItem[] = [
   {labelKey: 'nav.certification', href: '/admin/ext/certification', icon: Medal},
   {labelKey: 'nav.nft', href: '/admin/ext/nft', icon: Diamond},
   {labelKey: 'nav.recommendations', href: '/admin/ext/recommendations', icon: Star},
-  // ── Content Management ──
-  {labelKey: 'Scheduled', href: '/admin/scheduled-articles', icon: Clock},
-  {labelKey: 'Block Patterns', href: '/admin/block-patterns', icon: Layout},
-  // ── 插件注册项（自动导入 — 仅在 /admin/plugins 页面显示） ──
-  // 为了避免侧边栏过长，插件项已移至 AdminPlugins 页面内展示
+
+  // ── 系统设置 ──
   {labelKey: 'nav.settings', href: '/admin/settings', icon: Settings},
 ];
 
