@@ -165,6 +165,7 @@ def _get_redis():
 
 _REDIS_PREFIX = "rbac:perms:"
 _REDIS_TTL = 300
+_REDIS_INVALIDATE_CHANNEL = "rbac:invalidate"
 
 
 async def _redis_get_codes(user_id: int) -> Optional[Set[str]]:
@@ -369,13 +370,64 @@ async def resolve_permission_meta(
 
 
 # ============================================================
+# Redis Pub/Sub 缓存广播失效
+# ============================================================
+
+_INVALIDATE_SUBSCRIBER_RUNNING = False
+
+
+async def _redis_publish_invalidate(user_id: int):
+    """向 Redis 频道广播用户权限失效事件"""
+    redis = _get_redis()
+    if not redis:
+        return
+    try:
+        await redis.redis.publish(_REDIS_INVALIDATE_CHANNEL, str(user_id))
+    except Exception as e:
+        logger.debug(f"Redis 发布失效事件失败 (user={user_id}): {e}")
+
+
+async def _redis_subscribe_invalidate():
+    """后台任务：订阅 Redis 广播频道，处理其他实例的失效事件"""
+    global _INVALIDATE_SUBSCRIBER_RUNNING
+    if _INVALIDATE_SUBSCRIBER_RUNNING:
+        return
+    _INVALIDATE_SUBSCRIBER_RUNNING = True
+
+    redis = _get_redis()
+    if not redis:
+        _INVALIDATE_SUBSCRIBER_RUNNING = False
+        return
+
+    try:
+        pubsub = redis.redis.pubsub()
+        await pubsub.subscribe(_REDIS_INVALIDATE_CHANNEL)
+        logger.info(f"已订阅 Redis 频道: {_REDIS_INVALIDATE_CHANNEL}")
+
+        async for message in pubsub.listen():
+            if message["type"] != "message":
+                continue
+            try:
+                user_id = int(message["data"])
+                await _memory_cache.invalidate(user_id)
+                logger.debug(f"[perm_cache] 收到广播失效: user={user_id}")
+            except (ValueError, TypeError):
+                pass
+    except Exception as e:
+        logger.warning(f"Redis 订阅失效频道失败: {e}")
+    finally:
+        _INVALIDATE_SUBSCRIBER_RUNNING = False
+
+
+# ============================================================
 # 缓存管理工具
 # ============================================================
 
 async def invalidate_permission_cache(user_id: int):
-    """失效指定用户的全部权限缓存（内存 + Redis）"""
+    """失效指定用户的全部权限缓存（本地内存 + Redis DB + Redis 广播）"""
     await _memory_cache.invalidate(user_id)
     await _redis_invalidate(user_id)
+    await _redis_publish_invalidate(user_id)  # 通知其他实例
 
 
 async def clear_permission_cache():

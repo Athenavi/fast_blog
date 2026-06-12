@@ -5,6 +5,7 @@ import importlib
 import os
 import time as _time
 import traceback
+import asyncio
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import asynccontextmanager
 from datetime import datetime
@@ -474,11 +475,14 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         await safe_run_async("下载队列处理器", _init_download_processor)
         print(f"[lifespan] 下载队列处理器耗时: {_time.monotonic() - step_start:.2f}s")
 
-    # 6. 权限缓存预热
+    # 6. 权限缓存预热 + 广播订阅
     if is_installed:
         step_start = _time.monotonic()
         await safe_run_async("权限缓存预热", _warm_permission_cache)
         print(f"[lifespan] 权限缓存预热耗时: {_time.monotonic() - step_start:.2f}s")
+        # 启动 Redis 广播订阅（后台任务）
+        asyncio.ensure_future(_start_redis_subscriber())
+        print(f"[lifespan] Redis 广播订阅已启动")
 
     total_elapsed = _time.monotonic() - lifespan_start
     print(f"\n{'=' * 60}")
@@ -551,6 +555,15 @@ async def _warm_permission_cache():
             print(f"[lifespan] 权限缓存预热: {len(superadmin_ids)} 个超级管理员, {len(all_codes)} 个权限代码")
     except Exception as e:
         print(f"[lifespan] 权限缓存预热跳过: {e}")
+
+
+async def _start_redis_subscriber():
+    """启动 Redis 缓存广播订阅（后台任务，失败不阻塞）"""
+    try:
+        from src.api.v3._permission import _redis_subscribe_invalidate
+        await _redis_subscribe_invalidate()
+    except Exception as e:
+        print(f"[lifespan] Redis 广播订阅启动失败: {e}")
 
 
 async def _shutdown_download_processor():
