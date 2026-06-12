@@ -149,11 +149,31 @@ function buildFullUrl(path: string, params?: Record<string, any>): string {
 
 // ─── 解析响应 ────────────────────────────────────
 async function parseResponse<T>(res: Response): Promise<ApiResponse<T>> {
+  let text: string;
   try {
-    const text = await res.text();
-    return JSON.parse(text);
+    text = await res.text();
   } catch {
     return {success: false, error: `HTTP ${res.status}: ${res.statusText}`};
+  }
+
+  // 403 — 触发全局权限拒绝事件
+  if (res.status === 403 && typeof window !== 'undefined') {
+    try {
+      const detail = JSON.parse(text);
+      window.dispatchEvent(new CustomEvent('api:forbidden', {
+        detail: { path: res.url, error: detail.error || '权限不足' },
+      }));
+    } catch {
+      window.dispatchEvent(new CustomEvent('api:forbidden', {
+        detail: { path: res.url, error: '权限不足' },
+      }));
+    }
+  }
+
+  try {
+    return JSON.parse(text);
+  } catch {
+    return {success: false, error: text || `HTTP ${res.status}: ${res.statusText}`};
   }
 }
 

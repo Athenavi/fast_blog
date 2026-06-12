@@ -162,6 +162,21 @@ async function request<T = any>(
     }
 
     const text = await res.text();
+
+    // ── 403 — 触发全局权限拒绝事件 ──
+    if (res.status === 403 && typeof window !== 'undefined') {
+      try {
+        const detail = JSON.parse(text);
+        window.dispatchEvent(new CustomEvent('api:forbidden', {
+          detail: { path, error: detail.error || '权限不足' },
+        }));
+      } catch {
+        window.dispatchEvent(new CustomEvent('api:forbidden', {
+          detail: { path, error: '权限不足' },
+        }));
+      }
+    }
+
     try { return JSON.parse(text); } catch { return {success: false, error: text}; }
   } catch (e: unknown) {
     return {success: false, error: (e as Error).message || '网络异常'};
