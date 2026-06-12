@@ -236,6 +236,8 @@ export const adminPermissionService = {
     }),
   cacheStats: () =>
     adminApi.get('/api/v3/admin/cache-stats', '/api/v2/misc/version'),
+  health: () =>
+    adminApi.get('/api/v3/admin/health', '/api/v2/system/health'),
 };
 
 // ================================================================
