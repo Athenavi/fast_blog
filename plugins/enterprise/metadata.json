@@ -1,0 +1,12 @@
+{
+  "name": "Enterprise",
+  "slug": "enterprise",
+  "version": "1.0.0",
+  "description": "企业管理功能：许可证、支持工单、部署脚本、监控告警",
+  "author": "FastBlog Team",
+  "category": "tool",
+  "icon": "🏢",
+  "tags": ["enterprise", "license", "ticket", "deployment", "monitoring"],
+  "requires": {"fastblog": ">=1.0.0", "python": ">=3.8"},
+  "settings_schema": {}
+}

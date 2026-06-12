@@ -14,7 +14,9 @@ def _build_router():
     router = APIRouter(tags=["enterprise-v2"])
 
     from src.api.v2.enterprise.enterprise_api import router as enterprise_router
+    from src.api.v2.enterprise.admin_endpoints import router as admin_router
     router.include_router(enterprise_router)
+    router.include_router(admin_router, prefix="/admin")
 
     _router = router
     return _router

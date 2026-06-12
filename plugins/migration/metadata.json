@@ -1,0 +1,12 @@
+{
+  "name": "Migration",
+  "slug": "migration",
+  "version": "1.0.0",
+  "description": "内容迁移工具：从 WordPress、Halo 等平台迁移内容到 FastBlog",
+  "author": "FastBlog Team",
+  "category": "tool",
+  "icon": "📦",
+  "tags": ["migration", "import", "wordpress", "halo"],
+  "requires": {"fastblog": ">=1.0.0", "python": ">=3.8"},
+  "settings_schema": {}
+}

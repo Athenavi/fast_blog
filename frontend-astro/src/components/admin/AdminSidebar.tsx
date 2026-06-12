@@ -17,14 +17,12 @@ import {
   Crown,
   Database,
   Diamond,
-  FileEdit,
   FileText,
   FolderTree,
   Globe,
   Heart,
   Image,
   Layout,
-  Lock,
   LogOut,
   Mail,
   Medal,
@@ -43,8 +41,7 @@ import {
   Star,
   TrendingUp,
   Users,
-  X,
-  Zap
+  X
 } from 'lucide-react';
 import {useTranslation} from '@/lib/i18n';
 
@@ -81,9 +78,6 @@ export const navConfig: NavItem[] = [
   {labelKey: 'nav.enterprise', href: '/admin/enterprise', icon: Building2},
   {labelKey: 'nav.payment', href: '/admin/payment', icon: CreditCard},
   {labelKey: 'nav.migration', href: '/admin/migration', icon: ArrowRightLeft},
-  {labelKey: 'nav.contentExt', href: '/admin/content-ext', icon: FileEdit},
-  {labelKey: 'nav.userSecurity', href: '/admin/user-security', icon: Lock},
-  {labelKey: 'nav.searchMedia', href: '/admin/search-media', icon: Zap},
   {labelKey: 'nav.ecommerce', href: '/admin/ecommerce', icon: Package},
   {labelKey: 'nav.revenue', href: '/admin/revenue', icon: PieChart},
   {labelKey: 'nav.multisite', href: '/admin/multisite', icon: Globe},
