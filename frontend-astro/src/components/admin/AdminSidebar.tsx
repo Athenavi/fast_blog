@@ -3,11 +3,9 @@
 import React from 'react';
 import {
   AlertTriangle,
-  ArrowRightLeft,
   Award,
   BarChart3,
   Bell,
-  Building2,
   CheckSquare,
   ChevronLeft,
   Clock,
@@ -75,9 +73,7 @@ export const navConfig: NavItem[] = [
   {labelKey: 'nav.cdn', href: '/admin/cdn', icon: Radio},
   {labelKey: 'nav.gdpr', href: '/admin/gdpr', icon: Shield},
   {sepKey: 'nav.advancedManagement'},
-  {labelKey: 'nav.enterprise', href: '/admin/enterprise', icon: Building2},
   {labelKey: 'nav.payment', href: '/admin/payment', icon: CreditCard},
-  {labelKey: 'nav.migration', href: '/admin/migration', icon: ArrowRightLeft},
   {labelKey: 'nav.ecommerce', href: '/admin/ecommerce', icon: Package},
   {labelKey: 'nav.revenue', href: '/admin/revenue', icon: PieChart},
   {labelKey: 'nav.multisite', href: '/admin/multisite', icon: Globe},
