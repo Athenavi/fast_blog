@@ -7,8 +7,7 @@ import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {PermissionGuard} from '@/components/admin/PermissionGuard';
 import {useDebounce} from '@/lib/hooks';
-import {apiClient} from '@/lib/api/base-client';
-import {DASHBOARD, ARTICLES} from '@/lib/api/api-paths';
+import {adminService} from '@/lib/api/admin-service';
 import {getFullMediaUrl} from '@/lib/utils';
 import {useConfirm} from '@/components/ui/confirm-provider';
 import {
@@ -175,17 +174,18 @@ function AdminArticlesInner() {
       const params: Record<string, any> = {page, per_page: 15};
       if (status) params.status = status;
       if (debouncedSearch) params.search = debouncedSearch;
-      const res = await apiClient.get(DASHBOARD.BLOG_MGMT_ARTICLES, params);
+      const res = await adminService.articles.list(params);
       if (!res.success || !res.data) return {articles: [], total: 0};
-      const articles = Array.isArray(res.data) ? res.data : [];
-      const pagination = (res as any).pagination || {};
+      const data = res.data as any;
+      const articles = Array.isArray(data) ? data : (data.articles || []);
+      const pagination = data.pagination || (res as any).pagination || {};
       const total = pagination.total || articles.length;
       return {articles, total};
     },
   });
 
   const delMut = useMutation({
-    mutationFn: (id: number) => apiClient.delete(ARTICLES.DELETE(id)),
+    mutationFn: (id: number) => adminService.articles.delete(id),
     onSuccess: () => qc.invalidateQueries({queryKey: ['admin-articles']}),
   });
 
