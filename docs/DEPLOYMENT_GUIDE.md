@@ -1,6 +1,6 @@
 # FastBlog 部署指南
 
-> **版本**: V0.3.26.0521 | 本文档说明生产环境部署方案。
+> **版本**: V0.5.26.0612 | 本文档说明生产环境部署方案。
 
 ---
 
@@ -22,9 +22,9 @@
 ## Docker 部署（推荐）
 
 ```bash
-git clone https://github.com/Athenavi/fast-blog.git
-cd fast-blog
-cp .env.example .env
+git clone https://github.com/Athenavi/fast_blog.git
+cd fast_blog
+cp .env_example .env
 # 编辑 .env 中的关键配置项
 
 # 启动所有服务

@@ -9,7 +9,7 @@
 [![CI Status](https://github.com/Athenavi/fast_blog/actions/workflows/ci.yml/badge.svg)](https://github.com/Athenavi/fast_blog/actions/workflows/ci.yml)
 [![Release](https://github.com/Athenavi/fast_blog/actions/workflows/release.yml/badge.svg)](https://github.com/Athenavi/fast_blog/actions/workflows/release.yml)
 [![Python Version](https://img.shields.io/badge/python-3.14+-blue.svg?logo=python&logoColor=white)](https://www.python.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.136-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.136.3-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![Astro](https://img.shields.io/badge/Astro-5.x-BC52EE.svg?logo=astro&logoColor=white)](https://astro.build/)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](./LICENSE)
 [![Docker](https://img.shields.io/badge/docker-ready-blue?logo=docker&logoColor=white)](https://github.com/Athenavi/fast_blog/pkgs/container/fastblog)
@@ -26,7 +26,7 @@
 
 - **FastAPI Backend** — Async web framework with auto-generated API docs
 - **Astro Frontend** — Islands architecture, zero-JS by default, blazing-fast first paint
-- **Plugin System** — Hook-based architecture, extend without touching core code
+- **Plugin System** — EventBus-driven architecture, extend without touching core code
 - **Rich Editor** — TipTap-based WYSIWYG editor
 - **Theme Engine** — Hot-swappable themes with React Islands
 - **JWT + OAuth2** — Secure auth with cookie/bearer dual-mode, 2FA (TOTP)

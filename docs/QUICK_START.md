@@ -1,6 +1,6 @@
 # FastBlog 快速入门指南
 
-**当前版本**: V0.6.26.0611
+**当前版本**: V0.5.26.0612
 
 ## 💻 手动部署
 
@@ -58,10 +58,9 @@ docker-compose up -d
 
 ```bash
 # CLI 工具
-python scripts/cli.py create my-blog           # 初始化项目
-python scripts/cli.py user create admin --admin # 创建管理员用户
-python scripts/cli.py plugin list               # 列出插件
-python scripts/cli.py cache clear               # 清除缓存
+python -m cli user create admin --admin # 创建管理员用户
+python -m cli plugin list               # 列出插件
+python -m cli cache clear               # 清除缓存
 
 # 数据库迁移
 alembic upgrade head             # 应用迁移

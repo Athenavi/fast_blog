@@ -1,6 +1,8 @@
 # FastBlog 主题开发指南
 
-> **版本**: V0.3.26.0521+ | **前端框架**: Astro 5.x + React 19 + TailwindCSS
+> **版本**: V0.5.26.0612+ | **前端框架**: Astro 5.x + React 19 + TailwindCSS
+>
+> **⚠️ 注意**: 主题系统已迁移为 plugin 架构（`category: "theme"`），主题作为插件存放在 `plugins/` 目录下。本文部分引用 `themes/` 目录和 `theme.json` 的内容已过时，请以实际主题插件为准。
 
 ---
 
