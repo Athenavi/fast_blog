@@ -34,6 +34,12 @@ ROUTE_REGISTRY_V3 = [
     ("src.api.v3.admin.media", "/api/v3/admin", ["admin-media"], False),
     ("src.api.v3.admin.system", "/api/v3/admin", ["admin-system"], False),
     ("src.api.v3.admin.roles", "/api/v3/admin", ["admin-roles"], False),
+    ("src.api.v3.admin.dashboard", "/api/v3/admin", ["admin-dashboard"], False),
+    ("src.api.v3.admin.comments", "/api/v3/admin", ["admin-comments"], False),
+    ("src.api.v3.admin.plugins", "/api/v3/admin", ["admin-plugins"], False),
+    ("src.api.v3.admin.themes", "/api/v3/admin", ["admin-themes"], False),
+    ("src.api.v3.admin.seo", "/api/v3/admin", ["admin-seo"], False),
+    ("src.api.v3.admin.backup", "/api/v3/admin", ["admin-backup"], False),
 ]
 
 

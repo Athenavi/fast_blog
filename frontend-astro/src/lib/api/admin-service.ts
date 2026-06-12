@@ -76,7 +76,6 @@ export const adminMediaService = {
     const formData = new FormData();
     formData.append('file', file);
     if (folder_id !== undefined) formData.append('folder_id', String(folder_id));
-    // FormData: adminApi 的特殊处理在 requestWithFallback 中传递 FormData
     return adminApi.post('/api/v3/admin/media/upload', '/media/upload', formData);
   },
 
@@ -94,12 +93,6 @@ export const adminSystemService = {
 
   updateSettings: (settings: Record<string, string>) =>
     adminApi.put('/api/v3/admin/settings', '/system/settings/', settings),
-
-  createBackup: () =>
-    adminApi.post('/api/v3/admin/backup', '/backup/full'),
-
-  restoreBackup: (filename: string) =>
-    adminApi.post('/api/v3/admin/backup/restore', '/backup/database', {filename}),
 };
 
 // ================================================================
@@ -124,6 +117,114 @@ export const adminRoleService = {
 };
 
 // ================================================================
+// 仪表盘
+// ================================================================
+
+export const adminDashboardService = {
+  stats: () =>
+    adminApi.get('/api/v3/admin/dashboard/stats', '/dashboard/stats'),
+
+  recentArticles: (limit = 10) =>
+    adminApi.get('/api/v3/admin/dashboard/recent-articles', '/dashboard/recent-articles', {limit}),
+
+  traffic: () =>
+    adminApi.get('/api/v3/admin/dashboard/traffic', '/dashboard/traffic'),
+};
+
+// ================================================================
+// 评论管理
+// ================================================================
+
+export const adminCommentService = {
+  pending: () =>
+    adminApi.get('/api/v3/admin/comments/pending', '/comments/pending'),
+
+  approve: (id: number) =>
+    adminApi.post(`/api/v3/admin/comments/${id}/approve`, `/comments/${id}/approve`),
+
+  reject: (id: number) =>
+    adminApi.post(`/api/v3/admin/comments/${id}/reject`, `/comments/${id}/reject`),
+
+  delete: (id: number) =>
+    adminApi.delete(`/api/v3/admin/comments/${id}`, `/comments/${id}`),
+};
+
+// ================================================================
+// 插件管理
+// ================================================================
+
+export const adminPluginService = {
+  list: () =>
+    adminApi.get('/api/v3/admin/plugins', '/plugins/'),
+
+  activate: (slug: string) =>
+    adminApi.post(`/api/v3/admin/plugins/${slug}/activate`, `/plugins/${slug}/activate`),
+
+  deactivate: (slug: string) =>
+    adminApi.post(`/api/v3/admin/plugins/${slug}/deactivate`, `/plugins/${slug}/deactivate`),
+
+  getSettings: (slug: string) =>
+    adminApi.get(`/api/v3/admin/plugins/${slug}/settings`, `/plugins/${slug}/settings`),
+
+  updateSettings: (slug: string, settings: Record<string, any>) =>
+    adminApi.put(`/api/v3/admin/plugins/${slug}/settings`, `/plugins/${slug}/settings`, settings),
+
+  uninstall: (slug: string) =>
+    adminApi.delete(`/api/v3/admin/plugins/${slug}`, `/plugins/${slug}`),
+};
+
+// ================================================================
+// 主题管理
+// ================================================================
+
+export const adminThemeService = {
+  list: () =>
+    adminApi.get('/api/v3/admin/themes', '/themes/installed'),
+
+  activate: (slug: string) =>
+    adminApi.post(`/api/v3/admin/themes/${slug}/activate`, `/themes/${slug}/activate`),
+
+  getConfig: (slug: string) =>
+    adminApi.get(`/api/v3/admin/themes/${slug}/config`, `/themes/${slug}/config`),
+
+  updateConfig: (slug: string, config: Record<string, any>) =>
+    adminApi.put(`/api/v3/admin/themes/${slug}/config`, `/themes/${slug}/config`, config),
+
+  uninstall: (slug: string) =>
+    adminApi.delete(`/api/v3/admin/themes/${slug}`, `/themes/${slug}`),
+};
+
+// ================================================================
+// SEO 管理
+// ================================================================
+
+export const adminSeoService = {
+  dashboard: () =>
+    adminApi.get('/api/v3/admin/seo/dashboard', '/seo/dashboard'),
+
+  keywords: () =>
+    adminApi.get('/api/v3/admin/seo/keywords', '/seo/top-keywords'),
+
+  orphanArticles: () =>
+    adminApi.get('/api/v3/admin/seo/orphan-articles', '/seo/orphan-articles'),
+};
+
+// ================================================================
+// 备份管理
+// ================================================================
+
+export const adminBackupService = {
+  create: () =>
+    adminApi.post('/api/v3/admin/backup', '/backup/full'),
+
+  restore: (filename: string) =>
+    adminApi.post('/api/v3/admin/backup/restore', '/backup/database', {filename}),
+
+  delete: (id: string) =>
+    adminApi.delete(`/api/v3/admin/backup/${id}`, `/backup/delete?filename=${id}`),
+};
+
+// ================================================================
 // 统一导出
 // ================================================================
 
@@ -133,4 +234,10 @@ export const adminService = {
   media: adminMediaService,
   system: adminSystemService,
   roles: adminRoleService,
+  dashboard: adminDashboardService,
+  comments: adminCommentService,
+  plugins: adminPluginService,
+  themes: adminThemeService,
+  seo: adminSeoService,
+  backup: adminBackupService,
 };
