@@ -234,6 +234,8 @@ export const adminPermissionService = {
       permission_code: permissionCode,
       user_id: 0,
     }),
+  cacheStats: () =>
+    adminApi.get('/api/v3/admin/cache-stats', '/api/v2/misc/version'),
 };
 
 // ================================================================

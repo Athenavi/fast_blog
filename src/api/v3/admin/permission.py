@@ -35,3 +35,14 @@ async def check_permission(
         "permission_code": permission_code,
         "has_permission": has,
     })
+
+
+@router.get("/cache-stats", summary="权限缓存统计")
+async def cache_stats(
+    db: AsyncSession = Depends(get_db),
+    current_user: UserModel = Depends(get_current_user),
+):
+    """查看三层权限缓存的命中率等统计（仅供调试）"""
+    from src.api.v3._permission import get_cache_stats, _memory_cache
+    stats = await _memory_cache.stats()
+    return ApiResponse(success=True, data=stats)
