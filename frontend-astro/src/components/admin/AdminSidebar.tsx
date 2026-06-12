@@ -11,6 +11,7 @@ import {
   FileText,
   FolderTree,
   Image,
+  Layers,
   LogOut,
   Medal,
   MessageSquare,
@@ -25,7 +26,7 @@ import {
 } from 'lucide-react';
 import {useTranslation} from '@/lib/i18n';
 
-/** 导航项配�??��使用 i18n key�?*/
+/** 导航项配�??��使用 i18n key�?*/
 interface NavItem {
   labelKey?: string;
   href?: string;
@@ -34,7 +35,7 @@ interface NavItem {
 }
 
 export const navConfig: NavItem[] = [
-  // ┢�┢� 核心（高频） ┢�┢�
+  // ┢�┢� 核心（高频） ┢�┢�
   {labelKey: 'nav.dashboard', href: '/admin', icon: BarChart3},
   {labelKey: 'nav.articles', href: '/admin/articles', icon: FileText},
   {labelKey: 'nav.categories', href: '/admin/categories', icon: FolderTree},
@@ -43,13 +44,13 @@ export const navConfig: NavItem[] = [
   {labelKey: 'nav.users', href: '/admin/users', icon: Users},
   {labelKey: 'nav.roles', href: '/admin/roles', icon: Shield},
 
-  // ┢�┢� 系统 ┢�┢�
+  // ┢�┢� 系统 ┢�┢�
   {labelKey: 'nav.systemHub', href: '/admin/system-hub', icon: Server},
   {labelKey: 'nav.cache', href: '/admin/cache', icon: Zap},
   {labelKey: 'nav.operations', href: '/admin/operations', icon: Bell},
   {labelKey: 'nav.social', href: '/admin/social', icon: MessageSquare},
 
-  // ┢�┢� 扩展功能 ┢�┢�
+  // ┢�┢� 扩展功能 ┢�┢�
   {sepKey: 'nav.extensions'},
   {labelKey: 'nav.badges', href: '/admin/ext/badges', icon: Award},
   {labelKey: 'nav.points', href: '/admin/ext/points', icon: Coins},
@@ -58,7 +59,7 @@ export const navConfig: NavItem[] = [
   {labelKey: 'nav.nft', href: '/admin/ext/nft', icon: Diamond},
   {labelKey: 'nav.recommendations', href: '/admin/ext/recommendations', icon: Star},
 
-  // ┢�┢� 系统设置 ┢�┢�
+  // ┢�┢� 系统设置 ┢�┢�
   {labelKey: 'nav.appearance', href: '/admin/appearance', icon: Palette},
   {labelKey: 'nav.emailTemplates', href: '/admin/email-templates', icon: FileText},
   {labelKey: 'nav.shortcodes', href: '/admin/shortcodes', icon: FileText},
@@ -66,7 +67,7 @@ export const navConfig: NavItem[] = [
   {labelKey: 'nav.settings', href: '/admin/settings', icon: Settings},
 ];
 
-/** @deprecated 使用 navConfig 替代，保留用于向后兼�?*/
+/** @deprecated 使用 navConfig 替代，保留用于向后兼�?*/
 export const nav = navConfig.map(item => ({
   ...item,
   label: item.labelKey ?? item.sepKey ?? '',
@@ -75,7 +76,7 @@ export const nav = navConfig.map(item => ({
 
 const isActive = (href: string) => typeof window !== 'undefined' && window.location.pathname === href;
 
-/** 侧边栏�??架屏 */
+/** 侧边栏�??架屏 */
 export function SidebarSkeleton({collapsed}: { collapsed: boolean }) {
   return (
     <div
@@ -97,7 +98,7 @@ export function SidebarSkeleton({collapsed}: { collapsed: boolean }) {
   );
 }
 
-/** 桌面�??��边栏 */
+/** 桌面�??��边栏 */
 export function DesktopSidebar({collapsed, onToggle}: { collapsed: boolean; onToggle: () => void }) {
   const {t} = useTranslation();
 
@@ -134,7 +135,7 @@ export function DesktopSidebar({collapsed, onToggle}: { collapsed: boolean; onTo
   );
 }
 
-/** 移动�??��边栏 */
+/** 移动�??��边栏 */
 export function MobileSidebar({open, onClose}: { open: boolean; onClose: () => void }) {
   const {t} = useTranslation();
 

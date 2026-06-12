@@ -6,7 +6,7 @@ import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {apiClient} from '@/lib/api/base-client';
-import {Code, FileText, Copy, CheckCircle2} from 'lucide-react';
+import {CheckCircle2, Code, Copy} from 'lucide-react';
 
 function ShortcodesInner() {
   const [copied, setCopied] = React.useState<string | null>(null);
@@ -40,13 +40,15 @@ function ShortcodesInner() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Shortcode list */}
         <div className="lg:col-span-1">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div
+            className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800">
               <h3 className="font-semibold text-gray-900 dark:text-white text-sm">已注册短代码</h3>
             </div>
             <div className="p-3">
               {isLoading ? (
-                [1,2,3,4,5].map(i => <div key={i} className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg mb-2 animate-pulse"/>)
+                [1, 2, 3, 4, 5].map(i => <div key={i}
+                                              className="h-10 bg-gray-100 dark:bg-gray-800 rounded-lg mb-2 animate-pulse"/>)
               ) : shortcodes.length === 0 ? (
                 <p className="text-sm text-gray-400 text-center py-4">暂无短代码</p>
               ) : (
@@ -59,7 +61,8 @@ function ShortcodesInner() {
                     </div>
                     <button onClick={() => copy(name)}
                             className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-all opacity-0 group-hover:opacity-100">
-                      {copied === name ? <CheckCircle2 className="w-3.5 h-3.5 text-green-500"/> : <Copy className="w-3.5 h-3.5"/>}
+                      {copied === name ? <CheckCircle2 className="w-3.5 h-3.5 text-green-500"/> :
+                        <Copy className="w-3.5 h-3.5"/>}
                     </button>
                   </div>
                 ))
@@ -70,7 +73,8 @@ function ShortcodesInner() {
 
         {/* Usage help */}
         <div className="lg:col-span-2">
-          <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <div
+            className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
             <div className="px-5 py-4 border-b border-gray-100 dark:border-gray-800">
               <h3 className="font-semibold text-gray-900 dark:text-white">短代码用法参考</h3>
               <p className="text-xs text-gray-500 mt-0.5">在文章内容中使用短代码插入动态内容</p>
@@ -80,22 +84,27 @@ function ShortcodesInner() {
                 <p className="text-sm text-gray-400 text-center py-8">暂无内置短代码文档</p>
               ) : (
                 shortcodes.map((name: string) => (
-                  <div key={name} className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-700">
+                  <div key={name}
+                       className="p-4 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-700">
                     <div className="flex items-center justify-between mb-2">
-                      <code className="text-sm font-bold font-mono text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 rounded">
+                      <code
+                        className="text-sm font-bold font-mono text-blue-700 dark:text-blue-300 bg-blue-100 dark:bg-blue-900/30 px-2 py-0.5 rounded">
                         [{name}]
                       </code>
                       <button onClick={() => copy(name)}
                               className="text-xs text-gray-400 hover:text-blue-600 transition-colors flex items-center gap-1">
-                        {copied === name ? <><CheckCircle2 className="w-3 h-3"/>已复制</> : <><Copy className="w-3 h-3"/>复制</>}
+                        {copied === name ? <><CheckCircle2 className="w-3 h-3"/>已复制</> : <><Copy
+                          className="w-3 h-3"/>复制</>}
                       </button>
                     </div>
                     {builtinHelp[name] ? (
-                      <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed" dangerouslySetInnerHTML={{__html: builtinHelp[name]}}/>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 leading-relaxed"
+                         dangerouslySetInnerHTML={{__html: builtinHelp[name]}}/>
                     ) : (
                       <p className="text-sm text-gray-400 italic">暂无说明</p>
                     )}
-                    <div className="mt-2 text-[10px] text-gray-400 font-mono bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
+                    <div
+                      className="mt-2 text-[10px] text-gray-400 font-mono bg-gray-100 dark:bg-gray-800 px-2 py-1 rounded">
                       示例: <span className="text-blue-600">{'{{'}&nbsp;{name}&nbsp;{'{...}'}&nbsp;{'}}'}</span>
                     </div>
                   </div>
