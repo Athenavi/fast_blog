@@ -3,7 +3,6 @@
 import React from 'react';
 import {
   Award,
-  Banknote,
   BarChart3,
   Bell,
   ChevronLeft,
@@ -45,7 +44,6 @@ export const navConfig: NavItem[] = [
   // ── 系统 ──
   {labelKey: 'nav.systemHub', href: '/admin/system-hub', icon: Server},
   {labelKey: 'nav.operations', href: '/admin/operations', icon: Bell},
-  {labelKey: 'nav.commerce', href: '/admin/commerce', icon: Banknote},
   {labelKey: 'nav.social', href: '/admin/social', icon: MessageSquare},
 
   // ── 扩展功能 ──
