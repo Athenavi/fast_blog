@@ -50,6 +50,14 @@ from shared.services.plugins.plugin_manager.version_utils import (
     compare_versions,
     check_version_match,
 )
+
+# 能力声明装饰器
+def requires_capability(cap: str):
+    """标记插件方法所需的能力，action 端点自动校验"""
+    def decorator(func):
+        func._capability = cap
+        return func
+    return decorator
 from shared.services.plugins.event_bus import (
     event_bus,
     ArticlePublishedPayload,

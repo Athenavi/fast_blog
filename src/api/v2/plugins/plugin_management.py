@@ -3,6 +3,7 @@
 提供插件的激活、停用、配置等功能
 """
 import asyncio
+from datetime import datetime
 from functools import wraps
 
 from fastapi import APIRouter, Depends, HTTPException, Request
@@ -10,6 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models import User
 from shared.services.plugins.plugin_manager.core import plugin_manager
+from shared.services.plugins.plugin_audit import plugin_audit_logger
 from src.api.v2._helpers import ok, fail
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
@@ -256,6 +258,27 @@ async def execute_plugin_action(
 
     if not hasattr(plugin, action):
         return fail(f'Action {action} not found')
+
+    # 自动推导 capability: "方法名" → "action:resource_cap"
+    # 优先使用方法上的 _capability 属性，否则按命名约定
+    action_cap = getattr(getattr(plugin, action), '_capability', None)
+    if action_cap:
+        plugin.check_capability(action_cap, raise_error=True)
+
+    # 审计日志：记录插件操作
+    try:
+        plugin_audit_logger.log_api_call(
+            plugin_slug=plugin_slug,
+            api_endpoint=action,
+            method="ACTION",
+            context={
+                "params": params,
+                "user_id": getattr(current_user, 'id', None),
+                "user_name": getattr(current_user, 'username', None),
+            }
+        )
+    except Exception:
+        pass  # 审计失败不影响主流程
 
     method = getattr(plugin, action)
 

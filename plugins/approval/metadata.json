@@ -8,6 +8,10 @@
   "icon": "✅",
   "tags": ["approval", "workflow", "review"],
   "requires": {"fastblog": ">=1.0.0", "python": ">=3.8"},
+  "capabilities": [
+    "read:approval",
+    "write:approval"
+  ],
   "settings_schema": {
     "max_level": {"type": "number", "label": "最大审批级别", "default": 2, "min": 1, "max": 5, "help": "内容审批的最大级别数 (1-5)"},
     "require_notes": {"type": "boolean", "label": "需要审批意见", "default": true, "help": "审批时是否必须填写意见"},
