@@ -6,8 +6,7 @@ import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {PermissionGuard} from '@/components/admin/PermissionGuard';
-import {apiClient} from '@/lib/api/base-client';
-import {DASHBOARD} from '@/lib/api/api-paths';
+import {adminService} from '@/lib/api/admin-service';
 import {useDebounce} from '@/lib/hooks';
 import {
   ChevronLeft,
@@ -151,7 +150,7 @@ function AdminUsersInner() {
     queryFn: async () => {
       const params: Record<string, any> = {page, per_page: 20};
       if (debouncedSearch) params.search = debouncedSearch;
-      const res = await apiClient.get(DASHBOARD.USER_MGMT_USERS, params);
+      const res = await adminService.users.list(params);
       if (!res.success || !res.data) return {users: [], total: 0};
       const users = Array.isArray(res.data) ? res.data : (res.data.users || []);
       const pagination = res.data.pagination || res.pagination || {};
@@ -162,7 +161,7 @@ function AdminUsersInner() {
 
   const toggleMut = useMutation({
     mutationFn: ({id, action}: {id: number; action: 'ban' | 'unban'}) =>
-        apiClient.post(DASHBOARD.USER_MGMT_USER_ACTION(id, action)),
+        adminService.users.update(id, {is_active: action === 'unban'}),
     onSuccess: () => qc.invalidateQueries({queryKey: ['admin-users']}),
   });
 
