@@ -4,6 +4,7 @@ import React, {useState} from 'react';
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
+import {PermissionGuard} from '@/components/admin/PermissionGuard';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {apiClient} from '@/lib/api/base-client';
 import {Layout, Plus, Trash2, Eye, X} from 'lucide-react';
@@ -117,5 +118,13 @@ function BlockPatternsManager() {
 }
 
 export default function AdminBlockPatterns() {
-  return <AuthGuard><QueryProvider><BlockPatternsManager/></QueryProvider></AuthGuard>;
+  return (
+    <AuthGuard>
+      <QueryProvider>
+        <PermissionGuard capability="settings:view">
+          <BlockPatternsManager/>
+        </PermissionGuard>
+      </QueryProvider>
+    </AuthGuard>
+  );
 }

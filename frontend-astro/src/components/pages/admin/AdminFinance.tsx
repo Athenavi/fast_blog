@@ -2,6 +2,7 @@
 
 import React, {lazy, Suspense, useState} from 'react';
 import {CreditCard, DollarSign, Settings, Banknote, PieChart, ArrowLeftRight} from 'lucide-react';
+import {PermissionGuard} from '@/components/admin/PermissionGuard';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {QueryProvider} from '@/components/QueryProvider';
 

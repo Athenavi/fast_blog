@@ -4,6 +4,7 @@ import React, {useState} from 'react';
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
+import {PermissionGuard} from '@/components/admin/PermissionGuard';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {apiClient} from '@/lib/api/base-client';
 import {Clock, Calendar, X, Send} from 'lucide-react';
@@ -94,5 +95,13 @@ function ScheduledManager() {
 }
 
 export default function AdminScheduled() {
-  return <AuthGuard><QueryProvider><ScheduledManager/></QueryProvider></AuthGuard>;
+  return (
+    <AuthGuard>
+      <QueryProvider>
+        <PermissionGuard capability="settings:view">
+          <ScheduledManager/>
+        </PermissionGuard>
+      </QueryProvider>
+    </AuthGuard>
+  );
 }

@@ -1,6 +1,7 @@
 'use client';
 
 import React from 'react';
+import {PermissionGuard} from '@/components/admin/PermissionGuard';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {Puzzle, Database, Server, ScrollText, AlertTriangle, ChevronRight} from 'lucide-react';
 

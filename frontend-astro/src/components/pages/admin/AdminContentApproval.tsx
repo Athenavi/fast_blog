@@ -2,6 +2,7 @@
 
 import React, {lazy, Suspense, useState} from 'react';
 import {BarChart3, Clock, FileText} from 'lucide-react';
+import {PermissionGuard} from '@/components/admin/PermissionGuard';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';

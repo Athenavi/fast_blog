@@ -3,6 +3,7 @@
 import {lazy, Suspense, useState} from 'react';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
+import {PermissionGuard} from '@/components/admin/PermissionGuard';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {CreditCard, DollarSign, Settings} from 'lucide-react';
 
