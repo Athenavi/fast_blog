@@ -228,11 +228,13 @@ async def _load_user_capability_codes(
     # ── 1. 内存缓存 (进程级, Redis 不可用时兜底) ──
     cached = await _memory_cache.get(user_id)
     if cached is not None:
+        logger.debug("[perm_cache=memory] user=%d hit=%d", user_id, len(cached))
         return cached
 
     # ── 2. Redis 缓存 (跨进程共享) ──
     cached = await _redis_get_codes(user_id)
     if cached is not None:
+        logger.debug("[perm_cache=redis] user=%d hit=%d", user_id, len(cached))
         # 回写到内存缓存（为后续请求加速）
         await _memory_cache.set(user_id, cached)
         return cached
@@ -240,6 +242,7 @@ async def _load_user_capability_codes(
     # ── 3. DB 查询（终极回退） ──
     codes = await rbac_service.get_user_permission_codes(db, user_id)
     result = set(codes)
+    logger.debug("[perm_cache=db] user=%d hit=%d", user_id, len(result))
 
     # 回写到两级缓存（异步、不阻塞）
     if result:
@@ -291,6 +294,7 @@ class Permission:
     async def _check(self, request: Request, user: UserModel, db: AsyncSession):
         # ── 1. Superuser bypass — 0 查询 ──
         if user.is_superuser:
+            logger.debug("[perm_cache=bypass] user=%d superuser", user.id)
             return
 
         # ── 2. 请求级缓存 — 同请求内 0 查询 ──
