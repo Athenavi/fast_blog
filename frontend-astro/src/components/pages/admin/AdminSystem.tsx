@@ -5,6 +5,7 @@ import {useQuery} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
+import {PermissionGuard} from '@/components/admin/PermissionGuard';
 import {apiClient} from '@/lib/api/base-client';
 import {SYSTEM} from '@/lib/api/api-paths';
 import {Server, Activity, Database, HardDrive, Shield, Zap, CheckCircle, XCircle, AlertTriangle} from 'lucide-react';
@@ -107,5 +108,5 @@ function SystemInner() {
 }
 
 export default function AdminSystem() {
-  return <AuthGuard><QueryProvider><SystemInner /></QueryProvider></AuthGuard>;
+  return <AuthGuard><QueryProvider><PermissionGuard capability="settings:view"><SystemInner /></PermissionGuard></QueryProvider></AuthGuard>;
 }

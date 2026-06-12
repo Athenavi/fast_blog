@@ -5,6 +5,7 @@ import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
+import {PermissionGuard} from '@/components/admin/PermissionGuard';
 import {StatCard} from '@/components/admin/shared-ui';
 import {apiClient} from '@/lib/api/base-client';
 import {CATEGORIES} from '@/lib/api/api-paths';
@@ -642,5 +643,5 @@ function CategoriesInner() {
 }
 
 export default function AdminCategories() {
-  return <AuthGuard><QueryProvider><CategoriesInner /></QueryProvider></AuthGuard>;
+  return <AuthGuard><QueryProvider><PermissionGuard capability="category:view"><CategoriesInner /></PermissionGuard></QueryProvider></AuthGuard>;
 }

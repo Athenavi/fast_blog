@@ -6,6 +6,7 @@ import {QueryProvider} from '@/components/QueryProvider';
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {apiClient} from '@/lib/api/base-client';
 import {useToast} from '@/components/ui/toast-provider';
+import {PermissionGuard} from '@/components/admin/PermissionGuard';
 import {Palette, Download, CheckCircle, Settings, Eye, Trash2, Search, Filter, Star, Globe} from 'lucide-react';
 
 interface Theme {
@@ -452,7 +453,9 @@ export default function AdminThemeMarketplace() {
     return (
         <AuthGuard>
             <QueryProvider>
-                <ThemeMarketplaceInner/>
+                <PermissionGuard capability="theme:view">
+                    <ThemeMarketplaceInner/>
+                </PermissionGuard>
             </QueryProvider>
         </AuthGuard>
     );

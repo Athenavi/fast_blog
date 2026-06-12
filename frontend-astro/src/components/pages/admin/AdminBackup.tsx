@@ -5,6 +5,7 @@ import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
+import {PermissionGuard} from '@/components/admin/PermissionGuard';
 import {apiClient} from '@/lib/api/base-client';
 import {SYSTEM} from '@/lib/api/api-paths';
 import {
@@ -661,5 +662,5 @@ function BackupInner() {
 }
 
 export default function AdminBackup() {
-  return <AuthGuard><QueryProvider><BackupInner/></QueryProvider></AuthGuard>;
+  return <AuthGuard><QueryProvider><PermissionGuard capability="backup:create"><BackupInner/></PermissionGuard></QueryProvider></AuthGuard>;
 }

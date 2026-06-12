@@ -6,6 +6,7 @@ import {Crown, Package, Shield} from 'lucide-react';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
+import {PermissionGuard} from '@/components/admin/PermissionGuard';
 import {apiClient} from '@/lib/api/base-client';
 import {DASHBOARD} from '@/lib/api/api-paths';
 import {VipMgmtData} from './vip/shared';
@@ -71,7 +72,9 @@ export default function AdminVip() {
   return (
     <AuthGuard>
       <QueryProvider>
-        <VipAdminInner/>
+        <PermissionGuard capability="settings:view">
+          <VipAdminInner/>
+        </PermissionGuard>
       </QueryProvider>
     </AuthGuard>
   );

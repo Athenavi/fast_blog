@@ -3,6 +3,7 @@
 import React, {lazy, Suspense, useState} from 'react';
 import {FileText, Search, Share2} from 'lucide-react';
 import {AdminShell} from '@/components/admin/AdminShell';
+import {PermissionGuard} from '@/components/admin/PermissionGuard';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 
@@ -53,9 +54,11 @@ const AdminSEOManagementInner: React.FC = () => {
 
 export default function AdminSEOManagement() {
   return (
-    <AuthGuard>
+        <AuthGuard>
       <QueryProvider>
-        <AdminSEOManagementInner/>
+        <PermissionGuard capability="settings:view">
+          <AdminSEOManagementInner/>
+        </PermissionGuard>
       </QueryProvider>
     </AuthGuard>
   );
