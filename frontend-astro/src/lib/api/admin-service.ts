@@ -239,6 +239,36 @@ export const adminPermissionService = {
 };
 
 // ================================================================
+// 分类管理
+// ================================================================
+
+export const adminCategoryService = {
+  list: () =>
+    adminApi.get('/api/v3/admin/categories', '/cms/categories'),
+
+  create: (data: {name: string; slug?: string; description?: string; parent_id?: number}) =>
+    adminApi.post('/api/v3/admin/categories', '/cms/categories/', data),
+
+  update: (id: number, data: {name?: string; slug?: string; description?: string; sort_order?: number}) =>
+    adminApi.put(`/api/v3/admin/categories/${id}`, `/cms/categories/${id}`, data),
+
+  delete: (id: number) =>
+    adminApi.delete(`/api/v3/admin/categories/${id}`, `/cms/categories/${id}`),
+};
+
+// ================================================================
+// 分析数据
+// ================================================================
+
+export const adminAnalyticsService = {
+  overview: (days = 30) =>
+    adminApi.get('/api/v3/admin/analytics/overview', '/dashboard/analytics/overview', {days}),
+
+  popular: (limit = 10) =>
+    adminApi.get('/api/v3/admin/analytics/popular', '/dashboard/analytics/popular-articles', {limit}),
+};
+
+// ================================================================
 // 统一导出
 // ================================================================
 
@@ -255,4 +285,6 @@ export const adminService = {
   seo: adminSeoService,
   backup: adminBackupService,
   permission: adminPermissionService,
+  categories: adminCategoryService,
+  analytics: adminAnalyticsService,
 };
