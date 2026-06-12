@@ -6,7 +6,7 @@
   "author": "FastBlog Team",
   "category": "content",
   "tags": ["newsletter", "email", "subscription"],
-  "requires": ">=0.0.2.0",
+  "requires": {"fastblog": ">=1.0.0", "python": ">=3.8"},
   "icon": "📧",
   "price": "free"
 }

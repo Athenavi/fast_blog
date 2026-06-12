@@ -140,22 +140,32 @@ class ThemePlugin(BasePlugin):
     def activate(self):
         """激活主题 - 注册 theme.activated 事件"""
         super().activate()
-        # 广播主题激活事件，供前端或其它插件监听
+        # 广播主题激活事件（async emit 在 sync 上下文中通过 create_task 调度）
+        import asyncio
         from shared.services.plugins.event_bus import event_bus
-        event_bus.emit("theme.activated", {
-            "slug": self.slug,
-            "name": self.name,
-            "settings": self.get_theme_settings(),
-        })
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(event_bus.emit("theme.activated", {
+                "slug": self.slug,
+                "name": self.name,
+                "settings": self.get_theme_settings(),
+            }))
+        except RuntimeError:
+            pass  # 无运行中的事件循环时忽略
 
     def deactivate(self):
         """停用主题 - 注册 theme.deactivated 事件"""
         super().deactivate()
+        import asyncio
         from shared.services.plugins.event_bus import event_bus
-        event_bus.emit("theme.deactivated", {
-            "slug": self.slug,
-            "name": self.name,
-        })
+        try:
+            loop = asyncio.get_running_loop()
+            loop.create_task(event_bus.emit("theme.deactivated", {
+                "slug": self.slug,
+                "name": self.name,
+            }))
+        except RuntimeError:
+            pass
 
     # ─── 插件信息增强 ──────────────────────────
 

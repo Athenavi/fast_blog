@@ -6,8 +6,7 @@
   "author": "FastBlog Team",
   "category": "content",
   "tags": ["code", "snippets", "syntax-highlighting"],
-  "requires": ">=0.0.2.0",
-  "tested_up_to": "0.0.2.0",
+  "requires": {"fastblog": ">=1.0.0", "python": ">=3.8"},
   "icon": "💻",
   "price": "free"
 }
