@@ -134,9 +134,12 @@ const CommentCard: React.FC<{
   onApprove: () => void;
   onReject: () => void;
   onDelete: () => void;
+  onReply?: (parentId: number, content: string) => void;
   isPending?: boolean;
-}> = ({comment, onApprove, onReject, onDelete}) => {
+}> = ({comment, onApprove, onReject, onDelete, onReply}) => {
   const [showActions, setShowActions] = useState(false);
+  const [showReply, setShowReply] = useState(false);
+  const [replyContent, setReplyContent] = useState('');
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -245,6 +248,27 @@ const CommentCard: React.FC<{
           )}
         </div>
       </div>
+
+      {/* Inline Reply */}
+      {showReply ? (
+        <div className="mt-3 ml-11">
+          <textarea value={replyContent} onChange={e => setReplyContent(e.target.value)}
+                    placeholder={`回复 ${authorName}...`}
+                    className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-sm text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 resize-none"
+                    rows={3} autoFocus/>
+          <div className="flex justify-end gap-2 mt-2">
+            <button onClick={() => { setShowReply(false); setReplyContent(''); }}
+                    className="px-3 py-1.5 text-xs text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">取消</button>
+            <button onClick={() => { if (replyContent.trim() && onReply) { onReply(comment.id, replyContent); setShowReply(false); setReplyContent(''); } }}
+                    className="px-3 py-1.5 text-xs bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">发送回复</button>
+          </div>
+        </div>
+      ) : (
+        <button onClick={() => setShowReply(true)}
+                className="mt-2 ml-11 text-xs text-blue-500 hover:text-blue-600 hover:underline inline-flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <MessageSquare className="w-3 h-3"/>回复
+        </button>
+      )}
     </div>
   );
 };
@@ -447,6 +471,13 @@ function AdminCommentsInner() {
     onSuccess: () => qc.invalidateQueries({queryKey: ['admin-comments']}),
   });
 
+  // Reply to comment: use create endpoint with parent_id
+  const replyMut = useMutation({
+    mutationFn: ({parentId, content}: {parentId: number; content: string}) =>
+      apiClient.post(COMMENTS.ROOT, {parent_id: parentId, content, status: 'approved'}),
+    onSuccess: () => qc.invalidateQueries({queryKey: ['admin-comments']}),
+  });
+
   const toggleSubMut = useMutation({
     mutationFn: async (sub: CommentSubscription) => {
       if (sub.is_active) {
@@ -629,6 +660,7 @@ function AdminCommentsInner() {
                         variant: 'danger'
                       })) deleteMut.mutate(c.id);
                     }}
+                    onReply={(parentId, content) => replyMut.mutate({parentId, content})}
                   />
                 ))}
               </div>
