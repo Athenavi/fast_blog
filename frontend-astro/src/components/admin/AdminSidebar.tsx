@@ -14,6 +14,7 @@ import {
   LogOut,
   Medal,
   MessageSquare,
+  Palette,
   Server,
   Settings,
   Shield,
@@ -56,6 +57,7 @@ export const navConfig: NavItem[] = [
   {labelKey: 'nav.recommendations', href: '/admin/ext/recommendations', icon: Star},
 
   // ── 系统设置 ──
+  {labelKey: 'nav.appearance', href: '/admin/appearance', icon: Palette},
   {labelKey: 'nav.settings', href: '/admin/settings', icon: Settings},
 ];
 

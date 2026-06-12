@@ -28,6 +28,7 @@ def _build_router():
     from src.api.v2.content_management.page_builder_routes import router as page_builder_router
     from src.api.v2.content_management.shortcode import router as shortcode_router
     from src.api.v2.content_management.widgets import router as widgets_router
+    from src.api.v2.content_management.content_export import router as content_export_router
 
     from src.api.v2.content_management.content_management_ext import router as content_management_ext_router
 
@@ -42,6 +43,7 @@ def _build_router():
     router.include_router(feed_router, prefix="")
     router.include_router(shortcode_router, prefix="/shortcodes")
     router.include_router(widgets_router, prefix="/widgets")
+    router.include_router(content_export_router, prefix="/export")
     router.include_router(page_builder_router, prefix="")
     router.include_router(content_management_ext_router, prefix="/management")
 
