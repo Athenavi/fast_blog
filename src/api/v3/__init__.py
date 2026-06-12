@@ -43,6 +43,7 @@ ROUTE_REGISTRY_V3 = [
     ("src.api.v3.admin.permission", "/api/v3/admin", ["admin-permission"], False),
     ("src.api.v3.admin.categories", "/api/v3/admin", ["admin-categories"], False),
     ("src.api.v3.admin.analytics", "/api/v3/admin", ["admin-analytics"], False),
+    ("src.api.v3.admin.notifications", "/api/v3/admin", ["admin-notifications"], False),
 ]
 
 

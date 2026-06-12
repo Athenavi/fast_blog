@@ -269,6 +269,30 @@ export const adminAnalyticsService = {
 };
 
 // ================================================================
+// 通知管理
+// ================================================================
+
+export const adminNotificationService = {
+  list: () =>
+    adminApi.get('/api/v3/admin/notifications/messages', '/notifications/messages'),
+
+  markRead: (id: number) =>
+    adminApi.post(`/api/v3/admin/notifications/${id}/read`, `/notifications/${id}/read`),
+
+  markAllRead: () =>
+    adminApi.post('/api/v3/admin/notifications/read-all', '/notifications/read-all'),
+
+  delete: (id: number) =>
+    adminApi.delete(`/api/v3/admin/notifications/${id}`, `/notifications/messages/${id}`),
+
+  clean: () =>
+    adminApi.delete('/api/v3/admin/notifications/clean', '/notifications/messages/clean'),
+
+  sendEmail: (data: {title: string; content: string; type?: string; priority?: string; to_user_id?: number}) =>
+    adminApi.post('/api/v3/admin/notifications/email/send', '/notifications/email/send', data),
+};
+
+// ================================================================
 // 统一导出
 // ================================================================
 
@@ -287,4 +311,5 @@ export const adminService = {
   permission: adminPermissionService,
   categories: adminCategoryService,
   analytics: adminAnalyticsService,
+  notifications: adminNotificationService,
 };

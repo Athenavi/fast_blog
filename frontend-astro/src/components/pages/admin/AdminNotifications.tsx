@@ -6,8 +6,7 @@ import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {PermissionGuard} from '@/components/admin/PermissionGuard';
 import {AdminShell} from '@/components/admin/AdminShell';
-import {apiClient} from '@/lib/api/base-client';
-import {NOTIFICATIONS} from '@/lib/api/api-paths';
+import {adminService} from '@/lib/api/admin-service';
 import {useDebounce} from '@/lib/hooks';
 import {StatCard} from '@/components/admin/shared-ui';
 import {
@@ -364,7 +363,7 @@ function NotificationsInner() {
   const {data: notifications = [], isLoading, refetch, isFetching} = useQuery<any[]>({
     queryKey: ['admin-notifications'],
     queryFn: async () => {
-      const r = await apiClient.get(NOTIFICATIONS.MESSAGES);
+      const r = await adminService.notifications.list();
       return r.success && r.data ? (Array.isArray(r.data) ? r.data : r.data.notifications || []) : [];
     },
   });
@@ -372,7 +371,7 @@ function NotificationsInner() {
   /* ─── Mutations ─── */
   const sendMut = useMutation({
     mutationFn: (data: { title: string; content: string; type: string; priority: string }) =>
-        apiClient.post(NOTIFICATIONS.EMAIL_SEND, data),
+        adminService.notifications.sendEmail(data),
     onSuccess: () => {
       qc.invalidateQueries({queryKey: ['admin-notifications']});
       setSendOpen(false);
@@ -380,12 +379,12 @@ function NotificationsInner() {
   });
 
   const readMut = useMutation({
-    mutationFn: (id: number) => apiClient.post(`/notifications/${id}/read`),
+    mutationFn: (id: number) => adminService.notifications.markRead(id),
     onSuccess: () => qc.invalidateQueries({queryKey: ['admin-notifications']}),
   });
 
   const readAllMut = useMutation({
-    mutationFn: () => apiClient.post(NOTIFICATIONS.READ_ALL),
+    mutationFn: () => adminService.notifications.markAllRead(),
     onSuccess: () => {
       qc.invalidateQueries({queryKey: ['admin-notifications']});
       setSelectedIds(new Set());
@@ -393,7 +392,7 @@ function NotificationsInner() {
   });
 
   const deleteMut = useMutation({
-    mutationFn: (id: number) => apiClient.delete(`/notifications/messages/${id}`),
+    mutationFn: (id: number) => adminService.notifications.delete(id),
     onSuccess: () => {
       qc.invalidateQueries({queryKey: ['admin-notifications']});
       setDeleteTarget(null);
@@ -403,7 +402,7 @@ function NotificationsInner() {
   const batchDeleteMut = useMutation({
     mutationFn: async () => {
       const ids = Array.from(selectedIds);
-      await Promise.all(ids.map(id => apiClient.delete(`/notifications/messages/${id}`)));
+      await Promise.all(ids.map(id => adminService.notifications.delete(id)));
     },
     onSuccess: () => {
       qc.invalidateQueries({queryKey: ['admin-notifications']});
@@ -413,7 +412,7 @@ function NotificationsInner() {
   });
 
   const cleanAllMut = useMutation({
-    mutationFn: () => apiClient.delete(NOTIFICATIONS.MESSAGES_CLEAN),
+    mutationFn: () => adminService.notifications.clean(),
     onSuccess: () => {
       qc.invalidateQueries({queryKey: ['admin-notifications']});
       setSelectedIds(new Set());
