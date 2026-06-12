@@ -9,6 +9,10 @@
   "requires": {"fastblog": ">=1.0.0", "python": ">=3.8"},
   "icon": "📧",
   "price": "free",
+  "capabilities": [
+    "read:newsletter",
+    "write:newsletter"
+  ],
   "settings_schema": {
     "max_subscribers": {"type": "number", "label": "最大订阅数", "default": 10000, "min": 100, "max": 1000000, "help": "邮件订阅的最大用户数"},
     "digest_frequency": {"type": "select", "label": "摘要频率", "default": "instant", "options": [{"value": "instant", "label": "即时发送"}, {"value": "daily", "label": "每日摘要"}, {"value": "weekly", "label": "每周摘要"}], "help": "文章发布时邮件发送的频率"},

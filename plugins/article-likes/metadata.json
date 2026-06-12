@@ -8,5 +8,9 @@
   "tags": ["likes", "social", "interaction"],
   "requires": {"fastblog": ">=1.0.0", "python": ">=3.8"},
   "icon": "❤️",
-  "price": "free"
+  "price": "free",
+  "capabilities": [
+    "read:article-likes",
+    "write:article-likes"
+  ]
 }
