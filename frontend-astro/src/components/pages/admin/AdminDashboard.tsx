@@ -6,8 +6,7 @@ import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {PermissionGuard} from '@/components/admin/PermissionGuard';
-import {apiClient} from '@/lib/api/base-client';
-import {DASHBOARD} from '@/lib/api/api-paths';
+import {adminService} from '@/lib/api/admin-service';
 import {motion} from 'framer-motion';
 import {
   ArrowUpRight,
@@ -130,11 +129,7 @@ function AdminDashboardInner() {
     const {data: stats} = useQuery({
     queryKey: ['admin-dashboard'],
     queryFn: async () => {
-      const res = await apiClient.get<{
-          articles: number; users: number; comments: number;
-          visitors: number; views_today: number; views_trend?: number;
-          users_trend?: number; articles_trend?: number; comments_trend?: number;
-      }>(DASHBOARD.STATS);
+      const res = await adminService.dashboard.stats();
         return res.success && res.data ? res.data : {} as any;
     },
   });
@@ -142,7 +137,7 @@ function AdminDashboardInner() {
     const {data: activities} = useQuery({
     queryKey: ['admin-activity'],
     queryFn: async () => {
-      const res = await apiClient.get<unknown[]>(DASHBOARD.ACTIVITIES, {page: 1, per_page: 8});
+      const res = await adminService.dashboard.traffic();
       return res.success && res.data ? (Array.isArray(res.data) ? res.data : []) : [];
     },
   });
