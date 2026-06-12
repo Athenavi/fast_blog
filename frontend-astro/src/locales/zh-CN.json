@@ -112,6 +112,7 @@
     "nft": "NFT 管理",
     "recommendations": "推荐系统",
     "appearance": "外观设置",
+    "cache": "缓存管理",
     "settings": "系统设置",
     "backToFront": "返回前台"
   },
