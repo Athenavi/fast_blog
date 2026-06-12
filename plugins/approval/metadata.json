@@ -1,0 +1,12 @@
+{
+  "name": "Content Approval",
+  "slug": "approval",
+  "version": "1.0.0",
+  "description": "内容审批工作流：待审批、我的申请、统计历史",
+  "author": "FastBlog Team",
+  "category": "tool",
+  "icon": "✅",
+  "tags": ["approval", "workflow", "review"],
+  "requires": {"fastblog": ">=1.0.0", "python": ">=3.8"},
+  "settings_schema": {}
+}
