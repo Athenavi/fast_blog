@@ -5,6 +5,7 @@ import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
+import {PermissionGuard} from '@/components/admin/PermissionGuard';
 import {RBAC, DASHBOARD} from '@/lib/api/api-paths';
 import {apiClient} from '@/lib/api/base-client';
 import {StatCard} from '@/components/admin/shared-ui';
@@ -523,7 +524,7 @@ function UsersModal({roleId, roleName, onClose}: {roleId: number; roleName: stri
 /* ═══════════════════════════════════════════════════════
    Main Component
    ═══════════════════════════════════════════════════════ */
-function RolesInner() {
+function AdminRolesInner() {
   const qc = useQueryClient();
   const [modal, setModal] = useState<{mode: 'create' | 'edit'; role?: any} | null>(null);
   const [usersModal, setUsersModal] = useState<{id: number; name: string} | null>(null);
@@ -724,5 +725,13 @@ function RolesInner() {
 }
 
 export default function AdminRoles() {
-  return <AuthGuard><QueryProvider><RolesInner/></QueryProvider></AuthGuard>;
+  return (
+    <QueryProvider>
+      <AuthGuard>
+        <PermissionGuard capability="user:manage_roles">
+          <AdminRolesInner />
+          </PermissionGuard>
+      </AuthGuard>
+    </QueryProvider>
+  );
 }

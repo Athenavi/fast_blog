@@ -5,6 +5,7 @@ import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
+import {PermissionGuard} from '@/components/admin/PermissionGuard';
 import {useDebounce} from '@/lib/hooks';
 import {apiClient} from '@/lib/api/base-client';
 import {DASHBOARD, ARTICLES} from '@/lib/api/api-paths';
@@ -152,7 +153,7 @@ const ArticleActions: React.FC<{ article: any; onEdit: () => void; onDelete: () 
     );
 };
 
-function ArticlesInner() {
+function AdminArticlesInner() {
   const confirm = useConfirm();
   const qc = useQueryClient();
   const [page, setPage] = useState(1);
@@ -523,5 +524,13 @@ function ArticlesInner() {
 }
 
 export default function AdminArticles() {
-  return <AuthGuard><QueryProvider><ArticlesInner /></QueryProvider></AuthGuard>;
+  return (
+    <QueryProvider>
+      <AuthGuard>
+        <PermissionGuard capability="article:view">
+          <AdminArticlesInner />
+          </PermissionGuard>
+      </AuthGuard>
+    </QueryProvider>
+  );
 }

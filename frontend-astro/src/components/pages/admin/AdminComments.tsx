@@ -5,6 +5,7 @@ import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
+import {PermissionGuard} from '@/components/admin/PermissionGuard';
 import {apiClient} from '@/lib/api/base-client';
 import {COMMENTS} from '@/lib/api/api-paths';
 import {useConfirm} from '@/components/ui/confirm-provider';
@@ -379,7 +380,7 @@ const StatCard: React.FC<{
 };
 
 /* ── Main Component ── */
-function CommentsInner() {
+function AdminCommentsInner() {
   const confirm = useConfirm();
   const qc = useQueryClient();
   const [activeTab, setActiveTab] = useState<TabValue>('pending');
@@ -853,5 +854,13 @@ function CommentsInner() {
 }
 
 export default function AdminComments() {
-  return <AuthGuard><QueryProvider><CommentsInner/></QueryProvider></AuthGuard>;
+  return (
+    <QueryProvider>
+      <AuthGuard>
+        <PermissionGuard capability="comment:view">
+          <AdminCommentsInner />
+          </PermissionGuard>
+      </AuthGuard>
+    </QueryProvider>
+  );
 }

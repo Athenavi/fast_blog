@@ -5,6 +5,7 @@ import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
+import {PermissionGuard} from '@/components/admin/PermissionGuard';
 import {apiClient} from '@/lib/api/base-client';
 import {DASHBOARD} from '@/lib/api/api-paths';
 import {useDebounce} from '@/lib/hooks';
@@ -131,7 +132,7 @@ const UserSkeleton = () => (
     </tr>
 );
 
-function UsersInner() {
+function AdminUsersInner() {
   const qc = useQueryClient();
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState('');
@@ -431,5 +432,13 @@ function UsersInner() {
 }
 
 export default function AdminUsers() {
-  return <AuthGuard><QueryProvider><UsersInner /></QueryProvider></AuthGuard>;
+  return (
+    <QueryProvider>
+      <AuthGuard>
+        <PermissionGuard capability="user:view">
+          <AdminUsersInner />
+        </PermissionGuard>
+      </AuthGuard>
+    </QueryProvider>
+  );
 }

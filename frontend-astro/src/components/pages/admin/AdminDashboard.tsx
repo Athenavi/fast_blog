@@ -5,6 +5,7 @@ import {useQuery} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
+import {PermissionGuard} from '@/components/admin/PermissionGuard';
 import {apiClient} from '@/lib/api/base-client';
 import {DASHBOARD} from '@/lib/api/api-paths';
 import {motion} from 'framer-motion';
@@ -125,7 +126,7 @@ const ActivityItem: React.FC<{ activity: any; index: number }> = ({activity, ind
     );
 };
 
-function DashboardInner() {
+function AdminDashboardInner() {
     const {data: stats} = useQuery({
     queryKey: ['admin-dashboard'],
     queryFn: async () => {
@@ -319,7 +320,15 @@ const Settings = ({className}: { className?: string }) => (
 );
 
 export default function AdminDashboard() {
-  return <AuthGuard><QueryProvider><DashboardInner /></QueryProvider></AuthGuard>;
+  return (
+    <QueryProvider>
+      <AuthGuard>
+        <PermissionGuard capability="settings:view">
+          <AdminDashboardInner />
+          </PermissionGuard>
+      </AuthGuard>
+    </QueryProvider>
+  );
 }
 
 const PenSquare = ({className}: { className?: string }) => (
