@@ -6,6 +6,7 @@ from .auth_deps import (
     admin_required,
     admin_required_page,
     require_permission,
+    require_resource_permission,
     require_role,
     require_permission_page,
     require_role_page,

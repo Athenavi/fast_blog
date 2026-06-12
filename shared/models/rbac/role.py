@@ -44,6 +44,7 @@ class Role(Base):
 
     # 关系定义
     capabilities = relationship('Capability', secondary='role_capabilities', back_populates='roles')
+    users = relationship('User', secondary='user_role_assignments', back_populates='roles')
 
     def to_dict(self, exclude_sensitive=True):
         """转换为字典
