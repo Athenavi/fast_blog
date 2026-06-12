@@ -248,6 +248,10 @@ class BasePlugin:
         # 使用内置 hash 替代 hashlib，提升性能
         unique_id = abs(hash(self.slug)) % (10 ** 8)
 
+        settings_schema = self.metadata.get('settings_schema', {})
+        if self.manifest:
+            settings_schema = self.manifest.settings_schema or settings_schema
+
         return {
             'id': unique_id,
             'name': self.name,
@@ -266,6 +270,7 @@ class BasePlugin:
             'category': self.metadata.get('category', 'other'),
             'tags': self.metadata.get('tags', []),
             'icon': self.metadata.get('icon', ''),
+            'settings_schema': settings_schema,
         }
 
     def has_capability(self, capability: str) -> bool:
