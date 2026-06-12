@@ -29,8 +29,19 @@ import {
   LayoutGrid,
   List,
   ArrowUp,
-  ArrowDown
+  ArrowDown,
+  Square,
+  CheckSquare,
 } from 'lucide-react';
+
+import {
+  DndContext, closestCenter, PointerSensor, useSensor, useSensors,
+  type DragEndEvent,
+} from '@dnd-kit/core';
+import {
+  SortableContext, useSortable, verticalListSortingStrategy,
+} from '@dnd-kit/sortable';
+import {CSS} from '@dnd-kit/utilities';
 
 /* ── 颜色方案 ── */
 const CATEGORY_COLORS = [
@@ -90,6 +101,49 @@ function getColor(idx: number) {
 
 /* ── 分类骨架屏 ── */
 const CategorySkeleton = () => (
+
+/* ── 构建分类树 ── */
+function buildTree(cats: any[]): any[] {
+  const map = new Map<number, any>();
+  const roots: any[] = [];
+  cats.forEach(c => map.set(c.id, {...c, children: []}));
+  cats.forEach(c => {
+    if (c.parent_id && map.has(c.parent_id)) {
+      map.get(c.parent_id)!.children.push(map.get(c.id));
+    } else {
+      const node = map.get(c.id);
+      if (node) roots.push(node);
+    }
+  });
+  return roots;
+}
+
+/* ── 可拖拽分类行 ── */
+function SortableRow({cat, index, viewMode, onEdit, onDelete, depth = 0, selected, onSelect}: {
+  cat: any; index: number; viewMode: 'list' | 'grid'; onEdit: (c: any) => void; onDelete: (c: any) => void;
+  depth?: number; selected?: boolean; onSelect?: (id: number) => void;
+}) {
+  const {attributes, listeners, setNodeRef, transform, transition, isDragging} = useSortable({id: cat.id});
+  const style = {transform: CSS.Transform.toString(transform), transition, opacity: isDragging ? 0.5 : 1};
+
+  if (viewMode === 'grid') {
+    return <div ref={setNodeRef} style={style}><CategoryRow cat={cat} index={index} viewMode={viewMode} onEdit={onEdit} onDelete={onDelete} depth={depth}/></div>;
+  }
+
+  return (
+    <div ref={setNodeRef} style={style}>
+      <CategoryRow cat={cat} index={index} viewMode={viewMode} onEdit={onEdit}
+                   onDelete={onDelete} depth={depth} dragListeners={listeners} dragAttributes={attributes}
+                   hasChildren={cat.children?.length > 0} selected={selected} onSelect={onSelect}/>
+      {cat.children?.map((child: any, ci: number) => (
+        <SortableRow key={child.id} cat={child} index={ci} viewMode={viewMode}
+                     onEdit={onEdit} onDelete={onDelete} depth={depth + 1}
+                     selected={selected} onSelect={onSelect}/>
+      ))}
+    </div>
+  );
+}
+
     <div className="space-y-3">
       {[1, 2, 3, 4, 5].map(i => (
           <div key={i}
@@ -118,7 +172,11 @@ const CategoryRow: React.FC<{
   onToggle?: () => void;
   hasChildren?: boolean;
   depth?: number;
-}> = ({cat, index, viewMode, onEdit, onDelete, isExpanded, onToggle, hasChildren, depth = 0}) => {
+  dragListeners?: any;
+  dragAttributes?: any;
+  selected?: boolean;
+  onSelect?: (id: number) => void;
+}> = ({cat, index, viewMode, onEdit, onDelete, isExpanded, onToggle, hasChildren, depth = 0, dragListeners, dragAttributes, selected, onSelect}) => {
   const [showMenu, setShowMenu] = useState(false);
   const color = getColor(index);
   const count = cat.articles_count || cat.article_count || 0;
@@ -195,9 +253,19 @@ const CategoryRow: React.FC<{
             <div className="w-5"/>
         )}
 
+        {/* 选择框（批量模式） */}
+        {onSelect && (
+          <button onClick={() => onSelect(cat.id)}
+                  className={`p-0.5 rounded transition-colors ${selected ? 'text-blue-600' : 'text-gray-300 hover:text-gray-500'}`}>
+            {selected ? <CheckSquare className="w-4 h-4"/> : <Square className="w-4 h-4"/>}
+          </button>
+        )}
+
         {/* 拖拽手柄 */}
-        <GripVertical
-            className="w-4 h-4 text-gray-300 dark:text-gray-600 cursor-grab opacity-0 group-hover:opacity-100 transition-opacity"/>
+        <button {...dragAttributes} {...dragListeners}
+                className="p-0.5 text-gray-300 dark:text-gray-600 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity hover:text-gray-500">
+          <GripVertical className="w-4 h-4"/>
+        </button>
 
         {/* 图标 */}
         <div className={`w-9 h-9 rounded-xl ${color.bg} flex items-center justify-center flex-shrink-0`}>
@@ -404,6 +472,10 @@ function CategoriesInner() {
   const [sortBy, setSortBy] = useState<'name' | 'count'>('name');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('asc');
   const [_expandedIds, _setExpandedIds] = useState<Set<number>>(new Set());
+  const [batchMode, setBatchMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
+
+  const sensors = useSensors(useSensor(PointerSensor, {activationConstraint: {distance: 8}}));
 
   const {data: cats, isLoading} = useQuery({
     queryKey: ['admin-categories'],
@@ -425,6 +497,31 @@ function CategoriesInner() {
       setDeleteTarget(null);
     },
   });
+
+  const reorderMut = useMutation({
+    mutationFn: (orderedIds: number[]) =>
+      apiClient.post('/cms/categories/reorder', orderedIds.map((id, i) => ({id, sort_order: i}))),
+    onSuccess: () => qc.invalidateQueries({queryKey: ['admin-categories']}),
+  });
+
+  const batchDelMut = useMutation({
+    mutationFn: (ids: number[]) => Promise.all(ids.map(id => apiClient.delete(CATEGORIES.DELETE(id)))),
+    onSuccess: () => { qc.invalidateQueries({queryKey: ['admin-categories']}); setSelectedIds(new Set()); setBatchMode(false); },
+  });
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const {active, over} = event;
+    if (!over || active.id === over.id || !cats) return;
+    const oldIdx = cats.findIndex((c: any) => c.id === active.id);
+    const newIdx = cats.findIndex((c: any) => c.id === over.id);
+    if (oldIdx === -1 || newIdx === -1) return;
+    const reordered = [...cats];
+    const [moved] = reordered.splice(oldIdx, 1);
+    reordered.splice(newIdx, 0, moved);
+    reorderMut.mutate(reordered.map((c: any) => c.id));
+  };
+
+  const tree = useMemo(() => buildTree(filteredCats), [filteredCats]);
 
   // 统计
   const stats = useMemo(() => {
@@ -557,6 +654,24 @@ function CategoriesInner() {
               <LayoutGrid className="w-4 h-4"/>
             </button>
           </div>
+
+          {/* 批量操作 */}
+          {viewMode === 'list' && (
+            <div className="flex items-center gap-1">
+              {batchMode ? (
+                <>
+                  <span className="text-xs text-gray-500 mr-1">{selectedIds.size} 已选</span>
+                  <button onClick={() => { setSelectedIds(new Set()); setBatchMode(false); }}
+                          className="px-2 py-1.5 text-xs text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">取消</button>
+                  <button onClick={() => { if (selectedIds.size > 0 && confirm('确定删除选中的分类？')) batchDelMut.mutate(Array.from(selectedIds)); }}
+                          className="px-2 py-1.5 text-xs text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">删除选中</button>
+                </>
+              ) : (
+                <button onClick={() => setBatchMode(true)}
+                        className="px-2 py-1.5 text-xs text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">批量</button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* 创建/编辑表单 */}
@@ -594,8 +709,8 @@ function CategoriesInner() {
             </div>
         ) : viewMode === 'grid' ? (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-              {filteredCats.map((cat: any, i: number) => (
-                  <CategoryRow key={cat.id} cat={cat} index={i} viewMode={viewMode}
+              {tree.map((cat: any, i: number) => (
+                  <SortableRow key={cat.id} cat={cat} index={i} viewMode={viewMode}
                                onEdit={handleEdit} onDelete={setDeleteTarget}/>
               ))}
             </div>
@@ -605,6 +720,7 @@ function CategoriesInner() {
               {/* 表头 */}
               <div
                 className="flex items-center gap-3 px-5 py-3 border-b border-gray-100 dark:border-gray-800 bg-gray-50/80 dark:bg-gray-800/30 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                {batchMode && <div className="w-5"/>}
                 <div className="w-5"/>
                 <div className="w-5"/>
                 <div className="w-9"/>
@@ -612,13 +728,18 @@ function CategoriesInner() {
                 <div className="w-20 text-center">文章数</div>
                 <div className="w-20"/>
               </div>
-              {/* 行 */}
-              <div className="divide-y divide-gray-50 dark:divide-gray-800/50">
-                {filteredCats.map((cat: any, i: number) => (
-                    <CategoryRow key={cat.id} cat={cat} index={i} viewMode={viewMode}
-                                 onEdit={handleEdit} onDelete={setDeleteTarget}/>
-                ))}
-              </div>
+              {/* 行（可拖拽排序，树形嵌套） */}
+              <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+                <SortableContext items={filteredCats.map((c: any) => c.id)} strategy={verticalListSortingStrategy}>
+                  <div className="divide-y divide-gray-50 dark:divide-gray-800/50">
+                    {tree.map((cat: any, i: number) => (
+                        <SortableRow key={cat.id} cat={cat} index={i} viewMode={viewMode}
+                                     onEdit={handleEdit} onDelete={setDeleteTarget}
+                                     selected={selectedIds.has(cat.id)} onSelect={batchMode ? (id) => { setSelectedIds(prev => { const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next; }); } : undefined}/>
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
               {/* 底部 */}
               <div
                   className="px-5 py-3 border-t border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/10">
