@@ -271,6 +271,21 @@ export const adminAnalyticsService = {
 };
 
 // ================================================================
+// 搜索分析
+// ================================================================
+
+export const adminSearchAnalyticsService = {
+  popular: (days = 30, limit = 20) =>
+    adminApi.get('/api/v3/admin/search-analytics/popular', '/search/analytics/popular', {days, limit}),
+
+  zeroResult: (days = 30, limit = 20) =>
+    adminApi.get('/api/v3/admin/search-analytics/zero-result', '/search/analytics/zero-result', {days, limit}),
+
+  trend: (days = 7) =>
+    adminApi.get('/api/v3/admin/search-analytics/trend', '/search/analytics/trend', {days}),
+};
+
+// ================================================================
 // 通知管理
 // ================================================================
 
@@ -361,6 +376,7 @@ export const adminService = {
   permission: adminPermissionService,
   categories: adminCategoryService,
   analytics: adminAnalyticsService,
+  searchAnalytics: adminSearchAnalyticsService,
   notifications: adminNotificationService,
   webhooks: adminWebhookService,
   widgets: adminWidgetService,

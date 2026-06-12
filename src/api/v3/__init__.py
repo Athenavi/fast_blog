@@ -44,6 +44,7 @@ ROUTE_REGISTRY_V3 = [
     ("src.api.v3.admin.categories", "/api/v3/admin", ["admin-categories"], False),
     ("src.api.v3.admin.analytics", "/api/v3/admin", ["admin-analytics"], False),
     ("src.api.v3.admin.notifications", "/api/v3/admin", ["admin-notifications"], False),
+    ("src.api.v3.admin.search_analytics", "/api/v3/admin", ["admin-search-analytics"], False),
     ("src.api.v3.admin.webhooks", "/api/v3/admin", ["admin-webhooks"], False),
     ("src.api.v3.admin.widgets", "/api/v3/admin", ["admin-widgets"], False),
 ]
