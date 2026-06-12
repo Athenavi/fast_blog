@@ -7,7 +7,7 @@ import {QueryProvider} from '@/components/QueryProvider';
 import {PermissionGuard} from '@/components/admin/PermissionGuard';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {apiClient} from '@/lib/api/base-client';
-import {SECURITY} from '@/lib/api/api-paths';
+import {adminService} from '@/lib/api/admin-service';
 import {useDebounce} from '@/lib/hooks';
 import {StatCard} from '@/components/admin/shared-ui';
 import {
@@ -285,7 +285,7 @@ function SecurityDashboardInner() {
   const {data: summary, refetch: refetchSummary} = useQuery({
     queryKey: ['security-summary'],
     queryFn: async () => {
-      const res = await apiClient.get(SECURITY.DASHBOARD_SUMMARY);
+      const res = await adminService.permission.cacheStats();
       return (res as any).data || (res as any) || {};
     },
   });
@@ -296,7 +296,7 @@ function SecurityDashboardInner() {
       const params: any = {};
       if (filterAction !== 'all') params.action = filterAction;
       if (filterStatus !== 'all') params.status = filterStatus;
-      const res = await apiClient.get(SECURITY.AUDIT_LOGS, {params});
+      const res = await apiClient.get('/security/audit/logs', {params});
       return (res as any).data || (res as any) || [];
     },
   });
