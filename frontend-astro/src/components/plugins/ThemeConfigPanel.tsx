@@ -3,8 +3,7 @@
 import React, {useState, useEffect} from 'react';
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {apiClient} from '@/lib/api/base-client';
-import {useToast} from '@/components/ui/toast-provider';
-import {Palette, Save, RotateCcw} from 'lucide-react';
+import {Palette, Save, RotateCcw, CheckCircle, AlertCircle} from 'lucide-react';
 
 interface Props {
     pluginSlug: string;
@@ -13,9 +12,20 @@ interface Props {
 }
 
 export default function ThemeConfigPanel({pluginSlug, themeName, themeDescription}: Props) {
-    const toast = useToast();
     const qc = useQueryClient();
     const [settings, setSettings] = useState<any>({});
+    const [notification, setNotification] = useState<{type: 'success' | 'error'; message: string} | null>(null);
+
+    // 自动清除通知
+    useEffect(() => {
+        if (notification) {
+            const timer = setTimeout(() => setNotification(null), 3000);
+            return () => clearTimeout(timer);
+        }
+    }, [notification]);
+
+    const showSuccess = (msg: string) => setNotification({type: 'success', message: msg});
+    const showError = (msg: string) => setNotification({type: 'error', message: msg});
 
     // 读取主题配置
     const {data: configData, isLoading} = useQuery({
@@ -39,7 +49,10 @@ export default function ThemeConfigPanel({pluginSlug, themeName, themeDescriptio
         onSuccess: () => {
             qc.invalidateQueries({queryKey: ['theme-config', pluginSlug]});
             qc.invalidateQueries({queryKey: ['themes-installed']});
-            toast.success('主题配置已保存！');
+            showSuccess('主题配置已保存！');
+        },
+        onError: (err: any) => {
+            showError(err?.message || '保存失败');
         },
     });
 
@@ -58,6 +71,18 @@ export default function ThemeConfigPanel({pluginSlug, themeName, themeDescriptio
 
     return (
         <div className="max-w-4xl mx-auto space-y-8">
+            {/* 通知 */}
+            {notification && (
+                <div className={`flex items-center gap-3 px-4 py-3 rounded-xl border ${
+                    notification.type === 'success'
+                        ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300'
+                        : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300'
+                }`}>
+                    {notification.type === 'success' ? <CheckCircle className="w-5 h-5"/> : <AlertCircle className="w-5 h-5"/>}
+                    <span className="text-sm font-medium">{notification.message}</span>
+                </div>
+            )}
+
             {/* 主题信息 */}
             <div className="bg-white dark:bg-gray-900 rounded-xl border p-6">
                 <div className="flex items-center gap-4">
