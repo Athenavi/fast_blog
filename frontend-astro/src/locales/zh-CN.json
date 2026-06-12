@@ -114,6 +114,8 @@
     "appearance": "外观设置",
     "cache": "缓存管理",
     "emailTemplates": "邮件模板",
+    "shortcodes": "短代码",
+    "customPostTypes": "自定义类型",
     "settings": "系统设置",
     "backToFront": "返回前台"
   },

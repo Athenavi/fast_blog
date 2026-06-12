@@ -61,6 +61,8 @@ export const navConfig: NavItem[] = [
   // ┢�┢� 系统设置 ┢�┢�
   {labelKey: 'nav.appearance', href: '/admin/appearance', icon: Palette},
   {labelKey: 'nav.emailTemplates', href: '/admin/email-templates', icon: FileText},
+  {labelKey: 'nav.shortcodes', href: '/admin/shortcodes', icon: FileText},
+  {labelKey: 'nav.customPostTypes', href: '/admin/custom-post-types', icon: Layers},
   {labelKey: 'nav.settings', href: '/admin/settings', icon: Settings},
 ];
 
@@ -165,5 +167,9 @@ export function MobileSidebar({open, onClose}: { open: boolean; onClose: () => v
     </>
   );
 }
+
+
+
+
 
 

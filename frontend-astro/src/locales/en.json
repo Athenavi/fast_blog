@@ -114,6 +114,8 @@
     "appearance": "Appearance",
     "cache": "Cache",
     "emailTemplates": "Email Templates",
+    "shortcodes": "Shortcodes",
+    "customPostTypes": "Custom Types",
     "settings": "Settings",
     "backToFront": "Back to Site"
   },
