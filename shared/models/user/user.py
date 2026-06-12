@@ -10,7 +10,6 @@ from sqlalchemy.orm import relationship
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
 
 
-
 class User(Base):
     """用户模型模型"""
     __tablename__ = 'users'
@@ -72,10 +71,6 @@ class User(Base):
     totp_secret = Column(String(32), nullable=True, doc='TOTP 密钥')
 
     backup_codes = Column(Text, nullable=True, doc='备用码(JSON格式存储)')
-
-    # 关系定义
-    roles = relationship('Role', secondary='user_role_assignments', back_populates='users')
-
 
 
     def to_dict(self, exclude_sensitive=True):

@@ -9,7 +9,6 @@ from sqlalchemy.orm import relationship
 
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
 
-
 class Role(Base):
     """角色模型模型"""
     __tablename__ = 'roles'
@@ -44,7 +43,6 @@ class Role(Base):
 
     # 关系定义
     capabilities = relationship('Capability', secondary='role_capabilities', back_populates='roles')
-    users = relationship('User', secondary='user_role_assignments', back_populates='roles')
 
     def to_dict(self, exclude_sensitive=True):
         """转换为字典

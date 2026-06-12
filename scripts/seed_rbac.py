@@ -11,7 +11,7 @@ RBAC 种子数据脚本
 """
 import asyncio
 
-from datetime import datetime, timezone
+from datetime import datetime
 
 from sqlalchemy import select
 
@@ -185,7 +185,7 @@ async def seed_capabilities(db) -> dict:
     result = await db.execute(select(Capability))
     existing = {c.code: c for c in result.scalars().all()}
 
-    now = datetime.now(timezone.utc)
+    now = datetime.utcnow()
     code_map = {}
 
     for code, name, resource, action in ALL_CAPABILITIES:
@@ -219,7 +219,7 @@ async def seed_capabilities(db) -> dict:
 
 async def seed_roles(db, capability_map: dict):
     """创建/更新系统角色"""
-    now = datetime.now(timezone.utc)
+    now = datetime.utcnow()
 
     result = await db.execute(select(Role))
     existing_roles = {r.slug: r for r in result.scalars().all()}
@@ -296,7 +296,7 @@ async def main():
         await db.commit()
 
     print("\n" + "=" * 50)
-    print("✅ RBAC 种子数据初始化完成！")
+    print("[OK] RBAC 种子数据初始化完成！")
     print("=" * 50)
 
 
