@@ -9,6 +9,7 @@ import {PermissionGuard} from '@/components/admin/PermissionGuard';
 import {StatCard} from '@/components/admin/shared-ui';
 import {apiClient} from '@/lib/api/base-client';
 import {SYSTEM} from '@/lib/api/api-paths';
+import {adminService} from '@/lib/api/admin-service';
 import {getConfig} from '@/lib/config';
 import {type Locale, locales, useTranslation} from '@/lib/i18n';
 import {
@@ -43,7 +44,7 @@ function AdminSettingsInner() {
   const {data: fullData, isLoading} = useQuery({
     queryKey: ['admin-system-settings'],
     queryFn: async () => {
-      const r = await apiClient.get(SYSTEM.SETTINGS);
+      const r = await adminService.system.getSettings();
       if (r.success && r.data) {
         const raw = r.data.settings || {};
         const norm: Record<string, string> = {};

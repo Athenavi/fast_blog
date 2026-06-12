@@ -5,6 +5,7 @@ import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {apiClient} from '@/lib/api/base-client';
+import {adminService} from '@/lib/api/admin-service';
 import {useToast} from '@/components/ui/toast-provider';
 import {PermissionGuard} from '@/components/admin/PermissionGuard';
 import {Palette, Download, CheckCircle, Settings, Eye, Trash2, Search, Filter, Star, Globe} from 'lucide-react';
@@ -53,7 +54,7 @@ function ThemeMarketplaceInner() {
     const {data: installedThemes, isLoading: installedLoading} = useQuery({
         queryKey: ['themes-installed'],
         queryFn: async () => {
-            const res = await apiClient.get('/themes/installed');
+            const res = await adminService.themes.list();
             return res.data || [];
         },
         enabled: activeTab === 'installed'
@@ -70,7 +71,7 @@ function ThemeMarketplaceInner() {
 
     // 安装主题
     const installMut = useMutation({
-        mutationFn: (slug: string) => apiClient.post('/themes/install', {slug}),
+        mutationFn: (slug: string) => adminService.plugins.activate(slug),
         onSuccess: () => {
             qc.invalidateQueries({queryKey: ['themes-marketplace']});
             qc.invalidateQueries({queryKey: ['themes-installed']});

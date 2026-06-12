@@ -8,6 +8,7 @@ import {AdminShell} from '@/components/admin/AdminShell';
 import {PermissionGuard} from '@/components/admin/PermissionGuard';
 import {StatCard} from '@/components/admin/shared-ui';
 import {apiClient} from '@/lib/api/base-client';
+import {adminService} from '@/lib/api/admin-service';
 import {PLUGINS} from '@/lib/api/api-paths';
 import {
   Puzzle,

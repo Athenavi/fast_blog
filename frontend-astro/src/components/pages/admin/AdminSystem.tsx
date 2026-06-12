@@ -8,6 +8,7 @@ import {AdminShell} from '@/components/admin/AdminShell';
 import {PermissionGuard} from '@/components/admin/PermissionGuard';
 import {apiClient} from '@/lib/api/base-client';
 import {SYSTEM} from '@/lib/api/api-paths';
+import {adminService} from '@/lib/api/admin-service';
 import {Server, Activity, Database, HardDrive, Shield, Zap, CheckCircle, XCircle, AlertTriangle} from 'lucide-react';
 
 const statusIcon = (status: string) => {
@@ -26,14 +27,14 @@ function SystemInner() {
   const {data: infoRes} = useQuery({
     queryKey: ['admin-system-info'],
     queryFn: async () => {
-      const res = await apiClient.get(SYSTEM.INFO);
+      const res = await adminService.system.getSettings();
       return res.success && res.data ? res.data : {};
     },
   });
   const {data: healthRes} = useQuery({
     queryKey: ['admin-system-health'],
     queryFn: async () => {
-      const res = await apiClient.get(SYSTEM.HEALTH);
+      const res = await adminService.system.getSettings();
       return res.success && res.data ? res.data : {};
     },
   });
