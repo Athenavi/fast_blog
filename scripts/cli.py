@@ -240,11 +240,15 @@ def cmd_info(args):
         plugin_count = len([p for p in plugins_dir.iterdir() if p.is_dir()])
         print(f"Plugins: {plugin_count}")
 
-    # 主题数量
-    themes_dir = Path("themes")
+    # 主题数量（主题作为 category=theme 的插件）
+    themes_dir = Path("plugins")
     if themes_dir.exists():
-        theme_count = len([t for t in themes_dir.iterdir() if t.is_dir()])
-        print(f"Themes: {theme_count}")
+        theme_count = len([
+            p for p in themes_dir.iterdir()
+            if p.is_dir() and (p / "metadata.json").exists()
+        ])
+        # 更精确的统计需要加载插件系统，这里只做简单估算
+        print(f"Potential Themes: {theme_count} (in plugins/)")
 
 
 def cmd_doctor(args):
@@ -343,11 +347,12 @@ def cmd_theme(args):
 def theme_list(args):
     """列出主题"""
     try:
-        from shared.services.theme_manager import ThemeManager
-        manager = ThemeManager()
+        from shared.services.plugins.plugin_manager.core import plugin_manager
 
-        themes = manager.get_installed_themes()
-        active_theme = manager.get_active_theme()
+        # 加载所有插件
+        plugin_manager.load_all_plugins()
+
+        themes = [p for p in plugin_manager.plugins.values() if hasattr(p, 'manifest') and p.manifest and p.manifest.category == 'theme']
 
         print(f"🎨 Installed Themes ({len(themes)}):")
         print("=" * 60)
@@ -357,11 +362,11 @@ def theme_list(args):
             return
 
         for theme in themes:
-            is_active = theme['slug'] == active_theme.get('slug') if active_theme else False
+            is_active = theme.active
             status = "✅" if is_active else "⭕"
-            version = theme.get('version', 'N/A')
-            description = theme.get('description', '')[:50]
-            print(f"   {status} {theme['slug']} v{version}")
+            version = theme.version
+            description = theme.description[:50] if theme.description else ''
+            print(f"   {status} {theme.slug} v{version}")
             if description:
                 print(f"      {description}")
 
@@ -378,10 +383,13 @@ def theme_activate(args):
     print(f"🎨 Activating theme: {slug}")
 
     try:
-        from shared.services.theme_manager import ThemeManager
-        manager = ThemeManager()
+        from shared.services.plugins.plugin_manager.core import plugin_manager
 
-        success = manager.activate_theme(slug)
+        # 确保插件已加载
+        plugin_manager.load_all_plugins()
+        plugin_manager.load_plugin(slug)
+
+        success = plugin_manager.activate_plugin(slug)
 
         if success:
             print(f"✅ Theme '{slug}' activated successfully")
@@ -395,15 +403,16 @@ def theme_activate(args):
 
 
 def theme_deactivate(args):
-    """停用主题（切换到默认主题）"""
-    print(f"⭕ Deactivating current theme")
+    """停用当前主题（切换到 default 主题）"""
+    print(f"⭕ Switching to default theme")
 
     try:
-        from shared.services.theme_manager import ThemeManager
-        manager = ThemeManager()
+        from shared.services.plugins.plugin_manager.core import plugin_manager
 
-        # 切换到默认主题
-        success = manager.activate_theme('default')
+        # 确保插件已加载
+        plugin_manager.load_all_plugins()
+
+        success = plugin_manager.activate_plugin('fastblog-default')
 
         if success:
             print(f"✅ Switched to default theme")

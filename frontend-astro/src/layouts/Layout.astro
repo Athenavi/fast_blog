@@ -44,13 +44,31 @@ const {title = 'FastBlog', description = 'A modern blog platform', dir = 'ltr', 
       })();
     </script>
 
+    <!-- Active theme CSS: injected after page load -->
+    <script is:inline>
+      (function() {
+        var cssUrl = '/api/v2/themes/active/css';
+        var existing = document.getElementById('active-theme-css');
+        if (!existing) {
+          fetch(cssUrl).then(function(r) { return r.json(); }).then(function(data) {
+            if (data && data.data && data.data.css) {
+              var style = document.createElement('style');
+              style.id = 'active-theme-css';
+              style.textContent = data.data.css;
+              document.head.appendChild(style);
+            }
+          }).catch(function() {});
+        }
+      })();
+    </script>
+
     <!-- KaTeX: LaTeX formula rendering (used by katex-render plugin) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css" crossorigin="anonymous"/>
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js" crossorigin="anonymous"></script>
     <script defer src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/contrib/auto-render.min.js" crossorigin="anonymous"
             onload="document.addEventListener('astro:after-swap', function(){try{renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true}]});}catch(e){}});renderMathInElement(document.body,{delimiters:[{left:'\\(',right:'\\)',display:false},{left:'\\[',right:'\\]',display:true}]});"></script>
   </head>
-  <body class="antialiased" suppressHydrationWarning>
+  <body class="antialiased theme-bg theme-text" suppressHydrationWarning>
     <Navbar client:load />
     <GlobalShortcuts client:load />
     <MobileGestures client:load />

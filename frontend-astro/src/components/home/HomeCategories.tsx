@@ -21,7 +21,7 @@ interface Props {
 export default function HomeCategories({categories, title}: Props) {
   if (!categories.length) return null;
   return (
-    <Section id="categories" className="py-20 sm:py-28 bg-gray-50 dark:bg-gray-900/50 border-y border-gray-100 dark:border-gray-900">
+    <Section id="categories" className="py-20 sm:py-28 theme-bg-muted border-y theme-border">
       <div className="max-w-7xl mx-auto px-6 sm:px-8">
         <motion.div variants={fadeUp} className="flex items-end justify-between mb-12">
           <div>
@@ -29,8 +29,8 @@ export default function HomeCategories({categories, title}: Props) {
               <div className="w-10 h-1 bg-gradient-to-r from-purple-600 to-pink-500 rounded-full" />
               <span className="text-sm font-semibold text-purple-600 dark:text-purple-400 uppercase tracking-widest">Explore</span>
             </div>
-            <h2 className="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white tracking-tight">{title}</h2>
-            <p className="text-gray-500 dark:text-gray-400 mt-2">按主题浏览感兴趣的内容</p>
+            <h2 className="text-3xl sm:text-4xl font-black theme-text tracking-tight">{title}</h2>
+            <p className="theme-text-secondary mt-2">按主题浏览感兴趣的内容</p>
           </div>
           <a href="/categories" className="hidden sm:flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-purple-600 dark:text-gray-400 dark:hover:text-purple-400 transition-colors group">
             查看全部 <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />

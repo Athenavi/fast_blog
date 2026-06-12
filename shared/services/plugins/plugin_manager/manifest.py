@@ -147,17 +147,22 @@ class PluginManifest(BaseModel):
     )
 
     # 设置界面
-    settings_schema: Dict[str, PluginSettingsField] = Field(
+    settings_schema: Dict[str, Any] = Field(
         default_factory=dict,
-        description="设置界面字段定义"
+        description="设置界面架构。标准插件使用 Dict[str, PluginSettingsField] 格式；主题插件使用嵌套分组格式"
     )
 
     # 市场信息
     changelog: Optional[str] = Field(None, description="更新日志")
     download_url: Optional[str] = Field(None, description="下载地址")
+    screenshot: Optional[str] = Field(None, description="主截图路径（主题专用）")
     screenshots: List[str] = Field(
         default_factory=list,
         description="截图URL列表"
+    )
+    supports: List[str] = Field(
+        default_factory=list,
+        description="支持的功能列表（主题专用，如 custom-logo, dark-mode, widgets）"
     )
     tags: List[str] = Field(
         default_factory=list,

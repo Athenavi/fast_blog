@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Dict, List, Any, Optional
 
 # 导入 manifest 模块
-from shared.services.plugins.plugin_manager.manifest import ManifestValidator, get_capability_description
+from shared.services.plugins.plugin_manager.manifest import ManifestValidator, get_capability_description, PluginManifest
 
 # 导入审计日志器
 try:
@@ -379,6 +379,15 @@ class PluginManager:
             return False
 
         try:
+            # 检查是否为 theme 类插件 → 自动停用其他已激活的 theme 插件
+            plugin.load_metadata()
+            manifest = plugin.manifest
+            if manifest and manifest.category == "theme":
+                active_theme = self.get_active_theme_plugin()
+                if active_theme and active_theme.slug != plugin_slug:
+                    print(f"[PluginManager] Deactivating previous theme: {active_theme.slug}")
+                    active_theme.deactivate()
+
             plugin.activate()
             self._save_plugin_state()
             return True
@@ -457,6 +466,15 @@ class PluginManager:
         """获取所有已安装插件的信息"""
         return [p.get_info() for p in self.plugins.values()]
 
+    def get_active_theme_plugin(self) -> Optional[BasePlugin]:
+        """获取当前激活的主题插件（category='theme' 且 active 的插件）"""
+        for plugin in self.plugins.values():
+            if plugin.active:
+                plugin.load_metadata()
+                if plugin.manifest and plugin.manifest.category == "theme":
+                    return plugin
+        return None
+
     def _save_plugin_state(self):
         """保存插件状态到文件"""
         state = {
@@ -512,6 +530,15 @@ class PluginManager:
                         if plugin_record.is_active:
                             print(f"[PluginManager] Activating plugin: {plugin.name} ({plugin_record.slug})")
                             plugin.activate()
+                            # 如果是 theme 类插件，停用其他已激活的 theme
+                            plugin.load_metadata()
+                            if plugin.manifest and plugin.manifest.category == "theme":
+                                for other_slug, other_p in self.plugins.items():
+                                    if other_slug != plugin_record.slug and other_p.active:
+                                        other_p.load_metadata()
+                                        if other_p.manifest and other_p.manifest.category == "theme":
+                                            print(f"[PluginManager] Deactivating previous theme from DB: {other_slug}")
+                                            other_p.deactivate()
                     else:
                         print(f"[PluginManager] Warning: Plugin '{plugin_record.slug}' in database but not loaded")
 
@@ -551,6 +578,15 @@ class PluginManager:
                     if plugin_state.get('active'):
                         print(f"[PluginManager] Activating plugin from state file: {plugin_slug}")
                         plugin.activate()
+                        # 如果是 theme 类插件，停用其他已激活的 theme
+                        plugin.load_metadata()
+                        if plugin.manifest and plugin.manifest.category == "theme":
+                            for other_slug, other_p in self.plugins.items():
+                                if other_slug != plugin_slug and other_p.active:
+                                    other_p.load_metadata()
+                                    if other_p.manifest and other_p.manifest.category == "theme":
+                                        print(f"[PluginManager] Deactivating previous theme from file: {other_slug}")
+                                        other_p.deactivate()
                         restored = True
 
             return restored

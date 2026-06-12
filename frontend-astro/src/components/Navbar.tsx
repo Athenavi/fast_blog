@@ -261,8 +261,8 @@ const Navbar: React.FC<NavbarProps> = ({title, subtitle, showBackButton = false,
       <header
         className={`fixed top-0 left-0 right-0 z-[9999] w-full transition-all duration-300 safe-top ${
           scrolled
-            ? 'glass-strong shadow-md border-b border-gray-200/60 dark:border-gray-700/60'
-            : 'bg-white/95 dark:bg-gray-950/95 border-b border-gray-100 dark:border-gray-900'
+            ? 'glass-strong shadow-md border-b theme-border'
+            : 'theme-bg border-b theme-border'
         }`}
         suppressHydrationWarning
       >
@@ -281,7 +281,7 @@ const Navbar: React.FC<NavbarProps> = ({title, subtitle, showBackButton = false,
                   </svg>
                 </div>
                 <span
-                  className="text-xl font-bold text-gray-900 dark:text-white hidden sm:block tracking-tight">FastBlog</span>
+                  className="text-xl font-bold theme-text hidden sm:block tracking-tight">FastBlog</span>
               </a>
 
               {/* Page title (for admin pages) */}
@@ -306,7 +306,7 @@ const Navbar: React.FC<NavbarProps> = ({title, subtitle, showBackButton = false,
                       className={`relative px-3.5 py-2 rounded-lg transition-all duration-200 flex items-center gap-2 text-sm font-medium ${
                         isActive
                           ? 'text-blue-600 dark:text-blue-400 bg-blue-50/80 dark:bg-blue-900/20'
-                          : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white hover:bg-gray-100/80 dark:hover:bg-gray-800/50'
+                          : 'theme-text-secondary hover:theme-text hover:theme-bg-muted'
                       }`}
                     >
                       <Icon className="w-4 h-4"/>
@@ -330,7 +330,7 @@ const Navbar: React.FC<NavbarProps> = ({title, subtitle, showBackButton = false,
               {/* Search Button */}
               <button
                 onClick={() => setIsSearchOpen(true)}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors text-sm border border-gray-200 dark:border-gray-700"
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg theme-text-muted hover:theme-bg-muted transition-colors text-sm border theme-border"
                 title="搜索 (⌘K)"
               >
                 <Search className="w-4 h-4"/>

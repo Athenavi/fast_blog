@@ -38,7 +38,7 @@ default/
 ```json
 {
   "name": "Default",
-  "slug": "default",
+  "slug": "fastblog-default",
   "version": "1.0.0",
   "description": "FastBlog 默认主题",
   "author": "FastBlog Team",

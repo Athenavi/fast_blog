@@ -2,7 +2,7 @@
   "version": "1.0",
   "metadata": {
     "name": "FastBlog Default",
-    "slug": "default",
+    "slug": "fastblog-default",
     "version": "1.0.0",
     "description": "FastBlog 默认主题 - 简洁、现代、响应式设计",
     "author": "FastBlog Team"

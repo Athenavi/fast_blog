@@ -15,6 +15,9 @@ from shared.services.plugins.plugin_manager.core import (
     PluginManager,
     plugin_manager,
 )
+from shared.services.plugins.plugin_manager.theme_plugin import (
+    ThemePlugin,
+)
 from shared.services.plugins.plugin_manager.dependency import (
     PluginDependencyManager,
     plugin_dependency_manager,
@@ -61,6 +64,9 @@ __all__ = [
     'BasePlugin',
     'PluginManager',
     'plugin_manager',
+
+    # Theme
+    'ThemePlugin',
 
     # EventBus
     'event_bus',

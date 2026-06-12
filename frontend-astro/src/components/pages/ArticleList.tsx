@@ -126,7 +126,7 @@ const ArticleList: React.FC<{
             );
         }
         return (
-            <div className="rounded-2xl overflow-hidden border border-gray-100 dark:border-gray-800">
+            <div className="rounded-2xl overflow-hidden border theme-border">
                 <div className="aspect-[16/10] skeleton"/>
                 <div className="p-5 space-y-3">
                     <div className="h-3 w-16 skeleton rounded"/>
@@ -141,8 +141,8 @@ const ArticleList: React.FC<{
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 lg:py-12">
           {/* ═══ Header ═══ */}
           <div className="mb-8">
-              <h1 className="text-3xl font-extrabold text-gray-900 dark:text-white mb-2">文章</h1>
-              <p className="text-gray-500 dark:text-gray-400">浏览所有发布的文章内容</p>
+              <h1 className="text-3xl font-extrabold theme-text mb-2">文章</h1>
+              <p className="theme-text-secondary">浏览所有发布的文章内容</p>
           </div>
 
           {/* ═══ Toolbar ═══ */}
@@ -262,7 +262,7 @@ const ArticleList: React.FC<{
 
           {/* ═══ Results Count ═══ */}
           {!loading && (
-            <p className="text-sm text-gray-500 dark:text-gray-400 mb-6">
+            <p className="text-sm theme-text-secondary mb-6">
                   {totalCount > 0
                       ? `共 ${totalCount} 篇文章${searchQuery ? ` · 搜索 "${searchQuery}"` : ''}${selectedTag ? ` · 标签 "${selectedTag}"` : ''}`
                       : '未找到相关文章'
@@ -296,7 +296,7 @@ const ArticleList: React.FC<{
                           animate={{opacity: 1, y: 0}}
                           transition={{delay: i * 0.05, duration: 0.4}}
                           href={`/view?slug=${article.slug}`}
-                          className="group bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden card-hover"
+                          className="group theme-bg rounded-2xl border theme-border overflow-hidden card-hover"
                       >
                           {/* Cover */}
                           <div className="aspect-[16/10] bg-gray-50 dark:bg-gray-800 overflow-hidden relative">
@@ -362,7 +362,7 @@ const ArticleList: React.FC<{
                           animate={{opacity: 1, x: 0}}
                           transition={{delay: i * 0.03, duration: 0.4}}
                           href={`/view?slug=${article.slug}`}
-                          className="group flex gap-5 p-5 bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 card-hover"
+                          className="group flex gap-5 p-5 theme-bg rounded-2xl border theme-border card-hover"
                       >
                           {/* Cover */}
                           <div

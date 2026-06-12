@@ -22,7 +22,7 @@ export default function HomeLatest({articles, title}: Props) {
             <div className="w-10 h-1 bg-gradient-to-r from-emerald-600 to-teal-500 rounded-full" />
             <span className="text-sm font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">Latest</span>
           </div>
-          <h2 className="text-3xl sm:text-4xl font-black text-gray-900 dark:text-white tracking-tight">{title}</h2>
+          <h2 className="text-3xl sm:text-4xl font-black theme-text tracking-tight">{title}</h2>
         </div>
         <a href="/articles" className="hidden sm:flex items-center gap-2 text-sm font-semibold text-gray-500 hover:text-emerald-600 dark:text-gray-400 dark:hover:text-emerald-400 transition-colors group">
           查看全部 <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
@@ -32,8 +32,8 @@ export default function HomeLatest({articles, title}: Props) {
       <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
         {articles.map((article) => (
           <motion.a key={article.id} variants={fadeUp} href={`/view?slug=${article.slug}`}
-            className="group flex flex-col bg-white dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800 overflow-hidden
-              hover:border-gray-200 dark:hover:border-gray-700 hover:shadow-xl hover:shadow-black/5 dark:hover:shadow-black/30 transition-all duration-500 hover:-translate-y-1">
+            className="group flex flex-col theme-bg rounded-2xl border theme-border overflow-hidden
+              hover:theme-border transition-all duration-500 hover:-translate-y-1">
             <div className="relative aspect-[16/10] bg-gray-50 dark:bg-gray-800 overflow-hidden">
               {article.cover_image ? (
                 <img src={getFullMediaUrl(article.cover_image)} alt={article.title}
@@ -53,8 +53,8 @@ export default function HomeLatest({articles, title}: Props) {
                 {article.tags?.[0] && <span>·</span>}
                 {article.created_at && <span className="flex items-center gap-1"><Clock className="w-3 h-3" />{new Date(article.created_at).toLocaleDateString('zh-CN')}</span>}
               </div>
-              <h3 className="font-bold text-gray-900 dark:text-white text-sm line-clamp-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors leading-relaxed mb-3">{article.title}</h3>
-              <p className="text-xs text-gray-500 dark:text-gray-400 line-clamp-2 leading-relaxed mb-4 flex-1">{article.excerpt || article.summary || ''}</p>
+              <h3 className="font-bold theme-text text-sm line-clamp-2 group-hover:theme-text-primary transition-colors leading-relaxed mb-3">{article.title}</h3>
+              <p className="text-xs theme-text-secondary line-clamp-2 leading-relaxed mb-4 flex-1">{article.excerpt || article.summary || ''}</p>
               <div className="flex items-center justify-between text-xs text-gray-400 pt-3 border-t border-gray-50 dark:border-gray-800/50">
                 <div className="flex items-center gap-3">
                   <span><Eye className="w-3 h-3 inline" /> {article.views || 0}</span>

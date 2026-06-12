@@ -1,0 +1,35 @@
+/* Theme CSS Bridge — 运行时工具类
+ *
+ * 将主题 CSS 变量映射为 Tailwind 兼容的原子类。
+ * 主题的 styles.css 在运行时通过 Layout.astro 注入到 <style id="active-theme-css">，
+ * 此文件提供等高优先级的选择器引用那些变量。
+ *
+ * 使用方式：在组件中用 theme-bg 替代 bg-white dark:bg-gray-950
+ *                   用 theme-text 替代 text-gray-900 dark:text-gray-100
+ *                   用 theme-border 替代 border-gray-200 dark:border-gray-700
+ */
+
+/* ===== 背景色 ===== */
+.theme-bg         { background-color: var(--color-background, #ffffff) !important; }
+.theme-bg-muted   { background-color: var(--color-muted, #f3f4f6) !important; }
+.theme-bg-primary { background-color: var(--color-primary, #3b82f6) !important; }
+.theme-bg-accent  { background-color: var(--color-accent, #f59e0b) !important; }
+
+/* ===== 文字色 ===== */
+.theme-text        { color: var(--color-foreground, #1f2937) !important; }
+.theme-text-secondary { color: var(--color-secondary, #64748b) !important; }
+.theme-text-muted  { color: var(--color-muted, #f3f4f6) !important; }
+.theme-text-on-primary { color: #ffffff !important; }
+.theme-text-primary { color: var(--color-primary, #3b82f6) !important; }
+
+/* ===== 边框 ===== */
+.theme-border        { border-color: var(--color-border, #e5e7eb) !important; }
+.theme-border-primary { border-color: var(--color-primary, #3b82f6) !important; }
+
+/* ===== 占位/悬停状态 ===== */
+.theme-hover-bg-muted:hover { background-color: var(--color-muted, #f3f4f6) !important; }
+.theme-hover-text-primary:hover { color: var(--color-primary, #3b82f6) !important; }
+
+/* ===== Dark mode 覆盖 ===== */
+/* 主题的 styles.css 已通过 [data-theme='dark'] 或 @media (prefers-color-scheme: dark) 重定义变量，
+   因此上述类在暗色模式下自动跟随主题定义，无需额外 .dark 选择器 */
