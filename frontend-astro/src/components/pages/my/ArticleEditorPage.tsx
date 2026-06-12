@@ -99,11 +99,19 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
   const [content, setContent] = useState('');
     const [showDraftBanner, setShowDraftBanner] = useState(false);
     const [draftData, setDraftData] = useState<any>(null);
+    const [imageModal, setImageModal] = useState(false);
+    const [linkModal, setLinkModal] = useState(false);
+    const [imageUrl, setImageUrl] = useState('');
+    const [linkUrl, setLinkUrl] = useState('');
   const editorRef = useRef<any>(null);
   const draftLoaded = useRef(false);
     const remoteContentRef = useRef(false);
     const contentRef = useRef(content);
     contentRef.current = content;
+    const initialContentRef = useRef('');
+    const hasUnsavedChanges = useCallback(() => {
+        return contentRef.current !== initialContentRef.current;
+    }, []);
 
   const articleId = useMemo(() => {
     if (mode === 'edit' && typeof window !== 'undefined') return new URLSearchParams(window.location.search).get('id');
@@ -234,6 +242,7 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
               cover_image: d.article?.cover_image || d.cover_image || '',
             });
             setContent(d.content || d.article?.content || '');
+            initialContentRef.current = d.content || d.article?.content || '';
         }
       return res;
     },
@@ -391,16 +400,28 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
                 chain.redo().run();
                 break;
             case 'image': {
-                const u = prompt('图片 URL:');
-                if (u) chain.setImage({src: u}).run();
+                setImageUrl('');
+                setImageModal(true);
                 break;
             }
             case 'link': {
-                const u = prompt('链接 URL:');
-                if (u) chain.setLink({href: u}).run();
+                setLinkUrl('');
+                setLinkModal(true);
                 break;
             }
         }
+    }, []);
+
+    // Warn before leaving with unsaved changes
+    useEffect(() => {
+        const handler = (e: BeforeUnloadEvent) => {
+            if (hasUnsavedChanges()) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        };
+        window.addEventListener('beforeunload', handler);
+        return () => window.removeEventListener('beforeunload', handler);
     }, []);
 
     // Keyboard shortcuts
@@ -590,6 +611,40 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
                   </button>
         </div>
       </header>
+
+{/* Image URL Modal */}
+{imageModal && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setImageModal(false)}>
+        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-6 w-96" onClick={e => e.stopPropagation()}>
+            <h3 className="font-semibold text-gray-900 dark:text-white mb-3">插入图片</h3>
+            <input value={imageUrl} onChange={e => setImageUrl(e.target.value)}
+                   placeholder="输入图片 URL..." autoFocus
+                   className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500/30"/>
+            <div className="flex justify-end gap-2">
+                <button onClick={() => setImageModal(false)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-xl">取消</button>
+                <button onClick={() => { if (imageUrl) { editorRef.current?.chain().focus().setImage({src: imageUrl}).run(); } setImageModal(false); }}
+                        className="px-4 py-2 text-sm bg-blue-600 text-white rounded-xl hover:bg-blue-700">插入</button>
+            </div>
+        </div>
+    </div>
+)}
+
+{/* Link URL Modal */}
+{linkModal && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setLinkModal(false)}>
+        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-6 w-96" onClick={e => e.stopPropagation()}>
+            <h3 className="font-semibold text-gray-900 dark:text-white mb-3">插入链接</h3>
+            <input value={linkUrl} onChange={e => setLinkUrl(e.target.value)}
+                   placeholder="输入链接 URL..." autoFocus
+                   className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500/30"/>
+            <div className="flex justify-end gap-2">
+                <button onClick={() => setLinkModal(false)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-xl">取消</button>
+                <button onClick={() => { if (linkUrl) { editorRef.current?.chain().focus().setLink({href: linkUrl}).run(); } setLinkModal(false); }}
+                        className="px-4 py-2 text-sm bg-blue-600 text-white rounded-xl hover:bg-blue-700">插入</button>
+            </div>
+        </div>
+    </div>
+)}
 
           {/* ===== Draft Recovery Banner ===== */}
           {showDraftBanner && (
