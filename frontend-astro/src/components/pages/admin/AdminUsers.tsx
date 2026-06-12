@@ -6,6 +6,7 @@ import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {PermissionGuard} from '@/components/admin/PermissionGuard';
+import {useCapability} from '@/lib/hooks/useCapability';
 import {adminService} from '@/lib/api/admin-service';
 import {useDebounce} from '@/lib/hooks';
 import {
@@ -137,6 +138,7 @@ function AdminUsersInner() {
   const [searchInput, setSearchInput] = useState('');
   const [status, setStatus] = useState('');
   const debouncedSearch = useDebounce(searchInput, 400);
+  const canEdit = useCapability('user:edit');
 
   const prevFilters = useRef('');
   useEffect(() => {
@@ -401,6 +403,7 @@ function AdminUsersInner() {
                                       </td>
                                       <td className="px-5 py-4 text-right">
                                           <div className="flex items-center justify-end gap-1">
+                                              {canEdit && (
                                               <button onClick={() => toggleMut.mutate({
                                                   id: u.id,
                                                   action: isActive ? 'ban' : 'unban'
@@ -413,6 +416,7 @@ function AdminUsersInner() {
                                                   {isActive ? <Ban className="w-4 h-4"/> :
                                                       <CheckCircle className="w-4 h-4"/>}
                                               </button>
+                                              )}
                                               <UserActions user={u}
                                                            onToggle={(action) => toggleMut.mutate({id: u.id, action})}/>
                                           </div>
