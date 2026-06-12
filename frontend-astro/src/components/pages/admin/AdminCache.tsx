@@ -1,6 +1,6 @@
 'use client';
 
-import React, {useState} from 'react';
+import React from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
@@ -8,15 +8,14 @@ import {AdminShell} from '@/components/admin/AdminShell';
 import {apiClient} from '@/lib/api/base-client';
 import {useToast} from '@/components/ui/toast-provider';
 import {
-  RefreshCw, Trash2, Activity, Database, Server, Zap,
-  ChevronDown, ChevronUp, CheckCircle2, Loader, AlertTriangle,
+  Trash2, Activity, Database, Server, Zap,
+  Loader,
 } from 'lucide-react';
 
-function CacheInner() {
+// ─── Inner content — uses useToast INSIDE AdminShell's ToastProvider ───
+function CacheBody() {
   const toast = useToast();
   const qc = useQueryClient();
-  const [purging, setPurging] = useState(false);
-  const [warming, setWarming] = useState(false);
 
   const {data: stats, isLoading} = useQuery({
     queryKey: ['admin-cache-stats'],
@@ -45,18 +44,7 @@ function CacheInner() {
   });
 
   return (
-    <AdminShell title="缓存管理" actions={
-      <div className="flex gap-2">
-        <button onClick={() => warmupMut.mutate()}
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-emerald-600 to-emerald-700 text-white text-sm font-medium rounded-xl hover:from-emerald-700 hover:to-emerald-800 transition-all shadow-lg shadow-emerald-500/25">
-          <Zap className="w-4 h-4"/>预热缓存
-        </button>
-        <button onClick={() => purgeMut.mutate()}
-                className="inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r from-red-600 to-red-700 text-white text-sm font-medium rounded-xl hover:from-red-700 hover:to-red-800 transition-all shadow-lg shadow-red-500/25">
-          <Trash2 className="w-4 h-4"/>清空全部
-        </button>
-      </div>
-    }>
+    <>
       {/* Cache Overview */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-5">
@@ -77,7 +65,7 @@ function CacheInner() {
             </div>
             <div>
               <p className="text-xs text-gray-500 dark:text-gray-400">缓存层数</p>
-              <p className="text-lg font-bold text-gray-900 dark:text-white">{(stats?.layers?.length) || '—'}</p>
+              <p className="text-lg font-bold text-gray-900 dark:text-white">{stats?.layers?.length || '—'}</p>
             </div>
           </div>
         </div>
@@ -127,7 +115,49 @@ function CacheInner() {
           )}
         </div>
       </div>
+    </>
+  );
+}
+
+// ─── Shell wrapper — ToastProvider is provided by AdminShell ───
+function CachePage() {
+  return (
+    <AdminShell title="缓存管理" actions={
+      <div className="flex gap-2">
+        <ApiButton label="预热缓存" icon={Zap} color="emerald"
+                   apiMethod="post" apiPath="/admin/caches/warmup"
+                   queryKey="admin-cache-stats" successMsg="缓存预热已触发"/>
+        <ApiButton label="清空全部" icon={Trash2} color="red"
+                   apiMethod="post" apiPath="/admin/caches/purge"
+                   queryKey="admin-cache-stats" successMsg="缓存已清空"/>
+      </div>
+    }>
+      <CacheBody/>
     </AdminShell>
+  );
+}
+
+// ─── Reusable action button (no useToast needed — AdminShell handles it) ───
+function ApiButton({label, icon: Icon, color, apiMethod, apiPath, queryKey, successMsg}: {
+  label: string; icon: any; color: string; apiMethod: string; apiPath: string; queryKey: string; successMsg: string;
+}) {
+  const toast = useToast();
+  const qc = useQueryClient();
+  const mut = useMutation({
+    mutationFn: () => (apiMethod === 'post' ? apiClient.post(apiPath) : apiClient.get(apiPath)),
+    onSuccess: (r) => { if (r.success) { toast.success(successMsg); qc.invalidateQueries({queryKey: [queryKey]}); } else toast.error(r.error); },
+    onError: () => toast.error('操作失败'),
+  });
+
+  const gradMap: Record<string, string> = {emerald: 'from-emerald-600 to-emerald-700', red: 'from-red-600 to-red-700'};
+  const shadowMap: Record<string, string> = {emerald: 'shadow-emerald-500/25', red: 'shadow-red-500/25'};
+
+  return (
+    <button onClick={() => mut.mutate()}
+            className={`inline-flex items-center gap-1.5 px-4 py-2 bg-gradient-to-r ${gradMap[color] || gradMap.emerald} text-white text-sm font-medium rounded-xl hover:brightness-110 transition-all shadow-lg ${shadowMap[color] || shadowMap.emerald}`}>
+      {mut.isPending ? <Loader className="w-4 h-4 animate-spin"/> : <Icon className="w-4 h-4"/>}
+      {label}
+    </button>
   );
 }
 
@@ -135,7 +165,7 @@ export default function AdminCache() {
   return (
     <AuthGuard>
       <QueryProvider>
-        <CacheInner/>
+        <CachePage/>
       </QueryProvider>
     </AuthGuard>
   );
