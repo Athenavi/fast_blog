@@ -143,10 +143,12 @@ function CalendarInner() {
                         {dayArticles.length > 0 && (
                           <div className="mt-1 space-y-0.5">
                             {dayArticles.slice(0, 3).map(a => (
-                              <div key={a.id} className="flex items-center gap-1 px-1 py-0.5 bg-blue-100 dark:bg-blue-900/30 rounded">
+                              <a key={a.id} href={`/my/posts/edit?id=${a.id}`}
+                                 className="flex items-center gap-1 px-1 py-0.5 bg-blue-100 dark:bg-blue-900/30 rounded hover:bg-blue-200 dark:hover:bg-blue-900/50 transition-colors"
+                                 onClick={e => e.stopPropagation()}>
                                 <div className="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0"/>
                                 <span className="text-[10px] text-blue-700 dark:text-blue-300 truncate">{a.title || `#${a.id}`}</span>
-                              </div>
+                              </a>
                             ))}
                             {dayArticles.length > 3 && (
                               <p className="text-[10px] text-gray-400 pl-1">+{dayArticles.length - 3} 更多</p>
@@ -176,16 +178,20 @@ function CalendarInner() {
                 <p className="text-center py-8 text-sm text-gray-400">该日无已排期文章</p>
               ) : (
                 selectedArticles.map(a => (
-                  <div key={a.id} className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-700">
+                  <div key={a.id} className="p-3 bg-gray-50 dark:bg-gray-800/50 rounded-xl border border-gray-100 dark:border-gray-700 group hover:border-blue-300 dark:hover:border-blue-700 transition-colors">
                     <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
+                      <a href={`/my/posts/edit?id=${a.id}`} className="min-w-0 flex-1 hover:opacity-80 transition-opacity">
                         <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{a.title || `文章 #${a.id}`}</p>
                         <p className="text-[10px] text-gray-400 mt-0.5">ID: {a.id} · 状态: {a.status ?? '—'}</p>
-                      </div>
+                      </a>
                       <button onClick={() => cancelMut.mutate(a.id)}
                               className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors shrink-0">
                         <X className="w-3.5 h-3.5"/>
                       </button>
+                    </div>
+                    <div className="flex items-center gap-2 mt-2 pt-2 border-t border-gray-100 dark:border-gray-700">
+                      <a href={`/my/posts/edit?id=${a.id}`}
+                         className="text-[10px] text-blue-500 hover:text-blue-600 hover:underline">编辑</a>
                     </div>
                   </div>
                 ))
