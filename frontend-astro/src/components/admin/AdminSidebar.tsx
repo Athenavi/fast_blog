@@ -34,6 +34,7 @@ import {
   MessageSquare,
   Newspaper,
   Package,
+  Palette,
   PieChart,
   Puzzle,
   Radio,
@@ -54,7 +55,7 @@ import {pluginNavItems as _pluginNavItems} from '@/.plugin-registry';
 /** 根据图标名称获取 lucide 组件 */
 function resolveIcon(name: string): React.FC<{ className?: string }> {
   const iconMap: Record<string, React.FC<{ className?: string }>> = {
-    Clock, Code, Heart, Layout, Puzzle, Package, Star, FileText, Settings, Globe, Mail,
+    Clock, Code, Heart, Layout, Palette, Puzzle, Package, Star, FileText, Settings, Globe, Mail,
   };
   return iconMap[name] || Puzzle;
 }
@@ -76,6 +77,7 @@ export const navConfig: NavItem[] = [
   {labelKey: 'nav.users', href: '/admin/users', icon: Users},
   {labelKey: 'nav.roles', href: '/admin/roles', icon: Shield},
   {labelKey: 'nav.plugins', href: '/admin/plugins', icon: Puzzle},
+  {labelKey: 'nav.themes', href: '/admin/theme-marketplace', icon: Palette},
   {labelKey: 'nav.backup', href: '/admin/backup', icon: Database},
   {labelKey: 'nav.sensitiveWords', href: '/admin/sensitive-words', icon: AlertTriangle},
   {labelKey: 'nav.analytics', href: '/admin/analytics', icon: TrendingUp},

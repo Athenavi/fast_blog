@@ -70,6 +70,7 @@
     "users": "用户管理",
     "roles": "角色权限",
     "plugins": "插件管理",
+    "themes": "主题管理",
     "backup": "备份管理",
     "sensitiveWords": "敏感词",
     "analytics": "数据分析",
