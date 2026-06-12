@@ -5,6 +5,7 @@ import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
+import {PermissionGuard} from '@/components/admin/PermissionGuard';
 import {apiClient} from '@/lib/api/base-client';
 import {ADS} from '@/lib/api/api-paths';
 import {useConfirm} from '@/components/ui/confirm-provider';
@@ -426,5 +427,13 @@ function AdsInner() {
 }
 
 export default function AdminAds() {
-  return <AuthGuard><QueryProvider><AdsInner/></QueryProvider></AuthGuard>;
+  return (
+    <AuthGuard>
+      <QueryProvider>
+        <PermissionGuard capability="settings:view">
+          <AdsInner />
+        </PermissionGuard>
+      </QueryProvider>
+    </AuthGuard>
+  );
 }
