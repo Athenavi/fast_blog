@@ -314,6 +314,33 @@ export const adminWebhookService = {
 };
 
 // ================================================================
+// Widget 管理
+// ================================================================
+
+export const adminWidgetService = {
+  list: () =>
+    adminApi.get('/api/v3/admin/widgets', '/cms/widgets/'),
+
+  listTypes: () =>
+    adminApi.get('/api/v3/admin/widgets/types', '/cms/widgets/types'),
+
+  listAreas: () =>
+    adminApi.get('/api/v3/admin/widgets/areas', '/cms/widgets/areas'),
+
+  create: (data: {title: string; widget_type: string; config?: string; area?: string; order_index?: number; is_active?: boolean}) =>
+    adminApi.post('/api/v3/admin/widgets', '/cms/widgets/', data),
+
+  update: (id: number, data: {title?: string; widget_type?: string; config?: string; area?: string; order_index?: number; is_active?: boolean}) =>
+    adminApi.put(`/api/v3/admin/widgets/${id}`, `/cms/widgets/${id}`, data),
+
+  toggle: (id: number, is_active: boolean) =>
+    adminApi.patch(`/api/v3/admin/widgets/${id}/toggle`, `/cms/widgets/${id}/toggle`, {is_active}),
+
+  delete: (id: number) =>
+    adminApi.delete(`/api/v3/admin/widgets/${id}`, `/cms/widgets/${id}`),
+};
+
+// ================================================================
 // 统一导出
 // ================================================================
 
@@ -334,4 +361,5 @@ export const adminService = {
   analytics: adminAnalyticsService,
   notifications: adminNotificationService,
   webhooks: adminWebhookService,
+  widgets: adminWidgetService,
 };

@@ -7,6 +7,7 @@ import {AdminShell} from '@/components/admin/AdminShell';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {apiClient} from '@/lib/api/base-client';
+import {adminService} from '@/lib/api/admin-service';
 import {useToast} from '@/components/ui/toast-provider';
 import {useConfirm} from '@/components/ui/confirm-provider';
 import {Blocks, GripVertical, Layers, Plus, RefreshCw, Settings, ToggleLeft, ToggleRight, Trash2} from 'lucide-react';
@@ -53,19 +54,20 @@ function WidgetsInner() {
 
   const {data: widgetsData, isLoading} = useQuery({
     queryKey: ['widgets', page, areaFilter],
-    queryFn: () => apiClient.get('/cms/widgets/', {
-      page, per_page: 20, area: areaFilter || undefined
-    }),
+    queryFn: async () => {
+      const res = await adminService.widgets.list();
+      return res;
+    },
   });
 
   const {data: typesData} = useQuery({
     queryKey: ['widget-types'],
-    queryFn: () => apiClient.get('/cms/widgets/types'),
+    queryFn: () => adminService.widgets.listTypes(),
   });
 
   const {data: areasData} = useQuery({
     queryKey: ['widget-areas'],
-    queryFn: () => apiClient.get('/cms/widgets/areas'),
+    queryFn: () => adminService.widgets.listAreas(),
   });
 
   const items: WidgetInstance[] = widgetsData?.data?.items || [];
@@ -75,7 +77,7 @@ function WidgetsInner() {
   const areas: WidgetArea[] = areasData?.data?.areas || [];
 
   const createMut = useMutation({
-    mutationFn: (data: any) => apiClient.post('/cms/widgets/', data),
+    mutationFn: (data: any) => adminService.widgets.create(data),
     onSuccess: (r: any) => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['widgets']});
@@ -88,7 +90,7 @@ function WidgetsInner() {
 
   const updateMut = useMutation({
     mutationFn: ({id, data}: { id: number; data: any }) =>
-      apiClient.put(`/cms/widgets/${id}`, data),
+      adminService.widgets.update(id, data),
     onSuccess: (r: any) => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['widgets']});
@@ -100,7 +102,7 @@ function WidgetsInner() {
 
   const toggleMut = useMutation({
     mutationFn: ({id, is_active}: { id: number; is_active: boolean }) =>
-      apiClient.patch(`/cms/widgets/${id}/toggle`, {is_active}),
+      adminService.widgets.toggle(id, is_active),
     onSuccess: () => {
       qc.invalidateQueries({queryKey: ['widgets']});
       toast.success('状态已切换');
@@ -108,7 +110,7 @@ function WidgetsInner() {
   });
 
   const deleteMut = useMutation({
-    mutationFn: (id: number) => apiClient.delete(`/cms/widgets/${id}`),
+    mutationFn: (id: number) => adminService.widgets.delete(id),
     onSuccess: (r: any) => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['widgets']});

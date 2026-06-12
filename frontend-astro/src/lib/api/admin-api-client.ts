@@ -229,6 +229,12 @@ export const adminApi = {
     body?: any,
   ) => requestWithFallback<T>('PUT', v3Path, v2Fallback, body),
 
+  patch: <T = any>(
+    v3Path: string,
+    v2Fallback: string,
+    body?: any,
+  ) => requestWithFallback<T>('PATCH', v3Path, v2Fallback, body),
+
   delete: <T = any>(
     v3Path: string,
     v2Fallback: string,
