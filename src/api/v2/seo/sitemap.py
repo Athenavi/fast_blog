@@ -170,7 +170,7 @@ async def get_tags_sitemap(
     # 查询所有已发布的文章，提取唯一标签
     stmt = (
         select(Article)
-        .where(Article.status == 'published')
+        .where(Article.status == 1)
         .where(Article.tags_list.isnot(None))
         .where(Article.tags_list != '')
     )
@@ -277,7 +277,7 @@ async def get_multilingual_sitemap(
     # 查询所有已发布的文章
     stmt = (
         select(Article)
-        .where(Article.status == 'published')
+        .where(Article.status == 1)
         .order_by(Article.created_at.desc())
     )
     result = await db.execute(stmt)
