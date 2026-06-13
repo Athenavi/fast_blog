@@ -3,6 +3,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { apiClient } from '@/lib/api/base-client';
+import { QueryProvider } from '@/components/QueryProvider';
 import { Search, Loader2, FileText, Calendar, User, Tag, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface SearchResult {
@@ -281,5 +282,5 @@ function SearchPageInner() {
 }
 
 export default function SearchPage() {
-  return <SearchPageInner />;
+  return <QueryProvider><SearchPageInner /></QueryProvider>;
 }
