@@ -133,6 +133,7 @@
     "noAccount": "还没有账户？",
     "registerNow": "立即注册",
     "loginSuccess": "登录成功",
+    "redirecting": "正在跳转...",
     "loginFailed": "登录失败",
     "networkError": "网络异常",
     "orOtherMethods": "或使用其他方式",

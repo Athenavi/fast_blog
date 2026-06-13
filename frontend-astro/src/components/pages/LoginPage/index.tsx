@@ -1,27 +1,76 @@
 'use client';
 
-import React from 'react';
-import {AlertCircle, BookOpen, ChevronRight} from 'lucide-react';
+import React, {useEffect, useState} from 'react';
+import {useForm} from 'react-hook-form';
+import {zodResolver} from '@hookform/resolvers/zod';
+import {AlertCircle, BookOpen, Loader} from 'lucide-react';
 import {useTranslation} from '@/lib/i18n';
 import {useLoginState} from './useLoginState';
 import LoginBranding from './LoginBranding';
 import TwoFactorForm from './TwoFactorForm';
 import LoginForm from './LoginForm';
-import QRCodePanel from './QRCodePanel';
+import {type LoginFormData, loginSchema, type TwoFactorFormData, twoFactorSchema} from '@/lib/schemas';
 
 const LoginPage: React.FC = () => {
   const {t} = useTranslation();
-  const s = useLoginState();
+  const {state, submitCredentials, submit2FA} = useLoginState();
 
-  if (s.checking) {
+  // Visual-only state (no longer managed by the hook)
+  const [pv, setPv] = useState(false);
+  const [focusedField, setFocusedField] = useState<string | null>(null);
+  const [backup, setBackup] = useState(false);
+
+  const loginForm = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema) as any,
+    defaultValues: {username: '', password: '', remember: false},
+  });
+
+  const twoFAForm = useForm<TwoFactorFormData>({
+    resolver: zodResolver(twoFactorSchema),
+    defaultValues: {code: ''},
+  });
+
+  const handleLoginSubmit = async (data: LoginFormData) => {
+    await submitCredentials(data.username, data.password, data.remember);
+  };
+
+  const handle2FASubmit = async (data: TwoFactorFormData) => {
+    await submit2FA(data.code, backup);
+  };
+
+  const handleBackToLogin = () => {
+    twoFAForm.reset({code: ''});
+    setBackup(false);
+    // Reset the hook state
+    window.location.reload();
+  };
+
+  // Redirect on successful login
+  useEffect(() => {
+    if (state.step === 'loggedin') {
+      const timer = setTimeout(() => {
+        const next = new URLSearchParams(window.location.search).get('next') || '/profile';
+        window.location.href = next;
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [state.step]);
+
+  // If logged in, show success / redirect
+  if (state.step === 'loggedin') {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
         <div className="flex flex-col items-center gap-4">
-          <div className="relative">
-            <div className="w-12 h-12 border-4 border-blue-200 dark:border-blue-800 rounded-full animate-spin"/>
-            <div className="absolute inset-0 w-12 h-12 border-4 border-transparent border-t-blue-600 rounded-full animate-spin"/>
+          <div className="w-16 h-16 bg-green-500 rounded-full flex items-center justify-center">
+            <svg className="w-8 h-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7"/>
+            </svg>
           </div>
-          <p className="text-sm text-gray-500 dark:text-gray-400 animate-pulse">{t('login.verifyingStatus')}</p>
+          <p className="text-lg font-semibold text-gray-900 dark:text-white">{t('login.loginSuccess')}</p>
+          <div className="flex items-center gap-2 text-sm text-gray-500">
+            <Loader className="w-4 h-4 animate-spin"/>
+            <span>{t('login.redirecting')}</span>
+          </div>
         </div>
       </div>
     );
@@ -31,7 +80,7 @@ const LoginPage: React.FC = () => {
     <div className="min-h-screen flex bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 dark:from-gray-950 dark:via-gray-900 dark:to-gray-950">
       <LoginBranding/>
 
-      {/* ═══ Right Panel - Login Form ═══ */}
+      {/* ═══ Right Panel ═══ */}
       <div className="flex-1 flex items-center justify-center p-6 sm:p-8 lg:p-12">
         <div className="w-full max-w-md">
           {/* Mobile Logo */}
@@ -45,69 +94,42 @@ const LoginPage: React.FC = () => {
           {/* Header */}
           <div className="mb-8">
             <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 dark:text-white mb-2">
-              {s.fa ? `🔐 ${t('login.twoFactorTitle')}` : s.mode === 'qrcode' ? `📱 ${t('login.qrLogin')}` : `👋 ${t('login.title')}`}
+              {state.step === 'twofactor' ? `🔐 ${t('login.twoFactorTitle')}` : `👋 ${t('login.title')}`}
             </h1>
             <p className="text-gray-500 dark:text-gray-400">
-              {s.fa ? t('login.twoFactorSubtitle') : s.mode === 'qrcode' ? t('login.scanQRCode') : t('login.subtitle')}
+              {state.step === 'twofactor' ? t('login.twoFactorSubtitle') : t('login.subtitle')}
             </p>
           </div>
 
           {/* Error Message */}
-          {s.err && (
+          {state.error && (
             <div className="mb-6 flex items-start gap-3 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200/60 dark:border-red-800/40 rounded-2xl text-sm">
               <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5"/>
-              <span className="text-red-600 dark:text-red-400">{s.err}</span>
+              <span className="text-red-600 dark:text-red-400">{state.error}</span>
             </div>
           )}
 
           {/* 2FA Form */}
-          {s.fa ? (
+          {state.step === 'twofactor' ? (
             <TwoFactorForm
-              twoFAForm={s.twoFAForm}
-              backup={s.backup}
-              busy={s.busy}
-              err={s.err}
-              onToggleBackup={() => { s.setBackup(!s.backup); s.twoFAForm.reset({code: ''}); }}
-              onBack={() => { s.setFa(null); s.twoFAForm.reset({code: ''}); s.setErr(''); }}
-              onSubmit={s.on2FASubmit}
+              twoFAForm={twoFAForm}
+              backup={backup}
+              busy={state.loading}
+              err={state.error || ''}
+              onToggleBackup={() => { setBackup(b => !b); twoFAForm.reset({code: ''}); }}
+              onBack={handleBackToLogin}
+              onSubmit={handle2FASubmit}
             />
           ) : (
-            <>
-              {/* Mode Switch */}
-              <div className="flex p-1.5 bg-gray-100 dark:bg-gray-800 rounded-2xl mb-6">
-                <button onClick={() => s.setMode('password')}
-                  className={`flex-1 py-2.5 text-sm font-semibold rounded-xl transition-all ${s.mode === 'password' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}`}>
-                  {t('login.passwordLogin')}
-                </button>
-                <button onClick={() => { s.setMode('qrcode'); s.generateQR(); }}
-                  className={`flex-1 py-2.5 text-sm font-semibold rounded-xl transition-all ${s.mode === 'qrcode' ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'}`}>
-                  {t('login.qrLogin')}
-                </button>
-              </div>
-
-              {/* Password Form */}
-              {s.mode === 'password' && (
-                <LoginForm
-                  loginForm={s.loginForm}
-                  busy={s.busy}
-                  pv={s.pv}
-                  focusedField={s.focusedField}
-                  onTogglePv={() => s.setPv(!s.pv)}
-                  onFocusField={s.setFocusedField}
-                  onSubmit={s.onLoginSubmit}
-                />
-              )}
-
-              {/* QR Code Panel */}
-              {s.mode === 'qrcode' && (
-                <QRCodePanel
-                  qrImg={s.qrImg}
-                  qrStatus={s.qrStatus}
-                  countdown={s.countdown}
-                  onGenerate={s.generateQR}
-                />
-              )}
-            </>
+            <LoginForm
+              loginForm={loginForm}
+              busy={state.loading}
+              pv={pv}
+              focusedField={focusedField}
+              onTogglePv={() => setPv(p => !p)}
+              onFocusField={setFocusedField}
+              onSubmit={handleLoginSubmit}
+            />
           )}
 
           {/* Footer */}

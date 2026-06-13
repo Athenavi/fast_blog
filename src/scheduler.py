@@ -146,6 +146,57 @@ class SessionScheduler:
             replace_existing=True
         )
 
+        # VIP 订阅过期检查（每 30 分钟）
+        async def check_expired_vip_subscriptions():
+            """检查并标记过期的 VIP 订阅"""
+            try:
+                from src.utils.database.unified_manager import db_manager
+                from datetime import datetime
+                from shared.models.vip import VIPSubscription
+                from shared.models.user import User
+                from sqlalchemy import select
+
+                async with db_manager.get_session() as db:
+                    now = datetime.now()
+                    # 查询所有过期但状态仍为活跃的订阅
+                    result = await db.execute(
+                        select(VIPSubscription).where(
+                            VIPSubscription.expires_at <= now,
+                            VIPSubscription.status == 1  # 1=active
+                        )
+                    )
+                    expired = result.scalars().all()
+
+                    for sub in expired:
+                        sub.status = 2  # 2=expired
+                        # 同时更新用户的 vip_level
+                        user = await db.get(User, sub.user)
+                        if user:
+                            user.vip_level = 0
+                            user.vip_expires_at = None
+
+                    await db.commit()
+                    if expired:
+                        logger.info(f"已过期 {len(expired)} 个 VIP 订阅")
+            except Exception as e:
+                logger.error(f"检查 VIP 过期时出错：{e}")
+                import traceback
+                traceback.print_exc()
+
+        def check_vip_expiry_job():
+            loop = asyncio.new_event_loop()
+            try:
+                loop.run_until_complete(check_expired_vip_subscriptions())
+            finally:
+                loop.close()
+
+        self.scheduler.add_job(
+            check_vip_expiry_job,
+            trigger=IntervalTrigger(minutes=30),
+            id='check_vip_expiry',
+            replace_existing=True
+        )
+
         # 启动调度器
         self.scheduler.start()
 

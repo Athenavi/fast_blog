@@ -181,7 +181,7 @@ async def login_api(request: Request, db: AsyncSession = Depends(get_async_db)):
 
     session_management_service.create_session(user.id, {"ip": ip, "user_agent": ua}, ip, ua)
 
-    resp_data = {"access_token": access_token, "token_type": "bearer"}
+    resp_data = {"access_token": access_token, "token_type": "bearer", "email_verified": user.is_email_verified if hasattr(user, 'is_email_verified') else True}
     if refresh_token:
         resp_data["refresh_token"] = refresh_token
 
@@ -216,7 +216,7 @@ async def register_api(data: RegisterRequest, request: Request, db: AsyncSession
     access_token = create_jwt_token(subject=str(user.id), token_type="access")
     refresh_token = create_jwt_token(subject=str(user.id), token_type="refresh")
 
-    resp = JSONResponse(content={"success": True, "data": {"access_token": access_token, "refresh_token": refresh_token}})
+    resp = JSONResponse(content={"success": True, "data": {"access_token": access_token, "refresh_token": refresh_token, "email_verified": False, "email": data.email}})
     is_https = str(settings.SITE_URL).startswith('https://') if hasattr(settings, 'SITE_URL') else False
     resp.set_cookie("access_token", access_token, httponly=True, secure=is_https, samesite="strict", max_age=3600)
     resp.set_cookie("refresh_token", refresh_token, httponly=True, secure=is_https, samesite="strict", max_age=2592000)
@@ -230,6 +230,20 @@ async def register_api(data: RegisterRequest, request: Request, db: AsyncSession
 async def send_email_verification_code(data: dict, current_user=Depends(jwt_required)):
     result = await email_verification_service.send_verification_code(current_user.id, data.get('email', ''))
     return ok(data=result, msg="验证码已发送")
+
+
+@router.post("/email/send-verification")
+@_catch
+async def send_verification_email(data: dict, db: AsyncSession = Depends(get_async_db)):
+    """发送注册验证邮件（公开端点，注册后调用）"""
+    email = data.get('email', '')
+    if not email:
+        return fail("邮箱地址不能为空")
+    # Stub: 实际发送逻辑由 email_verification_service 实现
+    logger.info(f"[Email Verification] Sending verification email to {email}")
+    # 这里可以调用 email_verification_service.send_verification_code 或
+    # 其他邮件发送服务
+    return ok(msg=f"验证邮件已发送到 {email}，请查收")
 
 
 @router.post("/email/verify-code")

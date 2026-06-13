@@ -686,6 +686,16 @@ def register_middleware(app: FastAPI):
 
     # 速率限制已移除全局中间件，改为在特定路由上使用装饰器
 
+    # RBAC 权限中间件
+    try:
+        from src.middleware.rbac_middleware import RBACMiddleware
+        app.add_middleware(RBACMiddleware)
+        print("[RBAC Middleware] 已添加")
+    except ImportError as e:
+        print(f"[RBAC Middleware] 加载失败: {e}")
+    except Exception as e:
+        print(f"[RBAC Middleware] 注册异常: {e}")
+
     # API 版本响应头
     class APIVersionMiddleware(BaseHTTPMiddleware):
         async def dispatch(self, request, call_next):
@@ -712,6 +722,22 @@ def register_middleware(app: FastAPI):
         )
     except Exception:
         pass
+
+    # Token 黑名单中间件
+    try:
+        from src.middleware.token_blacklist_middleware import TokenBlacklistMiddleware
+        app.add_middleware(TokenBlacklistMiddleware)
+        print("[Token Blacklist] 已添加 Token 黑名单中间件")
+    except Exception as e:
+        print(f"[Token Blacklist] 加载失败: {e}")
+
+    # 暴力破解防护中间件
+    try:
+        from src.middleware.brute_force_protection import BruteForceProtectionMiddleware
+        app.add_middleware(BruteForceProtectionMiddleware)
+        print("[Brute Force] 已添加暴力破解防护中间件")
+    except Exception as e:
+        print(f"[Brute Force] 加载失败: {e}")
 
 
 # ---------- 错误处理与静态文件 ----------

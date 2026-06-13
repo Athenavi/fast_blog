@@ -48,6 +48,8 @@ export default function RegisterPage() {
   const [uOk, setUOk] = useState<boolean|null>(null);
   const [eOk, setEOk] = useState<boolean|null>(null);
   const [focusedField, setFocusedField] = useState<string | null>(null);
+  const [registered, setRegistered] = useState(false);
+  const [registeredEmail, setRegisteredEmail] = useState('');
 
   const benefits = [
     {
@@ -153,7 +155,12 @@ export default function RegisterPage() {
       });
       if (r?.success) {
         const d = r.data as any;
-        if (d?.access_token) {
+        if (d?.email_verified === false) {
+          // Email not verified — show notification instead of redirecting
+          setRegistered(true);
+          setRegisteredEmail(data.email);
+          setBusy(false);
+        } else if (d?.access_token) {
           document.cookie = `access_token=${d.access_token}; path=/; max-age=3600; SameSite=Lax`;
           window.location.href = '/profile';
         } else window.location.href = '/login?registered=true';
@@ -307,6 +314,34 @@ export default function RegisterPage() {
 
                   <div
                       className="bg-white dark:bg-gray-800 rounded-3xl p-6 sm:p-8 shadow-xl border border-gray-100 dark:border-gray-700">
+                      {registered ? (
+                        /* ═══ Email Verification Notice ═══ */
+                        <div className="text-center space-y-6 py-4">
+                          <div className="w-20 h-20 mx-auto bg-gradient-to-br from-green-400 to-emerald-500 rounded-full flex items-center justify-center shadow-lg shadow-green-200/50 dark:shadow-green-900/30">
+                            <svg className="w-10 h-10 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"/>
+                            </svg>
+                          </div>
+                          <div className="space-y-2">
+                            <h3 className="text-xl font-bold text-gray-900 dark:text-white">
+                              {t('register.emailVerification.title') || '检查您的邮箱'}
+                            </h3>
+                            <p className="text-sm text-gray-500 dark:text-gray-400 max-w-sm mx-auto">
+                              {t('register.emailVerification.description') || `我们已向 ${registeredEmail} 发送了一封验证邮件，请点击邮件中的链接完成验证。`}
+                            </p>
+                          </div>
+                          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-2xl p-4 border border-blue-100 dark:border-blue-800/30">
+                            <p className="text-xs text-blue-600 dark:text-blue-400">
+                              {t('register.emailVerification.hint') || '未收到邮件？请检查垃圾邮件文件夹，或稍后重试。'}
+                            </p>
+                          </div>
+                          <a href="/login"
+                            className="inline-block px-8 py-3.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold rounded-2xl transition-all shadow-lg shadow-blue-500/25 active:scale-[0.98]">
+                            {t('register.goToLogin') || '前往登录'}
+                          </a>
+                        </div>
+                      ) : (
+                      <>
                       {/* Step 0: Basic Info */}
                       {step === 0 && (
                         <FormProvider {...form}>
@@ -646,9 +681,12 @@ export default function RegisterPage() {
                         </form>
                       </FormProvider>
                     )}
+                    </>
+                    )}
                   </div>
 
                   {/* Login Link */}
+                  {!registered && (
                   <p className="text-center text-sm text-gray-500 dark:text-gray-400 mt-6">
                     {t('register.hasAccount')}{' '}
                       <a href="/login"
@@ -656,13 +694,16 @@ export default function RegisterPage() {
                         {t('register.loginNow')}
                       </a>
                   </p>
+                  )}
 
                   {/* Footer */}
+                  {!registered && (
                   <div className="mt-6 text-center">
                     <p className="text-xs text-gray-400 dark:text-gray-500">
                       {t('register.footerAgreement')}
                       </p>
                   </div>
+                  )}
               </div>
       </div>
     </div>
