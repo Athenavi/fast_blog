@@ -1,16 +1,21 @@
 """
 单个媒体的标签、缩略图、EXIF操作
 """
+import logging
+import os
 from functools import wraps
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from pathlib import Path
 
 from shared.models.media import Media
 from src.api.v2._helpers import ok, fail
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -31,8 +36,57 @@ def _catch(func):
 
 @router.get("/{media_id}/exif")
 @_catch
-async def get_exif_data(media_id: int, current_user=Depends(jwt_required)):
-    return ok(data={"exif": {}})
+async def get_media_exif(
+        media_id: int,
+        db: AsyncSession = Depends(get_async_db),
+        current_user=Depends(jwt_required)
+):
+    """获取媒体文件的 EXIF 信息"""
+    query = select(Media).where(Media.id == media_id)
+    result = await db.execute(query)
+    media = result.scalar_one_or_none()
+
+    if not media:
+        return fail("媒体文件不存在")
+
+    file_path = Path(media.file_path) if media.file_path else None
+    if not file_path or not file_path.exists():
+        # 尝试带 storage 前缀
+        storage_path = Path('storage') / media.file_path.lstrip('/') if media.file_path else None
+        if storage_path and storage_path.exists():
+            file_path = storage_path
+        else:
+            return ok(data={})  # Return empty if file not found
+
+    exif_data = {}
+    try:
+        from PIL import Image, ExifTags
+        img = Image.open(str(file_path))
+        exif_raw = img._getexif()
+        if exif_raw:
+            for tag_id, value in exif_raw.items():
+                tag_name = ExifTags.TAGS.get(tag_id, str(tag_id))
+                # Convert bytes to string
+                if isinstance(value, bytes):
+                    try:
+                        value = value.decode('utf-8', errors='replace')
+                    except Exception:
+                        value = str(value)
+                # Handle nested IFD tags
+                if isinstance(value, dict):
+                    nested = {}
+                    for k, v in value.items():
+                        k_name = ExifTags.TAGS.get(k, str(k)) if hasattr(ExifTags, 'TAGS') else str(k)
+                        nested[k_name] = str(v) if not isinstance(v, (str, int, float)) else v
+                    exif_data[tag_name] = nested
+                else:
+                    exif_data[tag_name] = value
+    except ImportError:
+        logger.warning("PIL.Image or ExifTags not available")
+    except Exception as e:
+        logger.warning(f"EXIF extraction failed for {media_id}: {e}")
+
+    return ok(data=exif_data)
 
 
 @router.post("/{media_id}/remove-exif")

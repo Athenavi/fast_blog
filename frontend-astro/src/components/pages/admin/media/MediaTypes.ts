@@ -17,6 +17,7 @@ export interface MediaFileItem {
   mime_type?: string;
   file_size?: number;
   url?: string;
+  thumbnail_url?: string;
   folder_path?: string;
   created_at?: string;
 }

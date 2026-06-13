@@ -87,8 +87,8 @@ export const MediaGridCard: React.FC<{
         {/* 预览区域 */}
         <div className="relative aspect-square bg-gray-50 dark:bg-gray-800/50 overflow-hidden cursor-pointer"
              onClick={() => isImage && onPreview(file)}>
-          {isImage && file.url ? (
-              <img src={getFullMediaUrl(file.url)} alt={file.original_filename}
+          {isImage && (file.thumbnail_url || file.url) ? (
+              <img src={getFullMediaUrl(file.thumbnail_url || file.url)} alt={file.original_filename}
                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                    loading="lazy"/>
           ) : (
@@ -167,8 +167,8 @@ export const MediaListRow: React.FC<{
       <div
         className={`w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 cursor-pointer ${isImage ? '' : color.bg + ' flex items-center justify-center'}`}
         onClick={() => isImage && onPreview(file)}>
-          {isImage && file.url ? (
-              <img src={getFullMediaUrl(file.url)} alt="" className="w-full h-full object-cover" loading="lazy"/>
+          {isImage && (file.thumbnail_url || file.url) ? (
+              <img src={getFullMediaUrl(file.thumbnail_url || file.url)} alt="" className="w-full h-full object-cover" loading="lazy"/>
           ) : (
               <>
                 {type === 'video' ? <Video className={`w-5 h-5 ${color.text}`}/> :

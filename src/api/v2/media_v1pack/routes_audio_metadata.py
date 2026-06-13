@@ -3,6 +3,7 @@
 提供音频文件的封面图片和歌词信息
 """
 import base64
+import re
 from functools import wraps
 from pathlib import Path
 from typing import Optional
@@ -149,23 +150,49 @@ def extract_cover_from_audio(media: Media) -> Optional[bytes]:
 
 
 def extract_lyrics_from_audio(media: Media) -> list:
-    """从音频文件的ID3标签中提取歌词（USLT帧）"""
+    """从音频文件的ID3标签中提取歌词（USLT帧），同时尝试加载同名的 .lrc 文件"""
+    all_lyrics = []
+
     try:
         # 方法2: 从音频元数据中提取USLT帧（同步歌词）
         lyrics = extract_lyrics_from_id3(media)
         if lyrics:
-            return lyrics
-
-        # 方法1: 查找同名的.lrc文件（备用方案）
-        # lrc_path = find_lrc_file(media)
-        # if lrc_path:
-        #     return parse_lrc_file(lrc_path)
-
-        return []
-
+            all_lyrics.extend(lyrics)
     except Exception as e:
-        logger.error(f"提取歌词失败: {e}")
-        return []
+        logger.error(f"从ID3提取歌词失败: {e}")
+
+    try:
+        import os
+        # 尝试加载同名的 .lrc 文件
+        file_path = media.file_path
+        if file_path and not file_path.startswith('s3://'):
+            file_path_actual = str(Path('storage/' + file_path))
+            if os.path.exists(file_path_actual):
+                lrc_path = os.path.splitext(file_path_actual)[0] + '.lrc'
+                if os.path.exists(lrc_path):
+                    with open(lrc_path, 'r', encoding='utf-8') as f:
+                        lrc_content = f.read()
+                    for line in lrc_content.split('\n'):
+                        line = line.strip()
+                        if not line:
+                            continue
+                        match = re.match(r'\[(\d{2}):(\d{2})\.(\d{2,3})\](.*)', line)
+                        if match:
+                            minutes = int(match.group(1))
+                            seconds = int(match.group(2))
+                            millis = int(match.group(3))
+                            time_in_seconds = minutes * 60 + seconds + millis / 1000
+                            text = match.group(4).strip()
+                            if text:
+                                all_lyrics.append({'time': time_in_seconds, 'text': text})
+    except Exception as e:
+        logger.warning(f"加载LRC歌词文件失败: {e}")
+
+    # 按时间排序
+    if all_lyrics:
+        all_lyrics.sort(key=lambda x: x["time"])
+
+    return all_lyrics
 
 
 def extract_lyrics_from_id3(media: Media) -> list:
