@@ -37,6 +37,19 @@ def _build_router():
             format: str = Query('json', description="报告格式: json或text"),
             current_user=Depends(admin_required_api)
     ):
+        try:
+            from shared.services.system.site_health import site_health_service
+            if format == 'text':
+                report = site_health_service.generate_report('text')
+                from fastapi.responses import PlainTextResponse
+                return PlainTextResponse(content=report)
+            health_data = site_health_service.run_full_check()
+            return ApiResponse(success=True, data=health_data)
+        except Exception as e:
+            import traceback
+            print(f"Error in site_health_check_api: {str(e)}")
+            print(traceback.format_exc())
+            return ApiResponse(success=False, error=str(e))
 
     @router.get("/health/ping", summary="简易存活检查",
                 description="公开端点，仅返回服务是否存活")
@@ -56,19 +69,6 @@ def _build_router():
         except Exception:
             issues.append("database_unreachable")
         return {"status": "ready" if not issues else "degraded", "issues": issues}
-        try:
-            from shared.services.system.site_health import site_health_service
-            if format == 'text':
-                report = site_health_service.generate_report('text')
-                from fastapi.responses import PlainTextResponse
-                return PlainTextResponse(content=report)
-            health_data = site_health_service.run_full_check()
-            return ApiResponse(success=True, data=health_data)
-        except Exception as e:
-            import traceback
-            print(f"Error in site_health_check_api: {str(e)}")
-            print(traceback.format_exc())
-            return ApiResponse(success=False, error=str(e))
 
     @router.get("/info", summary="系统信息",
                 description="获取系统基本信息(仅管理员)")
