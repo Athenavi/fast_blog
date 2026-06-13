@@ -37,6 +37,25 @@ def _build_router():
             format: str = Query('json', description="报告格式: json或text"),
             current_user=Depends(admin_required_api)
     ):
+
+    @router.get("/health/ping", summary="简易存活检查",
+                description="公开端点，仅返回服务是否存活")
+    async def ping():
+        return {"status": "ok", "timestamp": __import__('datetime').datetime.now().isoformat()}
+
+    @router.get("/health/readiness", summary="就绪检查",
+                description="公开端点，检查数据库等核心依赖是否就绪")
+    async def readiness():
+        issues = []
+        try:
+            from src.extensions import get_async_db_session
+            from sqlalchemy import text
+            async for db in get_async_db_session():
+                await db.execute(text("SELECT 1"))
+                break
+        except Exception:
+            issues.append("database_unreachable")
+        return {"status": "ready" if not issues else "degraded", "issues": issues}
         try:
             from shared.services.system.site_health import site_health_service
             if format == 'text':

@@ -47,6 +47,27 @@ class BackupService:
         os.makedirs(self.files_backup_dir, exist_ok=True)
         os.makedirs(self.full_backup_dir, exist_ok=True)
 
+        # 异步 subprocess 运行器
+    async def _run_subprocess(self, cmd, env=None, timeout=300, check=False):
+        """异步运行子进程，不阻塞事件循环"""
+        process = await asyncio.create_subprocess_exec(
+            *cmd,
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.PIPE,
+            env=env,
+        )
+        try:
+            stdout, stderr = await asyncio.wait_for(process.wait(), timeout=timeout)
+        except asyncio.TimeoutError:
+            process.kill()
+            raise Exception(f"Subprocess timed out after {timeout}s: {' '.join(cmd)}")
+        if process.returncode != 0:
+            stderr_text = (await process.stderr.read()).decode('utf-8', errors='replace')
+            if check:
+                raise Exception(stderr_text)
+            raise Exception(stderr_text)
+        return type('Result', (), {'returncode': process.returncode})()
+
         # 默认配置
         self.config = {
             'retention_days': 30,  # 保留30天备份
@@ -86,8 +107,6 @@ class BackupService:
             logger.info(f"Starting database backup: {backup_filename}")
 
             # 使用pg_dump进行备份
-            import subprocess
-
             env = os.environ.copy()
             if db_config['password']:
                 env['PGPASSWORD'] = db_config['password']
@@ -102,13 +121,7 @@ class BackupService:
                 db_config['database']
             ]
 
-            result = subprocess.run(
-                cmd,
-                env=env,
-                capture_output=True,
-                text=True,
-                timeout=300  # 5分钟超时
-            )
+            result = await self._run_subprocess(cmd, env=env, timeout=300)
 
             if result.returncode != 0:
                 raise Exception(f"pg_dump failed: {result.stderr}")
@@ -192,12 +205,7 @@ class BackupService:
 
             cmd = ['tar', '-czf', backup_path] + files_to_backup
 
-            result = subprocess.run(
-                cmd,
-                capture_output=True,
-                text=True,
-                timeout=600  # 10分钟超时
-            )
+            result = await self._run_subprocess(cmd, timeout=600)
 
             if result.returncode != 0:
                 raise Exception(f"tar failed: {result.stderr}")
@@ -321,13 +329,11 @@ class BackupService:
 
             logger.info(f"Starting database restore from: {backup_path}")
 
-            import subprocess
-
             env = os.environ.copy()
             if db_config['password']:
                 env['PGPASSWORD'] = db_config['password']
 
-            # 先删除现有数据库
+            # 先删除现有数据库（注意：此操作不可回滚）
             drop_cmd = [
                 'dropdb',
                 '-h', db_config['host'],
@@ -337,7 +343,7 @@ class BackupService:
                 db_config['database']
             ]
 
-            subprocess.run(drop_cmd, env=env, check=True, capture_output=True)
+            await self._run_subprocess(drop_cmd, env=env, check=True)
 
             # 创建新数据库
             create_cmd = [
@@ -348,7 +354,7 @@ class BackupService:
                 db_config['database']
             ]
 
-            subprocess.run(create_cmd, env=env, check=True, capture_output=True)
+            await self._run_subprocess(create_cmd, env=env, check=True)
 
             # 恢复数据库
             restore_cmd = [
@@ -362,13 +368,7 @@ class BackupService:
                 backup_path
             ]
 
-            result = subprocess.run(
-                restore_cmd,
-                env=env,
-                capture_output=True,
-                text=True,
-                timeout=300
-            )
+            result = await self._run_subprocess(restore_cmd, env=env, timeout=300)
 
             if result.returncode != 0:
                 raise Exception(f"pg_restore failed: {result.stderr}")
