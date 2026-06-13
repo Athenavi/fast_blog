@@ -2,6 +2,7 @@
 
 import { useState, useCallback } from 'react';
 import { apiClient } from '@/lib/api/base-client';
+import { saveTokens, dispatchAuthEvent } from '@/lib/auth-utils';
 
 interface LoginState {
   step: 'credentials' | 'twofactor' | 'qrcode' | 'loggedin' | 'error';
@@ -50,7 +51,8 @@ export function useLoginState(): UseLoginStateReturn {
       } else if (data?.token || data?.access_token) {
         // Login successful
         const token = data.token || data.access_token;
-        localStorage.setItem('auth_token', token);
+        saveTokens(token, data.refresh_token);
+        dispatchAuthEvent(true);
         if (data.user) {
           localStorage.setItem('user', JSON.stringify(data.user));
         }
@@ -91,7 +93,8 @@ export function useLoginState(): UseLoginStateReturn {
       
       if (data?.token || data?.access_token) {
         const token = data.token || data.access_token;
-        localStorage.setItem('auth_token', token);
+        saveTokens(token, data.refresh_token);
+        dispatchAuthEvent(true);
         if (data.user) {
           localStorage.setItem('user', JSON.stringify(data.user));
         }
@@ -127,7 +130,8 @@ export function useLoginState(): UseLoginStateReturn {
       const data = res.data;
       if (data?.token || data?.access_token) {
         const t = data.token || data.access_token;
-        localStorage.setItem('auth_token', t);
+        saveTokens(t, data.refresh_token);
+        dispatchAuthEvent(true);
         setState(prev => ({ ...prev, step: 'loggedin', loading: false, user: data.user }));
       } else {
         setState(prev => ({ ...prev, step: 'qrcode', loading: false, error: '二维码验证失败' }));
