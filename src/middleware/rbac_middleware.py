@@ -100,6 +100,7 @@ class RBACMiddleware(BaseHTTPMiddleware):
         "/api/v2/membership/",
         "/api/v2/search/",
         "/api/v2/media/files",
+        "/api/v2/media/upload",
         "/api/v2/shortcodes/",
         "/api/v2/widgets/",
         "/api/v2/preview/",
