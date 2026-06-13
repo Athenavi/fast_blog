@@ -4,6 +4,20 @@ import {useEffect, useState} from 'react';
 import {apiClient} from '@/lib/api/base-client';
 import {ArrowLeft, ArrowRight, Check, Database, Globe, Loader, Server, Shield} from 'lucide-react';
 
+const passwordStrength = (pw: string): { level: number; label: string; color: string } => {
+    let score = 0;
+    if (pw.length >= 8) score++;
+    if (pw.length >= 12) score++;
+    if (/[A-Z]/.test(pw)) score++;
+    if (/[0-9]/.test(pw)) score++;
+    if (/[^A-Za-z0-9]/.test(pw)) score++;
+  if (score <= 1) return {level: 1, label: '弱', color: 'bg-red-500'};
+  if (score <= 2) return {level: 2, label: '较弱', color: 'bg-orange-500'};
+  if (score <= 3) return {level: 3, label: '一般', color: 'bg-yellow-500'};
+  if (score <= 4) return {level: 4, label: '强', color: 'bg-green-500'};
+  return {level: 5, label: '非常强', color: 'bg-emerald-500'};
+};
+
 const steps = [
     {id: 'prereq', label: '检查', icon: Server},
     {id: 'database', label: '配置', icon: Database},
@@ -207,9 +221,43 @@ export default function InstallPage() {
 
             {/* Step 4: Admin */}
             {step === 4 && <div className="space-y-3">
-            <input type="text" value={admin.username} onChange={e=>setAdmin(p=>({...p,username:e.target.value}))} placeholder="管理员用户名" className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"/>
-            <input type="email" value={admin.email} onChange={e=>setAdmin(p=>({...p,email:e.target.value}))} placeholder="管理员邮箱" className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"/>
-            <input type="password" value={admin.password} onChange={e=>setAdmin(p=>({...p,password:e.target.value}))} placeholder="管理员密码" className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"/>
+              {(() => {
+                const strength = passwordStrength(admin.password);
+                const reqs = [
+                  { met: admin.password.length >= 8, label: '至少 8 个字符' },
+                  { met: /[A-Z]/.test(admin.password), label: '包含大写字母' },
+                  { met: /[0-9]/.test(admin.password), label: '包含数字' },
+                  { met: /[^A-Za-z0-9]/.test(admin.password), label: '包含特殊字符' },
+                ];
+                return <>
+              <input type="text" value={admin.username} onChange={e=>setAdmin(p=>({...p,username:e.target.value}))} placeholder="管理员用户名" className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"/>
+              <input type="email" value={admin.email} onChange={e=>setAdmin(p=>({...p,email:e.target.value}))} placeholder="管理员邮箱" className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"/>
+              <input type="password" value={admin.password} onChange={e=>setAdmin(p=>({...p,password:e.target.value}))} placeholder="管理员密码" className="w-full px-4 py-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"/>
+              {/* 密码强度条 */}
+              {admin.password.length > 0 && <>
+                <div className="flex gap-1.5 mt-1">
+                  {[1,2,3,4,5].map(i => (
+                    <div key={i} className={`h-1.5 flex-1 rounded-full transition-all duration-300 ${i <= strength.level ? strength.color : 'bg-gray-200 dark:bg-gray-700'}`}/>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 -mt-1">密码强度：<span className="font-medium">{strength.label}</span></p>
+              </>}
+              {/* 密码要求清单 */}
+              {admin.password.length > 0 && (
+                <div className="p-4 bg-gray-50 dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-700">
+                  <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">密码要求</p>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {reqs.map((req, i) => (
+                      <div key={i} className={`flex items-center gap-1.5 text-xs ${req.met ? 'text-green-600 dark:text-green-400' : 'text-gray-400'}`}>
+                        {req.met ? <Check className="w-3.5 h-3.5"/> : <div className="w-3.5 h-3.5 rounded-full border border-gray-300 dark:border-gray-600"/>}
+                        {req.label}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+                </>;
+              })()}
           </div>}
 
           {/* Navigation */}

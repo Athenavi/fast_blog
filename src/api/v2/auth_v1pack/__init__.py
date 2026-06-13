@@ -203,6 +203,12 @@ async def register_api(data: RegisterRequest, request: Request, db: AsyncSession
     if len(data.username) < 3 or len(data.username) > 30:
         return fail("用户名长度需在 3-30 字符之间")
 
+    # 验证密码强度（与前端 Zod schema 规则一致）
+    from src.utils.security.password_validator import validate_password_strength
+    pw_valid, pw_err = validate_password_strength(data.password)
+    if not pw_valid:
+        return fail(pw_err)
+
     existing = await db.scalar(select(UserModel).where(
         (UserModel.username == data.username) | (UserModel.email == data.email)))
     if existing:
