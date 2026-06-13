@@ -394,6 +394,8 @@ models:
         target: Role
         secondary: user_role_assignments
         back_populates: users
+        primaryjoin: User.id == user_role_assignments.c.user_id
+        secondaryjoin: user_role_assignments.c.role_id == Role.id
   UserCreate:
     type: schema
     description: 用户创建请求模型
@@ -5177,6 +5179,8 @@ models:
         target: User
         secondary: user_role_assignments
         back_populates: roles
+        primaryjoin: Role.id == user_role_assignments.c.role_id
+        secondaryjoin: user_role_assignments.c.user_id == User.id
   Capability:
     description: 权限能力模型
     status: active

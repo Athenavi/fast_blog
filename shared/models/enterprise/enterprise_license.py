@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - EnterpriseLicense
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-06-13 18:56:57
+生成时间：2026-06-13 21:01:20
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Numeric, Index

@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - Role
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-06-13 18:56:56
+生成时间：2026-06-13 21:01:20
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
@@ -46,7 +46,7 @@ class Role(Base):
 
     # 关系定义
     capabilities = relationship('Capability', secondary='role_capabilities', back_populates='roles')
-    users = relationship('User', secondary='user_role_assignments', back_populates='roles')
+    users = relationship('User', secondary='user_role_assignments', back_populates='roles', primaryjoin="Role.id == user_role_assignments.c.role_id", secondaryjoin="user_role_assignments.c.user_id == User.id")
 
     def to_dict(self, exclude_sensitive=True):
         """转换为字典
