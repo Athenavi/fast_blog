@@ -9,7 +9,7 @@ import {PermissionGuard} from '@/components/admin/PermissionGuard';
 import {apiClient} from '@/lib/api/base-client';
 import {SECURITY} from '@/lib/api/api-paths';
 import {useConfirm} from '@/components/ui/confirm-provider';
-import {useToast} from '@/components/ui/toast-provider';
+import {ToastProvider, useToast} from '@/components/ui/toast-provider';
 import {
   ScrollText, Download, Trash2, Search, Filter, X,
   AlertTriangle, AlertCircle, Info, ShieldAlert,
@@ -263,7 +263,9 @@ export default function AdminAuditLogs() {
     <AuthGuard>
       <QueryProvider>
         <PermissionGuard capability="settings:view">
-          <AuditLogsContent />
+          <ToastProvider>
+            <AuditLogsContent />
+          </ToastProvider>
         </PermissionGuard>
       </QueryProvider>
     </AuthGuard>

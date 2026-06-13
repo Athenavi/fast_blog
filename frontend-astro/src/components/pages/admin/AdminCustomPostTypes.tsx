@@ -5,6 +5,7 @@ import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
+import {ToastProvider} from '@/components/ui/toast-provider';
 import {apiClient} from '@/lib/api/base-client';
 import {useToast} from '@/components/ui/toast-provider';
 import {
@@ -171,7 +172,9 @@ export default function AdminCustomPostTypes() {
   return (
     <AuthGuard>
       <QueryProvider>
-        <CptInner/>
+        <ToastProvider>
+          <CptInner/>
+        </ToastProvider>
       </QueryProvider>
     </AuthGuard>
   );

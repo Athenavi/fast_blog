@@ -5,6 +5,7 @@ import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
+import {ToastProvider} from '@/components/ui/toast-provider';
 import {apiClient} from '@/lib/api/base-client';
 import {useToast} from '@/components/ui/toast-provider';
 import {Mail, Save, RotateCcw, Loader, FileText, Eye, Code} from 'lucide-react';
@@ -179,7 +180,9 @@ export default function AdminEmailTemplates() {
   return (
     <AuthGuard>
       <QueryProvider>
-        <EmailTemplatesInner/>
+        <ToastProvider>
+          <EmailTemplatesInner/>
+        </ToastProvider>
       </QueryProvider>
     </AuthGuard>
   );
