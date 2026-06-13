@@ -1,8 +1,8 @@
 """Initial migration
 
-Revision ID: cd6395fc2579
+Revision ID: c6564ddec959
 Revises:
-Create Date: 2026-06-12 15:26:35.913724
+Create Date: 2026-06-13 20:52:45.283618
 
 """
 from typing import Sequence, Union
@@ -11,7 +11,7 @@ import sqlalchemy as sa
 from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = 'cd6395fc2579'
+revision: str = 'c6564ddec959'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -763,6 +763,7 @@ def upgrade() -> None:
                     sa.Column('required_vip_level', sa.Integer(), nullable=True),
                     sa.Column('article_ad', sa.String(length=255), nullable=True),
                     sa.Column('scheduled_publish_at', sa.DateTime(), nullable=True),
+                    sa.Column('published_at', sa.DateTime(), nullable=True),
                     sa.Column('post_type', sa.String(length=50), nullable=True),
                     sa.Column('is_sticky', sa.Boolean(), nullable=True),
                     sa.Column('sticky_until', sa.DateTime(), nullable=True),
@@ -796,6 +797,9 @@ def upgrade() -> None:
     op.create_table('audit_logs',
                     sa.Column('id', sa.BigInteger(), autoincrement=True, nullable=False),
                     sa.Column('user_id', sa.BigInteger(), nullable=True),
+                    sa.Column('user_name', sa.String(length=100), nullable=True),
+                    sa.Column('level', sa.String(length=20), nullable=True),
+                    sa.Column('description', sa.Text(), nullable=True),
                     sa.Column('action', sa.String(length=100), nullable=True),
                     sa.Column('resource_type', sa.String(length=50), nullable=True),
                     sa.Column('resource_id', sa.BigInteger(), nullable=True),
@@ -1994,7 +1998,7 @@ def upgrade() -> None:
         batch_op.create_index('idx_media_created_at', ['created_at'], unique=False)
         batch_op.create_index('idx_media_file_type', ['file_type'], unique=False)
         batch_op.create_index('idx_media_folder', ['folder_id'], unique=False)
-        batch_op.create_index('idx_media_hash', ['hash'], unique=True)
+        batch_op.create_index('idx_media_hash', ['hash'], unique=False)
         batch_op.create_index('idx_media_is_public', ['is_public'], unique=False)
         batch_op.create_index('idx_media_user', ['user'], unique=False)
 
