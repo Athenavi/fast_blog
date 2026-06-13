@@ -133,6 +133,7 @@ class MembershipService:
         """
         from shared.models.vip.vip_subscription import VIPSubscription
         from shared.models.vip.vip_plan import VIPPlan
+        from shared.models.user import User
 
         # 获取套餐信息
         plan = await self.db.get(VIPPlan, plan_id)
@@ -160,6 +161,13 @@ class MembershipService:
         self.db.add(subscription)
         await self.db.commit()
         await self.db.refresh(subscription)
+
+        # 同步 VIP 信息到 User 模型
+        user = await self.db.get(User, user_id)
+        if user:
+            user.vip_level = plan.level
+            user.vip_expires_at = expires_at
+            await self.db.commit()
 
         return {
             'success': True,
