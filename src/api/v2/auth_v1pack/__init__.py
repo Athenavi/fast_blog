@@ -199,9 +199,9 @@ async def login_api(request: Request, db: AsyncSession = Depends(get_async_db)):
 
     resp = JSONResponse(content={"success": True, "data": resp_data})
     is_https = str(settings.SITE_URL).startswith('https://') if hasattr(settings, 'SITE_URL') else False
-    resp.set_cookie("access_token", access_token, httponly=True, secure=is_https, samesite="strict", max_age=3600)
+    resp.set_cookie("access_token", access_token, httponly=True, secure=is_https, samesite="strict", max_age=3600, path="/")
     if refresh_token:
-        resp.set_cookie("refresh_token", refresh_token, httponly=True, secure=is_https, samesite="strict", max_age=2592000)
+        resp.set_cookie("refresh_token", refresh_token, httponly=True, secure=is_https, samesite="strict", max_age=2592000, path="/")
     return resp
 
 
@@ -236,8 +236,8 @@ async def register_api(data: RegisterRequest, request: Request, db: AsyncSession
 
     resp = JSONResponse(content={"success": True, "data": {"access_token": access_token, "refresh_token": refresh_token, "email_verified": False, "email": data.email}})
     is_https = str(settings.SITE_URL).startswith('https://') if hasattr(settings, 'SITE_URL') else False
-    resp.set_cookie("access_token", access_token, httponly=True, secure=is_https, samesite="strict", max_age=3600)
-    resp.set_cookie("refresh_token", refresh_token, httponly=True, secure=is_https, samesite="strict", max_age=2592000)
+    resp.set_cookie("access_token", access_token, httponly=True, secure=is_https, samesite="strict", max_age=3600, path="/")
+    resp.set_cookie("refresh_token", refresh_token, httponly=True, secure=is_https, samesite="strict", max_age=2592000, path="/")
     return resp
 
 
@@ -340,8 +340,8 @@ async def verify_2fa_login(request: Request, db: AsyncSession = Depends(get_asyn
     
     resp = JSONResponse(content={"success": True, "data": resp_data})
     is_https = str(settings.SITE_URL).startswith('https://') if hasattr(settings, 'SITE_URL') else False
-    resp.set_cookie("access_token", access_token, httponly=True, secure=is_https, samesite="strict", max_age=3600)
-    resp.set_cookie("refresh_token", refresh_token, httponly=True, secure=is_https, samesite="strict", max_age=2592000)
+    resp.set_cookie("access_token", access_token, httponly=True, secure=is_https, samesite="strict", max_age=3600, path="/")
+    resp.set_cookie("refresh_token", refresh_token, httponly=True, secure=is_https, samesite="strict", max_age=2592000, path="/")
     return resp
 
 
@@ -389,6 +389,6 @@ async def refresh_token_api(request: Request):
 
     resp = JSONResponse(content={"success": True, "data": {"access_token": new_access, "refresh_token": new_refresh}})
     is_https = str(settings.SITE_URL).startswith('https://') if hasattr(settings, 'SITE_URL') else False
-    resp.set_cookie("access_token", new_access, httponly=True, secure=is_https, samesite="strict", max_age=3600)
-    resp.set_cookie("refresh_token", new_refresh, httponly=True, secure=is_https, samesite="strict", max_age=2592000)
+    resp.set_cookie("access_token", new_access, httponly=True, secure=is_https, samesite="strict", max_age=3600, path="/")
+    resp.set_cookie("refresh_token", new_refresh, httponly=True, secure=is_https, samesite="strict", max_age=2592000, path="/")
     return resp
