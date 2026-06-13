@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - User
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-06-13 22:37:49
+生成时间：2026-06-13 22:45:57
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Index
@@ -87,7 +87,6 @@ class User(Base):
             'id': self.id,
             'username': self.username,
             'email': self.email,
-            'password': self.password,
             'profile_picture': self.profile_picture,
             'bio': self.bio,
             'profile_private': self.profile_private,
@@ -102,12 +101,13 @@ class User(Base):
             'last_login_ip': self.last_login_ip,
             'register_ip': self.register_ip,
             'is_2fa_enabled': self.is_2fa_enabled,
-            'totp_secret': self.totp_secret,
-            'backup_codes': self.backup_codes,
         }
 
         if not exclude_sensitive:
             sensitive_data = {
+                'password': self.password,
+                'totp_secret': self.totp_secret,
+                'backup_codes': self.backup_codes,
             }
             data.update(sensitive_data)
 

@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - LDAPConfig
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-06-13 22:37:49
+生成时间：2026-06-13 22:45:57
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
@@ -76,7 +76,6 @@ class LDAPConfig(Base):
             'site_id': self.site_id,
             'server_url': self.server_url,
             'bind_dn': self.bind_dn,
-            'bind_password': self.bind_password,
             'base_dn': self.base_dn,
             'user_filter': self.user_filter,
             'username_attribute': self.username_attribute,
@@ -95,6 +94,7 @@ class LDAPConfig(Base):
 
         if not exclude_sensitive:
             sensitive_data = {
+                'bind_password': self.bind_password,
             }
             data.update(sensitive_data)
 

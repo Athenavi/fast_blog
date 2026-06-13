@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - SSOProvider
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-06-13 22:37:49
+生成时间：2026-06-13 22:45:57
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
@@ -72,7 +72,6 @@ class SSOProvider(Base):
             'provider_type': self.provider_type,
             'name': self.name,
             'client_id': self.client_id,
-            'client_secret': self.client_secret,
             'authorization_url': self.authorization_url,
             'token_url': self.token_url,
             'userinfo_url': self.userinfo_url,
@@ -88,6 +87,7 @@ class SSOProvider(Base):
 
         if not exclude_sensitive:
             sensitive_data = {
+                'client_secret': self.client_secret,
             }
             data.update(sensitive_data)
 

@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - SAMLConfig
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-06-13 22:37:49
+生成时间：2026-06-13 22:45:57
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
@@ -80,9 +80,6 @@ class SAMLConfig(Base):
             'idp_entity_id': self.idp_entity_id,
             'idp_sso_url': self.idp_sso_url,
             'idp_slo_url': self.idp_slo_url,
-            'idp_certificate': self.idp_certificate,
-            'sp_private_key': self.sp_private_key,
-            'sp_certificate': self.sp_certificate,
             'attribute_mapping': self.attribute_mapping,
             'enable_slo': self.enable_slo,
             'auto_provision_users': self.auto_provision_users,
@@ -94,6 +91,9 @@ class SAMLConfig(Base):
 
         if not exclude_sensitive:
             sensitive_data = {
+                'idp_certificate': self.idp_certificate,
+                'sp_private_key': self.sp_private_key,
+                'sp_certificate': self.sp_certificate,
             }
             data.update(sensitive_data)
 

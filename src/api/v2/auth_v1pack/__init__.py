@@ -176,6 +176,18 @@ async def login_api(request: Request, db: AsyncSession = Depends(get_async_db)):
     if not user.is_active:
         return fail("账户已停用")
 
+    # 2FA 检查：如果用户启用了双因素认证，返回临时 token
+    if user.is_2fa_enabled:
+        temp_token = create_jwt_token(subject=str(user.id), token_type="temp_2fa", expires_delta=timedelta(minutes=5))
+        return JSONResponse(content={
+            "success": True,
+            "data": {
+                "requires_2fa": True,
+                "temp_token": temp_token,
+                "message": "请输入双因素验证码",
+            }
+        })
+
     access_token = create_jwt_token(subject=str(user.id), token_type="access")
     refresh_token = create_jwt_token(subject=str(user.id), token_type="refresh") if remember_me else None
 
@@ -277,6 +289,60 @@ async def verify_sms_code(data: dict, current_user=Depends(jwt_required)):
     if not result:
         return fail("验证码无效或已过期")
     return ok(msg="验证成功")
+
+
+# ─── 双因素认证 (2FA) ───
+
+@router.post("/2fa/verify")
+@_catch
+async def verify_2fa_login(request: Request, db: AsyncSession = Depends(get_async_db)):
+    """
+    验证 2FA 并完成登录
+    
+    客户端先调用 /login 获取 temp_token，然后通过此端点提交 TOTP 码。
+    """
+    body = await request.json()
+    temp_token = body.get("temp_token")
+    code = body.get("code")
+    
+    if not temp_token or not code:
+        return fail("缺少 temp_token 或 code")
+    
+    from shared.services.security.two_factor_service import two_factor_service
+    
+    # 验证 temp_token
+    try:
+        payload = decode_jwt_token(temp_token)
+    except HTTPException:
+        return fail("临时 token 无效或已过期")
+    
+    if payload.get("type") != "temp_2fa":
+        return fail("无效的 token 类型")
+    
+    user_id = int(payload["sub"])
+    
+    # 验证 2FA 码
+    result = await two_factor_service.verify(db, user_id, code)
+    if not result["success"]:
+        return fail("验证码无效")
+    
+    # 发放正式 token
+    ip = request.client.host if request.client else "unknown"
+    ua = request.headers.get("user-agent", "")
+    access_token = create_jwt_token(subject=str(user_id), token_type="access")
+    refresh_token = create_jwt_token(subject=str(user_id), token_type="refresh")
+    
+    resp_data = {
+        "access_token": access_token,
+        "refresh_token": refresh_token,
+        "token_type": "bearer",
+    }
+    
+    resp = JSONResponse(content={"success": True, "data": resp_data})
+    is_https = str(settings.SITE_URL).startswith('https://') if hasattr(settings, 'SITE_URL') else False
+    resp.set_cookie("access_token", access_token, httponly=True, secure=is_https, samesite="strict", max_age=3600)
+    resp.set_cookie("refresh_token", refresh_token, httponly=True, secure=is_https, samesite="strict", max_age=2592000)
+    return resp
 
 
 # ─── 登出 ───

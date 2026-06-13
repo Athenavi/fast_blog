@@ -282,6 +282,7 @@ models:
         type: string
         maxLength: 255
         description: 密码（哈希后存储）
+        sensitive: true
       profile_picture:
         type: string
         nullable: true
@@ -345,10 +346,12 @@ models:
         nullable: true
         maxLength: 32
         description: TOTP 密钥
+        sensitive: true
       backup_codes:
         type: text
         nullable: true
         description: 备用码(JSON格式存储)
+        sensitive: true
     module: user
     orm: true
     table: users
@@ -6193,14 +6196,17 @@ models:
       idp_certificate:
         type: text
         description: IdP X.509 Certificate (PEM格式)
+        sensitive: true
       sp_private_key:
         type: text
         nullable: true
         description: SP Private Key (PEM格式)
+        sensitive: true
       sp_certificate:
         type: text
         nullable: true
         description: SP Certificate (PEM格式)
+        sensitive: true
       attribute_mapping:
         type: text
         nullable: true
@@ -6264,6 +6270,7 @@ models:
         type: string
         maxLength: 255
         description: Bind Password
+        sensitive: true
       base_dn:
         type: string
         maxLength: 255
@@ -6364,6 +6371,7 @@ models:
         type: string
         maxLength: 255
         description: Client Secret
+        sensitive: true
       authorization_url:
         type: string
         maxLength: 500

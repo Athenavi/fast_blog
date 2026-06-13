@@ -7,7 +7,7 @@
 3. 订阅管理
 4. 权限检查
 """
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -31,11 +31,11 @@ class MembershipService:
         Returns:
             VIP 状态信息
         """
-        from shared.models.vip_subscription import VIPSubscription
-        from shared.models.vip_plan import VIPPlan
+        from shared.models.vip.vip_subscription import VIPSubscription
+        from shared.models.vip.vip_plan import VIPPlan
 
         # 查询当前有效的订阅
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         stmt = select(VIPSubscription, VIPPlan).join(
             VIPPlan, VIPSubscription.plan == VIPPlan.id
         ).where(
@@ -131,8 +131,8 @@ class MembershipService:
         Returns:
             订阅结果
         """
-        from shared.models.vip_subscription import VIPSubscription
-        from shared.models.vip_plan import VIPPlan
+        from shared.models.vip.vip_subscription import VIPSubscription
+        from shared.models.vip.vip_plan import VIPPlan
 
         # 获取套餐信息
         plan = await self.db.get(VIPPlan, plan_id)
@@ -143,7 +143,7 @@ class MembershipService:
             return {'success': False, 'message': '套餐已停用'}
 
         # 创建订阅
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         expires_at = now + timedelta(days=plan.duration_days)
 
         subscription = VIPSubscription(
@@ -180,7 +180,7 @@ class MembershipService:
         Returns:
             操作结果
         """
-        from shared.models.vip_subscription import VIPSubscription
+        from shared.models.vip.vip_subscription import VIPSubscription
 
         subscription = await self.db.get(VIPSubscription, subscription_id)
 
@@ -205,7 +205,7 @@ class MembershipService:
         Returns:
             套餐列表
         """
-        from shared.models.vip_plan import VIPPlan
+        from shared.models.vip.vip_plan import VIPPlan
         from sqlalchemy import select
 
         stmt = select(VIPPlan).where(
@@ -242,8 +242,8 @@ class MembershipService:
         Returns:
             订阅列表
         """
-        from shared.models.vip_subscription import VIPSubscription
-        from shared.models.vip_plan import VIPPlan
+        from shared.models.vip.vip_subscription import VIPSubscription
+        from shared.models.vip.vip_plan import VIPPlan
         from sqlalchemy import select
 
         stmt = select(VIPSubscription, VIPPlan).join(
