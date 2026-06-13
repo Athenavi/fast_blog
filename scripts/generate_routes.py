@@ -368,6 +368,120 @@ class RouteGenerator:
 
         print(f"  ✓ 共生成 {generated_count} 个模型文件")
 
+    def generate_single_model(self, model_names: List[str]):
+        """
+        仅生成指定的单个或多个 ORM 模型文件（不重新生成全部模型）
+
+        Args:
+            model_names: 要生成的模型名称列表，如 ["TeamComment", "CustomPostContent"]
+        """
+        print(f"\n[单模型生成] 指定模型: {model_names}")
+
+        try:
+            from src.setting import settings
+        except ImportError:
+            settings = type('Settings', (), {'db_table_prefix': ''})()
+
+        table_prefix = getattr(settings, 'db_table_prefix', '')
+        from datetime import datetime
+
+        output_base = self.project_root / "shared" / "models"
+        output_base.mkdir(parents=True, exist_ok=True)
+
+        generated_count = 0
+        success_models = []
+        used_modules = set()
+
+        for model_name in model_names:
+            model_def = self.models.get(model_name)
+            if not model_def:
+                print(f"  ⚠ 模型 '{model_name}' 未在 models.yaml 中定义，跳过")
+                continue
+            if not model_def.get('orm'):
+                print(f"  ⚠ 模型 '{model_name}' 未启用 ORM (orm: true)，跳过")
+                continue
+
+            try:
+                module_path = model_def.get('module', '').strip()
+                if module_path:
+                    module_path = module_path.replace('\\', '/').strip('/')
+                    used_modules.add(module_path)
+                    output_dir = output_base / module_path
+                    output_dir.mkdir(parents=True, exist_ok=True)
+                else:
+                    output_dir = output_base
+
+                output_path = output_dir / f"{self._model_name_to_filename(model_name)}.py"
+
+                properties = model_def.get('properties', {})
+                fields = self._convert_properties_to_fields(properties, model_def)
+
+                # 收集索引
+                indexes = model_def.get('indexes', [])
+                has_indexes = len(indexes) > 0
+                has_foreign_keys = any(f.get('fk_column') for f in fields.values())
+                has_unique_constraints = any(ix.get('unique') for ix in indexes)
+
+                # 收集所有字段类型信息
+                has_datetime_default = False
+                has_numeric = False
+                for field in fields.values():
+                    if field.get('default') == 'datetime.utcnow':
+                        has_datetime_default = True
+                    if field.get('type') == 'Numeric':
+                        has_numeric = True
+
+                has_relationships = any(
+                    field.get('is_rel') for field in fields.values()
+                )
+
+                # 渲染模版
+                template = self.jinja_env.get_template('sqlalchemy_model.py.jinja2')
+                rendered = template.render(
+                    model_name=model_name,
+                    generation_time=datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                    classes={model_name: {
+                        'table_name': model_def.get('table', ''),
+                        'description': model_def.get('description', ''),
+                        'fields': fields,
+                        'indexes': indexes,
+                        'unique_constraints': [ix for ix in indexes if ix.get('unique')],
+                    }},
+                    module_path=module_path,
+                    table_prefix=table_prefix,
+                    table_has_indexes=has_indexes,
+                    has_foreign_keys=has_foreign_keys,
+                    has_unique_constraints=has_unique_constraints,
+                    has_datetime_default=has_datetime_default,
+                    has_numeric=has_numeric,
+                    has_relationships=has_relationships,
+                    is_unlogged=model_def.get('unlogged', False),
+                    ns=type('NS', (), {'has_uuid_pk': any(
+                        f.get('type') == 'String' and f.get('primary_key') for f in fields.values()
+                    ), 'has_datetime_default': has_datetime_default})(),
+                )
+
+                with open(output_path, 'w', encoding='utf-8') as f:
+                    f.write(rendered)
+
+                generated_count += 1
+                success_models.append(model_name)
+                print(f"  [OK] {model_name}: {output_path}")
+
+            except Exception as e:
+                print(f"  [FAIL] {model_name}: {e}")
+                import traceback
+                traceback.print_exc()
+
+        # 更新 __init__.py
+        if used_modules:
+            self._create_module_init_files(output_base, used_modules)
+        if success_models:
+            successful_orm_config = {k: v for k, v in self.models.items() if k in success_models}
+            self._update_shared_models_init_from_orm(successful_orm_config)
+
+        print(f"  ✓ 共生成 {generated_count} 个模型文件")
+
     def _get_output_path(self, framework: str, config_key: str) -> Path:
         """获取输出文件路径"""
         gen_config = self.generation_config.get(framework, {})
@@ -1167,9 +1281,10 @@ def main():
     """主函数"""
     parser = argparse.ArgumentParser(description='路由代码生成器')
     parser.add_argument('--config', type=str, default=None, help='routes.yaml 配置文件路径')
-    parser.add_argument('command', nargs='?', choices=['generate-all', 'sync-to-django'], default='generate-all',
+    parser.add_argument('command', nargs='?', choices=['generate-all', 'sync-to-django', 'generate-model'], default='generate-all',
                         help='要执行的命令（默认：generate-all）')
     parser.add_argument('--app', type=str, help='app 名称（用于 sync-to-django 命令）')
+    parser.add_argument('--model', type=str, nargs='+', help='要生成的模型名称（用于 generate-model 命令），如 --model User TeamComment')
 
     args = parser.parse_args()
 
@@ -1178,6 +1293,11 @@ def main():
 
         if args.command == 'sync-to-django':
             generator.sync_to_django(app_name=args.app)
+        elif args.command == 'generate-model':
+            if not args.model:
+                print("错误：请指定要生成的模型名称，如 --model User TeamComment")
+                sys.exit(1)
+            generator.generate_single_model(args.model)
         else:  # generate-all
             generator.generate_all()
 

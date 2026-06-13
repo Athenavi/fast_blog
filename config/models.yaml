@@ -1933,6 +1933,20 @@ models:
     module: notification
     orm: true
     table: notifications
+    indexes:
+      - name: idx_notifications_recipient
+        columns:
+          - recipient
+        comment: "接收者索引"
+      - name: idx_notifications_type
+        columns:
+          - type
+        comment: "通知类型索引"
+      - name: idx_notifications_unread
+        columns:
+          - recipient
+          - is_read
+        comment: "用户未读通知索引"
   PrivateMessage:
     description: 站内私信模型
     status: active
@@ -5030,6 +5044,7 @@ models:
         maxLength: 255
         nullable: true
         description: 签名密钥（用于HMAC验证）
+        sensitive: true
       events:
         type: text
         description: 订阅的事件列表（JSON数组）
