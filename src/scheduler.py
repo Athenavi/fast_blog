@@ -113,6 +113,39 @@ class SessionScheduler:
             replace_existing=True
         )
 
+        # 定时发布到期文章检查（每 5 分钟）
+        async def check_due_scheduled_articles():
+            """检查并发布到期的定时文章"""
+            try:
+                from src.utils.database.unified_manager import db_manager
+                from shared.services.articles.scheduled_publish import create_scheduled_publish_service
+
+                async with db_manager.get_session() as db:
+                    service = create_scheduled_publish_service(db)
+                    result = await service.publish_due_articles()
+                    if result.get('success') and result.get('published_count', 0) > 0:
+                        logger.info(f"自动发布了 {result['published_count']} 篇到期定时文章")
+                    elif result.get('failed_count', 0) > 0:
+                        logger.warning(f"定时发布 {result['published_count']} 成功，{result['failed_count']} 失败")
+            except Exception as e:
+                logger.error(f"检查定时发布时出错：{e}")
+                import traceback
+                traceback.print_exc()
+
+        def check_due_articles_job():
+            loop = asyncio.new_event_loop()
+            try:
+                loop.run_until_complete(check_due_scheduled_articles())
+            finally:
+                loop.close()
+
+        self.scheduler.add_job(
+            check_due_articles_job,
+            trigger=IntervalTrigger(minutes=5),
+            id='publish_due_articles',
+            replace_existing=True
+        )
+
         # 启动调度器
         self.scheduler.start()
 

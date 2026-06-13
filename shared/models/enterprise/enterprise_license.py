@@ -1,12 +1,13 @@
 """
 SQLAlchemy 模型定义 - EnterpriseLicense
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-06-04 17:21:20
+生成时间：2026-06-13 18:06:17
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Numeric, Index
 
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
+
 
 
 class EnterpriseLicense(Base):
@@ -43,15 +44,19 @@ class EnterpriseLicense(Base):
 
     is_active = Column(Boolean, default=True, doc='是否激活')
 
+
     support_level = Column(String(50), default='standard', doc='技术支持级别')
 
     sla_enabled = Column(Boolean, default=False, doc='是否启用SLA保障')
 
+
     sla_uptime_guarantee = Column(Numeric(10, 2), nullable=True, doc='SLA可用性保证（如99.9）')
+
 
     created_at = Column(DateTime, doc='创建时间')
 
     updated_at = Column(DateTime, doc='更新时间')
+
 
     def to_dict(self, exclude_sensitive=True):
         """转换为字典
@@ -87,3 +92,5 @@ class EnterpriseLicense(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<EnterpriseLicense id={self.id}>'
+
+

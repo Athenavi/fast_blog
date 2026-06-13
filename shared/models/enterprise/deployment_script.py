@@ -1,12 +1,13 @@
 """
 SQLAlchemy 模型定义 - DeploymentScript
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-06-04 17:21:20
+生成时间：2026-06-13 18:06:17
 """
 
-from sqlalchemy import Column, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
+from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
 
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
+
 
 
 class DeploymentScript(Base):
@@ -36,13 +37,17 @@ class DeploymentScript(Base):
 
     parameters = Column(Text, nullable=True, doc='参数定义（JSON格式）')
 
+
     is_active = Column(Boolean, default=True, doc='是否激活')
 
+
     created_by = Column(BigInteger, ForeignKey('users.id'), nullable=True, doc='创建者 ID')
+
 
     created_at = Column(DateTime, doc='创建时间')
 
     updated_at = Column(DateTime, doc='更新时间')
+
 
     def to_dict(self, exclude_sensitive=True):
         """转换为字典
@@ -74,3 +79,5 @@ class DeploymentScript(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<DeploymentScript id={self.id}>'
+
+

@@ -13,7 +13,7 @@ import {
 
 interface CPT {
   id: number; name: string; slug: string; description?: string;
-  icon?: string; is_public?: boolean; created_at?: string;
+  menu_icon?: string; is_active?: boolean; created_at?: string;
 }
 
 function CptInner() {
@@ -21,21 +21,31 @@ function CptInner() {
   const qc = useQueryClient();
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<CPT | null>(null);
-  const [form, setForm] = useState({name: '', slug: '', description: '', icon: 'FileText', is_public: 'true'});
+  const [form, setForm] = useState({name: '', slug: '', description: '', menu_icon: 'FileText', is_active: 'true'});
 
   const {data, isLoading} = useQuery({
     queryKey: ['custom-post-types'],
     queryFn: async () => {
       const r = await apiClient.get('/cms/post-types');
-      return ((r.data as any)?.post_types || r.data || []) as CPT[];
+      return ((r.data as any)?.items || r.data || []) as CPT[];
     },
   });
   const types = data || [];
 
   const saveMut = useMutation({
     mutationFn: () => {
-      const body = {...form, is_public: form.is_public === 'true'};
-      if (editing) return apiClient.put(`/cms/post-types/${editing.id}`, body);
+      const body: Record<string, any> = {
+        name: form.name,
+        description: form.description,
+        menu_icon: form.menu_icon || 'FileText',
+        supports: 'title,editor,thumbnail',
+        has_archive: true,
+      };
+      if (editing) {
+        body.is_active = form.is_active === 'true';
+        return apiClient.put(`/cms/post-types/${editing.id}`, body);
+      }
+      body.slug = form.slug;
       return apiClient.post('/cms/post-types', body);
     },
     onSuccess: (r) => { if (r.success) { qc.invalidateQueries({queryKey: ['custom-post-types']}); setShowForm(false); setEditing(null); toast.success(editing ? '已更新' : '已创建'); } else toast.error(r.error); },
@@ -49,13 +59,13 @@ function CptInner() {
 
   const openEdit = (cpt: CPT) => {
     setEditing(cpt);
-    setForm({name: cpt.name, slug: cpt.slug, description: cpt.description || '', icon: cpt.icon || 'FileText', is_public: String(cpt.is_public ?? true)});
+    setForm({name: cpt.name, slug: cpt.slug, description: cpt.description || '', menu_icon: cpt.menu_icon || 'FileText', is_active: String(cpt.is_active ?? true)});
     setShowForm(true);
   };
 
   const openCreate = () => {
     setEditing(null);
-    setForm({name: '', slug: '', description: '', icon: 'FileText', is_public: 'true'});
+    setForm({name: '', slug: '', description: '', menu_icon: 'FileText', is_active: 'true'});
     setShowForm(true);
   };
 
@@ -89,7 +99,7 @@ function CptInner() {
             </div>
             <div className="flex items-center gap-4">
               <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                <input type="checkbox" checked={form.is_public === 'true'} onChange={e => setForm(p => ({...p, is_public: String(e.target.checked)}))}
+                <input type="checkbox" checked={form.is_active === 'true'} onChange={e => setForm(p => ({...p, is_active: String(e.target.checked)}))}
                        className="rounded border-gray-300"/>
                 公开
               </label>
@@ -145,8 +155,8 @@ function CptInner() {
               <code className="text-xs text-gray-400 font-mono">/{cpt.slug}</code>
               {cpt.description && <p className="text-xs text-gray-500 mt-2">{cpt.description}</p>}
               <div className="flex items-center gap-2 mt-3 pt-3 border-t border-gray-100 dark:border-gray-800">
-                <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${cpt.is_public ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-gray-100 text-gray-500'}`}>
-                  {cpt.is_public ? '公开' : '内部'}
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-medium ${cpt.is_active ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-gray-100 text-gray-500'}`}>
+                  {cpt.is_active ? '公开' : '内部'}
                 </span>
               </div>
             </div>

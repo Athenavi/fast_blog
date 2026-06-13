@@ -1,13 +1,14 @@
 """
 SQLAlchemy 模型定义 - Article
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-06-04 17:21:19
+生成时间：2026-06-13 18:06:17
 """
 
-from sqlalchemy import Column, Integer, BigInteger, String, Boolean, DateTime, ForeignKey, Index
+from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
 from sqlalchemy.orm import relationship
 
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
+
 
 
 class Article(Base):
@@ -77,6 +78,8 @@ class Article(Base):
 
     scheduled_publish_at = Column(DateTime, nullable=True, doc='定时发布时间（设置为未来时间后自动发布）')
 
+    published_at = Column(DateTime, nullable=True, doc='实际发布时间')
+
     post_type = Column(String(50), index=True, default='article', doc='内容类型(article/book/product等)')
 
     is_sticky = Column(Boolean, default=False, doc='是否置顶（粘性文章）')
@@ -119,6 +122,7 @@ class Article(Base):
             'required_vip_level': self.required_vip_level,
             'article_ad': self.article_ad,
             'scheduled_publish_at': self.scheduled_publish_at.isoformat() if self.scheduled_publish_at else None,
+            'published_at': self.published_at.isoformat() if self.published_at else None,
             'post_type': self.post_type,
             'is_sticky': self.is_sticky,
             'sticky_until': self.sticky_until.isoformat() if self.sticky_until else None,

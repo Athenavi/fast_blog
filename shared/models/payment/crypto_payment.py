@@ -1,12 +1,13 @@
 """
 SQLAlchemy 模型定义 - CryptoPayment
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-06-04 17:21:20
+生成时间：2026-06-13 18:06:17
 """
 
-from sqlalchemy import Column, Integer, BigInteger, String, DateTime, Numeric, ForeignKey, Index
+from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Numeric, ForeignKey, Index
 
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
+
 
 
 class CryptoPayment(Base):
@@ -43,7 +44,9 @@ class CryptoPayment(Base):
 
     exchange_rate = Column(Numeric(10, 2), nullable=True, doc='兑换汇率')
 
+
     crypto_amount = Column(Numeric(10, 2), nullable=True, doc='加密货币金额')
+
 
     status = Column(String(20), default='waiting_payment', doc='支付状态')
 
@@ -52,6 +55,7 @@ class CryptoPayment(Base):
     created_at = Column(DateTime, doc='创建时间')
 
     updated_at = Column(DateTime, doc='更新时间')
+
 
     def to_dict(self, exclude_sensitive=True):
         """转换为字典
@@ -86,3 +90,5 @@ class CryptoPayment(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<CryptoPayment id={self.id}>'
+
+

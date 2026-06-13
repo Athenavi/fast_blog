@@ -67,7 +67,7 @@ const RevisionsSidebar: React.FC<Props> = ({articleId,open,onClose,onCollapse,on
               <p className="text-xs text-gray-500">{new Date(rev.created_at).toLocaleString('zh-CN')}</p>
               {rev.change_summary&&<p className="text-xs text-gray-500 mt-1 line-clamp-1">{rev.change_summary}</p>}
               <div className="flex gap-1 mt-1.5">
-                {rev.author&&<span className="text-xs text-gray-400"><User className="w-3 h-3 inline mr-0.5"/>{rev.author.username}</span>}
+                {rev.author&&<span className="text-xs text-gray-400"><User className="w-3 h-3 inline mr-0.5"/>{typeof rev.author === 'object' ? rev.author?.username : rev.author}</span>}
                 <button onClick={async e => {
                   e.stopPropagation();
                   if (await confirm({message: '确定删除此版本？', variant: 'danger'})) deleteRevMut.mutate(rev.id);

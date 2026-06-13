@@ -3,6 +3,7 @@
 提供版本保存、查询、回滚等功能
 """
 
+import difflib
 import hashlib
 from datetime import datetime, timezone
 from typing import Optional, Dict, Any
@@ -370,6 +371,27 @@ async def compare_revisions(
             "tags_changed": rev1.tags_list != rev2.tags_list,
             "category_changed": rev1.category_id != rev2.category_id,
             "status_changed": rev1.status != rev2.status,
+            # 实际文本差异
+            "title_diff": list(difflib.unified_diff(
+                (rev1.title or "").splitlines(keepends=True),
+                (rev2.title or "").splitlines(keepends=True),
+                fromfile="v1", tofile="v2", lineterm=""
+            )),
+            "excerpt_diff": list(difflib.unified_diff(
+                (rev1.excerpt or "").splitlines(keepends=True),
+                (rev2.excerpt or "").splitlines(keepends=True),
+                fromfile="v1", tofile="v2", lineterm=""
+            )),
+            "content_diff": list(difflib.unified_diff(
+                (rev1.content or "").splitlines(keepends=True),
+                (rev2.content or "").splitlines(keepends=True),
+                fromfile="v1", tofile="v2", lineterm=""
+            )),
+            "content_diff_html": difflib.HtmlDiff().make_table(
+                (rev1.content or "").splitlines(keepends=True),
+                (rev2.content or "").splitlines(keepends=True),
+                fromdesc="v1", todesc="v2", context=True, numlines=3
+            ),
         }
 
         return {

@@ -13,7 +13,7 @@ class ShortcodeService:
     
     功能:
     1. Shortcode解析器
-    2. 内置Shortcode(gallery/embed/button/columns)
+    2. 内置Shortcode(code/gist/youtube/bilibili/note/tabs)
     3. 插件扩展支持
     4. Shortcode钩子
     """
@@ -27,12 +27,12 @@ class ShortcodeService:
 
     def _register_builtin_shortcodes(self):
         """注册内置短代码"""
-        self.register('gallery', self._gallery_shortcode)
-        self.register('embed', self._embed_shortcode)
-        self.register('button', self._button_shortcode)
-        self.register('columns', self._columns_shortcode)
-        self.register('column', self._column_shortcode)
-        self.register('caption', self._caption_shortcode)
+        self.register('code', self._code_shortcode)
+        self.register('gist', self._gist_shortcode)
+        self.register('youtube', self._youtube_shortcode)
+        self.register('bilibili', self._bilibili_shortcode)
+        self.register('note', self._note_shortcode)
+        self.register('tabs', self._tabs_shortcode)
 
     def register(self, name: str, handler: Callable):
         """
@@ -121,130 +121,160 @@ class ShortcodeService:
 
     # ========== 内置Shortcode处理器 ==========
 
-    def _gallery_shortcode(self, attrs: Dict[str, str], content: str) -> str:
-        """画廊短代码: [gallery ids="1,2,3" columns="3"]"""
-        ids = attrs.get('ids', '')
-        columns = int(attrs.get('columns', '3'))
+    def _code_shortcode(self, attrs: Dict[str, str], content: str) -> str:
+        """代码块短代码: [code language="python"]print("hello")[/code]"""
+        language = attrs.get('language', 'text')
+        escaped_content = content.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
         
-        if not ids:
-            return '<!-- Gallery: No images specified -->'
-        
-        image_ids = [id.strip() for id in ids.split(',') if id.strip()]
-        
-        html = f'<div class="gallery grid grid-cols-{columns} gap-4">'
-        for img_id in image_ids:
-            html += f'''
-            <div class="gallery-item">
-                <img src="/api/v1/media/{img_id}" alt="Gallery Image" loading="lazy" />
-            </div>
-            '''
-        html += '</div>'
-        
-        return html
-
-    def _embed_shortcode(self, attrs: Dict[str, str], content: str) -> str:
-        """嵌入短代码: [embed url="https://youtube.com/..."]"""
-        url = attrs.get('url', content.strip())
-        
-        if not url:
-            return '<!-- Embed: No URL specified -->'
-        
-        # YouTube
-        youtube_match = re.match(r'(?:https?:\/\/)?(?:www\.)?(?:youtube\.com|youtu\.be)\/(?:watch\?v=)?(.+)', url)
-        if youtube_match:
-            video_id = youtube_match.group(1).split('&')[0]
-            return f'''
-            <div class="embed-container aspect-video">
-                <iframe 
-                    src="https://www.youtube.com/embed/{video_id}" 
-                    frameborder="0" 
-                    allowfullscreen
-                    class="w-full h-full"
-                ></iframe>
-            </div>
-            '''
-        
-        # Bilibili
-        bilibili_match = re.match(r'(?:https?:\/\/)?(?:www\.)?bilibili\.com\/video\/(.+)', url)
-        if bilibili_match:
-            video_id = bilibili_match.group(1)
-            return f'''
-            <div class="embed-container aspect-video">
-                <iframe 
-                    src="//player.bilibili.com/player.html?bvid={video_id}" 
-                    frameborder="0" 
-                    allowfullscreen
-                    class="w-full h-full"
-                ></iframe>
-            </div>
-            '''
-        
-        # 通用iframe
         return f'''
-        <div class="embed-container">
-            <iframe src="{url}" frameborder="0" class="w-full"></iframe>
-        </div>
-        '''
+<div class="shortcode-code relative my-4 rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700">
+    <div class="flex items-center justify-between px-4 py-2 bg-gray-100 dark:bg-gray-800 text-xs text-gray-500 border-b border-gray-200 dark:border-gray-700">
+        <span>{language}</span>
+        <button onclick="navigator.clipboard.writeText(this.parentElement.nextElementSibling.textContent)" class="hover:text-blue-600 transition-colors">复制</button>
+    </div>
+    <pre class="p-4 overflow-x-auto text-sm bg-gray-50 dark:bg-gray-900"><code class="language-{language}">{escaped_content}</code></pre>
+</div>
+'''
 
-    def _button_shortcode(self, attrs: Dict[str, str], content: str) -> str:
-        """按钮短代码: [button url="#" style="primary"]Click Me[/button]"""
-        url = attrs.get('url', '#')
-        style = attrs.get('style', 'primary')
-        target = attrs.get('target', '_self')
+    def _gist_shortcode(self, attrs: Dict[str, str], content: str) -> str:
+        """GitHub Gist 短代码: [gist id="abc123"]"""
+        gist_id = attrs.get('id', '').strip()
         
-        style_classes = {
-            'primary': 'bg-blue-600 hover:bg-blue-700 text-white',
-            'secondary': 'bg-gray-600 hover:bg-gray-700 text-white',
-            'success': 'bg-green-600 hover:bg-green-700 text-white',
-            'danger': 'bg-red-600 hover:bg-red-700 text-white',
-            'outline': 'border-2 border-blue-600 text-blue-600 hover:bg-blue-50'
+        if not gist_id:
+            return '<!-- Gist: No id specified -->'
+        
+        return f'''
+<div class="shortcode-gist my-4">
+    <script src="https://gist.github.com/{gist_id}.js"></script>
+</div>
+'''
+
+    def _youtube_shortcode(self, attrs: Dict[str, str], content: str) -> str:
+        """YouTube 视频短代码: [youtube id="dQw4w9WgXcQ"]"""
+        video_id = attrs.get('id', '').strip()
+        
+        if not video_id:
+            return '<!-- YouTube: No id specified -->'
+        
+        return f'''
+<div class="shortcode-youtube my-4 aspect-video rounded-xl overflow-hidden shadow-lg">
+    <iframe 
+        src="https://www.youtube.com/embed/{video_id}" 
+        frameborder="0" 
+        allowfullscreen
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        class="w-full h-full"
+    ></iframe>
+</div>
+'''
+
+    def _bilibili_shortcode(self, attrs: Dict[str, str], content: str) -> str:
+        """Bilibili 视频短代码: [bilibili id="BV1xx411c7mD"]"""
+        video_id = attrs.get('id', '').strip()
+        
+        if not video_id:
+            return '<!-- Bilibili: No id specified -->'
+        
+        return f'''
+<div class="shortcode-bilibili my-4 aspect-video rounded-xl overflow-hidden shadow-lg">
+    <iframe 
+        src="//player.bilibili.com/player.html?bvid={video_id}&autoplay=0"
+        frameborder="0" 
+        allowfullscreen
+        class="w-full h-full"
+    ></iframe>
+</div>
+'''
+
+    def _note_shortcode(self, attrs: Dict[str, str], content: str) -> str:
+        """提示框短代码: [note type="info|warning|tip"]内容[/note]"""
+        note_type = attrs.get('type', 'info')
+        
+        type_styles = {
+            'info': {
+                'bg': 'bg-blue-50 dark:bg-blue-900/20',
+                'border': 'border-blue-200 dark:border-blue-800',
+                'icon': '💡',
+                'text': 'text-blue-800 dark:text-blue-200'
+            },
+            'warning': {
+                'bg': 'bg-yellow-50 dark:bg-yellow-900/20',
+                'border': 'border-yellow-200 dark:border-yellow-800',
+                'icon': '⚠️',
+                'text': 'text-yellow-800 dark:text-yellow-200'
+            },
+            'tip': {
+                'bg': 'bg-green-50 dark:bg-green-900/20',
+                'border': 'border-green-200 dark:border-green-800',
+                'icon': '✅',
+                'text': 'text-green-800 dark:text-green-200'
+            }
         }
         
-        css_class = style_classes.get(style, style_classes['primary'])
+        style = type_styles.get(note_type, type_styles['info'])
         
         return f'''
-        <a href="{url}" target="{target}" class="inline-block px-6 py-3 rounded-lg font-semibold transition-colors {css_class}">
-            {content}
-        </a>
-        '''
+<div class="shortcode-note {style['bg']} {style['border']} {style['text']} border-l-4 rounded-r-xl p-4 my-4">
+    <div class="flex items-start gap-2">
+        <span class="text-lg">{style['icon']}</span>
+        <div class="text-sm">{content}</div>
+    </div>
+</div>
+'''
 
-    def _columns_shortcode(self, attrs: Dict[str, str], content: str) -> str:
-        """分栏短代码: [columns count="2"][/columns]"""
-        count = int(attrs.get('count', '2'))
+    def _tabs_shortcode(self, attrs: Dict[str, str], content: str) -> str:
+        """标签切换短代码: [tabs][tab name="A"]A[/tab][tab name="B"]B[/tabs]"""
+        # 解析子 tab 标签
+        tab_pattern = r'\[tab\s+name="([^"]*)"\](.*?)\[\/tab\]'
+        tabs = re.findall(tab_pattern, content, re.DOTALL)
+        
+        if not tabs:
+            return f'<div class="shortcode-tabs my-4 p-4 border rounded-xl">{content}</div>'
+        
+        tab_id = f'tabs-{hash(content) % 10000}'
+        
+        # 构建标签头
+        headers_html = ''
+        panels_html = ''
+        for i, (name, tab_content) in enumerate(tabs):
+            active = 'active' if i == 0 else ''
+            selected = 'true' if i == 0 else 'false'
+            headers_html += f'''
+            <button class="tab-header {active} px-4 py-2 text-sm font-medium rounded-t-lg transition-colors" role="tab" aria-selected="{selected}" data-tab-target="{tab_id}-panel-{i}">{name}</button>'''
+            panels_html += f'''
+            <div class="tab-panel {active} p-4 text-sm" id="{tab_id}-panel-{i}" role="tabpanel" data-tab-group="{tab_id}">{tab_content}</div>'''
         
         return f'''
-        <div class="grid grid-cols-{count} gap-6 my-6">
-            {content}
-        </div>
-        '''
-
-    def _column_shortcode(self, attrs: Dict[str, str], content: str) -> str:
-        """列短代码: [column span="1"][/column]"""
-        span = attrs.get('span', '1')
-        
-        return f'''
-        <div class="col-span-{span}">
-            {content}
-        </div>
-        '''
-
-    def _caption_shortcode(self, attrs: Dict[str, str], content: str) -> str:
-        """标题短代码: [caption align="center"]Image Caption[/caption]"""
-        align = attrs.get('align', 'center')
-        
-        align_classes = {
-            'left': 'text-left',
-            'center': 'text-center',
-            'right': 'text-right'
-        }
-        
-        css_class = align_classes.get(align, 'text-center')
-        
-        return f'''
-        <p class="text-sm text-gray-600 dark:text-gray-400 italic mt-2 {css_class}">
-            {content}
-        </p>
-        '''
+<div class="shortcode-tabs my-4 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+    <div class="tab-headers flex border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800" role="tablist">
+        {headers_html}
+    </div>
+    <div class="tab-panels bg-white dark:bg-gray-900">
+        {panels_html}
+    </div>
+    <script>
+        (function() {{
+            document.querySelectorAll('[data-tab-group="{tab_id}"]').forEach(panel => {{
+                if (panel.id === "{tab_id}-panel-0") panel.style.display = "block";
+                else panel.style.display = "none";
+            }});
+            document.querySelectorAll('[data-tab-target^="{tab_id}"]').forEach(btn => {{
+                btn.addEventListener('click', function() {{
+                    document.querySelectorAll('[data-tab-group="{tab_id}"]').forEach(p => p.style.display = "none");
+                    document.querySelectorAll('[data-tab-target^="{tab_id}"]').forEach(b => {{
+                        b.classList.remove('active', 'bg-white', 'dark:bg-gray-900', 'border-l', 'border-r', 'border-t');
+                        b.ariaSelected = "false";
+                    }});
+                    var target = document.getElementById(this.dataset.tabTarget);
+                    if (target) target.style.display = "block";
+                    this.classList.add('active', 'bg-white', 'dark:bg-gray-900', 'border-l', 'border-r', 'border-t');
+                    this.ariaSelected = "true";
+                }});
+            }});
+        }})();
+    </script>
+</div>
+'''
 
 
 # 全局实例

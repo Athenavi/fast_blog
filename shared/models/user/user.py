@@ -1,13 +1,14 @@
 """
 SQLAlchemy 模型定义 - User
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-06-04 17:21:19
+生成时间：2026-06-13 18:06:17
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Index
 from sqlalchemy.orm import relationship
 
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
+
 
 
 class User(Base):
@@ -72,6 +73,9 @@ class User(Base):
 
     backup_codes = Column(Text, nullable=True, doc='备用码(JSON格式存储)')
 
+
+    # 关系定义
+    roles = relationship('Role', secondary='user_role_assignments', back_populates='users')
 
     def to_dict(self, exclude_sensitive=True):
         """转换为字典

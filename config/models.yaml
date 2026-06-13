@@ -561,6 +561,12 @@ models:
         format: date-time
         nullable: true
         description: 定时发布时间（设置为未来时间后自动发布）
+      published_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: 实际发布时间
+        index: true
       post_type:
         type: string
         maxLength: 50

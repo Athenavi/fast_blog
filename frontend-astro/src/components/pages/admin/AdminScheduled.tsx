@@ -13,8 +13,9 @@ import {
 
 // ─── Types ────────────────────────────────────────────
 interface ScheduledArticle {
-  id: number; title?: string; scheduled_at?: string;
+  id: number; title?: string; scheduled_publish_at?: string;
   created_at?: string; slug?: string; status?: number;
+  author?: string;
 }
 
 // ─── Calendar helpers ─────────────────────────────────
@@ -48,7 +49,7 @@ function CalendarInner() {
     queryKey: ['scheduled-articles-calendar'],
     queryFn: async () => {
       const res = await apiClient.get('/articles/scheduler/list', {page: 1, per_page: 200});
-      return (res.data?.articles || []) as ScheduledArticle[];
+      return (res.data?.data || []) as ScheduledArticle[];
     },
   });
   const articles = data || [];
@@ -63,8 +64,8 @@ function CalendarInner() {
   const articlesByDate = useMemo(() => {
     const map: Record<string, ScheduledArticle[]> = {};
     for (const a of articles) {
-      if (!a.scheduled_at) continue;
-      const key = a.scheduled_at.slice(0, 10); // YYYY-MM-DD
+      if (!a.scheduled_publish_at) continue;
+      const key = a.scheduled_publish_at.slice(0, 10); // YYYY-MM-DD
       if (!map[key]) map[key] = [];
       map[key].push(a);
     }
@@ -233,7 +234,7 @@ function CalendarInner() {
                     <td className="px-4 py-3 text-sm text-gray-900 dark:text-white">{a.title || `文章 #${a.id}`}</td>
                     <td className="px-4 py-3 text-sm text-gray-500 flex items-center gap-1.5">
                       <Calendar className="w-3.5 h-3.5"/>
-                      {a.scheduled_at ? new Date(a.scheduled_at).toLocaleString('zh-CN') : '-'}
+                      {a.scheduled_publish_at ? new Date(a.scheduled_publish_at).toLocaleString('zh-CN') : '-'}
                     </td>
                     <td className="px-4 py-3 text-right">
                       <button onClick={() => cancelMut.mutate(a.id)}

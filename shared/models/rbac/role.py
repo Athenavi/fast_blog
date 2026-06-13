@@ -1,13 +1,15 @@
 """
 SQLAlchemy 模型定义 - Role
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-06-04 17:21:20
+生成时间：2026-06-13 18:06:17
 """
 
-from sqlalchemy import Column, BigInteger, String, Boolean, DateTime, ForeignKey, Index
+from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
 from sqlalchemy.orm import relationship
 
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
+
+
 
 class Role(Base):
     """角色模型模型"""
@@ -31,6 +33,7 @@ class Role(Base):
 
     is_system = Column(Boolean, default=False, doc='是否为系统角色（系统角色不可删除）')
 
+
     parent_id = Column(BigInteger, ForeignKey('roles.id'), nullable=True, doc='父角色 ID（用于权限继承）')
 
 
@@ -43,6 +46,7 @@ class Role(Base):
 
     # 关系定义
     capabilities = relationship('Capability', secondary='role_capabilities', back_populates='roles')
+    users = relationship('User', secondary='user_role_assignments', back_populates='roles')
 
     def to_dict(self, exclude_sensitive=True):
         """转换为字典

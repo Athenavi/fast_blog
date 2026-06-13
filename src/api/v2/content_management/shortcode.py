@@ -81,51 +81,53 @@ async def get_shortcode_help(name: str):
         使用说明
     """
     help_docs = {
-        'gallery': {
-            'description': '图片画廊',
-            'usage': '[gallery ids="1,2,3" columns="3"]',
+        'code': {
+            'description': '嵌入格式化代码块',
+            'usage': '[code language="python"]print("hello")[/code]',
             'attributes': {
-                'ids': '图片ID列表(逗号分隔)',
-                'columns': '列数(默认3)'
+                'language': '编程语言(默认text)'
             },
-            'example': '[gallery ids="1,2,3,4" columns="2"]'
+            'example': '[code language="python"]def hello():\\n    print("Hello, World!")[/code]'
         },
-        'embed': {
-            'description': '嵌入视频或其他内容',
-            'usage': '[embed url="https://youtube.com/watch?v=<video-id>"]',
+        'gist': {
+            'description': '嵌入 GitHub Gist',
+            'usage': '[gist id="abc123"]',
             'attributes': {
-                'url': '嵌入URL'
+                'id': 'Gist ID'
             },
-            'example': '[embed]https://www.youtube.com/watch?v=dQw4w9WgXcQ[/embed]'
+            'example': '[gist id="username/abc123"]'
         },
-        'button': {
-            'description': '按钮',
-            'usage': '[button url="#" style="primary"]Text[/button]',
+        'youtube': {
+            'description': '嵌入 YouTube 视频',
+            'usage': '[youtube id="dQw4w9WgXcQ"]',
             'attributes': {
-                'url': '链接地址',
-                'style': '样式(primary/secondary/success/danger/outline)',
-                'target': '打开方式(_self/_blank)'
+                'id': 'YouTube 视频 ID'
             },
-            'example': '[button url="/contact" style="primary"]联系我们[/button]'
+            'example': '[youtube id="dQw4w9WgXcQ"]'
         },
-        'columns': {
-            'description': '分栏布局',
-            'usage': '[columns count="2"][column]Content[/column][column]Content[/column][/columns]',
+        'bilibili': {
+            'description': '嵌入 Bilibili 视频',
+            'usage': '[bilibili id="BV1xx411c7mD"]',
             'attributes': {
-                'count': '列数'
+                'id': 'Bilibili 视频 BV 号'
             },
-            'example': '''[columns count="2"]
-[column span="1"]左侧内容[/column]
-[column span="1"]右侧内容[/column]
-[/columns]'''
+            'example': '[bilibili id="BV1xx411c7mD"]'
         },
-        'caption': {
-            'description': '图片说明文字',
-            'usage': '[caption align="center"]Caption text[/caption]',
+        'note': {
+            'description': '显示提示框',
+            'usage': '[note type="info|warning|tip"]内容[/note]',
             'attributes': {
-                'align': '对齐方式(left/center/right)'
+                'type': '类型: info(默认), warning, tip'
             },
-            'example': '[caption align="center"]这是一张图片的说明[/caption]'
+            'example': '[note type="tip"]这是一个提示消息[/note]'
+        },
+        'tabs': {
+            'description': '创建标签切换',
+            'usage': '[tabs][tab name="A"]内容A[/tab][tab name="B"]内容B[/tabs]',
+            'attributes': {
+                'name': '标签名称(在[tab]上使用)'
+            },
+            'example': '[tabs]\\n[tab name="Python"]Python 内容[/tab]\\n[tab name="JavaScript"]JS 内容[/tab]\\n[/tabs]'
         }
     }
 

@@ -1,12 +1,13 @@
 """
 SQLAlchemy 模型定义 - Order
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-06-04 17:21:20
+生成时间：2026-06-13 18:06:17
 """
 
-from sqlalchemy import Column, BigInteger, String, Text, DateTime, Numeric, ForeignKey, Index
+from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Numeric, ForeignKey, Index
 
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
+
 
 
 class Order(Base):
@@ -32,8 +33,8 @@ class Order(Base):
 
     user_id = Column(BigInteger, ForeignKey('users.id'), doc='用户ID')
 
-    status = Column(String(50), default='pending',
-                    doc='订单状态 (pending:待支付, paid:已支付, processing:处理中, shipped:已发货, delivered:已送达, cancelled:已取消, refunded:已退款)')
+
+    status = Column(String(50), default='pending', doc='订单状态 (pending:待支付, paid:已支付, processing:处理中, shipped:已发货, delivered:已送达, cancelled:已取消, refunded:已退款)')
 
     total_amount = Column(Numeric(10, 2), doc='订单总金额')
 
@@ -46,8 +47,7 @@ class Order(Base):
 
     payment_method = Column(String(50), nullable=True, doc='支付方式')
 
-    payment_status = Column(String(50), default='pending',
-                            doc='支付状态 (pending:待支付, paid:已支付, failed:支付失败, refunded:已退款)')
+    payment_status = Column(String(50), default='pending', doc='支付状态 (pending:待支付, paid:已支付, failed:支付失败, refunded:已退款)')
 
     transaction_id = Column(String(255), nullable=True, doc='交易ID')
 

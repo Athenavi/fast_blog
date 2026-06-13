@@ -1,12 +1,13 @@
 """
 SQLAlchemy 模型定义 - ScheduledReport
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-06-04 17:21:20
+生成时间：2026-06-13 18:06:17
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Index
 
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
+
 
 
 class ScheduledReport(Base):
@@ -79,3 +80,5 @@ class ScheduledReport(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<ScheduledReport id={self.id}>'
+
+

@@ -177,7 +177,7 @@ class ScheduledPublishService:
         # 查询所有已设置定时发布的文章
         stmt = (
             select(Article, User.username)
-            .join(User, Article.author_id == User.id, isouter=True)
+            .join(User, Article.user == User.id, isouter=True)
             .where(
                 Article.scheduled_publish_at.isnot(None),
                 Article.status == 0

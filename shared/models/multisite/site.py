@@ -1,12 +1,13 @@
 """
 SQLAlchemy 模型定义 - Site
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-06-04 17:21:20
+生成时间：2026-06-13 18:06:17
 """
 
-from sqlalchemy import Column, BigInteger, String, Text, Boolean, DateTime, Index
+from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Index
 
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
+
 
 
 class Site(Base):
@@ -30,7 +31,9 @@ class Site(Base):
 
     additional_domains = Column(Text, nullable=True, doc='附加域名列表（JSON格式）')
 
+
     description = Column(Text, nullable=True, doc='站点描述')
+
 
     logo_url = Column(String(500), nullable=True, doc='Logo URL')
 

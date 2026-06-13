@@ -24,6 +24,8 @@ def _build_router():
     from src.api.v2.articles.article_stats import router as article_stats_router
     from src.api.v2.articles.articles import router as articles_crud_router
     from src.api.v2.articles.draft_preview import router as draft_preview_router
+    from src.api.v2.articles.preview_view import router as preview_view_router
+    from src.api.v2.articles.revision_notes import router as revision_notes_router
     from src.api.v2.articles.scheduled_publish import router as scheduled_publish_router
 
     router.include_router(articles_crud_router, prefix="")
@@ -33,7 +35,9 @@ def _build_router():
     router.include_router(article_annotations_router, prefix="/annotations")
     router.include_router(article_search_router, prefix="/search")
     router.include_router(article_stats_router, prefix="/views")
+    router.include_router(preview_view_router, prefix="")
     router.include_router(draft_preview_router, prefix="/draft")
+    router.include_router(revision_notes_router, prefix="")
     router.include_router(scheduled_publish_router, prefix="/scheduler")
 
     _router = router

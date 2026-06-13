@@ -1,12 +1,13 @@
 """
 SQLAlchemy 模型定义 - GoogleAnalyticsConfig
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-06-04 17:21:20
+生成时间：2026-06-13 18:06:17
 """
 
-from sqlalchemy import Column, BigInteger, String, Boolean, DateTime, Numeric, ForeignKey, Index
+from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Numeric, ForeignKey, Index
 
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
+
 
 
 class GoogleAnalyticsConfig(Base):
@@ -41,13 +42,17 @@ class GoogleAnalyticsConfig(Base):
 
     anonymize_ip = Column(Boolean, default=True, doc='是否匿名化 IP 地址')
 
+
     sample_rate = Column(Numeric(10, 2), default=100.0, doc='采样率（0-100）')
 
+
     is_active = Column(Boolean, default=False, doc='是否激活')
+
 
     created_at = Column(DateTime, doc='创建时间')
 
     updated_at = Column(DateTime, doc='更新时间')
+
 
     def to_dict(self, exclude_sensitive=True):
         """转换为字典
@@ -81,3 +86,5 @@ class GoogleAnalyticsConfig(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<GoogleAnalyticsConfig id={self.id}>'
+
+
