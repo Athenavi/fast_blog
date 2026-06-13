@@ -2,7 +2,6 @@
 
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useSearchParams, useRouter } from 'next/navigation';
 import { apiClient } from '@/lib/api/base-client';
 import { Search, Loader2, FileText, Calendar, User, Tag, ChevronLeft, ChevronRight } from 'lucide-react';
 
@@ -42,13 +41,19 @@ function useDebounce<T>(value: T, delay: number): T {
 }
 
 function SearchPageInner() {
-  const router = useRouter();
-  const searchParams = useSearchParams();
   const inputRef = useRef<HTMLInputElement>(null);
-  const [query, setQuery] = useState(searchParams.get('q') || '');
-  const debouncedQuery = useDebounce(query, 300);
+  const [query, setQuery] = useState('');
   const [page, setPage] = useState(1);
   const [showSuggestions, setShowSuggestions] = useState(false);
+
+  // 初始化：从 URL 参数读取搜索词
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const q = params.get('q') || '';
+    if (q) setQuery(q);
+  }, []);
+
+  const debouncedQuery = useDebounce(query, 300);
 
   // Fetch autocomplete suggestions
   const { data: suggestions } = useQuery<string[]>({
@@ -89,8 +94,9 @@ function SearchPageInner() {
     const params = new URLSearchParams(window.location.search);
     if (q) params.set('q', q);
     else params.delete('q');
-    router.replace(`/search?${params.toString()}`);
-  }, [router]);
+    const newUrl = `/search?${params.toString()}`;
+    window.history.replaceState(null, '', newUrl);
+  }, []);
 
   const highlight = (text?: string) => {
     if (!text) return '';
