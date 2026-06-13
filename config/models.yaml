@@ -7707,3 +7707,61 @@ models:
           - created_at
         order: DESC
         comment: "创建时间索引"
+
+  GDPRConsent:
+    description: "GDPR 用户同意记录模型（替代 JSON 文件存储）"
+    status: active
+    frontend_page: /admin/gdpr
+    properties:
+      id:
+        type: bigint
+        description: "记录 ID"
+      user_id:
+        type: bigint
+        foreignKey: User
+        index: true
+        description: "用户 ID"
+      consent_type:
+        type: string
+        maxLength: 50
+        description: "同意类型 (analytics, marketing, cookies 等)"
+      granted:
+        type: boolean
+        default: false
+        description: "是否授予"
+      details:
+        type: text
+        nullable: true
+        description: "详细信息"
+      ip_address:
+        type: string
+        maxLength: 45
+        nullable: true
+        description: "记录 IP"
+      user_agent:
+        type: string
+        maxLength: 500
+        nullable: true
+        description: "User-Agent"
+      created_at:
+        type: string
+        format: date-time
+        description: "创建时间"
+    module: security
+    orm: true
+    table: gdpr_consents
+    indexes:
+      - name: idx_gdpr_consent_user
+        columns:
+          - user_id
+        comment: "用户索引"
+      - name: idx_gdpr_consent_type
+        columns:
+          - consent_type
+        comment: "同意类型索引"
+      - name: idx_gdpr_consent_user_type
+        columns:
+          - user_id
+          - consent_type
+        unique: true
+        comment: "用户+类型唯一索引"

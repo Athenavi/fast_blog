@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - AdImpression
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-06-13 22:56:46
+生成时间：2026-06-13 23:12:16
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index

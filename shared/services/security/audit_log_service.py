@@ -11,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.sql.functions import func
 
-from shared.models.system import AuditLog
+from shared.models.system.audit_log import AuditLog
 from src.unified_logger import default_logger as logger
 
 

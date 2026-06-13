@@ -266,8 +266,8 @@ class CSRFProtectionMiddleware(BaseHTTPMiddleware):
     # 不需要 CSRF 验证的方法
     SAFE_METHODS = {'GET', 'HEAD', 'OPTIONS'}
 
-    # 排除的路径（如 API 端点使用 JWT 认证）
-    EXCLUDED_PATHS = ['/api/', '/auth/', '/api/v2/health']
+    # 排除的路径（无需 CSRF 验证，如认证端点和健康检查）
+    EXCLUDED_PATHS = ['/auth/', '/api/v2/auth/', '/api/v2/health']
 
     async def dispatch(self, request: Request, call_next):
         # GET/HEAD/OPTIONS 请求不需要 CSRF 验证
@@ -279,15 +279,15 @@ class CSRFProtectionMiddleware(BaseHTTPMiddleware):
         if any(path.startswith(excluded) for excluded in self.EXCLUDED_PATHS):
             return await call_next(request)
 
+        # 对于已认证的 API 请求（携带 JWT），跳过 CSRF 检查
+        auth_header = request.headers.get('Authorization')
+        if auth_header:
+            return await call_next(request)
+
         # 验证 CSRF token
         csrf_token = request.headers.get('X-CSRF-Token') or request.headers.get('X-XSRF-TOKEN')
 
         if not csrf_token:
-            # 对于 API 请求，如果没有 CSRF token 但有 Authorization header，跳过检查
-            auth_header = request.headers.get('Authorization')
-            if auth_header:
-                return await call_next(request)
-
             return JSONResponse(
                 status_code=403,
                 content={
@@ -296,10 +296,10 @@ class CSRFProtectionMiddleware(BaseHTTPMiddleware):
                 }
             )
 
-        # 实现实际的 CSRF token 验证逻辑
+        # 验证 CSRF token（cache 为同步客户端）
         from src.extensions import cache
 
-        stored_token = await cache.get(f"csrf_token:{csrf_token}")
+        stored_token = cache.get(f"csrf_token:{csrf_token}")
         if not stored_token:
             return JSONResponse(
                 status_code=403,
@@ -310,7 +310,7 @@ class CSRFProtectionMiddleware(BaseHTTPMiddleware):
             )
 
         # 验证后删除token(一次性使用)
-        await cache.delete(f"csrf_token:{csrf_token}")
+        cache.delete(f"csrf_token:{csrf_token}")
 
         response = await call_next(request)
         return response

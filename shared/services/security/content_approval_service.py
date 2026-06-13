@@ -34,7 +34,7 @@ class ContentApprovalService:
     def __init__(self):
         pass
 
-    async def create_approval_request(self, db, content_type: str, content_id: int,
+    async def create_approval_request(self, db: AsyncSession, content_type: str, content_id: int,
                                       applicant_id: int, max_level: int = 1,
                                       approvers: List[int] = None) -> ApprovalRecord:
         """

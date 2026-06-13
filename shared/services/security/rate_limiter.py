@@ -5,7 +5,7 @@ API限流服务
 import time
 
 from typing import Dict, Any, Optional, Tuple
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from collections import defaultdict
 
 import redis.asyncio as redis
@@ -102,7 +102,7 @@ class RateLimiter:
             endpoint: str = None
     ) -> Tuple[bool, Dict[str, Any]]:
         """
-        检查速率限制（兼容旧接口）
+        检查速率限制（优化版：单次检查 + 避免重复 IP 查询）
         
         Args:
             user_id: 用户ID
@@ -142,22 +142,21 @@ class RateLimiter:
                     }
                 }
 
-        # 获取剩余配额信息
+        # 构建限流信息（避免重复 IP 查询）
         limit_info = {}
+        if ip_address:
+            _, ip_info = await self.check_ip_limit(ip_address, endpoint)
+            limit_info['ip'] = {
+                'limit': ip_info['max_requests'],
+                'remaining': ip_info.get('remaining', ip_info['max_requests']),
+                'reset': time.time() + ip_info['window']
+            }
         if user_id:
             quota = await self.get_quota_info(user_id)
             limit_info['user'] = {
                 'limit': quota['quota_limit'],
                 'remaining': quota['remaining'],
                 'reset': quota['reset_time'].timestamp()
-            }
-
-        if ip_address and not limited:
-            limited_check, ip_info = await self.check_ip_limit(ip_address, endpoint)
-            limit_info['ip'] = {
-                'limit': ip_info['max_requests'],
-                'remaining': ip_info.get('remaining', ip_info['max_requests']),
-                'reset': time.time() + ip_info['window']
             }
 
         return True, {'limit': limit_info}
@@ -275,7 +274,7 @@ class RateLimiter:
             'quota_limit': max_requests,
             'remaining': max(max_requests - current_count, 0),
             'window': window,
-            'reset_time': datetime.now() + timedelta(seconds=window)
+            'reset_time': datetime.now(timezone.utc) + timedelta(seconds=window)
         }
 
     async def set_custom_limit(self, identifier: str, limit_type: str, requests: int, window: int):
