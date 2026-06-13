@@ -62,7 +62,8 @@ function MediaBrowserInner() {
     queryKey: ['media-folders'],
     queryFn: async () => {
       const res = await apiClient.get(MEDIA.FOLDERS_TREE);
-      return res.data?.folders || res.data?.data || res.data || [];
+      const raw = res.data?.folders || res.data?.data || res.data;
+      return Array.isArray(raw) ? raw : [];
     },
   });
 
