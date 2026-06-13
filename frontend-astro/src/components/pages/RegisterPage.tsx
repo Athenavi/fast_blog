@@ -148,7 +148,7 @@ export default function RegisterPage() {
   const onSubmit = async (data: RegisterFormData) => {
     setBusy(true); setErr('');
     try {
-      const r = await apiClient.postForm(AUTH.REGISTER, {
+      const r = await apiClient.post(AUTH.REGISTER, {
         username: data.username,
         email: data.email,
         password: data.password
