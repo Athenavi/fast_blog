@@ -17,7 +17,7 @@ app = typer.Typer(
 )
 
 # 注册子命令
-from cli.commands import users, backup, cache, migrate, health, shell
+from cli.commands import users, backup, cache, migrate, health, shell, upgrade
 
 app.add_typer(users.app, name="user", help="用户管理")
 app.add_typer(backup.app, name="backup", help="数据库备份与恢复")
@@ -25,6 +25,7 @@ app.add_typer(cache.app, name="cache", help="缓存管理")
 app.add_typer(migrate.app, name="migrate", help="数据库迁移")
 app.add_typer(health.app, name="health", help="健康检查")
 app.add_typer(shell.app, name="shell", help="交互式 Shell")
+app.add_typer(upgrade.app, name="upgrade", help="系统升级")
 
 
 def main():

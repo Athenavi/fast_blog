@@ -1,20 +1,11 @@
-[FRONTEND]
+[RELEASE]
 version = 0.5.26.0613
 build_time = 2026-06-13T12:00:00Z
-framework = Next.js 16.1.6
-node_version = 25.2.1
-
-[BACKEND]
-version = V0.5.26.0613
-build_time = 2026-06-13T12:00:00Z
-framework = FastAPI 0.128.0
-python_version = 3.14.4+
 
 [DATABASE]
-version = c3ab8756dfe5
-migration_status = up_to_date
+migration = c3ab8756dfe5
+status = up_to_date
 
 [AUTHOR]
 maintainer = Athenavi
 repository = https://github.com/Athenavi/fast_blog
-
