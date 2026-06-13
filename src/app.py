@@ -492,7 +492,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     yield
 
     # ---------- 关闭清理 ----------
-    await safe_run_async("调度器停止", lambda: __import__('src.scheduler').session_scheduler.scheduler.stop())
+    await safe_run_async("调度器停止", lambda: __import__('src.scheduler').session_scheduler.scheduler.shutdown())
 
     if is_installed:
         await safe_run_async("下载队列停止", _shutdown_download_processor)

@@ -1,4 +1,4 @@
-from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from apscheduler.triggers.cron import CronTrigger
 
@@ -9,8 +9,8 @@ from src.unified_logger import default_logger as logger
 
 class SessionScheduler:
     def __init__(self, app=None):
-        # 使用 BackgroundScheduler 替代 FastScheduler
-        self.scheduler = BackgroundScheduler()
+        # 使用 AsyncIOScheduler 在同一事件循环中运行异步任务
+        self.scheduler = AsyncIOScheduler()
         self.app = app
 
     def init_app(self, app):
@@ -48,19 +48,10 @@ class SessionScheduler:
                 import traceback
                 traceback.print_exc()
 
-        # 添加定时任务（使用 APScheduler 的异步支持）
-        import asyncio
-
-        def sync_article_views_job():
-            """包装异步函数为同步函数"""
-            loop = asyncio.new_event_loop()
-            try:
-                loop.run_until_complete(sync_article_views_to_db())
-            finally:
-                loop.close()
+        # 添加定时任务（AsyncIOScheduler 直接支持异步函数）
 
         self.scheduler.add_job(
-            sync_article_views_job,
+            sync_article_views_to_db,
             trigger=IntervalTrigger(minutes=5),
             id='sync_article_views',
             replace_existing=True
@@ -75,15 +66,8 @@ class SessionScheduler:
             else:
                 logger.error(f"Daily backup failed: {result.get('error')}")
 
-        def daily_backup_job():
-            loop = asyncio.new_event_loop()
-            try:
-                loop.run_until_complete(daily_backup())
-            finally:
-                loop.close()
-
         self.scheduler.add_job(
-            daily_backup_job,
+            daily_backup,
             trigger=CronTrigger(hour=2, minute=0),
             id='daily_backup',
             replace_existing=True
@@ -99,15 +83,8 @@ class SessionScheduler:
             else:
                 logger.error(f"Weekly backup had issues")
 
-        def weekly_backup_job():
-            loop = asyncio.new_event_loop()
-            try:
-                loop.run_until_complete(weekly_backup())
-            finally:
-                loop.close()
-
         self.scheduler.add_job(
-            weekly_backup_job,
+            weekly_backup,
             trigger=CronTrigger(day_of_week='sun', hour=3, minute=0),
             id='weekly_backup',
             replace_existing=True
@@ -132,15 +109,8 @@ class SessionScheduler:
                 import traceback
                 traceback.print_exc()
 
-        def check_due_articles_job():
-            loop = asyncio.new_event_loop()
-            try:
-                loop.run_until_complete(check_due_scheduled_articles())
-            finally:
-                loop.close()
-
         self.scheduler.add_job(
-            check_due_articles_job,
+            check_due_scheduled_articles,
             trigger=IntervalTrigger(minutes=5),
             id='publish_due_articles',
             replace_existing=True
@@ -183,15 +153,8 @@ class SessionScheduler:
                 import traceback
                 traceback.print_exc()
 
-        def check_vip_expiry_job():
-            loop = asyncio.new_event_loop()
-            try:
-                loop.run_until_complete(check_expired_vip_subscriptions())
-            finally:
-                loop.close()
-
         self.scheduler.add_job(
-            check_vip_expiry_job,
+            check_expired_vip_subscriptions,
             trigger=IntervalTrigger(minutes=30),
             id='check_vip_expiry',
             replace_existing=True
