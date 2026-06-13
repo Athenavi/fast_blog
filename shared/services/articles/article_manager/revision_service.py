@@ -382,17 +382,25 @@ async def compare_revisions(
                 (rev2.excerpt or "").splitlines(keepends=True),
                 fromfile="v1", tofile="v2", lineterm=""
             )),
-            "content_diff": list(difflib.unified_diff(
-                (rev1.content or "").splitlines(keepends=True),
-                (rev2.content or "").splitlines(keepends=True),
-                fromfile="v1", tofile="v2", lineterm=""
-            )),
-            "content_diff_html": difflib.HtmlDiff().make_table(
-                (rev1.content or "").splitlines(keepends=True),
-                (rev2.content or "").splitlines(keepends=True),
-                fromdesc="v1", todesc="v2", context=True, numlines=3
-            ),
         }
+
+        # 内容差异（限制大小避免 OOM）
+        MAX_DIFF_LINES = 10000
+        content_lines_1 = (rev1.content or "").splitlines(keepends=True)
+        content_lines_2 = (rev2.content or "").splitlines(keepends=True)
+
+        differences["content_changed"] = rev1.content != rev2.content
+        differences["content_diff"] = list(difflib.unified_diff(
+            content_lines_1, content_lines_2,
+            fromfile="v1", tofile="v2", lineterm=""
+        ))
+        if len(content_lines_1) <= MAX_DIFF_LINES and len(content_lines_2) <= MAX_DIFF_LINES:
+            differences["content_diff_html"] = difflib.HtmlDiff().make_table(
+                content_lines_1, content_lines_2,
+                fromdesc="v1", todesc="v2", context=True, numlines=3
+            )
+        else:
+            differences["content_diff_html"] = "<p>内容过大，已跳过 HTML diff 渲染</p>"
 
         return {
             "revision1": rev1.to_dict(),

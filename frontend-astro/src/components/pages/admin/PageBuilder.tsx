@@ -1,4 +1,5 @@
 import {useState} from 'react';
+import DOMPurify from 'dompurify';
 import {PermissionGuard} from '@/components/admin/PermissionGuard';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {AuthGuard} from '@/components/AuthGuard';
@@ -72,10 +73,12 @@ function SortableBlock({
                            block,
                            index,
                            onDelete,
+                           onStylesChange,
                        }: {
     block: any;
     index: number;
     onDelete: (index: number) => void;
+    onStylesChange: (index: number, styles: any) => void;
 }) {
     const {
         attributes,
@@ -100,7 +103,7 @@ function SortableBlock({
     const handleStyleChange = (key: string, value: any) => {
         const newStyles = {...blockStyles, [key]: value};
         setBlockStyles(newStyles);
-        // 实际项目中需要同步到父组件
+        onStylesChange(index, newStyles);
     };
 
     return (
@@ -334,15 +337,19 @@ function PageBuilderInner() {
         setEditingBlocks(editingBlocks.filter((_, i) => i !== index));
     };
 
+    const handleBlockStylesChange = (index: number, styles: any) => {
+        setEditingBlocks(prev => prev.map((b, i) => i === index ? {...b, styles} : b));
+    };
+
     const handleSave = () => {
         if (!selectedPage) return;
         savePageMut.mutate({id: selectedPage.id, blocks: editingBlocks});
     };
 
-    const handlePublish = () => {
+    const handlePublish = async () => {
         if (!selectedPage) return;
-        handleSave();
-        setTimeout(() => publishMut.mutate(selectedPage.id), 500);
+        await savePageMut.mutateAsync({id: selectedPage.id, blocks: editingBlocks});
+        publishMut.mutate(selectedPage.id);
     };
 
     // P6-2: 响应式预览宽度
@@ -464,6 +471,7 @@ function PageBuilderInner() {
                                                         block={block}
                                                         index={index}
                                                         onDelete={handleDeleteBlock}
+                                                        onStylesChange={handleBlockStylesChange}
                                                     />
                                                 ))}
                                                 {editingBlocks.length === 0 && (
@@ -525,7 +533,7 @@ function PageBuilderInner() {
                                     {editingBlocks.map((block, index) => (
                                         <div key={index} className="mb-4">
                                             <div
-                                                dangerouslySetInnerHTML={{__html: block.preview_html || `<div class="p-4 bg-gray-50 text-center text-gray-400">${block.type} 预览</div>`}}/>
+                                                dangerouslySetInnerHTML={{__html: DOMPurify.sanitize(block.preview_html || `<div class="p-4 bg-gray-50 text-center text-gray-400">${block.type} 预览</div>`)}}/>
                                         </div>
                                     ))}
                                     {editingBlocks.length === 0 && (

@@ -50,7 +50,10 @@ function PatternLibrary({onSelect, onClose}: { onSelect: (blocks: any) => void; 
       </div>
       <div className="flex-1 overflow-y-auto p-6">
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-          {patterns.map(p => <button key={p.id} onClick={() => onSelect(JSON.parse(p.blocks))}
+          {patterns.map(p => {
+            let parsedBlocks: any[];
+            try { parsedBlocks = JSON.parse(p.blocks); } catch { parsedBlocks = []; }
+            return <button key={p.id} onClick={() => onSelect(parsedBlocks)}
                                      className="group p-4 rounded-xl border hover:border-blue-500 hover:shadow-md transition-all text-left">
             <div
                 className="aspect-video bg-gray-100 dark:bg-gray-800 rounded-lg mb-3 flex items-center justify-center overflow-hidden">
@@ -138,19 +141,24 @@ const RichEditor: React.FC<RichEditorProps> = ({value,onChange,placeholder='开�
   const ydocRef = useRef<Y.Doc | null>(null);
   const providerRef = useRef<any>(null);
 
-  // Initialize Collaboration
+  // Initialize Collaboration — must happen BEFORE useEditor so Y.Doc is ready
+  if (typeof window !== 'undefined' && !ydocRef.current) {
+    const ydoc = new Y.Doc();
+    const wsUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/collaboration`;
+    const provider = new WebsocketProvider(wsUrl, 'article-room', ydoc);
+    ydocRef.current = ydoc;
+    providerRef.current = provider;
+  }
+  // Cleanup on unmount
+  const ydocCleanupRef = useRef<(() => void) | null>(null);
   useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const ydoc = new Y.Doc();
-      const wsUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/collaboration`;
-      const provider = new WebsocketProvider(wsUrl, 'article-room', ydoc);
-      ydocRef.current = ydoc;
-      providerRef.current = provider;
-      return () => {
-        provider.destroy();
-        ydoc.destroy();
-      };
-    }
+    ydocCleanupRef.current = () => {
+      providerRef.current?.destroy();
+      ydocRef.current?.destroy();
+      providerRef.current = null;
+      ydocRef.current = null;
+    };
+    return ydocCleanupRef.current;
   }, []);
 
   const editor = useEditor({
@@ -172,9 +180,12 @@ const RichEditor: React.FC<RichEditorProps> = ({value,onChange,placeholder='开�
   // Expose editor to parent
   useEffect(()=>{if(editor&&editorRef)editorRef.current=editor;},[editor,editorRef]);
 
-  // Sync external value changes
+  // Sync external value changes — normalize HTML to avoid false-positives
     useEffect(() => {
         if (!editor || value === prevValueRef.current) return;
+        const normalized = value.replace(/\s+/g, ' ').trim();
+        const previous = prevValueRef.current.replace(/\s+/g, ' ').trim();
+        if (normalized === previous) return;
         prevValueRef.current = value;
         if (value && !editor.isDestroyed) editor.commands.setContent(value, {emitUpdate: false});
     }, [value, editor]);

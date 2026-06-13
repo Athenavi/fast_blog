@@ -7530,3 +7530,171 @@ models:
         columns:
           - theme_type
         comment: 主题类型索引
+
+
+  TeamComment:
+    description: "团队评论模型（支持协作、@提及、已解决状态）"
+    status: active
+    frontend_page: null
+    properties:
+      id:
+        type: bigint
+        description: "团队评论 ID"
+      content_type:
+        type: string
+        maxLength: 50
+        description: "内容类型（article, page, block 等）"
+      content_id:
+        type: bigint
+        description: "内容 ID"
+      author_id:
+        type: bigint
+        foreignKey: User
+        description: "作者 ID"
+      parent_id:
+        type: bigint
+        nullable: true
+        foreignKey: TeamComment
+        description: "父评论 ID（用于回复）"
+      text:
+        type: text
+        description: "评论内容"
+      mentions:
+        type: string
+        maxLength: 500
+        nullable: true
+        description: "@提及的用户 ID 列表（JSON 数组）"
+      is_resolved:
+        type: boolean
+        default: false
+        description: "是否已解决"
+      resolved_by:
+        type: bigint
+        nullable: true
+        description: "解决者 ID"
+      resolved_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: "解决时间"
+      created_at:
+        type: string
+        format: date-time
+        description: "创建时间"
+      updated_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: "更新时间"
+    module: comment
+    orm: true
+    table: team_comments
+    indexes:
+      - name: idx_team_comments_content
+        columns:
+          - content_type
+          - content_id
+        comment: "内容索引"
+      - name: idx_team_comments_author
+        columns:
+          - author_id
+        comment: "作者索引"
+      - name: idx_team_comments_parent
+        columns:
+          - parent_id
+        comment: "父评论索引"
+      - name: idx_team_comments_resolved
+        columns:
+          - is_resolved
+        comment: "已解决状态索引"
+
+  CustomPostContent:
+    description: "自定义文章类型内容模型"
+    status: active
+    frontend_page: /admin/custom-post-types
+    properties:
+      id:
+        type: bigint
+        description: "内容 ID"
+      post_type_id:
+        type: bigint
+        foreignKey: CustomPostType
+        description: "文章类型 ID"
+      title:
+        type: string
+        maxLength: 255
+        description: "标题"
+      slug:
+        type: string
+        maxLength: 100
+        unique: true
+        description: "内容标识"
+      content:
+        type: text
+        nullable: true
+        description: "内容（HTML 或 JSON 块数据）"
+      excerpt:
+        type: string
+        maxLength: 500
+        nullable: true
+        description: "摘要"
+      meta:
+        type: text
+        nullable: true
+        description: "元数据（JSON 格式）"
+      author_id:
+        type: bigint
+        foreignKey: User
+        description: "作者 ID"
+      status:
+        type: integer
+        default: 0
+        description: "状态（0: 草稿, 1: 已发布）"
+      is_featured:
+        type: boolean
+        default: false
+        description: "是否精选"
+      password:
+        type: string
+        maxLength: 255
+        nullable: true
+        description: "访问密码"
+      published_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: "发布时间"
+      created_at:
+        type: string
+        format: date-time
+        description: "创建时间"
+      updated_at:
+        type: string
+        format: date-time
+        description: "更新时间"
+    module: content
+    orm: true
+    table: custom_post_contents
+    indexes:
+      - name: idx_cpc_post_type
+        columns:
+          - post_type_id
+        comment: "文章类型索引"
+      - name: idx_cpc_slug
+        columns:
+          - slug
+        unique: true
+        comment: "内容标识唯一索引"
+      - name: idx_cpc_author
+        columns:
+          - author_id
+        comment: "作者索引"
+      - name: idx_cpc_status
+        columns:
+          - status
+        comment: "状态索引"
+      - name: idx_cpc_created
+        columns:
+          - created_at
+        order: DESC
+        comment: "创建时间索引"

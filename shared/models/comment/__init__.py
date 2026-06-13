@@ -5,5 +5,6 @@ comment 子模块 - 模型定义
 from .comment import Comment
 from .comment_subscription import CommentSubscription
 from .comment_vote import CommentVote
+from .team_comment import TeamComment
 
-__all__ = ['Comment', 'CommentSubscription', 'CommentVote']
+__all__ = ['Comment', 'CommentSubscription', 'CommentVote', 'TeamComment']

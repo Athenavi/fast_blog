@@ -9,7 +9,7 @@
 """
 from typing import List, Dict, Optional
 
-from sqlalchemy import select, desc, asc
+from sqlalchemy import select, desc, asc, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.comment import Comment, CommentVote
@@ -62,11 +62,11 @@ class CommentEnhancedService:
             query = query.order_by(desc(Comment.created_at))
 
         # 获取总数
-        count_query = select(Comment.id).where(Comment.article_id == article_id)
+        count_query = select(func.count(Comment.id)).where(Comment.article_id == article_id)
         if not include_unapproved:
             count_query = count_query.where(Comment.is_approved == True)
         count_result = await db.execute(count_query)
-        total = len(count_result.scalars().all())
+        total = count_result.scalar() or 0
 
         # 分页
         offset = (page - 1) * per_page

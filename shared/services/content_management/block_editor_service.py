@@ -45,6 +45,7 @@
 """
 
 from dataclasses import dataclass, field
+from html import escape
 from typing import Dict, Any, List, Optional
 
 
@@ -358,6 +359,25 @@ class BlockEditorService:
             if enum_values and attr_value not in enum_values:
                 return False, f"属性 '{attr_name}' 的值必须是以下之一: {enum_values}"
 
+        # 验证块层级约束
+        parent_block_type = block_data.get("parent_type")
+        children = block_data.get("children", [])
+
+        # 如果是内联块，检查是否在允许的父块中
+        if block_type.is_inline and not parent_block_type:
+            return False, f"内联块 '{block_type_name}' 必须放置在容器块内部"
+
+        if parent_block_type:
+            parent_type = self.get_block_type(parent_block_type)
+            if parent_type and block_type_name not in parent_type.allowed_children:
+                return False, f"块 '{block_type_name}' 不允许在 '{parent_block_type}' 内部"
+
+        # 如果有子块，递归验证
+        for child in children:
+            child_valid, child_error = self.validate_block(child)
+            if not child_valid:
+                return False, child_error
+
         return True, ""
 
     def render_block(self, block_data: Dict[str, Any]) -> str:
@@ -395,7 +415,7 @@ class BlockEditorService:
         style = f"text-align: {alignment};" if alignment != "left" else ""
         style_attr = f' style="{style}"' if style else ""
 
-        return f'<p{style_attr}>{content}</p>'
+        return f'<p{style_attr}>{escape(content)}</p>'
 
     def _render_heading(self, attributes: Dict[str, Any], children: List[Dict]) -> str:
         """渲染标题块"""
@@ -406,7 +426,7 @@ class BlockEditorService:
         style = f"text-align: {alignment};" if alignment != "left" else ""
         style_attr = f' style="{style}"' if style else ""
 
-        return f'<h{level}{style_attr}>{content}</h{level}>'
+        return f'<h{level}{style_attr}>{escape(content)}</h{level}>'
 
     def _render_image(self, attributes: Dict[str, Any], children: List[Dict]) -> str:
         """渲染图片块"""
@@ -418,9 +438,9 @@ class BlockEditorService:
         align_class = f"align-{alignment}"
 
         html = f'<figure class="wp-block-image {align_class}">'
-        html += f'<img src="{url}" alt="{alt}" />'
+        html += f'<img src="{escape(url)}" alt="{escape(alt)}" />'
         if caption:
-            html += f'<figcaption>{caption}</figcaption>'
+            html += f'<figcaption>{escape(caption)}</figcaption>'
         html += '</figure>'
 
         return html
@@ -476,10 +496,10 @@ class BlockEditorService:
         html = f'''
 <details class="wp-block-details {container_class} p-4 rounded-lg my-4"{open_attr}>
     <summary class="cursor-pointer font-semibold text-gray-900 dark:text-gray-100 hover:text-blue-600 dark:hover:text-blue-400 transition-colors select-none">
-        {title}
+        {escape(title)}
     </summary>
     <div class="mt-3 text-gray-700 dark:text-gray-300 leading-relaxed">
-        {content}
+        {escape(content)}
     </div>
 </details>
 '''.strip()
@@ -509,29 +529,93 @@ class BlockEditorService:
 
     def html_to_blocks(self, html: str) -> List[Dict[str, Any]]:
         """
-        将 HTML 转换为块数据（简化版本）
-        
-        注意：完整的 HTML 解析需要使用专门的解析器
-        
+        将 HTML 转换为块数据
+
         Args:
             html: HTML string
-            
+
         Returns:
             List of block data
         """
-        # Use BeautifulSoup for HTML parsing in production
-        # Example implementation:
-        # from bs4 import BeautifulSoup
-        # soup = BeautifulSoup(html, 'html.parser')
-        # blocks = []
-        # for tag in soup.find_all(['p', 'h1', 'h2', 'h3', 'img', 'ul', 'ol']):
-        #     block = self._convert_tag_to_block(tag)
-        #     if block:
-        #         blocks.append(block)
-        # return blocks
-        
-        # For now, return empty list
-        return []
+        if not html:
+            return []
+
+        try:
+            from bs4 import BeautifulSoup
+            soup = BeautifulSoup(html, 'html.parser')
+            blocks = []
+            for tag in soup.find_all(['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'img', 'blockquote', 'pre', 'ul', 'ol', 'hr', 'figure']):
+                block = self._convert_tag_to_block(tag)
+                if block:
+                    blocks.append(block)
+            return blocks
+        except ImportError:
+            # BeautifulSoup 未安装，返回空列表
+            return []
+
+    def _convert_tag_to_block(self, tag) -> Optional[Dict[str, Any]]:
+        """将 BeautifulSoup 标签转换为块数据"""
+        name = tag.name.lower()
+
+        if name in ('h1', 'h2', 'h3', 'h4', 'h5', 'h6'):
+            level = int(name[1])
+            return {
+                "type": "heading",
+                "attributes": {
+                    "level": level,
+                    "content": tag.get_text(strip=True)
+                }
+            }
+        elif name == 'p':
+            return {
+                "type": "paragraph",
+                "attributes": {
+                    "content": str(tag.decode_contents())
+                }
+            }
+        elif name == 'img':
+            return {
+                "type": "image",
+                "attributes": {
+                    "url": tag.get('src', ''),
+                    "alt": tag.get('alt', '')
+                }
+            }
+        elif name == 'blockquote':
+            return {
+                "type": "quote",
+                "attributes": {
+                    "content": tag.get_text(strip=True)
+                }
+            }
+        elif name == 'pre':
+            code_tag = tag.find('code')
+            language = ''
+            if code_tag and code_tag.get('class'):
+                for cls in code_tag.get('class', []):
+                    if cls.startswith('language-'):
+                        language = cls[9:]
+            return {
+                "type": "code",
+                "attributes": {
+                    "language": language or 'text',
+                    "content": code_tag.get_text() if code_tag else tag.get_text()
+                }
+            }
+        elif name == 'hr':
+            return {"type": "separator", "attributes": {}}
+        elif name == 'figure':
+            img_tag = tag.find('img')
+            if img_tag:
+                return {
+                    "type": "image",
+                    "attributes": {
+                        "url": img_tag.get('src', ''),
+                        "alt": img_tag.get('alt', ''),
+                        "caption": tag.find('figcaption').get_text(strip=True) if tag.find('figcaption') else ''
+                    }
+                }
+        return None
 
 
 # 全局实例

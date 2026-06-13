@@ -4,9 +4,8 @@
 """
 
 import hashlib
-
 import secrets
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Dict, Any
 
 from src.unified_logger import default_logger as logger
@@ -50,17 +49,19 @@ class DraftPreviewService:
         token = secrets.token_urlsafe(32)
 
         # 计算过期时间
-        expires_at = datetime.now() + timedelta(hours=expires_hours)
+        expires_at = datetime.now(timezone.utc) + timedelta(hours=expires_hours)
 
-        # 如果有密码,进行哈希存储
+        # 如果有密码，使用带 salt 的 SHA256 哈希
         password_hash = None
         if password:
-            password_hash = hashlib.sha256(password.encode()).hexdigest()
+            salt = secrets.token_hex(16)
+            pwd_hash = hashlib.sha256((salt + password).encode()).hexdigest()
+            password_hash = f"{salt}:{pwd_hash}"
 
         # 存储令牌信息
         self.preview_tokens[token] = {
             'article_id': article_id,
-            'created_at': datetime.now(),
+            'created_at': datetime.now(timezone.utc),
             'expires_at': expires_at,
             'password_hash': password_hash,
             'max_views': max_views,
@@ -100,7 +101,7 @@ class DraftPreviewService:
             return None
 
         # 检查是否过期
-        if datetime.now() > token_info['expires_at']:
+        if datetime.now(timezone.utc) > token_info['expires_at']:
             logger.warning(f"预览令牌已过期: {token[:8]}...")
             token_info['is_active'] = False
             return None
@@ -117,10 +118,18 @@ class DraftPreviewService:
                 logger.warning(f"预览令牌需要密码: {token[:8]}...")
                 return None
 
-            provided_hash = hashlib.sha256(password.encode()).hexdigest()
-            if provided_hash != token_info['password_hash']:
-                logger.warning(f"预览令牌密码错误: {token[:8]}...")
-                return None
+            stored = token_info['password_hash']
+            if ':' in stored:
+                salt, expected_hash = stored.split(':', 1)
+                provided_hash = hashlib.sha256((salt + password).encode()).hexdigest()
+                if provided_hash != expected_hash:
+                    logger.warning(f"预览令牌密码错误: {token[:8]}...")
+                    return None
+            else:
+                # 兼容旧格式（无 salt）
+                if hashlib.sha256(password.encode()).hexdigest() != stored:
+                    logger.warning(f"预览令牌密码错误: {token[:8]}...")
+                    return None
 
         # 增加访问计数
         token_info['view_count'] += 1
@@ -163,7 +172,7 @@ class DraftPreviewService:
         Returns:
             清理的令牌数量
         """
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         expired_tokens = [
             token for token, info in self.preview_tokens.items()
             if not info['is_active'] or now > info['expires_at']

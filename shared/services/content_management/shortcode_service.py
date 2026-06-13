@@ -4,6 +4,7 @@ Shortcode短代码系统
 """
 
 import re
+from html import escape
 from typing import Dict, Callable
 
 
@@ -108,13 +109,13 @@ class ShortcodeService:
         if not attrs_str or not attrs_str.strip():
             return attrs
         
-        # 匹配 key="value" 或 key='value'
-        pattern = r'(\w+)\s*=\s*(?:"([^"]*)"|\'([^\']*)\')'
+        # 匹配 key="value" / key='value' / key=value
+        pattern = r'(\w+)\s*=\s*(?:"([^"]*)"|\'([^\']*)\'|([^\s"\']+))'
         matches = re.findall(pattern, attrs_str)
         
         for match in matches:
             key = match[0]
-            value = match[1] or match[2]  # 取双引号或单引号的值
+            value = match[1] or match[2] or match[3]  # 取双引号、单引号或无引号的值
             attrs[key] = value
         
         return attrs
@@ -123,7 +124,7 @@ class ShortcodeService:
 
     def _code_shortcode(self, attrs: Dict[str, str], content: str) -> str:
         """代码块短代码: [code language="python"]print("hello")[/code]"""
-        language = attrs.get('language', 'text')
+        language = escape(attrs.get('language', 'text'))
         escaped_content = content.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
         
         return f'''
@@ -139,10 +140,12 @@ class ShortcodeService:
     def _gist_shortcode(self, attrs: Dict[str, str], content: str) -> str:
         """GitHub Gist 短代码: [gist id="abc123"]"""
         gist_id = attrs.get('id', '').strip()
-        
+        # 仅允许字母数字和斜线
+        gist_id = re.sub(r'[^a-zA-Z0-9/]', '', gist_id)
+
         if not gist_id:
             return '<!-- Gist: No id specified -->'
-        
+
         return f'''
 <div class="shortcode-gist my-4">
     <script src="https://gist.github.com/{gist_id}.js"></script>
@@ -152,6 +155,8 @@ class ShortcodeService:
     def _youtube_shortcode(self, attrs: Dict[str, str], content: str) -> str:
         """YouTube 视频短代码: [youtube id="dQw4w9WgXcQ"]"""
         video_id = attrs.get('id', '').strip()
+        # 仅允许字母数字、下划线和连字符
+        video_id = re.sub(r'[^a-zA-Z0-9_-]', '', video_id)
         
         if not video_id:
             return '<!-- YouTube: No id specified -->'
@@ -171,6 +176,8 @@ class ShortcodeService:
     def _bilibili_shortcode(self, attrs: Dict[str, str], content: str) -> str:
         """Bilibili 视频短代码: [bilibili id="BV1xx411c7mD"]"""
         video_id = attrs.get('id', '').strip()
+        # 仅允许字母数字
+        video_id = re.sub(r'[^a-zA-Z0-9]', '', video_id)
         
         if not video_id:
             return '<!-- Bilibili: No id specified -->'
@@ -217,7 +224,7 @@ class ShortcodeService:
 <div class="shortcode-note {style['bg']} {style['border']} {style['text']} border-l-4 rounded-r-xl p-4 my-4">
     <div class="flex items-start gap-2">
         <span class="text-lg">{style['icon']}</span>
-        <div class="text-sm">{content}</div>
+        <div class="text-sm">{escape(content)}</div>
     </div>
 </div>
 '''
@@ -229,7 +236,7 @@ class ShortcodeService:
         tabs = re.findall(tab_pattern, content, re.DOTALL)
         
         if not tabs:
-            return f'<div class="shortcode-tabs my-4 p-4 border rounded-xl">{content}</div>'
+            return f'<div class="shortcode-tabs my-4 p-4 border rounded-xl">{escape(content)}</div>'
         
         tab_id = f'tabs-{hash(content) % 10000}'
         
@@ -239,10 +246,12 @@ class ShortcodeService:
         for i, (name, tab_content) in enumerate(tabs):
             active = 'active' if i == 0 else ''
             selected = 'true' if i == 0 else 'false'
+            safe_name = escape(name)
+            safe_content = escape(tab_content)
             headers_html += f'''
-            <button class="tab-header {active} px-4 py-2 text-sm font-medium rounded-t-lg transition-colors" role="tab" aria-selected="{selected}" data-tab-target="{tab_id}-panel-{i}">{name}</button>'''
+            <button class="tab-header {active} px-4 py-2 text-sm font-medium rounded-t-lg transition-colors" role="tab" aria-selected="{selected}" data-tab-target="{tab_id}-panel-{i}">{safe_name}</button>'''
             panels_html += f'''
-            <div class="tab-panel {active} p-4 text-sm" id="{tab_id}-panel-{i}" role="tabpanel" data-tab-group="{tab_id}">{tab_content}</div>'''
+            <div class="tab-panel {active} p-4 text-sm" id="{tab_id}-panel-{i}" role="tabpanel" data-tab-group="{tab_id}">{safe_content}</div>'''
         
         return f'''
 <div class="shortcode-tabs my-4 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
