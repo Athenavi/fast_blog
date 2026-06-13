@@ -142,7 +142,8 @@ const RichEditor: React.FC<RichEditorProps> = ({value,onChange,placeholder='å¼€å
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const ydoc = new Y.Doc();
-      const provider = new WebsocketProvider('ws://localhost:1234', 'article-room', ydoc);
+      const wsUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/collaboration`;
+      const provider = new WebsocketProvider(wsUrl, 'article-room', ydoc);
       ydocRef.current = ydoc;
       providerRef.current = provider;
       return () => {
