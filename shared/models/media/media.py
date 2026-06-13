@@ -1,7 +1,7 @@
 """
 SQLAlchemy 模型定义 - Media
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-06-13 22:45:57
+生成时间：2026-06-13 22:56:46
 """
 
 from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
@@ -94,7 +94,6 @@ class Media(Base):
             'hash': self.hash,
             'filename': self.filename,
             'original_filename': self.original_filename,
-            'file_path': self.file_path,
             'file_url': self.file_url,
             'file_size': self.file_size,
             'file_type': self.file_type,
@@ -117,6 +116,7 @@ class Media(Base):
 
         if not exclude_sensitive:
             sensitive_data = {
+                'file_path': self.file_path,
             }
             data.update(sensitive_data)
 

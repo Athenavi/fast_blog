@@ -6,7 +6,7 @@ import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {apiClient} from '@/lib/api/base-client';
 import {MEDIA} from '@/lib/api/api-paths';
-import {useToast} from '@/components/ui/toast-provider';
+import {ToastProvider, useToast} from '@/components/ui/toast-provider';
 import type {MediaFile} from '@/lib/api';
 import type {FolderNode} from './FolderTree';
 import {MediaGrid} from './MediaGrid';
@@ -325,7 +325,9 @@ export default function MediaPage() {
   return (
     <AuthGuard>
       <QueryProvider>
-        <MediaBrowserInner/>
+        <ToastProvider>
+          <MediaBrowserInner/>
+        </ToastProvider>
       </QueryProvider>
     </AuthGuard>
   );
