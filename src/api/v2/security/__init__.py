@@ -17,6 +17,7 @@ def _build_router():
     router = APIRouter(tags=["security"])
 
     # 导入V1的security子模块（延迟到首次访问时）
+    from src.api.v2.security.csrf_token import router as csrf_token_router
     from src.api.v2.security.anomaly_detection import router as anomaly_detection_router
     from src.api.v2.security.audit_log import router as audit_log_router
     from src.api.v2.security.content_approval import router as content_approval_router
@@ -29,6 +30,7 @@ def _build_router():
     from src.api.v2.security.session_management import router as session_management_router
     from src.api.v2.security.two_factor_auth import router as two_factor_auth_router
 
+    router.include_router(csrf_token_router, prefix="")
     router.include_router(anomaly_detection_router, prefix="")
     router.include_router(sensitive_words_router, prefix="/sensitive-words")
     router.include_router(content_approval_router, prefix="/content-approval")

@@ -593,6 +593,30 @@ def init_extensions(app):
 
     print("Using unified database manager (created in lifespan event)")
 
+    # ── 查询监控：通过 SQLAlchemy 事件自动记录所有查询 ──────────────────
+    try:
+        import time
+        from sqlalchemy import event
+        from shared.services.performance.query_monitor import QueryMonitorService, query_monitor_service
+
+        # 使用全局实例并开始录制
+        query_monitor_service.start_recording()
+        print("QueryMonitorService started recording")
+
+        @event.listens_for(engine, "before_cursor_execute")
+        def _receive_before_cursor_execute(conn, cursor, statement, parameters, context, executemany):
+            conn.info['query_start_time'] = time.time()
+
+        @event.listens_for(engine, "after_cursor_execute")
+        def _receive_after_cursor_execute(conn, cursor, statement, parameters, context, executemany):
+            start = conn.info.pop('query_start_time', None)
+            duration = time.time() - start if start else 0
+            query_monitor_service.record_query(statement, duration)
+
+        print("Query monitoring event listeners attached to engine")
+    except Exception as e:
+        print(f"Warning: Could not attach query monitoring: {e}")
+
     # 限流中间件
     try:
         app.state.limiter = Limiter(key_func=get_remote_address)

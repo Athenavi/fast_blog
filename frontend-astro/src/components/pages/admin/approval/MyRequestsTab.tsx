@@ -66,7 +66,7 @@ const MyRequestsTab: React.FC = () => {
             {items.map(r => (
               <tr key={r.id} className="hover:bg-gray-50 dark:hover:bg-gray-800/30">
                 <td
-                  className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">{r.content_title || `#${r.content_id}`}</td>
+                  className="px-4 py-3 font-medium text-gray-900 dark:text-gray-100">{`内容#${r.content_id}`}</td>
                 <td className="px-4 py-3">
                     <span
                       className="px-2 py-0.5 text-[10px] rounded-full font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
@@ -74,10 +74,10 @@ const MyRequestsTab: React.FC = () => {
                     </span>
                 </td>
                 <td
-                  className="px-4 py-3 text-center text-xs text-gray-500 dark:text-gray-400">{r.current_step}/{r.total_steps}</td>
+                  className="px-4 py-3 text-center text-xs text-gray-500 dark:text-gray-400">{r.current_level}/{r.max_level}</td>
                 <td className="px-4 py-3 text-center"><StatusBadge status={r.status}/></td>
                 <td className="px-4 py-3 text-xs text-gray-500 dark:text-gray-400">{r.created_at?.slice(0, 16)}</td>
-                <td className="px-4 py-3 text-xs text-gray-400 max-w-[150px] truncate">{r.admin_notes || '-'}</td>
+                <td className="px-4 py-3 text-xs text-gray-400 max-w-[150px] truncate">{'-'}</td>
               </tr>
             ))}
             </tbody>

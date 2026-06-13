@@ -6,6 +6,7 @@ GDPR合规工具服务
 """
 
 import json
+import os
 import uuid
 from datetime import datetime
 from typing import Any, Dict, List, Optional
@@ -36,6 +37,33 @@ class GDPRComplianceService:
 
         # 数据删除请求 {request_id: request_data}
         self.deletion_requests: Dict[str, Dict[str, Any]] = {}
+
+        # 文件持久化路径
+        self._consents_file = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            '..', '..', 'data', 'consents.json'
+        )
+        self._load_consents()
+
+    def _load_consents(self):
+        """从文件加载同意记录"""
+        try:
+            if os.path.exists(self._consents_file):
+                with open(self._consents_file, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+                    # 转换键为 int
+                    self.consent_records = {int(k): v for k, v in data.items()}
+        except Exception:
+            self.consent_records = {}
+
+    def _save_consents(self):
+        """保存同意记录到文件"""
+        try:
+            os.makedirs(os.path.dirname(self._consents_file), exist_ok=True)
+            with open(self._consents_file, 'w', encoding='utf-8') as f:
+                json.dump(self.consent_records, f, ensure_ascii=False, indent=2, default=str)
+        except Exception:
+            pass  # 静默失败，不阻塞主流程
 
     async def export_user_data(
             self,
@@ -253,6 +281,9 @@ class GDPRComplianceService:
 
         # 添加到历史记录
         self.consent_records[user_id]['history'].append(consent_record)
+
+        # 持久化到文件
+        self._save_consents()
 
         return consent_record
 

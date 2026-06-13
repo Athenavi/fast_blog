@@ -12,6 +12,20 @@ models:
         nullable: true
         description: 操作用户 ID
         foreignKey: User
+      user_name:
+        type: string
+        nullable: true
+        maxLength: 100
+        description: 操作用户名称
+      level:
+        type: string
+        maxLength: 20
+        default: info
+        description: 日志级别 (info/warning/error/critical)
+      description:
+        type: text
+        nullable: true
+        description: 日志详细描述
       action:
         type: string
         maxLength: 100
