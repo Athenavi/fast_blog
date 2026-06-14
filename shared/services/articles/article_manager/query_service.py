@@ -14,27 +14,35 @@ from shared.models.user import User
 class ArticleQueryService:
     """文章查询服务（优化版）"""
 
-    # 类级别缓存粘性条件，避免重复构建
-    _sticky_condition = None
+    # 类级别缓存粘性条件结构（不含 now，避免过期判定失效）
+    _sticky_condition_base = None
 
     @staticmethod
     def _get_sticky_condition():
         """
         获取粘性文章判断条件（带简单缓存）
+        now 每次调用重新计算，避免过期判定永久失效
         
         Returns:
             SQLAlchemy condition object
         """
-        if ArticleQueryService._sticky_condition is None:
-            now = datetime.now()
-            ArticleQueryService._sticky_condition = and_(
+        now = datetime.now()
+        if ArticleQueryService._sticky_condition_base is None:
+            ArticleQueryService._sticky_condition_base = and_(
                 Article.is_sticky == True,
                 or_(
                     Article.sticky_until == None,
                     Article.sticky_until > now
                 )
             )
-        return ArticleQueryService._sticky_condition
+        # 重新构建带当前时间的条件
+        return and_(
+            Article.is_sticky == True,
+            or_(
+                Article.sticky_until == None,
+                Article.sticky_until > datetime.now()
+            )
+        )
     
     @staticmethod
     async def get_articles_list(

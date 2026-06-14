@@ -168,11 +168,15 @@ async def update_article(
     category_id: Optional[int] = Body(None),
     cover_image: Optional[str] = Body(None),
     db: AsyncSession = Depends(get_db),
-    _=Depends(Permission("article:edit")),
+    current_user: User = Depends(Permission("article:edit")),
 ):
     article = await db.get(Article, article_id)
     if not article:
         return ApiResponse(success=False, error="文章不存在")
+
+    # 所有权校验：仅作者或 superuser 可编辑
+    if article.user != current_user.id and not current_user.is_superuser:
+        return ApiResponse(success=False, error="无权编辑此文章")
 
     if title is not None:
         article.title = title
@@ -215,11 +219,15 @@ async def update_article(
 async def delete_article(
     article_id: int,
     db: AsyncSession = Depends(get_db),
-    _=Depends(Permission("article:delete")),
+    current_user: User = Depends(Permission("article:delete")),
 ):
     article = await db.get(Article, article_id)
     if not article:
         return ApiResponse(success=False, error="文章不存在")
+
+    # 所有权校验：仅作者或 superuser 可删除
+    if article.user != current_user.id and not current_user.is_superuser:
+        return ApiResponse(success=False, error="无权删除此文章")
 
     # 删除关联内容
     content_result = await db.execute(
@@ -242,11 +250,15 @@ async def delete_article(
 async def publish_article(
     article_id: int,
     db: AsyncSession = Depends(get_db),
-    _=Depends(Permission("article:publish")),
+    current_user: User = Depends(Permission("article:publish")),
 ):
     article = await db.get(Article, article_id)
     if not article:
         return ApiResponse(success=False, error="文章不存在")
+
+    # 所有权校验：仅作者或 superuser 可发布
+    if article.user != current_user.id and not current_user.is_superuser:
+        return ApiResponse(success=False, error="无权发布此文章")
 
     article.status = 1
     article.published_at = datetime.now(timezone.utc)

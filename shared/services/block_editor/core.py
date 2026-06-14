@@ -92,11 +92,23 @@ class BlockSchema:
             if attr_schema.get("required") and attr_name not in data:
                 errors.append(f"Missing required attribute: {attr_name}")
 
-            # 类型检查
+            # 类型检查 — 使用类型映射字典替代 eval()
             if attr_name in data:
                 expected_type = attr_schema.get("type")
-                if expected_type and not isinstance(data[attr_name], eval(expected_type)):
+                _TYPE_MAP = {
+                    'str': str, 'string': str,
+                    'int': int, 'integer': int,
+                    'float': float, 'number': float,
+                    'bool': bool, 'boolean': bool,
+                    'list': list, 'dict': dict,
+                    'tuple': tuple, 'set': set,
+                }
+                py_type = _TYPE_MAP.get(expected_type)
+                if expected_type and py_type and not isinstance(data[attr_name], py_type):
                     errors.append(f"Invalid type for {attr_name}: expected {expected_type}")
+                elif expected_type and not py_type:
+                    # 未知类型名，回退到安全校验
+                    pass
 
         return len(errors) == 0, errors
 

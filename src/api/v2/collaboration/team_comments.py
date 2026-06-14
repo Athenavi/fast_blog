@@ -8,10 +8,12 @@ from typing import Optional, List
 from functools import wraps
 
 from fastapi import APIRouter, Depends, Query, Body, HTTPException
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.services.comments.team_comments import team_comment_service
 from src.api.v2._helpers import ok, fail
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
+from src.extensions import get_async_db_session as get_async_db
 
 router = APIRouter()
 
@@ -37,9 +39,11 @@ async def create_comment(
         parent_id: Optional[int] = Body(None, description="父评论ID（回复）"),
         mentions: Optional[List[int]] = Body(None, description="@提及的用户ID列表"),
         current_user=Depends(jwt_required),
+        db: AsyncSession = Depends(get_async_db),
 ):
     """创建评论"""
-    comment = team_comment_service.create_comment(
+    comment = await team_comment_service.create_comment(
+        db=db,
         content_id=content_id,
         content_type=content_type,
         author_id=current_user.id,
@@ -58,9 +62,11 @@ async def update_comment(
         comment_id: int,
         text: str = Body(..., description="新的评论内容"),
         current_user=Depends(jwt_required),
+        db: AsyncSession = Depends(get_async_db),
 ):
     """更新评论"""
-    comment = team_comment_service.update_comment(
+    comment = await team_comment_service.update_comment(
+        db=db,
         comment_id=comment_id,
         author_id=current_user.id,
         text=text,
@@ -74,11 +80,13 @@ async def update_comment(
 async def delete_comment(
         comment_id: int,
         current_user=Depends(jwt_required),
+        db: AsyncSession = Depends(get_async_db),
 ):
     """删除评论"""
     is_admin = getattr(current_user, 'is_superuser', False) or getattr(current_user, 'is_staff', False)
 
-    success = team_comment_service.delete_comment(
+    success = await team_comment_service.delete_comment(
+        db=db,
         comment_id=comment_id,
         user_id=current_user.id,
         is_admin=is_admin,
@@ -95,9 +103,11 @@ async def delete_comment(
 async def resolve_comment(
         comment_id: int,
         current_user=Depends(jwt_required),
+        db: AsyncSession = Depends(get_async_db),
 ):
     """标记为已解决"""
-    comment = team_comment_service.resolve_comment(
+    comment = await team_comment_service.resolve_comment(
+        db=db,
         comment_id=comment_id,
         resolver_id=current_user.id,
         resolver_name=getattr(current_user, 'username', 'Unknown'),
@@ -113,9 +123,11 @@ async def get_content_comments(
         content_id: int,
         include_resolved: bool = Query(True, description="是否包含已解决的评论"),
         current_user=Depends(jwt_required),
+        db: AsyncSession = Depends(get_async_db),
 ):
     """获取内容评论"""
-    comments = team_comment_service.get_comments_for_content(
+    comments = await team_comment_service.get_comments_for_content(
+        db=db,
         content_id=content_id,
         content_type=content_type,
         include_resolved=include_resolved,
@@ -132,9 +144,11 @@ async def get_content_comments(
 async def get_mentions(
         unread_only: bool = Query(False, description="是否只返回未读的"),
         current_user=Depends(jwt_required),
+        db: AsyncSession = Depends(get_async_db),
 ):
     """获取@提及"""
-    mentions = team_comment_service.get_user_mentions(
+    mentions = await team_comment_service.get_user_mentions(
+        db=db,
         user_id=current_user.id,
         unread_only=unread_only,
     )
@@ -151,9 +165,11 @@ async def get_statistics(
         content_id: Optional[int] = Query(None, description="内容ID过滤"),
         content_type: Optional[str] = Query(None, description="内容类型过滤"),
         current_user=Depends(jwt_required),
+        db: AsyncSession = Depends(get_async_db),
 ):
     """获取统计信息"""
-    stats = team_comment_service.get_statistics(
+    stats = await team_comment_service.get_statistics(
+        db=db,
         content_id=content_id,
         content_type=content_type,
     )

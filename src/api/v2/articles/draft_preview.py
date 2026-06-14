@@ -14,7 +14,7 @@ from shared.services.articles.draft_preview_service import draft_preview_service
 from src.api.v2._base import ApiResponse
 from src.api.v2._helpers import ok, fail
 from src.auth import jwt_required_dependency as jwt_required
-from src.utils.database.main import get_async_session as get_async_db
+from src.utils.database.main import get_async_session_context, get_async_session as get_async_db
 
 
 def _catch(func):
@@ -63,10 +63,10 @@ async def validate_preview_link(token: str = Body(...), password: Optional[str] 
     if not token_info:
         return fail("预览链接无效、已过期或密码错误")
 
-    async with get_async_db() as db:
+    async with get_async_session_context() as db:
         row = (await db.execute(
             select(Article, ArticleContent)
-            .outerjoin(ArticleContent, Article.id == ArticleContent.article_id)
+            .outerjoin(ArticleContent, Article.id == ArticleContent.article)
             .where(Article.id == token_info['article_id'])
         )).first()
 

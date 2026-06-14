@@ -4,12 +4,15 @@
 优化: 统一 @_catch 装饰器消除 33 处重复 try/except
 """
 import asyncio
+import logging
 import re
 from datetime import datetime
 from functools import wraps
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request
+
+logger = logging.getLogger(__name__)
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -100,8 +103,7 @@ def _fmt_article_brief(article, users: dict, cats: dict) -> dict:
 async def _get_article_author(db: AsyncSession, user_id: int) -> dict:
     author = await db.scalar(select(User).where(User.id == user_id))
     return {"id": author.id if author else user_id, "username": author.username if author else "Unknown",
-            "bio": author.bio if author else "", "profile_picture": author.profile_picture if author else None,
-            "email": author.email if author else ""}
+            "bio": author.bio if author else "", "profile_picture": author.profile_picture if author else None}
 
 
 async def _get_article_detail(request: Request, db: AsyncSession, article: Article, current_user=None) -> Optional[dict]:
@@ -337,9 +339,7 @@ async def create_article_api(request: Request, current_user=Depends(jwt_required
             category_id=article.category,
         ))
     except Exception:
-        pass
-
-    return ApiResponse(success=True, data={"id": article.id, "slug": article.slug}, message="文章创建成功")
+        logger.warning(f"文章创建后处理失败 (article_id={article.id})", exc_info=True)
 
 
 @router.put("/{article_id}")
@@ -381,7 +381,7 @@ async def update_article_api(article_id: int, request: Request, current_user=Dep
             author_id=current_user.id,
         ))
     except Exception:
-        pass
+        logger.warning(f"文章更新后处理失败 (article_id={article.id})", exc_info=True)
 
     return ApiResponse(success=True, data={"id": article.id, "slug": article.slug}, message="文章更新成功")
 
@@ -405,7 +405,7 @@ async def delete_article_api(article_id: int, current_user=Depends(jwt_required)
             article_id=article.id, slug=article.slug, title=article.title,
         ))
     except Exception:
-        pass
+        logger.warning(f"文章删除后处理失败 (article_id={article_id})", exc_info=True)
     return ApiResponse(success=True, message="文章已删除")
 
 
@@ -480,7 +480,7 @@ async def get_new_article_form_api(category_id: int = Query(0, alias="cid")):
 
 @router.post("/{article_id}/sticky")
 @_catch
-async def toggle_article_sticky_api(article_id: int, data: dict, current_user=Depends(jwt_required),
+async def toggle_article_sticky_api(article_id: int, data: dict = Body(...), current_user=Depends(jwt_required),
                                      db: AsyncSession = Depends(get_async_session)):
     """切换文章置顶状态（管理员）"""
     if not _is_admin(current_user):
@@ -488,10 +488,10 @@ async def toggle_article_sticky_api(article_id: int, data: dict, current_user=De
     article = await db.scalar(select(Article).where(Article.id == article_id))
     if not article:
         return fail("文章不存在")
-    article.sticky = data.get('sticky', False)
+    article.is_sticky = data.get('sticky', False)
     if data.get('sticky'):
         from datetime import timedelta
-        article.sticky_expires_at = datetime.now() + timedelta(days=data.get('sticky_days', 7))
+        article.sticky_until = datetime.now() + timedelta(days=data.get('sticky_days', 7))
     await db.commit()
     return ok(msg="置顶状态已更新")
 
@@ -502,7 +502,7 @@ async def clean_expired_sticky_articles_api(current_user=Depends(jwt_required),
                                             db: AsyncSession = Depends(get_async_session)):
     """清理过期的置顶文章（管理员）"""
     result = await db.execute(
-        select(Article).where(Article.sticky == True, Article.sticky_expires_at < datetime.now()))
+        select(Article).where(Article.is_sticky == True, Article.sticky_until < datetime.now()))
     count = 0
     for article in result.scalars().all():
         article.sticky = False
@@ -514,7 +514,7 @@ async def clean_expired_sticky_articles_api(current_user=Depends(jwt_required),
 
 @router.post("/reorder")
 @_catch
-async def reorder_articles_api(data: list[dict], current_user=Depends(jwt_required),
+async def reorder_articles_api(data: list[dict] = Body(...), current_user=Depends(jwt_required),
                                 db: AsyncSession = Depends(get_async_session)):
     """文章排序"""
     if not _is_admin(current_user):
@@ -529,7 +529,7 @@ async def reorder_articles_api(data: list[dict], current_user=Depends(jwt_requir
 
 @router.post("/batch-operation")
 @_catch
-async def batch_article_operation_api(data: dict, current_user=Depends(jwt_required),
+async def batch_article_operation_api(data: dict = Body(...), current_user=Depends(jwt_required),
                                        db: AsyncSession = Depends(get_async_session)):
     """批量操作文章"""
     if not _is_admin(current_user):

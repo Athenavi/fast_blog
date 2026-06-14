@@ -6,6 +6,8 @@ from fastapi.responses import HTMLResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+import html
+
 from shared.models.article import Article, ArticleContent
 from shared.services.articles.draft_preview_service import draft_preview_service
 from src.utils.database.main import get_async_session as get_async_db
@@ -14,12 +16,15 @@ router = APIRouter(tags=["preview-view"])
 
 
 def _build_html(title, content_body, cover_image, excerpt, updated_at, view_count, expires_at):
-    cover_html = f'<img src="{cover_image}" class="w-full h-64 object-cover rounded-2xl mb-8 shadow-lg"/>' if cover_image else ''
-    excerpt_html = f'<p class="text-lg text-gray-500 mb-6">{excerpt}</p>' if excerpt else ''
+    title_safe = html.escape(title or '无标题')
+    cover_image_safe = html.escape(cover_image) if cover_image else ''
+    excerpt_safe = html.escape(excerpt) if excerpt else ''
+    cover_html = f'<img src="{cover_image_safe}" class="w-full h-64 object-cover rounded-2xl mb-8 shadow-lg"/>' if cover_image else ''
+    excerpt_html = f'<p class="text-lg text-gray-500 mb-6">{excerpt_safe}</p>' if excerpt else ''
     date_str = updated_at.strftime('%Y-%m-%d %H:%M') if updated_at else ''
     return f"""<!DOCTYPE html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{title or '无标题'} - 预览</title>
+<title>{title_safe} - 预览</title>
 <script src="https://cdn.tailwindcss.com"></script>
 <style>
   .prose {{ max-width: 65ch; margin: 0 auto; }}
@@ -48,7 +53,7 @@ def _build_html(title, content_body, cover_image, excerpt, updated_at, view_coun
   </div>
   {cover_html}
   <article class="bg-white rounded-2xl shadow-sm border border-gray-200 p-8 md:p-12">
-    <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">{title or '无标题'}</h1>
+    <h1 class="text-3xl md:text-4xl font-bold text-gray-900 mb-4">{title_safe}</h1>
     {excerpt_html}
     <div class="flex items-center gap-3 text-sm text-gray-400 mb-8 pb-6 border-b border-gray-100">
       <span>预览</span>
@@ -65,6 +70,7 @@ def _build_html(title, content_body, cover_image, excerpt, updated_at, view_coun
 
 
 def _build_password_page(token):
+    token_safe = html.escape(token[:12])
     return f"""<!DOCTYPE html>
 <html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>预览 - 需要密码</title>
@@ -80,7 +86,7 @@ def _build_password_page(token):
       <button type="submit" class="px-6 py-2.5 bg-blue-600 text-white rounded-xl hover:bg-blue-700 font-medium">验证</button>
     </div>
   </form>
-  <p class="text-xs text-gray-400 mt-4 text-center">token: {token[:12]}...</p>
+  <p class="text-xs text-gray-400 mt-4 text-center">token: {token_safe}...</p>
 </div></body></html>"""
 
 
@@ -111,7 +117,7 @@ async def view_preview(token: str, request: Request, db: AsyncSession = Depends(
 
     row = (await db.execute(
         select(Article, ArticleContent)
-        .outerjoin(ArticleContent, Article.id == ArticleContent.article_id)
+        .outerjoin(ArticleContent, Article.id == ArticleContent.article)
         .where(Article.id == token_info['article_id'])
     )).first()
 

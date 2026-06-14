@@ -43,13 +43,13 @@ class CommentLikeService:
             # 检查是否已有点赞记录
             vote_query = select(CommentVote).where(
                 CommentVote.comment_id == comment_id,
-                CommentVote.user_id == user_id
+                CommentVote.user == user_id
             )
             vote_result = await db.execute(vote_query)
             existing_vote = vote_result.scalar_one_or_none()
 
             if existing_vote:
-                if existing_vote.vote_type == 'like':
+                if existing_vote.vote_type == 1:
                     # 已点赞 → 取消点赞
                     await db.delete(existing_vote)
                     comment.likes = max(0, comment.likes - 1)
@@ -63,7 +63,7 @@ class CommentLikeService:
                     }
                 else:
                     # 之前是反对 → 改为点赞
-                    existing_vote.vote_type = 'like'
+                    existing_vote.vote_type = 1
                     comment.likes += 1
                     await db.commit()
                     return {
@@ -77,8 +77,8 @@ class CommentLikeService:
                 # 新建点赞
                 vote = CommentVote(
                     comment_id=comment_id,
-                    user_id=user_id,
-                    vote_type='like'
+                    user=user_id,
+                    vote_type=1
                 )
                 db.add(vote)
                 comment.likes += 1

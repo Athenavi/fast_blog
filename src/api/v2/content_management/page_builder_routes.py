@@ -9,8 +9,9 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
 from sqlalchemy import select, desc
+import json
 
-from shared.models.page import PageBuilder
+from shared.models import PageBuilder
 from shared.models.user import User
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
@@ -87,7 +88,7 @@ async def create_page(
         new_page = PageBuilder(
             title=req.title,
             slug=req.slug,
-            blocks_data=str(req.blocks_data),  # 存储为 JSON 字符串
+            blocks_data=json.dumps(req.blocks_data, ensure_ascii=False),  # 存储为 JSON 字符串
             template_name=req.template_name,
             is_published=req.is_published,
             created_at=datetime.now(),
