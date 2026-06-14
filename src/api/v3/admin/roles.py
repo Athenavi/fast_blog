@@ -19,6 +19,7 @@ from sqlalchemy import select, func, delete as sa_delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.rbac import Role, Capability, RoleCapability, UserRole
+from shared.models import PermissionAuditLog
 from src.api.v2._base import ApiResponse
 from src.api.v3._deps import get_db, get_current_user
 from src.api.v3._permission import Permission, invalidate_permission_cache
@@ -67,6 +68,7 @@ async def create_role(
     description: str = Body(""),
     permission_codes: Optional[List[str]] = Body(None),
     db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
     _=Depends(Permission("user:manage_roles")),
 ):
     now = datetime.now(timezone.utc)
@@ -89,6 +91,14 @@ async def create_role(
         )
         role.capabilities = list(caps.scalars().all())
 
+    await db.commit()
+    # 审计日志
+    audit = PermissionAuditLog(
+        user_id=current_user.id, action='create_role', resource_type='role',
+        resource_id=role.id, description=f'创建角色: {role.name}',
+        created_at=datetime.now(timezone.utc),
+    )
+    db.add(audit)
     await db.commit()
     return ApiResponse(success=True, data=_role_to_dict(role), message="角色创建成功")
 

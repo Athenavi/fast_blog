@@ -246,14 +246,18 @@ async def register_api(data: RegisterRequest, request: Request, db: AsyncSession
 @router.post("/email/send-code")
 @_catch
 async def send_email_verification_code(data: dict, current_user=Depends(jwt_required)):
-    result = await email_verification_service.send_verification_code(current_user.id, data.get('email', ''))
+    email = data.get('email', '')
+    if not email:
+        return fail('邮箱不能为空')
+    result = await email_verification_service.send_verification_code(email)
     return ok(data=result, msg="验证码已发送")
 
 
 @router.post("/email/send-verification")
 @_catch
-async def send_verification_email(data: dict, db: AsyncSession = Depends(get_async_db)):
-    """发送注册验证邮件（公开端点，注册后调用）"""
+async def send_verification_email(data: dict, db: AsyncSession = Depends(get_async_db),
+                                   current_user=Depends(jwt_required)):
+    """发送注册验证邮件（需登录）"""
     email = data.get('email', '')
     if not email:
         return fail("邮箱地址不能为空")
@@ -267,7 +271,10 @@ async def send_verification_email(data: dict, db: AsyncSession = Depends(get_asy
 @router.post("/email/verify-code")
 @_catch
 async def verify_email_code(data: dict, current_user=Depends(jwt_required)):
-    result = email_verification_service.verify_code(current_user.id, data.get('code', ''))
+    email = data.get('email', '')
+    if not email:
+        return fail('邮箱不能为空')
+    result = email_verification_service.verify_code(email, data.get('code', ''))
     if not result:
         return fail("验证码无效或已过期")
     return ok(msg="邮箱验证成功")
@@ -278,7 +285,10 @@ async def verify_email_code(data: dict, current_user=Depends(jwt_required)):
 @router.post("/sms/send-code")
 @_catch
 async def send_sms_verification_code(data: dict, current_user=Depends(jwt_required)):
-    result = await sms_verification_service.send_verification_code(current_user.id, data.get('phone', ''))
+    phone = data.get('phone', '')
+    if not phone:
+        return fail('手机号不能为空')
+    result = await sms_verification_service.send_verification_code(phone)
     return ok(data=result, msg="验证码已发送")
 
 

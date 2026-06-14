@@ -321,12 +321,16 @@ async def unblock_user(user_id: int, db: AsyncSession = Depends(get_async_db),
 
 @router.get("/{user_id}")
 @_with_db
-async def get_user_profile_api(user_id: int, db: AsyncSession = Depends(get_async_db)):
-    """获取用户公开资料"""
+async def get_user_profile_api(user_id: int, db: AsyncSession = Depends(get_async_db),
+                                current_user: User = Depends(get_current_active_user)):
+    """获取用户公开资料（需登录）"""
     user = await db.scalar(select(User).where(User.id == user_id))
     if not user:
         return fail("用户不存在")
-    return ok(_format_user_detail(user))
+    data = _format_user_detail(user)
+    # 公开资料不暴露 email
+    data.pop('email', None)
+    return ok(data)
 
 
 @router.post("/{user_id}/follow")

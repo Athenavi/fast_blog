@@ -162,10 +162,15 @@ async def get_current_user_or_redirect(
     request: Request,
     db: AsyncSession = Depends(get_async_session),
 ):
-    """页面路由依赖：无有效 token 时重定向到登录页"""
+    """页面路由依赖：无有效 token 时重定向到登录页（验证 next_url 防止开放重定向）"""
     user = await _authenticate_user(request, db, required=False)
     if user is None:
+        from urllib.parse import urlparse
         next_url = str(request.url)
+        # 只允许同站重定向，防止开放重定向漏洞
+        parsed = urlparse(next_url)
+        if parsed.netloc and parsed.netloc != request.url.hostname:
+            next_url = "/"
         return RedirectResponse(url=f"/login?next={next_url}")
     return user
 
