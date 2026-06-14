@@ -173,14 +173,28 @@ export function useSettingsState() {
       fullUrl = `${baseUrl}/api/v2/security/2fa/setup`;
       console.log('[2FA] Full URL:', fullUrl);
       console.log('[2FA] Has token:', !!t);
+      // 添加 30s 超时防止请求挂起
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 30000);
       const resp = await fetch(fullUrl, {
         method: 'GET',
-        headers: t ? {Authorization: `Bearer ${t}`} : {},
+        headers: t ? {Authorization: `Bearer ${t}`, 'Cache-Control': 'no-cache'} : {'Cache-Control': 'no-cache'},
         credentials: 'include',
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
       console.log('[2FA] HTTP status:', resp.status, resp.statusText);
+      // 304 无响应体，不解析 JSON
+      if (resp.status === 304) {
+        alert('服务器返回 304，可能 2FA 已启用。请清除浏览器缓存后重试。');
+        return;
+      }
       const text = await resp.text();
       console.log('[2FA] Raw response:', text);
+      if (!text) {
+        alert(`服务器返回空响应 (HTTP ${resp.status})`);
+        return;
+      }
       try {
         const r = JSON.parse(text);
         if (r.success && r.data) {
