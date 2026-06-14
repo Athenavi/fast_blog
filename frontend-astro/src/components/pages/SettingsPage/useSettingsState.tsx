@@ -186,11 +186,21 @@ export function useSettingsState() {
       alert('输入6位验证码');
       return;
     }
-    const r = await apiClient.post(SECURITY.TWO_FA_ENABLE, {totp_token: vc});
-    if (r.success) {
-      setFa(true);
-      setQr('');
-      setCodes((r.data as any)?.backup_codes || []);
+    setStatus('正在验证并启用 2FA…');
+    try {
+      const r = await apiClient.post(SECURITY.TWO_FA_ENABLE, {totp_token: vc});
+      if (r.success) {
+        setFa(true);
+        setQr('');
+        setCodes((r.data as any)?.backup_codes || []);
+        setStatus(null);
+      } else {
+        setStatus(null);
+        alert(r.error || '验证失败');
+      }
+    } catch (e) {
+      setStatus(null);
+      alert('网络错误');
     }
   };
 
@@ -301,6 +311,7 @@ export function useSettingsState() {
     flashSaved,
     pwStrengthColors,
     pwStrengthLabels,
+    status, setStatus,
     theme, setTheme,
   };
 }
