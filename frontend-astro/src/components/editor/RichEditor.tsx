@@ -62,7 +62,7 @@ function PatternLibrary({onSelect, onClose}: { onSelect: (blocks: any) => void; 
             </div>
             <h4 className="font-semibold text-sm truncate">{p.title}</h4>
             <p className="text-xs text-gray-500 mt-1 line-clamp-2">{p.description}</p>
-          </button>)}
+          </button>;)}
         </div>
       </div>
     </div>
