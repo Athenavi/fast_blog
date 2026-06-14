@@ -231,7 +231,7 @@ async def oauth_callback(
 
     # 4. 生成JWT令牌
     from src.auth import create_access_token
-    jwt_token = create_access_token(data={"sub": str(user.id)})
+    jwt_token = create_access_token(user_id=user.id)
 
     # 返回用户信息
     return ok(

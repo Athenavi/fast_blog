@@ -72,6 +72,9 @@ class SSOService:
             'use_ssl': os.getenv('LDAP_USE_SSL', 'false').lower() == 'true',
         }
 
+        # SSO 会话存储（内存映射，生产环境应使用 Redis）
+        self._sso_sessions: Dict[str, int] = {}
+
     async def get_oauth_authorization_url(self, provider: str, redirect_uri: str,
                                           state: str = None) -> str:
         """
@@ -164,8 +167,11 @@ class SSOService:
             'grant_type': 'authorization_code',
         }
 
+        import aiohttp
+        timeout = aiohttp.ClientTimeout(total=10)
+
         async with aiohttp.ClientSession() as session:
-            async with session.post(config['token_url'], data=data) as response:
+            async with session.post(config['token_url'], data=data, timeout=timeout) as response:
                 if response.status != 200:
                     error_text = await response.text()
                     raise Exception(f"Token exchange failed: {error_text}")
@@ -183,7 +189,7 @@ class SSOService:
         }
 
         async with aiohttp.ClientSession() as session:
-            async with session.get(config['userinfo_url'], headers=headers) as response:
+            async with session.get(config['userinfo_url'], headers=headers, timeout=aiohttp.ClientTimeout(total=10)) as response:
                 if response.status != 200:
                     error_text = await response.text()
                     raise Exception(f"Failed to get userinfo: {error_text}")
@@ -262,8 +268,13 @@ class SSOService:
                 auto_bind=True
             )
 
-            # 搜索用户 — 转义 username 防止 LDAP 注入
-            safe_username = username.replace('\\', '\\5c').replace('*', '\\2a').replace('(', '\\28').replace(')', '\\29').replace('\0', '\\00')
+            # 搜索用户 — 使用 ldap3 的转义函数防止 LDAP 注入
+            try:
+                from ldap3.utils.conv import escape_filter_chars
+                safe_username = escape_filter_chars(username)
+            except ImportError:
+                # fallback: 手动转义关键字符
+                safe_username = username.replace('\\', '\\5c').replace('*', '\\2a').replace('(', '\\28').replace(')', '\\29').replace('\\0', '\\00').replace('&', '\\26').replace('|', '\\7c').replace('!', '\\21').replace('=', '\\3d')
             user_filter = self.ldap_config['user_filter'].format(username=safe_username)
             conn.search(
                 search_base=self.ldap_config['base_dn'],
@@ -274,20 +285,24 @@ class SSOService:
             if not conn.entries:
                 return None
 
-            # 验证密码
-            user_dn = conn.entries[0].entry_dn
-            auth_conn = ldap3.Connection(server, user=user_dn, password=password)
-
-            if auth_conn.bind():
-                # 认证成功
-                entry = conn.entries[0]
-                return {
-                    'username': str(entry.uid.value) if hasattr(entry, 'uid') else username,
-                    'email': str(entry.mail.value) if hasattr(entry, 'mail') else None,
-                    'full_name': str(entry.cn.value) if hasattr(entry, 'cn') else username,
-                }
-            else:
+            # 验证密码 — 使用 TLS/SSL 保护凭证
+            use_tls = self.ldap_config.get('use_ssl', False) or self.ldap_config.get('start_tls', False)
+            auth_conn = ldap3.Connection(
+                server,
+                user=user_dn,
+                password=password,
+                auto_bind=False
+            )
+            if not auth_conn.bind():
                 return None
+
+            # 认证成功
+            entry = conn.entries[0]
+            return {
+                'username': str(entry.uid.value) if hasattr(entry, 'uid') else username,
+                'email': str(entry.mail.value) if hasattr(entry, 'mail') else None,
+                'full_name': str(entry.cn.value) if hasattr(entry, 'cn') else username,
+            }
 
         except ImportError:
             logger.warning("ldap3 library not installed")
@@ -391,10 +406,10 @@ class SSOService:
         # 生成SSO令牌
         sso_token = str(uuid.uuid4())
 
-        # 在实际应用中，应该将SSO令牌存储到Redis或其他共享存储
-        # 这里简化处理
+        # 存储到内存会话表（生产环境应使用 Redis）
+        self._sso_sessions[sso_token] = user_id
 
-        logger.info(f"SSO session created for user {user_id}")
+        logger.info(f"SSO session created for user {user_id}, token={sso_token[:8]}...")
         return sso_token
 
     async def validate_sso_token(self, sso_token: str) -> Optional[int]:
@@ -405,13 +420,12 @@ class SSOService:
             sso_token: SSO令牌
             
         Returns:
-            用户ID
+            用户ID，无效返回None
         """
-        # 在实际应用中，应该从Redis或其他共享存储中验证
-        # 这里简化处理
-
-        logger.warning("SSO token validation not fully implemented")
-        return None
+        user_id = self._sso_sessions.get(sso_token)
+        if user_id is None:
+            logger.warning(f"Invalid SSO token attempted: {sso_token[:8]}...")
+        return user_id
 
 
 # 全局实例

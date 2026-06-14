@@ -86,16 +86,18 @@ async def oauth_callback(
         redirect_uri=redirect_uri
     )
 
-    # 这里应该生成JWT令牌
-    # 简化处理，返回用户信息
+    # 生成JWT令牌
+    from src.auth import create_access_token
+    jwt_token = create_access_token(user_id=result['user'].id)
 
     return ok(
         data={
+            'access_token': jwt_token,
+            'token_type': 'Bearer',
             'user_id': result['user'].id,
             'username': result['user'].username,
             'email': result['user'].email,
             'provider': result['provider'],
-            'message': 'Authentication successful'
         },
         msg="OAuth authentication successful"
     )
@@ -181,8 +183,14 @@ async def ldap_authenticate(
 
         logger.info(f"New user created via LDAP: {userinfo['username']}")
 
+    # 生成JWT令牌
+    from src.auth import create_access_token
+    jwt_token = create_access_token(user_id=user.id)
+
     return ok(
         data={
+            'access_token': jwt_token,
+            'token_type': 'Bearer',
             'user_id': user.id,
             'username': user.username,
             'email': user.email,

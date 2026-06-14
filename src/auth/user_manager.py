@@ -54,23 +54,37 @@ class UserManager:
         从字典创建用户，自动处理密码哈希，
         跳过 created_at/updated_at 等自动字段。
         """
-        password = user_data.pop("password", "")
+        import copy
+        data = copy.copy(user_data)  # 不修改原始 dict
+        password = data.pop("password", "")
+        if not password:
+            raise ValueError("密码不能为空")
         # 移除不应手动设置的数据库生成字段
         for field in ("created_at", "updated_at", "id"):
-            user_data.pop(field, None)
+            data.pop(field, None)
 
-        user = UserModel(**user_data)
+        user = UserModel(**data)
         user.password = hash_password(password)  # 哈希后赋值给 password 字段
         return await self.user_db.create(user)
 
+    # 允许更新的安全字段白名单
+    _ALLOWED_UPDATE_FIELDS = frozenset({
+        "username", "email", "bio", "profile_picture", "locale",
+        "profile_private", "nickname", "avatar_url",
+    })
+
     async def update(self, user: UserModel, update_dict: dict) -> UserModel:
+        # 仅允许更新白名单内的字段，防止提权
         for field, value in update_dict.items():
-            setattr(user, field, value)
+            if field in self._ALLOWED_UPDATE_FIELDS:
+                setattr(user, field, value)
         return await self.user_db.update(user)
 
     async def authenticate(self, email: str, password: str) -> Optional[UserModel]:
         user = await self.get_by_email(email)
         if not user or not user.is_active:
+            # 恒定时间响应，防止用户枚举
+            _ = verify_password(password, "$2b$12$xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx")
             return None
         if not verify_password(password, user.password):
             return None

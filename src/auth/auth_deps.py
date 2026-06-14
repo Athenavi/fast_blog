@@ -48,8 +48,8 @@ def create_access_token(
     payload = {
         "sub": str(user_id),
         "jti": str(uuid.uuid4()),
-        "iat": datetime.datetime.now(),
-        "exp": datetime.datetime.now() + lifetime,
+        "iat": datetime.datetime.now(datetime.timezone.utc),
+        "exp": datetime.datetime.now(datetime.timezone.utc) + lifetime,
     }
     return jwt.encode(
         payload,
@@ -291,7 +291,8 @@ jwt_required = get_current_user
 jwt_required_dependency = get_current_user
 jwt_required_page = get_current_user_or_redirect
 jwt_required_page_dependency = get_current_user_or_redirect
-jwt_optional = _authenticate_user  # 需要配合自定义包装，见下方
+# jwt_optional 旧别名指向 required=True → 已弃用，请改用 jwt_optional_dependency
+jwt_optional = jwt_optional_dependency  # 修正为可选认证
 
 async def jwt_optional_dependency(
     request: Request,

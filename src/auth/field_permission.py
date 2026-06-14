@@ -14,6 +14,7 @@ from shared.models.security import FieldPermission
 from shared.models.rbac import UserRole
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 from src.utils.database.main import get_async_session as get_async_db
+from src.utils.database.main import get_async_session_context
 
 
 async def get_field_permissions(
@@ -78,43 +79,68 @@ def check_field_permission(model_name: str, field_name: str, action: str = "read
             if not current_user:
                 raise HTTPException(status_code=401, detail="Authentication required")
 
-            # 获取用户角色
-            db = kwargs.get("db")
-            if db is None:
-                async with get_async_db() as session:
-                    result = await session.execute(
-                        select(UserRole).where(UserRole.user_id == current_user.id)
-                    )
-                    user_roles = result.scalars().all()
-                    role_ids = [ur.role_id for ur in user_roles]
+            # 获取用户角色 — 使用提供或创建的 session
+            db_session = kwargs.get("db")
+            own_session = False
+            if db_session is None:
+                db_session = get_async_session_context()
+                own_session = True
 
-                    can_read, can_write = await get_field_permissions(
-                        session, role_ids, model_name, field_name
-                    )
-
-                    if action == "read" and not can_read:
-                        raise HTTPException(status_code=403, detail=f"No read permission on {model_name}.{field_name}")
-                    if action == "write" and not can_write:
-                        raise HTTPException(status_code=403, detail=f"No write permission on {model_name}.{field_name}")
+            if own_session:
+                async with db_session as session:
+                    await _check_field_permission(session, current_user, model_name, field_name, action)
             else:
-                result = await db.execute(
-                    select(UserRole).where(UserRole.user_id == current_user.id)
-                )
-                user_roles = result.scalars().all()
-                role_ids = [ur.role_id for ur in user_roles]
-
-                can_read, can_write = await get_field_permissions(
-                    db, role_ids, model_name, field_name
-                )
-
-                if action == "read" and not can_read:
-                    raise HTTPException(status_code=403, detail=f"No read permission on {model_name}.{field_name}")
-                if action == "write" and not can_write:
-                    raise HTTPException(status_code=403, detail=f"No write permission on {model_name}.{field_name}")
+                await _check_field_permission(db_session, current_user, model_name, field_name, action)
 
             return await func(*args, **kwargs)
         return wrapper
     return decorator
+
+
+async def _check_field_permission(
+    db: AsyncSession, current_user, model_name: str, field_name: str, action: str
+):
+    """统一的字段权限检查逻辑"""
+    result = await db.execute(
+        select(UserRole).where(UserRole.user_id == current_user.id)
+    )
+    user_roles = result.scalars().all()
+    role_ids = [ur.role_id for ur in user_roles]
+
+    can_read, can_write = await get_field_permissions(
+        db, role_ids, model_name, field_name
+    )
+
+    if action == "read" and not can_read:
+        raise HTTPException(status_code=403, detail=f"No read permission on {model_name}.{field_name}")
+    if action == "write" and not can_write:
+        raise HTTPException(status_code=403, detail=f"No write permission on {model_name}.{field_name}")
+
+
+async def filter_fields_by_permission_async(
+    user_id: int,
+    model_name: str,
+    fields: dict,
+    action: str = "read"
+) -> dict:
+    """
+    根据用户权限异步过滤字段（推荐使用此函数）
+    """
+    from src.utils.database.unified_manager import db_manager
+
+    async with db_manager.get_session() as db:
+        result = await db.execute(
+            select(UserRole).where(UserRole.user_id == user_id)
+        )
+        user_roles = result.scalars().all()
+        role_ids = [ur.role_id for ur in user_roles]
+
+        filtered = {}
+        for field_name, value in fields.items():
+            can_read, _ = await get_field_permissions(db, role_ids, model_name, field_name)
+            if can_read:
+                filtered[field_name] = value
+        return filtered
 
 
 def filter_fields_by_permission(
@@ -124,34 +150,25 @@ def filter_fields_by_permission(
     action: str = "read"
 ) -> dict:
     """
-    根据用户权限过滤字段
-
-    这是一个同步辅助函数，适用于在序列化/响应构建阶段调用。
-    注意: 为了简洁，此函数使用新的数据库连接。
-
-    Returns:
-        过滤后的字段字典
+    根据用户权限过滤字段（同步版本，从当前事件循环运行）
     """
     import asyncio
-    from src.utils.database.unified_manager import db_manager
-
-    async def _filter():
-        async with db_manager.get_session() as db:
-            result = await db.execute(
-                select(UserRole).where(UserRole.user_id == user_id)
-            )
-            user_roles = result.scalars().all()
-            role_ids = [ur.role_id for ur in user_roles]
-
-            filtered = {}
-            for field_name, value in fields.items():
-                can_read, _ = await get_field_permissions(db, role_ids, model_name, field_name)
-                if can_read:
-                    filtered[field_name] = value
-            return filtered
+    try:
+        loop = asyncio.get_running_loop()
+        if loop.is_running():
+            # 从已运行的循环中调用 — 使用 run_coroutine_threadsafe 或创建新循环
+            # 退化：在原循环中创建一个任务并等待
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
+                future = pool.submit(asyncio.run, filter_fields_by_permission_async(user_id, model_name, fields, action))
+                return future.result()
+    except RuntimeError:
+        pass  # 没有运行中的循环
 
     loop = asyncio.new_event_loop()
     try:
-        return loop.run_until_complete(_filter())
+        return loop.run_until_complete(
+            filter_fields_by_permission_async(user_id, model_name, fields, action)
+        )
     finally:
         loop.close()
