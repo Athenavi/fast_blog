@@ -20,6 +20,7 @@ def _build_router():
     from .routes_folders import router as folders_router
     from .routes_tags import router as tags_router
     from .routes_cover import router as cover_router
+    from .cover_upload import router as cover_upload_router
     from .routes_cover_external import router as cover_external_router
     from .routes_edit_tools import router as edit_tools_router
     from .routes_enhancement import router as enhancement_router
@@ -35,6 +36,7 @@ def _build_router():
     router.include_router(folders_router, prefix="/folders")    # /folders/*
     router.include_router(tags_router, prefix="")               # /{media_id}/tags
     router.include_router(cover_router, prefix="")              # /generate-cover/{media_id}, /remove-cover/{media_id}
+    router.include_router(cover_upload_router, prefix="")       # /cover (POST)
     router.include_router(cover_external_router, prefix="/cover")   # /cover/from-url
     router.include_router(edit_tools_router, prefix="/edit")    # /edit/process, /edit/crop
     router.include_router(enhancement_router, prefix="")        # /optimize/{file_id}
