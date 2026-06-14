@@ -28,7 +28,10 @@ function EditorInner() {
       return apiClient.request('/articles', {method: 'POST', body: fd});
     },
     onSuccess: (res) => {
-      if (res.success) toast.success('文章已创建');
+      if (res.success) {
+        toast.success('文章已创建');
+        window.location.href = '/my/posts';
+      }
     },
   });
 
