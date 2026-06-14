@@ -48,7 +48,9 @@ class WordPressImportService:
             包含所有解析数据的字典
         """
         try:
-            tree = ET.parse(file_path)
+            # 使用安全解析器防止 XXE 攻击
+            parser = ET.XMLParser(resolve_entities=False)
+            tree = ET.parse(file_path, parser=parser)
             root = tree.getroot()
 
             # 提取频道信息

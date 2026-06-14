@@ -85,13 +85,12 @@ class SampleDataRequest(BaseModel):
 
 @router.post("/configure-database",
              summary="配置数据库",
-             description="配置数据库连接信息",
-             response_description="返回配置结果")
+             description="配置数据库连接信息")
 @_catch
 async def configure_database_api(
         request: DatabaseConfigFullRequest
 ):
-    """配置数据库"""
+    """配置数据库（仅安装阶段可调用）"""
     # 检查是否已安装
     if installation_wizard_service.is_installed():
         return fail("System already installed")

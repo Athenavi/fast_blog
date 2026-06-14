@@ -11,6 +11,7 @@ from shared.services.advanced_features.ai_tag_recommendation import ai_tag_servi
 from shared.services.advanced_features.ai_writing_assistant import ai_writing_assistant
 from shared.services.security.content_moderation import content_moderation_service
 from src.api.v2._helpers import ok, fail, _catch
+from src.auth import jwt_required_dependency as jwt_required
 
 router = APIRouter(tags=["ai"])
 

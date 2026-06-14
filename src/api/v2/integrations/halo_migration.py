@@ -34,8 +34,8 @@ def _catch(func):
 @router.post("/connect", summary="连接到 Halo 博客")
 @_catch
 async def connect_to_halo(
-        halo_url: str,
-        api_token: str,
+        halo_url: str = Body(...),
+        api_token: str = Body(...),
         current_user: User = Depends(jwt_required)
 ):
     """
