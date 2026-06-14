@@ -284,7 +284,7 @@ async def send_private_message(
     Returns:
         发送结果
     """
-    from shared.models.private_message import PrivateMessage
+    from shared.models.chat import PrivateMessage
     from shared.models.user import User
     from datetime import datetime
 
@@ -338,7 +338,7 @@ async def get_unread_count(
     Returns:
         未读消息统计
     """
-    from shared.models.private_message import PrivateMessage
+    from shared.models.chat import PrivateMessage
 
     # 私聊未读数
     private_unread_query = select(func.count(PrivateMessage.id)).where(
@@ -393,7 +393,7 @@ async def mark_message_read(
     Returns:
         操作结果
     """
-    from shared.models.private_message import PrivateMessage
+    from shared.models.chat import PrivateMessage
     from datetime import datetime
 
     message_query = select(PrivateMessage).where(PrivateMessage.id == message_id)

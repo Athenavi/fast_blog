@@ -32,7 +32,7 @@ async def create_notification(
         Notification: 创建的通知对象
     """
     notification = Notification(
-        recipient_id=recipient_id,
+        recipient=recipient_id,
         title=title,
         content=content,
         type=notification_type,

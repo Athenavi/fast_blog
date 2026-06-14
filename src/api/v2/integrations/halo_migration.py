@@ -5,7 +5,7 @@ Halo 博客迁移 API - V2 版本
 from functools import wraps
 from typing import Optional
 
-from fastapi import APIRouter, Depends, BackgroundTasks, HTTPException
+from fastapi import APIRouter, Depends, BackgroundTasks, HTTPException, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.user import User

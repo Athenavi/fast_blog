@@ -27,7 +27,7 @@ async def create_article(arguments: dict) -> dict:
             # 从上下文获取当前用户（MCP 调用方），回退到默认值
             from src.mcp._context import get_user_ctx
             ctx = get_user_ctx()
-            author_id = ctx.get("user_id") if ctx else None
+            author_id = ctx.id if ctx else None
             article = Article(
                 title=title, slug=slug, excerpt=content[:200], user=author_id or 1,
                 category=arguments.get("category_id"), tags_list=arguments.get("tags", ""),
