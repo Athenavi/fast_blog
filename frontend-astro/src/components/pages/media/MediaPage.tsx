@@ -53,7 +53,8 @@ function MediaBrowserInner() {
     queryKey: ['media-files', search, typeFilter, selectedFolder],
     queryFn: async () => {
       const res = await apiClient.get(MEDIA.LIST, mediaParams);
-      const raw = res.data?.data || res.data?.files || res.data || [];
+      // 后端返回 ok(data={media_items: [...], pagination: {...}})
+      const raw = res.data?.media_items || res.data?.data || res.data?.files || [];
       return Array.isArray(raw) ? raw : [];
     },
   });
@@ -62,10 +63,8 @@ function MediaBrowserInner() {
     queryKey: ['media-folders'],
     queryFn: async () => {
       const res = await apiClient.get(MEDIA.FOLDERS_TREE);
-      const raw = res.data?.folders || res.data?.data || res.data;
-      return Array.isArray(raw) ? raw : [];
-    },
-  });
+      // 后端返回 ok(data={tree: [...]})
+      const raw = res.data?.tree || res.data?.folders || res.data?.data || [];
 
   const {data: statsData, isLoading: statsLoading} = useQuery({
     queryKey: ['media-stats'],

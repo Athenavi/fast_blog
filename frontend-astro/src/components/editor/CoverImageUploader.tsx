@@ -321,9 +321,10 @@ export default function CoverImageUploader({value, onChange, className}: CoverIm
             reject(new Error('未登录或登录已过期，请重新登录'));
             return;
           }
-          try {
+            try {
             const resp = JSON.parse(xhr.responseText);
-            if (xhr.status >= 200 && xhr.status < 300 && resp.success === true && resp.data) {
+            // 兼容两种后端响应格式: {success, data} 和 {code, data}
+            if (xhr.status >= 200 && xhr.status < 300 && (resp.success === true || resp.code === 200) && resp.data) {
               resolve(resp.data);
             } else {
               reject(new Error(resp.msg || resp.error || `上传失败 (HTTP ${xhr.status})`));

@@ -52,6 +52,7 @@ async def list_media(
         media_type: str = Query("all", description="媒体类型: all, image, video, audio, document"),
         category: Optional[str] = Query(None, description="分类筛选"),
         folder_name: Optional[str] = Query(None, description="文件夹名称"),
+        folder_id: Optional[int] = Query(None, description="文件夹 ID（直接指定）"),
         sort_by: str = Query("created_at_desc", description="排序方式"),
         date_from: Optional[str] = Query(None),
         date_to: Optional[str] = Query(None),
@@ -101,6 +102,8 @@ async def list_media(
 
             if target_folder_id:
                 base_query = base_query.where(Media.folder_id == target_folder_id)
+    elif folder_id is not None:
+        base_query = base_query.where(Media.folder_id == folder_id)
     else:
         base_query = base_query.where(Media.folder_id.is_(None))
 

@@ -54,11 +54,18 @@ export const DeleteConfirm: React.FC<{item: MediaFile; onCancel: ()=>void; onCon
 /** 移动文件对话框 */
 export const MoveDialog: React.FC<{open: boolean; onClose: ()=>void; folders: FolderNode[]; mediaCount: number; onMove: (folderPath: string|null)=>void}> = ({open, onClose, folders, mediaCount, onMove}) => {
   if(!open) return null;
-  const renderNode = (node: FolderNode, depth=0) => (
-    <button key={node.id} onClick={()=>onMove(node.name)} className="w-full flex items-center gap-3 px-4 py-3 text-left rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-500 transition-colors" style={{paddingLeft:`${16+depth*20}px`}}>
-      <FolderClosed className="w-5 h-5 text-yellow-600"/> <span className="font-medium">{node.name}</span>
-    </button>
-  );
+  const renderNode = (node: FolderNode, depth=0, parentPath='') => {
+    const currentPath = parentPath ? `${parentPath}/${node.name}` : node.name;
+    const children = (node as any).children;
+    return (
+      <div key={node.id}>
+        <button onClick={()=>onMove(currentPath)} className="w-full flex items-center gap-3 px-4 py-3 text-left rounded-lg border border-gray-200 dark:border-gray-700 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:border-blue-500 transition-colors" style={{paddingLeft:`${16+depth*20}px`}}>
+          <FolderClosed className="w-5 h-5 text-yellow-600"/> <span className="font-medium">{node.name}</span>
+        </button>
+        {Array.isArray(children) && children.map((child: FolderNode) => renderNode(child, depth + 1, currentPath))}
+      </div>
+    );
+  };
   return (<div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={onClose}>
     <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 max-w-md w-full shadow-xl" onClick={e=>e.stopPropagation()}>
       <h3 className="text-lg font-bold mb-2">移动文件</h3>
