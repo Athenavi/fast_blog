@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.user import User as UserModel
 from src.utils.database.main import get_async_session
-from src.utils.security.password_validator import verify_password
+from src.utils.security.password_validator import verify_password, hash_password
 
 
 class UserDatabase:
@@ -60,7 +60,7 @@ class UserManager:
             user_data.pop(field, None)
 
         user = UserModel(**user_data)
-        user.set_password(password)  # 模型方法，内部实现哈希
+        user.password = hash_password(password)  # 哈希后赋值给 password 字段
         return await self.user_db.create(user)
 
     async def update(self, user: UserModel, update_dict: dict) -> UserModel:
@@ -72,7 +72,7 @@ class UserManager:
         user = await self.get_by_email(email)
         if not user or not user.is_active:
             return None
-        if not verify_password(password, user.hashed_password):
+        if not verify_password(password, user.password):
             return None
         return user
 

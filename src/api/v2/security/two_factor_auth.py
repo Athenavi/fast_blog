@@ -157,14 +157,16 @@ async def enable_2fa(
 @router.post("/disable")
 @_catch
 async def disable_2fa(
+        password: str = Body(..., description="当前密码验证"),
         db: AsyncSession = Depends(get_async_db),
         current_user=Depends(jwt_required)
 ):
     """
-    禁用2FA
+    禁用2FA（需验证当前密码）
     """
     from shared.models.user import User
     from sqlalchemy import select
+    from src.utils.security.password_validator import verify_password
 
     # 获取用户信息
     query = select(User).where(User.id == current_user.id)
@@ -173,6 +175,10 @@ async def disable_2fa(
 
     if not user:
         return fail("用户不存在")
+
+    # 验证密码
+    if not user.password or not verify_password(password, user.password):
+        return fail("密码验证失败")
 
     # 清除2FA设置
     user.is_2fa_enabled = False

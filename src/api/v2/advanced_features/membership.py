@@ -48,7 +48,8 @@ async def check_content_access(
         user_id: int = Query(..., description="用户ID"),
         article_id: int = Query(..., description="文章ID"),
         required_level: int = Query(0, ge=0, le=10, description="所需VIP等级"),
-        db: AsyncSession = Depends(get_async_db)
+        db: AsyncSession = Depends(get_async_db),
+        current_user: User = Depends(jwt_required)
 ):
     """检查内容访问权限"""
     service = create_membership_service(db)

@@ -262,8 +262,9 @@ class SSOService:
                 auto_bind=True
             )
 
-            # 搜索用户
-            user_filter = self.ldap_config['user_filter'].format(username=username)
+            # 搜索用户 — 转义 username 防止 LDAP 注入
+            safe_username = username.replace('\\', '\\5c').replace('*', '\\2a').replace('(', '\\28').replace(')', '\\29').replace('\0', '\\00')
+            user_filter = self.ldap_config['user_filter'].format(username=safe_username)
             conn.search(
                 search_base=self.ldap_config['base_dn'],
                 search_filter=user_filter,

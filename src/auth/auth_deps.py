@@ -3,6 +3,7 @@
 支持 API 端点和页面路由，包含角色、权限、VIP 等检查
 """
 import datetime
+import uuid
 from typing import Optional
 
 import jwt
@@ -46,6 +47,7 @@ def create_access_token(
 
     payload = {
         "sub": str(user_id),
+        "jti": str(uuid.uuid4()),
         "iat": datetime.datetime.now(),
         "exp": datetime.datetime.now() + lifetime,
     }

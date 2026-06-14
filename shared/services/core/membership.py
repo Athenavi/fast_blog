@@ -147,6 +147,10 @@ class MembershipService:
         now = datetime.now(timezone.utc)
         expires_at = now + timedelta(days=plan.duration_days)
 
+        # 验证支付金额（仅当 price > 0 时检查）
+        if plan.price and plan.price > 0 and (not payment_amount or payment_amount < float(plan.price)):
+            return {'success': False, 'message': '支付金额不足'}
+
         subscription = VIPSubscription(
             user=user_id,
             plan=plan_id,
@@ -200,6 +204,12 @@ class MembershipService:
 
         subscription.status = 0
         await self.db.commit()
+
+        # 取消订阅后重置用户 VIP 等级
+        user = await self.db.get(User, user_id)
+        if user:
+            user.vip_level = 0
+            await self.db.commit()
 
         return {
             'success': True,

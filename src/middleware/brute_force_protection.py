@@ -36,11 +36,14 @@ class BruteForceProtectionMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         path = request.url.path
 
-        # 只检查登录相关端点
-        if not (path.endswith("/auth/login") or path.endswith("/auth/register")):
+        # 标准化路径：去尾斜杠，仅保留 /api/v2/auth/login 和 /api/v2/auth/register
+        normalized = path.rstrip('/')
+        if not (normalized.endswith("/auth/login") or normalized.endswith("/auth/register") or "/auth/login" in path or "/auth/register" in path):
             return await call_next(request)
 
-        client_ip = request.client.host if request.client else "unknown"
+        # 优先从 X-Forwarded-For 获取真实 IP（反向代理场景）
+        forwarded = request.headers.get("X-Forwarded-For")
+        client_ip = forwarded.split(",")[0].strip() if forwarded else (request.client.host if request.client else "unknown")
 
         # 清理过期记录
         now = time.time()
@@ -62,6 +65,14 @@ class BruteForceProtectionMiddleware(BaseHTTPMiddleware):
         # 记录登录尝试（只记录失败的）
         if response.status_code in (401, 403):
             self.ip_attempts[client_ip].append((now, ""))
+            # 从请求体提取用户名（如适用）
+            try:
+                body = await request.json()
+                username = body.get("username", "") or body.get("email", "")
+                if username:
+                    self.record_failed_attempt(client_ip, username)
+            except Exception:
+                pass
 
         return response
 

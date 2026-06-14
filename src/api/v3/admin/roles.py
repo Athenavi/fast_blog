@@ -120,6 +120,13 @@ async def update_role_permissions(
     role.updated_at = datetime.now(timezone.utc)
     await db.commit()
 
+    # 失效该角色所有用户的权限缓存
+    affected = await db.execute(
+        select(UserRole.user_id).where(UserRole.role_id == role_id)
+    )
+    for row in affected:
+        await invalidate_permission_cache(row.user_id)
+
     return ApiResponse(success=True, message="角色权限已更新")
 
 
@@ -139,10 +146,20 @@ async def delete_role(
     if role.is_system:
         return ApiResponse(success=False, error="系统角色不可删除")
 
+    # 查询受影响的用户
+    affected = await db.execute(
+        select(UserRole.user_id).where(UserRole.role_id == role_id)
+    )
+    user_ids = [row.user_id for row in affected]
+
     # 删除关联
     await db.execute(sa_delete(UserRole).where(UserRole.role_id == role_id))
     await db.delete(role)
     await db.commit()
+
+    # 失效受影响用户的权限缓存
+    for uid in user_ids:
+        await invalidate_permission_cache(uid)
 
     return ApiResponse(success=True, message="角色已删除")
 
