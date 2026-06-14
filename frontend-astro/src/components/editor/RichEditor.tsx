@@ -16,10 +16,6 @@ import {Table} from '@tiptap/extension-table';
 import {TableRow} from '@tiptap/extension-table-row';
 import {TableCell} from '@tiptap/extension-table-cell';
 import {TableHeader} from '@tiptap/extension-table-header';
-import Collaboration from '@tiptap/extension-collaboration';
-import CollaborationCursor from '@tiptap/extension-collaboration-cursor';
-import {WebsocketProvider} from 'y-websocket';
-import * as Y from 'yjs';
 import {AI_RECOMMENDATIONS, MEDIA} from '@/lib/api/api-paths';
 import {Image as ImageIcon2, ImageIcon, LayoutGrid, Loader, Palette, Sparkles, X} from 'lucide-react';
 import {apiClient} from '@/lib/api/base-client';
@@ -141,28 +137,6 @@ const RichEditor: React.FC<RichEditorProps> = ({value,onChange,placeholder='å¼€å
   const [aiResult,setAiResult]=useState('');
   const [aiBusy,setAiBusy]=useState(false);
   const prevValueRef = useRef(value);
-  const ydocRef = useRef<Y.Doc | null>(null);
-  const providerRef = useRef<any>(null);
-
-  // Initialize Collaboration â€” must happen BEFORE useEditor so Y.Doc is ready
-  if (typeof window !== 'undefined' && !ydocRef.current) {
-    const ydoc = new Y.Doc();
-    const wsUrl = `${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//${window.location.host}/ws/collaboration`;
-    const provider = new WebsocketProvider(wsUrl, 'article-room', ydoc);
-    ydocRef.current = ydoc;
-    providerRef.current = provider;
-  }
-  // Cleanup on unmount
-  const ydocCleanupRef = useRef<(() => void) | null>(null);
-  useEffect(() => {
-    ydocCleanupRef.current = () => {
-      providerRef.current?.destroy();
-      ydocRef.current?.destroy();
-      providerRef.current = null;
-      ydocRef.current = null;
-    };
-    return ydocCleanupRef.current;
-  }, []);
 
   const editor = useEditor({
     extensions:[
@@ -170,10 +144,6 @@ const RichEditor: React.FC<RichEditorProps> = ({value,onChange,placeholder='å¼€å
       Underline,Typography,TextAlign.configure({types:['heading','paragraph']}),Highlight,ImageExt,
       LinkExt.configure({openOnClick:false}),Table.configure({resizable:true}),TableRow,TableCell,TableHeader,
       TaskList,TaskItem.configure({nested:true}),
-      ...(ydocRef.current && providerRef.current ? [Collaboration.configure({document: ydocRef.current}), CollaborationCursor.configure({
-        provider: providerRef.current,
-        user: {name: 'User', color: '#f783ac'}
-      })] : []),
     ],
     content: value || '',
     onUpdate:({editor})=>onChange(editor.getHTML()),
