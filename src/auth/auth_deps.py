@@ -291,8 +291,6 @@ jwt_required = get_current_user
 jwt_required_dependency = get_current_user
 jwt_required_page = get_current_user_or_redirect
 jwt_required_page_dependency = get_current_user_or_redirect
-# jwt_optional 旧别名指向 required=True → 已弃用，请改用 jwt_optional_dependency
-jwt_optional = jwt_optional_dependency  # 修正为可选认证
 
 async def jwt_optional_dependency(
     request: Request,
@@ -300,6 +298,9 @@ async def jwt_optional_dependency(
 ) -> Optional[UserModel]:
     """可选的 JWT 认证，未提供有效 token 时返回 None"""
     return await _authenticate_user(request, db, required=False)
+
+# jwt_optional 别名（保持向后兼容）
+jwt_optional = jwt_optional_dependency
 
 # 兼容旧名称
 get_current_active_user = get_current_user
