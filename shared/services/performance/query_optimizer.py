@@ -120,8 +120,8 @@ class QueryOptimizer:
             查询计划分析结果
         """
         try:
-            # 执行EXPLAIN ANALYZE
-            explain_query = f"EXPLAIN (ANALYZE, FORMAT JSON) {sql_query}"
+            # 使用 EXPLAIN (FORMAT JSON) 代替 ANALYZE — ANALYZE 会实际执行写入
+            explain_query = f"EXPLAIN (FORMAT JSON) {sql_query}"
             result = await db.execute(text(explain_query))
             plan = result.scalar()
 

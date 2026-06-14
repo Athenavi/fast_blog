@@ -161,12 +161,23 @@ class CacheService:
             del self.cache[key]
 
     def clear(self):
-        """清空缓存"""
+        """清空缓存（仅清空应用缓存前缀的 key，不 flushdb 整个 Redis）"""
         if self.use_redis and self.redis_client:
             try:
-                self.redis_client.flushdb()
+                # 仅删除带应用前缀的 key，避免清空整个 Redis
+                prefix = getattr(self, 'key_prefix', 'fastblog:')
+                cursor = 0
+                deleted = 0
+                while True:
+                    cursor, keys = self.redis_client.scan(cursor=cursor, match=f"{prefix}*", count=500)
+                    if keys:
+                        deleted += len(keys)
+                        self.redis_client.delete(*keys)
+                    if cursor == 0:
+                        break
+                print(f"[CacheService] Redis已清除 {deleted} 个缓存 key (前缀: {prefix})")
             except Exception as e:
-                print(f"[CacheService] Redis清空失败: {e}")
+                print(f"[CacheService] Redis清除失败: {e}")
 
         self.cache.clear()
 

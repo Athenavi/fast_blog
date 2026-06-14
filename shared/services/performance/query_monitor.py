@@ -12,8 +12,9 @@ from typing import Dict, List, Any, Optional
 class QueryMonitorService:
     """查询监控服务"""
     
-    def __init__(self):
+    def __init__(self, max_queries: int = 10000):
         self.queries: List[Dict[str, Any]] = []
+        self._max_queries = max_queries
         self.start_time: Optional[float] = None
         self.enabled = False
     
@@ -52,6 +53,9 @@ class QueryMonitorService:
         }
         
         self.queries.append(query_info)
+        # 限制最大记录数防止内存泄漏
+        if len(self.queries) > self._max_queries:
+            self.queries = self.queries[-self._max_queries:]
     
     def _analyze_queries(self) -> Dict[str, Any]:
         """分析查询模式"""

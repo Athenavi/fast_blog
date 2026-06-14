@@ -11,10 +11,23 @@ interface CacheEntry<T> {
 class ApiCache {
     private cache: Map<string, CacheEntry<any>> = new Map();
     private defaultTTL: number = 5 * 60 * 1000;
+    private maxEntries: number = 200;
 
-    constructor(defaultTTL?: number) {
+    constructor(defaultTTL?: number, maxEntries?: number) {
         if (defaultTTL) {
             this.defaultTTL = defaultTTL;
+        }
+        if (maxEntries) {
+            this.maxEntries = maxEntries;
+        }
+    }
+
+    set<T>(key: string, data: T, ttl?: number): void {
+        this.cache.set(key, {data, timestamp: Date.now(), ttl: ttl || this.defaultTTL});
+        // 限制缓存大小防止内存泄漏
+        if (this.cache.size > this.maxEntries) {
+            const oldest = this.cache.keys().next().value;
+            if (oldest) this.cache.delete(oldest);
         }
     }
 
@@ -28,14 +41,6 @@ class ApiCache {
             return null;
         }
         return entry.data as T;
-    }
-
-    set<T>(key: string, data: T, ttl?: number): void {
-        this.cache.set(key, {
-            data,
-            timestamp: Date.now(),
-            ttl: ttl || this.defaultTTL
-        });
     }
 
     delete(key: string): void {

@@ -17,10 +17,11 @@ class PagePerformanceTracker:
     收集和分析页面加载性能数据
     """
 
-    def __init__(self):
+    def __init__(self, max_history: int = 1000):
         """初始化性能追踪器"""
         # 存储性能数据 {page_url: [performance_data]}
         self.performance_data: Dict[str, List[Dict[str, Any]]] = defaultdict(list)
+        self._max_history = max_history
 
         # 聚合统计数据
         self.stats_cache: Dict[str, Dict[str, Any]] = {}
@@ -57,8 +58,10 @@ class PagePerformanceTracker:
             'custom_timings': custom_timings or {},
         }
 
-        # 添加到数据列表
+        # 添加到数据列表，限制最大历史记录防止内存泄漏
         self.performance_data[url].append(record)
+        if len(self.performance_data[url]) > self._max_history:
+            self.performance_data[url] = self.performance_data[url][-self._max_history:]
 
         # 清除缓存
         if url in self.stats_cache:

@@ -408,22 +408,33 @@ class RedisService:
         message = json.dumps({"action": "invalidate", "tags": tags, "timestamp": __import__('time').time()})
         return await self.publish("cache:invalidate", message)
 
-    async def listen_cache_invalidation(self, handler):
+    async def listen_cache_invalidation(self, handler, retry_delay: float = 5.0):
         """
-        监听缓存失效广播
+        监听缓存失效广播（带自动重连）
 
         Args:
             handler: 回调函数，接收 (channel, data) 参数
+            retry_delay: 断线重连等待秒数
         """
-        pubsub = await self.psubscribe("cache:invalidate")
-        async for message in pubsub.listen():
-            if message["type"] == "pmessage":
-                import json
-                try:
-                    data = json.loads(message["data"])
-                    await handler(message["channel"], data)
-                except (json.JSONDecodeError, Exception) as e:
-                    logger.error(f"缓存失效消息解析失败: {e}")
+        import asyncio
+        while True:
+            try:
+                pubsub = await self.psubscribe("cache:invalidate")
+                logger.info("Redis pub/sub listener started for cache:invalidate")
+                async for message in pubsub.listen():
+                    if message["type"] == "pmessage":
+                        import json
+                        try:
+                            data = json.loads(message["data"])
+                            await handler(message["channel"], data)
+                        except (json.JSONDecodeError, Exception) as e:
+                            logger.error(f"缓存失效消息解析失败: {e}")
+            except asyncio.CancelledError:
+                logger.info("Redis pub/sub listener cancelled")
+                break
+            except Exception as e:
+                logger.warning(f"Redis pub/sub listener disconnected: {e}, retrying in {retry_delay}s...")
+                await asyncio.sleep(retry_delay)
 
 
 # 全局 Redis 服务实例
