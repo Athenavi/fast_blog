@@ -171,7 +171,7 @@ const ProfileTab: React.FC<Props> = ({
             <p className="text-xs text-gray-500 dark:text-gray-400">开启后只有登录用户可查看你的资料</p>
           </div>
           <button
-            onClick={() => onChangePriv(!priv)}
+            onClick={() => { onChangePriv(!priv); onSave('profile_private', !priv); }}
             className={`relative w-11 h-6 rounded-full transition-colors ${priv ? 'bg-blue-600' : 'bg-gray-300 dark:bg-gray-600'}`}
           >
             <div className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${priv ? 'translate-x-[22px]' : 'translate-x-0.5'}`}/>
