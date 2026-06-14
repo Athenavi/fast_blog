@@ -10,7 +10,7 @@ from datetime import datetime
 from functools import wraps
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request, Body
 
 logger = logging.getLogger(__name__)
 from sqlalchemy import func, select
