@@ -227,6 +227,8 @@ export function useSettingsState() {
     } catch {}
     document.cookie = 'access_token=;path=/;expires=Thu,01 Jan 1970 00:00:00 UTC';
     document.cookie = 'refresh_token=;path=/;expires=Thu,01 Jan 1970 00:00:00 UTC';
+    // 清除 localStorage 中可能缓存的数据
+    localStorage.clear();
     window.location.href = '/login';
   };
 
