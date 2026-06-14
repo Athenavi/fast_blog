@@ -675,15 +675,6 @@ def register_middleware(app: FastAPI):
         print("[HTTP Cache] 已添加")
     except ImportError:
         pass
-
-    # 安全中间件（惰性加载：首次请求时才导入 security_middleware 模块）
-    try:
-        app.add_middleware(
-            _make_lazy_middleware("src.auth.security_middleware", "CSRFProtectionMiddleware")
-        )
-    except Exception:
-        pass
-
     # 速率限制已移除全局中间件，改为在特定路由上使用装饰器
 
     # RBAC 权限中间件
