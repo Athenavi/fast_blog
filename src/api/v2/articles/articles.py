@@ -310,10 +310,14 @@ async def create_article_api(request: Request, current_user=Depends(jwt_required
                               db: AsyncSession = Depends(get_async_session)):
     """创建文章"""
     data = await _parse_body(request)
+    # category_id=0 时转为 None，避免外键约束错误
+    cat_id = data.get('category_id')
+    if cat_id is not None and (not cat_id or cat_id == 0 or cat_id == '0'):
+        cat_id = None
     article = Article(
         title=data.get('title', ''), slug=data.get('slug', ''),
         excerpt=data.get('excerpt', ''), user=current_user.id,
-        category=data.get('category_id'), tags_list=data.get('tags', ''),
+        category=cat_id, tags_list=data.get('tags', ''),
         cover_image=data.get('cover_image', ''), hidden=data.get('hidden', False),
         is_vip_only=data.get('is_vip_only', False), article_ad=data.get('article_ad', ''),
         status=data.get('status', 0), is_featured=data.get('is_featured', False),
@@ -354,9 +358,13 @@ async def update_article_api(article_id: int, request: Request, current_user=Dep
     if article.user != current_user.id and not _is_admin(current_user):
         raise HTTPException(403, "无权修改此文章")
 
-    for field in ('title', 'slug', 'excerpt', 'cover_image', 'category_id', 'tags_list', 'hidden', 'is_vip_only', 'is_featured', 'status'):
+    for field in ('title', 'slug', 'excerpt', 'cover_image', 'tags_list', 'hidden', 'is_vip_only', 'is_featured', 'status'):
         if field in data:
             setattr(article, field, data[field])
+    # category_id 映射到模型字段 category，0 转为 None
+    if 'category_id' in data:
+        cat_val = data['category_id']
+        article.category = None if cat_val is None or cat_val == 0 or cat_val == '0' else cat_val
     article.updated_at = datetime.now()
 
     if data.get('content') is not None:
