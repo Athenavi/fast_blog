@@ -187,12 +187,20 @@ export function useSettingsState() {
 
   const disable2FA = async () => {
     if (!(await confirm({message: '禁用2FA？', variant: 'warning'}))) return;
-    const r = await apiClient.post(SECURITY.TWO_FA_DISABLE);
-    if (r.success) {
-      setFa(false);
-      setQr('');
-      setSecret('');
-      setCodes([]);
+    const pw = prompt('请输入当前密码以禁用双重验证：');
+    if (!pw) return;
+    try {
+      const r = await apiClient.post(SECURITY.TWO_FA_DISABLE, {password: pw});
+      if (r.success) {
+        setFa(false);
+        setQr('');
+        setSecret('');
+        setCodes([]);
+      } else {
+        alert(r.error || '禁用失败');
+      }
+    } catch (e) {
+      alert('网络错误');
     }
   };
 
