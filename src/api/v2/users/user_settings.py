@@ -122,8 +122,8 @@ async def update_avatar_api(file: UploadFile = File(...), current_user=Depends(j
         return JSONResponse(content={"success": False, "error": "文件大小不能超过5MB"}, status_code=400)
 
     await file.seek(0)
-    from src.utils.database.main import get_async_session
-    async with get_async_session() as db:
+    from src.utils.database.main import get_async_session_context
+    async with get_async_session_context() as db:
         result = await save_uploaded_avatar(file, current_user.id, db)
 
     avatar_url = f"/api/v2/static/avatar/{result}.webp"

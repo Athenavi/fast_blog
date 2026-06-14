@@ -189,6 +189,12 @@ async def update_current_user_profile_api(
     locale = data.get('locale')
     if locale and is_valid_iso_language_code(locale):
         current_user.locale = locale
+
+    profile_private = data.get('profile_private')
+    if profile_private is not None:
+        current_user.profile_private = bool(profile_private)
+
+    if any(k in data for k in ('locale', 'profile_private')):
         await db.commit()
 
     return ok({"user_id": current_user.id}, "资料更新成功")
@@ -199,7 +205,9 @@ async def update_current_user_profile_api(
 async def change_password_api(request: Request, db: AsyncSession = Depends(get_async_db),
                                current_user: User = Depends(get_current_active_user)):
     """修改当前用户密码"""
-    form = ChangePasswordForm(request)
+    # FastAPI 的 request 需要先解析 form 数据再传给 WTForms
+    form_data = await request.form()
+    form = ChangePasswordForm(form_data)
     if not form.validate():
         return fail("表单验证失败")
 
@@ -223,8 +231,8 @@ async def update_avatar_api(file: UploadFile = File(...),
         return fail("文件大小不能超过 5MB")
     await file.seek(0)
 
-    from src.utils.database.main import get_async_session
-    async with get_async_session() as db:
+    from src.utils.database.main import get_async_session_context
+    async with get_async_session_context() as db:
         result = await save_uploaded_avatar(file, current_user.id, db)
 
     return ok({"avatar_url": f"/api/v2/static/avatar/{result}.webp"}, "头像更新成功")
