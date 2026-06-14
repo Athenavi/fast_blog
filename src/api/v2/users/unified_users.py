@@ -211,7 +211,7 @@ async def change_password_api(request: Request, db: AsyncSession = Depends(get_a
     if not form.validate():
         return fail("表单验证失败")
 
-    if not await validate_password_async(current_user.id, form.old_password.data, db):
+    if not await validate_password_async(current_user.id, form.current_password.data, db):
         return fail("原密码错误")
 
     await update_password(current_user.id, form.new_password.data, db)
