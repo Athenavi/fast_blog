@@ -169,7 +169,7 @@ async def _get_article_detail(request: Request, db: AsyncSession, article: Artic
 router = APIRouter()
 
 
-@router.get("/")
+@router.get("")
 @_catch
 async def get_articles_api(request: Request, page: int = Query(1, ge=1), per_page: int = Query(10, ge=1, le=100),
                             search: str = Query(""), category_id: Optional[int] = Query(None),
@@ -304,7 +304,7 @@ async def get_article_raw_content_api(article_id: int, db: AsyncSession = Depend
     return ApiResponse(success=True, data={"id": article.id, "title": article.title, "slug": article.slug, "content": content or ""})
 
 
-@router.post("/")
+@router.post("")
 @_catch
 async def create_article_api(request: Request, current_user=Depends(jwt_required),
                               db: AsyncSession = Depends(get_async_session)):
