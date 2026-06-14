@@ -167,29 +167,34 @@ export function useSettingsState() {
   const setup2FA = async () => {
     let fullUrl = '';
     try {
-      const url = SECURITY.TWO_FA_SETUP;
-      console.log('[2FA] Fetching:', url);
-      // 尝试直接 fetch 以绕过 apiClient 可能的封装问题
       const c = await import('@/lib/config').then(m => m.getConfig());
       const t = await import('@/lib/auth-utils').then(m => m.getAccessTokenFromCookie());
       const baseUrl = c.API_BASE_URL || '';
       fullUrl = `${baseUrl}/api/v2/security/2fa/setup`;
       console.log('[2FA] Full URL:', fullUrl);
+      console.log('[2FA] Has token:', !!t);
       const resp = await fetch(fullUrl, {
+        method: 'GET',
         headers: t ? {Authorization: `Bearer ${t}`} : {},
         credentials: 'include',
       });
-      const r = await resp.json();
-      console.log('[2FA] Response:', resp.status, r);
-      if (r.success && r.data) {
-        setQr(r.data.qr_code);
-        setSecret(r.data.secret);
-      } else {
-        alert(r?.error || `HTTP ${resp.status}: 获取二维码失败`);
+      console.log('[2FA] HTTP status:', resp.status, resp.statusText);
+      const text = await resp.text();
+      console.log('[2FA] Raw response:', text);
+      try {
+        const r = JSON.parse(text);
+        if (r.success && r.data) {
+          setQr(r.data.qr_code);
+          setSecret(r.data.secret);
+        } else {
+          alert(r?.error || `HTTP ${resp.status}: 获取二维码失败`);
+        }
+      } catch {
+        alert(`服务器返回非JSON: HTTP ${resp.status}\n${text.slice(0, 200)}`);
       }
     } catch (e: any) {
       console.error('[2FA] Error:', e);
-      alert(`请求失败: ${e?.message || e}\n\nURL: ${fullUrl || '/security/2fa/setup'}\n请按 F12 查看网络标签`);
+      alert(`网络错误: ${e?.message || e}\nURL: ${fullUrl}`);
     }
   };
 
