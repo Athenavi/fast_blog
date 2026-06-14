@@ -661,8 +661,8 @@ def create_security_middleware_stack(app):
     # 2. XSS 过滤
     # app.add_middleware(XSSFilterMiddleware)
 
-    # 3. CSRF 保护
-    app.add_middleware(CSRFProtectionMiddleware)
+    # 3. CSRF 保护（前后端分离模式下 JWT/Bearer 已天然防 CSRF，故移除）
+    # app.add_middleware(CSRFProtectionMiddleware)
 
     # 注意：速率限制已移除，改为在特定路由上使用装饰器方式
 
