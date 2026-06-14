@@ -130,8 +130,8 @@ class RBACMiddleware(BaseHTTPMiddleware):
                 # 需要检查权限
                 user = getattr(request.state, "user", None)
                 if not user or not hasattr(user, "id"):
-                    # 未认证用户返回 401
-                    raise HTTPException(status_code=401, detail="Authentication required")
+                    # 未认证用户 — 跳过 RBAC 检查，交由路由层 Depends(jwt_required) 处理
+                    continue
 
                 try:
                     from src.utils.database.unified_manager import db_manager
