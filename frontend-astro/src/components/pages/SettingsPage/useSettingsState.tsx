@@ -39,6 +39,7 @@ export function useSettingsState() {
   const [sessions, setSessions] = useState<any[]>([]);
   const [savedField, setSavedField] = useState<string | null>(null);
   const [pwStrength, setPwStrength] = useState(0);
+  const [status, setStatus] = useState<string | null>(null);
   const avRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
