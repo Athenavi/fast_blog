@@ -53,7 +53,8 @@ const CropModal: React.FC<CropModalProps> = ({imageUrl, onCrop, onClose}) => {
     const img = imgRef.current;
 
     const calcLayout = () => {
-      const container = containerRef.current!;
+      const container = containerRef.current;
+      if (!container) return;
       const cw = container.clientWidth;
       const ch = container.clientHeight;
       const iw = img.naturalWidth;
