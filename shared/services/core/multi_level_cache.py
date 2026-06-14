@@ -208,11 +208,20 @@ class MultiLevelCache:
             self.memory_cache.clear()
             self.memory_ttl_map.clear()
 
-        # 清空L2
+        # 清空L2（只删除带缓存前缀的键，避免误删其他数据）
         if self.redis_enabled:
             try:
-                await self._redis_svc.flushdb()
-                logger.info("[MultiLevelCache] L2 Redis 已清空")
+                prefix = getattr(self, '_key_prefix', 'cache:')
+                deleted = 0
+                cursor = 0
+                while True:
+                    cursor, keys = await self._redis_svc.scan(cursor=cursor, match=f"{prefix}*", count=100)
+                    if keys:
+                        deleted += len(keys)
+                        await self._redis_svc.delete(*keys)
+                    if cursor == 0:
+                        break
+                logger.info(f"[MultiLevelCache] L2 Redis 已清空 {deleted} 个缓存键")
             except Exception as e:
                 logger.error(f"[MultiLevelCache] Redis清空失败: {e}")
 

@@ -185,7 +185,7 @@ class ObjectCacheService:
             deleted_count += 1
 
         # 清除标签索引
-        self.cache.delete(index_key)
+        await self.cache.delete(index_key)
 
         from src.unified_logger import default_logger as logger
         logger.info(f"[ObjectCache] Invalidated {deleted_count} objects with tag: {tag}")
@@ -220,7 +220,7 @@ class ObjectCacheService:
             index_key = f"{self.tag_index_prefix}{tag}"
 
             # 获取现有的键列表
-            existing_keys = self.cache.get(index_key) or []
+            existing_keys = (await self.cache.get(index_key)) or []
 
             # 添加新键（避免重复）
             if cache_key not in existing_keys:
