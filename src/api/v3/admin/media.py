@@ -75,8 +75,23 @@ async def upload_media(
     current_user: User = Depends(Permission("media:upload")),
 ):
     """上传媒体文件"""
-    # 读取文件内容
+    # 文件大小限制（默认 50MB）
+    MAX_SIZE = 50 * 1024 * 1024
+    ALLOWED_MIMES = {
+        'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
+        'video/mp4', 'video/webm', 'video/quicktime',
+        'audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/aac',
+        'application/pdf', 'text/plain', 'text/markdown',
+    }
+
     content = await file.read()
+
+    if len(content) > MAX_SIZE:
+        return ApiResponse(success=False, error=f"文件大小不能超过 {MAX_SIZE // 1024 // 1024}MB")
+
+    mime = file.content_type or 'application/octet-stream'
+    if mime not in ALLOWED_MIMES:
+        return ApiResponse(success=False, error=f"不支持的文件类型: {mime}")
 
     # 保存文件到存储
     from src.api.v2.media_v1pack.upload_service import save_uploaded_file
@@ -120,20 +135,30 @@ async def upload_media(
 async def delete_media(
     media_id: int,
     db: AsyncSession = Depends(get_db),
-    _=Depends(Permission("media:delete")),
+    current_user: User = Depends(Permission("media:delete")),
 ):
     media = await db.get(Media, media_id)
     if not media:
         return ApiResponse(success=False, error="文件不存在")
 
-    # 删除物理文件
+    # 所有权校验
+    if media.user_id != current_user.id and not current_user.is_superuser:
+        return ApiResponse(success=False, error="无权删除此文件")
+
+    # 删除物理文件（校验路径安全性）
     import os
     filepath = media.filepath
-    if filepath and os.path.exists(filepath):
-        try:
-            os.remove(filepath)
-        except OSError as e:
-            logger.warning(f"删除物理文件失败: {filepath} — {e}")
+    if filepath:
+        # 路径穿越防护：确保路径在 storage 目录下
+        safe_path = os.path.normpath(filepath)
+        if not safe_path.startswith("storage") and not safe_path.startswith("/app/storage"):
+            logger.warning(f"拒绝删除非存储目录文件: {filepath}")
+            return ApiResponse(success=False, error="无效的文件路径")
+        if os.path.exists(safe_path):
+            try:
+                os.remove(safe_path)
+            except OSError as e:
+                logger.warning(f"删除物理文件失败: {safe_path} — {e}")
 
     await db.delete(media)
     await db.commit()

@@ -201,8 +201,10 @@ class MediaLibraryService:
                     media = result.scalar_one_or_none()
                     
                     if media:
+                        # 字段白名单：只允许更新非敏感字段
+                        ALLOWED_FIELDS = {'alt_text', 'title', 'description', 'category', 'tags', 'is_public'}
                         for key, value in update_data.items():
-                            if hasattr(media, key):
+                            if key in ALLOWED_FIELDS and hasattr(media, key):
                                 setattr(media, key, value)
                         updated_count += 1
                     else:

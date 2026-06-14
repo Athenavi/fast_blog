@@ -49,6 +49,10 @@ async def get_media_exif(
     if not media:
         return fail("媒体文件不存在")
 
+    # 校验所有权：仅文件所有者或管理员可查看 EXIF
+    if media.user_id != current_user.id and not getattr(current_user, 'is_superuser', False):
+        return fail("无权查看此文件的 EXIF 信息")
+
     file_path = Path(media.file_path) if media.file_path else None
     if not file_path or not file_path.exists():
         # 尝试带 storage 前缀
@@ -108,6 +112,10 @@ async def remove_exif(
 
     if not media:
         return fail("媒体文件不存在")
+
+    # 校验所有权
+    if media.user_id != current_user.id and not getattr(current_user, 'is_superuser', False):
+        return fail("无权操作此文件")
 
     # 只处理图片
     if not media.mime_type or not media.mime_type.startswith('image/'):

@@ -58,7 +58,7 @@ async def upload_media_file(
         'text/plain', 'text/markdown', 'text/csv', 'text/html',
         'application/zip', 'application/x-rar-compressed', 'application/x-7z-compressed',
         'application/gzip', 'application/x-tar', 'application/x-bzip2',
-        'application/json', 'application/xml', 'application/octet-stream',
+        'application/json', 'application/xml',
     ])
 
     form = await request.form()

@@ -186,7 +186,6 @@ async def list_media(
             'original_filename': media.original_filename,
             'title': media.original_filename,
             'hash': media.hash,
-            'file_path': media.file_path,
             'file_url': media.file_url,
             'url': media.file_url,
             'thumbnail_url': media.thumbnail_url,
