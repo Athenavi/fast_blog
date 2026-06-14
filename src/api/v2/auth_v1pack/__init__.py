@@ -382,7 +382,17 @@ async def logout_api(request: Request, current_user=Depends(jwt_required)):
 async def refresh_token_api(request: Request):
     refresh_token = request.cookies.get("refresh_token")
     if not refresh_token:
-        refresh_token = extract_token_from_request(request)
+        # 尝试从请求体获取（兼容前端 localStorage 场景）
+        try:
+            body = await request.json()
+            refresh_token = body.get("refresh_token", "")
+        except Exception:
+            refresh_token = ""
+    if not refresh_token:
+        # 最后从 Authorization header 尝试
+        auth = request.headers.get("Authorization")
+        if auth and auth.startswith("Bearer "):
+            refresh_token = auth[7:]
     if not refresh_token:
         return fail("未提供刷新令牌")
 

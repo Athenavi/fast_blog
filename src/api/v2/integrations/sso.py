@@ -250,15 +250,12 @@ async def create_sso_session(
         current_user=Depends(jwt_required)
 ):
     """
-    创建SSO会话
-    
-    Args:
-        user_id: 用户ID
-        session_id: 会话ID
-        
-    Returns:
-        SSO令牌
+    创建SSO会话（仅管理员或本人可操作）
     """
+    # 仅允许管理员或自己
+    is_admin = getattr(current_user, 'is_superuser', False) or getattr(current_user, 'is_staff', False)
+    if current_user.id != user_id and not is_admin:
+        return fail("无权为此用户创建SSO会话")
     sso_token = await sso_service.create_sso_session(user_id, session_id)
 
     return ok(

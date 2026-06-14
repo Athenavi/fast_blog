@@ -12,14 +12,14 @@ from shared.services.rbac import check_user_permission
 from src.unified_logger import default_logger as logger
 
 
-async def get_visible_fields(
+async def get_restricted_fields(
     db: AsyncSession,
     user_id: int,
     model_name: str,
     user_role_ids: Optional[List[int]] = None,
 ) -> Set[str]:
     """
-    获取用户对指定模型可见的字段集合
+    获取用户对指定模型不可见的字段集合
 
     默认所有字段可见，只有被明确设置为 can_read=False 的才被过滤
 
@@ -30,7 +30,7 @@ async def get_visible_fields(
         user_role_ids: 用户角色 ID 列表（可选，为 None 时自动查询）
 
     Returns:
-        可见字段名称集合
+        受限字段名称集合（调用方需从全字段列表中排除这些）
     """
     try:
         if user_role_ids is None:
