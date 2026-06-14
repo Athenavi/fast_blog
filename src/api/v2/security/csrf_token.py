@@ -36,7 +36,7 @@ async def get_csrf_token(request: Request, current_user=Depends(jwt_required)):
 
     token = secrets.token_urlsafe(32)
     # Store in cache for 2 hours
-    cache.set(f"csrf:{token}", str(current_user.id), ex=7200)
+    cache.set(f"csrf_token:{token}", str(current_user.id), ex=7200)
 
     return ok(data={
         "csrf_token": token,

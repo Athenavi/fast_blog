@@ -7,6 +7,8 @@ from datetime import datetime
 from enum import Enum
 from typing import Dict, Any, Optional, List
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from shared.models.collaboration import ApprovalStep, ApprovalRecord
 from src.unified_logger import default_logger as logger
 
