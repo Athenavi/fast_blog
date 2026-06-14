@@ -179,8 +179,8 @@ async def get_current_user_or_redirect(
 async def admin_required(
     user: UserModel = Depends(get_current_user),
 ) -> UserModel:
-    """API：需要超级管理员"""
-    if not user.is_superuser:
+    """API：需要超级管理员或 staff"""
+    if not user.is_superuser and not getattr(user, 'is_staff', False):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient privileges")
     return user
 

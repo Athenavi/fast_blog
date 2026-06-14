@@ -69,7 +69,7 @@ export default function ArticleEditor() {
   return (
     <AuthGuard>
       <QueryProvider>
-        <PermissionGuard capability="settings:view">
+        <PermissionGuard capability="article:create">
           <EditorInner />
         </PermissionGuard>
       </QueryProvider>
