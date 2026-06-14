@@ -6,7 +6,7 @@
 import asyncio
 import logging
 import re
-from datetime import datetime
+from datetime import datetime, timedelta
 from functools import wraps
 from typing import Optional
 
@@ -336,14 +336,18 @@ async def create_article_api(request: Request, current_user=Depends(jwt_required
     try:
         await isr_service.invalidate(article.slug)
         await webhook_service.trigger('article.created', {'article_id': article.id})
-        await event_bus.emit('article.published', ArticlePublishedPayload(
-            article_id=article.id, slug=article.slug, title=article.title,
-            author_id=current_user.id, excerpt=article.excerpt or '',
-            tags=[t.strip() for t in article.tags_list.split(',') if t.strip()] if article.tags_list else [],
-            category_id=article.category,
-        ))
+        # 仅在发布状态时发送 published 事件
+        if article.status == 1:
+            await event_bus.emit('article.published', ArticlePublishedPayload(
+                article_id=article.id, slug=article.slug, title=article.title,
+                author_id=current_user.id, excerpt=article.excerpt or '',
+                tags=[t.strip() for t in article.tags_list.split(',') if t.strip()] if article.tags_list else [],
+                category_id=article.category,
+            ))
     except Exception:
         logger.warning(f"文章创建后处理失败 (article_id={article.id})", exc_info=True)
+
+    return ApiResponse(success=True, data={"id": article.id, "slug": article.slug}, message="文章创建成功")
 
 
 @router.put("/{article_id}")
@@ -401,9 +405,9 @@ async def delete_article_api(article_id: int, current_user=Depends(jwt_required)
     """删除文章（软删除）"""
     article = await db.scalar(select(Article).where(Article.id == article_id))
     if not article:
-        return fail("文章不存在")
+        raise HTTPException(404, "文章不存在")
     if article.user != current_user.id and not _is_admin(current_user):
-        return fail("无权删除此文章")
+        raise HTTPException(403, "无权删除此文章")
     article.status = -1
     await db.commit()
 
@@ -498,8 +502,10 @@ async def toggle_article_sticky_api(article_id: int, data: dict = Body(...), cur
         return fail("文章不存在")
     article.is_sticky = data.get('sticky', False)
     if data.get('sticky'):
-        from datetime import timedelta
-        article.sticky_until = datetime.now() + timedelta(days=data.get('sticky_days', 7))
+        sticky_days = data.get('sticky_days', 7)
+        if not isinstance(sticky_days, (int, float)) or sticky_days <= 0:
+            return fail("置顶天数必须大于 0")
+        article.sticky_until = datetime.now() + timedelta(days=sticky_days)
     await db.commit()
     return ok(msg="置顶状态已更新")
 
@@ -548,7 +554,6 @@ async def batch_article_operation_api(data: dict = Body(...), current_user=Depen
         return fail("请选择文章")
 
     if action == 'delete':
-        await db.execute(select(Article).where(Article.id.in_(ids)))
         for a in (await db.execute(select(Article).where(Article.id.in_(ids)))).scalars().all():
             a.status = -1
     elif action == 'publish':

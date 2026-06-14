@@ -100,7 +100,6 @@ async def create_page(
         await db.refresh(new_page)
 
         # 解析 blocks_data 为列表返回
-        import json
         try:
             blocks = json.loads(new_page.blocks_data)
         except:
@@ -147,7 +146,6 @@ async def list_pages(
         result = await db.execute(query)
         pages = result.scalars().all()
 
-        import json
         response_list = []
         for page in pages:
             try:
@@ -192,7 +190,6 @@ async def get_page(
         if not page:
             raise HTTPException(status_code=404, detail="页面不存在")
 
-        import json
         try:
             blocks = json.loads(page.blocks_data)
         except:
@@ -239,18 +236,17 @@ async def update_page(
         if req.title is not None:
             page.title = req.title
         if req.blocks_data is not None:
-            page.blocks_data = str(req.blocks_data)
+            page.blocks_data = json.dumps(req.blocks_data, ensure_ascii=False)
         if req.template_name is not None:
             page.template_name = req.template_name
         if req.is_published is not None:
             page.is_published = req.is_published
 
-        page.updated_at = datetime.utcnow()
+        page.updated_at = datetime.now()
 
         await db.commit()
         await db.refresh(page)
 
-        import json
         try:
             blocks = json.loads(page.blocks_data)
         except:
@@ -321,7 +317,7 @@ async def publish_page(
             raise HTTPException(status_code=404, detail="页面不存在")
 
         page.is_published = True
-        page.updated_at = datetime.utcnow()
+        page.updated_at = datetime.now()
 
         await db.commit()
 
@@ -352,7 +348,7 @@ async def unpublish_page(
             raise HTTPException(status_code=404, detail="页面不存在")
 
         page.is_published = False
-        page.updated_at = datetime.utcnow()
+        page.updated_at = datetime.now()
 
         await db.commit()
 
@@ -382,7 +378,6 @@ async def get_page_by_slug(slug: str):
         if not page:
             raise HTTPException(status_code=404, detail="页面不存在或未发布")
 
-        import json
         try:
             blocks = json.loads(page.blocks_data)
         except:
@@ -699,7 +694,6 @@ async def create_page_from_template(
         if existing.scalar_one_or_none():
             raise HTTPException(status_code=400, detail=f"Slug '{slug}' 已存在")
 
-        import json
         # 创建新页面
         new_page = PageBuilder(
             title=title,
@@ -707,8 +701,8 @@ async def create_page_from_template(
             blocks_data=json.dumps(template["blocks"]),
             template_name=template_id,
             is_published=False,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
+            created_at=datetime.now(),
+            updated_at=datetime.now()
         )
 
         db.add(new_page)

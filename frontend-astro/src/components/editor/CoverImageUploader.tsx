@@ -316,14 +316,14 @@ export default function CoverImageUploader({value, onChange, className}: CoverIm
           }
         };
         xhr.onload = () => {
-          // Handle auth redirect (login page returns HTML)
-          if (xhr.status === 302 || xhr.status === 401 || xhr.status === 403) {
+          // XHR 自动跟随 302 重定向，此处 xhr.status 永不为 302
+          if (xhr.status === 401 || xhr.status === 403) {
             reject(new Error('未登录或登录已过期，请重新登录'));
             return;
           }
           try {
             const resp = JSON.parse(xhr.responseText);
-            if (xhr.status >= 200 && xhr.status < 300 && resp.code === 200 && resp.data) {
+            if (xhr.status >= 200 && xhr.status < 300 && resp.success === true && resp.data) {
               resolve(resp.data);
             } else {
               reject(new Error(resp.msg || resp.error || `上传失败 (HTTP ${xhr.status})`));

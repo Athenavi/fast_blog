@@ -42,7 +42,7 @@ class CreatePreviewRequest(BaseModel):
 async def generate_preview_link(request: CreatePreviewRequest, current_user=Depends(jwt_required),
                                 db: AsyncSession = Depends(get_async_db)):
     """生成草稿预览链接"""
-    article = await db.scalar(select(Article).where(Article.id == request.article_id, Article.user_id == current_user.id))
+    article = await db.scalar(select(Article).where(Article.id == request.article_id, Article.user == current_user.id))
     if not article:
         return fail("文章不存在或无权访问")
 

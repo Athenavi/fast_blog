@@ -240,7 +240,7 @@ async def update_widget(
     if title is not None:
         widget.title = title
     if config is not None:
-        widget.config = str(config)
+        widget.config = json.dumps(config, ensure_ascii=False)
 
     widget.updated_at = datetime.now()
     await db.commit()

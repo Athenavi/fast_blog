@@ -76,7 +76,7 @@ export const COMMENTS = {
 // ─── Categories 分类 ────────────────────────────
 export const CATEGORIES = {
   LIST: '/cms/categories',
-  CREATE: '/cms/categories/',
+  CREATE: '/cms/categories',
   DETAIL: (name: string) => `/cms/categories/${name}`,
   UPDATE: (id: number) => `/cms/categories/${id}`,
   DELETE: (id: number) => `/cms/categories/${id}`,

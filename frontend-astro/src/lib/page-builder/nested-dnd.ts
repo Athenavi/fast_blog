@@ -136,11 +136,12 @@ export function addChildBlock(
     }
 
     const newBlocks = [...blocks];
-    const targetBlock = findBlockByPath(newBlocks, parentPath);
+    // 重新获取 newBlocks 中的引用（因为 blocks 被浅拷贝）
+    const targetInNew = findBlockByPath(newBlocks, parentPath);
 
-    if (targetBlock) {
-        targetBlock.block.children = [
-            ...(targetBlock.block.children || []),
+    if (targetInNew) {
+        targetInNew.block.children = [
+            ...(targetInNew.block.children || []),
             newBlock
         ];
     }
@@ -160,6 +161,12 @@ export function moveBlock(
     fromPath: string,
     toPath: string
 ): NestedBlock[] {
+    // 循环引用检测: 目标路径不能是源路径的后代
+    if (toPath.startsWith(fromPath + '.')) {
+        console.warn('moveBlock: 不能将块移入其自身子块中（循环引用）');
+        return blocks;
+    }
+
     // 首先找到并移除源块
     const fromResult = findBlockByPath(blocks, fromPath);
     if (!fromResult) {

@@ -11,8 +11,8 @@ V3 评论管理 API
 """
 import logging
 
-from fastapi import APIRouter, Body, Depends
-from sqlalchemy import select
+from fastapi import APIRouter, Body, Depends, Query
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.comment import Comment
@@ -27,17 +27,29 @@ router = APIRouter(tags=["admin-comments"])
 
 @router.get("/comments/pending", summary="待审核评论")
 async def pending_comments(
+    page: int = Query(1, ge=1),
+    per_page: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
     _=Depends(Permission("comment:view")),
 ):
+    # 总数
+    total = await db.scalar(
+        select(func.count()).select_from(Comment).where(Comment.is_approved == False)
+    ) or 0
+
+    offset = (page - 1) * per_page
     result = await db.execute(
         select(Comment).where(Comment.is_approved == False)
         .order_by(Comment.created_at.desc())
+        .offset(offset).limit(per_page)
     )
     comments = result.scalars().all()
     return ApiResponse(success=True, data={
         "comments": [_cvt(c) for c in comments],
-        "total": len(comments),
+        "total": total,
+        "page": page,
+        "per_page": per_page,
+        "total_pages": (total + per_page - 1) // per_page if total > 0 else 0,
     })
 
 
@@ -64,9 +76,9 @@ async def reject_comment(
     comment = await db.get(Comment, comment_id)
     if not comment:
         return ApiResponse(success=False, error="评论不存在")
-    await db.delete(comment)
+    comment.is_approved = False
     await db.commit()
-    return ApiResponse(success=True, message="评论已驳回删除")
+    return ApiResponse(success=True, message="评论已驳回")
 
 
 @router.delete("/comments/{comment_id}", summary="删除评论")

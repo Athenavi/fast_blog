@@ -53,8 +53,9 @@ async function doRefreshToken(): Promise<boolean> {
 
 async function ensureTokenFresh(): Promise<boolean> {
   if (isRefreshing && refreshPromise) return refreshPromise;
-  isRefreshing = true;
+  // 先创建 Promise，再设标记，消除竞态窗口
   refreshPromise = doRefreshToken();
+  isRefreshing = true;
   const result = await refreshPromise;
   isRefreshing = false;
   refreshPromise = null;

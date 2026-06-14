@@ -7,11 +7,12 @@ from functools import wraps
 from typing import Dict, Any, List, Optional
 import re
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 
 from shared.services.content_management.block_editor_extensions import create_extensions
 from shared.services.content_management.block_editor_service import block_editor_service
+from src.auth.auth_deps import jwt_required_dependency as jwt_required
 
 # 创建扩展服务实例
 block_extensions = create_extensions(block_editor_service)
@@ -155,9 +156,10 @@ async def render_blocks(request: BlockRenderRequest):
 
 @router.post("/convert/html-to-blocks")
 @_catch
-async def convert_html_to_blocks(html: str):
+async def convert_html_to_blocks(html: str,
+    current_user=Depends(jwt_required)):
     """
-    将 HTML 转换为块数据
+    将 HTML 转换为块数据（需要登录）
     
     Args:
         html: HTML 字符串
@@ -165,7 +167,9 @@ async def convert_html_to_blocks(html: str):
     Returns:
         块数据列表
     """
-    blocks = []
+    # 限制输入大小防止 ReDoS
+    if len(html) > 524288:  # 512 KB
+        raise HTTPException(status_code=400, detail="HTML 内容过大")
 
     # 解析 H1-H6 标题
     heading_pattern = r'<h([1-6])([^>]*)>(.*?)</h\1>'
@@ -192,9 +196,9 @@ async def convert_html_to_blocks(html: str):
                 }
             })
 
-    # 解析图片
-    img_pattern = r'<img[^>]*src=["\']([^"\']+)["\'][^>]*(?:alt=["\']([^"\']*)["\'])?[^>]*/?>'
-    for match in re.finditer(img_pattern, html):
+    # 解析图片 — 使用更安全的 pattern 防止 ReDoS
+    img_pattern = r'<img[^>]+?src=["\']([^"\']+?)["\'][^>]*?(?:alt=["\']([^"\']*?)["\'])?[^>]*?/?>'
+    for match in re.finditer(img_pattern, html, re.IGNORECASE):
         url = match.group(1)
         alt = match.group(2) or ''
         blocks.append({
@@ -447,9 +451,10 @@ async def export_blocks(blocks: List[BlockData]):
 
 @router.post("/import")
 @_catch
-async def import_blocks(json_str: str):
+async def import_blocks(json_str: str,
+    current_user=Depends(jwt_required)):
     """
-    从 JSON 导入块数据
+    从 JSON 导入块数据（需要登录）
     
     Args:
         json_str: JSON 字符串
@@ -457,7 +462,9 @@ async def import_blocks(json_str: str):
     Returns:
         块数据列表
     """
-    blocks = block_extensions.import_blocks_json(json_str)
+    # 限制输入大小防止 DoS
+    if len(json_str) > 1048576:  # 1 MB
+        raise HTTPException(status_code=400, detail="导入数据过大")
 
     return {"blocks": blocks}
 

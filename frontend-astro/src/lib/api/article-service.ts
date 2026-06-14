@@ -308,7 +308,7 @@ export class ArticleService {
                     article: transformArticle(articleData.article),
                     author: articleData.author,
                     aid: articleData.article?.id || 0,
-                    i18n_versions: []
+                    i18n_versions: articleData.i18n_versions || articleData.article?.i18n_versions || []
                 }
             };
 

@@ -6,9 +6,12 @@ from functools import wraps
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from shared.models.article import Article
 from shared.services.articles.scheduled_publish import create_scheduled_publish_service
+from src.api.v2._helpers import ok, fail
 from src.utils.database.main import get_async_session
 from src.auth import jwt_required_dependency as jwt_required
 
@@ -18,10 +21,11 @@ def _catch(func):
     async def wrapper(*args, **kwargs):
         try:
             return await func(*args, **kwargs)
-        except (ValueError, HTTPException):
+        except HTTPException:
             raise
         except Exception as e:
-            raise HTTPException(status_code=500, detail=str(e))
+            return fail(str(e))
+
     return wrapper
 
 
@@ -43,7 +47,7 @@ async def get_scheduled_articles(page: int = Query(1, ge=1), per_page: int = Que
     limit = per_page
     offset = (page - 1) * per_page
     articles = await service.get_scheduled_articles(limit, offset)
-    return {'success': True, 'data': articles, 'count': len(articles)}
+    return ok(data={'items': articles, 'count': len(articles)})
 
 
 @router.get("/upcoming")
@@ -54,7 +58,7 @@ async def get_upcoming_publishes(hours: int = Query(24, ge=1, le=168),
     """获取即将发布的文章"""
     service = create_scheduled_publish_service(db)
     articles = await service.get_upcoming_publishes(hours)
-    return {'success': True, 'data': articles, 'count': len(articles), 'hours': hours}
+    return ok(data={'items': articles, 'count': len(articles), 'hours': hours})
 
 
 @router.post("/schedule")
@@ -63,12 +67,19 @@ async def schedule_article(request: ScheduleArticleRequest,
                             current_user=Depends(jwt_required),
                             db: AsyncSession = Depends(get_async_session)):
     """设置定时发布"""
+    # 验证文章归属
+    article = await db.scalar(select(Article).where(Article.id == request.article_id))
+    if not article:
+        raise HTTPException(404, "文章不存在")
+    if article.user != current_user.id and not getattr(current_user, 'is_superuser', False):
+        raise HTTPException(403, "无权操作此文章")
+
     publish_at = datetime.fromisoformat(request.publish_at)
     service = create_scheduled_publish_service(db)
     result = await service.schedule_article(article_id=request.article_id, publish_at=publish_at)
     if not result['success']:
-        raise HTTPException(status_code=400, detail=result['message'])
-    return result
+        return fail(result['message'])
+    return ok(msg="定时发布已设置", data={'article_id': request.article_id, 'publish_at': request.publish_at})
 
 
 @router.post("/cancel/{article_id}")
@@ -77,11 +88,17 @@ async def cancel_scheduled_publish(article_id: int,
                                     current_user=Depends(jwt_required),
                                     db: AsyncSession = Depends(get_async_session)):
     """取消定时发布"""
+    article = await db.scalar(select(Article).where(Article.id == article_id))
+    if not article:
+        raise HTTPException(404, "文章不存在")
+    if article.user != current_user.id and not getattr(current_user, 'is_superuser', False):
+        raise HTTPException(403, "无权操作此文章")
+
     service = create_scheduled_publish_service(db)
     result = await service.cancel_scheduled_publish(article_id)
     if not result['success']:
-        raise HTTPException(status_code=400, detail=result['message'])
-    return result
+        return fail(result['message'])
+    return ok(msg="定时发布已取消", data={'article_id': article_id})
 
 
 @router.post("/publish-due")
