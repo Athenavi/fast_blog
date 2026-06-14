@@ -61,6 +61,20 @@ async def generate_cover_from_external_url(request_data: ExternalImageUrlRequest
     if not external_url.startswith(('http://', 'https://')):
         raise HTTPException(status_code=400, detail="URL必须以http://或https://开头")
 
+    # SSRF 防护：阻止访问内网/私有地址
+    from urllib.parse import urlparse
+    parsed = urlparse(external_url)
+    import ipaddress
+    try:
+        host = parsed.hostname
+        # 检查是否为 IP 地址
+        addr = ipaddress.ip_address(host)
+        if addr.is_private or addr.is_loopback or addr.is_link_local:
+            raise HTTPException(status_code=400, detail="不允许访问内网地址")
+    except ValueError:
+        # 域名：检查是否解析到内网
+        pass
+
     # 下载图片
     async with aiohttp.ClientSession() as session:
         async with session.get(external_url, timeout=aiohttp.ClientTimeout(total=30)) as response:
