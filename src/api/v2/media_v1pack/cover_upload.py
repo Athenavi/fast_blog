@@ -40,8 +40,7 @@ async def upload_cover(
         db: AsyncSession = Depends(get_async_db)
 ):
     """上传文章封面图片"""
-    # 诊断日志
-    logger.info(f"[cover_upload] user={getattr(current_user_obj, 'id', 'N/A')} auth={request.headers.get('authorization', 'none')[:30]}")
+    logger.info(f"[cover] handler entered, user={getattr(current_user_obj, 'id', 'N/A')}")
     form = await request.form()
     if 'cover_image' not in form:
         return JSONResponse({'code': 400, 'msg': '未上传文件'}, status_code=400)
