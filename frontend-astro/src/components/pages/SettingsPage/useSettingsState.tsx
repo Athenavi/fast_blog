@@ -166,17 +166,20 @@ export function useSettingsState() {
 
   const setup2FA = async () => {
     try {
-      const r = await apiClient.get(SECURITY.TWO_FA_SETUP);
+      const url = SECURITY.TWO_FA_SETUP;
+      console.log('[2FA] Fetching:', url);
+      const r = await apiClient.get(url);
+      console.log('[2FA] Response:', r);
       if (r.success && r.data) {
         setQr(r.data.qr_code);
         setSecret(r.data.secret);
       } else {
-        console.error('2FA setup response:', r);
-        alert(r?.error || `获取二维码失败（状态: ${(r as any)?.status || '无'}）`);
+        alert(r?.error || `获取二维码失败 (HTTP ${(r as any)?.status || '?'})`);
       }
     } catch (e: any) {
-      console.error('2FA setup error:', e);
-      alert(`网络错误: ${e?.message || e}`);
+      const msg = e?.message || String(e);
+      console.error('[2FA] Error:', msg);
+      alert(`请求失败: ${msg}\n\n请按 F12 → 网络标签页查看具体请求状态`);
     }
   };
 
