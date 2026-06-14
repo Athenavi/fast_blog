@@ -170,7 +170,7 @@ const RichEditor: React.FC<RichEditorProps> = ({value,onChange,placeholder='å¼€å
       Underline,Typography,TextAlign.configure({types:['heading','paragraph']}),Highlight,ImageExt,
       LinkExt.configure({openOnClick:false}),Table.configure({resizable:true}),TableRow,TableCell,TableHeader,
       TaskList,TaskItem.configure({nested:true}),
-      ...(ydocRef.current ? [Collaboration.configure({document: ydocRef.current}), CollaborationCursor.configure({
+      ...(ydocRef.current && providerRef.current ? [Collaboration.configure({document: ydocRef.current}), CollaborationCursor.configure({
         provider: providerRef.current,
         user: {name: 'User', color: '#f783ac'}
       })] : []),
