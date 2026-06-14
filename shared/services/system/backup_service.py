@@ -47,6 +47,19 @@ class BackupService:
         os.makedirs(self.files_backup_dir, exist_ok=True)
         os.makedirs(self.full_backup_dir, exist_ok=True)
 
+        # 应用根路径（供 restore_files 使用）
+        self.app_path = type('Path', (), {'parent': os.path.dirname(os.path.abspath(__file__))})()
+
+        # 默认配置
+        self.config = {
+            'retention_days': 30,
+            'auto_backup_enabled': True,
+            'auto_backup_schedule': 'daily',
+            'compress_backups': True,
+            'backup_database': True,
+            'backup_files': True,
+        }
+
         # 异步 subprocess 运行器
     async def _run_subprocess(self, cmd, env=None, timeout=300, check=False):
         """异步运行子进程，不阻塞事件循环"""
@@ -57,27 +70,20 @@ class BackupService:
             env=env,
         )
         try:
-            stdout, stderr = await asyncio.wait_for(process.wait(), timeout=timeout)
+            # 同时读取 stdout 和 stderr，而非等待 process.wait()（返回 int）
+            stdout_data, stderr_data = await asyncio.wait_for(
+                asyncio.gather(process.stdout.read(), process.stderr.read()),
+                timeout=timeout
+            )
         except asyncio.TimeoutError:
             process.kill()
             raise Exception(f"Subprocess timed out after {timeout}s: {' '.join(cmd)}")
         if process.returncode != 0:
-            stderr_text = (await process.stderr.read()).decode('utf-8', errors='replace')
+            stderr_text = stderr_data.decode('utf-8', errors='replace')
             if check:
                 raise Exception(stderr_text)
             raise Exception(stderr_text)
-        return type('Result', (), {'returncode': process.returncode})()
-
-        # 默认配置
-        self.config = {
-            'retention_days': 30,  # 保留30天备份
-            'auto_backup_enabled': True,
-            'auto_backup_schedule': 'daily',  # daily, weekly, monthly
-            'compress_backups': True,
-            'backup_database': True,
-            'backup_files': True,
-        }
-
+        return type('Result', (), {'returncode': process.returncode, 'stdout': stdout_data, 'stderr': stderr_data})()
     def get_db_config(self) -> Dict[str, str]:
         """获取数据库配置"""
         return {

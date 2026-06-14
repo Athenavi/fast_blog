@@ -94,6 +94,7 @@ def _build_router():
 
     # ── V1 聚合子模块 ────
     from src.api.v2.system.admin_settings import router as admin_settings_router
+    from src.api.v2.system.backup_management import router as backup_management_router
     from src.api.v2.system.batch_operations import router as batch_operations_router
     from src.api.v2.system.data_export import router as data_export_router
     from src.api.v2.system.database_migration import router as database_migration_router
@@ -114,6 +115,7 @@ def _build_router():
     router.include_router(report_management_router, prefix="/report")
     router.include_router(webhook_management_router, prefix="/webhook")
     router.include_router(incremental_backup_router, prefix="/backup-plus")
+    router.include_router(backup_management_router, prefix="/backup")
     router.include_router(batch_operations_router, prefix="/batch")
     router.include_router(data_export_router, prefix="/export")
     router.include_router(installation_router, prefix="/install")

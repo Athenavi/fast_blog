@@ -14,6 +14,24 @@ from src.unified_logger import default_logger as logger
 
 # 任务函数已迁移到 src/scheduler.py，此文件仅作兼容引用
 
+class _DummyScheduler:
+    """最小调度器桩，完整功能已迁移到 src/scheduler.py"""
+    def add_job(self, func, trigger=None, **kwargs):
+        pass
+    def start(self):
+        pass
+    def shutdown(self):
+        pass
+    def get_jobs(self):
+        return []
+
+
+class BackupScheduler:
+    """备份调度器 — 兼容旧引用，实际已迁移到 src/scheduler.py"""
+
+    def __init__(self):
+        self.scheduler = _DummyScheduler()
+
     async def daily_backup_job(self):
         """每日备份任务"""
         logger.info("Starting daily database backup...")
@@ -59,47 +77,8 @@ from src.unified_logger import default_logger as logger
 
     def start(self):
         """启动调度器"""
-        # 每日备份：凌晨 2 点
-        self.scheduler.add_job(
-            self.daily_backup_job,
-            trigger=CronTrigger(hour=2, minute=0),
-            id='daily_backup',
-            name='Daily Database Backup',
-            replace_existing=True
-        )
-
-        # 每周备份：周日凌晨 3 点
-        self.scheduler.add_job(
-            self.weekly_backup_job,
-            trigger=CronTrigger(day_of_week='sun', hour=3, minute=0),
-            id='weekly_backup',
-            name='Weekly Full Backup',
-            replace_existing=True
-        )
-
-        # 每月备份：每月 1 号凌晨 4 点
-        self.scheduler.add_job(
-            self.monthly_backup_job,
-            trigger=CronTrigger(day=1, hour=4, minute=0),
-            id='monthly_backup',
-            name='Monthly Archive Backup',
-            replace_existing=True
-        )
-
-        # 每小时健康检查
-        self.scheduler.add_job(
-            self.hourly_health_check,
-            trigger=CronTrigger(minute=0),
-            id='hourly_health_check',
-            name='Hourly Health Check',
-            replace_existing=True
-        )
-
         self.scheduler.start()
-        logger.info("Backup scheduler started")
-        logger.info("Scheduled jobs:")
-        for job in self.scheduler.get_jobs():
-            logger.info(f"  - {job.name}: {job.trigger}")
+        logger.info("Backup scheduler started (dummy)")
 
     def stop(self):
         """停止调度器"""

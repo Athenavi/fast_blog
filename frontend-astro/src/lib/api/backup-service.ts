@@ -30,7 +30,8 @@ export class BackupService {
     }
 
     static async deleteBackup(filename: string): Promise<ApiResponse<{ message: string }>> {
-        return apiClient.delete(`/backup/delete?filename=${filename}`);
+        // 后端路由: DELETE /backup/{backup_id}
+        return apiClient.delete(`/backup/${encodeURIComponent(filename)}`);
     }
 
     static async downloadBackup(filename: string): Promise<Blob> {
