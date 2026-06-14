@@ -1,8 +1,11 @@
+import logging
 import os
 from datetime import timedelta
 from pathlib import Path
 
 from dotenv import load_dotenv
+
+logger = logging.getLogger(__name__)
 
 # 加载 .env 文件
 # 优先加载根目录 .env（本地开发模式），再加载 config/.env 作为补充
@@ -78,7 +81,10 @@ class BaseConfig:
     """基础配置类"""
     global_encoding = 'utf-8'
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    SECRET_KEY = os.environ.get('SECRET_KEY') or os.urandom(32).hex()
+    SECRET_KEY = os.environ.get('SECRET_KEY')
+    if not SECRET_KEY:
+        SECRET_KEY = os.urandom(32).hex()
+        logger.warning("SECRET_KEY 未设置，已生成临时密钥（服务重启后所有 JWT token 将失效）")
 
     # 使用条件判断处理可能的 None 值
     jwt_expiration = os.getenv('JWT_EXPIRATION_DELTA')

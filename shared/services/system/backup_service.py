@@ -408,8 +408,9 @@ class BackupService:
 
             import subprocess
 
-            # 解压并恢复文件
-            cmd = ['tar', '-xzf', backup_path, '-C', '/']
+            # 解压并恢复文件 — 限制到应用目录，避免覆盖系统文件
+            restore_base = str(self.app_path.parent)
+            cmd = ['tar', '-xzf', backup_path, '-C', restore_base]
 
             result = subprocess.run(
                 cmd,
