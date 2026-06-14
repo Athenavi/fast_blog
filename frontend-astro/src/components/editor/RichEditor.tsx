@@ -53,8 +53,9 @@ function PatternLibrary({onSelect, onClose}: { onSelect: (blocks: any) => void; 
           {patterns.map(p => {
             let parsedBlocks: any[];
             try { parsedBlocks = JSON.parse(p.blocks); } catch { parsedBlocks = []; }
-            return <button key={p.id} onClick={() => onSelect(parsedBlocks)}
-                                     className="group p-4 rounded-xl border hover:border-blue-500 hover:shadow-md transition-all text-left">
+            return (
+              <button key={p.id} onClick={() => onSelect(parsedBlocks)}
+                                       className="group p-4 rounded-xl border hover:border-blue-500 hover:shadow-md transition-all text-left">
             <div
                 className="aspect-video bg-gray-100 dark:bg-gray-800 rounded-lg mb-3 flex items-center justify-center overflow-hidden">
               {p.thumbnail ? <img src={p.thumbnail} className="w-full h-full object-cover"/> :
@@ -62,7 +63,9 @@ function PatternLibrary({onSelect, onClose}: { onSelect: (blocks: any) => void; 
             </div>
             <h4 className="font-semibold text-sm truncate">{p.title}</h4>
             <p className="text-xs text-gray-500 mt-1 line-clamp-2">{p.description}</p>
-          </button>;)}
+          </button>
+            );
+          })}
         </div>
       </div>
     </div>
