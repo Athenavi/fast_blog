@@ -78,6 +78,7 @@ export const navConfig: NavItem[] = [
 
   // ── 系统 ──
   {labelKey: 'nav.systemHub', href: '/admin/system-hub', icon: Server, permission: 'system:view'},
+  {labelKey: 'nav.upgrade', href: '/admin/upgrade', icon: Zap, permission: 'system:view'},
   {labelKey: 'nav.cache', href: '/admin/cache', icon: Zap, permission: 'system:maintenance'},
   {labelKey: 'nav.operations', href: '/admin/operations', icon: Bell, permission: 'system:view'},
   {labelKey: 'nav.social', href: '/admin/social', icon: MessageSquare, permission: 'settings:update'},

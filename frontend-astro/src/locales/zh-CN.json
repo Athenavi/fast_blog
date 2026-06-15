@@ -71,6 +71,7 @@
     "roles": "角色权限",
     "plugins": "插件管理",
     "systemHub": "系统管理",
+    "upgrade": "系统升级",
     "operations": "运营管理",
     "commerce": "商业管理",
     "social": "社交管理",

@@ -109,6 +109,7 @@ def _build_router():
     from src.api.v2.system.webhook_management import router as webhook_management_router
     from src.api.v2.system.workflow import router as workflow_router
     from src.api.v2.system.migration_management import router as migration_management_router
+    from src.api.v2.system.version import router as version_router
 
     router.include_router(admin_settings_router, prefix="/settings")
     router.include_router(database_migration_router, prefix="/db/database-migration")
@@ -126,6 +127,7 @@ def _build_router():
     router.include_router(screen_options_router, prefix="/screen-options")
     router.include_router(workflow_router, prefix="/workflow")
     router.include_router(migration_management_router, prefix="/migration-management")
+    router.include_router(version_router, prefix="")
 
     _router = router
     return _router
