@@ -180,7 +180,10 @@ class MigrationManager:
             return {
                 'success': True,
                 'message': 'All migrations applied successfully',
-                'output': result['stdout'],
+                'output': result.get('stdout', ''),
+                'applied_count': 1,
+                'total_pending': 0,
+                'results': [],
             }
         else:
             stderr = result.get('stderr', '')
