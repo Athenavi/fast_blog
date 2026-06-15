@@ -63,6 +63,10 @@ function VersionStatusCard() {
   const score = health?.overall_score ?? null;
   const status = health?.status ?? null;
   const dbStatus = health?.checks?.database ?? null;
+  // checks.database 是数组，检查是否全部通过
+  const dbHealthy = Array.isArray(dbStatus)
+    ? dbStatus.every((item: any) => item?.status === 'pass' || item?.status === 'good')
+    : dbStatus?.status === 'pass' || dbStatus?.status === 'good';
 
   return (
     <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 p-6 space-y-5">
@@ -99,11 +103,11 @@ function VersionStatusCard() {
           <span className="text-sm text-gray-500 dark:text-gray-400">数据库:</span>
           {dbStatus ? (
             <span className={`px-2 py-0.5 text-xs rounded-full font-medium ${
-              dbStatus.status === 'pass' || dbStatus.status === 'good'
+              dbHealthy
                 ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400'
                 : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'
             }`}>
-              {dbStatus.status === 'pass' || dbStatus.status === 'good' ? '连接正常' : '异常'}
+              {dbHealthy ? '连接正常' : '异常'}
             </span>
           ) : <span className="text-sm text-gray-400">—</span>}
         </div>

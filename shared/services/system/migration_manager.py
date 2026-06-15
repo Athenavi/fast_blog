@@ -2,6 +2,7 @@
 数据库迁移管理器
 基于Alembic实现自动数据库迁移
 """
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -33,12 +34,21 @@ class MigrationManager:
         """
         try:
             cmd = self._get_alembic_cmd() + args
+            # 从 app_config 获取数据库 URL 并注入环境变量，确保子进程可用
+            extra_env = {}
+            try:
+                from src.setting import app_config
+                extra_env["DATABASE_URL"] = app_config.database_url
+            except Exception:
+                pass
+            merged_env = {**os.environ, **extra_env}
             result = subprocess.run(
                 cmd,
                 cwd=str(cwd or self.alembic_ini.parent),
                 capture_output=True,
                 text=True,
-                timeout=60
+                timeout=60,
+                env=merged_env,
             )
             
             return {
