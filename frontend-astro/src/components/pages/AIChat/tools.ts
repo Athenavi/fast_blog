@@ -18,6 +18,20 @@ export interface ToolResult {
 // ─── 工具处理函数类型 ────────────────────────────
 type ToolHandler = (args: Record<string, any>) => Promise<any>;
 
+// ─── 前端允许的 MCP 工具白名单 ────────────────────
+// 只有下列工具可以被 LLM 文本中的 invoke 调用执行
+// 危险工具（如 clear_cache, run_migration, ban_user 等）被排除
+const ALLOWED_TOOLS: ReadonlySet<string> = new Set([
+  // 分类（只读+创建）
+  'list_categories', 'create_category',
+  // 文章（只读+搜索，delete 和 publish 由后端网关控制）
+  'search_articles', 'create_article', 'update_article',
+  // 标签（只读）
+  'list_tags',
+  // 统计（只读）
+  'get_system_stats', 'get_analytics',
+]);
+
 // ─── 工具注册表 ──────────────────────────────────
 const toolRegistry: Record<string, ToolHandler> = {};
 
@@ -156,8 +170,12 @@ export function parseToolCalls(text: string): Array<{name: string; args: Record<
   return calls;
 }
 
-/** 执行一个已解析的工具调用 */
+/** 执行一个已解析的工具调用（受 ALLOWED_TOOLS 白名单限制） */
 export async function executeToolCall(name: string, args: Record<string, any>): Promise<ToolResult> {
+  // 白名单检查：拒绝不在 ALLOWED_TOOLS 中的工具
+  if (!ALLOWED_TOOLS.has(name)) {
+    return {name, args, result: null, success: false, error: `工具 "${name}" 不在前端允许的白名单中`};
+  }
   const handler = toolRegistry[name];
   if (!handler) {
     return {name, args, result: null, success: false, error: `未知工具: ${name}`};

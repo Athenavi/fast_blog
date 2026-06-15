@@ -95,7 +95,7 @@ class CoverImageService:
             # 如果文件已存在，直接返回URL
             if cover_path.exists():
                 logger.info(f"封面已存在: {cover_filename}")
-                return f"/api/v1/media/cover/{cover_filename}"
+                return f"/api/v2/media/cover/{cover_filename}"
 
             # 优化图片
             optimized_data, optimized_mime = self._optimize_image(

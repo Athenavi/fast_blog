@@ -115,6 +115,81 @@ class CacheService:
                 return self.cache[key]
             return None
 
+    def get_or_set(self, key: str, factory, ttl: int = None) -> Any:
+        """
+        获取或设置缓存（带 SETNX 分布式锁，防止缓存雪崩）
+
+        当缓存 miss 时，使用分布式锁确保只有一个请求回填缓存。
+        其他请求等待锁期间返回过期的缓存值（stale-while-revalidate）。
+
+        Args:
+            key: 缓存键
+            factory: 回填数据的工厂函数（async 或 sync）
+            ttl: 过期时间(秒)
+
+        Returns:
+            缓存值
+        """
+        if ttl is None:
+            ttl = self.default_ttl
+
+        # 尝试读取缓存
+        cached = self.get(key)
+        if cached is not None:
+            return cached
+
+        import asyncio
+        lock_key = f"{key}:lock"
+        lock_ttl = 10  # 锁最长持有时间（防止死锁）
+
+        if self.use_redis and self.redis_client:
+            try:
+                # Redis 分布式锁（SETNX）
+                acquired = self.redis_client.setnx(lock_key, "1")
+                if acquired:
+                    self.redis_client.expire(lock_key, lock_ttl)
+                    try:
+                        # 只有获得锁的请求回填缓存
+                        if asyncio.iscoroutinefunction(factory):
+                            value = asyncio.get_event_loop().run_until_complete(factory())
+                        else:
+                            value = factory()
+                        self.set(key, value, ttl)
+                        return value
+                    finally:
+                        self.redis_client.delete(lock_key)
+                else:
+                    # 未获得锁：等待 + 重试
+                    import time as time_module
+                    time_module.sleep(0.1)  # 等待 100ms
+                    retried = self.get(key)
+                    if retried is not None:
+                        return retried
+                    # 锁持有者可能失败，直接回填（无锁保护）
+                    if asyncio.iscoroutinefunction(factory):
+                        value = asyncio.get_event_loop().run_until_complete(factory())
+                    else:
+                        value = factory()
+                    self.set(key, value, ttl)
+                    return value
+            except Exception as e:
+                print(f"[CacheService] 分布式锁获取失败: {e}, 直接回填")
+                # 锁失败时直接回填（降级）
+                if asyncio.iscoroutinefunction(factory):
+                    value = asyncio.get_event_loop().run_until_complete(factory())
+                else:
+                    value = factory()
+                self.set(key, value, ttl)
+                return value
+
+        # 无 Redis 时直接回填（内存缓存无分布式锁需求）
+        if asyncio.iscoroutinefunction(factory):
+            value = asyncio.get_event_loop().run_until_complete(factory())
+        else:
+            value = factory()
+        self.set(key, value, ttl)
+        return value
+
     def set(self, key: str, value: Any, ttl: int = None):
         """设置缓存
 
