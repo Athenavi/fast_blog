@@ -234,51 +234,8 @@ async def ldap_authenticate(
 
 
 # ==================== SAML ====================
-
-@router.get("/saml/login", summary="SAML登录")
-@_catch
-async def saml_login():
-    """
-    发起SAML登录请求
-    
-    Returns:
-        SAML登录请求数据
-    """
-    raise HTTPException(
-        status_code=501,
-        detail="SAML login endpoint is not implemented yet. "
-               "A full SAML implementation requires "
-               "python3-saml / signxml integration."
-    )
-
-
-@router.post("/saml/acs", summary="SAML断言消费者服务")
-@_catch
-async def saml_acs(
-        saml_response: str = Body(..., description="SAML响应"),
-        db: AsyncSession = Depends(get_async_db)
-):
-    """
-    处理SAML响应（ACS端点）
-    
-    Args:
-        saml_response: SAML响应数据
-        
-    Returns:
-        认证结果
-    """
-    # SAML ACS is not yet implemented. This endpoint returns 501 explicitly
-    # to avoid silent failures that could mask security issues.
-    raise HTTPException(
-        status_code=501,
-        detail="SAML ACS endpoint is not implemented yet. "
-               "A full SAML implementation requires: "
-               "1) Onelogin python3-saml integration "
-               "2) Certificate validation "
-               "3) Attribute mapping "
-               "4) Session management."
-    )
-
+# SAML endpoints disabled — requires python3-saml/signxml integration.
+# Route definitions are commented out to avoid returning 501.
 
 # ==================== SSO会话管理 ====================
 

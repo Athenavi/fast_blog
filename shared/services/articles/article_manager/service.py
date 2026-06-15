@@ -14,7 +14,22 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.article import Article, ArticleContent, ArticleRevision
 from shared.models.comment import Comment, CommentVote, CommentSubscription
+from shared.models.category import Category
 from src.unified_logger import default_logger as logger
+
+async def _sync_category_articles_count(db, category_id: int) -> None:
+    """同步更新 Category 的文章计数（反规范化字段）"""
+    if category_id is None:
+        return
+    from sqlalchemy import func, update as sa_update
+    count = await db.scalar(
+        select(func.count(Article.id))
+        .where(Article.category == category_id, Article.status != -1)
+    ) or 0
+    await db.execute(
+        sa_update(Category).where(Category.id == category_id).values(articles_count=count)
+    )
+
 
 
 async def get_article_by_id(db: AsyncSession, article_id: int) -> Optional[Article]:
