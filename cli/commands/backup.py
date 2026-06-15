@@ -23,7 +23,7 @@ def create_backup(
         db_url = getattr(settings, 'SQLALCHEMY_DATABASE_URI', None) or "postgresql://localhost/db"
         typer.echo(f"  数据库: {db_url}")
 
-        output_path = output or f"backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.sql"
+        output_path = output or f"backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}.dump"
         if compress and not str(output_path).endswith('.gz'):
             output_path = str(output_path) + '.gz'
 

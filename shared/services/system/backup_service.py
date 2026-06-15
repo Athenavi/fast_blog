@@ -70,16 +70,15 @@ class BackupService:
             env=env,
         )
         try:
-            # 同时读取 stdout 和 stderr，而非等待 process.wait()（返回 int）
             stdout_data, stderr_data = await asyncio.wait_for(
-                asyncio.gather(process.stdout.read(), process.stderr.read()),
-                timeout=timeout
+                process.communicate(), timeout=timeout
             )
         except asyncio.TimeoutError:
             process.kill()
+            await process.wait()
             raise Exception(f"Subprocess timed out after {timeout}s: {' '.join(cmd)}")
+        stderr_text = stderr_data.decode('utf-8', errors='replace')
         if process.returncode != 0:
-            stderr_text = stderr_data.decode('utf-8', errors='replace')
             if check:
                 raise Exception(stderr_text)
             raise Exception(stderr_text)

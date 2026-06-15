@@ -85,6 +85,15 @@ class VersionManager:
             'author': self.get_author_info(),
         }
 
+    def get_backend_version(self) -> dict:
+        return self._data.get('release', {})
+
+    def get_frontend_version(self) -> dict:
+        return self._data.get('release', {})
+
+    def get_all_versions(self) -> dict:
+        return {'BACKEND': self.get_backend_version(), 'FRONTEND': self.get_frontend_version()}
+
     # ── 写入 ──
 
     def bump_version(self, version: str):
