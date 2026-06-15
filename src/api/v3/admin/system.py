@@ -41,7 +41,7 @@ async def get_settings(
     settings = result.scalars().all()
 
     return ApiResponse(success=True, data={
-        "settings": {s.key: s.value for s in settings},
+        "settings": {s.setting_key: s.setting_value for s in settings},
     })
 
 
@@ -60,16 +60,16 @@ async def update_settings(
 
     for key, value in settings.items():
         result = await db.execute(
-            select(SystemSettings).where(SystemSettings.key == key)
+            select(SystemSettings).where(SystemSettings.setting_key == key)
         )
         existing = result.scalar_one_or_none()
         if existing:
-            existing.value = str(value)
+            existing.setting_value = str(value)
             existing.updated_at = now
         else:
             db.add(SystemSettings(
-                key=key,
-                value=str(value),
+                setting_key=key,
+                setting_value=str(value),
                 created_at=now,
                 updated_at=now,
             ))
