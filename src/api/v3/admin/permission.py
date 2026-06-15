@@ -37,6 +37,20 @@ async def check_permission(
     })
 
 
+@router.post("/check-permissions", summary="批量检查权限")
+async def check_permissions(
+    permissions: list[str] = Body(..., description="权限代码列表"),
+    db: AsyncSession = Depends(get_db),
+    current_user: UserModel = Depends(get_current_user),
+):
+    """批量检查当前用户是否拥有指定权限代码列表"""
+    granted = []
+    for code in permissions:
+        if await rbac_service.has_capability(db, current_user.id, code):
+            granted.append(code)
+    return ApiResponse(success=True, data={"granted": granted})
+
+
 @router.get("/health", summary="权限系统健康检查")
 async def permission_health(
     db: AsyncSession = Depends(get_db),
