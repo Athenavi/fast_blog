@@ -83,7 +83,8 @@ class BaseConfig:
     base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
     SECRET_KEY = os.environ.get('SECRET_KEY')
     if not SECRET_KEY:
-        SECRET_KEY = os.urandom(32).hex()
+        import secrets
+        SECRET_KEY = secrets.token_urlsafe(32)
         logger.warning("SECRET_KEY 未设置，已生成临时密钥（服务重启后所有 JWT token 将失效）")
 
     # 使用条件判断处理可能的 None 值
@@ -405,11 +406,8 @@ def get_app_config():
     if not secret_key:
         # 未配置环境变量时，生成强随机密钥并警告用户
         secret_key = secrets.token_urlsafe(32)
-        print("=" * 60)
-        print("警告：未设置 SECRET_KEY 环境变量，已生成临时随机密钥。")
-        print(f"临时密钥：{secret_key}")
-        print("请在生产环境中设置 SECRET_KEY 环境变量以确保 Token 稳定性。")
-        print("=" * 60)
+        logger.warning("SECRET_KEY 未设置，已生成临时密钥（服务重启后所有 JWT token 将失效）")
+        logger.warning("请在生产环境中设置 SECRET_KEY 环境变量以确保 Token 稳定性。")
 
     BaseConfig.SECRET_KEY = secret_key
 

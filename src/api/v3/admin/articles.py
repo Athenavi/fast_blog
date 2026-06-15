@@ -190,8 +190,8 @@ async def update_article(
     if not article:
         return ApiResponse(success=False, error="文章不存在")
 
-    # 所有权校验：仅作者或 superuser 可编辑
-    if article.user != current_user.id and not current_user.is_superuser:
+    # 所有权校验：仅作者或 superuser/staff 可编辑
+    if article.user != current_user.id and not (current_user.is_superuser or current_user.is_staff):
         return ApiResponse(success=False, error="无权编辑此文章")
 
     if title is not None:
@@ -253,8 +253,8 @@ async def delete_article(
     if not article:
         return ApiResponse(success=False, error="文章不存在")
 
-    # 所有权校验：仅作者或 superuser 可删除
-    if article.user != current_user.id and not current_user.is_superuser:
+    # 所有权校验：仅作者或 superuser/staff 可删除
+    if article.user != current_user.id and not (current_user.is_superuser or current_user.is_staff):
         return ApiResponse(success=False, error="无权删除此文章")
 
     # 软删除：标记状态而非删除记录
@@ -279,8 +279,8 @@ async def publish_article(
     if not article:
         return ApiResponse(success=False, error="文章不存在")
 
-    # 所有权校验：仅作者或 superuser 可发布
-    if article.user != current_user.id and not current_user.is_superuser:
+    # 所有权校验：仅作者或 superuser/staff 可发布
+    if article.user != current_user.id and not (current_user.is_superuser or current_user.is_staff):
         return ApiResponse(success=False, error="无权发布此文章")
 
     article.status = 1

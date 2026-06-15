@@ -117,6 +117,8 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
     if (mode === 'edit' && typeof window !== 'undefined') return new URLSearchParams(window.location.search).get('id');
     return null;
   }, [mode]);
+  // NOTE: articleId is null for new (unsaved) articles, so the Preview feature
+  // is unavailable until the article is saved and an ID is assigned.
 
     const [collabActive, setCollabActive] = useState(
         mode === 'edit' && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('collab') === '1'

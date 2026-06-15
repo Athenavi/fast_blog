@@ -4,7 +4,7 @@ SQLAlchemy 模型定义 - Category
 生成时间：2026-06-13 23:12:16
 """
 
-from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Index
+from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
 
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
 
@@ -31,7 +31,7 @@ class Category(Base):
 
     description = Column(String(255), nullable=True, doc='分类描述')
 
-    parent_id = Column(BigInteger, nullable=True, doc='父分类 ID')
+    parent_id = Column(BigInteger, ForeignKey('categories.id', ondelete='SET NULL'), nullable=True, doc='父分类 ID')
 
 
     sort_order = Column(BigInteger, default=0, doc='排序')

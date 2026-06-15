@@ -375,12 +375,12 @@ async def compare_revisions(
             "title_diff": list(difflib.unified_diff(
                 (rev1.title or "").splitlines(keepends=True),
                 (rev2.title or "").splitlines(keepends=True),
-                fromfile="v1", tofile="v2", lineterm=""
+                fromfile=f"v{rev1.revision_number}", tofile=f"v{rev2.revision_number}", lineterm=""
             )),
             "excerpt_diff": list(difflib.unified_diff(
                 (rev1.excerpt or "").splitlines(keepends=True),
                 (rev2.excerpt or "").splitlines(keepends=True),
-                fromfile="v1", tofile="v2", lineterm=""
+                fromfile=f"v{rev1.revision_number}", tofile=f"v{rev2.revision_number}", lineterm=""
             )),
         }
 
@@ -392,12 +392,12 @@ async def compare_revisions(
         differences["content_changed"] = rev1.content != rev2.content
         differences["content_diff"] = list(difflib.unified_diff(
             content_lines_1, content_lines_2,
-            fromfile="v1", tofile="v2", lineterm=""
+            fromfile=f"v{rev1.revision_number}", tofile=f"v{rev2.revision_number}", lineterm=""
         ))
         if len(content_lines_1) <= MAX_DIFF_LINES and len(content_lines_2) <= MAX_DIFF_LINES:
             differences["content_diff_html"] = difflib.HtmlDiff().make_table(
                 content_lines_1, content_lines_2,
-                fromdesc="v1", todesc="v2", context=True, numlines=3
+                fromdesc=f"v{rev1.revision_number}", todesc=f"v{rev2.revision_number}", context=True, numlines=3
             )
         else:
             differences["content_diff_html"] = "<p>内容过大，已跳过 HTML diff 渲染</p>"

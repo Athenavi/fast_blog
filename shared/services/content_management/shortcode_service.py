@@ -199,8 +199,11 @@ class ShortcodeService:
 '''
 
     def _note_shortcode(self, attrs: Dict[str, str], content: str) -> str:
-        """提示框短代码: [note type="info|warning|tip"]内容[/note]"""
+        """提示框短代码: [note type="info|warning|tip|danger"]内容[/note]"""
+        NOTE_TYPE_ALLOWLIST = {'info', 'warning', 'tip', 'danger'}
         note_type = attrs.get('type', 'info')
+        if note_type not in NOTE_TYPE_ALLOWLIST:
+            note_type = 'info'
         
         type_styles = {
             'info': {

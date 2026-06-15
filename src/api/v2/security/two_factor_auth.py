@@ -15,12 +15,19 @@ from src.api.v2._helpers import ok, fail
 from src.api.v2.auth_v1pack import create_jwt_token
 
 # 2FA 设置密钥临时存储（cache 的后备，避免同步 cache.set 阻塞事件循环）
+# 注意: 此内存 dict 在多进程部署下会丢失，如需生产环境高可用，
+#       应使用 Redis 等共享存储作为主要存储，此 dict 仅作为后备。
 _setup_secrets: dict = {}
+logger = logging.getLogger(__name__)
+logger.warning(
+    "2FA setup secrets stored in process-local memory dict (_setup_secrets). "
+    "Multi-process/load-balanced deployments will lose setup state across workers. "
+    "Consider using Redis or database-backed storage for production."
+)
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 
 router = APIRouter(tags=["2fa"])
-logger = logging.getLogger(__name__)
 
 
 def _catch(func):

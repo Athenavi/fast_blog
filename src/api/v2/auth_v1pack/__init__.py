@@ -24,6 +24,7 @@ from shared.services.users.login_security_service import login_security_service
 from shared.services.users.session_management_service import session_management_service
 from shared.services.users.sms_verification_service import sms_verification_service
 from shared.services.users.user_manager import create_user_account
+from shared.services.security.audit_log_service import audit_log_service, AuditLogAction, AuditLogLevel
 from src.api.v2._base import ApiResponse
 from src.api.v2._helpers import ok, fail
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
@@ -168,6 +169,12 @@ async def login_api(request: Request, db: AsyncSession = Depends(get_async_db)):
     user = await authenticate_user_with_session(username, password, db)
     if not user:
         await login_security_service.record_login_attempt_async(username, ip, ua, False, "Invalid credentials", db)
+        await audit_log_service.log_action(
+            db=db, user_id=None, user_name=username,
+            action=AuditLogAction.LOGIN, level=AuditLogLevel.WARNING,
+            resource_type="user", description="登录失败：用户名或密码错误",
+            ip_address=ip, user_agent=ua
+        )
         return fail("用户名或密码错误")
 
     await login_security_service.record_login_attempt_async(username, ip, ua, True, db=db)
@@ -205,6 +212,14 @@ async def login_api(request: Request, db: AsyncSession = Depends(get_async_db)):
     resp.set_cookie("access_token", access_token, httponly=True, secure=is_https, samesite="strict", max_age=3600, path="/")
     if refresh_token:
         resp.set_cookie("refresh_token", refresh_token, httponly=True, secure=is_https, samesite="strict", max_age=2592000, path="/")
+
+    await audit_log_service.log_action(
+        db=db, user_id=user.id, user_name=user.username,
+        action=AuditLogAction.LOGIN, level=AuditLogLevel.INFO,
+        resource_type="user", resource_id=str(user.id),
+        description="用户登录成功",
+        ip_address=ip, user_agent=ua
+    )
     return resp
 
 
@@ -233,6 +248,16 @@ async def register_api(data: RegisterRequest, request: Request, db: AsyncSession
         user = await create_user_account(username=data.username, email=data.email, password=data.password, db=db)
     except Exception as e:
         return fail(f"注册失败: {e}")
+
+    ip = request.client.host if request.client else "unknown"
+    ua = request.headers.get("user-agent", "")
+    await audit_log_service.log_action(
+        db=db, user_id=user.id, user_name=user.username,
+        action=AuditLogAction.CREATE, level=AuditLogLevel.INFO,
+        resource_type="user", resource_id=str(user.id),
+        description="用户注册成功",
+        ip_address=ip, user_agent=ua
+    )
 
     access_token = create_jwt_token(subject=str(user.id), token_type="access")
     refresh_token = create_jwt_token(subject=str(user.id), token_type="refresh")
@@ -342,6 +367,17 @@ async def verify_2fa_login(request: Request, db: AsyncSession = Depends(get_asyn
     # 发放正式 token
     ip = request.client.host if request.client else "unknown"
     ua = request.headers.get("user-agent", "")
+
+    # 获取用户信息用于审计日志
+    user = await db.scalar(select(UserModel).where(UserModel.id == user_id))
+    await audit_log_service.log_action(
+        db=db, user_id=user_id, user_name=user.username if user else None,
+        action=AuditLogAction.LOGIN, level=AuditLogLevel.INFO,
+        resource_type="user", resource_id=str(user_id),
+        description="2FA 验证通过，登录成功",
+        ip_address=ip, user_agent=ua
+    )
+
     access_token = create_jwt_token(subject=str(user_id), token_type="access")
     refresh_token = create_jwt_token(subject=str(user_id), token_type="refresh")
     

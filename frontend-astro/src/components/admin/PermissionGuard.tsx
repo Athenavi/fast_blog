@@ -44,8 +44,8 @@ export function PermissionGuard({
           setState(res.data?.has_permission ? 'granted' : 'denied');
         }
       } catch {
-        // 检查失败 → 保守放行（由后端路由本身的 Depends(Permission) 兜底）
-        if (!cancelled) setState('granted');
+        // 检查失败 → 保守拒绝（安全优先）
+        if (!cancelled) setState('denied');
       }
     })();
 

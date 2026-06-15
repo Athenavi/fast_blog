@@ -94,10 +94,6 @@ export class ArticleService {
     }): Promise<ApiResponse<{ data: Article[], pagination: Pagination }>> {
         const response = await apiClient.get('/articles', params);
 
-        console.log('🔵 ArticleService.getArticles 原始响应:', response);
-        console.log('🔍 response.data 类型:', Array.isArray(response.data) ? 'Array' : typeof response.data);
-        console.log('🔍 response.pagination 是否存在:', !!response.pagination);
-
         // 数据转换函数：将 tags_list 转换为 tags
         const transformArticle = (article: any): Article => {
             return {
@@ -108,7 +104,6 @@ export class ArticleService {
 
         // 情况 1：后端返回的是 { data: [], pagination: {} } 在 response 层级
         if (response.success && Array.isArray(response.data) && response.pagination) {
-            console.log('✅ 使用标准格式：response.data 是数组，response.pagination 存在');
             // 转换数据中的 tags_list 为 tags
             const transformedData = response.data.map(transformArticle);
             return {
@@ -121,7 +116,6 @@ export class ArticleService {
         }
         // 情况 2：response.data 是嵌套的对象 { data: { data: [], pagination: {} } }
         else if (response.success && response.data && typeof response.data === 'object' && !Array.isArray(response.data)) {
-            console.log('⚠️ 使用嵌套格式：response.data 是对象');
             const dataObj = response.data as any;
             if ('data' in dataObj && 'pagination' in dataObj) {
                 const transformedArticles = (dataObj.data || []).map(transformArticle);
@@ -143,7 +137,6 @@ export class ArticleService {
         }
         // 情况 3：response.data 是纯数组（没有 pagination）
         else if (response.success && Array.isArray(response.data)) {
-            console.log('⚠️ 使用数组格式：只有数组，没有 pagination');
             const transformedData = response.data.map(transformArticle);
             return {
                 ...response,
@@ -162,7 +155,6 @@ export class ArticleService {
         }
 
         // 默认返回空数据
-        console.log('❌ 未匹配任何格式，返回空数据');
         return {
             ...response,
             data: {
@@ -280,17 +272,9 @@ export class ArticleService {
     static async getArticleBySlug(slug: string): Promise<ApiResponse<ArticleDetailResponse>> {
         const response = await apiClient.get(`/articles/p/${slug}`);
 
-        console.log('🔍 getArticleBySlug - API响应:', response);
-        console.log('🔍 response.success:', response.success);
-        console.log('🔍 response.data:', response.data);
-
         if (response.success && response.data) {
             // 适配返回的数据为 ArticleDetailResponse 格式
             const articleData = response.data as any;
-
-            console.log('🔍 articleData:', articleData);
-            console.log('🔍 articleData.article:', articleData.article);
-            console.log('🔍 articleData.author:', articleData.author);
 
             // 数据转换：将 tags_list 转换为 tags
             const transformArticle = (article: any): Article => {
@@ -312,11 +296,9 @@ export class ArticleService {
                 }
             };
 
-            console.log('✅ 转换后的数据:', adaptedResponse.data);
             return adaptedResponse;
         }
 
-        console.log('❌ API返回失败或无数据');
         return response as ApiResponse<ArticleDetailResponse>;
     }
 }

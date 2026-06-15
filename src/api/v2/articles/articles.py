@@ -402,6 +402,7 @@ async def update_article_api(article_id: int, request: Request, current_user=Dep
                                   created_at=datetime.now(), updated_at=datetime.now()))
 
     await db.commit()
+    await db.refresh(article)
     await save_article_revision(db=db, article_id=article_id, author_id=current_user.id,
                                 change_summary=data.get('change_summary', '更新文章'))
 

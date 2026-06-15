@@ -29,7 +29,7 @@ class ArticleRevision(Base):
     article_id = Column(BigInteger, ForeignKey('articles.id'), doc='关联的文章ID')
 
 
-    revision_number = Column(BigInteger, doc='修订版本号')
+    revision_number = Column(Integer, doc='修订版本号')
 
 
     title = Column(String(255), nullable=True, doc='修订时的标题')

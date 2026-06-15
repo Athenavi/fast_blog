@@ -366,8 +366,8 @@ class SessionManagementService:
         Returns:
             会话ID
         """
-        data = f"{user_id}:{device_info}:{ip_address}:{datetime.now().timestamp()}"
-        return hashlib.sha256(data.encode()).hexdigest()[:32]
+        import secrets
+        return secrets.token_hex(32)
 
     def _generate_device_fingerprint(self, device_info: Dict,
                                      user_agent: str = None) -> str:
@@ -549,10 +549,9 @@ class SessionManagementService:
 
         for i, session in enumerate(sessions):
             if session['session_id'] == session_id:
-                session['is_active'] = False
-                session['expires_at'] = datetime.now()
-
-                # 从索引中移除
+                # 从列表中实际移除该会话
+                removed = sessions.pop(i)
+                # 清理索引
                 if session_id in self._session_index:
                     del self._session_index[session_id]
 
