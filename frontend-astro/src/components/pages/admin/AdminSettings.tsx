@@ -76,11 +76,13 @@ function AdminSettingsInner() {
     setSaving(true); setSaveMsg(null);
     try {
       const r = await apiClient.post(SYSTEM.SETTINGS, {settings: localSettings, action: 'update_settings'});
-      setSaveMsg({type: r.success ? 'ok' : 'err', text: r.success ? '✓ 保存成功' : (r.error || '保存失败')});
-      if (r.success) {
-        qc.invalidateQueries({queryKey: ['admin-system-settings']});
-        setHasChanges(false);
+      if (!r.success) {
+        setSaveMsg({type: 'err', text: r.error || '保存失败'});
+        return;
       }
+      setSaveMsg({type: 'ok', text: '✓ 保存成功'});
+      qc.invalidateQueries({queryKey: ['admin-system-settings']});
+      setHasChanges(false);
     } catch { setSaveMsg({type:'err', text:'网络异常'}); } finally {
       setSaving(false);
       setTimeout(() => setSaveMsg(null), 4000);
@@ -105,15 +107,70 @@ function AdminSettingsInner() {
   }, [localSettings, menus, menuItems, pages]);
 
   // ── Menu mutations ──
-  const createMenuMut = useMutation({mutationFn:(d:any)=>apiClient.post(SYSTEM.SETTINGS_MENUS, d), onSuccess:()=>qc.invalidateQueries({queryKey:['admin-system-settings']})});
-  const updateMenuMut = useMutation({mutationFn:({id,...d}:any)=>apiClient.put(`/system/settings/menus/${id}`, d), onSuccess:()=>qc.invalidateQueries({queryKey:['admin-system-settings']})});
-  const delMenuMut = useMutation({mutationFn:(id:number)=>apiClient.delete(`/system/settings/menus/${id}`), onSuccess:()=>qc.invalidateQueries({queryKey:['admin-system-settings']})});
-  const createMenuItemMut = useMutation({mutationFn:(d:any)=>apiClient.post(SYSTEM.SETTINGS_MENU_ITEMS, d), onSuccess:()=>qc.invalidateQueries({queryKey:['admin-system-settings']})});
-  const delMenuItemMut = useMutation({mutationFn:(id:number)=>apiClient.delete(`/system/settings/menu-items/${id}`), onSuccess:()=>qc.invalidateQueries({queryKey:['admin-system-settings']})});
+  const createMenuMut = useMutation({
+    mutationFn: async (d: any) => {
+      const res = await apiClient.post(SYSTEM.SETTINGS_MENUS, d);
+      if (!res.success) throw new Error(res.error || '创建菜单失败');
+      return res;
+    },
+    onSuccess: () => qc.invalidateQueries({queryKey: ['admin-system-settings']}),
+    onError: (err: Error) => alert(err.message),
+  });
+  const updateMenuMut = useMutation({
+    mutationFn: async ({id, ...d}: any) => {
+      const res = await apiClient.put(`/system/settings/menus/${id}`, d);
+      if (!res.success) throw new Error(res.error || '更新菜单失败');
+      return res;
+    },
+    onSuccess: () => qc.invalidateQueries({queryKey: ['admin-system-settings']}),
+  });
+  const delMenuMut = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await apiClient.delete(`/system/settings/menus/${id}`);
+      if (!res.success) throw new Error(res.error || '删除菜单失败');
+      return res;
+    },
+    onSuccess: () => qc.invalidateQueries({queryKey: ['admin-system-settings']}),
+    onError: (err: Error) => alert(err.message),
+  });
+  const createMenuItemMut = useMutation({
+    mutationFn: async (d: any) => {
+      const res = await apiClient.post(SYSTEM.SETTINGS_MENU_ITEMS, d);
+      if (!res.success) throw new Error(res.error || '创建菜单项失败');
+      return res;
+    },
+    onSuccess: () => qc.invalidateQueries({queryKey: ['admin-system-settings']}),
+    onError: (err: Error) => alert(err.message),
+  });
+  const delMenuItemMut = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await apiClient.delete(`/system/settings/menu-items/${id}`);
+      if (!res.success) throw new Error(res.error || '删除菜单项失败');
+      return res;
+    },
+    onSuccess: () => qc.invalidateQueries({queryKey: ['admin-system-settings']}),
+    onError: (err: Error) => alert(err.message),
+  });
 
   // ── Page mutations ──
-  const createPageMut = useMutation({mutationFn:(d:any)=>apiClient.post(SYSTEM.SETTINGS_PAGES, d), onSuccess:()=>qc.invalidateQueries({queryKey:['admin-system-settings']})});
-  const delPageMut = useMutation({mutationFn:(id:number)=>apiClient.delete(`/system/settings/pages/${id}`), onSuccess:()=>qc.invalidateQueries({queryKey:['admin-system-settings']})});
+  const createPageMut = useMutation({
+    mutationFn: async (d: any) => {
+      const res = await apiClient.post(SYSTEM.SETTINGS_PAGES, d);
+      if (!res.success) throw new Error(res.error || '创建页面失败');
+      return res;
+    },
+    onSuccess: () => qc.invalidateQueries({queryKey: ['admin-system-settings']}),
+    onError: (err: Error) => alert(err.message),
+  });
+  const delPageMut = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await apiClient.delete(`/system/settings/pages/${id}`);
+      if (!res.success) throw new Error(res.error || '删除页面失败');
+      return res;
+    },
+    onSuccess: () => qc.invalidateQueries({queryKey: ['admin-system-settings']}),
+    onError: (err: Error) => alert(err.message),
+  });
 
   // ── Menus dialog state ──
   const [menuModal, setMenuModal] = useState<{mode:'create'|'edit'; menu?: Menu} | null>(null);
@@ -448,8 +505,15 @@ function AdminSettingsInner() {
                     取消
                   </button>
                   <button onClick={() => {
-                    if (menuModal?.mode === 'create') createMenuMut.mutate(menuForm);
-                    else if (menuModal?.menu) updateMenuMut.mutate({id: menuModal.menu.id, ...menuForm, is_active: menuModal.menu.is_active});
+                    if (menuModal?.mode === 'create') {
+                      if (!menuForm.name.trim() || !menuForm.slug.trim()) {
+                        alert('菜单名称和标识不能为空');
+                        return;
+                      }
+                      createMenuMut.mutate(menuForm);
+                    } else if (menuModal?.menu) {
+                      updateMenuMut.mutate({id: menuModal.menu.id, ...menuForm, is_active: menuModal.menu.is_active});
+                    }
                     setMenuModal(null);
                   }}
                           className="px-5 py-2.5 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 rounded-xl transition-all shadow-lg shadow-blue-500/25">
@@ -502,6 +566,10 @@ function AdminSettingsInner() {
                     取消
                   </button>
                   <button onClick={() => {
+                    if (!itemForm.title.trim() || !itemForm.url.trim()) {
+                      alert('菜单项标题和链接不能为空');
+                      return;
+                    }
                     createMenuItemMut.mutate({
                       title: itemForm.title,
                       url: itemForm.url,
@@ -695,6 +763,10 @@ function AdminSettingsInner() {
                     取消
                   </button>
                   <button onClick={() => {
+                    if (!pageForm.title.trim() || !pageForm.slug.trim()) {
+                      alert('页面标题和别名不能为空');
+                      return;
+                    }
                     createPageMut.mutate(pageForm);
                     setPageModal(null);
                   }}
