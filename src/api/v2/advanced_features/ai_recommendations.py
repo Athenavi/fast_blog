@@ -5,7 +5,7 @@ import asyncio
 from functools import wraps
 from typing import Optional, List
 
-from fastapi import APIRouter, HTTPException, Query, Body
+from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from pydantic import BaseModel
 
 from shared.services.advanced_features.ai_tag_recommendation import ai_tag_service
