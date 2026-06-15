@@ -8,6 +8,7 @@ from fastapi.security import HTTPBearer
 from shared.models.user import User
 from shared.services.security.rbac_service import rbac_service
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
+from src.utils.database.main import get_async_session
 
 security = HTTPBearer(auto_error=False)
 
@@ -50,9 +51,13 @@ class RBACGuard:
     """基于角色的访问控制守卫"""
 
     @staticmethod
-    async def require_capability(user: User = Depends(jwt_required), capability: str = "read:content"):
+    async def require_capability(
+        user: User = Depends(jwt_required),
+        capability: str = "read:content",
+        db: AsyncSession = Depends(get_async_session)
+    ):
         """检查用户是否拥有特定能力"""
-        if not await rbac_service.has_capability(user.id, capability):
+        if not await rbac_service.has_capability(db, user.id, capability):
             raise HTTPException(
                 status_code=403,
                 detail=f"Forbidden: User lacks required capability '{capability}'"

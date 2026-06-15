@@ -209,9 +209,9 @@ async def login_api(request: Request, db: AsyncSession = Depends(get_async_db)):
 
     resp = JSONResponse(content={"success": True, "data": resp_data})
     is_https = str(settings.SITE_URL).startswith('https://') if hasattr(settings, 'SITE_URL') else False
-    resp.set_cookie("access_token", access_token, httponly=True, secure=is_https, samesite="strict", max_age=3600, path="/")
+    resp.set_cookie("access_token", access_token, secure=is_https, samesite="strict", max_age=3600, path="/")
     if refresh_token:
-        resp.set_cookie("refresh_token", refresh_token, httponly=True, secure=is_https, samesite="strict", max_age=2592000, path="/")
+        resp.set_cookie("refresh_token", refresh_token, secure=is_https, samesite="strict", max_age=2592000, path="/")
 
     await audit_log_service.log_action(
         db=db, user_id=user.id, user_name=user.username,

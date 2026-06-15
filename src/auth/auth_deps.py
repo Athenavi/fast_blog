@@ -230,17 +230,16 @@ def require_resource_permission(resource: str, action: str):
 
 
 def require_role(role_slug: str):
-    """API：检查用户是否拥有指定角色"""
+    """API：检查用户是否拥有指定角色（支持角色继承）"""
     async def checker(
         user: UserModel = Depends(get_current_user),
         db: AsyncSession = Depends(get_async_session),
     ) -> UserModel:
         if user.is_superuser:
             return user
-        roles = await rbac_service.get_user_roles(db, user.id)
-        if not any(r.slug == role_slug for r in roles):
-            raise HTTPException(status_code=403, detail="Insufficient role permissions")
-        return user
+        if await rbac_service.user_has_role(db, user.id, role_slug):
+            return user
+        raise HTTPException(status_code=403, detail="Insufficient role permissions")
     return checker
 
 

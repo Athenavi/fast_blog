@@ -4,11 +4,37 @@ SSO单点登录服务
 """
 import os
 import json
-
+import secrets
+import time
+from pathlib import Path
 from typing import Dict, Any, Optional, List
 from datetime import datetime, timedelta
 
 from src.unified_logger import default_logger as logger
+
+# SSO 会话持久化文件路径
+_SSO_DATA_DIR = Path(os.environ.get('FASTBLOG_DATA_DIR', 'data'))
+_SSO_SESSIONS_FILE = _SSO_DATA_DIR / 'sso_sessions.json'
+_OAUTH_STATES_FILE = _SSO_DATA_DIR / 'oauth_states.json'
+
+
+def _load_json(filepath: Path) -> dict:
+    """从 JSON 文件加载数据"""
+    try:
+        if filepath.exists():
+            return json.loads(filepath.read_text('utf-8'))
+    except Exception as e:
+        logger.warning(f"Failed to load {filepath}: {e}")
+    return {}
+
+
+def _save_json(filepath: Path, data: dict) -> None:
+    """保存数据到 JSON 文件"""
+    try:
+        _SSO_DATA_DIR.mkdir(parents=True, exist_ok=True)
+        filepath.write_text(json.dumps(data, ensure_ascii=False, indent=2), 'utf-8')
+    except Exception as e:
+        logger.warning(f"Failed to save {filepath}: {e}")
 
 
 class SSOService:
@@ -72,8 +98,65 @@ class SSOService:
             'use_ssl': os.getenv('LDAP_USE_SSL', 'false').lower() == 'true',
         }
 
-        # SSO 会话存储（内存映射，生产环境应使用 Redis）
-        self._sso_sessions: Dict[str, int] = {}
+        # SSO 会话存储（内存映射 + JSON 文件持久化）
+        self._sso_sessions: Dict[str, int] = _load_json(_SSO_SESSIONS_FILE)
+        logger.info(f"Loaded {len(self._sso_sessions)} SSO sessions from disk")
+
+        # OAuth state 存储（用于 CSRF 防护）
+        self._oauth_states: Dict[str, dict] = _load_json(_OAUTH_STATES_FILE)
+        self._oauth_state_ttl = 600  # 10 分钟
+
+    def generate_oauth_state(self, provider: str, user_id: Optional[int] = None) -> str:
+        """
+        生成 OAuth state 参数用于 CSRF 防护
+        
+        Args:
+            provider: OAuth 提供商
+            user_id: 用户 ID（绑定账户时使用）
+            
+        Returns:
+            state 字符串
+        """
+        state = secrets.token_urlsafe(32)
+        self._oauth_states[state] = {
+            'provider': provider,
+            'created_at': time.time(),
+            'user_id': user_id,
+        }
+        return state
+
+    def validate_oauth_state(self, state: str, provider: str) -> bool:
+        """
+        验证 OAuth state 参数
+        
+        Args:
+            state: state 字符串
+            provider: OAuth 提供商
+            
+        Returns:
+            是否有效
+        """
+        info = self._oauth_states.pop(state, None)
+        if not info:
+            logger.warning(f"OAuth state not found (possible replay attack): {state[:12]}...")
+            return False
+        if info['provider'] != provider:
+            logger.warning(f"OAuth state provider mismatch: {info['provider']} != {provider}")
+            return False
+        if time.time() - info['created_at'] > self._oauth_state_ttl:
+            logger.warning(f"OAuth state expired: {state[:12]}...")
+            return False
+        return True
+
+    def cleanup_expired_oauth_states(self):
+        """清理过期的 OAuth state"""
+        now = time.time()
+        expired = [s for s, info in self._oauth_states.items()
+                   if now - info['created_at'] > self._oauth_state_ttl]
+        for s in expired:
+            del self._oauth_states[s]
+        if expired:
+            logger.info(f"Cleaned {len(expired)} expired OAuth states")
 
     async def get_oauth_authorization_url(self, provider: str, redirect_uri: str,
                                           state: str = None) -> str:
@@ -97,6 +180,10 @@ class SSOService:
             raise ValueError(f"OAuth {provider} not configured")
 
         import urllib.parse
+
+        # 自动生成 state（如未提供），用于 CSRF 防护
+        if not state:
+            state = self.generate_oauth_state(provider)
 
         params = {
             'client_id': config['client_id'],
@@ -287,11 +374,13 @@ class SSOService:
             if not conn.entries:
                 return None
 
+            entry = conn.entries[0]
+
             # 验证密码 — 使用 TLS/SSL 保护凭证
             use_tls = self.ldap_config.get('use_ssl', False) or self.ldap_config.get('start_tls', False)
             auth_conn = ldap3.Connection(
                 server,
-                user=user_dn,
+                user=entry.entry_dn,
                 password=password,
                 auto_bind=False
             )
@@ -299,7 +388,6 @@ class SSOService:
                 return None
 
             # 认证成功
-            entry = conn.entries[0]
             return {
                 'username': str(entry.uid.value) if hasattr(entry, 'uid') else username,
                 'email': str(entry.mail.value) if hasattr(entry, 'mail') else None,
@@ -403,8 +491,9 @@ class SSOService:
         # 生成SSO令牌
         sso_token = str(uuid.uuid4())
 
-        # 存储到内存会话表（生产环境应使用 Redis）
+        # 存储到内存 + 持久化
         self._sso_sessions[sso_token] = user_id
+        _save_json(_SSO_SESSIONS_FILE, self._sso_sessions)
 
         logger.info(f"SSO session created for user {user_id}, token={sso_token[:8]}...")
         return sso_token

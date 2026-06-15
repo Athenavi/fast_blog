@@ -24,6 +24,7 @@ from shared.services.articles.article_manager import article_query_service, pass
 from shared.services.content_management.shortcode_service import shortcode_service
 from shared.services.core.api_embed import APIEmbedService
 from shared.services.notifications.webhook_service import webhook_service
+from shared.services.security.rbac_service import rbac_service
 from shared.services.static_generation.isr_service import isr_service
 from shared.services.plugins.event_bus import event_bus, ArticlePublishedPayload, ArticleUpdatedPayload, ArticleDeletedPayload
 from src.api.v2._base import ApiResponse
@@ -539,9 +540,9 @@ async def get_new_article_form_api(category_id: int = Query(0, alias="cid")):
 @_catch
 async def toggle_article_sticky_api(article_id: int, data: dict = Body(...), current_user=Depends(jwt_required),
                                      db: AsyncSession = Depends(get_async_session)):
-    """切换文章置顶状态（管理员）"""
-    if not _is_admin(current_user):
-        return fail("仅管理员可操作置顶")
+    """切换文章置顶状态（需要 article:edit 权限）"""
+    if not await rbac_service.has_permission(db, current_user.id, 'article', 'edit'):
+        return fail("权限不足：需要 article:edit 权限")
     article = await db.scalar(select(Article).where(Article.id == article_id))
     if not article:
         return fail("文章不存在")
@@ -559,7 +560,9 @@ async def toggle_article_sticky_api(article_id: int, data: dict = Body(...), cur
 @_catch
 async def clean_expired_sticky_articles_api(current_user=Depends(jwt_required),
                                             db: AsyncSession = Depends(get_async_session)):
-    """清理过期的置顶文章（管理员）"""
+    """清理过期的置顶文章（需要 article:edit 权限）"""
+    if not await rbac_service.has_permission(db, current_user.id, 'article', 'edit'):
+        return fail("权限不足：需要 article:edit 权限")
     now = datetime.now()
     result = await db.execute(
         select(Article).where(
@@ -579,9 +582,9 @@ async def clean_expired_sticky_articles_api(current_user=Depends(jwt_required),
 @_catch
 async def reorder_articles_api(data: list[dict] = Body(...), current_user=Depends(jwt_required),
                                 db: AsyncSession = Depends(get_async_session)):
-    """文章排序"""
-    if not _is_admin(current_user):
-        return fail("仅管理员可排序")
+    """文章排序（需要 article:edit 权限）"""
+    if not await rbac_service.has_permission(db, current_user.id, 'article', 'edit'):
+        return fail("权限不足：需要 article:edit 权限")
     for item in data:
         article = await db.scalar(select(Article).where(Article.id == item.get('id')))
         if article and 'sort_order' in item:

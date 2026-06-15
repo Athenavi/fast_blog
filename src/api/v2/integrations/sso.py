@@ -92,10 +92,10 @@ async def oauth_callback(
         用户信息和令牌
     """
     # SECURITY: Validate state parameter to prevent CSRF account takeover.
-    # In production, state should be generated during /authorize, stored in
-    # session, and validated here. At minimum, ensure it's non-empty.
     if not state:
         raise HTTPException(status_code=400, detail="Missing or empty 'state' parameter (CSRF protection)")
+    if not sso_service.validate_oauth_state(state, provider):
+        raise HTTPException(status_code=403, detail="Invalid or expired 'state' parameter (possible CSRF attack)")
 
     # SECURITY: Validate Origin / Referer header as additional check
     if request:

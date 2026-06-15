@@ -231,6 +231,37 @@ class RBACService:
         )
         return list(result.scalars().all())
 
+    async def user_has_role(
+        self, db: AsyncSession, user_id: int, role_slug: str
+    ) -> bool:
+        """
+        检查用户是否拥有指定角色（支持角色继承：父角色算作拥有子角色）
+
+        Args:
+            db: 数据库会话
+            user_id: 用户ID
+            role_slug: 角色 slug
+
+        Returns:
+            是否拥有该角色
+        """
+        # 先获取直接分配的角色（含父角色解析）
+        user_role_ids_result = await db.execute(
+            select(UserRole.role_id).where(UserRole.user_id == user_id)
+        )
+        user_role_ids = [r[0] for r in user_role_ids_result.all()]
+        if not user_role_ids:
+            return False
+
+        # 解析角色继承链
+        all_role_ids = await self._resolve_role_ids_with_parents(db, user_role_ids)
+
+        # 检查是否有匹配的 slug
+        result = await db.execute(
+            select(Role).where(Role.id.in_(all_role_ids), Role.slug == role_slug)
+        )
+        return result.scalar_one_or_none() is not None
+
 
 # 全局单例
 rbac_service = RBACService()
