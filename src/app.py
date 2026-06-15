@@ -708,7 +708,7 @@ def register_middleware(app: FastAPI):
     # 性能监控中间件（惰性加载：避免启动时 import psutil）
     try:
         app.add_middleware(
-            _make_lazy_middleware("src.middleware.performance_monitor", "PerformanceMonitoringMiddleware")
+            _make_lazy_middleware("src.middleware.performance_monitor", "RequestPerformanceMiddleware")
         )
         print("[Performance Monitor] 已添加性能监控中间件（惰性加载）")
     except Exception as e:
