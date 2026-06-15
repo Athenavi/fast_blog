@@ -123,6 +123,13 @@ async def _get_article_detail(request: Request, db: AsyncSession, article: Artic
     if article.status == 0 and not _is_author_or_admin(current_user, article.user):
         return None
 
+    # VIP-only access check
+    if article.is_vip_only and not _is_author_or_admin(current_user, article.user):
+        if not current_user or not getattr(current_user, 'is_vip', lambda: False)():
+            raise HTTPException(403, "VIP membership required to access this article")
+        if article.required_vip_level and getattr(current_user, 'vip_level', 0) < article.required_vip_level:
+            raise HTTPException(403, "Insufficient VIP level to access this article")
+
     content_obj = await db.scalar(select(ArticleContent).where(ArticleContent.article == article.id))
     raw = content_obj.content if content_obj else ""
 

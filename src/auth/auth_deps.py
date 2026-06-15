@@ -38,6 +38,7 @@ def _get_token_blacklist():
 def create_access_token(
     user_id: int,
     lifetime: Optional[datetime.timedelta] = None,
+    token_type: str = "access",
 ) -> str:
     """
     生成 JWT 访问令牌
@@ -46,6 +47,7 @@ def create_access_token(
         lifetime = datetime.timedelta(minutes=getattr(settings, "JWT_EXPIRATION_MINUTES", 60))
 
     payload = {
+        "type": token_type,
         "sub": str(user_id),
         "jti": str(uuid.uuid4()),
         "iat": datetime.datetime.now(datetime.timezone.utc),
@@ -96,7 +98,8 @@ async def _authenticate_user(
     jwt_algorithm = getattr(settings, "JWT_ALGORITHM", "HS256")
 
     try:
-        payload = jwt.decode(token, jwt_secret, algorithms=[jwt_algorithm])
+        payload = jwt.decode(token, jwt_secret, algorithms=[jwt_algorithm],
+                            options={"verify_exp": True, "require": ["exp", "iat"]})
     except InvalidTokenError as e:
         if required:
             raise HTTPException(
@@ -126,7 +129,7 @@ async def _authenticate_user(
     jti = payload.get("jti")
     if jti:
         _tb = _get_token_blacklist()
-        if _tb.is_available and _tb.is_blacklisted(jti):
+        if _tb.is_available and await _tb.is_blacklisted_async(jti):
             if required:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,

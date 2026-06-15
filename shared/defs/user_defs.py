@@ -9,6 +9,11 @@ def is_vip(self) -> bool:
     """
     判断是否为 VIP 用户
     
+    注意：
+    - 本方法优先从用户模型的缓存字段 (vip_level, vip_expires_at) 判断。
+    - 这些字段可能不是实时状态，生产环境建议集成 VIPSubscription 订阅服务
+      查询 vip_subscriptions 表获取实时订阅状态。
+    
     Returns:
         bool: 是否为 VIP 用户
     """

@@ -275,6 +275,8 @@ class SSOService:
             except ImportError:
                 # fallback: 手动转义关键字符
                 safe_username = username.replace('\\', '\\5c').replace('*', '\\2a').replace('(', '\\28').replace(')', '\\29').replace('\\0', '\\00').replace('&', '\\26').replace('|', '\\7c').replace('!', '\\21').replace('=', '\\3d')
+            # SECURITY: Additionally strip null bytes to prevent LDAP filter truncation
+            safe_username = safe_username.replace('\x00', '')
             user_filter = self.ldap_config['user_filter'].format(username=safe_username)
             conn.search(
                 search_base=self.ldap_config['base_dn'],
@@ -373,21 +375,16 @@ class SSOService:
         Returns:
             用户信息
         """
-        try:
-            from onelogin.saml2.response import OneLogin_Saml2_Response
-
-            # 这里需要完整的SAML处理逻辑
-            # 简化实现，实际需要验证签名、解析属性等
-
-            logger.info("SAML response received (processing not fully implemented)")
-            return None
-
-        except ImportError:
-            logger.warning("python3-saml library not installed")
-            return None
-        except Exception as e:
-            logger.error(f"SAML response handling failed: {e}")
-            return None
+        # NOT IMPLEMENTED — this method is intentionally left as a stub.
+        # A production SAML implementation requires:
+        #   - signature verification via xmlsec1 / signxml
+        #   - clock drift tolerance
+        #   - assertion decryption (if encrypted)
+        #   - attribute mapping to User model
+        #   - session / RelayState management
+        # Until then all callers should fail with 501.
+        logger.warning("SAML ACS called but not implemented — callers should return 501")
+        return None
 
     async def create_sso_session(self, user_id: int, session_id: str) -> str:
         """

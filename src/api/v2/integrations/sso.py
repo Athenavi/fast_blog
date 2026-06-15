@@ -5,7 +5,7 @@ SSO单点登录 API
 from functools import wraps
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Body
+from fastapi import APIRouter, Depends, HTTPException, Query, Body, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -39,6 +39,7 @@ async def oauth_authorize(
         provider: str,
         redirect_uri: str = Query(..., description="回调URL"),
         state: Optional[str] = Query(None, description="状态参数"),
+        request: Request = None,
 ):
     """
     获取OAuth2授权URL并重定向
@@ -51,6 +52,14 @@ async def oauth_authorize(
     Returns:
         重定向到OAuth提供商
     """
+    # SECURITY: Validate redirect_uri against the app's own callback URL
+    # to prevent open-redirect attacks (Fix 2).
+    if request:
+        base_url = str(request.base_url).rstrip('/')
+        expected_callback = f"{base_url}/api/v2/sso/oauth/{provider}/callback"
+        if redirect_uri != expected_callback and not redirect_uri.startswith(expected_callback + '?'):
+            raise HTTPException(status_code=400, detail="Invalid redirect_uri: not in whitelist")
+
     authorization_url = await sso_service.get_oauth_authorization_url(
         provider=provider,
         redirect_uri=redirect_uri,
@@ -66,6 +75,8 @@ async def oauth_callback(
         provider: str,
         code: str = Body(..., description="授权码"),
         redirect_uri: str = Body(..., description="回调URL"),
+        state: Optional[str] = Body(None, description="状态参数"),
+        request: Request = None,
         db: AsyncSession = Depends(get_async_db)
 ):
     """
@@ -75,10 +86,32 @@ async def oauth_callback(
         provider: OAuth提供商
         code: 授权码
         redirect_uri: 回调URL
+        state: 状态参数
         
     Returns:
         用户信息和令牌
     """
+    # SECURITY: Validate state parameter to prevent CSRF account takeover.
+    # In production, state should be generated during /authorize, stored in
+    # session, and validated here. At minimum, ensure it's non-empty.
+    if not state:
+        raise HTTPException(status_code=400, detail="Missing or empty 'state' parameter (CSRF protection)")
+
+    # SECURITY: Validate Origin / Referer header as additional check
+    if request:
+        origin = request.headers.get("origin")
+        referer = request.headers.get("referer")
+        if origin or referer:
+            # Both should match the application's own base URL
+            base_url = str(request.base_url).rstrip('/')
+            allowed = False
+            for header_val in [origin, referer]:
+                if header_val and (header_val.rstrip('/') == base_url or header_val.startswith(base_url + '/')):
+                    allowed = True
+                    break
+            if not allowed:
+                raise HTTPException(status_code=403, detail="Cross-origin request denied")
+
     result = await sso_service.handle_oauth_callback(
         db=db,
         provider=provider,
@@ -211,14 +244,11 @@ async def saml_login():
     Returns:
         SAML登录请求数据
     """
-    result = await sso_service.create_saml_login_request()
-
-    if 'error' in result:
-        return fail(result['error'])
-
-    return ok(
-        data=result,
-        msg="SAML login request created"
+    raise HTTPException(
+        status_code=501,
+        detail="SAML login endpoint is not implemented yet. "
+               "A full SAML implementation requires "
+               "python3-saml / signxml integration."
     )
 
 
@@ -237,14 +267,16 @@ async def saml_acs(
     Returns:
         认证结果
     """
-    userinfo = await sso_service.handle_saml_response(db, saml_response)
-
-    if not userinfo:
-        return fail("SAML authentication failed")
-
-    return ok(
-        data=userinfo,
-        msg="SAML authentication successful"
+    # SAML ACS is not yet implemented. This endpoint returns 501 explicitly
+    # to avoid silent failures that could mask security issues.
+    raise HTTPException(
+        status_code=501,
+        detail="SAML ACS endpoint is not implemented yet. "
+               "A full SAML implementation requires: "
+               "1) Onelogin python3-saml integration "
+               "2) Certificate validation "
+               "3) Attribute mapping "
+               "4) Session management."
     )
 
 

@@ -138,10 +138,7 @@ async def get_writable_fields(
         )
         allowed = result.scalars().all()
 
-        # 如果没有任何字段级权限配置，默认所有字段可写
-        if not allowed:
-            return set()  # 空集合表示"全部可写"
-
+        # 没有明确授予写权限的字段，默认不可写（最小权限原则）
         return {r.field_name for r in allowed}
 
     except Exception as e:

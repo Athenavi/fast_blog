@@ -19,7 +19,7 @@ class FieldPermission(Base):
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='权限 ID')
 
-    role_id = Column(BigInteger, ForeignKey('roles.id'), doc='角色 ID')
+    role_id = Column(BigInteger, ForeignKey('roles.id', ondelete='CASCADE'), doc='角色 ID')
 
 
     model_name = Column(String(100), nullable=True, doc='模型名称')

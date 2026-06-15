@@ -7,7 +7,7 @@ import hmac
 import struct
 import time
 from datetime import datetime, timezone
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Set, Tuple
 
 import pyotp
 from sqlalchemy import select
@@ -24,6 +24,24 @@ TOTP_ISSUER = "FastBlog"
 
 class TwoFactorService:
     """双因素认证服务"""
+
+    # 已使用的 TOTP 时间步 (user_id -> set of time_step), 防止重放攻击
+    _used_totp_steps: Dict[int, Set[int]] = {}
+
+    def _get_totp_time_step(self) -> int:
+        """获取当前 TOTP 时间步 (30秒步长)"""
+        return int(time.time()) // 30
+
+    def _cleanup_used_steps(self, user_id: int) -> None:
+        """清理当前时间步 ±1 范围之外的旧记录"""
+        current_step = self._get_totp_time_step()
+        valid_steps = {current_step - 1, current_step, current_step + 1}
+        if user_id in self._used_totp_steps:
+            self._used_totp_steps[user_id] = {
+                s for s in self._used_totp_steps[user_id] if s in valid_steps
+            }
+            if not self._used_totp_steps[user_id]:
+                del self._used_totp_steps[user_id]
 
     async def setup_totp(
         self,
@@ -107,6 +125,17 @@ class TwoFactorService:
         if not totp.verify(code, valid_window=1):
             return {"success": False, "error": "验证码无效，请重试"}
 
+        # 防止 TOTP 重放攻击
+        current_step = self._get_totp_time_step()
+        self._cleanup_used_steps(user_id)
+        used = self._used_totp_steps.setdefault(user_id, set())
+        for step in (current_step - 1, current_step, current_step + 1):
+            if totp.verify(code, valid_window=0, time=step * 30):
+                if step in used:
+                    return {"success": False, "error": "该验证码已被使用过，请等待新验证码"}
+                used.add(step)
+                break
+
         # 生成备用码并启用
         backup_codes = self._generate_backup_codes()
         user.backup_codes = "\n".join(backup_codes)
@@ -151,11 +180,38 @@ class TwoFactorService:
         if user.totp_secret:
             totp = pyotp.TOTP(user.totp_secret)
             if totp.verify(code, valid_window=1):
+                # 防止 TOTP 重放攻击: 记录已使用的时间步
+                current_step = self._get_totp_time_step()
+                self._cleanup_used_steps(user_id)
+                used = self._used_totp_steps.setdefault(user_id, set())
+                # 检查该时间步是否已被使用过
+                for step in (current_step - 1, current_step, current_step + 1):
+                    if totp.verify(code, valid_window=0, time=step * 30):
+                        if step in used:
+                            return {"success": False, "error": "该验证码已被使用过，请等待新验证码"}
+                        used.add(step)
+                        break
                 return {"success": True, "method": "totp"}
 
         # 尝试备用码
         if user.backup_codes:
+            # 尝试 plaintext newline-separated 格式
             backup_list = user.backup_codes.split("\n")
+            if len(backup_list) == 1:
+                # 单行可能是 JSON 数组格式（SHA256 hashed），尝试解析
+                try:
+                    import json, hashlib
+                    parsed = json.loads(user.backup_codes)
+                    if isinstance(parsed, list):
+                        input_hashed = hashlib.sha256(code.strip().encode('utf-8')).hexdigest()
+                        if input_hashed in parsed:
+                            parsed.remove(input_hashed)
+                            user.backup_codes = json.dumps(parsed) if parsed else None
+                            await db.commit()
+                            return {"success": True, "method": "backup_code"}
+                except (json.JSONDecodeError, TypeError):
+                    pass  # 不是 JSON 格式，回退到 plaintext 处理
+
             for i, backup_code in enumerate(backup_list):
                 backup_code = backup_code.strip()
                 # 使用恒定时间比较

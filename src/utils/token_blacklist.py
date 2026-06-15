@@ -235,7 +235,7 @@ class TokenBlacklistManager:
     @property
     def is_available(self) -> bool:
         """黑名单服务是否可用（Redis 或 ORM 至少一个可用）"""
-        return self.redis_enabled and self.redis_client is not None
+        return (self.redis_enabled and self.redis_client is not None) or self.has_persistence
 
     @property
     def has_persistence(self) -> bool:

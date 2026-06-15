@@ -24,10 +24,10 @@ class RoleCapability(Base):
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='关联 ID')
 
-    role_id = Column(BigInteger, ForeignKey('roles.id'), doc='角色 ID')
+    role_id = Column(BigInteger, ForeignKey('roles.id', ondelete='CASCADE'), doc='角色 ID')
 
 
-    capability_id = Column(BigInteger, ForeignKey('capabilities.id'), doc='权限能力 ID')
+    capability_id = Column(BigInteger, ForeignKey('capabilities.id', ondelete='CASCADE'), doc='权限能力 ID')
 
 
     created_at = Column(DateTime, doc='创建时间')

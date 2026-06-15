@@ -24,13 +24,13 @@ class UserRole(Base):
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='关联 ID')
 
-    user_id = Column(BigInteger, ForeignKey('users.id'), doc='用户 ID')
+    user_id = Column(BigInteger, ForeignKey('users.id', ondelete='CASCADE'), doc='用户 ID')
 
 
-    role_id = Column(BigInteger, ForeignKey('roles.id'), doc='角色 ID')
+    role_id = Column(BigInteger, ForeignKey('roles.id', ondelete='CASCADE'), doc='角色 ID')
 
 
-    assigned_by = Column(BigInteger, ForeignKey('users.id'), nullable=True, doc='分配者用户 ID')
+    assigned_by = Column(BigInteger, ForeignKey('users.id', ondelete='CASCADE'), nullable=True, doc='分配者用户 ID')
 
 
     created_at = Column(DateTime, doc='分配时间')

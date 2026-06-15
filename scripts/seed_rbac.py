@@ -100,7 +100,7 @@ def _build_capability_list():
     result = []
     for resource, actions in PERMISSIONS.items():
         for action, label in actions.items():
-            code = f"{resource}.{action}"
+            code = f"{resource}:{action}"
             result.append((code, label, resource, action))
     return result
 
@@ -110,7 +110,7 @@ ALL_CAPABILITIES = _build_capability_list()
 
 def _cap_codes(*specs):
     """根据 (resource, action) 对生成 capability code 列表"""
-    return [f"{r}.{a}" for r, a in specs]
+    return [f"{r}:{a}" for r, a in specs]
 
 
 # ============================================================
