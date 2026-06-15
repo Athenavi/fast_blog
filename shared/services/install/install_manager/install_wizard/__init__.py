@@ -55,8 +55,16 @@ class InstallationWizardService:
                     q = __import__("sqlalchemy").select(SystemSettings)
                     r = await db.execute(q)
                     return len(r.scalars().all()) > 0
-            if asyncio.get_event_loop().run_until_complete(_check()):
-                count += 1
+            try:
+                loop = asyncio.get_running_loop()
+            except RuntimeError:
+                loop = None
+            if loop and loop.is_running():
+                # Already in an async context — skip this check
+                pass
+            else:
+                if asyncio.get_event_loop().run_until_complete(_check()):
+                    count += 1
         except Exception:
             pass
         return count

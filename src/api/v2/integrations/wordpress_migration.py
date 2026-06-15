@@ -56,10 +56,15 @@ async def parse_wordpress_xml(
     if not file.filename.endswith('.xml'):
         return fail("只支持 .xml 格式的 WordPress 导出文件")
 
+    # 限制文件大小（最大 100MB）
+    MAX_FILE_SIZE = 100 * 1024 * 1024
+    content = await file.read()
+    if len(content) > MAX_FILE_SIZE:
+        return fail(f"文件过大（{len(content) / 1024 / 1024:.1f}MB），最大支持 100MB")
+
     tmp_path = None
     try:
         with tempfile.NamedTemporaryFile(delete=False, suffix='.xml') as tmp_file:
-            content = await file.read()
             tmp_file.write(content)
             tmp_path = tmp_file.name
 
@@ -111,11 +116,16 @@ async def import_wordpress_data(
     if not file.filename.endswith('.xml'):
         return fail("只支持 .xml 格式的 WordPress 导出文件")
 
+    # 限制文件大小（最大 100MB）
+    MAX_FILE_SIZE = 100 * 1024 * 1024
+    content = await file.read()
+    if len(content) > MAX_FILE_SIZE:
+        return fail(f"文件过大（{len(content) / 1024 / 1024:.1f}MB），最大支持 100MB")
+
     tmp_path = None
     try:
         # 保存临时文件
         with tempfile.NamedTemporaryFile(delete=False, suffix='.xml') as tmp_file:
-            content = await file.read()
             tmp_file.write(content)
             tmp_path = tmp_file.name
 
@@ -283,10 +293,15 @@ async def validate_wordpress_file(
     if not file.filename.endswith('.xml'):
         return fail("只支持 .xml 格式的文件")
 
+    # 限制文件大小（最大 100MB）
+    MAX_FILE_SIZE = 100 * 1024 * 1024
+    content = await file.read()
+    if len(content) > MAX_FILE_SIZE:
+        return fail(f"文件过大（{len(content) / 1024 / 1024:.1f}MB），最大支持 100MB")
+
     tmp_path = None
     try:
         with tempfile.NamedTemporaryFile(delete=False, suffix='.xml') as tmp_file:
-            content = await file.read()
             tmp_file.write(content)
             tmp_path = tmp_file.name
 

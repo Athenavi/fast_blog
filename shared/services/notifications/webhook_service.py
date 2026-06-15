@@ -2,6 +2,8 @@
 Webhook 服务实现
 负责在内容变更时向配置的端点发送实时通知
 """
+import hashlib
+import hmac
 import json
 from datetime import datetime
 
@@ -44,11 +46,28 @@ class WebhookService:
             await db.flush()
 
             try:
+                # 构建签名
+                payload_body = json.dumps(payload, separators=(',', ':'))
+                signature = ''
+                if webhook.secret:
+                    signature = 'sha256=' + hmac.new(
+                        webhook.secret.encode('utf-8'),
+                        payload_body.encode('utf-8'),
+                        hashlib.sha256
+                    ).hexdigest()
+
+                headers = {
+                    "Content-Type": "application/json",
+                    "X-FastBlog-Event": event,
+                }
+                if signature:
+                    headers["X-Hub-Signature-256"] = signature
+
                 async with httpx.AsyncClient(timeout=10.0) as client:
                     response = await client.post(
                         webhook.url,
-                        json=payload,
-                        headers={"Content-Type": "application/json", "X-FastBlog-Event": event}
+                        content=payload_body,
+                        headers=headers
                     )
                     delivery.status_code = response.status_code
                     delivery.response_body = response.text[:1000]

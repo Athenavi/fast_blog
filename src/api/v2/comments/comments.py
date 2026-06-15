@@ -941,12 +941,10 @@ async def notify_comment_reply(
 
     # 创建通知
     notification = Notification(
-        user_id=parent_comment.user_id,
+        recipient=parent_comment.user_id,
         type='comment_reply',
         title='有人回复了你的评论',
-        content=f'{new_comment.author_name or "匿名用户"} 回复了你的评论',
-        related_id=new_comment.id,
-        related_type='comment',
+        message=f'{new_comment.author_name or "匿名用户"} 回复了你的评论',
         is_read=False
     )
 

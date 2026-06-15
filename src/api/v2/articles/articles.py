@@ -349,7 +349,7 @@ async def create_article_api(request: Request, current_user=Depends(jwt_required
     await save_article_revision(db=db, article_id=article.id, author_id=current_user.id, change_summary="创建文章")
     try:
         await isr_service.invalidate(article.slug)
-        await webhook_service.trigger('article.created', {'article_id': article.id})
+        await webhook_service.trigger_event('article.created', {'article_id': article.id})
         # 仅在发布状态时发送 published 事件
         if article.status == 1:
             await event_bus.emit('article.published', ArticlePublishedPayload(
@@ -408,7 +408,7 @@ async def update_article_api(article_id: int, request: Request, current_user=Dep
 
     try:
         await isr_service.invalidate(article.slug)
-        await webhook_service.trigger('article.updated', {'article_id': article_id})
+        await webhook_service.trigger_event('article.updated', {'article_id': article_id})
         await event_bus.emit('article.updated', ArticleUpdatedPayload(
             article_id=article.id, slug=article.slug, title=article.title,
             author_id=current_user.id,
@@ -433,7 +433,7 @@ async def delete_article_api(article_id: int, current_user=Depends(jwt_required)
     await db.commit()
 
     try:
-        await webhook_service.trigger('article.deleted', {'article_id': article_id})
+        await webhook_service.trigger_event('article.deleted', {'article_id': article_id})
         await event_bus.emit('article.deleted', ArticleDeletedPayload(
             article_id=article.id, slug=article.slug, title=article.title,
         ))

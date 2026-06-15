@@ -68,7 +68,7 @@ async def get_badge_details(badge_key: str):
 @_catch
 async def check_and_award_badges(current_user: UserModel = Depends(get_current_active_user)):
     """检查用户是否满足徽章条件并自动授予"""
-    newly_awarded = achievement_badge_system.check_and_award_badges(current_user.id)
+    newly_awarded = await achievement_badge_system.check_and_award_badges(current_user.id)
     return ok(data={'newly_awarded': newly_awarded, 'count': len(newly_awarded)},
               message=f'获得 {len(newly_awarded)} 个新徽章')
 

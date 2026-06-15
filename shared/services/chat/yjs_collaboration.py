@@ -24,6 +24,7 @@ class YjsDocument:
 
         # Yjs 文档状态（二进制）
         self.state: bytes = b''
+        self._lock = asyncio.Lock()
 
         # 前端定期发送的 HTML 快照（用于保存到数据库）
         self.html_snapshot: str = ''
@@ -81,13 +82,14 @@ class YjsDocument:
         for client_id in disconnected:
             self.remove_client(client_id)
 
-    def update_state(self, update: bytes):
+    async def update_state(self, update: bytes):
         """更新文档状态"""
-        # 合并 Yjs 更新
-        # 注意：实际应用中需要使用 y-py 库来处理 Yjs 更新
-        # 这里简化处理，仅存储最新的更新
-        self.state = update
-        self.last_modified = datetime.now()
+        async with self._lock:
+            # 合并 Yjs 更新
+            # 注意：实际应用中需要使用 y-py 库来处理 Yjs 更新
+            # 这里简化处理，仅存储最新的更新
+            self.state = update
+            self.last_modified = datetime.now()
 
     def get_state(self) -> bytes:
         """获取文档状态"""
@@ -151,8 +153,8 @@ class YjsCollaborationService:
         """将 Yjs 文档保存到数据库（使用前端发送的 HTML 快照）"""
         from datetime import datetime
         from sqlalchemy import select
-        from shared.models.article_content import ArticleContent
-        from shared.models.article_revision import ArticleRevision
+        from shared.models.article.article_content import ArticleContent
+        from shared.models.article.article_revision import ArticleRevision
 
         doc = self.documents.get(document_id)
         if not doc or not doc.article_id:
@@ -171,7 +173,7 @@ class YjsCollaborationService:
                     content_obj.content = doc.html_snapshot
                     content_obj.updated_at = datetime.now()
                 else:
-                    from shared.models.article_content import ArticleContent as AC
+                    from shared.models.article.article_content import ArticleContent as AC
                     db_session.add(AC(
                         article=article_id, content=doc.html_snapshot,
                         created_at=datetime.now(), updated_at=datetime.now(),

@@ -4,6 +4,7 @@
 基于 ProseMirror collab 协议实现多人实时协作编辑功能
 不依赖 y_py，使用纯 Python 实现 OT 算法
 """
+import asyncio
 from datetime import datetime
 from typing import Dict, List, Optional
 
@@ -65,6 +66,7 @@ class CollaborativeDocument:
         # 步骤历史（用于协作同步）
         self.steps: List[Step] = []
         self.version: int = 0  # 当前版本号
+        self._lock = asyncio.Lock()  # 防止并发版本冲突
 
         # 用户感知状态
         self.awareness: Dict[str, dict] = {}
@@ -126,34 +128,35 @@ class CollaborativeDocument:
         for client_id in disconnected:
             self.remove_client(client_id)
 
-    def apply_step(self, step: Step, new_content: str) -> bool:
+    async def apply_step(self, step: Step, new_content: str) -> bool:
         """应用步骤到文档 - 使用版本控制避免冲突"""
-        try:
-            # 检查版本号，确保是最新的
-            if step.version < self.version:
-                print(f"[Collab] Warning: Received old step version {step.version}, current is {self.version}")
+        async with self._lock:
+            try:
+                # 检查版本号，确保是最新的
+                if step.version < self.version:
+                    print(f"[Collab] Warning: Received old step version {step.version}, current is {self.version}")
+                    return False
+
+                # 更新文档内容
+                self.content = new_content
+
+                # 记录步骤
+                self.steps.append(step)
+                self.version += 1
+                self.last_modified = datetime.now()
+
+                # 限制步骤历史长度，避免内存泄漏
+                if len(self.steps) > 100:
+                    self.steps = self.steps[-50:]
+
+                print(f"[Collab] Applied step type={step.step_type}, version {self.version}")
+                return True
+
+            except Exception as e:
+                print(f"Error applying step: {e}")
+                import traceback
+                traceback.print_exc()
                 return False
-
-            # 更新文档内容
-            self.content = new_content
-
-            # 记录步骤
-            self.steps.append(step)
-            self.version += 1
-            self.last_modified = datetime.now()
-
-            # 限制步骤历史长度，避免内存泄漏
-            if len(self.steps) > 100:
-                self.steps = self.steps[-50:]
-
-            print(f"[Collab] Applied step type={step.step_type}, version {self.version}")
-            return True
-
-        except Exception as e:
-            print(f"Error applying step: {e}")
-            import traceback
-            traceback.print_exc()
-            return False
 
     def get_steps_since(self, version: int) -> List[Step]:
         """获取指定版本之后的所有步骤"""

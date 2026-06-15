@@ -65,11 +65,11 @@ async def connect_to_halo(
     )
 
 
-@router.get("/preview", summary="预览 Halo 博客内容")
+@router.post("/preview", summary="预览 Halo 博客内容")
 @_catch
 async def preview_halo_content(
-        halo_url: str,
-        api_token: str,
+        halo_url: str = Body(...),
+        api_token: str = Body(...),
         current_user: User = Depends(jwt_required)
 ):
     """

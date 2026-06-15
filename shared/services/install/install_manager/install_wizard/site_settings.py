@@ -14,6 +14,20 @@ def configure_site_settings(project_root: Path, settings: Dict[str, str]) -> Dic
     site_desc = settings.get("site_description", "").strip()
     lang = settings.get("default_language", "zh-CN").strip()
 
+    if not site_name:
+        return {"success": False, "message": "站点名称不能为空"}
+
+    if not site_url.startswith(("http://", "https://")):
+        return {"success": False, "message": "站点URL必须以 http:// 或 https:// 开头"}
+
+    # 验证 URL 格式，防止路径遍历
+    from urllib.parse import urlparse
+    parsed = urlparse(site_url)
+    if not parsed.netloc or ".." in parsed.path or ".." in parsed.netloc:
+        return {"success": False, "message": "站点URL格式无效，包含非法路径"}
+    if "\\" in site_url or "\x00" in site_url:
+        return {"success": False, "message": "站点URL包含非法字符"}
+
     try:
         from src.utils.database.main import get_async_session_context
         from shared.models.system import SystemSettings

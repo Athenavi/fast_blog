@@ -34,10 +34,8 @@ async def create_notification(
     notification = Notification(
         recipient=recipient_id,
         title=title,
-        content=content,
+        message=content,
         type=notification_type,
-        related_id=related_id,
-        data=json.dumps(data) if data else None
     )
 
     # 使用数据库会话
@@ -64,7 +62,7 @@ async def create_notification(
         from src.extensions import socketio, SOCKETIO_AVAILABLE
         if SOCKETIO_AVAILABLE:
             # 发送实时通知到客户端
-            socketio.emit('notification', {
+            await socketio.emit('notification', {
                 'id': notification.id,
                 'title': title,
                 'content': content,
@@ -92,7 +90,7 @@ async def get_user_notifications(user_id: int, unread_only: bool = False, limit:
         list: 通知列表
     """
     async for session in get_async_db():
-        stmt = select(Notification).filter_by(recipient_id=user_id).order_by(
+        stmt = select(Notification).filter_by(recipient=user_id).order_by(
             Notification.created_at.desc()
         )
 
@@ -120,7 +118,7 @@ async def mark_notification_as_read(notification_id: int, user_id: int) -> bool:
     async for session in get_async_db():
         stmt = select(Notification).filter_by(
             id=notification_id,
-            recipient_id=user_id
+            recipient=user_id
         )
         result = await session.execute(stmt)
         notification = result.scalar_one_or_none()
@@ -146,7 +144,7 @@ async def mark_all_notifications_as_read(user_id: int) -> int:
     """
     async for session in get_async_db():
         stmt = update(Notification).where(
-            Notification.recipient_id == user_id,
+            Notification.recipient == user_id,
             Notification.is_read == False
         ).values(
             is_read=True,
@@ -172,7 +170,7 @@ async def delete_notification(notification_id: int, user_id: int) -> bool:
     async for session in get_async_db():
         stmt = select(Notification).filter_by(
             id=notification_id,
-            recipient_id=user_id
+            recipient=user_id
         )
         result = await session.execute(stmt)
         notification = result.scalar_one_or_none()
@@ -198,7 +196,7 @@ async def get_unread_count(user_id: int) -> int:
     async for session in get_async_db():
         from sqlalchemy import func
         stmt = select(func.count()).select_from(Notification).filter_by(
-            recipient_id=user_id,
+            recipient=user_id,
             is_read=False
         )
         result = await session.execute(stmt)

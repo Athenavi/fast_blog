@@ -47,7 +47,7 @@ def configure_database(project_root: Path, config: Dict[str, str]) -> Dict[str, 
         "DB_USER": user,
         "DB_PASSWORD": password,
         "DB_NAME": db_name,
-        "DATABASE_URL": f"postgresql://{user}:{password}@{host}:{port}/{db_name}",
+        "DATABASE_URL": f"postgresql+psycopg2://{user}:{password}@{host}:{port}/{db_name}",
     }
     env_files = [project_root / ".env", project_root / "config" / ".env"]
     written = False
