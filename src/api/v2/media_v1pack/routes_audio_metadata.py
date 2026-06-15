@@ -217,6 +217,30 @@ def extract_lyrics_from_id3(media: Media) -> list:
             logger.warning(f"音频文件不存在: {full_path}")
             return []
 
+        # 安全限制：拒绝超过 1MB 的 ID3 标签（防止内存耗尽）
+        MAX_ID3_SIZE = 1 * 1024 * 1024  # 1 MB
+        file_stat = full_path.stat()
+        if lower_path.endswith('.mp3'):
+            # MP3 文件的 ID3v2 标签位于文件开头，粗略估计为文件前 1MB
+            if file_stat.st_size > MAX_ID3_SIZE * 2:
+                # 只读取文件头判断 ID3 实际大小
+                with open(full_path, 'rb') as fh:
+                    header = fh.read(10)
+                if header[:3] == b'ID3':
+                    # ID3v2 header: 3B signature + 2B version + 1B flags + 4B size (synchsafe)
+                    id3_size = ((header[6] & 0x7F) << 21 |
+                                (header[7] & 0x7F) << 14 |
+                                (header[8] & 0x7F) << 7 |
+                                (header[9] & 0x7F))
+                    if id3_size > MAX_ID3_SIZE:
+                        logger.warning(f"ID3 标签过大 ({id3_size} bytes)，跳过歌词提取")
+                        return []
+        else:
+            # 通用格式：文件整体小于 1MB 才尝试标签提取
+            if file_stat.st_size > MAX_ID3_SIZE:
+                logger.warning(f"文件过大 ({file_stat.st_size} bytes)，跳过通用音频标签提取")
+                return []
+
         # 尝试读取ID3标签
         audio_file = None
         lower_path = file_path.lower()
@@ -276,6 +300,13 @@ def parse_lrc_text(text: str) -> list:
 
         # 按行分割
         lines = text.split('\n')
+
+        MAX_LYRICS_LINES = 500  # 最大解析行数限制
+
+        for line in lines:
+            if len(lyrics) >= MAX_LYRICS_LINES:
+                logger.warning(f"歌词行数超过限制 ({MAX_LYRICS_LINES})，截断多余行")
+                break
 
         for line in lines:
             line = line.strip()

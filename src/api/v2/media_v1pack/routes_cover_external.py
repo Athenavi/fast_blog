@@ -2,6 +2,7 @@
 封面图片处理API - 支持外链图片转本地存储
 """
 import hashlib
+import logging
 from functools import wraps
 
 import aiohttp
@@ -10,6 +11,8 @@ from pydantic import BaseModel
 
 from shared.services.articles.cover_image_service import CoverImageService
 from src.api.v2._helpers import ok, fail
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["cover-image"])
 
@@ -72,8 +75,25 @@ async def generate_cover_from_external_url(request_data: ExternalImageUrlRequest
         if addr.is_private or addr.is_loopback or addr.is_link_local:
             raise HTTPException(status_code=400, detail="不允许访问内网地址")
     except ValueError:
-        # 域名：检查是否解析到内网
-        pass
+        # 域名：解析 DNS 检查是否指向内网
+        import socket
+        try:
+            addrs = socket.getaddrinfo(host, None)
+            for family, socktype, proto, canonname, sockaddr in addrs:
+                resolved_ip = sockaddr[0]
+                try:
+                    resolved_addr = ipaddress.ip_address(resolved_ip)
+                    if resolved_addr.is_private or resolved_addr.is_loopback or resolved_addr.is_link_local:
+                        raise HTTPException(
+                            status_code=400,
+                            detail=f"域名 {host} 解析到内网地址 {resolved_ip}，不允许访问"
+                        )
+                except ValueError:
+                    continue
+        except HTTPException:
+            raise
+        except Exception as dns_err:
+            logger.warning(f"DNS 解析失败 {host}: {dns_err}")
 
     # 下载图片
     async with aiohttp.ClientSession() as session:

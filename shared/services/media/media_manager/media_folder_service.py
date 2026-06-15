@@ -71,8 +71,22 @@ class MediaFolderService:
             if parent_id:
                 parent_query = select(MediaFolder).where(MediaFolder.id == parent_id, MediaFolder.user == user_id)
                 parent_result = await db.execute(parent_query)
-                if not parent_result.scalar_one_or_none():
+                parent_folder = parent_result.scalar_one_or_none()
+                if not parent_folder:
                     return {"success": False, "error": "父文件夹不存在或无权访问"}
+                
+                # 检查文件夹层级深度（不超过 10 层）
+                MAX_DEPTH = 10
+                depth = 0
+                current = parent_id
+                while current:
+                    parent = await db.get(MediaFolder, current)
+                    if not parent or not parent.parent_id:
+                        break
+                    current = parent.parent_id
+                    depth += 1
+                    if depth >= MAX_DEPTH:
+                        return {"success": False, "error": "文件夹层级不能超过 10 层"}
             
             existing_query = select(MediaFolder).where(
                 MediaFolder.name == name, MediaFolder.user == user_id, MediaFolder.parent_id == parent_id

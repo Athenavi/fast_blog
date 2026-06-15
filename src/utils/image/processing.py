@@ -4,6 +4,9 @@ from typing import Tuple, Optional
 
 from PIL import Image
 
+# 限制最大像素数，防止 decompression bomb 攻击（作用于本模块所有 Image.open 调用）
+Image.MAX_IMAGE_PIXELS = 100_000_000
+
 from shared.models import FileHash
 
 

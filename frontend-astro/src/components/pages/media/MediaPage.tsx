@@ -65,6 +65,9 @@ function MediaBrowserInner() {
       const res = await apiClient.get(MEDIA.FOLDERS_TREE);
       // 后端返回 ok(data={tree: [...]})
       const raw = res.data?.tree || res.data?.folders || res.data?.data || [];
+      return Array.isArray(raw) ? raw : [];
+    },
+  });
 
   const {data: statsData, isLoading: statsLoading} = useQuery({
     queryKey: ['media-stats'],

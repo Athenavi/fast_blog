@@ -2,6 +2,7 @@
 安全工具模块
 包含输入验证、SQL注入防护、XSS防护等功能
 """
+import os
 import random
 import re
 import string
@@ -214,8 +215,7 @@ def sanitize_filename(filename):
         return filename
 
     # 移除路径分隔符以防止路径遍历
-    filename = filename.replace('../', '').replace('..\\', '')
-    filename = filename.replace('/', '').replace('\\', '')
+    filename = os.path.basename(filename)
 
     # 只允许字母、数字、下划线、连字符、点号
     sanitized = re.sub(r'[^\w.-]', '_', filename)

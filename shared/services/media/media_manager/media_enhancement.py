@@ -22,7 +22,7 @@ DEFAULT_IMAGE_CONFIG = {
 DEFAULT_WEBP_CONFIG = {
     'enabled': True,
     'quality': 80,
-    'method': 6,
+    'method': 4,
 }
 
 SUPPORTED_FORMATS = {'JPEG', 'JPG', 'PNG', 'GIF', 'BMP', 'TIFF', 'WEBP'}
@@ -116,7 +116,9 @@ class MediaEnhancementService:
                         img = img.convert('RGBA')
                     else:
                         img = img.convert('RGB')
-                img.save(output_path, format='WEBP', quality=cfg.get('quality', 80), method=cfg.get('method', 6))
+                # 限制 quality 在 1-95 范围内，防止无效值导致写入失败
+                quality = max(1, min(95, int(cfg.get('quality', 80))))
+                img.save(output_path, format='WEBP', quality=quality, method=cfg.get('method', 4))
 
             webp_size = os.path.getsize(output_path)
             compression_ratio = (1 - webp_size / original_size) * 100 if original_size > 0 else 0

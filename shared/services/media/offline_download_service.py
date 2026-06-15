@@ -200,6 +200,21 @@ class OfflineDownloadService:
         if not source_url or not source_url.startswith(('http://', 'https://')):
             return None, "URL 必须以 http:// 或 https:// 开头"
 
+        # 检查待处理任务总大小限制（防止队列堆积过大）
+        MAX_PENDING_SIZE = 1 * 1024 * 1024 * 1024  # 1 GB
+        pending_size_stmt = select(func.coalesce(func.sum(DownloadTask.total_size), 0)).where(
+            DownloadTask.user_id == self.user.id,
+            DownloadTask.status == "pending"
+        )
+        pending_size_result = await self.db.execute(pending_size_stmt)
+        current_pending_size = pending_size_result.scalar() or 0
+        if current_pending_size >= MAX_PENDING_SIZE:
+            logger.warning(
+                f"[OfflineDownload] 用户 {self.user.id} 待处理任务总大小 "
+                f"({current_pending_size / 1024 / 1024:.1f}MB) 超过限制"
+            )
+            return None, "待处理任务总大小超过 1GB 限制，请等待现有任务完成后再试"
+
         try:
             task = DownloadTask(
                 user_id=self.user.id,
