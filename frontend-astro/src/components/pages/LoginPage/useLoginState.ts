@@ -44,7 +44,7 @@ export function useLoginState(): UseLoginStateReturn {
           ...prev,
           step: 'twofactor',
           loading: false,
-          sessionToken: data.session_token,
+          sessionToken: data.temp_token,
           rememberMe: rememberMe ?? false,
           needs2FA: true,
         }));
@@ -86,8 +86,7 @@ export function useLoginState(): UseLoginStateReturn {
     try {
       const res = await apiClient.post('/auth/2fa/verify', {
         code,
-        session_token: state.sessionToken,
-        is_backup: isBackup,
+        temp_token: state.sessionToken,
       });
       const data = res.data;
       
