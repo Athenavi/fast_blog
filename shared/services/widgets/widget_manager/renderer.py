@@ -12,12 +12,12 @@ class WidgetRenderer:
 
     def render_search(self, config: Dict, title: str = '') -> str:
         """渲染搜索小部件"""
-        title = title or config.get('title', '搜索')
-        placeholder = config.get('placeholder', '搜索...')
+        title = escape(title or config.get('title', '搜索'))
+        placeholder = escape(config.get('placeholder', '搜索...'))
 
         return f'''
         <div class="widget widget-search">
-            {f'<h3 class="widget-title">{title}</h3>' if title else ''}
+            {f'<h3 class="widget-title">{escape(title)}</h3>' if title else ''}
             <form class="search-form" action="/search" method="get">
                 <input type="text" name="q" placeholder="{placeholder}" class="search-input w-full px-4 py-2 border rounded-lg">
                 <button type="submit" class="search-button mt-2 w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700">🔍 搜索</button>
@@ -27,7 +27,7 @@ class WidgetRenderer:
 
     def render_recent_posts(self, config: Dict, title: str = '') -> str:
         """渲染最新文章小部件(占位符)"""
-        title = title or config.get('title', '最新文章')
+        title = escape(title or config.get('title', '最新文章'))
 
         return f'''
         <div class="widget widget-recent-posts">
@@ -40,7 +40,7 @@ class WidgetRenderer:
 
     def render_categories(self, config: Dict, title: str = '') -> str:
         """渲染分类小部件(占位符)"""
-        title = title or config.get('title', '分类目录')
+        title = escape(title or config.get('title', '分类目录'))
 
         return f'''
         <div class="widget widget-categories">
@@ -53,7 +53,7 @@ class WidgetRenderer:
 
     def render_tags(self, config: Dict, title: str = '') -> str:
         """渲染标签云小部件"""
-        title = title or config.get('title', '标签云')
+        title = escape(title or config.get('title', '标签云'))
         display_type = config.get('display_type', 'cloud')
 
         if display_type == 'cloud':
@@ -77,7 +77,7 @@ class WidgetRenderer:
 
     def render_archives(self, config: Dict, title: str = '') -> str:
         """渲染归档小部件(占位符)"""
-        title = title or config.get('title', '文章归档')
+        title = escape(title or config.get('title', '文章归档'))
 
         return f'''
         <div class="widget widget-archives">
@@ -90,7 +90,7 @@ class WidgetRenderer:
 
     def render_social_links(self, config: Dict, title: str = '') -> str:
         """渲染社交链接小部件"""
-        title = title or config.get('title', '关注我们')
+        title = escape(title or config.get('title', '关注我们'))
         platforms = config.get('platforms', [])
 
         social_icons = {
@@ -130,17 +130,18 @@ class WidgetRenderer:
 
     def render_advertisement(self, config: Dict, title: str = '') -> str:
         """渲染广告小部件"""
+        title = escape(title or config.get('title', '广告'))
         content = config.get('content', '')
         link = config.get('link', '')
         image = config.get('image', '')
 
         if image:
-            ad_content = f'<img src="{image}" alt="Advertisement" class="w-full rounded-lg">'
+            ad_content = f'<img src="{escape(image)}" alt="Advertisement" class="w-full rounded-lg">'
         else:
-            ad_content = content
+            ad_content = escape(content)
 
         if link:
-            ad_content = f'<a href="{link}" target="_blank" rel="noopener noreferrer">{ad_content}</a>'
+            ad_content = f'<a href="{escape(link)}" target="_blank" rel="noopener noreferrer">{ad_content}</a>'
 
         return f'''
         <div class="widget widget-advertisement">
@@ -153,7 +154,7 @@ class WidgetRenderer:
 
     def render_menu(self, config: Dict, title: str = '') -> str:
         """渲染菜单小部件(占位符)"""
-        title = title or config.get('title', '菜单')
+        title = escape(title or config.get('title', '菜单'))
 
         return f'''
         <div class="widget widget-menu">

@@ -22,6 +22,12 @@ class CustomField(Base):
     user = Column(BigInteger, ForeignKey('users.id'), doc='用户')
 
 
+    post_type_id = Column(BigInteger, ForeignKey('custom_post_types.id'), nullable=True, doc='关联的自定义文章类型')
+
+
+    content_id = Column(BigInteger, nullable=True, doc='关联的内容实例 ID')
+
+
     field_name = Column(String(100), nullable=True, doc='字段名称')
 
     field_value = Column(String(255), nullable=True, doc='字段值')

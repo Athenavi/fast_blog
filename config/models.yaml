@@ -857,6 +857,7 @@ models:
       name:
         type: string
         maxLength: 100
+        nullable: false
         description: 分类名
       slug:
         type: string
@@ -968,10 +969,12 @@ models:
         description: 订阅 ID
       category:
         type: bigint
+        nullable: true
         description: 分类
         foreignKey: Category
       subscriber:
         type: bigint
+        nullable: true
         description: 订阅用户
         foreignKey: User
       created_at:
@@ -981,6 +984,12 @@ models:
     module: category
     orm: true
     table: category_subscriptions
+    unique_constraints:
+      - name: uq_category_subscriber
+        columns:
+          - category
+          - subscriber
+        comment: 每个用户对每个分类只能订阅一次
   Media:
     description: 媒体文件模型
     status: active
@@ -1617,7 +1626,7 @@ models:
         maxLength: 255
         description: 页面 slug
       content:
-        type: string
+        type: text
         description: 页面内容
       excerpt:
         type: string
@@ -2432,6 +2441,15 @@ models:
         type: bigint
         description: 用户
         foreignKey: User
+      post_type_id:
+        type: bigint
+        nullable: true
+        description: 关联的自定义文章类型
+        foreignKey: CustomPostType
+      content_id:
+        type: bigint
+        nullable: true
+        description: 关联的内容实例 ID
       field_name:
         type: string
         maxLength: 100

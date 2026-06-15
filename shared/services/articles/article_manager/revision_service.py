@@ -314,15 +314,37 @@ async def rollback_to_revision(
         article.required_vip_level = revision.required_vip_level
         article.updated_at = now
 
-        await db.commit()
-
-        # 自动创建回滚操作的修订记录
-        await save_article_revision(
-            db=db,
-            article_id=article_id,
-            author_id=author_id,
-            change_summary=f"回滚到版本 #{revision.revision_number}"
+        # 先创建回滚操作的修订记录（在 commit 之前）
+        from shared.models.article import ArticleRevision as Rev
+        max_rev_query = select(func.max(Rev.revision_number)).where(
+            Rev.article_id == article_id
         )
+        max_rev_result = await db.execute(max_rev_query)
+        next_revision = (max_rev_result.scalar() or 0) + 1
+
+        rollback_revision = Rev(
+            article_id=article_id,
+            revision_number=next_revision,
+            title=revision.title,
+            excerpt=revision.excerpt,
+            content=revision.content,
+            cover_image=revision.cover_image,
+            tags_list=revision.tags_list,
+            category_id=revision.category_id,
+            status=revision.status,
+            hidden=revision.hidden,
+            is_featured=revision.is_featured,
+            is_vip_only=revision.is_vip_only,
+            required_vip_level=revision.required_vip_level,
+            author_id=author_id,
+            change_summary=f"回滚到版本 #{revision.revision_number}",
+            hash_code=revision.hash_code,
+            created_at=now,
+        )
+        db.add(rollback_revision)
+
+        # 单次提交所有变更
+        await db.commit()
 
         return True
 

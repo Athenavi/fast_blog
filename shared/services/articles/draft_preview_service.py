@@ -1,14 +1,60 @@
 """
 草稿预览链接生成器
 为未发布的文章生成临时预览链接
+
+修复: 添加文件持久化支持，避免服务重启后所有预览令牌失效
 """
 
 import hashlib
+import json
+import os
 import secrets
 from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Optional, Dict, Any
 
 from src.unified_logger import default_logger as logger
+
+
+# 预览令牌持久化文件路径
+_PREVIEW_DATA_DIR = Path(os.environ.get('FASTBLOG_DATA_DIR', 'data'))
+_PREVIEW_DATA_FILE = _PREVIEW_DATA_DIR / 'preview_tokens.json'
+
+
+def _load_tokens() -> Dict[str, Dict[str, Any]]:
+    """从磁盘加载预览令牌"""
+    try:
+        if _PREVIEW_DATA_FILE.exists():
+            raw = _PREVIEW_DATA_FILE.read_text('utf-8')
+            data = json.loads(raw)
+            # 恢复 datetime 对象
+            for token, info in data.items():
+                for key in ('created_at', 'expires_at'):
+                    if key in info and isinstance(info[key], str):
+                        try:
+                            info[key] = datetime.fromisoformat(info[key])
+                        except (ValueError, TypeError):
+                            info[key] = None
+            return data
+    except Exception as e:
+        logger.warning(f"加载预览令牌持久化文件失败: {e}")
+    return {}
+
+
+def _save_tokens(tokens: Dict[str, Dict[str, Any]]) -> None:
+    """保存预览令牌到磁盘"""
+    try:
+        _PREVIEW_DATA_DIR.mkdir(parents=True, exist_ok=True)
+        serializable = {}
+        for token, info in tokens.items():
+            entry = dict(info)
+            for key in ('created_at', 'expires_at'):
+                if isinstance(entry.get(key), datetime):
+                    entry[key] = entry[key].isoformat()
+            serializable[token] = entry
+        _PREVIEW_DATA_FILE.write_text(json.dumps(serializable, ensure_ascii=False, indent=2), 'utf-8')
+    except Exception as e:
+        logger.warning(f"保存预览令牌持久化文件失败: {e}")
 
 
 class DraftPreviewService:
@@ -23,8 +69,9 @@ class DraftPreviewService:
     """
 
     def __init__(self):
-        # 存储预览令牌 (实际应使用Redis或数据库)
-        self.preview_tokens: Dict[str, Dict[str, Any]] = {}
+        # 从磁盘加载预览令牌（持久化存储，避免重启丢失）
+        self.preview_tokens: Dict[str, Dict[str, Any]] = _load_tokens()
+        logger.info(f"已加载 {len(self.preview_tokens)} 个预览令牌")
 
     def generate_preview_token(
             self,
@@ -70,6 +117,9 @@ class DraftPreviewService:
         }
 
         logger.info(f"生成预览令牌: {token[:8]}... for article {article_id}")
+
+        # 持久化保存
+        _save_tokens(self.preview_tokens)
 
         return token
 
@@ -133,6 +183,8 @@ class DraftPreviewService:
 
         # 增加访问计数
         token_info['view_count'] += 1
+        # 持久化保存（异步场景下同步写文件可能阻塞，但预览访问频率低可以接受）
+        _save_tokens(self.preview_tokens)
 
         return token_info
 
@@ -162,6 +214,7 @@ class DraftPreviewService:
         if token in self.preview_tokens:
             self.preview_tokens[token]['is_active'] = False
             logger.info(f"预览令牌已撤销: {token[:8]}...")
+            _save_tokens(self.preview_tokens)
             return True
         return False
 
@@ -180,6 +233,9 @@ class DraftPreviewService:
 
         for token in expired_tokens:
             del self.preview_tokens[token]
+
+        if expired_tokens:
+            _save_tokens(self.preview_tokens)
 
         logger.info(f"清理了 {len(expired_tokens)} 个过期预览令牌")
         return len(expired_tokens)

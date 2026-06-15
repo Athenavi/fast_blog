@@ -25,7 +25,7 @@ class Category(Base):
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='分类 ID')
 
-    name = Column(String(100), nullable=True, doc='分类名')
+    name = Column(String(100), nullable=False, doc='分类名')
 
     slug = Column(String(255), nullable=True, doc='分类 slug')
 

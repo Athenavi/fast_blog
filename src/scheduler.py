@@ -102,8 +102,10 @@ class SessionScheduler:
                     result = await service.publish_due_articles()
                     if result.get('success') and result.get('published_count', 0) > 0:
                         logger.info(f"自动发布了 {result['published_count']} 篇到期定时文章")
-                    elif result.get('failed_count', 0) > 0:
-                        logger.warning(f"定时发布 {result['published_count']} 成功，{result['failed_count']} 失败")
+                    if result.get('failed_count', 0) > 0:
+                        logger.warning(f"定时发布 {result.get('published_count', 0)} 成功，{result.get('failed_count', 0)} 失败")
+                    elif result.get('published_count', 0) == 0:
+                        pass  # 无到期文章，不记录日志
             except Exception as e:
                 logger.error(f"检查定时发布时出错：{e}")
                 import traceback

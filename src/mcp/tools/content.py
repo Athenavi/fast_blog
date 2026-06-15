@@ -1,6 +1,7 @@
 """
 MCP 内容管理工具处理器 — 分类/标签/评论
 """
+import re
 from datetime import datetime
 
 from sqlalchemy import select
@@ -69,6 +70,11 @@ async def delete_category(arguments: dict) -> dict:
         cat = await db.scalar(select(Category).where(Category.id == int(cid)))
         if not cat:
             raise ValueError(f"分类 #{cid} 不存在")
+        # 先将引用此分类的文章置空
+        from sqlalchemy import update
+        await db.execute(
+            update(Article).where(Article.category == int(cid)).values(category=None)
+        )
         await db.delete(cat)
         await db.commit()
         return {"success": True, "message": f"分类 #{cid} 已删除"}
@@ -80,7 +86,7 @@ async def list_tags(arguments: dict) -> dict:
         rows = (await db.execute(
             select(Article.tags_list).where(Article.tags_list.isnot(None))
         )).scalars().all()
-        all_tags = sorted({t.strip() for row in rows if row for t in row.split(",") if t.strip()})
+        all_tags = sorted({t.strip() for row in rows if row for t in re.split(r'[,;]', row) if t.strip()})
         return {"success": True, "tags": [{"name": t, "articles_count": 0} for t in all_tags],
                 "total": len(all_tags)}
 

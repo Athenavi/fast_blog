@@ -6,6 +6,7 @@
 使用 TeamComment ORM 模型持久化到数据库
 """
 
+import html
 import json
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
@@ -59,7 +60,7 @@ class TeamCommentService:
             content_id=content_id,
             author_id=author_id,
             parent_id=parent_id,
-            text=text,
+            text=html.escape(text),
             mentions=mention_str,
             is_resolved=False,
             created_at=now,
@@ -104,7 +105,7 @@ class TeamCommentService:
         if comment.author_id != author_id:
             raise ValueError("Only the author can update the comment")
 
-        comment.text = text
+        comment.text = html.escape(text)
         comment.updated_at = datetime.now(timezone.utc)
         await db.commit()
         await db.refresh(comment)
@@ -190,41 +191,86 @@ class TeamCommentService:
             db: AsyncSession,
             content_id: int,
             content_type: str,
-            include_resolved: bool = True
-    ) -> List[Dict[str, Any]]:
+            include_resolved: bool = True,
+            page: int = 1,
+            per_page: int = 50
+    ) -> Dict[str, Any]:
         """
-        获取内容的评论
+        获取内容的评论（支持分页，批量加载回复避免 N+1）
 
         Args:
             db: 数据库会话
             content_id: 内容ID
             content_type: 内容类型
             include_resolved: 是否包含已解决的评论
+            page: 页码
+            per_page: 每页数量
 
         Returns:
-            评论列表
+            包含评论列表和分页信息的字典
         """
+        # 查询顶级评论总数
+        count_query = select(func.count(TeamComment.id)).where(
+            TeamComment.content_id == content_id,
+            TeamComment.content_type == content_type,
+            TeamComment.parent_id.is_(None)
+        )
+        if not include_resolved:
+            count_query = count_query.where(TeamComment.is_resolved == False)
+        total = (await db.execute(count_query)).scalar() or 0
+
+        # 查询顶级评论（分页）
         query = select(TeamComment).where(
             TeamComment.content_id == content_id,
             TeamComment.content_type == content_type,
-            TeamComment.parent_id.is_(None)  # 只返回顶级评论
+            TeamComment.parent_id.is_(None)
         )
-
         if not include_resolved:
             query = query.where(TeamComment.is_resolved == False)
-
         query = query.order_by(TeamComment.created_at.asc())
+        query = query.offset((page - 1) * per_page).limit(per_page)
 
         result = await db.execute(query)
         top_level = result.scalars().all()
 
-        comments = [c.to_dict() for c in top_level]
+        if not top_level:
+            return {
+                "comments": [],
+                "pagination": {"page": page, "per_page": per_page, "total": 0, "total_pages": 0}
+            }
 
-        # 加载每个评论的回复
-        for comment in comments:
-            comment['replies_data'] = await self._get_replies(db, comment['id'])
+        # 批量加载所有顶级评论的回复（避免 N+1）
+        top_level_ids = [c.id for c in top_level]
+        replies_result = await db.execute(
+            select(TeamComment)
+            .where(TeamComment.parent_id.in_(top_level_ids))
+            .order_by(TeamComment.created_at.asc())
+        )
+        all_replies = replies_result.scalars().all()
 
-        return comments
+        # 将回复按 parent_id 分组
+        replies_by_parent: Dict[int, List[Dict[str, Any]]] = {}
+        for reply in all_replies:
+            replies_by_parent.setdefault(reply.parent_id, []).append(reply.to_dict())
+
+        comments = []
+        for c in top_level:
+            comment_dict = c.to_dict()
+            comment_dict['replies_data'] = replies_by_parent.get(c.id, [])
+            comments.append(comment_dict)
+
+        total_pages = max(1, (total + per_page - 1) // per_page)
+        return {
+            "comments": comments,
+            "pagination": {
+                "page": page,
+                "per_page": per_page,
+                "total": total,
+                "total_pages": total_pages,
+                "has_next": page < total_pages,
+                "has_prev": page > 1,
+            }
+        }
 
     async def get_user_mentions(
             self,

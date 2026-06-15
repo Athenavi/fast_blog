@@ -8,9 +8,21 @@
 4. 发布历史记录
 """
 from typing import List, Dict, Optional
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
+
+
+def _utcnow() -> datetime:
+    """返回不带时区信息的 UTC 时间，与数据库 DateTime 字段兼容"""
+    return datetime.now(timezone.utc).replace(tzinfo=None)
+
+
+def _ensure_naive(dt: datetime) -> datetime:
+    """确保 datetime 不带时区信息（数据库 DateTime 字段期望 naive）"""
+    if dt.tzinfo is not None:
+        return dt.astimezone(timezone.utc).replace(tzinfo=None)
+    return dt
 
 
 class ScheduledPublishService:
@@ -48,18 +60,18 @@ class ScheduledPublishService:
             }
 
         # 验证发布时间
-        if publish_at <= datetime.now():
+        if _ensure_naive(publish_at) <= _utcnow():
             return {
                 'success': False,
                 'message': '发布时间必须晚于当前时间',
             }
 
         # 更新文章的定时发布时间
-        article.scheduled_publish_at = publish_at
+        article.scheduled_publish_at = _ensure_naive(publish_at)
         # 仅在文章为草稿状态时才设为草稿，避免将已发布文章改回草稿
         if article.status != 1:
             article.status = 0
-        article.updated_at = datetime.now()
+        article.updated_at = _utcnow()
 
         await self.db.commit()
 
@@ -98,7 +110,7 @@ class ScheduledPublishService:
 
         # 清除定时发布时间
         article.scheduled_publish_at = None
-        article.updated_at = datetime.now()
+        article.updated_at = _utcnow()
 
         await self.db.commit()
 
@@ -117,14 +129,14 @@ class ScheduledPublishService:
         """
         from shared.models.article import Article
 
-        now = datetime.now()
+        now = _utcnow()
 
-        # 查询所有到期的定时发布文章（使用行级锁防止竞态条件）
+        # 查询所有到期的定时发布文章（使用行级锁 + skip_locked 防止竞态条件）
         stmt = select(Article).where(
             Article.scheduled_publish_at.isnot(None),
             Article.scheduled_publish_at <= now,
             Article.status == 0  # 草稿状态
-        ).with_for_update()
+        ).with_for_update(skip_locked=True)
 
         result = await self.db.execute(stmt)
         articles = result.scalars().all()
@@ -147,7 +159,8 @@ class ScheduledPublishService:
                     'error': str(e),
                 })
 
-        await self.db.commit()
+        if published_count > 0 or failed_articles:
+            await self.db.commit()
 
         return {
             'success': True,
@@ -224,7 +237,7 @@ class ScheduledPublishService:
         """
         from shared.models.article import Article
 
-        now = datetime.now()
+        now = _utcnow()
         future_time = now + timedelta(hours=hours)
 
         conditions = [
@@ -261,7 +274,7 @@ class ScheduledPublishService:
         Returns:
             时间描述字符串
         """
-        now = datetime.now()
+        now = _utcnow()
         delta = publish_at - now
 
         if delta.total_seconds() < 0:

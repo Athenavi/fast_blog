@@ -109,6 +109,12 @@ async def cancel_scheduled_publish(article_id: int,
 @_catch
 async def publish_due_articles(current_user=Depends(jwt_required),
                                 db: AsyncSession = Depends(get_async_session)):
-    """发布所有到期的定时文章"""
+    """发布所有到期的定时文章（管理员专有）"""
+    if not getattr(current_user, 'is_superuser', False) and not getattr(current_user, 'is_staff', False):
+        return fail("仅管理员可执行此操作")
     service = create_scheduled_publish_service(db)
-    return await service.publish_due_articles()
+    result = await service.publish_due_articles()
+    if not result.get('success'):
+        return fail(result.get('message', '发布失败'))
+    return ok(data={"published_count": result.get('published_count', 0), "failed_count": result.get('failed_count', 0)},
+              msg=f"已发布 {result.get('published_count', 0)} 篇")

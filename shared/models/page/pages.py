@@ -30,7 +30,7 @@ class Pages(Base):
 
     slug = Column(String(255), nullable=True, doc='页面 slug')
 
-    content = Column(String(255), nullable=True, doc='页面内容')
+    content = Column(Text, nullable=True, doc='页面内容')
 
     excerpt = Column(String(255), nullable=True, doc='摘要')
 

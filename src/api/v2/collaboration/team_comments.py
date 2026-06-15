@@ -116,26 +116,30 @@ async def resolve_comment(
     return ok(data=comment, msg="Comment resolved")
 
 
-@router.get("/content/{content_type}/{content_id}", summary="获取内容评论", description="获取指定内容的评论")
+@router.get("/content/{content_type}/{content_id}", summary="获取内容评论", description="获取指定内容的评论（支持分页）")
 @_catch
 async def get_content_comments(
         content_type: str,
         content_id: int,
         include_resolved: bool = Query(True, description="是否包含已解决的评论"),
+        page: int = Query(1, ge=1, description="页码"),
+        per_page: int = Query(50, ge=1, le=200, description="每页数量"),
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db),
 ):
-    """获取内容评论"""
-    comments = await team_comment_service.get_comments_for_content(
+    """获取内容评论（支持分页，批量加载回复）"""
+    result = await team_comment_service.get_comments_for_content(
         db=db,
         content_id=content_id,
         content_type=content_type,
         include_resolved=include_resolved,
+        page=page,
+        per_page=per_page,
     )
 
     return ok(data={
-        'comments': comments,
-        'count': len(comments),
+        'comments': result['comments'],
+        'pagination': result['pagination'],
     })
 
 

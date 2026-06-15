@@ -9,6 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.article import Article, ArticleContent
+from shared.services.articles.article_manager import password_protection_service
 from src.api.v2._base import ApiResponse
 from src.api.v2._helpers import ok, fail
 from src.auth import jwt_required_dependency as jwt_required
@@ -45,7 +46,7 @@ async def check_article_access(article_id: int, password: str = Query(""),
     pwd = await _get_content_password(article_id, db)
     if not pwd:
         return ok({"has_password": False})
-    if password == pwd:
+    if password_protection_service.verify_password(password, pwd):
         return ok({"has_password": True, "access_granted": True})
     return ok({"has_password": True, "access_granted": False})
 
@@ -61,7 +62,7 @@ async def verify_article_password(article_id: int, data: dict,
     pwd = await _get_content_password(article_id, db)
     if not pwd:
         return ok({"verified": True})
-    if data.get('password') == pwd:
+    if password_protection_service.verify_password(data.get('password', ''), pwd):
         return ok({"verified": True})
     return ok({"verified": False})
 
@@ -82,7 +83,7 @@ async def set_article_password(article_id: int, data: dict,
     if not content:
         content = ArticleContent(article=article_id, content='', created_at=article.created_at, updated_at=datetime.now())
         db.add(content)
-    content.passwd = data.get('password', '')
+    content.passwd = password_protection_service.hash_password(data.get('password', '')) if data.get('password') else ''
     content.updated_at = datetime.now()
     await db.commit()
     return ok(msg="密码更新成功")

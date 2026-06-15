@@ -1,6 +1,7 @@
 """
 评论管理API - 包含垃圾评论过滤
 """
+import html
 from datetime import datetime
 from functools import wraps
 from typing import Optional
@@ -150,6 +151,9 @@ async def create_comment(
     filtered_content = comment_data.content
     if sensitive_check['has_sensitive'] and 'replace' in sensitive_check['actions']:
         filtered_content, _ = await sensitive_word_service.filter_content(comment_data.content)
+
+    # 服务器端 HTML 转义（防止 XSS，与前端 DOMPurify 双层保护）
+    filtered_content = html.escape(filtered_content)
 
     # 5. 根据检测结果决定操作
     if spam_check['action'] == 'reject':
@@ -641,6 +645,12 @@ async def delete_comment(
     comment.deleted_at = now
     comment.content = "[评论已被删除]"
     comment.is_approved = False
+    # 清除 PII 字段
+    comment.author_name = None
+    comment.author_email = None
+    comment.author_url = None
+    comment.author_ip = None
+    comment.user_agent = None
     comment.updated_at = now
 
     await db.commit()

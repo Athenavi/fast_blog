@@ -1,4 +1,4 @@
-﻿"""
+"""
 璺敱浠ｇ爜鐢熸垚鍣?鏍规嵁 routes.yaml 澹版槑鏂囦欢鑷姩鐢熸垚 Django Ninja 鍜?FastAPI 鐨勮矾鐢变唬鐮?
 浣跨敤鏂规硶:
     python scripts/generate_routes.py
@@ -39,10 +39,11 @@ class RouteGenerator:
 
     def __init__(self, config_path: str = None):
         """
-        鍒濆鍖栫敓鎴愬櫒
+        初始化生成器
 
         Args:
-            config_path: routes.yaml 閰嶇疆鏂囦欢璺緞锛堝彲閫夛紝涓嶆彁渚涘垯浠呬粠 models.yaml 鍔犺浇妯″瀷锛?        """
+            config_path: routes.yaml 配置文件路径（可选，不提供则仅从 models.yaml 加载模型）
+        """
         self.project_root = Path(__file__).parent.parent
 
         # 鍔犺浇 routes.yaml 閰嶇疆锛堝彲閫夛級

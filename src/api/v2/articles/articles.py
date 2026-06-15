@@ -81,6 +81,16 @@ def _split_tags(tags_str: str) -> list:
     return [t.strip() for t in re.split(r'[,;]', tags_str) if t.strip()] if tags_str else []
 
 
+def _slugify(text: str) -> str:
+    """将文本转为 slug（小写字母数字+连字符）"""
+    import re
+    s = text.lower().strip()
+    # 替换非字母数字字符为连字符
+    s = re.sub(r'[^a-z0-9\u4e00-\u9fff]+', '-', s)
+    s = s.strip('-')
+    return s[:200]  # 限制长度
+
+
 def _paginate(total: int, page: int, per_page: int) -> dict:
     total_pages = max(1, (total + per_page - 1) // per_page)
     return {"current_page": page, "per_page": per_page, "total": total,
@@ -337,12 +347,19 @@ async def create_article_api(request: Request, current_user=Depends(jwt_required
         post_type=data.get('post_type', 'article'),
         created_at=datetime.now(), updated_at=datetime.now(), views=0, likes=0,
     )
+    # 自动生成 slug（如果为空）
+    if not article.slug and article.title:
+        article.slug = _slugify(article.title)
+    # 发布时设置 published_at
+    if article.status == 1:
+        article.published_at = article.created_at
     db.add(article)
     await db.commit()
     await db.refresh(article)
 
     if data.get('content'):
-        db.add(ArticleContent(article=article.id, content=data['content'], passwd=data.get('password', ''),
+        db.add(ArticleContent(article=article.id, content=data['content'],
+                              passwd=password_protection_service.hash_password(data['password']) if data.get('password') else '',
                               created_at=datetime.now(), updated_at=datetime.now()))
         await db.commit()
 
@@ -389,6 +406,12 @@ async def update_article_api(article_id: int, request: Request, current_user=Dep
             if not cat_exists:
                 return fail(f"分类不存在: category_id={cat_val_final}")
         article.category = cat_val_final
+    # 自动生成 slug（如果为空且标题有变化）
+    if not article.slug and article.title:
+        article.slug = _slugify(article.title)
+    # 发布时设置 published_at（仅首次发布）
+    if article.status == 1 and not article.published_at:
+        article.published_at = datetime.now()
     article.updated_at = datetime.now()
 
     if data.get('content') is not None:
@@ -396,9 +419,10 @@ async def update_article_api(article_id: int, request: Request, current_user=Dep
         if content:
             content.content = data['content']
             if 'password' in data:
-                content.passwd = data['password']
+                content.passwd = password_protection_service.hash_password(data['password']) if data.get('password') else ''
         else:
-            db.add(ArticleContent(article=article_id, content=data['content'], passwd=data.get('password', ''),
+            db.add(ArticleContent(article=article_id, content=data['content'],
+                                  passwd=password_protection_service.hash_password(data['password']) if data.get('password') else '',
                                   created_at=datetime.now(), updated_at=datetime.now()))
 
     await db.commit()
@@ -536,12 +560,16 @@ async def toggle_article_sticky_api(article_id: int, data: dict = Body(...), cur
 async def clean_expired_sticky_articles_api(current_user=Depends(jwt_required),
                                             db: AsyncSession = Depends(get_async_session)):
     """清理过期的置顶文章（管理员）"""
+    now = datetime.now()
     result = await db.execute(
-        select(Article).where(Article.is_sticky == True, Article.sticky_until < datetime.now()))
+        select(Article).where(
+            Article.is_sticky == True,
+            Article.sticky_until != None,
+            Article.sticky_until < now))
     count = 0
     for article in result.scalars().all():
-        article.sticky = False
-        article.sticky_expires_at = None
+        article.is_sticky = False
+        article.sticky_until = None
         count += 1
     await db.commit()
     return ok(data={"cleaned_count": count}, msg=f"已清理 {count} 篇过期置顶文章")
@@ -566,25 +594,29 @@ async def reorder_articles_api(data: list[dict] = Body(...), current_user=Depend
 @_catch
 async def batch_article_operation_api(data: dict = Body(...), current_user=Depends(jwt_required),
                                        db: AsyncSession = Depends(get_async_session)):
-    """批量操作文章"""
-    if not _is_admin(current_user):
-        return fail("仅管理员可批量操作")
+    """批量操作文章（管理员可操作全部，普通用户仅操作自己的）"""
+    is_admin = _is_admin(current_user)
     action = data.get('action')
     ids = data.get('ids', [])
     if not ids:
         return fail("请选择文章")
 
+    # 非管理员只能操作自己的文章
+    query = select(Article).where(Article.id.in_(ids))
+    if not is_admin:
+        query = query.where(Article.user == current_user.id)
+
     if action == 'delete':
-        for a in (await db.execute(select(Article).where(Article.id.in_(ids)))).scalars().all():
+        for a in (await db.execute(query)).scalars().all():
             a.status = -1
     elif action == 'publish':
-        for a in (await db.execute(select(Article).where(Article.id.in_(ids)))).scalars().all():
+        for a in (await db.execute(query)).scalars().all():
             a.status = 1
     elif action == 'draft':
-        for a in (await db.execute(select(Article).where(Article.id.in_(ids)))).scalars().all():
+        for a in (await db.execute(query)).scalars().all():
             a.status = 0
     elif action == 'feature':
-        for a in (await db.execute(select(Article).where(Article.id.in_(ids)))).scalars().all():
+        for a in (await db.execute(query)).scalars().all():
             a.is_featured = data.get('value', False)
     else:
         return fail(f"未知操作: {action}")
