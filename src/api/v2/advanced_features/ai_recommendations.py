@@ -96,7 +96,7 @@ async def moderate_content(
 
 @router.post("/writing/continue")
 @_catch
-async def smart_continue(request: TextRequest):
+async def smart_continue(request: TextRequest, current_user=Depends(jwt_required)):
     """智能续写"""
     continuation = await asyncio.get_event_loop().run_in_executor(
         None, ai_writing_assistant.smart_continue, request.text, request.max_length
@@ -106,7 +106,7 @@ async def smart_continue(request: TextRequest):
 
 @router.post("/writing/transform-style")
 @_catch
-async def transform_style(request: TextRequest):
+async def transform_style(request: TextRequest, current_user=Depends(jwt_required)):
     """风格转换"""
     transformed = await asyncio.get_event_loop().run_in_executor(
         None, ai_writing_assistant.transform_style, request.text, request.target_style
@@ -116,7 +116,7 @@ async def transform_style(request: TextRequest):
 
 @router.post("/writing/check-grammar")
 @_catch
-async def check_grammar(request: TextGrammarRequest):
+async def check_grammar(request: TextGrammarRequest, current_user=Depends(jwt_required)):
     """语法检查"""
     issues = await asyncio.get_event_loop().run_in_executor(
         None, ai_writing_assistant.check_grammar, request.text
@@ -126,7 +126,7 @@ async def check_grammar(request: TextGrammarRequest):
 
 @router.post("/writing/polish")
 @_catch
-async def polish_text(request: TextPolishRequest):
+async def polish_text(request: TextPolishRequest, current_user=Depends(jwt_required)):
     """文本润色"""
     result = await asyncio.get_event_loop().run_in_executor(
         None, ai_writing_assistant.polish_text, request.text
@@ -136,7 +136,7 @@ async def polish_text(request: TextPolishRequest):
 
 @router.post("/writing/generate-titles")
 @_catch
-async def generate_titles(
+async def generate_titles(current_user=Depends(jwt_required), 
         content: str = Body(..., description="文章内容"),
         count: int = Body(5, ge=1, le=10, description="生成数量"),
         style: str = Body('normal', enum=['normal', 'question', 'list', 'howto'], description="标题风格")

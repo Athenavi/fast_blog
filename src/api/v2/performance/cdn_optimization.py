@@ -1,9 +1,13 @@
 """
 CDN 优化配置 API - V2 版本
 提供多云 CDN 配置、缓存策略管理、性能优化等功能
+
+注意: CDN 集成当前为模拟实现，所有 API 调用返回模拟数据。
+生产环境需要实现真实的 CDN 提供方集成。
 """
 from functools import wraps
 from typing import Optional
+import logging
 
 from fastapi import APIRouter, Depends, HTTPException, Body
 
@@ -11,6 +15,9 @@ from shared.models.user import User
 from shared.services.performance.cdn_integration import cdn_service
 from src.api.v2._helpers import ok, fail, _catch
 from src.auth import jwt_required_dependency as jwt_required
+
+logger = logging.getLogger(__name__)
+logger.warning("CDN 集成为模拟实现，所有 API 调用不发送真实 CDN 请求")
 
 router = APIRouter(prefix="/cdn", tags=["CDN Optimization"])
 

@@ -11,7 +11,18 @@ async def clear_cache(arguments: dict) -> dict:
     try:
         from src.extensions import redis_client
         if cache_type in ("all", "redis"):
-            redis_client.flushdb()
+            # 仅清理带应用前缀的 key，不 flushdb 整个 Redis
+            prefix = arguments.get("prefix", "fastblog:")
+            cursor = 0
+            deleted = 0
+            while True:
+                cursor, keys = redis_client.scan(cursor=cursor, match=f"{prefix}*", count=500)
+                if keys:
+                    deleted += len(keys)
+                    redis_client.delete(*keys)
+                if cursor == 0:
+                    break
+            return {"success": True, "message": f"已清理 {deleted} 个缓存 key (前缀: {prefix})"}
         return {"success": True, "message": f"缓存清理完成: {cache_type}"}
     except Exception as e:
         return {"success": False, "error": f"清理失败: {e}"}
