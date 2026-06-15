@@ -8,6 +8,7 @@ import type {Comment} from '@/lib/api/comment-service';
 import {commentFormSchema, type CommentFormFormData} from '@/lib/schemas';
 import {MessageSquare, Heart, Reply, Trash2, Clock, TrendingUp, ChevronDown, Send, X, AlertTriangle, Loader} from 'lucide-react';
 import {useConfirm} from '@/components/ui/confirm-provider';
+import DOMPurify from 'dompurify';
 
 // ─── Types ────────────────────────────────────────────
 interface Props {articleId: number;}
@@ -93,7 +94,7 @@ const CommentItem: React.FC<{
 
         {/* Content — 渲染为 HTML（支持 KaTeX 公式等插件管道输出） */}
         <div className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed mb-3 break-words"
-             dangerouslySetInnerHTML={{__html: comment.content}}/>
+             dangerouslySetInnerHTML={{__html: DOMPurify.sanitize(comment.content)}}/>
 
         {/* Actions */}
         <div className="flex items-center gap-3 text-xs text-gray-400">

@@ -5,11 +5,12 @@ Shortcode短代码API
 
 from functools import wraps
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 
 from shared.services.content_management.shortcode_service import shortcode_service
 from src.api.v2._helpers import ok, fail
+from src.auth.auth_deps import jwt_required_dependency as jwt_required
 
 router = APIRouter(tags=["shortcode"])
 
@@ -33,7 +34,8 @@ def _catch(func):
 
 @router.post("/parse")
 @_catch
-async def parse_shortcodes(request_data: ShortcodeParseRequest):
+async def parse_shortcodes(request_data: ShortcodeParseRequest,
+    current_user=Depends(jwt_required)):
     """
     解析内容中的短代码
 

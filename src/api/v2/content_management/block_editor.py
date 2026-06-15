@@ -172,6 +172,7 @@ async def convert_html_to_blocks(html: str,
         raise HTTPException(status_code=400, detail="HTML 内容过大")
 
     # 解析 H1-H6 标题
+    blocks = []
     heading_pattern = r'<h([1-6])([^>]*)>(.*?)</h\1>'
     for match in re.finditer(heading_pattern, html, re.DOTALL):
         level = int(match.group(1))
@@ -466,7 +467,16 @@ async def import_blocks(json_str: str,
     if len(json_str) > 1048576:  # 1 MB
         raise HTTPException(status_code=400, detail="导入数据过大")
 
-    return {"blocks": blocks}
+    try:
+        import json
+        blocks = json.loads(json_str)
+    except json.JSONDecodeError:
+        raise HTTPException(status_code=400, detail="无效的 JSON 格式")
+
+    if not isinstance(blocks, list):
+        raise HTTPException(status_code=400, detail="导入数据必须为数组")
+
+    return {"blocks": blocks, "count": len(blocks)}
 
 
 @router.post("/statistics")

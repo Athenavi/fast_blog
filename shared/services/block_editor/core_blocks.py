@@ -9,6 +9,8 @@
 3. 业务 Blocks（商品卡片、VIP内容、广告横幅、联系表单、社交分享）
 """
 
+from html import escape
+
 from shared.services.block_editor.core import (
     Block,
     BlockType,
@@ -197,7 +199,7 @@ def render_video_block(block: Block) -> str:
     autoplay = 'autoplay' if attrs.get("autoplay") else ''
     controls = 'controls' if attrs.get("controls", True) else ''
 
-    html = f'<video src="{src}" poster="{poster}" {autoplay} {controls}>'
+    html = f'<video src="{escape(src)}" poster="{escape(poster)}" {autoplay} {controls}>'
     html += '</video>'
     return html
 
@@ -213,9 +215,9 @@ def render_gallery_block(block: Block) -> str:
         if isinstance(img, dict):
             src = img.get("src", "")
             alt = img.get("alt", "")
-            html += f'<figure><img src="{src}" alt="{alt}" /></figure>'
+            html += f'<figure><img src="{escape(src)}" alt="{escape(alt)}" /></figure>'
         else:
-            html += f'<figure><img src="{img}" alt="" /></figure>'
+            html += f'<figure><img src="{escape(str(img))}" alt="" /></figure>'
     html += '</div>'
     return html
 
@@ -232,14 +234,14 @@ def render_table_block(block: Block) -> str:
     if headers:
         html += '<thead><tr>'
         for header in headers:
-            html += f'<th>{header}</th>'
+            html += f'<th>{escape(str(header))}</th>'
         html += '</tr></thead>'
 
     html += '<tbody>'
     for row in rows:
         html += '<tr>'
         for cell in row:
-            html += f'<td>{cell}</td>'
+            html += f'<td>{escape(str(cell))}</td>'
         html += '</tr>'
     html += '</tbody></table>'
 
@@ -257,13 +259,13 @@ def render_embed_block(block: Block) -> str:
     # 根据不同提供商生成不同的嵌入代码
     if "youtube.com" in url or "youtu.be" in url:
         video_id = url.split("v=")[-1] if "v=" in url else url.split("/")[-1]
-        return f'<iframe width="{width}" height="{height}" src="https://www.youtube.com/embed/{video_id}" frameborder="0" allowfullscreen></iframe>'
+        return f'<iframe width="{width}" height="{height}" src="https://www.youtube.com/embed/{escape(video_id)}" frameborder="0" allowfullscreen></iframe>'
 
     elif "twitter.com" in url:
-        return f'<blockquote class="twitter-tweet"><a href="{url}"></a></blockquote>'
+        return f'<blockquote class="twitter-tweet"><a href="{escape(url)}"></a></blockquote>'
 
     else:
-        return f'<iframe src="{url}" width="{width}" height="{height}" frameborder="0"></iframe>'
+        return f'<iframe src="{escape(url)}" width="{width}" height="{height}" frameborder="0"></iframe>'
 
 
 def render_button_block(block: Block) -> str:
@@ -274,7 +276,7 @@ def render_button_block(block: Block) -> str:
     style = attrs.get("style", "primary")
     size = attrs.get("size", "medium")
 
-    return f'<a href="{url}" class="btn btn-{style} btn-{size}">{text}</a>'
+    return f'<a href="{escape(url)}" class="btn btn-{escape(style)} btn-{escape(size)}">{escape(text)}</a>'
 
 
 def render_product_card(block: Block) -> str:
@@ -288,13 +290,13 @@ def render_product_card(block: Block) -> str:
 
     html = '<div class="product-card">'
     if image:
-        html += f'<img src="{image}" alt="{title}" />'
-    html += f'<h3>{title}</h3>'
+        html += f'<img src="{escape(image)}" alt="{escape(title)}" />'
+    html += f'<h3>{escape(title)}</h3>'
     if description:
-        html += f'<p>{description}</p>'
-    html += f'<div class="price">{price}</div>'
+        html += f'<p>{escape(description)}</p>'
+    html += f'<div class="price">{escape(price)}</div>'
     if buy_url:
-        html += f'<a href="{buy_url}" class="btn">购买</a>'
+        html += f'<a href="{escape(buy_url)}" class="btn">购买</a>'
     html += '</div>'
 
     return html
@@ -320,7 +322,7 @@ def render_vip_content(block: Block, user_level: int = 0) -> str:
         return f'''
 <div class="vip-content" data-min-level="{min_level}">
     <div class="vip-badge">VIP</div>
-    {content}
+    {escape(content)}
 </div>
 '''
     else:
@@ -329,7 +331,7 @@ def render_vip_content(block: Block, user_level: int = 0) -> str:
     <div class="vip-badge">VIP</div>
     <div class="vip-lock-overlay">
         <div class="vip-lock-icon">🔒</div>
-        <p class="vip-lock-message">{message}</p>
+        <p class="vip-lock-message">{escape(message)}</p>
         <p class="vip-lock-hint">需要 VIP 等级 ≥ {min_level}</p>
     </div>
 </div>
@@ -345,8 +347,8 @@ def render_ad_banner(block: Block) -> str:
 
     return f'''
 <div class="ad-banner">
-    <a href="{link_url}" target="_blank" rel="nofollow">
-        <img src="{image}" alt="{alt_text}" />
+    <a href="{escape(link_url)}" target="_blank" rel="nofollow">
+        <img src="{escape(image)}" alt="{escape(alt_text)}" />
     </a>
 </div>
 '''
@@ -367,19 +369,19 @@ def render_contact_form(block: Block) -> str:
         if field_type == "textarea":
             html += f'''
 <div class="form-group">
-    <label>{label}</label>
-    <textarea name="{field.get('name', '')}" {required}></textarea>
+    <label>{escape(label)}</label>
+    <textarea name="{escape(field.get('name', ''))}" {required}></textarea>
 </div>
 '''
         else:
             html += f'''
 <div class="form-group">
-    <label>{label}</label>
-    <input type="{field_type}" name="{field.get('name', '')}" {required} />
+    <label>{escape(label)}</label>
+    <input type="{escape(field_type)}" name="{escape(field.get('name', ''))}" {required} />
 </div>
 '''
 
-    html += f'<button type="submit" class="btn">{submit_text}</button>'
+    html += f'<button type="submit" class="btn">{escape(submit_text)}</button>'
     html += '</form>'
 
     return html
@@ -403,7 +405,7 @@ def render_social_share(block: Block) -> str:
     html = '<div class="social-share">'
     for platform in platforms:
         icon = icons.get(platform, platform)
-        html += f'<button class="share-btn share-{platform}">{icon}</button>'
+        html += f'<button class="share-btn share-{escape(platform)}">{escape(icon)}</button>'
     html += '</div>'
 
     return html
