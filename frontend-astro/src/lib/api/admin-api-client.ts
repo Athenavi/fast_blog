@@ -179,8 +179,8 @@ async function parseResponse<T>(res: Response): Promise<ApiResponse<T>> {
 }
 
 // ─── 核心请求函数：V3 + V2 降级 ─────────────────
-const RETRIES_V3 = 3;
-const RETRIES_V2 = 2;
+const RETRIES_V3 = 2;
+const RETRIES_V2 = 1;
 
 async function requestWithFallback<T = any>(
   method: string,
