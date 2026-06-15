@@ -34,5 +34,5 @@ async def query_analysis_api(
         current_user: User = Depends(admin_required_api)
 ):
     """查询分析API"""
-    analysis = query_monitor_service.get_analysis()
+    analysis = query_monitor_service.get_summary()
     return ok(data=analysis)

@@ -524,4 +524,4 @@ class IntelligentCDNDistributor:
 
 
 # 全局实例
-cdn_service = IntelligentCDNDistributor()
+cdn_distributor = IntelligentCDNDistributor()

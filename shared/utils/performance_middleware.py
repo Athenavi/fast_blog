@@ -82,13 +82,11 @@ class PerformanceMonitoringMiddleware(BaseHTTPMiddleware):
             response_size = int(response.headers.get('content-length', 0))
 
             # 记录性能指标
-            performance_monitor.record_request(
+            performance_monitor.record_api_response(
                 endpoint=path,
                 method=request.method,
                 status_code=response.status_code,
                 response_time=elapsed_time,
-                request_size=request_size,
-                response_size=response_size,
             )
 
             # 添加响应头 (用于调试)
@@ -108,7 +106,7 @@ class PerformanceMonitoringMiddleware(BaseHTTPMiddleware):
             # 即使出错也记录性能
             elapsed_time = time.perf_counter() - start_time
 
-            performance_monitor.record_request(
+            performance_monitor.record_api_response(
                 endpoint=path,
                 method=request.method,
                 status_code=500,

@@ -117,7 +117,7 @@ class PageCacheService:
             params: 查询参数
         """
         cache_key = self._generate_cache_key(url, user_role, params)
-        self.cache.delete(cache_key)
+        await self.cache.delete(cache_key)
 
         logger.info(f"[PageCache] INVALIDATE: {url} (role: {user_role})")
 
