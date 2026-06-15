@@ -135,12 +135,29 @@ async def _get_article_detail(request: Request, db: AsyncSession, article: Artic
     if article.status == 0 and not _is_author_or_admin(current_user, article.user):
         return None
 
-    # VIP-only access check
+    # VIP-only access check — 基于实时 VIPSubscription 表
     if article.is_vip_only and not _is_author_or_admin(current_user, article.user):
-        if not current_user or not getattr(current_user, 'is_vip', lambda: False)():
+        if not current_user:
             raise HTTPException(403, "VIP membership required to access this article")
-        if article.required_vip_level and getattr(current_user, 'vip_level', 0) < article.required_vip_level:
-            raise HTTPException(403, "Insufficient VIP level to access this article")
+        from shared.models.vip import VIPSubscription
+        sub_result = await db.execute(
+            select(VIPSubscription).where(
+                VIPSubscription.user == current_user.id,
+                VIPSubscription.status == 1,
+                VIPSubscription.expires_at > datetime.now(),
+            )
+        )
+        active_sub = sub_result.scalar_one_or_none()
+        if not active_sub:
+            raise HTTPException(403, "VIP membership required to access this article")
+        if article.required_vip_level:
+            from shared.models.vip import VIPPlan
+            plan_result = await db.execute(
+                select(VIPPlan.level).where(VIPPlan.id == active_sub.plan_id)
+            )
+            user_vip_level = plan_result.scalar() or 0
+            if user_vip_level < article.required_vip_level:
+                raise HTTPException(403, "Insufficient VIP level to access this article")
 
     content_obj = await db.scalar(select(ArticleContent).where(ArticleContent.article == article.id))
     raw = content_obj.content if content_obj else ""

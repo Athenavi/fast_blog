@@ -43,6 +43,39 @@ async def upload_mobile_image(
         if file_size > 10 * 1024 * 1024:  # 10MB
             return ApiResponse(success=False, error="文件大小超过限制（最大10MB）")
 
+        # 基于幻数验证 MIME，防止 Content-Type 伪造
+        from src.api.v3.admin.media import _detect_mime_from_bytes
+        actual_mime = _detect_mime_from_bytes(content)
+        if actual_mime and actual_mime not in allowed_types:
+            return ApiResponse(success=False, error="文件内容与声明类型不符")
+
+        # 内容哈希去重
+        import hashlib
+        content_hash = hashlib.sha256(content).hexdigest()
+        from sqlalchemy import select
+        from shared.models.media import Media
+        existing = await db.execute(
+            select(Media).where(Media.hash == content_hash)
+        )
+        if existing.scalar_one_or_none():
+            return ApiResponse(success=False, error="文件已存在")
+
+        # 去除 EXIF（防止隐私泄露）
+        from PIL import Image
+        import io
+        try:
+            img = Image.open(io.BytesIO(content))
+            # 去除 EXIF：保存为不含 EXIF 的格式
+            if img.mode == 'RGBA':
+                img = img.convert('RGB')
+            clean_buffer = io.BytesIO()
+            save_format = 'JPEG' if file.content_type == 'image/jpeg' else 'PNG' if file.content_type == 'image/png' else 'WEBP' if file.content_type == 'image/webp' else 'JPEG'
+            img.save(clean_buffer, format=save_format)
+            content = clean_buffer.getvalue()
+            file_size = len(content)
+        except Exception:
+            pass  # 非图片或处理失败则使用原始内容
+
         # 生成唯一文件名
         file_extension = file.filename.split('.')[-1] if '.' in file.filename else 'jpg'
         unique_filename = f"{uuid.uuid4().hex}.{file_extension}"

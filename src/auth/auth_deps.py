@@ -280,10 +280,27 @@ def require_role_page(role_slug: str):
 
 # ---------- VIP 检查 ----------
 def require_vip():
-    """API：要求 VIP 成员资格"""
-    async def checker(user: UserModel = Depends(get_current_user)) -> UserModel:
-        if not user.is_vip():
-            raise HTTPException(status_code=403, detail="VIP membership required")
+    """API：要求 VIP 成员资格（基于实时 VIPSubscription 表）"""
+    async def checker(
+        user: UserModel = Depends(get_current_user),
+        db: AsyncSession = Depends(get_async_session),
+    ) -> UserModel:
+        # 超级管理员 bypass
+        if user.is_superuser:
+            return user
+        # 实时查询 VIPSubscription 表
+        from shared.models.vip import VIPSubscription
+        from datetime import datetime
+        result = await db.execute(
+            select(VIPSubscription).where(
+                VIPSubscription.user == user.id,
+                VIPSubscription.status == 1,
+                VIPSubscription.expires_at > datetime.now(),
+            )
+        )
+        sub = result.scalar_one_or_none()
+        if not sub:
+            raise HTTPException(status_code=403, detail="VIP membership required or expired")
         return user
     return checker
 

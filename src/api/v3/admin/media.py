@@ -25,6 +25,49 @@ logger = logging.getLogger(__name__)
 router = APIRouter(tags=["admin-media"])
 
 
+# 基于文件幻数的 MIME 类型检测（不依赖外部库）
+_MAGIC_MAP: dict[bytes, str] = {
+    b'\x89PNG\r\n\x1a\n': 'image/png',
+    b'\xff\xd8\xff': 'image/jpeg',
+    b'GIF87a': 'image/gif',
+    b'GIF89a': 'image/gif',
+    b'RIFF': 'image/webp',  # WebP 以 RIFF 开头，需进一步验证
+    b'<?xml': 'image/svg+xml',
+    b'<svg': 'image/svg+xml',
+    b'%PDF': 'application/pdf',
+    b'\x00\x00\x00 ftyp': 'video/mp4',
+    b'\x00\x00\x00\x18ftyp': 'video/mp4',
+    b'ftypmp42': 'video/mp4',
+    b'\x1aE\xdf\xa3': 'video/webm',  # Matroska/WebM
+    b'ID3': 'audio/mpeg',
+    b'\xff\xfb': 'audio/mpeg',
+    b'\xff\xf3': 'audio/mpeg',
+    b'\xff\xe3': 'audio/mpeg',
+    b'OggS': 'audio/ogg',
+    b'RIFF': 'audio/wav',  # WAV 也是 RIFF，需区分
+}
+
+
+def _detect_mime_from_bytes(data: bytes) -> Optional[str]:
+    """从文件内容前若干字节检测 MIME 类型"""
+    if not data:
+        return None
+    for signature, mime in _MAGIC_MAP.items():
+        if data[:len(signature)] == signature:
+            if mime == 'image/webp':
+                # 进一步验证 WebP: 第 9-12 字节应为 'WEBP'
+                if data[8:12] == b'WEBP':
+                    return 'image/webp'
+                return None
+            if mime == 'audio/wav':
+                # 区分 WAV 和 WebP: WAV 的 8-11 字节为 'WAVE'
+                if data[8:12] == b'WAVE':
+                    return 'audio/wav'
+                return None
+            return mime
+    return None
+
+
 # ============================================================
 # 列表
 # ============================================================
@@ -92,6 +135,11 @@ async def upload_media(
     mime = file.content_type or 'application/octet-stream'
     if mime not in ALLOWED_MIMES:
         return ApiResponse(success=False, error=f"不支持的文件类型: {mime}")
+
+    # 二次校验：使用文件幻数验证 MIME（防止 Content-Type 伪造）
+    _detected_mime = _detect_mime_from_bytes(content)
+    if _detected_mime and _detected_mime not in ALLOWED_MIMES:
+        return ApiResponse(success=False, error=f"文件内容与声明类型不符")
 
     # 保存文件到存储
     from src.api.v2.media_v1pack.upload_service import save_uploaded_file

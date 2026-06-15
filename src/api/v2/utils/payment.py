@@ -53,11 +53,13 @@ async def create_payment(
     if not plan:
         return fail("无效的套餐ID")
 
-    # 检查用户是否已有有效订阅
+    # 检查用户是否已有有效订阅（含过期检查）
     from sqlalchemy import select
+    from datetime import datetime
     existing_subscription_query = select(VIPSubscription).where(
-        VIPSubscription.user_id == current_user.id,
-        VIPSubscription.status == 1
+        VIPSubscription.user == current_user.id,
+        VIPSubscription.status == 1,
+        VIPSubscription.expires_at > datetime.now(),
     )
     existing_subscription_result = await db.execute(existing_subscription_query)
     existing_subscription = existing_subscription_result.scalar_one_or_none()
