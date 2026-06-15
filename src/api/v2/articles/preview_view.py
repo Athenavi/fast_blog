@@ -1,8 +1,8 @@
 """
 草稿预览查看页面 - 后端渲染
 """
-from fastapi import APIRouter, Depends, Request
-from fastapi.responses import HTMLResponse
+from fastapi import APIRouter, Depends, Form, Request
+from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -79,7 +79,7 @@ def _build_password_page(token):
 <div class="bg-white p-8 rounded-2xl shadow-lg max-w-md w-full mx-4">
   <h1 class="text-xl font-bold text-gray-900 mb-2">此预览受密码保护</h1>
   <p class="text-sm text-gray-500 mb-6">请输入密码以查看预览内容</p>
-  <form method="GET" class="space-y-4">
+  <form method="POST" action="/preview/{token}" class="space-y-4">
     <div class="flex gap-2">
       <input type="password" name="password" required placeholder="输入密码"
              class="flex-1 px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"/>
@@ -107,6 +107,44 @@ _INVALID_HTML = """<!DOCTYPE html>
 async def view_preview(token: str, request: Request, db: AsyncSession = Depends(get_async_db)):
     """查看草稿预览页面"""
     password = request.query_params.get("password")
+    token_info = draft_preview_service.validate_preview_token(token=token, password=password)
+
+    if not token_info:
+        stored_token = draft_preview_service.preview_tokens.get(token)
+        if stored_token and stored_token.get('password_hash') and stored_token['is_active']:
+            return HTMLResponse(_build_password_page(token))
+        return HTMLResponse(_INVALID_HTML, status_code=404)
+
+    row = (await db.execute(
+        select(Article, ArticleContent)
+        .outerjoin(ArticleContent, Article.id == ArticleContent.article)
+        .where(Article.id == token_info['article_id'])
+    )).first()
+
+    if not row:
+        return HTMLResponse("<html><body><h1>文章不存在</h1></body></html>", status_code=404)
+
+    article, content_obj = row
+    content = content_obj.content if content_obj else ''
+    stats = draft_preview_service.get_token_stats(token)
+    view_count = stats['view_count'] if stats else 0
+    expires_at = stats.get('expires_at', '—') if stats else '—'
+
+    html = _build_html(
+        title=article.title,
+        content_body=content,
+        cover_image=article.cover_image,
+        excerpt=article.excerpt,
+        updated_at=article.updated_at,
+        view_count=view_count,
+        expires_at=expires_at,
+    )
+    return HTMLResponse(html)
+
+
+@router.post("/preview/{token}", response_class=HTMLResponse)
+async def view_preview_post(token: str, password: str = Form(...), db: AsyncSession = Depends(get_async_db)):
+    """草稿预览密码验证（POST）"""
     token_info = draft_preview_service.validate_preview_token(token=token, password=password)
 
     if not token_info:

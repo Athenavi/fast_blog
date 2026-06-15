@@ -477,7 +477,7 @@ async def unlink_oauth_account(
     user_result = await db.execute(user_stmt)
     user = user_result.scalar_one_or_none()
     
-    has_password = user and user.password_hash
+    has_password = user and user.password
     
     # 如果只有这一个OAuth账号且没有密码，不允许解绑
     if oauth_count <= 1 and not has_password:

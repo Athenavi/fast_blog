@@ -14,7 +14,7 @@ import jwt
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import JSONResponse
 from jwt.exceptions import InvalidTokenError
-from pydantic import BaseModel
+from pydantic import BaseModel, EmailStr
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -70,7 +70,7 @@ class LoginRequest(BaseModel):
 
 class RegisterRequest(BaseModel):
     username: str
-    email: str
+    email: EmailStr
     password: str
 
 
@@ -191,9 +191,12 @@ async def login_api(request: Request, db: AsyncSession = Depends(get_async_db)):
     access_token = create_jwt_token(subject=str(user.id), token_type="access")
     refresh_token = create_jwt_token(subject=str(user.id), token_type="refresh") if remember_me else None
 
-    session_management_service.create_session(user.id, {"ip": ip, "user_agent": ua}, ip, ua)
+    session_id = await session_management_service.create_session(user.id, {"ip": ip, "user_agent": ua}, ip, ua)
 
-    resp_data = {"access_token": access_token, "token_type": "bearer", "email_verified": user.is_email_verified if hasattr(user, 'is_email_verified') else True}
+    # Revoke all old sessions except the current one (session rotation)
+    await session_management_service.revoke_all_sessions(user.id, exclude_session_id=session_id)
+
+    resp_data = {"access_token": access_token, "token_type": "bearer", "email_verified": user.is_email_verified if hasattr(user, 'is_email_verified') else False}
     if refresh_token:
         resp_data["refresh_token"] = refresh_token
 

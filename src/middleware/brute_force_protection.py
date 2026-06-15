@@ -42,8 +42,19 @@ class BruteForceProtectionMiddleware(BaseHTTPMiddleware):
             return await call_next(request)
 
         # 优先从 X-Forwarded-For 获取真实 IP（反向代理场景）
+        # 但需验证 IP 格式以防止伪造
+        import re as _re
         forwarded = request.headers.get("X-Forwarded-For")
-        client_ip = forwarded.split(",")[0].strip() if forwarded else (request.client.host if request.client else "unknown")
+        if forwarded:
+            candidate = forwarded.split(",")[0].strip()
+            # Only trust if it looks like a valid IPv4 address
+            if _re.match(r'^\d{1,3}(\.\d{1,3}){3}$', candidate) and all(0 <= int(octet) <= 255 for octet in candidate.split('.')):
+                client_ip = candidate
+            else:
+                client_ip = request.client.host if request.client else "unknown"
+        else:
+            real_ip = request.headers.get("X-Real-IP")
+            client_ip = real_ip if real_ip else (request.client.host if request.client else "unknown")
 
         # 清理过期记录
         now = time.time()

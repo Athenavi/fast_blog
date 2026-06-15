@@ -22,7 +22,7 @@ class ArticleRevisionNote(Base):
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='注释 ID')
 
-    revision_id = Column(BigInteger, ForeignKey('article_revisions.id'), doc='关联的修订版本 ID')
+    revision_id = Column(BigInteger, ForeignKey('article_revisions.id', ondelete='CASCADE'), doc='关联的修订版本 ID')
 
 
     user_id = Column(BigInteger, ForeignKey('users.id'), doc='添加注释的用户 ID')

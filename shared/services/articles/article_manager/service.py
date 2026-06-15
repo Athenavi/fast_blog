@@ -542,7 +542,10 @@ def _trigger_article_event(event_name: str, data: dict):
         try:
             loop = asyncio.get_running_loop()
             # 如果有运行的事件循环，创建任务
-            asyncio.create_task(event_bus.emit(event_name, data))
+            task = asyncio.create_task(event_bus.emit(event_name, data))
+            task.add_done_callback(lambda t: t.exception() and logger.error(
+                f"Event {event_name} failed: {t.exception()}"
+            ))
         except RuntimeError:
             # 没有运行的事件循环，记录日志但不抛出异常
             logger.debug(f"No running event loop, skipping {event_name} event trigger")

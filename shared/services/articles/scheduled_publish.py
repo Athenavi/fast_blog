@@ -56,7 +56,9 @@ class ScheduledPublishService:
 
         # 更新文章的定时发布时间
         article.scheduled_publish_at = publish_at
-        article.status = 0  # 设置为草稿状态
+        # 仅在文章为草稿状态时才设为草稿，避免将已发布文章改回草稿
+        if article.status != 1:
+            article.status = 0
         article.updated_at = datetime.now()
 
         await self.db.commit()
@@ -117,12 +119,12 @@ class ScheduledPublishService:
 
         now = datetime.now()
 
-        # 查询所有到期的定时发布文章
+        # 查询所有到期的定时发布文章（使用行级锁防止竞态条件）
         stmt = select(Article).where(
             Article.scheduled_publish_at.isnot(None),
             Article.scheduled_publish_at <= now,
             Article.status == 0  # 草稿状态
-        )
+        ).with_for_update()
 
         result = await self.db.execute(stmt)
         articles = result.scalars().all()
@@ -157,7 +159,8 @@ class ScheduledPublishService:
     async def get_scheduled_articles(
             self,
             limit: int = 50,
-            offset: int = 0
+            offset: int = 0,
+            user_id: Optional[int] = None
     ) -> List[Dict]:
         """
         获取待发布的文章列表
@@ -165,6 +168,7 @@ class ScheduledPublishService:
         Args:
             limit: 返回数量限制
             offset: 偏移量
+            user_id: 可选的用户ID过滤（None表示不过滤）
             
         Returns:
             待发布文章列表
@@ -175,13 +179,17 @@ class ScheduledPublishService:
         now = datetime.now()
 
         # 查询所有已设置定时发布的文章
+        conditions = [
+            Article.scheduled_publish_at.isnot(None),
+            Article.status == 0
+        ]
+        if user_id is not None:
+            conditions.append(Article.user == user_id)
+
         stmt = (
             select(Article, User.username)
             .join(User, Article.user == User.id, isouter=True)
-            .where(
-                Article.scheduled_publish_at.isnot(None),
-                Article.status == 0
-            )
+            .where(*conditions)
             .order_by(Article.scheduled_publish_at.asc())
             .limit(limit)
             .offset(offset)
@@ -203,12 +211,13 @@ class ScheduledPublishService:
             for article, username in rows
         ]
 
-    async def get_upcoming_publishes(self, hours: int = 24) -> List[Dict]:
+    async def get_upcoming_publishes(self, hours: int = 24, user_id: Optional[int] = None) -> List[Dict]:
         """
         获取即将发布的文章（未来N小时内）
         
         Args:
             hours: 小时数
+            user_id: 可选的用户ID过滤（None表示不过滤）
             
         Returns:
             即将发布的文章列表
@@ -218,12 +227,16 @@ class ScheduledPublishService:
         now = datetime.now()
         future_time = now + timedelta(hours=hours)
 
-        stmt = select(Article).where(
+        conditions = [
             Article.scheduled_publish_at.isnot(None),
             Article.scheduled_publish_at > now,
             Article.scheduled_publish_at <= future_time,
             Article.status == 0
-        ).order_by(Article.scheduled_publish_at.asc())
+        ]
+        if user_id is not None:
+            conditions.append(Article.user == user_id)
+
+        stmt = select(Article).where(*conditions).order_by(Article.scheduled_publish_at.asc())
 
         result = await self.db.execute(stmt)
         articles = result.scalars().all()

@@ -189,6 +189,13 @@ async def delete_custom_post_type(cpt_id: int,
     if not cpt:
         return fail("内容类型不存在")
 
+    # 先删除关联的内容记录，避免孤儿数据
+    from sqlalchemy import delete as sa_delete
+    from shared.models.content import CustomPostContent
+    await db.execute(
+        sa_delete(CustomPostContent).where(CustomPostContent.post_type_id == cpt_id)
+    )
+
     await db.delete(cpt)
     await db.commit()
 

@@ -6,6 +6,7 @@
 import asyncio
 import logging
 import re
+import secrets
 from datetime import datetime, timedelta
 from functools import wraps
 from typing import Optional
@@ -116,7 +117,7 @@ async def _get_article_detail(request: Request, db: AsyncSession, article: Artic
             content_obj = await db.scalar(select(ArticleContent).where(ArticleContent.article == article.id))
             if content_obj and content_obj.passwd:
                 token = request.cookies.get(f"article_access_{article.id}") or request.query_params.get("access_token")
-                if not token or token != password_protection_service.generate_access_token(article.id):
+                if not token or not secrets.compare_digest(token, password_protection_service.generate_access_token(article.id)):
                     return {"requires_password": True, "article_id": article.id, "article_title": article.title, "excerpt": article.excerpt}
             return None
 
@@ -321,6 +322,11 @@ async def create_article_api(request: Request, current_user=Depends(jwt_required
     cat_id = data.get('category_id')
     if cat_id is not None and (not cat_id or cat_id == 0 or cat_id == '0'):
         cat_id = None
+    # 验证 category_id 外键存在
+    if cat_id is not None:
+        cat_exists = await db.scalar(select(Category.id).where(Category.id == cat_id))
+        if not cat_exists:
+            return fail(f"分类不存在: category_id={cat_id}")
     article = Article(
         title=data.get('title', ''), slug=data.get('slug', ''),
         excerpt=data.get('excerpt', ''), user=current_user.id,
@@ -328,6 +334,7 @@ async def create_article_api(request: Request, current_user=Depends(jwt_required
         cover_image=data.get('cover_image', ''), hidden=data.get('hidden', False),
         is_vip_only=data.get('is_vip_only', False), article_ad=data.get('article_ad', ''),
         status=data.get('status', 0), is_featured=data.get('is_featured', False),
+        post_type=data.get('post_type', 'article'),
         created_at=datetime.now(), updated_at=datetime.now(), views=0, likes=0,
     )
     db.add(article)
@@ -369,13 +376,19 @@ async def update_article_api(article_id: int, request: Request, current_user=Dep
     if article.user != current_user.id and not _is_admin(current_user):
         raise HTTPException(403, "无权修改此文章")
 
-    for field in ('title', 'slug', 'excerpt', 'cover_image', 'tags_list', 'hidden', 'is_vip_only', 'is_featured', 'status'):
+    for field in ('title', 'slug', 'excerpt', 'cover_image', 'tags_list', 'hidden', 'is_vip_only', 'is_featured', 'status', 'post_type'):
         if field in data:
             setattr(article, field, data[field])
     # category_id 映射到模型字段 category，0 转为 None
     if 'category_id' in data:
         cat_val = data['category_id']
-        article.category = None if cat_val is None or cat_val == 0 or cat_val == '0' else cat_val
+        cat_val_final = None if cat_val is None or cat_val == 0 or cat_val == '0' else cat_val
+        # 验证 category_id 外键存在
+        if cat_val_final is not None:
+            cat_exists = await db.scalar(select(Category.id).where(Category.id == cat_val_final))
+            if not cat_exists:
+                return fail(f"分类不存在: category_id={cat_val_final}")
+        article.category = cat_val_final
     article.updated_at = datetime.now()
 
     if data.get('content') is not None:

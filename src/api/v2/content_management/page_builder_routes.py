@@ -49,6 +49,18 @@ class PageResponse(BaseModel):
     updated_at: Optional[str] = None
 
 
+def _validate_blocks_data(blocks_data: list) -> None:
+    """Validate blocks_data: must be a list, each block must have a non-empty 'type' string."""
+    if not isinstance(blocks_data, list):
+        raise HTTPException(status_code=422, detail="blocks_data must be a list")
+    for i, block in enumerate(blocks_data):
+        if not isinstance(block, dict):
+            raise HTTPException(status_code=422, detail=f"blocks_data[{i}] must be a dict")
+        typ = block.get('type')
+        if not typ or not isinstance(typ, str):
+            raise HTTPException(status_code=422, detail=f"blocks_data[{i}] is missing a valid 'type' field")
+
+
 def _catch(func):
     @wraps(func)
     async def wrapper(*args, **kwargs):
@@ -85,6 +97,7 @@ async def create_page(
             raise HTTPException(status_code=400, detail=f"Slug '{req.slug}' 已存在")
 
         # 创建新页面
+        _validate_blocks_data(req.blocks_data)
         new_page = PageBuilder(
             title=req.title,
             slug=req.slug,
@@ -236,6 +249,7 @@ async def update_page(
         if req.title is not None:
             page.title = req.title
         if req.blocks_data is not None:
+            _validate_blocks_data(req.blocks_data)
             page.blocks_data = json.dumps(req.blocks_data, ensure_ascii=False)
         if req.template_name is not None:
             page.template_name = req.template_name

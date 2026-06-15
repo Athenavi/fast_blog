@@ -115,7 +115,26 @@ async def list_article_revisions(article_id: int, page: int = Query(1, ge=1),
 async def compare_article_revisions(revision1_id: int = Query(...), revision2_id: int = Query(...),
                                      current_user=Depends(jwt_required),
                                      db: AsyncSession = Depends(get_async_db)):
-    """比较两个修订版本的差异"""
+    """比较两个修订版本的差异（需要访问对应文章权限）"""
+    from shared.models.article import ArticleRevision as RevModel
+
+    # 加载两个修订版本
+    revs_query = select(RevModel).where(RevModel.id.in_([revision1_id, revision2_id]))
+    revs_result = await db.execute(revs_query)
+    revisions = revs_result.scalars().all()
+
+    if len(revisions) != 2:
+        return fail("修订版本不存在")
+
+    rev1, rev2 = revisions[0], revisions[1]
+
+    # 验证它们属于同一篇文章
+    if rev1.article_id != rev2.article_id:
+        return fail("两个修订版本不属于同一篇文章，无法比较")
+
+    # 验证当前用户对该文章有访问权限
+    await _check_article_access(rev1.article_id, current_user, db)
+
     result = await compare_revisions(db=db, revision1_id=revision1_id, revision2_id=revision2_id)
     if not result:
         return fail("无法比较，修订版本可能不存在")

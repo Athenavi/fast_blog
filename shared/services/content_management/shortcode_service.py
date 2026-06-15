@@ -89,8 +89,13 @@ class ShortcodeService:
                 # 未注册的shortcode,保留原文
                 return match.group(0)
         
-        # 替换所有shortcodes
-        result = re.sub(pattern, replace_shortcode, content, flags=re.DOTALL)
+        # 替换所有shortcodes（递归解析最多5层支持嵌套）
+        result = content
+        for _ in range(5):
+            new_result = re.sub(pattern, replace_shortcode, result, flags=re.DOTALL)
+            if new_result == result:
+                break
+            result = new_result
         
         return result
 

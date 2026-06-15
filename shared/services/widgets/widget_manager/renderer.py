@@ -3,6 +3,7 @@ Widget渲染器
 负责将Widget实例渲染为HTML
 """
 
+from html import escape
 from typing import Dict
 
 
@@ -120,9 +121,9 @@ class WidgetRenderer:
 
         return f'''
         <div class="widget widget-html">
-            {f'<h3 class="widget-title">{title}</h3>' if title else ''}
+            {f'<h3 class="widget-title">{escape(title)}</h3>' if title else ''}
             <div class="html-content prose prose-sm max-w-none">
-                {html_content}
+                {escape(html_content)}
             </div>
         </div>
         '''

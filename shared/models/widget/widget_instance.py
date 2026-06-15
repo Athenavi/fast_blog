@@ -30,7 +30,7 @@ class WidgetInstance(Base):
 
     title = Column(String(255), nullable=True, doc='Widget标题')
 
-    config = Column(String(255), nullable=True, doc='Widget配置（JSON格式）')
+    config = Column(Text, nullable=True, doc='Widget配置（JSON格式）')
 
     order_index = Column(BigInteger, default=0, doc='显示顺序')
 
@@ -38,7 +38,7 @@ class WidgetInstance(Base):
     is_active = Column(Boolean, default=True, doc='是否启用')
 
 
-    conditions = Column(String(255), nullable=True, doc='显示条件（JSON格式）')
+    conditions = Column(Text, nullable=True, doc='显示条件（JSON格式）')
 
     created_at = Column(DateTime, doc='创建时间')
 

@@ -336,6 +336,8 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
     STRICT_LIMITS = {
         '/api/v1/auth/login': (5, 60),  # 登录：5次/分钟
         '/api/v1/auth/register': (3, 300),  # 注册：3次/5分钟
+        '/api/v2/auth/login': (5, 60),  # V2 登录：5次/分钟
+        '/api/v2/auth/register': (3, 300),  # V2 注册：3次/5分钟
         '/api/v1/users/password': (3, 300),  # 密码重置：3次/5分钟
     }
 

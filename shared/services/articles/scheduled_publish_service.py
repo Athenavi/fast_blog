@@ -1,7 +1,18 @@
 """
 文章定时发布服务
 负责检查并自动发布到期的定时文章
+
+弃用警告: 此模块已弃用，请使用 shared/services/articles/scheduled_publish.py 中的 ScheduledPublishService 代替。
+此文件仅保留向后兼容，新代码不应再引用此模块。
 """
+
+import warnings
+
+warnings.warn(
+    "scheduled_publish_service.py is deprecated. Use shared.services.articles.scheduled_publish instead.",
+    DeprecationWarning,
+    stacklevel=2
+)
 
 from datetime import datetime, timezone
 from typing import Dict, Any

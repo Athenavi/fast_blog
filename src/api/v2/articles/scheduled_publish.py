@@ -46,7 +46,9 @@ async def get_scheduled_articles(page: int = Query(1, ge=1), per_page: int = Que
     service = create_scheduled_publish_service(db)
     limit = per_page
     offset = (page - 1) * per_page
-    articles = await service.get_scheduled_articles(limit, offset)
+    # 管理员可查看全部，普通用户只能查看自己的
+    user_id = None if getattr(current_user, 'is_superuser', False) else current_user.id
+    articles = await service.get_scheduled_articles(limit, offset, user_id=user_id)
     return ok(data={'items': articles, 'count': len(articles)})
 
 
@@ -57,7 +59,9 @@ async def get_upcoming_publishes(hours: int = Query(24, ge=1, le=168),
                                   db: AsyncSession = Depends(get_async_session)):
     """获取即将发布的文章"""
     service = create_scheduled_publish_service(db)
-    articles = await service.get_upcoming_publishes(hours)
+    # 管理员可查看全部，普通用户只能查看自己的
+    user_id = None if getattr(current_user, 'is_superuser', False) else current_user.id
+    articles = await service.get_upcoming_publishes(hours, user_id=user_id)
     return ok(data={'items': articles, 'count': len(articles), 'hours': hours})
 
 

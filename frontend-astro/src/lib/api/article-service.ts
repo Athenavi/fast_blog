@@ -305,10 +305,10 @@ export class ArticleService {
             const adaptedResponse: ApiResponse<ArticleDetailResponse> = {
                 ...response,
                 data: {
-                    article: transformArticle(articleData.article),
+                    article: transformArticle(articleData),
                     author: articleData.author,
-                    aid: articleData.article?.id || 0,
-                    i18n_versions: articleData.i18n_versions || articleData.article?.i18n_versions || []
+                    aid: articleData.id || 0,
+                    i18n_versions: articleData.i18n_versions || []
                 }
             };
 

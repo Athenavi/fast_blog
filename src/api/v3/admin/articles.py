@@ -284,7 +284,8 @@ async def publish_article(
         return ApiResponse(success=False, error="无权发布此文章")
 
     article.status = 1
-    article.published_at = datetime.now(timezone.utc)
+    if article.published_at is None:
+        article.published_at = datetime.now(timezone.utc)
     article.updated_at = datetime.now(timezone.utc)
     await db.commit()
 
