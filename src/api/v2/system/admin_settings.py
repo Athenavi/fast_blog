@@ -433,9 +433,9 @@ async def create_page(
         content=data.get('content', ''),
         excerpt=data.get('excerpt', ''),
         template=data.get('template', 'default'),
-        status=data.get('status', 0),
+        status=int(data.get('status', 0)),
         parent_id=data.get('parent_id'),
-        order_index=data.get('order_index', 0),
+        order_index=int(data.get('order_index', 0)),
         meta_title=data.get('meta_title'),
         meta_description=data.get('meta_description'),
         meta_keywords=data.get('meta_keywords'),
@@ -505,9 +505,9 @@ async def update_page(
     page.content = data.get('content', page.content)
     page.excerpt = data.get('excerpt', page.excerpt)
     page.template = data.get('template', page.template)
-    page.status = data.get('status', page.status)
+    page.status = int(data.get('status', page.status or 0))
     page.parent_id = data.get('parent_id', page.parent_id)
-    page.order_index = data.get('order_index', page.order_index)
+    page.order_index = int(data.get('order_index', page.order_index or 0))
     page.meta_title = data.get('meta_title', page.meta_title)
     page.meta_description = data.get('meta_description', page.meta_description)
     page.meta_keywords = data.get('meta_keywords', page.meta_keywords)
@@ -607,7 +607,7 @@ async def create_menu_item(
         menu_id=menu_id,
         target=data.get('target', '_self'),
         parent_id=data.get('parent_id'),
-        order_index=data.get('order_index', 0),
+        order_index=int(data.get('order_index', 0)),
         is_active=bool(data.get('is_active', True)),
         created_at=datetime.now(),
     )
@@ -663,7 +663,7 @@ async def update_menu_item(
     menu_item.url = data.get('url', menu_item.url)
     menu_item.target = data.get('target', menu_item.target)
     menu_item.parent_id = data.get('parent_id', menu_item.parent_id)
-    menu_item.order_index = data.get('order_index', menu_item.order_index)
+    menu_item.order_index = int(data.get('order_index', menu_item.order_index or 0))
     menu_item.is_active = bool(data.get('is_active', menu_item.is_active))
     menu_item.updated_at = datetime.now()
 
