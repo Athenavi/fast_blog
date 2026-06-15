@@ -126,7 +126,7 @@ class PerformanceMonitor:
 performance_monitor_middleware = PerformanceMonitor()
 
 
-class PerformanceMonitoringMiddleware(BaseHTTPMiddleware):
+class RequestPerformanceMiddleware(BaseHTTPMiddleware):
     """
     性能监控中间件
     

@@ -565,6 +565,14 @@ async def _start_redis_subscriber():
     except Exception as e:
         print(f"[lifespan] Redis 广播订阅启动失败: {e}")
 
+    # 启动通用缓存失效广播监听
+    try:
+        from src.services.redis_service import redis_service
+        await redis_service.start_cache_invalidation_listener()
+        print(f"[lifespan] Redis cache:invalidate 监听已启动")
+    except Exception as e:
+        print(f"[lifespan] Redis cache:invalidate 监听启动失败: {e}")
+
 
 async def _shutdown_download_processor():
     from shared.services.media.download_queue_processor import shutdown_download_processor

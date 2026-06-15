@@ -162,7 +162,7 @@ async def invalidate_article_cache(article_id: int):
         # (已包含在 clear() 中)
 
         # 清除对象缓存
-        cache_service.delete_object(f"article:{article_id}")
+        await cache_service.delete(f"article:{article_id}")
 
         # 广播缓存失效到其他实例
         await redis_service.publish_cache_invalidation(["article", f"article:{article_id}"])

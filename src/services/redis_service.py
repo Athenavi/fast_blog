@@ -408,6 +408,29 @@ class RedisService:
         message = json.dumps({"action": "invalidate", "tags": tags, "timestamp": __import__('time').time()})
         return await self.publish("cache:invalidate", message)
 
+    async def _cache_invalidation_handler(self, channel: str, data: str):
+        """处理缓存失效消息"""
+        import json
+        try:
+            payload = json.loads(data)
+            if payload.get("action") == "invalidate":
+                tags = payload.get("tags", [])
+                # 延迟导入避免循环依赖
+                from shared.services.core.cache_service import cache_service
+                for tag in tags:
+                    await cache_service.delete(tag)
+                logger.info(f"Cache invalidation received: {tags}")
+        except Exception as e:
+            logger.warning(f"Cache invalidation handler error: {e}")
+
+    async def start_cache_invalidation_listener(self):
+        """启动缓存失效广播监听（后台任务）"""
+        import asyncio
+        logger.info("Starting cache:invalidate listener...")
+        task = asyncio.create_task(self.listen_cache_invalidation(self._cache_invalidation_handler))
+        # 让任务名可追踪
+        task.set_name("cache_invalidation_listener")
+
     async def listen_cache_invalidation(self, handler, retry_delay: float = 5.0):
         """
         监听缓存失效广播（带自动重连）

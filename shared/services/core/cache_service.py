@@ -49,7 +49,7 @@ class CacheService:
             self.cache = TTLCache(maxsize=max_size, ttl=default_ttl)
         else:
             self.cache: Dict[str, Any] = {}
-            self.ttl: Dict[str, float] = {}
+        self.ttl: Dict[str, float] = {}
 
         # 初始化Redis客户端
         if use_redis and REDIS_AVAILABLE:
@@ -99,6 +99,11 @@ class CacheService:
 
         # 从内存缓存获取(cachetools会自动处理TTL)
         if CACHE_TOOLS_AVAILABLE:
+            # 先检查手动 TTL（支持 per-key TTL 覆盖）
+            if key in self.ttl and time.time() > self.ttl[key]:
+                del self.cache[key]
+                del self.ttl[key]
+                return None
             return self.cache.get(key)
         else:
             # 手动TTL检查(兼容模式)
@@ -136,14 +141,12 @@ class CacheService:
                 self.use_redis = False
 
         # 存储到内存缓存
-        if CACHE_TOOLS_AVAILABLE:
-            # cachetools需要重新创建带TTL的条目
-            # 注意:TTLCache的TTL在创建时设定,这里简化处理
-            self.cache[key] = value
-        else:
-            # 手动管理TTL
-            self.cache[key] = value
-            self.ttl[key] = time.time() + ttl
+        # 使用手动 TTL 管理（支持 per-key TTL，不受 TTLCache 全局 TTL 限制）
+        if key in self.cache and CACHE_TOOLS_AVAILABLE:
+            # 如果使用 TTLCache，需要通过 del 再 set 来刷新 TTL
+            del self.cache[key]
+        self.cache[key] = value
+        self.ttl[key] = time.time() + ttl
 
     def delete(self, key: str):
         """删除缓存
