@@ -12,8 +12,8 @@ class MigrationManager:
     """基于Alembic的数据库迁移管理器"""
     
     def __init__(self):
-        self.alembic_ini = Path(__file__).parent.parent.parent / "alembic.ini"
-        self.migrations_dir = Path(__file__).parent.parent.parent / "alembic_migrations"
+        self.alembic_ini = Path(__file__).resolve().parent.parent.parent.parent / "alembic.ini"
+        self.migrations_dir = Path(__file__).resolve().parent.parent.parent.parent / "alembic_migrations"
         self.versions_dir = self.migrations_dir / "versions"
 
     def _get_alembic_cfg(self) -> "alembic.config.Config":
