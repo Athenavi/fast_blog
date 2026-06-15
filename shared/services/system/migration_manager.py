@@ -158,9 +158,13 @@ class MigrationManager:
                 'output': result['stdout'],
             }
         else:
+            stderr = result.get('stderr', '')
+            stdout = result.get('stdout', '')
+            rc = result.get('returncode', -1)
+            detail = stderr or stdout or f'Exit code {rc}'
             return {
                 'success': False,
-                'error': result.get('stderr', 'Migration failed'),
+                'error': f'Migration failed (rc={rc}): {detail[:500]}',
                 'output': result['stdout'],
             }
     
