@@ -260,43 +260,63 @@ function PageBuilderInner() {
 
     // 创建页面
     const createPageMut = useMutation({
-        mutationFn: (data: { title: string; slug: string }) =>
-            apiClient.post('/cms/page-builder/pages', {
+        mutationFn: async (data: { title: string; slug: string }) => {
+            const res = await apiClient.post('/cms/page-builder/pages', {
                 ...data,
                 blocks_data: [],
                 is_published: false
-            }),
+            });
+            if (!res.success) throw new Error(res.error || '创建失败');
+            return res;
+        },
         onSuccess: () => {
             qc.invalidateQueries({queryKey: ['page-builder-pages']});
-        }
+            toast.success('页面已创建');
+        },
+        onError: (err: any) => toast.error(String(err)),
     });
 
     // 保存页面
     const savePageMut = useMutation({
-        mutationFn: ({id, blocks}: { id: number; blocks: any[] }) =>
-            apiClient.put(`/cms/page-builder/pages/${id}`, {blocks_data: blocks}),
+        mutationFn: async ({id, blocks}: { id: number; blocks: any[] }) => {
+            const res = await apiClient.put(`/cms/page-builder/pages/${id}`, {blocks_data: blocks});
+            if (!res.success) throw new Error(res.error || '保存失败');
+            return res;
+        },
         onSuccess: () => {
             qc.invalidateQueries({queryKey: ['page-builder-pages']});
           toast.success('页面已保存！');
-        }
+        },
+        onError: (err: any) => toast.error(String(err)),
     });
 
     // 发布页面
     const publishMut = useMutation({
-        mutationFn: (id: number) => apiClient.post(`/cms/page-builder/pages/${id}/publish`),
+        mutationFn: async (id: number) => {
+            const res = await apiClient.post(`/cms/page-builder/pages/${id}/publish`);
+            if (!res.success) throw new Error(res.error || '发布失败');
+            return res;
+        },
         onSuccess: () => {
             qc.invalidateQueries({queryKey: ['page-builder-pages']});
           toast.success('页面已发布！');
-        }
+        },
+        onError: (err: any) => toast.error(String(err)),
     });
 
     // 删除页面
   const __deleteMut = useMutation({
-        mutationFn: (id: number) => apiClient.delete(`/cms/page-builder/pages/${id}`),
+        mutationFn: async (id: number) => {
+            const res = await apiClient.delete(`/cms/page-builder/pages/${id}`);
+            if (!res.success) throw new Error(res.error || '删除失败');
+            return res;
+        },
         onSuccess: () => {
             qc.invalidateQueries({queryKey: ['page-builder-pages']});
             setSelectedPage(null);
-        }
+          toast.success('页面已删除');
+        },
+        onError: (err: any) => toast.error(String(err)),
     });
 
     // ── CMS Pages ──
@@ -342,7 +362,8 @@ function PageBuilderInner() {
         const title = prompt('页面标题:');
         if (!title) return;
 
-        const slug = title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
+        let slug = title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
+        if (!slug) slug = 'page-' + Date.now();
         createPageMut.mutate({title, slug});
     };
 
@@ -351,7 +372,8 @@ function PageBuilderInner() {
         const title = prompt('页面标题:');
         if (!title) return;
 
-        const slug = title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
+        let slug = title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
+        if (!slug) slug = 'page-' + Date.now();
         try {
           const __res = await apiClient.post('/cms/page-builder/pages/from-template', {
                 template_id: templateId,
