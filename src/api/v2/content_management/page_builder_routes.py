@@ -424,8 +424,7 @@ async def get_page_by_slug(slug: str):
         # 回退：查询 CMS 静态页面表（/admin/settings 创建）
         result = await db.execute(
             select(PagesModel).where(
-                func.lower(PagesModel.slug) == slug_lower,
-                PagesModel.status == 1
+                func.lower(PagesModel.slug) == slug_lower
             )
         )
         cms_page = result.scalar_one_or_none()
