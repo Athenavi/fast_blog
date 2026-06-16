@@ -8,7 +8,7 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
-from sqlalchemy import select, desc
+from sqlalchemy import select, desc, func
 import json
 
 from shared.models import PageBuilder
@@ -398,10 +398,11 @@ async def get_page_by_slug(slug: str):
         页面对象（仅已发布的）
     """
     async for db in get_async_db():
+        slug_lower = slug.lower()
         # 先查询页面构建器表
         result = await db.execute(
             select(PageBuilder).where(
-                (PageBuilder.slug == slug) &
+                (func.lower(PageBuilder.slug) == slug_lower) &
                 (PageBuilder.is_published == True)
             )
         )
@@ -423,7 +424,7 @@ async def get_page_by_slug(slug: str):
         # 回退：查询 CMS 静态页面表（/admin/settings 创建）
         result = await db.execute(
             select(PagesModel).where(
-                PagesModel.slug == slug,
+                func.lower(PagesModel.slug) == slug_lower,
                 PagesModel.status == 1
             )
         )
