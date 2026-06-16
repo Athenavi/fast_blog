@@ -101,11 +101,13 @@ function SortableBlock({
                            index,
                            onDelete,
                            onStylesChange,
+                           onDataChange,
                        }: {
     block: any;
     index: number;
     onDelete: (index: number) => void;
     onStylesChange: (index: number, styles: any) => void;
+    onDataChange?: (index: number, data: any) => void;
 }) {
     const {
         attributes,
@@ -221,13 +223,43 @@ function SortableBlock({
                 )}
 
               <div className="text-xs text-gray-500 dark:text-gray-400">
-                    {JSON.stringify(block.data || {}, null, 2).slice(0, 200)}...
+                    <BlockFieldEditor type={block.type} data={block.data || {}} onChange={(d) => onDataChange?.(index, d)}/>
                 </div>
             </div>
         </div>
     );
 }
 
+/** BlockFieldEditor */
+function BlockFieldEditor({type,data,onChange}:{type:string;data:Record<string,any>;onChange:(d:Record<string,any>)=>void}){
+const set=(k:string,v:any)=>onChange({...data,[k]:v});
+const Inp=(k:string,label:string,opts?:any)=>(<div key={k} className="mb-1.5"><label className="block text-[10px] text-gray-400 mb-0.5">{label}</label><input type={opts?.type||"text"} value={data[k]||""} onChange={e=>set(k,e.target.value)} placeholder={opts?.placeholder} className="w-full px-2 py-1 border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"/></div>);
+const Txt=(k:string,label:string)=>(<div key={k} className="mb-1.5"><label className="block text-[10px] text-gray-400 mb-0.5">{label}</label><textarea value={data[k]||""} onChange={e=>set(k,e.target.value)} rows={3} className="w-full px-2 py-1 border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-gray-900 text-xs focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"/></div>);
+const Lis=(key:string,fs:{k:string;label:string}[],def:any)=>{const items=data[key]||[];return <div key={key} className="mb-1.5"><label className="block text-[10px] text-gray-400 mb-0.5">{key}</label>{items.map((item:any,i:number)=>(<div key={i} className="flex items-center gap-1 mb-1">{fs.map(f=><input key={f.k} type="text" value={item[f.k]||""} onChange={e=>{{const n=[...items];n[i]={...n[i],[f.k]:e.target.value};set(key,n);}}} placeholder={f.label} className="flex-1 px-1.5 py-1 border rounded bg-white dark:bg-gray-900 text-[10px] focus:outline-none focus:ring-1 focus:ring-blue-500"/>)}<button onClick={()=>set(key,items.filter((_:any,j:number)=>j!==i))} className="p-0.5 text-red-400 hover:text-red-600">&times;</button></div>))}<button onClick={()=>set(key,[...items,{...def}])} className="text-[10px] text-blue-500 hover:text-blue-700">+ 添加</button></div>;};
+switch(type){
+case"text":return Txt("content","文本内容");
+case"image":return<>{Inp("src","图片 URL",{placeholder:"https://..."})}{Inp("alt","描述")}</>;
+case"video":return<>{Inp("url","视频 URL")}{Inp("title","标题")}</>;
+case"button":return<>{Inp("text","按钮文字")}{Inp("url","链接")}<div className="mb-1.5"><label className="block text-[10px] text-gray-400 mb-0.5">样式</label><select value={data.style||"primary"} onChange={e=>set("style",e.target.value)} className="w-full px-2 py-1 border rounded bg-white dark:bg-gray-900 text-xs"><option value="primary">主要</option><option value="secondary">次要</option><option value="outline">边框</option></select></div></>;
+case"quote":return<>{Txt("text","引用内容")}{Inp("author","作者")}</>;
+case"code":return<>{Inp("language","语言")}{Txt("code","代码")}</>;
+case"progress":return<>{Inp("value","百分比",{type:"number"})}{Inp("label","标签")}</>;
+case"newsletter":return<>{Inp("placeholder","占位文本")}{Inp("buttonText","按钮文字")}</>;
+case"divider":return<p className="text-gray-400">分隔线（无配置项）</p>;
+case"hero":case"hero-section":return<>{Inp("title","标题")}{Inp("subtitle","副标题")}{Inp("bgColor","背景色",{type:"color"})}{Inp("imageUrl","图片 URL")}{Inp("cta_text","按钮文字")}{Inp("cta_link","按钮链接")}</>;
+case"cta":case"cta-section":return<>{Inp("title","标题")}{Inp("subtitle","副标题")}{Inp("button_text","按钮文字")}{Inp("button_link","按钮链接")}{Inp("bgColor","背景色",{type:"color"})}</>;
+case"grid":case"features-grid":return<>{Inp("title","区块标题")}{Lis("features",[{k:"icon",label:"图标"},{k:"title",label:"标题"},{k:"desc",label:"描述"}],{icon:"star",title:"",desc:""})}</>;
+case"team":case"team-members":return<>{Inp("title","区块标题")}{Lis("members",[{k:"name",label:"姓名"},{k:"role",label:"职位"}],{name:"",role:""})}</>;
+case"pricing":case"pricing-table":return<>{Inp("title","区块标题")}{Lis("plans",[{k:"name",label:"方案名"},{k:"price",label:"价格"}],{name:"",price:"",features:[]})}</>;
+case"form":case"contact-form":return<>{Inp("title","区块标题")}{Inp("subtitle","副标题")}{Lis("fields",[{k:"",label:"字段名"}],{})}</>;
+case"testimonial":case"testimonials":return<>{Inp("title","区块标题")}{Lis("testimonials",[{k:"quote",label:"评价"},{k:"name",label:"姓名"},{k:"role",label:"职位"}],{quote:"",name:"",role:""})}</>;
+case"faq":case"faq-section":return<>{Inp("title","区块标题")}{Lis("faqs",[{k:"question",label:"问题"},{k:"answer",label:"答案"}],{question:"",answer:""})}</>;
+case"columns":return<>{Inp("count","列数",{type:"number"})}{Lis("content",[{k:"",label:"内容"}],{})}</>;
+case"icon-list":return<>{Lis("items",[{k:"icon",label:"图标"},{k:"title",label:"标题"},{k:"desc",label:"描述"}],{icon:"star",title:"",desc:""})}</>;
+case"stats":case"stats-counter":return<>{Lis("items",[{k:"value",label:"数值"},{k:"label",label:"标签"}],{value:"",label:""})}</>;
+default:return<textarea value={JSON.stringify(data,null,2)} onChange={e=>{{try{{onChange(JSON.parse(e.target.value));}}catch{{}}}}}
+rows={4} className="w-full px-2 py-1 border rounded bg-white dark:bg-gray-900 text-[10px] font-mono focus:outline-none focus:ring-1 focus:ring-blue-500 resize-none"/>;}
+}
 
 
 function PageBuilderInner() {
@@ -441,6 +473,10 @@ function PageBuilderInner() {
         setEditingBlocks(prev => prev.map((b, i) => i === index ? {...b, styles} : b));
     };
 
+    const handleBlockDataChange = (index: number, data: any) => {
+        setEditingBlocks(prev => prev.map((b, i) => i === index ? {...b, data} : b));
+    };
+
     const handleSave = () => {
         if (!selectedPage) return;
         savePageMut.mutate({id: selectedPage.id, blocks: editingBlocks});
@@ -618,6 +654,7 @@ function PageBuilderInner() {
                                                         index={index}
                                                         onDelete={handleDeleteBlock}
                                                         onStylesChange={handleBlockStylesChange}
+                                                        onDataChange={handleBlockDataChange}
                                                     />
                                                 ))}
                                                 {editingBlocks.length === 0 && (
