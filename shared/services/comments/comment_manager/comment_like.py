@@ -32,8 +32,8 @@ class CommentLikeService:
             操作结果
         """
         try:
-            # 查询评论
-            query = select(Comment).where(Comment.id == comment_id)
+            # 查询评论（加行级锁防止并发竞争）
+            query = select(Comment).where(Comment.id == comment_id).with_for_update()
             result = await db.execute(query)
             comment = result.scalar_one_or_none()
 

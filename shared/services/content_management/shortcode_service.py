@@ -6,6 +6,7 @@ Shortcode短代码系统
 import re
 from html import escape
 from typing import Dict, Callable
+from zlib import adler32
 
 
 class ShortcodeService:
@@ -246,7 +247,7 @@ class ShortcodeService:
         if not tabs:
             return f'<div class="shortcode-tabs my-4 p-4 border rounded-xl">{escape(content)}</div>'
         
-        tab_id = f'tabs-{hash(content) % 10000}'
+        tab_id = f'tabs-{adler32(content.encode()) & 0xffff}'
         
         # 构建标签头
         headers_html = ''

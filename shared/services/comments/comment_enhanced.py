@@ -137,8 +137,8 @@ class CommentEnhancedService:
         Returns:
             操作结果
         """
-        # 检查评论是否存在
-        stmt = select(Comment).where(Comment.id == comment_id)
+        # 检查评论是否存在（加行级锁防止并发竞争）
+        stmt = select(Comment).where(Comment.id == comment_id).with_for_update()
         result = await db.execute(stmt)
         comment = result.scalar_one_or_none()
 
@@ -200,8 +200,8 @@ class CommentEnhancedService:
         Returns:
             操作结果
         """
-        # 检查评论是否存在
-        stmt = select(Comment).where(Comment.id == comment_id)
+        # 检查评论是否存在（加行级锁防止并发竞争）
+        stmt = select(Comment).where(Comment.id == comment_id).with_for_update()
         result = await db.execute(stmt)
         comment = result.scalar_one_or_none()
 

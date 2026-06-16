@@ -352,6 +352,8 @@ async def create_article_api(request: Request, current_user=Depends(jwt_required
         cat_id = None
     # 验证 category_id 外键存在
     if cat_id is not None:
+        if not isinstance(cat_id, int) or cat_id <= 0:
+            return fail(f"无效的分类ID: {cat_id}")
         cat_exists = await db.scalar(select(Category.id).where(Category.id == cat_id))
         if not cat_exists:
             return fail(f"分类不存在: category_id={cat_id}")
@@ -372,14 +374,11 @@ async def create_article_api(request: Request, current_user=Depends(jwt_required
     if article.status == 1:
         article.published_at = article.created_at
     db.add(article)
-    await db.commit()
+    db.add(ArticleContent(article=article.id, content=data.get('content', ''),
+                          passwd=password_protection_service.hash_password(data['password']) if data.get('password') else '',
+                          created_at=datetime.now(), updated_at=datetime.now()))
+    await db.flush()
     await db.refresh(article)
-
-    if data.get('content'):
-        db.add(ArticleContent(article=article.id, content=data['content'],
-                              passwd=password_protection_service.hash_password(data['password']) if data.get('password') else '',
-                              created_at=datetime.now(), updated_at=datetime.now()))
-        await db.commit()
 
     await save_article_revision(db=db, article_id=article.id, author_id=current_user.id, change_summary="创建文章")
     try:
@@ -418,8 +417,10 @@ async def update_article_api(article_id: int, request: Request, current_user=Dep
     if 'category_id' in data:
         cat_val = data['category_id']
         cat_val_final = None if cat_val is None or cat_val == 0 or cat_val == '0' else cat_val
-        # 验证 category_id 外键存在
+        # 验证 category_id 类型和存在
         if cat_val_final is not None:
+            if not isinstance(cat_val_final, int) or cat_val_final <= 0:
+                return fail(f"无效的分类ID: {cat_val_final}")
             cat_exists = await db.scalar(select(Category.id).where(Category.id == cat_val_final))
             if not cat_exists:
                 return fail(f"分类不存在: category_id={cat_val_final}")
@@ -438,6 +439,7 @@ async def update_article_api(article_id: int, request: Request, current_user=Dep
             content.content = data['content']
             if 'password' in data:
                 content.passwd = password_protection_service.hash_password(data['password']) if data.get('password') else ''
+            content.updated_at = datetime.now()
         else:
             db.add(ArticleContent(article=article_id, content=data['content'],
                                   passwd=password_protection_service.hash_password(data['password']) if data.get('password') else '',
@@ -490,9 +492,14 @@ async def get_articles_by_tag_api(tag_name: str, page: int = Query(1, ge=1), per
                                    db: AsyncSession = Depends(get_async_session)):
     """按标签获取文章"""
     offset = (page - 1) * per_page
-    q = select(Article).where(Article.tags_list.contains(tag_name), Article.status == 1).order_by(Article.id.desc())
+    q = select(Article).where(
+        Article.tags_list.op('~*')(f'(^|,)\s*{re.escape(tag_name)}\s*(,|$)'),
+        Article.status == 1
+    ).order_by(Article.id.desc())
     total = await db.scalar(select(func.count()).select_from(Article).where(
-        Article.tags_list.contains(tag_name), Article.status == 1)) or 0
+        Article.tags_list.op('~*')(f'(^|,)\s*{re.escape(tag_name)}\s*(,|$)'),
+        Article.status == 1
+    )) or 0
     articles = (await db.execute(q.offset(offset).limit(per_page))).scalars().all()
 
     uids = {a.user for a in articles if a.user}

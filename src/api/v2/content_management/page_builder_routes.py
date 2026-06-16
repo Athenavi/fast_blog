@@ -17,6 +17,12 @@ from src.auth.auth_deps import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 from src.api.v2._helpers import ok, fail
 
+
+def _is_admin_user(user: User) -> bool:
+    """检查用户是否为管理员"""
+    return getattr(user, 'is_superuser', False) or getattr(user, 'is_staff', False)
+
+
 router = APIRouter(prefix="/page-builder", tags=["Page Builder"])
 
 
@@ -88,6 +94,8 @@ async def create_page(
     Returns:
         创建的页面对象
     """
+    if not _is_admin_user(current_user):
+        raise HTTPException(status_code=403, detail="仅管理员可创建页面")
     async for db in get_async_db():
         # 检查 slug 是否已存在
         existing = await db.execute(
@@ -236,6 +244,8 @@ async def update_page(
     Returns:
         更新后的页面对象
     """
+    if not _is_admin_user(current_user):
+        raise HTTPException(status_code=403, detail="仅管理员可更新页面")
     async for db in get_async_db():
         result = await db.execute(
             select(PageBuilder).where(PageBuilder.id == page_id)
@@ -292,6 +302,8 @@ async def delete_page(
     Returns:
         删除结果
     """
+    if not _is_admin_user(current_user):
+        raise HTTPException(status_code=403, detail="仅管理员可删除页面")
     async for db in get_async_db():
         result = await db.execute(
             select(PageBuilder).where(PageBuilder.id == page_id)
@@ -321,6 +333,8 @@ async def publish_page(
     Returns:
         发布结果
     """
+    if not _is_admin_user(current_user):
+        raise HTTPException(status_code=403, detail="仅管理员可发布页面")
     async for db in get_async_db():
         result = await db.execute(
             select(PageBuilder).where(PageBuilder.id == page_id)
@@ -352,6 +366,8 @@ async def unpublish_page(
     Returns:
         取消发布结果
     """
+    if not _is_admin_user(current_user):
+        raise HTTPException(status_code=403, detail="仅管理员可取消发布页面")
     async for db in get_async_db():
         result = await db.execute(
             select(PageBuilder).where(PageBuilder.id == page_id)
@@ -696,6 +712,8 @@ async def create_page_from_template(
     Returns:
         创建的页面对象
     """
+    if not _is_admin_user(current_user):
+        raise HTTPException(status_code=403, detail="仅管理员可从模板创建页面")
     template = next((t for t in PAGE_TEMPLATES if t["id"] == template_id), None)
     if not template:
         raise HTTPException(status_code=404, detail="模板不存在")

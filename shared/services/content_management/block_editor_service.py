@@ -47,6 +47,11 @@
 from dataclasses import dataclass, field
 from html import escape
 from typing import Dict, Any, List, Optional
+import re
+
+
+# 允许的图片 URL 协议白名单
+_ALLOWED_URL_SCHEMES = re.compile(r'^(https?:|/|data:image/[a-z]+;base64,)')
 
 
 @dataclass
@@ -434,6 +439,10 @@ class BlockEditorService:
         alt = attributes.get("alt", "")
         caption = attributes.get("caption", "")
         alignment = attributes.get("alignment", "center")
+
+        # URL 协议白名单校验：仅允许 http/https/相对路径/data URI
+        if url and not _ALLOWED_URL_SCHEMES.match(url):
+            url = ""
 
         align_class = f"align-{alignment}"
 

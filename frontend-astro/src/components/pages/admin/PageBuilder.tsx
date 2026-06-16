@@ -236,7 +236,7 @@ function PageBuilderInner() {
     const {data: pages, isLoading: pagesLoading} = useQuery({
         queryKey: ['page-builder-pages'],
         queryFn: async () => {
-            const res = await apiClient.get('/page-builder/pages');
+            const res = await apiClient.get('/cms/page-builder/pages');
             return res.data || [];
         }
     });
@@ -245,7 +245,7 @@ function PageBuilderInner() {
     const {data: components} = useQuery({
         queryKey: ['component-templates'],
         queryFn: async () => {
-            const res = await apiClient.get('/components/templates');
+            const res = await apiClient.get('/cms/components/templates');
             return res.data || [];
         }
     });
@@ -253,7 +253,7 @@ function PageBuilderInner() {
     // 创建页面
     const createPageMut = useMutation({
         mutationFn: (data: { title: string; slug: string }) =>
-            apiClient.post('/page-builder/pages', {
+            apiClient.post('/cms/page-builder/pages', {
                 ...data,
                 blocks_data: [],
                 is_published: false
@@ -266,7 +266,7 @@ function PageBuilderInner() {
     // 保存页面
     const savePageMut = useMutation({
         mutationFn: ({id, blocks}: { id: number; blocks: any[] }) =>
-            apiClient.put(`/page-builder/pages/${id}`, {blocks_data: blocks}),
+            apiClient.put(`/cms/page-builder/pages/${id}`, {blocks_data: blocks}),
         onSuccess: () => {
             qc.invalidateQueries({queryKey: ['page-builder-pages']});
           toast.success('页面已保存！');
@@ -275,7 +275,7 @@ function PageBuilderInner() {
 
     // 发布页面
     const publishMut = useMutation({
-        mutationFn: (id: number) => apiClient.post(`/page-builder/pages/${id}/publish`),
+        mutationFn: (id: number) => apiClient.post(`/cms/page-builder/pages/${id}/publish`),
         onSuccess: () => {
             qc.invalidateQueries({queryKey: ['page-builder-pages']});
           toast.success('页面已发布！');
@@ -284,7 +284,7 @@ function PageBuilderInner() {
 
     // 删除页面
   const __deleteMut = useMutation({
-        mutationFn: (id: number) => apiClient.delete(`/page-builder/pages/${id}`),
+        mutationFn: (id: number) => apiClient.delete(`/cms/page-builder/pages/${id}`),
         onSuccess: () => {
             qc.invalidateQueries({queryKey: ['page-builder-pages']});
             setSelectedPage(null);
@@ -306,7 +306,7 @@ function PageBuilderInner() {
 
         const slug = title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
         try {
-          const __res = await apiClient.post('/page-builder/pages/from-template', {
+          const __res = await apiClient.post('/cms/page-builder/pages/from-template', {
                 template_id: templateId,
                 title,
                 slug

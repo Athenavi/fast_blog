@@ -48,9 +48,16 @@ async def create_category_api(
     form_data = await request.json()
     name = form_data.get('name')
     description = form_data.get('description', '')
+    parent_id = form_data.get('parent_id')
 
     if not name:
         return fail('分类名称不能为空')
+
+    if parent_id is not None:
+        # 验证父分类存在且不构成循环引用
+        parent = await db.scalar(select(Category.id).where(Category.id == parent_id))
+        if not parent:
+            return fail(f'父分类不存在: parent_id={parent_id}')
 
     # 检查分类名称是否已存在
     existing_category_result = await db.execute(select(Category).filter_by(name=name))
@@ -61,7 +68,8 @@ async def create_category_api(
     # 创建新分类
     category = Category(
         name=name,
-        description=description
+        description=description,
+        parent_id=parent_id
     )
 
     db.add(category)
@@ -103,9 +111,18 @@ async def update_category_api(
     form_data = await request.json()
     name = form_data.get('name')
     description = form_data.get('description', '')
+    parent_id = form_data.get('parent_id')
 
     if not name:
         return fail('分类名称不能为空')
+
+    if parent_id is not None:
+        # 验证父分类存在且不构成循环引用
+        if parent_id == category_id:
+            return fail('分类不能将自身设为父分类')
+        parent = await db.scalar(select(Category.id).where(Category.id == parent_id))
+        if not parent:
+            return fail(f'父分类不存在: parent_id={parent_id}')
 
     # 检查新名称是否与其他分类冲突
     existing_category_result = await db.execute(
@@ -117,6 +134,7 @@ async def update_category_api(
     # 更新分类
     category.name = name
     category.description = description
+    category.parent_id = parent_id
 
     await db.commit()
     await db.refresh(category)

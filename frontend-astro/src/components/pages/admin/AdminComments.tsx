@@ -474,7 +474,7 @@ function AdminCommentsInner() {
   // Reply to comment: use create endpoint with parent_id
   const replyMut = useMutation({
     mutationFn: ({parentId, content}: {parentId: number; content: string}) =>
-      apiClient.post(COMMENTS.ROOT, {parent_id: parentId, content, status: 'approved'}),
+      apiClient.post(COMMENTS.CREATE, {parent_id: parentId, content, status: 'approved'}),
     onSuccess: () => qc.invalidateQueries({queryKey: ['admin-comments']}),
   });
 

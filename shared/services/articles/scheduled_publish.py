@@ -189,7 +189,7 @@ class ScheduledPublishService:
         from shared.models.article import Article
         from shared.models.user import User
 
-        now = datetime.now()
+        now = _utcnow()
 
         # 查询所有已设置定时发布的文章
         conditions = [

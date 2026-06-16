@@ -38,6 +38,17 @@ async def create_custom_post_content(
     try:
         now = datetime.now(timezone.utc)
 
+        # 检查 slug 唯一性（在同一 post_type 内）
+        existing = await db.scalar(
+            select(CustomPostContent).where(
+                CustomPostContent.post_type_id == post_type_id,
+                CustomPostContent.slug == slug
+            )
+        )
+        if existing:
+            logger.warning(f"自定义内容 slug 重复: post_type_id={post_type_id}, slug={slug}")
+            return None
+
         post = CustomPostContent(
             post_type_id=post_type_id,
             title=title,
@@ -89,6 +100,19 @@ async def update_custom_post_content(
         post = result.scalar_one_or_none()
         if not post:
             return False
+
+        # 如果更新 slug，检查唯一性（排除自身）
+        if 'slug' in kwargs and kwargs['slug'] is not None:
+            slug_dup = await db.scalar(
+                select(CustomPostContent).where(
+                    CustomPostContent.post_type_id == post.post_type_id,
+                    CustomPostContent.slug == kwargs['slug'],
+                    CustomPostContent.id != content_id
+                )
+            )
+            if slug_dup:
+                logger.warning(f"更新自定义内容时 slug 重复: id={content_id}, slug={kwargs['slug']}")
+                return False
 
         # 只允许更新已知字段
         allowed = {'title', 'slug', 'content', 'excerpt', 'meta', 'status', 'is_featured', 'password'}
