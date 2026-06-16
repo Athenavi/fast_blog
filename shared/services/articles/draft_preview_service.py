@@ -188,17 +188,19 @@ class DraftPreviewService:
 
         return token_info
 
-    def get_preview_url(self, token: str, base_url: str = "http://localhost:8000") -> str:
+    def get_preview_url(self, token: str, base_url: str = "") -> str:
         """
         获取完整的预览URL
         
         Args:
             token: 预览令牌
-            base_url: 网站基础URL
+            base_url: 网站基础URL（由调用者从请求中提取）
             
         Returns:
             完整的预览URL
         """
+        if not base_url:
+            return f"/api/v2/articles/preview/{token}"
         return f"{base_url}/api/v2/articles/preview/{token}"
 
     def revoke_token(self, token: str) -> bool:

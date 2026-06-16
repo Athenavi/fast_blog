@@ -4,7 +4,7 @@
 from functools import wraps
 from typing import Optional
 
-from fastapi import APIRouter, Depends, Body
+from fastapi import APIRouter, Depends, Body, Request
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -39,7 +39,7 @@ class CreatePreviewRequest(BaseModel):
 
 @router.post("/generate")
 @_catch
-async def generate_preview_link(request: CreatePreviewRequest, current_user=Depends(jwt_required),
+async def generate_preview_link(request: CreatePreviewRequest, fastapi_request: Request, current_user=Depends(jwt_required),
                                 db: AsyncSession = Depends(get_async_db)):
     """生成草稿预览链接"""
     article = await db.scalar(select(Article).where(Article.id == request.article_id, Article.user == current_user.id))
@@ -49,7 +49,14 @@ async def generate_preview_link(request: CreatePreviewRequest, current_user=Depe
     token = draft_preview_service.generate_preview_token(
         article_id=request.article_id, expires_hours=request.expires_hours,
         password=request.password, max_views=request.max_views)
-    preview_url = draft_preview_service.get_preview_url(token)
+    # 从请求中获取实际 base URL（优先 X-Forwarded-Host / Host 头）
+    scheme = fastapi_request.headers.get("X-Forwarded-Proto", fastapi_request.url.scheme)
+    host = fastapi_request.headers.get("X-Forwarded-Host", fastapi_request.url.hostname)
+    port = fastapi_request.url.port
+    base_url = f"{scheme}://{host}"
+    if port and port not in (80, 443):
+        base_url += f":{port}"
+    preview_url = draft_preview_service.get_preview_url(token, base_url)
 
     return ok({'token': token, 'preview_url': preview_url, 'expires_hours': request.expires_hours,
                'has_password': request.password is not None, 'max_views': request.max_views})
