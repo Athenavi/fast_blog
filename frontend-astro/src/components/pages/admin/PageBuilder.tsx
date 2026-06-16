@@ -266,49 +266,49 @@ function PageBuilderInner() {
                 blocks_data: [],
                 is_published: false
             });
-            if (!res.success) throw new Error(res.error || '创建失败');
+            if (!res.success) throw new Error(res.error || res.detail || (res.data?.detail) || '创建失败');
             return res;
         },
         onSuccess: () => {
             qc.invalidateQueries({queryKey: ['page-builder-pages']});
             toast.success('页面已创建');
         },
-        onError: (err: any) => toast.error(String(err)),
+        onError: (err: any) => toast.error(err?.error || err?.message || String(err)),
     });
 
     // 保存页面
     const savePageMut = useMutation({
         mutationFn: async ({id, blocks}: { id: number; blocks: any[] }) => {
             const res = await apiClient.put(`/cms/page-builder/pages/${id}`, {blocks_data: blocks});
-            if (!res.success) throw new Error(res.error || '保存失败');
+            if (!res.success) throw new Error(res.error || res.detail || (res.data?.detail) || '保存失败');
             return res;
         },
         onSuccess: () => {
             qc.invalidateQueries({queryKey: ['page-builder-pages']});
           toast.success('页面已保存！');
         },
-        onError: (err: any) => toast.error(String(err)),
+        onError: (err: any) => toast.error(err?.error || err?.message || String(err)),
     });
 
     // 发布页面
     const publishMut = useMutation({
         mutationFn: async (id: number) => {
             const res = await apiClient.post(`/cms/page-builder/pages/${id}/publish`);
-            if (!res.success) throw new Error(res.error || '发布失败');
+            if (!res.success) throw new Error(res.error || res.detail || (res.data?.detail) || '发布失败');
             return res;
         },
         onSuccess: () => {
             qc.invalidateQueries({queryKey: ['page-builder-pages']});
           toast.success('页面已发布！');
         },
-        onError: (err: any) => toast.error(String(err)),
+        onError: (err: any) => toast.error(err?.error || err?.message || String(err)),
     });
 
     // 删除页面
   const __deleteMut = useMutation({
         mutationFn: async (id: number) => {
             const res = await apiClient.delete(`/cms/page-builder/pages/${id}`);
-            if (!res.success) throw new Error(res.error || '删除失败');
+            if (!res.success) throw new Error(res.error || res.detail || (res.data?.detail) || '删除失败');
             return res;
         },
         onSuccess: () => {
@@ -316,7 +316,7 @@ function PageBuilderInner() {
             setSelectedPage(null);
           toast.success('页面已删除');
         },
-        onError: (err: any) => toast.error(String(err)),
+        onError: (err: any) => toast.error(err?.error || err?.message || String(err)),
     });
 
     // ── CMS Pages ──
@@ -335,7 +335,7 @@ function PageBuilderInner() {
         return res;
       },
       onSuccess: () => { loadCmsPages(); toast.success('CMS 页面已创建'); setCmsModalOpen(false); },
-      onError: (err: any) => toast.error(String(err)),
+      onError: (err: any) => toast.error(err?.error || err?.message || String(err)),
     });
 
     const updateCmsMut = useMutation({
@@ -345,7 +345,7 @@ function PageBuilderInner() {
         return res;
       },
       onSuccess: () => { loadCmsPages(); toast.success('CMS 页面已更新'); setCmsModalOpen(false); },
-      onError: (err: any) => toast.error(String(err)),
+      onError: (err: any) => toast.error(err?.error || err?.message || String(err)),
     });
 
     const deleteCmsMut = useMutation({
@@ -355,7 +355,7 @@ function PageBuilderInner() {
         return res;
       },
       onSuccess: () => { loadCmsPages(); toast.success('CMS 页面已删除'); },
-      onError: (err: any) => toast.error(String(err)),
+      onError: (err: any) => toast.error(err?.error || err?.message || String(err)),
     });
 
     const handleCreatePage = () => {
@@ -363,7 +363,8 @@ function PageBuilderInner() {
         if (!title) return;
 
         let slug = title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
-        if (!slug) slug = 'page-' + Date.now();
+        if (!slug) slug = 'page';
+        slug += '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
         createPageMut.mutate({title, slug});
     };
 
@@ -373,7 +374,8 @@ function PageBuilderInner() {
         if (!title) return;
 
         let slug = title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
-        if (!slug) slug = 'page-' + Date.now();
+        if (!slug) slug = 'page';
+        slug += '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
         try {
           const __res = await apiClient.post('/cms/page-builder/pages/from-template', {
                 template_id: templateId,
