@@ -98,7 +98,7 @@ class MediaFolderService:
             folder = MediaFolder(
                 name=name, parent_id=parent_id, user=user_id, description=description,
                 is_public=is_public, sort_order=0, media_count=0,
-                created_at=datetime.now(timezone.utc), updated_at=datetime.now(timezone.utc)
+                created_at=datetime.now(timezone.utc).replace(tzinfo=None), updated_at=datetime.now(timezone.utc).replace(tzinfo=None)
             )
             db.add(folder)
             await db.commit()
@@ -228,7 +228,7 @@ class MediaFolderService:
                 if field in kwargs:
                     setattr(folder, field, kwargs[field])
 
-            folder.updated_at = datetime.now(timezone.utc)
+            folder.updated_at = datetime.now(timezone.utc).replace(tzinfo=None)
             await db.commit()
             await db.refresh(folder)
             return {"success": True, "folder": folder.to_dict()}
