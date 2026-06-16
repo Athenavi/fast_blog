@@ -79,7 +79,7 @@ def _build_password_page(token):
 <div class="bg-white p-8 rounded-2xl shadow-lg max-w-md w-full mx-4">
   <h1 class="text-xl font-bold text-gray-900 mb-2">此预览受密码保护</h1>
   <p class="text-sm text-gray-500 mb-6">请输入密码以查看预览内容</p>
-  <form method="POST" action="/preview/{token}" class="space-y-4">
+  <form method="POST" action="/api/v2/articles/preview/{token}" class="space-y-4">
     <div class="flex gap-2">
       <input type="password" name="password" required placeholder="输入密码"
              class="flex-1 px-4 py-2.5 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"/>

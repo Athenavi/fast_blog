@@ -302,7 +302,7 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
             });
             if (res.success && res.data) {
                 const token = res.data.token || res.data.preview_token;
-                const url = res.data.preview_url || `${window.location.origin}/view?preview=${token}`;
+                const url = res.data.preview_url || `${window.location.origin}/api/v2/articles/preview/${token}`;
                 setPreviewToken(token);
                 setPreviewLink(url);
             }

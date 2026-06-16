@@ -20,7 +20,7 @@ class TokenBlacklistMiddleware(BaseHTTPMiddleware):
         "/api/v2/auth/login",
         "/api/v2/auth/register",
         "/api/v2/auth/qr/generate",
-        "/api/v2/preview/",
+        "/api/v2/articles/preview/",
         "/api/v2/articles/home/",
         "/api/v2/articles/p/",
     ]

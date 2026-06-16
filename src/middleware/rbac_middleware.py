@@ -202,7 +202,7 @@ class RBACMiddleware(BaseHTTPMiddleware):
         "/api/v2/media/upload",
         "/api/v2/shortcodes/",
         "/api/v2/widgets/",
-        "/api/v2/preview/",
+        "/api/v2/articles/preview/",
     ]
 
     # 豁免方法（只读操作）

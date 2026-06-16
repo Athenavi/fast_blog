@@ -199,7 +199,7 @@ class DraftPreviewService:
         Returns:
             完整的预览URL
         """
-        return f"{base_url}/preview/{token}"
+        return f"{base_url}/api/v2/articles/preview/{token}"
 
     def revoke_token(self, token: str) -> bool:
         """
