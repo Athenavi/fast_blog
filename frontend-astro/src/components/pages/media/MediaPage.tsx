@@ -102,62 +102,81 @@ function MediaBrowserInner() {
   // ── Mutations ──
 
   const deleteMut = useMutation({
-    mutationFn: (file: MediaFile) => apiClient.post(MEDIA.BATCH_DELETE, {media_ids: [file.id]}),
+    mutationFn: async (file: MediaFile) => {
+      const res = await apiClient.post(MEDIA.BATCH_DELETE, {media_ids: [file.id]});
+      if (!res.success) throw new Error(res.error || '删除失败');
+      return res;
+    },
     onSuccess: () => {
       qc.invalidateQueries({queryKey: ['media-files']});
       qc.invalidateQueries({queryKey: ['media-stats']});
       toast.success('已删除');
     },
-    onError: () => toast.error('删除失败'),
+    onError: (err) => toast.error(String(err)),
   });
 
   const tagSaveMut = useMutation({
-    mutationFn: ({mediaId, tags}: {mediaId: number; tags: string[]}) =>
-      apiClient.post(MEDIA.TAGS(mediaId), {mode: 'replace', tags}),
+    mutationFn: async ({mediaId, tags}: {mediaId: number; tags: string[]}) => {
+      const res = await apiClient.post(MEDIA.TAGS(mediaId), {mode: 'replace', tags});
+      if (!res.success) throw new Error(res.error || '标签更新失败');
+      return res;
+    },
     onSuccess: () => {
       qc.invalidateQueries({queryKey: ['media-files']});
       toast.success('标签已更新');
     },
-    onError: () => toast.error('标签更新失败'),
+    onError: (err) => toast.error(String(err)),
   });
 
   const catSaveMut = useMutation({
-    mutationFn: ({mediaId, category}: {mediaId: number; category: string}) =>
-      apiClient.put(MEDIA.DETAIL(mediaId), {category}),
+    mutationFn: async ({mediaId, category}: {mediaId: number; category: string}) => {
+      const res = await apiClient.put(MEDIA.DETAIL(mediaId), {category});
+      if (!res.success) throw new Error(res.error || '分类更新失败');
+      return res;
+    },
     onSuccess: () => {
       qc.invalidateQueries({queryKey: ['media-files']});
       qc.invalidateQueries({queryKey: ['media-categories']});
       toast.success('分类已更新');
     },
-    onError: () => toast.error('分类更新失败'),
+    onError: (err) => toast.error(String(err)),
   });
 
   const batchTagMut = useMutation({
-    mutationFn: ({mediaIds, tags}: {mediaIds: number[]; tags: string[]}) =>
-      apiClient.post(MEDIA.BATCH_TAGS, {media_ids: mediaIds, mode: 'replace', tags}),
+    mutationFn: async ({mediaIds, tags}: {mediaIds: number[]; tags: string[]}) => {
+      const res = await apiClient.post(MEDIA.BATCH_TAGS, {media_ids: mediaIds, mode: 'replace', tags});
+      if (!res.success) throw new Error(res.error || '批量标签更新失败');
+      return res;
+    },
     onSuccess: () => {
       qc.invalidateQueries({queryKey: ['media-files']});
       setSelected([]);
       toast.success('批量标签已更新');
     },
-    onError: () => toast.error('批量标签更新失败'),
+    onError: (err) => toast.error(String(err)),
   });
 
   const batchCatMut = useMutation({
-    mutationFn: ({mediaIds, category}: {mediaIds: number[]; category: string}) =>
-      apiClient.post(MEDIA.BATCH_CATEGORIZE, {media_ids: mediaIds, category}),
+    mutationFn: async ({mediaIds, category}: {mediaIds: number[]; category: string}) => {
+      const res = await apiClient.post(MEDIA.BATCH_CATEGORIZE, {media_ids: mediaIds, category});
+      if (!res.success) throw new Error(res.error || '批量分类更新失败');
+      return res;
+    },
     onSuccess: () => {
       qc.invalidateQueries({queryKey: ['media-files']});
       qc.invalidateQueries({queryKey: ['media-categories']});
       setSelected([]);
       toast.success('批量分类已更新');
     },
-    onError: () => toast.error('批量分类更新失败'),
+    onError: (err) => toast.error(String(err)),
   });
 
   const moveMut = useMutation({
-    mutationFn: ({ids, folderPath}: {ids: number[]; folderPath: string | null}) =>
-      apiClient.post(MEDIA.FOLDERS_MOVE, {media_ids: ids, folder_path: folderPath}),
+    mutationFn: async ({ids, folderPath}: {ids: number[]; folderPath: string | null}) => {
+      const res = await apiClient.post(MEDIA.FOLDERS_MOVE, {media_ids: ids, folder_path: folderPath});
+      if (!res.success) throw new Error(res.error || '移动失败');
+      return res;
+    },
     onSuccess: () => {
       qc.invalidateQueries({queryKey: ['media-files']});
       qc.invalidateQueries({queryKey: ['media-folders']});
@@ -165,7 +184,7 @@ function MediaBrowserInner() {
       setMoveDialogOpen(false);
       setSelected([]);
     },
-    onError: () => toast.error('移动失败'),
+    onError: (err) => toast.error(String(err)),
   });
 
   const createFolderMut = useMutation({
@@ -183,12 +202,16 @@ function MediaBrowserInner() {
   });
 
   const deleteFolderMut = useMutation({
-    mutationFn: (id: number) => apiClient.delete(MEDIA.FOLDERS_DELETE(id)),
+    mutationFn: async (id: number) => {
+      const res = await apiClient.delete(MEDIA.FOLDERS_DELETE(id));
+      if (!res.success) throw new Error(res.error || '删除失败');
+      return res;
+    },
     onSuccess: () => {
       qc.invalidateQueries({queryKey: ['media-folders']});
       toast.success('文件夹已删除');
     },
-    onError: () => toast.error('删除文件夹失败'),
+    onError: (err) => toast.error(String(err)),
   });
 
   // ── Handlers ──
