@@ -10,12 +10,12 @@ import {ToastProvider, useToast} from '@/components/ui/toast-provider';
 import type {MediaFile} from '@/lib/api';
 import type {FolderNode} from './FolderTree';
 import {MediaGrid} from './MediaGrid';
-import {PreviewModal, DeleteConfirm, MoveDialog, CreateFolderDialog} from './MediaDialogs';
+import {PreviewModal, DeleteConfirm, MoveDialog, CreateFolderDialog, TagEditorDialog, CategoryEditorDialog, BatchTagDialog} from './MediaDialogs';
 import {UploadArea} from './UploadArea';
 import {FolderTree} from './FolderTree';
 import {StorageStats} from './StorageStats';
 import {useMediaUpload} from './useMediaUpload';
-import {Search, Upload, Grid3X3, List, Trash2, FolderOpen, Download, X} from 'lucide-react';
+import {Search, Upload, Grid3X3, List, Trash2, FolderOpen, Download, X, Tag} from 'lucide-react';
 
 function MediaBrowserInner() {
   const toast = useToast();
@@ -25,6 +25,7 @@ function MediaBrowserInner() {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
   const [selectedFolder, setSelectedFolder] = useState<number | null>(null);
 
   // Selection & dialogs
@@ -34,6 +35,8 @@ function MediaBrowserInner() {
   const [moveDialogOpen, setMoveDialogOpen] = useState(false);
   const [createFolderOpen, setCreateFolderOpen] = useState(false);
   const [uploadCollapsed, setUploadCollapsed] = useState(true);
+  const [batchTagOpen, setBatchTagOpen] = useState(false);
+  const [batchCatOpen, setBatchCatOpen] = useState(false);
 
   // Upload
   const {uploading, uploadProgress, uploadStatus, uploadFiles} = useMediaUpload(() => {
@@ -47,10 +50,11 @@ function MediaBrowserInner() {
   const mediaParams: Record<string, any> = {per_page: 100};
   if (search) mediaParams.q = search;
   if (typeFilter) mediaParams.media_type = typeFilter;
+  if (categoryFilter) mediaParams.category = categoryFilter;
   if (selectedFolder != null) mediaParams.folder_id = selectedFolder;
 
   const {data: mediaData, isLoading: mediaLoading} = useQuery<MediaFile[]>({
-    queryKey: ['media-files', search, typeFilter, selectedFolder],
+    queryKey: ['media-files', search, typeFilter, categoryFilter, selectedFolder],
     queryFn: async () => {
       const res = await apiClient.get(MEDIA.LIST, mediaParams);
       // 后端返回 ok(data={media_items: [...], pagination: {...}})
@@ -80,6 +84,21 @@ function MediaBrowserInner() {
   const files: MediaFile[] = mediaData || [];
   const folderList: FolderNode[] = folders || [];
 
+  // ── Tags & Category ──
+
+  const [tagEditTarget, setTagEditTarget] = useState<MediaFile | null>(null);
+  const [catEditTarget, setCatEditTarget] = useState<MediaFile | null>(null);
+
+  const {data: categoryList} = useQuery<string[]>({
+    queryKey: ['media-categories'],
+    queryFn: async () => {
+      const res = await apiClient.get(MEDIA.CATEGORIES);
+      const raw = res.data?.categories || res.data?.data || [];
+      return Array.isArray(raw) ? raw.map((c: any) => typeof c === 'string' ? c : c.name || c.category || '') : [];
+    },
+  });
+  const allCategories = categoryList || [];
+
   // ── Mutations ──
 
   const deleteMut = useMutation({
@@ -90,6 +109,50 @@ function MediaBrowserInner() {
       toast.success('已删除');
     },
     onError: () => toast.error('删除失败'),
+  });
+
+  const tagSaveMut = useMutation({
+    mutationFn: ({mediaId, tags}: {mediaId: number; tags: string[]}) =>
+      apiClient.post(MEDIA.TAGS(mediaId), {mode: 'replace', tags}),
+    onSuccess: () => {
+      qc.invalidateQueries({queryKey: ['media-files']});
+      toast.success('标签已更新');
+    },
+    onError: () => toast.error('标签更新失败'),
+  });
+
+  const catSaveMut = useMutation({
+    mutationFn: ({mediaId, category}: {mediaId: number; category: string}) =>
+      apiClient.put(MEDIA.DETAIL(mediaId), {category}),
+    onSuccess: () => {
+      qc.invalidateQueries({queryKey: ['media-files']});
+      qc.invalidateQueries({queryKey: ['media-categories']});
+      toast.success('分类已更新');
+    },
+    onError: () => toast.error('分类更新失败'),
+  });
+
+  const batchTagMut = useMutation({
+    mutationFn: ({mediaIds, tags}: {mediaIds: number[]; tags: string[]}) =>
+      apiClient.post(MEDIA.BATCH_TAGS, {media_ids: mediaIds, mode: 'replace', tags}),
+    onSuccess: () => {
+      qc.invalidateQueries({queryKey: ['media-files']});
+      setSelected([]);
+      toast.success('批量标签已更新');
+    },
+    onError: () => toast.error('批量标签更新失败'),
+  });
+
+  const batchCatMut = useMutation({
+    mutationFn: ({mediaIds, category}: {mediaIds: number[]; category: string}) =>
+      apiClient.post(MEDIA.BATCH_CATEGORIZE, {media_ids: mediaIds, category}),
+    onSuccess: () => {
+      qc.invalidateQueries({queryKey: ['media-files']});
+      qc.invalidateQueries({queryKey: ['media-categories']});
+      setSelected([]);
+      toast.success('批量分类已更新');
+    },
+    onError: () => toast.error('批量分类更新失败'),
   });
 
   const moveMut = useMutation({
@@ -200,6 +263,18 @@ function MediaBrowserInner() {
               <FolderOpen className="w-3.5 h-3.5"/> 移动
             </button>
             <button
+              onClick={() => setBatchTagOpen(true)}
+              className="inline-flex items-center gap-1 px-3 py-1.5 bg-white dark:bg-gray-800 text-sm rounded-lg border border-purple-200 dark:border-purple-700 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-colors"
+            >
+              <Tag className="w-3.5 h-3.5"/> 批量标签
+            </button>
+            <button
+              onClick={() => setBatchCatOpen(true)}
+              className="inline-flex items-center gap-1 px-3 py-1.5 bg-white dark:bg-gray-800 text-sm rounded-lg border border-emerald-200 dark:border-emerald-700 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg> 批量分类
+            </button>
+            <button
               onClick={() => {
                 const target = files.find(f => f.id === selected[0]);
                 if (target) { setDeleteTarget(target); }
@@ -214,6 +289,27 @@ function MediaBrowserInner() {
             </button>
           </div>
         )}
+
+        {/* Batch tag / category dialogs */}
+        <BatchTagDialog
+          open={batchTagOpen}
+          onClose={() => setBatchTagOpen(false)}
+          onSave={async (tags) => {
+            await batchTagMut.mutateAsync({mediaIds: selected, tags});
+            setBatchTagOpen(false);
+          }}
+          saving={batchTagMut.isPending}
+        />
+        <CategoryEditorDialog
+          open={batchCatOpen}
+          media={{id: 0, original_filename: `${selected.length} 个文件`} as any}
+          categories={allCategories}
+          onClose={() => setBatchCatOpen(false)}
+          onSave={async (_, cat) => {
+            await batchCatMut.mutateAsync({mediaIds: selected, category: cat});
+            setBatchCatOpen(false);
+          }}
+        />
 
         {/* Filters + Folder sidebar */}
         <div className="flex gap-6">
@@ -255,6 +351,14 @@ function MediaBrowserInner() {
                 <option value="audio">音频</option>
                 <option value="application">文档</option>
               </select>
+              <select
+                value={categoryFilter}
+                onChange={e => setCategoryFilter(e.target.value)}
+                className="px-3 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:text-white"
+              >
+                <option value="">全部分类</option>
+                {allCategories.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
             </div>
 
             {/* Mobile folder tree toggle */}
@@ -285,6 +389,8 @@ function MediaBrowserInner() {
               onSelect={handleSelect}
               onPreview={setPreviewMedia}
               onDelete={handleDelete}
+              onEditTags={setTagEditTarget}
+              onEditCategory={setCatEditTarget}
             />
           </div>
         </div>
@@ -318,6 +424,27 @@ function MediaBrowserInner() {
           open={createFolderOpen}
           onClose={() => setCreateFolderOpen(false)}
           onCreate={(name) => createFolderMut.mutate(name)}
+        />
+
+        <TagEditorDialog
+          open={!!tagEditTarget}
+          media={tagEditTarget}
+          onClose={() => setTagEditTarget(null)}
+          onSave={async (mediaId, tags) => {
+            await tagSaveMut.mutateAsync({mediaId, tags});
+            setTagEditTarget(null);
+          }}
+        />
+
+        <CategoryEditorDialog
+          open={!!catEditTarget}
+          media={catEditTarget}
+          categories={allCategories}
+          onClose={() => setCatEditTarget(null)}
+          onSave={async (mediaId, category) => {
+            await catSaveMut.mutateAsync({mediaId, category});
+            setCatEditTarget(null);
+          }}
         />
       </div>
     </div>
