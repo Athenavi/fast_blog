@@ -1,4 +1,4 @@
-import {useState} from 'react';
+import {useState, useCallback, useEffect} from 'react';
 import DOMPurify from 'dompurify';
 import {PermissionGuard} from '@/components/admin/PermissionGuard';
 import {AdminShell} from '@/components/admin/AdminShell';
@@ -35,7 +35,9 @@ import {
   Mail,
   Monitor,
   Smartphone,
-  Tablet
+  Tablet,
+  FileText,
+  X
 } from 'lucide-react';
 
 interface PageData {
@@ -210,6 +212,12 @@ function PageBuilderInner() {
     // P6-2: split-view 实时预览（移除手动切换模式）
     const [previewDevice, setPreviewDevice] = useState<'desktop' | 'tablet' | 'mobile'>('desktop');
 
+    // ── CMS Pages 状态 ──
+    const [cmsPages, setCmsPages] = useState<any[]>([]);
+    const [cmsModalOpen, setCmsModalOpen] = useState(false);
+    const [cmsEditPage, setCmsEditPage] = useState<any | null>(null);
+    const [cmsForm, setCmsForm] = useState({title: '', slug: '', content: '', status: '0'});
+
     // P6-1: 配置拖拽传感器
     const sensors = useSensors(
         useSensor(PointerSensor, {
@@ -289,6 +297,45 @@ function PageBuilderInner() {
             qc.invalidateQueries({queryKey: ['page-builder-pages']});
             setSelectedPage(null);
         }
+    });
+
+    // ── CMS Pages ──
+    const loadCmsPages = useCallback(async () => {
+      try {
+        const res = await apiClient.get('/system/settings');
+        if (res.success && res.data?.pages) setCmsPages(res.data.pages);
+      } catch {}
+    }, []);
+    useEffect(() => { loadCmsPages(); }, [loadCmsPages]);
+
+    const createCmsMut = useMutation({
+      mutationFn: async (d: any) => {
+        const res = await apiClient.post('/system/settings/pages', d);
+        if (!res.success) throw new Error(res.error || '创建失败');
+        return res;
+      },
+      onSuccess: () => { loadCmsPages(); toast.success('CMS 页面已创建'); setCmsModalOpen(false); },
+      onError: (err: any) => toast.error(String(err)),
+    });
+
+    const updateCmsMut = useMutation({
+      mutationFn: async ({id, ...d}: any) => {
+        const res = await apiClient.put(`/system/settings/pages/${id}`, d);
+        if (!res.success) throw new Error(res.error || '更新失败');
+        return res;
+      },
+      onSuccess: () => { loadCmsPages(); toast.success('CMS 页面已更新'); setCmsModalOpen(false); },
+      onError: (err: any) => toast.error(String(err)),
+    });
+
+    const deleteCmsMut = useMutation({
+      mutationFn: async (id: number) => {
+        const res = await apiClient.delete(`/system/settings/pages/${id}`);
+        if (!res.success) throw new Error(res.error || '删除失败');
+        return res;
+      },
+      onSuccess: () => { loadCmsPages(); toast.success('CMS 页面已删除'); },
+      onError: (err: any) => toast.error(String(err)),
     });
 
     const handleCreatePage = () => {
@@ -406,6 +453,46 @@ function PageBuilderInner() {
                             ))}
                         </div>
                     )}
+
+                    {/* ── CMS 页面分隔线 ── */}
+                    <div className="px-4 py-2 border-t border-b bg-gray-50 dark:bg-gray-800/50">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-1.5 text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                          <FileText className="w-3.5 h-3.5"/> CMS 页面
+                          <span className="ml-1 text-[10px] font-normal normal-case text-gray-400">({cmsPages.length})</span>
+                        </div>
+                        <button onClick={() => { setCmsEditPage(null); setCmsForm({title:'', slug:'', content:'', status:'0'}); setCmsModalOpen(true); }}
+                          className="p-1 hover:bg-blue-50 dark:hover:bg-blue-900/20 text-blue-600 rounded transition" title="新建 CMS 页面">
+                          <Plus className="w-3.5 h-3.5"/>
+                        </button>
+                      </div>
+                    </div>
+                    <div className="flex-1 overflow-y-auto divide-y" style={{maxHeight: '200px'}}>
+                      {cmsPages.length === 0 ? (
+                        <div className="p-3 text-center text-xs text-gray-400">暂无 CMS 页面</div>
+                      ) : (
+                        cmsPages.map((p: any) => (
+                          <div key={p.id} className="flex items-center gap-2 px-4 py-2.5 hover:bg-gray-50 dark:hover:bg-gray-800/50 group">
+                            <FileText className="w-3.5 h-3.5 text-gray-400 flex-shrink-0"/>
+                            <div className="flex-1 min-w-0 cursor-pointer" onClick={() => { setCmsEditPage(p); setCmsForm({title: p.title||'', slug: p.slug||'', content: p.content||'', status: String(p.status||0)}); setCmsModalOpen(true); }}>
+                              <p className="text-xs font-medium truncate text-gray-900 dark:text-white">{p.title}</p>
+                              <p className="text-[10px] text-gray-400 font-mono truncate">/{p.slug}</p>
+                            </div>
+                            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                              {p.status === 1 ? (
+                                <span className="text-[9px] px-1 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded">已发布</span>
+                              ) : (
+                                <span className="text-[9px] px-1 py-0.5 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-400 rounded">草稿</span>
+                              )}
+                              <button onClick={(e) => { e.stopPropagation(); if (confirm('确定删除此 CMS 页面？')) deleteCmsMut.mutate(p.id); }}
+                                className="p-0.5 hover:text-red-500 text-gray-400" title="删除">
+                                <Trash2 className="w-3 h-3"/>
+                              </button>
+                            </div>
+                          </div>
+                        ))
+                      )}
+                    </div>
                 </div>
 
                 {/* P6-2: 中间编辑区 + 右侧预览区 split-view */}
@@ -638,6 +725,62 @@ function PageBuilderInner() {
                         </div>
                     </div>
                 </div>
+            )}
+
+            {/* ── CMS 页面编辑模态框 ── */}
+            {cmsModalOpen && (
+              <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={() => setCmsModalOpen(false)}>
+                <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 max-w-lg w-full shadow-xl" onClick={e => e.stopPropagation()}>
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-bold">{cmsEditPage ? '编辑 CMS 页面' : '新建 CMS 页面'}</h3>
+                    <button onClick={() => setCmsModalOpen(false)} className="p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded"><X className="w-4 h-4"/></button>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">标题</label>
+                        <input value={cmsForm.title} onChange={e => setCmsForm(f => ({...f, title: e.target.value}))}
+                          className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"/>
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">别名 (slug)</label>
+                        <input value={cmsForm.slug} onChange={e => setCmsForm(f => ({...f, slug: e.target.value}))}
+                          className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"/>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">状态</label>
+                      <select value={cmsForm.status} onChange={e => setCmsForm(f => ({...f, status: e.target.value}))}
+                        className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white">
+                        <option value="0">草稿</option>
+                        <option value="1">已发布</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">内容 (Markdown)</label>
+                      <textarea value={cmsForm.content} onChange={e => setCmsForm(f => ({...f, content: e.target.value}))}
+                        rows={6}
+                        className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white resize-none"
+                        placeholder="使用 Markdown 格式编写..."/>
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-3 mt-6 pt-4 border-t border-gray-100 dark:border-gray-800">
+                    <button onClick={() => setCmsModalOpen(false)}
+                      className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl transition-colors">取消</button>
+                    <button onClick={() => {
+                      if (!cmsForm.title.trim() || !cmsForm.slug.trim()) { alert('标题和别名不能为空'); return; }
+                      if (cmsEditPage) {
+                        updateCmsMut.mutate({id: cmsEditPage.id, ...cmsForm, status: parseInt(cmsForm.status)});
+                      } else {
+                        createCmsMut.mutate({...cmsForm, status: parseInt(cmsForm.status)});
+                      }
+                    }}
+                      className="px-4 py-2 text-sm font-medium text-white bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 rounded-xl transition-all shadow-lg shadow-blue-500/25">
+                      {cmsEditPage ? '保存更改' : '创建页面'}
+                    </button>
+                  </div>
+                </div>
+              </div>
             )}
         </AdminShell>
     );
