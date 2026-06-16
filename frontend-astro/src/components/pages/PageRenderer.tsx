@@ -255,6 +255,16 @@ function BlockRenderer({block}: {block: BlockData}) {
         </section>
       );
 
+    case 'html-content':
+      // CMS 静态页面内容（/admin/settings 创建）
+      return (
+        <div className="prose prose-lg dark:prose-invert max-w-none mx-auto px-4 py-8">
+          {block.data?.content && (
+            <div dangerouslySetInnerHTML={{__html: block.data.content}} className="leading-relaxed"/>
+          )}
+        </div>
+      );
+
     case 'article-content':
       // 文章内容回退显示
       const article = block.data?.article;

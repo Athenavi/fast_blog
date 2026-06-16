@@ -12,6 +12,7 @@ from sqlalchemy import select, desc
 import json
 
 from shared.models import PageBuilder
+from shared.models.page.pages import Pages as PagesModel
 from shared.models.user import User
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
@@ -397,6 +398,7 @@ async def get_page_by_slug(slug: str):
         页面对象（仅已发布的）
     """
     async for db in get_async_db():
+        # 先查询页面构建器表
         result = await db.execute(
             select(PageBuilder).where(
                 (PageBuilder.slug == slug) &
@@ -405,24 +407,43 @@ async def get_page_by_slug(slug: str):
         )
         page = result.scalar_one_or_none()
 
-        if not page:
-            raise HTTPException(status_code=404, detail="页面不存在或未发布")
+        if page:
+            try:
+                blocks = json.loads(page.blocks_data)
+            except:
+                blocks = []
+            return PageResponse(
+                id=page.id, title=page.title, slug=page.slug,
+                blocks_data=blocks, template_name=page.template_name,
+                is_published=page.is_published,
+                created_at=page.created_at.isoformat() if page.created_at else None,
+                updated_at=page.updated_at.isoformat() if page.updated_at else None
+            )
 
-        try:
-            blocks = json.loads(page.blocks_data)
-        except:
-            blocks = []
-
-        return PageResponse(
-            id=page.id,
-            title=page.title,
-            slug=page.slug,
-            blocks_data=blocks,
-            template_name=page.template_name,
-            is_published=page.is_published,
-            created_at=page.created_at.isoformat() if page.created_at else None,
-            updated_at=page.updated_at.isoformat() if page.updated_at else None
+        # 回退：查询 CMS 静态页面表（/admin/settings 创建）
+        result = await db.execute(
+            select(PagesModel).where(
+                PagesModel.slug == slug,
+                PagesModel.status == 1
+            )
         )
+        cms_page = result.scalar_one_or_none()
+
+        if cms_page:
+            return PageResponse(
+                id=cms_page.id, title=cms_page.title or '', slug=cms_page.slug or '',
+                blocks_data=[{
+                    'type': 'html-content',
+                    'data': {'content': cms_page.content or ''},
+                    'styles': {}
+                }],
+                template_name=cms_page.template,
+                is_published=True,
+                created_at=cms_page.created_at.isoformat() if cms_page.created_at else None,
+                updated_at=cms_page.updated_at.isoformat() if cms_page.updated_at else None
+            )
+
+        raise HTTPException(status_code=404, detail="页面不存在或未发布")
 
 
 # P6-4: 预建页面模板库
