@@ -12,7 +12,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.media import Media
 from shared.services.media.image_tool import image_processor
-from src.utils.upload.public_upload import FileProcessor
 
 from src.unified_logger import default_logger as logger
 
@@ -57,6 +56,7 @@ class BatchUploadService:
                 try:
                     logger.info(f"开始上传文件 {index + 1}/{len(files)}: {file_obj.filename}")
                     content = await file_obj.read()
+                    from src.utils.upload.public_upload import FileProcessor
                     processor = FileProcessor(user_id=user_id, allowed_mimes=allowed_mimes, allowed_size=max_file_size)
 
                     is_valid, validation_result = processor.validate_file(content, file_obj.filename or "unknown")
