@@ -169,13 +169,17 @@ function MediaBrowserInner() {
   });
 
   const createFolderMut = useMutation({
-    mutationFn: (name: string) => apiClient.post(MEDIA.FOLDERS_CREATE, {name}),
+    mutationFn: async (name: string) => {
+      const res = await apiClient.post(MEDIA.FOLDERS_CREATE, {name});
+      if (!res.success) throw new Error(res.error || '创建失败');
+      return res;
+    },
     onSuccess: () => {
       qc.invalidateQueries({queryKey: ['media-folders']});
       toast.success('文件夹已创建');
       setCreateFolderOpen(false);
     },
-    onError: () => toast.error('创建失败'),
+    onError: (err) => toast.error(String(err)),
   });
 
   const deleteFolderMut = useMutation({
