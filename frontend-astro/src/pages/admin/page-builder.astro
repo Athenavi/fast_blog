@@ -1,5 +1,7 @@
 ---
 import PageBuilder from '@/components/pages/admin/PageBuilder';
+import {ToastProvider} from '@/components/ui/toast-provider';
+import {QueryProvider} from '@/components/QueryProvider';
 ---
 
 <!doctype html>
@@ -11,6 +13,10 @@ import PageBuilder from '@/components/pages/admin/PageBuilder';
     <link rel="stylesheet" href="/src/styles/globals.css"/>
 </head>
 <body>
-<PageBuilder client:load/>
+<QueryProvider>
+  <ToastProvider>
+    <PageBuilder client:load/>
+  </ToastProvider>
+</QueryProvider>
 </body>
 </html>
