@@ -76,6 +76,8 @@ def _catch(func):
         except HTTPException:
             raise
         except Exception as e:
+            import traceback
+            traceback.print_exc()
             return fail(str(e))
     return wrapper
 

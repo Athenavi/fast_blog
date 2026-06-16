@@ -266,7 +266,7 @@ function PageBuilderInner() {
                 blocks_data: [],
                 is_published: false
             });
-            if (!res.success) throw new Error(res.error || res.detail || (res.data?.detail) || '创建失败');
+            if (!res.success) throw new Error(Array.isArray(res.detail) ? res.detail.map(d=>d.msg).join('; ') : (res.error || res.detail || (res.data?.detail) || '创建失败'));
             return res;
         },
         onSuccess: () => {
@@ -280,7 +280,7 @@ function PageBuilderInner() {
     const savePageMut = useMutation({
         mutationFn: async ({id, blocks}: { id: number; blocks: any[] }) => {
             const res = await apiClient.put(`/cms/page-builder/pages/${id}`, {blocks_data: blocks});
-            if (!res.success) throw new Error(res.error || res.detail || (res.data?.detail) || '保存失败');
+            if (!res.success) throw new Error(Array.isArray(res.detail) ? res.detail.map(d=>d.msg).join('; ') : (res.error || res.detail || (res.data?.detail) || '保存失败'));
             return res;
         },
         onSuccess: () => {
@@ -294,7 +294,7 @@ function PageBuilderInner() {
     const publishMut = useMutation({
         mutationFn: async (id: number) => {
             const res = await apiClient.post(`/cms/page-builder/pages/${id}/publish`);
-            if (!res.success) throw new Error(res.error || res.detail || (res.data?.detail) || '发布失败');
+            if (!res.success) throw new Error(Array.isArray(res.detail) ? res.detail.map(d=>d.msg).join('; ') : (res.error || res.detail || (res.data?.detail) || '发布失败'));
             return res;
         },
         onSuccess: () => {
@@ -308,7 +308,7 @@ function PageBuilderInner() {
   const __deleteMut = useMutation({
         mutationFn: async (id: number) => {
             const res = await apiClient.delete(`/cms/page-builder/pages/${id}`);
-            if (!res.success) throw new Error(res.error || res.detail || (res.data?.detail) || '删除失败');
+            if (!res.success) throw new Error(Array.isArray(res.detail) ? res.detail.map(d=>d.msg).join('; ') : (res.error || res.detail || (res.data?.detail) || '删除失败'));
             return res;
         },
         onSuccess: () => {
