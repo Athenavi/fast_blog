@@ -53,22 +53,46 @@ interface PageData {
 }
 
 interface ComponentTemplate {
-    name: string;
+    id?: number;
+    name?: string;
+    title?: string;
     category: string;
     description: string;
-    preview_html: string;
-    default_data: any;
+    blocks: Array<{type: string; props?: Record<string, any>}>;
+    preview_html?: string;
+    default_data?: any;
 }
 
 const COMPONENT_ICONS: Record<string, any> = {
     'hero-section': Star,
+    'hero': Star,
     'features-grid': Grid,
+    'grid': Grid,
     'cta-section': MessageSquare,
+    'cta': MessageSquare,
     'testimonials': Users,
+    'testimonial': Users,
     'pricing-table': DollarSign,
+    'pricing': DollarSign,
     'faq-section': HelpCircle,
+    'faq': HelpCircle,
     'team-members': Users,
-    'contact-form': Mail
+    'team': Users,
+    'contact-form': Mail,
+    'form': Mail,
+    'text': FileText,
+    'image': ImageIcon,
+    'video': Video,
+    'button': Layout,
+    'divider': Layout,
+    'quote': MessageSquare,
+    'columns': Grid,
+    'icon-list': Grid,
+    'progress': Layout,
+    'code': Layout,
+    'newsletter': Mail,
+    'stats': Star,
+    'columns': Grid,
 };
 
 // P6-1: 可排序块组件（支持拖拽）
@@ -373,17 +397,18 @@ function PageBuilderInner() {
 
     // P6-4: 从模板创建页面
     const handleCreateFromTemplate = async (templateId: string) => {
-        const title = prompt('页面标题:');
-        if (!title) return;
-
+        const template = components?.find((c: any) => String(c.id) === String(templateId));
+        if (!template) { toast.error('模板不存在'); return; }
+        const title = template.title || template.name || '新页面';
         let slug = title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
         if (!slug) slug = 'page';
         slug += '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
         try {
-          const __res = await apiClient.post('/cms/page-builder/pages/from-template', {
-                template_id: templateId,
+          const __res = await apiClient.post('/cms/page-builder/pages', {
                 title,
-                slug
+                slug,
+                blocks_data: template.blocks || [],
+                is_published: false
             });
             qc.invalidateQueries({queryKey: ['page-builder-pages']});
             setShowComponentLibrary(false);
@@ -399,10 +424,11 @@ function PageBuilderInner() {
     };
 
     const handleAddComponent = (component: ComponentTemplate) => {
+        const block = component.blocks?.[0] || {};
         setEditingBlocks([...editingBlocks, {
-            type: component.name,
-            data: component.default_data,
-            preview_html: component.preview_html
+            type: block.type || component.name || 'unknown',
+            data: block.props || {},
+            styles: {}
         }]);
         setShowComponentLibrary(false);
     };
@@ -712,7 +738,7 @@ function PageBuilderInner() {
                                                 <div className="flex items-start justify-between mb-2">
                                                     <div className="flex items-center gap-2">
                                                         <Icon className="w-5 h-5 text-green-600"/>
-                                                        <span className="font-medium text-sm">{template.name}</span>
+                                                        <span className="font-medium text-sm">{template.title || template.name}</span>
                                                     </div>
                                                     <span
                                                       className="text-[10px] px-2 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded-full">{template.category}</span>
@@ -737,16 +763,16 @@ function PageBuilderInner() {
                                     单个组件（添加到当前页面）</h4>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                                   {components?.filter((c: any) => !c.id).map((comp: ComponentTemplate) => {
-                                        const Icon = COMPONENT_ICONS[comp.name] || Layout;
+                                        const Icon = COMPONENT_ICONS[comp.blocks?.[0]?.type] || Layout;
                                         return (
                                             <div
-                                                key={comp.name}
+                                                key={comp.name || comp.title}
                                                 onClick={() => handleAddComponent(comp)}
                                                 className="border rounded-xl p-4 hover:border-blue-600 hover:shadow-md cursor-pointer transition"
                                             >
                                                 <div className="flex items-center gap-2 mb-2">
                                                     <Icon className="w-5 h-5 text-blue-600"/>
-                                                    <span className="font-medium">{comp.name}</span>
+                                                    <span className="font-medium">{comp.title || comp.name}</span>
                                                 </div>
                                               <p
                                                 className="text-xs text-gray-500 dark:text-gray-400 mb-3">{comp.description}</p>
