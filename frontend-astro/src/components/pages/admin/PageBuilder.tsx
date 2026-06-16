@@ -196,12 +196,16 @@ function SortableBlock({
                 )}
 
               <div className="text-xs text-gray-500 dark:text-gray-400">
-                    {JSON.stringify(block.data, null, 2).slice(0, 200)}...
+                    {JSON.stringify(block.data || {}, null, 2).slice(0, 200)}...
                 </div>
             </div>
         </div>
     );
 }
+
+import {ErrorBoundary} from './ErrorBoundary';
+
+// ... existing code
 
 function PageBuilderInner() {
   const toast = useToast();
@@ -571,6 +575,7 @@ function PageBuilderInner() {
 
                                 {/* P6-1: 拖拽排序编辑区 */}
                                 <div className="flex-1 overflow-y-auto p-6">
+                                    <ErrorBoundary>
                                     <DndContext
                                         sensors={sensors}
                                         collisionDetection={closestCenter}
@@ -607,6 +612,7 @@ function PageBuilderInner() {
                                         </SortableContext>
                                     </DndContext>
                                 </div>
+                            </ErrorBoundary>
                             </>
                         )}
                     </div>
