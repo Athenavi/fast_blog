@@ -139,7 +139,7 @@ async def create_page(
             is_published=new_page.is_published,
             created_at=new_page.created_at.isoformat() if new_page.created_at else None,
             updated_at=new_page.updated_at.isoformat() if new_page.updated_at else None
-        )
+        ))
 
 
 @router.get("/pages")
@@ -229,7 +229,7 @@ async def get_page(
             is_published=page.is_published,
             created_at=page.created_at.isoformat() if page.created_at else None,
             updated_at=page.updated_at.isoformat() if page.updated_at else None
-        )
+        ))
 
 
 @router.put("/pages/{page_id}")
@@ -289,7 +289,7 @@ async def update_page(
             is_published=page.is_published,
             created_at=page.created_at.isoformat() if page.created_at else None,
             updated_at=page.updated_at.isoformat() if page.updated_at else None
-        )
+        ))
 
 
 @router.delete("/pages/{page_id}")
@@ -422,7 +422,7 @@ async def get_page_by_slug(slug: str):
                 is_published=page.is_published,
                 created_at=page.created_at.isoformat() if page.created_at else None,
                 updated_at=page.updated_at.isoformat() if page.updated_at else None
-            )
+            ))
 
         # 回退：查询 CMS 静态页面表（/admin/settings 创建）
         result = await db.execute(
@@ -444,7 +444,7 @@ async def get_page_by_slug(slug: str):
                 is_published=True,
                 created_at=cms_page.created_at.isoformat() if cms_page.created_at else None,
                 updated_at=cms_page.updated_at.isoformat() if cms_page.updated_at else None
-            )
+            ))
 
         raise HTTPException(status_code=404, detail="页面不存在或未发布")
 
@@ -779,4 +779,4 @@ async def create_page_from_template(
             is_published=new_page.is_published,
             created_at=new_page.created_at.isoformat() if new_page.created_at else None,
             updated_at=new_page.updated_at.isoformat() if new_page.updated_at else None
-        )
+        ))
