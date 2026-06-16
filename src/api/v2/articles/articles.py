@@ -493,11 +493,11 @@ async def get_articles_by_tag_api(tag_name: str, page: int = Query(1, ge=1), per
     """按标签获取文章"""
     offset = (page - 1) * per_page
     q = select(Article).where(
-        Article.tags_list.op('~*')(f'(^|,)\s*{re.escape(tag_name)}\s*(,|$)'),
+        Article.tags_list.op('~*')(f'(^|,)\\s*{re.escape(tag_name)}\\s*(,|$)'),
         Article.status == 1
     ).order_by(Article.id.desc())
     total = await db.scalar(select(func.count()).select_from(Article).where(
-        Article.tags_list.op('~*')(f'(^|,)\s*{re.escape(tag_name)}\s*(,|$)'),
+        Article.tags_list.op('~*')(f'(^|,)\\s*{re.escape(tag_name)}\\s*(,|$)'),
         Article.status == 1
     )) or 0
     articles = (await db.execute(q.offset(offset).limit(per_page))).scalars().all()
