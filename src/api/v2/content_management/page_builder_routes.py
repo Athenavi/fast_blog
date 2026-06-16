@@ -83,7 +83,7 @@ def _catch(func):
     return wrapper
 
 
-@router.post("/pages", response_model=PageResponse)
+@router.post("/pages")
 @_catch
 async def create_page(
         req: PageCreateRequest,
@@ -130,7 +130,7 @@ async def create_page(
         except:
             blocks = []
 
-        return PageResponse(
+        return ok(data=PageResponse(
             id=new_page.id,
             title=new_page.title,
             slug=new_page.slug,
@@ -142,7 +142,7 @@ async def create_page(
         )
 
 
-@router.get("/pages", response_model=List[PageResponse])
+@router.get("/pages")
 @_catch
 async def list_pages(
         skip: int = Query(0, ge=0),
@@ -189,10 +189,10 @@ async def list_pages(
                 updated_at=page.updated_at.isoformat() if page.updated_at else None
             ))
 
-        return response_list
+        return ok(data=response_list)
 
 
-@router.get("/pages/{page_id}", response_model=PageResponse)
+@router.get("/pages/{page_id}")
 @_catch
 async def get_page(
         page_id: int,
@@ -220,7 +220,7 @@ async def get_page(
         except:
             blocks = []
 
-        return PageResponse(
+        return ok(data=PageResponse(
             id=page.id,
             title=page.title,
             slug=page.slug,
@@ -232,7 +232,7 @@ async def get_page(
         )
 
 
-@router.put("/pages/{page_id}", response_model=PageResponse)
+@router.put("/pages/{page_id}")
 @_catch
 async def update_page(
         page_id: int,
@@ -280,7 +280,7 @@ async def update_page(
         except:
             blocks = []
 
-        return PageResponse(
+        return ok(data=PageResponse(
             id=page.id,
             title=page.title,
             slug=page.slug,
@@ -389,7 +389,7 @@ async def unpublish_page(
         return ok(msg="页面已取消发布")
 
 
-@router.get("/pages/slug/{slug}", response_model=PageResponse)
+@router.get("/pages/slug/{slug}")
 @_catch
 async def get_page_by_slug(slug: str):
     """P2-1: 通过 slug 获取公开页面（无需认证）
@@ -416,7 +416,7 @@ async def get_page_by_slug(slug: str):
                 blocks = json.loads(page.blocks_data)
             except:
                 blocks = []
-            return PageResponse(
+            return ok(data=PageResponse(
                 id=page.id, title=page.title, slug=page.slug,
                 blocks_data=blocks, template_name=page.template_name,
                 is_published=page.is_published,
@@ -433,7 +433,7 @@ async def get_page_by_slug(slug: str):
         cms_page = result.scalar_one_or_none()
 
         if cms_page:
-            return PageResponse(
+            return ok(data=PageResponse(
                 id=cms_page.id, title=cms_page.title or '', slug=cms_page.slug or '',
                 blocks_data=[{
                     'type': 'html-content',
@@ -770,7 +770,7 @@ async def create_page_from_template(
         except:
             blocks = []
 
-        return PageResponse(
+        return ok(data=PageResponse(
             id=new_page.id,
             title=new_page.title,
             slug=new_page.slug,
