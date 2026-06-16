@@ -8,7 +8,7 @@ import {StatCard} from '@/components/admin/shared-ui';
 import {formatBytes} from '@/lib/utils';
 import {
   ArrowUp, ArrowDown, CheckCircle2, ChevronLeft, ChevronRight, Edit3, FileText,
-  Grid, HardDrive, Image, List, Music, Search, Square, CheckSquare, Trash2,
+  Grid, HardDrive, Image, List, Music, Search, Square, CheckSquare, Tag, Trash2,
   Upload, Video, X, File
 } from 'lucide-react';
 import {
@@ -32,6 +32,8 @@ export function FilesTab() {
   const [selectedIds, setSelectedIds] = useState<Set<number>>(new Set());
   const [showMoveDialog, setShowMoveDialog] = useState(false);
   const [batchDeleteConfirm, setBatchDeleteConfirm] = useState(false);
+  const [batchTagOpen, setBatchTagOpen] = useState(false);
+  const [batchCatOpen, setBatchCatOpen] = useState(false);
   const debouncedSearch = useDebounce(searchInput, 400);
 
   // 重置到第一页
@@ -107,6 +109,26 @@ export function FilesTab() {
       qc.invalidateQueries({queryKey: ['admin-media']});
       setSelectedIds(new Set());
       setShowMoveDialog(false);
+    },
+  });
+
+  const batchTagMut = useMutation({
+    mutationFn: ({mediaIds, tags}: { mediaIds: number[]; tags: string[] }) =>
+      apiClient.post(MEDIA.BATCH_TAGS, {media_ids: mediaIds, mode: 'replace', tags}),
+    onSuccess: () => {
+      qc.invalidateQueries({queryKey: ['admin-media']});
+      setSelectedIds(new Set());
+      setBatchTagOpen(false);
+    },
+  });
+
+  const batchCatMut = useMutation({
+    mutationFn: ({mediaIds, category}: { mediaIds: number[]; category: string }) =>
+      apiClient.post(MEDIA.BATCH_CATEGORIZE, {media_ids: mediaIds, category}),
+    onSuccess: () => {
+      qc.invalidateQueries({queryKey: ['admin-media']});
+      setSelectedIds(new Set());
+      setBatchCatOpen(false);
     },
   });
 
@@ -311,14 +333,91 @@ export function FilesTab() {
                   onMove={(path) => moveMut.mutate({ids: Array.from(selectedIds), folderPath: path})}
                   onClose={() => setShowMoveDialog(false)} isPending={moveMut.isPending}/>
 
+      {/* 批量标签对话框 */}
+      {batchTagOpen && <BatchSimpleTagDialog open={batchTagOpen} onClose={() => setBatchTagOpen(false)}
+        onSave={async (tags) => { await batchTagMut.mutateAsync({mediaIds: Array.from(selectedIds), tags}); }}
+        saving={batchTagMut.isPending} />}
+
+      {/* 批量分类对话框 */}
+      {batchCatOpen && <BatchSimpleCategoryDialog open={batchCatOpen} onClose={() => setBatchCatOpen(false)}
+        onSave={async (category) => { await batchCatMut.mutateAsync({mediaIds: Array.from(selectedIds), category}); }}
+        saving={batchCatMut.isPending} />}
+
       {/* 批量操作栏 */}
       {selectedIds.size > 0 && (
         <BatchActionBar count={selectedIds.size}
                         onDelete={() => setBatchDeleteConfirm(true)}
                         onMove={() => setShowMoveDialog(true)}
+                        onBatchTag={() => setBatchTagOpen(true)}
+                        onBatchCategory={() => setBatchCatOpen(true)}
                         onClear={() => setSelectedIds(new Set())}/>
       )}
     </>
+  );
+}
+
+/* ── 批量标签对话框（内联组件） ── */
+function BatchSimpleTagDialog({open, onClose, onSave, saving}: {
+  open: boolean; onClose: () => void;
+  onSave: (tags: string[]) => Promise<void>; saving: boolean;
+}) {
+  const [tags, setTags] = useState<string[]>([]);
+  const [input, setInput] = useState('');
+  if (!open) return null;
+  const addTag = () => { const t = input.trim(); if (t && !tags.includes(t)) setTags([...tags, t]); setInput(''); };
+  return (
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 max-w-sm w-full shadow-xl" onClick={e=>e.stopPropagation()}>
+        <h3 className="text-lg font-bold mb-1">批量设置标签</h3>
+        <p className="text-xs text-gray-400 mb-4">将替换所有选中文件的标签（最多 5 个）</p>
+        <div className="flex gap-2 mb-3">
+          <input value={input} onChange={e=>setInput(e.target.value)} onKeyDown={e=>{if(e.key==='Enter')addTag()}}
+            placeholder="输入标签" maxLength={30}
+            className="flex-1 px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500 dark:text-white"/>
+          <button onClick={addTag} disabled={tags.length>=5} className="px-3 py-2 bg-purple-600 text-white text-sm rounded-xl hover:bg-purple-700 disabled:opacity-40">添加</button>
+        </div>
+        <div className="flex flex-wrap gap-1.5 mb-5 min-h-[28px] p-2 border border-dashed border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50/50 dark:bg-gray-800/50">
+          {tags.length === 0 && <span className="text-xs text-gray-400">尚未添加标签</span>}
+          {tags.map(t => (
+            <span key={t} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300 text-xs">
+              {t}<button onClick={()=>setTags(tags.filter(x=>x!==t))} className="hover:text-red-500">&times;</button>
+            </span>
+          ))}
+        </div>
+        <div className="flex justify-end gap-3">
+          <button onClick={onClose} className="px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg text-sm font-medium">取消</button>
+          <button onClick={()=>onSave(tags)} disabled={saving} className="px-4 py-2 bg-purple-600 text-white rounded-lg text-sm font-medium hover:bg-purple-700 disabled:opacity-50">
+            {saving ? '保存中...' : '保存'}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── 批量分类对话框（内联组件） ── */
+function BatchSimpleCategoryDialog({open, onClose, onSave, saving}: {
+  open: boolean; onClose: () => void;
+  onSave: (category: string) => Promise<void>; saving: boolean;
+}) {
+  const [cat, setCat] = useState('');
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white dark:bg-gray-900 rounded-2xl p-6 max-w-sm w-full shadow-xl" onClick={e=>e.stopPropagation()}>
+        <h3 className="text-lg font-bold mb-1">批量设置分类</h3>
+        <p className="text-xs text-gray-400 mb-4">为所有选中的文件设置统一分类</p>
+        <input value={cat} onChange={e=>setCat(e.target.value)} placeholder="输入分类名称" maxLength={50}
+          className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:text-white mb-4"/>
+        <div className="flex justify-end gap-3">
+          <button onClick={onClose} className="px-4 py-2 bg-gray-100 dark:bg-gray-800 rounded-lg text-sm font-medium">取消</button>
+          <button onClick={()=>cat.trim() && onSave(cat.trim())} disabled={saving || !cat.trim()}
+            className="px-4 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-700 disabled:opacity-50">
+            {saving ? '保存中...' : '保存'}
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 

@@ -2,7 +2,7 @@ import React, {useState} from 'react';
 import {
   AlertTriangle, ArrowUp, ArrowDown, CheckCircle2, ChevronLeft, ChevronRight,
   Clock, Copy, Download, Edit3, Eye, FileText, FolderOpen, Grid, Image, List, Music,
-  Search, Square, CheckSquare, Trash2, Upload, Video, X
+  Search, Square, CheckSquare, Tag, Trash2, Upload, Video, X
 } from 'lucide-react';
 import {getFullMediaUrl, formatBytes} from '@/lib/utils';
 import {type MediaFileItem, type FolderItem, getFileColor, getFileType, type TabKey} from './MediaTypes';
@@ -129,6 +129,12 @@ export const MediaGridCard: React.FC<{
           <p className="text-sm font-medium text-gray-900 dark:text-white truncate" title={file.original_filename}>
             {file.original_filename}
           </p>
+          <div className="flex items-center gap-1 mt-1 flex-wrap">
+            {file.category && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 font-medium">{file.category}</span>}
+            {file.tags && file.tags.split(',').filter(Boolean).slice(0, 2).map(t => (
+              <span key={t.trim()} className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400">{t.trim()}</span>
+            ))}
+          </div>
           <p className="text-xs text-gray-400 mt-1">
             {file.file_size ? formatBytes(file.file_size) : '-'}
           </p>
@@ -182,6 +188,12 @@ export const MediaListRow: React.FC<{
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{file.original_filename}</p>
           <p className="text-xs text-gray-400">{file.mime_type || '未知类型'}</p>
+          <div className="flex items-center gap-1 mt-0.5 flex-wrap">
+            {file.category && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 font-medium">{file.category}</span>}
+            {file.tags && file.tags.split(',').filter(Boolean).slice(0, 3).map(t => (
+              <span key={t.trim()} className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400">{t.trim()}</span>
+            ))}
+          </div>
         </div>
 
         {/* 大小 */}
@@ -292,8 +304,10 @@ export const BatchActionBar: React.FC<{
   count: number;
   onDelete: () => void;
   onMove: () => void;
+  onBatchTag: () => void;
+  onBatchCategory: () => void;
   onClear: () => void;
-}> = ({count, onDelete, onMove, onClear}) => (
+}> = ({count, onDelete, onMove, onBatchTag, onBatchCategory, onClear}) => (
   <div
     className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 px-5 py-3 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700">
       <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -303,6 +317,14 @@ export const BatchActionBar: React.FC<{
     <button onClick={onMove}
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors">
       <FolderOpen className="w-4 h-4"/>移动
+    </button>
+    <button onClick={onBatchTag}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors">
+      <Tag className="w-4 h-4"/>标签
+    </button>
+    <button onClick={onBatchCategory}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>分类
     </button>
     <button onClick={onDelete}
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">

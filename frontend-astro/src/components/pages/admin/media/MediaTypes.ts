@@ -20,6 +20,8 @@ export interface MediaFileItem {
   thumbnail_url?: string;
   folder_path?: string;
   created_at?: string;
+  category?: string;
+  tags?: string;
 }
 
 export interface DownloadTaskItem {
