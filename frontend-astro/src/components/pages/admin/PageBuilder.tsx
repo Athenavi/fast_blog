@@ -460,19 +460,24 @@ function PageBuilderInner() {
                             {pages.map((page: PageData) => (
                                 <div
                                     key={page.id}
-                                    onClick={() => handleEditPage(page)}
-                                    className={`px-4 py-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition ${
+                                    className={`px-4 py-3 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800/50 transition flex items-center gap-2 group ${
                                         selectedPage?.id === page.id ? 'bg-blue-50 dark:bg-blue-900/20' : ''
                                     }`}
                                 >
-                                    <div className="flex items-center justify-between mb-1">
-                                        <span className="text-sm font-medium truncate">{page.title}</span>
-                                        {page.is_published && (
-                                            <span
-                                              className="text-[10px] px-1.5 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded">已发布</span>
-                                        )}
+                                    <div className="flex-1 min-w-0" onClick={() => handleEditPage(page)}>
+                                        <div className="flex items-center justify-between mb-1">
+                                            <span className="text-sm font-medium truncate">{page.title}</span>
+                                            {page.is_published && (
+                                                <span
+                                                  className="text-[10px] px-1.5 py-0.5 bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 rounded">已发布</span>
+                                            )}
+                                        </div>
+                                        <div className="text-xs text-gray-400 font-mono truncate">/{page.slug}</div>
                                     </div>
-                                    <div className="text-xs text-gray-400 font-mono truncate">/{page.slug}</div>
+                                    <button onClick={(e) => { e.stopPropagation(); if (confirm(`确定删除页面「${page.title}」吗？`)) __deleteMut.mutate(page.id); }}
+                                      className="p-1.5 opacity-0 group-hover:opacity-100 hover:text-red-500 text-gray-400 transition-opacity rounded hover:bg-red-50 dark:hover:bg-red-900/20" title="删除">
+                                      <Trash2 className="w-3.5 h-3.5"/>
+                                    </button>
                                 </div>
                             ))}
                         </div>
