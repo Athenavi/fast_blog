@@ -6,7 +6,7 @@ import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {apiClient} from '@/lib/api/base-client';
-import {useToast} from '@/components/ui/toast-provider';
+import {ToastProvider, useToast} from '@/components/ui/toast-provider';
 // P6-1: 集成 dnd-kit 实现拖拽排序
 import {DndContext, PointerSensor, useSensor, useSensors, closestCenter} from '@dnd-kit/core';
 import {
@@ -647,7 +647,9 @@ export default function PageBuilder() {
     return (
         <AuthGuard>
             <QueryProvider>
-                <PageBuilderInner/>
+                <ToastProvider>
+                    <PageBuilderInner/>
+                </ToastProvider>
             </QueryProvider>
         </AuthGuard>
     );
