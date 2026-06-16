@@ -16,6 +16,7 @@ import {
     useSortable,
 } from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
+import {ErrorBoundary} from './ErrorBoundary';
 import {
   Layout,
   Plus,
@@ -203,9 +204,7 @@ function SortableBlock({
     );
 }
 
-import {ErrorBoundary} from './ErrorBoundary';
 
-// ... existing code
 
 function PageBuilderInner() {
   const toast = useToast();
@@ -611,8 +610,8 @@ function PageBuilderInner() {
                                             </div>
                                         </SortableContext>
                                     </DndContext>
+                                </ErrorBoundary>
                                 </div>
-                            </ErrorBoundary>
                             </>
                         )}
                     </div>
