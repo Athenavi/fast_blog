@@ -137,8 +137,13 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({value, onChange, placeho
 
   // Paste-upload
   const uploadPastedFiles = useCallback(async (files: File[]) => {
-    for (const file of files) {
-      setUploadStatus(`正在上传 ${file.name}...`);
+    setUploadStatus(`正在准备上传 ${files.length} 个文件...`);
+    const ta = taRef.current;
+    const insertPos = ta?.selectionStart ?? 0;
+    let inserted = '';
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      setUploadStatus(`正在上传 ${file.name} (${i + 1}/${files.length})...`);
       try {
         const resp = await MediaService.uploadMediaFileWithProgress(file, (pct) => {
           setUploadStatus(`正在上传 ${file.name} (${pct}%)`);
@@ -146,13 +151,15 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({value, onChange, placeho
         if (!resp.success || !resp.data?.files?.[0]?.url) continue;
         const url = resp.data.files[0].url;
         const md = file.type.startsWith('image/') ? `![${file.name}](${url})` : `[${file.name}](${url})`;
-        const ta = taRef.current; if (!ta) continue;
-        const pos = ta.selectionStart;
-        ta.value = ta.value.substring(0, pos) + (pos === ta.value.length ? '\n' : '') + md + ta.value.substring(pos);
-        ta.selectionStart = ta.selectionEnd = pos + md.length;
-        ta.focus();
-        onChange(ta.value);
+        const prefix = (i > 0 || insertPos > 0) ? '\n' : '';
+        inserted += prefix + md;
       } catch (err) { console.error('Upload failed:', err); }
+    }
+    if (inserted && ta) {
+      ta.value = ta.value.substring(0, insertPos) + inserted + ta.value.substring(insertPos);
+      ta.selectionStart = ta.selectionEnd = insertPos + inserted.length;
+      ta.dispatchEvent(new Event('input', {bubbles: true}));
+      onChange(ta.value);
     }
     setUploadStatus(null);
   }, [onChange]);
@@ -272,8 +279,8 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({value, onChange, placeho
       {uploadStatus && <div className="fixed top-4 right-4 z-[100] flex items-center gap-2.5 px-4 py-3 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 text-sm text-blue-600 dark:text-blue-400"><Loader className="w-4 h-4 animate-spin shrink-0" /><span className="truncate max-w-[240px]">{uploadStatus}</span><button onClick={() => setUploadStatus(null)} className="p-0.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ml-1 shrink-0"><X className="w-3.5 h-3.5" /></button></div>}
 
       {/* Modals */}
-      {showMedia && <MediaBrowser onSelect={(url) => { const ta = taRef.current; if (ta) { const md = `![image](${url})`; ta.value += '\n' + md; onChange(ta.value); } setShowMedia(false); }} onClose={() => setShowMedia(false)} />}
-      {showPatterns && <PatternLibrary onSelect={(blocks) => { const ta = taRef.current; if (ta) { ta.value += '\n' + JSON.stringify(blocks) + '\n'; onChange(ta.value); } setShowPatterns(false); }} onClose={() => setShowPatterns(false)} />}
+      {showMedia && <MediaBrowser onSelect={(url) => { const ta = taRef.current; if (ta) { const md = `![${url.split('/').pop() || 'image'}](${url})`; const pos = ta.selectionStart; ta.value = ta.value.substring(0, pos) + md + ta.value.substring(pos); ta.selectionStart = ta.selectionEnd = pos + md.length; onChange(ta.value); ta.focus(); } setShowMedia(false); }} onClose={() => setShowMedia(false)} />}
+      {showPatterns && <PatternLibrary onSelect={(blocks) => { const ta = taRef.current; if (ta) { const text = Array.isArray(blocks) ? blocks.map((b:any) => typeof b === 'string' ? b : b?.content || JSON.stringify(b)).join('\n\n') : String(blocks); ta.value += '\n' + text + '\n'; onChange(ta.value); ta.focus(); } setShowPatterns(false); }} onClose={() => setShowPatterns(false)} />}
       {showStyles && <StyleManager onClose={() => setShowStyles(false)} />}
     </div>
   );
