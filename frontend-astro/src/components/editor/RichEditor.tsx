@@ -1,6 +1,7 @@
 ﻿'use client';
 
 import React, {useCallback, useEffect, useRef, useState} from 'react';
+import {MediaService} from '@/lib/api/media-service';
 import {EditorContent, useEditor} from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -135,6 +136,7 @@ const RichEditor: React.FC<RichEditorProps> = ({value,onChange,placeholder='开�
   const [showPatterns, setShowPatterns] = useState(false);
   const [showStyles, setShowStyles] = useState(false);
   const [aiResult,setAiResult]=useState('');
+  const [uploadStatus,setUploadStatus]=useState<string|null>(null);
   const [aiBusy,setAiBusy]=useState(false);
   const prevValueRef = useRef(value);
 
@@ -147,8 +149,47 @@ const RichEditor: React.FC<RichEditorProps> = ({value,onChange,placeholder='开�
     ],
     content: value || '',
     onUpdate:({editor})=>onChange(editor.getHTML()),
-    editorProps:{attributes:{class:'prose prose-lg dark:prose-invert max-w-none focus:outline-none min-h-[60vh] px-6 py-4'}},
+    editorProps:{attributes:{class:'prose prose-lg dark:prose-invert max-w-none focus:outline-none min-h-[60vh] px-6 py-4'},
+    handlePaste:(_view,event)=>{
+      const files=event.clipboardData?.files;
+      if(!files||files.length===0)return false;
+      event.preventDefault();
+      uploadPastedFiles(Array.from(files));
+      return true;
+    }},
   });
+
+  // Paste-upload: upload clipboard files and insert into editor
+  const uploadPastedFiles=useCallback(async(files:File[])=>{
+    if(!editor)return;
+    for(const file of files){
+      setUploadStatus(`正在上传 ${file.name}...`);
+      try{
+        const resp=await MediaService.uploadMediaFileWithProgress(file,(pct)=>{
+          setUploadStatus(`正在上传 ${file.name} (${pct}%)`);
+        });
+        if(!resp.success||!resp.data?.files?.[0]){
+          editor.chain().focus().insertContent(file.name).run();
+          continue;
+        }
+        const media=resp.data.files[0];
+        const url=media.url;
+        if(!url){
+          editor.chain().focus().insertContent(file.name).run();
+          continue;
+        }
+        if(file.type.startsWith('image/')){
+          editor.chain().focus().setImage({src:url}).run();
+        }else{
+          editor.chain().focus().insertContent(`📎 <a href="${url}" target="_blank" rel="noopener noreferrer">${file.name}</a>`).run();
+        }
+      }catch(err){
+        console.error('Paste upload failed:',err);
+        editor.chain().focus().insertContent(file.name).run();
+      }
+    }
+    setUploadStatus(null);
+  },[editor]);
 
   // Expose editor to parent
   useEffect(()=>{if(editor&&editorRef)editorRef.current=editor;},[editor,editorRef]);
@@ -209,6 +250,7 @@ const RichEditor: React.FC<RichEditorProps> = ({value,onChange,placeholder='开�
         <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{aiResult}</p>
       </div>}
       {aiBusy&&<div className="border-t border-gray-200 dark:border-gray-700 p-4 bg-purple-50 dark:bg-purple-900/10 flex items-center gap-2 text-sm text-purple-600"><Loader className="w-4 h-4 animate-spin"/>AI 处理中...</div>}
+      {uploadStatus&&<div className="border-t border-gray-200 dark:border-gray-700 p-3 bg-blue-50 dark:bg-blue-900/10 flex items-center gap-2 text-sm text-blue-600"><Loader className="w-4 h-4 animate-spin"/>{uploadStatus}</div>}
       {showMedia&&<MediaBrowser onSelect={(url)=>{editor.chain().focus().setImage({src:url}).run();setShowMedia(false);}} onClose={()=>setShowMedia(false)}/>}
       {showPatterns && <PatternLibrary onSelect={(blocks) => {
         blocks.forEach((b: any) => editor.commands.insertContent(b));
