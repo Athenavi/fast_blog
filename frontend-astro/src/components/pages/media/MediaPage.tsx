@@ -1,6 +1,6 @@
 'use client';
 
-import React, {useState, useCallback} from 'react';
+import React, {useState, useCallback, useRef, useEffect} from 'react';
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
@@ -16,18 +16,27 @@ import {UploadArea} from './UploadArea';
 import {FolderTree} from './FolderTree';
 import {StorageStats} from './StorageStats';
 import {useMediaUpload} from './useMediaUpload';
-import {Search, Upload, Grid3X3, List, Trash2, FolderOpen, Download, X, Tag} from 'lucide-react';
+import {Search, Upload, Grid3X3, List, Trash2, FolderOpen, Download, X, Tag, ChevronLeft, ChevronRight} from 'lucide-react';
 
 function MediaBrowserInner() {
   const toast = useToast();
   const qc = useQueryClient();
 
   // View state
+  const [page, setPage] = useState(1);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [search, setSearch] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [selectedFolder, setSelectedFolder] = useState<number | null>(null);
+  const prevFilters = useRef('');
+
+  // 筛选条件变化时重置到第一页
+  useEffect(() => {
+    const filters = JSON.stringify({search, typeFilter, categoryFilter, selectedFolder});
+    if (prevFilters.current && prevFilters.current !== filters) setPage(1);
+    prevFilters.current = filters;
+  }, [search, typeFilter, categoryFilter, selectedFolder]);
 
   // Selection & dialogs
   const [selected, setSelected] = useState<number[]>([]);
@@ -48,23 +57,30 @@ function MediaBrowserInner() {
 
   // ── Queries ──
 
-  const mediaParams: Record<string, any> = {per_page: 100};
+  const mediaParams: Record<string, any> = {page, per_page: 24};
   if (search) mediaParams.q = search;
   if (typeFilter) mediaParams.media_type = typeFilter;
   if (categoryFilter) mediaParams.category = categoryFilter;
   if (selectedFolder != null) mediaParams.folder_id = selectedFolder;
 
-  const {data: mediaData, isLoading: mediaLoading} = useQuery<MediaFile[]>({
-    queryKey: ['media-files', search, typeFilter, categoryFilter, selectedFolder],
+  const {data: queryResult, isLoading: mediaLoading} = useQuery({
+    queryKey: ['media-files', page, search, typeFilter, categoryFilter, selectedFolder],
     queryFn: async () => {
       const res = await apiClient.get(MEDIA.LIST, mediaParams);
-      // 后端返回 ok(data={media_items: [...], pagination: {...}})
-      const raw = res.data?.media_items || res.data?.data || res.data?.files || [];
-      return Array.isArray(raw) ? raw : [];
+      const files = Array.isArray(res.data?.media_items) ? res.data.media_items :
+                    Array.isArray(res.data?.data) ? res.data.data :
+                    Array.isArray(res.data?.files) ? res.data.files : [];
+      const pagination = res.data?.pagination || res.pagination || {};
+      return {files, pagination};
     },
   });
 
-  const {data: folders, isLoading: foldersLoading} = useQuery<FolderNode[]>({
+  const files: MediaFile[] = queryResult?.files || [];
+  const pagination = queryResult?.pagination || {} as any;
+  const totalPages = pagination?.pages || 1;
+  const total = pagination?.total || 0;
+
+  const {data: rawFolders, isLoading: foldersLoading} = useQuery<FolderNode[]>({
     queryKey: ['media-folders'],
     queryFn: async () => {
       const res = await apiClient.get(MEDIA.FOLDERS_TREE);
@@ -73,6 +89,8 @@ function MediaBrowserInner() {
       return Array.isArray(raw) ? raw : [];
     },
   });
+  const folders: FolderNode[] = (rawFolders as FolderNode[]) || [];
+
 
   const {data: statsData, isLoading: statsLoading} = useQuery({
     queryKey: ['media-stats'],
@@ -82,8 +100,6 @@ function MediaBrowserInner() {
     },
   });
 
-  const files: MediaFile[] = mediaData || [];
-  const folderList: FolderNode[] = folders || [];
 
   // ── Tags & Category ──
 
@@ -345,7 +361,7 @@ function MediaBrowserInner() {
           <aside className="hidden lg:block w-56 flex-shrink-0">
             <div className="bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm rounded-2xl border border-gray-200 dark:border-gray-700 p-4 sticky top-24">
               <FolderTree
-                folders={folderList}
+                folders={folders || []}
                 selectedId={selectedFolder}
                 onSelect={(f) => setSelectedFolder(f?.id ?? null)}
                 onCreate={() => setCreateFolderOpen(true)}
@@ -374,10 +390,12 @@ function MediaBrowserInner() {
                 className="px-3 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"
               >
                 <option value="">全部类型</option>
-                <option value="image">图片</option>
-                <option value="video">视频</option>
-                <option value="audio">音频</option>
-                <option value="document">文档</option>
+                <option value="image">🖼 图片</option>
+                <option value="video">🎬 视频</option>
+                <option value="audio">🎵 音频</option>
+                <option value="document">📄 文档</option>
+                <option value="model">🧊 3D 模型</option>
+                <option value="application/zip">📦 压缩包</option>
               </select>
               <select
                 value={categoryFilter}
@@ -397,7 +415,7 @@ function MediaBrowserInner() {
                 </summary>
                 <div className="px-4 pb-4">
                   <FolderTree
-                    folders={folderList}
+                    folders={folders || []}
                     selectedId={selectedFolder}
                     onSelect={(f) => setSelectedFolder(f?.id ?? null)}
                     onCreate={() => setCreateFolderOpen(true)}
@@ -420,6 +438,45 @@ function MediaBrowserInner() {
               onEditTags={setTagEditTarget}
               onEditCategory={setCatEditTarget}
             />
+
+            {/* 分页 */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 pt-4">
+                <button
+                  disabled={page <= 1}
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  className="p-2 rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-30 hover:bg-white/60 dark:hover:bg-gray-800/60 transition-colors"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                {Array.from({length: Math.min(totalPages, 9)}, (_, i) => {
+                  const start = Math.max(1, Math.min(page - 4, totalPages - 8));
+                  const p = start + i;
+                  if (p > totalPages) return null;
+                  return (
+                    <button
+                      key={p}
+                      onClick={() => setPage(p)}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                        p === page
+                          ? 'bg-blue-600 text-white'
+                          : 'border border-gray-200 dark:border-gray-700 hover:bg-white/60 dark:hover:bg-gray-800/60'
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  );
+                })}
+                <button
+                  disabled={page >= totalPages}
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  className="p-2 rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-30 hover:bg-white/60 dark:hover:bg-gray-800/60 transition-colors"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+                <span className="text-xs text-gray-400 ml-2">共 {total} 项</span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -445,7 +502,7 @@ function MediaBrowserInner() {
         <MoveDialog
           open={moveDialogOpen}
           onClose={() => setMoveDialogOpen(false)}
-          folders={folderList}
+          folders={folders || []}
           mediaCount={selected.length}
           onMove={(folderPath) => moveMut.mutate({ids: selected, folderPath})}
         />
