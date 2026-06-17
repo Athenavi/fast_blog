@@ -125,8 +125,8 @@ class BaseConfig:
         'video/mp4', 'video/mpeg', 'video/quicktime', 'video/x-msvideo', 'video/webm', 'video/x-matroska',
         'video/x-flv', 'video/x-ms-wmv', 'video/x-m4v', 'video/3gpp', 'video/x-ms-asf', 'video/mp2t',
         # ===== 音频 =====
-        'audio/mpeg', 'audio/wav', 'audio/flac', 'audio/x-flac', 'audio/aac', 'audio/ogg',
-        'audio/mp3', 'audio/x-wav', 'audio/mp4', 'audio/x-ms-wma', 'audio/opus', 'audio/webm', 'audio/x-aiff',
+        'audio/mpeg', 'audio/wav', 'audio/flac', 'audio/x-flac', 'audio/aac', 'audio/ogg', 'audio/oga',
+        'audio/mp3', 'audio/x-wav', 'audio/mp4', 'audio/x-ms-wma', 'audio/opus', 'audio/webm', 'audio/weba', 'audio/x-aiff',
         # ===== Office Word =====
         'application/pdf', 'application/msword',
         'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -159,7 +159,7 @@ class BaseConfig:
         'application/gzip', 'application/x-tar', 'application/x-bzip2',
         'application/x-xz', 'application/zstd', 'application/x-lzma',
         'application/x-cab', 'application/x-cpio', 'application/x-iso9660-image',
-        'application/x-lha', 'application/x-lzh',
+        'application/x-lha', 'application/x-lzh', 'application/x-archive', 'application/x-xar',
         # ===== 电子书 =====
         'application/epub+zip',
         # ===== 邮件 =====
