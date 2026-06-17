@@ -118,60 +118,67 @@ class BaseConfig:
     TEMP_FOLDER = 'temp/upload'
     AVATAR_SERVER = "https://api.7trees.cn/avatar"
     ALLOWED_MIMES = [
-        # 常见图片格式
-        'image/jpeg',
-        'image/png',
-        'image/gif',
-        'image/bmp',
-        'image/tiff',
-        'image/webp',
-        'image/svg+xml',
-        # 常见视频格式
-        'video/mp4',
-        'video/avi',
-        'video/mpeg',
-        'video/quicktime',
-        'video/x-msvideo',
-        'video/mp2t',
-        'video/x-flv',
-        'video/webm',
-        'video/x-m4v',
-        'video/3gpp',
-        'video/x-matroska',  # .mkv
-        # 常见音频格式
-        'audio/wav',
-        'audio/mpeg',
-        'audio/ogg',
-        'audio/flac',   # audio/x-flac 也受支持（Python magic 回退结果）
-        'audio/x-flac',
-        'audio/aac',
-        'audio/mp3',
-        'audio/x-wav',
-        'audio/mp4',  # .m4a
-        # 文档格式
-        'application/pdf',
-        'application/msword',  # .doc
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',  # .docx
-        'application/vnd.ms-excel',  # .xls
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',  # .xlsx
-        'application/vnd.ms-powerpoint',  # .ppt
-        'application/vnd.openxmlformats-officedocument.presentationml.presentation',  # .pptx
-        'text/plain',  # .txt
-        'text/markdown',  # .md
-        'text/csv',  # .csv
-        'text/html',  # .html
-        # 压缩格式
-        'application/zip',
-        'application/x-zip-compressed',  # ZIP 文件的另一种 MIME 类型
-        'application/x-rar-compressed',
-        'application/x-7z-compressed',
-        'application/gzip',
-        'application/x-tar',
-        'application/x-bzip2',
-        # 其他常见格式
-        'application/json',
-        'application/xml',
-        'application/octet-stream',  # 通用二进制文件
+        # ===== 图片 =====
+        'image/jpeg', 'image/png', 'image/gif', 'image/bmp', 'image/webp', 'image/svg+xml', 'image/tiff',
+        'image/avif', 'image/heic', 'image/heif',
+        # ===== 视频 =====
+        'video/mp4', 'video/mpeg', 'video/quicktime', 'video/x-msvideo', 'video/webm', 'video/x-matroska',
+        'video/x-flv', 'video/x-ms-wmv', 'video/x-m4v', 'video/3gpp', 'video/x-ms-asf', 'video/mp2t',
+        # ===== 音频 =====
+        'audio/mpeg', 'audio/wav', 'audio/flac', 'audio/x-flac', 'audio/aac', 'audio/ogg',
+        'audio/mp3', 'audio/x-wav', 'audio/mp4', 'audio/x-ms-wma', 'audio/opus', 'audio/webm', 'audio/x-aiff',
+        # ===== Office Word =====
+        'application/pdf', 'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.template',
+        'application/vnd.ms-word.document.macroEnabled.12',
+        'application/vnd.ms-word.template.macroEnabled.12',
+        # ===== Office Excel =====
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.template',
+        'application/vnd.ms-excel.sheet.macroEnabled.12',
+        'application/vnd.ms-excel.sheet.binary.macroEnabled.12',
+        'application/vnd.ms-excel.template.macroEnabled.12',
+        'application/vnd.oasis.opendocument.spreadsheet',
+        'application/x-iwork-numbers-sffnumbers',
+        # ===== Office PowerPoint =====
+        'application/vnd.ms-powerpoint',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        'application/vnd.openxmlformats-officedocument.presentationml.template',
+        'application/vnd.openxmlformats-officedocument.presentationml.slideshow',
+        'application/vnd.ms-powerpoint.presentation.macroEnabled.12',
+        'application/vnd.ms-powerpoint.template.macroEnabled.12',
+        'application/vnd.ms-powerpoint.slideshow.macroEnabled.12',
+        # ===== 文档 & 文本 =====
+        'text/plain', 'text/markdown', 'text/csv', 'text/html', 'text/xml',
+        'application/json', 'application/xml',
+        # ===== 压缩包 & 归档 =====
+        'application/zip', 'application/x-zip-compressed',
+        'application/x-rar-compressed', 'application/x-7z-compressed',
+        'application/gzip', 'application/x-tar', 'application/x-bzip2',
+        'application/x-xz', 'application/zstd', 'application/x-lzma',
+        'application/x-cab', 'application/x-cpio', 'application/x-iso9660-image',
+        'application/x-lha', 'application/x-lzh',
+        # ===== 电子书 =====
+        'application/epub+zip',
+        # ===== 邮件 =====
+        'message/rfc822', 'application/vnd.ms-outlook',
+        # ===== CAD & 设计 =====
+        'image/vnd.dwg', 'image/vnd.dxf', 'application/dwf',
+        'application/oxps', 'application/vnd.ms-xpsdocument',
+        # ===== 3D 模型 =====
+        'model/gltf-binary', 'model/gltf+json', 'model/obj', 'model/stl',
+        'model/vnd.collada+xml', 'model/vrml', 'model/step',
+        'model/step-xml', 'application/step', 'application/x-ifc',
+        # ===== OFD & 国产格式 =====
+        'application/ofd', 'application/vnd.ofd',
+        # ===== Typst =====
+        'text/typst', 'application/x-typst',
+        # ===== Excalidraw & draw.io =====
+        'application/x-excalidraw', 'application/x-drawio',
+        # ===== 通用二进制 =====
+        'application/octet-stream',
     ]
     UPLOAD_LIMIT = 60 * 1024 * 1024
     MAX_LINE = 1000

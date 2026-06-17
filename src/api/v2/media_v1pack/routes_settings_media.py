@@ -17,14 +17,24 @@ from src.api.v2._helpers import ok, fail
 
 router = APIRouter(tags=["media-settings"])
 
-# 允许的 MIME 类型：图片 + 视频
+# 允许的 MIME 类型
 ALLOWED_MIMES = {
-    # 图片格式
-    'image/jpeg', 'image/png', 'image/gif', 'image/bmp', 'image/webp',
-    'image/svg+xml', 'image/tiff',
-    # 视频格式
-    'video/mp4', 'video/mpeg', 'video/quicktime', 'video/x-msvideo',
-    'video/webm', 'video/x-matroska',
+    'image/jpeg', 'image/png', 'image/gif', 'image/bmp', 'image/webp', 'image/svg+xml', 'image/tiff', 'image/avif',
+    'video/mp4', 'video/mpeg', 'video/quicktime', 'video/x-msvideo', 'video/webm', 'video/x-matroska',
+    'video/x-flv', 'video/x-ms-wmv', 'video/x-m4v', 'video/3gpp',
+    'audio/mpeg', 'audio/wav', 'audio/flac', 'audio/aac', 'audio/ogg', 'audio/mp3', 'audio/x-wav', 'audio/opus',
+    'application/pdf', 'application/msword',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'application/vnd.ms-excel',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'application/vnd.ms-powerpoint',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+    'text/plain', 'text/markdown', 'text/csv', 'text/html',
+    'application/zip', 'application/x-zip-compressed',
+    'application/x-rar-compressed', 'application/x-7z-compressed',
+    'application/gzip', 'application/x-tar',
+    'application/json', 'application/xml',
+    'application/octet-stream',
 }
 
 # 最大文件大小：50MB（视频文件通常较大）
