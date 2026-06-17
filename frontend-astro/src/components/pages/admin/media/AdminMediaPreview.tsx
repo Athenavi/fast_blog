@@ -60,7 +60,7 @@ export function AdminMediaPreview({
     currentIndex < files.length - 1 ? files[currentIndex + 1] : null;
 
   // ── Blob 获取（非图片走 file prop 绕过 iframe cookie 限制）──
-  const { blob, loading: blobLoading, error: blobError } = useFileBlob(
+  const { blob, loading: blobLoading, error: blobError, sizeExceeded } = useFileBlob(
     !isImage ? fullUrl : null,
     activeFile?.original_filename,
   );
@@ -198,6 +198,15 @@ export function AdminMediaPreview({
               <AlertCircle className="w-8 h-8" />
               <span className="text-sm">{blobError}</span>
             </div>
+          ) : sizeExceeded ? (
+            <FileViewer
+              url={fullUrl}
+              options={{
+                theme: 'dark',
+                toolbar: { position: 'bottom-right' },
+                pdf: { withCredentials: true },
+              }}
+            />
           ) : blob ? (
             <FileViewer
               file={blob}
@@ -276,3 +285,5 @@ export function AdminMediaPreview({
     </div>
   );
 }
+
+export default AdminMediaPreview;

@@ -67,7 +67,7 @@ export function MediaPreview({
     currentIndex < files.length - 1 ? files[currentIndex + 1] : null;
 
   // ── Blob 获取（非图片/音频通过 file prop 传给 FileViewer）──
-  const { blob, loading: blobLoading, error: blobError } = useFileBlob(
+  const { blob, loading: blobLoading, error: blobError, sizeExceeded } = useFileBlob(
     !isImage && !isAudio ? fullUrl : null,
     activeFile?.original_filename,
   );
@@ -207,6 +207,15 @@ export function MediaPreview({
               <AlertCircle className="w-8 h-8" />
               <span className="text-sm">{blobError}</span>
             </div>
+          ) : sizeExceeded ? (
+            <FileViewer
+              url={fullUrl}
+              options={{
+                theme: 'dark',
+                toolbar: { position: 'bottom-right' },
+                pdf: { withCredentials: true },
+              }}
+            />
           ) : blob ? (
             <FileViewer
               file={blob}
@@ -286,3 +295,5 @@ export function MediaPreview({
     </div>
   );
 }
+
+export default MediaPreview;

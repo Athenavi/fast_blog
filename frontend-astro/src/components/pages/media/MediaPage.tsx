@@ -1,6 +1,6 @@
 'use client';
 
-import React, {useState, useCallback, useRef, useEffect} from 'react';
+import React, {useState, useCallback, useRef, useEffect, Suspense} from 'react';
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {AuthGuard} from '@/components/AuthGuard';
 import {QueryProvider} from '@/components/QueryProvider';
@@ -10,12 +10,13 @@ import {ToastProvider, useToast} from '@/components/ui/toast-provider';
 import type {MediaFile} from '@/lib/api';
 import type {FolderNode} from './FolderTree';
 import {MediaGrid} from './MediaGrid';
-import {MediaPreview} from './MediaPreview';
+const MediaPreview = React.lazy(() => import('./MediaPreview'));
 import {DeleteConfirm, MoveDialog, CreateFolderDialog, TagEditorDialog, CategoryEditorDialog, BatchTagDialog} from './MediaDialogs';
 import {UploadArea} from './UploadArea';
 import {FolderTree} from './FolderTree';
 import {StorageStats} from './StorageStats';
 import {useMediaUpload} from './useMediaUpload';
+import {useDebounce} from '@/lib/hooks';
 import {Search, Upload, Grid3X3, List, Trash2, FolderOpen, Download, X, Tag, ChevronLeft, ChevronRight} from 'lucide-react';
 
 function MediaBrowserInner() {
@@ -29,6 +30,7 @@ function MediaBrowserInner() {
   const [typeFilter, setTypeFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
   const [selectedFolder, setSelectedFolder] = useState<number | null>(null);
+  const debouncedSearch = useDebounce(search, 300);
   const prevFilters = useRef('');
 
   // 筛选条件变化时重置到第一页
@@ -58,13 +60,14 @@ function MediaBrowserInner() {
   // ── Queries ──
 
   const mediaParams: Record<string, any> = {page, per_page: 24};
-  if (search) mediaParams.q = search;
+  if (debouncedSearch) mediaParams.q = debouncedSearch;
   if (typeFilter) mediaParams.media_type = typeFilter;
   if (categoryFilter) mediaParams.category = categoryFilter;
   if (selectedFolder != null) mediaParams.folder_id = selectedFolder;
 
   const {data: queryResult, isLoading: mediaLoading} = useQuery({
-    queryKey: ['media-files', page, search, typeFilter, categoryFilter, selectedFolder],
+    staleTime: 300_000,
+    queryKey: ['media-files', page, debouncedSearch, typeFilter, categoryFilter, selectedFolder],
     queryFn: async () => {
       const res = await apiClient.get(MEDIA.LIST, mediaParams);
       const files = Array.isArray(res.data?.media_items) ? res.data.media_items :
@@ -82,6 +85,7 @@ function MediaBrowserInner() {
 
   const {data: rawFolders, isLoading: foldersLoading} = useQuery<FolderNode[]>({
     queryKey: ['media-folders'],
+    staleTime: 300_000,
     queryFn: async () => {
       const res = await apiClient.get(MEDIA.FOLDERS_TREE);
       // 后端返回 ok(data={tree: [...]})
@@ -491,12 +495,18 @@ function MediaBrowserInner() {
         )}
 
         {previewMedia && (
-          <MediaPreview
-            files={files}
-            activeFile={previewMedia}
-            onClose={() => setPreviewMedia(null)}
-            onNavigate={setPreviewMedia}
-          />
+          <Suspense fallback={
+            <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center">
+              <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            </div>
+          }>
+            <MediaPreview
+              files={files}
+              activeFile={previewMedia}
+              onClose={() => setPreviewMedia(null)}
+              onNavigate={setPreviewMedia}
+            />
+          </Suspense>
         )}
 
         <MoveDialog

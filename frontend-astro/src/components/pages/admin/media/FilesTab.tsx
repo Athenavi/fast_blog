@@ -1,4 +1,4 @@
-import React, {useState, useRef, useMemo, useCallback, useEffect} from 'react';
+import React, {useState, useRef, useMemo, useCallback, useEffect, Suspense} from 'react';
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
 import {apiClient} from '@/lib/api/base-client';
 import {MEDIA} from '@/lib/api/api-paths';
@@ -11,7 +11,7 @@ import {
   Grid, HardDrive, Image, List, Music, Search, Square, CheckSquare, Tag, Trash2,
   Upload, Video, X, File
 } from 'lucide-react';
-import {AdminMediaPreview} from './AdminMediaPreview';
+const AdminMediaPreview = React.lazy(() => import('./AdminMediaPreview'));
 import {
   MediaSkeletonGrid, MediaSkeletonList, MediaGridCard, MediaListRow,
   BatchActionBar, MoveDialog, Pagination, DeleteConfirm
@@ -304,13 +304,19 @@ export function FilesTab() {
 
         {/* 全类型预览 */}
         {previewFile && (
-          <AdminMediaPreview
-            files={files}
-            activeFile={previewFile}
-            onClose={() => setPreviewFile(null)}
-            onNavigate={setPreviewFile}
-            onEdit={(f) => { setPreviewFile(null); setEditFile(f); }}
-          />
+          <Suspense fallback={
+            <div className="w-full h-64 flex items-center justify-center">
+              <div className="w-8 h-8 border-2 border-blue-600/30 border-t-blue-600 rounded-full animate-spin" />
+            </div>
+          }>
+            <AdminMediaPreview
+              files={files}
+              activeFile={previewFile}
+              onClose={() => setPreviewFile(null)}
+              onNavigate={setPreviewFile}
+              onEdit={(f) => { setPreviewFile(null); setEditFile(f); }}
+            />
+          </Suspense>
         )}
 
         {/* 图片编辑器 */}
