@@ -11,9 +11,10 @@ import {
   Grid, HardDrive, Image, List, Music, Search, Square, CheckSquare, Tag, Trash2,
   Upload, Video, X, File
 } from 'lucide-react';
+import {AdminMediaPreview} from './AdminMediaPreview';
 import {
   MediaSkeletonGrid, MediaSkeletonList, MediaGridCard, MediaListRow,
-  BatchActionBar, MoveDialog, Pagination, DeleteConfirm, ImagePreview
+  BatchActionBar, MoveDialog, Pagination, DeleteConfirm
 } from './MediaUI';
 import {type MediaFileItem, type FolderItem, getFileType, TYPE_OPTIONS, type TabKey} from './MediaTypes';
 import ImageEditorModal from './ImageEditorModal';
@@ -301,8 +302,16 @@ export function FilesTab() {
         {/* 分页 */}
       <Pagination page={page} totalPages={totalPages} total={total} onPageChange={setPage}/>
 
-        {/* 图片预览 */}
-        {previewFile && <ImagePreview file={previewFile} onClose={() => setPreviewFile(null)} onEdit={(f) => { setPreviewFile(null); setEditFile(f); }}/>}
+        {/* 全类型预览 */}
+        {previewFile && (
+          <AdminMediaPreview
+            files={files}
+            activeFile={previewFile}
+            onClose={() => setPreviewFile(null)}
+            onNavigate={setPreviewFile}
+            onEdit={(f) => { setPreviewFile(null); setEditFile(f); }}
+          />
+        )}
 
         {/* 图片编辑器 */}
         {editFile && (

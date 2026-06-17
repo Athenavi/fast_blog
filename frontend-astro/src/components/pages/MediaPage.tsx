@@ -6,7 +6,8 @@ import {MediaService} from '@/lib/api';
 import {UploadArea} from '@/components/pages/media/UploadArea';
 import {StorageStats} from '@/components/pages/media/StorageStats';
 import {useMediaUpload} from '@/components/pages/media/useMediaUpload';
-import {PreviewModal, DeleteConfirm, MoveDialog, CreateFolderDialog} from '@/components/pages/media/MediaDialogs';
+import {MediaPreview} from '@/components/pages/media/MediaPreview';
+import {DeleteConfirm, MoveDialog, CreateFolderDialog} from '@/components/pages/media/MediaDialogs';
 import {OfflineDownloadDialog} from '@/components/pages/media/OfflineDownloadDialog';
 import {FolderTree} from '@/components/pages/media/FolderTree';
 import {MEDIA} from '@/lib/api/api-paths';
@@ -441,7 +442,14 @@ const MediaPage: React.FC = () => {
       </div>
 
       {/* 非音频预览 */}
-      <PreviewModal media={previewMedia} onClose={()=>setPreviewMedia(null)}/>
+      {previewMedia && (
+        <MediaPreview
+          files={files}
+          activeFile={previewMedia}
+          onClose={() => setPreviewMedia(null)}
+          onNavigate={setPreviewMedia}
+        />
+      )}
       {/* 持久音频层 — 独立于预览，不被打断 */}
       {nowPlaying && (
           <AudioLayer

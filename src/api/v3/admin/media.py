@@ -121,10 +121,30 @@ async def upload_media(
     # 文件大小限制（默认 50MB）
     MAX_SIZE = 50 * 1024 * 1024
     ALLOWED_MIMES = {
+        # 图片
         'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
-        'video/mp4', 'video/webm', 'video/quicktime',
+        'image/bmp', 'image/tiff', 'image/avif',
+        # 视频
+        'video/mp4', 'video/webm', 'video/quicktime', 'video/x-msvideo',
+        'video/x-matroska', 'video/mpeg',
+        # 音频
         'audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/aac',
-        'application/pdf', 'text/plain', 'text/markdown',
+        'audio/flac', 'audio/opus', 'audio/webm',
+        # 文档
+        'application/pdf', 'text/plain', 'text/markdown', 'text/csv', 'text/html',
+        'application/msword',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.ms-excel',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        'application/vnd.ms-powerpoint',
+        'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+        # 压缩包
+        'application/zip', 'application/x-rar-compressed', 'application/x-7z-compressed',
+        'application/gzip', 'application/x-tar', 'application/x-bzip2',
+        # 数据
+        'application/json', 'application/xml',
+        # 通用
+        'application/octet-stream',
     }
 
     content = await file.read()

@@ -10,7 +10,8 @@ import {ToastProvider, useToast} from '@/components/ui/toast-provider';
 import type {MediaFile} from '@/lib/api';
 import type {FolderNode} from './FolderTree';
 import {MediaGrid} from './MediaGrid';
-import {PreviewModal, DeleteConfirm, MoveDialog, CreateFolderDialog, TagEditorDialog, CategoryEditorDialog, BatchTagDialog} from './MediaDialogs';
+import {MediaPreview} from './MediaPreview';
+import {DeleteConfirm, MoveDialog, CreateFolderDialog, TagEditorDialog, CategoryEditorDialog, BatchTagDialog} from './MediaDialogs';
 import {UploadArea} from './UploadArea';
 import {FolderTree} from './FolderTree';
 import {StorageStats} from './StorageStats';
@@ -433,9 +434,11 @@ function MediaBrowserInner() {
         )}
 
         {previewMedia && (
-          <PreviewModal
-            media={previewMedia}
+          <MediaPreview
+            files={files}
+            activeFile={previewMedia}
             onClose={() => setPreviewMedia(null)}
+            onNavigate={setPreviewMedia}
           />
         )}
 

@@ -14,6 +14,7 @@ export const TABS: { key: TabKey; label: string; icon: React.ComponentType<{ cla
 export interface MediaFileItem {
   id: number;
   original_filename: string;
+  filename?: string; // 兼容字段
   mime_type?: string;
   file_size?: number;
   url?: string;

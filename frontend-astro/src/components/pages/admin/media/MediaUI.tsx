@@ -1,7 +1,7 @@
 import React, {useState} from 'react';
 import {
   AlertTriangle, ArrowUp, ArrowDown, CheckCircle2, ChevronLeft, ChevronRight,
-  Clock, Copy, Download, Edit3, Eye, FileText, FolderOpen, Grid, Image, List, Music,
+  Clock, Download, Eye, FileText, FolderOpen, Grid, Image, List, Music,
   Search, Square, CheckSquare, Tag, Trash2, Upload, Video, X
 } from 'lucide-react';
 import {getFullMediaUrl, formatBytes} from '@/lib/utils';
@@ -223,42 +223,6 @@ export const MediaListRow: React.FC<{
 };
 
 /* ── 图片预览弹窗 ── */
-export const ImagePreview: React.FC<{
-  file: MediaFileItem;
-  onClose: () => void;
-  onEdit?: (f: MediaFileItem) => void;
-}> = ({file, onClose, onEdit}) => (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={onClose}>
-      <div className="relative max-w-4xl max-h-[90vh] p-4" onClick={e => e.stopPropagation()}>
-        <img src={getFullMediaUrl(file.url)} alt={file.original_filename}
-             className="max-w-full max-h-[80vh] object-contain rounded-2xl shadow-2xl"/>
-        <div className="mt-3 flex items-center justify-between bg-white/10 backdrop-blur-md rounded-xl p-3">
-          <div>
-            <p className="text-white font-medium text-sm">{file.original_filename}</p>
-            <p className="text-white/60 text-xs">{file.mime_type} · {file.file_size ? formatBytes(file.file_size) : '-'}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            {onEdit && (
-              <button onClick={() => onEdit(file)}
-                      className="p-2 bg-white/10 hover:bg-white/20 rounded-lg text-white transition-colors">
-                <Edit3 className="w-4 h-4"/>
-              </button>
-            )}
-            <button onClick={() => navigator.clipboard.writeText(getFullMediaUrl(file.url))}
-                    className="p-2 bg-white/10 hover:bg-white/20 rounded-lg text-white transition-colors">
-              <Copy className="w-4 h-4"/>
-            </button>
-            <button onClick={onClose}
-                    className="p-2 bg-white/10 hover:bg-white/20 rounded-lg text-white transition-colors">
-              <X className="w-4 h-4"/>
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-);
-
-/* ── 删除确认弹窗 ── */
 export const DeleteConfirm: React.FC<{
   title: string;
   message: string;

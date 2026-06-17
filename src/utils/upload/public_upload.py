@@ -96,14 +96,36 @@ class FileProcessor:
             }
             ext_lower = ext.lower()
             allowed_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp',
-                                  '.tiff', '.tif', '.svg',
+                                  '.tiff', '.tif', '.svg', '.avif', '.heic', '.heif',
                                   '.mp3', '.mp4', '.wav', '.flac', '.aac', '.ogg',
                                   '.webm', '.mkv', '.avi', '.mpeg', '.mpg', '.mov',
-                                  '.pdf', '.doc', '.docx', '.xls', '.xlsx',
-                                  '.ppt', '.pptx',
-                                  '.txt', '.md', '.csv', '.html', '.htm',
+                                  '.flv', '.wmv', '.m4v', '.3gp', '.asf',
+                                  '.pdf', '.doc', '.docx', '.docm', '.dotx', '.dotm',
+                                  '.xls', '.xlsx', '.xlsm', '.xlsb', '.xlt', '.xltm',
+                                  '.ods', '.fods', '.numbers',
+                                  '.ppt', '.pptx', '.pptm', '.potx', '.potm', '.ppsx', '.ppsm',
+                                  '.txt', '.md', '.csv', '.html', '.htm', '.xml',
+                                  '.json', '.js', '.mjs', '.cjs', '.css', '.java', '.py',
+                                  '.ts', '.tsx', '.jsx', '.log', '.yaml', '.yml', '.ini',
+                                  '.sh', '.bash', '.sql', '.go', '.rs', '.php', '.c', '.cpp',
+                                  '.cc', '.h', '.hpp', '.cs', '.diff',
                                   '.zip', '.rar', '.7z', '.gz', '.tar', '.bz2',
-                                  '.json', '.xml'}
+                                  '.xz', '.zst', '.lzma', '.cab', '.cpio', '.iso',
+                                  '.lha', '.lzh', '.tgz', '.tbz', '.tbz2', '.txz', '.tzst',
+                                  '.jar', '.war', '.ear', '.apk', '.cbz', '.cbr',
+                                  '.ofd',
+                                  '.typ', '.typst',
+                                  '.epub', '.umd',
+                                  '.eml', '.msg',
+                                  '.dwg', '.dxf', '.dwf', '.dwfx', '.xps',
+                                  '.glb', '.gltf', '.obj', '.stl', '.ply',
+                                  '.fbx', '.dae', '.3ds', '.3mf', '.amf',
+                                  '.usd', '.usda', '.usdc', '.usdz', '.kmz',
+                                  '.pcd', '.wrl', '.vrml', '.xyz', '.vtk', '.vtp',
+                                  '.step', '.stp', '.iges', '.igs', '.ifc', '.3dm',
+                                  '.excalidraw',
+                                  '.drawio', '.dio',
+                                  '.olb', '.dra'}
 
             if ext_lower not in allowed_extensions:
                 logger.warning(f"[WARN] 扩展名 {ext} 不在允许列表中，拒绝")
@@ -178,34 +200,134 @@ class FileProcessor:
             '.pdf': 'application/pdf',
             '.doc': 'application/msword',
             '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            '.docm': 'application/vnd.ms-word.document.macroEnabled.12',
+            '.dotx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.template',
+            '.dotm': 'application/vnd.ms-word.template.macroEnabled.12',
             '.xls': 'application/vnd.ms-excel',
             '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            '.xlsm': 'application/vnd.ms-excel.sheet.macroEnabled.12',
+            '.xlsb': 'application/vnd.ms-excel.sheet.binary.macroEnabled.12',
+            '.xlt': 'application/vnd.ms-excel',
+            '.xltm': 'application/vnd.ms-excel.template.macroEnabled.12',
+            '.ods': 'application/vnd.oasis.opendocument.spreadsheet',
+            '.fods': 'application/vnd.oasis.opendocument.spreadsheet',
+            '.numbers': 'application/x-iwork-numbers-sffnumbers',
             '.ppt': 'application/vnd.ms-powerpoint',
             '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+            '.pptm': 'application/vnd.ms-powerpoint.presentation.macroEnabled.12',
+            '.potx': 'application/vnd.openxmlformats-officedocument.presentationml.template',
+            '.potm': 'application/vnd.ms-powerpoint.template.macroEnabled.12',
+            '.ppsx': 'application/vnd.openxmlformats-officedocument.presentationml.slideshow',
+            '.ppsm': 'application/vnd.ms-powerpoint.slideshow.macroEnabled.12',
             '.txt': 'text/plain',
             '.md': 'text/markdown',
             '.csv': 'text/csv',
-            '.html': 'text/html', '.htm': 'text/html'
+            '.html': 'text/html', '.htm': 'text/html',
         }
         if ext in document_exts:
             return document_exts[ext]
 
         # 压缩格式
         archive_exts = {
-            '.zip': 'application/zip',
+            '.zip': 'application/zip', '.zipx': 'application/zip',
             '.rar': 'application/x-rar-compressed',
             '.7z': 'application/x-7z-compressed',
-            '.gz': 'application/gzip',
+            '.gz': 'application/gzip', '.gzip': 'application/gzip',
             '.tar': 'application/x-tar',
-            '.bz2': 'application/x-bzip2'
+            '.bz2': 'application/x-bzip2', '.bzip2': 'application/x-bzip2',
+            '.xz': 'application/x-xz',
+            '.zst': 'application/zstd', '.tzst': 'application/zstd',
+            '.lzma': 'application/x-lzma',
+            '.tgz': 'application/gzip',
+            '.tbz': 'application/x-bzip2', '.tbz2': 'application/x-bzip2',
+            '.txz': 'application/x-xz',
+            '.cab': 'application/x-cab',
+            '.cpio': 'application/x-cpio',
+            '.iso': 'application/x-iso9660-image',
+            '.lha': 'application/x-lha', '.lzh': 'application/x-lzh',
+            '.jar': 'application/java-archive',
+            '.war': 'application/java-archive',
+            '.ear': 'application/java-archive',
+            '.apk': 'application/vnd.android.package-archive',
+            '.cbz': 'application/zip',
+            '.cbr': 'application/x-rar-compressed',
         }
         if ext in archive_exts:
             return archive_exts[ext]
 
-        # 其他常见格式
-        other_exts = {
+        # 3D 模型 & CAD
+        cad_3d_exts = {
+            '.glb': 'model/gltf-binary',
+            '.gltf': 'model/gltf+json',
+            '.obj': 'model/obj',
+            '.stl': 'model/stl',
+            '.ply': 'model/ply',
+            '.fbx': 'application/octet-stream',
+            '.dae': 'model/vnd.collada+xml',
+            '.3ds': 'image/x-3ds',
+            '.3mf': 'model/3mf',
+            '.amf': 'application/x-amf',
+            '.usd': 'model/vnd.usd',
+            '.usda': 'model/vnd.usda',
+            '.usdc': 'model/vnd.usdc',
+            '.usdz': 'model/vnd.usdz+zip',
+            '.kmz': 'application/vnd.google-earth.kmz',
+            '.pcd': 'application/octet-stream',
+            '.wrl': 'model/vrml', '.vrml': 'model/vrml',
+            '.xyz': 'chemical/x-xyz',
+            '.vtk': 'application/octet-stream',
+            '.vtp': 'application/octet-stream',
+            '.step': 'application/step', '.stp': 'application/step',
+            '.iges': 'application/iges', '.igs': 'application/iges',
+            '.ifc': 'application/x-ifc',
+            '.3dm': 'model/x-3dm',
+            '.dwg': 'image/vnd.dwg',
+            '.dxf': 'image/vnd.dxf',
+            '.dwf': 'application/dwf',
+            '.dwfx': 'application/dwf',
+            '.xps': 'application/oxps',
+        }
+        if ext in cad_3d_exts:
+            return cad_3d_exts[ext]
+
+        # 代码 & 文本
+        code_exts = {
             '.json': 'application/json',
-            '.xml': 'application/xml'
+            '.xml': 'application/xml',
+            '.js': 'text/javascript', '.mjs': 'text/javascript', '.cjs': 'text/javascript',
+            '.ts': 'text/typescript', '.tsx': 'text/typescript',
+            '.jsx': 'text/javascript',
+            '.css': 'text/css',
+            '.java': 'text/x-java',
+            '.py': 'text/x-python',
+            '.log': 'text/plain',
+            '.yaml': 'text/yaml', '.yml': 'text/yaml',
+            '.ini': 'text/plain',
+            '.sh': 'application/x-sh', '.bash': 'application/x-sh',
+            '.sql': 'text/x-sql',
+            '.go': 'text/x-go',
+            '.rs': 'text/x-rust',
+            '.php': 'text/x-php',
+            '.c': 'text/x-c', '.cpp': 'text/x-c++', '.cc': 'text/x-c++',
+            '.h': 'text/x-c', '.hpp': 'text/x-c++',
+            '.cs': 'text/x-csharp',
+            '.diff': 'text/x-diff',
+        }
+        if ext in code_exts:
+            return code_exts[ext]
+
+        # 电子书 & 邮件 & 其他
+        other_exts = {
+            '.epub': 'application/epub+zip',
+            '.umd': 'application/x-umd-book',
+            '.eml': 'message/rfc822',
+            '.msg': 'application/vnd.ms-outlook',
+            '.ofd': 'application/ofd',
+            '.typ': 'text/typst', '.typst': 'text/typst',
+            '.excalidraw': 'application/x-excalidraw',
+            '.drawio': 'application/x-drawio', '.dio': 'application/x-drawio',
+            '.olb': 'application/octet-stream',
+            '.dra': 'application/octet-stream',
         }
         if ext in other_exts:
             return other_exts[ext]
