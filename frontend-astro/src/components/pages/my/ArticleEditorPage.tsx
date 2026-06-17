@@ -464,7 +464,7 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
         cmd: string; active?: boolean; children: React.ReactNode; title: string; variant?: 'default' | 'danger';
     }> = ({cmd, active, children, title, variant = 'default'}) => (
         <button type="button" onClick={() => exec(cmd)} title={title}
-                className={`group relative p-1.5 rounded-lg transition-all duration-150 ${
+                className={`group relative p-1.5 rounded-lg transition-all duration-150 active:scale-90 ${
                     active
                         ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 shadow-sm'
                         : variant === 'danger'
@@ -498,21 +498,28 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
 
               <Divider/>
 
+              {/* Toolbar nav — scrollable on narrow screens */}
+              <div className="flex items-center gap-1 overflow-x-auto flex-1 mx-1">
               {/* Undo/Redo */}
+              <div className="flex items-center gap-0.5 shrink-0">
               <TBtn cmd="undo" title="撤销 (Ctrl+Z)"><Undo2 className="w-4 h-4"/></TBtn>
               <TBtn cmd="redo" title="重做 (Ctrl+Shift+Z)"><Redo2 className="w-4 h-4"/></TBtn>
+              </div>
 
               <Divider/>
 
               {/* Text Formatting */}
+              <div className="flex items-center gap-0.5 shrink-0 bg-gray-50 dark:bg-gray-800/50 rounded-lg px-1 py-0.5">
               <TBtn cmd="bold" title="粗体 (Ctrl+B)"><Bold className="w-4 h-4"/></TBtn>
               <TBtn cmd="italic" title="斜体 (Ctrl+I)"><Italic className="w-4 h-4"/></TBtn>
               <TBtn cmd="underline" title="下划线 (Ctrl+U)"><UnderlineIcon className="w-4 h-4"/></TBtn>
               <TBtn cmd="strike" title="删除线"><Strikethrough className="w-4 h-4"/></TBtn>
+              </div>
 
               <Divider/>
 
               {/* Headings */}
+              <div className="flex items-center gap-0.5 shrink-0">
               <ToolbarDropdown
                   trigger={
                       <button
@@ -532,31 +539,37 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
                       </button>
                   ))}
               </ToolbarDropdown>
+              </div>
 
               <Divider/>
 
               {/* Lists & Blocks */}
+              <div className="flex items-center gap-0.5 shrink-0 bg-gray-50 dark:bg-gray-800/50 rounded-lg px-1 py-0.5">
               <TBtn cmd="ul" title="无序列表"><List className="w-4 h-4"/></TBtn>
               <TBtn cmd="ol" title="有序列表"><ListOrdered className="w-4 h-4"/></TBtn>
         <TBtn cmd="quote" title="引用"><Quote className="w-4 h-4"/></TBtn>
               <TBtn cmd="code" title="代码块"><Code className="w-4 h-4"/></TBtn>
               <TBtn cmd="hr" title="分割线"><Minus className="w-4 h-4"/></TBtn>
+              </div>
 
               <Divider/>
 
               {/* Media */}
+              <div className="flex items-center gap-0.5 shrink-0 bg-gray-50 dark:bg-gray-800/50 rounded-lg px-1 py-0.5">
               <TBtn cmd="image" title="插入图片"><Image className="w-4 h-4"/></TBtn>
               <TBtn cmd="link" title="插入链接"><Link className="w-4 h-4"/></TBtn>
+              </div>
 
               <Divider/>
 
-              {/* Alignment */}
-              <div className="hidden lg:flex items-center gap-0.5">
+              {/* Alignment — desktop only */}
+              <div className="hidden lg:flex items-center gap-0.5 shrink-0 bg-gray-50 dark:bg-gray-800/50 rounded-lg px-1 py-0.5">
                   <TBtn cmd="left" title="左对齐"><AlignLeft className="w-4 h-4"/></TBtn>
                   <TBtn cmd="center" title="居中"><AlignCenter className="w-4 h-4"/></TBtn>
                   <TBtn cmd="right" title="右对齐"><AlignRight className="w-4 h-4"/></TBtn>
-                  <Divider/>
               </div>
+
+              </div>{/* end toolbar nav */}
 
               {/* More Actions */}
         {mode === 'edit' && articleId && (
@@ -710,10 +723,10 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
         </main>
 
           {/* ===== Sidebar ===== */}
-          {showSidebar && !focusMode && (
+          {!focusMode && (
               <aside
-                  className="w-72 lg:w-80 border-l border-gray-200/80 dark:border-gray-800/80 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-sm overflow-y-auto flex-shrink-0">
-                  <div className="p-4 space-y-0">
+                  className={`${showSidebar ? 'w-72 lg:w-80' : 'w-0'} border-l border-gray-200/80 dark:border-gray-800/80 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-sm overflow-hidden flex-shrink-0 transition-all duration-300 ease-in-out`}>
+                  <div className={`p-4 space-y-0 min-w-72 lg:min-w-80 overflow-y-auto h-full ${showSidebar ? 'opacity-100' : 'opacity-0'} transition-opacity duration-200 delay-75`}>
                       {/* Writing Stats Card */}
                       <div
                           className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-4 mb-4 border border-blue-100 dark:border-blue-800/30">

@@ -250,7 +250,7 @@ const RichEditor: React.FC<RichEditorProps> = ({value,onChange,placeholder='开�
         <p className="text-sm text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{aiResult}</p>
       </div>}
       {aiBusy&&<div className="border-t border-gray-200 dark:border-gray-700 p-4 bg-purple-50 dark:bg-purple-900/10 flex items-center gap-2 text-sm text-purple-600"><Loader className="w-4 h-4 animate-spin"/>AI 处理中...</div>}
-      {uploadStatus&&<div className="border-t border-gray-200 dark:border-gray-700 p-3 bg-blue-50 dark:bg-blue-900/10 flex items-center gap-2 text-sm text-blue-600"><Loader className="w-4 h-4 animate-spin"/>{uploadStatus}</div>}
+      {uploadStatus&&<div className="fixed top-4 right-4 z-[100] flex items-center gap-2.5 px-4 py-3 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 text-sm text-blue-600 dark:text-blue-400 transition-all duration-300"><Loader className="w-4 h-4 animate-spin shrink-0"/><span className="truncate max-w-[240px]">{uploadStatus}</span><button onClick={()=>setUploadStatus(null)} className="p-0.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ml-1 shrink-0"><X className="w-3.5 h-3.5"/></button></div>}
       {showMedia&&<MediaBrowser onSelect={(url)=>{editor.chain().focus().setImage({src:url}).run();setShowMedia(false);}} onClose={()=>setShowMedia(false)}/>}
       {showPatterns && <PatternLibrary onSelect={(blocks) => {
         blocks.forEach((b: any) => editor.commands.insertContent(b));
