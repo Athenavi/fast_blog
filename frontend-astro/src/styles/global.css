@@ -863,6 +863,15 @@
     contain: size;
 }
 
+/* ── Animation: bounce once ── */
+@keyframes bounce-once {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.3); }
+}
+.animate-bounce-once {
+  animation: bounce-once 0.3s ease-in-out;
+}
+
 /* ── Performance: Table Optimization ── */
 /* 使用 fixed table-layout 避免重排 */
 .table-fixed-layout {

@@ -38,8 +38,8 @@ function PatternLibrary({onSelect, onClose}: { onSelect: (blocks: any) => void; 
       }
     }).catch(console.error);
   }, []);
-  return <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40" onClick={onClose}>
-    <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-3xl max-h-[85vh] flex flex-col shadow-2xl"
+  return <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={onClose}>
+    <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-3xl max-h-[85vh] flex flex-col shadow-2xl border border-gray-200 dark:border-gray-700"
          onClick={e => e.stopPropagation()}>
       <div className="flex items-center justify-between px-6 py-4 border-b shrink-0"><h3
           className="font-bold text-gray-900 dark:text-white">块模式库</h3>
@@ -81,8 +81,8 @@ function StyleManager({onClose}: { onClose: () => void }) {
       if (r.success) onClose()
     });
   };
-  return <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40" onClick={onClose}>
-    <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-md flex flex-col shadow-2xl"
+  return <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={onClose}>
+    <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-md flex flex-col shadow-2xl border border-gray-200 dark:border-gray-700"
          onClick={e => e.stopPropagation()}>
       <div className="flex items-center justify-between px-6 py-4 border-b shrink-0"><h3
           className="font-bold text-gray-900 dark:text-white">全局样式方案</h3>
@@ -112,8 +112,8 @@ const AI_ENDPOINTS:Record<string,string> = {
 function MediaBrowser({onSelect,onClose}:{onSelect:(url:string)=>void;onClose:()=>void}) {
   const [files,setFiles]=useState<any[]>([]);const [loading,setLoading]=useState(true);
   React.useEffect(()=>{apiClient.get(MEDIA.FILES_LIST,{page:1,per_page:30}).then(r=>{setFiles(r.success&&r.data?((r.data as any).files||(r.data as any).media_items||[]):[])}).finally(()=>setLoading(false));},[]);
-  return <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40" onClick={onClose}>
-    <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-2xl max-h-[80vh] flex flex-col shadow-2xl" onClick={e=>e.stopPropagation()}>
+  return <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={onClose}>
+    <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-2xl max-h-[80vh] flex flex-col shadow-2xl border border-gray-200 dark:border-gray-700" onClick={e=>e.stopPropagation()}>
       <div className="flex items-center justify-between px-6 py-4 border-b shrink-0"><h3 className="font-bold text-gray-900 dark:text-white">媒体库</h3><button onClick={onClose} className="p-1 rounded hover:bg-gray-100"><X className="w-5 h-5"/></button></div>
       <div className="flex-1 overflow-y-auto p-4">
         {loading?<div className="p-12 text-center"><div className="animate-spin w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full mx-auto"/></div>
@@ -224,7 +224,21 @@ const RichEditor: React.FC<RichEditorProps> = ({value,onChange,placeholder='开�
     <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden relative">
       <EditorContent editor={editor} />
 
-      {/* Floating buttons */}
+      {/* Mobile: horizontal floating toolbar */}
+      <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 lg:hidden flex items-center gap-2 px-4 py-2.5 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700">
+      <button onClick={() => setShowPatterns(true)} title="块模式"
+              className="w-9 h-9 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-xl hover:scale-110 transition-all flex items-center justify-center"><LayoutGrid className="w-4 h-4"/></button>
+      <button onClick={() => setShowStyles(true)} title="全局样式"
+              className="w-9 h-9 bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 rounded-xl hover:scale-110 transition-all flex items-center justify-center"><Palette className="w-4 h-4"/></button>
+      <button onClick={()=>setShowMedia(true)} title="媒体库"
+              className="w-9 h-9 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl hover:scale-110 transition-all flex items-center justify-center"><ImageIcon2 className="w-4 h-4"/></button>
+      <div className="w-px h-6 bg-gray-200 dark:bg-gray-700"/>
+      <button onClick={()=>setShowAI(!showAI)} title="AI 助手"
+              className="w-9 h-9 bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 text-purple-600 dark:text-purple-400 rounded-xl hover:scale-110 transition-all flex items-center justify-center"><Sparkles className="w-4 h-4"/></button>
+      </div>
+
+      {/* Desktop: vertical stack */}
+      <div className="hidden lg:block">
       <button onClick={() => setShowPatterns(true)}
               className="fixed bottom-36 right-6 z-40 w-11 h-11 bg-indigo-600 text-white rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center justify-center"
               title="块模式"><LayoutGrid className="w-5 h-5"/></button>
@@ -233,6 +247,7 @@ const RichEditor: React.FC<RichEditorProps> = ({value,onChange,placeholder='开�
               title="全局样式"><Palette className="w-5 h-5"/></button>
       <button onClick={()=>setShowMedia(true)} className="fixed bottom-20 right-6 z-40 w-11 h-11 bg-blue-600 text-white rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center justify-center" title="媒体库"><ImageIcon2 className="w-5 h-5"/></button>
       <button onClick={()=>setShowAI(!showAI)} className="fixed bottom-6 right-6 z-40 w-12 h-12 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-full shadow-xl hover:shadow-2xl hover:scale-105 transition-all flex items-center justify-center" title="AI 助手"><Sparkles className="w-5 h-5"/></button>
+      </div>
 
       {/* AI Menu */}
       {showAI && !aiResult && !aiBusy && (

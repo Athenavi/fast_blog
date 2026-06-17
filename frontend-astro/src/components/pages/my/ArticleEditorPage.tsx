@@ -687,17 +687,22 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
           {/* Main Editor */}
           <main className={`flex-1 overflow-y-auto transition-all duration-300 ${focusMode ? '' : ''}`}>
               <div
-                  className={`mx-auto px-6 lg:px-12 py-10 transition-all duration-300 ${showSidebar && !focusMode ? 'max-w-3xl' : 'max-w-4xl'}`}>
+                  className={`mx-auto px-6 lg:px-12 py-10 transition-all duration-300 ${showSidebar && !focusMode ? 'max-w-4xl' : 'max-w-5xl'}`}>
                   {/* Title */}
-                  <div className="mb-8">
+                  <div className="mb-8 group">
                       <input {...register('title')} placeholder="在此输入文章标题..."
-                             className="w-full text-3xl lg:text-4xl font-bold px-0 py-2 bg-transparent border-none outline-none focus:ring-0 dark:text-white placeholder-gray-300 dark:placeholder-gray-600 tracking-tight leading-tight"
+                             className="w-full text-3xl lg:text-4xl font-bold px-0 py-3 bg-transparent border-none outline-none focus:ring-0 dark:text-white placeholder-gray-300 dark:placeholder-gray-600 tracking-tight leading-tight transition-all"
                              style={{fontFamily: 'inherit'}}/>
+                      <div className="h-0.5 bg-gray-100 dark:bg-gray-800 rounded-full group-focus-within:bg-gradient-to-r group-focus-within:from-blue-500 group-focus-within:to-indigo-500 transition-all duration-300"/>
+                      <div className="flex items-center justify-between mt-1.5">
                       {errors.title && (
-                          <p className="flex items-center gap-1.5 text-red-500 text-sm mt-2">
+                          <p className="flex items-center gap-1.5 text-red-500 text-sm">
                               <AlertCircle className="w-3.5 h-3.5"/>{errors.title.message}
                           </p>
                       )}
+                      {!errors.title && <span/>}
+                      <span className="text-[10px] text-gray-300 dark:text-gray-600">{(watch('title') || '').length}/100</span>
+                      </div>
                       {/* Slug preview */}
                       {watch('slug') && (
                           <div className="flex items-center gap-2 mt-2">
@@ -722,10 +727,10 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
           </div>
         </main>
 
-          {/* ===== Sidebar ===== */}
+          {/* ===== Sidebar — Desktop ===== */}
           {!focusMode && (
               <aside
-                  className={`${showSidebar ? 'w-72 lg:w-80' : 'w-0'} border-l border-gray-200/80 dark:border-gray-800/80 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-sm overflow-hidden flex-shrink-0 transition-all duration-300 ease-in-out`}>
+                  className={`hidden lg:block ${showSidebar ? 'w-72 lg:w-80' : 'w-0'} border-l border-gray-200/80 dark:border-gray-800/80 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-sm overflow-hidden flex-shrink-0 transition-all duration-300 ease-in-out`}>
                   <div className={`p-4 space-y-0 min-w-72 lg:min-w-80 overflow-y-auto h-full ${showSidebar ? 'opacity-100' : 'opacity-0'} transition-opacity duration-200 delay-75`}>
                       {/* Writing Stats Card */}
                       <div
@@ -932,6 +937,108 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
                   </div>
           </aside>
         )}
+
+          {/* ===== Sidebar — Mobile Drawer ===== */}
+          {showSidebar && !focusMode && (
+            <div className="fixed inset-0 z-50 lg:hidden" onClick={() => setShowSidebar(false)}>
+              <div className="absolute inset-0 bg-black/40 backdrop-blur-sm"/>
+              <div className="absolute bottom-0 left-0 right-0 max-h-[80vh] bg-white dark:bg-gray-900 rounded-t-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-y-auto"
+                   onClick={e => e.stopPropagation()}>
+                <div className="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 px-4 py-3 flex items-center justify-between rounded-t-2xl z-10">
+                  <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">文章设置</span>
+                  <button onClick={() => setShowSidebar(false)} className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                    <X className="w-5 h-5 text-gray-400"/>
+                  </button>
+                </div>
+                <div className="p-4 space-y-0">
+                      {/* Writing Stats */}
+                      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-4 mb-4 border border-blue-100 dark:border-blue-800/30">
+                          <div className="flex items-center gap-2 mb-3">
+                              <BarChart3 className="w-4 h-4 text-blue-600 dark:text-blue-400"/>
+                              <span className="text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wider">写作统计</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                              {[
+                                  {label: '字数', value: stats.chars.toLocaleString()},
+                                  {label: '词数', value: stats.words.toLocaleString()},
+                                  {label: '段落', value: stats.paragraphs.toString()},
+                                  {label: '阅读时间', value: `${stats.readingTime} 分钟`},
+                              ].map(s => (
+                                  <div key={s.label} className="text-center">
+                                      <div className="text-lg font-bold text-gray-900 dark:text-white">{s.value}</div>
+                                      <div className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider">{s.label}</div>
+                                  </div>
+                              ))}
+                          </div>
+                      </div>
+                      <Section icon={Eye} title="发布设置">
+                          <div className="space-y-3">
+                              <label className="flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 cursor-pointer group hover:border-blue-200 dark:hover:border-blue-800 transition-colors">
+                                  <div className="flex items-center gap-2.5">
+                                      {isHidden ? <EyeOff className="w-4 h-4 text-gray-400"/> : <Eye className="w-4 h-4 text-gray-400"/>}
+                                      <span className="text-sm text-gray-700 dark:text-gray-300">公开可见</span>
+                                  </div>
+                                  <div className="relative">
+                                      <input type="checkbox" {...register('hidden')} className="sr-only peer"/>
+                                      <div className="w-10 h-5 bg-gray-200 dark:bg-gray-700 rounded-full peer-checked:bg-blue-600 transition-colors"/>
+                                      <div className="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-sm peer-checked:translate-x-5 transition-transform"/>
+                                  </div>
+                              </label>
+                              <label className="flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 cursor-pointer group hover:border-blue-200 dark:hover:border-blue-800 transition-colors">
+                                  <div className="flex items-center gap-2.5">
+                                      <Crown className="w-4 h-4 text-gray-400"/>
+                                      <span className="text-sm text-gray-700 dark:text-gray-300">仅VIP可见</span>
+                                  </div>
+                                  <div className="relative">
+                                      <input type="checkbox" {...register('is_vip_only')} className="sr-only peer"/>
+                                      <div className="w-10 h-5 bg-gray-200 dark:bg-gray-700 rounded-full peer-checked:bg-amber-600 transition-colors"/>
+                                      <div className="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-sm peer-checked:translate-x-5 transition-transform"/>
+                                  </div>
+                              </label>
+                          </div>
+                      </Section>
+                      {mode === 'edit' && articleId && (
+                          <Section icon={Link} title="预览链接" defaultOpen={false}>
+                              <div className="space-y-2">
+                                  <input type="text" readOnly value={previewLink} className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-xs text-gray-500 dark:text-gray-400 font-mono truncate"/>
+                                  <div className="flex gap-2">
+                                      <button onClick={() => { navigator.clipboard.writeText(previewLink); setPreviewCopied(true); setTimeout(() => setPreviewCopied(false), 2000); }} className="flex-1 px-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">{previewCopied ? '已复制 ✓' : '复制链接'}</button>
+                                      {previewLink && <button onClick={revokePreview} className="px-3 py-1.5 text-xs bg-red-50 dark:bg-red-900/20 text-red-500 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors">撤销</button>}
+                                  </div>
+                              </div>
+                          </Section>
+                      )}
+                      {mode === 'edit' && (
+                          <Section icon={Clock} title="定时发布" defaultOpen={!!scheduledAt}>
+                              <div className="space-y-2">
+                                  <input type="datetime-local" value={scheduledAt || ''} onChange={e => setScheduledAt(e.target.value)} className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm dark:text-white"/>
+                                  {scheduledAt && <button onClick={() => setScheduledAt('')} className="text-xs text-red-500 hover:text-red-600">清除定时</button>}
+                              </div>
+                          </Section>
+                      )}
+                      <Section icon={FolderTree} title="分类">
+                          <select {...register('category_id', {valueAsNumber: true})} className="w-full px-3 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:text-white transition-all">
+                              <option value="">选择分类</option>
+                              {categories?.map((c: Category) => (<option key={c.id} value={c.id}>{c.name}</option>))}
+                          </select>
+                      </Section>
+                      <Section icon={Tag} title="标签" defaultOpen={false}>
+                          <input {...register('tags')} placeholder="逗号分隔多个标签" className="w-full px-3 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:text-white placeholder-gray-400 transition-all"/>
+                      </Section>
+                      <Section icon={Image} title="封面图" defaultOpen={false}>
+                          <CoverImageUploader value={watch('cover_image') || ''} onChange={v => setValue('cover_image', v)}/>
+                      </Section>
+                      <Section icon={FileText} title="摘要" defaultOpen={false}>
+                          <textarea {...register('excerpt')} rows={3} placeholder="文章摘要..." className="w-full px-3 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:text-white placeholder-gray-400 resize-none transition-all"/>
+                          <div className="flex justify-end mt-1"><span className="text-[10px] text-gray-400">{(watch('excerpt') || '').length}/500</span></div>
+                      </Section>
+                      <Section icon={Hash} title="URL 别名" defaultOpen={false}>
+                          <input {...register('slug')} placeholder="自动生成" className="w-full px-3 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:text-white placeholder-gray-400 font-mono text-xs transition-all"/>
+                      </Section>
+                </div>
+              </div>
+            </div>
+          )}
       </div>
 
           {/* ===== Status Bar ===== */}
