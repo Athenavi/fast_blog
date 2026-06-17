@@ -6,9 +6,7 @@ import {useForm} from 'react-hook-form';
 import {z} from 'zod';
 import {zodResolver} from '@hookform/resolvers/zod';
 import {apiClient, CategoryService} from '@/lib/api';
-import {MediaService} from '@/lib/api/media-service';
 import type {Category} from '@/lib/api/base-types';
-import {htmlToMarkdown, markdownToHtml} from '@/lib/markdown-converter';
 import {
   AlertCircle,
   AlignCenter,
@@ -21,7 +19,6 @@ import {
   ChevronDown,
   Clock,
   Code,
-  Code2,
   Copy,
   Crown,
   Eye,
@@ -66,7 +63,7 @@ import CoverImageUploader from '@/components/editor/CoverImageUploader';
 import {useYjsCollaboration} from '@/hooks/useYjsCollaboration';
 import {ShortcutsModal, ToolbarDropdown, Section, SaveStatus, useWritingStats} from './ArticleEditorComponents';
 
-const RichEditor = React.lazy(() => import('@/components/editor/RichEditor'));
+const MarkdownEditor = React.lazy(() => import('@/components/editor/MarkdownEditor'));
 
 /* ── Constants ── */
 const DRAFT_KEY = 'fastblog_draft';
@@ -99,9 +96,6 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
   const [showRevisions, setShowRevisions] = useState(false);
     const [showShortcuts, setShowShortcuts] = useState(false);
     const [focusMode, setFocusMode] = useState(false);
-  const [editorMode, setEditorMode] = useState<'wysiwyg' | 'source'>('wysiwyg');
-  const [sourceContent, setSourceContent] = useState('');
-  const [sourceUploadStatus, setSourceUploadStatus] = useState<string|null>(null);
   const [content, setContent] = useState('');
     const [showDraftBanner, setShowDraftBanner] = useState(false);
     const [draftData, setDraftData] = useState<any>(null);
@@ -351,68 +345,7 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
     };
 
     // Toolbar exec
-    const textareaRef = useRef<HTMLTextAreaElement>(null);
-
-    // Insert Markdown syntax at textarea cursor position
-    const insertMarkdownSyntax = useCallback((before: string, after: string) => {
-      const ta = textareaRef.current;
-      if (!ta) return;
-      const start = ta.selectionStart;
-      const end = ta.selectionEnd;
-      const text = ta.value;
-      const selected = text.substring(start, end);
-      const replacement = `${before}${selected}${after}`;
-      ta.value = text.substring(0, start) + replacement + text.substring(end);
-      ta.selectionStart = ta.selectionEnd = start + before.length + selected.length;
-      ta.focus();
-      setSourceContent(ta.value);
-    }, []);
-
-    const toggleEditorMode = useCallback(() => {
-      setEditorMode(prev => {
-        if (prev === 'wysiwyg') {
-          // WYSIWYG → Source: convert HTML to Markdown
-          const html = editorRef.current?.getHTML() || '';
-          const md = htmlToMarkdown(html);
-          setSourceContent(md);
-          setContent(md);
-          return 'source';
-        } else {
-          // Source → WYSIWYG: convert Markdown to HTML
-          const md = sourceContent;
-          const html = markdownToHtml(md);
-          setContent(html);
-          // Also push to TipTap editor
-          const ed = editorRef.current;
-          if (ed && !ed.isDestroyed) {
-            ed.commands.setContent(html);
-          }
-          return 'wysiwyg';
-        }
-      });
-    }, [sourceContent]);
-
     const exec = useCallback((cmd: string, ...args: any[]) => {
-      if (editorMode === 'source') {
-        // Source mode: insert Markdown syntax at cursor
-        switch (cmd) {
-          case 'bold': insertMarkdownSyntax('**', '**'); break;
-          case 'italic': insertMarkdownSyntax('*', '*'); break;
-          case 'underline': insertMarkdownSyntax('<u>', '</u>'); break;
-          case 'strike': insertMarkdownSyntax('~~', '~~'); break;
-          case 'h1': insertMarkdownSyntax('\n# ', ''); break;
-          case 'h2': insertMarkdownSyntax('\n## ', ''); break;
-          case 'h3': insertMarkdownSyntax('\n### ', ''); break;
-          case 'ul': insertMarkdownSyntax('\n- ', ''); break;
-          case 'ol': insertMarkdownSyntax('\n1. ', ''); break;
-          case 'quote': insertMarkdownSyntax('\n> ', ''); break;
-          case 'code': insertMarkdownSyntax('\n```\n', '\n```\n'); break;
-          case 'hr': insertMarkdownSyntax('\n---\n', ''); break;
-          case 'link': insertMarkdownSyntax('[', '](url)'); break;
-          case 'image': insertMarkdownSyntax('![', '](url)'); break;
-        }
-        return;
-      }
     const e = editorRef.current;
     if (!e) return;
         const chain = e.chain().focus();
@@ -479,7 +412,7 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
                 break;
             }
         }
-    }, [editorMode, insertMarkdownSyntax]);
+    }, []);
 
     // Warn before leaving with unsaved changes
     useEffect(() => {
@@ -697,11 +630,6 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
                       {showSidebar ? <PanelRightClose className="w-4 h-4"/> : <PanelRightOpen className="w-4 h-4"/>}
                   </button>
 
-                  <button onClick={toggleEditorMode} title={editorMode === 'wysiwyg' ? '切换到 Markdown 源码' : '切换到富文本编辑'}
-                          className={`p-2 rounded-lg transition-all ${editorMode === 'source' ? 'text-emerald-600 bg-emerald-50 dark:bg-emerald-900/20' : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800'}`}>
-                      <Code2 className="w-4 h-4"/>
-                  </button>
-
                   <Divider/>
 
                   <button onClick={saveDraftAction} disabled={saving}
@@ -810,62 +738,8 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
                           ))}
                       </div>
                   }>
-                  {editorMode === 'wysiwyg' ? (
-                    <RichEditor value={content} onChange={setContent} placeholder="开始你的创作..."
+                  <MarkdownEditor value={content} onChange={setContent} placeholder="开始你的创作..."
                                 editorRef={editorRef}/>
-                  ) : (
-                    <textarea ref={textareaRef} value={sourceContent}
-                      onChange={e => { setSourceContent(e.target.value); setContent(e.target.value); }}
-                      onPaste={async e => {
-                        const dt = e.clipboardData;
-                        let files: File[] = [];
-                        if (dt?.files?.length) files = Array.from(dt.files);
-                        else if (dt?.items?.length) {
-                          for (let i = 0; i < dt.items.length; i++) {
-                            const item = dt.items[i];
-                            if (item.kind === 'file') { const f = item.getAsFile(); if (f) files.push(f); }
-                          }
-                        }
-                        if (!files.length) return;
-                        e.preventDefault();
-                        const ta = textareaRef.current;
-                        if (!ta) return;
-                        const pos = ta.selectionStart;
-                        for (const file of files) {
-                          setSourceUploadStatus(`正在上传 ${file.name}...`);
-                          try {
-                            const resp = await MediaService.uploadMediaFileWithProgress(file);
-                            if (!resp.success || !resp.data?.files?.[0]?.url) continue;
-                            const url = resp.data.files[0].url;
-                            const md = file.type.startsWith('image/')
-                              ? `\n![${file.name}](${url})\n`
-                              : `\n[${file.name}](${url})\n`;
-                            const before = ta.value.substring(0, ta.selectionStart);
-                            const after = ta.value.substring(ta.selectionStart);
-                            ta.value = before + md + after;
-                            ta.selectionStart = ta.selectionEnd = pos + md.length;
-                          } catch (err) {
-                            console.error('Source paste upload failed:', err);
-                          }
-                        }
-                        setSourceUploadStatus(null);
-                        setSourceContent(ta.value);
-                        setContent(ta.value);
-                      }}
-                      className="w-full min-h-[60vh] font-mono text-sm leading-relaxed px-6 py-4 bg-transparent dark:text-gray-200 placeholder-gray-300 dark:placeholder-gray-600 resize-none focus:outline-none"
-                      placeholder="开始你的创作（Markdown 源码）..."
-                      spellCheck={false}
-                    />
-                  )}
-                  {sourceUploadStatus && (
-                    <div className="fixed top-4 right-4 z-[100] flex items-center gap-2.5 px-4 py-3 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 text-sm text-blue-600 dark:text-blue-400">
-                      <LoaderIcon className="w-4 h-4 animate-spin shrink-0"/>
-                      <span className="truncate max-w-[240px]">{sourceUploadStatus}</span>
-                      <button onClick={() => setSourceUploadStatus(null)} className="p-0.5 rounded hover:bg-gray-100 dark:hover:bg-gray-700 ml-1 shrink-0">
-                        <X className="w-3.5 h-3.5"/>
-                      </button>
-                    </div>
-                  )}
                   </React.Suspense>
           </div>
         </main>
