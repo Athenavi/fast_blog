@@ -344,73 +344,39 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
         setScheduledTime('');
     };
 
-    // Toolbar exec
+    // Toolbar exec — insert Markdown syntax at cursor in textarea
     const exec = useCallback((cmd: string, ...args: any[]) => {
-    const e = editorRef.current;
-    if (!e) return;
-        const chain = e.chain().focus();
+    const ref = editorRef.current;
+    const ta: HTMLTextAreaElement | null = ref?.ta ?? null;
+    if (!ta) return;
+    const start = ta.selectionStart, end = ta.selectionEnd;
+    const sel = ta.value.substring(start, end);
+    const insertMd = (before: string, after: string, placeholder?: string) => {
+      const selected = sel || placeholder || '';
+      const replacement = before + selected + after;
+      ta.value = ta.value.substring(0, start) + replacement + ta.value.substring(end);
+      const cursor = start + before.length + selected.length;
+      ta.selectionStart = ta.selectionEnd = cursor;
+      ta.focus();
+      setContent(ta.value);
+    };
         switch (cmd) {
-            case 'bold':
-                chain.toggleBold().run();
-                break;
-            case 'italic':
-                chain.toggleItalic().run();
-                break;
-            case 'underline':
-                chain.toggleUnderline().run();
-                break;
-            case 'strike':
-                chain.toggleStrike().run();
-                break;
-            case 'h1':
-                chain.toggleHeading({level: 1}).run();
-                break;
-            case 'h2':
-                chain.toggleHeading({level: 2}).run();
-                break;
-            case 'h3':
-                chain.toggleHeading({level: 3}).run();
-                break;
-            case 'ul':
-                chain.toggleBulletList().run();
-                break;
-            case 'ol':
-                chain.toggleOrderedList().run();
-                break;
-            case 'quote':
-                chain.toggleBlockquote().run();
-                break;
-            case 'code':
-                chain.toggleCodeBlock().run();
-                break;
-            case 'hr':
-                chain.setHorizontalRule().run();
-                break;
-            case 'left':
-                chain.setTextAlign('left').run();
-                break;
-            case 'center':
-                chain.setTextAlign('center').run();
-                break;
-            case 'right':
-                chain.setTextAlign('right').run();
-                break;
-            case 'undo':
-                chain.undo().run();
-                break;
-            case 'redo':
-                chain.redo().run();
-                break;
-            case 'image': {
-                setImageUrl('');
-                setImageModal(true);
-                break;
-            }
-            case 'link': {
-                setLinkUrl('');
-                setLinkModal(true);
-                break;
-            }
+            case 'bold': insertMd('**', '**', '粗体文字'); break;
+            case 'italic': insertMd('*', '*', '斜体文字'); break;
+            case 'underline': insertMd('<u>', '</u>', '下划线'); break;
+            case 'strike': insertMd('~~', '~~', '删除线'); break;
+            case 'h1': insertMd('\n# ', '\n'); break;
+            case 'h2': insertMd('\n## ', '\n'); break;
+            case 'h3': insertMd('\n### ', '\n'); break;
+            case 'ul': insertMd('\n- ', ''); break;
+            case 'ol': insertMd('\n1. ', ''); break;
+            case 'quote': insertMd('\n> ', '\n'); break;
+            case 'code': insertMd('\n```\n', '\n```\n'); break;
+            case 'hr': insertMd('\n---\n', ''); break;
+            case 'undo': ta.focus(); document.execCommand('undo'); break;
+            case 'redo': ta.focus(); document.execCommand('redo'); break;
+            case 'image': setImageUrl(''); setImageModal(true); break;
+            case 'link': setLinkUrl(''); setLinkModal(true); break;
         }
     }, []);
 
@@ -654,7 +620,7 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
                    className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500/30"/>
             <div className="flex justify-end gap-2">
                 <button onClick={() => setImageModal(false)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-xl">取消</button>
-                <button onClick={() => { if (imageUrl) { editorRef.current?.chain().focus().setImage({src: imageUrl}).run(); } setImageModal(false); }}
+                <button onClick={() => { if (imageUrl) { const ta = editorRef.current?.ta; if (ta) { const md = `![${imageUrl.split('/').pop() || 'image'}](${imageUrl})`; ta.value += '\n' + md; setContent(ta.value); } } setImageModal(false); setImageUrl(''); }}
                         className="px-4 py-2 text-sm bg-blue-600 text-white rounded-xl hover:bg-blue-700">插入</button>
             </div>
         </div>
@@ -671,7 +637,7 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
                    className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500/30"/>
             <div className="flex justify-end gap-2">
                 <button onClick={() => setLinkModal(false)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-xl">取消</button>
-                <button onClick={() => { if (linkUrl) { editorRef.current?.chain().focus().setLink({href: linkUrl}).run(); } setLinkModal(false); }}
+                <button onClick={() => { if (linkUrl) { const ta = editorRef.current?.ta; if (ta) { const sel = ta.value.substring(ta.selectionStart, ta.selectionEnd) || '链接文字'; const md = '[' + sel + '](' + linkUrl + ')'; ta.value = ta.value.substring(0, ta.selectionStart) + md + ta.value.substring(ta.selectionEnd); setContent(ta.value); } } setLinkModal(false); setLinkUrl(''); }}
                         className="px-4 py-2 text-sm bg-blue-600 text-white rounded-xl hover:bg-blue-700">插入</button>
             </div>
         </div>
