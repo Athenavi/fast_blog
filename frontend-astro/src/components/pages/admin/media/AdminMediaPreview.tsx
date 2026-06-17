@@ -173,9 +173,9 @@ export function AdminMediaPreview({
       </div>
 
       {/* 预览内容区 */}
+      {/* 预览内容区 — 点击空白部分退出 */}
       <div
         className="flex-1 flex items-center justify-center min-h-0 relative"
-        onClick={(e) => e.stopPropagation()}
       >
         {prevFile && onNavigate && (
           <button
