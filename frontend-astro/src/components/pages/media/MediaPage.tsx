@@ -377,7 +377,7 @@ function MediaBrowserInner() {
                 <option value="image">图片</option>
                 <option value="video">视频</option>
                 <option value="audio">音频</option>
-                <option value="application">文档</option>
+                <option value="document">文档</option>
               </select>
               <select
                 value={categoryFilter}

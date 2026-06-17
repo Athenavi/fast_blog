@@ -117,18 +117,37 @@ async def list_media(
         'video': Media.mime_type.startswith('video'),
         'audio': Media.mime_type.startswith('audio'),
         'document': Media.mime_type.in_([
-            'application/pdf', 'application/msword',
+            'application/pdf',
+            'application/msword',
             'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.template',
+            'application/vnd.ms-word.document.macroEnabled.12',
+            'application/vnd.ms-word.template.macroEnabled.12',
             'application/vnd.ms-excel',
             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'text/plain', 'text/markdown'
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.template',
+            'application/vnd.ms-excel.sheet.macroEnabled.12',
+            'application/vnd.ms-excel.sheet.binary.macroEnabled.12',
+            'application/vnd.ms-excel.template.macroEnabled.12',
+            'application/vnd.oasis.opendocument.spreadsheet',
+            'application/vnd.ms-powerpoint',
+            'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+            'application/vnd.openxmlformats-officedocument.presentationml.template',
+            'application/vnd.openxmlformats-officedocument.presentationml.slideshow',
+            'application/vnd.ms-powerpoint.presentation.macroEnabled.12',
+            'application/vnd.ms-powerpoint.template.macroEnabled.12',
+            'application/vnd.ms-powerpoint.slideshow.macroEnabled.12',
+            'text/plain', 'text/markdown', 'text/csv', 'text/html',
+            'application/json', 'application/xml',
         ]),
+        'application': Media.mime_type.startswith('application'),
         'application/pdf': Media.mime_type == 'application/pdf',
         'application/zip': Media.mime_type.in_([
             'application/zip', 'application/x-rar-compressed',
             'application/x-7z-compressed', 'application/gzip',
             'application/x-tar', 'application/x-bzip2'
-        ])
+        ]),
+        'model': Media.mime_type.startswith('model'),
     }
     if media_type != 'all' and media_type in mime_filters:
         base_query = base_query.where(mime_filters[media_type])
