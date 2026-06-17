@@ -110,7 +110,8 @@ export class MediaService {
             file.type.startsWith('video/') ||
             file.type.startsWith('audio/') ||
             file.type.startsWith('text/') ||
-            file.type.startsWith('application/');
+            file.type.startsWith('application/') ||
+            file.type.startsWith('model/');
 
         if (!isAllowedType) {
             console.warn(`⚠️ 文件类型可能不受支持: ${file.type}`);
