@@ -81,7 +81,7 @@ function BlockCardInner({block, index, onDelete, onDataChange, onStylesChange}: 
             {/* 数据摘要 */}
             {!expanded && !showStyle && (
                 <div className="px-4 py-2 text-[11px] text-gray-400 dark:text-gray-500 line-clamp-2 font-mono">
-                    {JSON.stringify(block.data).slice(0, 120)}
+                    {JSON.stringify(block.data ?? {}).slice(0, 120)}
                 </div>
             )}
 

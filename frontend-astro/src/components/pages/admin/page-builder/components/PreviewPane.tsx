@@ -69,7 +69,7 @@ export default function PreviewPane({blocks, previewDevice, onChangeDevice}: Pro
                                 if (block.styles?.borderRadius) style.borderRadius = `${block.styles.borderRadius}px`;
 
                                 const html = block.preview_html
-                                    || `<div class="preview-placeholder">${block.type}</div>`;
+                                    || `<div class="p-4 bg-gray-50 dark:bg-gray-800 text-center text-gray-400 dark:text-gray-500 rounded-lg text-xs">${block.type} 预览</div>`;
 
                                 return (
                                     <div key={idx} style={style}
