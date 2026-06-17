@@ -1,13 +1,15 @@
 """
 SQLAlchemy 模型定义 - TokenBlacklist
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-06-04 17:21:20
+生成时间：2026-06-13 23:12:16
 """
 
-from sqlalchemy import Column, BigInteger, String, DateTime, Index
 from sqlalchemy import event
+from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Index
+from sqlalchemy import text as sa_text
 
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
+
 
 
 class TokenBlacklist(Base):
@@ -63,5 +65,5 @@ class TokenBlacklist(Base):
 # UNLOGGED 表监听器（PostgreSQL 专用）
 @event.listens_for(TokenBlacklist.__table__, "after_create")
 def _set_tokenblacklist_unlogged(target, connection, **kw):
-    connection.execute(f"ALTER TABLE {target.name} SET UNLOGGED")
+    connection.execute(sa_text(f"ALTER TABLE {target.name} SET UNLOGGED"))
 

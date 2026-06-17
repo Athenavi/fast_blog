@@ -8,6 +8,7 @@ from fastapi import Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 
 from shared.services.core.cache_service import cache_service
+from src.services.redis_service import redis_service
 
 
 class CacheMiddleware(BaseHTTPMiddleware):
@@ -152,16 +153,19 @@ async def invalidate_article_cache(article_id: int):
     """文章更新时清除相关缓存"""
     try:
         # 清除文章详情页缓存
-        cache_service.invalidate_pattern(f"/p/")
+        cache_service.clear()
 
         # 清除首页缓存
-        cache_service.invalidate_pattern("/")
+        # (已包含在 clear() 中)
 
         # 清除分类页缓存
-        cache_service.invalidate_pattern("/category/")
+        # (已包含在 clear() 中)
 
         # 清除对象缓存
-        cache_service.delete_object(f"article:{article_id}")
+        await cache_service.delete(f"article:{article_id}")
+
+        # 广播缓存失效到其他实例
+        await redis_service.publish_cache_invalidation(["article", f"article:{article_id}"])
 
         print(f"✓ Invalidated cache for article {article_id}")
     except Exception as e:
@@ -171,8 +175,12 @@ async def invalidate_article_cache(article_id: int):
 async def invalidate_category_cache(category_id: int):
     """分类更新时清除相关缓存"""
     try:
-        cache_service.invalidate_pattern("/category/")
+        cache_service.clear()
         cache_service.delete_object(f"category:{category_id}")
+
+        # 广播缓存失效到其他实例
+        await redis_service.publish_cache_invalidation(["category", f"category:{category_id}"])
+
         print(f"✓ Invalidated cache for category {category_id}")
     except Exception as e:
         print(f"✗ Cache invalidation failed: {e}")

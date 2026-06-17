@@ -34,6 +34,7 @@ function SettingsPageInner() {
     theme, setTheme,
     setUn, setBio, setLoc, setPriv,
     setPw, setShowPw, setVc,
+    status,
   } = useSettingsState();
 
   return (
@@ -44,6 +45,14 @@ function SettingsPageInner() {
           <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-1">设置</h1>
           <p className="text-gray-500 dark:text-gray-400">管理你的账户设置和偏好</p>
         </div>
+
+        {/* Status bar */}
+        {status && (
+          <div className="mb-6 px-5 py-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl flex items-center gap-3">
+            <div className="w-4 h-4 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"/>
+            <span className="text-sm text-blue-700 dark:text-blue-300">{status}</span>
+          </div>
+        )}
 
         <div className="flex flex-col lg:flex-row gap-6">
           {/* ═══ Sidebar Navigation ═══ */}

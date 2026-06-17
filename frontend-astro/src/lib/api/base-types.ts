@@ -37,6 +37,7 @@ export interface MediaFile {
     category?: string | null;  // 分类名称
     tags?: string | null;       // 标签(逗号分隔)
     url?: string; // 文件 URL
+    thumbnail_url?: string; // 缩略图 URL
     user?: {
         username: string;
     };

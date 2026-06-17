@@ -6,6 +6,8 @@
 """
 
 
+import json
+import logging
 import os
 import signal
 import sys
@@ -20,7 +22,7 @@ sys.path.insert(0, str(project_root))
 
 # 导入版本管理器（简化版）
 try:
-    from shared.utils.version_manager import version_manager, get_current_version_info, get_version_summary
+    from shared.utils.version_manager import version_manager
     VERSION_MANAGER_AVAILABLE = True
     logging.info("版本管理器加载成功")
 except Exception as e:
@@ -36,7 +38,7 @@ except Exception as e:
     logging.warning(f"自动更新检查器导入失败：{e}")
     AUTO_CHECKER_AVAILABLE = False
 
-# 添加项目根目录到Python路径
+# 添加项目根目录到 Python 路径
 project_root = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(project_root))
 
@@ -363,11 +365,11 @@ async def check_for_updates():
         return JSONResponse(content={
             'success': True,
             'data': {
-                'has_update': False,
+                'has_update': has_update,
                 'current_version': current_version,
-                'latest_version': current_version,
-                'message': '已是最新版本',
-                'changelog': ''
+                'latest_version': latest_version,
+                'message': f'发现新版本: {latest_version}' if has_update else '已是最新版本',
+                'changelog': changelog
             }
         })
     except Exception as e:
@@ -599,14 +601,19 @@ async def list_backups(limit: int = 10):
         # 导入备份管理器
         from shared.utils.backup_manager import backup_manager
 
-        backups = backup_manager.list_backups(limit)
+        backups = backup_manager.list(limit)
+        total_size = sum(
+            Path(b.get('path', '')).stat().st_size
+            for b in backup_manager.backups
+            if Path(b.get('path', '')).exists()
+        ) if backup_manager.backups else 0
 
         return JSONResponse(content={
             'success': True,
             'data': {
                 'backups': backups,
                 'total': len(backup_manager.backups),
-                'total_size': backup_manager.get_total_size()
+                'total_size': total_size
             }
         })
 
@@ -622,9 +629,9 @@ async def create_backup(version: str = None):
         from shared.utils.backup_manager import backup_manager
         from pathlib import Path
 
-        project_root = Path(__file__).resolve().parent.parent.parent
+        project_root = Path(__file__).resolve().parent.parent
 
-        backup_info = backup_manager.create_backup(str(project_root), version)
+        backup_info = backup_manager.create(str(project_root), version)
 
         if backup_info:
             return JSONResponse(content={
@@ -654,9 +661,9 @@ async def restore_backup(backup_id: str):
         from shared.utils.backup_manager import backup_manager
         from pathlib import Path
 
-        project_root = Path(__file__).resolve().parent.parent.parent
+        project_root = Path(__file__).resolve().parent.parent
 
-        success = backup_manager.restore_backup(backup_id, str(project_root))
+        success = backup_manager.restore(backup_id, str(project_root))
 
         if success:
             return JSONResponse(content={
@@ -681,7 +688,7 @@ async def delete_backup(backup_id: str):
     try:
         from shared.utils.backup_manager import backup_manager
 
-        success = backup_manager.delete_backup(backup_id)
+        success = backup_manager.delete(backup_id)
 
         if success:
             return JSONResponse(content={

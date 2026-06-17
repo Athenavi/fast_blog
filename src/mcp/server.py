@@ -84,8 +84,8 @@ class MCPServer:
                 media_list = (await db.execute(
                     select(Media).order_by(Media.created_at.desc()).limit(50)
                 )).scalars().all()
-                return [{"id": m.id, "filename": m.filename or m.original_name or "unknown",
-                         "url": m.url or f"/media/{m.filename or ''}", "mime_type": getattr(m, 'mime_type', ''),
+                return [{"id": m.id, "filename": m.filename or m.original_filename or "unknown",
+                         "url": m.file_url or f"/media/{m.filename or ''}", "mime_type": getattr(m, 'mime_type', ''),
                          "size": getattr(m, 'file_size', 0), "alt_text": getattr(m, 'alt_text', '')}
                         for m in media_list]
             except Exception:

@@ -10,7 +10,7 @@ from datetime import datetime
 from typing import Optional, Dict
 
 import httpx
-from aioitertools import asyncio
+import asyncio
 
 from src.unified_logger import default_logger as logger
 

@@ -191,7 +191,7 @@ export const SaveStatus: React.FC<{ saving: boolean; lastSaved: number | null }>
     if (showCheck) {
         return (
             <div className="flex items-center gap-1.5 text-xs text-emerald-500 animate-in fade-in duration-200">
-                <Check className="w-3.5 h-3.5"/>
+                <Check className="w-3.5 h-3.5 animate-bounce-once"/>
                 <span>已保存</span>
             </div>
         );

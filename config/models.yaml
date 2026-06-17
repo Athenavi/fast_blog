@@ -12,6 +12,20 @@ models:
         nullable: true
         description: 操作用户 ID
         foreignKey: User
+      user_name:
+        type: string
+        nullable: true
+        maxLength: 100
+        description: 操作用户名称
+      level:
+        type: string
+        maxLength: 20
+        default: info
+        description: 日志级别 (info/warning/error/critical)
+      description:
+        type: text
+        nullable: true
+        description: 日志详细描述
       action:
         type: string
         maxLength: 100
@@ -268,6 +282,7 @@ models:
         type: string
         maxLength: 255
         description: 密码（哈希后存储）
+        sensitive: true
       profile_picture:
         type: string
         nullable: true
@@ -331,10 +346,12 @@ models:
         nullable: true
         maxLength: 32
         description: TOTP 密钥
+        sensitive: true
       backup_codes:
         type: text
         nullable: true
         description: 备用码(JSON格式存储)
+        sensitive: true
     module: user
     orm: true
     table: users
@@ -380,6 +397,8 @@ models:
         target: Role
         secondary: user_role_assignments
         back_populates: users
+        primaryjoin: User.id == user_role_assignments.c.user_id
+        secondaryjoin: user_role_assignments.c.role_id == Role.id
   UserCreate:
     type: schema
     description: 用户创建请求模型
@@ -561,6 +580,12 @@ models:
         format: date-time
         nullable: true
         description: 定时发布时间（设置为未来时间后自动发布）
+      published_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: 实际发布时间
+        index: true
       post_type:
         type: string
         maxLength: 50
@@ -832,6 +857,7 @@ models:
       name:
         type: string
         maxLength: 100
+        nullable: false
         description: 分类名
       slug:
         type: string
@@ -943,10 +969,12 @@ models:
         description: 订阅 ID
       category:
         type: bigint
+        nullable: true
         description: 分类
         foreignKey: Category
       subscriber:
         type: bigint
+        nullable: true
         description: 订阅用户
         foreignKey: User
       created_at:
@@ -956,6 +984,12 @@ models:
     module: category
     orm: true
     table: category_subscriptions
+    unique_constraints:
+      - name: uq_category_subscriber
+        columns:
+          - category
+          - subscriber
+        comment: 每个用户对每个分类只能订阅一次
   Media:
     description: 媒体文件模型
     status: active
@@ -984,6 +1018,7 @@ models:
         type: string
         maxLength: 500
         description: 文件路径
+        sensitive: true
       file_url:
         type: string
         maxLength: 500
@@ -1591,7 +1626,7 @@ models:
         maxLength: 255
         description: 页面 slug
       content:
-        type: string
+        type: text
         description: 页面内容
       excerpt:
         type: string
@@ -1907,6 +1942,20 @@ models:
     module: notification
     orm: true
     table: notifications
+    indexes:
+      - name: idx_notifications_recipient
+        columns:
+          - recipient
+        comment: "接收者索引"
+      - name: idx_notifications_type
+        columns:
+          - type
+        comment: "通知类型索引"
+      - name: idx_notifications_unread
+        columns:
+          - recipient
+          - is_read
+        comment: "用户未读通知索引"
   PrivateMessage:
     description: 站内私信模型
     status: active
@@ -2392,6 +2441,15 @@ models:
         type: bigint
         description: 用户
         foreignKey: User
+      post_type_id:
+        type: bigint
+        nullable: true
+        description: 关联的自定义文章类型
+        foreignKey: CustomPostType
+      content_id:
+        type: bigint
+        nullable: true
+        description: 关联的内容实例 ID
       field_name:
         type: string
         maxLength: 100
@@ -5004,6 +5062,7 @@ models:
         maxLength: 255
         nullable: true
         description: 签名密钥（用于HMAC验证）
+        sensitive: true
       events:
         type: text
         description: 订阅的事件列表（JSON数组）
@@ -5157,6 +5216,8 @@ models:
         target: User
         secondary: user_role_assignments
         back_populates: roles
+        primaryjoin: Role.id == user_role_assignments.c.role_id
+        secondaryjoin: user_role_assignments.c.user_id == User.id
   Capability:
     description: 权限能力模型
     status: active
@@ -6169,14 +6230,17 @@ models:
       idp_certificate:
         type: text
         description: IdP X.509 Certificate (PEM格式)
+        sensitive: true
       sp_private_key:
         type: text
         nullable: true
         description: SP Private Key (PEM格式)
+        sensitive: true
       sp_certificate:
         type: text
         nullable: true
         description: SP Certificate (PEM格式)
+        sensitive: true
       attribute_mapping:
         type: text
         nullable: true
@@ -6240,6 +6304,7 @@ models:
         type: string
         maxLength: 255
         description: Bind Password
+        sensitive: true
       base_dn:
         type: string
         maxLength: 255
@@ -6340,6 +6405,7 @@ models:
         type: string
         maxLength: 255
         description: Client Secret
+        sensitive: true
       authorization_url:
         type: string
         maxLength: 500
@@ -7506,3 +7572,229 @@ models:
         columns:
           - theme_type
         comment: 主题类型索引
+
+
+  TeamComment:
+    description: "团队评论模型（支持协作、@提及、已解决状态）"
+    status: active
+    frontend_page: null
+    properties:
+      id:
+        type: bigint
+        description: "团队评论 ID"
+      content_type:
+        type: string
+        maxLength: 50
+        description: "内容类型（article, page, block 等）"
+      content_id:
+        type: bigint
+        description: "内容 ID"
+      author_id:
+        type: bigint
+        foreignKey: User
+        description: "作者 ID"
+      parent_id:
+        type: bigint
+        nullable: true
+        foreignKey: TeamComment
+        description: "父评论 ID（用于回复）"
+      text:
+        type: text
+        description: "评论内容"
+      mentions:
+        type: string
+        maxLength: 500
+        nullable: true
+        description: "@提及的用户 ID 列表（JSON 数组）"
+      is_resolved:
+        type: boolean
+        default: false
+        description: "是否已解决"
+      resolved_by:
+        type: bigint
+        nullable: true
+        description: "解决者 ID"
+      resolved_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: "解决时间"
+      created_at:
+        type: string
+        format: date-time
+        description: "创建时间"
+      updated_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: "更新时间"
+    module: comment
+    orm: true
+    table: team_comments
+    indexes:
+      - name: idx_team_comments_content
+        columns:
+          - content_type
+          - content_id
+        comment: "内容索引"
+      - name: idx_team_comments_author
+        columns:
+          - author_id
+        comment: "作者索引"
+      - name: idx_team_comments_parent
+        columns:
+          - parent_id
+        comment: "父评论索引"
+      - name: idx_team_comments_resolved
+        columns:
+          - is_resolved
+        comment: "已解决状态索引"
+
+  CustomPostContent:
+    description: "自定义文章类型内容模型"
+    status: active
+    frontend_page: /admin/custom-post-types
+    properties:
+      id:
+        type: bigint
+        description: "内容 ID"
+      post_type_id:
+        type: bigint
+        foreignKey: CustomPostType
+        description: "文章类型 ID"
+      title:
+        type: string
+        maxLength: 255
+        description: "标题"
+      slug:
+        type: string
+        maxLength: 100
+        unique: true
+        description: "内容标识"
+      content:
+        type: text
+        nullable: true
+        description: "内容（HTML 或 JSON 块数据）"
+      excerpt:
+        type: string
+        maxLength: 500
+        nullable: true
+        description: "摘要"
+      meta:
+        type: text
+        nullable: true
+        description: "元数据（JSON 格式）"
+      author_id:
+        type: bigint
+        foreignKey: User
+        description: "作者 ID"
+      status:
+        type: integer
+        default: 0
+        description: "状态（0: 草稿, 1: 已发布）"
+      is_featured:
+        type: boolean
+        default: false
+        description: "是否精选"
+      password:
+        type: string
+        maxLength: 255
+        nullable: true
+        description: "访问密码"
+      published_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: "发布时间"
+      created_at:
+        type: string
+        format: date-time
+        description: "创建时间"
+      updated_at:
+        type: string
+        format: date-time
+        description: "更新时间"
+    module: content
+    orm: true
+    table: custom_post_contents
+    indexes:
+      - name: idx_cpc_post_type
+        columns:
+          - post_type_id
+        comment: "文章类型索引"
+      - name: idx_cpc_slug
+        columns:
+          - slug
+        unique: true
+        comment: "内容标识唯一索引"
+      - name: idx_cpc_author
+        columns:
+          - author_id
+        comment: "作者索引"
+      - name: idx_cpc_status
+        columns:
+          - status
+        comment: "状态索引"
+      - name: idx_cpc_created
+        columns:
+          - created_at
+        order: DESC
+        comment: "创建时间索引"
+
+  GDPRConsent:
+    description: "GDPR 用户同意记录模型（替代 JSON 文件存储）"
+    status: active
+    frontend_page: /admin/gdpr
+    properties:
+      id:
+        type: bigint
+        description: "记录 ID"
+      user_id:
+        type: bigint
+        foreignKey: User
+        index: true
+        description: "用户 ID"
+      consent_type:
+        type: string
+        maxLength: 50
+        description: "同意类型 (analytics, marketing, cookies 等)"
+      granted:
+        type: boolean
+        default: false
+        description: "是否授予"
+      details:
+        type: text
+        nullable: true
+        description: "详细信息"
+      ip_address:
+        type: string
+        maxLength: 45
+        nullable: true
+        description: "记录 IP"
+      user_agent:
+        type: string
+        maxLength: 500
+        nullable: true
+        description: "User-Agent"
+      created_at:
+        type: string
+        format: date-time
+        description: "创建时间"
+    module: security
+    orm: true
+    table: gdpr_consents
+    indexes:
+      - name: idx_gdpr_consent_user
+        columns:
+          - user_id
+        comment: "用户索引"
+      - name: idx_gdpr_consent_type
+        columns:
+          - consent_type
+        comment: "同意类型索引"
+      - name: idx_gdpr_consent_user_type
+        columns:
+          - user_id
+          - consent_type
+        unique: true
+        comment: "用户+类型唯一索引"

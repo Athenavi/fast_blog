@@ -18,6 +18,7 @@ from shared.services.security.rbac_service import rbac_service
 from src.api.v2._helpers import ok, fail
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
+from src.api.v3._permission import invalidate_permission_cache
 
 router = APIRouter(tags=["rbac"])
 logger = logging.getLogger(__name__)
@@ -161,6 +162,13 @@ async def update_role_permissions(
                      {'permission_codes': permission_codes})
     await db.commit()
 
+    # 失效该角色所有用户的权限缓存
+    affected_urs = await db.execute(
+        select(UserRole).where(UserRole.role_id == role_id)
+    )
+    for ur in affected_urs.scalars().all():
+        await invalidate_permission_cache(ur.user_id)
+
     return ok(msg="Role permissions updated successfully")
 
 
@@ -185,6 +193,7 @@ async def delete_role(
     user_roles = await db.execute(
         select(UserRole).where(UserRole.role_id == role_id)
     )
+    affected_uids = [ur.user_id for ur in user_roles.scalars().all()]
     for ur in user_roles.scalars().all():
         await db.delete(ur)
 
@@ -192,6 +201,10 @@ async def delete_role(
 
     await _log_audit(db, current_user.id, 'delete_role', 'role', role_id)
     await db.commit()
+
+    # 失效受影响用户的权限缓存
+    for uid in affected_uids:
+        await invalidate_permission_cache(uid)
 
     return ok(msg="Role deleted successfully")
 
@@ -249,6 +262,9 @@ async def assign_role_to_user(
                      {'role_id': role_id, 'role_slug': role.slug})
     await db.commit()
 
+    # 失效该用户的权限缓存
+    await invalidate_permission_cache(user_id)
+
     return ok(msg="Role assigned successfully")
 
 
@@ -273,6 +289,9 @@ async def remove_role_from_user(
     await _log_audit(db, current_user.id, 'remove_role', 'user', user_id,
                      {'role_id': role_id, 'role_slug': role.slug})
     await db.commit()
+
+    # 失效该用户的权限缓存
+    await invalidate_permission_cache(user_id)
 
     return ok(msg="Role removed successfully")
 

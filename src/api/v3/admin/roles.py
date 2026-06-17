@@ -19,6 +19,7 @@ from sqlalchemy import select, func, delete as sa_delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.rbac import Role, Capability, RoleCapability, UserRole
+from shared.models import PermissionAuditLog
 from src.api.v2._base import ApiResponse
 from src.api.v3._deps import get_db, get_current_user
 from src.api.v3._permission import Permission, invalidate_permission_cache
@@ -67,6 +68,7 @@ async def create_role(
     description: str = Body(""),
     permission_codes: Optional[List[str]] = Body(None),
     db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
     _=Depends(Permission("user:manage_roles")),
 ):
     now = datetime.now(timezone.utc)
@@ -89,6 +91,14 @@ async def create_role(
         )
         role.capabilities = list(caps.scalars().all())
 
+    await db.commit()
+    # 审计日志
+    audit = PermissionAuditLog(
+        user_id=current_user.id, action='create_role', resource_type='role',
+        resource_id=role.id, description=f'创建角色: {role.name}',
+        created_at=datetime.now(timezone.utc),
+    )
+    db.add(audit)
     await db.commit()
     return ApiResponse(success=True, data=_role_to_dict(role), message="角色创建成功")
 
@@ -120,6 +130,13 @@ async def update_role_permissions(
     role.updated_at = datetime.now(timezone.utc)
     await db.commit()
 
+    # 失效该角色所有用户的权限缓存
+    affected = await db.execute(
+        select(UserRole.user_id).where(UserRole.role_id == role_id)
+    )
+    for row in affected:
+        await invalidate_permission_cache(row.user_id)
+
     return ApiResponse(success=True, message="角色权限已更新")
 
 
@@ -139,10 +156,20 @@ async def delete_role(
     if role.is_system:
         return ApiResponse(success=False, error="系统角色不可删除")
 
+    # 查询受影响的用户
+    affected = await db.execute(
+        select(UserRole.user_id).where(UserRole.role_id == role_id)
+    )
+    user_ids = [row.user_id for row in affected]
+
     # 删除关联
     await db.execute(sa_delete(UserRole).where(UserRole.role_id == role_id))
     await db.delete(role)
     await db.commit()
+
+    # 失效受影响用户的权限缓存
+    for uid in user_ids:
+        await invalidate_permission_cache(uid)
 
     return ApiResponse(success=True, message="角色已删除")
 

@@ -4,12 +4,16 @@
 优化: 统一 @_catch 装饰器消除 33 处重复 try/except
 """
 import asyncio
+import logging
 import re
-from datetime import datetime
+import secrets
+from datetime import datetime, timedelta
 from functools import wraps
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request, Body
+
+logger = logging.getLogger(__name__)
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -20,6 +24,7 @@ from shared.services.articles.article_manager import article_query_service, pass
 from shared.services.content_management.shortcode_service import shortcode_service
 from shared.services.core.api_embed import APIEmbedService
 from shared.services.notifications.webhook_service import webhook_service
+from shared.services.security.rbac_service import rbac_service
 from shared.services.static_generation.isr_service import isr_service
 from shared.services.plugins.event_bus import event_bus, ArticlePublishedPayload, ArticleUpdatedPayload, ArticleDeletedPayload
 from src.api.v2._base import ApiResponse
@@ -77,6 +82,16 @@ def _split_tags(tags_str: str) -> list:
     return [t.strip() for t in re.split(r'[,;]', tags_str) if t.strip()] if tags_str else []
 
 
+def _slugify(text: str) -> str:
+    """将文本转为 slug（小写字母数字+连字符）"""
+    import re
+    s = text.lower().strip()
+    # 替换非字母数字字符为连字符
+    s = re.sub(r'[^a-z0-9\u4e00-\u9fff]+', '-', s)
+    s = s.strip('-')
+    return s[:200]  # 限制长度
+
+
 def _paginate(total: int, page: int, per_page: int) -> dict:
     total_pages = max(1, (total + per_page - 1) // per_page)
     return {"current_page": page, "per_page": per_page, "total": total,
@@ -100,8 +115,7 @@ def _fmt_article_brief(article, users: dict, cats: dict) -> dict:
 async def _get_article_author(db: AsyncSession, user_id: int) -> dict:
     author = await db.scalar(select(User).where(User.id == user_id))
     return {"id": author.id if author else user_id, "username": author.username if author else "Unknown",
-            "bio": author.bio if author else "", "profile_picture": author.profile_picture if author else None,
-            "email": author.email if author else ""}
+            "bio": author.bio if author else "", "profile_picture": author.profile_picture if author else None}
 
 
 async def _get_article_detail(request: Request, db: AsyncSession, article: Article, current_user=None) -> Optional[dict]:
@@ -114,12 +128,36 @@ async def _get_article_detail(request: Request, db: AsyncSession, article: Artic
             content_obj = await db.scalar(select(ArticleContent).where(ArticleContent.article == article.id))
             if content_obj and content_obj.passwd:
                 token = request.cookies.get(f"article_access_{article.id}") or request.query_params.get("access_token")
-                if not token or token != password_protection_service.generate_access_token(article.id):
+                if not token or not secrets.compare_digest(token, password_protection_service.generate_access_token(article.id)):
                     return {"requires_password": True, "article_id": article.id, "article_title": article.title, "excerpt": article.excerpt}
             return None
 
     if article.status == 0 and not _is_author_or_admin(current_user, article.user):
         return None
+
+    # VIP-only access check — 基于实时 VIPSubscription 表
+    if article.is_vip_only and not _is_author_or_admin(current_user, article.user):
+        if not current_user:
+            raise HTTPException(403, "VIP membership required to access this article")
+        from shared.models.vip import VIPSubscription
+        sub_result = await db.execute(
+            select(VIPSubscription).where(
+                VIPSubscription.user == current_user.id,
+                VIPSubscription.status == 1,
+                VIPSubscription.expires_at > datetime.now(),
+            )
+        )
+        active_sub = sub_result.scalar_one_or_none()
+        if not active_sub:
+            raise HTTPException(403, "VIP membership required to access this article")
+        if article.required_vip_level:
+            from shared.models.vip import VIPPlan
+            plan_result = await db.execute(
+                select(VIPPlan.level).where(VIPPlan.id == active_sub.plan_id)
+            )
+            user_vip_level = plan_result.scalar() or 0
+            if user_vip_level < article.required_vip_level:
+                raise HTTPException(403, "Insufficient VIP level to access this article")
 
     content_obj = await db.scalar(select(ArticleContent).where(ArticleContent.article == article.id))
     raw = content_obj.content if content_obj else ""
@@ -308,36 +346,54 @@ async def create_article_api(request: Request, current_user=Depends(jwt_required
                               db: AsyncSession = Depends(get_async_session)):
     """创建文章"""
     data = await _parse_body(request)
+    # category_id=0 时转为 None，避免外键约束错误
+    cat_id = data.get('category_id')
+    if cat_id is not None and (not cat_id or cat_id == 0 or cat_id == '0'):
+        cat_id = None
+    # 验证 category_id 外键存在
+    if cat_id is not None:
+        if not isinstance(cat_id, int) or cat_id <= 0:
+            return fail(f"无效的分类ID: {cat_id}")
+        cat_exists = await db.scalar(select(Category.id).where(Category.id == cat_id))
+        if not cat_exists:
+            return fail(f"分类不存在: category_id={cat_id}")
     article = Article(
         title=data.get('title', ''), slug=data.get('slug', ''),
         excerpt=data.get('excerpt', ''), user=current_user.id,
-        category=data.get('category_id'), tags_list=data.get('tags', ''),
+        category=cat_id, tags_list=data.get('tags', ''),
         cover_image=data.get('cover_image', ''), hidden=data.get('hidden', False),
         is_vip_only=data.get('is_vip_only', False), article_ad=data.get('article_ad', ''),
         status=data.get('status', 0), is_featured=data.get('is_featured', False),
+        post_type=data.get('post_type', 'article'),
         created_at=datetime.now(), updated_at=datetime.now(), views=0, likes=0,
     )
+    # 自动生成 slug（如果为空）
+    if not article.slug and article.title:
+        article.slug = _slugify(article.title)
+    # 发布时设置 published_at
+    if article.status == 1:
+        article.published_at = article.created_at
     db.add(article)
-    await db.commit()
+    db.add(ArticleContent(article=article.id, content=data.get('content', ''),
+                          passwd=password_protection_service.hash_password(data['password']) if data.get('password') else '',
+                          created_at=datetime.now(), updated_at=datetime.now()))
+    await db.flush()
     await db.refresh(article)
-
-    if data.get('content'):
-        db.add(ArticleContent(article=article.id, content=data['content'], passwd=data.get('password', ''),
-                              created_at=datetime.now(), updated_at=datetime.now()))
-        await db.commit()
 
     await save_article_revision(db=db, article_id=article.id, author_id=current_user.id, change_summary="创建文章")
     try:
         await isr_service.invalidate(article.slug)
-        await webhook_service.trigger('article.created', {'article_id': article.id})
-        await event_bus.emit('article.published', ArticlePublishedPayload(
-            article_id=article.id, slug=article.slug, title=article.title,
-            author_id=current_user.id, excerpt=article.excerpt or '',
-            tags=[t.strip() for t in article.tags_list.split(',') if t.strip()] if article.tags_list else [],
-            category_id=article.category,
-        ))
+        await webhook_service.trigger_event('article.created', {'article_id': article.id})
+        # 仅在发布状态时发送 published 事件
+        if article.status == 1:
+            await event_bus.emit('article.published', ArticlePublishedPayload(
+                article_id=article.id, slug=article.slug, title=article.title,
+                author_id=current_user.id, excerpt=article.excerpt or '',
+                tags=[t.strip() for t in article.tags_list.split(',') if t.strip()] if article.tags_list else [],
+                category_id=article.category,
+            ))
     except Exception:
-        pass
+        logger.warning(f"文章创建后处理失败 (article_id={article.id})", exc_info=True)
 
     return ApiResponse(success=True, data={"id": article.id, "slug": article.slug}, message="文章创建成功")
 
@@ -354,9 +410,27 @@ async def update_article_api(article_id: int, request: Request, current_user=Dep
     if article.user != current_user.id and not _is_admin(current_user):
         raise HTTPException(403, "无权修改此文章")
 
-    for field in ('title', 'slug', 'excerpt', 'cover_image', 'category_id', 'tags_list', 'hidden', 'is_vip_only', 'is_featured', 'status'):
+    for field in ('title', 'slug', 'excerpt', 'cover_image', 'tags_list', 'hidden', 'is_vip_only', 'is_featured', 'status', 'post_type'):
         if field in data:
             setattr(article, field, data[field])
+    # category_id 映射到模型字段 category，0 转为 None
+    if 'category_id' in data:
+        cat_val = data['category_id']
+        cat_val_final = None if cat_val is None or cat_val == 0 or cat_val == '0' else cat_val
+        # 验证 category_id 类型和存在
+        if cat_val_final is not None:
+            if not isinstance(cat_val_final, int) or cat_val_final <= 0:
+                return fail(f"无效的分类ID: {cat_val_final}")
+            cat_exists = await db.scalar(select(Category.id).where(Category.id == cat_val_final))
+            if not cat_exists:
+                return fail(f"分类不存在: category_id={cat_val_final}")
+        article.category = cat_val_final
+    # 自动生成 slug（如果为空且标题有变化）
+    if not article.slug and article.title:
+        article.slug = _slugify(article.title)
+    # 发布时设置 published_at（仅首次发布）
+    if article.status == 1 and not article.published_at:
+        article.published_at = datetime.now()
     article.updated_at = datetime.now()
 
     if data.get('content') is not None:
@@ -364,24 +438,27 @@ async def update_article_api(article_id: int, request: Request, current_user=Dep
         if content:
             content.content = data['content']
             if 'password' in data:
-                content.passwd = data['password']
+                content.passwd = password_protection_service.hash_password(data['password']) if data.get('password') else ''
+            content.updated_at = datetime.now()
         else:
-            db.add(ArticleContent(article=article_id, content=data['content'], passwd=data.get('password', ''),
+            db.add(ArticleContent(article=article_id, content=data['content'],
+                                  passwd=password_protection_service.hash_password(data['password']) if data.get('password') else '',
                                   created_at=datetime.now(), updated_at=datetime.now()))
 
     await db.commit()
+    await db.refresh(article)
     await save_article_revision(db=db, article_id=article_id, author_id=current_user.id,
                                 change_summary=data.get('change_summary', '更新文章'))
 
     try:
         await isr_service.invalidate(article.slug)
-        await webhook_service.trigger('article.updated', {'article_id': article_id})
+        await webhook_service.trigger_event('article.updated', {'article_id': article_id})
         await event_bus.emit('article.updated', ArticleUpdatedPayload(
             article_id=article.id, slug=article.slug, title=article.title,
             author_id=current_user.id,
         ))
     except Exception:
-        pass
+        logger.warning(f"文章更新后处理失败 (article_id={article.id})", exc_info=True)
 
     return ApiResponse(success=True, data={"id": article.id, "slug": article.slug}, message="文章更新成功")
 
@@ -393,19 +470,19 @@ async def delete_article_api(article_id: int, current_user=Depends(jwt_required)
     """删除文章（软删除）"""
     article = await db.scalar(select(Article).where(Article.id == article_id))
     if not article:
-        return fail("文章不存在")
+        raise HTTPException(404, "文章不存在")
     if article.user != current_user.id and not _is_admin(current_user):
-        return fail("无权删除此文章")
+        raise HTTPException(403, "无权删除此文章")
     article.status = -1
     await db.commit()
 
     try:
-        await webhook_service.trigger('article.deleted', {'article_id': article_id})
+        await webhook_service.trigger_event('article.deleted', {'article_id': article_id})
         await event_bus.emit('article.deleted', ArticleDeletedPayload(
             article_id=article.id, slug=article.slug, title=article.title,
         ))
     except Exception:
-        pass
+        logger.warning(f"文章删除后处理失败 (article_id={article_id})", exc_info=True)
     return ApiResponse(success=True, message="文章已删除")
 
 
@@ -415,9 +492,14 @@ async def get_articles_by_tag_api(tag_name: str, page: int = Query(1, ge=1), per
                                    db: AsyncSession = Depends(get_async_session)):
     """按标签获取文章"""
     offset = (page - 1) * per_page
-    q = select(Article).where(Article.tags_list.contains(tag_name), Article.status == 1).order_by(Article.id.desc())
+    q = select(Article).where(
+        Article.tags_list.op('~*')(f'(^|,)\\s*{re.escape(tag_name)}\\s*(,|$)'),
+        Article.status == 1
+    ).order_by(Article.id.desc())
     total = await db.scalar(select(func.count()).select_from(Article).where(
-        Article.tags_list.contains(tag_name), Article.status == 1)) or 0
+        Article.tags_list.op('~*')(f'(^|,)\\s*{re.escape(tag_name)}\\s*(,|$)'),
+        Article.status == 1
+    )) or 0
     articles = (await db.execute(q.offset(offset).limit(per_page))).scalars().all()
 
     uids = {a.user for a in articles if a.user}
@@ -480,18 +562,20 @@ async def get_new_article_form_api(category_id: int = Query(0, alias="cid")):
 
 @router.post("/{article_id}/sticky")
 @_catch
-async def toggle_article_sticky_api(article_id: int, data: dict, current_user=Depends(jwt_required),
+async def toggle_article_sticky_api(article_id: int, data: dict = Body(...), current_user=Depends(jwt_required),
                                      db: AsyncSession = Depends(get_async_session)):
-    """切换文章置顶状态（管理员）"""
-    if not _is_admin(current_user):
-        return fail("仅管理员可操作置顶")
+    """切换文章置顶状态（需要 article:edit 权限）"""
+    if not await rbac_service.has_permission(db, current_user.id, 'article', 'edit'):
+        return fail("权限不足：需要 article:edit 权限")
     article = await db.scalar(select(Article).where(Article.id == article_id))
     if not article:
         return fail("文章不存在")
-    article.sticky = data.get('sticky', False)
+    article.is_sticky = data.get('sticky', False)
     if data.get('sticky'):
-        from datetime import timedelta
-        article.sticky_expires_at = datetime.now() + timedelta(days=data.get('sticky_days', 7))
+        sticky_days = data.get('sticky_days', 7)
+        if not isinstance(sticky_days, (int, float)) or sticky_days <= 0:
+            return fail("置顶天数必须大于 0")
+        article.sticky_until = datetime.now() + timedelta(days=sticky_days)
     await db.commit()
     return ok(msg="置顶状态已更新")
 
@@ -500,13 +584,19 @@ async def toggle_article_sticky_api(article_id: int, data: dict, current_user=De
 @_catch
 async def clean_expired_sticky_articles_api(current_user=Depends(jwt_required),
                                             db: AsyncSession = Depends(get_async_session)):
-    """清理过期的置顶文章（管理员）"""
+    """清理过期的置顶文章（需要 article:edit 权限）"""
+    if not await rbac_service.has_permission(db, current_user.id, 'article', 'edit'):
+        return fail("权限不足：需要 article:edit 权限")
+    now = datetime.now()
     result = await db.execute(
-        select(Article).where(Article.sticky == True, Article.sticky_expires_at < datetime.now()))
+        select(Article).where(
+            Article.is_sticky == True,
+            Article.sticky_until != None,
+            Article.sticky_until < now))
     count = 0
     for article in result.scalars().all():
-        article.sticky = False
-        article.sticky_expires_at = None
+        article.is_sticky = False
+        article.sticky_until = None
         count += 1
     await db.commit()
     return ok(data={"cleaned_count": count}, msg=f"已清理 {count} 篇过期置顶文章")
@@ -514,11 +604,11 @@ async def clean_expired_sticky_articles_api(current_user=Depends(jwt_required),
 
 @router.post("/reorder")
 @_catch
-async def reorder_articles_api(data: list[dict], current_user=Depends(jwt_required),
+async def reorder_articles_api(data: list[dict] = Body(...), current_user=Depends(jwt_required),
                                 db: AsyncSession = Depends(get_async_session)):
-    """文章排序"""
-    if not _is_admin(current_user):
-        return fail("仅管理员可排序")
+    """文章排序（需要 article:edit 权限）"""
+    if not await rbac_service.has_permission(db, current_user.id, 'article', 'edit'):
+        return fail("权限不足：需要 article:edit 权限")
     for item in data:
         article = await db.scalar(select(Article).where(Article.id == item.get('id')))
         if article and 'sort_order' in item:
@@ -529,28 +619,31 @@ async def reorder_articles_api(data: list[dict], current_user=Depends(jwt_requir
 
 @router.post("/batch-operation")
 @_catch
-async def batch_article_operation_api(data: dict, current_user=Depends(jwt_required),
+async def batch_article_operation_api(data: dict = Body(...), current_user=Depends(jwt_required),
                                        db: AsyncSession = Depends(get_async_session)):
-    """批量操作文章"""
-    if not _is_admin(current_user):
-        return fail("仅管理员可批量操作")
+    """批量操作文章（管理员可操作全部，普通用户仅操作自己的）"""
+    is_admin = _is_admin(current_user)
     action = data.get('action')
     ids = data.get('ids', [])
     if not ids:
         return fail("请选择文章")
 
+    # 非管理员只能操作自己的文章
+    query = select(Article).where(Article.id.in_(ids))
+    if not is_admin:
+        query = query.where(Article.user == current_user.id)
+
     if action == 'delete':
-        await db.execute(select(Article).where(Article.id.in_(ids)))
-        for a in (await db.execute(select(Article).where(Article.id.in_(ids)))).scalars().all():
+        for a in (await db.execute(query)).scalars().all():
             a.status = -1
     elif action == 'publish':
-        for a in (await db.execute(select(Article).where(Article.id.in_(ids)))).scalars().all():
+        for a in (await db.execute(query)).scalars().all():
             a.status = 1
     elif action == 'draft':
-        for a in (await db.execute(select(Article).where(Article.id.in_(ids)))).scalars().all():
+        for a in (await db.execute(query)).scalars().all():
             a.status = 0
     elif action == 'feature':
-        for a in (await db.execute(select(Article).where(Article.id.in_(ids)))).scalars().all():
+        for a in (await db.execute(query)).scalars().all():
             a.is_featured = data.get('value', False)
     else:
         return fail(f"未知操作: {action}")

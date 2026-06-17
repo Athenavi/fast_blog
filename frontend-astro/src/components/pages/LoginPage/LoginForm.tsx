@@ -20,6 +20,10 @@ interface Props {
 const LoginForm: React.FC<Props> = ({loginForm, busy, pv, focusedField, onTogglePv, onFocusField, onSubmit}) => {
   const {t} = useTranslation();
 
+  const handleOAuthLogin = (provider: string) => {
+    window.location.href = `/api/v2/oauth/authorize/${provider}`;
+  };
+
   return (
     <FormProvider {...loginForm}>
       <form onSubmit={loginForm.handleSubmit(onSubmit)} className="space-y-5">
@@ -117,11 +121,11 @@ const LoginForm: React.FC<Props> = ({loginForm, busy, pv, focusedField, onToggle
 
         {/* Social Login */}
         <div className="grid grid-cols-2 gap-3">
-          <button type="button"
+          <button type="button" onClick={() => handleOAuthLogin('github')}
             className="flex items-center justify-center gap-2 py-3.5 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-2xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-750 hover:border-gray-300 dark:hover:border-gray-600 transition-all active:scale-[0.98]">
             <GitBranch className="w-5 h-5"/> GitHub
           </button>
-          <button type="button"
+          <button type="button" onClick={() => handleOAuthLogin('google')}
             className="flex items-center justify-center gap-2 py-3.5 bg-white dark:bg-gray-800 border-2 border-gray-200 dark:border-gray-700 rounded-2xl text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-750 hover:border-gray-300 dark:hover:border-gray-600 transition-all active:scale-[0.98]">
             <Globe className="w-5 h-5"/> Google
           </button>

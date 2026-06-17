@@ -1,6 +1,7 @@
 import {type ClassValue, clsx} from "clsx";
 import {twMerge} from "tailwind-merge";
 import {getConfig} from "./config";
+import {getAccessTokenFromCookie} from "./auth-utils";
 
 export function cn(...inputs: ClassValue[]) {
     return twMerge(clsx(inputs));
@@ -14,6 +15,19 @@ export function getFullMediaUrl(url: string | null | undefined): string {
     if (url.startsWith('http://') || url.startsWith('https://')) return url;
     const config = getConfig();
     return `${config.API_BASE_URL}${url}`;
+}
+
+/**
+ * 获取带认证 token 的媒体 URL（适用于 img / iframe 等无法携带 header 的场景）
+ * 自动从 cookie 中提取 access_token 并追加为 ?token= 查询参数
+ */
+export function getAuthenticatedMediaUrl(url: string | null | undefined): string {
+    const base = getFullMediaUrl(url);
+    if (!base) return '';
+    const token = getAccessTokenFromCookie();
+    if (!token) return base;
+    const separator = base.includes('?') ? '&' : '?';
+    return `${base}${separator}token=${encodeURIComponent(token)}`;
 }
 
 /**

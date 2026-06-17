@@ -4,7 +4,7 @@
 import logging
 from functools import wraps
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Body, Depends, HTTPException, Request
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -13,11 +13,21 @@ from shared.services.users.session_management_service import session_management_
 from shared.services.users.two_factor_auth import two_factor_auth
 from src.api.v2._helpers import ok, fail
 from src.api.v2.auth_v1pack import create_jwt_token
+
+# 2FA 设置密钥临时存储（cache 的后备，避免同步 cache.set 阻塞事件循环）
+# 注意: 此内存 dict 在多进程部署下会丢失，如需生产环境高可用，
+#       应使用 Redis 等共享存储作为主要存储，此 dict 仅作为后备。
+_setup_secrets: dict = {}
+logger = logging.getLogger(__name__)
+logger.warning(
+    "2FA setup secrets stored in process-local memory dict (_setup_secrets). "
+    "Multi-process/load-balanced deployments will lose setup state across workers. "
+    "Consider using Redis or database-backed storage for production."
+)
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 
 router = APIRouter(tags=["2fa"])
-logger = logging.getLogger(__name__)
 
 
 def _catch(func):
@@ -74,9 +84,15 @@ async def setup_2fa(
     secret = two_factor_auth.generate_totp_secret()
 
     # 临时存储到session或缓存(不保存到数据库,直到验证成功)
-    from src.extensions import cache
-    cache_key = f"2fa_setup:{current_user.id}"
-    cache.set(cache_key, secret, ex=600)  # 10分钟过期
+    # 注意: cache.set() 是同步调用，在异步上下文中会阻塞事件循环
+    # 使用简单的内存 dict 作为可靠后备
+    from src.extensions import cache as maybe_cache
+    try:
+        maybe_cache.set(f"2fa_setup:{current_user.id}", secret, ex=600)
+    except Exception:
+        pass
+    # 始终保存到内存后备，确保 enable 时可读取
+    _setup_secrets[current_user.id] = secret
 
     # 生成QR码
     qr_data = two_factor_auth.generate_qr_code(
@@ -112,9 +128,10 @@ async def enable_2fa(
     from sqlalchemy import select
     from src.extensions import cache
 
-    # 获取临时存储的密钥
+    # 获取临时存储的密钥（优先缓存，降级内存）
+    from src.extensions import cache
     cache_key = f"2fa_setup:{current_user.id}"
-    secret = cache.get(cache_key)
+    secret = _setup_secrets.get(current_user.id) or cache.get(cache_key)
 
     if not secret:
         return fail("设置已过期,请重新开始")
@@ -145,8 +162,9 @@ async def enable_2fa(
         await db.rollback()
         raise
 
-    # 清除临时缓存
+    # 清除临时缓存和内存后备
     cache.delete(cache_key)
+    _setup_secrets.pop(current_user.id, None)
 
     return ok(data={
         "backup_codes": backup_codes,
@@ -157,14 +175,16 @@ async def enable_2fa(
 @router.post("/disable")
 @_catch
 async def disable_2fa(
+        password: str = Body(..., description="当前密码验证"),
         db: AsyncSession = Depends(get_async_db),
         current_user=Depends(jwt_required)
 ):
     """
-    禁用2FA
+    禁用2FA（需验证当前密码）
     """
     from shared.models.user import User
     from sqlalchemy import select
+    from src.utils.security.password_validator import verify_password
 
     # 获取用户信息
     query = select(User).where(User.id == current_user.id)
@@ -173,6 +193,10 @@ async def disable_2fa(
 
     if not user:
         return fail("用户不存在")
+
+    # 验证密码
+    if not user.password or not verify_password(password, user.password):
+        return fail("密码验证失败")
 
     # 清除2FA设置
     user.is_2fa_enabled = False

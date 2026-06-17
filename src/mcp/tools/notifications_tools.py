@@ -63,7 +63,6 @@ async def send_test_email(arguments: dict) -> dict:
 
     try:
         from shared.services.notifications.email_service import email_service
-        from src.extensions import get_async_session_context as db_ctx
         await email_service.send_email(
             recipients=[to_email],
             subject="FastBlog 测试邮件",

@@ -40,9 +40,11 @@ frontend-astro/
 │   ├── components/     # React 组件（岛屿）
 │   ├── layouts/        # Astro 布局组件
 │   ├── lib/
-│   │   ├── api.ts      # API 客户端
-│   │   ├── types.ts    # TypeScript 类型定义
-│   │   └── services/   # API 服务层
+│   │   ├── api/         # 28 个 API service 文件
+│   │   ├── hooks/       # 自定义 hooks
+│   │   ├── schemas/     # Zod 验证 schema
+│   │   ├── services/    # 业务服务
+│   │   └── page-builder/ # 页面构建器工具
 │   ├── pages/          # 页面路由
 │   │   ├── index.astro       # 首页
 │   │   └── articles.astro    # 文章列表

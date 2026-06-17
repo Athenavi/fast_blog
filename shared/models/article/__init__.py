@@ -10,5 +10,4 @@ from .article_revision import ArticleRevision
 from .article_revision_note import ArticleRevisionNote
 from .article_seo import ArticleSEO
 
-__all__ = ['Article', 'ArticleAnnotation', 'ArticleContent', 'ArticleLike', 'ArticleRevision', 'ArticleRevisionNote',
-           'ArticleSEO']
+__all__ = ['Article', 'ArticleAnnotation', 'ArticleContent', 'ArticleLike', 'ArticleRevision', 'ArticleRevisionNote', 'ArticleSEO']

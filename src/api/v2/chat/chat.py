@@ -89,7 +89,7 @@ async def get_user_groups(
             'id': group.id,
             'name': group.name,
             'description': group.description,
-            'avatar_url': group.avatar_url,
+            'avatar': group.avatar,
             'member_count': member_count,
             'unread_count': unread_count,
             'last_message_at': group.last_message_at.isoformat() if group.last_message_at else None,
@@ -284,7 +284,7 @@ async def send_private_message(
     Returns:
         发送结果
     """
-    from shared.models.private_message import PrivateMessage
+    from shared.models.chat import PrivateMessage
     from shared.models.user import User
     from datetime import datetime
 
@@ -338,16 +338,16 @@ async def get_unread_count(
     Returns:
         未读消息统计
     """
-    from shared.models.private_message import PrivateMessage
+    from shared.models.chat import PrivateMessage
 
     # 私聊未读数
     private_unread_query = select(func.count(PrivateMessage.id)).where(
         and_(
             PrivateMessage.recipient == current_user.id,
-            PrivateMessage.group is None,
+            PrivateMessage.group == None,
             or_(
                 PrivateMessage.is_read == False,
-                PrivateMessage.is_read is None
+                PrivateMessage.is_read == None
             )
         )
     )
@@ -357,11 +357,11 @@ async def get_unread_count(
     # 群聊未读数
     group_unread_query = select(func.count(PrivateMessage.id)).where(
         and_(
-            PrivateMessage.group is not None,
+            PrivateMessage.group != None,
             PrivateMessage.sender != current_user.id,
             or_(
                 PrivateMessage.is_read == False,
-                PrivateMessage.is_read is None
+                PrivateMessage.is_read == None
             )
         )
     )
@@ -393,7 +393,7 @@ async def mark_message_read(
     Returns:
         操作结果
     """
-    from shared.models.private_message import PrivateMessage
+    from shared.models.chat import PrivateMessage
     from datetime import datetime
 
     message_query = select(PrivateMessage).where(PrivateMessage.id == message_id)

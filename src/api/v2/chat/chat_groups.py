@@ -610,6 +610,10 @@ async def get_group_invites(
     if not current_member:
         return fail("您不是该群聊的成员")
 
+    # 只有owner和admin可以查看邀请链接（邀请码为敏感信息）
+    if current_member.role not in ['owner', 'admin']:
+        return fail("只有群主和管理员可以查看邀请链接")
+
     # 获取所有邀请链接
     invites_query = (
         select(ChatGroupInvite)

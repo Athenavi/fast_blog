@@ -102,7 +102,7 @@ export class CategoryService {
         categories: Array<{ category: Category; article_count: number; subscriber_count: number }>;
         pagination: Pagination;
     }>> {
-        const response = await apiClient.get('/categories/', params); // 认证用户使用的API
+        const response = await apiClient.get('/cms/categories/', params); // 认证用户使用的API
 
         // 确保返回正确的格式
         if (response.success && response.data && typeof response.data === 'object') {
@@ -224,22 +224,22 @@ export class CategoryService {
     }
 
     static async deleteCategory(deleteCategoryId: number) {
-        return apiClient.delete(`/categories/${deleteCategoryId}`)
+        return apiClient.delete(`/cms/categories/${deleteCategoryId}`)
     }
 
     static async updateCategory(id: number, param2: { name: string; description: string | undefined }) {
-        return apiClient.put(`/categories/${id}`, param2)
+        return apiClient.put(`/cms/categories/${id}`, param2)
     }
 
     static async createCategory(param: { name: string; description: string | undefined }) {
-        return apiClient.post('/categories/', param)
+        return apiClient.post('/cms/categories/', param)
     }
 
     // 拖拽排序分类
     static async reorderCategories(
         categories: Array<{ id: number; sort_order: number }>
     ): Promise<ApiResponse<{ message: string; updated_count: number }>> {
-        return apiClient.put('/categories/reorder', {
+        return apiClient.put('/cms/categories/reorder', {
             categories
         });
     }

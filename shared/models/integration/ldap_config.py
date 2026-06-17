@@ -1,12 +1,13 @@
 """
 SQLAlchemy 模型定义 - LDAPConfig
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-06-04 17:21:20
+生成时间：2026-06-13 23:12:16
 """
 
-from sqlalchemy import Column, Integer, BigInteger, String, Boolean, DateTime, ForeignKey, Index
+from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
 
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
+
 
 
 class LDAPConfig(Base):
@@ -53,13 +54,16 @@ class LDAPConfig(Base):
 
     sync_interval = Column(Integer, default=3600, doc='同步间隔（秒）')
 
+
     default_role = Column(String(50), default='subscriber', doc='新用户默认角色')
 
     is_active = Column(Boolean, default=False, doc='是否激活')
 
+
     created_at = Column(DateTime, doc='创建时间')
 
     updated_at = Column(DateTime, doc='更新时间')
+
 
     def to_dict(self, exclude_sensitive=True):
         """转换为字典
@@ -72,7 +76,6 @@ class LDAPConfig(Base):
             'site_id': self.site_id,
             'server_url': self.server_url,
             'bind_dn': self.bind_dn,
-            'bind_password': self.bind_password,
             'base_dn': self.base_dn,
             'user_filter': self.user_filter,
             'username_attribute': self.username_attribute,
@@ -91,6 +94,7 @@ class LDAPConfig(Base):
 
         if not exclude_sensitive:
             sensitive_data = {
+                'bind_password': self.bind_password,
             }
             data.update(sensitive_data)
 
@@ -99,3 +103,5 @@ class LDAPConfig(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<LDAPConfig id={self.id}>'
+
+

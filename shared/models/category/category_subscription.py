@@ -1,12 +1,13 @@
 """
 SQLAlchemy 模型定义 - CategorySubscription
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-06-04 17:21:19
+生成时间：2026-06-13 23:12:16
 """
 
-from sqlalchemy import Column, BigInteger, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, UniqueConstraint
 
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
+
 
 
 class CategorySubscription(Base):
@@ -14,14 +15,17 @@ class CategorySubscription(Base):
     __tablename__ = 'category_subscriptions'
 
 
+    __table_args__ = (
+        UniqueConstraint('category', 'subscriber', name='uq_category_subscriber'),
+    )
 
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='订阅 ID')
 
-    category = Column(BigInteger, ForeignKey('categories.id'), doc='分类')
+    category = Column(BigInteger, ForeignKey('categories.id', ondelete='CASCADE'), nullable=True, doc='分类')
 
 
-    subscriber = Column(BigInteger, ForeignKey('users.id'), doc='订阅用户')
+    subscriber = Column(BigInteger, ForeignKey('users.id', ondelete='CASCADE'), nullable=True, doc='订阅用户')
 
 
     created_at = Column(DateTime, doc='创建时间')

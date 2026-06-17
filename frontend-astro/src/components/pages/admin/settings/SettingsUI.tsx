@@ -121,7 +121,9 @@ export const MediaField: React.FC<{ value: string; onChange: (v: string) => void
       const xhr = new XMLHttpRequest();
       const result = await new Promise<{
         success?: boolean;
-        data?: { url?: string; files?: { url: string }[] }
+        data?: { url?: string; files?: { url: string }[] };
+        message?: string;
+        error?: string;
       }>((resolve, reject) => {
         const {API_BASE_URL} = getConfig();
         xhr.open('POST', `${API_BASE_URL}/api/v2/media/settings/upload`);
@@ -138,7 +140,13 @@ export const MediaField: React.FC<{ value: string; onChange: (v: string) => void
             return;
           }
           try {
-            resolve(JSON.parse(xhr.responseText));
+            const parsed = JSON.parse(xhr.responseText);
+            // 检查服务端业务错误（非 HTTP 层面）
+            if (parsed && parsed.success === false) {
+              reject(new Error(parsed.message || parsed.error || '上传失败'));
+              return;
+            }
+            resolve(parsed);
           } catch {
             const snippet = xhr.responseText?.slice(0, 120) || '(empty)';
             reject(new Error(`服务器返回非 JSON 响应 (HTTP ${xhr.status}): ${snippet}`));

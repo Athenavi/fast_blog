@@ -276,9 +276,14 @@ async def get_my_requests(
         审批请求列表和分页信息
     """
     from sqlalchemy import select, func
+    from shared.models.user import User
 
-    query = select(ApprovalRecord).where(
-        ApprovalRecord.applicant_id == current_user.id
+    query = (
+        select(ApprovalRecord, User.username)
+        .join(User, ApprovalRecord.applicant_id == User.id, isouter=True)
+        .where(
+            ApprovalRecord.applicant_id == current_user.id
+        )
     )
 
     if status:
@@ -296,14 +301,16 @@ async def get_my_requests(
     query = query.offset(offset).limit(per_page).order_by(ApprovalRecord.created_at.desc())
 
     result = await db.execute(query)
-    records = result.scalars().all()
+    rows = result.all()
 
     records_list = []
-    for record in records:
+    for record, applicant_name in rows:
         records_list.append({
             'id': record.id,
             'content_type': record.content_type,
             'content_id': record.content_id,
+            'applicant_id': record.applicant_id,
+            'applicant_name': applicant_name,
             'current_level': record.current_level,
             'max_level': record.max_level,
             'status': record.status,

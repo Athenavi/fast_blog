@@ -163,9 +163,11 @@ class NFTService:
             # 2. 调用智能合约铸造 NFT
             # 3. 等待交易确认
 
-            # 模拟铸造过程
+            # 将元数据上传到 IPFS
+            metadata_uri = self.upload_metadata_to_ipfs(metadata)
+
+            # 模拟铸造剩余过程
             token_id = f"{article_id}_{int(datetime.now().timestamp())}"
-            metadata_uri = f"ipfs://{metadata.get_hash()}"  # 模拟 IPFS URI
 
             nft_record = NFTRecord(
                 token_id=token_id,

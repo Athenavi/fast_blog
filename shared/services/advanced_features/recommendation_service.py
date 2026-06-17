@@ -4,7 +4,7 @@
 """
 
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Optional, Tuple
 from collections import defaultdict, Counter
 import math
@@ -39,6 +39,7 @@ class RecommendationService:
         # 配置参数
         self.trending_window_hours = [24, 168, 720]  # 24h, 7d, 30d
         self.recommendation_count = 10  # 默认推荐数量
+        self.db = None  # 由 set_db_session 设置
 
     def record_user_action(self, user_id: int, article_id: int,
                            action_type: str = 'view'):
@@ -50,7 +51,7 @@ class RecommendationService:
             article_id: 文章ID
             action_type: 行为类型 (view, like, bookmark, comment)
         """
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
 
         if action_type == 'view':
             self._reading_history[user_id].append((article_id, now))
@@ -145,7 +146,7 @@ class RecommendationService:
                 tags = features.get('tags', [])
 
                 # 时间衰减:越近的权重越高
-                days_ago = (datetime.now() - timestamp).days
+                days_ago = (datetime.now(timezone.utc) - timestamp).days
                 time_weight = max(0.1, 1.0 - (days_ago / 30))  # 30天衰减到0.1
 
                 for tag in tags:
@@ -218,7 +219,7 @@ class RecommendationService:
             if isinstance(created_at, str):
                 created_at = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
 
-            days_old = (datetime.now() - created_at).days
+            days_old = (datetime.now(timezone.utc) - created_at).days
             freshness_score = max(0.1, 1.0 - (days_old / 90))  # 90天衰减到0.1
             score += freshness_score * 0.2
 
@@ -294,7 +295,7 @@ class RecommendationService:
         """
         # 检查缓存
         if window in self._trending_cache and self._trending_cache['last_updated']:
-            cache_age = (datetime.now() - self._trending_cache['last_updated']).seconds
+            cache_age = (datetime.now(timezone.utc) - self._trending_cache['last_updated']).seconds
             if cache_age < 300:  # 5分钟缓存
                 return self._trending_cache[window][:limit]
 
@@ -308,7 +309,7 @@ class RecommendationService:
         else:
             hours = 24
 
-        cutoff = datetime.now() - timedelta(hours=hours)
+        cutoff = datetime.now(timezone.utc) - timedelta(hours=hours)
 
         # 统计近期热门
         article_scores = Counter()
@@ -327,7 +328,7 @@ class RecommendationService:
                 likes = features.get('likes', 0)
 
                 # 时间加权:越近的文章权重越高
-                hours_old = (datetime.now() - created_at).total_seconds() / 3600
+                hours_old = (datetime.now(timezone.utc) - created_at).total_seconds() / 3600
                 time_weight = max(0.1, 1.0 - (hours_old / (hours * 2)))
 
                 score = (views + likes * 10) * time_weight
@@ -345,7 +346,7 @@ class RecommendationService:
 
         # 更新缓存
         self._trending_cache[window] = trending
-        self._trending_cache['last_updated'] = datetime.now()
+        self._trending_cache['last_updated'] = datetime.now(timezone.utc)
 
         return trending
 
@@ -363,12 +364,15 @@ class RecommendationService:
         from shared.models.article import Article
         from shared.models.user import User
         from sqlalchemy import select, func
-        from datetime import datetime, timedelta
+        from datetime import datetime, timedelta, timezone
 
         # 统计最近30天的发文数据
-        cutoff_date = datetime.now() - timedelta(days=30)
+        cutoff_date = datetime.now(timezone.utc) - timedelta(days=30)
 
         try:
+            if not self.db:
+                logger.warning("RecommendationService: DB session not set, cannot query rising stars")
+                return []
             # 查询每个用户的发文数
             result = self.db.execute(
                 select(
@@ -397,7 +401,7 @@ class RecommendationService:
 
                     if user:
                         # 计算活跃度分数（发文数 + 最近活跃度）
-                        days_since_last = (datetime.now() - stat.last_article_date).days
+                        days_since_last = (datetime.now(timezone.utc) - stat.last_article_date).days
                         activity_score = stat.article_count * (1.0 / (1 + days_since_last * 0.1))
 
                         rising_stars.append({
@@ -418,6 +422,10 @@ class RecommendationService:
         except Exception as e:
             logger.error(f"Failed to get rising stars: {e}")
             return []
+
+    def set_db_session(self, db_session):
+        """设置数据库会话（用于 DB 查询）"""
+        self.db = db_session
 
     def get_similar_articles(self, article_id: int,
                              limit: int = 5) -> List[Dict]:

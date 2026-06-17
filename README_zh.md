@@ -9,7 +9,7 @@
 [![CI Status](https://github.com/Athenavi/fast_blog/actions/workflows/ci.yml/badge.svg)](https://github.com/Athenavi/fast_blog/actions/workflows/ci.yml)
 [![Release](https://github.com/Athenavi/fast_blog/actions/workflows/release.yml/badge.svg)](https://github.com/Athenavi/fast_blog/actions/workflows/release.yml)
 [![Python Version](https://img.shields.io/badge/python-3.14+-blue.svg?logo=python&logoColor=white)](https://www.python.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.136-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.136.3-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
 [![Astro](https://img.shields.io/badge/Astro-5.x-BC52EE.svg?logo=astro&logoColor=white)](https://astro.build/)
 [![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](./LICENSE)
 [![Docker](https://img.shields.io/badge/docker-ready-blue?logo=docker&logoColor=white)](https://github.com/Athenavi/fast_blog/pkgs/container/fastblog)
@@ -26,7 +26,7 @@
 
 - **FastAPI 后端** — 异步 Web 框架，自动生成 API 文档
 - **Astro 前端** — 岛屿架构，默认零 JavaScript，极速首屏加载
-- **插件系统** — Hook 机制扩展，无需修改核心代码
+- **插件系统** — EventBus 事件驱动架构，无需修改核心代码
 - **富文本编辑器** — 基于 TipTap 的所见即所得编辑器
 - **主题引擎** — 支持热切换的 Astro 主题
 - **JWT + OAuth2** — Cookie/Bearer 双模式认证，支持 2FA (TOTP)

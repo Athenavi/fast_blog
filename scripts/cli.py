@@ -476,10 +476,10 @@ def user_create(args):
                     print(f"❌ Username '{username}' already exists")
                     return False
 
-                # 创建新用户
-                from passlib.context import CryptContext
-                pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-                hashed_password = pwd_context.hash(password)
+                # 创建新用户（使用 Argon2 哈希，与应用登录一致）
+                sys.path.insert(0, str(Path(__file__).parent.parent))
+                from src.utils.security.password_validator import hash_password
+                hashed_password = hash_password(password)
 
                 new_user = User(
                     username=username,

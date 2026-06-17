@@ -9,7 +9,7 @@ from functools import wraps
 from typing import Any, Callable, Dict, List, Optional, Union
 
 try:
-    from shared.services.cache_service import CacheService
+    from shared.services.core.cache_service import CacheService
 except ImportError:
     CacheService = None
 

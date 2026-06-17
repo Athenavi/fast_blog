@@ -12,6 +12,7 @@ from shared.services.performance.query_monitor import query_monitor_service
 from shared.services.performance.query_optimizer import query_optimizer
 from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
+from src.extensions import get_async_db_session as get_async_db
 
 router = APIRouter()
 
@@ -54,7 +55,7 @@ async def optimize_article_query(
         category_id: Optional[int] = Body(None, description="分类ID"),
         status: Optional[int] = Body(None, description="状态"),
         current_user=Depends(jwt_required),
-        db: AsyncSession = Depends(lambda: None),
+        db: AsyncSession = Depends(get_async_db),
 ):
     """优化的文章查询示例"""
     from shared.models.article import Article

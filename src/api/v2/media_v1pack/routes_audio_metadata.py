@@ -3,6 +3,7 @@
 提供音频文件的封面图片和歌词信息
 """
 import base64
+import re
 from functools import wraps
 from pathlib import Path
 from typing import Optional
@@ -149,23 +150,49 @@ def extract_cover_from_audio(media: Media) -> Optional[bytes]:
 
 
 def extract_lyrics_from_audio(media: Media) -> list:
-    """从音频文件的ID3标签中提取歌词（USLT帧）"""
+    """从音频文件的ID3标签中提取歌词（USLT帧），同时尝试加载同名的 .lrc 文件"""
+    all_lyrics = []
+
     try:
         # 方法2: 从音频元数据中提取USLT帧（同步歌词）
         lyrics = extract_lyrics_from_id3(media)
         if lyrics:
-            return lyrics
-
-        # 方法1: 查找同名的.lrc文件（备用方案）
-        # lrc_path = find_lrc_file(media)
-        # if lrc_path:
-        #     return parse_lrc_file(lrc_path)
-
-        return []
-
+            all_lyrics.extend(lyrics)
     except Exception as e:
-        logger.error(f"提取歌词失败: {e}")
-        return []
+        logger.error(f"从ID3提取歌词失败: {e}")
+
+    try:
+        import os
+        # 尝试加载同名的 .lrc 文件
+        file_path = media.file_path
+        if file_path and not file_path.startswith('s3://'):
+            file_path_actual = str(Path('storage/' + file_path))
+            if os.path.exists(file_path_actual):
+                lrc_path = os.path.splitext(file_path_actual)[0] + '.lrc'
+                if os.path.exists(lrc_path):
+                    with open(lrc_path, 'r', encoding='utf-8') as f:
+                        lrc_content = f.read()
+                    for line in lrc_content.split('\n'):
+                        line = line.strip()
+                        if not line:
+                            continue
+                        match = re.match(r'\[(\d{2}):(\d{2})\.(\d{2,3})\](.*)', line)
+                        if match:
+                            minutes = int(match.group(1))
+                            seconds = int(match.group(2))
+                            millis = int(match.group(3))
+                            time_in_seconds = minutes * 60 + seconds + millis / 1000
+                            text = match.group(4).strip()
+                            if text:
+                                all_lyrics.append({'time': time_in_seconds, 'text': text})
+    except Exception as e:
+        logger.warning(f"加载LRC歌词文件失败: {e}")
+
+    # 按时间排序
+    if all_lyrics:
+        all_lyrics.sort(key=lambda x: x["time"])
+
+    return all_lyrics
 
 
 def extract_lyrics_from_id3(media: Media) -> list:
@@ -189,6 +216,30 @@ def extract_lyrics_from_id3(media: Media) -> list:
         if not full_path.exists():
             logger.warning(f"音频文件不存在: {full_path}")
             return []
+
+        # 安全限制：拒绝超过 1MB 的 ID3 标签（防止内存耗尽）
+        MAX_ID3_SIZE = 1 * 1024 * 1024  # 1 MB
+        file_stat = full_path.stat()
+        if lower_path.endswith('.mp3'):
+            # MP3 文件的 ID3v2 标签位于文件开头，粗略估计为文件前 1MB
+            if file_stat.st_size > MAX_ID3_SIZE * 2:
+                # 只读取文件头判断 ID3 实际大小
+                with open(full_path, 'rb') as fh:
+                    header = fh.read(10)
+                if header[:3] == b'ID3':
+                    # ID3v2 header: 3B signature + 2B version + 1B flags + 4B size (synchsafe)
+                    id3_size = ((header[6] & 0x7F) << 21 |
+                                (header[7] & 0x7F) << 14 |
+                                (header[8] & 0x7F) << 7 |
+                                (header[9] & 0x7F))
+                    if id3_size > MAX_ID3_SIZE:
+                        logger.warning(f"ID3 标签过大 ({id3_size} bytes)，跳过歌词提取")
+                        return []
+        else:
+            # 通用格式：文件整体小于 1MB 才尝试标签提取
+            if file_stat.st_size > MAX_ID3_SIZE:
+                logger.warning(f"文件过大 ({file_stat.st_size} bytes)，跳过通用音频标签提取")
+                return []
 
         # 尝试读取ID3标签
         audio_file = None
@@ -249,6 +300,13 @@ def parse_lrc_text(text: str) -> list:
 
         # 按行分割
         lines = text.split('\n')
+
+        MAX_LYRICS_LINES = 500  # 最大解析行数限制
+
+        for line in lines:
+            if len(lyrics) >= MAX_LYRICS_LINES:
+                logger.warning(f"歌词行数超过限制 ({MAX_LYRICS_LINES})，截断多余行")
+                break
 
         for line in lines:
             line = line.strip()

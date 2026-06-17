@@ -53,8 +53,9 @@ async function doRefreshToken(): Promise<boolean> {
 
 async function ensureTokenFresh(): Promise<boolean> {
   if (isRefreshing && refreshPromise) return refreshPromise;
-  isRefreshing = true;
+  // 先创建 Promise，再设标记，消除竞态窗口
   refreshPromise = doRefreshToken();
+  isRefreshing = true;
   const result = await refreshPromise;
   isRefreshing = false;
   refreshPromise = null;
@@ -178,8 +179,8 @@ async function parseResponse<T>(res: Response): Promise<ApiResponse<T>> {
 }
 
 // ─── 核心请求函数：V3 + V2 降级 ─────────────────
-const RETRIES_V3 = 3;
-const RETRIES_V2 = 2;
+const RETRIES_V3 = 2;
+const RETRIES_V2 = 1;
 
 async function requestWithFallback<T = any>(
   method: string,

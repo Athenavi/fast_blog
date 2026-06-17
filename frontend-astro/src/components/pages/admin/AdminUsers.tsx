@@ -8,6 +8,7 @@ import {AdminShell} from '@/components/admin/AdminShell';
 import {PermissionGuard} from '@/components/admin/PermissionGuard';
 import {useCapability} from '@/lib/hooks/useCapability';
 import {adminService} from '@/lib/api/admin-service';
+import {adminApi} from '@/lib/api/admin-api-client';
 import {useDebounce} from '@/lib/hooks';
 import {
   ChevronLeft,
@@ -27,7 +28,10 @@ import {
   Eye,
   RefreshCw,
   TrendingUp,
-  UserPlus
+  UserPlus,
+  Key,
+  Loader,
+  Save
 } from 'lucide-react';
 
 const STATUS_OPTIONS = [
@@ -103,6 +107,137 @@ const UserActions: React.FC<{ user: any; onToggle: (action: 'ban' | 'unban') => 
     );
 };
 
+/* ── Role Assignment Modal ── */
+const RoleAssignmentModal: React.FC<{
+  user: any;
+  onClose: () => void;
+  onSuccess: () => void;
+}> = ({ user, onClose, onSuccess }) => {
+  const qc = useQueryClient();
+  const [selectedRoleIds, setSelectedRoleIds] = useState<Set<number>>(new Set());
+  const [error, setError] = useState('');
+  const [initialized, setInitialized] = useState(false);
+
+  // Fetch user's current roles
+  const { data: userRoles } = useQuery({
+    queryKey: ['admin-user-roles', user.id],
+    queryFn: async () => {
+      const res = await adminApi.get(`/api/v3/admin/users/${user.id}`, `/users/${user.id}`);
+      const userData = res.success && res.data ? (res.data.data || res.data) : null;
+      const roles = userData?.roles || [];
+      if (!initialized) {
+        setSelectedRoleIds(new Set(roles.map((r: any) => r.id || r.role_id)));
+        setInitialized(true);
+      }
+      return roles;
+    },
+  });
+
+  const { data: allRoles, isLoading: rolesLoading } = useQuery({
+    queryKey: ['admin-roles-list'],
+    queryFn: async () => {
+      const res = await adminService.roles.listRoles();
+      return res.success && res.data ? (Array.isArray(res.data) ? res.data : res.data.roles || []) : [];
+    },
+  });
+
+  const assignMut = useMutation({
+    mutationFn: async () => {
+      // Send full set of selected role IDs (V3 replaces all, V2 may add incrementally)
+      const res = await adminService.users.assignRoles(user.id, [...selectedRoleIds]);
+      if (!res.success) throw new Error(res.error || 'Failed to assign roles');
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin-users'] });
+      onSuccess();
+      onClose();
+    },
+    onError: (e: any) => setError(e.message || '操作失败'),
+  });
+
+  const toggleRole = (roleId: number) => {
+    const s = new Set(selectedRoleIds);
+    s.has(roleId) ? s.delete(roleId) : s.add(roleId);
+    setSelectedRoleIds(s);
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm"
+         onClick={onClose}>
+      <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl w-full max-w-md max-h-[85vh] overflow-hidden transform transition-all"
+           onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800">
+          <div>
+            <h2 className="font-semibold text-gray-900 dark:text-white text-base">管理角色</h2>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{user.username}</p>
+          </div>
+          <button onClick={onClose}
+                  className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors">
+            <X className="w-4.5 h-4.5"/>
+          </button>
+        </div>
+        <div className="p-6 overflow-y-auto max-h-[calc(85vh-80px)]">
+          {error && (
+            <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 rounded-xl text-sm">
+              {error}
+            </div>
+          )}
+          {rolesLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader className="w-6 h-6 animate-spin text-gray-400"/>
+            </div>
+          ) : !allRoles || allRoles.length === 0 ? (
+            <div className="text-center py-8 text-sm text-gray-500">暂无可用角色</div>
+          ) : (
+            <div className="space-y-2">
+              {allRoles.map((role: any) => {
+                const isSelected = selectedRoleIds.has(role.id);
+                return (
+                  <label key={role.id}
+                         className={`flex items-center gap-3 p-3 rounded-xl cursor-pointer transition-all ${
+                           isSelected
+                             ? 'bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800'
+                             : 'bg-gray-50 dark:bg-gray-800/50 border border-transparent hover:bg-gray-100 dark:hover:bg-gray-800'
+                         }`}>
+                    <input type="checkbox" checked={isSelected} onChange={() => toggleRole(role.id)}
+                           className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"/>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium text-gray-900 dark:text-white">{role.name}</span>
+                        {role.is_system && (
+                          <span className="px-1.5 py-0.5 bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 rounded text-[10px] font-semibold">
+                            系统
+                          </span>
+                        )}
+                      </div>
+                      {role.description && (
+                        <p className="text-xs text-gray-400 mt-0.5 truncate">{role.description}</p>
+                      )}
+                    </div>
+                    <span className="text-xs text-gray-400">{role.permission_count || 0} 权限</span>
+                  </label>
+                );
+              })}
+            </div>
+          )}
+          <div className="mt-6 flex items-center justify-end gap-3">
+            <button onClick={onClose}
+                    className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl transition-colors">
+              取消
+            </button>
+            <button onClick={() => assignMut.mutate()} disabled={assignMut.isPending}
+                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors disabled:opacity-50 inline-flex items-center gap-2">
+              {assignMut.isPending && <Loader className="w-4 h-4 animate-spin"/>}
+              <Save className="w-4 h-4"/>
+              保存
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 /* ── Table Skeleton ── */
 const UserSkeleton = () => (
     <tr className="animate-pulse">
@@ -137,6 +272,7 @@ function AdminUsersInner() {
   const [page, setPage] = useState(1);
   const [searchInput, setSearchInput] = useState('');
   const [status, setStatus] = useState('');
+  const [roleModalUser, setRoleModalUser] = useState<any | null>(null);
   const debouncedSearch = useDebounce(searchInput, 400);
   const canEdit = useCapability('user:edit');
 
@@ -417,6 +553,11 @@ function AdminUsersInner() {
                                                       <CheckCircle className="w-4 h-4"/>}
                                               </button>
                                               )}
+                                              <button onClick={() => setRoleModalUser(u)}
+                                                      className="p-2 rounded-lg text-gray-400 hover:text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 transition-colors"
+                                                      title="管理角色">
+                                                <Key className="w-4 h-4"/>
+                                              </button>
                                               <UserActions user={u}
                                                            onToggle={(action) => toggleMut.mutate({id: u.id, action})}/>
                                           </div>
@@ -430,6 +571,10 @@ function AdminUsersInner() {
                   </>
               )}
           </div>
+          {roleModalUser && (
+              <RoleAssignmentModal user={roleModalUser} onClose={() => setRoleModalUser(null)}
+                                   onSuccess={() => refetch()}/>
+          )}
       </AdminShell>
   );
 }

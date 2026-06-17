@@ -85,13 +85,12 @@ class SampleDataRequest(BaseModel):
 
 @router.post("/configure-database",
              summary="配置数据库",
-             description="配置数据库连接信息",
-             response_description="返回配置结果")
+             description="配置数据库连接信息")
 @_catch
 async def configure_database_api(
         request: DatabaseConfigFullRequest
 ):
-    """配置数据库"""
+    """配置数据库（仅安装阶段可调用）"""
     # 检查是否已安装
     if installation_wizard_service.is_installed():
         return fail("System already installed")
@@ -312,12 +311,11 @@ async def create_admin_user_api(
     # 直接调用内部异步函数
     from shared.services.install.install_manager.installation_wizard import installation_wizard_service as wizard
 
-    # 验证输入
-    if not request.username or not request.email or not request.password:
-        return fail('用户名、邮箱和密码不能为空')
-
-    if len(request.password) < 6:
-        return fail('密码长度至少为6个字符')
+    # 验证密码强度（与注册页面规则一致）
+    from src.utils.security.password_validator import validate_password_strength
+    pw_valid, pw_err = validate_password_strength(request.password)
+    if not pw_valid:
+        return fail(pw_err)
 
     import re
     if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', request.email):

@@ -1,4 +1,4 @@
-from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
 from apscheduler.triggers.cron import CronTrigger
 
@@ -9,8 +9,8 @@ from src.unified_logger import default_logger as logger
 
 class SessionScheduler:
     def __init__(self, app=None):
-        # 使用 BackgroundScheduler 替代 FastScheduler
-        self.scheduler = BackgroundScheduler()
+        # 使用 AsyncIOScheduler 在同一事件循环中运行异步任务
+        self.scheduler = AsyncIOScheduler()
         self.app = app
 
     def init_app(self, app):
@@ -48,19 +48,10 @@ class SessionScheduler:
                 import traceback
                 traceback.print_exc()
 
-        # 添加定时任务（使用 APScheduler 的异步支持）
-        import asyncio
-
-        def sync_article_views_job():
-            """包装异步函数为同步函数"""
-            loop = asyncio.new_event_loop()
-            try:
-                loop.run_until_complete(sync_article_views_to_db())
-            finally:
-                loop.close()
+        # 添加定时任务（AsyncIOScheduler 直接支持异步函数）
 
         self.scheduler.add_job(
-            sync_article_views_job,
+            sync_article_views_to_db,
             trigger=IntervalTrigger(minutes=5),
             id='sync_article_views',
             replace_existing=True
@@ -75,15 +66,8 @@ class SessionScheduler:
             else:
                 logger.error(f"Daily backup failed: {result.get('error')}")
 
-        def daily_backup_job():
-            loop = asyncio.new_event_loop()
-            try:
-                loop.run_until_complete(daily_backup())
-            finally:
-                loop.close()
-
         self.scheduler.add_job(
-            daily_backup_job,
+            daily_backup,
             trigger=CronTrigger(hour=2, minute=0),
             id='daily_backup',
             replace_existing=True
@@ -99,17 +83,82 @@ class SessionScheduler:
             else:
                 logger.error(f"Weekly backup had issues")
 
-        def weekly_backup_job():
-            loop = asyncio.new_event_loop()
-            try:
-                loop.run_until_complete(weekly_backup())
-            finally:
-                loop.close()
-
         self.scheduler.add_job(
-            weekly_backup_job,
+            weekly_backup,
             trigger=CronTrigger(day_of_week='sun', hour=3, minute=0),
             id='weekly_backup',
+            replace_existing=True
+        )
+
+        # 定时发布到期文章检查（每 5 分钟）
+        async def check_due_scheduled_articles():
+            """检查并发布到期的定时文章"""
+            try:
+                from src.utils.database.unified_manager import db_manager
+                from shared.services.articles.scheduled_publish import create_scheduled_publish_service
+
+                async with db_manager.get_session() as db:
+                    service = create_scheduled_publish_service(db)
+                    result = await service.publish_due_articles()
+                    if result.get('success') and result.get('published_count', 0) > 0:
+                        logger.info(f"自动发布了 {result['published_count']} 篇到期定时文章")
+                    if result.get('failed_count', 0) > 0:
+                        logger.warning(f"定时发布 {result.get('published_count', 0)} 成功，{result.get('failed_count', 0)} 失败")
+                    elif result.get('published_count', 0) == 0:
+                        pass  # 无到期文章，不记录日志
+            except Exception as e:
+                logger.error(f"检查定时发布时出错：{e}")
+                import traceback
+                traceback.print_exc()
+
+        self.scheduler.add_job(
+            check_due_scheduled_articles,
+            trigger=IntervalTrigger(minutes=5),
+            id='publish_due_articles',
+            replace_existing=True
+        )
+
+        # VIP 订阅过期检查（每 30 分钟）
+        async def check_expired_vip_subscriptions():
+            """检查并标记过期的 VIP 订阅"""
+            try:
+                from src.utils.database.unified_manager import db_manager
+                from datetime import datetime
+                from shared.models.vip import VIPSubscription
+                from shared.models.user import User
+                from sqlalchemy import select
+
+                async with db_manager.get_session() as db:
+                    now = datetime.now()
+                    # 查询所有过期但状态仍为活跃的订阅
+                    result = await db.execute(
+                        select(VIPSubscription).where(
+                            VIPSubscription.expires_at <= now,
+                            VIPSubscription.status == 1  # 1=active
+                        )
+                    )
+                    expired = result.scalars().all()
+
+                    for sub in expired:
+                        sub.status = 2  # 2=expired
+                        # 同时更新用户的 vip_level
+                        user = await db.get(User, sub.user)
+                        if user:
+                            user.vip_level = 0
+                            user.vip_expires_at = None
+
+                    await db.commit()
+                    if expired:
+                        logger.info(f"已过期 {len(expired)} 个 VIP 订阅")
+            except Exception as e:
+                logger.error(f"检查 VIP 过期时出错：{e}")
+                import traceback
+                traceback.print_exc()
+
+        self.scheduler.add_job(
+            check_expired_vip_subscriptions,
+            trigger=IntervalTrigger(minutes=30),
+            id='check_vip_expiry',
             replace_existing=True
         )
 

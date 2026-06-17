@@ -59,9 +59,9 @@ export function useCapability(code?: string): boolean | undefined {
         _permCache.set(code, has);
         if (!cancelled) setResult(has);
       } catch {
-        // 保守放行（后端 Depends(Permission) 兜底）
-        _permCache.set(code, true);
-        if (!cancelled) setResult(true);
+        // 保守拒绝（安全优先）
+        _permCache.set(code, false);
+        if (!cancelled) setResult(false);
       }
     })();
 

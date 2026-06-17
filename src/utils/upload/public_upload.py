@@ -19,11 +19,13 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models import FileHash, Media, UploadChunk, UploadTask
+from shared.services.media.media_manager import media_service
 from src.extensions import get_async_db_session as get_async_db
 from src.utils.storage import s3_storage
 from src.utils.image.video_processor import video_processor
 
 from src.unified_logger import default_logger as logger
+from src.setting import app_config
 
 
 class FileProcessor:
@@ -78,6 +80,80 @@ class FileProcessor:
             # 如果magic库失败，使用扩展名推断
             import mimetypes
             _, ext = os.path.splitext(filename)
+
+            # 当 magic 不可用时, 对常见图片类型做 magic-number 校验
+            image_signatures = {
+                b'\xff\xd8\xff': 'image/jpeg',
+                b'\x89PNG\r\n\x1a\n': 'image/png',
+                b'GIF87a': 'image/gif',
+                b'GIF89a': 'image/gif',
+                b'RIFF': 'image/webp',       # WEBP 以 RIFF 开头
+                b'BM': 'image/bmp',
+                b'\x49\x49\x2a\x00': 'image/tiff',  # TIFF little-endian
+                b'\x4d\x4d\x00\x2a': 'image/tiff',  # TIFF big-endian
+                b'<?xml': 'image/svg+xml',
+                b'<svg': 'image/svg+xml',
+            }
+            ext_lower = ext.lower()
+            allowed_extensions = {'.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp',
+                                  '.tiff', '.tif', '.svg', '.avif', '.heic', '.heif',
+                                  '.mp3', '.mp4', '.wav', '.flac', '.aac', '.ogg',
+                                  '.webm', '.mkv', '.avi', '.mpeg', '.mpg', '.mov',
+                                  '.flv', '.wmv', '.m4v', '.3gp', '.asf',
+                                  '.pdf', '.doc', '.docx', '.docm', '.dotx', '.dotm',
+                                  '.xls', '.xlsx', '.xlsm', '.xlsb', '.xlt', '.xltm',
+                                  '.ods', '.fods', '.numbers',
+                                  '.ppt', '.pptx', '.pptm', '.potx', '.potm', '.ppsx', '.ppsm',
+                                  '.txt', '.md', '.csv', '.html', '.htm', '.xml',
+                                  '.json', '.js', '.mjs', '.cjs', '.css', '.java', '.py',
+                                  '.ts', '.tsx', '.jsx', '.log', '.yaml', '.yml', '.ini',
+                                  '.sh', '.bash', '.sql', '.go', '.rs', '.php', '.c', '.cpp',
+                                  '.cc', '.h', '.hpp', '.cs', '.diff',
+                                  '.zip', '.rar', '.7z', '.gz', '.tar', '.bz2',
+                                  '.xz', '.zst', '.lzma', '.cab', '.cpio', '.iso',
+                                  '.lha', '.lzh', '.tgz', '.tbz', '.tbz2', '.txz', '.tzst',
+                                  '.jar', '.war', '.ear', '.apk', '.cbz', '.cbr',
+                                  '.ofd',
+                                  '.typ', '.typst',
+                                  '.epub', '.umd',
+                                  '.eml', '.msg',
+                                  '.dwg', '.dxf', '.dwf', '.dwfx', '.xps',
+                                  '.glb', '.gltf', '.obj', '.stl', '.ply',
+                                  '.fbx', '.dae', '.3ds', '.3mf', '.amf',
+                                  '.usd', '.usda', '.usdc', '.usdz', '.kmz',
+                                  '.pcd', '.wrl', '.vrml', '.xyz', '.vtk', '.vtp',
+                                  '.step', '.stp', '.iges', '.igs', '.ifc', '.3dm',
+                                  '.excalidraw',
+                                  '.drawio', '.dio',
+                                  '.olb', '.dra',
+                                  '.ar', '.xar',
+                                  '.oga', '.weba',
+                                  '.vue',}
+
+            if ext_lower not in allowed_extensions:
+                logger.warning(f"[WARN] 扩展名 {ext} 不在允许列表中，拒绝")
+                return 'application/octet-stream'
+
+            # 对图片类型做 magic-number 校验
+            if ext_lower in ('.jpg', '.jpeg', '.png', '.gif', '.webp', '.bmp',
+                             '.tiff', '.tif', '.svg'):
+                matched = False
+                for sig, mime in image_signatures.items():
+                    if file_data[:len(sig)] == sig:
+                        mime_type = mime
+                        matched = True
+                        break
+                if not matched:
+                    logger.warning(f"[WARN] 文件头与扩展名 {ext} 不匹配，拒绝")
+                    return 'application/octet-stream'
+                # SVG 额外校验：必须是安全的 XML
+                if mime_type == 'image/svg+xml':
+                    content = file_data.decode('utf-8', errors='replace').lower()
+                    if '<script' in content or 'onload' in content or 'onclick' in content or 'onerror' in content or 'onmouse' in content or 'onfocus' in content or 'onblur' in content:
+                        logger.warning(f"[WARN] SVG 包含不安全的元素/事件处理程序，拒绝")
+                        return 'application/octet-stream'
+                return mime_type
+
             mime_type, _ = mimetypes.guess_type(f"dummy{ext}")
 
             # 常见类型映射
@@ -116,8 +192,9 @@ class FileProcessor:
         # 音频格式
         audio_exts = {
             '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.flac': 'audio/flac',
-            '.aac': 'audio/aac', '.ogg': 'audio/ogg', '.m4a': 'audio/mp4',
-            '.wma': 'audio/x-ms-wma'
+            '.aac': 'audio/aac', '.ogg': 'audio/ogg', '.oga': 'audio/ogg',
+            '.m4a': 'audio/mp4', '.opus': 'audio/ogg',
+            '.weba': 'audio/webm', '.wma': 'audio/x-ms-wma',
         }
         if ext in audio_exts:
             return audio_exts[ext]
@@ -127,34 +204,137 @@ class FileProcessor:
             '.pdf': 'application/pdf',
             '.doc': 'application/msword',
             '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            '.docm': 'application/vnd.ms-word.document.macroEnabled.12',
+            '.dotx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.template',
+            '.dotm': 'application/vnd.ms-word.template.macroEnabled.12',
             '.xls': 'application/vnd.ms-excel',
             '.xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            '.xlsm': 'application/vnd.ms-excel.sheet.macroEnabled.12',
+            '.xlsb': 'application/vnd.ms-excel.sheet.binary.macroEnabled.12',
+            '.xlt': 'application/vnd.ms-excel',
+            '.xltm': 'application/vnd.ms-excel.template.macroEnabled.12',
+            '.ods': 'application/vnd.oasis.opendocument.spreadsheet',
+            '.fods': 'application/vnd.oasis.opendocument.spreadsheet',
+            '.numbers': 'application/x-iwork-numbers-sffnumbers',
             '.ppt': 'application/vnd.ms-powerpoint',
             '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+            '.pptm': 'application/vnd.ms-powerpoint.presentation.macroEnabled.12',
+            '.potx': 'application/vnd.openxmlformats-officedocument.presentationml.template',
+            '.potm': 'application/vnd.ms-powerpoint.template.macroEnabled.12',
+            '.ppsx': 'application/vnd.openxmlformats-officedocument.presentationml.slideshow',
+            '.ppsm': 'application/vnd.ms-powerpoint.slideshow.macroEnabled.12',
             '.txt': 'text/plain',
             '.md': 'text/markdown',
             '.csv': 'text/csv',
-            '.html': 'text/html', '.htm': 'text/html'
+            '.html': 'text/html', '.htm': 'text/html',
         }
         if ext in document_exts:
             return document_exts[ext]
 
         # 压缩格式
         archive_exts = {
-            '.zip': 'application/zip',
+            '.zip': 'application/zip', '.zipx': 'application/zip',
             '.rar': 'application/x-rar-compressed',
             '.7z': 'application/x-7z-compressed',
-            '.gz': 'application/gzip',
+            '.gz': 'application/gzip', '.gzip': 'application/gzip',
             '.tar': 'application/x-tar',
-            '.bz2': 'application/x-bzip2'
+            '.bz2': 'application/x-bzip2', '.bzip2': 'application/x-bzip2',
+            '.xz': 'application/x-xz',
+            '.zst': 'application/zstd', '.tzst': 'application/zstd',
+            '.lzma': 'application/x-lzma',
+            '.tgz': 'application/gzip',
+            '.tbz': 'application/x-bzip2', '.tbz2': 'application/x-bzip2',
+            '.txz': 'application/x-xz',
+            '.ar': 'application/x-archive',
+            '.xar': 'application/x-xar',
+            '.cab': 'application/x-cab',
+            '.cpio': 'application/x-cpio',
+            '.iso': 'application/x-iso9660-image',
+            '.lha': 'application/x-lha', '.lzh': 'application/x-lzh',
+            '.jar': 'application/java-archive',
+            '.war': 'application/java-archive',
+            '.ear': 'application/java-archive',
+            '.apk': 'application/vnd.android.package-archive',
+            '.cbz': 'application/zip',
+            '.cbr': 'application/x-rar-compressed',
         }
         if ext in archive_exts:
             return archive_exts[ext]
 
-        # 其他常见格式
-        other_exts = {
+        # 3D 模型 & CAD
+        cad_3d_exts = {
+            '.glb': 'model/gltf-binary',
+            '.gltf': 'model/gltf+json',
+            '.obj': 'model/obj',
+            '.stl': 'model/stl',
+            '.ply': 'model/ply',
+            '.fbx': 'application/octet-stream',
+            '.dae': 'model/vnd.collada+xml',
+            '.3ds': 'image/x-3ds',
+            '.3mf': 'model/3mf',
+            '.amf': 'application/x-amf',
+            '.usd': 'model/vnd.usd',
+            '.usda': 'model/vnd.usda',
+            '.usdc': 'model/vnd.usdc',
+            '.usdz': 'model/vnd.usdz+zip',
+            '.kmz': 'application/vnd.google-earth.kmz',
+            '.pcd': 'application/octet-stream',
+            '.wrl': 'model/vrml', '.vrml': 'model/vrml',
+            '.xyz': 'chemical/x-xyz',
+            '.vtk': 'application/octet-stream',
+            '.vtp': 'application/octet-stream',
+            '.step': 'application/step', '.stp': 'application/step',
+            '.iges': 'application/iges', '.igs': 'application/iges',
+            '.ifc': 'application/x-ifc',
+            '.3dm': 'model/x-3dm',
+            '.dwg': 'image/vnd.dwg',
+            '.dxf': 'image/vnd.dxf',
+            '.dwf': 'application/dwf',
+            '.dwfx': 'application/dwf',
+            '.xps': 'application/oxps',
+        }
+        if ext in cad_3d_exts:
+            return cad_3d_exts[ext]
+
+        # 代码 & 文本
+        code_exts = {
             '.json': 'application/json',
-            '.xml': 'application/xml'
+            '.xml': 'application/xml',
+            '.js': 'text/javascript', '.mjs': 'text/javascript', '.cjs': 'text/javascript',
+            '.ts': 'text/typescript', '.tsx': 'text/typescript',
+            '.jsx': 'text/javascript',
+            '.css': 'text/css',
+            '.java': 'text/x-java',
+            '.py': 'text/x-python',
+            '.log': 'text/plain',
+            '.yaml': 'text/yaml', '.yml': 'text/yaml',
+            '.ini': 'text/plain',
+            '.sh': 'application/x-sh', '.bash': 'application/x-sh',
+            '.sql': 'text/x-sql',
+            '.go': 'text/x-go',
+            '.rs': 'text/x-rust',
+            '.php': 'text/x-php',
+            '.c': 'text/x-c', '.cpp': 'text/x-c++', '.cc': 'text/x-c++',
+            '.h': 'text/x-c', '.hpp': 'text/x-c++',
+            '.cs': 'text/x-csharp',
+            '.diff': 'text/x-diff',
+            '.vue': 'text/html',
+        }
+        if ext in code_exts:
+            return code_exts[ext]
+
+        # 电子书 & 邮件 & 其他
+        other_exts = {
+            '.epub': 'application/epub+zip',
+            '.umd': 'application/x-umd-book',
+            '.eml': 'message/rfc822',
+            '.msg': 'application/vnd.ms-outlook',
+            '.ofd': 'application/ofd',
+            '.typ': 'text/typst', '.typst': 'text/typst',
+            '.excalidraw': 'application/x-excalidraw',
+            '.drawio': 'application/x-drawio', '.dio': 'application/x-drawio',
+            '.olb': 'application/octet-stream',
+            '.dra': 'application/octet-stream',
         }
         if ext in other_exts:
             return other_exts[ext]
@@ -178,7 +358,10 @@ class FileProcessor:
                                       reference_count: int = 1) -> FileHash:
         """创建文件哈希记录"""
         # 检查是否已存在
-        stmt = select(FileHash).where(FileHash.hash == file_hash)
+        stmt = select(FileHash).where(
+            FileHash.hash == file_hash,
+            FileHash.file_size == file_size  # also match size
+        )
         result = await db.execute(stmt)
         existing = result.scalar_one_or_none()
 
@@ -286,7 +469,7 @@ class FileProcessor:
             # 创建临时目录用于处理
             with tempfile.TemporaryDirectory() as temp_dir:
                 # 下载文件到临时目录
-                local_video_path = os.path.join(temp_dir, media.filename)
+                local_video_path = os.path.join(temp_dir, os.path.basename(media.filename))
                 file_data = s3_storage.read_file(file_path)
 
                 if not file_data:
@@ -392,6 +575,11 @@ class ChunkedUploadProcessor:
                           db: AsyncSession = Depends(get_async_db)) -> dict:
         """初始化上传任务，支持断点续传"""
         try:
+            # 服务端验证总文件大小
+            max_size = getattr(app_config, 'UPLOAD_LIMIT', 50 * 1024 * 1024)
+            if total_size > max_size:
+                return {'success': False, 'error': f"文件大小超过限制 ({max_size / 1024 / 1024:.0f}MB)"}
+
             # 断点续传检查
             if existing_upload_id:
                 resume_result = await self._check_resume_upload(
@@ -402,7 +590,7 @@ class ChunkedUploadProcessor:
 
             # 文件已存在检查
             if file_hash:
-                exist_result = await self._check_file_exists(file_hash, filename, db)
+                exist_result = await self._check_file_exists(file_hash, filename, total_size, db)
                 if exist_result:
                     return exist_result
 
@@ -470,9 +658,13 @@ class ChunkedUploadProcessor:
         return None
 
     async def _check_file_exists(self, file_hash: str, filename: str,
+                                 file_size: int,
                                  db: AsyncSession) -> Optional[dict]:
         """检查文件是否已存在"""
-        stmt = select(FileHash).where(FileHash.hash == file_hash)
+        stmt = select(FileHash).where(
+            FileHash.hash == file_hash,
+            FileHash.file_size == file_size  # also match size
+        )
         result = await db.execute(stmt)
         existing_file = result.scalar_one_or_none()
 
@@ -541,6 +733,17 @@ class ChunkedUploadProcessor:
             # 检查分块是否已上传
             if await self._chunk_exists(upload_id, chunk_index, chunk_hash, db):
                 return {'success': True, 'message': '分块已存在'}
+
+            # 二次检查：防止并发竞态条件（两个请求同时通过上面的检查）
+            from sqlalchemy import select as sa_select
+            existing = await db.execute(
+                sa_select(UploadChunk).where(
+                    UploadChunk.upload_id == upload_id,
+                    UploadChunk.chunk_index == chunk_index
+                )
+            )
+            if existing.scalar_one_or_none():
+                return {'success': True, 'chunk_index': chunk_index}
 
             # 保存分块文件
             chunk_path = await self._save_chunk_file(upload_id, chunk_index, chunk_data)
@@ -818,14 +1021,45 @@ async def process_single_file(processor: FileProcessor, file_data: bytes,
         mime_type = validation_result['mime_type']
         file_size = validation_result['file_size']
 
+        # SVG 安全消毒：移除 <script> 标签和 on* 事件处理程序
+        if mime_type == 'image/svg+xml':
+            try:
+                content = file_data.decode('utf-8', errors='replace')
+                import re as svg_re
+                # 移除 <script>...</script> 块
+                content = svg_re.sub(r'<script[^>]*>.*?</script>', '', content, flags=svg_re.DOTALL | svg_re.IGNORECASE)
+                # 移除 <script .../>
+                content = svg_re.sub(r'<script[^>]*/>', '', content, flags=svg_re.IGNORECASE)
+                # 移除 on* 事件处理程序属性
+                content = svg_re.sub(r'\bon\w+\s*=\s*["\'][^"\']*["\']', '', content, flags=svg_re.IGNORECASE)
+                content = svg_re.sub(r'\bon\w+\s*=\s*\S+', '', content, flags=svg_re.IGNORECASE)
+                # 移除 javascript: 伪协议
+                content = svg_re.sub(r'javascript\s*:', 'disabled:', content, flags=svg_re.IGNORECASE)
+                file_data = content.encode('utf-8')
+                logger.info(f"[OK] SVG 消毒完成: {filename}")
+            except Exception as svg_err:
+                logger.warning(f"[WARN] SVG 消毒失败: {svg_err}，将拒绝该文件")
+                return {'success': False, 'error': f'SVG 安全检查失败: {svg_err}'}
+
         # 检查文件是否已存在
-        stmt = select(FileHash).where(FileHash.hash == file_hash)
+        stmt = select(FileHash).where(
+            FileHash.hash == file_hash,
+            FileHash.file_size == file_size  # also match size
+        )
         result = await db.execute(stmt)
         existing_file = result.scalar_one_or_none()
 
         if not existing_file:
             # 保存新文件
             storage_path = processor.save_file(file_hash, file_data, filename)
+
+            # EXIF 隐私保护：对图片文件移除 EXIF 数据（含 GPS 坐标）
+            if mime_type and mime_type.startswith('image/'):
+                full_local_path = os.path.join('storage', storage_path)
+                if os.path.exists(full_local_path):
+                    logger.info(f"正在移除 EXIF 数据: {storage_path}")
+                    media_service.remove_exif(full_local_path)
+
             await processor.create_file_hash_record(
                 db, file_hash, filename, file_size, mime_type, storage_path, 1
             )
@@ -895,7 +1129,11 @@ async def process_multiple_files(files: List[UploadFile], user_id: int,
             first_file = file_group[0]
 
             # 检查文件是否已存在
-            stmt = select(FileHash).where(FileHash.hash == file_hash)
+            first_file_size = first_file.get('file_size', 0)
+            stmt = select(FileHash).where(
+                FileHash.hash == file_hash,
+                FileHash.file_size == first_file_size  # also match size
+            )
             result = await db.execute(stmt)
             existing_file = result.scalar_one_or_none()
 

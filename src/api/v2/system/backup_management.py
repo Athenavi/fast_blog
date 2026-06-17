@@ -212,10 +212,10 @@ async def delete_backup(
 
     result = backup_service.delete_backup(backup_id)
 
-    if result['success']:
+    if result:
         return ok(msg="备份删除成功")
     else:
-        return fail(result.get('error', '删除失败'))
+        return fail("备份删除失败")
 
 
 @router.get("/schedule", summary="获取备份计划")

@@ -15,6 +15,28 @@ from shared.models.rbac import UserRole, RoleCapability, Capability, Role
 class RBACService:
     """RBAC 核心服务"""
 
+    async def _resolve_role_ids_with_parents(
+        self, db: AsyncSession, role_ids: List[int], max_depth: int = 5
+    ) -> List[int]:
+        """
+        Walk the role hierarchy (parent_id chain) up to max_depth levels
+        and return the full set of role IDs including ancestors.
+        """
+        resolved = set(role_ids)
+        current_ids = list(role_ids)
+        depth = 0
+        while current_ids and depth < max_depth:
+            result = await db.execute(
+                select(Role.id).where(
+                    Role.parent_id.in_(current_ids),
+                    Role.parent_id.isnot(None),
+                )
+            )
+            current_ids = [r for r in result.scalars().all() if r not in resolved]
+            resolved.update(current_ids)
+            depth += 1
+        return list(resolved)
+
     # ------------------------------------------------------------
     # 能力检查（基于 Capability.code）
     # ------------------------------------------------------------
@@ -27,6 +49,9 @@ class RBACService:
 
         用户为 superuser 时直接返回 True。
         """
+        # 标准化 separator: 冒号 → 点号以匹配 DB 存储格式
+        capability_code = capability_code.replace(':', '.')
+
         from shared.models.user import User
 
         # 超级管理员 bypass
@@ -42,6 +67,9 @@ class RBACService:
         role_ids = [ur.role_id for ur in user_roles_result.scalars().all()]
         if not role_ids:
             return False
+
+        # 1b. Resolve role hierarchy (parent roles)
+        role_ids = await self._resolve_role_ids_with_parents(db, role_ids)
 
         # 2. 检查这些角色是否拥有指定能力
         query = (
@@ -118,6 +146,9 @@ class RBACService:
         role_ids = [r for r in role_ids_result.scalars().all()]
         if not role_ids:
             return []
+
+        # Resolve role hierarchy (parent roles)
+        role_ids = await self._resolve_role_ids_with_parents(db, role_ids)
 
         query = (
             select(Capability)
@@ -199,6 +230,37 @@ class RBACService:
             .where(UserRole.user_id == user_id)
         )
         return list(result.scalars().all())
+
+    async def user_has_role(
+        self, db: AsyncSession, user_id: int, role_slug: str
+    ) -> bool:
+        """
+        检查用户是否拥有指定角色（支持角色继承：父角色算作拥有子角色）
+
+        Args:
+            db: 数据库会话
+            user_id: 用户ID
+            role_slug: 角色 slug
+
+        Returns:
+            是否拥有该角色
+        """
+        # 先获取直接分配的角色（含父角色解析）
+        user_role_ids_result = await db.execute(
+            select(UserRole.role_id).where(UserRole.user_id == user_id)
+        )
+        user_role_ids = [r[0] for r in user_role_ids_result.all()]
+        if not user_role_ids:
+            return False
+
+        # 解析角色继承链
+        all_role_ids = await self._resolve_role_ids_with_parents(db, user_role_ids)
+
+        # 检查是否有匹配的 slug
+        result = await db.execute(
+            select(Role).where(Role.id.in_(all_role_ids), Role.slug == role_slug)
+        )
+        return result.scalar_one_or_none() is not None
 
 
 # 全局单例

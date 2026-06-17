@@ -1,8 +1,8 @@
 import React, {useState} from 'react';
 import {
   AlertTriangle, ArrowUp, ArrowDown, CheckCircle2, ChevronLeft, ChevronRight,
-  Clock, Copy, Download, Eye, FileText, FolderOpen, Grid, Image, List, Music,
-  Search, Square, CheckSquare, Trash2, Upload, Video, X
+  Clock, Download, Eye, FileText, FolderOpen, Grid, Image, List, Music,
+  Search, Square, CheckSquare, Tag, Trash2, Upload, Video, X
 } from 'lucide-react';
 import {getFullMediaUrl, formatBytes} from '@/lib/utils';
 import {type MediaFileItem, type FolderItem, getFileColor, getFileType, type TabKey} from './MediaTypes';
@@ -87,8 +87,8 @@ export const MediaGridCard: React.FC<{
         {/* 预览区域 */}
         <div className="relative aspect-square bg-gray-50 dark:bg-gray-800/50 overflow-hidden cursor-pointer"
              onClick={() => isImage && onPreview(file)}>
-          {isImage && file.url ? (
-              <img src={getFullMediaUrl(file.url)} alt={file.original_filename}
+          {isImage && (file.thumbnail_url || file.url) ? (
+              <img src={getFullMediaUrl(file.thumbnail_url || file.url)} alt={file.original_filename}
                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
                    loading="lazy"/>
           ) : (
@@ -129,6 +129,12 @@ export const MediaGridCard: React.FC<{
           <p className="text-sm font-medium text-gray-900 dark:text-white truncate" title={file.original_filename}>
             {file.original_filename}
           </p>
+          <div className="flex items-center gap-1 mt-1 flex-wrap">
+            {file.category && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 font-medium">{file.category}</span>}
+            {file.tags && file.tags.split(',').filter(Boolean).slice(0, 2).map(t => (
+              <span key={t.trim()} className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400">{t.trim()}</span>
+            ))}
+          </div>
           <p className="text-xs text-gray-400 mt-1">
             {file.file_size ? formatBytes(file.file_size) : '-'}
           </p>
@@ -167,8 +173,8 @@ export const MediaListRow: React.FC<{
       <div
         className={`w-12 h-12 rounded-xl overflow-hidden flex-shrink-0 cursor-pointer ${isImage ? '' : color.bg + ' flex items-center justify-center'}`}
         onClick={() => isImage && onPreview(file)}>
-          {isImage && file.url ? (
-              <img src={getFullMediaUrl(file.url)} alt="" className="w-full h-full object-cover" loading="lazy"/>
+          {isImage && (file.thumbnail_url || file.url) ? (
+              <img src={getFullMediaUrl(file.thumbnail_url || file.url)} alt="" className="w-full h-full object-cover" loading="lazy"/>
           ) : (
               <>
                 {type === 'video' ? <Video className={`w-5 h-5 ${color.text}`}/> :
@@ -182,6 +188,12 @@ export const MediaListRow: React.FC<{
         <div className="flex-1 min-w-0">
           <p className="text-sm font-medium text-gray-900 dark:text-white truncate">{file.original_filename}</p>
           <p className="text-xs text-gray-400">{file.mime_type || '未知类型'}</p>
+          <div className="flex items-center gap-1 mt-0.5 flex-wrap">
+            {file.category && <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400 font-medium">{file.category}</span>}
+            {file.tags && file.tags.split(',').filter(Boolean).slice(0, 3).map(t => (
+              <span key={t.trim()} className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400">{t.trim()}</span>
+            ))}
+          </div>
         </div>
 
         {/* 大小 */}
@@ -211,35 +223,6 @@ export const MediaListRow: React.FC<{
 };
 
 /* ── 图片预览弹窗 ── */
-export const ImagePreview: React.FC<{
-  file: MediaFileItem;
-  onClose: () => void;
-}> = ({file, onClose}) => (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm" onClick={onClose}>
-      <div className="relative max-w-4xl max-h-[90vh] p-4" onClick={e => e.stopPropagation()}>
-        <img src={getFullMediaUrl(file.url)} alt={file.original_filename}
-             className="max-w-full max-h-[80vh] object-contain rounded-2xl shadow-2xl"/>
-        <div className="mt-3 flex items-center justify-between bg-white/10 backdrop-blur-md rounded-xl p-3">
-          <div>
-            <p className="text-white font-medium text-sm">{file.original_filename}</p>
-            <p className="text-white/60 text-xs">{file.mime_type} · {file.file_size ? formatBytes(file.file_size) : '-'}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button onClick={() => navigator.clipboard.writeText(getFullMediaUrl(file.url))}
-                    className="p-2 bg-white/10 hover:bg-white/20 rounded-lg text-white transition-colors">
-              <Copy className="w-4 h-4"/>
-            </button>
-            <button onClick={onClose}
-                    className="p-2 bg-white/10 hover:bg-white/20 rounded-lg text-white transition-colors">
-              <X className="w-4 h-4"/>
-            </button>
-          </div>
-        </div>
-      </div>
-    </div>
-);
-
-/* ── 删除确认弹窗 ── */
 export const DeleteConfirm: React.FC<{
   title: string;
   message: string;
@@ -285,8 +268,10 @@ export const BatchActionBar: React.FC<{
   count: number;
   onDelete: () => void;
   onMove: () => void;
+  onBatchTag: () => void;
+  onBatchCategory: () => void;
   onClear: () => void;
-}> = ({count, onDelete, onMove, onClear}) => (
+}> = ({count, onDelete, onMove, onBatchTag, onBatchCategory, onClear}) => (
   <div
     className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3 px-5 py-3 bg-white dark:bg-gray-900 rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700">
       <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
@@ -296,6 +281,14 @@ export const BatchActionBar: React.FC<{
     <button onClick={onMove}
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors">
       <FolderOpen className="w-4 h-4"/>移动
+    </button>
+    <button onClick={onBatchTag}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 rounded-lg transition-colors">
+      <Tag className="w-4 h-4"/>标签
+    </button>
+    <button onClick={onBatchCategory}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/20 rounded-lg transition-colors">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg>分类
     </button>
     <button onClick={onDelete}
             className="flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors">

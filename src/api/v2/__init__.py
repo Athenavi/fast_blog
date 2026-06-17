@@ -194,6 +194,9 @@ ROUTE_REGISTRY_V2 = [
     # V2 Enterprise 模块整合许可证、工单、部署脚本、监控告警
     ("src.api.v2.enterprise", "/api/v2/enterprise", ["enterprise-v2"], False),
 
+    # ==================== 缓存管理（V2 独立路由）====================
+    ("src.api.v2.admin.cache_management", "/api/v2/admin/caches", ["cache-admin"], False),
+
     # ==================== MCP AI 代理（V2 独立路由）====================
     # 提供 MCP 代理 API，供 AI Chat 前端调用
     ("src.api.v2.mcp", "/api/v2", ["mcp-proxy-v2"], False),

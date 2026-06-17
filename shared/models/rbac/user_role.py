@@ -1,12 +1,13 @@
 """
 SQLAlchemy 模型定义 - UserRole
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-06-04 17:21:20
+生成时间：2026-06-13 23:12:16
 """
 
-from sqlalchemy import Column, BigInteger, DateTime, ForeignKey, Index
+from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
 
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
+
 
 
 class UserRole(Base):
@@ -23,13 +24,13 @@ class UserRole(Base):
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='关联 ID')
 
-    user_id = Column(BigInteger, ForeignKey('users.id'), doc='用户 ID')
+    user_id = Column(BigInteger, ForeignKey('users.id', ondelete='CASCADE'), doc='用户 ID')
 
 
-    role_id = Column(BigInteger, ForeignKey('roles.id'), doc='角色 ID')
+    role_id = Column(BigInteger, ForeignKey('roles.id', ondelete='CASCADE'), doc='角色 ID')
 
 
-    assigned_by = Column(BigInteger, ForeignKey('users.id'), nullable=True, doc='分配者用户 ID')
+    assigned_by = Column(BigInteger, ForeignKey('users.id', ondelete='CASCADE'), nullable=True, doc='分配者用户 ID')
 
 
     created_at = Column(DateTime, doc='分配时间')

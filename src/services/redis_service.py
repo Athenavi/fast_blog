@@ -336,6 +336,129 @@ class RedisService:
             logger.error(f"Redis FLUSHDB 错误: {e}")
             return False
 
+    # ==================== Pub/Sub 缓存失效广播 ====================
+
+    async def publish(self, channel: str, message: str) -> int:
+        """
+        发布消息到频道
+
+        Args:
+            channel: 频道名称
+            message: 消息内容（建议 JSON 格式）
+
+        Returns:
+            收到消息的订阅者数量
+        """
+        try:
+            count = await self.redis.publish(channel, message)
+            logger.debug(f"Redis PUBLISH {channel}: {count} subscribers")
+            return count
+        except Exception as e:
+            logger.error(f"Redis PUBLISH 错误 ({channel}): {e}")
+            return 0
+
+    async def subscribe(self, channel: str):
+        """
+        订阅频道（返回 PubSub 对象，用于消息循环）
+
+        Args:
+            channel: 频道名称
+
+        Returns:
+            aioredis.client.PubSub 对象
+        """
+        try:
+            pubsub = self.redis.pubsub()
+            await pubsub.subscribe(channel)
+            logger.info(f"Redis SUBSCRIBE {channel}")
+            return pubsub
+        except Exception as e:
+            logger.error(f"Redis SUBSCRIBE 错误 ({channel}): {e}")
+            raise
+
+    async def psubscribe(self, pattern: str):
+        """
+        订阅模式匹配频道
+
+        Args:
+            pattern: 模式（如 "cache:*"）
+        """
+        try:
+            pubsub = self.redis.pubsub()
+            await pubsub.psubscribe(pattern)
+            logger.info(f"Redis PSUBSCRIBE {pattern}")
+            return pubsub
+        except Exception as e:
+            logger.error(f"Redis PSUBSCRIBE 错误 ({pattern}): {e}")
+            raise
+
+    async def publish_cache_invalidation(self, tags: list) -> int:
+        """
+        发布缓存失效广播
+
+        多实例部署时，一个实例的缓存更新通知其他实例失效
+
+        Args:
+            tags: 缓存标签列表
+
+        Returns:
+            收到消息的订阅者数量
+        """
+        import json
+        message = json.dumps({"action": "invalidate", "tags": tags, "timestamp": __import__('time').time()})
+        return await self.publish("cache:invalidate", message)
+
+    async def _cache_invalidation_handler(self, channel: str, data: str):
+        """处理缓存失效消息"""
+        import json
+        try:
+            payload = json.loads(data)
+            if payload.get("action") == "invalidate":
+                tags = payload.get("tags", [])
+                # 延迟导入避免循环依赖
+                from shared.services.core.cache_service import cache_service
+                for tag in tags:
+                    await cache_service.delete(tag)
+                logger.info(f"Cache invalidation received: {tags}")
+        except Exception as e:
+            logger.warning(f"Cache invalidation handler error: {e}")
+
+    async def start_cache_invalidation_listener(self):
+        """启动缓存失效广播监听（后台任务）"""
+        import asyncio
+        logger.info("Starting cache:invalidate listener...")
+        task = asyncio.create_task(self.listen_cache_invalidation(self._cache_invalidation_handler))
+        # 让任务名可追踪
+        task.set_name("cache_invalidation_listener")
+
+    async def listen_cache_invalidation(self, handler, retry_delay: float = 5.0):
+        """
+        监听缓存失效广播（带自动重连）
+
+        Args:
+            handler: 回调函数，接收 (channel, data) 参数
+            retry_delay: 断线重连等待秒数
+        """
+        import asyncio
+        while True:
+            try:
+                pubsub = await self.psubscribe("cache:invalidate")
+                logger.info("Redis pub/sub listener started for cache:invalidate")
+                async for message in pubsub.listen():
+                    if message["type"] == "pmessage":
+                        import json
+                        try:
+                            data = json.loads(message["data"])
+                            await handler(message["channel"], data)
+                        except (json.JSONDecodeError, Exception) as e:
+                            logger.error(f"缓存失效消息解析失败: {e}")
+            except asyncio.CancelledError:
+                logger.info("Redis pub/sub listener cancelled")
+                break
+            except Exception as e:
+                logger.warning(f"Redis pub/sub listener disconnected: {e}, retrying in {retry_delay}s...")
+                await asyncio.sleep(retry_delay)
+
 
 # 全局 Redis 服务实例
 redis_service = RedisService()

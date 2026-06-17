@@ -11,7 +11,7 @@ import {Save} from 'lucide-react';
 import {useToast} from '@/components/ui/toast-provider';
 import CoverImageUploader from '@/components/editor/CoverImageUploader';
 
-const RichEditor = React.lazy(() => import('@/components/editor/RichEditor'));
+const MarkdownEditor = React.lazy(() => import('@/components/editor/MarkdownEditor'));
 
 function EditorInner() {
   const toast = useToast();
@@ -28,7 +28,10 @@ function EditorInner() {
       return apiClient.request('/articles', {method: 'POST', body: fd});
     },
     onSuccess: (res) => {
-      if (res.success) toast.success('文章已创建');
+      if (res.success) {
+        toast.success('文章已创建');
+        window.location.href = '/my/posts';
+      }
     },
   });
 
@@ -57,7 +60,7 @@ function EditorInner() {
         <div
           className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden">
           <React.Suspense fallback={<div className="h-[60vh] animate-pulse bg-gray-50 dark:bg-gray-800"/>}>
-            <RichEditor value={content} onChange={setContent}/>
+            <MarkdownEditor value={content} onChange={setContent}/>
           </React.Suspense>
         </div>
       </div>
@@ -69,7 +72,7 @@ export default function ArticleEditor() {
   return (
     <AuthGuard>
       <QueryProvider>
-        <PermissionGuard capability="settings:view">
+        <PermissionGuard capability="article:create">
           <EditorInner />
         </PermissionGuard>
       </QueryProvider>

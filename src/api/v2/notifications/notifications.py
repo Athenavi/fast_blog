@@ -39,8 +39,10 @@ async def read_notification_api(
     """
     标记通知为已读API
     """
-    result = mark_notification_as_read(current_user.id, nid)
-    return result
+    result = await mark_notification_as_read(nid, current_user.id)
+    if result:
+        return ok(msg="通知已标记为已读")
+    return fail("无法标记通知为已读")
 
 
 @router.get("/messages")
@@ -51,8 +53,8 @@ async def fetch_message_api(
     """
     获取用户通知API
     """
-    result = get_user_notifications(current_user.id)
-    return result
+    result = await get_user_notifications(current_user.id)
+    return ok(data=result)
 
 
 @router.post("/messages/read_all")
@@ -63,8 +65,8 @@ async def mark_all_as_read_api(
     """
     标记所有通知为已读API
     """
-    result = mark_all_notifications_as_read(current_user.id)
-    return result
+    result = await mark_all_notifications_as_read(current_user.id)
+    return ok(data={"updated_count": result})
 
 
 @router.delete("/messages/clean")
@@ -80,11 +82,11 @@ async def clean_notification_api(
     """
     from sqlalchemy import delete
     if nid == 'all':
-        stmt = delete(Notification).where(Notification.recipient_id == current_user.id)
+        stmt = delete(Notification).where(Notification.recipient == current_user.id)
         await db.execute(stmt)
     else:
         stmt = delete(Notification).where(
-            Notification.recipient_id == current_user.id,
+            Notification.recipient == current_user.id,
             Notification.id == int(nid)
         )
         await db.execute(stmt)
@@ -104,7 +106,7 @@ async def mark_notification_as_read_api(
     """
     from src.notification import mark_notification_as_read
     # 注意：mark_notification_as_read 函数的参数顺序是 (notification_id, user_id)
-    success = mark_notification_as_read(notification_id, current_user.id)
+    success = await mark_notification_as_read(notification_id, current_user.id)
     if success:
         return ok(msg="通知已标记为已读")
     else:
@@ -122,7 +124,7 @@ async def delete_notification_api(
     删除通知API
     """
     from src.notification import delete_notification
-    success = delete_notification(notification_id, current_user.id)
+    success = await delete_notification(notification_id, current_user.id)
     if success:
         return ok(msg="通知已删除")
     else:

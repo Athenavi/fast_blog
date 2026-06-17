@@ -64,7 +64,9 @@ async def list_user_patterns(
     current_user=Depends(jwt_required)
 ):
     """获取用户的自定义块模式列表"""
-    user_id = getattr(current_user, 'id', 1)
+    user_id = getattr(current_user, 'id', None)
+    if not user_id:
+        return fail("未授权，请先登录")
 
     patterns = await custom_block_pattern_service.get_user_patterns(user_id, category)
 
@@ -82,7 +84,9 @@ async def get_pattern_detail(
     current_user=Depends(jwt_required)
 ):
     """获取块模式详情"""
-    user_id = getattr(current_user, 'id', 1)
+    user_id = getattr(current_user, 'id', None)
+    if not user_id:
+        return fail("未授权，请先登录")
 
     pattern = await custom_block_pattern_service.get_pattern_by_id(user_id, pattern_id)
 
@@ -104,7 +108,9 @@ async def update_pattern(
     current_user=Depends(jwt_required)
 ):
     """更新块模式"""
-    user_id = getattr(current_user, 'id', 1)
+    user_id = getattr(current_user, 'id', None)
+    if not user_id:
+        return fail("未授权，请先登录")
 
     result = await custom_block_pattern_service.update_pattern(
         user_id=user_id,
@@ -129,7 +135,9 @@ async def delete_pattern(
     current_user=Depends(jwt_required)
 ):
     """删除块模式"""
-    user_id = getattr(current_user, 'id', 1)
+    user_id = getattr(current_user, 'id', None)
+    if not user_id:
+        return fail("未授权，请先登录")
 
     result = await custom_block_pattern_service.delete_pattern(user_id, pattern_id)
 

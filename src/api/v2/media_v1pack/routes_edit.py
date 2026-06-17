@@ -116,6 +116,7 @@ async def batch_categorize_media(
         stmt = (
             sql_update(Media)
             .where(Media.id.in_(media_ids))
+            .where(Media.user == current_user.id)
             .values(category=category)
         )
         result = await db.execute(stmt)

@@ -53,6 +53,18 @@ class IPFSService:
         # 文件记录（实际应使用数据库）
         self.file_records: Dict[str, IPFSFile] = {}
 
+    def _build_gateway_url(self, cid: str) -> str:
+        """构建网关 URL，自动确保 gateway_url 以 / 结尾"""
+        import re
+        base = self.config.get("gateway_url", "https://ipfs.io/ipfs/")
+        if not base.endswith("/"):
+            base += "/"
+        # Basic CID validation (only allow alphanumeric and common IPFS chars)
+        if not re.match(r'^[a-zA-Z0-9]+$', cid):
+            # Invalid CID, return safe fallback
+            return f"{base}invalid"
+        return f"{base}{cid}"
+
     def upload_file(self, file_content: bytes, filename: str, content_type: str = "application/octet-stream") -> \
     Optional[IPFSFile]:
         """
@@ -88,7 +100,7 @@ class IPFSService:
                 content_type=content_type,
                 uploaded_at=datetime.now().isoformat(),
                 pinned=self.config.get("auto_pin", False),
-                gateway_url=f"{self.config['gateway_url']}{cid}"
+                gateway_url=self._build_gateway_url(cid)
             )
 
             # 保存记录

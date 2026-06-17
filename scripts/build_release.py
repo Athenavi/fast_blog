@@ -31,7 +31,7 @@ def get_current_version() -> str:
     """获取当前版本号"""
     try:
         from shared.utils.version_manager import version_manager
-        return version_manager.get_backend_version().get("version", "1.0.0")
+        return version_manager.get_version()
     except Exception:
         return Path("version.txt").read_text(encoding="utf-8").strip()
 

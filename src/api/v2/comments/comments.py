@@ -1,6 +1,7 @@
 """
 评论管理API - 包含垃圾评论过滤
 """
+import html
 from datetime import datetime
 from functools import wraps
 from typing import Optional
@@ -151,11 +152,26 @@ async def create_comment(
     if sensitive_check['has_sensitive'] and 'replace' in sensitive_check['actions']:
         filtered_content, _ = await sensitive_word_service.filter_content(comment_data.content)
 
+    # 服务器端 HTML 转义（防止 XSS，与前端 DOMPurify 双层保护）
+    filtered_content = html.escape(filtered_content)
+
     # 5. 根据检测结果决定操作
     if spam_check['action'] == 'reject':
         return fail("评论被识别为垃圾内容，已拒绝")
 
-    # 7. 创建评论
+    # 7. 验证并清理 author_url
+    from urllib.parse import urlparse
+    author_url = comment_data.author_url
+    if author_url:
+        parsed = urlparse(author_url)
+        # 只允许 http/https 协议
+        if parsed.scheme not in ('http', 'https'):
+            author_url = None
+        # 拒绝 javascript: 和 data: 等危险协议
+        elif parsed.scheme in ('javascript', 'data', 'vbscript'):
+            author_url = None
+
+    # 8. 创建评论
     new_comment = Comment(
         article_id=comment_data.article_id,
         user_id=current_user.id if current_user else None,
@@ -166,7 +182,7 @@ async def create_comment(
         # 访客信息
         author_name=comment_data.author_name,
         author_email=comment_data.author_email,
-        author_url=comment_data.author_url,
+        author_url=author_url,
         author_ip=ip_address,
         user_agent=user_agent,
         # 垃圾检测信息
@@ -353,57 +369,65 @@ async def get_article_comments(
 
     offset = (page - 1) * per_page
 
-    # 构建基础查询
-    query = select(Comment).where(Comment.article_id == article_id)
-
-    # 获取总数
-    count_query = select(func.count()).select_from(query.subquery())
-    count_result = await db.execute(count_query)
-    total = count_result.scalar()
-
-    # 排序
-    if sort_by in ('latest', 'created_at') or order == 'desc':
-        query = query.order_by(Comment.created_at.desc())
-    elif sort_by in ('oldest',):
-        query = query.order_by(Comment.created_at.asc())
-    elif sort_by in ('popular', 'likes'):
-        query = query.order_by(Comment.likes.desc(), Comment.created_at.desc())
-
-    # 分页
-    query = query.offset(offset).limit(per_page)
-    result = await db.execute(query)
-    comments = result.scalars().all()
-
-    # 获取所有用户信息
-    user_ids = [c.user_id for c in comments if c.user_id]
-    users = {}
-    if user_ids:
-        user_query = select(User).where(User.id.in_(user_ids))
-        user_result = await db.execute(user_query)
-        users = {u.id: u for u in user_result.scalars().all()}
-
-    # 格式化评论
-    comments_data = []
-    for comment in comments:
-        comment_dict = comment.to_dict()
-
-        # 通过插件管道处理评论内容
-        comment_dict = await _process_comment_content(comment_dict)
-
-        # 添加用户信息
-        user = users.get(comment.user_id)
-        if user:
-            comment_dict['user'] = {
-                'id': user.id,
-                'username': user.username,
-                'avatar': gravatar_service.get_avatar_url(user.email) if hasattr(gravatar_service,
-                                                                                   'get_avatar_url') else None,
-            }
-
-        comments_data.append(comment_dict)
-
-    # 如果要求树形结构
+    # 如果要求树形结构: 先分页获取根评论,再递归获取子评论
     if tree:
+        # 1. 获取根评论总数
+        root_count_query = select(func.count()).select_from(
+            select(Comment).where(Comment.article_id == article_id, Comment.parent_id.is_(None)).subquery()
+        )
+        total = (await db.execute(root_count_query)).scalar()
+
+        # 2. 排序后分页获取根评论
+        root_query = select(Comment).where(Comment.article_id == article_id, Comment.parent_id.is_(None))
+        if sort_by in ('latest', 'created_at') or order == 'desc':
+            root_query = root_query.order_by(Comment.created_at.desc())
+        elif sort_by in ('oldest',):
+            root_query = root_query.order_by(Comment.created_at.asc())
+        elif sort_by in ('popular', 'likes'):
+            root_query = root_query.order_by(Comment.likes.desc(), Comment.created_at.desc())
+        root_query = root_query.offset(offset).limit(per_page)
+        root_comments = (await db.execute(root_query)).scalars().all()
+
+        # 3. 递归获取所有后代评论
+        all_comment_ids = set(c.id for c in root_comments)
+        parent_ids = [c.id for c in root_comments]
+        all_comments = list(root_comments)
+        while parent_ids:
+            child_query = select(Comment).where(
+                Comment.article_id == article_id,
+                Comment.parent_id.in_(parent_ids)
+            )
+            children = (await db.execute(child_query)).scalars().all()
+            if not children:
+                break
+            all_comments.extend(children)
+            all_comment_ids.update(c.id for c in children)
+            parent_ids = [c.id for c in children]
+
+        # 4. 获取用户信息
+        user_ids = [c.user_id for c in all_comments if c.user_id]
+        users = {}
+        if user_ids:
+            user_query = select(User).where(User.id.in_(user_ids))
+            user_result = await db.execute(user_query)
+            users = {u.id: u for u in user_result.scalars().all()}
+
+        # 5. 格式化评论
+        comments_data = []
+        for comment in all_comments:
+            comment_dict = comment.to_dict()
+            comment_dict = await _process_comment_content(comment_dict)
+            user = users.get(comment.user_id)
+            if user:
+                comment_dict['user'] = {
+                    'id': user.id,
+                    'username': user.username,
+                    'avatar': gravatar_service.get_avatar_url(user.email) if hasattr(gravatar_service,
+                                                                                       'get_avatar_url') else None,
+                }
+            comments_data.append(comment_dict)
+
+        # 6. 构建树
         tree_data = _build_comment_tree(comments_data)
         result_data = {
             'comments': tree_data,
@@ -414,6 +438,50 @@ async def get_article_comments(
             'tree': True,
         }
     else:
+        # 非树形模式: 平坦分页
+        query = select(Comment).where(Comment.article_id == article_id)
+
+        # 获取总数
+        count_query = select(func.count()).select_from(query.subquery())
+        count_result = await db.execute(count_query)
+        total = count_result.scalar()
+
+        # 排序
+        if sort_by in ('latest', 'created_at') or order == 'desc':
+            query = query.order_by(Comment.created_at.desc())
+        elif sort_by in ('oldest',):
+            query = query.order_by(Comment.created_at.asc())
+        elif sort_by in ('popular', 'likes'):
+            query = query.order_by(Comment.likes.desc(), Comment.created_at.desc())
+
+        # 分页
+        query = query.offset(offset).limit(per_page)
+        result = await db.execute(query)
+        comments = result.scalars().all()
+
+        # 获取所有用户信息
+        user_ids = [c.user_id for c in comments if c.user_id]
+        users = {}
+        if user_ids:
+            user_query = select(User).where(User.id.in_(user_ids))
+            user_result = await db.execute(user_query)
+            users = {u.id: u for u in user_result.scalars().all()}
+
+        # 格式化评论
+        comments_data = []
+        for comment in comments:
+            comment_dict = comment.to_dict()
+            comment_dict = await _process_comment_content(comment_dict)
+            user = users.get(comment.user_id)
+            if user:
+                comment_dict['user'] = {
+                    'id': user.id,
+                    'username': user.username,
+                    'avatar': gravatar_service.get_avatar_url(user.email) if hasattr(gravatar_service,
+                                                                                       'get_avatar_url') else None,
+                }
+            comments_data.append(comment_dict)
+
         result_data = {
             'comments': comments_data,
             'total': total,
@@ -577,6 +645,12 @@ async def delete_comment(
     comment.deleted_at = now
     comment.content = "[评论已被删除]"
     comment.is_approved = False
+    # 清除 PII 字段
+    comment.author_name = None
+    comment.author_email = None
+    comment.author_url = None
+    comment.author_ip = None
+    comment.user_agent = None
     comment.updated_at = now
 
     await db.commit()
@@ -877,12 +951,10 @@ async def notify_comment_reply(
 
     # 创建通知
     notification = Notification(
-        user_id=parent_comment.user_id,
+        recipient=parent_comment.user_id,
         type='comment_reply',
         title='有人回复了你的评论',
-        content=f'{new_comment.author_name or "匿名用户"} 回复了你的评论',
-        related_id=new_comment.id,
-        related_type='comment',
+        message=f'{new_comment.author_name or "匿名用户"} 回复了你的评论',
         is_read=False
     )
 

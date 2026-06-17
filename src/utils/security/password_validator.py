@@ -2,6 +2,8 @@
 密码验证模块
 使用 argon2-cffi 进行密码哈希和验证
 """
+import re
+
 from argon2 import PasswordHasher
 from argon2.exceptions import VerifyMismatchError
 
@@ -41,3 +43,24 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
     except Exception:
         # 捕获其他可能的异常（如哈希格式错误）
         return False
+
+
+def validate_password_strength(password: str) -> tuple[bool, str]:
+    """校验密码强度，与前端 Zod schema 规则保持一致
+
+    规则:
+      - 至少 8 个字符
+      - 至少包含一个字母和一个数字
+
+    Returns:
+        (is_valid, error_message)
+    """
+    if not password or len(password) < 8:
+        return False, '密码长度至少为 8 个字符'
+    if len(password) > 128:
+        return False, '密码长度不能超过 128 个字符'
+    if not re.search(r'[a-zA-Z]', password):
+        return False, '密码必须包含字母'
+    if not re.search(r'\d', password):
+        return False, '密码必须包含数字'
+    return True, ''

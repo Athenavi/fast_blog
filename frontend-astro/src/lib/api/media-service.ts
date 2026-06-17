@@ -2,16 +2,14 @@
 import {apiClient} from './base-client';
 import type {ApiResponse, MediaFile} from './base-types';
 
-// 定义初始化分块上传响应的类型
+// 后端返回不含 data 包装，upload_id 在最外层
 interface ChunkUploadInitResponse {
+    success: boolean;
     upload_id: string;
     filename: string;
     total_size: number;
     total_chunks: number;
     chunk_size: number;
-    data?: {
-        upload_id?: string;
-    };
 }
 
 // 定义媒体响应类型
@@ -112,7 +110,8 @@ export class MediaService {
             file.type.startsWith('video/') ||
             file.type.startsWith('audio/') ||
             file.type.startsWith('text/') ||
-            file.type.startsWith('application/');
+            file.type.startsWith('application/') ||
+            file.type.startsWith('model/');
 
         if (!isAllowedType) {
             console.warn(`⚠️ 文件类型可能不受支持: ${file.type}`);

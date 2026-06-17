@@ -4,6 +4,7 @@
 """
 
 
+import asyncio
 from collections import defaultdict
 from datetime import datetime
 from typing import Dict, List, Optional
@@ -21,6 +22,9 @@ class AchievementBadgeSystem:
 
         # 徽章进度追踪 {user_id: {badge_key: progress}}
         self._badge_progress = defaultdict(lambda: defaultdict(int))
+
+        # 并发控制锁，防止成就解锁竞态条件
+        self._lock = asyncio.Lock()
 
         # 徽章定义
         self._badges = {
@@ -176,7 +180,7 @@ class AchievementBadgeSystem:
         # 用户统计数据缓存 {user_id: stats}
         self._user_stats_cache = {}
 
-    def check_and_award_badges(self, user_id: int, stats: Dict = None) -> List[Dict]:
+    async def check_and_award_badges(self, user_id: int, stats: Dict = None) -> List[Dict]:
         """
         检查并授予符合条件的徽章
         
@@ -187,26 +191,27 @@ class AchievementBadgeSystem:
         Returns:
             新获得的徽章列表
         """
-        if stats is None:
-            stats = self._get_user_stats(user_id)
+        async with self._lock:
+            if stats is None:
+                stats = self._get_user_stats(user_id)
 
-        newly_awarded = []
+            newly_awarded = []
 
-        for badge_key, badge_def in self._badges.items():
-            # 跳过已获得徽章
-            if badge_key in self._user_badges[user_id]:
-                continue
+            for badge_key, badge_def in self._badges.items():
+                # 跳过已获得徽章
+                if badge_key in self._user_badges[user_id]:
+                    continue
 
-            # 检查是否满足条件
-            if self._check_badge_requirement(badge_key, badge_def, stats):
-                # 授予徽章
-                self._award_badge(user_id, badge_key, badge_def)
-                newly_awarded.append({
-                    'badge_key': badge_key,
-                    'badge': badge_def,
-                })
+                # 检查是否满足条件
+                if self._check_badge_requirement(badge_key, badge_def, stats):
+                    # 授予徽章
+                    self._award_badge(user_id, badge_key, badge_def)
+                    newly_awarded.append({
+                        'badge_key': badge_key,
+                        'badge': badge_def,
+                    })
 
-        return newly_awarded
+            return newly_awarded
 
     def _check_badge_requirement(self, badge_key: str,
                                  badge_def: Dict,
@@ -304,7 +309,7 @@ class AchievementBadgeSystem:
                 badges.append({
                     'badge_key': badge_key,
                     **badge_def,
-                    'awarded_at': badge_data.get('awarded_at', datetime.now().isoformat()),  # Get from database
+                    'awarded_at': datetime.now().isoformat(),
                 })
 
         return badges

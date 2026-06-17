@@ -37,7 +37,7 @@ async def warmup_cache(
 ):
     """缓存预热"""
     _check_admin(current_user)
-    multi_level_cache.warmup(keys_data)
+    await multi_level_cache.warmup(keys_data)
     return ok(data=None, message=f"Successfully warmed up {len(keys_data)} cache entries")
 
 
@@ -46,7 +46,7 @@ async def warmup_cache(
 async def clear_cache(current_user=Depends(jwt_required)):
     """清空所有缓存"""
     _check_admin(current_user)
-    multi_level_cache.clear()
+    await multi_level_cache.clear()
     return ok(data=None, message="All cache levels cleared successfully")
 
 
@@ -55,7 +55,7 @@ async def clear_cache(current_user=Depends(jwt_required)):
 async def get_cache_value(key: str, current_user=Depends(jwt_required)):
     """获取单个缓存值"""
     _check_admin(current_user)
-    value = multi_level_cache.get(key)
+    value = await multi_level_cache.get(key)
     if value is None:
         raise HTTPException(status_code=404, detail="Cache key not found")
     return ok(data={'key': key, 'value': value})
@@ -71,7 +71,7 @@ async def set_cache_value(
 ):
     """设置缓存值"""
     _check_admin(current_user)
-    multi_level_cache.set(key, value, ttl)
+    await multi_level_cache.set(key, value, ttl)
     return ok(data=None, message="Cache value set successfully")
 
 
@@ -80,7 +80,7 @@ async def set_cache_value(
 async def delete_cache_value(key: str, current_user=Depends(jwt_required)):
     """删除缓存值"""
     _check_admin(current_user)
-    multi_level_cache.delete(key)
+    await multi_level_cache.delete(key)
     return ok(data=None, message="Cache value deleted successfully")
 
 

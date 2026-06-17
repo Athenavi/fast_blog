@@ -17,8 +17,7 @@ We take the security of FastBlog seriously. If you discover a security vulnerabi
 
 **Please do NOT report security vulnerabilities through public GitHub issues.**
 
-Instead, please report them via email to **[security@fastblog.dev](mailto:security@fastblog.dev)** (or the project
-maintainer's email).
+Instead, please report them via email to **[athenavi@qq.com](mailto:athenavi@qq.com)**.
 
 You should receive a response within **48 hours**. If for some reason you do not, please follow up to ensure we received
 your original message.

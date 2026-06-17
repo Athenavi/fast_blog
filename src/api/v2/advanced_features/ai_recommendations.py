@@ -1,16 +1,18 @@
 """
 AI 智能标签推荐 API
 """
+import asyncio
 from functools import wraps
 from typing import Optional, List
 
-from fastapi import APIRouter, HTTPException, Query, Body
+from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from pydantic import BaseModel
 
 from shared.services.advanced_features.ai_tag_recommendation import ai_tag_service
 from shared.services.advanced_features.ai_writing_assistant import ai_writing_assistant
 from shared.services.security.content_moderation import content_moderation_service
 from src.api.v2._helpers import ok, fail, _catch
+from src.auth import jwt_required_dependency as jwt_required
 
 router = APIRouter(tags=["ai"])
 
@@ -86,57 +88,61 @@ async def moderate_content(
         check_type: str = Body('all', enum=['sensitive', 'spam', 'ads', 'all'], description="检查类型")
 ):
     """内容审核"""
-    result = content_moderation_service.moderate_content(
-        content=content, title=title, check_type=check_type
+    result = await asyncio.get_event_loop().run_in_executor(
+        None, content_moderation_service.moderate_content, content, title, check_type
     )
     return ok(data=result)
 
 
 @router.post("/writing/continue")
 @_catch
-async def smart_continue(request: TextRequest):
+async def smart_continue(request: TextRequest, current_user=Depends(jwt_required)):
     """智能续写"""
-    continuation = ai_writing_assistant.smart_continue(
-        text=request.text, max_length=request.max_length
+    continuation = await asyncio.get_event_loop().run_in_executor(
+        None, ai_writing_assistant.smart_continue, request.text, request.max_length
     )
     return ok(data={'continuation': continuation, 'length': len(continuation)})
 
 
 @router.post("/writing/transform-style")
 @_catch
-async def transform_style(request: TextRequest):
+async def transform_style(request: TextRequest, current_user=Depends(jwt_required)):
     """风格转换"""
-    transformed = ai_writing_assistant.transform_style(
-        text=request.text, target_style=request.target_style
+    transformed = await asyncio.get_event_loop().run_in_executor(
+        None, ai_writing_assistant.transform_style, request.text, request.target_style
     )
     return ok(data={'original': request.text, 'transformed': transformed, 'style': request.target_style})
 
 
 @router.post("/writing/check-grammar")
 @_catch
-async def check_grammar(request: TextGrammarRequest):
+async def check_grammar(request: TextGrammarRequest, current_user=Depends(jwt_required)):
     """语法检查"""
-    issues = ai_writing_assistant.check_grammar(text=request.text)
+    issues = await asyncio.get_event_loop().run_in_executor(
+        None, ai_writing_assistant.check_grammar, request.text
+    )
     return ok(data={'issues': issues, 'count': len(issues)})
 
 
 @router.post("/writing/polish")
 @_catch
-async def polish_text(request: TextPolishRequest):
+async def polish_text(request: TextPolishRequest, current_user=Depends(jwt_required)):
     """文本润色"""
-    result = ai_writing_assistant.polish_text(text=request.text)
+    result = await asyncio.get_event_loop().run_in_executor(
+        None, ai_writing_assistant.polish_text, request.text
+    )
     return ok(data=result)
 
 
 @router.post("/writing/generate-titles")
 @_catch
-async def generate_titles(
+async def generate_titles(current_user=Depends(jwt_required), 
         content: str = Body(..., description="文章内容"),
         count: int = Body(5, ge=1, le=10, description="生成数量"),
         style: str = Body('normal', enum=['normal', 'question', 'list', 'howto'], description="标题风格")
 ):
     """生成标题建议"""
-    titles = ai_writing_assistant.generate_titles(
-        content=content, count=count, style=style
+    titles = await asyncio.get_event_loop().run_in_executor(
+        None, ai_writing_assistant.generate_titles, content, count, style
     )
     return ok(data={'titles': titles, 'count': len(titles), 'style': style})

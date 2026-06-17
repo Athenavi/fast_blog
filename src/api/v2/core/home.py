@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, Query, Request
 from sqlalchemy import select, func, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models import SystemSettings
+from shared.models.system import SystemSettings
 from shared.models.article import Article
 from shared.models.category import Category
 from shared.models.user import User

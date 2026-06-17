@@ -43,7 +43,7 @@ async def create_user(arguments: dict) -> dict:
 
     async with get_async_session_context() as db:
         from shared.models.user import User
-        from shared.services.user.user_service import user_service
+        from shared.services.users.user_manager.user_service import create_user_account
 
         existing = (await db.execute(
             select(User).where((User.username == username) | (User.email == email))
@@ -51,7 +51,7 @@ async def create_user(arguments: dict) -> dict:
         if existing:
             return {"success": False, "error": "用户名或邮箱已存在"}
 
-        user = user_service.create_user(
+        user = await create_user_account(
             db=db, username=username, email=email,
             password=password,
             is_superuser=arguments.get("is_superuser", False),

@@ -52,6 +52,7 @@ async def list_media(
         media_type: str = Query("all", description="媒体类型: all, image, video, audio, document"),
         category: Optional[str] = Query(None, description="分类筛选"),
         folder_name: Optional[str] = Query(None, description="文件夹名称"),
+        folder_id: Optional[int] = Query(None, description="文件夹 ID（直接指定）"),
         sort_by: str = Query("created_at_desc", description="排序方式"),
         date_from: Optional[str] = Query(None),
         date_to: Optional[str] = Query(None),
@@ -101,6 +102,8 @@ async def list_media(
 
             if target_folder_id:
                 base_query = base_query.where(Media.folder_id == target_folder_id)
+    elif folder_id is not None:
+        base_query = base_query.where(Media.folder_id == folder_id)
     else:
         base_query = base_query.where(Media.folder_id.is_(None))
 
@@ -114,18 +117,37 @@ async def list_media(
         'video': Media.mime_type.startswith('video'),
         'audio': Media.mime_type.startswith('audio'),
         'document': Media.mime_type.in_([
-            'application/pdf', 'application/msword',
+            'application/pdf',
+            'application/msword',
             'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            'application/vnd.openxmlformats-officedocument.wordprocessingml.template',
+            'application/vnd.ms-word.document.macroEnabled.12',
+            'application/vnd.ms-word.template.macroEnabled.12',
             'application/vnd.ms-excel',
             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            'text/plain', 'text/markdown'
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.template',
+            'application/vnd.ms-excel.sheet.macroEnabled.12',
+            'application/vnd.ms-excel.sheet.binary.macroEnabled.12',
+            'application/vnd.ms-excel.template.macroEnabled.12',
+            'application/vnd.oasis.opendocument.spreadsheet',
+            'application/vnd.ms-powerpoint',
+            'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+            'application/vnd.openxmlformats-officedocument.presentationml.template',
+            'application/vnd.openxmlformats-officedocument.presentationml.slideshow',
+            'application/vnd.ms-powerpoint.presentation.macroEnabled.12',
+            'application/vnd.ms-powerpoint.template.macroEnabled.12',
+            'application/vnd.ms-powerpoint.slideshow.macroEnabled.12',
+            'text/plain', 'text/markdown', 'text/csv', 'text/html',
+            'application/json', 'application/xml',
         ]),
+        'application': Media.mime_type.startswith('application'),
         'application/pdf': Media.mime_type == 'application/pdf',
         'application/zip': Media.mime_type.in_([
             'application/zip', 'application/x-rar-compressed',
             'application/x-7z-compressed', 'application/gzip',
             'application/x-tar', 'application/x-bzip2'
-        ])
+        ]),
+        'model': Media.mime_type.startswith('model'),
     }
     if media_type != 'all' and media_type in mime_filters:
         base_query = base_query.where(mime_filters[media_type])
@@ -186,7 +208,6 @@ async def list_media(
             'original_filename': media.original_filename,
             'title': media.original_filename,
             'hash': media.hash,
-            'file_path': media.file_path,
             'file_url': media.file_url,
             'url': media.file_url,
             'thumbnail_url': media.thumbnail_url,

@@ -7,7 +7,7 @@
 3. 订阅管理
 4. 权限检查
 """
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Dict, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -31,11 +31,11 @@ class MembershipService:
         Returns:
             VIP 状态信息
         """
-        from shared.models.vip_subscription import VIPSubscription
-        from shared.models.vip_plan import VIPPlan
+        from shared.models.vip.vip_subscription import VIPSubscription
+        from shared.models.vip.vip_plan import VIPPlan
 
         # 查询当前有效的订阅
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         stmt = select(VIPSubscription, VIPPlan).join(
             VIPPlan, VIPSubscription.plan == VIPPlan.id
         ).where(
@@ -131,8 +131,9 @@ class MembershipService:
         Returns:
             订阅结果
         """
-        from shared.models.vip_subscription import VIPSubscription
-        from shared.models.vip_plan import VIPPlan
+        from shared.models.vip.vip_subscription import VIPSubscription
+        from shared.models.vip.vip_plan import VIPPlan
+        from shared.models.user import User
 
         # 获取套餐信息
         plan = await self.db.get(VIPPlan, plan_id)
@@ -143,8 +144,12 @@ class MembershipService:
             return {'success': False, 'message': '套餐已停用'}
 
         # 创建订阅
-        now = datetime.now()
+        now = datetime.now(timezone.utc)
         expires_at = now + timedelta(days=plan.duration_days)
+
+        # 验证支付金额（仅当 price > 0 时检查）
+        if plan.price and plan.price > 0 and (not payment_amount or payment_amount < float(plan.price)):
+            return {'success': False, 'message': '支付金额不足'}
 
         subscription = VIPSubscription(
             user=user_id,
@@ -160,6 +165,13 @@ class MembershipService:
         self.db.add(subscription)
         await self.db.commit()
         await self.db.refresh(subscription)
+
+        # 同步 VIP 信息到 User 模型
+        user = await self.db.get(User, user_id)
+        if user:
+            user.vip_level = plan.level
+            user.vip_expires_at = expires_at
+            await self.db.commit()
 
         return {
             'success': True,
@@ -180,7 +192,7 @@ class MembershipService:
         Returns:
             操作结果
         """
-        from shared.models.vip_subscription import VIPSubscription
+        from shared.models.vip.vip_subscription import VIPSubscription
 
         subscription = await self.db.get(VIPSubscription, subscription_id)
 
@@ -192,6 +204,12 @@ class MembershipService:
 
         subscription.status = 0
         await self.db.commit()
+
+        # 取消订阅后重置用户 VIP 等级
+        user = await self.db.get(User, user_id)
+        if user:
+            user.vip_level = 0
+            await self.db.commit()
 
         return {
             'success': True,
@@ -205,7 +223,7 @@ class MembershipService:
         Returns:
             套餐列表
         """
-        from shared.models.vip_plan import VIPPlan
+        from shared.models.vip.vip_plan import VIPPlan
         from sqlalchemy import select
 
         stmt = select(VIPPlan).where(
@@ -242,8 +260,8 @@ class MembershipService:
         Returns:
             订阅列表
         """
-        from shared.models.vip_subscription import VIPSubscription
-        from shared.models.vip_plan import VIPPlan
+        from shared.models.vip.vip_subscription import VIPSubscription
+        from shared.models.vip.vip_plan import VIPPlan
         from sqlalchemy import select
 
         stmt = select(VIPSubscription, VIPPlan).join(

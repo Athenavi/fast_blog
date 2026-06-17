@@ -78,11 +78,15 @@ function AIChatInner() {
   useEffect(() => {
     setMounted(true);
     try {
+      // API Key 通过后端代理获取，不存 localStorage
+      // 配置仅存储 endpoint 和 model，不含 apiKey
       const saved = localStorage.getItem(CFG_KEY);
       if (saved) {
         const parsed = JSON.parse(saved);
-        if (parsed.endpoint || parsed.apiKey || parsed.model) {
-          setConfig(prev => ({...prev, ...parsed}));
+        if (parsed.endpoint || parsed.model) {
+          // 清除任何残留的 apiKey（安全）
+          const {apiKey, ...safeConfig} = parsed;
+          setConfig(prev => ({...prev, ...safeConfig, apiKey: ''}));
         }
       }
     } catch { /* ignore */ }
@@ -98,7 +102,10 @@ function AIChatInner() {
 
   useEffect(() => {
     if (!mounted) return;
-    localStorage.setItem(CFG_KEY, JSON.stringify(config));
+    // 仅持久化 endpoint 和 model 到 localStorage
+    // apiKey 仅保存在内存中（页面刷新后需重新输入）
+    const {apiKey, ...safeConfig} = config;
+    localStorage.setItem(CFG_KEY, JSON.stringify(safeConfig));
   }, [config, mounted]);
 
   useEffect(() => {

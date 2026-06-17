@@ -5,7 +5,7 @@ SSO单点登录 API
 from functools import wraps
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Body
+from fastapi import APIRouter, Depends, HTTPException, Query, Body, Request
 from fastapi.responses import RedirectResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -39,6 +39,7 @@ async def oauth_authorize(
         provider: str,
         redirect_uri: str = Query(..., description="回调URL"),
         state: Optional[str] = Query(None, description="状态参数"),
+        request: Request = None,
 ):
     """
     获取OAuth2授权URL并重定向
@@ -51,6 +52,14 @@ async def oauth_authorize(
     Returns:
         重定向到OAuth提供商
     """
+    # SECURITY: Validate redirect_uri against the app's own callback URL
+    # to prevent open-redirect attacks (Fix 2).
+    if request:
+        base_url = str(request.base_url).rstrip('/')
+        expected_callback = f"{base_url}/api/v2/sso/oauth/{provider}/callback"
+        if redirect_uri != expected_callback and not redirect_uri.startswith(expected_callback + '?'):
+            raise HTTPException(status_code=400, detail="Invalid redirect_uri: not in whitelist")
+
     authorization_url = await sso_service.get_oauth_authorization_url(
         provider=provider,
         redirect_uri=redirect_uri,
@@ -66,6 +75,8 @@ async def oauth_callback(
         provider: str,
         code: str = Body(..., description="授权码"),
         redirect_uri: str = Body(..., description="回调URL"),
+        state: Optional[str] = Body(None, description="状态参数"),
+        request: Request = None,
         db: AsyncSession = Depends(get_async_db)
 ):
     """
@@ -75,10 +86,32 @@ async def oauth_callback(
         provider: OAuth提供商
         code: 授权码
         redirect_uri: 回调URL
+        state: 状态参数
         
     Returns:
         用户信息和令牌
     """
+    # SECURITY: Validate state parameter to prevent CSRF account takeover.
+    if not state:
+        raise HTTPException(status_code=400, detail="Missing or empty 'state' parameter (CSRF protection)")
+    if not sso_service.validate_oauth_state(state, provider):
+        raise HTTPException(status_code=403, detail="Invalid or expired 'state' parameter (possible CSRF attack)")
+
+    # SECURITY: Validate Origin / Referer header as additional check
+    if request:
+        origin = request.headers.get("origin")
+        referer = request.headers.get("referer")
+        if origin or referer:
+            # Both should match the application's own base URL
+            base_url = str(request.base_url).rstrip('/')
+            allowed = False
+            for header_val in [origin, referer]:
+                if header_val and (header_val.rstrip('/') == base_url or header_val.startswith(base_url + '/')):
+                    allowed = True
+                    break
+            if not allowed:
+                raise HTTPException(status_code=403, detail="Cross-origin request denied")
+
     result = await sso_service.handle_oauth_callback(
         db=db,
         provider=provider,
@@ -86,16 +119,18 @@ async def oauth_callback(
         redirect_uri=redirect_uri
     )
 
-    # 这里应该生成JWT令牌
-    # 简化处理，返回用户信息
+    # 生成JWT令牌
+    from src.auth import create_access_token
+    jwt_token = create_access_token(user_id=result['user'].id)
 
     return ok(
         data={
+            'access_token': jwt_token,
+            'token_type': 'Bearer',
             'user_id': result['user'].id,
             'username': result['user'].username,
             'email': result['user'].email,
             'provider': result['provider'],
-            'message': 'Authentication successful'
         },
         msg="OAuth authentication successful"
     )
@@ -181,8 +216,14 @@ async def ldap_authenticate(
 
         logger.info(f"New user created via LDAP: {userinfo['username']}")
 
+    # 生成JWT令牌
+    from src.auth import create_access_token
+    jwt_token = create_access_token(user_id=user.id)
+
     return ok(
         data={
+            'access_token': jwt_token,
+            'token_type': 'Bearer',
             'user_id': user.id,
             'username': user.username,
             'email': user.email,
@@ -193,52 +234,8 @@ async def ldap_authenticate(
 
 
 # ==================== SAML ====================
-
-@router.get("/saml/login", summary="SAML登录")
-@_catch
-async def saml_login():
-    """
-    发起SAML登录请求
-    
-    Returns:
-        SAML登录请求数据
-    """
-    result = await sso_service.create_saml_login_request()
-
-    if 'error' in result:
-        return fail(result['error'])
-
-    return ok(
-        data=result,
-        msg="SAML login request created"
-    )
-
-
-@router.post("/saml/acs", summary="SAML断言消费者服务")
-@_catch
-async def saml_acs(
-        saml_response: str = Body(..., description="SAML响应"),
-        db: AsyncSession = Depends(get_async_db)
-):
-    """
-    处理SAML响应（ACS端点）
-    
-    Args:
-        saml_response: SAML响应数据
-        
-    Returns:
-        认证结果
-    """
-    userinfo = await sso_service.handle_saml_response(db, saml_response)
-
-    if not userinfo:
-        return fail("SAML authentication failed")
-
-    return ok(
-        data=userinfo,
-        msg="SAML authentication successful"
-    )
-
+# SAML endpoints disabled — requires python3-saml/signxml integration.
+# Route definitions are commented out to avoid returning 501.
 
 # ==================== SSO会话管理 ====================
 
@@ -250,15 +247,12 @@ async def create_sso_session(
         current_user=Depends(jwt_required)
 ):
     """
-    创建SSO会话
-    
-    Args:
-        user_id: 用户ID
-        session_id: 会话ID
-        
-    Returns:
-        SSO令牌
+    创建SSO会话（仅管理员或本人可操作）
     """
+    # 仅允许管理员或自己
+    is_admin = getattr(current_user, 'is_superuser', False) or getattr(current_user, 'is_staff', False)
+    if current_user.id != user_id and not is_admin:
+        return fail("无权为此用户创建SSO会话")
     sso_token = await sso_service.create_sso_session(user_id, session_id)
 
     return ok(

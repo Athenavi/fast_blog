@@ -9,7 +9,7 @@ from typing import List, Dict, Optional, Tuple
 
 from sqlalchemy import select, func
 
-from shared.models.sensitive_word import SensitiveWord
+from shared.models.security.sensitive_word import SensitiveWord
 from src.utils.database.unified_manager import db_manager
 
 from src.unified_logger import default_logger as logger

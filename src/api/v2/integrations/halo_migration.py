@@ -5,7 +5,7 @@ Halo 博客迁移 API - V2 版本
 from functools import wraps
 from typing import Optional
 
-from fastapi import APIRouter, Depends, BackgroundTasks, HTTPException
+from fastapi import APIRouter, Depends, BackgroundTasks, HTTPException, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.user import User
@@ -34,8 +34,8 @@ def _catch(func):
 @router.post("/connect", summary="连接到 Halo 博客")
 @_catch
 async def connect_to_halo(
-        halo_url: str,
-        api_token: str,
+        halo_url: str = Body(...),
+        api_token: str = Body(...),
         current_user: User = Depends(jwt_required)
 ):
     """
@@ -65,11 +65,11 @@ async def connect_to_halo(
     )
 
 
-@router.get("/preview", summary="预览 Halo 博客内容")
+@router.post("/preview", summary="预览 Halo 博客内容")
 @_catch
 async def preview_halo_content(
-        halo_url: str,
-        api_token: str,
+        halo_url: str = Body(...),
+        api_token: str = Body(...),
         current_user: User = Depends(jwt_required)
 ):
     """

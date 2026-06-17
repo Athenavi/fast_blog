@@ -62,8 +62,8 @@ export const MediaGrid: React.FC<{
         <td className="px-4"><input type="checkbox" checked={selected.includes(f.id)} onChange={() => onSelect(f.id)} className="h-4 w-4 text-blue-600 rounded"/></td>
         <td className="py-2 cursor-pointer" onClick={() => onPreview(f)}>
           <div className="flex items-center gap-3">
-            {f.mime_type?.startsWith('image/') && f.url ? (
-              <img src={getFullMediaUrl(f.url)} alt={f.original_filename} className="w-10 h-10 rounded-lg object-cover" loading="lazy" decoding="async"/>
+            {f.mime_type?.startsWith('image/') && (f.thumbnail_url || f.url) ? (
+              <img src={getFullMediaUrl(f.thumbnail_url || f.url)} alt={f.original_filename} className="w-10 h-10 rounded-lg object-cover" loading="lazy" decoding="async"/>
             ) : f.mime_type?.startsWith('video/') && f.url ? (
               <div className="w-10 h-10 rounded-lg bg-gray-900 flex items-center justify-center relative">
                 <Video className="w-5 h-5 text-white"/>
@@ -110,8 +110,8 @@ export const MediaGrid: React.FC<{
       selected.includes(f.id) ? 'border-blue-500 shadow-md' : 'border-gray-200 dark:border-gray-700 hover:border-blue-300 dark:hover:border-blue-700'
     }`}>
       <div onClick={() => onPreview(f)} className="w-full h-full">
-        {f.mime_type?.startsWith('image/') && f.url ? (
-          <img src={getFullMediaUrl(f.url)} alt={f.original_filename} className="w-full h-full object-cover" loading="lazy" decoding="async"/>
+        {f.mime_type?.startsWith('image/') && (f.thumbnail_url || f.url) ? (
+          <img src={getFullMediaUrl(f.thumbnail_url || f.url)} alt={f.original_filename} className="w-full h-full object-cover" loading="lazy" decoding="async"/>
         ) : f.mime_type?.startsWith('video/') && f.url ? (
           <video src={getFullMediaUrl(f.url)} preload="metadata" muted playsInline className="w-full h-full object-cover"/>
         ) : (

@@ -71,7 +71,7 @@ async def apply_migrations_api(
             }
         )
     else:
-        return fail(result.get('message', 'Migration failed'))
+        return fail(result.get('error', result.get('message', 'Migration failed')))
 
 
 @router.post("/create",

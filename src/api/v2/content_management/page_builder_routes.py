@@ -8,13 +8,21 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel
-from sqlalchemy import select, desc
+from sqlalchemy import select, desc, func
+import json
 
-from shared.models.page import PageBuilder
+from shared.models import PageBuilder
+from shared.models.page.pages import Pages as PagesModel
 from shared.models.user import User
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 from src.api.v2._helpers import ok, fail
+
+
+def _is_admin_user(user: User) -> bool:
+    """检查用户是否为管理员"""
+    return getattr(user, 'is_superuser', False) or getattr(user, 'is_staff', False)
+
 
 router = APIRouter(prefix="/page-builder", tags=["Page Builder"])
 
@@ -48,6 +56,18 @@ class PageResponse(BaseModel):
     updated_at: Optional[str] = None
 
 
+def _validate_blocks_data(blocks_data: list) -> None:
+    """Validate blocks_data: must be a list, each block must have a non-empty 'type' string."""
+    if not isinstance(blocks_data, list):
+        raise HTTPException(status_code=422, detail="blocks_data must be a list")
+    for i, block in enumerate(blocks_data):
+        if not isinstance(block, dict):
+            raise HTTPException(status_code=422, detail=f"blocks_data[{i}] must be a dict")
+        typ = block.get('type')
+        if not typ or not isinstance(typ, str):
+            raise HTTPException(status_code=422, detail=f"blocks_data[{i}] is missing a valid 'type' field")
+
+
 def _catch(func):
     @wraps(func)
     async def wrapper(*args, **kwargs):
@@ -56,11 +76,14 @@ def _catch(func):
         except HTTPException:
             raise
         except Exception as e:
+            print(f"[_catch ERROR] {type(e).__name__}: {e}")
+            import traceback
+            traceback.print_exc()
             return fail(str(e))
     return wrapper
 
 
-@router.post("/pages", response_model=PageResponse)
+@router.post("/pages")
 @_catch
 async def create_page(
         req: PageCreateRequest,
@@ -75,6 +98,8 @@ async def create_page(
     Returns:
         创建的页面对象
     """
+    if not _is_admin_user(current_user):
+        raise HTTPException(status_code=403, detail="仅管理员可创建页面")
     async for db in get_async_db():
         # 检查 slug 是否已存在
         existing = await db.execute(
@@ -84,10 +109,11 @@ async def create_page(
             raise HTTPException(status_code=400, detail=f"Slug '{req.slug}' 已存在")
 
         # 创建新页面
+        _validate_blocks_data(req.blocks_data)
         new_page = PageBuilder(
             title=req.title,
             slug=req.slug,
-            blocks_data=str(req.blocks_data),  # 存储为 JSON 字符串
+            blocks_data=json.dumps(req.blocks_data, ensure_ascii=False),  # 存储为 JSON 字符串
             template_name=req.template_name,
             is_published=req.is_published,
             created_at=datetime.now(),
@@ -99,13 +125,12 @@ async def create_page(
         await db.refresh(new_page)
 
         # 解析 blocks_data 为列表返回
-        import json
         try:
             blocks = json.loads(new_page.blocks_data)
         except:
             blocks = []
 
-        return PageResponse(
+        return ok(data=PageResponse(
             id=new_page.id,
             title=new_page.title,
             slug=new_page.slug,
@@ -114,10 +139,10 @@ async def create_page(
             is_published=new_page.is_published,
             created_at=new_page.created_at.isoformat() if new_page.created_at else None,
             updated_at=new_page.updated_at.isoformat() if new_page.updated_at else None
-        )
+        ))
 
 
-@router.get("/pages", response_model=List[PageResponse])
+@router.get("/pages")
 @_catch
 async def list_pages(
         skip: int = Query(0, ge=0),
@@ -146,7 +171,6 @@ async def list_pages(
         result = await db.execute(query)
         pages = result.scalars().all()
 
-        import json
         response_list = []
         for page in pages:
             try:
@@ -165,10 +189,10 @@ async def list_pages(
                 updated_at=page.updated_at.isoformat() if page.updated_at else None
             ))
 
-        return response_list
+        return ok(data=response_list)
 
 
-@router.get("/pages/{page_id}", response_model=PageResponse)
+@router.get("/pages/{page_id}")
 @_catch
 async def get_page(
         page_id: int,
@@ -191,13 +215,12 @@ async def get_page(
         if not page:
             raise HTTPException(status_code=404, detail="页面不存在")
 
-        import json
         try:
             blocks = json.loads(page.blocks_data)
         except:
             blocks = []
 
-        return PageResponse(
+        return ok(data=PageResponse(
             id=page.id,
             title=page.title,
             slug=page.slug,
@@ -206,10 +229,10 @@ async def get_page(
             is_published=page.is_published,
             created_at=page.created_at.isoformat() if page.created_at else None,
             updated_at=page.updated_at.isoformat() if page.updated_at else None
-        )
+        ))
 
 
-@router.put("/pages/{page_id}", response_model=PageResponse)
+@router.put("/pages/{page_id}")
 @_catch
 async def update_page(
         page_id: int,
@@ -225,6 +248,8 @@ async def update_page(
     Returns:
         更新后的页面对象
     """
+    if not _is_admin_user(current_user):
+        raise HTTPException(status_code=403, detail="仅管理员可更新页面")
     async for db in get_async_db():
         result = await db.execute(
             select(PageBuilder).where(PageBuilder.id == page_id)
@@ -238,24 +263,24 @@ async def update_page(
         if req.title is not None:
             page.title = req.title
         if req.blocks_data is not None:
-            page.blocks_data = str(req.blocks_data)
+            _validate_blocks_data(req.blocks_data)
+            page.blocks_data = json.dumps(req.blocks_data, ensure_ascii=False)
         if req.template_name is not None:
             page.template_name = req.template_name
         if req.is_published is not None:
             page.is_published = req.is_published
 
-        page.updated_at = datetime.utcnow()
+        page.updated_at = datetime.now()
 
         await db.commit()
         await db.refresh(page)
 
-        import json
         try:
             blocks = json.loads(page.blocks_data)
         except:
             blocks = []
 
-        return PageResponse(
+        return ok(data=PageResponse(
             id=page.id,
             title=page.title,
             slug=page.slug,
@@ -264,7 +289,7 @@ async def update_page(
             is_published=page.is_published,
             created_at=page.created_at.isoformat() if page.created_at else None,
             updated_at=page.updated_at.isoformat() if page.updated_at else None
-        )
+        ))
 
 
 @router.delete("/pages/{page_id}")
@@ -281,6 +306,8 @@ async def delete_page(
     Returns:
         删除结果
     """
+    if not _is_admin_user(current_user):
+        raise HTTPException(status_code=403, detail="仅管理员可删除页面")
     async for db in get_async_db():
         result = await db.execute(
             select(PageBuilder).where(PageBuilder.id == page_id)
@@ -310,6 +337,8 @@ async def publish_page(
     Returns:
         发布结果
     """
+    if not _is_admin_user(current_user):
+        raise HTTPException(status_code=403, detail="仅管理员可发布页面")
     async for db in get_async_db():
         result = await db.execute(
             select(PageBuilder).where(PageBuilder.id == page_id)
@@ -320,7 +349,7 @@ async def publish_page(
             raise HTTPException(status_code=404, detail="页面不存在")
 
         page.is_published = True
-        page.updated_at = datetime.utcnow()
+        page.updated_at = datetime.now()
 
         await db.commit()
 
@@ -341,6 +370,8 @@ async def unpublish_page(
     Returns:
         取消发布结果
     """
+    if not _is_admin_user(current_user):
+        raise HTTPException(status_code=403, detail="仅管理员可取消发布页面")
     async for db in get_async_db():
         result = await db.execute(
             select(PageBuilder).where(PageBuilder.id == page_id)
@@ -351,14 +382,14 @@ async def unpublish_page(
             raise HTTPException(status_code=404, detail="页面不存在")
 
         page.is_published = False
-        page.updated_at = datetime.utcnow()
+        page.updated_at = datetime.now()
 
         await db.commit()
 
         return ok(msg="页面已取消发布")
 
 
-@router.get("/pages/slug/{slug}", response_model=PageResponse)
+@router.get("/pages/slug/{slug}")
 @_catch
 async def get_page_by_slug(slug: str):
     """P2-1: 通过 slug 获取公开页面（无需认证）
@@ -370,33 +401,52 @@ async def get_page_by_slug(slug: str):
         页面对象（仅已发布的）
     """
     async for db in get_async_db():
+        slug_lower = slug.lower()
+        # 先查询页面构建器表
         result = await db.execute(
             select(PageBuilder).where(
-                (PageBuilder.slug == slug) &
+                (func.lower(PageBuilder.slug) == slug_lower) &
                 (PageBuilder.is_published == True)
             )
         )
         page = result.scalar_one_or_none()
 
-        if not page:
-            raise HTTPException(status_code=404, detail="页面不存在或未发布")
+        if page:
+            try:
+                blocks = json.loads(page.blocks_data)
+            except:
+                blocks = []
+            return ok(data=PageResponse(
+                id=page.id, title=page.title, slug=page.slug,
+                blocks_data=blocks, template_name=page.template_name,
+                is_published=page.is_published,
+                created_at=page.created_at.isoformat() if page.created_at else None,
+                updated_at=page.updated_at.isoformat() if page.updated_at else None
+            ))
 
-        import json
-        try:
-            blocks = json.loads(page.blocks_data)
-        except:
-            blocks = []
-
-        return PageResponse(
-            id=page.id,
-            title=page.title,
-            slug=page.slug,
-            blocks_data=blocks,
-            template_name=page.template_name,
-            is_published=page.is_published,
-            created_at=page.created_at.isoformat() if page.created_at else None,
-            updated_at=page.updated_at.isoformat() if page.updated_at else None
+        # 回退：查询 CMS 静态页面表（/admin/settings 创建）
+        result = await db.execute(
+            select(PagesModel).where(
+                func.lower(PagesModel.slug) == slug_lower
+            )
         )
+        cms_page = result.scalar_one_or_none()
+
+        if cms_page:
+            return ok(data=PageResponse(
+                id=cms_page.id, title=cms_page.title or '', slug=cms_page.slug or '',
+                blocks_data=[{
+                    'type': 'html-content',
+                    'data': {'content': cms_page.content or ''},
+                    'styles': {}
+                }],
+                template_name=cms_page.template,
+                is_published=True,
+                created_at=cms_page.created_at.isoformat() if cms_page.created_at else None,
+                updated_at=cms_page.updated_at.isoformat() if cms_page.updated_at else None
+            ))
+
+        raise HTTPException(status_code=404, detail="页面不存在或未发布")
 
 
 # P6-4: 预建页面模板库
@@ -686,6 +736,8 @@ async def create_page_from_template(
     Returns:
         创建的页面对象
     """
+    if not _is_admin_user(current_user):
+        raise HTTPException(status_code=403, detail="仅管理员可从模板创建页面")
     template = next((t for t in PAGE_TEMPLATES if t["id"] == template_id), None)
     if not template:
         raise HTTPException(status_code=404, detail="模板不存在")
@@ -698,7 +750,6 @@ async def create_page_from_template(
         if existing.scalar_one_or_none():
             raise HTTPException(status_code=400, detail=f"Slug '{slug}' 已存在")
 
-        import json
         # 创建新页面
         new_page = PageBuilder(
             title=title,
@@ -706,8 +757,8 @@ async def create_page_from_template(
             blocks_data=json.dumps(template["blocks"]),
             template_name=template_id,
             is_published=False,
-            created_at=datetime.utcnow(),
-            updated_at=datetime.utcnow()
+            created_at=datetime.now(),
+            updated_at=datetime.now()
         )
 
         db.add(new_page)
@@ -719,7 +770,7 @@ async def create_page_from_template(
         except:
             blocks = []
 
-        return PageResponse(
+        return ok(data=PageResponse(
             id=new_page.id,
             title=new_page.title,
             slug=new_page.slug,
@@ -728,4 +779,4 @@ async def create_page_from_template(
             is_published=new_page.is_published,
             created_at=new_page.created_at.isoformat() if new_page.created_at else None,
             updated_at=new_page.updated_at.isoformat() if new_page.updated_at else None
-        )
+        ))

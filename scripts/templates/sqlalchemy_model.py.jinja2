@@ -139,7 +139,7 @@ class {{ class_name }}(Base):
     # 关系定义
     {% for rel_name, rel_def in class_def.relationships.items() %}
     {% if rel_def.get('secondary') %}
-    {{ rel_name }} = relationship('{{ rel_def.target }}', secondary='{{ rel_def.secondary }}', back_populates='{{ rel_def.back_populates }}')
+    {{ rel_name }} = relationship('{{ rel_def.target }}', secondary='{{ rel_def.secondary }}', back_populates='{{ rel_def.back_populates }}'{% if rel_def.get('primaryjoin') %}, primaryjoin="{{ rel_def.primaryjoin }}"{% endif %}{% if rel_def.get('secondaryjoin') %}, secondaryjoin="{{ rel_def.secondaryjoin }}"{% endif %})
     {% else %}
     {{ rel_name }} = relationship('{{ rel_def.target }}', back_populates='{{ rel_def.back_populates }}'{% if rel_def.get('cascade') %}, cascade='{{ rel_def.cascade }}'{% endif %}{% if rel_def.get('primaryjoin') %}, primaryjoin="{{ rel_def.primaryjoin }}"{% endif %}{% if rel_def.get('remote_side') %}, remote_side="{{ rel_def.remote_side }}"{% endif %}{% if rel_def.get('overlaps') %}, overlaps="{{ rel_def.overlaps }}"{% endif %})
     {% endif %}

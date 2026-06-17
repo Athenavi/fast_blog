@@ -6,7 +6,7 @@ import {EmptyState, Modal, Pagination} from '@/components/admin/shared-ui';
 import {apiClient} from '@/lib/api/base-client';
 import {SECURITY} from '@/lib/api/api-paths';
 import {Check, CheckCircle, Eye, X} from 'lucide-react';
-import {ApprovalRecord, StatusBadge, PriorityBadge} from './shared';
+import {ApprovalRecord, StatusBadge} from './shared';
 import {useToast} from '@/components/ui/toast-provider';
 import type {ApiResponse} from '@/lib/api/base-types';
 const PendingTab: React.FC = () => {
@@ -29,7 +29,7 @@ const PendingTab: React.FC = () => {
   const total: number = data?.data?.total || 0;
 
   const approveMut = useMutation({
-    mutationFn: (id: number) => apiClient.post(`/security/content-approval/${id}/approve`, {notes: actionNotes}),
+    mutationFn: (id: number) => apiClient.post(`/security/content-approval/${id}/approve`, {comment: actionNotes}),
     onSuccess: (r: ApiResponse) => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['pending-approvals']});
@@ -39,7 +39,7 @@ const PendingTab: React.FC = () => {
     },
   });
   const rejectMut = useMutation({
-    mutationFn: (id: number) => apiClient.post(`/security/content-approval/${id}/reject`, {notes: actionNotes}),
+    mutationFn: (id: number) => apiClient.post(`/security/content-approval/${id}/reject`, {comment: actionNotes}),
     onSuccess: (r: ApiResponse) => {
       if (r.success) {
         qc.invalidateQueries({queryKey: ['pending-approvals']});
@@ -94,17 +94,15 @@ const PendingTab: React.FC = () => {
                       className="px-2 py-0.5 text-[10px] rounded-full font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400">
                       {contentTypeLabels[a.content_type] || a.content_type}
                     </span>
-                    <PriorityBadge priority={a.priority}/>
                     <StatusBadge status={a.status}/>
                   </div>
                   <h3
                     className="font-semibold text-gray-900 dark:text-gray-100 mb-1">{a.content_title || `内容#${a.content_id}`}</h3>
                   <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-gray-400">
-                    <span>申请人: {a.requester_name || `用户#${a.requester_id}`}</span>
-                    <span>步骤: {a.current_step}/{a.total_steps}</span>
+                    <span>申请人: {a.applicant_name || `用户#${a.applicant_id}`}</span>
+                    <span>步骤: {a.current_level}/{a.max_level}</span>
                     <span>申请时间: {a.created_at?.slice(0, 16)}</span>
                   </div>
-                  {a.reason && <p className="text-xs text-gray-400 mt-1 line-clamp-1">理由: {a.reason}</p>}
                 </div>
                 <div className="flex items-center gap-1 ml-4">
                   <button onClick={() => {
@@ -154,15 +152,15 @@ const PendingTab: React.FC = () => {
               </div>
               <div>
                 <span className="text-gray-500 dark:text-gray-400">申请人：</span>
-                <span>{showDetail.requester_name || `#${showDetail.requester_id}`}</span>
+                <span>{showDetail.applicant_name || `#${showDetail.applicant_id}`}</span>
               </div>
               <div>
                 <span className="text-gray-500 dark:text-gray-400">审批进度：</span>
-                <span>{showDetail.current_step}/{showDetail.total_steps} 步</span>
+                <span>{showDetail.current_level}/{showDetail.max_level} 步</span>
               </div>
               <div className="col-span-2">
                 <span className="text-gray-500 dark:text-gray-400">申请理由：</span>
-                <span>{showDetail.reason || '无'}</span>
+                <span>{showDetail.admin_notes || '无'}</span>
               </div>
             </div>
 

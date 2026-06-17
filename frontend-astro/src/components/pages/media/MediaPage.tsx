@@ -1,0 +1,561 @@
+'use client';
+
+import React, {useState, useCallback, useRef, useEffect, Suspense} from 'react';
+import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
+import {AuthGuard} from '@/components/AuthGuard';
+import {QueryProvider} from '@/components/QueryProvider';
+import {apiClient} from '@/lib/api/base-client';
+import {MEDIA} from '@/lib/api/api-paths';
+import {ToastProvider, useToast} from '@/components/ui/toast-provider';
+import type {MediaFile} from '@/lib/api';
+import type {FolderNode} from './FolderTree';
+import {MediaGrid} from './MediaGrid';
+const MediaPreview = React.lazy(() => import('./MediaPreview'));
+import {DeleteConfirm, MoveDialog, CreateFolderDialog, TagEditorDialog, CategoryEditorDialog, BatchTagDialog} from './MediaDialogs';
+import {UploadArea} from './UploadArea';
+import {FolderTree} from './FolderTree';
+import {StorageStats} from './StorageStats';
+import {useMediaUpload} from './useMediaUpload';
+import {useDebounce} from '@/lib/hooks';
+import {Search, Upload, Grid3X3, List, Trash2, FolderOpen, Download, X, Tag, ChevronLeft, ChevronRight} from 'lucide-react';
+
+function MediaBrowserInner() {
+  const toast = useToast();
+  const qc = useQueryClient();
+
+  // View state
+  const [page, setPage] = useState(1);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [search, setSearch] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
+  const [selectedFolder, setSelectedFolder] = useState<number | null>(null);
+  const debouncedSearch = useDebounce(search, 300);
+  const prevFilters = useRef('');
+
+  // 筛选条件变化时重置到第一页
+  useEffect(() => {
+    const filters = JSON.stringify({search, typeFilter, categoryFilter, selectedFolder});
+    if (prevFilters.current && prevFilters.current !== filters) setPage(1);
+    prevFilters.current = filters;
+  }, [search, typeFilter, categoryFilter, selectedFolder]);
+
+  // Selection & dialogs
+  const [selected, setSelected] = useState<number[]>([]);
+  const [previewMedia, setPreviewMedia] = useState<MediaFile | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<MediaFile | null>(null);
+  const [moveDialogOpen, setMoveDialogOpen] = useState(false);
+  const [createFolderOpen, setCreateFolderOpen] = useState(false);
+  const [uploadCollapsed, setUploadCollapsed] = useState(true);
+  const [batchTagOpen, setBatchTagOpen] = useState(false);
+  const [batchCatOpen, setBatchCatOpen] = useState(false);
+
+  // Upload
+  const {uploading, uploadProgress, uploadStatus, uploadFiles} = useMediaUpload(() => {
+    qc.invalidateQueries({queryKey: ['media-files']});
+    qc.invalidateQueries({queryKey: ['media-stats']});
+    toast.success('上传完成');
+  });
+
+  // ── Queries ──
+
+  const mediaParams: Record<string, any> = {page, per_page: 24};
+  if (debouncedSearch) mediaParams.q = debouncedSearch;
+  if (typeFilter) mediaParams.media_type = typeFilter;
+  if (categoryFilter) mediaParams.category = categoryFilter;
+  if (selectedFolder != null) mediaParams.folder_id = selectedFolder;
+
+  const {data: queryResult, isLoading: mediaLoading} = useQuery({
+    staleTime: 300_000,
+    queryKey: ['media-files', page, debouncedSearch, typeFilter, categoryFilter, selectedFolder],
+    queryFn: async () => {
+      const res = await apiClient.get(MEDIA.LIST, mediaParams);
+      const files = Array.isArray(res.data?.media_items) ? res.data.media_items :
+                    Array.isArray(res.data?.data) ? res.data.data :
+                    Array.isArray(res.data?.files) ? res.data.files : [];
+      const pagination = res.data?.pagination || res.pagination || {};
+      return {files, pagination};
+    },
+  });
+
+  const files: MediaFile[] = queryResult?.files || [];
+  const pagination = queryResult?.pagination || {} as any;
+  const totalPages = pagination?.pages || 1;
+  const total = pagination?.total || 0;
+
+  const {data: rawFolders, isLoading: foldersLoading} = useQuery<FolderNode[]>({
+    queryKey: ['media-folders'],
+    staleTime: 300_000,
+    queryFn: async () => {
+      const res = await apiClient.get(MEDIA.FOLDERS_TREE);
+      // 后端返回 ok(data={tree: [...]})
+      const raw = res.data?.tree || res.data?.folders || res.data?.data || [];
+      return Array.isArray(raw) ? raw : [];
+    },
+  });
+  const folders: FolderNode[] = (rawFolders as FolderNode[]) || [];
+
+
+  const {data: statsData, isLoading: statsLoading} = useQuery({
+    queryKey: ['media-stats'],
+    queryFn: async () => {
+      const res = await apiClient.get(MEDIA.LIST, {page: 1, per_page: 1});
+      return res.data?.stats || {};
+    },
+  });
+
+
+  // ── Tags & Category ──
+
+  const [tagEditTarget, setTagEditTarget] = useState<MediaFile | null>(null);
+  const [catEditTarget, setCatEditTarget] = useState<MediaFile | null>(null);
+
+  const {data: categoryList} = useQuery<string[]>({
+    queryKey: ['media-categories'],
+    queryFn: async () => {
+      const res = await apiClient.get(MEDIA.CATEGORIES);
+      const raw = res.data?.categories || res.data?.data || [];
+      return Array.isArray(raw) ? raw.map((c: any) => typeof c === 'string' ? c : c.name || c.category || '') : [];
+    },
+  });
+  const allCategories = categoryList || [];
+
+  // ── Mutations ──
+
+  const deleteMut = useMutation({
+    mutationFn: async (file: MediaFile) => {
+      const res = await apiClient.post(MEDIA.BATCH_DELETE, {media_ids: [file.id]});
+      if (!res.success) throw new Error(res.error || '删除失败');
+      return res;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({queryKey: ['media-files']});
+      qc.invalidateQueries({queryKey: ['media-stats']});
+      toast.success('已删除');
+    },
+    onError: (err) => toast.error(String(err)),
+  });
+
+  const tagSaveMut = useMutation({
+    mutationFn: async ({mediaId, tags}: {mediaId: number; tags: string[]}) => {
+      const res = await apiClient.post(MEDIA.TAGS(mediaId), {mode: 'replace', tags});
+      if (!res.success) throw new Error(res.error || '标签更新失败');
+      return res;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({queryKey: ['media-files']});
+      toast.success('标签已更新');
+    },
+    onError: (err) => toast.error(String(err)),
+  });
+
+  const catSaveMut = useMutation({
+    mutationFn: async ({mediaId, category}: {mediaId: number; category: string}) => {
+      const res = await apiClient.put(MEDIA.DETAIL(mediaId), {category});
+      if (!res.success) throw new Error(res.error || '分类更新失败');
+      return res;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({queryKey: ['media-files']});
+      qc.invalidateQueries({queryKey: ['media-categories']});
+      toast.success('分类已更新');
+    },
+    onError: (err) => toast.error(String(err)),
+  });
+
+  const batchTagMut = useMutation({
+    mutationFn: async ({mediaIds, tags}: {mediaIds: number[]; tags: string[]}) => {
+      const res = await apiClient.post(MEDIA.BATCH_TAGS, {media_ids: mediaIds, mode: 'replace', tags});
+      if (!res.success) throw new Error(res.error || '批量标签更新失败');
+      return res;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({queryKey: ['media-files']});
+      setSelected([]);
+      toast.success('批量标签已更新');
+    },
+    onError: (err) => toast.error(String(err)),
+  });
+
+  const batchCatMut = useMutation({
+    mutationFn: async ({mediaIds, category}: {mediaIds: number[]; category: string}) => {
+      const res = await apiClient.post(MEDIA.BATCH_CATEGORIZE, {media_ids: mediaIds, category});
+      if (!res.success) throw new Error(res.error || '批量分类更新失败');
+      return res;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({queryKey: ['media-files']});
+      qc.invalidateQueries({queryKey: ['media-categories']});
+      setSelected([]);
+      toast.success('批量分类已更新');
+    },
+    onError: (err) => toast.error(String(err)),
+  });
+
+  const moveMut = useMutation({
+    mutationFn: async ({ids, folderPath}: {ids: number[]; folderPath: string | null}) => {
+      const res = await apiClient.post(MEDIA.FOLDERS_MOVE, {media_ids: ids, folder_path: folderPath});
+      if (!res.success) throw new Error(res.error || '移动失败');
+      return res;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({queryKey: ['media-files']});
+      qc.invalidateQueries({queryKey: ['media-folders']});
+      toast.success('移动成功');
+      setMoveDialogOpen(false);
+      setSelected([]);
+    },
+    onError: (err) => toast.error(String(err)),
+  });
+
+  const createFolderMut = useMutation({
+    mutationFn: async (name: string) => {
+      const res = await apiClient.post(MEDIA.FOLDERS_CREATE, {name});
+      if (!res.success) throw new Error(res.error || '创建失败');
+      return res;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({queryKey: ['media-folders']});
+      toast.success('文件夹已创建');
+      setCreateFolderOpen(false);
+    },
+    onError: (err) => toast.error(String(err)),
+  });
+
+  const deleteFolderMut = useMutation({
+    mutationFn: async (id: number) => {
+      const res = await apiClient.delete(MEDIA.FOLDERS_DELETE(id));
+      if (!res.success) throw new Error(res.error || '删除失败');
+      return res;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({queryKey: ['media-folders']});
+      toast.success('文件夹已删除');
+    },
+    onError: (err) => toast.error(String(err)),
+  });
+
+  // ── Handlers ──
+
+  const handleSelect = useCallback((id: number) => {
+    setSelected(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id],
+    );
+  }, []);
+
+  const handleDelete = useCallback((file: MediaFile) => {
+    setDeleteTarget(file);
+  }, []);
+
+  const confirmDelete = useCallback(() => {
+    if (deleteTarget) deleteMut.mutate(deleteTarget);
+    setDeleteTarget(null);
+  }, [deleteTarget, deleteMut]);
+
+  const clearSelection = useCallback(() => setSelected([]), []);
+
+  // ── Render ──
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-blue-50 dark:from-gray-950 dark:to-gray-900 pt-20">
+      <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">媒体库</h1>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setViewMode('grid')}
+              className={`p-2 rounded-lg transition-colors ${viewMode === 'grid' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+              title="网格视图"
+            >
+              <Grid3X3 className="w-4 h-4"/>
+            </button>
+            <button
+              onClick={() => setViewMode('list')}
+              className={`p-2 rounded-lg transition-colors ${viewMode === 'list' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-300'}`}
+              title="列表视图"
+            >
+              <List className="w-4 h-4"/>
+            </button>
+            <button
+              onClick={() => setUploadCollapsed(!uploadCollapsed)}
+              className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white text-sm rounded-xl hover:bg-blue-700 transition-colors"
+            >
+              <Upload className="w-4 h-4"/>
+              {uploadCollapsed ? '上传' : '关闭'}
+            </button>
+          </div>
+        </div>
+
+        {/* Upload Area */}
+        <UploadArea
+          onUpload={uploadFiles}
+          uploading={uploading}
+          progress={uploadProgress}
+          status={uploadStatus}
+          collapsed={uploadCollapsed}
+          onToggle={() => setUploadCollapsed(!uploadCollapsed)}
+        />
+
+        {/* Storage Stats */}
+        <StorageStats stats={statsData || {}} loading={statsLoading}/>
+
+        {/* Selection toolbar */}
+        {selected.length > 0 && (
+          <div className="flex items-center gap-3 px-4 py-3 bg-blue-50 dark:bg-blue-900/20 rounded-xl border border-blue-200 dark:border-blue-800 animate-in fade-in slide-in-from-top-2">
+            <span className="text-sm font-medium text-blue-700 dark:text-blue-300">已选择 {selected.length} 项</span>
+            <button
+              onClick={() => setMoveDialogOpen(true)}
+              className="inline-flex items-center gap-1 px-3 py-1.5 bg-white dark:bg-gray-800 text-sm rounded-lg border border-blue-200 dark:border-blue-700 hover:bg-blue-100 dark:hover:bg-blue-900/40 transition-colors"
+            >
+              <FolderOpen className="w-3.5 h-3.5"/> 移动
+            </button>
+            <button
+              onClick={() => setBatchTagOpen(true)}
+              className="inline-flex items-center gap-1 px-3 py-1.5 bg-white dark:bg-gray-800 text-sm rounded-lg border border-purple-200 dark:border-purple-700 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/30 transition-colors"
+            >
+              <Tag className="w-3.5 h-3.5"/> 批量标签
+            </button>
+            <button
+              onClick={() => setBatchCatOpen(true)}
+              className="inline-flex items-center gap-1 px-3 py-1.5 bg-white dark:bg-gray-800 text-sm rounded-lg border border-emerald-200 dark:border-emerald-700 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 transition-colors"
+            >
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-3.5 h-3.5"><path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z"/></svg> 批量分类
+            </button>
+            <button
+              onClick={() => {
+                const target = files.find(f => f.id === selected[0]);
+                if (target) { setDeleteTarget(target); }
+              }}
+              className="inline-flex items-center gap-1 px-3 py-1.5 bg-white dark:bg-gray-800 text-sm rounded-lg border border-red-200 dark:border-red-700 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
+              disabled={selected.length === 0}
+            >
+              <Trash2 className="w-3.5 h-3.5"/> 删除
+            </button>
+            <button onClick={clearSelection} className="ml-auto p-1.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors">
+              <X className="w-4 h-4"/>
+            </button>
+          </div>
+        )}
+
+        {/* Batch tag / category dialogs */}
+        <BatchTagDialog
+          open={batchTagOpen}
+          onClose={() => setBatchTagOpen(false)}
+          onSave={async (tags) => {
+            await batchTagMut.mutateAsync({mediaIds: selected, tags});
+            setBatchTagOpen(false);
+          }}
+          saving={batchTagMut.isPending}
+        />
+        <CategoryEditorDialog
+          open={batchCatOpen}
+          media={{id: 0, original_filename: `${selected.length} 个文件`} as any}
+          categories={allCategories}
+          onClose={() => setBatchCatOpen(false)}
+          onSave={async (_, cat) => {
+            await batchCatMut.mutateAsync({mediaIds: selected, category: cat});
+            setBatchCatOpen(false);
+          }}
+        />
+
+        {/* Filters + Folder sidebar */}
+        <div className="flex gap-6">
+          {/* Left sidebar — FolderTree */}
+          <aside className="hidden lg:block w-56 flex-shrink-0">
+            <div className="bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm rounded-2xl border border-gray-200 dark:border-gray-700 p-4 sticky top-24">
+              <FolderTree
+                folders={folders || []}
+                selectedId={selectedFolder}
+                onSelect={(f) => setSelectedFolder(f?.id ?? null)}
+                onCreate={() => setCreateFolderOpen(true)}
+                onDelete={(id) => deleteFolderMut.mutate(id)}
+                loading={foldersLoading}
+              />
+            </div>
+          </aside>
+
+          {/* Main content */}
+          <div className="flex-1 min-w-0 space-y-4">
+            {/* Search & filters bar */}
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="relative flex-1 max-w-xs">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none"/>
+                <input
+                  value={search}
+                  onChange={e => setSearch(e.target.value)}
+                  placeholder="搜索媒体文件..."
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white transition-all"
+                />
+              </div>
+              <select
+                value={typeFilter}
+                onChange={e => setTypeFilter(e.target.value)}
+                className="px-3 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 dark:text-white"
+              >
+                <option value="">全部类型</option>
+                <option value="image">🖼 图片</option>
+                <option value="video">🎬 视频</option>
+                <option value="audio">🎵 音频</option>
+                <option value="document">📄 文档</option>
+                <option value="model">🧊 3D 模型</option>
+                <option value="application/zip">📦 压缩包</option>
+              </select>
+              <select
+                value={categoryFilter}
+                onChange={e => setCategoryFilter(e.target.value)}
+                className="px-3 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 dark:text-white"
+              >
+                <option value="">全部分类</option>
+                {allCategories.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </div>
+
+            {/* Mobile folder tree toggle */}
+            <div className="lg:hidden">
+              <details className="bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm rounded-2xl border border-gray-200 dark:border-gray-700">
+                <summary className="px-4 py-3 cursor-pointer text-sm font-medium text-gray-600 dark:text-gray-400 select-none">
+                  文件夹
+                </summary>
+                <div className="px-4 pb-4">
+                  <FolderTree
+                    folders={folders || []}
+                    selectedId={selectedFolder}
+                    onSelect={(f) => setSelectedFolder(f?.id ?? null)}
+                    onCreate={() => setCreateFolderOpen(true)}
+                    onDelete={(id) => deleteFolderMut.mutate(id)}
+                    loading={foldersLoading}
+                  />
+                </div>
+              </details>
+            </div>
+
+            {/* Media Grid */}
+            <MediaGrid
+              files={files}
+              loading={mediaLoading}
+              viewMode={viewMode}
+              selected={selected}
+              onSelect={handleSelect}
+              onPreview={setPreviewMedia}
+              onDelete={handleDelete}
+              onEditTags={setTagEditTarget}
+              onEditCategory={setCatEditTarget}
+            />
+
+            {/* 分页 */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-center gap-2 pt-4">
+                <button
+                  disabled={page <= 1}
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  className="p-2 rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-30 hover:bg-white/60 dark:hover:bg-gray-800/60 transition-colors"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </button>
+                {Array.from({length: Math.min(totalPages, 9)}, (_, i) => {
+                  const start = Math.max(1, Math.min(page - 4, totalPages - 8));
+                  const p = start + i;
+                  if (p > totalPages) return null;
+                  return (
+                    <button
+                      key={p}
+                      onClick={() => setPage(p)}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${
+                        p === page
+                          ? 'bg-blue-600 text-white'
+                          : 'border border-gray-200 dark:border-gray-700 hover:bg-white/60 dark:hover:bg-gray-800/60'
+                      }`}
+                    >
+                      {p}
+                    </button>
+                  );
+                })}
+                <button
+                  disabled={page >= totalPages}
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  className="p-2 rounded-lg border border-gray-200 dark:border-gray-700 disabled:opacity-30 hover:bg-white/60 dark:hover:bg-gray-800/60 transition-colors"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+                <span className="text-xs text-gray-400 ml-2">共 {total} 项</span>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* ── Dialogs ── */}
+
+        {deleteTarget && (
+          <DeleteConfirm
+            item={deleteTarget}
+            onCancel={() => setDeleteTarget(null)}
+            onConfirm={confirmDelete}
+          />
+        )}
+
+        {previewMedia && (
+          <Suspense fallback={
+            <div className="fixed inset-0 z-50 bg-black/95 flex items-center justify-center">
+              <div className="w-8 h-8 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+            </div>
+          }>
+            <MediaPreview
+              files={files}
+              activeFile={previewMedia}
+              onClose={() => setPreviewMedia(null)}
+              onNavigate={setPreviewMedia}
+            />
+          </Suspense>
+        )}
+
+        <MoveDialog
+          open={moveDialogOpen}
+          onClose={() => setMoveDialogOpen(false)}
+          folders={folders || []}
+          mediaCount={selected.length}
+          onMove={(folderPath) => moveMut.mutate({ids: selected, folderPath})}
+        />
+
+        <CreateFolderDialog
+          open={createFolderOpen}
+          onClose={() => setCreateFolderOpen(false)}
+          onCreate={(name) => createFolderMut.mutate(name)}
+        />
+
+        <TagEditorDialog
+          open={!!tagEditTarget}
+          media={tagEditTarget}
+          onClose={() => setTagEditTarget(null)}
+          onSave={async (mediaId, tags) => {
+            await tagSaveMut.mutateAsync({mediaId, tags});
+            setTagEditTarget(null);
+          }}
+        />
+
+        <CategoryEditorDialog
+          open={!!catEditTarget}
+          media={catEditTarget}
+          categories={allCategories}
+          onClose={() => setCatEditTarget(null)}
+          onSave={async (mediaId, category) => {
+            await catSaveMut.mutateAsync({mediaId, category});
+            setCatEditTarget(null);
+          }}
+        />
+      </div>
+    </div>
+  );
+}
+
+export default function MediaPage() {
+  return (
+    <AuthGuard>
+      <QueryProvider>
+        <ToastProvider>
+          <MediaBrowserInner/>
+        </ToastProvider>
+      </QueryProvider>
+    </AuthGuard>
+  );
+}

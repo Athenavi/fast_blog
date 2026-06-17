@@ -201,30 +201,36 @@ class AIWritingAssistantService:
         for pattern in redundant_patterns:
             result = re.sub(pattern, '', result)
 
-        # 缩短长句
-        sentences = re.split(r'[。！？.!?]+', result)
+        # 缩短长句（保留原始标点）
+        sentences = re.split(r'([。！？.!?]+)', result)
         shortened = []
 
-        for sentence in sentences:
+        i = 0
+        while i < len(sentences):
+            sentence = sentences[i]
+            # 下一个元素是标点（如果存在）
+            punct = sentences[i + 1] if i + 1 < len(sentences) else ''
             if len(sentence) > 50:
-                # 简单截断
-                shortened.append(sentence[:50] + "...")
+                shortened.append(sentence[:50] + "..." + punct)
             else:
-                shortened.append(sentence)
+                shortened.append(sentence + punct)
+            i += 2 if punct else 1
 
-        return '。'.join(shortened)
+        return ''.join(shortened)
 
     def _make_detailed(self, text: str) -> str:
         """转换为详细风格"""
-        # 在关键点添加解释
+        # 在关键点添加解释（避免在每个标点后重复添加）
         sentences = re.split(r'([。！？.!?]+)', text)
         result = []
+        detail_added = False
 
         for i, part in enumerate(sentences):
             result.append(part)
-            # 在每个句号后添加补充说明
-            if part in ['。', '！', '？'] and i < len(sentences) - 1:
+            # 只在第一个句号后添加一次补充说明
+            if part in ['。', '！', '？'] and not detail_added and i < len(sentences) - 1:
                 result.append("具体来说，这意味着我们需要更加深入地理解和分析相关情况。")
+                detail_added = True
 
         return ''.join(result)
 

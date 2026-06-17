@@ -189,6 +189,12 @@ async def update_current_user_profile_api(
     locale = data.get('locale')
     if locale and is_valid_iso_language_code(locale):
         current_user.locale = locale
+
+    profile_private = data.get('profile_private')
+    if profile_private is not None:
+        current_user.profile_private = bool(profile_private)
+
+    if any(k in data for k in ('locale', 'profile_private')):
         await db.commit()
 
     return ok({"user_id": current_user.id}, "资料更新成功")
@@ -199,14 +205,16 @@ async def update_current_user_profile_api(
 async def change_password_api(request: Request, db: AsyncSession = Depends(get_async_db),
                                current_user: User = Depends(get_current_active_user)):
     """修改当前用户密码"""
-    form = ChangePasswordForm(request)
+    # FastAPI 的 request 需要先解析 form 数据再传给 WTForms
+    form_data = await request.form()
+    form = ChangePasswordForm(form_data)
     if not form.validate():
         return fail("表单验证失败")
 
-    if not await validate_password_async(current_user.id, form.old_password.data, db):
+    if not await validate_password_async(current_user.id, form.current_password.data, db):
         return fail("原密码错误")
 
-    await update_password(current_user.id, form.new_password.data, db)
+    await update_password(current_user.id, form.new_password.data, form.confirm_password.data, request.client.host if request.client else '', db)
     return ok(msg="密码修改成功")
 
 
@@ -223,8 +231,8 @@ async def update_avatar_api(file: UploadFile = File(...),
         return fail("文件大小不能超过 5MB")
     await file.seek(0)
 
-    from src.utils.database.main import get_async_session
-    async with get_async_session() as db:
+    from src.utils.database.main import get_async_session_context
+    async with get_async_session_context() as db:
         result = await save_uploaded_avatar(file, current_user.id, db)
 
     return ok({"avatar_url": f"/api/v2/static/avatar/{result}.webp"}, "头像更新成功")
@@ -321,12 +329,16 @@ async def unblock_user(user_id: int, db: AsyncSession = Depends(get_async_db),
 
 @router.get("/{user_id}")
 @_with_db
-async def get_user_profile_api(user_id: int, db: AsyncSession = Depends(get_async_db)):
-    """获取用户公开资料"""
+async def get_user_profile_api(user_id: int, db: AsyncSession = Depends(get_async_db),
+                                current_user: User = Depends(get_current_active_user)):
+    """获取用户公开资料（需登录）"""
     user = await db.scalar(select(User).where(User.id == user_id))
     if not user:
         return fail("用户不存在")
-    return ok(_format_user_detail(user))
+    data = _format_user_detail(user)
+    # 公开资料不暴露 email
+    data.pop('email', None)
+    return ok(data)
 
 
 @router.post("/{user_id}/follow")

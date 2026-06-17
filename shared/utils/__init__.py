@@ -20,16 +20,12 @@ from shared.utils.update_history import (
 from shared.utils.version_manager import (
     VersionManager,
     version_manager,
-    get_current_version_info,
-    get_version_summary
 )
 
 __all__ = [
     # Version Manager
     'VersionManager',
     'version_manager',
-    'get_current_version_info',
-    'get_version_summary',
     
     # Update History
     'UpdateHistoryManager',

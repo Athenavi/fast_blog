@@ -53,10 +53,15 @@ async def create_annotation(
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_session)
 ):
-    """创建批注"""
+    """创建批注（仅文章作者或管理员可操作）"""
     article = await db.scalar(select(Article).where(Article.id == article_id))
     if not article:
         return fail("文章不存在")
+
+    # 验证当前用户对文章有访问权限
+    is_admin = getattr(current_user, 'is_superuser', False) or getattr(current_user, 'is_staff', False)
+    if article.user != current_user.id and not is_admin:
+        return fail("无权为此文章添加批注")
 
     if parent_id:
         parent = await db.scalar(select(ArticleAnnotation).where(ArticleAnnotation.id == parent_id))
@@ -65,8 +70,9 @@ async def create_annotation(
         if parent.article != article_id:
             return fail("父批注不属于该文章")
 
+    import json
     ann = ArticleAnnotation(article=article_id, user=current_user.id, parent=parent_id,
-                            content=content, position=str(position) if position else None,
+                            content=content, position=json.dumps(position) if position else None,
                             selection_text=selection_text, is_resolved=False,
                             created_at=datetime.now(), updated_at=datetime.now())
     db.add(ann)

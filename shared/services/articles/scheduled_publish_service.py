@@ -1,7 +1,18 @@
 """
 文章定时发布服务
 负责检查并自动发布到期的定时文章
+
+弃用警告: 此模块已弃用，请使用 shared/services/articles/scheduled_publish.py 中的 ScheduledPublishService 代替。
+此文件仅保留向后兼容，新代码不应再引用此模块。
 """
+
+import warnings
+
+warnings.warn(
+    "scheduled_publish_service.py is deprecated. Use shared.services.articles.scheduled_publish instead.",
+    DeprecationWarning,
+    stacklevel=2
+)
 
 from datetime import datetime, timezone
 from typing import Dict, Any
@@ -10,6 +21,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.article import Article
+from src.unified_logger import default_logger as logger
 
 
 async def check_and_publish_scheduled_articles(db: AsyncSession) -> Dict[str, Any]:
@@ -58,7 +70,7 @@ async def check_and_publish_scheduled_articles(db: AsyncSession) -> Dict[str, An
                 published_count += 1
 
             except Exception as e:
-                print(f"发布文章 {article.id} 失败: {e}")
+                logger.error(f"发布文章 {article.id} 失败: {e}")
                 failed_count += 1
 
         # 提交所有更改
@@ -75,9 +87,7 @@ async def check_and_publish_scheduled_articles(db: AsyncSession) -> Dict[str, An
 
     except Exception as e:
         await db.rollback()
-        print(f"检查定时发布失败: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.error(f"检查定时发布失败: {e}", exc_info=True)
 
         return {
             "success": False,
@@ -165,9 +175,7 @@ async def get_scheduled_articles(
         }
 
     except Exception as e:
-        print(f"获取定时文章列表失败: {e}")
-        import traceback
-        traceback.print_exc()
+        logger.error(f"获取定时文章列表失败: {e}", exc_info=True)
 
         return {
             "success": False,
@@ -217,5 +225,5 @@ async def cancel_scheduled_publish(
 
     except Exception as e:
         await db.rollback()
-        print(f"取消定时发布失败: {e}")
+        logger.error(f"取消定时发布失败: {e}")
         return False

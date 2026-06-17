@@ -49,7 +49,7 @@ class CacheService:
             self.cache = TTLCache(maxsize=max_size, ttl=default_ttl)
         else:
             self.cache: Dict[str, Any] = {}
-            self.ttl: Dict[str, float] = {}
+        self.ttl: Dict[str, float] = {}
 
         # 初始化Redis客户端
         if use_redis and REDIS_AVAILABLE:
@@ -99,6 +99,11 @@ class CacheService:
 
         # 从内存缓存获取(cachetools会自动处理TTL)
         if CACHE_TOOLS_AVAILABLE:
+            # 先检查手动 TTL（支持 per-key TTL 覆盖）
+            if key in self.ttl and time.time() > self.ttl[key]:
+                del self.cache[key]
+                del self.ttl[key]
+                return None
             return self.cache.get(key)
         else:
             # 手动TTL检查(兼容模式)
@@ -109,6 +114,81 @@ class CacheService:
                     return None
                 return self.cache[key]
             return None
+
+    def get_or_set(self, key: str, factory, ttl: int = None) -> Any:
+        """
+        获取或设置缓存（带 SETNX 分布式锁，防止缓存雪崩）
+
+        当缓存 miss 时，使用分布式锁确保只有一个请求回填缓存。
+        其他请求等待锁期间返回过期的缓存值（stale-while-revalidate）。
+
+        Args:
+            key: 缓存键
+            factory: 回填数据的工厂函数（async 或 sync）
+            ttl: 过期时间(秒)
+
+        Returns:
+            缓存值
+        """
+        if ttl is None:
+            ttl = self.default_ttl
+
+        # 尝试读取缓存
+        cached = self.get(key)
+        if cached is not None:
+            return cached
+
+        import asyncio
+        lock_key = f"{key}:lock"
+        lock_ttl = 10  # 锁最长持有时间（防止死锁）
+
+        if self.use_redis and self.redis_client:
+            try:
+                # Redis 分布式锁（SETNX）
+                acquired = self.redis_client.setnx(lock_key, "1")
+                if acquired:
+                    self.redis_client.expire(lock_key, lock_ttl)
+                    try:
+                        # 只有获得锁的请求回填缓存
+                        if asyncio.iscoroutinefunction(factory):
+                            value = asyncio.get_event_loop().run_until_complete(factory())
+                        else:
+                            value = factory()
+                        self.set(key, value, ttl)
+                        return value
+                    finally:
+                        self.redis_client.delete(lock_key)
+                else:
+                    # 未获得锁：等待 + 重试
+                    import time as time_module
+                    time_module.sleep(0.1)  # 等待 100ms
+                    retried = self.get(key)
+                    if retried is not None:
+                        return retried
+                    # 锁持有者可能失败，直接回填（无锁保护）
+                    if asyncio.iscoroutinefunction(factory):
+                        value = asyncio.get_event_loop().run_until_complete(factory())
+                    else:
+                        value = factory()
+                    self.set(key, value, ttl)
+                    return value
+            except Exception as e:
+                print(f"[CacheService] 分布式锁获取失败: {e}, 直接回填")
+                # 锁失败时直接回填（降级）
+                if asyncio.iscoroutinefunction(factory):
+                    value = asyncio.get_event_loop().run_until_complete(factory())
+                else:
+                    value = factory()
+                self.set(key, value, ttl)
+                return value
+
+        # 无 Redis 时直接回填（内存缓存无分布式锁需求）
+        if asyncio.iscoroutinefunction(factory):
+            value = asyncio.get_event_loop().run_until_complete(factory())
+        else:
+            value = factory()
+        self.set(key, value, ttl)
+        return value
 
     def set(self, key: str, value: Any, ttl: int = None):
         """设置缓存
@@ -136,14 +216,12 @@ class CacheService:
                 self.use_redis = False
 
         # 存储到内存缓存
-        if CACHE_TOOLS_AVAILABLE:
-            # cachetools需要重新创建带TTL的条目
-            # 注意:TTLCache的TTL在创建时设定,这里简化处理
-            self.cache[key] = value
-        else:
-            # 手动管理TTL
-            self.cache[key] = value
-            self.ttl[key] = time.time() + ttl
+        # 使用手动 TTL 管理（支持 per-key TTL，不受 TTLCache 全局 TTL 限制）
+        if key in self.cache and CACHE_TOOLS_AVAILABLE:
+            # 如果使用 TTLCache，需要通过 del 再 set 来刷新 TTL
+            del self.cache[key]
+        self.cache[key] = value
+        self.ttl[key] = time.time() + ttl
 
     def delete(self, key: str):
         """删除缓存
@@ -161,12 +239,23 @@ class CacheService:
             del self.cache[key]
 
     def clear(self):
-        """清空缓存"""
+        """清空缓存（仅清空应用缓存前缀的 key，不 flushdb 整个 Redis）"""
         if self.use_redis and self.redis_client:
             try:
-                self.redis_client.flushdb()
+                # 仅删除带应用前缀的 key，避免清空整个 Redis
+                prefix = getattr(self, 'key_prefix', 'fastblog:')
+                cursor = 0
+                deleted = 0
+                while True:
+                    cursor, keys = self.redis_client.scan(cursor=cursor, match=f"{prefix}*", count=500)
+                    if keys:
+                        deleted += len(keys)
+                        self.redis_client.delete(*keys)
+                    if cursor == 0:
+                        break
+                print(f"[CacheService] Redis已清除 {deleted} 个缓存 key (前缀: {prefix})")
             except Exception as e:
-                print(f"[CacheService] Redis清空失败: {e}")
+                print(f"[CacheService] Redis清除失败: {e}")
 
         self.cache.clear()
 

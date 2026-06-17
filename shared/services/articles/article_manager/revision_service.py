@@ -3,6 +3,7 @@
 提供版本保存、查询、回滚等功能
 """
 
+import difflib
 import hashlib
 from datetime import datetime, timezone
 from typing import Optional, Dict, Any
@@ -313,15 +314,37 @@ async def rollback_to_revision(
         article.required_vip_level = revision.required_vip_level
         article.updated_at = now
 
-        await db.commit()
-
-        # 自动创建回滚操作的修订记录
-        await save_article_revision(
-            db=db,
-            article_id=article_id,
-            author_id=author_id,
-            change_summary=f"回滚到版本 #{revision.revision_number}"
+        # 先创建回滚操作的修订记录（在 commit 之前）
+        from shared.models.article import ArticleRevision as Rev
+        max_rev_query = select(func.max(Rev.revision_number)).where(
+            Rev.article_id == article_id
         )
+        max_rev_result = await db.execute(max_rev_query)
+        next_revision = (max_rev_result.scalar() or 0) + 1
+
+        rollback_revision = Rev(
+            article_id=article_id,
+            revision_number=next_revision,
+            title=revision.title,
+            excerpt=revision.excerpt,
+            content=revision.content,
+            cover_image=revision.cover_image,
+            tags_list=revision.tags_list,
+            category_id=revision.category_id,
+            status=revision.status,
+            hidden=revision.hidden,
+            is_featured=revision.is_featured,
+            is_vip_only=revision.is_vip_only,
+            required_vip_level=revision.required_vip_level,
+            author_id=author_id,
+            change_summary=f"回滚到版本 #{revision.revision_number}",
+            hash_code=revision.hash_code,
+            created_at=now,
+        )
+        db.add(rollback_revision)
+
+        # 单次提交所有变更
+        await db.commit()
 
         return True
 
@@ -370,7 +393,36 @@ async def compare_revisions(
             "tags_changed": rev1.tags_list != rev2.tags_list,
             "category_changed": rev1.category_id != rev2.category_id,
             "status_changed": rev1.status != rev2.status,
+            # 实际文本差异
+            "title_diff": list(difflib.unified_diff(
+                (rev1.title or "").splitlines(keepends=True),
+                (rev2.title or "").splitlines(keepends=True),
+                fromfile=f"v{rev1.revision_number}", tofile=f"v{rev2.revision_number}", lineterm=""
+            )),
+            "excerpt_diff": list(difflib.unified_diff(
+                (rev1.excerpt or "").splitlines(keepends=True),
+                (rev2.excerpt or "").splitlines(keepends=True),
+                fromfile=f"v{rev1.revision_number}", tofile=f"v{rev2.revision_number}", lineterm=""
+            )),
         }
+
+        # 内容差异（限制大小避免 OOM）
+        MAX_DIFF_LINES = 10000
+        content_lines_1 = (rev1.content or "").splitlines(keepends=True)
+        content_lines_2 = (rev2.content or "").splitlines(keepends=True)
+
+        differences["content_changed"] = rev1.content != rev2.content
+        differences["content_diff"] = list(difflib.unified_diff(
+            content_lines_1, content_lines_2,
+            fromfile=f"v{rev1.revision_number}", tofile=f"v{rev2.revision_number}", lineterm=""
+        ))
+        if len(content_lines_1) <= MAX_DIFF_LINES and len(content_lines_2) <= MAX_DIFF_LINES:
+            differences["content_diff_html"] = difflib.HtmlDiff().make_table(
+                content_lines_1, content_lines_2,
+                fromdesc=f"v{rev1.revision_number}", todesc=f"v{rev2.revision_number}", context=True, numlines=3
+            )
+        else:
+            differences["content_diff_html"] = "<p>内容过大，已跳过 HTML diff 渲染</p>"
 
         return {
             "revision1": rev1.to_dict(),

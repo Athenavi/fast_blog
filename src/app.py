@@ -315,6 +315,9 @@ def register_all_routes(app: FastAPI, worker_info: str):
                 'shared.models.social',
                 'shared.models.ad',
                 'shared.models.ai',
+                # 预热 auth_deps 避免并行加载时死锁
+                'src.auth',
+                'src.auth.auth_deps',
             ]
             for _pkg in _shared_subpkgs:
                 try:
@@ -492,7 +495,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     yield
 
     # ---------- 关闭清理 ----------
-    await safe_run_async("调度器停止", lambda: __import__('src.scheduler').session_scheduler.scheduler.stop())
+    await safe_run_async("调度器停止", lambda: __import__('src.scheduler').session_scheduler.scheduler.shutdown())
 
     if is_installed:
         await safe_run_async("下载队列停止", _shutdown_download_processor)
@@ -564,6 +567,14 @@ async def _start_redis_subscriber():
         await _redis_subscribe_invalidate()
     except Exception as e:
         print(f"[lifespan] Redis 广播订阅启动失败: {e}")
+
+    # 启动通用缓存失效广播监听
+    try:
+        from src.services.redis_service import redis_service
+        await redis_service.start_cache_invalidation_listener()
+        print(f"[lifespan] Redis cache:invalidate 监听已启动")
+    except Exception as e:
+        print(f"[lifespan] Redis cache:invalidate 监听启动失败: {e}")
 
 
 async def _shutdown_download_processor():
@@ -675,16 +686,17 @@ def register_middleware(app: FastAPI):
         print("[HTTP Cache] 已添加")
     except ImportError:
         pass
-
-    # 安全中间件（惰性加载：首次请求时才导入 security_middleware 模块）
-    try:
-        app.add_middleware(
-            _make_lazy_middleware("src.auth.security_middleware", "CSRFProtectionMiddleware")
-        )
-    except Exception:
-        pass
-
     # 速率限制已移除全局中间件，改为在特定路由上使用装饰器
+
+    # RBAC 权限中间件
+    try:
+        from src.middleware.rbac_middleware import RBACMiddleware
+        app.add_middleware(RBACMiddleware)
+        print("[RBAC Middleware] 已添加")
+    except ImportError as e:
+        print(f"[RBAC Middleware] 加载失败: {e}")
+    except Exception as e:
+        print(f"[RBAC Middleware] 注册异常: {e}")
 
     # API 版本响应头
     class APIVersionMiddleware(BaseHTTPMiddleware):
@@ -699,7 +711,7 @@ def register_middleware(app: FastAPI):
     # 性能监控中间件（惰性加载：避免启动时 import psutil）
     try:
         app.add_middleware(
-            _make_lazy_middleware("src.middleware.performance_monitor", "PerformanceMonitoringMiddleware")
+            _make_lazy_middleware("src.middleware.performance_monitor", "RequestPerformanceMiddleware")
         )
         print("[Performance Monitor] 已添加性能监控中间件（惰性加载）")
     except Exception as e:
@@ -712,6 +724,22 @@ def register_middleware(app: FastAPI):
         )
     except Exception:
         pass
+
+    # Token 黑名单中间件
+    try:
+        from src.middleware.token_blacklist_middleware import TokenBlacklistMiddleware
+        app.add_middleware(TokenBlacklistMiddleware)
+        print("[Token Blacklist] 已添加 Token 黑名单中间件")
+    except Exception as e:
+        print(f"[Token Blacklist] 加载失败: {e}")
+
+    # 暴力破解防护中间件
+    try:
+        from src.middleware.brute_force_protection import BruteForceProtectionMiddleware
+        app.add_middleware(BruteForceProtectionMiddleware)
+        print("[Brute Force] 已添加暴力破解防护中间件")
+    except Exception as e:
+        print(f"[Brute Force] 加载失败: {e}")
 
 
 # ---------- 错误处理与静态文件 ----------

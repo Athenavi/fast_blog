@@ -279,7 +279,7 @@ class AIAgentRecommendations:
                 select(Article)
                 .where(
                     (Article.id != article_id) &
-                    (Article.status == 'published')
+                    (Article.status == 1)  # 已发布
                 )
                 .order_by(Article.published_at.desc())
                 .limit(limit * 3)  # 获取更多候选文章
@@ -289,10 +289,14 @@ class AIAgentRecommendations:
 
             # 简单评分算法：基于共同标签数量
             scored_articles = []
-            current_tags = set(current_article.tags or [])
+            current_tags = set()
+            if current_article.tags_list:
+                current_tags = set(t.strip() for t in current_article.tags_list.split(',') if t.strip())
 
             for article in candidates:
-                article_tags = set(article.tags or [])
+                article_tags = set()
+                if article.tags_list:
+                    article_tags = set(t.strip() for t in article.tags_list.split(',') if t.strip())
                 common_tags = current_tags.intersection(article_tags)
 
                 if common_tags:

@@ -1,6 +1,6 @@
 # FastBlog 技术架构
 
-> **版本**: V0.6.26.0611 | **后端**: FastAPI 0.136 / Python 3.14+ | **前端**: Astro 5.7 / React 19 | **数据库**: PostgreSQL 17+ / Redis 7+
+> **版本**: V0.5.26.0612 | **后端**: FastAPI 0.136.3 / Python 3.14+ | **前端**: Astro 5.x / React 19 | **数据库**: PostgreSQL 17+ / Redis 7+
 
 ---
 
@@ -83,8 +83,17 @@ frontend-astro/
 plugins/
 ├── code-snippets/        # 代码片段收藏（SQLite + EventBus）
 │   └── frontend/         # 前端管理页面
-└── newsletter/           # Newsletter 订阅（SQLite + EventBus）
-    └── frontend/         # 前端管理页面
+├── newsletter/           # Newsletter 订阅（SQLite + EventBus）
+│   └── frontend/
+├── article-likes/        # 文章点赞（SQLite）
+├── katex-render/         # KaTeX 公式渲染（EventBus 管道）
+├── popular-articles/     # 阅读排行（侧边栏 widget）
+├── approval/             # 内容审批工作流
+├── enterprise/           # 企业管理（许可证/工单/监控）
+├── migration/            # 迁移工具（WordPress/Halo）
+├── fastblog-default/     # 默认主题（theme）
+├── magazine/             # 杂志主题（theme）
+└── modern-minimal/       # 现代简约主题（theme）
 ```
 
 ---
@@ -110,7 +119,7 @@ plugins/
 - **基类**: `BasePlugin` 提供 SQLite 持久化助手、自动初始化、设置持久化
 - **前端引擎**: 构建时扫描 `plugins/*/frontend/` 自动生成管理页面和侧边栏菜单
 - 详见 [PLUGIN_DEVELOPMENT_GUIDE.md](PLUGIN_DEVELOPMENT_GUIDE.md)
-- 当前插件：code-snippets（代码片段）、newsletter（邮件订阅）
+- 当前 11 个插件：5 功能 + 3 主题 + 3 工具（详见插件目录）
 
 ### 3. 前端架构
 - **Astro Hybrid**: SSR（公开页面）+ SSG（管理后台），Node adapter
@@ -118,8 +127,8 @@ plugins/
 - **@tanstack/react-query**: 数据获取与缓存管理
 
 ### 4. 主题系统
-- **3 个内置主题**: default、magazine、modern-minimal
-- **配置**: `metadata.json` + `theme.json` + `theme.config.js`
+- **3 个内置主题**: fastblog-default、magazine、modern-minimal（均为 theme 类型插件）
+- **配置**: `metadata.json` + `theme.config.js`
 - 详见 [THEME_DEVELOPMENT_GUIDE.md](THEME_DEVELOPMENT_GUIDE.md)
 
 ### 5. MCP Server

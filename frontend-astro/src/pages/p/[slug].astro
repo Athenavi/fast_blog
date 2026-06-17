@@ -1,0 +1,11 @@
+---
+// 动态页面路由 — 通过 Slug 渲染页面构建器页面或文章
+export const prerender = false;
+
+import Layout from '@/layouts/Layout.astro';
+import PageRenderer from '@/components/pages/PageRenderer';
+const {slug} = Astro.params;
+---
+<Layout title={slug || ''}>
+  <PageRenderer slug={slug!} client:load />
+</Layout>

@@ -119,9 +119,14 @@ async def create_article(
     title: str = Body(...),
     content: str = Body(""),
     excerpt: Optional[str] = Body(None),
+    slug: Optional[str] = Body(None),
+    tags: Optional[str] = Body(None),
     category_id: Optional[int] = Body(None),
     cover_image: Optional[str] = Body(None),
     status: int = Body(0),
+    hidden: bool = Body(False),
+    is_vip_only: bool = Body(False),
+    is_featured: bool = Body(False),
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(Permission("article:create")),
 ):
@@ -129,10 +134,15 @@ async def create_article(
     article = Article(
         title=title,
         excerpt=excerpt,
+        slug=slug,
+        tags_list=tags,
         user=current_user.id,
         category=category_id,
         cover_image=cover_image,
         status=status,
+        hidden=hidden,
+        is_vip_only=is_vip_only,
+        is_featured=is_featured,
         created_at=now,
         updated_at=now,
     )
@@ -165,23 +175,45 @@ async def update_article(
     title: Optional[str] = Body(None),
     content: Optional[str] = Body(None),
     excerpt: Optional[str] = Body(None),
+    slug: Optional[str] = Body(None),
+    tags: Optional[str] = Body(None),
     category_id: Optional[int] = Body(None),
     cover_image: Optional[str] = Body(None),
+    status: Optional[int] = Body(None),
+    hidden: Optional[bool] = Body(None),
+    is_vip_only: Optional[bool] = Body(None),
+    is_featured: Optional[bool] = Body(None),
     db: AsyncSession = Depends(get_db),
-    _=Depends(Permission("article:edit")),
+    current_user: User = Depends(Permission("article:edit")),
 ):
     article = await db.get(Article, article_id)
     if not article:
         return ApiResponse(success=False, error="文章不存在")
 
+    # 所有权校验：仅作者或 superuser/staff 可编辑
+    if article.user != current_user.id and not (current_user.is_superuser or current_user.is_staff):
+        return ApiResponse(success=False, error="无权编辑此文章")
+
     if title is not None:
         article.title = title
     if excerpt is not None:
         article.excerpt = excerpt
+    if slug is not None:
+        article.slug = slug
+    if tags is not None:
+        article.tags_list = tags
     if category_id is not None:
         article.category = category_id
     if cover_image is not None:
         article.cover_image = cover_image
+    if status is not None:
+        article.status = status
+    if hidden is not None:
+        article.hidden = hidden
+    if is_vip_only is not None:
+        article.is_vip_only = is_vip_only
+    if is_featured is not None:
+        article.is_featured = is_featured
 
     article.updated_at = datetime.now(timezone.utc)
 
@@ -211,27 +243,26 @@ async def update_article(
 # 删除
 # ============================================================
 
-@router.delete("/articles/{article_id}", summary="删除文章")
+@router.delete("/articles/{article_id}", summary="删除文章（软删除）")
 async def delete_article(
     article_id: int,
     db: AsyncSession = Depends(get_db),
-    _=Depends(Permission("article:delete")),
+    current_user: User = Depends(Permission("article:delete")),
 ):
     article = await db.get(Article, article_id)
     if not article:
         return ApiResponse(success=False, error="文章不存在")
 
-    # 删除关联内容
-    content_result = await db.execute(
-        select(ArticleContent).where(ArticleContent.article == article_id)
-    )
-    for ac in content_result.scalars().all():
-        await db.delete(ac)
+    # 所有权校验：仅作者或 superuser/staff 可删除
+    if article.user != current_user.id and not (current_user.is_superuser or current_user.is_staff):
+        return ApiResponse(success=False, error="无权删除此文章")
 
-    await db.delete(article)
+    # 软删除：标记状态而非删除记录
+    article.status = -1
+    article.updated_at = datetime.now(timezone.utc)
     await db.commit()
 
-    return ApiResponse(success=True, message="文章已删除")
+    return ApiResponse(success=True, message="文章已删除（软删除）")
 
 
 # ============================================================
@@ -242,14 +273,19 @@ async def delete_article(
 async def publish_article(
     article_id: int,
     db: AsyncSession = Depends(get_db),
-    _=Depends(Permission("article:publish")),
+    current_user: User = Depends(Permission("article:publish")),
 ):
     article = await db.get(Article, article_id)
     if not article:
         return ApiResponse(success=False, error="文章不存在")
 
+    # 所有权校验：仅作者或 superuser/staff 可发布
+    if article.user != current_user.id and not (current_user.is_superuser or current_user.is_staff):
+        return ApiResponse(success=False, error="无权发布此文章")
+
     article.status = 1
-    article.published_at = datetime.now(timezone.utc)
+    if article.published_at is None:
+        article.published_at = datetime.now(timezone.utc)
     article.updated_at = datetime.now(timezone.utc)
     await db.commit()
 
@@ -265,9 +301,14 @@ def _article_summary(a: Article, users_map: dict) -> dict:
     return {
         "id": a.id,
         "title": a.title,
+        "slug": a.slug,
         "excerpt": a.excerpt[:200] if a.excerpt else "",
         "cover_image": a.cover_image,
+        "tags": a.tags_list,
         "status": a.status,
+        "hidden": a.hidden,
+        "is_featured": a.is_featured,
+        "is_vip_only": a.is_vip_only,
         "author": {
             "id": author.id if author else None,
             "username": author.username if author else "Unknown",
@@ -287,7 +328,11 @@ def _article_detail(a: Article, content, author) -> dict:
         "excerpt": a.excerpt,
         "content": content.content if content else "",
         "cover_image": a.cover_image,
+        "tags": a.tags_list,
         "status": a.status,
+        "hidden": a.hidden,
+        "is_featured": a.is_featured,
+        "is_vip_only": a.is_vip_only,
         "author": {
             "id": author.id if author else None,
             "username": author.username if author else "Unknown",

@@ -5,6 +5,7 @@
 
 from datetime import datetime
 from functools import wraps
+import json
 from typing import List, Optional, Dict, Any
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
@@ -40,7 +41,7 @@ async def list_all_widgets(
     db: AsyncSession = Depends(get_async_db)
 ):
     """获取所有小部件实例列表"""
-    from shared.models.widget_instance import WidgetInstance
+    from shared.models import WidgetInstance
     from sqlalchemy import select, func
 
     query = select(WidgetInstance)
@@ -91,7 +92,7 @@ async def get_widget_areas():
 @_catch
 async def get_area_widgets(area_id: str, db: AsyncSession = Depends(get_async_db)):
     """获取指定区域的小部件"""
-    from shared.models.widget_instance import WidgetInstance
+    from shared.models import WidgetInstance
     from sqlalchemy import select
 
     # 从数据库查询
@@ -187,7 +188,7 @@ async def create_widget(
         db: AsyncSession = Depends(get_async_db)
 ):
     """创建小部件实例"""
-    from shared.models.widget_instance import WidgetInstance
+    from shared.models import WidgetInstance
     from sqlalchemy import select, func
 
     # 获取当前区域的最大 order_index
@@ -202,7 +203,7 @@ async def create_widget(
         widget_type=widget_type,
         area=area,
         title=title,
-        config=str(config or {}),
+        config=json.dumps(config or {}, ensure_ascii=False),
         order_index=max_order + 1,
         is_active=is_active,
         created_at=datetime.now(),
@@ -226,7 +227,7 @@ async def update_widget(
         db: AsyncSession = Depends(get_async_db)
 ):
     """更新小部件配置"""
-    from shared.models.widget_instance import WidgetInstance
+    from shared.models import WidgetInstance
     from sqlalchemy import select
 
     stmt = select(WidgetInstance).where(WidgetInstance.id == widget_id)
@@ -239,7 +240,7 @@ async def update_widget(
     if title is not None:
         widget.title = title
     if config is not None:
-        widget.config = str(config)
+        widget.config = json.dumps(config, ensure_ascii=False)
 
     widget.updated_at = datetime.now()
     await db.commit()
@@ -257,7 +258,7 @@ async def toggle_widget(
         db: AsyncSession = Depends(get_async_db)
 ):
     """切换小部件启用状态"""
-    from shared.models.widget_instance import WidgetInstance
+    from shared.models import WidgetInstance
     from sqlalchemy import select
 
     stmt = select(WidgetInstance).where(WidgetInstance.id == widget_id)
@@ -283,7 +284,7 @@ async def reorder_single_widget(
         db: AsyncSession = Depends(get_async_db)
 ):
     """重新排序单个小部件"""
-    from shared.models.widget_instance import WidgetInstance
+    from shared.models import WidgetInstance
     from sqlalchemy import select
 
     stmt = select(WidgetInstance).where(WidgetInstance.id == widget_id)
@@ -328,7 +329,7 @@ async def batch_reorder_widgets(
         db: AsyncSession = Depends(get_async_db)
 ):
     """批量重新排序小部件（用于拖拽排序）"""
-    from shared.models.widget_instance import WidgetInstance
+    from shared.models import WidgetInstance
     from sqlalchemy import select
 
     # 批量更新所有 widget 的 order_index
@@ -356,7 +357,7 @@ async def batch_reorder_widgets(
 @_catch
 async def render_widget(widget_id: int, db: AsyncSession = Depends(get_async_db)):
     """渲染小部件为HTML"""
-    from shared.models.widget_instance import WidgetInstance
+    from shared.models import WidgetInstance
     from sqlalchemy import select
     import json
 

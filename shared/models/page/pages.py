@@ -1,12 +1,13 @@
 """
 SQLAlchemy 模型定义 - Pages
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-06-04 17:21:20
+生成时间：2026-06-13 23:12:16
 """
 
-from sqlalchemy import Column, Integer, BigInteger, String, DateTime, Index
+from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Index
 
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
+
 
 
 class Pages(Base):
@@ -29,7 +30,7 @@ class Pages(Base):
 
     slug = Column(String(255), nullable=True, doc='页面 slug')
 
-    content = Column(String(255), nullable=True, doc='页面内容')
+    content = Column(Text, nullable=True, doc='页面内容')
 
     excerpt = Column(String(255), nullable=True, doc='摘要')
 

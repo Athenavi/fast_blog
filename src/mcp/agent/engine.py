@@ -87,8 +87,24 @@ async def call_llm(
 
 # ─── MCP tool execution ────────────────────────────────────────────
 
+ALLOWED_TOOLS = set()  # populated lazily by get_tool_defs()
+
+
 async def execute_mcp_tool(tool_name: str, arguments: Dict) -> str:
-    """Execute an MCP tool and return a **Markdown-formatted** result string."""
+    """Execute an MCP tool and return a **Markdown-formatted** result string.
+
+    Security: validates tool_name against the registered tool whitelist.
+    """
+    # Lazy-populate allowed tools set
+    if not ALLOWED_TOOLS:
+        for td in get_tool_defs():
+            name = td.get("function", {}).get("name", "")
+            if name:
+                ALLOWED_TOOLS.add(name)
+
+    if tool_name not in ALLOWED_TOOLS:
+        return format_tool_result(tool_name, "", success=False, error_msg=f"Unknown or disallowed tool: {tool_name}")
+
     req = {
         "method": "tools/call",
         "params": {"name": tool_name, "arguments": arguments},

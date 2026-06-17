@@ -16,6 +16,7 @@ export interface MediaFile {
     mime_type?: string;
     file_size?: number;
     url?: string;
+    thumbnail_url?: string;
     folder_name?: string;
     category?: string;
     tags?: string;

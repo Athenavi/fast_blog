@@ -9,7 +9,7 @@
 """
 from typing import List, Dict, Optional
 
-from sqlalchemy import select, desc, asc
+from sqlalchemy import select, desc, asc, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.comment import Comment, CommentVote
@@ -62,11 +62,11 @@ class CommentEnhancedService:
             query = query.order_by(desc(Comment.created_at))
 
         # 获取总数
-        count_query = select(Comment.id).where(Comment.article_id == article_id)
+        count_query = select(func.count(Comment.id)).where(Comment.article_id == article_id)
         if not include_unapproved:
             count_query = count_query.where(Comment.is_approved == True)
         count_result = await db.execute(count_query)
-        total = len(count_result.scalars().all())
+        total = count_result.scalar() or 0
 
         # 分页
         offset = (page - 1) * per_page
@@ -137,8 +137,8 @@ class CommentEnhancedService:
         Returns:
             操作结果
         """
-        # 检查评论是否存在
-        stmt = select(Comment).where(Comment.id == comment_id)
+        # 检查评论是否存在（加行级锁防止并发竞争）
+        stmt = select(Comment).where(Comment.id == comment_id).with_for_update()
         result = await db.execute(stmt)
         comment = result.scalar_one_or_none()
 
@@ -148,28 +148,28 @@ class CommentEnhancedService:
         # 检查是否已经点赞
         stmt = select(CommentVote).where(
             CommentVote.comment_id == comment_id,
-            CommentVote.user_id == user_id
+            CommentVote.user == user_id
         )
         result = await db.execute(stmt)
         existing_vote = result.scalar_one_or_none()
 
         if existing_vote:
-            if existing_vote.vote_type == 'like':
+            if existing_vote.vote_type == 1:
                 # 已经点赞，取消点赞
                 await db.delete(existing_vote)
                 comment.likes = max(0, comment.likes - 1)
                 action = 'unliked'
             else:
                 # 之前是反对，改为点赞
-                existing_vote.vote_type = 'like'
+                existing_vote.vote_type = 1
                 comment.likes += 1
                 action = 'liked'
         else:
             # 新建点赞
             vote = CommentVote(
                 comment_id=comment_id,
-                user_id=user_id,
-                vote_type='like'
+                user=user_id,
+                vote_type=1
             )
             db.add(vote)
             comment.likes += 1
@@ -200,8 +200,8 @@ class CommentEnhancedService:
         Returns:
             操作结果
         """
-        # 检查评论是否存在
-        stmt = select(Comment).where(Comment.id == comment_id)
+        # 检查评论是否存在（加行级锁防止并发竞争）
+        stmt = select(Comment).where(Comment.id == comment_id).with_for_update()
         result = await db.execute(stmt)
         comment = result.scalar_one_or_none()
 
@@ -211,27 +211,27 @@ class CommentEnhancedService:
         # 检查是否已经投票
         stmt = select(CommentVote).where(
             CommentVote.comment_id == comment_id,
-            CommentVote.user_id == user_id
+            CommentVote.user == user_id
         )
         result = await db.execute(stmt)
         existing_vote = result.scalar_one_or_none()
 
         if existing_vote:
-            if existing_vote.vote_type == 'dislike':
+            if existing_vote.vote_type == -1:
                 # 已经反对，取消反对
                 await db.delete(existing_vote)
                 action = 'undisliked'
             else:
                 # 之前是点赞，改为反对
-                existing_vote.vote_type = 'dislike'
+                existing_vote.vote_type = -1
                 comment.likes = max(0, comment.likes - 1)
                 action = 'disliked'
         else:
             # 新建反对
             vote = CommentVote(
                 comment_id=comment_id,
-                user_id=user_id,
-                vote_type='dislike'
+                user=user_id,
+                vote_type=-1
             )
             db.add(vote)
             comment.likes = max(0, comment.likes - 1)
@@ -250,7 +250,7 @@ class CommentEnhancedService:
             db: AsyncSession,
             comment_id: int,
             user_id: int
-    ) -> Optional[str]:
+    ) -> Optional[int]:
         """
         获取用户对评论的投票
 
@@ -260,11 +260,11 @@ class CommentEnhancedService:
             user_id: 用户ID
 
         Returns:
-            'like', 'dislike', 或 None
+            1 (赞), -1 (踩), 或 None
         """
         stmt = select(CommentVote).where(
             CommentVote.comment_id == comment_id,
-            CommentVote.user_id == user_id
+            CommentVote.user == user_id
         )
         result = await db.execute(stmt)
         vote = result.scalar_one_or_none()

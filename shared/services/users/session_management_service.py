@@ -26,7 +26,12 @@ class SessionManagementService:
         self.session_timeout_hours = 24 * 30  # 30天
         self.max_sessions_per_user = 10  # 每个用户最多10个活跃会话
 
-    def create_session(self, user_id: int, device_info: Dict,
+        logger.warning(
+            "SessionManagementService 使用内存存储，重启后会话数据将丢失。"
+            "生产环境应使用 UserSession 模型或 Redis 实现持久化。"
+        )
+
+    async def create_session(self, user_id: int, device_info: Dict,
                        ip_address: str = None, user_agent: str = None) -> str:
         """
         创建新会话
@@ -74,6 +79,9 @@ class SessionManagementService:
         # 存储会话
         self._user_sessions[user_id].append(session)
         self._session_index[session_id] = user_id
+
+        # 持久化到数据库
+        await self._persist_session_to_db(user_id, session)
 
         logger.info(f"Created session {session_id} for user {user_id}")
         return session_id
@@ -127,7 +135,7 @@ class SessionManagementService:
                 session['last_active'] = datetime.now()
                 break
 
-    def revoke_session(self, user_id: int, session_id: str) -> bool:
+    async def revoke_session(self, user_id: int, session_id: str) -> bool:
         """
         撤销指定会话(远程注销)
         
@@ -138,9 +146,12 @@ class SessionManagementService:
         Returns:
             是否成功
         """
-        return self._remove_session(user_id, session_id)
+        result = self._remove_session(user_id, session_id)
+        if result:
+            await self._remove_session_from_db(user_id, session_id)
+        return result
 
-    def revoke_all_sessions(self, user_id: int, exclude_session_id: str = None) -> int:
+    async def revoke_all_sessions(self, user_id: int, exclude_session_id: str = None) -> int:
         """
         撤销用户的所有会话(除当前会话外)
         
@@ -161,6 +172,9 @@ class SessionManagementService:
         for session_id in sessions_to_remove:
             if self._remove_session(user_id, session_id):
                 revoked_count += 1
+
+        # 持久化层同步撤销
+        await self._revoke_all_sessions_from_db(user_id, exclude_session_id)
 
         logger.info(f"Revoked {revoked_count} sessions for user {user_id}")
         return revoked_count
@@ -275,6 +289,70 @@ class SessionManagementService:
 
         return alerts
 
+    async def _persist_session_to_db(self, user_id: int, session_info: dict) -> None:
+        """将会话持久化到 UserSession 数据库模型"""
+        try:
+            from src.utils.database.unified_manager import db_manager
+            from shared.models.user.user_session import UserSession
+
+            async with db_manager.get_async_session() as session:
+                record = UserSession(
+                    user_id=user_id,
+                    access_token=session_info['session_id'],
+                    device_info=str(session_info.get('device_info', {})),
+                    ip_address=session_info.get('ip_address'),
+                    location=session_info.get('location'),
+                    is_active=session_info.get('is_active', True),
+                    last_activity=session_info.get('last_active'),
+                    expires_at=session_info.get('expires_at'),
+                    created_at=session_info.get('created_at'),
+                )
+                session.add(record)
+                await session.commit()
+        except Exception as e:
+            logger.debug(f"Failed to persist session to DB (non-fatal): {e}")
+
+    async def _remove_session_from_db(self, user_id: int, session_id: str) -> None:
+        """从 UserSession 数据库模型中移除会话"""
+        try:
+            from src.utils.database.unified_manager import db_manager
+            from shared.models.user.user_session import UserSession
+            from sqlalchemy import select
+
+            async with db_manager.get_async_session() as session:
+                result = await session.execute(
+                    select(UserSession).where(
+                        UserSession.user_id == user_id,
+                        UserSession.access_token == session_id
+                    )
+                )
+                record = result.scalar_one_or_none()
+                if record:
+                    record.is_active = False
+                    await session.commit()
+        except Exception as e:
+            logger.debug(f"Failed to remove session from DB (non-fatal): {e}")
+
+    async def _revoke_all_sessions_from_db(self, user_id: int, exclude_session_id: str = None) -> None:
+        """撤销 UserSession 数据库中用户的所有会话"""
+        try:
+            from src.utils.database.unified_manager import db_manager
+            from shared.models.user.user_session import UserSession
+            from sqlalchemy import update
+
+            async with db_manager.get_async_session() as session:
+                stmt = (
+                    update(UserSession)
+                    .where(UserSession.user_id == user_id, UserSession.is_active == True)
+                    .values(is_active=False)
+                )
+                if exclude_session_id:
+                    stmt = stmt.where(UserSession.access_token != exclude_session_id)
+                await session.execute(stmt)
+                await session.commit()
+        except Exception as e:
+            logger.debug(f"Failed to revoke sessions in DB (non-fatal): {e}")
+
     def _generate_session_id(self, user_id: int, device_info: Dict,
                              ip_address: str = None) -> str:
         """
@@ -288,8 +366,8 @@ class SessionManagementService:
         Returns:
             会话ID
         """
-        data = f"{user_id}:{device_info}:{ip_address}:{datetime.now().timestamp()}"
-        return hashlib.sha256(data.encode()).hexdigest()[:32]
+        import secrets
+        return secrets.token_hex(32)
 
     def _generate_device_fingerprint(self, device_info: Dict,
                                      user_agent: str = None) -> str:
@@ -471,10 +549,9 @@ class SessionManagementService:
 
         for i, session in enumerate(sessions):
             if session['session_id'] == session_id:
-                session['is_active'] = False
-                session['expires_at'] = datetime.now()
-
-                # 从索引中移除
+                # 从列表中实际移除该会话
+                removed = sessions.pop(i)
+                # 清理索引
                 if session_id in self._session_index:
                     del self._session_index[session_id]
 

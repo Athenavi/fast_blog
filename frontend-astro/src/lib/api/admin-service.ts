@@ -61,7 +61,7 @@ export const adminArticleService = {
     adminApi.delete(`/api/v3/admin/articles/${id}`, `/articles/${id}`),
 
   publish: (id: number) =>
-    adminApi.post(`/api/v3/admin/articles/${id}/publish`, `/articles/${id}`),
+    adminApi.post(`/api/v3/admin/articles/${id}/publish`, null, {}),  // V2 无单独 publish 端点，不作降级
 };
 
 // ================================================================
@@ -232,10 +232,9 @@ export const adminPermissionService = {
   check: (permissionCode: string) =>
     adminApi.post('/api/v3/admin/check-permission', '/security/rbac/check-permission', {
       permission_code: permissionCode,
-      user_id: 0,
     }),
   cacheStats: () =>
-    adminApi.get('/api/v3/admin/cache-stats', '/api/v2/misc/version'),
+    adminApi.get('/api/v3/admin/cache-stats', null),  // V2 无对应端点，不作降级
   health: () =>
     adminApi.get('/api/v3/admin/health', '/api/v2/system/health'),
 };

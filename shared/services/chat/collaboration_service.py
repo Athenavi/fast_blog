@@ -3,6 +3,7 @@
 提供团队工作区、成员管理、协作编辑和任务分配功能
 """
 
+import json
 from datetime import datetime
 from enum import Enum
 from typing import Dict, Any, List
@@ -65,7 +66,7 @@ class CollaborationService:
             slug=slug,
             description=description,
             owner_id=owner_id,
-            settings=str(settings) if settings else None
+            settings=json.dumps(settings, ensure_ascii=False) if settings else None
         )
 
         db.add(workspace)

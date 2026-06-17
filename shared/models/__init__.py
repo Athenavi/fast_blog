@@ -45,6 +45,7 @@ _LAZY_IMPORTS = {
     'ContentMapping': '.multisite.content_mapping',
     'CryptoPayment': '.payment.crypto_payment',
     'CustomField': '.content.custom_field',
+    'CustomPostContent': '.content.custom_post_content',
     'CustomPostType': '.content.custom_post_type',
     'DataRetentionPolicy': '.enterprise.data_retention_policy',
     'DeploymentLog': '.enterprise.deployment_log',
@@ -58,6 +59,7 @@ _LAZY_IMPORTS = {
     'Form': '.form.form',
     'FormField': '.form.form_field',
     'FormSubmission': '.form.form_submission',
+    'GDPRConsent': '.security.gdpr_consent',
     'GlobalStyle': '.theme.global_style',
     'GlobalStyleConfig': '.theme.global_style_config',
     'GoogleAnalyticsConfig': '.analytics.google_analytics_config',
@@ -109,6 +111,7 @@ _LAZY_IMPORTS = {
     'SystemSettings': '.system.system_settings',
     'Task': '.collaboration.task',
     'TaxConfig': '.payment.tax_config',
+    'TeamComment': '.comment.team_comment',
     'Theme': '.theme.theme',
     'TokenBlacklist': '.security.token_blacklist',
     'UploadChunk': '.media.upload_chunk',
@@ -141,20 +144,20 @@ def __getattr__(name):
     module_path = _LAZY_IMPORTS.get(name)
     if module_path is not None:
         import importlib
-        module = importlib.import_module(module_path, package='shared.models')
-        cls = getattr(module, name)
-        # 缓存到模块命名空间，后续访问直接命中
-        globals()[name] = cls
-        _loaded_models[name] = cls
-        return cls
+        try:
+            module = importlib.import_module(module_path, package=__name__)
+            cls = getattr(module, name, None)
+            if cls is not None:
+                _loaded_models[name] = cls
+                return cls
+        except (ImportError, AttributeError) as e:
+            pass
 
-    raise AttributeError(f"module 'shared.models' has no attribute {name!r}")
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
-
-# ==================== 自动生成 - __all__ ====================
-# 此部分由脚本自动生成 - 请勿手动修改
 
 __all__ = [
+    'Base',
     'AIWorkflow',
     'Ad',
     'AdClick',
@@ -171,7 +174,6 @@ __all__ = [
     'ArticleSEO',
     'AuditLog',
     'BaiduAnalyticsConfig',
-    'Base',
     'BlockPattern',
     'Capability',
     'Cart',
@@ -187,6 +189,7 @@ __all__ = [
     'ContentMapping',
     'CryptoPayment',
     'CustomField',
+    'CustomPostContent',
     'CustomPostType',
     'DataRetentionPolicy',
     'DeploymentLog',
@@ -200,6 +203,7 @@ __all__ = [
     'Form',
     'FormField',
     'FormSubmission',
+    'GDPRConsent',
     'GlobalStyle',
     'GlobalStyleConfig',
     'GoogleAnalyticsConfig',
@@ -251,6 +255,7 @@ __all__ = [
     'SystemSettings',
     'Task',
     'TaxConfig',
+    'TeamComment',
     'Theme',
     'TokenBlacklist',
     'UploadChunk',
@@ -270,4 +275,3 @@ __all__ = [
     'Workspace',
     'WorkspaceMember',
 ]
-# ============================================================================

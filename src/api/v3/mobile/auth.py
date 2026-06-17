@@ -144,6 +144,8 @@ async def mobile_register(
 
         if len(password) < 8:
             return ApiResponse(success=False, error="密码至少需要8个字符")
+        if not re.search(r'[A-Za-z]', password) or not re.search(r'[0-9]', password):
+            return ApiResponse(success=False, error="密码必须包含字母和数字")
 
         # 检查重名
         result = await db.execute(select(UserModel).where(UserModel.username == username))

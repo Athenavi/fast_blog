@@ -394,7 +394,7 @@ class ImageProcessor:
         img = Image.open(io.BytesIO(image_data))
 
         # 检查格式
-        if img.format not in self.SUPPORTED_FORMATS:
+        if img.format not in SUPPORTED_FORMATS:
             errors.append(f"不支持的图片格式: {img.format}，支持的格式: {', '.join(self.SUPPORTED_FORMATS)}")
 
         # 检查尺寸

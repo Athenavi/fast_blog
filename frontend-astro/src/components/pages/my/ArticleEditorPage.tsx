@@ -63,7 +63,7 @@ import CoverImageUploader from '@/components/editor/CoverImageUploader';
 import {useYjsCollaboration} from '@/hooks/useYjsCollaboration';
 import {ShortcutsModal, ToolbarDropdown, Section, SaveStatus, useWritingStats} from './ArticleEditorComponents';
 
-const RichEditor = React.lazy(() => import('@/components/editor/RichEditor'));
+const MarkdownEditor = React.lazy(() => import('@/components/editor/MarkdownEditor'));
 
 /* ── Constants ── */
 const DRAFT_KEY = 'fastblog_draft';
@@ -99,16 +99,26 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
   const [content, setContent] = useState('');
     const [showDraftBanner, setShowDraftBanner] = useState(false);
     const [draftData, setDraftData] = useState<any>(null);
+    const [imageModal, setImageModal] = useState(false);
+    const [linkModal, setLinkModal] = useState(false);
+    const [imageUrl, setImageUrl] = useState('');
+    const [linkUrl, setLinkUrl] = useState('');
   const editorRef = useRef<any>(null);
   const draftLoaded = useRef(false);
     const remoteContentRef = useRef(false);
     const contentRef = useRef(content);
     contentRef.current = content;
+    const initialContentRef = useRef('');
+    const hasUnsavedChanges = useCallback(() => {
+        return contentRef.current !== initialContentRef.current;
+    }, []);
 
   const articleId = useMemo(() => {
     if (mode === 'edit' && typeof window !== 'undefined') return new URLSearchParams(window.location.search).get('id');
     return null;
   }, [mode]);
+  // NOTE: articleId is null for new (unsaved) articles, so the Preview feature
+  // is unavailable until the article is saved and an ID is assigned.
 
     const [collabActive, setCollabActive] = useState(
         mode === 'edit' && typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('collab') === '1'
@@ -234,6 +244,7 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
               cover_image: d.article?.cover_image || d.cover_image || '',
             });
             setContent(d.content || d.article?.content || '');
+            initialContentRef.current = d.content || d.article?.content || '';
         }
       return res;
     },
@@ -291,7 +302,7 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
             });
             if (res.success && res.data) {
                 const token = res.data.token || res.data.preview_token;
-                const url = res.data.preview_url || `${window.location.origin}/view?preview=${token}`;
+                const url = res.data.preview_url || `${window.location.origin}/api/v2/articles/preview/${token}`;
                 setPreviewToken(token);
                 setPreviewLink(url);
             }
@@ -333,74 +344,52 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
         setScheduledTime('');
     };
 
-    // Toolbar exec
+    // Toolbar exec — insert Markdown syntax at cursor in textarea
     const exec = useCallback((cmd: string, ...args: any[]) => {
-    const e = editorRef.current;
-    if (!e) return;
-        const chain = e.chain().focus();
+    const ref = editorRef.current;
+    const ta: HTMLTextAreaElement | null = ref?.ta ?? null;
+    if (!ta) return;
+    const start = ta.selectionStart, end = ta.selectionEnd;
+    const sel = ta.value.substring(start, end);
+    const insertMd = (before: string, after: string, placeholder?: string) => {
+      const selected = sel || placeholder || '';
+      const replacement = before + selected + after;
+      ta.value = ta.value.substring(0, start) + replacement + ta.value.substring(end);
+      const cursor = start + before.length + selected.length;
+      ta.selectionStart = ta.selectionEnd = cursor;
+      ta.focus();
+      setContent(ta.value);
+    };
         switch (cmd) {
-            case 'bold':
-                chain.toggleBold().run();
-                break;
-            case 'italic':
-                chain.toggleItalic().run();
-                break;
-            case 'underline':
-                chain.toggleUnderline().run();
-                break;
-            case 'strike':
-                chain.toggleStrike().run();
-                break;
-            case 'h1':
-                chain.toggleHeading({level: 1}).run();
-                break;
-            case 'h2':
-                chain.toggleHeading({level: 2}).run();
-                break;
-            case 'h3':
-                chain.toggleHeading({level: 3}).run();
-                break;
-            case 'ul':
-                chain.toggleBulletList().run();
-                break;
-            case 'ol':
-                chain.toggleOrderedList().run();
-                break;
-            case 'quote':
-                chain.toggleBlockquote().run();
-                break;
-            case 'code':
-                chain.toggleCodeBlock().run();
-                break;
-            case 'hr':
-                chain.setHorizontalRule().run();
-                break;
-            case 'left':
-                chain.setTextAlign('left').run();
-                break;
-            case 'center':
-                chain.setTextAlign('center').run();
-                break;
-            case 'right':
-                chain.setTextAlign('right').run();
-                break;
-            case 'undo':
-                chain.undo().run();
-                break;
-            case 'redo':
-                chain.redo().run();
-                break;
-            case 'image': {
-                const u = prompt('图片 URL:');
-                if (u) chain.setImage({src: u}).run();
-                break;
-            }
-            case 'link': {
-                const u = prompt('链接 URL:');
-                if (u) chain.setLink({href: u}).run();
-                break;
-            }
+            case 'bold': insertMd('**', '**', '粗体文字'); break;
+            case 'italic': insertMd('*', '*', '斜体文字'); break;
+            case 'underline': insertMd('<u>', '</u>', '下划线'); break;
+            case 'strike': insertMd('~~', '~~', '删除线'); break;
+            case 'h1': insertMd('\n# ', '\n'); break;
+            case 'h2': insertMd('\n## ', '\n'); break;
+            case 'h3': insertMd('\n### ', '\n'); break;
+            case 'ul': insertMd('\n- ', ''); break;
+            case 'ol': insertMd('\n1. ', ''); break;
+            case 'quote': insertMd('\n> ', '\n'); break;
+            case 'code': insertMd('\n```\n', '\n```\n'); break;
+            case 'hr': insertMd('\n---\n', ''); break;
+            case 'undo': ta.focus(); document.execCommand('undo'); break;
+            case 'redo': ta.focus(); document.execCommand('redo'); break;
+            case 'image': setImageUrl(''); setImageModal(true); break;
+            case 'link': setLinkUrl(''); setLinkModal(true); break;
         }
+    }, []);
+
+    // Warn before leaving with unsaved changes
+    useEffect(() => {
+        const handler = (e: BeforeUnloadEvent) => {
+            if (hasUnsavedChanges()) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        };
+        window.addEventListener('beforeunload', handler);
+        return () => window.removeEventListener('beforeunload', handler);
     }, []);
 
     // Keyboard shortcuts
@@ -437,11 +426,21 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
       );
   }
 
+    const SHORTCUTS: Record<string, string> = {
+      bold:'Ctrl+B', italic:'Ctrl+I', underline:'Ctrl+U', strike:'Ctrl+Shift+S',
+      undo:'Ctrl+Z', redo:'Ctrl+Shift+Z',
+      h1:'Ctrl+Alt+1', h2:'Ctrl+Alt+2', h3:'Ctrl+Alt+3',
+      ul:'Ctrl+Shift+8', ol:'Ctrl+Shift+7', quote:'Ctrl+Shift+9', code:'Ctrl+Shift+C',
+      image:'Ctrl+Shift+I', link:'Ctrl+K',
+    };
+
     const TBtn: React.FC<{
         cmd: string; active?: boolean; children: React.ReactNode; title: string; variant?: 'default' | 'danger';
-    }> = ({cmd, active, children, title, variant = 'default'}) => (
-        <button type="button" onClick={() => exec(cmd)} title={title}
-                className={`group relative p-1.5 rounded-lg transition-all duration-150 ${
+    }> = ({cmd, active, children, title, variant = 'default'}) => {
+      const shortcut = SHORTCUTS[cmd];
+      return (
+        <button type="button" onClick={() => exec(cmd)}
+                className={`group relative p-1.5 rounded-lg transition-all duration-150 active:scale-90 ${
                     active
                         ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 shadow-sm'
                         : variant === 'danger'
@@ -449,8 +448,15 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
                             : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-600 dark:hover:text-gray-300'
                 }`}>
             {children}
+            {shortcut && (
+              <span className="absolute -top-1 -right-1 hidden group-hover:flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-mono bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-md shadow-lg whitespace-nowrap z-50 pointer-events-none">
+                {shortcut}
+                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-gray-900 dark:bg-gray-100 rotate-45"/>
+              </span>
+            )}
         </button>
-  );
+      );
+    };
 
     const Divider = () => <div className="w-px h-5 bg-gray-200 dark:bg-gray-700 mx-1"/>;
 
@@ -475,21 +481,28 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
 
               <Divider/>
 
+              {/* Toolbar nav — scrollable on narrow screens */}
+              <div className="flex items-center gap-1 overflow-x-auto flex-1 mx-1">
               {/* Undo/Redo */}
+              <div className="flex items-center gap-0.5 shrink-0">
               <TBtn cmd="undo" title="撤销 (Ctrl+Z)"><Undo2 className="w-4 h-4"/></TBtn>
               <TBtn cmd="redo" title="重做 (Ctrl+Shift+Z)"><Redo2 className="w-4 h-4"/></TBtn>
+              </div>
 
               <Divider/>
 
               {/* Text Formatting */}
+              <div className="flex items-center gap-0.5 shrink-0 bg-gray-50 dark:bg-gray-800/50 rounded-lg px-1 py-0.5">
               <TBtn cmd="bold" title="粗体 (Ctrl+B)"><Bold className="w-4 h-4"/></TBtn>
               <TBtn cmd="italic" title="斜体 (Ctrl+I)"><Italic className="w-4 h-4"/></TBtn>
               <TBtn cmd="underline" title="下划线 (Ctrl+U)"><UnderlineIcon className="w-4 h-4"/></TBtn>
               <TBtn cmd="strike" title="删除线"><Strikethrough className="w-4 h-4"/></TBtn>
+              </div>
 
               <Divider/>
 
               {/* Headings */}
+              <div className="flex items-center gap-0.5 shrink-0">
               <ToolbarDropdown
                   trigger={
                       <button
@@ -509,31 +522,37 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
                       </button>
                   ))}
               </ToolbarDropdown>
+              </div>
 
               <Divider/>
 
               {/* Lists & Blocks */}
+              <div className="flex items-center gap-0.5 shrink-0 bg-gray-50 dark:bg-gray-800/50 rounded-lg px-1 py-0.5">
               <TBtn cmd="ul" title="无序列表"><List className="w-4 h-4"/></TBtn>
               <TBtn cmd="ol" title="有序列表"><ListOrdered className="w-4 h-4"/></TBtn>
         <TBtn cmd="quote" title="引用"><Quote className="w-4 h-4"/></TBtn>
               <TBtn cmd="code" title="代码块"><Code className="w-4 h-4"/></TBtn>
               <TBtn cmd="hr" title="分割线"><Minus className="w-4 h-4"/></TBtn>
+              </div>
 
               <Divider/>
 
               {/* Media */}
+              <div className="flex items-center gap-0.5 shrink-0 bg-gray-50 dark:bg-gray-800/50 rounded-lg px-1 py-0.5">
               <TBtn cmd="image" title="插入图片"><Image className="w-4 h-4"/></TBtn>
               <TBtn cmd="link" title="插入链接"><Link className="w-4 h-4"/></TBtn>
+              </div>
 
               <Divider/>
 
-              {/* Alignment */}
-              <div className="hidden lg:flex items-center gap-0.5">
+              {/* Alignment — desktop only */}
+              <div className="hidden lg:flex items-center gap-0.5 shrink-0 bg-gray-50 dark:bg-gray-800/50 rounded-lg px-1 py-0.5">
                   <TBtn cmd="left" title="左对齐"><AlignLeft className="w-4 h-4"/></TBtn>
                   <TBtn cmd="center" title="居中"><AlignCenter className="w-4 h-4"/></TBtn>
                   <TBtn cmd="right" title="右对齐"><AlignRight className="w-4 h-4"/></TBtn>
-                  <Divider/>
               </div>
+
+              </div>{/* end toolbar nav */}
 
               {/* More Actions */}
         {mode === 'edit' && articleId && (
@@ -591,6 +610,40 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
         </div>
       </header>
 
+{/* Image URL Modal */}
+{imageModal && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setImageModal(false)}>
+        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-6 w-96" onClick={e => e.stopPropagation()}>
+            <h3 className="font-semibold text-gray-900 dark:text-white mb-3">插入图片</h3>
+            <input value={imageUrl} onChange={e => setImageUrl(e.target.value)}
+                   placeholder="输入图片 URL..." autoFocus
+                   className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500/30"/>
+            <div className="flex justify-end gap-2">
+                <button onClick={() => setImageModal(false)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-xl">取消</button>
+                <button onClick={() => { if (imageUrl) { const ta = editorRef.current?.ta; if (ta) { const md = `![${imageUrl.split('/').pop() || 'image'}](${imageUrl})`; ta.value += '\n' + md; setContent(ta.value); } } setImageModal(false); setImageUrl(''); }}
+                        className="px-4 py-2 text-sm bg-blue-600 text-white rounded-xl hover:bg-blue-700">插入</button>
+            </div>
+        </div>
+    </div>
+)}
+
+{/* Link URL Modal */}
+{linkModal && (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setLinkModal(false)}>
+        <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-6 w-96" onClick={e => e.stopPropagation()}>
+            <h3 className="font-semibold text-gray-900 dark:text-white mb-3">插入链接</h3>
+            <input value={linkUrl} onChange={e => setLinkUrl(e.target.value)}
+                   placeholder="输入链接 URL..." autoFocus
+                   className="w-full px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-sm mb-3 focus:outline-none focus:ring-2 focus:ring-blue-500/30"/>
+            <div className="flex justify-end gap-2">
+                <button onClick={() => setLinkModal(false)} className="px-4 py-2 text-sm text-gray-600 hover:bg-gray-100 rounded-xl">取消</button>
+                <button onClick={() => { if (linkUrl) { const ta = editorRef.current?.ta; if (ta) { const sel = ta.value.substring(ta.selectionStart, ta.selectionEnd) || '链接文字'; const md = '[' + sel + '](' + linkUrl + ')'; ta.value = ta.value.substring(0, ta.selectionStart) + md + ta.value.substring(ta.selectionEnd); setContent(ta.value); } } setLinkModal(false); setLinkUrl(''); }}
+                        className="px-4 py-2 text-sm bg-blue-600 text-white rounded-xl hover:bg-blue-700">插入</button>
+            </div>
+        </div>
+    </div>
+)}
+
           {/* ===== Draft Recovery Banner ===== */}
           {showDraftBanner && (
               <div
@@ -617,17 +670,22 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
           {/* Main Editor */}
           <main className={`flex-1 overflow-y-auto transition-all duration-300 ${focusMode ? '' : ''}`}>
               <div
-                  className={`mx-auto px-6 lg:px-12 py-10 transition-all duration-300 ${showSidebar && !focusMode ? 'max-w-3xl' : 'max-w-4xl'}`}>
+                  className={`mx-auto px-6 lg:px-12 py-10 transition-all duration-300 ${showSidebar && !focusMode ? 'max-w-4xl' : 'max-w-5xl'}`}>
                   {/* Title */}
-                  <div className="mb-8">
+                  <div className="mb-8 group">
                       <input {...register('title')} placeholder="在此输入文章标题..."
-                             className="w-full text-3xl lg:text-4xl font-bold px-0 py-2 bg-transparent border-none outline-none focus:ring-0 dark:text-white placeholder-gray-300 dark:placeholder-gray-600 tracking-tight leading-tight"
+                             className="w-full text-3xl lg:text-4xl font-bold px-0 py-3 bg-transparent border-none outline-none focus:ring-0 dark:text-white placeholder-gray-300 dark:placeholder-gray-600 tracking-tight leading-tight transition-all"
                              style={{fontFamily: 'inherit'}}/>
+                      <div className="h-0.5 bg-gray-100 dark:bg-gray-800 rounded-full group-focus-within:bg-gradient-to-r group-focus-within:from-blue-500 group-focus-within:to-indigo-500 transition-all duration-300"/>
+                      <div className="flex items-center justify-between mt-1.5">
                       {errors.title && (
-                          <p className="flex items-center gap-1.5 text-red-500 text-sm mt-2">
+                          <p className="flex items-center gap-1.5 text-red-500 text-sm">
                               <AlertCircle className="w-3.5 h-3.5"/>{errors.title.message}
                           </p>
                       )}
+                      {!errors.title && <span/>}
+                      <span className="text-[10px] text-gray-300 dark:text-gray-600">{(watch('title') || '').length}/100</span>
+                      </div>
                       {/* Slug preview */}
                       {watch('slug') && (
                           <div className="flex items-center gap-2 mt-2">
@@ -646,17 +704,17 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
                           ))}
                       </div>
                   }>
-                      <RichEditor value={content} onChange={setContent} placeholder="开始你的创作..."
-                                  editorRef={editorRef}/>
+                  <MarkdownEditor value={content} onChange={setContent} placeholder="开始你的创作..."
+                                editorRef={editorRef}/>
                   </React.Suspense>
           </div>
         </main>
 
-          {/* ===== Sidebar ===== */}
-          {showSidebar && !focusMode && (
+          {/* ===== Sidebar — Desktop ===== */}
+          {!focusMode && (
               <aside
-                  className="w-72 lg:w-80 border-l border-gray-200/80 dark:border-gray-800/80 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-sm overflow-y-auto flex-shrink-0">
-                  <div className="p-4 space-y-0">
+                  className={`hidden lg:block ${showSidebar ? 'w-72 lg:w-80' : 'w-0'} border-l border-gray-200/80 dark:border-gray-800/80 bg-gray-50/80 dark:bg-gray-900/80 backdrop-blur-sm overflow-hidden flex-shrink-0 transition-all duration-300 ease-in-out`}>
+                  <div className={`p-4 space-y-0 min-w-72 lg:min-w-80 overflow-y-auto h-full ${showSidebar ? 'opacity-100' : 'opacity-0'} transition-opacity duration-200 delay-75`}>
                       {/* Writing Stats Card */}
                       <div
                           className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-4 mb-4 border border-blue-100 dark:border-blue-800/30">
@@ -862,6 +920,108 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
                   </div>
           </aside>
         )}
+
+          {/* ===== Sidebar — Mobile Drawer ===== */}
+          {showSidebar && !focusMode && (
+            <div className="fixed inset-0 z-50 lg:hidden" onClick={() => setShowSidebar(false)}>
+              <div className="absolute inset-0 bg-black/40 backdrop-blur-sm"/>
+              <div className="absolute bottom-0 left-0 right-0 max-h-[80vh] bg-white dark:bg-gray-900 rounded-t-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-y-auto"
+                   onClick={e => e.stopPropagation()}>
+                <div className="sticky top-0 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 px-4 py-3 flex items-center justify-between rounded-t-2xl z-10">
+                  <span className="text-sm font-semibold text-gray-700 dark:text-gray-300">文章设置</span>
+                  <button onClick={() => setShowSidebar(false)} className="p-1 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors">
+                    <X className="w-5 h-5 text-gray-400"/>
+                  </button>
+                </div>
+                <div className="p-4 space-y-0">
+                      {/* Writing Stats */}
+                      <div className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-xl p-4 mb-4 border border-blue-100 dark:border-blue-800/30">
+                          <div className="flex items-center gap-2 mb-3">
+                              <BarChart3 className="w-4 h-4 text-blue-600 dark:text-blue-400"/>
+                              <span className="text-xs font-semibold text-blue-700 dark:text-blue-300 uppercase tracking-wider">写作统计</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                              {[
+                                  {label: '字数', value: stats.chars.toLocaleString()},
+                                  {label: '词数', value: stats.words.toLocaleString()},
+                                  {label: '段落', value: stats.paragraphs.toString()},
+                                  {label: '阅读时间', value: `${stats.readingTime} 分钟`},
+                              ].map(s => (
+                                  <div key={s.label} className="text-center">
+                                      <div className="text-lg font-bold text-gray-900 dark:text-white">{s.value}</div>
+                                      <div className="text-[10px] text-gray-500 dark:text-gray-400 uppercase tracking-wider">{s.label}</div>
+                                  </div>
+                              ))}
+                          </div>
+                      </div>
+                      <Section icon={Eye} title="发布设置">
+                          <div className="space-y-3">
+                              <label className="flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 cursor-pointer group hover:border-blue-200 dark:hover:border-blue-800 transition-colors">
+                                  <div className="flex items-center gap-2.5">
+                                      {isHidden ? <EyeOff className="w-4 h-4 text-gray-400"/> : <Eye className="w-4 h-4 text-gray-400"/>}
+                                      <span className="text-sm text-gray-700 dark:text-gray-300">公开可见</span>
+                                  </div>
+                                  <div className="relative">
+                                      <input type="checkbox" {...register('hidden')} className="sr-only peer"/>
+                                      <div className="w-10 h-5 bg-gray-200 dark:bg-gray-700 rounded-full peer-checked:bg-blue-600 transition-colors"/>
+                                      <div className="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-sm peer-checked:translate-x-5 transition-transform"/>
+                                  </div>
+                              </label>
+                              <label className="flex items-center justify-between p-3 rounded-xl bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 cursor-pointer group hover:border-blue-200 dark:hover:border-blue-800 transition-colors">
+                                  <div className="flex items-center gap-2.5">
+                                      <Crown className="w-4 h-4 text-gray-400"/>
+                                      <span className="text-sm text-gray-700 dark:text-gray-300">仅VIP可见</span>
+                                  </div>
+                                  <div className="relative">
+                                      <input type="checkbox" {...register('is_vip_only')} className="sr-only peer"/>
+                                      <div className="w-10 h-5 bg-gray-200 dark:bg-gray-700 rounded-full peer-checked:bg-amber-600 transition-colors"/>
+                                      <div className="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-sm peer-checked:translate-x-5 transition-transform"/>
+                                  </div>
+                              </label>
+                          </div>
+                      </Section>
+                      {mode === 'edit' && articleId && (
+                          <Section icon={Link} title="预览链接" defaultOpen={false}>
+                              <div className="space-y-2">
+                                  <input type="text" readOnly value={previewLink} className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800 text-xs text-gray-500 dark:text-gray-400 font-mono truncate"/>
+                                  <div className="flex gap-2">
+                                      <button onClick={() => { navigator.clipboard.writeText(previewLink); setPreviewCopied(true); setTimeout(() => setPreviewCopied(false), 2000); }} className="flex-1 px-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">{previewCopied ? '已复制 ✓' : '复制链接'}</button>
+                                      {previewLink && <button onClick={revokePreview} className="px-3 py-1.5 text-xs bg-red-50 dark:bg-red-900/20 text-red-500 rounded-lg hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors">撤销</button>}
+                                  </div>
+                              </div>
+                          </Section>
+                      )}
+                      {mode === 'edit' && (
+                          <Section icon={Clock} title="定时发布" defaultOpen={!!scheduledAt}>
+                              <div className="space-y-2">
+                                  <input type="datetime-local" value={scheduledAt || ''} onChange={e => setScheduledAt(e.target.value)} className="w-full px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm dark:text-white"/>
+                                  {scheduledAt && <button onClick={() => setScheduledAt('')} className="text-xs text-red-500 hover:text-red-600">清除定时</button>}
+                              </div>
+                          </Section>
+                      )}
+                      <Section icon={FolderTree} title="分类">
+                          <select {...register('category_id', {valueAsNumber: true})} className="w-full px-3 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:text-white transition-all">
+                              <option value="">选择分类</option>
+                              {categories?.map((c: Category) => (<option key={c.id} value={c.id}>{c.name}</option>))}
+                          </select>
+                      </Section>
+                      <Section icon={Tag} title="标签" defaultOpen={false}>
+                          <input {...register('tags')} placeholder="逗号分隔多个标签" className="w-full px-3 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:text-white placeholder-gray-400 transition-all"/>
+                      </Section>
+                      <Section icon={Image} title="封面图" defaultOpen={false}>
+                          <CoverImageUploader value={watch('cover_image') || ''} onChange={v => setValue('cover_image', v)}/>
+                      </Section>
+                      <Section icon={FileText} title="摘要" defaultOpen={false}>
+                          <textarea {...register('excerpt')} rows={3} placeholder="文章摘要..." className="w-full px-3 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:text-white placeholder-gray-400 resize-none transition-all"/>
+                          <div className="flex justify-end mt-1"><span className="text-[10px] text-gray-400">{(watch('excerpt') || '').length}/500</span></div>
+                      </Section>
+                      <Section icon={Hash} title="URL 别名" defaultOpen={false}>
+                          <input {...register('slug')} placeholder="自动生成" className="w-full px-3 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:text-white placeholder-gray-400 font-mono text-xs transition-all"/>
+                      </Section>
+                </div>
+              </div>
+            </div>
+          )}
       </div>
 
           {/* ===== Status Bar ===== */}

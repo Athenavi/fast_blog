@@ -3,6 +3,7 @@
 支持 API 端点和页面路由，包含角色、权限、VIP 等检查
 """
 import datetime
+import uuid
 from typing import Optional
 
 import jwt
@@ -37,6 +38,7 @@ def _get_token_blacklist():
 def create_access_token(
     user_id: int,
     lifetime: Optional[datetime.timedelta] = None,
+    token_type: str = "access",
 ) -> str:
     """
     生成 JWT 访问令牌
@@ -45,9 +47,11 @@ def create_access_token(
         lifetime = datetime.timedelta(minutes=getattr(settings, "JWT_EXPIRATION_MINUTES", 60))
 
     payload = {
+        "type": token_type,
         "sub": str(user_id),
-        "iat": datetime.datetime.now(),
-        "exp": datetime.datetime.now() + lifetime,
+        "jti": str(uuid.uuid4()),
+        "iat": datetime.datetime.now(datetime.timezone.utc),
+        "exp": datetime.datetime.now(datetime.timezone.utc) + lifetime,
     }
     return jwt.encode(
         payload,
@@ -59,14 +63,19 @@ def create_access_token(
 # ---------- 提取与验证 Token ----------
 async def _get_token_from_request(request: Request) -> Optional[str]:
     """
-    从 Authorization Header 或 Cookie 中提取 JWT token
+    从 Authorization Header、Cookie 或查询参数中提取 JWT token
     """
     # 1. 优先从 Bearer Header 获取
     auth_header = request.headers.get("Authorization")
     if auth_header and auth_header.startswith("Bearer "):
         return auth_header[len("Bearer "):]
 
-    # 2. 从 Cookie 获取（兼容页面路由）
+    # 2. 从查询参数 token 获取（用于 iframe/img 等无法携带 header/cookie 的场景）
+    token_param = request.query_params.get("token")
+    if token_param:
+        return token_param
+
+    # 3. 从 Cookie 获取（兼容页面路由）
     return request.cookies.get("access_token") or request.cookies.get("access_token_cookie")
 
 
@@ -94,7 +103,8 @@ async def _authenticate_user(
     jwt_algorithm = getattr(settings, "JWT_ALGORITHM", "HS256")
 
     try:
-        payload = jwt.decode(token, jwt_secret, algorithms=[jwt_algorithm])
+        payload = jwt.decode(token, jwt_secret, algorithms=[jwt_algorithm],
+                            options={"verify_exp": True, "require": ["exp", "iat"]})
     except InvalidTokenError as e:
         if required:
             raise HTTPException(
@@ -124,7 +134,7 @@ async def _authenticate_user(
     jti = payload.get("jti")
     if jti:
         _tb = _get_token_blacklist()
-        if _tb.is_available and _tb.is_blacklisted(jti):
+        if _tb.is_available and await _tb.is_blacklisted_async(jti):
             if required:
                 raise HTTPException(
                     status_code=status.HTTP_401_UNAUTHORIZED,
@@ -160,10 +170,15 @@ async def get_current_user_or_redirect(
     request: Request,
     db: AsyncSession = Depends(get_async_session),
 ):
-    """页面路由依赖：无有效 token 时重定向到登录页"""
+    """页面路由依赖：无有效 token 时重定向到登录页（验证 next_url 防止开放重定向）"""
     user = await _authenticate_user(request, db, required=False)
     if user is None:
+        from urllib.parse import urlparse
         next_url = str(request.url)
+        # 只允许同站重定向，防止开放重定向漏洞
+        parsed = urlparse(next_url)
+        if parsed.netloc and parsed.netloc != request.url.hostname:
+            next_url = "/"
         return RedirectResponse(url=f"/login?next={next_url}")
     return user
 
@@ -172,8 +187,8 @@ async def get_current_user_or_redirect(
 async def admin_required(
     user: UserModel = Depends(get_current_user),
 ) -> UserModel:
-    """API：需要超级管理员"""
-    if not user.is_superuser:
+    """API：需要超级管理员或 staff"""
+    if not user.is_superuser and not getattr(user, 'is_staff', False):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Insufficient privileges")
     return user
 
@@ -220,17 +235,16 @@ def require_resource_permission(resource: str, action: str):
 
 
 def require_role(role_slug: str):
-    """API：检查用户是否拥有指定角色"""
+    """API：检查用户是否拥有指定角色（支持角色继承）"""
     async def checker(
         user: UserModel = Depends(get_current_user),
         db: AsyncSession = Depends(get_async_session),
     ) -> UserModel:
         if user.is_superuser:
             return user
-        roles = await rbac_service.get_user_roles(db, user.id)
-        if not any(r.slug == role_slug for r in roles):
-            raise HTTPException(status_code=403, detail="Insufficient role permissions")
-        return user
+        if await rbac_service.user_has_role(db, user.id, role_slug):
+            return user
+        raise HTTPException(status_code=403, detail="Insufficient role permissions")
     return checker
 
 
@@ -271,10 +285,27 @@ def require_role_page(role_slug: str):
 
 # ---------- VIP 检查 ----------
 def require_vip():
-    """API：要求 VIP 成员资格"""
-    async def checker(user: UserModel = Depends(get_current_user)) -> UserModel:
-        if not user.is_vip():
-            raise HTTPException(status_code=403, detail="VIP membership required")
+    """API：要求 VIP 成员资格（基于实时 VIPSubscription 表）"""
+    async def checker(
+        user: UserModel = Depends(get_current_user),
+        db: AsyncSession = Depends(get_async_session),
+    ) -> UserModel:
+        # 超级管理员 bypass
+        if user.is_superuser:
+            return user
+        # 实时查询 VIPSubscription 表
+        from shared.models.vip import VIPSubscription
+        from datetime import datetime
+        result = await db.execute(
+            select(VIPSubscription).where(
+                VIPSubscription.user == user.id,
+                VIPSubscription.status == 1,
+                VIPSubscription.expires_at > datetime.now(),
+            )
+        )
+        sub = result.scalar_one_or_none()
+        if not sub:
+            raise HTTPException(status_code=403, detail="VIP membership required or expired")
         return user
     return checker
 
@@ -284,7 +315,6 @@ jwt_required = get_current_user
 jwt_required_dependency = get_current_user
 jwt_required_page = get_current_user_or_redirect
 jwt_required_page_dependency = get_current_user_or_redirect
-jwt_optional = _authenticate_user  # 需要配合自定义包装，见下方
 
 async def jwt_optional_dependency(
     request: Request,
@@ -292,6 +322,9 @@ async def jwt_optional_dependency(
 ) -> Optional[UserModel]:
     """可选的 JWT 认证，未提供有效 token 时返回 None"""
     return await _authenticate_user(request, db, required=False)
+
+# jwt_optional 别名（保持向后兼容）
+jwt_optional = jwt_optional_dependency
 
 # 兼容旧名称
 get_current_active_user = get_current_user

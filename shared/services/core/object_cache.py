@@ -9,6 +9,7 @@ from functools import wraps
 from typing import Any, Dict, List, Optional, Callable
 
 from shared.services.core.multi_level_cache import MultiLevelCache, multi_level_cache
+from src.unified_logger import default_logger as logger
 
 
 
@@ -84,7 +85,7 @@ class ObjectCacheService:
             缓存的对象数据
         """
         cache_key = self._generate_object_key(model_name, object_id, field)
-        return self.cache.get(cache_key)
+        return await self.cache.get(cache_key)
 
     async def set_object(self, model_name: str, object_id: Any,
                          data: Any, field: Optional[str] = None,
@@ -105,7 +106,7 @@ class ObjectCacheService:
             ttl = self.default_ttl
 
         cache_key = self._generate_object_key(model_name, object_id, field)
-        self.cache.set(cache_key, data, ttl)
+        await self.cache.set(cache_key, data, ttl)
 
         # 注册标签索引
         if tags:
@@ -122,7 +123,7 @@ class ObjectCacheService:
             field: 字段名（可选）
         """
         cache_key = self._generate_object_key(model_name, object_id, field)
-        self.cache.delete(cache_key)
+        await self.cache.delete(cache_key)
 
     async def get_query_result(self, query_type: str,
                                params: Dict[str, Any]) -> Optional[Any]:
@@ -137,7 +138,7 @@ class ObjectCacheService:
             缓存的查询结果
         """
         cache_key = self._generate_query_key(query_type, params)
-        return self.cache.get(cache_key)
+        return await self.cache.get(cache_key)
 
     async def set_query_result(self, query_type: str, params: Dict[str, Any],
                                data: Any, ttl: Optional[int] = None,
@@ -156,7 +157,7 @@ class ObjectCacheService:
             ttl = self.default_ttl
 
         cache_key = self._generate_query_key(query_type, params)
-        self.cache.set(cache_key, data, ttl)
+        await self.cache.set(cache_key, data, ttl)
 
         # 注册标签索引
         if tags:
@@ -173,20 +174,21 @@ class ObjectCacheService:
             失效的缓存数量
         """
         index_key = f"{self.tag_index_prefix}{tag}"
-        cache_keys = self.cache.get(index_key)
+        cache_keys = await self.cache.get(index_key)
 
         if not cache_keys:
             return 0
 
         deleted_count = 0
         for cache_key in cache_keys:
-            self.cache.delete(cache_key)
+            await self.cache.delete(cache_key)
             deleted_count += 1
 
         # 清除标签索引
-        self.cache.delete(index_key)
+        await self.cache.delete(index_key)
 
-        print(f"[ObjectCache] Invalidated {deleted_count} objects with tag: {tag}")
+        from src.unified_logger import default_logger as logger
+        logger.info(f"[ObjectCache] Invalidated {deleted_count} objects with tag: {tag}")
         return deleted_count
 
     async def invalidate_by_tags(self, tags: List[str]) -> int:
@@ -218,12 +220,12 @@ class ObjectCacheService:
             index_key = f"{self.tag_index_prefix}{tag}"
 
             # 获取现有的键列表
-            existing_keys = self.cache.get(index_key) or []
+            existing_keys = (await self.cache.get(index_key)) or []
 
             # 添加新键（避免重复）
             if cache_key not in existing_keys:
                 existing_keys.append(cache_key)
-                self.cache.set(index_key, existing_keys, ttl=3600)  # 索引TTL 1小时
+                await self.cache.set(index_key, existing_keys, 3600)  # 索引TTL 1小时
 
     def cache_object(self, model_name: str, field: Optional[str] = None,
                      ttl: Optional[int] = None, tags: Optional[List[str]] = None):
@@ -329,7 +331,7 @@ class ObjectCacheService:
         Returns:
             统计信息字典
         """
-        cache_stats = self.cache.get_stats()
+        cache_stats = await self.cache.get_stats()
 
         return {
             "prefix": self.cache_prefix,

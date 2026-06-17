@@ -17,6 +17,7 @@ def _build_router():
     router = APIRouter(tags=["content-management"])
 
     from src.api.v2.content_management.block_editor import router as block_editor_router
+    from src.api.v2.content_management.components_templates import router as components_templates_router
     from src.api.v2.content_management.block_patterns import router as block_patterns_router
     from src.api.v2.content_management.category_management import router as category_management_router
     from src.api.v2.content_management.custom_block_patterns import router as custom_block_patterns_router
@@ -28,6 +29,7 @@ def _build_router():
     from src.api.v2.content_management.page_builder_routes import router as page_builder_router
     from src.api.v2.content_management.shortcode import router as shortcode_router
     from src.api.v2.content_management.widgets import router as widgets_router
+    from src.api.v2.content_management.content_export import router as content_export_router
 
     from src.api.v2.content_management.content_management_ext import router as content_management_ext_router
 
@@ -42,7 +44,9 @@ def _build_router():
     router.include_router(feed_router, prefix="")
     router.include_router(shortcode_router, prefix="/shortcodes")
     router.include_router(widgets_router, prefix="/widgets")
+    router.include_router(content_export_router, prefix="/export")
     router.include_router(page_builder_router, prefix="")
+    router.include_router(components_templates_router, prefix="/components")
     router.include_router(content_management_ext_router, prefix="/management")
 
     _router = router

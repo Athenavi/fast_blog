@@ -1,6 +1,6 @@
 # FastBlog 插件开发指南
 
-> **版本**: V0.6.26.0611+ | **插件系统**: EventBus 事件驱动
+> **版本**: V0.5.26.0612+ | **插件系统**: EventBus 事件驱动
 
 ---
 
@@ -29,6 +29,15 @@ event_bus.pipeline("article.content", html)
 |------|------|------|-----------|
 | code-snippets | 代码片段收藏与嵌入 | SQLite + EventBus | `/admin/plugin-pages/code-snippets` |
 | newsletter | 邮件订阅与推送 | SQLite + EventBus | `/admin/plugin-pages/newsletter` |
+| article-likes | 文章点赞 | SQLite | `/admin/plugin-pages/article-likes` |
+| katex-render | KaTeX 公式渲染 | EventBus 管道 | `/admin/plugin-pages/katex-render` |
+| popular-articles | 阅读排行 widget | — | `/admin/plugin-pages/popular-articles` |
+| approval | 内容审批工作流 | — | `/admin/plugin-pages/approval` |
+| enterprise | 企业管理（许可证/工单/监控） | — | `/admin/plugin-pages/enterprise` |
+| migration | 迁移工具（WordPress/Halo） | — | `/admin/plugin-pages/migration` |
+| fastblog-default | 默认主题 | ThemePlugin | `/admin/plugin-pages/fastblog-default` |
+| magazine | 杂志主题 | ThemePlugin | `/admin/plugin-pages/magazine` |
+| modern-minimal | 现代简约主题 | ThemePlugin | `/admin/plugin-pages/modern-minimal` |
 
 ---
 

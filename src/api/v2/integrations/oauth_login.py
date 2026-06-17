@@ -44,39 +44,32 @@ async def list_oauth_providers():
 async def authorize(
     provider: str,
     request: Request,
-    state: str = Query(..., description="CSRF状态")
+    db: AsyncSession = Depends(get_async_db),
+    current_user=Depends(jwt_required)
 ):
-    """
-    生成OAuth授权URL
-    
-    Args:
-        provider: 提供商名称 (github/google/wechat/qq/weibo)
-        state: CSRF保护状态
-        
-    Returns:
-        授权URL
-    """
+    """生成OAuth授权URL（服务端生成 state 防 CSRF）"""
     import os
-    
+    import uuid
+    from src.extensions import cache
+
     client_id = os.getenv(f"OAUTH_{provider.upper()}_CLIENT_ID", "")
     redirect_uri = request.url_for("oauth_callback", provider=provider).__str__()
-    
+
     if not client_id:
         return fail(f"未配置 {provider} 的 Client ID")
-    
+
+    # 服务端生成 state（防 CSRF）
+    state = str(uuid.uuid4())
+    await cache.set(f"oauth_state:{state}", str(current_user.id), ttl=600)
+
     auth_url = oauth_service.get_authorization_url(
         provider=provider,
         client_id=client_id,
         redirect_uri=redirect_uri,
         state=state
     )
-    
-    return ok(
-        data={
-            "authorization_url": auth_url,
-            "provider": provider
-        }
-    )
+
+    return ok(data={"authorization_url": auth_url, "provider": provider, "state": state})
 
 
 @router.get("/callback/{provider}")
@@ -238,7 +231,7 @@ async def oauth_callback(
 
     # 4. 生成JWT令牌
     from src.auth import create_access_token
-    jwt_token = create_access_token(data={"sub": str(user.id)})
+    jwt_token = create_access_token(user_id=user.id)
 
     # 返回用户信息
     return ok(
@@ -484,7 +477,7 @@ async def unlink_oauth_account(
     user_result = await db.execute(user_stmt)
     user = user_result.scalar_one_or_none()
     
-    has_password = user and user.password_hash
+    has_password = user and user.password
     
     # 如果只有这一个OAuth账号且没有密码，不允许解绑
     if oauth_count <= 1 and not has_password:

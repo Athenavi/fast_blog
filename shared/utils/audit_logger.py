@@ -5,8 +5,10 @@
 """
 
 import json
+import logging
 from datetime import datetime
 from enum import Enum
+from pathlib import Path
 from typing import Dict, Any, Optional, List
 
 
@@ -71,6 +73,9 @@ class AuditLogger:
             log_dir: 日志文件目录（当使用 file 后端时）
         """
         print(f"[AuditLogger] Initialized with {storage_backend} backend")
+        self.storage_backend = storage_backend
+        self.log_dir = Path(log_dir) if log_dir else None
+        self.logger = logging.getLogger(f"audit_logger_{storage_backend}")
 
     def log(
             self,

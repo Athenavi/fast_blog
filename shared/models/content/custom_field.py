@@ -1,12 +1,13 @@
 """
 SQLAlchemy 模型定义 - CustomField
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-06-04 17:21:20
+生成时间：2026-06-13 23:12:16
 """
 
-from sqlalchemy import Column, BigInteger, String, ForeignKey
+from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey
 
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
+
 
 
 class CustomField(Base):
@@ -19,6 +20,12 @@ class CustomField(Base):
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='字段 ID')
 
     user = Column(BigInteger, ForeignKey('users.id'), doc='用户')
+
+
+    post_type_id = Column(BigInteger, ForeignKey('custom_post_types.id'), nullable=True, doc='关联的自定义文章类型')
+
+
+    content_id = Column(BigInteger, nullable=True, doc='关联的内容实例 ID')
 
 
     field_name = Column(String(100), nullable=True, doc='字段名称')

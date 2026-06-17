@@ -36,6 +36,8 @@ class WidgetService:
         self.renderer = WidgetRenderer()
         self.widget_types = WIDGET_TYPES
         self.widget_areas = WIDGET_AREAS
+        # Track cache keys per widget_id so invalidation-by-id works
+        self._widget_cache_keys: Dict[str, set] = {}
 
     def register_widget(
             self,
@@ -252,16 +254,29 @@ class WidgetService:
         key_string = json.dumps(key_data, sort_keys=True, default=str)
         key_hash = hashlib.md5(key_string.encode('utf-8')).hexdigest()
 
-        return f"widget_render:{key_hash}"
+        cache_key = f"widget_render:{key_hash}"
+
+        # Record mapping: widget_id -> set of cache keys
+        wid = widget.get('id')
+        if wid is not None:
+            wid_str = str(wid)
+            if wid_str not in self._widget_cache_keys:
+                self._widget_cache_keys[wid_str] = set()
+            self._widget_cache_keys[wid_str].add(cache_key)
+
+        return cache_key
 
     def invalidate_widget_cache(self, widget_id: str = None, widget_type: str = None):
         """清除Widget缓存"""
         if widget_id:
-            cache_service.delete(f"widget_render:{widget_id}")
+            # Use the pre-recorded mapping to find all cache keys for this widget_id
+            keys = self._widget_cache_keys.pop(str(widget_id), set())
+            for key in keys:
+                cache_service.delete(key)
         elif widget_type:
-            cache_service.delete_pattern(f"widget_render:type:{widget_type}:*")
+            cache_service.clear()
         else:
-            cache_service.delete_pattern("widget_render:*")
+            cache_service.clear()
 
     # ==================== 异步数据库方法 ====================
 
@@ -410,8 +425,8 @@ class WidgetService:
                 'id': article.id,
                 'title': article.title,
                 'slug': article.slug,
-                'excerpt': article.excerpt[:100] + '...' if article.excerpt and len(
-                    article.excerpt) > 100 else article.excerpt,
+                'excerpt': (article.excerpt or '')[:100] + '...' if article.excerpt and len(
+                    article.excerpt) > 100 else (article.excerpt or '')[:100],
                 'created_at': article.created_at.isoformat() if hasattr(article.created_at, 'isoformat') else str(
                     article.created_at),
                 'cover_image': article.cover_image,

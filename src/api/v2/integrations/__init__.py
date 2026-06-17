@@ -24,6 +24,11 @@ def _build_router():
     from src.api.v2.integrations.wordpress_import import router as wordpress_import_router
     from src.api.v2.integrations.session_policy import router as session_policy_router
     from src.api.v2.integrations.scim import router as scim_router
+    from src.api.v2.integrations.jekyll_import import router as jekyll_router
+    from src.api.v2.integrations.hexo_import import router as hexo_router
+    from src.api.v2.integrations.ghost_import import router as ghost_router
+    from src.api.v2.integrations.medium_import import router as medium_router
+    from src.api.v2.integrations.health_check import router as health_check_router
 
     router.include_router(baidu_analytics_router, prefix="/analytics/baidu")
     router.include_router(google_analytics_router, prefix="/analytics/google")
@@ -33,6 +38,11 @@ def _build_router():
     router.include_router(sso_router, prefix="/sso")
     router.include_router(session_policy_router)
     router.include_router(scim_router)
+    router.include_router(jekyll_router, prefix="/import/jekyll")
+    router.include_router(hexo_router, prefix="/import/hexo")
+    router.include_router(ghost_router, prefix="/import/ghost")
+    router.include_router(medium_router, prefix="/import/medium")
+    router.include_router(health_check_router, prefix="/health")
 
     _router = router
     return _router

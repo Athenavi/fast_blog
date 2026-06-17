@@ -76,7 +76,7 @@ export const COMMENTS = {
 // ─── Categories 分类 ────────────────────────────
 export const CATEGORIES = {
   LIST: '/cms/categories',
-  CREATE: '/cms/categories/',
+  CREATE: '/cms/categories',
   DETAIL: (name: string) => `/cms/categories/${name}`,
   UPDATE: (id: number) => `/cms/categories/${id}`,
   DELETE: (id: number) => `/cms/categories/${id}`,
@@ -310,6 +310,8 @@ export const SYSTEM = {
   INFO: '/system/info',
   HEALTH: '/system/health',
   VERSION_FULL: '/system/version/full',
+  VERSION_FRONTEND: '/system/version/frontend',
+  VERSION_BACKEND: '/system/version/backend',
   ACCESSIBILITY_CONFIG: '/system/accessibility/config',
   MULTISITE: '/system/multisite',
   MULTISITE_USERS: '/system/multisite/users',

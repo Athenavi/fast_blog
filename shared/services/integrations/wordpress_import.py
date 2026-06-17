@@ -3,6 +3,7 @@ WordPress XML 导入服务
 支持从 WordPress 导出的 WXR (WordPress eXtended RSS) 文件导入文章、分类、标签等内容
 """
 
+import asyncio
 import os
 import re
 import xml.etree.ElementTree as ET
@@ -48,7 +49,9 @@ class WordPressImportService:
             包含所有解析数据的字典
         """
         try:
-            tree = ET.parse(file_path)
+            # 使用安全解析器防止 XXE 攻击
+            parser = ET.XMLParser(resolve_entities=False)
+            tree = ET.parse(file_path, parser=parser)
             root = tree.getroot()
 
             # 提取频道信息
@@ -262,7 +265,8 @@ class WordPressImportService:
             'total_authors': len(data['authors']),
         }
 
-    async def import_to_database(self, parsed_data: Dict[str, Any], db_session, user_mapping: Dict[str, int] = None) -> \
+    async def import_to_database(self, parsed_data: Dict[str, Any], db_session, user_mapping: Dict[str, int] = None,
+                                  progress_callback=None) -> \
             Dict[str, Any]:
         """
         将解析的数据导入数据库
@@ -271,6 +275,7 @@ class WordPressImportService:
             parsed_data: parse_wxr_file 返回的解析数据
             db_session: 数据库会话
             user_mapping: 作者ID映射 {wordpress_author_id: system_user_id}
+            progress_callback: 进度回调函数 (current, total)
 
         Returns:
             导入结果统计
@@ -332,7 +337,10 @@ class WordPressImportService:
             # await db_session.commit()
 
             # 3. 导入文章
+            total_articles = len(parsed_data['articles'])
             for idx, article_data in enumerate(parsed_data['articles']):
+                if progress_callback:
+                    progress_callback(idx + 1, total_articles)
                 try:
                     # 确定用户ID
                     user_id = 1  # 默认用户
@@ -425,7 +433,8 @@ class WordPressImportService:
             }
 
         except Exception as e:
-            await db_session.rollback()
+            # 不执行全局 rollback，因为分类和已成功导入的文章已提交
+            results['errors'].append(f"导入过程出错: {str(e)}")
             return {
                 'success': False,
                 'error': str(e),
@@ -503,18 +512,25 @@ class WordPressImportService:
                     continue
 
                 # 下载文件
-                async with aiohttp.ClientSession() as session:
-                    async with session.get(url, timeout=aiohttp.ClientTimeout(total=60)) as response:
-                        if response.status == 200:
-                            content = await response.read()
-                            with open(local_path, 'wb') as f:
-                                f.write(content)
+                try:
+                    async with aiohttp.ClientSession() as session:
+                        async with session.get(url, timeout=aiohttp.ClientTimeout(total=60)) as response:
+                            if response.status == 200:
+                                content = await response.read()
+                                with open(local_path, 'wb') as f:
+                                    f.write(content)
 
-                            results['downloaded'] += 1
-                            results['media_mapping'][url] = str(local_path)
-                        else:
-                            results['failed'] += 1
-                            results['errors'].append(f"下载失败: {url} - HTTP {response.status}")
+                                results['downloaded'] += 1
+                                results['media_mapping'][url] = str(local_path)
+                            else:
+                                results['failed'] += 1
+                                results['errors'].append(f"下载失败: {url} - HTTP {response.status}")
+                except asyncio.TimeoutError:
+                    results['failed'] += 1
+                    results['errors'].append(f"下载超时: {url}")
+                except aiohttp.ClientError as e:
+                    results['failed'] += 1
+                    results['errors'].append(f"下载请求错误: {url} - {str(e)}")
 
             except Exception as e:
                 results['failed'] += 1

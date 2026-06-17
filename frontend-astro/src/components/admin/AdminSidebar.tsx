@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, {useState, useEffect} from 'react';
 import {
   Award,
   BarChart3,
@@ -11,55 +11,96 @@ import {
   FileText,
   FolderTree,
   Image,
+  Layers,
   LogOut,
   Medal,
   MessageSquare,
+  Palette,
   Server,
   Settings,
   Shield,
   Star,
   Users,
-  X
+  X,
+  Zap,
 } from 'lucide-react';
 import {useTranslation} from '@/lib/i18n';
+import {apiClient} from '@/lib/api/base-client';
 
-/** 导航项配置（使用 i18n key） */
+/**
+ * 批量检查权限 hook
+ * 调用 V3 check-permission API 判断用户是否有权访问各菜单项
+ */
+function usePermissions(): Set<string> {
+  const [granted, setGranted] = useState<Set<string>>(new Set());
+
+  useEffect(() => {
+    const perms = navConfig
+      .filter((n): n is NavItem & { permission: string } => !!n.permission)
+      .map(n => n.permission);
+
+    if (perms.length === 0) return;
+
+    apiClient.post('/api/v3/admin/check-permissions', {permissions: perms})
+      .then((r: any) => {
+        if (r?.success && Array.isArray(r.data?.granted)) {
+          setGranted(new Set(r.data.granted));
+        }
+      })
+      .catch(() => {
+        // API 不可用时默认显示所有项（安全降级：API 侧会二次校验）
+        setGranted(new Set(perms));
+      });
+  }, []);
+
+  return granted;
+}
+
+/** 导航项配置 */
 interface NavItem {
   labelKey?: string;
   href?: string;
   icon?: React.FC<{ className?: string }>;
   sepKey?: string;
+  /** RBAC 权限要求，格式 "resource:action"，不设置则始终可见 */
+  permission?: string;
 }
 
 export const navConfig: NavItem[] = [
   // ── 核心（高频） ──
   {labelKey: 'nav.dashboard', href: '/admin', icon: BarChart3},
-  {labelKey: 'nav.articles', href: '/admin/articles', icon: FileText},
-  {labelKey: 'nav.categories', href: '/admin/categories', icon: FolderTree},
-  {labelKey: 'nav.media', href: '/admin/media', icon: Image},
-  {labelKey: 'nav.comments', href: '/admin/comments', icon: MessageSquare},
-  {labelKey: 'nav.users', href: '/admin/users', icon: Users},
-  {labelKey: 'nav.roles', href: '/admin/roles', icon: Shield},
+  {labelKey: 'nav.articles', href: '/admin/articles', icon: FileText, permission: 'article:view'},
+  {labelKey: 'nav.categories', href: '/admin/categories', icon: FolderTree, permission: 'category:view'},
+  {labelKey: 'nav.media', href: '/admin/media', icon: Image, permission: 'media:view'},
+  {labelKey: 'nav.comments', href: '/admin/comments', icon: MessageSquare, permission: 'comment:view'},
+  {labelKey: 'nav.users', href: '/admin/users', icon: Users, permission: 'user:view'},
+  {labelKey: 'nav.roles', href: '/admin/roles', icon: Shield, permission: 'user:manage_roles'},
 
   // ── 系统 ──
-  {labelKey: 'nav.systemHub', href: '/admin/system-hub', icon: Server},
-  {labelKey: 'nav.operations', href: '/admin/operations', icon: Bell},
-  {labelKey: 'nav.social', href: '/admin/social', icon: MessageSquare},
+  {labelKey: 'nav.systemHub', href: '/admin/system-hub', icon: Server, permission: 'system:view'},
+  {labelKey: 'nav.upgrade', href: '/admin/upgrade', icon: Zap, permission: 'system:view'},
+  {labelKey: 'nav.cache', href: '/admin/cache', icon: Zap, permission: 'system:maintenance'},
+  {labelKey: 'nav.operations', href: '/admin/operations', icon: Bell, permission: 'system:view'},
+  {labelKey: 'nav.social', href: '/admin/social', icon: MessageSquare, permission: 'settings:update'},
 
   // ── 扩展功能 ──
   {sepKey: 'nav.extensions'},
-  {labelKey: 'nav.badges', href: '/admin/ext/badges', icon: Award},
-  {labelKey: 'nav.points', href: '/admin/ext/points', icon: Coins},
-  {labelKey: 'nav.tipping', href: '/admin/ext/tipping', icon: Diamond},
-  {labelKey: 'nav.certification', href: '/admin/ext/certification', icon: Medal},
-  {labelKey: 'nav.nft', href: '/admin/ext/nft', icon: Diamond},
-  {labelKey: 'nav.recommendations', href: '/admin/ext/recommendations', icon: Star},
+  {labelKey: 'nav.badges', href: '/admin/ext/badges', icon: Award, permission: 'vip:manage'},
+  {labelKey: 'nav.points', href: '/admin/ext/points', icon: Coins, permission: 'vip:manage'},
+  {labelKey: 'nav.tipping', href: '/admin/ext/tipping', icon: Diamond, permission: 'vip:manage'},
+  {labelKey: 'nav.certification', href: '/admin/ext/certification', icon: Medal, permission: 'vip:manage'},
+  {labelKey: 'nav.nft', href: '/admin/ext/nft', icon: Diamond, permission: 'vip:manage'},
+  {labelKey: 'nav.recommendations', href: '/admin/ext/recommendations', icon: Star, permission: 'content:edit'},
 
   // ── 系统设置 ──
-  {labelKey: 'nav.settings', href: '/admin/settings', icon: Settings},
+  {labelKey: 'nav.appearance', href: '/admin/appearance', icon: Palette, permission: 'theme:manage'},
+  {labelKey: 'nav.emailTemplates', href: '/admin/email-templates', icon: FileText, permission: 'settings:update'},
+  {labelKey: 'nav.shortcodes', href: '/admin/shortcodes', icon: FileText, permission: 'content:edit'},
+  {labelKey: 'nav.customPostTypes', href: '/admin/custom-post-types', icon: Layers, permission: 'content:edit'},
+  {labelKey: 'nav.settings', href: '/admin/settings', icon: Settings, permission: 'settings:update'},
 ];
 
-/** @deprecated 使用 navConfig 替代，保留用于向后兼容 */
+/** @deprecated 使用 navConfig 替代，保留用于向后兼�?*/
 export const nav = navConfig.map(item => ({
   ...item,
   label: item.labelKey ?? item.sepKey ?? '',
@@ -68,7 +109,7 @@ export const nav = navConfig.map(item => ({
 
 const isActive = (href: string) => typeof window !== 'undefined' && window.location.pathname === href;
 
-/** 侧边栏骨架屏 */
+/** 侧边栏�??架屏 */
 export function SidebarSkeleton({collapsed}: { collapsed: boolean }) {
   return (
     <div
@@ -90,9 +131,11 @@ export function SidebarSkeleton({collapsed}: { collapsed: boolean }) {
   );
 }
 
-/** 桌面端侧边栏 */
+/** 桌面�??��边栏 */
 export function DesktopSidebar({collapsed, onToggle}: { collapsed: boolean; onToggle: () => void }) {
   const {t} = useTranslation();
+  const granted = usePermissions();
+  const visibleItems = navConfig.filter(item => !item.permission || granted.has(item.permission));
 
   return (
     <aside
@@ -103,7 +146,7 @@ export function DesktopSidebar({collapsed, onToggle}: { collapsed: boolean; onTo
           <ChevronLeft className={`w-4 h-4 transition-transform ${collapsed ? 'rotate-180' : ''}`}/></button>
       </div>
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-        {navConfig.map((item, i) => {
+        {visibleItems.map((item, i) => {
           if (item.sepKey) return <div key={`sep-${i}`}
                                        className={`pt-3 pb-1 text-xs font-semibold text-gray-400 uppercase tracking-wider ${collapsed ? 'text-center text-[10px]' : 'px-3'}`}>{collapsed ? '··' : t(item.sepKey)}</div>;
           const Icon = item.icon!;
@@ -127,9 +170,11 @@ export function DesktopSidebar({collapsed, onToggle}: { collapsed: boolean; onTo
   );
 }
 
-/** 移动端侧边栏 */
+/** 移动�??��边栏 */
 export function MobileSidebar({open, onClose}: { open: boolean; onClose: () => void }) {
   const {t} = useTranslation();
+  const granted = usePermissions();
+  const visibleItems = navConfig.filter(item => !item.permission || granted.has(item.permission));
 
   return (
     <>
@@ -144,7 +189,7 @@ export function MobileSidebar({open, onClose}: { open: boolean; onClose: () => v
         </div>
         <nav className="p-3 space-y-1 overflow-y-auto"
              style={{maxHeight: 'calc(100vh - 3.5rem - env(safe-area-inset-bottom, 0px))'}}>
-          {navConfig.map((item, i) => {
+          {visibleItems.map((item, i) => {
             if (item.sepKey) return <div key={`sep-${i}`}
                                          className="pt-3 pb-1 px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider">{t(item.sepKey)}</div>;
             const Icon = item.icon!;
@@ -160,3 +205,9 @@ export function MobileSidebar({open, onClose}: { open: boolean; onClose: () => v
     </>
   );
 }
+
+
+
+
+
+

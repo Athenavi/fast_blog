@@ -24,7 +24,7 @@ async def list_pending_reviews(arguments: dict) -> dict:
         return {"success": True, "data": {
             "reviews": [{
                 "id": r.id, "content_type": r.content_type,
-                "content_id": r.content_id, "requester": r.requester_id,
+                "content_id": r.content_id, "requester": r.applicant_id,
                 "status": r.status, "created_at": str(r.created_at),
             } for r in records],
             "total": total, "page": page,
@@ -45,7 +45,6 @@ async def approve_content(arguments: dict) -> dict:
         if not record:
             return {"success": False, "error": "审批记录不存在"}
         record.status = "approved"
-        record.comment = comment
         await db.commit()
         return {"success": True, "message": f"审批 #{review_id} 已通过"}
 
@@ -66,7 +65,6 @@ async def reject_content(arguments: dict) -> dict:
         if not record:
             return {"success": False, "error": "审批记录不存在"}
         record.status = "rejected"
-        record.comment = reason
         await db.commit()
         return {"success": True, "message": f"审批 #{review_id} 已驳回"}
 
@@ -98,10 +96,10 @@ async def list_collaborators(arguments: dict) -> dict:
     """列出协作成员"""
     workspace_id = arguments.get("workspace_id")
     async with get_async_session_context() as db:
-        from shared.models.collaboration import CollaborationMember
-        query = select(CollaborationMember)
+        from shared.models.collaboration import WorkspaceMember
+        query = select(WorkspaceMember)
         if workspace_id:
-            query = query.where(CollaborationMember.workspace_id == int(workspace_id))
+            query = query.where(WorkspaceMember.workspace_id == int(workspace_id))
         members = (await db.execute(query.limit(50))).scalars().all()
         return {"success": True, "data": [{
             "id": m.id, "user_id": m.user_id, "role": m.role,

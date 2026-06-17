@@ -1,12 +1,13 @@
 """
 SQLAlchemy 模型定义 - SSOProvider
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-06-04 17:21:20
+生成时间：2026-06-13 23:12:16
 """
 
-from sqlalchemy import Column, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
+from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
 
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
+
 
 
 class SSOProvider(Base):
@@ -58,6 +59,7 @@ class SSOProvider(Base):
 
     updated_at = Column(DateTime, doc='更新时间')
 
+
     def to_dict(self, exclude_sensitive=True):
         """转换为字典
 
@@ -70,7 +72,6 @@ class SSOProvider(Base):
             'provider_type': self.provider_type,
             'name': self.name,
             'client_id': self.client_id,
-            'client_secret': self.client_secret,
             'authorization_url': self.authorization_url,
             'token_url': self.token_url,
             'userinfo_url': self.userinfo_url,
@@ -86,6 +87,7 @@ class SSOProvider(Base):
 
         if not exclude_sensitive:
             sensitive_data = {
+                'client_secret': self.client_secret,
             }
             data.update(sensitive_data)
 
@@ -94,3 +96,5 @@ class SSOProvider(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<SSOProvider id={self.id}>'
+
+

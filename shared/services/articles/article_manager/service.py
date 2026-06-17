@@ -14,7 +14,22 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.article import Article, ArticleContent, ArticleRevision
 from shared.models.comment import Comment, CommentVote, CommentSubscription
+from shared.models.category import Category
 from src.unified_logger import default_logger as logger
+
+async def _sync_category_articles_count(db, category_id: int) -> None:
+    """同步更新 Category 的文章计数（反规范化字段）"""
+    if category_id is None:
+        return
+    from sqlalchemy import func, update as sa_update
+    count = await db.scalar(
+        select(func.count(Article.id))
+        .where(Article.category == category_id, Article.status != -1)
+    ) or 0
+    await db.execute(
+        sa_update(Category).where(Category.id == category_id).values(articles_count=count)
+    )
+
 
 
 async def get_article_by_id(db: AsyncSession, article_id: int) -> Optional[Article]:
@@ -223,6 +238,8 @@ async def create_article(
     await db.refresh(article)
 
     # 异步触发文章创建事件（不阻塞主流程）
+    status_map = {0: 'draft', 1: 'published', 2: 'archived'}
+    event_status = status_map.get(kwargs.get('status', 1), 'unknown')
     _trigger_article_event('article_published', {
         'id': article.id,
         'title': article.title,
@@ -232,7 +249,7 @@ async def create_article(
         'tags': tags.split(';') if tags else [],
         'category_id': category_id,
         'user_id': user_id,
-        'status': 'published',
+        'status': event_status,
         'created_at': article.created_at.isoformat() if article.created_at else None,
     })
 
@@ -242,6 +259,7 @@ async def create_article(
 async def update_article(
     db: AsyncSession,
     article_id: int,
+    user_id: Optional[int] = None,
     **kwargs
 ) -> Optional[Article]:
     """
@@ -250,13 +268,19 @@ async def update_article(
     Args:
         db: 异步数据库会话
         article_id: 文章 ID
+        user_id: 请求用户 ID（用于所有权验证）
         **kwargs: 要更新的字段
 
     Returns:
-        更新后的文章对象，如果不存在则返回 None
+        更新后的文章对象，如果不存在或无权访问则返回 None
     """
     article = await get_article_by_id(db, article_id)
     if not article:
+        return None
+
+    # 所有权验证：如果提供 user_id，确保是文章作者
+    if user_id is not None and article.user != user_id:
+        logger.warning(f"用户 {user_id} 试图更新非本人文章 {article_id}")
         return None
 
     # 允许更新的字段
@@ -331,13 +355,14 @@ async def update_article_content(
     return True
 
 
-async def delete_article(db: AsyncSession, article_id: int) -> bool:
+async def delete_article(db: AsyncSession, article_id: int, user_id: Optional[int] = None) -> bool:
     """
     删除文章（包括内容和修订历史）
 
     Args:
         db: 异步数据库会话
         article_id: 文章 ID
+        user_id: 请求用户 ID（用于所有权验证）
 
     Returns:
         是否成功
@@ -345,6 +370,11 @@ async def delete_article(db: AsyncSession, article_id: int) -> bool:
 
     article = await get_article_by_id(db, article_id)
     if not article:
+        return False
+
+    # 所有权验证
+    if user_id is not None and article.user != user_id:
+        logger.warning(f"用户 {user_id} 试图删除非本人文章 {article_id}")
         return False
 
     # 保存文章信息用于事件触发
@@ -456,7 +486,8 @@ async def search_articles(
     if keyword:
         query = query.where(
             (Article.title.contains(keyword)) |
-            (Article.excerpt.contains(keyword))
+            (Article.excerpt.contains(keyword)) |
+            (Article.tags_list.contains(keyword))
         )
 
     if category_id:
@@ -473,7 +504,8 @@ async def search_articles(
     if keyword:
         count_query = count_query.where(
             (Article.title.contains(keyword)) |
-            (Article.excerpt.contains(keyword))
+            (Article.excerpt.contains(keyword)) |
+            (Article.tags_list.contains(keyword))
         )
     if category_id:
         count_query = count_query.where(Article.category == category_id)
@@ -525,7 +557,10 @@ def _trigger_article_event(event_name: str, data: dict):
         try:
             loop = asyncio.get_running_loop()
             # 如果有运行的事件循环，创建任务
-            asyncio.create_task(event_bus.emit(event_name, data))
+            task = asyncio.create_task(event_bus.emit(event_name, data))
+            task.add_done_callback(lambda t: t.exception() and logger.error(
+                f"Event {event_name} failed: {t.exception()}"
+            ))
         except RuntimeError:
             # 没有运行的事件循环，记录日志但不抛出异常
             logger.debug(f"No running event loop, skipping {event_name} event trigger")

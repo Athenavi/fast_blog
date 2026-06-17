@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import List, Dict, Any, Optional
 
 from PIL import Image
+from src.unified_logger import default_logger as logger
 
 # 默认配置常量
 DEFAULT_IMAGE_CONFIG = {
@@ -21,7 +22,7 @@ DEFAULT_IMAGE_CONFIG = {
 DEFAULT_WEBP_CONFIG = {
     'enabled': True,
     'quality': 80,
-    'method': 6,
+    'method': 4,
 }
 
 SUPPORTED_FORMATS = {'JPEG', 'JPG', 'PNG', 'GIF', 'BMP', 'TIFF', 'WEBP'}
@@ -58,8 +59,15 @@ class MediaEnhancementService:
                 original_size = os.path.getsize(input_path)
                 original_dimensions = img.size
 
+                # 格式感知的通道转换：仅 JPEG 输出时丢弃透明度
                 if img.mode in ('RGBA', 'P'):
-                    img = img.convert('RGB')
+                    output_ext = Path(output_path or input_path).suffix.lower()
+                    if output_ext in ('.jpg', '.jpeg'):
+                        if img.mode == 'P' and 'transparency' in img.info:
+                            img = img.convert('RGBA')
+                        img = img.convert('RGB')
+                    elif img.mode == 'P':
+                        img = img.convert('RGBA')
 
                 max_width, max_height = cfg.get('max_width', 1920), cfg.get('max_height', 1080)
                 if img.width > max_width or img.height > max_height:
@@ -102,9 +110,15 @@ class MediaEnhancementService:
             original_size = os.path.getsize(input_path)
 
             with Image.open(input_path) as img:
-                if img.mode in ('RGBA', 'P'):
-                    img = img.convert('RGB')
-                img.save(output_path, format='WEBP', quality=cfg.get('quality', 80), method=cfg.get('method', 6))
+                # WebP 支持透明度，保留 RGBA 模式
+                if img.mode == 'P':
+                    if 'transparency' in img.info:
+                        img = img.convert('RGBA')
+                    else:
+                        img = img.convert('RGB')
+                # 限制 quality 在 1-95 范围内，防止无效值导致写入失败
+                quality = max(1, min(95, int(cfg.get('quality', 80))))
+                img.save(output_path, format='WEBP', quality=quality, method=cfg.get('method', 4))
 
             webp_size = os.path.getsize(output_path)
             compression_ratio = (1 - webp_size / original_size) * 100 if original_size > 0 else 0
@@ -170,13 +184,13 @@ class MediaEnhancementService:
                 results['details'].append({'path': image_path, 'error': str(e)})
         return results
 
-    def detect_duplicate(self, file_hash: str, db_session) -> Optional[Dict[str, Any]]:
+    async def detect_duplicate(self, file_hash: str, db_session) -> Optional[Dict[str, Any]]:
         """检测重复文件(基于哈希)"""
         try:
             from sqlalchemy import select
             from shared.models.media.file_hash import FileHash
             query = select(FileHash).where(FileHash.hash == file_hash)
-            result = db_session.execute(query)
+            result = await db_session.execute(query)
             existing_file = result.scalar_one_or_none()
             if existing_file:
                 return {
@@ -186,10 +200,10 @@ class MediaEnhancementService:
                 }
             return None
         except Exception as e:
-            print(f"Duplicate detection error: {e}")
+            logger.error(f"Duplicate detection error: {e}")
             return None
 
-    def extract_exif_data(self, image_path: str) -> Dict[str, Any]:
+    async def extract_exif_data(self, image_path: str) -> Dict[str, Any]:
         """提取EXIF数据"""
         try:
             from PIL.ExifTags import TAGS
@@ -205,14 +219,11 @@ class MediaEnhancementService:
             return {'success': False, 'error': str(e)}
 
     def remove_exif_data(self, input_path: str, output_path: Optional[str] = None) -> Dict[str, Any]:
-        """移除EXIF数据(保护隐私)"""
+        """移除EXIF数据(保护隐私) — 仅清除 EXIF 不重编码像素"""
         try:
             output_path = output_path or input_path
             with Image.open(input_path) as img:
-                data = list(img.getdata())
-                img_without_exif = Image.new(img.mode, img.size)
-                img_without_exif.putdata(data)
-                img_without_exif.save(output_path, optimize=True)
+                img.save(output_path, format=img.format, exif=b'')
                 return {'success': True, 'path': output_path}
         except Exception as e:
             return {'success': False, 'error': str(e)}

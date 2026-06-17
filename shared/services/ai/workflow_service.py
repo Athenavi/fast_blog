@@ -9,7 +9,7 @@ from typing import Dict, Any, Optional
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models.ai_workflow import AIWorkflow
+from shared.models.ai.ai_workflow import AIWorkflow
 from src.utils.database.main import get_async_session
 
 

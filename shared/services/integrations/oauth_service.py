@@ -56,6 +56,14 @@ class OAuthService:
                 "scope": "get_user_info",
                 "icon": "qq"
             },
+            "weibo": {
+                "name": "微博",
+                "authorize_url": "https://api.weibo.com/oauth2/authorize",
+                "token_url": "https://api.weibo.com/oauth2/access_token",
+                "user_info_url": "https://api.weibo.com/2/users/show.json",
+                "scope": "email",
+                "icon": "weibo"
+            },
         }
     
     def get_authorization_url(

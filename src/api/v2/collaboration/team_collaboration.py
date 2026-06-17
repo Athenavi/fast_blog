@@ -7,6 +7,7 @@ from typing import Optional
 from functools import wraps
 
 from fastapi import APIRouter, Depends, Query, Body, HTTPException
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models import WorkspaceMember, Workspace
@@ -478,4 +479,3 @@ async def get_tasks(
 
 
 # 导入func
-from sqlalchemy import func

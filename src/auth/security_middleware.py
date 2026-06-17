@@ -69,14 +69,14 @@ class XSSFilterMiddleware(BaseHTTPMiddleware):
 
     # 排除的路径（如富文本编辑器、登录接口、文件上传等）
     EXCLUDED_PATHS = [
-        '/api/v1/articles/content',  # 文章内容可能包含 HTML
-        '/api/v1/pages/content',  # 页面内容可能包含 HTML
-        '/api/v1/auth/login',  # 登录接口（避免消耗请求体）
-        '/api/v1/auth/register',  # 注册接口（避免消耗请求体）
-        '/api/v1/users/auth/login',  # 用户管理模块的登录接口
-        '/api/v1/users/auth/register',  # 用户管理模块的注册接口
-        '/api/v1/user-settings/profile/avatar',  # 头像上传（避免消耗 multipart/form-data）
-        '/api/v1/media/upload',  # 媒体文件上传（避免消耗 multipart/form-data）
+        '/api/v2/articles/content',  # 文章内容可能包含 HTML
+        '/api/v2/pages/content',  # 页面内容可能包含 HTML
+        '/api/v2/auth/login',  # 登录接口（避免消耗请求体）
+        '/api/v2/auth/register',  # 注册接口（避免消耗请求体）
+        '/api/v2/users/auth/login',  # 用户管理模块的登录接口
+        '/api/v2/users/auth/register',  # 用户管理模块的注册接口
+        '/api/v2/user-settings/profile/avatar',  # 头像上传（避免消耗 multipart/form-data）
+        '/api/v2/media/upload',  # 媒体文件上传（避免消耗 multipart/form-data）
     ]
 
     # 允许的 HTML 标签（白名单）
@@ -266,8 +266,8 @@ class CSRFProtectionMiddleware(BaseHTTPMiddleware):
     # 不需要 CSRF 验证的方法
     SAFE_METHODS = {'GET', 'HEAD', 'OPTIONS'}
 
-    # 排除的路径（如 API 端点使用 JWT 认证）
-    EXCLUDED_PATHS = ['/api/', '/auth/', '/api/v2/health']
+    # 排除的路径（无需 CSRF 验证，如认证端点和健康检查）
+    EXCLUDED_PATHS = ['/auth/', '/api/v2/auth/', '/api/v2/health']
 
     async def dispatch(self, request: Request, call_next):
         # GET/HEAD/OPTIONS 请求不需要 CSRF 验证
@@ -279,15 +279,15 @@ class CSRFProtectionMiddleware(BaseHTTPMiddleware):
         if any(path.startswith(excluded) for excluded in self.EXCLUDED_PATHS):
             return await call_next(request)
 
+        # 对于已认证的 API 请求（携带 JWT），跳过 CSRF 检查
+        auth_header = request.headers.get('Authorization')
+        if auth_header:
+            return await call_next(request)
+
         # 验证 CSRF token
         csrf_token = request.headers.get('X-CSRF-Token') or request.headers.get('X-XSRF-TOKEN')
 
         if not csrf_token:
-            # 对于 API 请求，如果没有 CSRF token 但有 Authorization header，跳过检查
-            auth_header = request.headers.get('Authorization')
-            if auth_header:
-                return await call_next(request)
-
             return JSONResponse(
                 status_code=403,
                 content={
@@ -296,10 +296,10 @@ class CSRFProtectionMiddleware(BaseHTTPMiddleware):
                 }
             )
 
-        # 实现实际的 CSRF token 验证逻辑
+        # 验证 CSRF token（cache 为同步客户端）
         from src.extensions import cache
 
-        stored_token = await cache.get(f"csrf_token:{csrf_token}")
+        stored_token = cache.get(f"csrf_token:{csrf_token}")
         if not stored_token:
             return JSONResponse(
                 status_code=403,
@@ -310,7 +310,7 @@ class CSRFProtectionMiddleware(BaseHTTPMiddleware):
             )
 
         # 验证后删除token(一次性使用)
-        await cache.delete(f"csrf_token:{csrf_token}")
+        cache.delete(f"csrf_token:{csrf_token}")
 
         response = await call_next(request)
         return response
@@ -336,6 +336,8 @@ class RateLimiterMiddleware(BaseHTTPMiddleware):
     STRICT_LIMITS = {
         '/api/v1/auth/login': (5, 60),  # 登录：5次/分钟
         '/api/v1/auth/register': (3, 300),  # 注册：3次/5分钟
+        '/api/v2/auth/login': (5, 60),  # V2 登录：5次/分钟
+        '/api/v2/auth/register': (3, 300),  # V2 注册：3次/5分钟
         '/api/v1/users/password': (3, 300),  # 密码重置：3次/5分钟
     }
 
@@ -504,13 +506,13 @@ class SQLInjectionFilterMiddleware(BaseHTTPMiddleware):
 
     # 排除的路径（如搜索接口可能包含 SQL 关键字、文件上传等）
     EXCLUDED_PATHS = [
-        '/api/v1/search',  # 搜索接口
-        '/api/v1/auth/login',  # 登录接口（避免消耗请求体）
-        '/api/v1/auth/register',  # 注册接口（避免消耗请求体）
-        '/api/v1/users/auth/login',  # 用户管理模块的登录接口
-        '/api/v1/users/auth/register',  # 用户管理模块的注册接口
-        '/api/v1/user-settings/profile/avatar',  # 头像上传（避免消耗请求体）
-        '/api/v1/media/upload',  # 媒体文件上传（避免消耗请求体）
+        '/api/v2/search',  # 搜索接口
+        '/api/v2/auth/login',  # 登录接口（避免消耗请求体）
+        '/api/v2/auth/register',  # 注册接口（避免消耗请求体）
+        '/api/v2/users/auth/login',  # 用户管理模块的登录接口
+        '/api/v2/users/auth/register',  # 用户管理模块的注册接口
+        '/api/v2/user-settings/profile/avatar',  # 头像上传（避免消耗请求体）
+        '/api/v2/media/upload',  # 媒体文件上传（避免消耗请求体）
     ]
 
     def __init__(self, app, enable_logging: bool = True):
@@ -661,8 +663,8 @@ def create_security_middleware_stack(app):
     # 2. XSS 过滤
     # app.add_middleware(XSSFilterMiddleware)
 
-    # 3. CSRF 保护
-    app.add_middleware(CSRFProtectionMiddleware)
+    # 3. CSRF 保护（前后端分离模式下 JWT/Bearer 已天然防 CSRF，故移除）
+    # app.add_middleware(CSRFProtectionMiddleware)
 
     # 注意：速率限制已移除，改为在特定路由上使用装饰器方式
 

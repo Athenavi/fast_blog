@@ -211,22 +211,37 @@ async def assign_roles(
     if not user:
         return ApiResponse(success=False, error="用户不存在")
 
-    # 清除现有角色
-    await db.execute(
-        sa_delete(UserRole).where(UserRole.user_id == user_id)
-    )
-
-    # 分配新角色
+    # 先添加新角色（检查重复），再移除不在此次分配中的旧角色
     now = datetime.now(timezone.utc)
-    for rid in role_ids:
-        role = await db.get(Role, rid)
-        if role:
-            db.add(UserRole(
-                user_id=user_id,
-                role_id=rid,
-                assigned_by=current_user.id,
-                created_at=now,
-            ))
+    new_role_ids = set(role_ids)
+
+    # 获取当前已分配的角色的 ID
+    existing_result = await db.execute(
+        select(UserRole.role_id).where(UserRole.user_id == user_id)
+    )
+    existing_role_ids = {row[0] for row in existing_result.fetchall()}
+
+    # 1. 添加新角色（跳过已存在的）
+    for rid in new_role_ids:
+        if rid not in existing_role_ids:
+            role = await db.get(Role, rid)
+            if role:
+                db.add(UserRole(
+                    user_id=user_id,
+                    role_id=rid,
+                    assigned_by=current_user.id,
+                    created_at=now,
+                ))
+
+    # 2. 移除不再是目标角色的旧角色
+    roles_to_remove = existing_role_ids - new_role_ids
+    if roles_to_remove:
+        await db.execute(
+            sa_delete(UserRole).where(
+                UserRole.user_id == user_id,
+                UserRole.role_id.in_(roles_to_remove)
+            )
+        )
 
     await db.commit()
 

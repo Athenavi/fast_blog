@@ -90,8 +90,12 @@ async def category_filter(category_id):
         category = result.scalar_one_or_none()
         return category.name if category else None
 
-def f2list(input_value, delimiter=';'):
-    """将分隔符分隔的字符串转换为列表"""
+def f2list(input_value, delimiter=None):
+    """将分隔符分隔的字符串转换为列表，支持逗号和分号"""
+    if delimiter is None:
+        # 自动检测分隔符：优先逗号，如果包含分号则用分号
+        import re
+        delimiter = ';' if isinstance(input_value, str) and ';' in input_value else ','
     try:
         if input_value is None:
             return []

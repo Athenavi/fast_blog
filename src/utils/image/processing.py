@@ -4,6 +4,9 @@ from typing import Tuple, Optional
 
 from PIL import Image
 
+# 限制最大像素数，防止 decompression bomb 攻击（作用于本模块所有 Image.open 调用）
+Image.MAX_IMAGE_PIXELS = 100_000_000
+
 from shared.models import FileHash
 
 
@@ -93,59 +96,49 @@ def convert_image_format(input_path: str, output_path: str, format: str = 'JPEG'
         img.save(output_path, format=format)
 
 
-def create_video_thumbnail(video_path: str, thumbnail_path: str, time: float = 1.0) -> bool:
+def create_video_thumbnail(input_path: str, output_path: str, time_offset: int = 1) -> bool:
     """
-    创建视频缩略图
-    注意：这个功能需要opencv-python，但在serverless环境中可能不可用
-    
+    创建视频缩略图（优先使用 ffmpeg，降级到 opencv）
+
     Args:
-        video_path: 视频路径
-        thumbnail_path: 缩略图保存路径
-        time: 提取缩略图的时间点（秒）
-    
+        input_path: 视频文件路径
+        output_path: 输出缩略图路径
+        time_offset: 截取时间点（秒）
+
     Returns:
-        bool: 是否成功
+        是否成功
     """
+    import subprocess
+    import os
+
+    # 方案1: ffmpeg
     try:
-        # 尝试导入cv2，如果不可用则返回False
+        result = subprocess.run(
+            ['ffmpeg', '-ss', str(time_offset), '-i', input_path,
+             '-vframes', '1', '-q:v', '2', output_path, '-y'],
+            capture_output=True, timeout=30
+        )
+        if result.returncode == 0 and os.path.exists(output_path):
+            return True
+    except (subprocess.SubprocessError, FileNotFoundError, OSError):
+        pass
+
+    # 方案2: opencv (降级)
+    try:
         import cv2
-        cv2_available = True
-    except ImportError:
-        cv2 = None
-        cv2_available = False
-
-    if not cv2_available:
-        print("cv2 not available, video thumbnail creation is disabled")
-        return False
-
-    try:
-        # 打开视频文件
-        cap = cv2.VideoCapture(video_path)
+        cap = cv2.VideoCapture(input_path)
         if not cap.isOpened():
             return False
-
-        # 设置视频位置
-        cap.set(cv2.CAP_PROP_POS_MSEC, time * 1000)
-
-        # 读取帧
+        cap.set(cv2.CAP_PROP_POS_FRAMES, int(cap.get(cv2.CAP_PROP_FPS)) * time_offset)
         ret, frame = cap.read()
-        if not ret:
-            cap.release()
-            return False
-
-        # 转换颜色空间 (BGR to RGB)
-        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
-        # 使用PIL保存图像
-        img = Image.fromarray(frame_rgb)
-        img.save(thumbnail_path, 'JPEG', quality=85)
-
-        # 释放资源
         cap.release()
-        return True
-    except Exception as e:
-        print(f"Error creating video thumbnail: {str(e)}")
-        return False
+        if ret:
+            cv2.imwrite(output_path, frame)
+            return os.path.exists(output_path)
+    except ImportError:
+        pass
+
+    return False
 
 
 async def get_file_mime_type(file_hash: str, db=None) -> str:

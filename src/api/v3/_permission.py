@@ -304,8 +304,9 @@ class Permission:
             cache = await _load_user_capability_codes(db, user.id)
             _set_request_cache(request, cache)
 
-        # ── 3. AND 权限校验 ──
-        if not all(code in cache for code in self.codes):
+        # ── 3. AND 权限校验（标准化冒号为点号以匹配 DB 格式） ──
+        normalized_codes = tuple(c.replace(':', '.') for c in self.codes)
+        if not all(c in cache for c in normalized_codes):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail=f"权限不足: 需要 {', '.join(self.codes)}",

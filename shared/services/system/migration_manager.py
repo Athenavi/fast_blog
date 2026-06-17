@@ -2,7 +2,7 @@
 数据库迁移管理器
 基于Alembic实现自动数据库迁移
 """
-import subprocess
+import os
 import sys
 from pathlib import Path
 from typing import Dict, Any, List, Optional
@@ -12,45 +12,107 @@ class MigrationManager:
     """基于Alembic的数据库迁移管理器"""
     
     def __init__(self):
-        self.alembic_ini = Path(__file__).parent.parent.parent / "alembic.ini"
-        self.migrations_dir = Path(__file__).parent.parent.parent / "alembic_migrations"
+        self.alembic_ini = Path(__file__).resolve().parent.parent.parent.parent / "alembic.ini"
+        self.migrations_dir = Path(__file__).resolve().parent.parent.parent.parent / "alembic_migrations"
         self.versions_dir = self.migrations_dir / "versions"
-    
-    def _get_alembic_cmd(self) -> List[str]:
-        """获取Alembic命令基础部分"""
-        return [sys.executable, "-m", "alembic"]
+
+    def _get_alembic_cfg(self) -> "alembic.config.Config":
+        """获取 Alembic 配置对象"""
+        from alembic.config import Config
+        cfg = Config(str(self.alembic_ini))
+        # 从 app_config 同步数据库 URL
+        try:
+            from src.setting import app_config
+            if app_config.database_url:
+                cfg.set_main_option("sqlalchemy.url", app_config.database_url)
+        except Exception:
+            pass
+        return cfg
     
     def _run_alembic(self, args: List[str], cwd: Optional[Path] = None) -> Dict[str, Any]:
-        """
-        执行Alembic命令
-        
-        Args:
-            args: Alembic参数列表
-            cwd: 工作目录
-            
-        Returns:
-            执行结果
-        """
+        """执行Alembic命令（使用 Python API 避免子进程问题）"""
+        from io import StringIO
+        import traceback
+        from alembic import command
+
+        cfg = self._get_alembic_cfg()
+
+        # 重定向 stdout/stderr 以捕获输出
+        old_stdout = sys.stdout
+        old_stderr = sys.stderr
+        captured_stdout = StringIO()
+        captured_stderr = StringIO()
+        sys.stdout = captured_stdout
+        sys.stderr = captured_stderr
+
         try:
-            cmd = self._get_alembic_cmd() + args
-            result = subprocess.run(
-                cmd,
-                cwd=str(cwd or self.alembic_ini.parent),
-                capture_output=True,
-                text=True,
-                timeout=60
-            )
-            
+            subcommand = args[0] if args else ''
+            if subcommand == 'upgrade':
+                revision = args[1] if len(args) > 1 else 'head'
+                command.upgrade(cfg, revision)
+            elif subcommand == 'downgrade':
+                revision = args[1] if len(args) > 1 else '-1'
+                command.downgrade(cfg, revision)
+            elif subcommand == 'current':
+                command.current(cfg)
+            elif subcommand == 'history':
+                command.history(cfg)
+            elif subcommand == 'revision':
+                message = ''
+                autogenerate = False
+                for i, a in enumerate(args):
+                    if a == '-m' and i + 1 < len(args):
+                        message = args[i + 1]
+                    if a == '--autogenerate':
+                        autogenerate = True
+                command.revision(cfg, message=message, autogenerate=autogenerate)
+            else:
+                raise ValueError(f"Unknown alembic subcommand: {subcommand}")
+
             return {
-                'success': result.returncode == 0,
-                'stdout': result.stdout,
-                'stderr': result.stderr,
-                'returncode': result.returncode,
+                'success': True,
+                'stdout': captured_stdout.getvalue(),
+                'stderr': captured_stderr.getvalue(),
+                'returncode': 0,
             }
-        except subprocess.TimeoutExpired:
+        except SystemExit as e:
+            return {
+                'success': e.code == 0 if e.code is not None else True,
+                'stdout': captured_stdout.getvalue(),
+                'stderr': captured_stderr.getvalue(),
+                'returncode': e.code or 0,
+            }
+        except Exception as e:
             return {
                 'success': False,
-                'error': 'Command timed out',
+                'stdout': captured_stdout.getvalue(),
+                'stderr': captured_stderr.getvalue() + '\n' + traceback.format_exc(),
+                'returncode': -1,
+            }
+        finally:
+            sys.stdout = old_stdout
+            sys.stderr = old_stderr
+    
+    def get_current_revision(self) -> Dict[str, Any]:
+        """
+        获取当前数据库版本（直接查 alembic_version 表）
+
+        Returns:
+            当前版本信息
+        """
+        from sqlalchemy import create_engine, text
+        try:
+            cfg = self._get_alembic_cfg()
+            url = cfg.get_main_option("sqlalchemy.url")
+            engine = create_engine(url)
+            with engine.connect() as conn:
+                result = conn.execute(text("SELECT version_num FROM alembic_version"))
+                row = result.fetchone()
+                current_rev = row[0] if row else None
+            engine.dispose()
+            return {
+                'success': True,
+                'current_revision': current_rev,
             }
         except Exception as e:
             return {
@@ -58,75 +120,48 @@ class MigrationManager:
                 'error': str(e),
             }
     
-    def get_current_revision(self) -> Dict[str, Any]:
-        """
-        获取当前数据库版本
-        
-        Returns:
-            当前版本信息
-        """
-        result = self._run_alembic(['current'])
-        
-        if result['success']:
-            # 解析输出: <revision> (head)
-            lines = result['stdout'].strip().split('\n')
-            current_rev = None
-            
-            for line in lines:
-                if line.strip() and not line.startswith('INFO'):
-                    parts = line.split()
-                    if parts:
-                        current_rev = parts[0]
-                        break
-            
-            return {
-                'success': True,
-                'current_revision': current_rev,
-                'has_pending': 'head' in result['stdout'],
-            }
-        else:
-            return {
-                'success': False,
-                'error': result.get('stderr', 'Unknown error'),
-            }
-    
     def get_pending_migrations(self) -> Dict[str, Any]:
         """
-        获取待执行的迁移
-        
+        获取待执行的迁移（通过比较当前版本和版本目录）
+
         Returns:
             待执行迁移列表
         """
-        result = self._run_alembic(['history'])
-        
-        if result['success']:
-            # 解析历史记录
-            migrations = []
-            lines = result['stdout'].strip().split('\n')
-            
-            for line in lines:
-                if '->' in line:
-                    # 格式: <rev1> -> <rev2> (head), message
-                    parts = line.split('->')
-                    if len(parts) == 2:
-                        rev_info = parts[1].strip().split(',')
-                        rev_id = rev_info[0].strip().split()[0]
-                        message = rev_info[-1].strip() if len(rev_info) > 1 else ''
-                        
-                        migrations.append({
-                            'revision': rev_id,
-                            'message': message,
-                        })
-            
+        try:
+            cfg = self._get_alembic_cfg()
+            from alembic.script import ScriptDirectory
+            script = ScriptDirectory.from_config(cfg)
+            current_rev = self.get_current_revision().get('current_revision')
+
+            heads = script.get_heads()
+            if not heads:
+                return {'success': True, 'pending_count': 0, 'migrations': []}
+
+            if not current_rev:
+                # 无版本记录 → 全部待执行
+                pending = list(script.walk_revisions(base='base', head=heads[0]))
+                return {
+                    'success': True,
+                    'pending_count': len(pending),
+                    'migrations': [{'revision': r.revision, 'message': r.doc} for r in pending],
+                }
+
+            # 从当前版本到最新 head 的待执行列表
+            pending = []
+            for rev in script.walk_revisions(head=heads[0], base=current_rev):
+                if rev.revision != current_rev:
+                    pending.append({'revision': rev.revision, 'message': rev.doc})
+            pending.reverse()
+
             return {
                 'success': True,
-                'pending_count': len(migrations),
-                'migrations': migrations,
+                'pending_count': len(pending),
+                'migrations': pending,
             }
-        else:
+        except Exception as e:
             return {
                 'success': False,
-                'error': result.get('stderr', 'Unknown error'),
+                'error': str(e),
             }
     
     async def apply_all_migrations(self, db_session=None) -> Dict[str, Any]:
@@ -145,12 +180,19 @@ class MigrationManager:
             return {
                 'success': True,
                 'message': 'All migrations applied successfully',
-                'output': result['stdout'],
+                'output': result.get('stdout', ''),
+                'applied_count': 1,
+                'total_pending': 0,
+                'results': [],
             }
         else:
+            stderr = result.get('stderr', '')
+            stdout = result.get('stdout', '')
+            rc = result.get('returncode', -1)
+            detail = stderr or stdout or f'Exit code {rc}'
             return {
                 'success': False,
-                'error': result.get('stderr', 'Migration failed'),
+                'error': f'Migration failed (rc={rc}): {detail[:500]}',
                 'output': result['stdout'],
             }
     
@@ -232,7 +274,7 @@ class MigrationManager:
         return {
             'success': current['success'] and history['success'],
             'current_revision': current.get('current_revision'),
-            'has_pending': current.get('has_pending', False),
+            'has_pending': history.get('pending_count', 0) > 0,
             'pending_count': history.get('pending_count', 0),
             'pending_migrations': history.get('migrations', []),
         }

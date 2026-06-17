@@ -1,6 +1,6 @@
 """
 评论点赞服务
-提供类似社交媒体的点赞功能
+提供类似社交媒体的点赞功能，使用 CommentVote 表跟踪去重
 """
 
 from typing import Dict, Any
@@ -8,7 +8,7 @@ from typing import Dict, Any
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models.comment import Comment
+from shared.models.comment import Comment, CommentVote
 
 
 class CommentLikeService:
@@ -22,36 +22,76 @@ class CommentLikeService:
     ) -> Dict[str, Any]:
         """
         切换点赞状态(点赞/取消点赞)
-        
+
         Args:
             db: 数据库会话
             user_id: 用户ID
             comment_id: 评论ID
-            
+
         Returns:
             操作结果
         """
         try:
-            # 查询评论
-            query = select(Comment).where(Comment.id == comment_id)
+            # 查询评论（加行级锁防止并发竞争）
+            query = select(Comment).where(Comment.id == comment_id).with_for_update()
             result = await db.execute(query)
             comment = result.scalar_one_or_none()
 
             if not comment:
                 return {"success": False, "error": "评论不存在"}
 
-            # 切换点赞状态
-            comment.likes = max(0, comment.likes + 1)
-            await db.commit()
-            await db.refresh(comment)
+            # 检查是否已有点赞记录
+            vote_query = select(CommentVote).where(
+                CommentVote.comment_id == comment_id,
+                CommentVote.user == user_id
+            )
+            vote_result = await db.execute(vote_query)
+            existing_vote = vote_result.scalar_one_or_none()
 
-            return {
-                "success": True,
-                "action": "liked",
-                "message": "点赞成功",
-                "likes": comment.likes,
-                "is_liked": True
-            }
+            if existing_vote:
+                if existing_vote.vote_type == 1:
+                    # 已点赞 → 取消点赞
+                    await db.delete(existing_vote)
+                    comment.likes = max(0, comment.likes - 1)
+                    await db.commit()
+                    return {
+                        "success": True,
+                        "action": "unliked",
+                        "message": "已取消点赞",
+                        "likes": comment.likes,
+                        "is_liked": False
+                    }
+                else:
+                    # 之前是反对 → 改为点赞
+                    existing_vote.vote_type = 1
+                    comment.likes += 1
+                    await db.commit()
+                    return {
+                        "success": True,
+                        "action": "liked",
+                        "message": "点赞成功",
+                        "likes": comment.likes,
+                        "is_liked": True
+                    }
+            else:
+                # 新建点赞
+                vote = CommentVote(
+                    comment_id=comment_id,
+                    user=user_id,
+                    vote_type=1
+                )
+                db.add(vote)
+                comment.likes += 1
+                await db.commit()
+                await db.refresh(comment)
+
+                return {
+                    "success": True,
+                    "action": "liked",
+                    "message": "点赞成功",
+                    "likes": comment.likes,
+                    "is_liked": True
+                }
 
         except Exception as e:
             await db.rollback()
@@ -64,11 +104,11 @@ class CommentLikeService:
     ) -> Dict[str, Any]:
         """
         获取评论的点赞数
-        
+
         Args:
             db: 数据库会话
             comment_id: 评论ID
-            
+
         Returns:
             点赞信息
         """

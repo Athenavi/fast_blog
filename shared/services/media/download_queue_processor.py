@@ -80,18 +80,30 @@ class DownloadQueueProcessor:
                 logger.debug("System not installed, skipping download queue processing")
                 return
             
-            # 获取待处理的任务
+            # 获取待处理的任务（原子性标记为 processing，防止多实例竞态）
             async with db_manager.get_session() as db:
                 result = await db.execute(
                     select(DownloadTask)
                     .where(DownloadTask.status == "pending")
                     .order_by(DownloadTask.priority, DownloadTask.created_at)
                     .limit(self.max_concurrent)
+                    .with_for_update(skip_locked=True)
                 )
                 pending_tasks = result.scalars().all()
 
                 if not pending_tasks:
+                    await db.commit()
                     return
+
+                # 原子性标记为 processing
+                task_ids = [t.id for t in pending_tasks]
+                from sqlalchemy import update as sa_update
+                await db.execute(
+                    sa_update(DownloadTask)
+                    .where(DownloadTask.id.in_(task_ids), DownloadTask.status == "pending")
+                    .values(status="processing")
+                )
+                await db.commit()
 
                 logger.info(f"Found {len(pending_tasks)} pending download tasks")
 

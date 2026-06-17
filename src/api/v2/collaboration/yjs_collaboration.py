@@ -128,7 +128,7 @@ async def yjs_websocket_endpoint(
             if "bytes" in data:
                 # Yjs 二进制更新 — 直接广播给其他客户端
                 update = data["bytes"]
-                doc.update_state(update)
+                await doc.update_state(update)
                 await doc.broadcast_binary(update, exclude=client_id)
 
             elif "text" in data:
@@ -216,7 +216,8 @@ async def yjs_websocket_endpoint(
                     )
             except Exception as save_err:
                 print(f"[Yjs] Final save error: {save_err}")
-        yjs_collaboration_service.remove_document(document_id)
+        if len(doc.clients) == 0:
+            yjs_collaboration_service.remove_document(document_id)
 
     except Exception as e:
         print(f"[Yjs WS] Error: {e}")
@@ -227,7 +228,8 @@ async def yjs_websocket_endpoint(
             "type": "user_left", "client_id": client_id,
             "client_count": len(doc.clients),
         })
-        yjs_collaboration_service.remove_document(document_id)
+        if len(doc.clients) == 0:
+            yjs_collaboration_service.remove_document(document_id)
 
 
 @router.get("/documents")

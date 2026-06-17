@@ -3,7 +3,7 @@
 
 实现三级缓存架构:
 1. L1 - 内存缓存 (最快,容量小)
-2. L2 - Redis缓存 (快,容量中等)
+2. L2 - Redis缓存 (快,容量中等,通过 redis_service)
 3. L3 - 文件缓存 (较慢,容量大,持久化)
 
 提供缓存预热、统计和监控功能
@@ -16,18 +16,13 @@ from pathlib import Path
 from typing import Any, Dict, Optional, List
 
 try:
-    import redis
-
-    REDIS_AVAILABLE = True
-except ImportError:
-    REDIS_AVAILABLE = False
-
-try:
     from cachetools import TTLCache
 
     CACHE_TOOLS_AVAILABLE = True
 except ImportError:
     CACHE_TOOLS_AVAILABLE = False
+
+from src.unified_logger import default_logger as logger
 
 
 class MultiLevelCache:
@@ -43,7 +38,6 @@ class MultiLevelCache:
             memory_max_size: int = 1000,
             memory_ttl: int = 300,
             redis_enabled: bool = False,
-            redis_config: Optional[Dict[str, Any]] = None,
             file_cache_enabled: bool = True,
             file_cache_dir: str = "storage/cache/multi_level",
             file_cache_ttl: int = 3600,
@@ -54,8 +48,7 @@ class MultiLevelCache:
         Args:
             memory_max_size: L1内存缓存最大条目数
             memory_ttl: L1内存缓存TTL(秒)
-            redis_enabled: 是否启用L2 Redis缓存
-            redis_config: Redis配置
+            redis_enabled: 是否启用L2 Redis缓存（通过全局 redis_service）
             file_cache_enabled: 是否启用L3文件缓存
             file_cache_dir: 文件缓存目录
             file_cache_ttl: 文件缓存TTL(秒)
@@ -75,24 +68,17 @@ class MultiLevelCache:
             'deletes': 0,
         }
 
-        # L2: Redis缓存
+        # L2: Redis缓存（通过异步 redis_service）
         self.redis_enabled = redis_enabled
-        self.redis_client = None
-        if redis_enabled and REDIS_AVAILABLE:
+        self.redis_available = False
+        if redis_enabled:
             try:
-                config = redis_config or {
-                    'host': 'localhost',
-                    'port': 6379,
-                    'db': 0,
-                    'decode_responses': True,
-                    'socket_connect_timeout': 1,  # 连接超时 1 秒
-                    'socket_timeout': 1,  # 读写超时 1 秒
-                }
-                self.redis_client = redis.Redis(**config)
-                # 移除 ping()：redis.Redis() 本身是惰性的，首次实际操作时才连接
-                print("[MultiLevelCache] L2 Redis客户端已创建（惰性连接）")
+                from src.services.redis_service import redis_service as _rs
+                self._redis_svc = _rs
+                self.redis_available = True
+                logger.info("[MultiLevelCache] L2 Redis 已启用（通过 redis_service）")
             except Exception as e:
-                print(f"[MultiLevelCache] L2 Redis连接失败: {e}")
+                logger.warning(f"[MultiLevelCache] L2 Redis 不可用: {e}")
                 self.redis_enabled = False
 
         self.redis_stats = {
@@ -122,7 +108,7 @@ class MultiLevelCache:
         self.total_requests = 0
         self.total_hits = 0
 
-    def get(self, key: str) -> Optional[Any]:
+    async def get(self, key: str) -> Optional[Any]:
         """
         获取缓存值 (从L1 -> L2 -> L3逐级查找)
 
@@ -144,8 +130,8 @@ class MultiLevelCache:
         self.memory_stats['misses'] += 1
 
         # L2: 尝试从Redis获取
-        if self.redis_enabled and self.redis_client:
-            value = self._get_from_redis(key)
+        if self.redis_enabled:
+            value = await self._get_from_redis(key)
             if value is not None:
                 self.redis_stats['hits'] += 1
                 self.total_hits += 1
@@ -163,15 +149,15 @@ class MultiLevelCache:
                 self.total_hits += 1
                 # 回填到L1和L2
                 self._set_to_memory(key, value)
-                if self.redis_enabled and self.redis_client:
-                    self._set_to_redis(key, value)
+                if self.redis_enabled:
+                    await self._set_to_redis(key, value)
                 return value
 
             self.file_cache_stats['misses'] += 1
 
         return None
 
-    def set(self, key: str, value: Any, ttl: Optional[int] = None):
+    async def set(self, key: str, value: Any, ttl: Optional[int] = None):
         """
         设置缓存值 (同时写入L1, L2, L3)
 
@@ -185,8 +171,8 @@ class MultiLevelCache:
         self.memory_stats['sets'] += 1
 
         # 写入L2
-        if self.redis_enabled and self.redis_client:
-            self._set_to_redis(key, value, ttl)
+        if self.redis_enabled:
+            await self._set_to_redis(key, value, ttl)
             self.redis_stats['sets'] += 1
 
         # 写入L3
@@ -194,7 +180,7 @@ class MultiLevelCache:
             self._set_to_file(key, value, ttl)
             self.file_cache_stats['sets'] += 1
 
-    def delete(self, key: str):
+    async def delete(self, key: str):
         """
         删除缓存 (从所有层级删除)
 
@@ -206,14 +192,14 @@ class MultiLevelCache:
         self.memory_stats['deletes'] += 1
 
         # 从L2删除
-        if self.redis_enabled and self.redis_client:
-            self._delete_from_redis(key)
+        if self.redis_enabled:
+            await self._delete_from_redis(key)
 
         # 从L3删除
         if self.file_cache_enabled:
             self._delete_from_file(key)
 
-    def clear(self):
+    async def clear(self):
         """清空所有缓存层级"""
         # 清空L1
         if CACHE_TOOLS_AVAILABLE:
@@ -222,12 +208,22 @@ class MultiLevelCache:
             self.memory_cache.clear()
             self.memory_ttl_map.clear()
 
-        # 清空L2
-        if self.redis_enabled and self.redis_client:
+        # 清空L2（只删除带缓存前缀的键，避免误删其他数据）
+        if self.redis_enabled:
             try:
-                self.redis_client.flushdb()
+                prefix = getattr(self, '_key_prefix', 'cache:')
+                deleted = 0
+                cursor = 0
+                while True:
+                    cursor, keys = await self._redis_svc.scan(cursor=cursor, match=f"{prefix}*", count=100)
+                    if keys:
+                        deleted += len(keys)
+                        await self._redis_svc.delete(*keys)
+                    if cursor == 0:
+                        break
+                logger.info(f"[MultiLevelCache] L2 Redis 已清空 {deleted} 个缓存键")
             except Exception as e:
-                print(f"[MultiLevelCache] Redis清空失败: {e}")
+                logger.error(f"[MultiLevelCache] Redis清空失败: {e}")
 
         # 清空L3
         if self.file_cache_enabled:
@@ -235,18 +231,18 @@ class MultiLevelCache:
                 for file in self.file_cache_dir.glob("*.cache"):
                     file.unlink()
             except Exception as e:
-                print(f"[MultiLevelCache] 文件缓存清空失败: {e}")
+                logger.error(f"[MultiLevelCache] 文件缓存清空失败: {e}")
 
-        print("[MultiLevelCache] 所有缓存层级已清空")
+        logger.info("[MultiLevelCache] 所有缓存层级已清空")
 
-    def warmup(self, keys_data: List[Dict[str, Any]]):
+    async def warmup(self, keys_data: List[Dict[str, Any]]):
         """
         缓存预热
 
         Args:
             keys_data: 预热的数据列表,每项包含 {'key': ..., 'value': ..., 'ttl': ...}
         """
-        print(f"[MultiLevelCache] 开始缓存预热,共 {len(keys_data)} 条数据")
+        logger.info(f"[MultiLevelCache] 开始缓存预热,共 {len(keys_data)} 条数据")
 
         for item in keys_data:
             key = item.get('key')
@@ -254,9 +250,9 @@ class MultiLevelCache:
             ttl = item.get('ttl')
 
             if key is not None and value is not None:
-                self.set(key, value, ttl)
+                await self.set(key, value, ttl)
 
-        print("[MultiLevelCache] 缓存预热完成")
+        logger.info("[MultiLevelCache] 缓存预热完成")
 
     def get_stats(self) -> Dict[str, Any]:
         """
@@ -281,6 +277,7 @@ class MultiLevelCache:
                 },
                 'L2_redis': {
                     'enabled': self.redis_enabled,
+                    'available': self.redis_available,
                     'hits': self.redis_stats['hits'],
                     'misses': self.redis_stats['misses'],
                     'sets': self.redis_stats['sets'],
@@ -337,45 +334,33 @@ class MultiLevelCache:
         if key in self.memory_ttl_map:
             del self.memory_ttl_map[key]
 
-    # ========== L2 Redis缓存操作 ==========
+    # ========== L2 Redis缓存操作（通过异步 redis_service） ==========
 
-    def _get_from_redis(self, key: str) -> Optional[Any]:
+    async def _get_from_redis(self, key: str) -> Optional[Any]:
         """从Redis获取"""
         try:
-            value = self.redis_client.get(key)
-            if value is not None:
-                try:
-                    return json.loads(value)
-                except (json.JSONDecodeError, TypeError):
-                    return value
-            return None
+            return await self._redis_svc.get(key)
         except Exception as e:
-            print(f"[MultiLevelCache] Redis获取失败: {e}")
+            logger.error(f"[MultiLevelCache] Redis获取失败: {e}")
             self.redis_stats['errors'] += 1
             return None
 
-    def _set_to_redis(self, key: str, value: Any, ttl: Optional[int] = None):
+    async def _set_to_redis(self, key: str, value: Any, ttl: Optional[int] = None):
         """设置Redis缓存"""
         try:
-            if isinstance(value, (dict, list, bool, type(None))):
-                serialized = json.dumps(value, ensure_ascii=False, default=str)
-            else:
-                serialized = str(value)
-
             if ttl is None:
                 ttl = self.memory_ttl
-
-            self.redis_client.setex(key, ttl, serialized)
+            await self._redis_svc.set(key, value, ttl)
         except Exception as e:
-            print(f"[MultiLevelCache] Redis设置失败: {e}")
+            logger.error(f"[MultiLevelCache] Redis设置失败: {e}")
             self.redis_stats['errors'] += 1
 
-    def _delete_from_redis(self, key: str):
+    async def _delete_from_redis(self, key: str):
         """从Redis删除"""
         try:
-            self.redis_client.delete(key)
+            await self._redis_svc.delete(key)
         except Exception as e:
-            print(f"[MultiLevelCache] Redis删除失败: {e}")
+            logger.error(f"[MultiLevelCache] Redis删除失败: {e}")
 
     # ========== L3 文件缓存操作 ==========
 

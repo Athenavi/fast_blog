@@ -1,12 +1,13 @@
 """
 SQLAlchemy 模型定义 - SAMLConfig
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-06-04 17:21:20
+生成时间：2026-06-13 23:12:16
 """
 
-from sqlalchemy import Column, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
+from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, ForeignKey, Index
 
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
+
 
 
 class SAMLConfig(Base):
@@ -47,17 +48,22 @@ class SAMLConfig(Base):
 
     attribute_mapping = Column(Text, nullable=True, doc='属性映射配置（JSON格式）')
 
+
     enable_slo = Column(Boolean, default=False, doc='是否启用单点登出')
 
+
     auto_provision_users = Column(Boolean, default=True, doc='是否自动创建用户')
+
 
     default_role = Column(String(50), default='subscriber', doc='新用户默认角色')
 
     is_active = Column(Boolean, default=False, doc='是否激活')
 
+
     created_at = Column(DateTime, doc='创建时间')
 
     updated_at = Column(DateTime, doc='更新时间')
+
 
     def to_dict(self, exclude_sensitive=True):
         """转换为字典
@@ -74,9 +80,6 @@ class SAMLConfig(Base):
             'idp_entity_id': self.idp_entity_id,
             'idp_sso_url': self.idp_sso_url,
             'idp_slo_url': self.idp_slo_url,
-            'idp_certificate': self.idp_certificate,
-            'sp_private_key': self.sp_private_key,
-            'sp_certificate': self.sp_certificate,
             'attribute_mapping': self.attribute_mapping,
             'enable_slo': self.enable_slo,
             'auto_provision_users': self.auto_provision_users,
@@ -88,6 +91,9 @@ class SAMLConfig(Base):
 
         if not exclude_sensitive:
             sensitive_data = {
+                'idp_certificate': self.idp_certificate,
+                'sp_private_key': self.sp_private_key,
+                'sp_certificate': self.sp_certificate,
             }
             data.update(sensitive_data)
 
@@ -96,3 +102,5 @@ class SAMLConfig(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<SAMLConfig id={self.id}>'
+
+

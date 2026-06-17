@@ -106,8 +106,8 @@ class PerformanceMonitor:
         Returns:
             服务器指标字典
         """
-        # CPU使用率
-        cpu_percent = psutil.cpu_percent(interval=1)
+        # CPU使用率 — 使用 interval=0 避免阻塞事件循环
+        cpu_percent = psutil.cpu_percent(interval=0)
 
         # 内存使用
         memory = psutil.virtual_memory()

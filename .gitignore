@@ -131,6 +131,8 @@ apps/*/migrations/*.py
 /release/
 /upload_chunks/*
 /alembic_migrations/versions/*
+!/alembic_migrations/versions/*.py
+!alembic_migrations/versions/*.py
 /plugins_data/*
 /mobile-app/node_modules/
 /frontend-astro/node_modules/

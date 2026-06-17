@@ -7,7 +7,7 @@ GDPR合规工具服务
 
 import json
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from sqlalchemy import select, func, update, delete
@@ -28,14 +28,10 @@ class GDPRComplianceService:
 
     def __init__(self):
         """初始化GDPR合规服务"""
-        # 用户同意记录 {user_id: consents}
-        self.consent_records: Dict[int, Dict[str, Any]] = {}
-
-        # 数据导出请求 {request_id: request_data}
+        # 同意记录使用 DB (GDPRConsent 模型)
         self.export_requests: Dict[str, Dict[str, Any]] = {}
-
-        # 数据删除请求 {request_id: request_data}
         self.deletion_requests: Dict[str, Dict[str, Any]] = {}
+
 
     async def export_user_data(
             self,
@@ -254,6 +250,9 @@ class GDPRComplianceService:
         # 添加到历史记录
         self.consent_records[user_id]['history'].append(consent_record)
 
+        # 持久化到文件
+        self._save_consents()
+
         return consent_record
 
     def get_user_consents(self, user_id: int) -> Dict[str, Any]:
@@ -290,14 +289,14 @@ class GDPRComplianceService:
         Returns:
             更新后的同意记录
         """
-        return self.record_consent(
+        return await self.record_consent(
             user_id=user_id,
             consent_type=consent_type,
             granted=False,
             details='User withdrew consent'
         )
 
-    def get_privacy_report(self, user_id: int) -> Dict[str, Any]:
+    async def get_privacy_report(self, user_id: int) -> Dict[str, Any]:
         """
         生成隐私报告
         

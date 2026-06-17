@@ -143,7 +143,7 @@ class TwoFactorAuthService:
 
         return json.dumps(hashed_codes)
 
-    def verify_backup_code(self, stored_codes_json: str, input_code: str) -> bool:
+    def verify_backup_code(self, stored_codes_json: str, input_code: str) -> tuple:
         """
         验证备用码
         
@@ -152,7 +152,7 @@ class TwoFactorAuthService:
             input_code: 用户输入的备用码
             
         Returns:
-            是否验证成功
+            (是否验证成功, 移除该码后的更新JSON / None)
         """
         try:
             import hashlib
@@ -163,12 +163,13 @@ class TwoFactorAuthService:
             if input_hashed in hashed_codes:
                 # 移除已使用的备用码
                 hashed_codes.remove(input_hashed)
-                return True
+                # 返回更新后的 JSON 供调用方持久化
+                return True, json.dumps(hashed_codes)
 
-            return False
+            return False, None
         except Exception as e:
             print(f"Backup code verification error: {e}")
-            return False
+            return False, None
 
     def enable_2fa(self, user_id: int, secret: str, backup_codes: List[str], db_session) -> Dict[str, Any]:
         """
@@ -319,8 +320,10 @@ class TwoFactorAuthService:
                 return {'success': True, 'method': 'totp'}
 
             # 然后尝试备用码验证
-            if user.backup_codes and self.verify_backup_code(user.backup_codes, token):
-                # 更新备用码(移除已使用的)
+            backup_ok, updated_codes = self.verify_backup_code(user.backup_codes, token)
+            if backup_ok:
+                # 更新备用码(移除已使用的)并持久化
+                user.backup_codes = updated_codes
                 db_session.commit()
                 return {'success': True, 'method': 'backup_code'}
 

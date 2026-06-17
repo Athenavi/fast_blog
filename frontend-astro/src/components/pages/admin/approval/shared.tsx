@@ -7,16 +7,13 @@ export interface ApprovalRecord {
   content_type: string;
   content_id: number;
   content_title?: string;
-  requester_id: number;
-  requester_name?: string;
-  current_step: number;
-  total_steps: number;
+  applicant_id: number;
+  applicant_name?: string;
+  current_level: number;
+  max_level: number;
   status: string;
-  priority?: string;
-  reason?: string;
-  admin_notes?: string;
   created_at?: string;
-  updated_at?: string;
+  completed_at?: string;
 }
 
 export interface ApprovalStep {

@@ -7,7 +7,7 @@ import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {apiClient} from '@/lib/api/base-client';
 import {POINTS} from '@/lib/api/api-paths';
-import {useToast} from '@/components/ui/toast-provider';
+import {ToastProvider, useToast} from '@/components/ui/toast-provider';
 import {Coins, Loader, Minus, Plus, TrendingUp, Users} from 'lucide-react';
 
 function PointsInner() {
@@ -207,4 +207,4 @@ function PointsInner() {
   );
 }
 
-export default function ExtPoints() { return <AuthGuard><QueryProvider><PointsInner/></QueryProvider></AuthGuard>; }
+export default function ExtPoints() { return <AuthGuard><QueryProvider><ToastProvider><PointsInner/></ToastProvider></QueryProvider></AuthGuard>; }

@@ -1,16 +1,23 @@
 """
 CDN 优化配置 API - V2 版本
 提供多云 CDN 配置、缓存策略管理、性能优化等功能
+
+注意: CDN 集成当前为模拟实现，所有 API 调用返回模拟数据。
+生产环境需要实现真实的 CDN 提供方集成。
 """
 from functools import wraps
 from typing import Optional
+import logging
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Body
 
 from shared.models.user import User
 from shared.services.performance.cdn_integration import cdn_service
 from src.api.v2._helpers import ok, fail, _catch
 from src.auth import jwt_required_dependency as jwt_required
+
+logger = logging.getLogger(__name__)
+logger.warning("CDN 集成为模拟实现，所有 API 调用不发送真实 CDN 请求")
 
 router = APIRouter(prefix="/cdn", tags=["CDN Optimization"])
 
@@ -26,9 +33,9 @@ async def get_cdn_config(current_user: User = Depends(jwt_required)):
 @router.post("/configure/cloudflare", summary="配置 Cloudflare CDN")
 @_catch
 async def configure_cloudflare(
-        api_token: str, zone_id: str, domain: str,
-        enable_cache: bool = True, enable_minification: bool = True,
-        enable_brotli: bool = True, cache_ttl: int = 86400,
+        api_token: str = Body(...), zone_id: str = Body(...), domain: str = Body(...),
+        enable_cache: bool = Body(True), enable_minification: bool = Body(True),
+        enable_brotli: bool = Body(True), cache_ttl: int = Body(86400),
         current_user: User = Depends(jwt_required)
 ):
     """配置 Cloudflare CDN"""
@@ -45,8 +52,8 @@ async def configure_cloudflare(
 @router.post("/configure/aws-cloudfront", summary="配置 AWS CloudFront")
 @_catch
 async def configure_aws_cloudfront(
-        access_key_id: str, secret_access_key: str, distribution_id: str, domain: str,
-        default_ttl: int = 86400, max_ttl: int = 31536000,
+        access_key_id: str = Body(...), secret_access_key: str = Body(...), distribution_id: str = Body(...), domain: str = Body(...),
+        default_ttl: int = Body(86400), max_ttl: int = Body(31536000),
         current_user: User = Depends(jwt_required)
 ):
     """配置 AWS CloudFront CDN"""
@@ -63,7 +70,7 @@ async def configure_aws_cloudfront(
 @router.post("/configure/aliyun", summary="配置阿里云 CDN")
 @_catch
 async def configure_aliyun_cdn(
-        access_key_id: str, access_key_secret: str, domain: str, cache_ttl: int = 86400,
+        access_key_id: str = Body(...), access_key_secret: str = Body(...), domain: str = Body(...), cache_ttl: int = Body(86400),
         current_user: User = Depends(jwt_required)
 ):
     """配置阿里云 CDN"""

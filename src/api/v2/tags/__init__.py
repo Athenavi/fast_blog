@@ -9,7 +9,7 @@ from sqlalchemy import select, func
 
 from shared.models.article import Article
 from src.extensions import cache
-from src.utils.database.main import get_async_session
+from src.utils.database.main import get_async_session_context
 from src.utils.filters import f2list
 
 logger = logging.getLogger('tags')
@@ -27,12 +27,12 @@ def _build_router():
     @router.get('/suggest')
     async def suggest_tags(query: str = Query("", alias="q")):
         """根据前缀建议标签（最多 5 个），缓存 10 分钟"""
-        unique_tags = cache.get_with_stale_data(
-            'unique_tags',
-            _load_unique_tags,
-            fresh_timeout=600,
-            stale_timeout=1800,
-        )
+        # 先尝试从缓存获取
+        unique_tags = cache.get('unique_tags')
+        if unique_tags is None:
+            unique_tags = await _load_unique_tags()
+            # 回填缓存
+            cache.set('unique_tags', unique_tags, ttl=600)
         return [tag for tag in unique_tags if tag.startswith(query)][:5]
 
     _router = router
@@ -42,7 +42,7 @@ def _build_router():
 async def _load_unique_tags():
     """从数据库加载去重后的标签列表（仅缓存未命中时执行）"""
     logger.info("标签缓存未命中，重新加载...")
-    async with get_async_session() as db:
+    async with get_async_session_context() as db:
         result = await db.execute(
             select(Article.tags_list).where(
                 Article.tags_list.isnot(None),

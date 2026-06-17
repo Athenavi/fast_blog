@@ -31,7 +31,7 @@ async def get_mobile_categories(
                 "name": c.name,
                 "description": c.description,
                 "slug": c.slug,
-                "parent_id": c.parent
+                "parent_id": c.parent_id
             }
             for c in categories
         ]

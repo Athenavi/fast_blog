@@ -787,6 +787,20 @@ class InstallationWizardService:
                     'error': '站点URL必须以 http:// 或 https:// 开头'
                 }
 
+            # 验证 URL 格式，防止路径遍历
+            from urllib.parse import urlparse
+            parsed = urlparse(site_url)
+            if not parsed.netloc or '..' in parsed.path or '..' in parsed.netloc:
+                return {
+                    'success': False,
+                    'error': '站点URL格式无效，包含非法路径'
+                }
+            if '\\' in site_url or '\x00' in site_url:
+                return {
+                    'success': False,
+                    'error': '站点URL包含非法字符'
+                }
+
             # 更新.env文件
             self._update_env_file({
                 'SITE_NAME': site_name,

@@ -39,6 +39,7 @@ export function useSettingsState() {
   const [sessions, setSessions] = useState<any[]>([]);
   const [savedField, setSavedField] = useState<string | null>(null);
   const [pwStrength, setPwStrength] = useState(0);
+  const [status, setStatus] = useState<string | null>(null);
   const avRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -165,10 +166,19 @@ export function useSettingsState() {
   };
 
   const setup2FA = async () => {
-    const r = await apiClient.get(SECURITY.TWO_FA_SETUP);
-    if (r.success && r.data) {
-      setQr(r.data.qr_code);
-      setSecret(r.data.secret);
+    try {
+      console.log('[2FA] Fetching:', SECURITY.TWO_FA_SETUP);
+      const r = await apiClient.get(SECURITY.TWO_FA_SETUP);
+      console.log('[2FA] Response:', r);
+      if (r.success && r.data) {
+        setQr(r.data.qr_code);
+        setSecret(r.data.secret);
+      } else {
+        alert(r?.error || '获取二维码失败，请检查控制台日志');
+      }
+    } catch (e: any) {
+      console.error('[2FA] Error:', e);
+      alert(`请求失败: ${e?.message || e}`);
     }
   };
 
@@ -177,22 +187,40 @@ export function useSettingsState() {
       alert('输入6位验证码');
       return;
     }
-    const r = await apiClient.post(SECURITY.TWO_FA_ENABLE, {totp_token: vc});
-    if (r.success) {
-      setFa(true);
-      setQr('');
-      setCodes((r.data as any)?.backup_codes || []);
+    setStatus('正在验证并启用 2FA…');
+    try {
+      const r = await apiClient.post(SECURITY.TWO_FA_ENABLE, {totp_token: vc});
+      if (r.success) {
+        setFa(true);
+        setQr('');
+        setCodes((r.data as any)?.backup_codes || []);
+        setStatus(null);
+      } else {
+        setStatus(null);
+        alert(r.error || '验证失败');
+      }
+    } catch (e) {
+      setStatus(null);
+      alert('网络错误');
     }
   };
 
   const disable2FA = async () => {
     if (!(await confirm({message: '禁用2FA？', variant: 'warning'}))) return;
-    const r = await apiClient.post(SECURITY.TWO_FA_DISABLE);
-    if (r.success) {
-      setFa(false);
-      setQr('');
-      setSecret('');
-      setCodes([]);
+    const pw = prompt('请输入当前密码以禁用双重验证：');
+    if (!pw) return;
+    try {
+      const r = await apiClient.post(SECURITY.TWO_FA_DISABLE, {password: pw});
+      if (r.success) {
+        setFa(false);
+        setQr('');
+        setSecret('');
+        setCodes([]);
+      } else {
+        alert(r.error || '禁用失败');
+      }
+    } catch (e) {
+      alert('网络错误');
     }
   };
 
@@ -227,6 +255,8 @@ export function useSettingsState() {
     } catch {}
     document.cookie = 'access_token=;path=/;expires=Thu,01 Jan 1970 00:00:00 UTC';
     document.cookie = 'refresh_token=;path=/;expires=Thu,01 Jan 1970 00:00:00 UTC';
+    // 清除 localStorage 中可能缓存的数据
+    localStorage.clear();
     window.location.href = '/login';
   };
 
@@ -282,6 +312,7 @@ export function useSettingsState() {
     flashSaved,
     pwStrengthColors,
     pwStrengthLabels,
+    status, setStatus,
     theme, setTheme,
   };
 }

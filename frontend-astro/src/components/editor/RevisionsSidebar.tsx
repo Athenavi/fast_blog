@@ -1,6 +1,6 @@
 ﻿'use client';
 
-import React, {useState} from 'react';
+import React, {useState, useMemo} from 'react';
 import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {apiClient} from '@/lib/api/base-client';
 import {ARTICLES} from '@/lib/api/api-paths';
@@ -9,6 +9,16 @@ import {useConfirm} from '@/components/ui/confirm-provider';
 
 interface Revision {id:number;revision_number:number;title:string;excerpt:string;content:string;change_summary:string|null;created_at:string;author?:{username:string};}
 interface Props {articleId:number|string;open:boolean;onClose:()=>void;onCollapse?:()=>void;onRestore:(c:string,t:string,e:string)=>void;}
+
+// 基于 DOM 的 HTML 净化（移除 script/on* 等 XSS 载体）
+const sanitizeHtml = (html: string): string => {
+  if (typeof document === 'undefined') return html.replace(/<script\b[^<]*(?:<\/script>)/gi, '');
+  const el = document.createElement('div');
+  el.innerHTML = html;
+  const scripts = el.querySelectorAll('script, iframe, object, embed, [onerror], [onload], [onclick], [onmouseover], [onfocus], [onblur]');
+  scripts.forEach(s => s.remove());
+  return el.innerHTML;
+};
 
 const RevisionsSidebar: React.FC<Props> = ({articleId,open,onClose,onCollapse,onRestore}) => {
   const qc = useQueryClient();
@@ -22,7 +32,7 @@ const RevisionsSidebar: React.FC<Props> = ({articleId,open,onClose,onCollapse,on
     queryFn:async()=>{const r=await apiClient.get<Revision[]>(`/articles/${articleId}/revisions`);return r.success&&r.data?(Array.isArray(r.data)?r.data:(r.data as any).revisions||[]):[]},
   });
 
-  const rollbackMut=useMutation({mutationFn:(revId:number)=>apiClient.post(`/articles/${articleId}/revisions/${revId}/rollback`),onSuccess:()=>{if(selected){onRestore(selected.content,selected.title,selected.excerpt);onClose();}}});
+  const rollbackMut=useMutation({mutationFn:(revId:number)=>apiClient.post(`/articles/${articleId}/revisions/${revId}/rollback`),onSuccess:()=>{if(selected){onRestore(selected.content,selected.title,selected.excerpt);qc.invalidateQueries({queryKey:['revisions',articleId]});onClose();}}});
 
   const deleteRevMut=useMutation({mutationFn:(revId:number)=>apiClient.delete(`/articles/${articleId}/revisions/${revId}`),onSuccess:()=>{qc.invalidateQueries({queryKey:['revisions',articleId]});setSelected(null);}});
 
@@ -32,7 +42,7 @@ const RevisionsSidebar: React.FC<Props> = ({articleId,open,onClose,onCollapse,on
     setSelected(a);
     setCompareWith(b);
     try {
-      const r = await apiClient.get(ARTICLES.REVISIONS_COMPARE, {rev1: a.id, rev2: b.id});
+      const r = await apiClient.get(ARTICLES.REVISIONS_COMPARE, {revision1_id: a.id, revision2_id: b.id});
       if (r.success && r.data) setDiff(r.data.differences || r.data); else setDiff({
         title_changed: a.title !== b.title,
         content_changed: true
@@ -67,7 +77,7 @@ const RevisionsSidebar: React.FC<Props> = ({articleId,open,onClose,onCollapse,on
               <p className="text-xs text-gray-500">{new Date(rev.created_at).toLocaleString('zh-CN')}</p>
               {rev.change_summary&&<p className="text-xs text-gray-500 mt-1 line-clamp-1">{rev.change_summary}</p>}
               <div className="flex gap-1 mt-1.5">
-                {rev.author&&<span className="text-xs text-gray-400"><User className="w-3 h-3 inline mr-0.5"/>{rev.author.username}</span>}
+                {rev.author&&<span className="text-xs text-gray-400"><User className="w-3 h-3 inline mr-0.5"/>{typeof rev.author === 'object' ? rev.author?.username : rev.author}</span>}
                 <button onClick={async e => {
                   e.stopPropagation();
                   if (await confirm({message: '确定删除此版本？', variant: 'danger'})) deleteRevMut.mutate(rev.id);
@@ -84,12 +94,69 @@ const RevisionsSidebar: React.FC<Props> = ({articleId,open,onClose,onCollapse,on
         {selected && <div className="w-1/2 flex flex-col">
           {/* Compare info */}
           {diff&&compareWith? (
-            <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-orange-50 dark:bg-orange-900/10 shrink-0">
-              <p className="text-xs font-semibold text-orange-700 dark:text-orange-300 mb-1 flex items-center gap-1"><GitCompare className="w-3.5 h-3.5"/>v{selected.revision_number} ↔ v{compareWith.revision_number}</p>
-              <div className="flex gap-3 text-xs">
-                {diff.title_changed!==undefined&&<span className={`px-1.5 py-0.5 rounded ${diff.title_changed?'bg-orange-100 text-orange-700':'bg-green-100 text-green-700'}'}`}>{diff.title_changed?'标题不同':'标题相同'}</span>}
-                {diff.content_changed!==undefined&&<span className={`px-1.5 py-0.5 rounded ${diff.content_changed?'bg-orange-100 text-orange-700':'bg-green-100 text-green-700'}'}`}>{diff.content_changed?'内容不同':'内容相同'}</span>}
-                {diff.excerpt_changed!==undefined&&<span className={`px-1.5 py-0.5 rounded ${diff.excerpt_changed?'bg-orange-100 text-orange-700':'bg-green-100 text-green-700'}'}`}>{diff.excerpt_changed?'摘要不同':'摘要相同'}</span>}
+            <div className="flex flex-col h-full">
+              <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 bg-orange-50 dark:bg-orange-900/10 shrink-0">
+                <p className="text-xs font-semibold text-orange-700 dark:text-orange-300 mb-1 flex items-center gap-1"><GitCompare className="w-3.5 h-3.5"/>v{selected.revision_number} ↔ v{compareWith.revision_number}</p>
+              </div>
+              <div className="flex-1 overflow-y-auto p-4 space-y-3">
+                {/* Title diff */}
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 mb-1 uppercase">标题</p>
+                  {selected.title !== compareWith.title ? (
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 px-3 py-1.5 bg-red-50 dark:bg-red-900/20 rounded-lg text-sm text-red-700 dark:text-red-300">
+                        <span className="text-[10px] font-mono bg-red-200 dark:bg-red-800 px-1 rounded">-</span>
+                        <span className="line-through">{compareWith.title}</span>
+                      </div>
+                      <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 dark:bg-green-900/20 rounded-lg text-sm text-green-700 dark:text-green-300">
+                        <span className="text-[10px] font-mono bg-green-200 dark:bg-green-800 px-1 rounded">+</span>
+                        <span>{selected.title}</span>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500 italic">无变化</p>
+                  )}
+                </div>
+
+                {/* Excerpt diff */}
+                {diff.excerpt_changed !== undefined && (
+                  <div>
+                    <p className="text-xs font-semibold text-gray-500 mb-1 uppercase">摘要</p>
+                    {diff.excerpt_changed ? (
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-red-50 dark:bg-red-900/20 rounded-lg text-sm text-red-700 dark:text-red-300">
+                          <span className="text-[10px] font-mono bg-red-200 dark:bg-red-800 px-1 rounded">-</span>
+                          <span className="line-through truncate">{compareWith.excerpt || '(空)'}</span>
+                        </div>
+                        <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 dark:bg-green-900/20 rounded-lg text-sm text-green-700 dark:text-green-300">
+                          <span className="text-[10px] font-mono bg-green-200 dark:bg-green-800 px-1 rounded">+</span>
+                          <span className="truncate">{selected.excerpt || '(空)'}</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-500 italic">无变化</p>
+                    )}
+                  </div>
+                )}
+
+                {/* Content diff */}
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 mb-1 uppercase">内容</p>
+                  {diff.content_changed ? (
+                    <div className="space-y-2">
+                      <p className="text-xs text-gray-400">旧版本 ({compareWith.revision_number})</p>
+                      <div className="max-h-40 overflow-y-auto p-3 bg-red-50 dark:bg-red-900/20 rounded-xl text-sm text-red-700 dark:text-red-300 border border-red-200 dark:border-red-800">
+                        <div className="prose prose-sm max-w-none line-through opacity-70" dangerouslySetInnerHTML={{__html: sanitizeHtml(compareWith.content) || '<p>(空)</p>'}}/>
+                      </div>
+                      <p className="text-xs text-gray-400">新版本 ({selected.revision_number})</p>
+                      <div className="max-h-40 overflow-y-auto p-3 bg-green-50 dark:bg-green-900/20 rounded-xl text-sm text-green-700 dark:text-green-300 border border-green-200 dark:border-green-800">
+                        <div className="prose prose-sm max-w-none" dangerouslySetInnerHTML={{__html: sanitizeHtml(selected.content) || '<p>(空)</p>'}}/>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-gray-500 italic">无变化</p>
+                  )}
+                </div>
               </div>
             </div>
           ) : (
@@ -112,7 +179,7 @@ const RevisionsSidebar: React.FC<Props> = ({articleId,open,onClose,onCollapse,on
           <div className="flex-1 overflow-y-auto p-4">
             <h3 className="font-bold text-gray-900 dark:text-white mb-2">{selected.title}</h3>
             {selected.excerpt&&<p className="text-sm text-gray-500 mb-4">{selected.excerpt}</p>}
-            <div className="prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{__html:preview||selected.content}}/>
+            <div className="prose prose-sm dark:prose-invert max-w-none" dangerouslySetInnerHTML={{__html: sanitizeHtml(preview||selected.content)}}/>
           </div>
         </div>}
       </div>

@@ -1,17 +1,21 @@
 """
 SQLAlchemy 模型定义 - GlobalStyle
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-06-04 17:21:19
+生成时间：2026-06-13 23:12:16
 """
 
-from sqlalchemy import Column, BigInteger, String, Text, Boolean, DateTime
+from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime
 
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
+
 
 
 class GlobalStyle(Base):
     """全局样式配置模型模型"""
     __tablename__ = 'global_styles'
+
+
+
 
     id = Column(BigInteger, primary_key=True, autoincrement=True, doc='配置 ID')
 
@@ -22,7 +26,9 @@ class GlobalStyle(Base):
 
     is_active = Column(Boolean, default=False, doc='是否当前激活')
 
+
     created_at = Column(DateTime, doc='创建时间')
+
 
     def to_dict(self, exclude_sensitive=True):
         """转换为字典
@@ -48,3 +54,5 @@ class GlobalStyle(Base):
     def __repr__(self):
         """字符串表示"""
         return f'<GlobalStyle id={self.id}>'
+
+

@@ -390,7 +390,8 @@ class HaloImportService:
                 except Exception as e:
                     results['errors'].append(
                         f"文章导入失败: {halo_post.get('metadata', {}).get('name', 'Unknown')} - {str(e)}")
-                    await db_session.rollback()
+                    # 不回滚整个会话，仅跳过当前文章
+                    continue
 
             await db_session.commit()
 

@@ -21,7 +21,7 @@ import {
   X
 } from 'lucide-react';
 import {useConfirm} from '@/components/ui/confirm-provider';
-import {useToast} from '@/components/ui/toast-provider';
+import {ToastProvider, useToast} from '@/components/ui/toast-provider';
 
 const ACTION_LABELS: Record<string, string> = {block: '拦截', replace: '替换', warn: '警告'};
 const ACTION_COLORS: Record<string, string> = {
@@ -429,7 +429,9 @@ export default function AdminSensitiveWords() {
     <AuthGuard>
       <QueryProvider>
         <PermissionGuard capability="settings:view">
-          <SensitiveWordsInner/>
+          <ToastProvider>
+            <SensitiveWordsInner/>
+          </ToastProvider>
         </PermissionGuard>
       </QueryProvider>
     </AuthGuard>

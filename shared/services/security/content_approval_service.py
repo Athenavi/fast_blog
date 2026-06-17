@@ -7,6 +7,8 @@ from datetime import datetime
 from enum import Enum
 from typing import Dict, Any, Optional, List
 
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from shared.models.collaboration import ApprovalStep, ApprovalRecord
 from src.unified_logger import default_logger as logger
 
@@ -34,7 +36,7 @@ class ContentApprovalService:
     def __init__(self):
         pass
 
-    async def create_approval_request(self, db, content_type: str, content_id: int,
+    async def create_approval_request(self, db: AsyncSession, content_type: str, content_id: int,
                                       applicant_id: int, max_level: int = 1,
                                       approvers: List[int] = None) -> ApprovalRecord:
         """
@@ -327,11 +329,13 @@ class ContentApprovalService:
             待审批列表和分页信息
         """
         from sqlalchemy import select, func
+        from shared.models.user import User
 
-        # 查找当前用户需要审批的记录
+        # 查找当前用户需要审批的记录，同时获取申请人姓名
         query = (
-            select(ApprovalRecord)
+            select(ApprovalRecord, User.username)
             .join(ApprovalStep, ApprovalRecord.id == ApprovalStep.record_id)
+            .join(User, ApprovalRecord.applicant_id == User.id, isouter=True)
             .where(
                 ApprovalRecord.status == ApprovalStatus.PENDING.value,
                 ApprovalStep.level == ApprovalRecord.current_level,
@@ -352,15 +356,16 @@ class ContentApprovalService:
         query = query.offset(offset).limit(per_page).order_by(ApprovalRecord.created_at.desc())
 
         result = await db.execute(query)
-        records = result.scalars().all()
+        rows = result.all()
 
         records_list = []
-        for record in records:
+        for record, applicant_name in rows:
             records_list.append({
                 'id': record.id,
                 'content_type': record.content_type,
                 'content_id': record.content_id,
                 'applicant_id': record.applicant_id,
+                'applicant_name': applicant_name,
                 'current_level': record.current_level,
                 'max_level': record.max_level,
                 'status': record.status,

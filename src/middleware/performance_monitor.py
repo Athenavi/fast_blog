@@ -123,10 +123,10 @@ class PerformanceMonitor:
 
 
 # 全局性能监控实例
-performance_monitor = PerformanceMonitor()
+performance_monitor_middleware = PerformanceMonitor()
 
 
-class PerformanceMonitoringMiddleware(BaseHTTPMiddleware):
+class RequestPerformanceMiddleware(BaseHTTPMiddleware):
     """
     性能监控中间件
     
@@ -139,13 +139,13 @@ class PerformanceMonitoringMiddleware(BaseHTTPMiddleware):
         request_id = str(uuid.uuid4())
 
         # 记录开始时间
-        performance_monitor.record_request_start(request_id)
+        performance_monitor_middleware.record_request_start(request_id)
 
         # 处理请求
         response = await call_next(request)
 
         # 记录结束时间
-        duration = performance_monitor.record_request_end(
+        duration = performance_monitor_middleware.record_request_end(
             request_id,
             str(request.url.path),
             request.method,
@@ -156,7 +156,7 @@ class PerformanceMonitoringMiddleware(BaseHTTPMiddleware):
         response.headers["X-Response-Time"] = f"{duration:.4f}s"
 
         # 如果是慢请求，记录日志
-        if duration > performance_monitor.slow_threshold:
+        if duration > performance_monitor_middleware.slow_threshold:
             print(f"[SLOW REQUEST] {request.method} {request.url.path} - {duration:.4f}s")
 
         return response
@@ -164,9 +164,9 @@ class PerformanceMonitoringMiddleware(BaseHTTPMiddleware):
 
 def get_performance_stats() -> Dict[str, Any]:
     """获取性能统计（供API调用）"""
-    return performance_monitor.get_performance_stats()
+    return performance_monitor_middleware.get_performance_stats()
 
 
 def get_optimization_suggestions() -> Dict[str, Any]:
     """获取优化建议（供API调用）"""
-    return performance_monitor.get_startup_optimization_suggestions()
+    return performance_monitor_middleware.get_startup_optimization_suggestions()

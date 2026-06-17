@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  ExternalLink, FileText, Film, Globe, Hash, Home, Image, Layers,
+  Copyright, ExternalLink, FileText, Film, Globe, Hash, Home, Image, Layers,
   Link2, Lock, Mail, Menu, Settings as SettingsIcon, Shield, Type, Zap
 } from 'lucide-react';
 
@@ -87,6 +87,33 @@ export const SETTINGS_FIELDS: FieldDef[] = [
     placeholder: '博客, 技术, ...',
     icon: Hash,
     desc: '用于SEO优化，逗号分隔'
+  },
+  {
+    key: 'site_icon',
+    label: '站点图标 (Favicon)',
+    category: 'basic',
+    type: 'media',
+    placeholder: 'https://... 或上传图片',
+    icon: Image,
+    desc: '浏览器标签和书签中显示的图标，推荐 32x32px'
+  },
+  {
+    key: 'copyright',
+    label: '版权信息',
+    category: 'basic',
+    type: 'textarea',
+    rows: 2,
+    placeholder: '© 2026 FastBlog. All rights reserved.',
+    icon: Copyright,
+    desc: '显示在页脚的版权文字'
+  },
+  {
+    key: 'footer_menu_slug',
+    label: '页脚菜单',
+    category: 'basic',
+    placeholder: 'footer',
+    icon: Menu,
+    desc: '指定页脚导航使用的菜单标识'
   },
   // home
   {key: 'home_hero_title', label: 'Hero 标题', category: 'home', placeholder: '欢迎来到我的博客', icon: Type},

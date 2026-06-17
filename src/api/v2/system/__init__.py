@@ -51,6 +51,25 @@ def _build_router():
             print(traceback.format_exc())
             return ApiResponse(success=False, error=str(e))
 
+    @router.get("/health/ping", summary="简易存活检查",
+                description="公开端点，仅返回服务是否存活")
+    async def ping():
+        return {"status": "ok", "timestamp": __import__('datetime').datetime.now().isoformat()}
+
+    @router.get("/health/readiness", summary="就绪检查",
+                description="公开端点，检查数据库等核心依赖是否就绪")
+    async def readiness():
+        issues = []
+        try:
+            from src.extensions import get_async_db_session
+            from sqlalchemy import text
+            async for db in get_async_db_session():
+                await db.execute(text("SELECT 1"))
+                break
+        except Exception:
+            issues.append("database_unreachable")
+        return {"status": "ready" if not issues else "degraded", "issues": issues}
+
     @router.get("/info", summary="系统信息",
                 description="获取系统基本信息(仅管理员)")
     async def system_info_api(
@@ -75,6 +94,7 @@ def _build_router():
 
     # ── V1 聚合子模块 ────
     from src.api.v2.system.admin_settings import router as admin_settings_router
+    from src.api.v2.system.backup_management import router as backup_management_router
     from src.api.v2.system.batch_operations import router as batch_operations_router
     from src.api.v2.system.data_export import router as data_export_router
     from src.api.v2.system.database_migration import router as database_migration_router
@@ -89,12 +109,14 @@ def _build_router():
     from src.api.v2.system.webhook_management import router as webhook_management_router
     from src.api.v2.system.workflow import router as workflow_router
     from src.api.v2.system.migration_management import router as migration_management_router
+    from src.api.v2.system.version import router as version_router
 
     router.include_router(admin_settings_router, prefix="/settings")
     router.include_router(database_migration_router, prefix="/db/database-migration")
     router.include_router(report_management_router, prefix="/report")
     router.include_router(webhook_management_router, prefix="/webhook")
     router.include_router(incremental_backup_router, prefix="/backup-plus")
+    router.include_router(backup_management_router, prefix="/backup")
     router.include_router(batch_operations_router, prefix="/batch")
     router.include_router(data_export_router, prefix="/export")
     router.include_router(installation_router, prefix="/install")
@@ -105,6 +127,7 @@ def _build_router():
     router.include_router(screen_options_router, prefix="/screen-options")
     router.include_router(workflow_router, prefix="/workflow")
     router.include_router(migration_management_router, prefix="/migration-management")
+    router.include_router(version_router, prefix="")
 
     _router = router
     return _router

@@ -21,6 +21,10 @@ def _build_router():
     from src.api.v2.media.offline_download import router as offline_download_router
     router.include_router(offline_download_router)
 
+    # 图片编辑路由
+    from src.api.v2.media.image_edit import router as image_edit_router
+    router.include_router(image_edit_router, prefix="/edit")
+
     _router = router
     return _router
 

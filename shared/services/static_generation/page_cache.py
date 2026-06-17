@@ -7,7 +7,10 @@
 """
 
 import hashlib
+import logging
 from typing import Optional, Dict, Any, Callable, Awaitable
+
+logger = logging.getLogger(__name__)
 
 from shared.services.core.multi_level_cache import MultiLevelCache, multi_level_cache
 
@@ -73,13 +76,13 @@ class PageCacheService:
             缓存的HTML内容，不存在则返回None
         """
         cache_key = self._generate_cache_key(url, user_role, params)
-        cached_content = self.cache.get(cache_key)
+        cached_content = await self.cache.get(cache_key)
 
         if cached_content:
-            print(f"[PageCache] HIT: {url} (role: {user_role})")
+            logger.info(f"[PageCache] HIT: {url} (role: {user_role})")
             return cached_content
 
-        print(f"[PageCache] MISS: {url} (role: {user_role})")
+        logger.info(f"[PageCache] MISS: {url} (role: {user_role})")
         return None
 
     async def set_page(self, url: str, content: str, user_role: str = "anonymous",
@@ -99,9 +102,9 @@ class PageCacheService:
             ttl = self.default_ttl
 
         cache_key = self._generate_cache_key(url, user_role, params)
-        self.cache.set(cache_key, content, ttl)
+        await self.cache.set(cache_key, content, ttl)
 
-        print(f"[PageCache] SET: {url} (role: {user_role}, ttl: {ttl}s)")
+        logger.info(f"[PageCache] SET: {url} (role: {user_role}, ttl: {ttl}s)")
 
     async def invalidate_page(self, url: str, user_role: str = "anonymous",
                               params: Optional[Dict[str, Any]] = None) -> None:
@@ -114,30 +117,54 @@ class PageCacheService:
             params: 查询参数
         """
         cache_key = self._generate_cache_key(url, user_role, params)
-        self.cache.delete(cache_key)
+        await self.cache.delete(cache_key)
 
-        print(f"[PageCache] INVALIDATE: {url} (role: {user_role})")
+        logger.info(f"[PageCache] INVALIDATE: {url} (role: {user_role})")
 
     async def invalidate_pattern(self, pattern: str) -> int:
         """
         使匹配模式的缓存失效
-        
+
         Args:
-            pattern: URL模式（支持通配符）
-        
+            pattern: URL模式（支持 * 通配符）
+
         Returns:
             失效的缓存数量
         """
-        # 注意：这里简化实现，实际应该扫描所有缓存键
-        # 对于生产环境，建议使用Redis的KEYS命令或维护索引
-        print(f"[PageCache] INVALIDATE PATTERN: {pattern}")
-        return 0
+        import fnmatch
+        prefix = self.cache_prefix
+        count = 0
+
+        # 清理内存缓存的匹配 key
+        if hasattr(self.cache, 'memory_cache') and isinstance(self.cache.memory_cache, dict):
+            keys_to_delete = [k for k in self.cache.memory_cache if fnmatch.fnmatch(k, f"{prefix}{pattern}")]
+            for k in keys_to_delete:
+                await self.cache.delete(k)
+                count += 1
+            logger.info(f"[PageCache] INVALIDATE PATTERN: {pattern}, cleared {count} keys")
+        else:
+            # 退化：TTLCache 不支持通配，全部清空
+            logger.warning(f"[PageCache] memory_cache is TTLCache, fallback to clear all for pattern: {pattern}")
+            await self.cache.clear()
+            count = -1
+
+        return count
 
     async def clear_all(self) -> None:
         """清空所有页面缓存"""
-        # 清空所有以page_cache:开头的键
-        # 这里简化处理，实际应该只清除页面缓存
-        print("[PageCache] CLEAR ALL")
+        prefix = self.cache_prefix
+        count = 0
+
+        # 清理内存中的页面缓存
+        if hasattr(self.cache, 'memory_cache') and isinstance(self.cache.memory_cache, dict):
+            keys_to_delete = [k for k in self.cache.memory_cache if k.startswith(prefix)]
+            for k in keys_to_delete:
+                await self.cache.delete(k)
+                count += 1
+            logger.info(f"[PageCache] CLEAR ALL, cleared {count} page cache keys")
+        else:
+            await self.cache.clear()
+            logger.info("[PageCache] CLEAR ALL (full cache clear)")
 
     def should_cache_request(self, url: str, method: str = "GET",
                              user_role: str = "anonymous") -> bool:

@@ -3,6 +3,7 @@
 提供适合移动端的文章相关接口，包括列表、详情、搜索等功能
 """
 import re
+import time
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, Request
@@ -15,6 +16,11 @@ from shared.models.user import User
 from src.api.v2._base import ApiResponse
 from src.auth.auth_deps import jwt_optional_dependency
 from src.utils.database.main import get_async_session
+from src.unified_logger import default_logger as logger
+
+# 简单内存去重：记录 (article_id, client_ip) 组合，60 秒内不重复计数
+_view_cooldown: dict[tuple[int, str], float] = {}
+_VIEW_COOLDOWN_SECONDS = 60
 
 router = APIRouter(tags=["mobile-articles"])
 
@@ -128,7 +134,7 @@ async def get_mobile_articles_list(
         )
     except Exception as e:
         import traceback
-        print(f"Error in get_mobile_articles_list: {e}\n{traceback.format_exc()}")
+        logger.error(f"Error in get_mobile_articles_list: {e}\n{traceback.format_exc()}")
         return ApiResponse(success=False, error=str(e))
 
 
@@ -175,8 +181,19 @@ async def get_mobile_article_detail(
             category_result = await db.execute(category_query)
             category = category_result.scalar_one_or_none()
 
-        # 增加浏览量
-        article.views = (article.views or 0) + 1
+        # 增加浏览量（带 60 秒去重）
+        client_ip = request.client.host if request.client else "unknown"
+        key = (article_id, client_ip)
+        now = time.time()
+        # 定期清理过期的冷却记录
+        if len(_view_cooldown) > 10000:
+            stale = [k for k, ts in _view_cooldown.items() if now - ts > _VIEW_COOLDOWN_SECONDS]
+            for k in stale:
+                del _view_cooldown[k]
+        last_seen = _view_cooldown.get(key)
+        if last_seen is None or now - last_seen > _VIEW_COOLDOWN_SECONDS:
+            _view_cooldown[key] = now
+            article.views = (article.views or 0) + 1
         await db.commit()
 
         return ApiResponse(
@@ -210,7 +227,7 @@ async def get_mobile_article_detail(
         )
     except Exception as e:
         import traceback
-        print(f"Error in get_mobile_article_detail: {e}\n{traceback.format_exc()}")
+        logger.error(f"Error in get_mobile_article_detail: {e}\n{traceback.format_exc()}")
         return ApiResponse(success=False, error=str(e))
 
 
@@ -298,5 +315,5 @@ async def search_mobile_articles(
         )
     except Exception as e:
         import traceback
-        print(f"Error in search_mobile_articles: {e}\n{traceback.format_exc()}")
+        logger.error(f"Error in search_mobile_articles: {e}\n{traceback.format_exc()}")
         return ApiResponse(success=False, error=str(e))

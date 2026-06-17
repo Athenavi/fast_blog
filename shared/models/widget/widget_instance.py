@@ -1,12 +1,13 @@
 """
 SQLAlchemy 模型定义 - WidgetInstance
 由代码生成器自动生成 (基于 models.yaml / routes.yaml) - 请勿手动修改
-生成时间：2026-06-04 17:21:20
+生成时间：2026-06-13 23:12:16
 """
 
-from sqlalchemy import Column, BigInteger, String, Boolean, DateTime, Index
+from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Index
 
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
+
 
 
 class WidgetInstance(Base):
@@ -29,7 +30,7 @@ class WidgetInstance(Base):
 
     title = Column(String(255), nullable=True, doc='Widget标题')
 
-    config = Column(String(255), nullable=True, doc='Widget配置（JSON格式）')
+    config = Column(Text, nullable=True, doc='Widget配置（JSON格式）')
 
     order_index = Column(BigInteger, default=0, doc='显示顺序')
 
@@ -37,7 +38,7 @@ class WidgetInstance(Base):
     is_active = Column(Boolean, default=True, doc='是否启用')
 
 
-    conditions = Column(String(255), nullable=True, doc='显示条件（JSON格式）')
+    conditions = Column(Text, nullable=True, doc='显示条件（JSON格式）')
 
     created_at = Column(DateTime, doc='创建时间')
 
