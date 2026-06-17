@@ -63,14 +63,19 @@ def create_access_token(
 # ---------- 提取与验证 Token ----------
 async def _get_token_from_request(request: Request) -> Optional[str]:
     """
-    从 Authorization Header 或 Cookie 中提取 JWT token
+    从 Authorization Header、Cookie 或查询参数中提取 JWT token
     """
     # 1. 优先从 Bearer Header 获取
     auth_header = request.headers.get("Authorization")
     if auth_header and auth_header.startswith("Bearer "):
         return auth_header[len("Bearer "):]
 
-    # 2. 从 Cookie 获取（兼容页面路由）
+    # 2. 从查询参数 token 获取（用于 iframe/img 等无法携带 header/cookie 的场景）
+    token_param = request.query_params.get("token")
+    if token_param:
+        return token_param
+
+    # 3. 从 Cookie 获取（兼容页面路由）
     return request.cookies.get("access_token") or request.cookies.get("access_token_cookie")
 
 

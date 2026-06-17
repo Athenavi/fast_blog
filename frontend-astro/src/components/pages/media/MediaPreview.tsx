@@ -1,11 +1,12 @@
 'use client';
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect } from 'react';
 import FsLightbox from 'fslightbox-react';
 import FileViewer from '@flyfish-group/file-viewer-react';
 import { AudioLayer } from './AudioPlayer';
 import type { MediaFile } from '@/lib/api';
-import { getFullMediaUrl } from '@/lib/utils';
+import { getFullMediaUrl, getAuthenticatedMediaUrl } from '@/lib/utils';
+import { useFileBlob } from '@/lib/hooks/useFileBlob';
 import {
   X,
   ChevronLeft,
@@ -15,6 +16,8 @@ import {
   Music,
   Video,
   ExternalLink,
+  Loader2,
+  AlertCircle,
 } from 'lucide-react';
 
 interface MediaPreviewProps {
@@ -63,6 +66,12 @@ export function MediaPreview({
   const nextFile =
     currentIndex < files.length - 1 ? files[currentIndex + 1] : null;
 
+  // ── Blob 获取（非图片/音频通过 file prop 传给 FileViewer）──
+  const { blob, loading: blobLoading, error: blobError } = useFileBlob(
+    !isImage && !isAudio ? fullUrl : null,
+    activeFile?.original_filename,
+  );
+
   // ── ESC 键关闭 ──
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
@@ -89,7 +98,7 @@ export function MediaPreview({
       f.mime_type?.startsWith('image/'),
     );
     const sources = imageFiles.map((f) =>
-      getFullMediaUrl(f.thumbnail_url || f.url),
+      getAuthenticatedMediaUrl(f.thumbnail_url || f.url),
     );
     const srcIndex = imageFiles.findIndex((f) => f.id === activeFile.id);
 
@@ -186,14 +195,33 @@ export function MediaPreview({
         )}
 
         {/* 核心预览器 */}
-        <div className="w-full h-full">
-          <FileViewer
-            url={fullUrl}
-            options={{
-              theme: 'dark',
-              toolbar: { position: 'bottom-right' },
-            }}
-          />
+        <div className="w-full h-full flex items-center justify-center">
+          {blobLoading ? (
+            <div className="flex flex-col items-center gap-3 text-white/50">
+              <Loader2 className="w-8 h-8 animate-spin" />
+              <span className="text-sm">正在加载文件...</span>
+            </div>
+          ) : blobError ? (
+            <div className="flex flex-col items-center gap-3 text-red-400">
+              <AlertCircle className="w-8 h-8" />
+              <span className="text-sm">{blobError}</span>
+            </div>
+          ) : blob ? (
+            <FileViewer
+              file={blob}
+              name={activeFile.original_filename}
+              options={{
+                theme: 'dark',
+                toolbar: { position: 'bottom-right' },
+                pdf: { withCredentials: true },
+              }}
+            />
+          ) : (
+            <div className="flex flex-col items-center gap-3 text-white/50">
+              <Loader2 className="w-8 h-8 animate-spin" />
+              <span className="text-sm">正在准备预览...</span>
+            </div>
+          )}
         </div>
 
         {/* → 下一个 */}
@@ -221,7 +249,7 @@ export function MediaPreview({
             const isImg = fMime.startsWith('image/');
             const thumbSrc =
               isImg && (f as any).thumbnail_url
-                ? getFullMediaUrl((f as any).thumbnail_url)
+                ? getAuthenticatedMediaUrl((f as any).thumbnail_url)
                 : null;
 
             return (
