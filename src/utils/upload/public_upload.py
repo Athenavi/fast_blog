@@ -125,7 +125,10 @@ class FileProcessor:
                                   '.step', '.stp', '.iges', '.igs', '.ifc', '.3dm',
                                   '.excalidraw',
                                   '.drawio', '.dio',
-                                  '.olb', '.dra'}
+                                  '.olb', '.dra',
+                                  '.ar', '.xar',
+                                  '.oga', '.weba',
+                                  '.vue',}
 
             if ext_lower not in allowed_extensions:
                 logger.warning(f"[WARN] 扩展名 {ext} 不在允许列表中，拒绝")
@@ -189,8 +192,9 @@ class FileProcessor:
         # 音频格式
         audio_exts = {
             '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.flac': 'audio/flac',
-            '.aac': 'audio/aac', '.ogg': 'audio/ogg', '.m4a': 'audio/mp4',
-            '.wma': 'audio/x-ms-wma'
+            '.aac': 'audio/aac', '.ogg': 'audio/ogg', '.oga': 'audio/ogg',
+            '.m4a': 'audio/mp4', '.opus': 'audio/ogg',
+            '.weba': 'audio/webm', '.wma': 'audio/x-ms-wma',
         }
         if ext in audio_exts:
             return audio_exts[ext]
@@ -241,6 +245,8 @@ class FileProcessor:
             '.tgz': 'application/gzip',
             '.tbz': 'application/x-bzip2', '.tbz2': 'application/x-bzip2',
             '.txz': 'application/x-xz',
+            '.ar': 'application/x-archive',
+            '.xar': 'application/x-xar',
             '.cab': 'application/x-cab',
             '.cpio': 'application/x-cpio',
             '.iso': 'application/x-iso9660-image',
@@ -312,6 +318,7 @@ class FileProcessor:
             '.h': 'text/x-c', '.hpp': 'text/x-c++',
             '.cs': 'text/x-csharp',
             '.diff': 'text/x-diff',
+            '.vue': 'text/html',
         }
         if ext in code_exts:
             return code_exts[ext]
