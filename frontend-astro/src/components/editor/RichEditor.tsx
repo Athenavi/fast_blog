@@ -153,10 +153,19 @@ const RichEditor: React.FC<RichEditorProps> = ({value,onChange,placeholder='å¼€å
     onUpdate:({editor})=>onChange(editor.getHTML()),
     editorProps:{attributes:{class:'prose prose-lg dark:prose-invert max-w-none focus:outline-none min-h-[60vh] px-6 py-4'},
     handlePaste:(_view,event)=>{
-      const files=event.clipboardData?.files;
-      if(!files||files.length===0)return false;
+      let files:File[]=[];
+      const dt=event.clipboardData;
+      if(dt?.files?.length){
+        files=Array.from(dt.files);
+      }else if(dt?.items?.length){
+        for(let i=0;i<dt.items.length;i++){
+          const item=dt.items[i];
+          if(item.kind==='file'){const f=item.getAsFile();if(f)files.push(f);}
+        }
+      }
+      if(!files.length)return false;
       event.preventDefault();
-      uploadPastedFiles(Array.from(files));
+      uploadPastedFiles(files);
       return true;
     },
     handleDrop:(_view,event,_slice,_moved)=>{
