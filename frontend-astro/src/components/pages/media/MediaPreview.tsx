@@ -109,6 +109,8 @@ export function MediaPreview({
         toggler={false}
         sources={sources}
         sourceIndex={Math.max(0, srcIndex)}
+        type="image"
+        disableLocalStorage
         onClose={onClose}
       />
     );

@@ -15,6 +15,7 @@ declare module 'fslightbox-react' {
     slideDistance?: number
     sourceMargin?: number
     disableSlideSwiping?: boolean
+    disableLocalStorage?: boolean
     loadOnlyCurrentSource?: boolean
     useDialog?: boolean
     exitFullscreenOnClose?: boolean
