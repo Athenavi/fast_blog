@@ -16,7 +16,7 @@ import {
     useSortable,
 } from '@dnd-kit/sortable';
 import {CSS} from '@dnd-kit/utilities';
-import {Plus, Undo2, Redo2} from 'lucide-react';
+import {Plus, Undo2, Redo2, ExternalLink} from 'lucide-react';
 import BlockCard from './BlockCard';
 
 interface Props {
@@ -129,6 +129,15 @@ export default function BlockWorkspace({
                     </button>
 
                     <div className="w-px h-5 bg-gray-200 dark:bg-gray-700 mx-1"/>
+
+                    {/* 查看已发布页面 */}
+                    {'is_published' in selectedPage && (selectedPage as any).is_published && (
+                        <a href={`/p/${(selectedPage as any).slug}`} target="_blank" rel="noopener noreferrer"
+                           className="p-1.5 rounded text-gray-400 hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition"
+                           title="查看已发布页面 (新窗口)">
+                            <ExternalLink className="w-3.5 h-3.5"/>
+                        </a>
+                    )}
 
                     <button onClick={onSave} disabled={!isDirty || isSaving}
                             className={`px-3 py-1.5 text-xs font-medium rounded-lg transition ${

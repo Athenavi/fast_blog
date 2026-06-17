@@ -2,7 +2,7 @@
  * PageListPanel — 左侧页面列表面板（含搜索、状态标识）
  */
 import React, {useState, useMemo} from 'react';
-import {Plus, Trash2, CheckCircle2, FileText, Search} from 'lucide-react';
+import {Plus, Trash2, ExternalLink, FileText, Search} from 'lucide-react';
 import type {PageData} from '../types';
 
 interface Props {
@@ -94,7 +94,16 @@ export default function PageListPanel({pages, isLoading, selectedPage, onSelectP
                                     /{page.slug}
                                 </div>
                             </div>
-                            <button onClick={(e) => {
+                            <div className="flex items-center gap-0.5">
+                                {page.is_published && (
+                                    <a href={`/p/${page.slug}`} target="_blank" rel="noopener noreferrer"
+                                       onClick={e => e.stopPropagation()}
+                                       className="p-1 opacity-0 group-hover:opacity-100 text-gray-400 hover:text-blue-600 rounded hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all"
+                                       title="查看已发布页面">
+                                        <ExternalLink className="w-3 h-3"/>
+                                    </a>
+                                )}
+                                <button onClick={(e) => {
                                 e.stopPropagation();
                                 onDeletePage(page);
                             }}
@@ -102,6 +111,7 @@ export default function PageListPanel({pages, isLoading, selectedPage, onSelectP
                                     title="删除">
                                 <Trash2 className="w-3 h-3"/>
                             </button>
+                        </div>
                         </div>
                     ))}
                 </div>
