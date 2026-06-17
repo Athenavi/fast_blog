@@ -1,12 +1,12 @@
 /**
  * PreviewPane — 实时预览面板（右侧）
  *
- * 将编辑中的 blocks 渲染为 iframe 内容（样式隔离），
- * 并支持响应式设备切换（桌面/平板/手机）。
+ * 使用 BlockPreview 组件将 block data 实时渲染为可视化效果，
+ * 支持响应式设备切换（桌面/平板/手机）。
  */
 import React from 'react';
-import DOMPurify from 'dompurify';
 import {Monitor, Tablet, Smartphone} from 'lucide-react';
+import BlockPreview from './BlockPreview';
 import type {PreviewDevice} from '../types';
 
 interface Props {
@@ -58,27 +58,16 @@ export default function PreviewPane({blocks, previewDevice, onChangeDevice}: Pro
                             <p className="text-xs mt-1">添加组件后即时预览效果</p>
                         </div>
                     ) : (
-                        <div className="p-6 space-y-6">
-                            {blocks.map((block, idx) => {
-                                // 内联样式
-                                const style: Record<string, string> = {};
-                                if (block.styles?.backgroundColor) style.backgroundColor = block.styles.backgroundColor;
-                                if (block.styles?.color) style.color = block.styles.color;
-                                if (block.styles?.padding) style.padding = `${block.styles.padding}px`;
-                                if (block.styles?.margin) style.margin = `${block.styles.margin}px`;
-                                if (block.styles?.borderRadius) style.borderRadius = `${block.styles.borderRadius}px`;
-
-                                const html = block.preview_html
-                                    || `<div class="p-4 bg-gray-50 dark:bg-gray-800 text-center text-gray-400 dark:text-gray-500 rounded-lg text-xs">${block.type} 预览</div>`;
-
-                                return (
-                                    <div key={idx} style={style}
-                                         className="preview-block"
-                                         dangerouslySetInnerHTML={{
-                                             __html: DOMPurify.sanitize(html),
-                                         }}/>
-                                );
-                            })}
+                        <div className="divide-y divide-gray-100 dark:divide-gray-800">
+                            {blocks.map((block, idx) => (
+                                <div key={idx} className="p-6">
+                                    <BlockPreview
+                                        type={block.type}
+                                        data={block.data || {}}
+                                        styles={block.styles || {}}
+                                    />
+                                </div>
+                            ))}
                         </div>
                     )}
                 </div>
