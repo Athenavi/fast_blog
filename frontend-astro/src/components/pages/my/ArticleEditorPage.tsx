@@ -460,10 +460,20 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
       );
   }
 
+    const SHORTCUTS: Record<string, string> = {
+      bold:'Ctrl+B', italic:'Ctrl+I', underline:'Ctrl+U', strike:'Ctrl+Shift+S',
+      undo:'Ctrl+Z', redo:'Ctrl+Shift+Z',
+      h1:'Ctrl+Alt+1', h2:'Ctrl+Alt+2', h3:'Ctrl+Alt+3',
+      ul:'Ctrl+Shift+8', ol:'Ctrl+Shift+7', quote:'Ctrl+Shift+9', code:'Ctrl+Shift+C',
+      image:'Ctrl+Shift+I', link:'Ctrl+K',
+    };
+
     const TBtn: React.FC<{
         cmd: string; active?: boolean; children: React.ReactNode; title: string; variant?: 'default' | 'danger';
-    }> = ({cmd, active, children, title, variant = 'default'}) => (
-        <button type="button" onClick={() => exec(cmd)} title={title}
+    }> = ({cmd, active, children, title, variant = 'default'}) => {
+      const shortcut = SHORTCUTS[cmd];
+      return (
+        <button type="button" onClick={() => exec(cmd)}
                 className={`group relative p-1.5 rounded-lg transition-all duration-150 active:scale-90 ${
                     active
                         ? 'bg-blue-100 dark:bg-blue-900/40 text-blue-600 dark:text-blue-400 shadow-sm'
@@ -472,8 +482,15 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
                             : 'text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-600 dark:hover:text-gray-300'
                 }`}>
             {children}
+            {shortcut && (
+              <span className="absolute -top-1 -right-1 hidden group-hover:flex items-center gap-0.5 px-1.5 py-0.5 text-[10px] font-mono bg-gray-900 dark:bg-gray-100 text-white dark:text-gray-900 rounded-md shadow-lg whitespace-nowrap z-50 pointer-events-none">
+                {shortcut}
+                <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-2 h-2 bg-gray-900 dark:bg-gray-100 rotate-45"/>
+              </span>
+            )}
         </button>
-  );
+      );
+    };
 
     const Divider = () => <div className="w-px h-5 bg-gray-200 dark:bg-gray-700 mx-1"/>;
 

@@ -18,7 +18,7 @@ import {TableRow} from '@tiptap/extension-table-row';
 import {TableCell} from '@tiptap/extension-table-cell';
 import {TableHeader} from '@tiptap/extension-table-header';
 import {AI_RECOMMENDATIONS, MEDIA} from '@/lib/api/api-paths';
-import {Image as ImageIcon2, ImageIcon, LayoutGrid, Loader, Palette, Sparkles, X} from 'lucide-react';
+import {Image as ImageIcon2, ImageIcon, LayoutGrid, Loader, Palette, Sparkles, Upload, X} from 'lucide-react';
 import {apiClient} from '@/lib/api/base-client';
 
 interface RichEditorProps {value:string;onChange:(v:string)=>void;placeholder?:string;editorRef?:React.MutableRefObject<any>;}
@@ -138,6 +138,8 @@ const RichEditor: React.FC<RichEditorProps> = ({value,onChange,placeholder='开�
   const [aiResult,setAiResult]=useState('');
   const [uploadStatus,setUploadStatus]=useState<string|null>(null);
   const [aiBusy,setAiBusy]=useState(false);
+  const [isDragOver,setIsDragOver]=useState(false);
+  const dragCounter=useRef(0);
   const prevValueRef = useRef(value);
 
   const editor = useEditor({
@@ -154,6 +156,14 @@ const RichEditor: React.FC<RichEditorProps> = ({value,onChange,placeholder='开�
       const files=event.clipboardData?.files;
       if(!files||files.length===0)return false;
       event.preventDefault();
+      uploadPastedFiles(Array.from(files));
+      return true;
+    },
+    handleDrop:(_view,event,_slice,_moved)=>{
+      const files=event.dataTransfer?.files;
+      if(!files||files.length===0)return false;
+      event.preventDefault();
+      setIsDragOver(false);dragCounter.current=0;
       uploadPastedFiles(Array.from(files));
       return true;
     }},
@@ -221,7 +231,21 @@ const RichEditor: React.FC<RichEditorProps> = ({value,onChange,placeholder='开�
   if(!editor)return<div className="h-[60vh] bg-gray-50 dark:bg-gray-800 rounded-xl animate-pulse"/>;
 
   return (
-    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden relative">
+    <div className="bg-white dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700 overflow-hidden relative"
+         style={{backgroundImage:'radial-gradient(circle, #e5e7eb 0.5px, transparent 0.5px)',backgroundSize:'20px 20px'}}
+         onDragEnter={e=>{e.preventDefault();dragCounter.current++;if(e.dataTransfer.types?.includes('Files'))setIsDragOver(true);}}
+         onDragOver={e=>{e.preventDefault();}}
+         onDragLeave={e=>{e.preventDefault();dragCounter.current--;if(dragCounter.current<=0){dragCounter.current=0;setIsDragOver(false);}}}
+         onDrop={e=>{e.preventDefault();setIsDragOver(false);dragCounter.current=0;}}>
+      {isDragOver && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-blue-500/10 dark:bg-blue-500/20 backdrop-blur-sm border-2 border-dashed border-blue-400 dark:border-blue-500 rounded-2xl pointer-events-none">
+          <div className="flex flex-col items-center gap-2 text-blue-600 dark:text-blue-400">
+            <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/40 flex items-center justify-center"><Upload className="w-6 h-6"/></div>
+            <span className="text-sm font-semibold">松手以上传文件</span>
+            <span className="text-xs opacity-70">支持图片、视频、文档等</span>
+          </div>
+        </div>
+      )}
       <EditorContent editor={editor} />
 
       {/* Mobile: horizontal floating toolbar */}
