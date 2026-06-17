@@ -1,13 +1,10 @@
 /**
  * PageBuilderProvider — 页面构建器的 Context Provider
- *
- * 将 usePageBuilder 的返回值注入 React Context，方便子组件消费。
  */
 import React, {createContext, useContext} from 'react';
 import type {PageData, LibraryItem, PreviewDevice} from './types';
 
-interface PageBuilderContextValue {
-    // 数据
+export interface PageBuilderContextValue {
     pages: PageData[];
     pagesLoading: boolean;
     libraryItems: LibraryItem[];
@@ -15,25 +12,35 @@ interface PageBuilderContextValue {
     editingBlocks: any[];
     showComponentLibrary: boolean;
     previewDevice: PreviewDevice;
+    isDirty: boolean;
+    canUndo: boolean;
+    canRedo: boolean;
 
-    // 页面操作
+    showNewPageDialog: boolean;
+    newPageTitle: string;
+    setNewPageTitle: (v: string) => void;
+    setShowNewPageDialog: (v: boolean) => void;
+    handleOpenNewPageDialog: () => void;
+    handleConfirmNewPage: () => void;
+
     setShowComponentLibrary: (v: boolean) => void;
     setPreviewDevice: (v: PreviewDevice) => void;
-    handleCreatePage: () => void;
     handleSelectPage: (page: PageData) => void;
     handleDeletePage: (page: PageData) => void;
 
-    // 块操作
     handleAddComponent: (item: LibraryItem) => void;
     handleCreateFromTemplate: (item: LibraryItem) => void;
     handleDeleteBlock: (index: number) => void;
     handleBlockDataChange: (index: number, data: any) => void;
     handleBlockStylesChange: (index: number, styles: any) => void;
+    handleCopyBlock: (index: number) => void;
     handleDragEnd: (event: any) => void;
 
-    // 保存/发布
+    handleUndo: () => void;
+    handleRedo: () => void;
     handleSave: () => void;
     handlePublish: () => void;
+
     isSaving: boolean;
     isPublishing: boolean;
     isCreating: boolean;

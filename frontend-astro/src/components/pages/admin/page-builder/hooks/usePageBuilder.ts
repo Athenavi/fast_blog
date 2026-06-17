@@ -1,7 +1,7 @@
 /**
  * usePageBuilder — 页面构建器的核心逻辑 Hook
  *
- * 统一管理页面列表、块编辑、拖拽排序、保存/发布等状态和操作。
+ * 统一管理页面列表、块编辑、拖拽排序、保存/发布、撤销/重做等状态和操作。
  */
 import {useState, useCallback, useRef, useEffect} from 'react';
 import {useQuery, useMutation, useQueryClient} from '@tanstack/react-query';
@@ -9,6 +9,8 @@ import {apiClient} from '@/lib/api/base-client';
 import {useToast} from '@/components/ui/toast-provider';
 import {arrayMove} from '@dnd-kit/sortable';
 import type {PageData, LibraryItem, PreviewDevice} from '../types';
+
+const MAX_UNDO = 50;
 
 export function usePageBuilder() {
     const toast = useToast();
@@ -18,8 +20,13 @@ export function usePageBuilder() {
     const [showComponentLibrary, setShowComponentLibrary] = useState(false);
     const [previewDevice, setPreviewDevice] = useState<PreviewDevice>('desktop');
 
-    // 自动保存 debounce ref
-    const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+    // ── 撤销/重做栈 ──
+    const [undoStack, setUndoStack] = useState<any[][]>([]);
+    const [redoStack, setRedoStack] = useState<any[][]>([]);
+
+    // dirty 标记：blocks 是否未保存
+    const [isDirty, setIsDirty] = useState(false);
+    const savedBlocksRef = useRef<string>('');
 
     // ── API 查询 ──
 
@@ -38,6 +45,56 @@ export function usePageBuilder() {
             return res.data ?? [];
         },
     });
+
+    // ── dirty 追踪 ──
+    useEffect(() => {
+        const key = JSON.stringify(editingBlocks);
+        setIsDirty(key !== savedBlocksRef.current);
+    }, [editingBlocks]);
+
+    // ── 离开提示 ──
+    useEffect(() => {
+        const handler = (e: BeforeUnloadEvent) => {
+            if (isDirty) {
+                e.preventDefault();
+                e.returnValue = '';
+            }
+        };
+        window.addEventListener('beforeunload', handler);
+        return () => window.removeEventListener('beforeunload', handler);
+    }, [isDirty]);
+
+    // ── 撤销/重做 ──
+
+    const pushUndo = useCallback((blocks: any[]) => {
+        setUndoStack(prev => {
+            const next = [...prev, blocks];
+            return next.length > MAX_UNDO ? next.slice(-MAX_UNDO) : next;
+        });
+        setRedoStack([]);
+    }, []);
+
+    const handleUndo = useCallback(() => {
+        setUndoStack(prev => {
+            if (prev.length === 0) return prev;
+            const current = editingBlocks;
+            const prevBlocks = prev[prev.length - 1];
+            setRedoStack(r => [...r, current]);
+            setEditingBlocks(prevBlocks);
+            return prev.slice(0, -1);
+        });
+    }, [editingBlocks]);
+
+    const handleRedo = useCallback(() => {
+        setRedoStack(prev => {
+            if (prev.length === 0) return prev;
+            const current = editingBlocks;
+            const nextBlocks = prev[prev.length - 1];
+            pushUndo(current);
+            setEditingBlocks(nextBlocks);
+            return prev.slice(0, -1);
+        });
+    }, [editingBlocks, pushUndo]);
 
     // ── 页面 CRUD ──
 
@@ -64,6 +121,8 @@ export function usePageBuilder() {
         },
         onSuccess: () => {
             qc.invalidateQueries({queryKey: ['page-builder-pages']});
+            savedBlocksRef.current = JSON.stringify(editingBlocks);
+            setIsDirty(false);
             toast.success('已保存');
         },
         onError: (err: any) => toast.error(err?.message || String(err)),
@@ -89,26 +148,46 @@ export function usePageBuilder() {
         onSuccess: () => {
             qc.invalidateQueries({queryKey: ['page-builder-pages']});
             setSelectedPage(null);
+            setEditingBlocks([]);
+            setUndoStack([]);
+            setRedoStack([]);
             toast.success('已删除');
         },
         onError: (err: any) => toast.error(err?.message || String(err)),
     });
 
-    // ── 页面操作 ──
+    // ── 新建页面对话框 ──
+    const [showNewPageDialog, setShowNewPageDialog] = useState(false);
+    const [newPageTitle, setNewPageTitle] = useState('');
 
-    const handleCreatePage = useCallback(() => {
-        const title = prompt('页面标题:');
-        if (!title) return;
+    const handleOpenNewPageDialog = useCallback(() => {
+        setNewPageTitle('');
+        setShowNewPageDialog(true);
+    }, []);
+
+    const handleConfirmNewPage = useCallback(() => {
+        const title = newPageTitle.trim();
+        if (!title) { toast.error('请输入页面标题'); return; }
         let slug = title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]/g, '');
         if (!slug) slug = 'page';
         slug += '-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
         createPage.mutate({title, slug});
-    }, [createPage]);
+        setShowNewPageDialog(false);
+    }, [newPageTitle, createPage, toast]);
+
+    // ── 页面操作 ──
 
     const handleSelectPage = useCallback((page: PageData) => {
+        // 已选同一页不做处理
+        if (selectedPage?.id === page.id) return;
+        const blocks = page.blocks_data || [];
+        setEditingBlocks(blocks);
+        savedBlocksRef.current = JSON.stringify(blocks);
+        setIsDirty(false);
+        setUndoStack([]);
+        setRedoStack([]);
         setSelectedPage(page);
-        setEditingBlocks(page.blocks_data || []);
-    }, []);
+    }, [selectedPage]);
 
     const handleDeletePage = useCallback((page: PageData) => {
         if (confirm(`确定删除页面「${page.title}」吗？`)) {
@@ -116,17 +195,46 @@ export function usePageBuilder() {
         }
     }, [deletePage]);
 
-    // ── 块操作 ──
+    // ── 快捷键 ──
+
+    useEffect(() => {
+        const handler = (e: KeyboardEvent) => {
+            const ctrl = e.ctrlKey || e.metaKey;
+            if (ctrl && e.key === 's') {
+                e.preventDefault();
+                if (selectedPage && isDirty) handleSave();
+            }
+            if (ctrl && e.key === 'z' && !e.shiftKey) {
+                e.preventDefault();
+                handleUndo();
+            }
+            if (ctrl && (e.key === 'y' || (e.key === 'z' && e.shiftKey))) {
+                e.preventDefault();
+                handleRedo();
+            }
+        };
+        window.addEventListener('keydown', handler);
+        return () => window.removeEventListener('keydown', handler);
+    });
+
+    // ── 块操作（带撤销栈） ──
+
+    const blocksMutation = useCallback((fn: (prev: any[]) => any[]) => {
+        setEditingBlocks(prev => {
+            pushUndo(prev);
+            return fn(prev);
+        });
+    }, [pushUndo]);
 
     const handleAddComponent = useCallback((item: LibraryItem) => {
         const block = item.blocks?.[0] || {};
-        setEditingBlocks(prev => [...prev, {
+        blocksMutation(prev => [...prev, {
             type: block.type || item.name || 'unknown',
             data: block.props || {},
             styles: {},
         }]);
         setShowComponentLibrary(false);
-    }, []);
+    }, [blocksMutation]);
 
     const handleCreateFromTemplate = useCallback(async (item: LibraryItem) => {
         const title = item.title || item.name || '新页面';
@@ -146,24 +254,33 @@ export function usePageBuilder() {
     }, [qc, toast]);
 
     const handleDeleteBlock = useCallback((index: number) => {
-        setEditingBlocks(prev => prev.filter((_, i) => i !== index));
-    }, []);
+        blocksMutation(prev => prev.filter((_, i) => i !== index));
+    }, [blocksMutation]);
 
     const handleBlockDataChange = useCallback((index: number, data: any) => {
-        setEditingBlocks(prev => prev.map((b, i) => (i === index ? {...b, data} : b)));
-    }, []);
+        blocksMutation(prev => prev.map((b, i) => (i === index ? {...b, data} : b)));
+    }, [blocksMutation]);
 
     const handleBlockStylesChange = useCallback((index: number, styles: any) => {
-        setEditingBlocks(prev => prev.map((b, i) => (i === index ? {...b, styles} : b)));
-    }, []);
+        blocksMutation(prev => prev.map((b, i) => (i === index ? {...b, styles} : b)));
+    }, [blocksMutation]);
+
+    const handleCopyBlock = useCallback((index: number) => {
+        blocksMutation(prev => {
+            const block = {...prev[index], data: {...(prev[index].data || {})}};
+            const next = [...prev];
+            next.splice(index + 1, 0, block);
+            return next;
+        });
+    }, [blocksMutation]);
 
     // dnd-kit 拖拽排序
     const handleDragEnd = useCallback((event: any) => {
         const {active, over} = event;
         if (over && active.id !== over.id) {
-            setEditingBlocks(prev => arrayMove(prev, active.id, over.id));
+            blocksMutation(prev => arrayMove(prev, active.id, over.id));
         }
-    }, []);
+    }, [blocksMutation]);
 
     // ── 保存/发布 ──
 
@@ -178,13 +295,7 @@ export function usePageBuilder() {
         publishPage.mutate(selectedPage.id);
     }, [selectedPage, editingBlocks, savePage, publishPage]);
 
-    // 自动保存（页面切换时触发）
-    const saveIfDirty = useCallback(() => {
-        if (!selectedPage) return;
-        savePage.mutate({id: selectedPage.id, blocks: editingBlocks});
-    }, [selectedPage, editingBlocks, savePage]);
-
-    // ── 导出 ──
+    // ── 剩余撤销/重做次数 ──
 
     return {
         // 数据
@@ -195,11 +306,21 @@ export function usePageBuilder() {
         editingBlocks,
         showComponentLibrary,
         previewDevice,
+        isDirty,
+        canUndo: undoStack.length > 0,
+        canRedo: redoStack.length > 0,
+
+        // 新建对话框
+        showNewPageDialog,
+        newPageTitle,
+        setNewPageTitle,
+        setShowNewPageDialog,
+        handleOpenNewPageDialog,
+        handleConfirmNewPage,
 
         // 页面操作
         setShowComponentLibrary,
         setPreviewDevice,
-        handleCreatePage,
         handleSelectPage,
         handleDeletePage,
 
@@ -209,12 +330,16 @@ export function usePageBuilder() {
         handleDeleteBlock,
         handleBlockDataChange,
         handleBlockStylesChange,
+        handleCopyBlock,
         handleDragEnd,
+
+        // 撤销/重做
+        handleUndo,
+        handleRedo,
 
         // 保存/发布
         handleSave,
         handlePublish,
-        saveIfDirty,
 
         // 加载状态
         isSaving: savePage.isPending,
