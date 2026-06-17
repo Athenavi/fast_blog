@@ -198,9 +198,10 @@ const RichEditor: React.FC<RichEditorProps> = ({value,onChange,placeholder='开�
           continue;
         }
         if(file.type.startsWith('image/')){
-          editor.chain().focus().insertContent(`![${file.name}](${url})`).run();
+          editor.chain().focus().setImage({src:url}).run();
         }else{
-          editor.chain().focus().insertContent(`[${file.name}](${url})`).run();
+          const icon = file.type.startsWith('video/') ? '🎬' : file.type.startsWith('audio/') ? '🎵' : '📎';
+          editor.chain().focus().insertContent(`${icon} <a href="${url}" target="_blank" rel="noopener noreferrer">${file.name}</a>`).run();
         }
       }catch(err){
         console.error('Paste upload failed:',err);
