@@ -179,9 +179,9 @@ const RichEditor: React.FC<RichEditorProps> = ({value,onChange,placeholder='开�
           continue;
         }
         if(file.type.startsWith('image/')){
-          editor.chain().focus().setImage({src:url}).run();
+          editor.chain().focus().insertContent(`![${file.name}](${url})`).run();
         }else{
-          editor.chain().focus().insertContent(`📎 <a href="${url}" target="_blank" rel="noopener noreferrer">${file.name}</a>`).run();
+          editor.chain().focus().insertContent(`[${file.name}](${url})`).run();
         }
       }catch(err){
         console.error('Paste upload failed:',err);
