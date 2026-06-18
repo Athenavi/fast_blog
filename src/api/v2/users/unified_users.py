@@ -30,6 +30,7 @@ from src.utils.security.forms import ChangePasswordForm
 from src.utils.security.ip_utils import get_client_ip
 from src.utils.security.safe import is_valid_iso_language_code
 from src.utils.send_email import request_email_change
+from shared.services.security.rate_limiter import rate_limiter
 
 # ---------------------------------------------------------------------------
 # 内存关注/屏蔽数据库（保持与旧代码行为一致，后续应迁移到数据库表）
@@ -258,6 +259,59 @@ async def update_user_settings_api(request: Request, db: AsyncSession = Depends(
         current_user.profile_private = bool(data['profile_private'])
     await db.commit()
     return ok(msg="设置更新成功")
+
+
+@router.get("/me/quota")
+@_with_db
+async def get_current_user_quota_api(
+    db: AsyncSession = Depends(get_async_db),
+    current_user: User = Depends(get_current_active_user),
+):
+    """获取当前用户配额信息（存储、文章数、API 限流等）"""
+    from shared.models.article import Article
+
+    # 文章统计
+    total_result = await db.execute(
+        select(func.count(Article.id)).where(Article.user == current_user.id)
+    )
+    total_articles = total_result.scalar() or 0
+
+    published_result = await db.execute(
+        select(func.count(Article.id)).where(
+            Article.user == current_user.id,
+            Article.status == 1
+        )
+    )
+    published_articles = published_result.scalar() or 0
+
+    draft_result = await db.execute(
+        select(func.count(Article.id)).where(
+            Article.user == current_user.id,
+            Article.status == 0
+        )
+    )
+    draft_articles = draft_result.scalar() or 0
+
+    # API 限流配额
+    quota_info = await rate_limiter.get_quota_info(current_user.id)
+
+    return ok({
+        "articles": {
+            "total": total_articles,
+            "published": published_articles,
+            "draft": draft_articles,
+        },
+        "rate_limit": {
+            "current_usage": quota_info["current_usage"],
+            "quota_limit": quota_info["quota_limit"],
+            "remaining": quota_info["remaining"],
+            "window": quota_info["window"],
+            "reset_time": quota_info["reset_time"].isoformat(),
+        },
+        "vip_level": current_user.vip_level,
+        "vip_expires_at": current_user.vip_expires_at.isoformat()
+            if current_user.vip_expires_at else None,
+    })
 
 
 # ==================== 关注/屏蔽（内存存储）====================
