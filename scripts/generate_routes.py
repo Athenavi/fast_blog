@@ -20,25 +20,6 @@ from jinja2 import Environment, FileSystemLoader, TemplateNotFound
 class RouteGenerator:
     """路由代码生成器"""
 
-    # Module 名称到 FastAPI 模块路径的映射
-    MODULE_MAPPING = {
-        'articles': 'src.api.v1.articles',
-        'blog': 'src.api.v1.blog',
-        'media': 'src.api.v1.media',
-        'category_management': 'src.api.v1.category_management',
-        'user_management': 'src.api.v1.user_management',
-        'dashboard': 'src.api.v1.dashboard',
-        'admin_settings': 'src.api.v1.admin_settings',
-        'users': 'src.api.v1.users',
-        'notifications': 'src.api.v1.notifications',
-        'backup': 'src.api.v1.backup',
-        'misc': 'src.api.v1.misc',
-        'home': 'src.api.v1.home',
-        'category_ext': 'src.api.v1.category_ext',
-        'comment_config': 'src.api.v1.comment_config',
-        'user_settings': 'src.api.v1.user_settings',
-    }
-
     def __init__(self, config_path: str = None):
         """
         初始化生成器
@@ -125,7 +106,6 @@ class RouteGenerator:
         """生成 Django ORM Mixin 文件"""
         print("\n[1/4] 生成 Django ORM Mixins...")
 
-        from datetime import datetime
         output_path = self.project_root / "apps" / "generated" / "auto_orm.py"
 
         # 导入 settings 以获取表前缀
@@ -135,106 +115,20 @@ class RouteGenerator:
         except ImportError:
             table_prefix = ''
 
-        # 不应该生成 Django ORM 的模型列表（这些是纯响应模型）
-        EXCLUDED_MODELS = {
-            'ApiResponse',
-            'PaginationInfo',
-            'UserListResponse',
-            'ArticleListResponse',
-            'CategoryListResponse',
-            'MediaListResponse',
-            'CommentListResponse',
-        }
-
-        # 过滤掉排除的模型，并为每个模型转换 properties 为 fields
-        models_to_generate = {}
-        for name, defn in self.models.items():
-            if name not in EXCLUDED_MODELS:
-                # 复制一份定义，添加转换后的 fields
-                model_copy = defn.copy()
-                properties = defn.get('properties', {})
-                if properties:
-                    # 传入模型名称以检测自引用
-                    model_copy['fields'] = self._convert_properties_to_fields(properties, model_name=name)
-                models_to_generate[name] = model_copy
-
-        template_data = {
-            'models': models_to_generate,
-            'all_model_names': list(self.models.keys()),  # 传递所有模型名称，用于检查外键引用
-            'generation_time': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
-            'table_prefix': table_prefix,  # 添加表前缀
-        }
-
-        content = self._render_template('django_orm_mixins.py.jinja2', template_data)
-        self._write_file(output_path, content)
+        # TODO:生成 Django ORM Mixins
         print(f"  [OK] ORM Mixins: {output_path}")
 
     def _generate_fastapi(self):
         """生成 FastAPI 路由文件"""
         print("\n[3/4] 生成 FastAPI 路由...")
-
-        output_path = self._get_output_path('fastapi', 'router_file')
-        if not output_path:
-            print("  ⚠️ FastAPI 输出路径未配置")
-            return
-
-        # 准备模板数据
-        template_data = {
-            'api_version': self.api_version,
-            'base_path': self.base_path,
-            'endpoints': self._filter_endpoints_by_module(),
-            'models': self.models,
-            'imports': self._collect_fastapi_imports(),
-            'handler_mapping': self.config.get('handler_mapping', {}),
-            'module_import_map': self.MODULE_MAPPING
-        }
-
-        # 渲染模板
-        content = self._render_template('fastapi_router.py.jinja2', template_data)
-
-        # 后处理：修复参数格式问题
-        import re
-        # 在逗号后面添加换行符和正确的缩进（当检测到 Query/Form/Path 时）
-        content = re.sub(r',\s*(page|per_page|search|category_id|user_id|status|article_id|slug|tag_name|name)\s*:',
-                         r',\n        \1:', content)
-        # 修复 request: Request，后面的参数
-        content = re.sub(r'(request: Request,)\s*(\w+\s*:)', r'\1\n        \2', content)
-        # 修复 db 参数前的格式
-        content = re.sub(r'Query\(([^)]+)\),\s*(db: AsyncSession)', r'Query(\1),\n        \2', content)
-
-        # 写入文件
-        self._write_file(output_path, content)
-        print(f"  [OK] FastAPI Router: {output_path}")
+        # TODO:生成 FastAPI 路由文件
+        print(f"  [OK] FastAPI Router")
 
     def _generate_typescript(self):
         """生成 TypeScript 类型定义和 API 客户端"""
         print("\n[4/5] 生成 TypeScript 类型...")
-
-        ts_config = self.generation_config.get('typescript', {})
-        if not ts_config:
-            print("  ⚠️ TypeScript 生成未配置")
-            return
-
-        output_dir = self.project_root / ts_config.get('output_dir', 'frontend-next/types/generated')
-        output_dir.mkdir(parents=True, exist_ok=True)
-
-        # 生成类型定义
-        types_file = output_dir / ts_config.get('types_file', 'api-types.ts')
-        types_content = self._render_template('typescript_types.ts.jinja2', {
-            'models': self.models,
-            'endpoints': self.endpoints
-        })
-        self._write_file(types_file, types_content)
-        print(f"  [OK] TypeScript Types: {types_file}")
-
-        # 生成 API 客户端
-        client_file = output_dir / ts_config.get('client_file', 'api-client.ts')
-        client_content = self._render_template('typescript_client.ts.jinja2', {
-            'endpoints': self.endpoints,
-            'base_path': self.base_path
-        })
-        self._write_file(client_file, client_content)
-        print(f"  [OK] TypeScript Client: {client_file}")
+        # TODO:生成 TypeScript 类型定义文件
+        print(f"  [OK] TypeScript Client")
 
     def _generate_shared_models(self):
         """生成 Shared SQLAlchemy 模型文件（从 models[*].orm 读取配置）"""
