@@ -98,6 +98,19 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON SEQUENCES TO fastblog;
 
 `fastblog` 用户无权创建表。同样需要用 `postgres` 超级用户执行上述授权命令。
 
+### 登录报 "Failed to record audit log: 'details' is an invalid keyword argument for AuditLog"
+
+后端代码 `shared/services/security/audit_log_service.py` 使用了 `details=` 参数，
+但 SQLAlchemy 模型 `AuditLog` 没有 `details` 字段（正确的字段名是 `request_data`）。
+
+```bash
+# 拉取修复后重启后端
+git pull origin alpha
+pkill -f "python main.py"
+cd /www/wwwroot/fast_blog
+nohup python3 main.py --port 9421 > logs/app.log 2>&1 &
+```
+
 ### 数据库性能慢
 
 ```sql
