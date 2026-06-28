@@ -56,6 +56,9 @@ LoggerConfig = _load_logger_config()
 # 获取 logger 函数
 get_logger = LoggerConfig.get_logger
 
+# 确保日志目录存在（避免 secure_python_utils 的 RotatingFileHandler 因目录不存在而崩溃）
+os.makedirs("logs", exist_ok=True)
+
 # 全局默认日志实例（用于大多数模块）
 default_logger = get_logger("logs/app.log")
 
