@@ -49,6 +49,73 @@ curl http://localhost:4321
 
 项目提供 [`nginx/conf.d/fastblog.conf`](../nginx/conf.d/fastblog.conf)，包含反向代理、速率限制、安全头、Gzip 压缩和缓存策略。
 
+### BT 面板（非 Docker）部署
+
+使用 BT 面板时，Nginx 配置示例（`/www/server/panel/vhost/nginx/node_fb2607.conf`）：
+
+```nginx
+server {
+    listen 80;
+    server_name yourdomain.com;
+
+    # API 转发到后端
+    location ^~ /api/ {
+        proxy_pass http://127.0.0.1:9421;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    # Media 文件
+    location ^~ /media/ {
+        proxy_pass http://127.0.0.1:9421;
+    }
+
+    # 前端 SSR
+    location / {
+        proxy_pass http://[::1]:4321;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+> ⚠️ SSR 服务默认监听 `[::1]:4321`（IPv6），Nginx 需用 `[::1]` 而非 `127.0.0.1`。
+> 如要改用 IPv4，启动时设置 `HOST=0.0.0.0`。
+
+### SSR 模式启动
+
+```bash
+# 安装 PM2
+npm install -g pm2
+
+# 启动
+cd /www/wwwroot/your-site
+pm2 start dist/server/entry.mjs --name fastblog-ssr
+pm2 save
+
+# 验证
+curl http://localhost:4321
+```
+
+### 运行时配置
+
+前端 API 地址通过 `public/config.js` 配置，构建后位于 `dist/client/config.js`：
+
+```js
+const runtimeConfig = {
+    API_BASE_URL: '',      // 空 = 相对路径，由 Nginx 代理
+    API_PREFIX: '/api/v2'
+};
+```
+
+> 设为空字符串后，浏览器使用 `/api/v2/...` 相对路径，由 Nginx 代理转发到后端。
+
 ### SSL 证书
 
 ```bash
