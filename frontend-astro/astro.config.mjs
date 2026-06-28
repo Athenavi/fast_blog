@@ -15,6 +15,14 @@ export default defineConfig({
   output: 'static',
   adapter: node({ mode: 'standalone' }),
 
+  // 开发代理：/api/* 请求转发到后端 9421
+  // 生产环境由 Nginx 代理
+  server: {
+    proxy: {
+      '/api': 'http://localhost:9421',
+    },
+  },
+
   integrations: [
     react(),
     sitemap({
