@@ -114,7 +114,7 @@ class AuditLogService:
                 ip_address=ip_address,
                 user_agent=user_agent,
                 description=description,
-                details=json.dumps(details, ensure_ascii=False) if details else None,
+                request_data=json.dumps(details, ensure_ascii=False) if details else None,
                 created_at=datetime.now()
             )
 
@@ -215,7 +215,7 @@ class AuditLogService:
                         'ip_address': log.ip_address,
                         'user_agent': log.user_agent,
                         'description': log.description,
-                        'details': json.loads(log.details) if log.details else None,
+                        'details': json.loads(log.request_data) if log.request_data else None,
                         'created_at': log.created_at.isoformat()
                     }
                     for log in logs
@@ -287,7 +287,7 @@ class AuditLogService:
                     'ip_address': log.ip_address,
                     'user_agent': log.user_agent,
                     'description': log.description,
-                    'details': json.loads(log.details) if log.details else None,
+                    'details': json.loads(log.request_data) if log.request_data else None,
                     'created_at': log.created_at.isoformat()
                 }
                 for log in logs
@@ -320,7 +320,7 @@ class AuditLogService:
                     log.ip_address,
                     log.user_agent,
                     log.description,
-                    log.details,
+                    log.request_data,
                     log.created_at.isoformat()
                 ])
 
