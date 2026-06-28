@@ -1,4 +1,5 @@
 ---
+import '@/styles/globals.css';
 // 分类列表页 — SSR 渲染（静态分类数据无需客户端 hydration）
 import Layout from '@/layouts/Layout.astro';
 
@@ -16,7 +17,6 @@ try {
 } catch (e) {
   fetchError = '分类数据加载失败';
 }
-import '@/styles/globals.css';
 ---
 
 <Layout title="分类 - FastBlog">
