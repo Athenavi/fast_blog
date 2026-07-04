@@ -110,7 +110,7 @@ class AuditLogService:
                 action=action.value,
                 level=level.value,
                 resource_type=resource_type,
-                resource_id=resource_id,
+                resource_id=int(resource_id) if resource_id is not None and str(resource_id).isdigit() else (resource_id if resource_id else None),
                 ip_address=ip_address,
                 user_agent=user_agent,
                 description=description,

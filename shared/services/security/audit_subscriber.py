@@ -99,7 +99,8 @@ async def _audit_log_handler(event_name: str, payload: Any) -> None:
     # 提取公共字段
     user_id = _extract_field(payload, "user_id") or _extract_field(payload, "author_id")
     user_name = _extract_field(payload, "user_name") or _extract_field(payload, "username")
-    resource_id = str(_extract_field(payload, "id") or _extract_field(payload, "article_id") or "")
+    raw_resource_id = _extract_field(payload, "id") or _extract_field(payload, "article_id")
+    resource_id: Optional[str] = str(raw_resource_id) if raw_resource_id is not None else None
     description = _get_payload_str(payload) or f"{action.value} {resource_type}"
 
     level = AuditLogLevel.CRITICAL if event_name in HIGH_SEVERITY_EVENTS else AuditLogLevel.INFO
