@@ -80,14 +80,11 @@ const LoginPage: React.FC = () => {
     window.location.reload();
   };
 
-  // Redirect on successful login
+  // Redirect on successful login (immediate, no delay)
   useEffect(() => {
     if (state.step === 'loggedin') {
-      const timer = setTimeout(() => {
-        const next = new URLSearchParams(window.location.search).get('next') || '/profile';
-        window.location.href = next;
-      }, 1500);
-      return () => clearTimeout(timer);
+      const next = new URLSearchParams(window.location.search).get('next') || '/profile';
+      window.location.replace(next);
     }
   }, [state.step]);
 
