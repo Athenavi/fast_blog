@@ -13,17 +13,36 @@ export function AuthGuard({children}: {children: React.ReactNode}) {
 
   useEffect(() => {
     let cancelled = false;
-    const check = async () => {
+    let retries = 0;
+    const maxRetries = 2;
+
+    const check = async (): Promise<void> => {
       try {
-        // 直接调用 /users/me 验证 cookie 中的 token
-        // 浏览器会自动发送 httponly 的 access_token/refresh_token
+        const {getAccessTokenFromCookie} = await import('@/lib/auth-utils');
+        // 如果没有 token cookie，直接判定未登录
+        if (!getAccessTokenFromCookie()) {
+          if (!cancelled) setStatus('unauthenticated');
+          return;
+        }
+
         const res = await apiClient.get(USERS.ME);
         if (res.success && res.data) {
           if (!cancelled) setStatus('authenticated');
         } else {
+          // 有 token 但请求失败，重试一次（可能 config 尚未加载）
+          if (retries < maxRetries) {
+            retries++;
+            await new Promise(r => setTimeout(r, 500));
+            return check();
+          }
           if (!cancelled) setStatus('unauthenticated');
         }
       } catch {
+        if (retries < maxRetries) {
+          retries++;
+          await new Promise(r => setTimeout(r, 500));
+          return check();
+        }
         if (!cancelled) setStatus('unauthenticated');
       }
     };
