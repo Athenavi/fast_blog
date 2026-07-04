@@ -5,19 +5,21 @@ V3 仪表盘 API
   GET    /dashboard/stats          → settings:view
   GET    /dashboard/recent-articles → article:view
   GET    /dashboard/traffic        → settings:view
+  GET    /dashboard/activities     → settings:view
 """
 import logging
 from datetime import datetime, timezone
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import select, func
+from sqlalchemy import select, func, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.article import Article
 from shared.models.comment import Comment
 from shared.models.user import User
 from shared.models.media import Media
+from shared.models.analytics import UserActivity
 from src.api.v2._base import ApiResponse
 from src.api.v3._deps import get_db
 from src.api.v3._permission import Permission
@@ -93,3 +95,27 @@ async def traffic_overview(
     return ApiResponse(success=True, data={
         "today_views": day_views,
     })
+
+
+@router.get("/dashboard/activities", summary="最近活动")
+async def dashboard_activities(
+    page: int = Query(1, ge=1),
+    per_page: int = Query(8, ge=1, le=50),
+    db: AsyncSession = Depends(get_db),
+    _=Depends(Permission("settings:view")),
+):
+    """获取最近用户活动列表"""
+    offset = (page - 1) * per_page
+    result = await db.execute(
+        select(UserActivity).order_by(desc(UserActivity.created_at)).offset(offset).limit(per_page)
+    )
+    activities = result.scalars().all()
+
+    return ApiResponse(success=True, data=[
+        {
+            "message": f"{a.activity_type or ''} - {a.details or ''}",
+            "action": a.activity_type,
+            "created_at": a.created_at.isoformat() if a.created_at else None,
+        }
+        for a in activities
+    ])
