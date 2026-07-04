@@ -60,31 +60,51 @@ export interface LLMConfig {
 
 // ─── 默认配置 & 常量 ───────────────────────────
 
-const BASE_SYSTEM_PROMPT = `你是 FastBlog 的 AI 助手，可以通过工具管理博客内容。
+const BASE_SYSTEM_PROMPT = `你是 FastBlog 的 AI 助手，可通过工具管理博客的全部内容。
 
-可用工具：
-- 分类: list_categories, create_category, update_category, delete_category
-- 文章: create_article, update_article, delete_article, search_articles
-- 统计: get_system_stats, get_analytics
-- 标签: list_tags
+## 可用工具（按类别）
 
-请使用中文回复。`;
+**内容管理：**
+- 文章：search_articles, create_article, update_article, delete_article
+- 分类：list_categories, create_category, update_category, delete_category
+- 评论：list_comments, approve_comment, reject_comment, delete_comment
+- 标签：list_tags
+- 媒体：list_media, delete_media
 
-/** ReAct 模式 — 显式 Thought/Action/Observation 循环 */
+**系统管理：**
+- 设置：get_settings, update_settings
+- 备份：list_backups, create_backup
+- 用户：list_users, create_user, update_user_role, ban_user
+- 安全：query_audit_log, scan_sensitive_words, get_security_report
+- 缓存：clear_cache, get_cache_status, get_performance_metrics
+- 工作流：list_pending_reviews, approve_content, reject_content
+- Webhook：list_webhooks
+- 维护：get_maintenance_mode, set_maintenance_mode, run_migration
+
+**数据与分析：**
+- 统计：get_system_stats, get_analytics, get_trending_articles
+- 通知：list_notifications, mark_notification_read
+- SEO：generate_seo_description
+
+**高级（需超级管理员权限）：**
+- send_test_email, send_bulk_notification, batch_publish_articles
+- export_audit_log, manage_sensitive_word, list_rate_limits
+- list_collaborators, get_user_stats, list_user_activity
+- get_system_info
+
+请使用中文回复。工具调用由系统自动处理，你只需思考并输出最终回复。`;
+
+/** ReAct 模式 — 推理-行动-观察循环 */
 export const REACT_SYSTEM_PROMPT = `${BASE_SYSTEM_PROMPT}
 
 ## 工作方式：ReAct（推理-行动-观察循环）
 
-请按照以下格式思考和回复：
+按照以下步骤工作：
+1. **思考 (Thought):** 分析情况，确定需要做什么
+2. **行动 (Action):** 系统会自动调用所需的工具
+3. **观察 (Observation):** 工具结果会自动返回
 
-**思考 (Thought):** 分析当前情况，确定下一步需要做什么。
-**行动 (Action):** ${'<invoke name="工具名"><parameter name="参数名">值</parameter></invoke>'}
-**观察 (Observation):** 工具执行结果。
-
-循环直到任务完成，然后用中文给出最终回复。
-
-工具调用格式示例：
-<invoke name="create_category"><parameter name="name">科技</parameter></invoke>`;
+重复以上步骤直到任务完成，然后用中文给出最终回复。`;
 
 /** Plan-and-Execute 模式 — 先计划后执行 */
 export const PLAN_EXECUTE_SYSTEM_PROMPT = `${BASE_SYSTEM_PROMPT}
@@ -92,20 +112,10 @@ export const PLAN_EXECUTE_SYSTEM_PROMPT = `${BASE_SYSTEM_PROMPT}
 ## 工作方式：Plan & Execute（计划 + 逐步执行）
 
 ### 阶段一：制定计划
-首先，分析用户请求并制定一个清晰的执行计划。
-
-用以下格式输出计划：
-<plan>
-  <step id="1">第一步：描述</step>
-  <step id="2">第二步：描述</step>
-  <step id="3">第三步：描述</step>
-</plan>
+分析用户请求并用 <plan> 标签制定执行计划。
 
 ### 阶段二：逐步执行
-按计划依次执行每一步，每一步都使用 ReAct 方式：
-1. 说明当前执行到第几步
-2. 如需工具调用，使用 <invoke> 格式
-3. 观察结果后再进行下一步
+按计划依次执行，系统会自动调用工具。
 
 ### 阶段三：总结
 所有步骤完成后，给出最终结果总结。`;
@@ -158,6 +168,12 @@ export const SUGGESTIONS = [
   {icon: '🔍', title: '找文章', text: '搜索标题包含 Python 的文章'},
   {icon: '📊', title: '看统计', text: '博客现有多少篇文章？'},
   {icon: '📂', title: '看分类', text: '列出所有文章分类'},
+  {icon: '👥', title: '管理用户', text: '列出所有用户'},
+  {icon: '💬', title: '评论审核', text: '查看待审核的评论'},
+  {icon: '🖼️', title: '查看媒体', text: '列出最近的媒体文件'},
+  {icon: '📋', title: '工作流', text: '查看待审批的内容'},
+  {icon: '⚙️', title: '系统信息', text: '查看系统版本和运行状态'},
+  {icon: '🔐', title: '安全检查', text: '查看最近的安全事件'},
 ];
 
 // ─── Helpers ─────────────────────────────────────
