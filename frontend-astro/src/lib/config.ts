@@ -64,3 +64,9 @@ export const getConfig = (): { API_BASE_URL: string; API_PREFIX: string } => {
     };
     return config;
 };
+
+// ═══ 自动初始化 ═══
+// 模块导入时立即在浏览器环境中加载运行时配置
+if (typeof window !== 'undefined') {
+    loadRuntimeConfig().catch(() => {});
+}
