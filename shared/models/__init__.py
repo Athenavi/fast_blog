@@ -14,6 +14,7 @@ Base = declarative_base()
 # ==================== 懒加载映射表 ====================
 # 模型名 -> 相对模块路径（不含 shared.models 前缀）
 _LAZY_IMPORTS = {
+    'AIConfig': '.ai.ai_config',
     'AIWorkflow': '.ai.ai_workflow',
     'Ad': '.ad.ad',
     'AdClick': '.ad.ad_click',

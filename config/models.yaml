@@ -7798,3 +7798,70 @@ models:
           - consent_type
         unique: true
         comment: "用户+类型唯一索引"
+
+  AIConfig:
+    description: "User AI configuration - encrypted API key storage"
+    status: active
+    frontend_page: /ai-chat
+    properties:
+      id:
+        type: bigint
+        description: "Config ID"
+      user_id:
+        type: bigint
+        foreignKey: User
+        index: true
+        description: "Owner user ID"
+      name:
+        type: string
+        maxLength: 100
+        description: "Config name"
+      api_url:
+        type: string
+        maxLength: 500
+        description: "API endpoint URL"
+      api_key_encrypted:
+        type: text
+        description: "Encrypted API Key (AES-256-GCM)"
+      model:
+        type: string
+        maxLength: 100
+        description: "Model name"
+      provider:
+        type: string
+        maxLength: 50
+        default: openai
+        description: "Provider (openai, deepseek, anthropic, custom)"
+      is_active:
+        type: boolean
+        default: false
+        description: "Whether this is the active config"
+      sort_order:
+        type: integer
+        default: 0
+        description: "Sort order"
+      created_at:
+        type: string
+        format: date-time
+        description: "Creation time"
+      updated_at:
+        type: string
+        format: date-time
+        nullable: true
+        description: "Update time"
+    module: ai
+    orm: true
+    table: ai_configs
+    indexes:
+      - name: idx_ai_configs_user_id
+        columns:
+          - user_id
+      - name: idx_ai_configs_user_active
+        columns:
+          - user_id
+          - is_active
+    constraints:
+      - type: unique
+        columns:
+          - user_id
+          - name

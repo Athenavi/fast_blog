@@ -90,3 +90,4 @@ types-requests
 types-redis
 types-PyYAML
 
+cryptography>=42.0.0
