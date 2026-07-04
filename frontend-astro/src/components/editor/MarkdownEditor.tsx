@@ -3,7 +3,7 @@
 import React, {useCallback, useEffect, useRef, useState} from 'react';
 import {MediaService} from '@/lib/api/media-service';
 import {AI_RECOMMENDATIONS, MEDIA} from '@/lib/api/api-paths';
-import {Image as ImageIcon2, ImageIcon, LayoutGrid, Loader, Palette, Sparkles, Upload, X, Eye, EyeOff} from 'lucide-react';
+import {Image as ImageIcon2, ImageIcon, Loader, Sparkles, Upload, X, Eye, EyeOff} from 'lucide-react';
 import {apiClient} from '@/lib/api/base-client';
 import {markdownToHtml} from '@/lib/markdown-converter';
 
@@ -17,57 +17,6 @@ interface MarkdownEditorProps {
 const AI_TOOLS = [
   {id:'polish',label:'润色'},{id:'grammar',label:'语法'},{id:'titles',label:'标题'},{id:'keywords',label:'关键词'},{id:'continue',label:'续写'},{id:'summary',label:'摘要'},{id:'style',label:'改风格'},
 ];
-
-/* ── Shared Modals (same as before, pasted from RichEditor) ── */
-function PatternLibrary({onSelect, onClose}: { onSelect: (blocks: any) => void; onClose: () => void }) {
-  const [patterns, setPatterns] = useState<any[]>([]);
-  React.useEffect(() => {
-    apiClient.get('/cms/block-patterns/list').then(r => {
-      if (r.success) { const d: any = r.data; setPatterns(Array.isArray(d) ? d : (d?.patterns || [])); }
-    }).catch(console.error);
-  }, []);
-  return <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={onClose}>
-    <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-3xl max-h-[85vh] flex flex-col shadow-2xl border border-gray-200 dark:border-gray-700" onClick={e => e.stopPropagation()}>
-      <div className="flex items-center justify-between px-6 py-4 border-b shrink-0"><h3 className="font-bold text-gray-900 dark:text-white">块模式库</h3>
-        <button onClick={onClose} className="p-1 rounded hover:bg-gray-100"><X className="w-5 h-5"/></button>
-      </div>
-      <div className="flex-1 overflow-y-auto p-6">
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-          {patterns.map(p => {
-            let parsedBlocks: any[];
-            try { parsedBlocks = JSON.parse(p.blocks); } catch { parsedBlocks = []; }
-            return (<button key={p.id} onClick={() => onSelect(parsedBlocks)} className="group p-4 rounded-xl border hover:border-blue-500 hover:shadow-md transition-all text-left">
-              <div className="aspect-video bg-gray-100 dark:bg-gray-800 rounded-lg mb-3 flex items-center justify-center overflow-hidden">
-                {p.thumbnail ? <img src={p.thumbnail} className="w-full h-full object-cover"/> : <LayoutGrid className="w-8 h-8 text-gray-300"/>}
-              </div>
-              <h4 className="font-semibold text-sm truncate">{p.title}</h4>
-              <p className="text-xs text-gray-500 mt-1 line-clamp-2">{p.description}</p>
-            </button>);
-          })}
-        </div>
-      </div>
-    </div>
-  </div>;
-}
-
-function StyleManager({onClose}: { onClose: () => void }) {
-  const [styles, setStyles] = useState<any[]>([]);
-  React.useEffect(() => { apiClient.get('/cms/global-styles/list').then(r => { if (r.success) setStyles(r.data || []) }).catch(console.error); }, []);
-  const activate = (id: number) => { apiClient.post(`/cms/global-styles/${id}/activate`).then(r => { if (r.success) onClose() }); };
-  return <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={onClose}>
-    <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-md flex flex-col shadow-2xl border border-gray-200 dark:border-gray-700" onClick={e => e.stopPropagation()}>
-      <div className="flex items-center justify-between px-6 py-4 border-b shrink-0"><h3 className="font-bold text-gray-900 dark:text-white">全局样式方案</h3>
-        <button onClick={onClose} className="p-1 rounded hover:bg-gray-100"><X className="w-5 h-5"/></button></div>
-      <div className="p-4 space-y-3 max-h-[60vh] overflow-y-auto">
-        {styles.map(s => <div key={s.id} className={`p-4 rounded-xl border ${s.is_active ? 'border-blue-500 bg-blue-50 dark:bg-blue-900/20' : 'hover:bg-gray-50 dark:hover:bg-gray-800'} flex items-center justify-between`}>
-          <div><h4 className="font-semibold">{s.theme_name}</h4><p className="text-xs text-gray-500 mt-1">创建于 {new Date(s.created_at).toLocaleDateString()}</p></div>
-          {!s.is_active && <button onClick={() => activate(s.id)} className="px-3 py-1.5 text-xs bg-gray-100 dark:bg-gray-800 rounded-lg hover:bg-gray-200">应用</button>}
-          {s.is_active && <span className="text-xs font-medium text-blue-600">当前激活</span>}
-        </div>)}
-      </div>
-    </div>
-  </div>;
-}
 
 const AI_ENDPOINTS: Record<string, string> = {
   polish: AI_RECOMMENDATIONS.WRITING_POLISH, grammar: AI_RECOMMENDATIONS.WRITING_GRAMMAR,
@@ -114,8 +63,6 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({value, onChange, placeho
   const taRef = useRef<HTMLTextAreaElement>(null);
   const [showAI, setShowAI] = useState(false);
   const [showMedia, setShowMedia] = useState(false);
-  const [showPatterns, setShowPatterns] = useState(false);
-  const [showStyles, setShowStyles] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [aiResult, setAiResult] = useState('');
   const [uploadStatus, setUploadStatus] = useState<string | null>(null);
@@ -243,8 +190,6 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({value, onChange, placeho
 
       {/* Mobile floating toolbar */}
       <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 lg:hidden flex items-center gap-2 px-4 py-2.5 bg-white/90 dark:bg-gray-900/90 backdrop-blur-xl rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700">
-        <button onClick={() => setShowPatterns(true)} title="块模式" className="w-9 h-9 bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 rounded-xl hover:scale-110 transition-all flex items-center justify-center"><LayoutGrid className="w-4 h-4" /></button>
-        <button onClick={() => setShowStyles(true)} title="全局样式" className="w-9 h-9 bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 rounded-xl hover:scale-110 transition-all flex items-center justify-center"><Palette className="w-4 h-4" /></button>
         <button onClick={() => setShowMedia(true)} title="媒体库" className="w-9 h-9 bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 rounded-xl hover:scale-110 transition-all flex items-center justify-center"><ImageIcon2 className="w-4 h-4" /></button>
         <div className="w-px h-6 bg-gray-200 dark:bg-gray-700" />
         <button onClick={() => setShowAI(!showAI)} title="AI 助手" className="w-9 h-9 bg-gradient-to-br from-purple-100 to-blue-100 dark:from-purple-900/30 dark:to-blue-900/30 text-purple-600 dark:text-purple-400 rounded-xl hover:scale-110 transition-all flex items-center justify-center"><Sparkles className="w-4 h-4" /></button>
@@ -252,8 +197,6 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({value, onChange, placeho
 
       {/* Desktop floating buttons */}
       <div className="hidden lg:block">
-        <button onClick={() => setShowPatterns(true)} className="fixed bottom-36 right-6 z-40 w-11 h-11 bg-indigo-600 text-white rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center justify-center" title="块模式"><LayoutGrid className="w-5 h-5" /></button>
-        <button onClick={() => setShowStyles(true)} className="fixed bottom-28 right-6 z-40 w-11 h-11 bg-pink-600 text-white rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center justify-center" title="全局样式"><Palette className="w-5 h-5" /></button>
         <button onClick={() => setShowMedia(true)} className="fixed bottom-20 right-6 z-40 w-11 h-11 bg-blue-600 text-white rounded-full shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center justify-center" title="媒体库"><ImageIcon2 className="w-5 h-5" /></button>
         <button onClick={() => setShowAI(!showAI)} className="fixed bottom-6 right-6 z-40 w-12 h-12 bg-gradient-to-r from-purple-600 to-blue-600 text-white rounded-full shadow-xl hover:shadow-2xl hover:scale-105 transition-all flex items-center justify-center" title="AI 助手"><Sparkles className="w-5 h-5" /></button>
       </div>
@@ -280,8 +223,6 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({value, onChange, placeho
 
       {/* Modals */}
       {showMedia && <MediaBrowser onSelect={(url) => { const ta = taRef.current; if (ta) { const md = `![${url.split('/').pop() || 'image'}](${url})`; const pos = ta.selectionStart; ta.value = ta.value.substring(0, pos) + md + ta.value.substring(pos); ta.selectionStart = ta.selectionEnd = pos + md.length; onChange(ta.value); ta.focus(); } setShowMedia(false); }} onClose={() => setShowMedia(false)} />}
-      {showPatterns && <PatternLibrary onSelect={(blocks) => { const ta = taRef.current; if (ta) { const text = Array.isArray(blocks) ? blocks.map((b:any) => typeof b === 'string' ? b : b?.content || JSON.stringify(b)).join('\n\n') : String(blocks); ta.value += '\n' + text + '\n'; onChange(ta.value); ta.focus(); } setShowPatterns(false); }} onClose={() => setShowPatterns(false)} />}
-      {showStyles && <StyleManager onClose={() => setShowStyles(false)} />}
     </div>
   );
 };
