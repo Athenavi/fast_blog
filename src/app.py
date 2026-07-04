@@ -622,6 +622,7 @@ def register_middleware(app: FastAPI):
     # 获取 worker 信息（用于日志）
     from src.setting import _get_worker_info
     worker_info = _get_worker_info()
+    from starlette.middleware.base import BaseHTTPMiddleware
 
     # CORS（从环境变量或默认值）
     from fastapi.middleware.cors import CORSMiddleware
