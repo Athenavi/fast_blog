@@ -19,6 +19,41 @@ const LoginPage: React.FC = () => {
   const [pv, setPv] = useState(false);
   const [focusedField, setFocusedField] = useState<string | null>(null);
   const [backup, setBackup] = useState(false);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+
+  // 检查是否已登录：如果已有有效 token，直接跳转
+  useEffect(() => {
+    const check = async () => {
+      try {
+        const {getAccessTokenFromCookie} = await import('@/lib/auth-utils');
+        if (!getAccessTokenFromCookie()) {
+          setCheckingAuth(false);
+          return;
+        }
+        // 有 token，验证是否有效
+        const {apiClient} = await import('@/lib/api/base-client');
+        const {USERS} = await import('@/lib/api/api-paths');
+        const res = await apiClient.get(USERS.ME);
+        if (res.success && res.data) {
+          const next = new URLSearchParams(window.location.search).get('next') || '/profile';
+          window.location.replace(next);
+        } else {
+          setCheckingAuth(false);
+        }
+      } catch {
+        setCheckingAuth(false);
+      }
+    };
+    check();
+  }, []);
+
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-950">
+        <div className="inline-block animate-spin rounded-full h-8 w-8 border-2 border-violet-600 border-t-transparent" />
+      </div>
+    );
+  }
 
   const loginForm = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema) as any,
