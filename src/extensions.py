@@ -5,8 +5,6 @@ from contextlib import contextmanager
 from typing import Generator, AsyncGenerator
 
 import redis
-from slowapi import _rate_limit_exceeded_handler, Limiter
-from slowapi.util import get_remote_address
 from sqlalchemy.ext.declarative import declarative_base
 
 from src.unified_logger import default_logger as logger
@@ -616,13 +614,6 @@ def init_extensions(app):
         print("Query monitoring event listeners attached to engine")
     except Exception as e:
         print(f"Warning: Could not attach query monitoring: {e}")
-
-    # 限流中间件
-    try:
-        app.state.limiter = Limiter(key_func=get_remote_address)
-        app.add_exception_handler(429, _rate_limit_exceeded_handler)
-    except Exception as e:
-        print(f"Failed to initialize rate limiter: {e}")
 
     # 【移除】不再在这里创建表，由 Alembic 迁移管理
     # Base.metadata.create_all(bind=engine)  # 已删除

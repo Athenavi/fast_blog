@@ -686,7 +686,21 @@ def register_middleware(app: FastAPI):
         print("[HTTP Cache] 已添加")
     except ImportError:
         pass
-    # 速率限制已移除全局中间件，改为在特定路由上使用装饰器
+    # 速率限制中间件（基于 shared/services/security/rate_limiter.py）
+    try:
+        from shared.services.security.rate_limiter import rate_limit_middleware as _rate_limit_fn
+        from starlette.middleware.base import BaseHTTPMiddleware
+
+        class RateLimitMiddleware(BaseHTTPMiddleware):
+            async def dispatch(self, request, call_next):
+                return await _rate_limit_fn(request, call_next)
+
+        app.add_middleware(RateLimitMiddleware)
+        print("[Rate Limit] 已添加")
+    except ImportError as e:
+        print(f"[Rate Limit] 加载失败: {e}")
+    except Exception as e:
+        print(f"[Rate Limit] 注册异常: {e}")
 
     # RBAC 权限中间件
     try:
