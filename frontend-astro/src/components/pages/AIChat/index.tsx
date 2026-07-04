@@ -91,6 +91,24 @@ function AIChatInner() {
         if (list.length > 0) setActiveConvId(list[0].id);
       }
     } catch { /* ignore */ }
+    // 从服务端加载激活的 AI 配置
+    (async () => {
+      try {
+        const {apiClient} = await import('@/lib/api/base-client');
+        const res = await apiClient.get('/ai/configs/active');
+        if (res.success && res.data) {
+          const active = res.data as any;
+          if (active.api_url && active.api_key && active.model) {
+            setConfig(prev => ({
+              ...prev,
+              endpoint: active.api_url,
+              apiKey: active.api_key,
+              model: active.model,
+            }));
+          }
+        }
+      } catch { /* ignore */ }
+    })();
   }, []);
 
   useEffect(() => {

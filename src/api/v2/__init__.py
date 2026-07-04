@@ -176,6 +176,8 @@ ROUTE_REGISTRY_V2 = [
     # ==================== 高级扩展功能（V2 聚合路由器）====================
     # V2 Advanced Features 模块采用包级别聚合模式，所有子模块通过 __init__.py 统一注册
     ("src.api.v2.advanced_features", "/api/v2/ext", ["advanced-features-v2"], True),
+    # AI 配置管理
+    ("src.api.v2.ai", "/api/v2", ["ai-config"], False),
     # V1 advanced_features 各子模块已废弃，功能已迁移到 V2 聚合路由器
 
     # ==================== 其他系统模块（V2 聚合路由器）====================
