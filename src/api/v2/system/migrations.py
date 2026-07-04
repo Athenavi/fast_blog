@@ -2,6 +2,7 @@
 数据库迁移管理API
 提供迁移执行、状态查询等功能
 """
+import asyncio
 from functools import wraps
 from typing import Dict, Any
 
@@ -59,7 +60,7 @@ async def apply_migrations_api(
     """
     执行迁移API
     """
-    result = await migration_manager.apply_all_migrations(db)
+    result = await asyncio.to_thread(migration_manager.apply_all_migrations, db)
 
     if result['success']:
         # 更新 version.txt 中的迁移版本号
@@ -118,7 +119,7 @@ async def create_migration_api(
     if not message:
         return fail('缺少迁移描述')
 
-    result = migration_manager.create_migration(message, autogenerate)
+    result = await asyncio.to_thread(migration_manager.create_migration, message, autogenerate)
 
     if result['success']:
         return ok(
@@ -151,7 +152,7 @@ async def rollback_migration_api(
     """
     steps = data.get('steps', 1)
 
-    result = migration_manager.rollback_migration(steps)
+    result = await asyncio.to_thread(migration_manager.rollback_migration, steps)
 
     if result['success']:
         return ok(msg=result['message'])

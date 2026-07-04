@@ -164,7 +164,7 @@ class MigrationManager:
                 'error': str(e),
             }
     
-    async def apply_all_migrations(self, db_session=None) -> Dict[str, Any]:
+    def apply_all_migrations(self, db_session=None) -> Dict[str, Any]:
         """
         执行所有待处理的迁移
         
