@@ -79,6 +79,10 @@ const LogLevelBadge: React.FC<{ level: string }> = ({level}) => {
 function SchemaTab() {
   const toast = useToast();
   const qc = useQueryClient();
+  const [showCreate, setShowCreate] = useState(false);
+  const [createMsg, setCreateMsg] = useState('');
+  const [autoGen, setAutoGen] = useState(false);
+  const [rollbackSteps, setRollbackSteps] = useState(1);
 
   const {data: statusData, isLoading} = useQuery({
     queryKey: ['migration-schema-status'],
@@ -96,6 +100,15 @@ function SchemaTab() {
     },
   });
 
+  const createMut = useMutation({
+    mutationFn: (data: any) => apiClient.post('/system/migrations/create', data),
+    onSuccess: (r: ApiResponse) => {
+      if (r.success) { toast.success(r.msg || '迁移文件创建成功'); setShowCreate(false); setCreateMsg(''); }
+      else toast.error(r.error || '创建失败');
+      qc.invalidateQueries({queryKey: ['migration-schema-status']});
+    },
+  });
+
   const rollbackMut = useMutation({
     mutationFn: (steps: number) => apiClient.post('/system/migrations/rollback', {steps}),
     onSuccess: (r: ApiResponse) => {
@@ -105,9 +118,14 @@ function SchemaTab() {
     },
   });
 
+  const handleCreate = () => {
+    if (!createMsg.trim()) { toast.error('请输入迁移描述'); return; }
+    createMut.mutate({message: createMsg.trim(), autogenerate: autoGen});
+  };
+
   return (
     <div className="space-y-6">
-      {/* Status card */}
+      {/* Status cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="p-5 rounded-2xl border border-gray-200 dark:border-gray-700 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/10 dark:to-indigo-900/10">
           <p className="text-xs font-semibold text-blue-600 dark:text-blue-400 uppercase tracking-wider">当前版本</p>
@@ -146,11 +164,41 @@ function SchemaTab() {
           className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white text-sm font-medium rounded-xl disabled:opacity-50 transition-all shadow-sm">
           {applyMut.isPending ? <><RotateCcw className="w-4 h-4 animate-spin" />执行中...</> : <><Database className="w-4 h-4" />执行所有待处理迁移</>}
         </button>
-        <button onClick={() => rollbackMut.mutate(1)} disabled={rollbackMut.isPending}
-          className="flex items-center gap-2 px-5 py-2.5 border border-orange-300 dark:border-orange-700 text-orange-600 dark:text-orange-400 text-sm font-medium rounded-xl hover:bg-orange-50 dark:hover:bg-orange-900/10 disabled:opacity-50 transition-all">
-          <RotateCcw className="w-4 h-4" />回滚一步
+        <button onClick={() => setShowCreate(true)}
+          className="flex items-center gap-2 px-5 py-2.5 border border-violet-300 dark:border-violet-700 text-violet-600 dark:text-violet-400 text-sm font-medium rounded-xl hover:bg-violet-50 dark:hover:bg-violet-900/10 transition-all">
+          <Plus className="w-4 h-4" />生成迁移文件
         </button>
+        <div className="flex items-center gap-1">
+          <input type="number" min={1} max={10} value={rollbackSteps} onChange={e => setRollbackSteps(Math.max(1, Math.min(10, parseInt(e.target.value) || 1)))}
+            className="w-14 px-2 py-2.5 border border-orange-300 dark:border-orange-700 rounded-xl bg-transparent text-sm text-orange-600 dark:text-orange-400 text-center focus:outline-none" />
+          <button onClick={() => rollbackMut.mutate(rollbackSteps)} disabled={rollbackMut.isPending}
+            className="flex items-center gap-2 px-5 py-2.5 border border-orange-300 dark:border-orange-700 text-orange-600 dark:text-orange-400 text-sm font-medium rounded-xl hover:bg-orange-50 dark:hover:bg-orange-900/10 disabled:opacity-50 transition-all">
+            <RotateCcw className="w-4 h-4" />回滚 {rollbackSteps} 步
+          </button>
+        </div>
       </div>
+
+      {/* Create migration modal */}
+      {showCreate && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm" onClick={() => setShowCreate(false)}>
+          <div className="bg-white dark:bg-gray-900 rounded-2xl w-full max-w-md p-6 shadow-2xl border border-gray-200 dark:border-gray-700 space-y-4" onClick={e => e.stopPropagation()}>
+            <h3 className="font-bold text-gray-900 dark:text-white">生成迁移文件</h3>
+            <input value={createMsg} onChange={e => setCreateMsg(e.target.value)} placeholder="迁移描述（如：add_user_avatar_column）"
+              className="w-full px-3.5 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-sm dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-violet-500/40" />
+            <label className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+              <input type="checkbox" checked={autoGen} onChange={e => setAutoGen(e.target.checked)} className="rounded border-gray-300 dark:border-gray-600" />
+              自动检测（autogenerate）
+            </label>
+            <div className="flex justify-end gap-2 pt-2">
+              <button onClick={() => setShowCreate(false)} className="px-4 py-2 text-sm border border-gray-200 dark:border-gray-700 rounded-xl hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-600 dark:text-gray-300">取消</button>
+              <button onClick={handleCreate} disabled={createMut.isPending}
+                className="px-4 py-2 text-sm bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-xl hover:from-violet-700 hover:to-purple-700 disabled:opacity-50 flex items-center gap-1">
+                {createMut.isPending && <RotateCcw className="w-3.5 h-3.5 animate-spin" />}生成
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

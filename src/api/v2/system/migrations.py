@@ -62,6 +62,25 @@ async def apply_migrations_api(
     result = await migration_manager.apply_all_migrations(db)
 
     if result['success']:
+        # 更新 version.txt 中的迁移版本号
+        try:
+            import configparser
+            from pathlib import Path
+            vf = Path(__file__).parent.parent.parent.parent / 'version.txt'
+            if vf.exists():
+                cp = configparser.ConfigParser()
+                cp.read(str(vf))
+                # 获取当前 revision
+                status = migration_manager.get_migration_status()
+                current_rev = (status or {}).get('current_revision', '')
+                if current_rev:
+                    cp['DATABASE']['migration'] = current_rev
+                    cp['DATABASE']['status'] = 'up_to_date'
+                    with open(str(vf), 'w', encoding='utf-8') as f:
+                        cp.write(f)
+        except Exception as e:
+            pass  # version.txt 更新失败不阻塞主流程
+
         return ok(
             msg=result['message'],
             data={
