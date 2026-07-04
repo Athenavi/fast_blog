@@ -1,16 +1,27 @@
 """
 MCP 文章工具处理器
+权限：所有操作需要用户上下文，删除/更新需要本人或管理员
 """
 from datetime import datetime
 
 from sqlalchemy import select
 
 from shared.models.article import Article, ArticleContent
+from src.mcp._context import get_user_ctx
 from src.utils.database.main import get_async_session_context
 
 
+def _require_auth():
+    """确保用户已认证"""
+    ctx = get_user_ctx()
+    if not ctx:
+        raise PermissionError("需要登录才能执行此操作")
+    return ctx
+
+
 async def create_article(arguments: dict) -> dict:
-    """创建新文章"""
+    """创建新文章（需登录）"""
+    ctx = _require_auth()
     title = (arguments.get("title") or "").strip()
     content = (arguments.get("content") or "").strip()
     if not title:
@@ -24,12 +35,8 @@ async def create_article(arguments: dict) -> dict:
 
     async with get_async_session_context() as db:
         try:
-            # 从上下文获取当前用户（MCP 调用方），回退到默认值
-            from src.mcp._context import get_user_ctx
-            ctx = get_user_ctx()
-            author_id = ctx.id if ctx else None
             article = Article(
-                title=title, slug=slug, excerpt=content[:200], user=author_id or 1,
+                title=title, slug=slug, excerpt=content[:200], user=ctx.id,
                 category=arguments.get("category_id"), tags_list=arguments.get("tags", ""),
                 status=1 if status_str == "published" else 0, created_at=now, updated_at=now,
             )
@@ -47,7 +54,8 @@ async def create_article(arguments: dict) -> dict:
 
 
 async def update_article(arguments: dict) -> dict:
-    """更新文章"""
+    """更新文章（仅作者或管理员）"""
+    ctx = _require_auth()
     article_id = arguments.get("article_id")
     if not article_id:
         raise ValueError("文章ID不能为空")
@@ -57,6 +65,8 @@ async def update_article(arguments: dict) -> dict:
         article = await db.scalar(select(Article).where(Article.id == int(article_id)))
         if not article:
             raise ValueError(f"文章 #{article_id} 不存在")
+        if article.user != ctx.id and not ctx.is_superuser:
+            raise PermissionError("只能编辑自己的文章")
 
         if "title" in arguments:
             article.title = arguments["title"].strip()
@@ -77,7 +87,8 @@ async def update_article(arguments: dict) -> dict:
 
 
 async def delete_article(arguments: dict) -> dict:
-    """软删除文章"""
+    """软删除文章（仅作者或管理员）"""
+    ctx = _require_auth()
     article_id = arguments.get("article_id")
     if not article_id:
         raise ValueError("文章ID不能为空")
@@ -86,6 +97,8 @@ async def delete_article(arguments: dict) -> dict:
         article = await db.scalar(select(Article).where(Article.id == int(article_id)))
         if not article:
             raise ValueError(f"文章 #{article_id} 不存在")
+        if article.user != ctx.id and not ctx.is_superuser:
+            raise PermissionError("只能删除自己的文章")
 
         article.status = -1
         article.updated_at = datetime.utcnow()
@@ -94,7 +107,8 @@ async def delete_article(arguments: dict) -> dict:
 
 
 async def search_articles(arguments: dict) -> list:
-    """搜索文章（优先 MeiliSearch，回退数据库 LIKE）"""
+    """搜索文章（所有用户可读）"""
+    _require_auth()
     query_text = (arguments.get("query") or "").strip()
     limit = min(arguments.get("limit", 10), 50)
     if not query_text:

@@ -65,6 +65,9 @@ async def get_system_stats(arguments: dict) -> dict:
 
 async def generate_seo_description(arguments: dict) -> dict:
     """生成 SEO 描述"""
+    from src.mcp._context import get_user_ctx
+    if not get_user_ctx():
+        raise PermissionError("需要登录才能执行此操作")
     article_id = arguments.get("article_id")
     if not article_id:
         raise ValueError("文章ID不能为空")

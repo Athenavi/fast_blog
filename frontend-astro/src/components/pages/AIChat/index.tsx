@@ -91,7 +91,7 @@ function AIChatInner() {
         if (list.length > 0) setActiveConvId(list[0].id);
       }
     } catch { /* ignore */ }
-    // 从服务端加载激活的 AI 配置
+    // 从服务端加载激活的 AI 配置（优先于 localStorage）
     (async () => {
       try {
         const {apiClient} = await import('@/lib/api/base-client');
@@ -105,6 +105,8 @@ function AIChatInner() {
               apiKey: active.api_key,
               model: active.model,
             }));
+            // 清除 localStorage 中残留的配置，避免下次误导
+            try { localStorage.removeItem(CFG_KEY); } catch { /* ignore */ }
           }
         }
       } catch { /* ignore */ }
