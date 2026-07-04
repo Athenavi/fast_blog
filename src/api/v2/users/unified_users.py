@@ -23,7 +23,8 @@ from src.api.v2.user_utils.user_entities import check_user_conflict_async, chang
     save_uploaded_avatar
 from src.auth.auth_deps import admin_required as admin_required_api, jwt_required_dependency as jwt_required, \
     get_current_active_user
-from src.extensions import cache, event_bus
+from src.extensions import cache
+from shared.services.plugins.event_bus import event_bus
 from src.utils.database.main import get_async_session as get_async_db
 from src.setting import app_config
 from src.utils.security.forms import ChangePasswordForm
