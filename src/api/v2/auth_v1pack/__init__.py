@@ -24,6 +24,7 @@ from shared.services.users.login_security_service import login_security_service
 from shared.services.users.session_management_service import session_management_service
 from shared.services.users.sms_verification_service import sms_verification_service
 from shared.services.users.user_manager import create_user_account
+from shared.services.plugins.event_bus import event_bus
 from shared.services.security.audit_log_service import audit_log_service, AuditLogAction, AuditLogLevel
 from src.api.v2._base import ApiResponse
 from src.api.v2._helpers import ok, fail
@@ -175,6 +176,7 @@ async def login_api(request: Request, db: AsyncSession = Depends(get_async_db)):
             resource_type="user", description="登录失败：用户名或密码错误",
             ip_address=ip, user_agent=ua
         )
+        await event_bus.emit("user.login_failed", {"user_id": None, "username": username, "ip_address": ip})
         return fail("用户名或密码错误")
 
     await login_security_service.record_login_attempt_async(username, ip, ua, True, db=db)
@@ -220,6 +222,7 @@ async def login_api(request: Request, db: AsyncSession = Depends(get_async_db)):
         description="用户登录成功",
         ip_address=ip, user_agent=ua
     )
+    await event_bus.emit("user.login", {"user_id": user.id, "username": user.username, "ip_address": ip})
     return resp
 
 
@@ -258,6 +261,8 @@ async def register_api(data: RegisterRequest, request: Request, db: AsyncSession
         description="用户注册成功",
         ip_address=ip, user_agent=ua
     )
+
+    await event_bus.emit("user.registered", {"user_id": user.id, "username": user.username, "email": data.email})
 
     access_token = create_jwt_token(subject=str(user.id), token_type="access")
     refresh_token = create_jwt_token(subject=str(user.id), token_type="refresh")
@@ -377,6 +382,7 @@ async def verify_2fa_login(request: Request, db: AsyncSession = Depends(get_asyn
         description="2FA 验证通过，登录成功",
         ip_address=ip, user_agent=ua
     )
+    await event_bus.emit("user.login", {"user_id": user_id, "username": user.username if user else None})
 
     access_token = create_jwt_token(subject=str(user_id), token_type="access")
     refresh_token = create_jwt_token(subject=str(user_id), token_type="refresh")
@@ -411,6 +417,8 @@ async def logout_api(request: Request, current_user=Depends(jwt_required)):
     resp = JSONResponse(content={"success": True, "message": "已登出"})
     resp.delete_cookie("access_token")
     resp.delete_cookie("refresh_token")
+    ip = request.client.host if request.client else "unknown"
+    await event_bus.emit("user.logout", {"user_id": current_user.id, "username": getattr(current_user, "username", None), "ip_address": ip})
     return resp
 
 

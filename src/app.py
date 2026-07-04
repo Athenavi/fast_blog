@@ -472,6 +472,15 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     except ImportError as e:
         print(f"[插件系统] ⚠️ 跳过: {e}")
 
+    # 4.5 审计日志订阅者（依赖 EventBus，需在插件之后）
+    try:
+        step_start = _time.monotonic()
+        from shared.services.security.audit_subscriber import register_audit_subscriber
+        register_audit_subscriber()
+        print(f"[lifespan] 审计日志订阅者注册耗时: {_time.monotonic() - step_start:.2f}s")
+    except ImportError as e:
+        print(f"[审计日志订阅者] ⚠️ 跳过: {e}")
+
     # 5. 下载队列处理器
     if is_installed:
         step_start = _time.monotonic()

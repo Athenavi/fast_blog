@@ -23,7 +23,7 @@ from src.api.v2.user_utils.user_entities import check_user_conflict_async, chang
     save_uploaded_avatar
 from src.auth.auth_deps import admin_required as admin_required_api, jwt_required_dependency as jwt_required, \
     get_current_active_user
-from src.extensions import cache
+from src.extensions import cache, event_bus
 from src.utils.database.main import get_async_session as get_async_db
 from src.setting import app_config
 from src.utils.security.forms import ChangePasswordForm
@@ -198,6 +198,7 @@ async def update_current_user_profile_api(
     if any(k in data for k in ('locale', 'profile_private')):
         await db.commit()
 
+    await event_bus.emit("user.profile_updated", {"user_id": current_user.id, "username": current_user.username})
     return ok({"user_id": current_user.id}, "资料更新成功")
 
 
@@ -362,6 +363,7 @@ async def block_user(user_id: int, db: AsyncSession = Depends(get_async_db),
         return fail("用户已被屏蔽")
     db.add(UserBlock(user_id=current_user.id, blocked_user_id=user_id, created_at=datetime.now()))
     await db.commit()
+    await event_bus.emit("user.blocked", {"user_id": current_user.id, "blocked_user_id": user_id})
     return ok(msg="屏蔽成功")
 
 
@@ -376,6 +378,7 @@ async def unblock_user(user_id: int, db: AsyncSession = Depends(get_async_db),
         return fail("未屏蔽该用户")
     await db.delete(row)
     await db.commit()
+    await event_bus.emit("user.unblocked", {"user_id": current_user.id, "unblocked_user_id": user_id})
     return ok(msg="已取消屏蔽")
 
 
