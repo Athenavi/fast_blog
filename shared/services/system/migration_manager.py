@@ -271,9 +271,21 @@ class MigrationManager:
         current = self.get_current_revision()
         history = self.get_pending_migrations()
         
+        # 获取 head revision
+        head_rev = None
+        try:
+            from alembic.script import ScriptDirectory
+            cfg = self._get_alembic_cfg()
+            script = ScriptDirectory.from_config(cfg)
+            heads = script.get_heads()
+            head_rev = heads[0] if heads else None
+        except Exception:
+            pass
+        
         return {
             'success': current['success'] and history['success'],
             'current_revision': current.get('current_revision'),
+            'head_revision': head_rev,
             'has_pending': history.get('pending_count', 0) > 0,
             'pending_count': history.get('pending_count', 0),
             'pending_migrations': history.get('migrations', []),

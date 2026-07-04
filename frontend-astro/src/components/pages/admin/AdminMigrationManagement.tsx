@@ -32,8 +32,10 @@ interface MigrationLog {
 interface Pagination { page: number; per_page: number; total: number; total_pages: number; }
 
 interface MigrationStatus {
-  current_revision?: string; pending_migrations?: number; is_up_to_date?: boolean;
-  migration_files?: number; head_revision?: string;
+  current_revision?: string;
+  has_pending?: boolean;
+  pending_count?: number;
+  pending_migrations?: Array<{revision: string; message: string}>;
 }
 
 // ─── Helpers ────────────────────────────────────
@@ -139,22 +141,22 @@ function SchemaTab() {
         </div>
         <div className="p-5 rounded-2xl border border-gray-200 dark:border-gray-700 bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/10 dark:to-orange-900/10">
           <p className="text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider">待处理迁移</p>
-          <p className="text-lg font-bold text-gray-900 dark:text-white mt-1">{status?.pending_migrations ?? (isLoading ? '...' : '0')}</p>
+          <p className="text-lg font-bold text-gray-900 dark:text-white mt-1">{status?.pending_count ?? (isLoading ? '...' : '0')}</p>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">等待执行的迁移文件</p>
         </div>
       </div>
 
       {/* Status info */}
-      {status?.is_up_to_date === true && (
+      {status?.has_pending === false && (
         <div className="flex items-center gap-2 p-4 bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-200 dark:border-emerald-800/30 rounded-xl text-sm text-emerald-700 dark:text-emerald-300">
           <CheckCircle className="w-5 h-5 flex-shrink-0" />
           数据库已是最新版本，无需迁移
         </div>
       )}
-      {status?.is_up_to_date === false && (
+      {status?.has_pending === true && (
         <div className="flex items-center gap-2 p-4 bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800/30 rounded-xl text-sm text-amber-700 dark:text-amber-300">
           <AlertCircle className="w-5 h-5 flex-shrink-0" />
-          有 {status?.pending_migrations} 个待处理迁移
+          有 {status?.pending_count} 个待处理迁移
         </div>
       )}
 
