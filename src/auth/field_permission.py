@@ -156,16 +156,12 @@ def filter_fields_by_permission(
     try:
         loop = asyncio.get_running_loop()
         if loop.is_running():
-            # 从已运行的循环中调用 — 使用 run_coroutine_threadsafe 或创建新循环
-            # 退化：在原循环中创建一个任务并等待
-            import concurrent.futures
-            # TODO: 当前使用 ThreadPoolExecutor + asyncio.run() 可能导致事件循环死锁。
-            #       应改用 loop.create_task() + asyncio.wait() 或
-            #       asyncio.run_coroutine_threadsafe() + concurrent.futures.Future
-            #       以安全地在已有事件循环的线程中运行协程。
-            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
-                future = pool.submit(asyncio.run, filter_fields_by_permission_async(user_id, model_name, fields, action))
-                return future.result()
+            # 使用 run_coroutine_threadsafe 在已有事件循环中安全调度协程
+            future = asyncio.run_coroutine_threadsafe(
+                filter_fields_by_permission_async(user_id, model_name, fields, action),
+                loop
+            )
+            return future.result()
     except RuntimeError:
         pass  # 没有运行中的循环
 

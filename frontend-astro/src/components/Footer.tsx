@@ -75,7 +75,7 @@ const Footer: React.FC = () => {
         {name: 'GitHub', href: '#', icon: GitBranch},
         {name: 'Twitter', href: '#', icon: Share2},
         {name: 'RSS', href: FEED.RSS, icon: Rss, external: true},
-    ];
+    ].filter(s => s.href && s.href !== '#');
 
     return (
         <footer className="relative theme-bg-muted border-t theme-border">

@@ -129,6 +129,9 @@ export const adminDashboardService = {
 
   traffic: () =>
     adminApi.get('/api/v3/admin/dashboard/traffic', '/dashboard/traffic'),
+
+  activities: (page = 1, perPage = 8) =>
+    adminApi.get('/api/v3/admin/dashboard/activities', '/dashboard/activities', {page, per_page: perPage}),
 };
 
 // ================================================================

@@ -7,6 +7,7 @@ import {QueryProvider} from '@/components/QueryProvider';
 import {AdminShell} from '@/components/admin/AdminShell';
 import {PermissionGuard} from '@/components/admin/PermissionGuard';
 import {adminService} from '@/lib/api/admin-service';
+import {AnalyticsService} from '@/lib/api/analytics-service';
 import {motion} from 'framer-motion';
 import {
   ArrowUpRight,
@@ -137,15 +138,29 @@ function AdminDashboardInner() {
     const {data: activities} = useQuery({
     queryKey: ['admin-activity'],
     queryFn: async () => {
-      const res = await adminService.dashboard.traffic();
+      const res = await adminService.dashboard.activities();
       return res.success && res.data ? (Array.isArray(res.data) ? res.data : []) : [];
     },
   });
 
-    // Mock weekly data for charts (in production, fetch from API)
-    const weeklyViews = [45, 62, 58, 80, 75, 90, 72];
-    const weeklyUsers = [12, 18, 15, 22, 20, 28, 25];
-    const weekDays = ['一', '二', '三', '四', '五', '六', '日'];
+    // 从 API 获取趋势数据，替换硬编码
+    const {data: trend} = useQuery({
+    queryKey: ['admin-dashboard-trend'],
+    queryFn: async () => {
+      const res = await AnalyticsService.getArticleViewsTrend(7);
+      return res.success && res.data ? res.data : [];
+    },
+  });
+
+    const weeklyViews = Array.isArray(trend) ? trend.map((d: any) => d.views ?? 0) : [];
+    const weeklyUsers = Array.isArray(trend) ? trend.map((d: any) => d.visitors ?? 0) : [];
+    const weekDays = Array.isArray(trend)
+        ? trend.map((d: any) => {
+            const date = new Date(d.date);
+            const dayNames = ['日', '一', '二', '三', '四', '五', '六'];
+            return dayNames[date.getDay()];
+        })
+        : [];
 
   return (
     <AdminShell title="仪表盘" actions={
@@ -161,28 +176,24 @@ function AdminDashboardInner() {
               value={stats?.articles ?? '—'}
               icon={FileText}
               color="blue"
-              trend={stats?.articles_trend ?? 12}
           />
           <StatCard
               label="用户数"
               value={stats?.users ?? '—'}
               icon={Users}
               color="green"
-              trend={stats?.users_trend ?? 8}
           />
           <StatCard
               label="评论数"
               value={stats?.comments ?? '—'}
               icon={MessageSquare}
               color="purple"
-              trend={stats?.comments_trend ?? 5}
           />
           <StatCard
               label="今日访问"
               value={stats?.views_today ?? stats?.visitors ?? '—'}
               icon={Eye}
               color="orange"
-              trend={stats?.views_trend ?? -3}
           />
       </div>
 
