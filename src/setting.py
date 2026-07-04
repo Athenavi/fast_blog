@@ -86,6 +86,12 @@ class BaseConfig:
         import secrets
         SECRET_KEY = secrets.token_urlsafe(32)
         logger.warning("SECRET_KEY 未设置，已生成临时密钥（服务重启后所有 JWT token 将失效）")
+    elif SECRET_KEY.startswith('change-this-to') or SECRET_KEY in ('your-secret-key-here', 'changeme'):
+        raise RuntimeError(
+            "SECRET_KEY 仍为占位值！请在环境变量中设置一个真实的密钥。\n"
+            f"  当前值: {SECRET_KEY[:20]}...\n"
+            "  生成方法: python -c \"import secrets; print(secrets.token_urlsafe(32))\""
+        )
 
     # 使用条件判断处理可能的 None 值
     jwt_expiration = os.getenv('JWT_EXPIRATION_DELTA')
