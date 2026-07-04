@@ -106,9 +106,9 @@ async def _audit_log_handler(event_name: str, payload: Any) -> None:
 
     # 异步记录审计日志（不阻塞调用方）
     try:
-        from src.extensions import get_db
+        from src.extensions import get_async_session_context
 
-        async with get_db() as db:
+        async with get_async_session_context() as db:
             await audit_log_service.log_action(
                 db=db,
                 user_id=user_id,
