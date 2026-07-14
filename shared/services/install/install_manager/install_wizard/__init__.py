@@ -93,8 +93,15 @@ class InstallationWizardService:
         return confirm_database_and_migrate(self.project_root)
 
     def complete_installation(self, install_info: Dict[str, Any]) -> Dict[str, Any]:
-        """完成安装：写入锁定文件"""
+        """完成安装：种子 RBAC 角色权限 + 写入锁定文件"""
         try:
+            # 种子 RBAC 数据（角色/权限表为空时才写入）
+            from shared.services.install.install_manager.install_wizard.admin_user import seed_rbac_if_empty
+            import asyncio
+            result = asyncio.run(seed_rbac_if_empty())
+            if not result.get("success"):
+                logger.warning(f"RBAC 种子数据写入失败: {result.get('message')}")
+
             self.install_flag_file.parent.mkdir(parents=True, exist_ok=True)
             self.install_flag_file.write_text("", encoding="utf-8")
             return {"success": True, "message": "安装完成"}
