@@ -47,7 +47,7 @@ class ArticleViewStatsService:
 
         # 检查防刷
         view_record_key = self.VIEW_RECORD_KEY.format(article_id, identifier)
-        exists = await cache.get(view_record_key)
+        exists = cache.get(view_record_key)
 
         if exists:
             # 在防刷时间窗口内，不重复计数
@@ -55,10 +55,10 @@ class ArticleViewStatsService:
 
         # 增加阅读计数
         view_count_key = self.VIEW_COUNT_KEY.format(article_id)
-        await cache.incr(view_count_key)
+        cache.incr(view_count_key)
 
         # 设置防刷记录（过期时间为防刷窗口）
-        await cache.set(view_record_key, "1", ex=self.ANTI_SPAM_WINDOW)
+        cache.set(view_record_key, "1", ex=self.ANTI_SPAM_WINDOW)
 
         return True
 
@@ -73,7 +73,7 @@ class ArticleViewStatsService:
             阅读量
         """
         view_count_key = self.VIEW_COUNT_KEY.format(article_id)
-        count = await cache.get(view_count_key)
+        count = cache.get(view_count_key)
 
         if count is None:
             # 如果 Redis 中没有，返回 0
@@ -94,7 +94,7 @@ class ArticleViewStatsService:
 
         # 获取 Redis 中的计数
         view_count_key = self.VIEW_COUNT_KEY.format(article_id)
-        redis_count = await cache.get(view_count_key)
+        redis_count = cache.get(view_count_key)
 
         if redis_count is None or int(redis_count) == 0:
             return
@@ -111,7 +111,7 @@ class ArticleViewStatsService:
         article.views = (article.views or 0) + int(redis_count)
 
         # 清空 Redis 计数
-        await cache.delete(view_count_key)
+        cache.delete(view_count_key)
 
         await db_session.commit()
 
@@ -163,7 +163,7 @@ class ArticleViewStatsService:
                 article_id = int(key.split(":")[-1])
 
                 # 获取计数
-                redis_count = await cache.get(key)
+                redis_count = cache.get(key)
                 if redis_count is None or int(redis_count) == 0:
                     continue
 
@@ -177,7 +177,7 @@ class ArticleViewStatsService:
                     synced_count += 1
 
                 # 清空 Redis 计数
-                await cache.delete(key)
+                cache.delete(key)
 
             except Exception as e:
                 errors.append(f"Article {key}: {str(e)}")
@@ -208,7 +208,7 @@ class ArticleViewStatsService:
         if hasattr(cache, 'redis'):
             # 使用 Redis 的 scan_iter 方法
             async for key in cache.redis.scan_iter(match=pattern):
-                count = await cache.get(key)
+                count = cache.get(key)
                 if count and int(count) > 0:
                     article_id = int(key.split(":")[-1])
                     articles.append((article_id, int(count)))
@@ -218,7 +218,7 @@ class ArticleViewStatsService:
             pattern_regex = pattern.replace('*', '.*')
             for key in cache._cache.keys():
                 if re.match(pattern_regex, key):
-                    count = await cache.get(key)
+                    count = cache.get(key)
                     if count and int(count) > 0:
                         article_id = int(key.split(":")[-1])
                         articles.append((article_id, int(count)))
@@ -236,7 +236,7 @@ class ArticleViewStatsService:
             article_id: 文章ID
         """
         view_count_key = self.VIEW_COUNT_KEY.format(article_id)
-        await cache.delete(view_count_key)
+        cache.delete(view_count_key)
 
         # 同时清除防刷记录
         pattern = f"article:view_record:{article_id}:*"
@@ -245,14 +245,14 @@ class ArticleViewStatsService:
         if hasattr(cache, 'redis'):
             # 使用 Redis 的 scan_iter 方法
             async for key in cache.redis.scan_iter(match=pattern):
-                await cache.delete(key)
+                cache.delete(key)
         else:
             # 对于 SimpleCache，我们需要遍历所有键来匹配模式
             import re
             pattern_regex = pattern.replace('*', '.*')
             for key in cache._cache.keys():
                 if re.match(pattern_regex, key):
-                    await cache.delete(key)
+                    cache.delete(key)
 
 
 # 全局实例

@@ -60,7 +60,7 @@ async def authorize(
 
     # 服务端生成 state（防 CSRF）
     state = str(uuid.uuid4())
-    await cache.set(f"oauth_state:{state}", str(current_user.id), ttl=600)
+    cache.set(f"oauth_state:{state}", str(current_user.id), ex=600)
 
     auth_url = oauth_service.get_authorization_url(
         provider=provider,
@@ -100,12 +100,12 @@ async def oauth_callback(
         return fail("缺少state参数")
     
     # 从 Redis 获取存储的 state
-    stored_state = await cache.get(f"oauth_state:{state}")
+    stored_state = cache.get(f"oauth_state:{state}")
     if not stored_state:
         return fail("state已过期或无效")
     
     # 验证后删除state(一次性使用)
-    await cache.delete(f"oauth_state:{state}")
+    cache.delete(f"oauth_state:{state}")
     
     # 获取配置
     client_id = os.getenv(f"OAUTH_{provider.upper()}_CLIENT_ID", "")

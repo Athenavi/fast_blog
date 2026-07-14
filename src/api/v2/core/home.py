@@ -270,10 +270,48 @@ async def get_recent_articles(
     """
     获取最新文章（分页）- 别名接口，与 /articles 相同
     """
-    articles, pagination = None, None
+    # 构建查询基础条件
+    conditions = [
+        Article.hidden == False,
+        Article.status == 1,
+        Article.is_vip_only == False
+    ]
+    if category_id:
+        conditions.append(Article.category == category_id)
+
+    # 获取总数
+    count_query = select(func.count(Article.id)).where(*conditions)
+    total_result = await db.execute(count_query)
+    total = total_result.scalar() or 0
+
+    # 分页查询
+    query = select(Article).where(*conditions).order_by(desc(Article.created_at))
+    offset = (page - 1) * per_page
+    articles_result = await db.execute(query.offset(offset).limit(per_page))
+    articles = articles_result.scalars().unique().all()
+
+    # 批量加载分类信息（避免 N+1）
+    category_ids = [art.category for art in articles if art.category]
+    categories_dict = {}
+    if category_ids:
+        cat_query = select(Category).where(Category.id.in_(category_ids))
+        cat_result = await db.execute(cat_query)
+        for cat in cat_result.scalars().all():
+            categories_dict[cat.id] = cat
+
+    # 格式化文章数据
+    articles_data = [_format_article_with_category(article, categories_dict) for article in articles]
+
     return ok(data={
-        "articles": articles,
-        "pagination": pagination
+        "articles": articles_data,
+        "pagination": {
+            "current_page": page,
+            "per_page": per_page,
+            "total": total,
+            "total_pages": (total + per_page - 1) // per_page,
+            "has_next": page < (total + per_page - 1) // per_page,
+            "has_prev": page > 1
+        }
     })
 
 
