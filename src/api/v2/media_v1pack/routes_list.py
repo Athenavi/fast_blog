@@ -20,28 +20,9 @@ from .utils import convert_storage_size
 router = APIRouter()
 from src.unified_logger import default_logger as logger
 
-from functools import wraps
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 
 
-def _catch(func):
-    """统一错误处理装饰器"""
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            logger.error(f"[{func.__name__}] {e}")
-            return fail(str(e))
-    return wrapper
-
-
-# ---------- 列表 ----------
-@router.get("/files")
-@router.get("/files/list")
-@_catch
 async def list_media(
         request: Request,
         current_user_obj=Depends(jwt_required),

@@ -55,49 +55,6 @@ try:
     logger.info(f"Redis 客户端已创建（惰性连接）: {_redis_host}:{_redis_port}/{_redis_db}")
 
 
-    # 为 Redis 对象添加兼容的装饰器方法
-    def _redis_memoize(timeout=300):
-        """Redis memoize 装饰器"""
-        import functools
-        import json
-
-        def decorator(func):
-            @functools.wraps(func)
-            def wrapper(*args, **kwargs):
-                # 创建缓存键
-                cache_key = f"{func.__name__}:{str(args)}:{str(sorted(kwargs.items()))}"
-
-                # 尝试从 Redis 获取
-                try:
-                    result = _redis_client.get(cache_key)
-                    if result is not None:
-                        # 尝试反序列化 JSON
-                        try:
-                            return json.loads(result)
-                        except (json.JSONDecodeError, TypeError):
-                            return result
-                except Exception:
-                    pass
-
-                # 执行函数
-                result = func(*args, **kwargs)
-
-                # 存储到 Redis
-                try:
-                    if isinstance(result, (dict, list)):
-                        _redis_client.setex(cache_key, timeout, json.dumps(result, ensure_ascii=False))
-                    else:
-                        _redis_client.setex(cache_key, timeout, str(result))
-                except Exception:
-                    pass
-
-                return result
-
-            return wrapper
-
-        return decorator
-
-
     def _redis_cached(timeout=300, key_prefix=''):
         """Redis cached 装饰器"""
         import functools
@@ -145,7 +102,6 @@ try:
 
         def __init__(self, redis_client):
             self._client = redis_client
-            self.memoize = _redis_memoize
             self.cached = _redis_cached
 
         def __getattr__(self, name):

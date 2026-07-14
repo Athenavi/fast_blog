@@ -3,7 +3,6 @@
 """
 import logging
 import os
-from functools import wraps
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy import select
@@ -11,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from pathlib import Path
 
 from shared.models.media import Media
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 
@@ -20,22 +19,6 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            logger = __import__('logging').getLogger(__name__)
-            logger.error(f"[{func.__name__}] {e}")
-            return fail(str(e))
-    return wrapper
-
-
-@router.get("/{media_id}/exif")
-@_catch
 async def get_media_exif(
         media_id: int,
         db: AsyncSession = Depends(get_async_db),

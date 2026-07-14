@@ -3,33 +3,17 @@
 """
 import hashlib
 import logging
-from functools import wraps
 
 import aiohttp
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from shared.services.articles.cover_image_service import CoverImageService
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(tags=["cover-image"])
-
-
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            import traceback
-            print(f"Error in {func.__name__}: {e}")
-            print(traceback.format_exc())
-            return fail(str(e))
-    return wrapper
 
 
 class ExternalImageUrlRequest(BaseModel):

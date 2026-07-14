@@ -3,7 +3,6 @@
 提供文件夹的 CRUD 操作和媒体文件管理
 """
 
-from functools import wraps
 from typing import Optional, List
 
 from fastapi import APIRouter, Depends, Query, Body, Request, HTTPException
@@ -11,7 +10,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.services.media.media_manager import media_folder_service
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 
@@ -19,22 +18,6 @@ router = APIRouter(tags=["media-folders"])
 from src.unified_logger import default_logger as logger
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            logger.error(f"[{func.__name__}] {e}")
-            return fail(str(e))
-    return wrapper
-
-
-# ---------- 获取文件夹树 ----------
-@router.get("/tree")
-@_catch
 async def get_folder_tree(
     include_media_count: bool = Query(True, description="是否包含媒体数量"),
     current_user=Depends(jwt_required),

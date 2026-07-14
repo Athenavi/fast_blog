@@ -2,29 +2,16 @@
 区域化部署最佳实践 API - V2 版本
 提供全球各地区的部署指南、云服务配置和最佳实践
 """
-from functools import wraps
 
 from fastapi import APIRouter, Depends
 
 from shared.models.user import User
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth import jwt_required_dependency as jwt_required
 
 router = APIRouter(prefix="/deployment", tags=["Regional Deployment"])
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except Exception as e:
-            return fail(f"操作失败: {e}")
-    return wrapper
-
-
-@router.get("/guide/{region}", summary="获取区域部署指南")
-@_catch
 async def get_deployment_guide(
         region: str,
         current_user: User = Depends(jwt_required)

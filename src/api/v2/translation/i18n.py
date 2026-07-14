@@ -3,32 +3,15 @@
 提供翻译管理、语言检测、自动翻译等功能
 """
 from typing import Optional, Dict, Any, List
-from functools import wraps
 from fastapi import APIRouter, Depends, HTTPException, Query, Body, Header
 
 from shared.services.translation.translation import translation_service
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import jwt_required_dependency as jwt_required, get_current_user
 
 router = APIRouter(tags=["i18n"])
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            return fail(str(e))
-    return wrapper
-
-
-# ==================== 语言管理 ====================
-
-@router.get("/languages", summary="获取支持的语言列表")
-@_catch
 async def get_supported_languages():
     """
     获取所有支持的语言

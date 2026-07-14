@@ -2,33 +2,18 @@
 数据库 URL 替换 API
 用于网站迁移时批量替换数据库中的URL
 """
-from functools import wraps
 
 from fastapi import APIRouter, Depends, Request, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.services.system.database_url_replacer import database_url_replacer
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import admin_required as admin_required_api
 from src.extensions import get_async_db_session as get_async_db
 
 router = APIRouter(tags=["Migration"])
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            return fail(str(e))
-    return wrapper
-
-
-@router.post("/url-replace/preview")
-@_catch
 async def preview_url_replace(
         request: Request,
         current_user=Depends(admin_required_api),

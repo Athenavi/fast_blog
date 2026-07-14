@@ -5,7 +5,6 @@
 import json
 import logging
 from datetime import datetime, timezone
-from functools import wraps
 from typing import Optional, List
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
@@ -15,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.models import PermissionAuditLog
 from shared.models.rbac import Role, Capability, RoleCapability, UserRole
 from shared.services.security.rbac_service import rbac_service
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 from src.api.v3._permission import invalidate_permission_cache
@@ -24,23 +23,6 @@ router = APIRouter(tags=["rbac"])
 logger = logging.getLogger(__name__)
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            logger.error(f"[{func.__name__}] {e}")
-            return fail(str(e))
-    return wrapper
-
-
-# ==================== 角色管理 ====================
-
-@router.post("/roles", summary="创建自定义角色")
-@_catch
 async def create_role(
         name: str = Body(..., description="角色名称"),
         slug: str = Body(..., description="角色标识"),

@@ -6,7 +6,6 @@ Yjs 实时协作编辑 WebSocket API
 """
 import json
 import uuid as uuid_lib
-from functools import wraps
 from typing import Optional
 
 import jwt
@@ -16,21 +15,9 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.services.chat.yjs_collaboration import yjs_collaboration_service
 from src.setting import settings
 from src.utils.database.main import get_async_session as get_async_db
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 
 router = APIRouter(tags=["collaboration-yjs"])
-
-
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            return fail(str(e))
-    return wrapper
 
 
 async def _verify_token(token: Optional[str], cookie: Optional[str]) -> Optional[dict]:

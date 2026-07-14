@@ -2,36 +2,19 @@
 电子商务 API - 购物车和订单管理
 """
 from datetime import datetime
-from functools import wraps
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models import Cart, CartItem, Product
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth import jwt_required_dependency as jwt_required
 from src.utils.database.main import get_async_session as get_async_db
 
 router = APIRouter(tags=["ecommerce"])
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            return fail(str(e))
-    return wrapper
-
-
-# ==================== 购物车 API ====================
-
-@router.get("")
-@_catch
 async def get_cart(
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)

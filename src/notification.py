@@ -7,76 +7,6 @@ from sqlalchemy import select, update
 
 from shared.models import Notification
 from src.extensions import get_async_db_session as get_async_db
-
-
-async def create_notification(
-        recipient_id: int,
-        title: str,
-        content: str,
-        notification_type: str = 'info',
-        related_id: Optional[int] = None,
-        data: Optional[Dict[str, Any]] = None
-) -> Notification:
-    """
-    创建通知
-    
-    Args:
-        recipient_id: 接收者ID
-        title: 通知标题
-        content: 通知内容
-        notification_type: 通知类型 ('info', 'warning', 'error', 'success')
-        related_id: 相关对象ID
-        data: 额外数据
-    
-    Returns:
-        Notification: 创建的通知对象
-    """
-    notification = Notification(
-        recipient=recipient_id,
-        title=title,
-        message=content,
-        type=notification_type,
-    )
-
-    # 使用数据库会话
-    async for session in get_async_db():
-        session.add(notification)
-        await session.commit()
-        await session.refresh(notification)
-        notification_id = notification.id  # 保存ID以供后续使用
-        break
-
-    # 重新查询完整的通知对象
-    async for session in get_async_db():
-        stmt = select(Notification).filter_by(id=notification_id)
-        result = await session.execute(stmt)
-        notification = result.scalar_one_or_none()
-        break
-
-    # 发送邮件通知（如果用户设置了邮件通知偏好）
-    # if user and user.email and user.settings.get('email_notifications', True):
-    #    send_notification_email(user, title, content)
-
-    # 尝试通过WebSocket发送实时通知
-    try:
-        from src.extensions import socketio, SOCKETIO_AVAILABLE
-        if SOCKETIO_AVAILABLE:
-            # 发送实时通知到客户端
-            await socketio.emit('notification', {
-                'id': notification.id,
-                'title': title,
-                'content': content,
-                'type': notification_type,
-                'timestamp': notification.created_at.isoformat(),
-                'read': False
-            }, room=f'user_{recipient_id}')
-    except Exception as e:
-        # 在serverless环境中，WebSocket可能不可用，记录警告但不抛出错误
-        print(f"无法发送实时通知: {str(e)}")
-
-    return notification
-
-
 async def get_user_notifications(user_id: int, unread_only: bool = False, limit: int = 20):
     """
     获取用户通知
@@ -182,22 +112,3 @@ async def delete_notification(notification_id: int, user_id: int) -> bool:
 
     return False
 
-
-async def get_unread_count(user_id: int) -> int:
-    """
-    获取未读通知数量
-    
-    Args:
-        user_id: 用户ID
-    
-    Returns:
-        int: 未读通知数量
-    """
-    async for session in get_async_db():
-        from sqlalchemy import func
-        stmt = select(func.count()).select_from(Notification).filter_by(
-            recipient=user_id,
-            is_read=False
-        )
-        result = await session.execute(stmt)
-        return result.scalar()

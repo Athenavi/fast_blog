@@ -3,7 +3,6 @@
 提供全局样式配置的查询和管理功能
 """
 import json
-from functools import wraps
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Body, HTTPException
@@ -11,28 +10,13 @@ from sqlalchemy import select, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.theme import GlobalStyle, GlobalStyleConfig
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 
 router = APIRouter(tags=["global-styles"])
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            return fail(str(e))
-    return wrapper
-
-
-@router.get("")
-@router.get("/list")
-@_catch
 async def list_global_styles(
     current_user=Depends(jwt_required),
     db: AsyncSession = Depends(get_async_db),

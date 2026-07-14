@@ -3,7 +3,6 @@
 支持群聊和私聊的消息管理
 """
 
-from functools import wraps
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
@@ -12,29 +11,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.chat import ChatGroupMember, PrivateMessage, ChatGroup
 from shared.models.user import User
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import jwt_required
 from src.extensions import get_async_db_session as get_async_db
 
 router = APIRouter(tags=["chat"])
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            import traceback
-            print(f"Error: {e}\n{traceback.format_exc()}")
-            return fail(str(e))
-    return wrapper
-
-
-@router.get("/groups", summary="获取用户的群聊列表")
-@_catch
 async def get_user_groups(
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)

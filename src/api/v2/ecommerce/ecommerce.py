@@ -2,34 +2,19 @@
 电子商务 API - 商品管理
 """
 from typing import Optional
-from functools import wraps
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models import Product
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth import jwt_required_dependency as jwt_required
 from src.utils.database.main import get_async_session as get_async_db
 
 router = APIRouter(tags=["products"])
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            return fail(str(e))
-    return wrapper
-
-
-@router.get("/")
-@_catch
 async def list_products(
         page: int = Query(1, ge=1, description="页码"),
         per_page: int = Query(10, ge=1, le=100, description="每页数量"),

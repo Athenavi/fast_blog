@@ -1,7 +1,6 @@
 """
 分类管理API - 处理分类的创建、更新和删除
 """
-from functools import wraps
 
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy import func, select
@@ -9,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.article import Article
 from shared.models.category import Category, CategorySubscription
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 from shared.services.plugins.event_bus import event_bus
@@ -17,20 +16,6 @@ from shared.services.plugins.event_bus import event_bus
 router = APIRouter(tags=["category-management"])
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            return fail(str(e))
-    return wrapper
-
-
-@router.post("/")
-@_catch
 async def create_category_api(
         request: Request,
         current_user=Depends(jwt_required),

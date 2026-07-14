@@ -2,32 +2,18 @@
 无障碍支持 API - V2 版本
 提供 WCAG 2.1 标准的无障碍功能
 """
-from functools import wraps
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 
 from shared.models.user import User
 from shared.services.system.accessibility_service import AccessibilityService
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth import jwt_required_dependency as jwt_required
 
 router = APIRouter(prefix="/accessibility", tags=["Accessibility"])
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            return fail(str(e))
-    return wrapper
-
-
-# 初始化无障碍服务
 accessibility_service = AccessibilityService()
 
 

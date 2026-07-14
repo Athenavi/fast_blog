@@ -2,7 +2,6 @@
 文件获取、流式传输、范围请求
 """
 import urllib.parse
-from functools import wraps
 from pathlib import Path
 from typing import Optional
 
@@ -17,28 +16,12 @@ from shared.utils.logger import get_logger
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 from .utils import PREVIEWABLE_TYPES, handle_local_file, handle_s3_streaming
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 
 logger = get_logger(__name__)
 router = APIRouter()
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            logger.error(f"[{func.__name__}] {e}")
-            return fail(str(e))
-    return wrapper
-
-
-# 公开访问的封面缓存路由（无需认证）
-@router.get("/cover/{filename}")
-@_catch
 async def get_cover_image(filename: str):
     """
     获取封面图片（公开访问，无需认证）

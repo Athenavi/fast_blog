@@ -3,7 +3,6 @@ Web Push 推送通知 API
 提供订阅管理和推送发送功能
 """
 
-from functools import wraps
 from typing import Optional, List
 
 from fastapi import APIRouter, Depends, HTTPException, Body, Request
@@ -11,24 +10,10 @@ from pydantic import BaseModel
 
 from shared.models.user import User as UserModel
 from shared.services.chat.web_push_service import web_push_service
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth import get_current_active_user
 
 router = APIRouter(tags=["push-notifications"])
-
-
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            import traceback
-            traceback.print_exc()
-            return fail(str(e))
-    return wrapper
 
 
 class SubscriptionRequest(BaseModel):

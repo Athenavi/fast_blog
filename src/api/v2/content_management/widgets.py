@@ -4,7 +4,6 @@
 """
 
 from datetime import datetime
-from functools import wraps
 import json
 from typing import List, Optional, Dict, Any
 
@@ -12,27 +11,13 @@ from fastapi import APIRouter, Depends, HTTPException, Query, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.services.widgets.widget_manager import widget_service
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import admin_required as admin_required_api
 from src.extensions import get_async_db_session as get_async_db
 
 router = APIRouter(tags=["widgets"])
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            return fail(str(e))
-    return wrapper
-
-
-@router.get("/")
-@_catch
 async def list_all_widgets(
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),

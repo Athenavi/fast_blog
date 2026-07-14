@@ -6,31 +6,18 @@
 
 import json
 from datetime import datetime, timedelta
-from functools import wraps
 from typing import Optional
 
 from fastapi import APIRouter, Depends, Query, Request
 
 from shared.services.analytics.site_analytics import site_analytics
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 from src.utils.security.ip_utils import get_client_ip
 
 router = APIRouter(prefix="/site-analytics", tags=["Site Analytics"])
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except Exception as e:
-            return fail(f"操作失败: {e}")
-    return wrapper
-
-
-@router.post("/track/page-view")
-@_catch
 async def track_page_view(
     request: Request,
         page_path: str = Query(..., description="页面路径"),

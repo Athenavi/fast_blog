@@ -2,14 +2,13 @@
 合规性管理 API - V2 版本
 提供 GDPR、CCPA、中国网络安全法等法规的合规性检查和指导
 """
-from functools import wraps
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Body
 
 from shared.models.user import User
 from shared.services.compliance.compliance_service import ComplianceService
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth import jwt_required_dependency as jwt_required
 
 router = APIRouter(prefix="/compliance", tags=["Compliance Management"])
@@ -18,22 +17,6 @@ router = APIRouter(prefix="/compliance", tags=["Compliance Management"])
 compliance_service = ComplianceService()
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            import traceback
-            traceback.print_exc()
-            return fail(str(e))
-    return wrapper
-
-
-@router.get("/gdpr/check", summary="GDPR 合规性检查")
-@_catch
 async def check_gdpr_compliance(
         current_user: User = Depends(jwt_required)
 ):

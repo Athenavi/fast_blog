@@ -4,34 +4,18 @@
 提供异常行为的检测、查看和管理功能
 """
 import logging
-from functools import wraps
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
 
 from shared.services.articles.anomaly_detector import anomaly_detector
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            logger.error(f"[{func.__name__}] {e}")
-            return fail(str(e))
-    return wrapper
-
-
-@router.get("/anomalies", summary="获取异常事件", description="获取检测到的异常行为事件")
-@_catch
 async def get_anomalies(
         hours: int = Query(24, ge=1, le=168, description="最近多少小时"),
         anomaly_type: Optional[str] = Query(None, description="异常类型过滤"),

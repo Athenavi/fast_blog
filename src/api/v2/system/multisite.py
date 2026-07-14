@@ -2,36 +2,19 @@
 多站点管理 API
 提供站点配置、域名绑定、用户管理和内容同步功能
 """
-from functools import wraps
 from typing import Optional, Dict, Any
 
 from fastapi import APIRouter, Depends, Query, Body, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.services.system.multisite_service import multisite_service
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 
 router = APIRouter(tags=["multisite"])
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            return fail(str(e))
-    return wrapper
-
-
-# ==================== 站点管理 ====================
-
-@router.post("", summary="创建站点")
-@_catch
 async def create_site(
         name: str = Body(..., description="站点名称"),
         slug: str = Body(..., description="站点标识"),

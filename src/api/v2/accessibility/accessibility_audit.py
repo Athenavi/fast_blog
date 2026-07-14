@@ -4,32 +4,17 @@
 提供WCAG 2.1标准的自动化审计功能
 """
 
-from functools import wraps
 from typing import Optional, List
 
 from fastapi import APIRouter, Depends, HTTPException, Body
 
 from shared.services.advanced_features.accessibility_auditor import accessibility_auditor
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 
 router = APIRouter()
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            return fail(f"操作失败: {e}")
-    return wrapper
-
-
-@router.post("", summary="审计页面", description="审计单个页面的无障碍性")
-@_catch
 async def audit_page(
         html_content: str = Body(..., description="HTML内容"),
         url: Optional[str] = Body(None, description="页面URL"),

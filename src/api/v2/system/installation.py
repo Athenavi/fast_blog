@@ -3,7 +3,6 @@
 """
 import asyncio
 import json
-from functools import wraps
 
 from fastapi import APIRouter, Body, HTTPException
 from fastapi.responses import StreamingResponse
@@ -11,28 +10,11 @@ from pydantic import BaseModel
 
 from shared.services.install.install_manager.installation_wizard import installation_wizard_service
 from shared.services.install.install_manager.migration_service import migration_service
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 
 router = APIRouter()
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            return fail(str(e))
-    return wrapper
-
-
-@router.get("/prerequisites",
-            summary="检查安装前置条件",
-            description="检查系统环境是否满足安装要求",
-            response_description="返回前置条件检查结果")
-@_catch
 async def check_prerequisites_api():
     """检查安装前置条件"""
     result = installation_wizard_service.check_prerequisites()

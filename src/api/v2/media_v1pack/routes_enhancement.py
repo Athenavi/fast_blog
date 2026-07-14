@@ -2,7 +2,6 @@
 媒体增强 API（单个优化、WebP转换等，无冲突端点）
 """
 
-from functools import wraps
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, Form, HTTPException
@@ -11,7 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.media import Media
 from shared.models.media.file_hash import FileHash
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 
@@ -19,21 +18,6 @@ router = APIRouter(tags=["media-enhancement"])
 from src.unified_logger import default_logger as logger
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            logger.error(f"[{func.__name__}] {e}")
-            return fail(str(e))
-    return wrapper
-
-
-@router.post("/optimize/{file_id}")
-@_catch
 async def optimize_media_file(
         file_id: int,
         quality: int = Form(85),

@@ -2,7 +2,6 @@
 Halo 博客迁移 API - V2 版本
 提供完整的 Halo 博客内容迁移功能
 """
-from functools import wraps
 from typing import Optional
 
 from fastapi import APIRouter, Depends, BackgroundTasks, HTTPException, Body
@@ -10,29 +9,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.user import User
 from shared.services.integrations.halo_import import HaloImportService
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 
 router = APIRouter(prefix="/halo", tags=["Halo Migration"])
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            import traceback
-            traceback.print_exc()
-            return fail(str(e))
-    return wrapper
-
-
-@router.post("/connect", summary="连接到 Halo 博客")
-@_catch
 async def connect_to_halo(
         halo_url: str = Body(...),
         api_token: str = Body(...),

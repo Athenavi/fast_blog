@@ -3,7 +3,6 @@
 解决异步greenlet问题，提供稳定的首页数据服务
 """
 import re
-from functools import wraps
 from typing import Optional, Dict, Any
 
 from fastapi import APIRouter, Depends, Query, Request
@@ -14,20 +13,10 @@ from shared.models.system import SystemSettings
 from shared.models.article import Article
 from shared.models.category import Category
 from shared.models.user import User
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.utils.database.main import get_async_session
 
 router = APIRouter(tags=["home"])
-
-
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except Exception as e:
-            return fail(str(e))
-    return wrapper
 
 
 async def send_subscription_confirmation_email(email: str):

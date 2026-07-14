@@ -2,28 +2,14 @@
 版本信息 API
 提供版本查询、构建信息、更新检查等功能
 """
-from functools import wraps
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
 
-from src.api.v2._helpers import ok
+from src.api.v2._helpers import ok, _catch
 from src.auth.auth_deps import admin_required as admin_required_api
 
 router = APIRouter()
-
-
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            from src.api.v2._helpers import fail
-            return fail(str(e))
-    return wrapper
 
 
 def _read_version_txt() -> dict:

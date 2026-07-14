@@ -3,30 +3,15 @@
 """
 import uuid
 from datetime import datetime, timedelta
-from functools import wraps
 
 from fastapi import APIRouter, HTTPException, Depends, Body, Request
 from pydantic import BaseModel
 
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 
 router = APIRouter(tags=["collaboration-invites"])
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            return fail(str(e))
-    return wrapper
-
-
-# 简化的邀请存储(生产环境应使用数据库)
-# 结构: {invite_id: invitation_data}
 invitations_db = {}
 
 # 用户活跃邀请映射: {user_id: invite_id} - 确保用户同一时间只有一个活跃邀请

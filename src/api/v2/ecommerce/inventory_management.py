@@ -4,34 +4,19 @@
 提供库存检查、库存调整、低库存警告、库存报告等功能
 """
 from typing import Optional
-from functools import wraps
 
 from fastapi import APIRouter, Depends, Query, Body, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.user import User
 from shared.services.ecommerce.inventory_service import create_inventory_service
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import jwt_required_dependency as jwt_required, admin_required as admin_required_api
 from src.utils.database.main import get_async_session as get_async_db
 
 router = APIRouter(tags=["inventory"])
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            return fail(str(e))
-    return wrapper
-
-
-@router.get("/check/{product_id}")
-@_catch
 async def check_product_inventory(
         product_id: int,
         quantity: int = Query(1, ge=1, description="需要检查的数量"),

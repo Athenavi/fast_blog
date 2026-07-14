@@ -2,31 +2,16 @@
 自定义块模式 API 端点
 """
 
-from functools import wraps
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Body
 
 from shared.services.content_management.custom_block_pattern import custom_block_pattern_service
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth import jwt_required_dependency as jwt_required
 
 router = APIRouter(tags=["custom-patterns"])
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            return fail(str(e))
-    return wrapper
-
-
-@router.post("")
-@_catch
 async def create_custom_pattern(
     title: str = Body(..., description="模式标题"),
     description: str = Body(..., description="描述"),

@@ -6,30 +6,16 @@
 """
 
 from typing import List
-from functools import wraps
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Body, UploadFile, File
 
 from shared.services.translation.translation_io import translation_io
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 
 router = APIRouter()
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            return fail(str(e))
-    return wrapper
-
-
-@router.get("/export/{language_code}", summary="导出翻译", description="导出指定语言的翻译文件")
 async def export_translation(
         language_code: str,
         format: str = Query('json', pattern='^(json|yaml|po)$', description="导出格式"),

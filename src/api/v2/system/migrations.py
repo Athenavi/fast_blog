@@ -3,7 +3,6 @@
 提供迁移执行、状态查询等功能
 """
 import asyncio
-from functools import wraps
 from typing import Dict, Any
 
 from fastapi import APIRouter, Depends, Request, Body, HTTPException
@@ -11,30 +10,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.user import User
 from shared.services.system.migration_manager import migration_manager
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import admin_required as admin_required_api
 from src.extensions import get_async_db_session as get_async_db
 
 router = APIRouter()
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            return fail(str(e))
-    return wrapper
-
-
-@router.get("/status",
-            summary="获取迁移状态",
-            description="查看当前数据库版本和待处理迁移(仅管理员)",
-            response_description="返回迁移状态")
-@_catch
 async def migration_status_api(
         request: Request,
         current_user: User = Depends(admin_required_api)

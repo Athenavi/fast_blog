@@ -4,7 +4,6 @@
 """
 from datetime import datetime
 from typing import Optional
-from functools import wraps
 
 from fastapi import APIRouter, Depends, Query, Body, HTTPException
 from sqlalchemy import select, func, desc
@@ -15,23 +14,11 @@ from shared.models.enterprise import (
     SupportTicket, SupportTicketReply,
 )
 from shared.models.monitoring import MonitoringAlert, MonitoringMetric
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 from src.utils.database.main import get_async_session as get_async_db
 
 router = APIRouter(tags=["enterprise-admin"])
-
-
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            return fail(str(e))
-    return wrapper
 
 
 async def _check_admin(current_user) -> bool:

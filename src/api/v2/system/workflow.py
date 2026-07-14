@@ -2,31 +2,16 @@
 工作流 API
 提供工作流定义、实例管理和执行监控的RESTful接口
 """
-from functools import wraps
 from typing import Optional, Dict, Any
 from fastapi import APIRouter, Depends, HTTPException, Body
 
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from shared.services.system.workflow_engine import workflow_engine
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 
 router = APIRouter(tags=["workflows"])
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            return fail(str(e))
-    return wrapper
-
-
-@router.post("/definitions", summary="注册工作流定义")
-@_catch
 async def register_workflow(
         workflow_id: str = Body(..., description="工作流ID"),
         definition: Dict[str, Any] = Body(..., description="工作流定义"),

@@ -2,7 +2,6 @@
 屏幕选项(Screen Options) API
 提供用户界面偏好的保存和加载
 """
-from functools import wraps
 from typing import Dict, Any, Optional
 
 from fastapi import APIRouter, Depends, Query, Request, Body, HTTPException
@@ -10,30 +9,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.user import User
 from shared.services.system.screen_options_service import screen_options_service
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 
 router = APIRouter()
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            return fail(str(e))
-    return wrapper
-
-
-@router.get("/options",
-            summary="获取屏幕选项",
-            description="获取当前用户的屏幕选项配置",
-            response_description="返回选项配置")
-@_catch
 async def get_screen_options_api(
         request: Request,
         page_name: Optional[str] = Query(None, description="页面名称过滤"),

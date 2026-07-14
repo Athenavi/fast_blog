@@ -1,27 +1,14 @@
 """
 文章阅读统计 API - V2 优化版
 """
-from functools import wraps
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.services.articles.article_view_stats import article_view_stats
-from src.api.v2._helpers import ok
+from src.api.v2._helpers import ok, _catch
 from src.auth import jwt_required_dependency as jwt_required
 from src.utils.database.main import get_async_session as get_async_db
-
-
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            return ok(msg=str(e))
-    return wrapper
 
 
 def _require_admin(user) -> bool:

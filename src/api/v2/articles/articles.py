@@ -8,7 +8,6 @@ import logging
 import re
 import secrets
 from datetime import datetime, timedelta
-from functools import wraps
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request, Body
@@ -28,26 +27,12 @@ from shared.services.security.rbac_service import rbac_service
 from shared.services.static_generation.isr_service import isr_service
 from shared.services.plugins.event_bus import event_bus, ArticlePublishedPayload, ArticleUpdatedPayload, ArticleDeletedPayload
 from src.api.v2._base import ApiResponse
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import jwt_optional_dependency, jwt_required_dependency as jwt_required
 from src.setting import app_config
 from src.utils.database.main import get_async_session
 from src.utils.field_filter import filter_fields
 from src.utils.filters import markdown_to_html
-
-
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            import traceback
-            traceback.print_exc()
-            return fail(str(e))
-    return wrapper
 
 
 def _is_admin(user) -> bool:
@@ -382,7 +367,7 @@ async def create_article_api(request: Request, current_user=Depends(jwt_required
 
     await save_article_revision(db=db, article_id=article.id, author_id=current_user.id, change_summary="创建文章")
     try:
-        await isr_service.invalidate(article.slug)
+        await isr_service.on_article_update(article.slug)
         await webhook_service.trigger_event('article.created', {'article_id': article.id})
         # 仅在发布状态时发送 published 事件
         if article.status == 1:
@@ -451,7 +436,7 @@ async def update_article_api(article_id: int, request: Request, current_user=Dep
                                 change_summary=data.get('change_summary', '更新文章'))
 
     try:
-        await isr_service.invalidate(article.slug)
+        await isr_service.on_article_update(article.slug)
         await webhook_service.trigger_event('article.updated', {'article_id': article_id})
         await event_bus.emit('article.updated', ArticleUpdatedPayload(
             article_id=article.id, slug=article.slug, title=article.title,

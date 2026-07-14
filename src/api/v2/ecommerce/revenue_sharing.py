@@ -3,7 +3,6 @@
 """
 from datetime import datetime
 from typing import Optional
-from functools import wraps
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import BaseModel, Field
@@ -11,24 +10,10 @@ from sqlalchemy.orm import Session
 
 from shared.services.ecommerce.revenue_sharing_service import RevenueSharingService, RevenueType
 from src.extensions import get_db
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 
 router = APIRouter(tags=["收益分成"])
 
-
-def _catch(func):
-    @wraps(func)
-    def wrapper(*args, **kwargs):
-        try:
-            return func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            return fail(str(e))
-    return wrapper
-
-
-# ==================== Pydantic 模型 ====================
 
 class RevenueRecordCreate(BaseModel):
     """创建收益记录请求"""

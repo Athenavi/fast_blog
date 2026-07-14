@@ -2,7 +2,6 @@
 外部资源转存API
 提供下载任务管理、进度查询等功能
 """
-from functools import wraps
 from typing import Optional, List
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -11,27 +10,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.media import DownloadTask
 from shared.services.performance.resource_transfer_service import ResourceTransferService
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 
 router = APIRouter(tags=["resource-transfer"])
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            return fail(str(e))
-    return wrapper
-
-
-@router.post("/download", summary="创建下载任务")
-@_catch
 async def create_download_task(
         url: str = Query(..., description="资源URL"),
         resource_type: str = Query("image", description="资源类型: image/video/audio/document/other"),

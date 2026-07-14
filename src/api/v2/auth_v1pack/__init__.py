@@ -7,7 +7,6 @@
 import re
 import uuid
 from datetime import datetime, timedelta, timezone
-from functools import wraps
 from typing import Optional
 
 import jwt
@@ -27,7 +26,7 @@ from shared.services.users.user_manager import create_user_account
 from shared.services.plugins.event_bus import event_bus
 from shared.services.security.audit_log_service import audit_log_service, AuditLogAction, AuditLogLevel
 from src.api.v2._base import ApiResponse
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 from src.setting import settings
@@ -43,19 +42,6 @@ def _get_token_blacklist():
         from src.utils.token_blacklist import token_blacklist
         _tb_instance = token_blacklist
     return _tb_instance
-
-
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            logger.error(f"[{func.__name__}] {e}")
-            return fail(str(e))
-    return wrapper
 
 
 router = APIRouter(tags=["auth"])

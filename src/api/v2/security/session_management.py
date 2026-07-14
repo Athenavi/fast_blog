@@ -3,35 +3,19 @@
 提供会话查看、远程注销、设备管理等功能
 """
 import logging
-from functools import wraps
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Body, Request
 
 from shared.models.user import User as UserModel
 from shared.services.users.session_management_service import session_management_service
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import get_current_active_user, admin_required as admin_required_api
 
 router = APIRouter(tags=["sessions"])
 logger = logging.getLogger(__name__)
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            logger.error(f"[{func.__name__}] {e}")
-            return fail(str(e))
-    return wrapper
-
-
-@router.get("/my-sessions", summary="获取我的活跃会话")
-@_catch
 async def get_my_sessions(
         request: Request,
         current_user: UserModel = Depends(get_current_active_user)

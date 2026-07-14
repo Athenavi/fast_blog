@@ -4,7 +4,6 @@
 """
 import os
 import asyncio
-from functools import wraps
 from typing import Optional
 
 from fastapi import APIRouter, Depends, BackgroundTasks, HTTPException
@@ -12,25 +11,12 @@ from fastapi.responses import FileResponse
 
 from shared.models.user import User
 from shared.services.system.backup_service import BackupService
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth import jwt_required_dependency as jwt_required
 
 router = APIRouter(prefix="/backup", tags=["Backup Management"])
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            return fail(str(e))
-    return wrapper
-
-
-# 初始化备份服务
 backup_service = BackupService()
 
 # 并发锁：同一时间只允许一个备份操作

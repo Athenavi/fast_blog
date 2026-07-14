@@ -3,7 +3,6 @@
 为管理后台设置页面提供专用的媒体上传接口，支持图片和视频类型
 """
 
-from functools import wraps
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import JSONResponse
@@ -13,7 +12,7 @@ from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 from src.unified_logger import default_logger as logger
 from src.utils.upload.public_upload import FileProcessor, process_single_file
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 
 router = APIRouter(tags=["media-settings"])
 
@@ -42,21 +41,6 @@ ALLOWED_MIMES = {
 MAX_FILE_SIZE = 50 * 1024 * 1024
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            logger.error(f"[{func.__name__}] {e}")
-            return fail(str(e))
-    return wrapper
-
-
-@router.post('/settings/upload')
-@_catch
 async def upload_settings_media(
     request: Request,
     current_user_obj=Depends(jwt_required),

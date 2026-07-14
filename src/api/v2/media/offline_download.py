@@ -2,7 +2,6 @@
 VIP 离线下载 API 路由
 提供 VIP 会员的离线下载管理接口
 """
-from functools import wraps
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -10,28 +9,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models import User
 from shared.services.media.offline_download_service import OfflineDownloadService
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 
 router = APIRouter(prefix="/offline-download", tags=["offline-download"])
 
 
-def _catch(func):
-    """统一错误捕获装饰器"""
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            return fail(str(e))
-    return wrapper
-
-
-@router.get("/limits", summary="获取离线下载限制信息")
-@_catch
 async def get_offline_download_limits(
     current_user: User = Depends(jwt_required),
     db: AsyncSession = Depends(get_async_db),

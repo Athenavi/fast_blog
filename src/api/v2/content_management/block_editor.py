@@ -3,7 +3,9 @@
 提供块类型查询、验证和渲染的 REST API
 """
 
-from functools import wraps
+from src.api.v2._helpers import _catch
+
+
 from typing import Dict, Any, List, Optional
 import re
 
@@ -57,18 +59,6 @@ class BlockTypeInfo(BaseModel):
     description: str
     attributes: Dict[str, Any]
     is_inline: bool
-
-
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            return {"success": False, "error": str(e)}
-    return wrapper
 
 
 @router.get("/block-types", response_model=List[BlockTypeInfo])

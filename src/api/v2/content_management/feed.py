@@ -2,8 +2,8 @@
 RSS/Atom Feed API
 提供博客内容的 RSS 和 Atom 订阅源
 """
+from src.api.v2._helpers import _catch
 from datetime import datetime
-from functools import wraps
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
 from fastapi.responses import PlainTextResponse
@@ -16,18 +16,6 @@ from src.setting import AppConfig
 from src.utils.feed_generator import FeedItem, RSSFeedGenerator
 
 router = APIRouter(tags=["feed"])
-
-
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            return {"success": False, "error": str(e)}
-    return wrapper
 
 
 async def get_feed_items(

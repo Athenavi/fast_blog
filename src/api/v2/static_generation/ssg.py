@@ -3,32 +3,19 @@
 
 提供静态站点生成的 REST API 接口
 """
-from functools import wraps
 from typing import Any, Dict
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.services.static_generation.static_site_generator import ssg_service
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth import admin_required
 from src.utils.database.main import get_async_session
 
 router = APIRouter(tags=["Static Site Generation"], dependencies=[Depends(admin_required)])
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except Exception as e:
-            return fail(f"操作失败: {e}")
-    return wrapper
-
-
-@router.post("/articles/{article_id}", summary="生成文章静态页面")
-@_catch
 async def generate_article_page(article_id: int, force: bool = Query(False),
                                 db: AsyncSession = Depends(get_async_session)):
     result = await ssg_service.generate_article_page(db, article_id, force)

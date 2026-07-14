@@ -3,35 +3,18 @@
 提供许可证管理、技术支持、SLA保障、部署脚本和监控告警等功能
 """
 from typing import Optional, List
-from functools import wraps
 
 from fastapi import APIRouter, Depends, Query, Body, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.services.enterprise.enterprise_service import enterprise_service
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 from src.utils.database.main import get_async_session as get_async_db
 
 router = APIRouter(tags=["enterprise"])
 
 
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            return fail(str(e))
-    return wrapper
-
-
-# ==================== 许可证管理 ====================
-
-@router.post("/license", summary="创建企业许可证")
-@_catch
 async def create_license(
         license_type: str = Body('professional', description="许可证类型"),
         company_name: str = Body('', description="公司名称"),

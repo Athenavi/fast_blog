@@ -2,31 +2,18 @@
 SSO 会话策略管理 API
 提供会话策略的查询、更新以及活跃会话列表功能
 """
-from functools import wraps
 
 from fastapi import APIRouter, Depends, HTTPException, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.system.system_settings import SystemSettings
-from src.api.v2._helpers import ok, fail
+from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 from src.utils.database.main import get_async_session as get_async_db
 
 router = APIRouter(tags=["session-policy"])
 
 SESSION_POLICY_PREFIX = "session_policy_"
-
-
-def _catch(func):
-    @wraps(func)
-    async def wrapper(*args, **kwargs):
-        try:
-            return await func(*args, **kwargs)
-        except HTTPException:
-            raise
-        except Exception as e:
-            return fail(str(e))
-    return wrapper
 
 
 async def _require_superuser(current_user):
