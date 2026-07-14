@@ -227,8 +227,21 @@ async def get_blog_management_articles(
     articles = articles_result.scalars().all()
 
     articles_data = []
+    # Batch-load users & categories to eliminate N+1
+    user_ids = {a.user for a in articles if a.user}
+    cat_ids = {a.category for a in articles if a.category}
+    from shared.models.user import User
+    from shared.models.category import Category
+    if user_ids:
+        users = {u.id: u for u in (await db.execute(select(User).where(User.id.in_(user_ids)))).scalars().all()}
+    else:
+        users = {}
+    if cat_ids:
+        categories = {c.id: c for c in (await db.execute(select(Category).where(Category.id.in_(cat_ids)))).scalars().all()}
+    else:
+        categories = {}
+
     for article in articles:
-        # 使用模型的 to_dict() 方法获取基础数据
         article_dict = article.to_dict()
 
         # 确定文章状态（转换为字符串）
@@ -240,23 +253,18 @@ async def get_blog_management_articles(
         elif article.status == -1 or article.deleted_at is not None:
             article_status = 'deleted'
 
-        # 获取作者信息（由于 author 关系已注释，需要手动查询）
-        from shared.models.user import User
-        author_query = select(User).where(User.id == article.user)
-        author_result = await db.execute(author_query)
-        author = author_result.scalar_one_or_none()
+        # 作者信息（从 batch 查询的 dict 中获取）
+        author = users.get(article.user)
         author_info = {
             "id": author.id if author else article.user,
             "username": getattr(author, 'username', 'Unknown') if author else 'Unknown',
             "email": getattr(author, 'email', '') if author else ''
         }
 
-        # 获取分类信息
+        # 分类信息（从 batch 查询的 dict 中获取）
         category_info = None
         if article.category:
-            category_query = select(Category).where(Category.id == article.category)
-            category_result = await db.execute(category_query)
-            category = category_result.scalar_one_or_none()
+            category = categories.get(article.category)
             if category:
                 category_info = {
                     "id": category.id,

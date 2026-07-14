@@ -25,18 +25,20 @@ async def get_feed_items(
         feed_type: str = 'rss'
 ) -> list:
     """从文章列表生成 Feed 条目"""
-    items = []
+    # Batch-load users to eliminate N+1
+    user_ids = {a.user for a in articles if a.user}
+    if user_ids:
+        users = {u.id: u for u in (await db.execute(select(User).where(User.id.in_(user_ids)))).scalars().all()}
+    else:
+        users = {}
 
+    items = []
     for article in articles:
-        # 获取作者信息
+        # 获取作者信息（从 batch dict 获取）
         author_name = None
-        if article.user:
-            user_result = await db.execute(
-                select(User).where(User.id == article.user)
-            )
-            user = user_result.scalar_one_or_none()
-            if user:
-                author_name = user.username
+        user = users.get(article.user)
+        if user:
+            author_name = user.username
 
         # 获取分类
         categories = []
@@ -51,12 +53,12 @@ async def get_feed_items(
         item = FeedItem(
             title=article.title,
             link=article_url,
-            description=article.excerpt or article.content[:200] if article.content else '',
+            description=article.excerpt or '',
             pub_date=article.created_at or datetime.now(),
             author=author_name,
             categories=categories,
-            content=article.content if hasattr(article, 'content') else None,
-            image=article.cover_image,  # 使用文章封面图片
+            content=None,
+            image=article.cover_image,
         )
         items.append(item)
 

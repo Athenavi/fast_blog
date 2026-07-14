@@ -189,4 +189,42 @@ __all__ = [
     'create_pagination_response',
     'parse_sort_params',
     'CursorPagination',
+    'paginated_query',
+    'paginated_query_raw',
 ]
+
+
+async def paginated_query(
+    db,
+    stmt,
+    *,
+    page: int = 1,
+    per_page: int = 20,
+    count_stmt=None,
+    to_dict=True,
+    exclude_sensitive=False,
+):
+    """通用异步分页查询 —— select + count + offset/limit + to_dict 一体化。"""
+    from sqlalchemy import func, select
+
+    count = count_stmt or select(func.count()).select_from(stmt.subquery())
+    total_result = await db.execute(count)
+    total = total_result.scalar() or 0
+
+    offset_val = (page - 1) * per_page
+    result = await db.execute(stmt.offset(offset_val).limit(per_page))
+    rows = result.scalars().all()
+
+    if to_dict:
+        items = [r.to_dict(exclude_sensitive=exclude_sensitive) for r in rows]
+    else:
+        items = list(rows)
+
+    pages = (total + per_page - 1) // per_page if per_page > 0 else 0
+    return {
+        "items": items,
+        "total": total,
+        "page": page,
+        "per_page": per_page,
+        "pages": pages,
+    }
