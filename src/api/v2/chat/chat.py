@@ -46,27 +46,38 @@ async def get_user_groups(
     groups = groups_result.scalars().all()
 
     groups_data = []
-    for group in groups:
-        # 计算未读消息数
-        unread_query = select(func.count(PrivateMessage.id)).where(
-            and_(
-                PrivateMessage.group == group.id,
-                PrivateMessage.sender != current_user.id,
-                or_(
-                    PrivateMessage.is_read == False,
-                    PrivateMessage.is_read == None
-                )
+    if group_ids:
+        # 批量查询所有群组的未读消息数
+        unread_query = select(
+            PrivateMessage.group,
+            func.count(PrivateMessage.id)
+        ).where(
+            PrivateMessage.group.in_(group_ids),
+            PrivateMessage.sender != current_user.id,
+            or_(
+                PrivateMessage.is_read == False,
+                PrivateMessage.is_read == None
             )
-        )
+        ).group_by(PrivateMessage.group)
         unread_result = await db.execute(unread_query)
-        unread_count = unread_result.scalar() or 0
+        unread_map = dict(unread_result.all())
 
-        # 获取在线成员数
-        online_query = select(func.count(ChatGroupMember.id)).where(
-            ChatGroupMember.group == group.id
-        )
-        online_result = await db.execute(online_query)
-        member_count = online_result.scalar() or 0
+        # 批量查询所有群组的成员数
+        member_query = select(
+            ChatGroupMember.group,
+            func.count(ChatGroupMember.id)
+        ).where(
+            ChatGroupMember.group.in_(group_ids)
+        ).group_by(ChatGroupMember.group)
+        member_result = await db.execute(member_query)
+        member_count_map = dict(member_result.all())
+    else:
+        unread_map = {}
+        member_count_map = {}
+
+    for group in groups:
+        unread_count = unread_map.get(group.id, 0) or 0
+        member_count = member_count_map.get(group.id, 0) or 0
 
         groups_data.append({
             'id': group.id,

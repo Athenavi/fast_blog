@@ -595,10 +595,14 @@ async def reorder_articles_api(data: list[dict] = Body(...), current_user=Depend
     """文章排序（需要 article:edit 权限）"""
     if not await rbac_service.has_permission(db, current_user.id, 'article', 'edit'):
         return fail("权限不足：需要 article:edit 权限")
-    for item in data:
-        article = await db.scalar(select(Article).where(Article.id == item.get('id')))
-        if article and 'sort_order' in item:
-            article.sort_order = item['sort_order']
+    ids = [item.get('id') for item in data if item.get('id') is not None]
+    if ids:
+        result = await db.execute(select(Article).where(Article.id.in_(ids)))
+        articles_map = {a.id: a for a in result.scalars().all()}
+        for item in data:
+            article = articles_map.get(item.get('id'))
+            if article and 'sort_order' in item:
+                article.sort_order = item['sort_order']
     await db.commit()
     return ok(msg="排序已更新")
 

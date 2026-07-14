@@ -1,4 +1,4 @@
-"""
+﻿"""
 用户模块 - V2 优化版
 整合所有用户相关功能：资料管理、关注、屏蔽等
 
@@ -428,10 +428,16 @@ async def get_user_followers(user_id: int, db: AsyncSession = Depends(get_async_
     """指定用户的粉丝"""
     fans = followers_db.get(user_id, {})
     users = {}
+    fan_ids = set()
     for fid in fans:
-        u = await db.scalar(select(User).where(User.id == int(fid)))
-        if u:
-            users[fid] = _format_user_brief(u)
+        try:
+            fan_ids.add(int(fid))
+        except (ValueError, TypeError):
+            pass
+    if fan_ids:
+        result = await db.execute(select(User).where(User.id.in_(list(fan_ids))))
+        for u in result.scalars().all():
+            users[str(u.id)] = _format_user_brief(u)
     return ok({"fans_list": [{"user": users.get(fid), "created_at": datetime.fromtimestamp(ts).isoformat()}
                               for fid, ts in sorted(fans.items(), key=lambda x: x[1], reverse=True)],
                "fans_count": len(fans)})
@@ -443,10 +449,16 @@ async def get_user_following(user_id: int, db: AsyncSession = Depends(get_async_
     """指定用户关注的人"""
     following = follows_db.get(user_id, {})
     users = {}
+    following_ids = set()
     for uid in following:
-        u = await db.scalar(select(User).where(User.id == int(uid)))
-        if u:
-            users[uid] = _format_user_brief(u)
+        try:
+            following_ids.add(int(uid))
+        except (ValueError, TypeError):
+            pass
+    if following_ids:
+        result = await db.execute(select(User).where(User.id.in_(list(following_ids))))
+        for u in result.scalars().all():
+            users[str(u.id)] = _format_user_brief(u)
     return ok({"following_list": [{"user": users.get(uid), "created_at": datetime.fromtimestamp(ts).isoformat()}
                                    for uid, ts in sorted(following.items(), key=lambda x: x[1], reverse=True)],
                "following_count": len(following)})

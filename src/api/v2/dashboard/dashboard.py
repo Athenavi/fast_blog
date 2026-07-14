@@ -152,29 +152,34 @@ async def get_traffic_data(
     """
     from datetime import datetime, timedelta
 
-    # 计算过去7天每天的文章浏览量
+    # 计算过去7天的时间范围（包含今天）
+    end_date = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    start_date = end_date - timedelta(days=6)
+
+    # 一次性查询过去7天每天的文章浏览量
+    daily_views_query = select(
+        func.date(Article.created_at),
+        func.coalesce(func.sum(Article.views), 0)
+    ).where(
+        Article.created_at >= start_date,
+        Article.created_at < end_date + timedelta(days=1)
+    ).group_by(
+        func.date(Article.created_at)
+    )
+    daily_views_result = await db.execute(daily_views_query)
+    daily_views_dict = dict(daily_views_result.all())
+
+    # 按日期填充7天的数据
     traffic_data = []
     for i in range(7):
-        date_start = datetime.now() - timedelta(days=i)
-        date_end = date_start + timedelta(days=1)
-        date_start = date_start.replace(hour=0, minute=0, second=0, microsecond=0)
-        date_end = date_end.replace(hour=0, minute=0, second=0, microsecond=0)
-
-        # 计算当天的文章浏览量总和
-        daily_views_query = select(func.sum(Article.views)).where(
-            Article.created_at >= date_start,
-            Article.created_at < date_end
-        )
-        daily_views_result = await db.execute(daily_views_query)
-        daily_views = daily_views_result.scalar() or 0
+        date_start = end_date - timedelta(days=6-i)
+        date_key = date_start.strftime("%Y-%m-%d")
+        daily_views = daily_views_dict.get(date_key, 0) or 0
 
         traffic_data.append({
             "date": date_start.strftime("%m-%d"),
             "visitors": daily_views
         })
-
-    # 按日期升序排列
-    traffic_data.reverse()
 
     return ok(data=traffic_data)
 
