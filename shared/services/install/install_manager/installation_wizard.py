@@ -854,7 +854,9 @@ class InstallationWizardService:
                 load_dotenv(override=True)
                 print("  ✓ .env 文件已重新加载")
 
-                # 重新导入并初始化设置
+                # 重新导入并初始化设置（先刷新 shared.config，再刷新 src.setting）
+                import shared.config.settings
+                importlib.reload(shared.config.settings)
                 import src.setting
                 importlib.reload(src.setting)
                 from shared.config.settings import settings as new_settings

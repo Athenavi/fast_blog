@@ -11,7 +11,7 @@ logger = logging.getLogger(__name__)
 # 优先加载根目录 .env（本地开发模式），再加载 config/.env 作为补充
 # 在 Docker 模式下，环境变量由 docker-compose.yml 的 environment 注入，不会被覆盖
 load_dotenv()  # 根目录 .env 优先（本地开发模式，DB_HOST=localhost 等）
-load_dotenv(Path(__file__).parent.parent / "config" / ".env")  # config/.env 作为补充，已加载的值不会被覆盖
+load_dotenv(Path(__file__).parent.parent.parent / "config" / ".env")  # config/.env 作为补充，已加载的值不会被覆盖
 
 # 全局标志：跟踪数据库 URI 是否已经打印过（当前进程内）
 _db_uri_printed = False
