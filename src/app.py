@@ -143,8 +143,19 @@ def register_all_routes(app: FastAPI, worker_info: str):
                 'src.auth.auth_deps',
             ]
             for _pkg in _shared_subpkgs:
+                importlib.import_module(_pkg)
+
+            # 预热最常用的模型文件（不仅仅是包 __init__），避免并行加载时死锁
+            _model_files = [
+                'shared.models.user.user',
+                'shared.models.article.article',
+                'shared.models.category.category',
+                'shared.models.comment.comment',
+                'shared.models.media.media',
+            ]
+            for _mod in _model_files:
                 try:
-                    importlib.import_module(_pkg)
+                    importlib.import_module(_mod)
                 except Exception:
                     pass
             _prewarm_elapsed = _time.monotonic() - _prewarm_start
