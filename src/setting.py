@@ -4,3 +4,4 @@
 新代码应直接从 shared.config.settings 导入。
 """
 from shared.config.settings import *  # noqa: F401,F403
+from shared.config.settings import _get_worker_info  # noqa: F401
