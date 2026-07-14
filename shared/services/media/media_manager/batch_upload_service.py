@@ -1,7 +1,5 @@
 """
-媒体批量上传和处理服务
-支持多文件同时上传、后台任务队列、进度追踪
-"""
+媒体批量上传和处理服�?支持多文件同时上传、后台任务队列、进度追�?"""
 
 import asyncio
 
@@ -13,7 +11,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.models.media import Media
 from shared.services.media.image_tool import image_processor
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 # 默认配置
 DEFAULT_MAX_CONCURRENT = 5
@@ -26,12 +24,9 @@ class BatchUploadService:
     批量上传服务
     
     功能:
-    1. 多文件同时上传
-    2. 上传进度追踪
-    3. 后台自动处理（生成缩略图、提取元数据）
-    4. 失败重试机制
-    5. 上传结果汇总
-    """
+    1. 多文件同时上�?    2. 上传进度追踪
+    3. 后台自动处理（生成缩略图、提取元数据�?    4. 失败重试机制
+    5. 上传结果汇�?    """
 
     def __init__(self, max_concurrent: int = DEFAULT_MAX_CONCURRENT, retry_attempts: int = DEFAULT_RETRY_ATTEMPTS):
         self.max_concurrent_uploads = max_concurrent
@@ -54,7 +49,7 @@ class BatchUploadService:
             nonlocal successful_count, failed_count
             async with semaphore:
                 try:
-                    logger.info(f"开始上传文件 {index + 1}/{len(files)}: {file_obj.filename}")
+                    logger.info(f"开始上传文�?{index + 1}/{len(files)}: {file_obj.filename}")
                     content = await file_obj.read()
                     from src.utils.upload.public_upload import FileProcessor
                     processor = FileProcessor(user_id=user_id, allowed_mimes=allowed_mimes, allowed_size=max_file_size)
@@ -120,7 +115,7 @@ class BatchUploadService:
                 media = result.scalar_one_or_none()
 
                 if not media:
-                    errors.append({'media_id': media_id, 'error': '媒体记录不存在'})
+                    errors.append({'media_id': media_id, 'error': '媒体记录不存�?})
                     continue
 
                 processing_result = await self._process_single_media(db=db, media=media, operations=operations)
@@ -149,8 +144,7 @@ class BatchUploadService:
         
         result = {}
 
-        # 生成缩略图
-        if 'thumbnail' in operations and media.file_type == 'image':
+        # 生成缩略�?        if 'thumbnail' in operations and media.file_type == 'image':
             try:
                 file_data = s3_storage.read_file(media.file_path)
                 thumbnail_ops = {'thumbnail': 200, 'quality': 85, 'format': 'JPEG'}
@@ -161,13 +155,12 @@ class BatchUploadService:
                 media.thumbnail_path = thumbnail_path
                 await db.flush()
                 result['thumbnail'] = {'path': thumbnail_path, 'url': f"/api/v1/media/thumbnails/{thumbnail_hash}"}
-                logger.info(f"生成缩略图成功: {media.original_filename}")
+                logger.info(f"生成缩略图成�? {media.original_filename}")
             except Exception as e:
                 result['thumbnail_error'] = str(e)
-                logger.error(f"生成缩略图失败: {e}")
+                logger.error(f"生成缩略图失�? {e}")
 
-        # 提取元数据
-        if 'metadata' in operations:
+        # 提取元数�?        if 'metadata' in operations:
             try:
                 file_data = s3_storage.read_file(media.file_path)
                 info = image_processor.get_image_info(file_data)
@@ -179,10 +172,10 @@ class BatchUploadService:
                     media.metadata = json.dumps(info['exif'], ensure_ascii=False, default=str)
                 await db.flush()
                 result['metadata'] = info
-                logger.info(f"提取元数据成功: {media.original_filename}")
+                logger.info(f"提取元数据成�? {media.original_filename}")
             except Exception as e:
                 result['metadata_error'] = str(e)
-                logger.error(f"提取元数据失败: {e}")
+                logger.error(f"提取元数据失�? {e}")
 
         # 优化图片
         if 'optimize' in operations and media.file_type == 'image':

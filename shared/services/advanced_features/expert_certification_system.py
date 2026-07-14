@@ -8,7 +8,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class ExpertCertificationSystem:
@@ -18,27 +18,27 @@ class ExpertCertificationSystem:
         # 认证领域定义
         self._certification_fields = {
             'programming': {
-                'name': '编程开发',
+                'name': '编程开�?,
                 'description': '软件工程、编程语言、框架等',
                 'icon': '💻',
             },
             'ai_ml': {
                 'name': '人工智能',
-                'description': '机器学习、深度学习、NLP等',
+                'description': '机器学习、深度学习、NLP�?,
                 'icon': '🤖',
             },
             'data_science': {
                 'name': '数据科学',
-                'description': '数据分析、数据挖掘、可视化等',
+                'description': '数据分析、数据挖掘、可视化�?,
                 'icon': '📊',
             },
             'cloud_devops': {
-                'name': '云计算/DevOps',
-                'description': '云平台、容器化、自动化运维等',
+                'name': '云计�?DevOps',
+                'description': '云平台、容器化、自动化运维�?,
                 'icon': '☁️',
             },
             'mobile_dev': {
-                'name': '移动开发',
+                'name': '移动开�?,
                 'description': 'iOS、Android、跨平台开发等',
                 'icon': '📱',
             },
@@ -49,7 +49,7 @@ class ExpertCertificationSystem:
             },
             'backend_arch': {
                 'name': '后端架构',
-                'description': '微服务、分布式系统、数据库等',
+                'description': '微服务、分布式系统、数据库�?,
                 'icon': '⚙️',
             },
             'security': {
@@ -58,8 +58,8 @@ class ExpertCertificationSystem:
                 'icon': '🔒',
             },
             'blockchain': {
-                'name': '区块链',
-                'description': '智能合约、DeFi、Web3等',
+                'name': '区块�?,
+                'description': '智能合约、DeFi、Web3�?,
                 'icon': '⛓️',
             },
             'product_management': {
@@ -72,10 +72,10 @@ class ExpertCertificationSystem:
         # 认证申请 {application_id: application_info}
         self._applications = {}
 
-        # 用户认证状态 {user_id: certification_info}
+        # 用户认证状�?{user_id: certification_info}
         self._certifications = {}
 
-        # 申请ID计数器
+        # 申请ID计数�?
         self._app_counter = 0
 
     def apply_certification(self, user_id: int, field_id: str,
@@ -86,8 +86,8 @@ class ExpertCertificationSystem:
         Args:
             user_id: 用户ID
             field_id: 认证领域ID
-            credentials: 资质证明(学历/工作经历/作品等)
-            bio: 个人简介
+            credentials: 资质证明(学历/工作经历/作品�?
+            bio: 个人简�?
             
         Returns:
             申请ID
@@ -148,7 +148,7 @@ class ExpertCertificationSystem:
 
         now = datetime.now()
 
-        # 更新申请状态
+        # 更新申请状�?
         app['status'] = 'approved' if approved else 'rejected'
         app['reviewed_at'] = now
         app['reviewer_id'] = reviewer_id
@@ -158,7 +158,7 @@ class ExpertCertificationSystem:
                 return False
             app['rejection_reason'] = rejection_reason
 
-        # 如果通过，创建认证记录
+        # 如果通过，创建认证记�?
         if approved:
             self._certifications[app['user_id']] = {
                 'user_id': app['user_id'],
@@ -188,7 +188,7 @@ class ExpertCertificationSystem:
         if not cert:
             return None
 
-        # 检查是否过期
+        # 检查是否过�?
         if cert['expires_at'] < datetime.now():
             cert['status'] = 'expired'
 
@@ -207,23 +207,23 @@ class ExpertCertificationSystem:
         
         Args:
             user_id: 用户ID
-            field_id: 领域ID(可选，不指定则检查任意领域)
+            field_id: 领域ID(可选，不指定则检查任意领�?
             
         Returns:
-            是否是专家
+            是否是专�?
         """
         cert = self._certifications.get(user_id)
 
         if not cert:
             return False
 
-        # 检查状态和有效期
+        # 检查状态和有效�?
         if cert['status'] != 'approved':
             return False
         if cert['expires_at'] < datetime.now():
             return False
 
-        # 如果指定了领域，检查是否匹配
+        # 如果指定了领域，检查是否匹�?
         if field_id and cert['field_id'] != field_id:
             return False
 
@@ -234,7 +234,7 @@ class ExpertCertificationSystem:
         获取待审核的申请列表
         
         Args:
-            field_id: 领域过滤(可选)
+            field_id: 领域过滤(可�?
             
         Returns:
             申请列表
@@ -261,7 +261,7 @@ class ExpertCertificationSystem:
                 'submitted_at': app['submitted_at'].isoformat(),
             })
 
-        # 按提交时间排序
+        # 按提交时间排�?
         applications.sort(key=lambda x: x['submitted_at'], reverse=True)
 
         return applications
@@ -297,7 +297,7 @@ class ExpertCertificationSystem:
         获取已认证的专家列表
         
         Args:
-            field_id: 领域过滤(可选)
+            field_id: 领域过滤(可�?
             limit: 返回数量
             
         Returns:
@@ -326,14 +326,14 @@ class ExpertCertificationSystem:
                 'expires_at': cert['expires_at'].isoformat(),
             })
 
-        # 按认证时间排序(最新的在前)
+        # 按认证时间排�?最新的在前)
         experts.sort(key=lambda x: x['certified_at'], reverse=True)
 
         return experts[:limit]
 
     def revoke_certification(self, user_id: int, reason: str = '') -> bool:
         """
-        撤销专家认证(管理员操作)
+        撤销专家认证(管理员操�?
         
         Args:
             user_id: 用户ID
@@ -370,7 +370,7 @@ class ExpertCertificationSystem:
             if c['status'] == 'approved' and c['expires_at'] > datetime.now()
         ])
 
-        # 按领域统计
+        # 按领域统�?
         field_distribution = defaultdict(int)
         for cert in self._certifications.values():
             if cert['status'] == 'approved' and cert['expires_at'] > datetime.now():

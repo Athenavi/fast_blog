@@ -9,16 +9,14 @@ from datetime import datetime
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class AIAgentRecommendations:
     """
     P11-1: AI Agent 自主决策服务
     
-    功能：
-    1. 基于文章内容的自动标签推荐
-    2. SEO 优化建议主动提示
+    功能�?    1. 基于文章内容的自动标签推�?    2. SEO 优化建议主动提示
     3. 相关文章智能推荐
     """
 
@@ -40,14 +38,11 @@ class AIAgentRecommendations:
             title: 文章标题
             content: 文章内容
             existing_tags: 已有标签列表
-            max_tags: 最大推荐数量
-            
+            max_tags: 最大推荐数�?            
         Returns:
-            推荐的标签列表及置信度
-        """
+            推荐的标签列表及置信�?        """
         try:
-            # 简单关键词提取（实际项目中应使用 NLP 模型或调用 LLM API）
-            text = f"{title} {content}".lower()
+            # 简单关键词提取（实际项目中应使�?NLP 模型或调�?LLM API�?            text = f"{title} {content}".lower()
 
             # 常见技术标签关键词映射
             tag_keywords = {
@@ -70,14 +65,12 @@ class AIAgentRecommendations:
                 if existing_tags and tag in existing_tags:
                     continue
 
-                # 计算匹配度
-                match_count = sum(1 for keyword in keywords if keyword in text)
+                # 计算匹配�?                match_count = sum(1 for keyword in keywords if keyword in text)
 
                 if match_count > 0:
                     confidence = min(match_count / len(keywords), 1.0)
 
-                    if confidence >= 0.3:  # 至少 30% 置信度
-                        recommended_tags.append({
+                    if confidence >= 0.3:  # 至少 30% 置信�?                        recommended_tags.append({
                             "tag": tag,
                             "confidence": round(confidence, 2),
                             "matched_keywords": [kw for kw in keywords if kw in text]
@@ -94,7 +87,7 @@ class AIAgentRecommendations:
                 "recommended_tags": recommended_tags,
                 "total_found": len(recommended_tags),
                 "analysis_timestamp": datetime.utcnow().isoformat(),
-                "note": "这些标签是基于文章内容自动生成的建议，您可以根据需要调整。"
+                "note": "这些标签是基于文章内容自动生成的建议，您可以根据需要调整�?
             }
 
         except Exception as e:
@@ -126,42 +119,39 @@ class AIAgentRecommendations:
         """
         suggestions = []
 
-        # 1. 标题长度检查
-        if len(title) < 30:
+        # 1. 标题长度检�?        if len(title) < 30:
             suggestions.append({
                 "type": "warning",
                 "field": "title",
-                "message": "标题过短（建议 30-60 字符）",
-                "recommendation": "添加更多描述性词汇以提高搜索引擎可见性",
+                "message": "标题过短（建�?30-60 字符�?,
+                "recommendation": "添加更多描述性词汇以提高搜索引擎可见�?,
                 "priority": "high"
             })
         elif len(title) > 60:
             suggestions.append({
                 "type": "warning",
                 "field": "title",
-                "message": f"标题过长（{len(title)} 字符，建议不超过 60）",
-                "recommendation": "精简标题，确保在搜索结果中完整显示",
+                "message": f"标题过长（{len(title)} 字符，建议不超过 60�?,
+                "recommendation": "精简标题，确保在搜索结果中完整显�?,
                 "priority": "medium"
             })
 
-        # 2. 摘要检查
-        if not excerpt or len(excerpt) < 100:
+        # 2. 摘要检�?        if not excerpt or len(excerpt) < 100:
             suggestions.append({
                 "type": "info",
                 "field": "excerpt",
-                "message": "缺少摘要或摘要过短",
-                "recommendation": "添加 100-160 字符的摘要，提高点击率",
+                "message": "缺少摘要或摘要过�?,
+                "recommendation": "添加 100-160 字符的摘要，提高点击�?,
                 "priority": "high"
             })
 
-        # 3. URL Slug 检查
-        if slug:
+        # 3. URL Slug 检�?        if slug:
             if len(slug) > 75:
                 suggestions.append({
                     "type": "warning",
                     "field": "slug",
                     "message": "URL 路径过长",
-                    "recommendation": "使用简短、描述性的 URL（不超过 75 字符）",
+                    "recommendation": "使用简短、描述性的 URL（不超过 75 字符�?,
                     "priority": "medium"
                 })
 
@@ -170,12 +160,11 @@ class AIAgentRecommendations:
                     "type": "info",
                     "field": "slug",
                     "message": "URL 包含特殊字符",
-                    "recommendation": "使用连字符 (-) 分隔单词，避免下划线和特殊字符",
+                    "recommendation": "使用连字�?(-) 分隔单词，避免下划线和特殊字�?,
                     "priority": "low"
                 })
 
-        # 4. 内容长度检查
-        word_count = len(content.split())
+        # 4. 内容长度检�?        word_count = len(content.split())
         if word_count < 300:
             suggestions.append({
                 "type": "warning",
@@ -196,17 +185,16 @@ class AIAgentRecommendations:
             suggestions.append({
                 "type": "info",
                 "field": "keywords",
-                "message": "标题关键词在内容中出现频率较低",
-                "recommendation": "确保标题中的主要关键词在内容中自然出现 2-3 次",
+                "message": "标题关键词在内容中出现频率较�?,
+                "recommendation": "确保标题中的主要关键词在内容中自然出�?2-3 �?,
                 "priority": "medium"
             })
 
-        # 6. 内部链接检查
-        if '[link]' not in content and 'http' not in content:
+        # 6. 内部链接检�?        if '[link]' not in content and 'http' not in content:
             suggestions.append({
                 "type": "info",
                 "field": "links",
-                "message": "未检测到内部或外部链接",
+                "message": "未检测到内部或外部链�?,
                 "recommendation": "添加相关内部链接和权威外部引用以提升 SEO",
                 "priority": "low"
             })
@@ -218,7 +206,7 @@ class AIAgentRecommendations:
                     "type": "warning",
                     "field": "images",
                     "message": "图片缺少 Alt 文本",
-                    "recommendation": "为所有图片添加描述性 Alt 文本以提升可访问性和 SEO",
+                    "recommendation": "为所有图片添加描述�?Alt 文本以提升可访问性和 SEO",
                     "priority": "high"
                 })
 
@@ -230,7 +218,7 @@ class AIAgentRecommendations:
         }
 
     def _calculate_seo_score(self, suggestions: List[Dict]) -> int:
-        """计算 SEO 分数（0-100）"""
+        """计算 SEO 分数�?-100�?""
         score = 100
 
         for suggestion in suggestions:
@@ -254,8 +242,7 @@ class AIAgentRecommendations:
         
         Args:
             article_id: 当前文章 ID
-            db_session: 数据库会话
-            limit: 推荐数量
+            db_session: 数据库会�?            limit: 推荐数量
             
         Returns:
             相关文章列表
@@ -279,11 +266,9 @@ class AIAgentRecommendations:
                 select(Article)
                 .where(
                     (Article.id != article_id) &
-                    (Article.status == 1)  # 已发布
-                )
+                    (Article.status == 1)  # 已发�?                )
                 .order_by(Article.published_at.desc())
-                .limit(limit * 3)  # 获取更多候选文章
-            )
+                .limit(limit * 3)  # 获取更多候选文�?            )
 
             candidates = all_articles_result.scalars().all()
 

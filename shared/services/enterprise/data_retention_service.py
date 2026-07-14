@@ -1,7 +1,6 @@
 """
 数据保留策略服务模块
-提供数据保留策略的 CRUD 操作以及批量过期数据清理功能。
-"""
+提供数据保留策略�?CRUD 操作以及批量过期数据清理功能�?"""
 from datetime import datetime, timedelta
 from typing import Optional, List
 
@@ -10,29 +9,25 @@ from sqlalchemy.future import select
 from sqlalchemy import delete as sa_delete
 
 from shared.models.enterprise.data_retention_policy import DataRetentionPolicy
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class DataRetentionService:
     """
     数据保留策略服务
 
-    功能：
-    1. 获取/设置/列出/删除保留策略
-    2. 按策略执行数据清理（删除过期记录）
-    3. 批量执行所有类别的保留策略
+    功能�?    1. 获取/设置/列出/删除保留策略
+    2. 按策略执行数据清理（删除过期记录�?    3. 批量执行所有类别的保留策略
     """
 
     async def get_policy(self, db: AsyncSession, category: str) -> Optional[DataRetentionPolicy]:
         """
-        获取某类数据的保留策略
-
+        获取某类数据的保留策�?
         Args:
-            db: 数据库会话
-            category: 数据类别
+            db: 数据库会�?            category: 数据类别
 
         Returns:
-            保留策略对象，不存在则返回 None
+            保留策略对象，不存在则返�?None
         """
         stmt = select(DataRetentionPolicy).where(
             DataRetentionPolicy.data_category == category,
@@ -52,18 +47,15 @@ class DataRetentionService:
         设置/更新保留策略
 
         Args:
-            db: 数据库会话
-            category: 数据类别
+            db: 数据库会�?            category: 数据类别
             days: 保留天数
             action: 到期动作 (delete/archive)
 
         Returns:
-            创建或更新后的策略对象
-        """
+            创建或更新后的策略对�?        """
         now = datetime.now()
 
-        # 检查是否已有策略
-        existing = await self.get_policy(db, category)
+        # 检查是否已有策�?        existing = await self.get_policy(db, category)
         if existing:
             existing.retention_days = days
             existing.action = action
@@ -88,11 +80,9 @@ class DataRetentionService:
 
     async def list_policies(self, db: AsyncSession) -> List[DataRetentionPolicy]:
         """
-        列出所有策略
-
+        列出所有策�?
         Args:
-            db: 数据库会话
-
+            db: 数据库会�?
         Returns:
             策略列表
         """
@@ -105,8 +95,7 @@ class DataRetentionService:
         删除策略
 
         Args:
-            db: 数据库会话
-            policy_id: 策略 ID
+            db: 数据库会�?            policy_id: 策略 ID
 
         Returns:
             是否成功删除
@@ -127,19 +116,14 @@ class DataRetentionService:
 
     async def apply_retention(self, db: AsyncSession, category: str, model_cls=None) -> int:
         """
-        对某类数据执行保留策略（删除过期记录）
-
-        根据策略中设定的保留天数，删除该类别下 early 于截止日期的记录。
-
+        对某类数据执行保留策略（删除过期记录�?
+        根据策略中设定的保留天数，删除该类别�?early 于截止日期的记录�?
         Args:
-            db: 数据库会话
-            category: 数据类别
-            model_cls: 可选，数据对应的 SQLAlchemy 模型类。如果未提供，则通过
-                       _resolve_model_for_category 自动解析。
-
+            db: 数据库会�?            category: 数据类别
+            model_cls: 可选，数据对应�?SQLAlchemy 模型类。如果未提供，则通过
+                       _resolve_model_for_category 自动解析�?
         Returns:
-            清理的记录数量
-        """
+            清理的记录数�?        """
         policy = await self.get_policy(db, category)
         if not policy:
             logger.info(f"No active retention policy for category: {category}")
@@ -166,12 +150,9 @@ class DataRetentionService:
 
     async def apply_all(self, db: AsyncSession, model_map: dict = None) -> dict:
         """
-        对所有数据类别执行保留策略
-
+        对所有数据类别执行保留策�?
         Args:
-            db: 数据库会话
-            model_map: 可选，类别名称到模型类的映射字典。未提供的类别将自动解析。
-
+            db: 数据库会�?            model_map: 可选，类别名称到模型类的映射字典。未提供的类别将自动解析�?
         Returns:
             字典，key 为类别名称，value 为清理记录数
         """
@@ -192,16 +173,14 @@ class DataRetentionService:
 
     async def _resolve_model_for_category(self, category: str):
         """
-        根据类别名称自动解析对应的 SQLAlchemy 模型类。
-
-        默认实现将 data_category 转换为模型名（snake_case 转 PascalCase），
-        然后从 shared.models 中尝试导入。
-
+        根据类别名称自动解析对应�?SQLAlchemy 模型类�?
+        默认实现�?data_category 转换为模型名（snake_case �?PascalCase），
+        然后�?shared.models 中尝试导入�?
         Args:
             category: 数据类别名称
 
         Returns:
-            模型类，如果无法解析则返回 None
+            模型类，如果无法解析则返�?None
         """
         import importlib
         try:

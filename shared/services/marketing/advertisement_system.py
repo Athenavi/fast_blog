@@ -8,14 +8,14 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Dict, List
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class AdvertisementSystem:
     """广告管理系统"""
 
     def __init__(self):
-        # 广告位定义 {slot_id: slot_info}
+        # 广告位定�?{slot_id: slot_info}
         self._ad_slots = {
             'header_top': {
                 'name': '顶部横幅',
@@ -29,7 +29,7 @@ class AdvertisementSystem:
                 'position': 'sidebar',
                 'width': 300,
                 'height': 250,
-                'description': '文章页右侧广告',
+                'description': '文章页右侧广�?,
             },
             'article_inline': {
                 'name': '文中广告',
@@ -57,13 +57,13 @@ class AdvertisementSystem:
         # 广告记录 {ad_id: ad_info}
         self._ads = {}
 
-        # 广告位投放 {slot_id: [ad_id, ...]}
+        # 广告位投�?{slot_id: [ad_id, ...]}
         self._slot_ads = defaultdict(list)
 
         # 广告展示统计 {ad_id: {'impressions': count, 'clicks': count}}
         self._ad_stats = defaultdict(lambda: {'impressions': 0, 'clicks': 0})
 
-        # 广告ID计数器
+        # 广告ID计数�?
         self._ad_counter = 0
 
         # 广告联盟配置
@@ -91,13 +91,13 @@ class AdvertisementSystem:
             title: 广告标题
             slot_id: 广告位ID
             ad_type: 广告类型(image/html/adsense/baidu)
-            content: 广告内容(文本或描述)
+            content: 广告内容(文本或描�?
             image_url: 图片URL(ad_type=image时必需)
             link_url: 点击跳转链接
             html_code: HTML代码(ad_type=html时必需)
-            start_date: 开始时间
+            start_date: 开始时�?
             end_date: 结束时间
-            priority: 优先级(1-10, 越高越优先)
+            priority: 优先�?1-10, 越高越优�?
             budget: 预算上限
             
         Returns:
@@ -170,7 +170,7 @@ class AdvertisementSystem:
             if current_time < ad['start_date'] or current_time > ad['end_date']:
                 continue
 
-            # 检查预算
+            # 检查预�?
             if ad['budget'] and ad['spent'] >= ad['budget']:
                 continue
 
@@ -225,12 +225,12 @@ class AdvertisementSystem:
         return {
             'impressions': impressions,
             'clicks': clicks,
-            'ctr': round(ctr, 2),  # 点击率
+            'ctr': round(ctr, 2),  # 点击�?
         }
 
     def get_slot_stats(self, slot_id: str) -> Dict:
         """
-        获取广告位统计
+        获取广告位统�?
         
         Args:
             slot_id: 广告位ID
@@ -284,7 +284,7 @@ class AdvertisementSystem:
 
     def activate_ad(self, ad_id: str) -> bool:
         """
-        激活广告
+        激活广�?
         
         Args:
             ad_id: 广告ID
@@ -316,7 +316,7 @@ class AdvertisementSystem:
         if not ad:
             return False
 
-        # 从广告位中移除
+        # 从广告位中移�?
         slot_id = ad['slot_id']
         if ad_id in self._slot_ads[slot_id]:
             self._slot_ads[slot_id].remove(ad_id)
@@ -332,7 +332,7 @@ class AdvertisementSystem:
         获取所有广告位
         
         Returns:
-            广告位列表
+            广告位列�?
         """
         slots = []
         for slot_id, slot_info in self._ad_slots.items():
@@ -347,10 +347,10 @@ class AdvertisementSystem:
 
     def get_user_ads(self, user_id: int = None) -> List[Dict]:
         """
-        获取用户创建的广告
+        获取用户创建的广�?
         
         Args:
-            user_id: 用户ID(可选)
+            user_id: 用户ID(可�?
             
         Returns:
             广告列表
@@ -463,7 +463,7 @@ class AdvertisementSystem:
         获取收益报表
         
         Args:
-            start_date: 开始日期
+            start_date: 开始日�?
             end_date: 结束日期
             
         Returns:
@@ -496,7 +496,7 @@ class AdvertisementSystem:
             'total_clicks': total_clicks,
             'total_revenue': total_revenue,
             'ctr': round(ctr, 2),
-            'ecpm': round(ecpm, 2),  # 每千次展示收益
+            'ecpm': round(ecpm, 2),  # 每千次展示收�?
             'period': {
                 'start': start_date.isoformat() if start_date else None,
                 'end': end_date.isoformat() if end_date else None,

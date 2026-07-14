@@ -1,10 +1,8 @@
 """
 批量操作服务
 
-功能：
-1. 批量删除文章/评论/用户
-2. 批量更新状态（发布/草稿）
-3. 批量移动分类
+功能�?1. 批量删除文章/评论/用户
+2. 批量更新状态（发布/草稿�?3. 批量移动分类
 4. 批量添加标签
 5. 操作日志记录
 """
@@ -15,15 +13,14 @@ from typing import List, Dict, Optional
 from sqlalchemy import update, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class BatchOperationService:
     """
     批量操作服务
 
-    参考 WordPress 和 Django Admin 的设计模式
-    """
+    参�?WordPress �?Django Admin 的设计模�?    """
 
     def __init__(self, db: AsyncSession):
         self.db = db
@@ -56,8 +53,7 @@ class BatchOperationService:
             return {'success': False, 'message': '没有选择任何文章'}
 
         try:
-            # 权限检查：如果不是管理员，只能删除自己的文章
-            if user and not getattr(user, 'is_superuser', False):
+            # 权限检查：如果不是管理员，只能删除自己的文�?            if user and not getattr(user, 'is_superuser', False):
                 stmt = select(Article).where(
                     Article.id.in_(article_ids),
                     Article.user == user.id
@@ -70,7 +66,7 @@ class BatchOperationService:
                     forbidden_count = len(article_ids) - len(allowed_ids)
                     return {
                         'success': False,
-                        'message': f'您没有权限删除 {forbidden_count} 篇文章'
+                        'message': f'您没有权限删�?{forbidden_count} 篇文�?
                     }
 
             # 先删除相关文章的评论投票
@@ -90,16 +86,14 @@ class BatchOperationService:
                 )
             )
 
-            # 删除相关文章的评论
-            await self.db.execute(
+            # 删除相关文章的评�?            await self.db.execute(
                 delete(Comment).where(
                     Comment.article_id.in_(article_ids)
                 )
             )
 
             # 注意：如果有文章浏览记录表，也应该在这里删除
-            # 目前文章浏览量直接存储在 Article 表中，随文章一起删除
-
+            # 目前文章浏览量直接存储在 Article 表中，随文章一起删�?
             # 删除文章
             result = await self.db.execute(
                 delete(Article).where(
@@ -119,7 +113,7 @@ class BatchOperationService:
 
             return {
                 'success': True,
-                'message': f'成功删除 {deleted_count} 篇文章',
+                'message': f'成功删除 {deleted_count} 篇文�?,
                 'deleted_count': deleted_count,
             }
         except Exception as e:
@@ -137,11 +131,10 @@ class BatchOperationService:
             user=None
     ) -> Dict:
         """
-        批量更新文章状态
-
+        批量更新文章状�?
         Args:
             article_ids: 文章ID列表
-            status: 新状态 (published, draft, archived)
+            status: 新状�?(published, draft, archived)
             operator_id: 操作者ID
             user: 当前用户对象（用于权限检查）
 
@@ -156,11 +149,10 @@ class BatchOperationService:
 
         valid_statuses = ['published', 'draft', 'archived']
         if status not in valid_statuses:
-            return {'success': False, 'message': f'无效的状态: {status}'}
+            return {'success': False, 'message': f'无效的状�? {status}'}
 
         try:
-            # 权限检查：如果不是管理员，只能更新自己的文章
-            if user and not getattr(user, 'is_superuser', False):
+            # 权限检查：如果不是管理员，只能更新自己的文�?            if user and not getattr(user, 'is_superuser', False):
                 stmt = select(Article).where(
                     Article.id.in_(article_ids),
                     Article.user == user.id
@@ -173,7 +165,7 @@ class BatchOperationService:
                     forbidden_count = len(article_ids) - len(allowed_ids)
                     return {
                         'success': False,
-                        'message': f'您没有权限更新 {forbidden_count} 篇文章'
+                        'message': f'您没有权限更�?{forbidden_count} 篇文�?
                     }
 
             result = await self.db.execute(
@@ -215,8 +207,7 @@ class BatchOperationService:
             user=None
     ) -> Dict:
         """
-        批量移动文章到指定分类
-
+        批量移动文章到指定分�?
         Args:
             article_ids: 文章ID列表
             category_id: 目标分类ID
@@ -236,11 +227,10 @@ class BatchOperationService:
         # 验证分类是否存在
         category = await self.db.get(Category, category_id)
         if not category:
-            return {'success': False, 'message': '分类不存在'}
+            return {'success': False, 'message': '分类不存�?}
 
         try:
-            # 权限检查：如果不是管理员，只能移动自己的文章
-            if user and not getattr(user, 'is_superuser', False):
+            # 权限检查：如果不是管理员，只能移动自己的文�?            if user and not getattr(user, 'is_superuser', False):
                 stmt = select(Article).where(
                     Article.id.in_(article_ids),
                     Article.user == user.id
@@ -253,7 +243,7 @@ class BatchOperationService:
                     forbidden_count = len(article_ids) - len(allowed_ids)
                     return {
                         'success': False,
-                        'message': f'您没有权限移动 {forbidden_count} 篇文章'
+                        'message': f'您没有权限移�?{forbidden_count} 篇文�?
                     }
 
             result = await self.db.execute(
@@ -331,11 +321,10 @@ class BatchOperationService:
                     forbidden_count = len(article_ids) - len(allowed_ids)
                     return {
                         'success': False,
-                        'message': f'您没有权限为 {forbidden_count} 篇文章添加标签'
+                        'message': f'您没有权限为 {forbidden_count} 篇文章添加标�?
                     }
 
-            # 获取所有文章
-            result = await self.db.execute(
+            # 获取所有文�?            result = await self.db.execute(
                 select(Article.id, Article.tags_list).where(
                     Article.id.in_(article_ids)
                 )
@@ -348,8 +337,7 @@ class BatchOperationService:
                 # 解析现有标签
                 current_tags = json.loads(current_tags_json) if current_tags_json else []
 
-                # 添加新标签（去重）
-                for tag in tags:
+                # 添加新标签（去重�?                for tag in tags:
                     if tag not in current_tags:
                         current_tags.append(tag)
 
@@ -375,7 +363,7 @@ class BatchOperationService:
 
             return {
                 'success': True,
-                'message': f'成功为 {updated_count} 篇文章添加标签',
+                'message': f'成功�?{updated_count} 篇文章添加标�?,
                 'updated_count': updated_count,
             }
         except Exception as e:
@@ -424,7 +412,7 @@ class BatchOperationService:
 
             return {
                 'success': True,
-                'message': f'成功删除 {deleted_count} 条评论',
+                'message': f'成功删除 {deleted_count} 条评�?,
                 'deleted_count': deleted_count,
             }
         except Exception as e:
@@ -441,11 +429,10 @@ class BatchOperationService:
             operator_id: Optional[int] = None
     ) -> Dict:
         """
-        批量更新评论状态
-
+        批量更新评论状�?
         Args:
             comment_ids: 评论ID列表
-            status: 新状态 (approved, pending, spam)
+            status: 新状�?(approved, pending, spam)
             operator_id: 操作者ID
 
         Returns:
@@ -458,7 +445,7 @@ class BatchOperationService:
 
         valid_statuses = ['approved', 'pending', 'spam']
         if status not in valid_statuses:
-            return {'success': False, 'message': f'无效的状态: {status}'}
+            return {'success': False, 'message': f'无效的状�? {status}'}
 
         try:
             result = await self.db.execute(
@@ -516,8 +503,7 @@ class BatchOperationService:
             return {'success': False, 'message': '没有选择任何商品'}
 
         try:
-            # 先删除相关购物车项
-            await self.db.execute(
+            # 先删除相关购物车�?            await self.db.execute(
                 delete(CartItem).where(
                     CartItem.product_id.in_(product_ids)
                 )
@@ -542,7 +528,7 @@ class BatchOperationService:
 
             return {
                 'success': True,
-                'message': f'成功删除 {deleted_count} 个商品',
+                'message': f'成功删除 {deleted_count} 个商�?,
                 'deleted_count': deleted_count,
             }
         except Exception as e:
@@ -565,8 +551,7 @@ class BatchOperationService:
 
         Args:
             product_ids: 商品ID列表
-            price: 新价格
-            original_price: 原价（可选）
+            price: 新价�?            original_price: 原价（可选）
             operator_id: 操作者ID
             user: 当前用户对象（用于权限检查）
 
@@ -580,7 +565,7 @@ class BatchOperationService:
             return {'success': False, 'message': '没有选择任何商品'}
 
         if price < 0:
-            return {'success': False, 'message': '价格不能为负数'}
+            return {'success': False, 'message': '价格不能为负�?}
 
         try:
             update_values = {
@@ -609,7 +594,7 @@ class BatchOperationService:
 
             return {
                 'success': True,
-                'message': f'成功更新 {updated_count} 个商品价格',
+                'message': f'成功更新 {updated_count} 个商品价�?,
                 'updated_count': updated_count,
             }
         except Exception as e:
@@ -647,7 +632,7 @@ class BatchOperationService:
             return {'success': False, 'message': '没有选择任何商品'}
 
         if operation not in ['set', 'add', 'subtract']:
-            return {'success': False, 'message': f'无效的操作类型: {operation}'}
+            return {'success': False, 'message': f'无效的操作类�? {operation}'}
 
         try:
             updated_count = 0
@@ -664,8 +649,7 @@ class BatchOperationService:
                 )
                 updated_count = result.rowcount
             else:
-                # 需要逐个处理增加或减少
-                for product_id in product_ids:
+                # 需要逐个处理增加或减�?                for product_id in product_ids:
                     stmt = select(Product).where(Product.id == product_id)
                     result = await self.db.execute(stmt)
                     product = result.scalar_one_or_none()
@@ -697,7 +681,7 @@ class BatchOperationService:
 
             return {
                 'success': True,
-                'message': f'成功更新 {updated_count} 个商品库存',
+                'message': f'成功更新 {updated_count} 个商品库�?,
                 'updated_count': updated_count,
             }
         except Exception as e:
@@ -715,11 +699,10 @@ class BatchOperationService:
             user=None
     ) -> Dict:
         """
-        批量更新商品状态
-
+        批量更新商品状�?
         Args:
             product_ids: 商品ID列表
-            status: 新状态 (active/inactive)
+            status: 新状�?(active/inactive)
             operator_id: 操作者ID
             user: 当前用户对象（用于权限检查）
 
@@ -733,7 +716,7 @@ class BatchOperationService:
 
         valid_statuses = ['active', 'inactive']
         if status not in valid_statuses:
-            return {'success': False, 'message': f'无效的状态: {status}'}
+            return {'success': False, 'message': f'无效的状�? {status}'}
 
         try:
             is_active = (status == 'active')
@@ -766,7 +749,7 @@ class BatchOperationService:
             await self.db.rollback()
             return {
                 'success': False,
-                'message': f'更新状态失败: {str(e)}',
+                'message': f'更新状态失�? {str(e)}',
             }
 
     async def batch_update_categories_sort(
@@ -778,7 +761,7 @@ class BatchOperationService:
         批量更新分类排序
 
         Args:
-            category_orders: 分类排序列表，每个元素包含 {id: 分类ID, sort_order: 排序值}
+            category_orders: 分类排序列表，每个元素包�?{id: 分类ID, sort_order: 排序值}
             operator_id: 操作者ID
 
         Returns:
@@ -841,7 +824,7 @@ class BatchOperationService:
         批量更新文章排序
 
         Args:
-            article_orders: 文章排序列表，每个元素包含 {id: 文章ID, sort_order: 排序值}
+            article_orders: 文章排序列表，每个元素包�?{id: 文章ID, sort_order: 排序值}
             operator_id: 操作者ID
 
         Returns:

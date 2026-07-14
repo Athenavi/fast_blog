@@ -1,12 +1,12 @@
 """
-增量静态再生成（ISR）服务
+增量静态再生成（ISR）服�?
 
-基于Next.js ISR概念实现的增量静态页面更新机制
+基于Next.js ISR概念实现的增量静态页面更新机�?
 
-功能：
+功能�?
 1. 按需重新生成页面
-2. 后台重新验证（stale-while-revalidate）
-3. 重验证时间配置
+2. 后台重新验证（stale-while-revalidate�?
+3. 重验证时间配�?
 4. 缓存失效管理
 5. 并发控制
 6. 请求队列管理
@@ -18,15 +18,15 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, Optional, Any, Callable
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class ISRPage:
-    """ISR页面元数据"""
+    """ISR页面元数�?""
 
     def __init__(self, path: str, revalidate_time: int = 60):
         self.path = path
-        self.revalidate_time = revalidate_time  # 重新验证时间（秒）
+        self.revalidate_time = revalidate_time  # 重新验证时间（秒�?
         self.last_generated: Optional[datetime] = None
         self.last_revalidated: Optional[datetime] = None
         self.is_regenerating: bool = False
@@ -34,11 +34,11 @@ class ISRPage:
         self.cache_key: str = self._generate_cache_key()
 
     def _generate_cache_key(self) -> str:
-        """生成缓存键"""
+        """生成缓存�?""
         return hashlib.md5(self.path.encode()).hexdigest()
 
     def should_revalidate(self) -> bool:
-        """检查是否需要重新验证"""
+        """检查是否需要重新验�?""
         if not self.last_revalidated:
             return True
 
@@ -56,14 +56,14 @@ class ISRPage:
 
 class IncrementalStaticRegenerator:
     """
-    增量静态再生成器
+    增量静态再生成�?
     
-    实现Next.js风格的ISR机制：
-    1. 首次请求时生成静态页面
-    2. 在revalidate时间内返回缓存页面
+    实现Next.js风格的ISR机制�?
+    1. 首次请求时生成静态页�?
+    2. 在revalidate时间内返回缓存页�?
     3. 超过revalidate时间后，后台触发重新生成
-    4. 重新生成期间继续返回旧页面
-    5. 生成完成后更新缓存
+    4. 重新生成期间继续返回旧页�?
+    5. 生成完成后更新缓�?
     """
 
     def __init__(self, output_dir: str = "static_generated",
@@ -89,7 +89,7 @@ class IncrementalStaticRegenerator:
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
     async def start(self):
-        """启动ISR后台工作器"""
+        """启动ISR后台工作�?""
         if self._running:
             return
 
@@ -98,7 +98,7 @@ class IncrementalStaticRegenerator:
         logger.info("ISR revalidation worker started")
 
     async def stop(self):
-        """停止ISR后台工作器"""
+        """停止ISR后台工作�?""
         if not self._running:
             return
 
@@ -122,11 +122,11 @@ class IncrementalStaticRegenerator:
         Args:
             page_path: 页面路径
             generator_func: 页面生成函数（异步）
-            revalidate_time: 重新验证时间（秒）
-            **kwargs: 传递给生成函数的参数
+            revalidate_time: 重新验证时间（秒�?
+            **kwargs: 传递给生成函数的参�?
             
         Returns:
-            页面数据和状态
+            页面数据和状�?
         """
         # 获取或创建页面元数据
         if page_path not in self.pages:
@@ -137,17 +137,17 @@ class IncrementalStaticRegenerator:
         page.pending_requests += 1
 
         try:
-            # 检查文件是否存在
+            # 检查文件是否存�?
             file_path = self.output_dir / page_path
             file_exists = file_path.exists()
 
-            # 情况1: 文件不存在，需要生成
+            # 情况1: 文件不存在，需要生�?
             if not file_exists:
                 logger.info(f"ISR cache miss (no file): {page_path}")
                 self.stats['cache_misses'] += 1
                 return await self._generate_and_save(page, generator_func, **kwargs)
 
-            # 情况2: 文件存在且未过期，直接返回
+            # 情况2: 文件存在且未过期，直接返�?
             if not page.should_revalidate():
                 logger.debug(f"ISR cache hit: {page_path}")
                 self.stats['cache_hits'] += 1
@@ -166,7 +166,7 @@ class IncrementalStaticRegenerator:
                         seconds=revalidate_time)).isoformat() if page.last_revalidated else None
                 }
 
-            # 情况3: 文件存在但已过期，触发后台重新验证
+            # 情况3: 文件存在但已过期，触发后台重新验�?
             logger.info(f"ISR stale, triggering background revalidation: {page_path}")
             self.stats['cache_hits'] += 1
 
@@ -174,7 +174,7 @@ class IncrementalStaticRegenerator:
             if not page.is_regenerating and self.current_revalidations < self.max_concurrent:
                 await self._queue_revalidation(page, generator_func, **kwargs)
 
-            # 立即返回旧内容（stale-while-revalidate）
+            # 立即返回旧内容（stale-while-revalidate�?
             content = await self._read_file_async(file_path)
 
             return {
@@ -200,7 +200,7 @@ class IncrementalStaticRegenerator:
         Args:
             page_path: 页面路径
             generator_func: 页面生成函数
-            **kwargs: 传递给生成函数的参数
+            **kwargs: 传递给生成函数的参�?
             
         Returns:
             重新验证结果
@@ -222,7 +222,7 @@ class IncrementalStaticRegenerator:
 
     async def invalidate_page(self, page_path: str) -> Dict[str, Any]:
         """
-        使页面缓存失效
+        使页面缓存失�?
         
         Args:
             page_path: 页面路径
@@ -240,7 +240,7 @@ class IncrementalStaticRegenerator:
         if file_path.exists():
             file_path.unlink()
 
-        # 重置页面元数据
+        # 重置页面元数�?
         page.last_generated = None
         page.last_revalidated = None
         page.is_regenerating = False
@@ -257,7 +257,7 @@ class IncrementalStaticRegenerator:
         按模式批量使页面失效
         
         Args:
-            pattern: 路径模式（支持 * 通配符）
+            pattern: 路径模式（支�?* 通配符）
             
         Returns:
             操作结果
@@ -315,10 +315,10 @@ class IncrementalStaticRegenerator:
         }
 
     async def _revalidation_worker(self):
-        """后台重新验证工作器"""
+        """后台重新验证工作�?""
         while self._running:
             try:
-                # 从队列获取重新验证任务
+                # 从队列获取重新验证任�?
                 task = await asyncio.wait_for(
                     self.revalidation_queue.get(),
                     timeout=1.0
@@ -341,7 +341,7 @@ class IncrementalStaticRegenerator:
     async def _queue_revalidation(self, page: ISRPage,
                                   generator_func: Callable,
                                   **kwargs):
-        """将重新验证任务加入队列"""
+        """将重新验证任务加入队�?""
         if self.current_revalidations >= self.max_concurrent:
             logger.warning(f"Revalidation queue full, skipping: {page.path}")
             return
@@ -379,7 +379,7 @@ class IncrementalStaticRegenerator:
     async def _generate_and_save(self, page: ISRPage,
                                  generator_func: Callable,
                                  **kwargs) -> Dict[str, Any]:
-        """生成并保存页面"""
+        """生成并保存页�?""
         try:
             # 调用生成函数
             result = await generator_func(**kwargs)
@@ -394,17 +394,17 @@ class IncrementalStaticRegenerator:
             output_path = result.get('path')
 
             if not output_path:
-                # 如果没有指定路径，使用默认路径
+                # 如果没有指定路径，使用默认路�?
                 output_path = self.output_dir / page.path
 
-            # 确保父目录存在
+            # 确保父目录存�?
             output_path = Path(output_path)
             output_path.parent.mkdir(parents=True, exist_ok=True)
 
             # 写入文件
             await self._write_file_async(output_path, content)
 
-            # 更新页面元数据
+            # 更新页面元数�?
             now = datetime.now()
             page.last_generated = now
             page.last_revalidated = now

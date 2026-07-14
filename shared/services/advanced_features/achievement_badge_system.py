@@ -10,7 +10,7 @@ from datetime import datetime
 from typing import Dict, List, Optional
 
 from shared.services.advanced_features.points_system import points_system
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class AchievementBadgeSystem:
@@ -23,15 +23,14 @@ class AchievementBadgeSystem:
         # 徽章进度追踪 {user_id: {badge_key: progress}}
         self._badge_progress = defaultdict(lambda: defaultdict(int))
 
-        # 并发控制锁，防止成就解锁竞态条件
-        self._lock = asyncio.Lock()
+        # 并发控制锁，防止成就解锁竞态条�?        self._lock = asyncio.Lock()
 
         # 徽章定义
         self._badges = {
             # 发文成就
             'first_article': {
                 'name': '初出茅庐',
-                'description': '发布第一篇文章',
+                'description': '发布第一篇文�?,
                 'icon': '📝',
                 'category': 'writing',
                 'requirement': {'type': 'article_count', 'value': 1},
@@ -39,7 +38,7 @@ class AchievementBadgeSystem:
             },
             'prolific_writer_10': {
                 'name': '多产作家',
-                'description': '发布10篇文章',
+                'description': '发布10篇文�?,
                 'icon': '✍️',
                 'category': 'writing',
                 'requirement': {'type': 'article_count', 'value': 10},
@@ -47,15 +46,15 @@ class AchievementBadgeSystem:
             },
             'prolific_writer_50': {
                 'name': '写作达人',
-                'description': '发布50篇文章',
-                'icon': '🖋️',
+                'description': '发布50篇文�?,
+                'icon': '🖋�?,
                 'category': 'writing',
                 'requirement': {'type': 'article_count', 'value': 50},
                 'points_reward': 100,
             },
             'prolific_writer_100': {
                 'name': '百篇大师',
-                'description': '发布100篇文章',
+                'description': '发布100篇文�?,
                 'icon': '👑',
                 'category': 'writing',
                 'requirement': {'type': 'article_count', 'value': 100},
@@ -65,7 +64,7 @@ class AchievementBadgeSystem:
             # 连续发文成就
             'streak_7_days': {
                 'name': '持之以恒',
-                'description': '连续发文7天',
+                'description': '连续发文7�?,
                 'icon': '🔥',
                 'category': 'consistency',
                 'requirement': {'type': 'posting_streak', 'value': 7},
@@ -73,7 +72,7 @@ class AchievementBadgeSystem:
             },
             'streak_30_days': {
                 'name': '坚持不懈',
-                'description': '连续发文30天',
+                'description': '连续发文30�?,
                 'icon': '💪',
                 'category': 'consistency',
                 'requirement': {'type': 'posting_streak', 'value': 30},
@@ -81,7 +80,7 @@ class AchievementBadgeSystem:
             },
             'streak_100_days': {
                 'name': '百日坚守',
-                'description': '连续发文100天',
+                'description': '连续发文100�?,
                 'icon': '🏆',
                 'category': 'consistency',
                 'requirement': {'type': 'posting_streak', 'value': 100},
@@ -90,16 +89,16 @@ class AchievementBadgeSystem:
 
             # 优质内容认证
             'quality_content_10_likes': {
-                'name': '受欢迎',
-                'description': '单篇文章获得10个点赞',
+                'name': '受欢�?,
+                'description': '单篇文章获得10个点�?,
                 'icon': '❤️',
                 'category': 'quality',
                 'requirement': {'type': 'max_article_likes', 'value': 10},
                 'points_reward': 30,
             },
             'quality_content_100_likes': {
-                'name': '热门作者',
-                'description': '单篇文章获得100个点赞',
+                'name': '热门作�?,
+                'description': '单篇文章获得100个点�?,
                 'icon': '🌟',
                 'category': 'quality',
                 'requirement': {'type': 'max_article_likes', 'value': 100},
@@ -107,17 +106,16 @@ class AchievementBadgeSystem:
             },
             'quality_content_1000_views': {
                 'name': '千次浏览',
-                'description': '单篇文章达到1000次浏览',
-                'icon': '👁️',
+                'description': '单篇文章达到1000次浏�?,
+                'icon': '👁�?,
                 'category': 'quality',
                 'requirement': {'type': 'max_article_views', 'value': 1000},
                 'points_reward': 80,
             },
 
-            # 社区贡献者徽章
-            'active_commenter_50': {
-                'name': '活跃评论家',
-                'description': '发表50条评论',
+            # 社区贡献者徽�?            'active_commenter_50': {
+                'name': '活跃评论�?,
+                'description': '发表50条评�?,
                 'icon': '💬',
                 'category': 'community',
                 'requirement': {'type': 'comment_count', 'value': 50},
@@ -125,15 +123,15 @@ class AchievementBadgeSystem:
             },
             'active_commenter_200': {
                 'name': '评论达人',
-                'description': '发表200条评论',
-                'icon': '🗣️',
+                'description': '发表200条评�?,
+                'icon': '🗣�?,
                 'category': 'community',
                 'requirement': {'type': 'comment_count', 'value': 200},
                 'points_reward': 80,
             },
             'helpful_user_20_likes': {
                 'name': '乐于助人',
-                'description': '评论获得20个点赞',
+                'description': '评论获得20个点�?,
                 'icon': '🤝',
                 'category': 'community',
                 'requirement': {'type': 'comment_likes', 'value': 20},
@@ -143,7 +141,7 @@ class AchievementBadgeSystem:
             # 社交互动徽章
             'social_butterfly_10_followers': {
                 'name': '人气博主',
-                'description': '获得10个粉丝',
+                'description': '获得10个粉�?,
                 'icon': '🦋',
                 'category': 'social',
                 'requirement': {'type': 'follower_count', 'value': 10},
@@ -151,8 +149,8 @@ class AchievementBadgeSystem:
             },
             'social_butterfly_100_followers': {
                 'name': '意见领袖',
-                'description': '获得100个粉丝',
-                'icon': '⭐',
+                'description': '获得100个粉�?,
+                'icon': '�?,
                 'category': 'social',
                 'requirement': {'type': 'follower_count', 'value': 100},
                 'points_reward': 150,
@@ -160,9 +158,9 @@ class AchievementBadgeSystem:
 
             # 特殊成就
             'early_adopter': {
-                'name': '早期支持者',
-                'description': '在平台上线首月注册',
-                'icon': '🎖️',
+                'name': '早期支持�?,
+                'description': '在平台上线首月注�?,
+                'icon': '🎖�?,
                 'category': 'special',
                 'requirement': {'type': 'registration_date', 'value': '2024-01-31'},
                 'points_reward': 100,
@@ -170,7 +168,7 @@ class AchievementBadgeSystem:
             'verified_expert': {
                 'name': '认证专家',
                 'description': '通过领域专家认证',
-                'icon': '✅',
+                'icon': '�?,
                 'category': 'special',
                 'requirement': {'type': 'manual_award', 'value': True},
                 'points_reward': 200,
@@ -182,11 +180,10 @@ class AchievementBadgeSystem:
 
     async def check_and_award_badges(self, user_id: int, stats: Dict = None) -> List[Dict]:
         """
-        检查并授予符合条件的徽章
-        
+        检查并授予符合条件的徽�?        
         Args:
             user_id: 用户ID
-            stats: 用户统计数据(可选，如不提供则使用缓存)
+            stats: 用户统计数据(可选，如不提供则使用缓�?
             
         Returns:
             新获得的徽章列表
@@ -198,12 +195,10 @@ class AchievementBadgeSystem:
             newly_awarded = []
 
             for badge_key, badge_def in self._badges.items():
-                # 跳过已获得徽章
-                if badge_key in self._user_badges[user_id]:
+                # 跳过已获得徽�?                if badge_key in self._user_badges[user_id]:
                     continue
 
-                # 检查是否满足条件
-                if self._check_badge_requirement(badge_key, badge_def, stats):
+                # 检查是否满足条�?                if self._check_badge_requirement(badge_key, badge_def, stats):
                     # 授予徽章
                     self._award_badge(user_id, badge_key, badge_def)
                     newly_awarded.append({
@@ -217,11 +212,9 @@ class AchievementBadgeSystem:
                                  badge_def: Dict,
                                  stats: Dict) -> bool:
         """
-        检查徽章要求是否满足
-        
+        检查徽章要求是否满�?        
         Args:
-            badge_key: 徽章键
-            badge_def: 徽章定义
+            badge_key: 徽章�?            badge_def: 徽章定义
             stats: 用户统计数据
             
         Returns:
@@ -271,8 +264,7 @@ class AchievementBadgeSystem:
         
         Args:
             user_id: 用户ID
-            badge_key: 徽章键
-            badge_def: 徽章定义
+            badge_key: 徽章�?            badge_def: 徽章定义
         """
         self._user_badges[user_id].add(badge_key)
 
@@ -293,7 +285,7 @@ class AchievementBadgeSystem:
         
         Args:
             user_id: 用户ID
-            category: 分类过滤(可选)
+            category: 分类过滤(可�?
             
         Returns:
             徽章列表
@@ -316,10 +308,9 @@ class AchievementBadgeSystem:
 
     def get_available_badges(self, category: str = None) -> List[Dict]:
         """
-        获取所有可用徽章
-        
+        获取所有可用徽�?        
         Args:
-            category: 分类过滤(可选)
+            category: 分类过滤(可�?
             
         Returns:
             徽章列表
@@ -343,8 +334,7 @@ class AchievementBadgeSystem:
         
         Args:
             user_id: 用户ID
-            badge_key: 徽章键
-            
+            badge_key: 徽章�?            
         Returns:
             进度信息
         """
@@ -371,15 +361,13 @@ class AchievementBadgeSystem:
 
     def _get_current_value(self, req_type: str, stats: Dict) -> int:
         """
-        获取当前进度值
-        
+        获取当前进度�?        
         Args:
             req_type: 要求类型
             stats: 用户统计数据
             
         Returns:
-            当前值
-        """
+            当前�?        """
         mapping = {
             'article_count': 'article_count',
             'posting_streak': 'max_posting_streak',
@@ -432,12 +420,11 @@ class AchievementBadgeSystem:
 
     def manually_award_badge(self, user_id: int, badge_key: str) -> bool:
         """
-        手动授予徽章(管理员操作)
+        手动授予徽章(管理员操�?
         
         Args:
             user_id: 用户ID
-            badge_key: 徽章键
-            
+            badge_key: 徽章�?            
         Returns:
             是否成功
         """
@@ -454,8 +441,7 @@ class AchievementBadgeSystem:
 
     def get_categories(self) -> List[str]:
         """
-        获取所有徽章分类
-        
+        获取所有徽章分�?        
         Returns:
             分类列表
         """
@@ -470,8 +456,7 @@ class AchievementBadgeSystem:
         获取徽章详细信息
         
         Args:
-            badge_key: 徽章键
-            
+            badge_key: 徽章�?            
         Returns:
             徽章详情
         """

@@ -1,9 +1,6 @@
 """
-草稿预览链接生成器
-为未发布的文章生成临时预览链接
-
-修复: 添加文件持久化支持，避免服务重启后所有预览令牌失效
-"""
+草稿预览链接生成�?为未发布的文章生成临时预览链�?
+修复: 添加文件持久化支持，避免服务重启后所有预览令牌失�?"""
 
 import hashlib
 import json
@@ -13,16 +10,15 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Optional, Dict, Any
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
-# 预览令牌持久化文件路径
-_PREVIEW_DATA_DIR = Path(os.environ.get('FASTBLOG_DATA_DIR', 'data'))
+# 预览令牌持久化文件路�?_PREVIEW_DATA_DIR = Path(os.environ.get('FASTBLOG_DATA_DIR', 'data'))
 _PREVIEW_DATA_FILE = _PREVIEW_DATA_DIR / 'preview_tokens.json'
 
 
 def _load_tokens() -> Dict[str, Dict[str, Any]]:
-    """从磁盘加载预览令牌"""
+    """从磁盘加载预览令�?""
     try:
         if _PREVIEW_DATA_FILE.exists():
             raw = _PREVIEW_DATA_FILE.read_text('utf-8')
@@ -37,12 +33,12 @@ def _load_tokens() -> Dict[str, Dict[str, Any]]:
                             info[key] = None
             return data
     except Exception as e:
-        logger.warning(f"加载预览令牌持久化文件失败: {e}")
+        logger.warning(f"加载预览令牌持久化文件失�? {e}")
     return {}
 
 
 def _save_tokens(tokens: Dict[str, Dict[str, Any]]) -> None:
-    """保存预览令牌到磁盘"""
+    """保存预览令牌到磁�?""
     try:
         _PREVIEW_DATA_DIR.mkdir(parents=True, exist_ok=True)
         serializable = {}
@@ -54,7 +50,7 @@ def _save_tokens(tokens: Dict[str, Dict[str, Any]]) -> None:
             serializable[token] = entry
         _PREVIEW_DATA_FILE.write_text(json.dumps(serializable, ensure_ascii=False, indent=2), 'utf-8')
     except Exception as e:
-        logger.warning(f"保存预览令牌持久化文件失败: {e}")
+        logger.warning(f"保存预览令牌持久化文件失�? {e}")
 
 
 class DraftPreviewService:
@@ -69,9 +65,8 @@ class DraftPreviewService:
     """
 
     def __init__(self):
-        # 从磁盘加载预览令牌（持久化存储，避免重启丢失）
-        self.preview_tokens: Dict[str, Dict[str, Any]] = _load_tokens()
-        logger.info(f"已加载 {len(self.preview_tokens)} 个预览令牌")
+        # 从磁盘加载预览令牌（持久化存储，避免重启丢失�?        self.preview_tokens: Dict[str, Dict[str, Any]] = _load_tokens()
+        logger.info(f"已加�?{len(self.preview_tokens)} 个预览令�?)
 
     def generate_preview_token(
             self,
@@ -87,18 +82,16 @@ class DraftPreviewService:
             article_id: 文章ID
             expires_hours: 过期时间(小时)
             password: 可选的访问密码
-            max_views: 最大访问次数
-            
+            max_views: 最大访问次�?            
         Returns:
-            预览令牌字符串
-        """
+            预览令牌字符�?        """
         # 生成随机令牌
         token = secrets.token_urlsafe(32)
 
         # 计算过期时间
         expires_at = datetime.now(timezone.utc) + timedelta(hours=expires_hours)
 
-        # 如果有密码，使用带 salt 的 SHA256 哈希
+        # 如果有密码，使用�?salt �?SHA256 哈希
         password_hash = None
         if password:
             salt = secrets.token_hex(16)
@@ -118,8 +111,7 @@ class DraftPreviewService:
 
         logger.info(f"生成预览令牌: {token[:8]}... for article {article_id}")
 
-        # 持久化保存
-        _save_tokens(self.preview_tokens)
+        # 持久化保�?        _save_tokens(self.preview_tokens)
 
         return token
 
@@ -133,39 +125,35 @@ class DraftPreviewService:
         
         Args:
             token: 预览令牌
-            password: 提供的密码(如果需要)
+            password: 提供的密�?如果需�?
             
         Returns:
             令牌信息字典,如果无效则返回None
         """
-        # 检查令牌是否存在
-        if token not in self.preview_tokens:
-            logger.warning(f"无效的预览令牌: {token[:8]}...")
+        # 检查令牌是否存�?        if token not in self.preview_tokens:
+            logger.warning(f"无效的预览令�? {token[:8]}...")
             return None
 
         token_info = self.preview_tokens[token]
 
-        # 检查是否激活
-        if not token_info['is_active']:
-            logger.warning(f"预览令牌已停用: {token[:8]}...")
+        # 检查是否激�?        if not token_info['is_active']:
+            logger.warning(f"预览令牌已停�? {token[:8]}...")
             return None
 
-        # 检查是否过期
-        if datetime.now(timezone.utc) > token_info['expires_at']:
-            logger.warning(f"预览令牌已过期: {token[:8]}...")
+        # 检查是否过�?        if datetime.now(timezone.utc) > token_info['expires_at']:
+            logger.warning(f"预览令牌已过�? {token[:8]}...")
             token_info['is_active'] = False
             return None
 
-        # 检查访问次数限制
-        if token_info['max_views'] and token_info['view_count'] >= token_info['max_views']:
-            logger.warning(f"预览令牌已达最大访问次数: {token[:8]}...")
+        # 检查访问次数限�?        if token_info['max_views'] and token_info['view_count'] >= token_info['max_views']:
+            logger.warning(f"预览令牌已达最大访问次�? {token[:8]}...")
             token_info['is_active'] = False
             return None
 
-        # 验证密码(如果需要)
+        # 验证密码(如果需�?
         if token_info['password_hash']:
             if not password:
-                logger.warning(f"预览令牌需要密码: {token[:8]}...")
+                logger.warning(f"预览令牌需要密�? {token[:8]}...")
                 return None
 
             stored = token_info['password_hash']
@@ -176,8 +164,7 @@ class DraftPreviewService:
                     logger.warning(f"预览令牌密码错误: {token[:8]}...")
                     return None
             else:
-                # 兼容旧格式（无 salt）
-                if hashlib.sha256(password.encode()).hexdigest() != stored:
+                # 兼容旧格式（�?salt�?                if hashlib.sha256(password.encode()).hexdigest() != stored:
                     logger.warning(f"预览令牌密码错误: {token[:8]}...")
                     return None
 
@@ -222,11 +209,9 @@ class DraftPreviewService:
 
     def cleanup_expired_tokens(self) -> int:
         """
-        清理过期的令牌
-        
+        清理过期的令�?        
         Returns:
-            清理的令牌数量
-        """
+            清理的令牌数�?        """
         now = datetime.now(timezone.utc)
         expired_tokens = [
             token for token, info in self.preview_tokens.items()
@@ -239,13 +224,12 @@ class DraftPreviewService:
         if expired_tokens:
             _save_tokens(self.preview_tokens)
 
-        logger.info(f"清理了 {len(expired_tokens)} 个过期预览令牌")
+        logger.info(f"清理�?{len(expired_tokens)} 个过期预览令�?)
         return len(expired_tokens)
 
     def get_token_stats(self, token: str) -> Optional[Dict[str, Any]]:
         """
-        获取令牌的统计信息
-        
+        获取令牌的统计信�?        
         Args:
             token: 预览令牌
             

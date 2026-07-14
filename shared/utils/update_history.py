@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 """
 更新历史记录模块 - 简化版
-记录每次更新的详细信息
+记录每次更新的详细信�?
 """
 
 import json
@@ -11,11 +11,11 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class UpdateHistoryManager:
-    """更新历史管理器（简化版）"""
+    """更新历史管理器（简化版�?""
     
     def __init__(self, history_file: str = "logs/update_history.json"):
         self.history_file = Path(history_file)
@@ -48,8 +48,8 @@ class UpdateHistoryManager:
         Args:
             from_version: 起始版本
             to_version: 目标版本
-            status: 状态 (success/failed/rollback)
-            **kwargs: 其他参数 (backup_path, duration, error 等)
+            status: 状�?(success/failed/rollback)
+            **kwargs: 其他参数 (backup_path, duration, error �?
         """
         record = {
             'from_version': from_version,
@@ -71,7 +71,7 @@ class UpdateHistoryManager:
         return self.history_data.get('updates', [])[:limit]
     
     def get_last(self) -> Optional[Dict]:
-        """获取最后一次更新记录"""
+        """获取最后一次更新记�?""
         updates = self.history_data.get('updates', [])
         return updates[0] if updates else None
 
@@ -81,5 +81,5 @@ update_history_manager = UpdateHistoryManager()
 
 
 def add_update_history(from_version: str, to_version: str, status: str, **kwargs):
-    """便捷函数：添加更新历史"""
+    """便捷函数：添加更新历�?""
     update_history_manager.add(from_version, to_version, status, **kwargs)

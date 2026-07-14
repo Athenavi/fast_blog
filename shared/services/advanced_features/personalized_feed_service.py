@@ -8,7 +8,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Dict, List
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class PersonalizedFeedService:
@@ -21,13 +21,13 @@ class PersonalizedFeedService:
         # 用户粉丝关系 {following_id: [follower_id, ...]}
         self._followers = defaultdict(set)
 
-        # 动态事件 {event_id: event_info}
+        # 动态事�?{event_id: event_info}
         self._events = {}
 
         # 用户动态流缓存 {user_id: [event_id, ...]}
         self._user_feeds = defaultdict(list)
 
-        # 事件ID计数器
+        # 事件ID计数�?
         self._event_counter = 0
 
     def follow_user(self, follower_id: int, following_id: int) -> bool:
@@ -72,7 +72,7 @@ class PersonalizedFeedService:
 
     def is_following(self, follower_id: int, following_id: int) -> bool:
         """
-        检查是否关注
+        检查是否关�?
         
         Args:
             follower_id: 关注者ID
@@ -110,12 +110,12 @@ class PersonalizedFeedService:
     def create_event(self, event_type: str, actor_id: int,
                      target_id: int = None, content: Dict = None) -> str:
         """
-        创建动态事件
+        创建动态事�?
         
         Args:
             event_type: 事件类型(article_published/commented/liked/followed)
             actor_id: 发起者ID
-            target_id: 目标ID(文章ID/评论ID/用户ID等)
+            target_id: 目标ID(文章ID/评论ID/用户ID�?
             content: 事件内容
             
         Returns:
@@ -153,10 +153,10 @@ class PersonalizedFeedService:
         followers = self._followers.get(actor_id, set())
 
         for follower_id in followers:
-            # 插入到动态流开头(最新的在前)
+            # 插入到动态流开�?最新的在前)
             self._user_feeds[follower_id].insert(0, event_id)
 
-            # 限制动态流长度(最多保留500条)
+            # 限制动态流长度(最多保�?00�?
             if len(self._user_feeds[follower_id]) > 500:
                 self._user_feeds[follower_id] = self._user_feeds[follower_id][:500]
 
@@ -168,8 +168,8 @@ class PersonalizedFeedService:
         Args:
             user_id: 用户ID
             limit: 返回数量
-            offset: 偏移量
-            event_type: 事件类型过滤(可选)
+            offset: 偏移�?
+            event_type: 事件类型过滤(可�?
             
         Returns:
             动态流列表
@@ -210,7 +210,7 @@ class PersonalizedFeedService:
             dt: 日期时间
             
         Returns:
-            相对时间字符串
+            相对时间字符�?
         """
         now = datetime.now()
         diff = now - dt
@@ -220,10 +220,10 @@ class PersonalizedFeedService:
             return '刚刚'
         elif seconds < 3600:
             minutes = seconds // 60
-            return f'{minutes}分钟前'
+            return f'{minutes}分钟�?
         elif seconds < 86400:
             hours = seconds // 3600
-            return f'{hours}小时前'
+            return f'{hours}小时�?
         elif seconds < 604800:
             days = seconds // 86400
             return f'{days}天前'
@@ -258,7 +258,7 @@ class PersonalizedFeedService:
         """
         event_ids = self._user_feeds.get(user_id, [])
 
-        # 统计各类型事件数量
+        # 统计各类型事件数�?
         type_counts = defaultdict(int)
         for event_id in event_ids:
             event = self._events.get(event_id)
@@ -274,7 +274,7 @@ class PersonalizedFeedService:
 
     def clear_old_events(self, days: int = 90):
         """
-        清理旧事件
+        清理旧事�?
         
         Args:
             days: 保留天数

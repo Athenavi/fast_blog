@@ -11,16 +11,14 @@ from collections import defaultdict
 import redis.asyncio as redis
 from fastapi import Request, HTTPException
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class RateLimiter:
     """
-    API限流器
-    
+    API限流�?    
     功能:
-    1. 基于Token Bucket算法的限流
-    2. IP地址限流
+    1. 基于Token Bucket算法的限�?    2. IP地址限流
     3. 用户级别限流
     4. API端点级别限流
     5. 配额管理
@@ -31,20 +29,19 @@ class RateLimiter:
         初始化限流器
         
         Args:
-            redis_url: Redis连接URL，如果为None则使用内存存储
-        """
+            redis_url: Redis连接URL，如果为None则使用内存存�?        """
         self.redis_url = redis_url
         self.redis_client = None
         self.memory_store: Dict[str, list] = defaultdict(list)
 
         # 默认限流配置
         self.default_limits = {
-            'global': {'requests': 1000, 'window': 3600},  # 全局：1000次/小时
-            'ip': {'requests': 100, 'window': 60},  # IP：100次/分钟
-            'user': {'requests': 500, 'window': 3600},  # 用户：500次/小时
+            'global': {'requests': 1000, 'window': 3600},  # 全局�?000�?小时
+            'ip': {'requests': 100, 'window': 60},  # IP�?00�?分钟
+            'user': {'requests': 500, 'window': 3600},  # 用户�?00�?小时
             'endpoint': {  # 端点特定限制
-                '/api/v1/auth/login': {'requests': 10, 'window': 60},  # 登录：10次/分钟
-                '/api/v1/articles': {'requests': 200, 'window': 3600},  # 文章：200次/小时
+                '/api/v1/auth/login': {'requests': 10, 'window': 60},  # 登录�?0�?分钟
+                '/api/v1/articles': {'requests': 200, 'window': 3600},  # 文章�?00�?小时
             }
         }
 
@@ -60,7 +57,7 @@ class RateLimiter:
                 self.redis_client = None
 
     def _get_key(self, prefix: str, identifier: str) -> str:
-        """生成限流键"""
+        """生成限流�?""
         return f"rate_limit:{prefix}:{identifier}"
 
     async def _add_request_memory(self, key: str, timestamp: float):
@@ -68,7 +65,7 @@ class RateLimiter:
         self.memory_store[key].append(timestamp)
 
     async def _get_request_count_memory(self, key: str, window: int) -> int:
-        """从内存中获取窗口内的请求数"""
+        """从内存中获取窗口内的请求�?""
         now = time.time()
         cutoff = now - window
 
@@ -78,7 +75,7 @@ class RateLimiter:
         return len(self.memory_store[key])
 
     async def _add_request_redis(self, key: str, timestamp: float, window: int):
-        """在Redis中添加请求记录"""
+        """在Redis中添加请求记�?""
         pipe = self.redis_client.pipeline()
         pipe.zadd(key, {str(timestamp): timestamp})
         pipe.expire(key, window)
@@ -89,8 +86,7 @@ class RateLimiter:
         now = time.time()
         cutoff = now - window
 
-        # 移除过期记录并计数
-        count = await self.redis_client.zremrangebyscore(key, 0, cutoff)
+        # 移除过期记录并计�?        count = await self.redis_client.zremrangebyscore(key, 0, cutoff)
         count = await self.redis_client.zcard(key)
 
         return count
@@ -102,8 +98,7 @@ class RateLimiter:
             endpoint: str = None
     ) -> Tuple[bool, Dict[str, Any]]:
         """
-        检查速率限制（优化版：单次检查 + 避免重复 IP 查询）
-        
+        检查速率限制（优化版：单次检�?+ 避免重复 IP 查询�?        
         Args:
             user_id: 用户ID
             ip_address: IP地址
@@ -127,8 +122,7 @@ class RateLimiter:
                     }
                 }
 
-        # 再检查用户限流
-        if user_id:
+        # 再检查用户限�?        if user_id:
             limited, user_info = await self.check_user_limit(user_id, endpoint)
             if limited:
                 return False, {
@@ -142,8 +136,7 @@ class RateLimiter:
                     }
                 }
 
-        # 构建限流信息（避免重复 IP 查询）
-        limit_info = {}
+        # 构建限流信息（避免重�?IP 查询�?        limit_info = {}
         if ip_address:
             _, ip_info = await self.check_ip_limit(ip_address, endpoint)
             limit_info['ip'] = {
@@ -172,13 +165,11 @@ class RateLimiter:
         检查是否被限流
         
         Args:
-            identifier: 标识符（IP地址或用户ID）
-            limit_type: 限流类型 ('ip', 'user', 'endpoint')
+            identifier: 标识符（IP地址或用户ID�?            limit_type: 限流类型 ('ip', 'user', 'endpoint')
             endpoint: API端点路径
-            custom_limit: 自定义限流配置
-            
+            custom_limit: 自定义限流配�?            
         Returns:
-            (是否被限流, 限流信息)
+            (是否被限�? 限流信息)
         """
         # 获取限流配置
         if custom_limit:
@@ -191,11 +182,9 @@ class RateLimiter:
         max_requests = config['requests']
         window = config['window']
 
-        # 生成键
-        key = self._get_key(limit_type, identifier)
+        # 生成�?        key = self._get_key(limit_type, identifier)
 
-        # 获取当前请求数
-        now = time.time()
+        # 获取当前请求�?        now = time.time()
 
         if self.redis_client:
             request_count = await self._get_request_count_redis(key, window)
@@ -204,8 +193,7 @@ class RateLimiter:
             request_count = await self._get_request_count_memory(key, window)
             await self._add_request_memory(key, now)
 
-        # 检查是否超限
-        if request_count >= max_requests:
+        # 检查是否超�?        if request_count >= max_requests:
             return True, {
                 'limited': True,
                 'current_count': request_count,
@@ -231,20 +219,19 @@ class RateLimiter:
             endpoint: API端点
             
         Returns:
-            (是否被限流, 限流信息)
+            (是否被限�? 限流信息)
         """
         return await self.is_rate_limited(ip_address, 'ip', endpoint)
 
     async def check_user_limit(self, user_id: int, endpoint: str = None) -> Tuple[bool, Dict[str, Any]]:
         """
-        检查用户限流
-        
+        检查用户限�?        
         Args:
             user_id: 用户ID
             endpoint: API端点
             
         Returns:
-            (是否被限流, 限流信息)
+            (是否被限�? 限流信息)
         """
         return await self.is_rate_limited(str(user_id), 'user', endpoint)
 
@@ -279,14 +266,11 @@ class RateLimiter:
 
     async def set_custom_limit(self, identifier: str, limit_type: str, requests: int, window: int):
         """
-        设置自定义限流配置
-        
+        设置自定义限流配�?        
         Args:
-            identifier: 标识符
-            limit_type: 限流类型
+            identifier: 标识�?            limit_type: 限流类型
             requests: 最大请求数
-            window: 时间窗口（秒）
-        """
+            window: 时间窗口（秒�?        """
         key = f"rate_limit_config:{limit_type}:{identifier}"
 
         config = {
@@ -302,11 +286,9 @@ class RateLimiter:
 
     async def reset_limit(self, identifier: str, limit_type: str):
         """
-        重置限流计数器
-        
+        重置限流计数�?        
         Args:
-            identifier: 标识符
-            limit_type: 限流类型
+            identifier: 标识�?            limit_type: 限流类型
         """
         key = self._get_key(limit_type, identifier)
 
@@ -323,10 +305,8 @@ rate_limiter = RateLimiter()
 
 async def rate_limit_middleware(request: Request, call_next):
     """
-    限流中间件
-    
-    自动对所有API请求进行限流检查
-    """
+    限流中间�?    
+    自动对所有API请求进行限流检�?    """
     # 获取客户端IP
     client_ip = request.client.host if request.client else "unknown"
 
@@ -355,8 +335,7 @@ async def rate_limit_middleware(request: Request, call_next):
     # 继续处理请求
     response = await call_next(request)
 
-    # 添加限流响应头
-    response.headers['X-RateLimit-Limit'] = str(info['max_requests'])
+    # 添加限流响应�?    response.headers['X-RateLimit-Limit'] = str(info['max_requests'])
     response.headers['X-RateLimit-Remaining'] = str(info.get('remaining', info['max_requests']))
     response.headers['X-RateLimit-Reset'] = str(int(time.time()) + info['window'])
 

@@ -10,16 +10,13 @@ from typing import Dict, Any, Optional, List
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.collaboration import ApprovalStep, ApprovalRecord
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class ApprovalStatus(Enum):
-    """审批状态"""
-    PENDING = "pending"  # 待审批
-    APPROVED = "approved"  # 已通过
-    REJECTED = "rejected"  # 已拒绝
-    CANCELLED = "cancelled"  # 已取消
-
+    """审批状�?""
+    PENDING = "pending"  # 待审�?    APPROVED = "approved"  # 已通过
+    REJECTED = "rejected"  # 已拒�?    CANCELLED = "cancelled"  # 已取�?
 
 class ContentApprovalService:
     """
@@ -43,20 +40,16 @@ class ContentApprovalService:
         创建审批请求
 
         Args:
-            db: 数据库会话
-            content_type: 内容类型 (article/comment)
+            db: 数据库会�?            content_type: 内容类型 (article/comment)
             content_id: 内容ID
             applicant_id: 申请人ID
-            max_level: 最大审批级别
-            approvers: 各级审批人ID列表
+            max_level: 最大审批级�?            approvers: 各级审批人ID列表
 
         Returns:
-            创建的审批记录
-        """
+            创建的审批记�?        """
         from sqlalchemy import select
 
-        # 检查是否已有待审批的记录
-        from shared.models.collaboration import ApprovalRecord
+        # 检查是否已有待审批的记�?        from shared.models.collaboration import ApprovalRecord
         stmt = select(ApprovalRecord).where(
             ApprovalRecord.content_type == content_type,
             ApprovalRecord.content_id == content_id,
@@ -103,8 +96,7 @@ class ContentApprovalService:
         审批通过
 
         Args:
-            db: 数据库会话
-            record_id: 审批记录ID
+            db: 数据库会�?            record_id: 审批记录ID
             approver_id: 审批人ID
             comment: 审批意见
 
@@ -123,8 +115,7 @@ class ContentApprovalService:
         if record.status != ApprovalStatus.PENDING.value:
             raise ValueError(f"Approval is {record.status}, cannot approve")
 
-        # 查找当前级别的审批步骤
-        stmt = select(ApprovalStep).where(
+        # 查找当前级别的审批步�?        stmt = select(ApprovalStep).where(
             ApprovalStep.record_id == record_id,
             ApprovalStep.level == record.current_level,
             ApprovalStep.approver_id == approver_id
@@ -143,14 +134,12 @@ class ContentApprovalService:
         step.comment = comment
         step.reviewed_at = datetime.now()
 
-        # 检查是否是最后一级
-        if record.current_level >= record.max_level:
+        # 检查是否是最后一�?        if record.current_level >= record.max_level:
             # 所有级别都已通过
             record.status = ApprovalStatus.APPROVED.value
             record.completed_at = datetime.now()
         else:
-            # 流转到下一级
-            record.current_level += 1
+            # 流转到下一�?            record.current_level += 1
 
         await db.commit()
         await db.refresh(record)
@@ -165,8 +154,7 @@ class ContentApprovalService:
         审批拒绝
 
         Args:
-            db: 数据库会话
-            record_id: 审批记录ID
+            db: 数据库会�?            record_id: 审批记录ID
             approver_id: 审批人ID
             comment: 拒绝意见
 
@@ -185,8 +173,7 @@ class ContentApprovalService:
         if record.status != ApprovalStatus.PENDING.value:
             raise ValueError(f"Approval is {record.status}, cannot reject")
 
-        # 查找当前级别的审批步骤
-        stmt = select(ApprovalStep).where(
+        # 查找当前级别的审批步�?        stmt = select(ApprovalStep).where(
             ApprovalStep.record_id == record_id,
             ApprovalStep.level == record.current_level,
             ApprovalStep.approver_id == approver_id
@@ -205,8 +192,7 @@ class ContentApprovalService:
         step.comment = comment
         step.reviewed_at = datetime.now()
 
-        # 拒绝后直接结束审批
-        record.status = ApprovalStatus.REJECTED.value
+        # 拒绝后直接结束审�?        record.status = ApprovalStatus.REJECTED.value
         record.completed_at = datetime.now()
 
         await db.commit()
@@ -220,8 +206,7 @@ class ContentApprovalService:
         取消审批（仅申请人或管理员）
 
         Args:
-            db: 数据库会话
-            record_id: 审批记录ID
+            db: 数据库会�?            record_id: 审批记录ID
             user_id: 用户ID
 
         Returns:
@@ -239,8 +224,7 @@ class ContentApprovalService:
         if record.status != ApprovalStatus.PENDING.value:
             raise ValueError(f"Approval is {record.status}, cannot cancel")
 
-        # 只有申请人可以取消
-        if record.applicant_id != user_id:
+        # 只有申请人可以取�?        if record.applicant_id != user_id:
             raise ValueError("Only the applicant can cancel the approval")
 
         record.status = ApprovalStatus.CANCELLED.value
@@ -257,8 +241,7 @@ class ContentApprovalService:
         获取审批历史
 
         Args:
-            db: 数据库会话
-            record_id: 审批记录ID
+            db: 数据库会�?            record_id: 审批记录ID
 
         Returns:
             审批历史
@@ -316,11 +299,9 @@ class ContentApprovalService:
                                     content_type: str = None,
                                     page: int = 1, per_page: int = 20) -> Dict[str, Any]:
         """
-        获取待审批列表
-
+        获取待审批列�?
         Args:
-            db: 数据库会话
-            approver_id: 审批人ID
+            db: 数据库会�?            approver_id: 审批人ID
             content_type: 内容类型过滤
             page: 页码
             per_page: 每页数量
@@ -384,16 +365,13 @@ class ContentApprovalService:
 
     async def check_approval_status(self, db, content_type: str, content_id: int) -> Optional[Dict[str, Any]]:
         """
-        检查内容的审批状态
-
+        检查内容的审批状�?
         Args:
-            db: 数据库会话
-            content_type: 内容类型
+            db: 数据库会�?            content_type: 内容类型
             content_id: 内容ID
 
         Returns:
-            审批状态信息
-        """
+            审批状态信�?        """
         from sqlalchemy import select
 
         stmt = select(ApprovalRecord).where(

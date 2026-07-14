@@ -1,6 +1,6 @@
 """
 用户积分系统服务
-提供积分获取、消耗、排行榜等功能
+提供积分获取、消耗、排行榜等功�?
 """
 
 
@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 from collections import defaultdict
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class PointsSystem:
@@ -25,13 +25,13 @@ class PointsSystem:
         self._rules = {
             'article_published': 10,  # 发布文章
             'comment_created': 2,  # 发表评论
-            'article_liked': 1,  # 文章被点赞
-            'comment_liked': 1,  # 评论被点赞
+            'article_liked': 1,  # 文章被点�?
+            'comment_liked': 1,  # 评论被点�?
             'daily_login': 1,  # 每日登录
             'profile_completed': 5,  # 完善资料
             'first_article': 20,  # 首篇文章奖励
-            'continuous_posting_7d': 50,  # 连续发文7天
-            'continuous_posting_30d': 200,  # 连续发文30天
+            'continuous_posting_7d': 50,  # 连续发文7�?
+            'continuous_posting_30d': 200,  # 连续发文30�?
         }
 
         # 兑换配置
@@ -39,7 +39,7 @@ class PointsSystem:
             'vip_1_month': 1000,  # VIP会员1个月
             'vip_3_months': 2800,  # VIP会员3个月(优惠)
             'featured_article': 500,  # 文章置顶推荐
-            'custom_domain': 5000,  # 自定义域名
+            'custom_domain': 5000,  # 自定义域�?
         }
 
         # 每日登录追踪 {user_id: last_login_date}
@@ -136,7 +136,7 @@ class PointsSystem:
 
     def record_action(self, user_id: int, action: str, **kwargs) -> bool:
         """
-        记录用户行为并自动发放积分
+        记录用户行为并自动发放积�?
         
         Args:
             user_id: 用户ID
@@ -212,7 +212,7 @@ class PointsSystem:
         today = datetime.now().date()
         self._posting_streaks[user_id].append(today)
 
-        # 检查连续发文
+        # 检查连续发�?
         streak_days = self._calculate_posting_streak(user_id)
 
         if streak_days >= 30:
@@ -269,7 +269,7 @@ class PointsSystem:
         if not cost:
             return {
                 'success': False,
-                'message': f'未知的兑换物品: {item}',
+                'message': f'未知的兑换物�? {item}',
             }
 
         current_points = self.get_user_points(user_id)
@@ -277,7 +277,7 @@ class PointsSystem:
         if current_points < cost:
             return {
                 'success': False,
-                'message': f'积分不足，需要 {cost} 积分，当前有 {current_points} 积分',
+                'message': f'积分不足，需�?{cost} 积分，当前有 {current_points} 积分',
                 'required': cost,
                 'current': current_points,
             }
@@ -302,14 +302,14 @@ class PointsSystem:
     def get_leaderboard(self, limit: int = 100,
                         period: str = 'all') -> List[Dict]:
         """
-        获取积分排行榜
+        获取积分排行�?
         
         Args:
             limit: 返回数量
             period: 时间周期 ('all', 'week', 'month')
             
         Returns:
-            排行榜列表
+            排行榜列�?
         """
         # 简化实现：返回所有用户按积分排序
         leaderboard = [
@@ -322,7 +322,7 @@ class PointsSystem:
             if points > 0
         ]
 
-        # 按积分降序排序
+        # 按积分降序排�?
         leaderboard.sort(key=lambda x: x['points'], reverse=True)
 
         # 添加排名
@@ -377,7 +377,7 @@ class PointsSystem:
 
     def cleanup_old_data(self, days: int = 365):
         """
-        清理旧数据
+        清理旧数�?
         
         Args:
             days: 保留天数

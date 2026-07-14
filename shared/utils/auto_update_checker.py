@@ -1,8 +1,7 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-自动更新检查工具
-检查 GitHub Releases 和本地更新包
+自动更新检查工�?检�?GitHub Releases 和本地更新包
 """
 
 
@@ -12,11 +11,11 @@ from typing import Optional, Dict
 import httpx
 import asyncio
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class AutoUpdateChecker:
-    """自动更新检查器（简化版）"""
+    """自动更新检查器（简化版�?""
 
     def __init__(self):
         self.github_repo = "Athenavi/fast_blog"
@@ -24,7 +23,7 @@ class AutoUpdateChecker:
         self.last_check_time = None
 
     async def check_github_releases(self) -> Optional[Dict]:
-        """检查 GitHub Releases 获取最新版本"""
+        """检�?GitHub Releases 获取最新版�?""
         try:
             url = f"https://api.github.com/repos/{self.github_repo}/releases/latest"
             headers = {
@@ -49,11 +48,11 @@ class AutoUpdateChecker:
             }
 
         except Exception as e:
-            logger.error(f"检查 GitHub Releases 失败：{e}")
+            logger.error(f"检�?GitHub Releases 失败：{e}")
             return None
 
     async def check_local_releases(self) -> Optional[str]:
-        """检查本地 releases 目录的最新版本"""
+        """检查本�?releases 目录的最新版�?""
         try:
             from pathlib import Path
 
@@ -67,14 +66,13 @@ class AutoUpdateChecker:
             if not update_packages:
                 return None
 
-            # 按文件名排序，获取最新版本
-            update_packages.sort(key=lambda x: x.name, reverse=True)
+            # 按文件名排序，获取最新版�?            update_packages.sort(key=lambda x: x.name, reverse=True)
             version = update_packages[0].stem.replace('update_', '')
             logger.info(f"本地最新版本：{version}")
             return version
 
         except Exception as e:
-            logger.error(f"检查本地 releases 失败：{e}")
+            logger.error(f"检查本�?releases 失败：{e}")
             return None
 
     @staticmethod
@@ -108,8 +106,8 @@ class AutoUpdateChecker:
             return False
 
     async def check_for_updates(self) -> Dict:
-        """执行更新检查"""
-        logger.info("开始检查更新...")
+        """执行更新检�?""
+        logger.info("开始检查更�?..")
         self.last_check_time = datetime.now()
 
         # 获取当前版本
@@ -121,8 +119,7 @@ class AutoUpdateChecker:
             logger.error(f"获取当前版本失败：{e}")
             self.current_version = "0.0.0"
 
-        # 同时检查 GitHub 和本地
-        github_result, local_version = await asyncio.gather(
+        # 同时检�?GitHub 和本�?        github_result, local_version = await asyncio.gather(
             self.check_github_releases(),
             self.check_local_releases()
         )
@@ -133,7 +130,7 @@ class AutoUpdateChecker:
             'github_latest': None,
             'local_latest': local_version,
             'check_time': self.last_check_time.isoformat(),
-            'message': '已是最新版本'
+            'message': '已是最新版�?
         }
 
         # 处理 GitHub 结果
@@ -144,8 +141,7 @@ class AutoUpdateChecker:
                 result['message'] = f"发现新版本：{github_result['version']}"
                 result['release_info'] = github_result
 
-        # 检查本地更新
-        if not result['has_update'] and local_version:
+        # 检查本地更�?        if not result['has_update'] and local_version:
             if self.compare_versions(self.current_version, local_version):
                 result['has_update'] = True
                 result['message'] = f"发现本地更新包：{local_version}"
@@ -159,5 +155,5 @@ auto_update_checker = AutoUpdateChecker()
 
 
 async def check_updates_now() -> Dict:
-    """便捷函数：立即检查更新"""
+    """便捷函数：立即检查更�?""
     return await auto_update_checker.check_for_updates()

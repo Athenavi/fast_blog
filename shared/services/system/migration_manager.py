@@ -1,7 +1,6 @@
 """
 数据库迁移管理器
-基于Alembic实现自动数据库迁移
-"""
+基于Alembic实现自动数据库迁�?"""
 import os
 import sys
 from pathlib import Path
@@ -9,7 +8,7 @@ from typing import Dict, Any, List, Optional
 
 
 class MigrationManager:
-    """基于Alembic的数据库迁移管理器"""
+    """基于Alembic的数据库迁移管理�?""
     
     def __init__(self):
         self.alembic_ini = Path(__file__).resolve().parent.parent.parent.parent / "alembic.ini"
@@ -20,9 +19,9 @@ class MigrationManager:
         """获取 Alembic 配置对象"""
         from alembic.config import Config
         cfg = Config(str(self.alembic_ini))
-        # 从 app_config 同步数据库 URL
+        # �?app_config 同步数据�?URL
         try:
-            from src.setting import app_config
+            from shared.config.settings import app_config
             if app_config.database_url:
                 cfg.set_main_option("sqlalchemy.url", app_config.database_url)
         except Exception:
@@ -30,15 +29,14 @@ class MigrationManager:
         return cfg
     
     def _run_alembic(self, args: List[str], cwd: Optional[Path] = None) -> Dict[str, Any]:
-        """执行Alembic命令（使用 Python API 避免子进程问题）"""
+        """执行Alembic命令（使�?Python API 避免子进程问题）"""
         from io import StringIO
         import traceback
         from alembic import command
 
         cfg = self._get_alembic_cfg()
 
-        # 重定向 stdout/stderr 以捕获输出
-        old_stdout = sys.stdout
+        # 重定�?stdout/stderr 以捕获输�?        old_stdout = sys.stdout
         old_stderr = sys.stderr
         captured_stdout = StringIO()
         captured_stderr = StringIO()
@@ -95,7 +93,7 @@ class MigrationManager:
     
     def get_current_revision(self) -> Dict[str, Any]:
         """
-        获取当前数据库版本（直接查 alembic_version 表）
+        获取当前数据库版本（直接�?alembic_version 表）
 
         Returns:
             当前版本信息
@@ -125,8 +123,7 @@ class MigrationManager:
         获取待执行的迁移（通过比较当前版本和版本目录）
 
         Returns:
-            待执行迁移列表
-        """
+            待执行迁移列�?        """
         try:
             cfg = self._get_alembic_cfg()
             from alembic.script import ScriptDirectory
@@ -138,15 +135,14 @@ class MigrationManager:
                 return {'success': True, 'pending_count': 0, 'migrations': []}
 
             if not current_rev:
-                # 无版本记录 → 全部待执行
-                pending = list(script.walk_revisions(base='base', head=heads[0]))
+                # 无版本记�?�?全部待执�?                pending = list(script.walk_revisions(base='base', head=heads[0]))
                 return {
                     'success': True,
                     'pending_count': len(pending),
                     'migrations': [{'revision': r.revision, 'message': r.doc} for r in pending],
                 }
 
-            # 从当前版本到最新 head 的待执行列表
+            # 从当前版本到最�?head 的待执行列表
             pending = []
             for rev in script.walk_revisions(head=heads[0], base=current_rev):
                 if rev.revision != current_rev:
@@ -166,10 +162,9 @@ class MigrationManager:
     
     def apply_all_migrations(self, db_session=None) -> Dict[str, Any]:
         """
-        执行所有待处理的迁移
-        
+        执行所有待处理的迁�?        
         Args:
-            db_session: 数据库会话(可选,Alembic会自行处理)
+            db_session: 数据库会�?可�?Alembic会自行处�?
             
         Returns:
             执行结果
@@ -263,11 +258,9 @@ class MigrationManager:
     
     def get_migration_status(self) -> Dict[str, Any]:
         """
-        获取迁移状态摘要
-        
+        获取迁移状态摘�?        
         Returns:
-            状态信息
-        """
+            状态信�?        """
         current = self.get_current_revision()
         history = self.get_pending_migrations()
         
@@ -293,11 +286,10 @@ class MigrationManager:
     
     def stamp_revision(self, revision: str) -> Dict[str, Any]:
         """
-        标记数据库为指定版本(不执行迁移)
+        标记数据库为指定版本(不执行迁�?
         
         Args:
-            revision: 目标版本号
-            
+            revision: 目标版本�?            
         Returns:
             操作结果
         """

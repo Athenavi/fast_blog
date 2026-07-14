@@ -12,7 +12,7 @@ from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.article import Article, ArticleRevision, ArticleContent
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 def calculate_revision_hash(
@@ -27,14 +27,11 @@ def calculate_revision_hash(
     Args:
         title: 标题
         content: 内容
-        cover_image: 封面图
-        tags_list: 标签列表
+        cover_image: 封面�?        tags_list: 标签列表
 
     Returns:
-        SHA256哈希字符串
-    """
-    # 确保所有字段都是字符串类型，避免None值
-    title = title or ""
+        SHA256哈希字符�?    """
+    # 确保所有字段都是字符串类型，避免None�?    title = title or ""
     content = content or ""
     cover_image = cover_image or ""
     tags_list = tags_list or ""
@@ -52,11 +49,9 @@ async def save_article_revision(
         change_summary: Optional[str] = None
 ) -> Optional[ArticleRevision]:
     """
-    保存文章修订版本（优化：减少查询次数 + 去重）
-
+    保存文章修订版本（优化：减少查询次数 + 去重�?
     Args:
-        db: 数据库会话
-        article_id: 文章ID
+        db: 数据库会�?        article_id: 文章ID
         author_id: 作者ID
         change_summary: 变更说明
 
@@ -150,11 +145,9 @@ async def get_article_revisions(
         per_page: int = 20
 ) -> Dict[str, Any]:
     """
-    获取文章的修订历史列表
-
+    获取文章的修订历史列�?
     Args:
-        db: 数据库会话
-        article_id: 文章ID
+        db: 数据库会�?        article_id: 文章ID
         page: 页码
         per_page: 每页数量
 
@@ -216,11 +209,9 @@ async def get_revision_detail(
         revision_id: int
 ) -> Optional[Dict[str, Any]]:
     """
-    获取特定修订版本的详细信息
-
+    获取特定修订版本的详细信�?
     Args:
-        db: 数据库会话
-        revision_id: 修订ID
+        db: 数据库会�?        revision_id: 修订ID
 
     Returns:
         修订详情字典
@@ -252,8 +243,7 @@ async def rollback_to_revision(
     回滚到指定修订版本（优化：减少查询次数）
 
     Args:
-        db: 数据库会话
-        article_id: 文章ID
+        db: 数据库会�?        article_id: 文章ID
         revision_id: 目标修订ID
         author_id: 执行回滚的用户ID
 
@@ -272,8 +262,7 @@ async def rollback_to_revision(
         if not revision:
             return False
 
-        # 获取当前文章和内容
-        article_query = (
+        # 获取当前文章和内�?        article_query = (
             select(Article, ArticleContent)
             .outerjoin(ArticleContent, Article.id == ArticleContent.article)
             .where(Article.id == article_id)
@@ -301,8 +290,7 @@ async def rollback_to_revision(
             )
             db.add(new_content)
 
-        # 更新文章元数据
-        article.title = revision.title
+        # 更新文章元数�?        article.title = revision.title
         article.excerpt = revision.excerpt
         article.cover_image = revision.cover_image
         article.tags_list = revision.tags_list
@@ -314,8 +302,7 @@ async def rollback_to_revision(
         article.required_vip_level = revision.required_vip_level
         article.updated_at = now
 
-        # 先创建回滚操作的修订记录（在 commit 之前）
-        from shared.models.article import ArticleRevision as Rev
+        # 先创建回滚操作的修订记录（在 commit 之前�?        from shared.models.article import ArticleRevision as Rev
         max_rev_query = select(func.max(Rev.revision_number)).where(
             Rev.article_id == article_id
         )
@@ -337,14 +324,13 @@ async def rollback_to_revision(
             is_vip_only=revision.is_vip_only,
             required_vip_level=revision.required_vip_level,
             author_id=author_id,
-            change_summary=f"回滚到版本 #{revision.revision_number}",
+            change_summary=f"回滚到版�?#{revision.revision_number}",
             hash_code=revision.hash_code,
             created_at=now,
         )
         db.add(rollback_revision)
 
-        # 单次提交所有变更
-        await db.commit()
+        # 单次提交所有变�?        await db.commit()
 
         return True
 
@@ -360,16 +346,13 @@ async def compare_revisions(
         revision2_id: int
 ) -> Optional[Dict[str, Any]]:
     """
-    比较两个修订版本的差异
-
+    比较两个修订版本的差�?
     Args:
-        db: 数据库会话
-        revision1_id: 第一个修订ID
+        db: 数据库会�?        revision1_id: 第一个修订ID
         revision2_id: 第二个修订ID
 
     Returns:
-        包含差异信息的字典
-    """
+        包含差异信息的字�?    """
     try:
         # 批量获取两个修订
         revisions_query = select(ArticleRevision).where(
@@ -384,8 +367,7 @@ async def compare_revisions(
         if not rev1 or not rev2:
             return None
 
-        # 比较各个字段的差异
-        differences = {
+        # 比较各个字段的差�?        differences = {
             "title_changed": rev1.title != rev2.title,
             "excerpt_changed": rev1.excerpt != rev2.excerpt,
             "content_changed": rev1.content != rev2.content,
@@ -406,8 +388,7 @@ async def compare_revisions(
             )),
         }
 
-        # 内容差异（限制大小避免 OOM）
-        MAX_DIFF_LINES = 10000
+        # 内容差异（限制大小避�?OOM�?        MAX_DIFF_LINES = 10000
         content_lines_1 = (rev1.content or "").splitlines(keepends=True)
         content_lines_2 = (rev2.content or "").splitlines(keepends=True)
 
@@ -441,19 +422,16 @@ async def delete_revision(
         article_id: int
 ) -> bool:
     """
-    删除指定的修订版本
-
+    删除指定的修订版�?
     Args:
-        db: 数据库会话
-        revision_id: 修订ID
+        db: 数据库会�?        revision_id: 修订ID
         article_id: 文章ID（用于验证权限）
 
     Returns:
         是否成功删除
     """
     try:
-        # 获取修订记录并验证属于指定文章
-        revision_query = select(ArticleRevision).where(
+        # 获取修订记录并验证属于指定文�?        revision_query = select(ArticleRevision).where(
             ArticleRevision.id == revision_id,
             ArticleRevision.article_id == article_id
         )

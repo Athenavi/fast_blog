@@ -20,7 +20,7 @@ except ImportError:
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 from src.utils.database.main import get_async_session
 
 
@@ -28,45 +28,34 @@ class HealthChecker:
     """
     P8-2: 健康检查与自愈服务
 
-    功能：
-    1. 数据库连接池监控
-    2. 内存/CPU 使用率告警
-    3. 磁盘空间监控
+    功能�?    1. 数据库连接池监控
+    2. 内存/CPU 使用率告�?    3. 磁盘空间监控
     4. 自动重启异常进程
-    5. 故障通知（Webhook/邮件）
-    """
+    5. 故障通知（Webhook/邮件�?    """
 
     def __init__(self, webhook_url: str = "", email_config: Dict[str, Any] = None):
         self.check_interval = 60  # 检查间隔（秒）
         self.alert_thresholds = {
-            'cpu_percent': 90,  # CPU 使用率阈值
-            'memory_percent': 85,  # 内存使用率阈值
-            'disk_percent': 90,  # 磁盘使用率阈值
-            'db_pool_usage': 80,  # 数据库连接池使用率阈值
-        }
+            'cpu_percent': 90,  # CPU 使用率阈�?            'memory_percent': 85,  # 内存使用率阈�?            'disk_percent': 90,  # 磁盘使用率阈�?            'db_pool_usage': 80,  # 数据库连接池使用率阈�?        }
         self.alert_history = []
         self.is_running = False
-        # Webhook 配置（支持飞书/钉钉/企业微信/Slack等）
+        # Webhook 配置（支持飞�?钉钉/企业微信/Slack等）
         self.webhook_url = webhook_url
         # 邮件配置: {"smtp_host", "smtp_port", "username", "password", "recipients", "from_addr", "use_tls"}
         self.email_config = email_config or {}
 
     async def check_database_health(self) -> Dict[str, Any]:
         """
-        检查数据库健康状态
-
+        检查数据库健康状�?
         Returns:
-            数据库健康信息
-        """
+            数据库健康信�?        """
         try:
             async for db in get_async_session():
-                # 测试数据库连接
-                start_time = time.time()
+                # 测试数据库连�?                start_time = time.time()
                 result = await db.execute(text("SELECT 1"))
                 response_time = (time.time() - start_time) * 1000  # ms
 
-                # 获取连接池信息（如果使用 SQLAlchemy pool）
-                engine = db.bind
+                # 获取连接池信息（如果使用 SQLAlchemy pool�?                engine = db.bind
                 pool_status = {}
 
                 if hasattr(engine, 'pool'):
@@ -78,13 +67,12 @@ class HealthChecker:
                         'overflow': pool.overflow() if hasattr(pool, 'overflow') else None,
                     }
 
-                    # 检查连接池使用率
-                    if pool_status.get('pool_size'):
+                    # 检查连接池使用�?                    if pool_status.get('pool_size'):
                         usage_percent = (pool_status['checked_out'] / pool_status['pool_size']) * 100
                         if usage_percent > self.alert_thresholds['db_pool_usage']:
                             await self._send_alert(
                                 "database_pool_high",
-                                f"数据库连接池使用率过高: {usage_percent:.1f}%",
+                                f"数据库连接池使用率过�? {usage_percent:.1f}%",
                                 "warning"
                             )
 
@@ -99,7 +87,7 @@ class HealthChecker:
             logger.error(f"Database health check failed: {e}")
             await self._send_alert(
                 "database_down",
-                f"数据库连接失败: {str(e)}",
+                f"数据库连接失�? {str(e)}",
                 "critical"
             )
 
@@ -111,49 +99,43 @@ class HealthChecker:
 
     def check_system_resources(self) -> Dict[str, Any]:
         """
-        检查系统资源使用情况
-
+        检查系统资源使用情�?
         Returns:
             系统资源信息
         """
         try:
-            # CPU 使用率
-            cpu_percent = psutil.cpu_percent(interval=1)
+            # CPU 使用�?            cpu_percent = psutil.cpu_percent(interval=1)
 
-            # 内存使用率
-            memory = psutil.virtual_memory()
+            # 内存使用�?            memory = psutil.virtual_memory()
             memory_percent = memory.percent
 
-            # 磁盘使用率
-            disk = psutil.disk_usage('/')
+            # 磁盘使用�?            disk = psutil.disk_usage('/')
             disk_percent = disk.percent
 
             alerts = []
 
-            # 检查阈值
-            if cpu_percent > self.alert_thresholds['cpu_percent']:
+            # 检查阈�?            if cpu_percent > self.alert_thresholds['cpu_percent']:
                 alerts.append({
                     "type": "cpu_high",
-                    "message": f"CPU 使用率过高: {cpu_percent}%",
+                    "message": f"CPU 使用率过�? {cpu_percent}%",
                     "severity": "warning"
                 })
 
             if memory_percent > self.alert_thresholds['memory_percent']:
                 alerts.append({
                     "type": "memory_high",
-                    "message": f"内存使用率过高: {memory_percent}%",
+                    "message": f"内存使用率过�? {memory_percent}%",
                     "severity": "warning"
                 })
 
             if disk_percent > self.alert_thresholds['disk_percent']:
                 alerts.append({
                     "type": "disk_high",
-                    "message": f"磁盘使用率过高: {disk_percent}%",
+                    "message": f"磁盘使用率过�? {disk_percent}%",
                     "severity": "critical"
                 })
 
-            # 发送告警
-            for alert in alerts:
+            # 发送告�?            for alert in alerts:
                 self._send_alert_sync(alert['type'], alert['message'], alert['severity'])
 
             return {
@@ -182,20 +164,17 @@ class HealthChecker:
 
     async def check_application_health(self) -> Dict[str, Any]:
         """
-        检查应用健康状态
-
+        检查应用健康状�?
         Returns:
             应用健康信息
         """
         try:
-            # 检查关键服务
-            checks = {
+            # 检查关键服�?            checks = {
                 "database": await self.check_database_health(),
                 "system": self.check_system_resources(),
             }
 
-            # 总体状态
-            all_healthy = all(
+            # 总体状�?            all_healthy = all(
                 check.get("status") == "healthy"
                 for check in checks.values()
             )
@@ -239,14 +218,14 @@ class HealthChecker:
 
         logger.warning(f"[ALERT] [{severity.upper()}] {alert_type}: {message}")
 
-        # 异步发送 Webhook 通知
+        # 异步发�?Webhook 通知
         if self.webhook_url:
             try:
                 await self._send_webhook_notification(alert_data)
             except Exception as e:
                 logger.error(f"Webhook notification failed: {e}")
 
-        # 异步发送邮件通知（仅对 warning/critical 级别发送）
+        # 异步发送邮件通知（仅�?warning/critical 级别发送）
         if self.email_config and severity in ("warning", "critical"):
             try:
                 await self._send_email_notification(alert_data)
@@ -254,7 +233,7 @@ class HealthChecker:
                 logger.error(f"Email notification failed: {e}")
 
     def _send_alert_sync(self, alert_type: str, message: str, severity: str = "warning"):
-        """同步版本的告警发送"""
+        """同步版本的告警发�?""
         alert_data = {
             "type": alert_type,
             "message": message,
@@ -272,15 +251,12 @@ class HealthChecker:
 
         while self.is_running:
             try:
-                # 执行健康检查
-                health = await self.check_application_health()
+                # 执行健康检�?                health = await self.check_application_health()
 
-                # 如果检测到严重问题，尝试自愈
-                if health['status'] == 'unhealthy':
+                # 如果检测到严重问题，尝试自�?                if health['status'] == 'unhealthy':
                     await self._attempt_self_healing(health)
 
-                # 等待下一个检查周期
-                await asyncio.sleep(self.check_interval)
+                # 等待下一个检查周�?                await asyncio.sleep(self.check_interval)
 
             except Exception as e:
                 logger.error(f"Monitoring loop error: {e}")
@@ -296,8 +272,7 @@ class HealthChecker:
         尝试自愈
 
         Args:
-            health: 健康检查结果
-        """
+            health: 健康检查结�?        """
         logger.warning("Attempting self-healing...")
 
         # 1. 数据库连接问题：尝试重新连接
@@ -306,17 +281,15 @@ class HealthChecker:
             # 实际项目中可以重置连接池
             # await reset_database_pool()
 
-        # 2. 内存过高：清理缓存
-        system_health = health.get('checks', {}).get('system', {})
+        # 2. 内存过高：清理缓�?        system_health = health.get('checks', {}).get('system', {})
         if system_health.get('memory', {}).get('percent', 0) > 90:
             logger.info("Self-healing: Clearing application cache")
-            # 实际项目中可以清理缓存
-            # await clear_application_cache()
+            # 实际项目中可以清理缓�?            # await clear_application_cache()
 
         # 3. 发送告警通知运维团队
         await self._send_alert(
             "self_healing_triggered",
-            f"自愈机制已触发，请检查系统状态",
+            f"自愈机制已触发，请检查系统状�?,
             "warning"
         )
 
@@ -334,7 +307,7 @@ class HealthChecker:
 
     async def _send_webhook_notification(self, alert_data: Dict[str, Any]):
         """
-        发送 Webhook 通知（支持飞书/钉钉/企业微信/Slack 等）
+        发�?Webhook 通知（支持飞�?钉钉/企业微信/Slack 等）
         自动根据 URL 格式适配不同的消息体结构
         """
         if not self.webhook_url or not aiohttp:
@@ -354,8 +327,7 @@ class HealthChecker:
         # 根据 URL 自动判断平台并构造消息体
         url = self.webhook_url
         if "feishu.cn" in url or "larksuite.com" in url:
-            # 飞书机器人
-            payload = {
+            # 飞书机器�?            payload = {
                 "msg_type": "interactive",
                 "card": {
                     "header": {"title": {"tag": "plain_text", "content": title}},
@@ -363,14 +335,12 @@ class HealthChecker:
                 },
             }
         elif "dingtalk.com" in url:
-            # 钉钉机器人
-            payload = {
+            # 钉钉机器�?            payload = {
                 "msgtype": "markdown",
                 "markdown": {"title": title, "text": f"## {title}\n\n{text}"},
             }
         elif "qyapi.weixin.qq.com" in url:
-            # 企业微信机器人
-            payload = {
+            # 企业微信机器�?            payload = {
                 "msgtype": "markdown",
                 "markdown": {"content": f"## {title}\n\n{text}"},
             }
@@ -392,7 +362,7 @@ class HealthChecker:
     async def _send_email_notification(self, alert_data: Dict[str, Any]):
         """
         发送邮件告警通知
-        需要 email_config 包含: smtp_host, smtp_port, username, password, recipients, from_addr
+        需�?email_config 包含: smtp_host, smtp_port, username, password, recipients, from_addr
         """
         cfg = self.email_config
         if not cfg.get("smtp_host") or not cfg.get("recipients"):
@@ -418,8 +388,7 @@ class HealthChecker:
                     <td style="padding: 8px; border: 1px solid #ddd;">{alert_data.get('timestamp', 'N/A')}</td></tr>
             </table>
             <p style="color: #888; margin-top: 20px; font-size: 12px;">
-                此邮件由 FastBlog 健康检查服务自动发送
-            </p>
+                此邮件由 FastBlog 健康检查服务自动发�?            </p>
         </body>
         </html>
         """

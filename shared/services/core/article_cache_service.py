@@ -6,7 +6,7 @@ from typing import Optional, Dict, Any, List
 
 from src.services.redis_service import redis_service
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class ArticleCacheService:
@@ -17,7 +17,7 @@ class ArticleCacheService:
     ARTICLE_DETAIL_PREFIX = "article:detail"
     ARTICLE_COUNT_PREFIX = "article:count"
 
-    # 默认 TTL (秒)
+    # 默认 TTL (�?
     LIST_TTL = 300  # 5分钟
     DETAIL_TTL = 600  # 10分钟
     COUNT_TTL = 60  # 1分钟
@@ -31,7 +31,7 @@ class ArticleCacheService:
             user_id: Optional[int] = None,
             status: Optional[str] = None,
     ) -> Optional[Dict[str, Any]]:
-        """获取缓存的文章列表"""
+        """获取缓存的文章列�?""
         try:
             cache_key = self._build_list_key(page, per_page, search, category_id, user_id, status)
             cached_data = await redis_service.get(cache_key)
@@ -40,7 +40,7 @@ class ArticleCacheService:
                 logger.debug(f"文章列表缓存命中: {cache_key}")
                 return cached_data
 
-            logger.debug(f"文章列表缓存未命中: {cache_key}")
+            logger.debug(f"文章列表缓存未命�? {cache_key}")
             return None
         except Exception as e:
             logger.error(f"获取文章列表缓存失败: {e}")
@@ -61,12 +61,12 @@ class ArticleCacheService:
         try:
             cache_key = self._build_list_key(page, per_page, search, category_id, user_id, status)
             await redis_service.set(cache_key, data, expire=ttl or self.LIST_TTL)
-            logger.debug(f"文章列表已缓存: {cache_key}, TTL={ttl or self.LIST_TTL}s")
+            logger.debug(f"文章列表已缓�? {cache_key}, TTL={ttl or self.LIST_TTL}s")
         except Exception as e:
             logger.error(f"设置文章列表缓存失败: {e}")
 
     async def get_article_detail(self, article_id: int) -> Optional[Dict[str, Any]]:
-        """获取缓存的文章详情"""
+        """获取缓存的文章详�?""
         try:
             cache_key = f"{self.ARTICLE_DETAIL_PREFIX}:{article_id}"
             cached_data = await redis_service.get(cache_key)
@@ -75,7 +75,7 @@ class ArticleCacheService:
                 logger.debug(f"文章详情缓存命中: {article_id}")
                 return cached_data
 
-            logger.debug(f"文章详情缓存未命中: {article_id}")
+            logger.debug(f"文章详情缓存未命�? {article_id}")
             return None
         except Exception as e:
             logger.error(f"获取文章详情缓存失败: {e}")
@@ -86,12 +86,12 @@ class ArticleCacheService:
         try:
             cache_key = f"{self.ARTICLE_DETAIL_PREFIX}:{article_id}"
             await redis_service.set(cache_key, data, expire=ttl or self.DETAIL_TTL)
-            logger.debug(f"文章详情已缓存: {article_id}, TTL={ttl or self.DETAIL_TTL}s")
+            logger.debug(f"文章详情已缓�? {article_id}, TTL={ttl or self.DETAIL_TTL}s")
         except Exception as e:
             logger.error(f"设置文章详情缓存失败: {e}")
 
     async def invalidate_article(self, article_id: int):
-        """使文章相关缓存失效"""
+        """使文章相关缓存失�?""
         try:
             # 删除文章详情缓存
             detail_key = f"{self.ARTICLE_DETAIL_PREFIX}:{article_id}"
@@ -107,23 +107,23 @@ class ArticleCacheService:
             count_key = f"{self.ARTICLE_COUNT_PREFIX}:all"
             await redis_service.delete(count_key)
 
-            logger.info(f"文章 {article_id} 相关缓存已失效")
+            logger.info(f"文章 {article_id} 相关缓存已失�?)
         except Exception as e:
-            logger.error(f"使文章缓存失效失败: {e}")
+            logger.error(f"使文章缓存失效失�? {e}")
 
     async def invalidate_category_articles(self, category_id: int):
-        """使分类下的文章列表缓存失效"""
+        """使分类下的文章列表缓存失�?""
         try:
             pattern = f"{self.ARTICLE_LIST_PREFIX}:*category:{category_id}:*"
             keys = await self._find_keys_by_pattern(pattern)
             if keys:
                 await redis_service.delete(*keys)
-                logger.info(f"分类 {category_id} 文章列表缓存已失效")
+                logger.info(f"分类 {category_id} 文章列表缓存已失�?)
         except Exception as e:
-            logger.error(f"使分类文章缓存失效失败: {e}")
+            logger.error(f"使分类文章缓存失效失�? {e}")
 
     async def get_article_count(self, status: str = "published") -> Optional[int]:
-        """获取缓存的文章数量"""
+        """获取缓存的文章数�?""
         try:
             cache_key = f"{self.ARTICLE_COUNT_PREFIX}:{status}"
             cached_count = await redis_service.get(cache_key)
@@ -153,7 +153,7 @@ class ArticleCacheService:
             user_id: Optional[int] = None,
             status: Optional[str] = None,
     ) -> str:
-        """构建文章列表缓存键"""
+        """构建文章列表缓存�?""
         parts = [self.ARTICLE_LIST_PREFIX, f"page:{page}", f"per:{per_page}"]
 
         if search:
@@ -179,7 +179,7 @@ class ArticleCacheService:
                     break
             return keys
         except Exception as e:
-            logger.error(f"查找键失败: {e}")
+            logger.error(f"查找键失�? {e}")
             return []
 
 

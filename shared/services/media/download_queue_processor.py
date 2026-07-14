@@ -1,6 +1,5 @@
 """
-外部资源下载后台任务处理器
-定期检查并处理待处理的下载任务
+外部资源下载后台任务处理�?定期检查并处理待处理的下载任务
 """
 import asyncio
 
@@ -12,11 +11,11 @@ from shared.models import DownloadTask
 from shared.services.performance.resource_transfer_service import ResourceTransferService
 from src.utils.database.unified_manager import db_manager
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class DownloadQueueProcessor:
-    """下载队列处理器"""
+    """下载队列处理�?""
 
     def __init__(self, max_concurrent: int = 3, check_interval: int = 30):
         """
@@ -33,7 +32,7 @@ class DownloadQueueProcessor:
         self.semaphore = asyncio.Semaphore(max_concurrent)
 
     async def start(self):
-        """启动队列处理器"""
+        """启动队列处理�?""
         if self.is_running:
             logger.warning("Download queue processor is already running")
             return
@@ -44,7 +43,7 @@ class DownloadQueueProcessor:
             f"Download queue processor started (max_concurrent={self.max_concurrent}, interval={self.check_interval}s)")
 
     async def stop(self):
-        """停止队列处理器"""
+        """停止队列处理�?""
         if not self.is_running:
             logger.warning("Download queue processor is not running")
             return
@@ -68,8 +67,7 @@ class DownloadQueueProcessor:
             except Exception as e:
                 logger.error(f"Error in download queue processor: {e}", exc_info=True)
 
-            # 等待下一个检查周期
-            await asyncio.sleep(self.check_interval)
+            # 等待下一个检查周�?            await asyncio.sleep(self.check_interval)
 
     async def _process_queue(self):
         """处理下载队列"""
@@ -110,15 +108,13 @@ class DownloadQueueProcessor:
                 # 并发处理任务
                 tasks = []
                 for task in pending_tasks:
-                    # 使用信号量限制并发
-                    coro = self._process_single_task(task.id)
+                    # 使用信号量限制并�?                    coro = self._process_single_task(task.id)
                     tasks.append(asyncio.create_task(coro))
 
                 if tasks:
                     results = await asyncio.gather(*tasks, return_exceptions=True)
 
-                    # 检查结果
-                    success_count = sum(1 for r in results if isinstance(r, bool) and r)
+                    # 检查结�?                    success_count = sum(1 for r in results if isinstance(r, bool) and r)
                     logger.info(f"Processed {len(tasks)} tasks, {success_count} succeeded")
 
         except Exception as e:
@@ -157,5 +153,5 @@ async def init_download_processor():
 
 
 async def shutdown_download_processor():
-    """关闭下载处理器（在应用关闭时调用）"""
+    """关闭下载处理器（在应用关闭时调用�?""
     await download_queue_processor.stop()

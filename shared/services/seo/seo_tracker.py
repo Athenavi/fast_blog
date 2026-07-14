@@ -9,14 +9,14 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 from urllib.parse import urlparse, parse_qs
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class SEOTracker:
-    """SEO 效果追踪器"""
+    """SEO 效果追踪�?""
 
     def __init__(self):
-        # 搜索引擎标识符映射
+        # 搜索引擎标识符映�?
         self.search_engines = {
             'google.com': 'Google',
             'www.google.com': 'Google',
@@ -45,7 +45,7 @@ class SEOTracker:
         # 搜索引擎流量统计 {search_engine: count}
         self._search_traffic = Counter()
 
-        # 关键词统计 {keyword: count}
+        # 关键词统�?{keyword: count}
         self._keywords = Counter()
 
         # 文章 SEO 表现 {article_id: stats}
@@ -79,7 +79,7 @@ class SEOTracker:
             'keyword': None,
         }
 
-        # 分析是否为搜索引擎流量
+        # 分析是否为搜索引擎流�?
         if referrer:
             search_info = self._analyze_referrer(referrer)
             if search_info:
@@ -108,7 +108,7 @@ class SEOTracker:
             referrer: 来源URL
             
         Returns:
-            {'engine': str, 'keyword': str} 或 None
+            {'engine': str, 'keyword': str} �?None
         """
         try:
             parsed = urlparse(referrer)
@@ -124,7 +124,7 @@ class SEOTracker:
             if not search_engine:
                 return None
 
-            # 提取搜索关键词
+            # 提取搜索关键�?
             query_params = parse_qs(parsed.query)
             param_name = self.search_params.get(search_engine, 'q')
 
@@ -141,18 +141,18 @@ class SEOTracker:
 
     def get_search_traffic_summary(self, days: int = 30) -> Dict:
         """
-        获取搜索引擎流量汇总
+        获取搜索引擎流量汇�?
         
         Args:
             days: 统计天数
             
         Returns:
-            流量汇总数据
+            流量汇总数�?
         """
         now = datetime.now()
         cutoff = now - timedelta(days=days)
 
-        # 统计各搜索引擎流量
+        # 统计各搜索引擎流�?
         engine_stats = {}
         total_organic = 0
 
@@ -173,19 +173,19 @@ class SEOTracker:
 
     def get_top_keywords(self, limit: int = 20, days: int = 30) -> List[Dict]:
         """
-        获取热门关键词
+        获取热门关键�?
         
         Args:
             limit: 返回数量
             days: 统计天数
             
         Returns:
-            关键词列表 [{keyword, count, articles}]
+            关键词列�?[{keyword, count, articles}]
         """
         now = datetime.now()
         cutoff = now - timedelta(days=days)
 
-        # 统计近期关键词
+        # 统计近期关键�?
         keyword_stats = Counter()
         keyword_articles = defaultdict(set)
 
@@ -238,7 +238,7 @@ class SEOTracker:
                     if visit['keyword']:
                         keywords.append(visit['keyword'])
 
-        # 关键词统计
+        # 关键词统�?
         keyword_counts = Counter(keywords)
         top_keywords = [
             {'keyword': k, 'count': c}
@@ -306,7 +306,7 @@ class SEOTracker:
 
         total = sum(sources.values())
 
-        # 计算百分比
+        # 计算百分�?
         sources_with_pct = {}
         for source, count in sources.items():
             pct = (count / total * 100) if total > 0 else 0

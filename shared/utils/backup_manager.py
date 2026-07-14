@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-备份管理模块 - 增强版
-管理系统备份、数据库备份、自动调度和云存储集成
+备份管理模块 - 增强�?
+管理系统备份、数据库备份、自动调度和云存储集�?
 """
 
 import hashlib
@@ -16,7 +16,7 @@ from typing import Dict, List, Optional
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class BackupManager:
@@ -25,7 +25,7 @@ class BackupManager:
     功能:
     1. 自动定时备份
     2. 增量备份支持
-    3. 云存储集成 (S3/OSS)
+    3. 云存储集�?(S3/OSS)
     4. 备份验证
     5. 保留策略管理
     """
@@ -43,7 +43,7 @@ class BackupManager:
         self.scheduler = BackgroundScheduler()
         self.scheduler.start()
 
-        # 云存储配置
+        # 云存储配�?
         self.cloud_config = {
             'enabled': False,
             'provider': 's3',  # s3, oss, cos
@@ -57,7 +57,7 @@ class BackupManager:
         self.retention_policy = {
             'daily': 7,  # 保留7天日备份
             'weekly': 4,  # 保留4周周备份
-            'monthly': 12,  # 保留12个月月备份
+            'monthly': 12,  # 保留12个月月备�?
         }
     
     def _load_backups(self):
@@ -197,18 +197,18 @@ class BackupManager:
             logger.error(f"删除备份失败：{e}")
             return False
 
-    # ==================== 自动化备份功能 ====================
+    # ==================== 自动化备份功�?====================
 
     def schedule_auto_backup(self, cron_expression: str = "0 2 * * *", backup_type: str = "full"):
         """
         设置自动备份调度
         
         Args:
-            cron_expression: Cron表达式，默认每天凌晨2点
+            cron_expression: Cron表达式，默认每天凌晨2�?
             backup_type: 备份类型 (full/incremental)
         """
         try:
-            # 解析cron表达式
+            # 解析cron表达�?
             trigger = CronTrigger.from_crontab(cron_expression)
 
             # 添加定时任务
@@ -216,12 +216,12 @@ class BackupManager:
                 func=self._auto_backup_job,
                 trigger=trigger,
                 id='auto_backup',
-                name='自动数据库备份',
+                name='自动数据库备�?,
                 kwargs={'backup_type': backup_type},
                 replace_existing=True
             )
 
-            logger.info(f"自动备份调度已设置: {cron_expression}, 类型: {backup_type}")
+            logger.info(f"自动备份调度已设�? {cron_expression}, 类型: {backup_type}")
             return True
 
         except Exception as e:
@@ -231,7 +231,7 @@ class BackupManager:
     def _auto_backup_job(self, backup_type: str = "full"):
         """自动备份任务"""
         try:
-            logger.info(f"开始执行自动备份: {backup_type}")
+            logger.info(f"开始执行自动备�? {backup_type}")
 
             # 执行备份
             if backup_type == "incremental":
@@ -259,7 +259,7 @@ class BackupManager:
         创建完整备份
         
         Args:
-            source_paths: 要备份的源路径列表
+            source_paths: 要备份的源路径列�?
             
         Returns:
             备份信息字典
@@ -290,7 +290,7 @@ class BackupManager:
                     else:
                         shutil.copy2(src_path, dest_path)
 
-            # 创建备份元数据
+            # 创建备份元数�?
             backup_info = {
                 'id': backup_name,
                 'name': backup_name,
@@ -303,12 +303,12 @@ class BackupManager:
                 'source_paths': source_paths,
             }
 
-            # 保存元数据
+            # 保存元数�?
             info_file = backup_path / "backup_info.json"
             with open(info_file, 'w', encoding='utf-8') as f:
                 json.dump(backup_info, f, indent=2, ensure_ascii=False)
 
-            # 添加到索引
+            # 添加到索�?
             self.backups.insert(0, backup_info)
             self._save_backups()
 
@@ -336,12 +336,12 @@ class BackupManager:
                 last_backup_id = last_backup.get('id')
 
             if not last_backup_id:
-                logger.warning("没有历史备份，执行完整备份")
+                logger.warning("没有历史备份，执行完整备�?)
                 return self.create_full_backup()
 
             last_backup = self.get(last_backup_id)
             if not last_backup:
-                logger.error(f"找不到备份: {last_backup_id}")
+                logger.error(f"找不到备�? {last_backup_id}")
                 return None
 
             timestamp = datetime.now()
@@ -357,11 +357,11 @@ class BackupManager:
             )
 
             if not changed_files:
-                logger.info("没有文件变化，跳过增量备份")
+                logger.info("没有文件变化，跳过增量备�?)
                 shutil.rmtree(backup_path)
                 return None
 
-            # 创建备份元数据
+            # 创建备份元数�?
             backup_info = {
                 'id': backup_name,
                 'name': backup_name,
@@ -375,12 +375,12 @@ class BackupManager:
                 'changed_files_count': len(changed_files),
             }
 
-            # 保存元数据
+            # 保存元数�?
             info_file = backup_path / "backup_info.json"
             with open(info_file, 'w', encoding='utf-8') as f:
                 json.dump(backup_info, f, indent=2, ensure_ascii=False)
 
-            # 添加到索引
+            # 添加到索�?
             self.backups.insert(0, backup_info)
             self._save_backups()
 
@@ -393,10 +393,10 @@ class BackupManager:
 
     def _detect_changes(self, base_path: Path, current_path: Path, diff_path: Path) -> List[str]:
         """
-        检测文件变化
+        检测文件变�?
         
         Returns:
-            变化的文件列表
+            变化的文件列�?
         """
         changed_files = []
 
@@ -406,7 +406,7 @@ class BackupManager:
                 if not file_path.is_file():
                     continue
 
-                # 跳过隐藏文件和特定目录
+                # 跳过隐藏文件和特定目�?
                 if any(part.startswith('.') or part in ['node_modules', '__pycache__', '.git']
                        for part in file_path.parts):
                     continue
@@ -417,13 +417,13 @@ class BackupManager:
 
                 # 检查文件是否存在或发生变化
                 if not base_file.exists():
-                    # 新文件
+                    # 新文�?
                     dest = diff_path / rel_path
                     dest.parent.mkdir(parents=True, exist_ok=True)
                     shutil.copy2(file_path, dest)
                     changed_files.append(str(rel_path))
                 else:
-                    # 检查文件内容是否变化
+                    # 检查文件内容是否变�?
                     if self._file_hash(file_path) != self._file_hash(base_file):
                         dest = diff_path / rel_path
                         dest.parent.mkdir(parents=True, exist_ok=True)
@@ -431,12 +431,12 @@ class BackupManager:
                         changed_files.append(str(rel_path))
 
         except Exception as e:
-            logger.error(f"检测文件变化失败: {e}")
+            logger.error(f"检测文件变化失�? {e}")
 
         return changed_files
 
     def _file_hash(self, file_path: Path) -> str:
-        """计算文件哈希值"""
+        """计算文件哈希�?""
         hasher = hashlib.md5()
         try:
             with open(file_path, 'rb') as f:
@@ -457,14 +457,14 @@ class BackupManager:
             pass
         return total_size
 
-    # ==================== 云存储集成 ====================
+    # ==================== 云存储集�?====================
 
     def configure_cloud_storage(self, config: Dict):
         """
-        配置云存储
+        配置云存�?
         
         Args:
-            config: 云存储配置
+            config: 云存储配�?
         """
         self.cloud_config.update(config)
         logger.info(f"云存储配置已更新: {config.get('provider')}")
@@ -553,7 +553,7 @@ class BackupManager:
             backup_file = Path(backup_path)
             object_key = f"backups/{backup_file.name}.tar.gz"
 
-            # 压缩并上传
+            # 压缩并上�?
             tar_path = backup_file.with_suffix('.tar.gz')
             shutil.make_archive(str(backup_file), 'gztar', backup_file.parent, backup_file.name)
 
@@ -572,7 +572,7 @@ class BackupManager:
     # ==================== 备份清理策略 ====================
 
     def cleanup_old_backups(self):
-        """根据保留策略清理旧备份"""
+        """根据保留策略清理旧备�?""
         try:
             now = datetime.now()
             deleted_count = 0
@@ -600,16 +600,16 @@ class BackupManager:
                     deleted_count += 1
 
             if deleted_count > 0:
-                logger.info(f"已清理 {deleted_count} 个过期备份")
+                logger.info(f"已清�?{deleted_count} 个过期备�?)
 
         except Exception as e:
-            logger.error(f"清理旧备份失败: {e}")
+            logger.error(f"清理旧备份失�? {e}")
 
     # ==================== 备份验证 ====================
 
     def verify_backup(self, backup_id: str) -> Dict:
         """
-        验证备份完整性
+        验证备份完整�?
         
         Args:
             backup_id: 备份ID
@@ -620,22 +620,22 @@ class BackupManager:
         try:
             backup = self.get(backup_id)
             if not backup:
-                return {'valid': False, 'error': '备份不存在'}
+                return {'valid': False, 'error': '备份不存�?}
 
             backup_path = Path(backup['path'])
             if not backup_path.exists():
-                return {'valid': False, 'error': '备份文件不存在'}
+                return {'valid': False, 'error': '备份文件不存�?}
 
             # 检查元数据文件
             info_file = backup_path / "backup_info.json"
             if not info_file.exists():
-                return {'valid': False, 'error': '备份元数据缺失'}
+                return {'valid': False, 'error': '备份元数据缺�?}
 
-            # 验证元数据
+            # 验证元数�?
             with open(info_file, 'r', encoding='utf-8') as f:
                 metadata = json.load(f)
 
-            # 检查文件大小
+            # 检查文件大�?
             actual_size = self._get_directory_size(backup_path)
             expected_size = backup.get('size', 0)
 

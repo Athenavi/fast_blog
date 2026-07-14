@@ -8,7 +8,7 @@ from collections import Counter, defaultdict
 from datetime import datetime, timedelta
 from typing import Dict, List
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class UserProfileService:
@@ -35,7 +35,7 @@ class UserProfileService:
         # 用户兴趣标签 {user_id: {tag: weight}}
         self._user_interests = defaultdict(Counter)
 
-        # 用户活跃度缓存 {user_id: {level, score, last_updated}}
+        # 用户活跃度缓�?{user_id: {level, score, last_updated}}
         self._activity_cache = {}
 
     def record_activity(self, user_id: int, activity_type: str,
@@ -49,7 +49,7 @@ class UserProfileService:
             activity_type: 活动类型 (view/like/comment/share/bookmark/login)
             article_id: 文章ID（可选）
             tags: 文章标签（可选）
-            timestamp: 时间戳
+            timestamp: 时间�?
         """
         if not timestamp:
             timestamp = datetime.now()
@@ -86,26 +86,26 @@ class UserProfileService:
         elif activity_type == 'login':
             self._login_history[user_id].append(timestamp)
 
-        # 清除活跃度缓存
+        # 清除活跃度缓�?
         if user_id in self._activity_cache:
             del self._activity_cache[user_id]
 
     def calculate_activity_score(self, user_id: int, days: int = 30) -> float:
         """
-        计算用户活跃度评分（0-100）
+        计算用户活跃度评分（0-100�?
         
-        评分维度：
-        - 登录频率（20%）
-        - 阅读数量（30%）
-        - 互动行为（30%）
-        - 内容创作（20%）
+        评分维度�?
+        - 登录频率�?0%�?
+        - 阅读数量�?0%�?
+        - 互动行为�?0%�?
+        - 内容创作�?0%�?
         
         Args:
             user_id: 用户ID
             days: 统计天数
             
         Returns:
-            活跃度评分（0-100）
+            活跃度评分（0-100�?
         """
         now = datetime.now()
         cutoff = now - timedelta(days=days)
@@ -119,26 +119,26 @@ class UserProfileService:
         if not recent_activities:
             return 0.0
 
-        # 1. 登录频率评分（0-20分）
+        # 1. 登录频率评分�?-20分）
         login_count = len([
             ts for ts in self._login_history.get(user_id, [])
             if ts >= cutoff
         ])
         login_score = min(20, (login_count / max(days / 3, 1)) * 20)
 
-        # 2. 阅读数量评分（0-30分）
+        # 2. 阅读数量评分�?-30分）
         view_count = len([
             act for act in recent_activities
             if act['type'] == 'view'
         ])
         view_score = min(30, (view_count / 50) * 30)  # 30天看50篇得满分
 
-        # 3. 互动行为评分（0-30分）
+        # 3. 互动行为评分�?-30分）
         stats = self._interaction_stats.get(user_id, {})
         interaction_count = (
                 stats.get('likes', 0) +
                 stats.get('comments', 0) * 2 +  # 评论权重更高
-                stats.get('shares', 0) * 3 +  # 分享权重最高
+                stats.get('shares', 0) * 3 +  # 分享权重最�?
                 stats.get('bookmarks', 0)
         )
         interaction_score = min(30, (interaction_count / 20) * 30)  # 20次互动得满分
@@ -167,27 +167,27 @@ class UserProfileService:
 
     def get_activity_level(self, user_id: int, days: int = 30) -> Dict:
         """
-        获取用户活跃度等级
+        获取用户活跃度等�?
         
-        等级划分：
+        等级划分�?
         - 超级活跃 (90-100): 每天登录，大量阅读和互动
         - 活跃 (70-89): 经常登录，定期阅读和互动
-        - 一般 (50-69): 偶尔登录，少量阅读
-        - 不活跃 (30-49): 很少登录
-        - 沉睡 (0-29): 长期未登录
+        - 一�?(50-69): 偶尔登录，少量阅�?
+        - 不活�?(30-49): 很少登录
+        - 沉睡 (0-29): 长期未登�?
         
         Args:
             user_id: 用户ID
             days: 统计天数
             
         Returns:
-            活跃度信息 {score, level, level_name, description}
+            活跃度信�?{score, level, level_name, description}
         """
-        # 检查缓存
+        # 检查缓�?
         cache_key = f"{user_id}_{days}"
         if cache_key in self._activity_cache:
             cached = self._activity_cache[cache_key]
-            # 缓存有效期5分钟
+            # 缓存有效�?分钟
             if (datetime.now() - cached['last_updated']).seconds < 300:
                 return cached
 
@@ -204,16 +204,16 @@ class UserProfileService:
             description = '经常登录，定期阅读和互动'
         elif score >= 50:
             level = 'moderate'
-            level_name = '一般'
-            description = '偶尔登录，少量阅读'
+            level_name = '一�?
+            description = '偶尔登录，少量阅�?
         elif score >= 30:
             level = 'inactive'
-            level_name = '不活跃'
+            level_name = '不活�?
             description = '很少登录'
         else:
             level = 'dormant'
             level_name = '沉睡'
-            description = '长期未登录'
+            description = '长期未登�?
 
         result = {
             'score': score,
@@ -235,12 +235,12 @@ class UserProfileService:
         """
         获取用户兴趣标签
         
-        基于用户的阅读历史、点赞、收藏等行为，
-        使用TF-IDF思想计算标签权重。
+        基于用户的阅读历史、点赞、收藏等行为�?
+        使用TF-IDF思想计算标签权重�?
         
         Args:
             user_id: 用户ID
-            top_n: 返回前N个标签
+            top_n: 返回前N个标�?
             
         Returns:
             兴趣标签列表 [{tag, weight, article_count}]
@@ -250,19 +250,19 @@ class UserProfileService:
         if not interests:
             return []
 
-        # 应用时间衰减（最近的行为权重更高）
+        # 应用时间衰减（最近的行为权重更高�?
         now = datetime.now()
         weighted_interests = Counter()
 
         for article_id, timestamp, tags in self._reading_history.get(user_id, []):
-            # 计算时间衰减因子（30天衰减到0.3）
+            # 计算时间衰减因子�?0天衰减到0.3�?
             days_ago = (now - timestamp).days
             time_weight = max(0.3, 1.0 - (days_ago / 30))
 
             for tag in tags:
                 weighted_interests[tag] += time_weight
 
-        # 结合互动行为（点赞*2, 收藏*1.5）
+        # 结合互动行为（点�?2, 收藏*1.5�?
         stats = self._interaction_stats.get(user_id, {})
         interaction_multiplier = 1 + (
                 stats.get('likes', 0) * 0.1 +
@@ -275,7 +275,7 @@ class UserProfileService:
         # 返回Top N
         result = []
         for tag, weight in weighted_interests.most_common(top_n):
-            # 计算该标签相关的文章数
+            # 计算该标签相关的文章�?
             article_count = len([
                 (aid, ts, tgs)
                 for aid, ts, tgs in self._reading_history.get(user_id, [])
@@ -294,9 +294,9 @@ class UserProfileService:
         """
         预测用户流失风险
         
-        基于以下指标：
-        - 最后登录时间
-        - 近期活跃度趋势
+        基于以下指标�?
+        - 最后登录时�?
+        - 近期活跃度趋�?
         - 互动频率变化
         
         Args:
@@ -307,7 +307,7 @@ class UserProfileService:
         """
         now = datetime.now()
 
-        # 1. 检查最后登录时间
+        # 1. 检查最后登录时�?
         logins = self._login_history.get(user_id, [])
         if not logins:
             last_login = None
@@ -316,20 +316,20 @@ class UserProfileService:
             last_login = max(logins)
             days_since_login = (now - last_login).days
 
-        # 2. 计算近期活跃度趋势
+        # 2. 计算近期活跃度趋�?
         recent_7d = self.calculate_activity_score(user_id, 7)
         recent_30d = self.calculate_activity_score(user_id, 30)
 
-        # 活跃度下降比例
+        # 活跃度下降比�?
         if recent_30d > 0:
             activity_decline = (recent_30d - recent_7d * 4.28) / recent_30d  # 预期7天是30天的7/30
         else:
             activity_decline = 0
 
-        # 3. 计算风险评分（0-100，越高风险越大）
+        # 3. 计算风险评分�?-100，越高风险越大）
         risk_score = 0
 
-        # 最后登录时间权重（40%）
+        # 最后登录时间权重（40%�?
         if days_since_login > 30:
             risk_score += 40
         elif days_since_login > 14:
@@ -337,7 +337,7 @@ class UserProfileService:
         elif days_since_login > 7:
             risk_score += 10
 
-        # 活跃度下降权重（30%）
+        # 活跃度下降权重（30%�?
         if activity_decline > 0.5:  # 下降超过50%
             risk_score += 30
         elif activity_decline > 0.3:
@@ -345,7 +345,7 @@ class UserProfileService:
         elif activity_decline > 0.1:
             risk_score += 10
 
-        # 互动频率权重（30%）
+        # 互动频率权重�?0%�?
         stats = self._interaction_stats.get(user_id, {})
         total_interactions = sum(stats.values())
         if total_interactions == 0:
@@ -358,18 +358,18 @@ class UserProfileService:
         # 确定风险等级
         if risk_score >= 70:
             risk_level = 'high'
-            risk_name = '高流失风险'
+            risk_name = '高流失风�?
         elif risk_score >= 40:
             risk_level = 'medium'
             risk_name = '中等流失风险'
         elif risk_score >= 20:
             risk_level = 'low'
-            risk_name = '低流失风险'
+            risk_name = '低流失风�?
         else:
             risk_level = 'minimal'
             risk_name = '极低风险'
 
-        # 生成原因和建议
+        # 生成原因和建�?
         reasons = []
         suggestions = []
 
@@ -378,7 +378,7 @@ class UserProfileService:
             suggestions.append('发送召回邮件或推送通知')
 
         if activity_decline > 0.3:
-            reasons.append('活跃度明显下降')
+            reasons.append('活跃度明显下�?)
             suggestions.append('推荐个性化内容')
 
         if total_interactions < 5:
@@ -386,7 +386,7 @@ class UserProfileService:
             suggestions.append('引导参与社区互动')
 
         if not reasons:
-            reasons.append('用户状态良好')
+            reasons.append('用户状态良�?)
             suggestions.append('继续保持优质内容推荐')
 
         return {
@@ -417,7 +417,7 @@ class UserProfileService:
         # 统计总活动数
         total_activities = len(self._user_activities.get(user_id, []))
 
-        # 统计各类型活动
+        # 统计各类型活�?
         activity_breakdown = Counter([
             act['type'] for act in self._user_activities.get(user_id, [])
         ])

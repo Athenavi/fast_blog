@@ -1,6 +1,6 @@
 """
-P8-3: 自动化备份服务
-提供定时备份、云存储同步和自动清理功能
+P8-3: 自动化备份服�?
+提供定时备份、云存储同步和自动清理功�?
 """
 import os
 import gzip
@@ -13,7 +13,7 @@ from typing import Optional, List, Dict, Any
 import boto3
 from sqlalchemy import text
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 from src.utils.database.main import get_async_session
 
 
@@ -21,12 +21,12 @@ class BackupManager:
     """
     P8-3: 自动化备份管理器
     
-    功能：
-    1. 定时数据库备份（每日/每周）
+    功能�?
+    1. 定时数据库备份（每日/每周�?
     2. 文件备份（媒体文件、主题、插件）
-    3. 云存储同步（S3, OSS, Google Cloud Storage）
-    4. 一键恢复功能
-    5. 备份保留策略（自动清理旧备份）
+    3. 云存储同步（S3, OSS, Google Cloud Storage�?
+    4. 一键恢复功�?
+    5. 备份保留策略（自动清理旧备份�?
     """
 
     def __init__(self):
@@ -37,7 +37,7 @@ class BackupManager:
         self.retention_policy = {
             'daily': 7,  # 保留 7 天日备份
             'weekly': 4,  # 保留 4 周周备份
-            'monthly': 12,  # 保留 12 个月月备份
+            'monthly': 12,  # 保留 12 个月月备�?
         }
 
         # 云存储配置（从环境变量读取）
@@ -51,7 +51,7 @@ class BackupManager:
 
     async def create_database_backup(self, backup_type: str = 'daily') -> Dict[str, Any]:
         """
-        创建数据库备份
+        创建数据库备�?
         
         Args:
             backup_type: 备份类型 (daily/weekly/monthly)
@@ -64,16 +64,16 @@ class BackupManager:
             backup_filename = f"db_backup_{backup_type}_{timestamp}.sql.gz"
             backup_path = self.backup_dir / backup_filename
 
-            # 获取数据库连接信息
+            # 获取数据库连接信�?
             database_url = os.getenv('DATABASE_URL', '')
 
             if not database_url:
-                raise Exception("DATABASE_URL 未配置")
+                raise Exception("DATABASE_URL 未配�?)
 
-            # 使用 pg_dump 进行备份（PostgreSQL）
+            # 使用 pg_dump 进行备份（PostgreSQL�?
             import subprocess
 
-            # 解析数据库连接信息
+            # 解析数据库连接信�?
             # 格式: postgresql://user:pass@host:port/dbname
             parts = database_url.replace('postgresql://', '').split('@')
             user_pass = parts[0].split(':')
@@ -112,14 +112,14 @@ class BackupManager:
                 with gzip.open(compressed_path, 'wb') as f_out:
                     shutil.copyfileobj(f_in, f_out)
 
-            backup_path.unlink()  # 删除未压缩文件
+            backup_path.unlink()  # 删除未压缩文�?
 
             # 上传到云存储
             cloud_url = None
             if self.s3_config['enabled']:
                 cloud_url = await self._upload_to_s3(compressed_path, backup_type)
 
-            # 清理旧备份
+            # 清理旧备�?
             await self.cleanup_old_backups(backup_type)
 
             backup_info = {
@@ -200,7 +200,7 @@ class BackupManager:
 
     async def _upload_to_s3(self, file_path: Path, backup_type: str) -> Optional[str]:
         """
-        上传备份到 S3
+        上传备份�?S3
         
         Args:
             file_path: 备份文件路径
@@ -233,7 +233,7 @@ class BackupManager:
 
     async def cleanup_old_backups(self, backup_type: str):
         """
-        清理旧备份（根据保留策略）
+        清理旧备份（根据保留策略�?
         
         Args:
             backup_type: 备份类型 (daily/weekly/monthly/files)
@@ -242,7 +242,7 @@ class BackupManager:
             retention_days = self.retention_policy.get(backup_type, 7)
             cutoff_date = datetime.utcnow() - timedelta(days=retention_days)
 
-            # 查找旧备份文件
+            # 查找旧备份文�?
             pattern = f"*{backup_type}*.sql.gz" if backup_type != 'files' else "files_*.tar.gz"
             old_backups = list(self.backup_dir.glob(pattern))
 
@@ -265,10 +265,10 @@ class BackupManager:
 
     async def restore_database_backup(self, backup_filename: str) -> Dict[str, Any]:
         """
-        恢复数据库备份
+        恢复数据库备�?
         
         Args:
-            backup_filename: 备份文件名
+            backup_filename: 备份文件�?
             
         Returns:
             恢复结果

@@ -1,6 +1,5 @@
 """
-数据库查询优化服务
-提供查询分析、慢查询检测、索引建议等功能
+数据库查询优化服�?提供查询分析、慢查询检测、索引建议等功能
 """
 
 
@@ -11,18 +10,15 @@ from typing import Dict, List, Any
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class QueryOptimizer:
     """
     数据库查询优化器
     
-    功能：
-    1. 慢查询检测
-    2. 查询统计
-    3. N+1查询检测
-    4. 索引使用分析
+    功能�?    1. 慢查询检�?    2. 查询统计
+    3. N+1查询检�?    4. 索引使用分析
     5. 查询计划分析
     """
 
@@ -92,8 +88,7 @@ class QueryOptimizer:
         Args:
             query_pattern: 查询模式
             execution_count: 执行次数
-            threshold: 触发警告的阈值
-        """
+            threshold: 触发警告的阈�?        """
         if execution_count > threshold:
             warning = {
                 'pattern': query_pattern,
@@ -110,18 +105,15 @@ class QueryOptimizer:
 
     async def analyze_query_plan(self, db: AsyncSession, sql_query: str) -> Dict:
         """
-        分析查询计划（PostgreSQL EXPLAIN）
-        
+        分析查询计划（PostgreSQL EXPLAIN�?        
         Args:
-            db: 数据库会话
-            sql_query: SQL查询语句
+            db: 数据库会�?            sql_query: SQL查询语句
             
         Returns:
             查询计划分析结果
         """
         try:
-            # 使用 EXPLAIN (FORMAT JSON) 代替 ANALYZE — ANALYZE 会实际执行写入
-            explain_query = f"EXPLAIN (FORMAT JSON) {sql_query}"
+            # 使用 EXPLAIN (FORMAT JSON) 代替 ANALYZE �?ANALYZE 会实际执行写�?            explain_query = f"EXPLAIN (FORMAT JSON) {sql_query}"
             result = await db.execute(text(explain_query))
             plan = result.scalar()
 
@@ -137,7 +129,7 @@ class QueryOptimizer:
             }
 
     def _analyze_plan(self, plan: Any) -> List[str]:
-        """分析查询计划并给出建议"""
+        """分析查询计划并给出建�?""
         recommendations = []
 
         # 这里可以添加更复杂的分析逻辑
@@ -147,17 +139,17 @@ class QueryOptimizer:
 
         if 'seq scan' in plan_str:
             recommendations.append(
-                "考虑添加索引以避免全表扫描（Sequential Scan）"
+                "考虑添加索引以避免全表扫描（Sequential Scan�?
             )
 
         if 'nested loop' in plan_str and 'seq scan' in plan_str:
             recommendations.append(
-                "嵌套循环 + 全表扫描可能导致性能问题，建议添加索引"
+                "嵌套循环 + 全表扫描可能导致性能问题，建议添加索�?
             )
 
         if 'sort' in plan_str and 'disk' in plan_str:
             recommendations.append(
-                "排序操作使用了磁盘，考虑增加work_mem或添加索引"
+                "排序操作使用了磁盘，考虑增加work_mem或添加索�?
             )
 
         return recommendations
@@ -167,8 +159,7 @@ class QueryOptimizer:
         生成优化报告
         
         Returns:
-            包含所有统计和建议的报告
-        """
+            包含所有统计和建议的报�?        """
         # 找出最慢的查询
         top_slow_queries = sorted(
             self.slow_queries,
@@ -176,8 +167,7 @@ class QueryOptimizer:
             reverse=True
         )[:10]
 
-        # 找出最频繁的查询
-        frequent_queries = sorted(
+        # 找出最频繁的查�?        frequent_queries = sorted(
             self.query_stats.items(),
             key=lambda x: x[1]['count'],
             reverse=True
@@ -203,8 +193,7 @@ class QueryOptimizer:
         """生成优化建议"""
         recommendations = []
 
-        # 检查是否有大量慢查询
-        if len(self.slow_queries) > 10:
+        # 检查是否有大量慢查�?        if len(self.slow_queries) > 10:
             recommendations.append(
                 f"检测到 {len(self.slow_queries)} 个慢查询，建议审查数据库索引和查询逻辑"
             )
@@ -212,16 +201,15 @@ class QueryOptimizer:
         # 检查N+1问题
         if self.n_plus_one_warnings:
             recommendations.append(
-                f"检测到 {len(self.n_plus_one_warnings)} 个潜在N+1查询问题，"
-                f"建议使用eager loading（joinedload/selectinload）"
+                f"检测到 {len(self.n_plus_one_warnings)} 个潜在N+1查询问题�?
+                f"建议使用eager loading（joinedload/selectinload�?
             )
 
-        # 检查高频查询
-        for name, stats in self.query_stats.items():
+        # 检查高频查�?        for name, stats in self.query_stats.items():
             if stats['count'] > 1000 and stats['avg_time'] > 0.1:
                 recommendations.append(
-                    f"查询 '{name}' 执行频繁({stats['count']}次)且平均耗时较长"
-                    f"({stats['avg_time']:.3f}s)，建议添加缓存"
+                    f"查询 '{name}' 执行频繁({stats['count']}�?且平均耗时较长"
+                    f"({stats['avg_time']:.3f}s)，建议添加缓�?
                 )
 
         return recommendations

@@ -1,19 +1,18 @@
 """
-安装向导 — 管理员创建模块
-"""
+安装向导 �?管理员创建模�?"""
 from pathlib import Path
 from typing import Dict, Any, Optional
 from datetime import datetime
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 async def create_admin_user(project_root: Path, username: str, email: str, password: str) -> Dict[str, Any]:
-    """创建管理员用户"""
+    """创建管理员用�?""
     if not username or not email or not password:
         return {"success": False, "message": "用户名、邮箱和密码不能为空"}
     if len(password) < 6:
-        return {"success": False, "message": "密码长度不能少于6位"}
+        return {"success": False, "message": "密码长度不能少于6�?}
 
     try:
         from src.utils.database.main import get_async_session_context
@@ -38,7 +37,7 @@ async def create_admin_user(project_root: Path, username: str, email: str, passw
             admin.set_password(password)
             db.add(admin)
             await db.commit()
-            return {"success": True, "message": f"管理员 {username} 创建成功", "user_id": admin.id}
+            return {"success": True, "message": f"管理�?{username} 创建成功", "user_id": admin.id}
     except Exception as e:
-        logger.exception(f"创建管理员失败")
+        logger.exception(f"创建管理员失�?)
         return {"success": False, "message": f"创建失败: {str(e)}"}

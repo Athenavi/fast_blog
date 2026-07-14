@@ -1,10 +1,7 @@
 """
-团队评论和反馈服务（数据库持久化）
-
+团队评论和反馈服务（数据库持久化�?
 提供内部评论、@提及、评论线程等功能
-支持团队协作和内容反馈
-使用 TeamComment ORM 模型持久化到数据库
-"""
+支持团队协作和内容反�?使用 TeamComment ORM 模型持久化到数据�?"""
 
 import html
 import json
@@ -15,13 +12,12 @@ from sqlalchemy import select, func, or_, delete
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.comment import TeamComment
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class TeamCommentService:
     """
-    团队评论和反馈服务
-    
+    团队评论和反馈服�?    
     管理团队内部的评论和反馈（数据库持久化）
     """
 
@@ -40,18 +36,15 @@ class TeamCommentService:
         创建评论
 
         Args:
-            db: 数据库会话
-            content_id: 内容ID
+            db: 数据库会�?            content_id: 内容ID
             content_type: 内容类型
             author_id: 作者ID
-            author_name: 作者名称
-            text: 评论内容
+            author_name: 作者名�?            text: 评论内容
             parent_id: 父评论ID（用于回复）
             mentions: @提及的用户ID列表
 
         Returns:
-            创建的评论
-        """
+            创建的评�?        """
         now = datetime.now(timezone.utc)
         mention_str = json.dumps(mentions) if mentions else None
 
@@ -86,8 +79,7 @@ class TeamCommentService:
         更新评论
 
         Args:
-            db: 数据库会话
-            comment_id: 评论ID
+            db: 数据库会�?            comment_id: 评论ID
             author_id: 作者ID
             text: 新的评论内容
 
@@ -123,8 +115,7 @@ class TeamCommentService:
         删除评论
 
         Args:
-            db: 数据库会话
-            comment_id: 评论ID
+            db: 数据库会�?            comment_id: 评论ID
             user_id: 用户ID
             is_admin: 是否是管理员
 
@@ -139,12 +130,10 @@ class TeamCommentService:
         if not comment:
             return False
 
-        # 只有作者或管理员可以删除
-        if comment.author_id != user_id and not is_admin:
+        # 只有作者或管理员可以删�?        if comment.author_id != user_id and not is_admin:
             raise ValueError("Only the author or admin can delete the comment")
 
-        # 递归删除子评论
-        await self._delete_comment_recursive(db, comment_id)
+        # 递归删除子评�?        await self._delete_comment_recursive(db, comment_id)
 
         # 删除自身
         await db.delete(comment)
@@ -162,11 +151,9 @@ class TeamCommentService:
         标记评论为已解决
 
         Args:
-            db: 数据库会话
-            comment_id: 评论ID
+            db: 数据库会�?            comment_id: 评论ID
             resolver_id: 解决者ID
-            resolver_name: 解决者名称
-
+            resolver_name: 解决者名�?
         Returns:
             更新后的评论
         """
@@ -196,11 +183,9 @@ class TeamCommentService:
             per_page: int = 50
     ) -> Dict[str, Any]:
         """
-        获取内容的评论（支持分页，批量加载回复避免 N+1）
-
+        获取内容的评论（支持分页，批量加载回复避�?N+1�?
         Args:
-            db: 数据库会话
-            content_id: 内容ID
+            db: 数据库会�?            content_id: 内容ID
             content_type: 内容类型
             include_resolved: 是否包含已解决的评论
             page: 页码
@@ -239,8 +224,7 @@ class TeamCommentService:
                 "pagination": {"page": page, "per_page": per_page, "total": 0, "total_pages": 0}
             }
 
-        # 批量加载所有顶级评论的回复（避免 N+1）
-        top_level_ids = [c.id for c in top_level]
+        # 批量加载所有顶级评论的回复（避�?N+1�?        top_level_ids = [c.id for c in top_level]
         replies_result = await db.execute(
             select(TeamComment)
             .where(TeamComment.parent_id.in_(top_level_ids))
@@ -282,15 +266,13 @@ class TeamCommentService:
         获取用户的@提及
 
         Args:
-            db: 数据库会话
-            user_id: 用户ID
+            db: 数据库会�?            user_id: 用户ID
             unread_only: 是否只返回未读的
 
         Returns:
             提及列表
         """
-        # 查询 mentions 字段包含该 user_id 的评论
-        user_id_str = str(user_id)
+        # 查询 mentions 字段包含�?user_id 的评�?        user_id_str = str(user_id)
         query = select(TeamComment).where(
             TeamComment.mentions.isnot(None),
             TeamComment.mentions.contains(user_id_str)
@@ -311,8 +293,7 @@ class TeamCommentService:
         获取评论统计
 
         Args:
-            db: 数据库会话
-            content_id: 内容ID过滤
+            db: 数据库会�?            content_id: 内容ID过滤
             content_type: 内容类型过滤
 
         Returns:
@@ -332,8 +313,7 @@ class TeamCommentService:
         resolved = sum(1 for c in all_comments if c.is_resolved)
         unresolved = total - resolved
 
-        # 统计每个作者的评论数（按 author_id）
-        by_author = {}
+        # 统计每个作者的评论数（�?author_id�?        by_author = {}
         for comment in all_comments:
             author_key = str(comment.author_id)
             by_author[author_key] = by_author.get(author_key, 0) + 1
@@ -346,19 +326,18 @@ class TeamCommentService:
         }
 
     async def _delete_comment_recursive(self, db: AsyncSession, parent_id: int):
-        """递归删除子评论"""
+        """递归删除子评�?""
         result = await db.execute(
             select(TeamComment).where(TeamComment.parent_id == parent_id)
         )
         children = result.scalars().all()
 
         for child in children:
-            # 递归删除孙评论
-            await self._delete_comment_recursive(db, child.id)
+            # 递归删除孙评�?            await self._delete_comment_recursive(db, child.id)
             await db.delete(child)
 
     async def _get_replies(self, db: AsyncSession, parent_id: int) -> List[Dict[str, Any]]:
-        """获取评论的回复"""
+        """获取评论的回�?""
         result = await db.execute(
             select(TeamComment)
             .where(TeamComment.parent_id == parent_id)

@@ -1,9 +1,9 @@
 """
-企业认证服务（SAML/LDAP/SSO）
+企业认证服务（SAML/LDAP/SSO�?
 
-功能：
-1. SAML 2.0 配置管理和认证
-2. LDAP 集成和用户同步
+功能�?
+1. SAML 2.0 配置管理和认�?
+2. LDAP 集成和用户同�?
 3. SSO 单点登录支持
 """
 
@@ -16,14 +16,14 @@ from shared.models.ldap_config import LDAPConfig
 from shared.models.saml_config import SAMLConfig
 from shared.models.sso_provider import SSOProvider
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class EnterpriseAuthService:
     """
     企业认证服务
     
-    支持 SAML 2.0、LDAP 和 SSO
+    支持 SAML 2.0、LDAP �?SSO
     """
 
     def __init__(self):
@@ -201,7 +201,7 @@ class EnterpriseAuthService:
     # ==================== SSO 相关 ====================
 
     async def get_sso_providers(self, db: AsyncSession, site_id: Optional[int] = None) -> List[SSOProvider]:
-        """获取 SSO 提供商列表"""
+        """获取 SSO 提供商列�?""
         query = select(SSOProvider).where(
             SSOProvider.is_active == True
         )
@@ -225,7 +225,7 @@ class EnterpriseAuthService:
             site_id: Optional[int] = None,
             **kwargs
     ) -> SSOProvider:
-        """创建 SSO 提供商配置"""
+        """创建 SSO 提供商配�?""
         provider = SSOProvider(
             site_id=site_id,
             provider_type=provider_type,
@@ -249,7 +249,7 @@ class EnterpriseAuthService:
             provider_id: int,
             updates: Dict[str, Any],
     ) -> SSOProvider:
-        """更新 SSO 提供商配置"""
+        """更新 SSO 提供商配�?""
         provider = await db.get(SSOProvider, provider_id)
         if not provider:
             raise ValueError("SSO provider not found")
@@ -263,7 +263,7 @@ class EnterpriseAuthService:
         return provider
 
     async def deactivate_sso_provider(self, db: AsyncSession, provider_id: int):
-        """停用 SSO 提供商"""
+        """停用 SSO 提供�?""
         provider = await db.get(SSOProvider, provider_id)
         if not provider:
             raise ValueError("SSO provider not found")

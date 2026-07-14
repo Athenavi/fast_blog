@@ -1,15 +1,14 @@
 """
 对象缓存服务
 
-提供数据库查询结果的对象级缓存
-支持缓存标签、批量操作和智能失效
+提供数据库查询结果的对象级缓�?支持缓存标签、批量操作和智能失效
 """
 
 from functools import wraps
 from typing import Any, Dict, List, Optional, Callable
 
 from shared.services.core.multi_level_cache import MultiLevelCache, multi_level_cache
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 
@@ -17,14 +16,11 @@ class ObjectCacheService:
     """
     对象缓存服务
     
-    用于缓存数据库查询结果、ORM对象等
-    支持基于标签的批量失效
-    """
+    用于缓存数据库查询结果、ORM对象�?    支持基于标签的批量失�?    """
 
     def __init__(self, cache: Optional[MultiLevelCache] = None):
         """
-        初始化对象缓存服务
-        
+        初始化对象缓存服�?        
         Args:
             cache: 多级缓存实例
         """
@@ -36,16 +32,13 @@ class ObjectCacheService:
     def _generate_object_key(self, model_name: str, object_id: Any,
                              field: Optional[str] = None) -> str:
         """
-        生成对象缓存键
-        
+        生成对象缓存�?        
         Args:
             model_name: 模型名称
             object_id: 对象ID
-            field: 字段名（可选，用于缓存特定字段）
-        
+            field: 字段名（可选，用于缓存特定字段�?        
         Returns:
-            缓存键
-        """
+            缓存�?        """
         key = f"{self.cache_prefix}{model_name}:{object_id}"
         if field:
             key += f":{field}"
@@ -53,20 +46,16 @@ class ObjectCacheService:
 
     def _generate_query_key(self, query_type: str, params: Dict[str, Any]) -> str:
         """
-        生成查询结果缓存键
-        
+        生成查询结果缓存�?        
         Args:
-            query_type: 查询类型（如 'list', 'count'）
-            params: 查询参数字典
+            query_type: 查询类型（如 'list', 'count'�?            params: 查询参数字典
         
         Returns:
-            缓存键
-        """
+            缓存�?        """
         import hashlib
         import json
 
-        # 对参数排序并序列化
-        params_str = json.dumps(params, sort_keys=True, default=str)
+        # 对参数排序并序列�?        params_str = json.dumps(params, sort_keys=True, default=str)
         hash_key = hashlib.md5(params_str.encode()).hexdigest()[:16]
 
         return f"{self.cache_prefix}query:{query_type}:{hash_key}"
@@ -74,16 +63,14 @@ class ObjectCacheService:
     async def get_object(self, model_name: str, object_id: Any,
                          field: Optional[str] = None) -> Optional[Any]:
         """
-        获取缓存的对象
-        
+        获取缓存的对�?        
         Args:
             model_name: 模型名称
             object_id: 对象ID
             field: 字段名（可选）
         
         Returns:
-            缓存的对象数据
-        """
+            缓存的对象数�?        """
         cache_key = self._generate_object_key(model_name, object_id, field)
         return await self.cache.get(cache_key)
 
@@ -99,7 +86,7 @@ class ObjectCacheService:
             object_id: 对象ID
             data: 对象数据
             field: 字段名（可选）
-            ttl: TTL(秒)
+            ttl: TTL(�?
             tags: 缓存标签列表
         """
         if ttl is None:
@@ -128,15 +115,13 @@ class ObjectCacheService:
     async def get_query_result(self, query_type: str,
                                params: Dict[str, Any]) -> Optional[Any]:
         """
-        获取缓存的查询结果
-        
+        获取缓存的查询结�?        
         Args:
             query_type: 查询类型
             params: 查询参数
         
         Returns:
-            缓存的查询结果
-        """
+            缓存的查询结�?        """
         cache_key = self._generate_query_key(query_type, params)
         return await self.cache.get(cache_key)
 
@@ -150,7 +135,7 @@ class ObjectCacheService:
             query_type: 查询类型
             params: 查询参数
             data: 查询结果数据
-            ttl: TTL(秒)
+            ttl: TTL(�?
             tags: 缓存标签列表
         """
         if ttl is None:
@@ -165,14 +150,12 @@ class ObjectCacheService:
 
     async def invalidate_by_tag(self, tag: str) -> int:
         """
-        根据标签使缓存失效
-        
+        根据标签使缓存失�?        
         Args:
             tag: 缓存标签
         
         Returns:
-            失效的缓存数量
-        """
+            失效的缓存数�?        """
         index_key = f"{self.tag_index_prefix}{tag}"
         cache_keys = await self.cache.get(index_key)
 
@@ -187,14 +170,13 @@ class ObjectCacheService:
         # 清除标签索引
         await self.cache.delete(index_key)
 
-        from src.unified_logger import default_logger as logger
+        from shared.logging import default_logger as logger
         logger.info(f"[ObjectCache] Invalidated {deleted_count} objects with tag: {tag}")
         return deleted_count
 
     async def invalidate_by_tags(self, tags: List[str]) -> int:
         """
-        根据多个标签使缓存失效
-        
+        根据多个标签使缓存失�?        
         Args:
             tags: 缓存标签列表
         
@@ -210,11 +192,9 @@ class ObjectCacheService:
 
     async def _add_to_tag_index(self, cache_key: str, tags: List[str]) -> None:
         """
-        将缓存键添加到标签索引
-        
+        将缓存键添加到标签索�?        
         Args:
-            cache_key: 缓存键
-            tags: 标签列表
+            cache_key: 缓存�?            tags: 标签列表
         """
         for tag in tags:
             index_key = f"{self.tag_index_prefix}{tag}"
@@ -230,19 +210,16 @@ class ObjectCacheService:
     def cache_object(self, model_name: str, field: Optional[str] = None,
                      ttl: Optional[int] = None, tags: Optional[List[str]] = None):
         """
-        对象缓存装饰器
-        
-        用于自动缓存函数返回的对象数据
-        
+        对象缓存装饰�?        
+        用于自动缓存函数返回的对象数�?        
         Args:
             model_name: 模型名称
             field: 字段名（可选）
-            ttl: TTL(秒)
+            ttl: TTL(�?
             tags: 缓存标签
         
         Returns:
-            装饰器函数
-        """
+            装饰器函�?        """
 
         def decorator(func: Callable):
             @wraps(func)
@@ -250,8 +227,7 @@ class ObjectCacheService:
                 # 尝试从第一个参数获取对象ID
                 object_id = None
                 if args:
-                    # 假设第二个参数是object_id（第一个是self）
-                    if len(args) > 1:
+                    # 假设第二个参数是object_id（第一个是self�?                    if len(args) > 1:
                         object_id = args[1]
 
                 # 或者从kwargs获取
@@ -262,13 +238,11 @@ class ObjectCacheService:
                     # 无法确定ID，直接调用原函数
                     return await func(*args, **kwargs)
 
-                # 尝试从缓存获取
-                cached = await self.get_object(model_name, object_id, field)
+                # 尝试从缓存获�?                cached = await self.get_object(model_name, object_id, field)
                 if cached is not None:
                     return cached
 
-                # 执行原函数
-                result = await func(*args, **kwargs)
+                # 执行原函�?                result = await func(*args, **kwargs)
 
                 # 缓存结果
                 if result is not None:
@@ -284,18 +258,16 @@ class ObjectCacheService:
     def cache_query(self, query_type: str, ttl: Optional[int] = None,
                     tags: Optional[List[str]] = None):
         """
-        查询结果缓存装饰器
-        
+        查询结果缓存装饰�?        
         用于自动缓存查询结果
         
         Args:
             query_type: 查询类型
-            ttl: TTL(秒)
+            ttl: TTL(�?
             tags: 缓存标签
         
         Returns:
-            装饰器函数
-        """
+            装饰器函�?        """
 
         def decorator(func: Callable):
             @wraps(func)
@@ -306,13 +278,11 @@ class ObjectCacheService:
                     'kwargs': {k: str(v) for k, v in kwargs.items()},
                 }
 
-                # 尝试从缓存获取
-                cached = await self.get_query_result(query_type, params)
+                # 尝试从缓存获�?                cached = await self.get_query_result(query_type, params)
                 if cached is not None:
                     return cached
 
-                # 执行原函数
-                result = await func(*args, **kwargs)
+                # 执行原函�?                result = await func(*args, **kwargs)
 
                 # 缓存结果
                 if result is not None:

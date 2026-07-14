@@ -1,7 +1,7 @@
 """
 支付服务
 
-支持多种支付网关：Stripe、PayPal、支付宝、微信支付
+支持多种支付网关：Stripe、PayPal、支付宝、微信支�?
 """
 import json
 
@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.order import Order
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class PaymentService:
@@ -32,8 +32,8 @@ class PaymentService:
             order_id: 订单ID
             payment_method: 支付方式 (stripe/paypal/alipay/wechat)
             amount: 支付金额
-            currency: 货币类型 (USD/CNY等)
-            metadata: 额外元数据
+            currency: 货币类型 (USD/CNY�?
+            metadata: 额外元数�?
             
         Returns:
             支付意图信息
@@ -149,7 +149,7 @@ class PaymentService:
             raise
 
     async def _create_alipay_payment(self, order: Order, amount: Decimal, currency: str, metadata: Dict = None) -> Dict:
-        """创建支付宝支付"""
+        """创建支付宝支�?""
         try:
             from alipay import AliPay
 
@@ -198,7 +198,7 @@ class PaymentService:
         try:
             from wechatpy.pay import WeChatPay
 
-            # 初始化微信支付
+            # 初始化微信支�?
             pay = WeChatPay(
                 appid="your_wechat_appid",
                 api_key="your_wechat_api_key",
@@ -211,7 +211,7 @@ class PaymentService:
             result = pay.order.create(
                 trade_type="NATIVE",  # NATIVE for QR code, JSAPI for in-app
                 body=f"Order #{order.id}",
-                total_fee=int(amount * 100),  # 微信使用分
+                total_fee=int(amount * 100),  # 微信使用�?
                 notify_url="https://yourdomain.com/api/v1/payment/webhook/wechat",
                 out_trade_no=f"ORDER_{order.id}_{int(datetime.now().timestamp())}",
                 spbill_create_ip="127.0.0.1"
@@ -319,7 +319,7 @@ class PaymentService:
             return {'verified': False, 'error': str(e)}
 
     async def _verify_alipay_payment(self, payment_data: Dict) -> Dict:
-        """验证支付宝支付"""
+        """验证支付宝支�?""
         try:
             from alipay import AliPay
 
@@ -403,16 +403,16 @@ class PaymentService:
     async def process_refund(self, order_id: int, payment_method: str, amount: Optional[Decimal] = None,
                              reason: str = '') -> Dict:
         """
-        处理退款
+        处理退�?
         
         Args:
             order_id: 订单ID
             payment_method: 支付方式
             amount: 退款金额（None表示全额退款）
-            reason: 退款原因
+            reason: 退款原�?
             
         Returns:
-            退款结果
+            退款结�?
         """
         # 获取订单
         stmt = select(Order).where(Order.id == order_id)
@@ -436,7 +436,7 @@ class PaymentService:
             raise ValueError(f"Unsupported payment method: {payment_method}")
 
     async def _refund_stripe(self, order: Order, amount: Decimal, reason: str) -> Dict:
-        """Stripe 退款"""
+        """Stripe 退�?""
         try:
             import stripe
             stripe.api_key = "sk_test_your_stripe_secret_key"
@@ -459,7 +459,7 @@ class PaymentService:
             return {'success': False, 'error': str(e)}
 
     async def _refund_paypal(self, order: Order, amount: Decimal, reason: str) -> Dict:
-        """PayPal 退款"""
+        """PayPal 退�?""
         try:
             import paypalrestsdk
             paypalrestsdk.configure({
@@ -491,7 +491,7 @@ class PaymentService:
             return {'success': False, 'error': str(e)}
 
     async def _refund_alipay(self, order: Order, amount: Decimal, reason: str) -> Dict:
-        """支付宝退款"""
+        """支付宝退�?""
         try:
             from alipay import AliPay
 
@@ -528,7 +528,7 @@ class PaymentService:
             return {'success': False, 'error': str(e)}
 
     async def _refund_wechat(self, order: Order, amount: Decimal, reason: str) -> Dict:
-        """微信退款"""
+        """微信退�?""
         try:
             from wechatpy.pay import WeChatPay
 

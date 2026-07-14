@@ -1,8 +1,7 @@
 """
 百度统计集成服务
 
-功能：
-1. 百度统计配置管理
+功能�?1. 百度统计配置管理
 2. 追踪代码生成
 3. 数据同步（可选）
 """
@@ -13,7 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 
 from shared.models.analytics import BaiduAnalyticsConfig
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class BaiduAnalyticsService:
@@ -31,9 +30,7 @@ class BaiduAnalyticsService:
         获取百度统计配置
 
         Args:
-            db: 数据库会话
-            site_id: 站点 ID（可选，为空则获取全局配置）
-
+            db: 数据库会�?            site_id: 站点 ID（可选，为空则获取全局配置�?
         Returns:
             百度统计配置对象
         """
@@ -64,16 +61,14 @@ class BaiduAnalyticsService:
         创建百度统计配置
 
         Args:
-            db: 数据库会话
-            site_token: 百度统计 Site Token
+            db: 数据库会�?            site_token: 百度统计 Site Token
             api_key: 百度统计 API Key
             site_id: 站点 ID（可选）
             enable_tracking: 是否启用追踪
             enable_data_sync: 是否启用数据同步
 
         Returns:
-            创建的配置对象
-        """
+            创建的配置对�?        """
         # 检查是否已存在配置
         existing = await self.get_config(db, site_id)
         if existing:
@@ -105,8 +100,7 @@ class BaiduAnalyticsService:
         更新百度统计配置
 
         Args:
-            db: 数据库会话
-            config_id: 配置 ID
+            db: 数据库会�?            config_id: 配置 ID
             updates: 更新字段字典
 
         Returns:
@@ -131,8 +125,7 @@ class BaiduAnalyticsService:
         停用百度统计配置
 
         Args:
-            db: 数据库会话
-            config_id: 配置 ID
+            db: 数据库会�?            config_id: 配置 ID
         """
         config = await db.get(BaiduAnalyticsConfig, config_id)
         if not config:
@@ -172,12 +165,9 @@ var _hmt = _hmt || [];
 
     async def get_all_configs(self, db: AsyncSession, include_inactive: bool = False) -> List[BaiduAnalyticsConfig]:
         """
-        获取所有百度统计配置
-
+        获取所有百度统计配�?
         Args:
-            db: 数据库会话
-            include_inactive: 是否包含非活动配置
-
+            db: 数据库会�?            include_inactive: 是否包含非活动配�?
         Returns:
             配置列表
         """

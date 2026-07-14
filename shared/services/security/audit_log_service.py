@@ -1,7 +1,6 @@
 """
 审计日志服务
-记录系统中的关键操作和事件，用于安全审计和合规性检查
-"""
+记录系统中的关键操作和事件，用于安全审计和合规性检�?"""
 import json
 from datetime import datetime, timedelta
 from enum import Enum
@@ -12,7 +11,7 @@ from sqlalchemy.future import select
 from sqlalchemy.sql.functions import func
 
 from shared.models.system.audit_log import AuditLog
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class AuditLogAction(Enum):
@@ -49,25 +48,20 @@ class AuditLogService:
     1. 操作日志记录
     2. 登录日志记录
     3. 数据变更追踪
-    4. 日志查询和过滤
-    5. 日志导出
+    4. 日志查询和过�?    5. 日志导出
     """
 
     def __init__(self):
         self.enabled = True
-        self.retention_days = 90  # 默认保留90天日志
-
+        self.retention_days = 90  # 默认保留90天日�?
     async def initialize(self, db: AsyncSession):
         """
-        初始化审计日志服务
-
+        初始化审计日志服�?
         Args:
-            db: 数据库会话
-        """
+            db: 数据库会�?        """
         # 确保表已创建
 
-        # 注意：在实际应用中，表创建可能在数据库初始化时完成
-        pass
+        # 注意：在实际应用中，表创建可能在数据库初始化时完�?        pass
 
     async def log_action(
             self,
@@ -87,10 +81,8 @@ class AuditLogService:
         记录审计日志
 
         Args:
-            db: 数据库会话
-            user_id: 用户ID
-            user_name: 用户名
-            action: 操作类型
+            db: 数据库会�?            user_id: 用户ID
+            user_name: 用户�?            action: 操作类型
             resource_type: 资源类型
             resource_id: 资源ID
             description: 操作描述
@@ -126,8 +118,7 @@ class AuditLogService:
 
         except Exception as e:
             logger.error(f"Failed to record audit log: {e}")
-            # 即使记录失败也不影响主业务流程
-            await db.rollback()
+            # 即使记录失败也不影响主业务流�?            await db.rollback()
 
     async def get_logs(
             self,
@@ -147,21 +138,18 @@ class AuditLogService:
         查询审计日志
 
         Args:
-            db: 数据库会话
-            user_id: 用户ID过滤
+            db: 数据库会�?            user_id: 用户ID过滤
             action: 操作类型过滤
             level: 日志级别过滤
             resource_type: 资源类型过滤
             resource_id: 资源ID过滤
             ip_address: IP地址过滤
-            start_date: 开始日期
-            end_date: 结束日期
+            start_date: 开始日�?            end_date: 结束日期
             page: 页码
             per_page: 每页数量
 
         Returns:
-            日志列表和分页信息
-        """
+            日志列表和分页信�?        """
         try:
             query = select(AuditLog).order_by(AuditLog.created_at.desc())
 
@@ -242,15 +230,12 @@ class AuditLogService:
         导出审计日志
 
         Args:
-            db: 数据库会话
-            output_format: 输出格式 ('json', 'csv', 'excel')
+            db: 数据库会�?            output_format: 输出格式 ('json', 'csv', 'excel')
             **filters: 过滤条件
 
         Returns:
-            导出的数据
-        """
-        # 获取所有符合条件的日志（不分页）
-        all_logs_query = select(AuditLog).order_by(AuditLog.created_at.desc())
+            导出的数�?        """
+        # 获取所有符合条件的日志（不分页�?        all_logs_query = select(AuditLog).order_by(AuditLog.created_at.desc())
 
         # 应用过滤条件
         if filters.get('user_id'):
@@ -307,8 +292,7 @@ class AuditLogService:
                 'Resource ID', 'IP Address', 'User Agent', 'Description', 'Details', 'Created At'
             ])
 
-            # 写入数据行
-            for log in logs:
+            # 写入数据�?            for log in logs:
                 writer.writerow([
                     log.id,
                     log.user_id,
@@ -334,9 +318,7 @@ class AuditLogService:
         清理旧的审计日志
 
         Args:
-            db: 数据库会话
-            days: 保留天数，默认使用实例配置
-        """
+            db: 数据库会�?            days: 保留天数，默认使用实例配�?        """
         retention_days = days or self.retention_days
         cutoff_date = datetime.now() - timedelta(days=retention_days)
 

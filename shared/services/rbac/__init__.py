@@ -1,6 +1,5 @@
 """
-RBAC 权限检查服务
-提供用户权限查询、验证、角色继承等功能
+RBAC 权限检查服�?提供用户权限查询、验证、角色继承等功能
 """
 from typing import Dict, List, Optional, Set, Any
 
@@ -8,7 +7,7 @@ from sqlalchemy import select, or_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.rbac import Role, Capability, RoleCapability, UserRole
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 async def get_user_capabilities(
@@ -19,13 +18,12 @@ async def get_user_capabilities(
     获取用户的所有权限能力（含角色继承）
 
     Args:
-        db: 数据库会话
-        user_id: 用户 ID
+        db: 数据库会�?        user_id: 用户 ID
 
     Returns:
         权限能力列表
     """
-    # 获取用户的角色 ID 列表（含继承链）
+    # 获取用户的角�?ID 列表（含继承链）
     all_role_ids = await _get_user_role_ids_with_inheritance(db, user_id)
     if not all_role_ids:
         return []
@@ -52,11 +50,9 @@ async def check_user_permission(
     required_capability: str,
 ) -> bool:
     """
-    检查用户是否拥有指定权限
-
+    检查用户是否拥有指定权�?
     Args:
-        db: 数据库会话
-        user_id: 用户 ID
+        db: 数据库会�?        user_id: 用户 ID
         required_capability: 权限代码，如 "article:create"
 
     Returns:
@@ -80,7 +76,7 @@ async def check_user_permission(
         return result.scalar_one_or_none() is not None
 
     except Exception as e:
-        logger.error(f"权限检查失败: {e}", exc_info=True)
+        logger.error(f"权限检查失�? {e}", exc_info=True)
         return False
 
 
@@ -91,14 +87,11 @@ async def check_any_permission(
     action: str,
 ) -> bool:
     """
-    按资源类型和操作检查权限
-
+    按资源类型和操作检查权�?
     Args:
-        db: 数据库会话
-        user_id: 用户 ID
+        db: 数据库会�?        user_id: 用户 ID
         resource_type: 资源类型（article, user, category 等）
-        action: 操作类型（create, read, update, delete）
-
+        action: 操作类型（create, read, update, delete�?
     Returns:
         是否拥有权限
     """
@@ -121,17 +114,15 @@ async def check_any_permission(
         return result.scalar_one_or_none() is not None
 
     except Exception as e:
-        logger.error(f"权限检查失败: {e}", exc_info=True)
+        logger.error(f"权限检查失�? {e}", exc_info=True)
         return False
 
 
 async def get_user_permission_codes(db: AsyncSession, user_id: int) -> Set[str]:
     """
-    获取用户的权限代码集合（用于前端缓存/判断）
-
+    获取用户的权限代码集合（用于前端缓存/判断�?
     Args:
-        db: 数据库会话
-        user_id: 用户 ID
+        db: 数据库会�?        user_id: 用户 ID
 
     Returns:
         权限代码集合
@@ -159,11 +150,9 @@ async def assign_role_to_user(
     role_id: int,
 ) -> bool:
     """
-    为用户分配角色
-
+    为用户分配角�?
     Args:
-        db: 数据库会话
-        user_id: 用户 ID
+        db: 数据库会�?        user_id: 用户 ID
         role_id: 角色 ID
 
     Returns:
@@ -203,11 +192,9 @@ async def remove_role_from_user(
     role_id: int,
 ) -> bool:
     """
-    移除用户的角色
-
+    移除用户的角�?
     Args:
-        db: 数据库会话
-        user_id: 用户 ID
+        db: 数据库会�?        user_id: 用户 ID
         role_id: 角色 ID
     """
     try:
@@ -232,12 +219,10 @@ async def _get_user_role_ids_with_inheritance(
     user_id: int,
 ) -> Set[int]:
     """
-    获取用户的角色 ID 集合（含角色继承链）
+    获取用户的角�?ID 集合（含角色继承链）
 
-    递归遍历角色继承树，收集所有父角色。
-    """
-    # 直接分配的角色
-    result = await db.execute(
+    递归遍历角色继承树，收集所有父角色�?    """
+    # 直接分配的角�?    result = await db.execute(
         select(UserRole).where(
             UserRole.user_id == user_id,
         )
@@ -257,8 +242,7 @@ async def _get_user_role_ids_with_inheritance(
     depth = 0
     while to_process and depth < max_depth:
         current_id = to_process.pop(0)
-        # 查询此角色的父角色
-        result = await db.execute(
+        # 查询此角色的父角�?        result = await db.execute(
             select(Role.parent_id).where(
                 Role.id == current_id,
                 Role.parent_id.isnot(None),

@@ -11,7 +11,7 @@ from sqlalchemy import select, func, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.security import LoginAttempt
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class LoginSecurityService:
@@ -19,8 +19,7 @@ class LoginSecurityService:
 
     def __init__(self):
         # 配置参数
-        self.max_failures = 5  # 最大失败次数
-        self.lock_duration_minutes = 30  # 锁定时长(分钟)
+        self.max_failures = 5  # 最大失败次�?        self.lock_duration_minutes = 30  # 锁定时长(分钟)
         self.failure_window_minutes = 15  # 失败时间窗口(分钟)
 
     async def record_login_attempt_async(self, username: str, ip_address: str,
@@ -30,13 +29,11 @@ class LoginSecurityService:
         异步记录登录尝试
 
         Args:
-            username: 用户名
-            ip_address: IP地址
+            username: 用户�?            ip_address: IP地址
             user_agent: User-Agent
             is_success: 是否成功
             failure_reason: 失败原因
-            db: 数据库会话
-
+            db: 数据库会�?
         Returns:
             记录结果
         """
@@ -68,12 +65,9 @@ class LoginSecurityService:
     async def check_account_locked_async(self, username: str, db: AsyncSession = None) -> Tuple[
         bool, Optional[datetime]]:
         """
-        异步检查账户是否被锁定（基于用户名）
-
+        异步检查账户是否被锁定（基于用户名�?
         Args:
-            username: 用户名
-            db: 数据库会话
-
+            username: 用户�?            db: 数据库会�?
         Returns:
             (is_locked, unlock_time) 元组
         """
@@ -84,8 +78,7 @@ class LoginSecurityService:
             now = datetime.now()
             failure_cutoff = now - timedelta(minutes=self.failure_window_minutes)
 
-            # 查询最近失败次数
-            result = await db.execute(
+            # 查询最近失败次�?            result = await db.execute(
                 select(func.count(LoginAttempt.id))
                 .where(
                     and_(
@@ -98,8 +91,7 @@ class LoginSecurityService:
             failure_count = result.scalar() or 0
 
             if failure_count >= self.max_failures:
-                # 获取最后一次失败时间
-                last_failure = await db.execute(
+                # 获取最后一次失败时�?                last_failure = await db.execute(
                     select(LoginAttempt.created_at)
                     .where(
                         and_(
@@ -129,9 +121,7 @@ class LoginSecurityService:
         异步获取失败尝试次数
 
         Args:
-            username: 用户名
-            db: 数据库会话
-
+            username: 用户�?            db: 数据库会�?
         Returns:
             失败尝试次数
         """
@@ -162,9 +152,7 @@ class LoginSecurityService:
         异步清除失败尝试记录
 
         Args:
-            username: 用户名
-            db: 数据库会话
-
+            username: 用户�?            db: 数据库会�?
         Returns:
             是否成功清除
         """
@@ -201,10 +189,8 @@ class LoginSecurityService:
         异步获取用户登录历史
 
         Args:
-            username: 用户名
-            limit: 返回数量
-            db: 数据库会话
-
+            username: 用户�?            limit: 返回数量
+            db: 数据库会�?
         Returns:
             登录历史记录
         """
@@ -239,9 +225,7 @@ class LoginSecurityService:
         异步获取用户安全统计
 
         Args:
-            username: 用户名
-            db: 数据库会话
-
+            username: 用户�?            db: 数据库会�?
         Returns:
             统计数据
         """
@@ -253,8 +237,7 @@ class LoginSecurityService:
             seven_days_ago = now - timedelta(days=7)
             failure_cutoff = now - timedelta(minutes=self.failure_window_minutes)
 
-            # 总登录次数
-            total_result = await db.execute(
+            # 总登录次�?            total_result = await db.execute(
                 select(func.count(LoginAttempt.id))
                 .where(LoginAttempt.username == username)
             )
@@ -287,8 +270,7 @@ class LoginSecurityService:
             )
             unique_ips = ip_result.scalar() or 0
 
-            # 最近7天登录次数
-            recent_result = await db.execute(
+            # 最�?天登录次�?            recent_result = await db.execute(
                 select(func.count(LoginAttempt.id))
                 .where(
                     and_(
@@ -331,11 +313,10 @@ class LoginSecurityService:
 
     async def get_locked_users_async(self, db: AsyncSession = None) -> List[Dict]:
         """
-        异步获取所有被锁定的用户(管理员)
+        异步获取所有被锁定的用�?管理�?
 
         Args:
-            db: 数据库会话
-
+            db: 数据库会�?
         Returns:
             锁定用户列表
         """
@@ -346,8 +327,7 @@ class LoginSecurityService:
             now = datetime.now()
             failure_cutoff = now - timedelta(minutes=self.failure_window_minutes)
 
-            # 查询失败次数超过阈值的用户名
-            result = await db.execute(
+            # 查询失败次数超过阈值的用户�?            result = await db.execute(
                 select(
                     LoginAttempt.username,
                     func.count(LoginAttempt.id).label('failure_count'),

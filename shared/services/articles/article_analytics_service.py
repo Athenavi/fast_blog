@@ -8,7 +8,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Dict, List
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class ArticleAnalyticsService:
@@ -29,7 +29,7 @@ class ArticleAnalyticsService:
         # 来源渠道统计 {article_id: {source: count}}
         self._traffic_sources = defaultdict(lambda: defaultdict(int))
 
-        # 读者地域统计 {article_id: {region: count}}
+        # 读者地域统�?{article_id: {region: count}}
         self._reader_regions = defaultdict(lambda: defaultdict(int))
 
     def record_view(self, article_id: int, user_id: int = None,
@@ -40,11 +40,11 @@ class ArticleAnalyticsService:
         
         Args:
             article_id: 文章ID
-            user_id: 用户ID(可选)
+            user_id: 用户ID(可�?
             ip_address: IP地址
             referer: 来源URL
-            read_time_seconds: 阅读时长(秒)
-            region: 读者地域
+            read_time_seconds: 阅读时长(�?
+            region: 读者地�?
         """
         now = datetime.now()
         today = now.strftime('%Y-%m-%d')
@@ -78,7 +78,7 @@ class ArticleAnalyticsService:
                     (old_avg * (total_views - 1) + read_time_seconds) / total_views
             )
 
-        # 更新跳出率(阅读时间<10秒视为跳出)
+        # 更新跳出�?阅读时间<10秒视为跳�?
         if read_time_seconds < 10:
             total_views = daily_stats['views']
             old_bounce = daily_stats['bounce_rate']
@@ -126,7 +126,7 @@ class ArticleAnalyticsService:
         elif any(social in referer_lower for social in ['linkedin', 'instagram', 'tiktok']):
             return 'Social Media'
         else:
-            return 'Direct'  # 直接访问或其他
+            return 'Direct'  # 直接访问或其�?
 
     def get_article_stats(self, article_id: int,
                           days: int = 30) -> Dict:
@@ -143,7 +143,7 @@ class ArticleAnalyticsService:
         now = datetime.now()
         start_date = now - timedelta(days=days)
 
-        # 过滤指定时间范围的访问
+        # 过滤指定时间范围的访�?
         recent_visits = [
             v for v in self._article_visits.get(article_id, [])
             if v['timestamp'] >= start_date
@@ -160,7 +160,7 @@ class ArticleAnalyticsService:
         read_times = [v['read_time'] for v in recent_visits if v['read_time'] > 0]
         avg_read_time = sum(read_times) / len(read_times) if read_times else 0
 
-        # 计算跳出率
+        # 计算跳出�?
         bounces = len([v for v in recent_visits if v['read_time'] < 10])
         bounce_rate = (bounces / total_views * 100) if total_views > 0 else 0
 
@@ -177,7 +177,7 @@ class ArticleAnalyticsService:
     def get_views_trend(self, article_id: int,
                         days: int = 30) -> List[Dict]:
         """
-        获取文章阅读量趋势
+        获取文章阅读量趋�?
         
         Args:
             article_id: 文章ID
@@ -222,7 +222,7 @@ class ArticleAnalyticsService:
 
     def get_reader_regions(self, article_id: int) -> Dict[str, int]:
         """
-        获取文章读者地域分布
+        获取文章读者地域分�?
         
         Args:
             article_id: 文章ID
@@ -268,7 +268,7 @@ class ArticleAnalyticsService:
             sort_by: 排序字段(views/unique_visitors/avg_read_time)
             
         Returns:
-            文章排行榜
+            文章排行�?
         """
         now = datetime.now()
         start_date = now - timedelta(days=days)

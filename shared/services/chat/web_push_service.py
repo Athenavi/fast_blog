@@ -14,7 +14,7 @@ except ImportError:
     webpush = None
     WebPushException = Exception
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class WebPushService:
@@ -31,8 +31,7 @@ class WebPushService:
             'subject': 'mailto:admin@fastblog.com',
         }
 
-        # 推送消息队列
-        self._message_queue = []
+        # 推送消息队�?        self._message_queue = []
 
     def subscribe_user(self, user_id: int, subscription_data: Dict) -> bool:
         """
@@ -40,7 +39,7 @@ class WebPushService:
 
         Args:
             user_id: 用户ID
-            subscription_data: 订阅数据(包含endpoint, keys等)
+            subscription_data: 订阅数据(包含endpoint, keys�?
 
         Returns:
             是否订阅成功
@@ -55,8 +54,7 @@ class WebPushService:
                 logger.info(f"Subscription already exists for user {user_id}")
                 return True
 
-        # 添加新订阅
-        subscription_record = {
+        # 添加新订�?        subscription_record = {
             'endpoint': endpoint,
             'keys': subscription_data.get('keys', {}),
             'created_at': datetime.now().isoformat(),
@@ -74,7 +72,7 @@ class WebPushService:
 
         Args:
             user_id: 用户ID
-            endpoint: 要取消的endpoint(可选,不提供则取消所有)
+            endpoint: 要取消的endpoint(可�?不提供则取消所�?
 
         Returns:
             是否成功
@@ -89,8 +87,7 @@ class WebPushService:
                 if sub.get('endpoint') != endpoint
             ]
         else:
-            # 取消所有订阅
-            self._subscriptions[user_id] = []
+            # 取消所有订�?            self._subscriptions[user_id] = []
 
         logger.info(f"User {user_id} unsubscribed from push notifications")
         return True
@@ -110,8 +107,7 @@ class WebPushService:
             badge: 徽章URL
 
         Returns:
-            发送结果
-        """
+            发送结�?        """
         if user_id not in self._subscriptions:
             return {
                 'success': False,
@@ -123,7 +119,7 @@ class WebPushService:
         if not subscriptions:
             return {
                 'success': False,
-                'message': '用户没有有效的订阅',
+                'message': '用户没有有效的订�?,
                 'sent_count': 0,
             }
 
@@ -164,8 +160,7 @@ class WebPushService:
                 logger.error(f"Failed to send push notification: {str(e)}")
                 failed_subscriptions.append(subscription.get('endpoint'))
 
-        # 清理失败的订阅
-        if failed_subscriptions:
+        # 清理失败的订�?        if failed_subscriptions:
             self._subscriptions[user_id] = [
                 sub for sub in self._subscriptions[user_id]
                 if sub.get('endpoint') not in failed_subscriptions
@@ -173,7 +168,7 @@ class WebPushService:
 
         return {
             'success': sent_count > 0,
-            'message': f'成功发送 {sent_count} 条通知',
+            'message': f'成功发�?{sent_count} 条通知',
             'sent_count': sent_count,
             'total_subscriptions': len(subscriptions),
         }
@@ -187,8 +182,7 @@ class WebPushService:
             payload: 通知payload
 
         Returns:
-            是否发送成功
-        """
+            是否发送成�?        """
         try:
             endpoint = subscription.get('endpoint', '')
             keys = subscription.get('keys', {})
@@ -216,15 +210,13 @@ class WebPushService:
                     return True
                 except WebPushException as e:
                     logger.error(f"WebPush error: {str(e)}")
-                    # 410 Gone 或 404 表示订阅已失效
-                    if hasattr(e, 'response') and e.response is not None:
+                    # 410 Gone �?404 表示订阅已失�?                    if hasattr(e, 'response') and e.response is not None:
                         if e.response.status_code in (404, 410):
                             logger.warning(f"Subscription expired: {endpoint[:50]}...")
                             return False
                     return False
             else:
-                # pywebpush 未安装或未配置 VAPID 密钥，模拟发送
-                logger.warning("pywebpush not available or VAPID keys not configured, simulating push")
+                # pywebpush 未安装或未配�?VAPID 密钥，模拟发�?                logger.warning("pywebpush not available or VAPID keys not configured, simulating push")
                 return True
 
         except Exception as e:
@@ -244,8 +236,7 @@ class WebPushService:
             data: 附加数据
 
         Returns:
-            批量发送结果
-        """
+            批量发送结�?        """
         results = {
             'total_users': len(user_ids),
             'successful': 0,
@@ -271,8 +262,7 @@ class WebPushService:
 
     def get_user_subscriptions(self, user_id: int) -> List[Dict]:
         """
-        获取用户的订阅列表
-
+        获取用户的订阅列�?
         Args:
             user_id: 用户ID
 
@@ -302,14 +292,13 @@ class WebPushService:
         清理无效订阅
 
         Returns:
-            清理的数量
-        """
+            清理的数�?        """
         cleaned = 0
 
         for user_id in list(self._subscriptions.keys()):
             original_count = len(self._subscriptions[user_id])
 
-            # 清理超过30天的旧订阅(简化逻辑)
+            # 清理超过30天的旧订�?简化逻辑)
             cutoff = datetime.now()
             self._subscriptions[user_id] = [
                 sub for sub in self._subscriptions[user_id]
@@ -329,8 +318,7 @@ class WebPushService:
         Args:
             public_key: VAPID公钥
             private_key: VAPID私钥
-            subject: 联系人邮箱
-        """
+            subject: 联系人邮�?        """
         self.vapid_config.update({
             'public_key': public_key,
             'private_key': private_key,

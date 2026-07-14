@@ -1,7 +1,6 @@
 """
 个性化推荐系统
-基于用户行为和内容相似度的文章推荐服务
-"""
+基于用户行为和内容相似度的文章推荐服�?"""
 
 
 from datetime import datetime, timedelta, timezone
@@ -9,7 +8,7 @@ from typing import Dict, List, Optional, Tuple
 from collections import defaultdict, Counter
 import math
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class RecommendationService:
@@ -39,7 +38,7 @@ class RecommendationService:
         # 配置参数
         self.trending_window_hours = [24, 168, 720]  # 24h, 7d, 30d
         self.recommendation_count = 10  # 默认推荐数量
-        self.db = None  # 由 set_db_session 设置
+        self.db = None  # �?set_db_session 设置
 
     def record_user_action(self, user_id: int, article_id: int,
                            action_type: str = 'view'):
@@ -55,8 +54,7 @@ class RecommendationService:
 
         if action_type == 'view':
             self._reading_history[user_id].append((article_id, now))
-            # 保留最近100条记录
-            if len(self._reading_history[user_id]) > 100:
+            # 保留最�?00条记�?            if len(self._reading_history[user_id]) > 100:
                 self._reading_history[user_id] = self._reading_history[user_id][-100:]
 
         elif action_type == 'like':
@@ -91,7 +89,7 @@ class RecommendationService:
             exclude_articles: 要排除的文章ID列表
             
         Returns:
-            推荐文章列表(带评分)
+            推荐文章列表(带评�?
         """
         limit = limit or self.recommendation_count
         exclude_articles = exclude_articles or []
@@ -100,7 +98,7 @@ class RecommendationService:
         user_interests = self._get_user_interests(user_id)
 
         if not user_interests:
-            # 新用户或无历史,返回热门文章
+            # 新用户或无历�?返回热门文章
             return self._get_popular_articles(limit, exclude_articles)
 
         # 计算所有文章的推荐分数
@@ -121,8 +119,7 @@ class RecommendationService:
                     'features': features,
                 })
 
-        # 按分数排序
-        scored_articles.sort(key=lambda x: x['score'], reverse=True)
+        # 按分数排�?        scored_articles.sort(key=lambda x: x['score'], reverse=True)
 
         # 返回top N
         return scored_articles[:limit]
@@ -139,39 +136,34 @@ class RecommendationService:
         """
         tag_weights = Counter()
 
-        # 从阅读历史提取兴趣
-        for article_id, timestamp in self._reading_history.get(user_id, []):
+        # 从阅读历史提取兴�?        for article_id, timestamp in self._reading_history.get(user_id, []):
             if article_id in self._article_features:
                 features = self._article_features[article_id]
                 tags = features.get('tags', [])
 
-                # 时间衰减:越近的权重越高
-                days_ago = (datetime.now(timezone.utc) - timestamp).days
+                # 时间衰减:越近的权重越�?                days_ago = (datetime.now(timezone.utc) - timestamp).days
                 time_weight = max(0.1, 1.0 - (days_ago / 30))  # 30天衰减到0.1
 
                 for tag in tags:
                     tag_weights[tag] += time_weight
 
-        # 从点赞历史提取兴趣(权重更高)
+        # 从点赞历史提取兴�?权重更高)
         for article_id in self._like_history.get(user_id, []):
             if article_id in self._article_features:
                 features = self._article_features[article_id]
                 tags = features.get('tags', [])
 
                 for tag in tags:
-                    tag_weights[tag] += 2.0  # 点赞权重是阅读的2倍
-
-        # 从收藏历史提取兴趣(权重最高)
+                    tag_weights[tag] += 2.0  # 点赞权重是阅读的2�?
+        # 从收藏历史提取兴�?权重最�?
         for article_id in self._bookmark_history.get(user_id, []):
             if article_id in self._article_features:
                 features = self._article_features[article_id]
                 tags = features.get('tags', [])
 
                 for tag in tags:
-                    tag_weights[tag] += 3.0  # 收藏权重是阅读的3倍
-
-        # 归一化权重
-        total_weight = sum(tag_weights.values())
+                    tag_weights[tag] += 3.0  # 收藏权重是阅读的3�?
+        # 归一化权�?        total_weight = sum(tag_weights.values())
         if total_weight > 0:
             tag_weights = {tag: weight / total_weight for tag, weight in tag_weights.items()}
 
@@ -193,7 +185,7 @@ class RecommendationService:
         """
         score = 0.0
 
-        # 1. 标签匹配度 (权重 0.4)
+        # 1. 标签匹配�?(权重 0.4)
         article_tags = features.get('tags', [])
         tag_match_score = sum(
             user_interests.get(tag, 0)
@@ -201,7 +193,7 @@ class RecommendationService:
         )
         score += tag_match_score * 0.4
 
-        # 2. 分类匹配度 (权重 0.2)
+        # 2. 分类匹配�?(权重 0.2)
         user_categories = self._get_user_preferred_categories(user_id)
         article_category = features.get('category', '')
         if article_category in user_categories:
@@ -213,7 +205,7 @@ class RecommendationService:
         popularity_score = min(1.0, (views + likes * 10) / 1000)
         score += popularity_score * 0.2
 
-        # 4. 新鲜度因子 (权重 0.2)
+        # 4. 新鲜度因�?(权重 0.2)
         created_at = features.get('created_at')
         if created_at:
             if isinstance(created_at, str):
@@ -227,8 +219,7 @@ class RecommendationService:
 
     def _get_user_preferred_categories(self, user_id: int) -> List[str]:
         """
-        获取用户偏好的分类
-        
+        获取用户偏好的分�?        
         Args:
             user_id: 用户ID
             
@@ -249,7 +240,7 @@ class RecommendationService:
     def _get_popular_articles(self, limit: int,
                               exclude_articles: List[int] = None) -> List[Dict]:
         """
-        获取热门文章(用于冷启动)
+        获取热门文章(用于冷启�?
         
         Args:
             limit: 返回数量
@@ -293,8 +284,7 @@ class RecommendationService:
         Returns:
             Trending文章列表
         """
-        # 检查缓存
-        if window in self._trending_cache and self._trending_cache['last_updated']:
+        # 检查缓�?        if window in self._trending_cache and self._trending_cache['last_updated']:
             cache_age = (datetime.now(timezone.utc) - self._trending_cache['last_updated']).seconds
             if cache_age < 300:  # 5分钟缓存
                 return self._trending_cache[window][:limit]
@@ -322,20 +312,17 @@ class RecommendationService:
             if isinstance(created_at, str):
                 created_at = datetime.fromisoformat(created_at.replace('Z', '+00:00'))
 
-            # 只统计近期文章
-            if created_at >= cutoff:
+            # 只统计近期文�?            if created_at >= cutoff:
                 views = features.get('views', 0)
                 likes = features.get('likes', 0)
 
-                # 时间加权:越近的文章权重越高
-                hours_old = (datetime.now(timezone.utc) - created_at).total_seconds() / 3600
+                # 时间加权:越近的文章权重越�?                hours_old = (datetime.now(timezone.utc) - created_at).total_seconds() / 3600
                 time_weight = max(0.1, 1.0 - (hours_old / (hours * 2)))
 
                 score = (views + likes * 10) * time_weight
                 article_scores[article_id] = score
 
-        # 排序并返回
-        trending = [
+        # 排序并返�?        trending = [
             {
                 'article_id': article_id,
                 'score': score,
@@ -353,8 +340,7 @@ class RecommendationService:
     def get_rising_stars(self, limit: int = 10) -> List[Dict]:
         """
         获取Rising Stars(新锐博主)
-        基于近期发文数量和互动增长
-        
+        基于近期发文数量和互动增�?        
         Args:
             limit: 返回数量
             
@@ -366,7 +352,7 @@ class RecommendationService:
         from sqlalchemy import select, func
         from datetime import datetime, timedelta, timezone
 
-        # 统计最近30天的发文数据
+        # 统计最�?0天的发文数据
         cutoff_date = datetime.now(timezone.utc) - timedelta(days=30)
 
         try:
@@ -385,23 +371,20 @@ class RecommendationService:
                     Article.user
                 ).order_by(
                     func.count(Article.id).desc()
-                ).limit(limit * 2)  # 获取更多以便筛选
-            )
+                ).limit(limit * 2)  # 获取更多以便筛�?            )
 
             user_stats = result.all()
 
             rising_stars = []
             for stat in user_stats:
-                if stat.article_count >= 2:  # 至少发2篇文章
-                    # 获取用户信息
+                if stat.article_count >= 2:  # 至少�?篇文�?                    # 获取用户信息
                     user_result = self.db.execute(
                         select(User).where(User.id == stat.user)
                     )
                     user = user_result.scalar_one_or_none()
 
                     if user:
-                        # 计算活跃度分数（发文数 + 最近活跃度）
-                        days_since_last = (datetime.now(timezone.utc) - stat.last_article_date).days
+                        # 计算活跃度分数（发文�?+ 最近活跃度�?                        days_since_last = (datetime.now(timezone.utc) - stat.last_article_date).days
                         activity_score = stat.article_count * (1.0 / (1 + days_since_last * 0.1))
 
                         rising_stars.append({
@@ -424,13 +407,13 @@ class RecommendationService:
             return []
 
     def set_db_session(self, db_session):
-        """设置数据库会话（用于 DB 查询）"""
+        """设置数据库会话（用于 DB 查询�?""
         self.db = db_session
 
     def get_similar_articles(self, article_id: int,
                              limit: int = 5) -> List[Dict]:
         """
-        获取相似文章(基于内容相似度)
+        获取相似文章(基于内容相似�?
         
         Args:
             article_id: 参考文章ID
@@ -452,8 +435,7 @@ class RecommendationService:
             if other_id == article_id:
                 continue
 
-            # 计算Jaccard相似度
-            other_tags = set(features.get('tags', []))
+            # 计算Jaccard相似�?            other_tags = set(features.get('tags', []))
 
             if not target_tags or not other_tags:
                 tag_similarity = 0
@@ -465,11 +447,9 @@ class RecommendationService:
             # 分类匹配
             category_match = 1.0 if features.get('category') == target_category else 0.0
 
-            # 综合相似度
-            similarity = tag_similarity * 0.7 + category_match * 0.3
+            # 综合相似�?            similarity = tag_similarity * 0.7 + category_match * 0.3
 
-            if similarity > 0.1:  # 阈值
-                scored_articles.append({
+            if similarity > 0.1:  # 阈�?                scored_articles.append({
                     'article_id': other_id,
                     'similarity': similarity,
                     'features': features,

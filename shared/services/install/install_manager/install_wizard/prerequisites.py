@@ -1,11 +1,10 @@
 """
-安装向导 — 前置检查模块
-"""
+安装向导 �?前置检查模�?"""
 import os, sys
 from pathlib import Path
 from typing import Dict, Any, List, Optional
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 def check_python_version() -> Dict[str, Any]:
@@ -30,9 +29,9 @@ def test_postgresql_connection(config: Dict[str, str]) -> Dict[str, Any]:
             connect_timeout=5,
         )
         conn.close()
-        return {"success": True, "message": "数据库连接成功"}
+        return {"success": True, "message": "数据库连接成�?}
     except Exception as e:
-        logger.warning(f"数据库连接测试失败: {e}")
+        logger.warning(f"数据库连接测试失�? {e}")
         return {"success": False, "message": f"连接失败: {str(e)}"}
 
 

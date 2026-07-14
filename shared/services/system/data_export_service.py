@@ -9,7 +9,7 @@ import io
 from datetime import datetime
 from typing import Dict, List, Optional
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class DataExportService:
@@ -26,11 +26,11 @@ class DataExportService:
         
         Args:
             data: 数据列表(字典列表)
-            filename: 文件名(可选)
+            filename: 文件�?可�?
             encoding: 编码格式(默认utf-8-sig支持Excel中文)
             
         Returns:
-            CSV文件字节流
+            CSV文件字节�?
         """
         if not data:
             raise ValueError("Data is empty")
@@ -38,11 +38,11 @@ class DataExportService:
         # 获取所有字段名
         fieldnames = list(data[0].keys())
 
-        # 创建CSV缓冲区
+        # 创建CSV缓冲�?
         output = io.StringIO()
         writer = csv.DictWriter(output, fieldnames=fieldnames)
 
-        # 写入表头和数据
+        # 写入表头和数�?
         writer.writeheader()
         for row in data:
             # 处理特殊类型
@@ -71,11 +71,11 @@ class DataExportService:
         
         Args:
             data: 数据列表(字典列表)
-            filename: 文件名(可选)
-            sheet_name: 工作表名称
+            filename: 文件�?可�?
+            sheet_name: 工作表名�?
             
         Returns:
-            Excel文件字节流
+            Excel文件字节�?
         """
         try:
             import openpyxl
@@ -86,12 +86,12 @@ class DataExportService:
         if not data:
             raise ValueError("Data is empty")
 
-        # 创建工作簿
+        # 创建工作�?
         wb = openpyxl.Workbook()
         ws = wb.active
         ws.title = sheet_name
 
-        # 获取字段名
+        # 获取字段�?
         fieldnames = list(data[0].keys())
 
         # 设置表头样式
@@ -115,7 +115,7 @@ class DataExportService:
                 if isinstance(value, datetime):
                     value = value.strftime('%Y-%m-%d %H:%M:%S')
                 elif isinstance(value, bool):
-                    value = '是' if value else '否'
+                    value = '�? if value else '�?
                 elif value is None:
                     value = ''
 
@@ -136,15 +136,15 @@ class DataExportService:
 
     def _format_header(self, fieldname: str) -> str:
         """
-        格式化表头名称
+        格式化表头名�?
         
         Args:
-            fieldname: 字段名
+            fieldname: 字段�?
             
         Returns:
-            格式化后的表头
+            格式化后的表�?
         """
-        # 将snake_case转换为更易读的格式
+        # 将snake_case转换为更易读的格�?
         return fieldname.replace('_', ' ').title()
 
     def export_user_list(self, users: List[Dict],
@@ -157,7 +157,7 @@ class DataExportService:
             format: 导出格式(csv/excel)
             
         Returns:
-            文件字节流
+            文件字节�?
         """
         # 选择需要导出的字段
         export_fields = [
@@ -190,7 +190,7 @@ class DataExportService:
             format: 导出格式(csv/excel)
             
         Returns:
-            文件字节流
+            文件字节�?
         """
         # 选择需要导出的字段
         export_fields = [
@@ -224,7 +224,7 @@ class DataExportService:
             format: 导出格式(csv/excel)
             
         Returns:
-            文件字节流
+            文件字节�?
         """
         # 选择需要导出的字段
         export_fields = [
@@ -256,10 +256,10 @@ class DataExportService:
         Args:
             analytics_data: 分析数据列表
             format: 导出格式(csv/excel)
-            sheet_name: 工作表名称
+            sheet_name: 工作表名�?
             
         Returns:
-            文件字节流
+            文件字节�?
         """
         if format == 'excel':
             return self.export_to_excel(analytics_data, sheet_name=sheet_name)
@@ -268,7 +268,7 @@ class DataExportService:
 
     def get_export_templates(self) -> Dict[str, List[str]]:
         """
-        获取可用的导出模板
+        获取可用的导出模�?
         
         Returns:
             模板字典 {template_name: [fields]}

@@ -1,6 +1,5 @@
 """
-媒体库增强服务
-提供现代化的媒体管理功能
+媒体库增强服�?提供现代化的媒体管理功能
 """
 
 
@@ -11,16 +10,14 @@ from typing import Dict, List, Any, Optional
 from sqlalchemy import select, func, desc, asc, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class MediaLibraryService:
     """
-    媒体库增强服务
-    
+    媒体库增强服�?    
     功能:
-    1. 优化的分页查询
-    2. 全文搜索支持
+    1. 优化的分页查�?    2. 全文搜索支持
     3. 元数据索引和过滤
     4. 批量操作支持
     """
@@ -86,7 +83,7 @@ class MediaLibraryService:
             return {"success": False, "error": f"查询失败: {str(e)}"}
     
     async def get_media_statistics(self, db: AsyncSession) -> Dict[str, Any]:
-        """获取媒体库统计信息"""
+        """获取媒体库统计信�?""
         from shared.models.media import Media
         
         try:
@@ -137,7 +134,7 @@ class MediaLibraryService:
                     media = result.scalar_one_or_none()
                     
                     if media:
-                        # 解除 DownloadTask 的 media_id 外键引用
+                        # 解除 DownloadTask �?media_id 外键引用
                         await db.execute(
                             update(DownloadTask)
                             .where(DownloadTask.media_id == media_id)
@@ -150,22 +147,22 @@ class MediaLibraryService:
                                     path = Path(file_path)
                                     if path.exists():
                                         path.unlink()
-                                        logger.info(f"已删除文件: {file_path}")
+                                        logger.info(f"已删除文�? {file_path}")
                                 except Exception as e:
                                     logger.warning(f"删除文件失败 {file_path}: {e}")
                         
                         await db.delete(media)
                         deleted_count += 1
-                        logger.info(f"已删除媒体记录 ID={media_id}")
+                        logger.info(f"已删除媒体记�?ID={media_id}")
                     else:
-                        errors.append(f"媒体不存在: {media_id}")
+                        errors.append(f"媒体不存�? {media_id}")
                 except Exception as e:
                     error_msg = f"删除 {media_id} 失败: {str(e)}"
                     errors.append(error_msg)
                     logger.error(error_msg, exc_info=True)
 
             await db.commit()
-            logger.info(f"批量删除完成: 成功{deleted_count}个, 失败{len(errors)}个")
+            logger.info(f"批量删除完成: 成功{deleted_count}�? 失败{len(errors)}�?)
             
             return {
                 "success": True, "deleted_count": deleted_count,
@@ -182,7 +179,7 @@ class MediaLibraryService:
         db: AsyncSession,
         updates: List[Dict[str, Any]]
     ) -> Dict[str, Any]:
-        """批量更新媒体元数据"""
+        """批量更新媒体元数�?""
         from shared.models.media import Media
         
         try:
@@ -208,7 +205,7 @@ class MediaLibraryService:
                                 setattr(media, key, value)
                         updated_count += 1
                     else:
-                        errors.append(f"媒体不存在: {media_id}")
+                        errors.append(f"媒体不存�? {media_id}")
                 except Exception as e:
                     errors.append(f"更新 {media_id} 失败: {str(e)}")
             

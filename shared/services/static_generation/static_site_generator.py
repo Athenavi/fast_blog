@@ -1,10 +1,10 @@
 """
-静态页面生成（SSG）服务
+静态页面生成（SSG）服�?
 
-功能：
-1. 生成文章静态页面
-2. 生成列表页静态页面
-3. 生成首页静态页面
+功能�?
+1. 生成文章静态页�?
+2. 生成列表页静态页�?
+3. 生成首页静态页�?
 4. 增量更新机制
 5. 缓存管理
 6. 批量生成支持
@@ -23,17 +23,17 @@ from shared.models.category import Category
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class StaticSiteGenerator:
     """
     静态站点生成器
     
-    功能：
-    1. 生成文章静态页面
-    2. 生成列表页静态页面
-    3. 生成首页静态页面
+    功能�?
+    1. 生成文章静态页�?
+    2. 生成列表页静态页�?
+    3. 生成首页静态页�?
     4. 增量更新机制
     5. 缓存管理
     """
@@ -62,10 +62,10 @@ class StaticSiteGenerator:
     async def generate_article_page(self, db: AsyncSession, article_id: int,
                                     force: bool = False) -> Dict[str, Any]:
         """
-        生成文章静态页面
+        生成文章静态页�?
         
         Args:
-            db: 数据库会话
+            db: 数据库会�?
             article_id: 文章ID
             force: 是否强制重新生成
             
@@ -80,7 +80,7 @@ class StaticSiteGenerator:
             if not article:
                 return {'success': False, 'error': f'Article {article_id} not found'}
 
-            # 检查缓存
+            # 检查缓�?
             cache_key = f"article_{article_id}"
             if not force and self._is_cache_valid(cache_key, article.updated_at):
                 return {'success': True, 'cached': True, 'path': self._get_article_path(article)}
@@ -116,10 +116,10 @@ class StaticSiteGenerator:
                                      page: int = 1, per_page: int = 20,
                                      force: bool = False) -> Dict[str, Any]:
         """
-        生成分类列表页
+        生成分类列表�?
         
         Args:
-            db: 数据库会话
+            db: 数据库会�?
             category_id: 分类ID
             page: 页码
             per_page: 每页数量
@@ -155,7 +155,7 @@ class StaticSiteGenerator:
             total_count = len(result.scalars().all())
             total_pages = (total_count + per_page - 1) // per_page
 
-            # 检查缓存
+            # 检查缓�?
             cache_key = f"category_{category_id}_page_{page}"
             if not force and self._is_cache_valid(cache_key):
                 return {'success': True, 'cached': True, 'path': self._get_category_path(category, page)}
@@ -195,7 +195,7 @@ class StaticSiteGenerator:
         生成首页
         
         Args:
-            db: 数据库会话
+            db: 数据库会�?
             per_page: 每页数量
             force: 是否强制重新生成
             
@@ -203,7 +203,7 @@ class StaticSiteGenerator:
             生成结果
         """
         try:
-            # 查询最新文章
+            # 查询最新文�?
             result = await db.execute(
                 select(Article)
                 .where(Article.status == 'published')
@@ -212,7 +212,7 @@ class StaticSiteGenerator:
             )
             articles = result.scalars().all()
 
-            # 检查缓存
+            # 检查缓�?
             cache_key = "homepage"
             if not force and self._is_cache_valid(cache_key):
                 return {'success': True, 'cached': True, 'path': self.output_dir / "index.html"}
@@ -246,10 +246,10 @@ class StaticSiteGenerator:
     async def generate_all_articles(self, db: AsyncSession, batch_size: int = 50,
                                     force: bool = False) -> Dict[str, Any]:
         """
-        批量生成所有文章静态页面
+        批量生成所有文章静态页�?
         
         Args:
-            db: 数据库会话
+            db: 数据库会�?
             batch_size: 批次大小
             force: 是否强制重新生成
             
@@ -311,10 +311,10 @@ class StaticSiteGenerator:
 
     async def clean_old_files(self, max_age_days: int = 30) -> Dict[str, Any]:
         """
-        清理旧的静态文件
+        清理旧的静态文�?
         
         Args:
-            max_age_days: 最大保留天数
+            max_age_days: 最大保留天�?
             
         Returns:
             清理统计
@@ -364,7 +364,7 @@ class StaticSiteGenerator:
         }
 
     def _is_cache_valid(self, cache_key: str, updated_at: Optional[datetime] = None) -> bool:
-        """检查缓存是否有效"""
+        """检查缓存是否有�?""
         cache_file = self.cache_dir / f"{cache_key}.json"
 
         if not cache_file.exists():
@@ -380,7 +380,7 @@ class StaticSiteGenerator:
                 if cached_updated_at and updated_at.isoformat() != cached_updated_at:
                     return False
 
-            # 检查缓存时间（默认24小时）
+            # 检查缓存时间（默认24小时�?
             cached_time = datetime.fromisoformat(cache_data['generated_at'])
             if datetime.now() - cached_time > timedelta(hours=24):
                 return False
@@ -410,7 +410,7 @@ class StaticSiteGenerator:
         return self.output_dir / "articles" / date_str / f"{slug}.html"
 
     def _get_category_path(self, category: Category, page: int = 1) -> Path:
-        """获取分类页输出路径"""
+        """获取分类页输出路�?""
         slug = category.slug or str(category.id)
         if page == 1:
             return self.output_dir / "categories" / f"{slug}.html"
@@ -490,7 +490,7 @@ class StaticSiteGenerator:
         <h1>{article.title}</h1>
         <div class="meta">
             <time>{article.created_at.strftime('%Y-%m-%d')}</time>
-            <span>作者: {article.author_name if hasattr(article, 'author_name') else 'Unknown'}</span>
+            <span>作�? {article.author_name if hasattr(article, 'author_name') else 'Unknown'}</span>
         </div>
         <div class="content">
             {article.content}
@@ -516,7 +516,7 @@ class StaticSiteGenerator:
 </head>
 <body>
     <h1>{category.name}</h1>
-    <p>共 {total_count} 篇文章，第 {page}/{total_pages} 页</p>
+    <p>�?{total_count} 篇文章，�?{page}/{total_pages} �?/p>
     <ul>
         {articles_html}
     </ul>

@@ -8,11 +8,11 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 from typing import Dict, List, Optional
 
-from src.unified_logger import default_logger as logger
+from shared.logging import default_logger as logger
 
 
 class UserBehaviorTracker:
-    """用户行为追踪器"""
+    """用户行为追踪�?""
 
     def __init__(self):
         # 页面浏览记录 {session_id: [page_view, ...]}
@@ -27,7 +27,7 @@ class UserBehaviorTracker:
         # 滚动深度 {page_url: max_scroll_depth}
         self._scroll_depth = defaultdict(int)
 
-        # 会话ID计数器
+        # 会话ID计数�?
         self._session_counter = 0
 
     def create_session(self, user_id: Optional[int] = None,
@@ -93,7 +93,7 @@ class UserBehaviorTracker:
         session['page_views'] += 1
         session['last_activity'] = now
 
-        # 如果不是第一个页面，则不是跳出
+        # 如果不是第一个页面，则不是跳�?
         if session['page_views'] > 1:
             session['bounce'] = False
 
@@ -114,10 +114,10 @@ class UserBehaviorTracker:
         
         Args:
             session_id: 会话ID
-            event_type: 事件类型（如：button_click, link_click, cta_click）
-            element_selector: CSS选择器
+            event_type: 事件类型（如：button_click, link_click, cta_click�?
+            element_selector: CSS选择�?
             page_url: 页面URL
-            metadata: 额外元数据
+            metadata: 额外元数�?
         """
         now = datetime.now()
         event = {
@@ -140,7 +140,7 @@ class UserBehaviorTracker:
         
         Args:
             page_url: 页面URL
-            scroll_percentage: 滚动百分比（0-100）
+            scroll_percentage: 滚动百分比（0-100�?
         """
         current_max = self._scroll_depth[page_url]
         if scroll_percentage > current_max:
@@ -204,7 +204,7 @@ class UserBehaviorTracker:
         
         Args:
             page_url: 页面URL
-            period: 时间周期（all/day/week/month）
+            period: 时间周期（all/day/week/month�?
             
         Returns:
             页面统计数据
@@ -273,7 +273,7 @@ class UserBehaviorTracker:
 
     def get_heatmap_data(self, page_url: str) -> Dict:
         """
-        获取页面热力图数据
+        获取页面热力图数�?
         
         Args:
             page_url: 页面URL
@@ -281,7 +281,7 @@ class UserBehaviorTracker:
         Returns:
             热力图数据（点击分布、滚动深度）
         """
-        # 获取该页面的所有点击事件
+        # 获取该页面的所有点击事�?
         clicks = []
         for event_type, events in self._click_events.items():
             for event in events:
@@ -294,13 +294,13 @@ class UserBehaviorTracker:
         return {
             'page_url': page_url,
             'total_clicks': len(clicks),
-            'click_distribution': clicks[:50],  # 最近50个点击
+            'click_distribution': clicks[:50],  # 最�?0个点�?
             'max_scroll_depth': max_scroll,
         }
 
     def cleanup_old_sessions(self, days: int = 30):
         """
-        清理旧会话数据
+        清理旧会话数�?
         
         Args:
             days: 保留天数
