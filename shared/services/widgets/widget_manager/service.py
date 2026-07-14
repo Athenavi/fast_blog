@@ -499,12 +499,7 @@ class WidgetService:
             tag_counter = Counter()
             for article in articles:
                 if article.tags_list:  # 修复：使用 tags_list
-                    tags_list = article.tags_list if isinstance(article.tags_list, list) else [tag.strip() for tag in
-                                                                                               re.split(r'[,;]',
-                                                                                                        article.tags_list)
-                                                                                               if
-                                                                                               tag.strip()]
-                    tag_counter.update(tags_list)
+                    tag_counter.update(article.tags_list)
 
             most_common = tag_counter.most_common(count)
             max_count = most_common[0][1] if most_common else 1

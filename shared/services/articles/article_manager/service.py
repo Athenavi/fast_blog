@@ -24,7 +24,7 @@ async def _sync_category_articles_count(db, category_id: int) -> None:
     from sqlalchemy import func, update as sa_update
     count = await db.scalar(
         select(func.count(Article.id))
-        .where(Article.category == category_id, Article.status != -1)
+        .where(Article.category == category_id, Article.status != -1, Article.deleted_at.is_(None))
     ) or 0
     await db.execute(
         sa_update(Category).where(Category.id == category_id).values(articles_count=count)
@@ -214,7 +214,7 @@ async def create_article(
         category=category_id,
         excerpt=excerpt,
         cover_image=cover_image,
-        tags_list=tags,
+        tags_list=tags.split(';') if tags else [],
         is_vip_only=is_vip_only,
         hidden=hidden,
         status=kwargs.get('status', 1),

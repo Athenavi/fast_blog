@@ -13,7 +13,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request, Body
 
 logger = logging.getLogger(__name__)
-from sqlalchemy import func, select
+from sqlalchemy import cast, func, select, String
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.article import Article, ArticleContent
@@ -87,7 +87,7 @@ def _fmt_article_brief(article, users: dict, cats: dict) -> dict:
     return {
         "id": article.id, "title": article.title, "slug": article.slug,
         "excerpt": article.excerpt, "cover_image": article.cover_image,
-        "tags": _split_tags(article.tags_list),
+        "tags": article.tags_list or [],
         "author": {"id": article.user, "username": users[article.user].username if article.user in users else "Unknown"},
         "category_id": article.category,
         "category_name": cats[article.category].name if article.category in cats else None,
@@ -105,7 +105,7 @@ async def _get_article_author(db: AsyncSession, user_id: int) -> dict:
 
 async def _get_article_detail(request: Request, db: AsyncSession, article: Article, current_user=None) -> Optional[dict]:
     """统一获取文章详情（含权限/密码检查、Markdown 渲染）"""
-    if article.status == -1:
+    if article.status == -1 or article.deleted_at is not None:
         return None
 
     if article.hidden:
@@ -169,7 +169,7 @@ async def _get_article_detail(request: Request, db: AsyncSession, article: Artic
     data = {
         "id": article.id, "title": article.title, "slug": article.slug,
         "excerpt": article.excerpt, "content": html, "cover_image": article.cover_image,
-        "tags": _split_tags(article.tags_list), "views": article.views or 0, "likes": article.likes or 0,
+        "tags": article.tags_list or [], "views": article.views or 0, "likes": article.likes or 0,
         "status": article.status, "hidden": article.hidden, "is_vip_only": article.is_vip_only,
         "required_vip_level": article.required_vip_level, "article_ad": article.article_ad,
         "created_at": article.created_at.isoformat() if article.created_at else None,
@@ -345,7 +345,7 @@ async def create_article_api(request: Request, current_user=Depends(jwt_required
     article = Article(
         title=data.get('title', ''), slug=data.get('slug', ''),
         excerpt=data.get('excerpt', ''), user=current_user.id,
-        category=cat_id, tags_list=data.get('tags', ''),
+        category=cat_id, tags_list=data.get('tags', '').split(',') if data.get('tags') else [],
         cover_image=data.get('cover_image', ''), hidden=data.get('hidden', False),
         is_vip_only=data.get('is_vip_only', False), article_ad=data.get('article_ad', ''),
         status=data.get('status', 0), is_featured=data.get('is_featured', False),
@@ -374,7 +374,7 @@ async def create_article_api(request: Request, current_user=Depends(jwt_required
             await event_bus.emit('article.published', ArticlePublishedPayload(
                 article_id=article.id, slug=article.slug, title=article.title,
                 author_id=current_user.id, excerpt=article.excerpt or '',
-                tags=[t.strip() for t in article.tags_list.split(',') if t.strip()] if article.tags_list else [],
+                tags=article.tags_list or [],
                 category_id=article.category,
             ))
     except Exception:
@@ -459,6 +459,7 @@ async def delete_article_api(article_id: int, current_user=Depends(jwt_required)
     if article.user != current_user.id and not _is_admin(current_user):
         raise HTTPException(403, "无权删除此文章")
     article.status = -1
+    article.deleted_at = datetime.utcnow()
     await db.commit()
 
     try:
@@ -478,11 +479,11 @@ async def get_articles_by_tag_api(tag_name: str, page: int = Query(1, ge=1), per
     """按标签获取文章"""
     offset = (page - 1) * per_page
     q = select(Article).where(
-        Article.tags_list.op('~*')(f'(^|,)\\s*{re.escape(tag_name)}\\s*(,|$)'),
+        Article.tags_list.cast(String).op('~*')(f'"{re.escape(tag_name)}"'),
         Article.status == 1
     ).order_by(Article.id.desc())
     total = await db.scalar(select(func.count()).select_from(Article).where(
-        Article.tags_list.op('~*')(f'(^|,)\\s*{re.escape(tag_name)}\\s*(,|$)'),
+        Article.tags_list.cast(String).op('~*')(f'"{re.escape(tag_name)}"'),
         Article.status == 1
     )) or 0
     articles = (await db.execute(q.offset(offset).limit(per_page))).scalars().all()
@@ -621,6 +622,7 @@ async def batch_article_operation_api(data: dict = Body(...), current_user=Depen
     if action == 'delete':
         for a in (await db.execute(query)).scalars().all():
             a.status = -1
+            a.deleted_at = datetime.utcnow()
     elif action == 'publish':
         for a in (await db.execute(query)).scalars().all():
             a.status = 1

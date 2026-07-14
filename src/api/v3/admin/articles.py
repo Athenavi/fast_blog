@@ -135,7 +135,7 @@ async def create_article(
         title=title,
         excerpt=excerpt,
         slug=slug,
-        tags_list=tags,
+        tags_list=tags.split(',') if tags else [],
         user=current_user.id,
         category=category_id,
         cover_image=cover_image,
@@ -201,7 +201,7 @@ async def update_article(
     if slug is not None:
         article.slug = slug
     if tags is not None:
-        article.tags_list = tags
+        article.tags_list = tags.split(',') if tags else []
     if category_id is not None:
         article.category = category_id
     if cover_image is not None:
@@ -259,6 +259,7 @@ async def delete_article(
 
     # 软删除：标记状态而非删除记录
     article.status = -1
+    article.deleted_at = datetime.now(timezone.utc)
     article.updated_at = datetime.now(timezone.utc)
     await db.commit()
 

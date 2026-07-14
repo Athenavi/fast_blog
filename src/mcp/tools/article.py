@@ -37,7 +37,7 @@ async def create_article(arguments: dict) -> dict:
         try:
             article = Article(
                 title=title, slug=slug, excerpt=content[:200], user=ctx.id,
-                category=arguments.get("category_id"), tags_list=arguments.get("tags", ""),
+                category=arguments.get("category_id"), tags_list=arguments.get("tags", "").split(",") if arguments.get("tags") else [],
                 status=1 if status_str == "published" else 0, created_at=now, updated_at=now,
             )
             db.add(article)
@@ -101,6 +101,7 @@ async def delete_article(arguments: dict) -> dict:
             raise PermissionError("只能删除自己的文章")
 
         article.status = -1
+        article.deleted_at = datetime.utcnow()
         article.updated_at = datetime.utcnow()
         await db.commit()
         return {"success": True, "message": f"文章 #{article_id} 已删除", "article_id": article_id}

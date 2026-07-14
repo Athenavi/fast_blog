@@ -94,7 +94,7 @@ class ArticleQueryService:
             elif status == 'published':
                 query = query.where(Article.status == 1)
             elif status == 'deleted':
-                query = query.where(Article.status == -1)
+                query = query.where(Article.status == -1, Article.deleted_at.isnot(None))
 
         # 获取总数 - 使用简单的 COUNT 查询，避免子查询
         count_query = select(func.count(Article.id))
@@ -113,7 +113,7 @@ class ArticleQueryService:
             elif status == 'published':
                 count_query = count_query.where(Article.status == 1)
             elif status == 'deleted':
-                count_query = count_query.where(Article.status == -1)
+                count_query = count_query.where(Article.status == -1, Article.deleted_at.isnot(None))
 
         total_result = await db.execute(count_query)
         total = total_result.scalar() or 0

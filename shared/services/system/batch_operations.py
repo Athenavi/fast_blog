@@ -358,7 +358,7 @@ class BatchOperationService:
                     update(Article)
                     .where(Article.id == article_id)
                     .values(
-                        tags_list=';'.join(current_tags),
+                        tags_list=current_tags,
                         updated_at=datetime.now()
                     )
                 )

@@ -30,7 +30,7 @@ def get_article_meta_tags(article, content=None, author=None, request: Request =
     meta_tags = {
         'title': f"{title} - {page_name}",
         'description': description,
-        'keywords': article.tags_list.replace(';', ', ') if article.tags_list else title,  # 修复：使用 tags_list
+        'keywords': ', '.join(article.tags_list) if article.tags_list else title,  # 修复：使用 tags_list
         'author': author_name,
         'og:title': title,
         'og:description': description,

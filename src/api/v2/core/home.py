@@ -638,7 +638,7 @@ def _format_article_with_category(article, categories_dict=None) -> Dict[str, An
             article.updated_at),
         "status": article.status,
         "is_featured": getattr(article, 'is_featured', False),
-        "tags": [t.strip() for t in re.split(r'[,;]', article.tags_list) if t.strip()] if article.tags_list else []
+        "tags": article.tags_list or []
     }
 
 

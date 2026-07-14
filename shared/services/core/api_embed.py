@@ -116,7 +116,7 @@ class APIEmbedService:
             'slug': article.slug,
             'excerpt': article.excerpt,
             'cover_image': article.cover_image,
-            'tags': [t.strip() for t in re.split(r'[,;]', article.tags_list) if t.strip()] if article.tags_list else [],
+            'tags': article.tags_list or [],
             'views': article.views or 0,
             'likes': article.likes or 0,
             'status': article.status,

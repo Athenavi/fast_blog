@@ -105,7 +105,7 @@ async def list_tags(arguments: dict) -> dict:
         rows = (await db.execute(
             select(Article.tags_list).where(Article.tags_list.isnot(None))
         )).scalars().all()
-        all_tags = sorted({t.strip() for row in rows if row for t in re.split(r'[,;]', row) if t.strip()})
+        all_tags = sorted({t.strip() for row in rows if row for t in row if t.strip()})
         return {"success": True, "tags": [{"name": t, "articles_count": 0} for t in all_tags],
                 "total": len(all_tags)}
 

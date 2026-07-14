@@ -152,8 +152,7 @@ async def rebuild_search_index(
             'category_name': category_name or '',
             'author_id': article.user,
             'author_name': author_name or '',
-            'tags': [t.strip() for t in re.split(r'[,;]', article.tags_list) if
-                     t.strip()] if article.tags_list else [],
+            'tags': article.tags_list or [],
             'views': article.views,
             'likes': article.likes,
             'status': 'published',
@@ -243,7 +242,7 @@ async def sync_article_to_index(
         'category_name': category_name or '',
         'author_id': article.user,
         'author_name': author_name or '',
-        'tags': [t.strip() for t in re.split(r'[,;]', article.tags_list) if t.strip()] if article.tags_list else [],
+        'tags': article.tags_list or [],
         'views': article.views,
         'likes': article.likes,
         'status': 'published' if article.status == 1 else 'draft',

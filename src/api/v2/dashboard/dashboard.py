@@ -205,6 +205,7 @@ async def get_blog_management_articles(
         status_map = {'published': 1, 'draft': 0, 'deleted': -1}
         if status_lower in status_map:
             query = query.where(Article.status == status_map[status_lower])
+        # TODO: 迁移完成后，'deleted' 过滤应改为 Article.deleted_at.isnot(None)
 
     # 根据搜索词过滤
     if search:
@@ -236,7 +237,7 @@ async def get_blog_management_articles(
             article_status = 'published'
         elif article.status == 0:
             article_status = 'draft'
-        elif article.status == -1:
+        elif article.status == -1 or article.deleted_at is not None:
             article_status = 'deleted'
 
         # 获取作者信息（由于 author 关系已注释，需要手动查询）
@@ -263,13 +264,8 @@ async def get_blog_management_articles(
                     "description": category.description
                 }
 
-        # 处理标签（将 tags_list 字符串转换为数组，支持逗号和分号分隔符）
-        tags_list = []
-        if article_dict.get('tags_list'):
-            if isinstance(article_dict['tags_list'], str):
-                tags_list = [tag.strip() for tag in re.split(r'[,;]', article_dict['tags_list']) if tag.strip()]
-            else:
-                tags_list = article_dict['tags_list']
+        # 处理标签（tags_list 已经是 JSON 数组）
+        tags_list = article_dict.get('tags_list') or []
 
         # 构建响应数据，在 to_dict() 基础上添加关联数据
         articles_data.append({
@@ -317,6 +313,7 @@ async def get_my_articles(
         status_map = {'published': 1, 'draft': 0, 'deleted': -1}
         if status_lower in status_map:
             query = query.where(Article.status == status_map[status_lower])
+        # TODO: 迁移完成后，'deleted' 过滤应改为 Article.deleted_at.isnot(None)
 
     # 根据隐藏状态过滤
     if hidden is not None:
@@ -328,7 +325,7 @@ async def get_my_articles(
 
     # 根据标签过滤（在 tags_list 字段中搜索）
     if tag:
-        query = query.where(Article.tags_list.contains(tag))
+        query = query.where(Article.tags_list.any(tag))
 
     # 根据搜索词过滤
     if search:
@@ -358,16 +355,11 @@ async def get_my_articles(
         article_status = 'draft'
         if article.status == 1:
             article_status = 'published'
-        elif article.status == -1:
+        elif article.status == -1 or article.deleted_at is not None:
             article_status = 'deleted'
 
-        # 处理标签
-        tags_list = []
-        if article_obj.get('tags_list'):
-            if isinstance(article_obj['tags_list'], str):
-                tags_list = [tag.strip() for tag in re.split(r'[,;]', article_obj['tags_list']) if tag.strip()]
-            else:
-                tags_list = article_obj['tags_list']
+        # 处理标签（tags_list 已经是 JSON 数组）
+        tags_list = article_obj.get('tags_list') or []
 
         # 获取分类名
         category_name = None

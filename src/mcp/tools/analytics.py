@@ -85,7 +85,7 @@ async def generate_seo_description(arguments: dict) -> dict:
         if title:
             keywords.extend(w.strip() for w in title.replace(" ", ",").split(",") if w.strip())
         if article.tags_list:
-            keywords.extend(t.strip() for t in article.tags_list.split(",") if t.strip())
+            keywords.extend(t.strip() for t in article.tags_list if t.strip())
 
         return {"success": True, "article_id": article_id,
                 "seo_description": meta_desc, "keywords": list(set(keywords))[:8], "title": title}
