@@ -1,18 +1,17 @@
 """Initial migration
 
-Revision ID: b15b018b8e3d
-Revises: 
-Create Date: 2026-06-15 11:52:38.822061
+Revision ID: dba7d5c907ac
+Revises:
+Create Date: 2026-07-14 13:37:15.725622
 
 """
 from typing import Sequence, Union
 
-from alembic import op
 import sqlalchemy as sa
-
+from alembic import op
 
 # revision identifiers, used by Alembic.
-revision: str = 'b15b018b8e3d'
+revision: str = 'dba7d5c907ac'
 down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
@@ -58,7 +57,7 @@ def upgrade() -> None:
 
     op.create_table('categories',
     sa.Column('id', sa.BigInteger(), autoincrement=True, nullable=False),
-    sa.Column('name', sa.String(length=100), nullable=True),
+                    sa.Column('name', sa.String(length=100), nullable=False),
     sa.Column('slug', sa.String(length=255), nullable=True),
     sa.Column('description', sa.String(length=255), nullable=True),
     sa.Column('parent_id', sa.BigInteger(), nullable=True),
@@ -280,7 +279,7 @@ def upgrade() -> None:
     sa.Column('id', sa.BigInteger(), autoincrement=True, nullable=False),
     sa.Column('title', sa.String(length=255), nullable=True),
     sa.Column('slug', sa.String(length=255), nullable=True),
-    sa.Column('content', sa.String(length=255), nullable=True),
+                    sa.Column('content', sa.Text(), nullable=True),
     sa.Column('excerpt', sa.String(length=255), nullable=True),
     sa.Column('template', sa.String(length=255), nullable=True),
     sa.Column('status', sa.BigInteger(), nullable=True),
@@ -605,8 +604,8 @@ def upgrade() -> None:
     sa.Column('last_login_ip', sa.String(length=255), nullable=True),
     sa.Column('register_ip', sa.String(length=255), nullable=True),
     sa.Column('is_2fa_enabled', sa.Boolean(), nullable=True),
-    sa.Column('totp_secret', sa.String(length=32), nullable=True),
-    sa.Column('backup_codes', sa.Text(), nullable=True),
+                    sa.Column('totp_secret', shared.utils.crypto.EncryptedField(), nullable=True),
+                    sa.Column('backup_codes', shared.utils.crypto.EncryptedField(), nullable=True),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('username')
     )
@@ -675,6 +674,18 @@ def upgrade() -> None:
         batch_op.create_index('idx_widget_instances_order', ['order_index'], unique=False)
         batch_op.create_index('idx_widget_instances_type', ['widget_type'], unique=False)
 
+    op.create_table('admin_settings',
+                    sa.Column('id', sa.BigInteger(), autoincrement=True, nullable=False),
+                    sa.Column('user', sa.BigInteger(), nullable=True),
+                    sa.Column('settings_data', sa.Text(), nullable=True),
+                    sa.Column('created_at', sa.DateTime(), nullable=True),
+                    sa.Column('updated_at', sa.DateTime(), nullable=True),
+                    sa.ForeignKeyConstraint(['user'], ['users.id'], ),
+                    sa.PrimaryKeyConstraint('id')
+                    )
+    with op.batch_alter_table('admin_settings', schema=None) as batch_op:
+        batch_op.create_index('idx_admin_settings_user', ['user'], unique=False)
+
     op.create_table('ads',
     sa.Column('id', sa.BigInteger(), autoincrement=True, nullable=False),
     sa.Column('title', sa.String(length=200), nullable=True),
@@ -706,6 +717,26 @@ def upgrade() -> None:
         batch_op.create_index('idx_ads_is_active', ['is_active'], unique=False)
         batch_op.create_index('idx_ads_placement_id', ['placement_id'], unique=False)
         batch_op.create_index('idx_ads_priority', ['priority'], unique=False)
+
+    op.create_table('ai_configs',
+                    sa.Column('id', sa.BigInteger(), autoincrement=True, nullable=False),
+                    sa.Column('user_id', sa.BigInteger(), nullable=False),
+                    sa.Column('name', sa.String(length=100), nullable=False, comment='配置名称'),
+                    sa.Column('api_url', sa.String(length=500), nullable=False, comment='API 端点 URL'),
+                    sa.Column('api_key_encrypted', sa.Text(), nullable=False, comment='加密后的 API Key'),
+                    sa.Column('model', sa.String(length=100), nullable=False, comment='模型名称'),
+                    sa.Column('provider', sa.String(length=50), nullable=False, comment='提供商'),
+                    sa.Column('is_active', sa.Boolean(), nullable=False, comment='是否激活'),
+                    sa.Column('sort_order', sa.Integer(), nullable=False, comment='排序'),
+                    sa.Column('created_at', sa.DateTime(), nullable=False),
+                    sa.Column('updated_at', sa.DateTime(), nullable=True),
+                    sa.ForeignKeyConstraint(['user_id'], ['users.id'], ondelete='CASCADE'),
+                    sa.PrimaryKeyConstraint('id'),
+                    sa.UniqueConstraint('user_id', 'name', name='uq_ai_config_user_name'),
+                    comment='用户 AI 配置表'
+                    )
+    with op.batch_alter_table('ai_configs', schema=None) as batch_op:
+        batch_op.create_index(batch_op.f('ix_ai_configs_user_id'), ['user_id'], unique=False)
 
     op.create_table('ai_workflows',
     sa.Column('id', sa.BigInteger(), autoincrement=True, nullable=False),
@@ -754,7 +785,7 @@ def upgrade() -> None:
     sa.Column('excerpt', sa.String(length=255), nullable=True),
     sa.Column('cover_image', sa.String(length=255), nullable=True),
     sa.Column('category', sa.BigInteger(), nullable=True),
-    sa.Column('tags_list', sa.String(length=255), nullable=True),
+                    sa.Column('tags_list', sa.JSON(), nullable=True),
     sa.Column('views', sa.BigInteger(), nullable=True),
     sa.Column('user', sa.BigInteger(), nullable=True),
     sa.Column('likes', sa.BigInteger(), nullable=True),
@@ -769,6 +800,7 @@ def upgrade() -> None:
     sa.Column('post_type', sa.String(length=50), nullable=True),
     sa.Column('is_sticky', sa.Boolean(), nullable=True),
     sa.Column('sticky_until', sa.DateTime(), nullable=True),
+                    sa.Column('deleted_at', sa.DateTime(), nullable=True),
     sa.Column('sort_order', sa.BigInteger(), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=True),
     sa.Column('updated_at', sa.DateTime(), nullable=True),
@@ -782,7 +814,7 @@ def upgrade() -> None:
         batch_op.create_index('idx_articles_created_at', ['created_at'], unique=False)
         batch_op.create_index('idx_articles_is_sticky', ['is_sticky'], unique=False)
         batch_op.create_index('idx_articles_post_type_status', ['post_type', 'status'], unique=False)
-        batch_op.create_index('idx_articles_published_at', ['created_at'], unique=False)
+        batch_op.create_index('idx_articles_published_at', ['published_at'], unique=False)
         batch_op.create_index('idx_articles_scheduled_publish', ['scheduled_publish_at'], unique=False)
         batch_op.create_index('idx_articles_slug', ['slug'], unique=True)
         batch_op.create_index('idx_articles_status', ['status'], unique=False)
@@ -877,9 +909,10 @@ def upgrade() -> None:
     sa.Column('category', sa.BigInteger(), nullable=True),
     sa.Column('subscriber', sa.BigInteger(), nullable=True),
     sa.Column('created_at', sa.DateTime(), nullable=True),
-    sa.ForeignKeyConstraint(['category'], ['categories.id'], ),
-    sa.ForeignKeyConstraint(['subscriber'], ['users.id'], ),
-    sa.PrimaryKeyConstraint('id')
+                    sa.ForeignKeyConstraint(['category'], ['categories.id'], ondelete='CASCADE'),
+                    sa.ForeignKeyConstraint(['subscriber'], ['users.id'], ondelete='CASCADE'),
+                    sa.PrimaryKeyConstraint('id'),
+                    sa.UniqueConstraint('category', 'subscriber', name='uq_category_subscriber')
     )
     op.create_table('chat_groups',
     sa.Column('id', sa.BigInteger(), autoincrement=True, nullable=False),
@@ -956,8 +989,11 @@ def upgrade() -> None:
     op.create_table('custom_fields',
     sa.Column('id', sa.BigInteger(), autoincrement=True, nullable=False),
     sa.Column('user', sa.BigInteger(), nullable=True),
+                    sa.Column('post_type_id', sa.BigInteger(), nullable=True),
+                    sa.Column('content_id', sa.BigInteger(), nullable=True),
     sa.Column('field_name', sa.String(length=100), nullable=True),
     sa.Column('field_value', sa.String(length=255), nullable=True),
+                    sa.ForeignKeyConstraint(['post_type_id'], ['custom_post_types.id'], ),
     sa.ForeignKeyConstraint(['user'], ['users.id'], ),
     sa.PrimaryKeyConstraint('id')
     )
@@ -2710,6 +2746,10 @@ def downgrade() -> None:
         batch_op.drop_index('idx_ai_workflows_status')
 
     op.drop_table('ai_workflows')
+    with op.batch_alter_table('ai_configs', schema=None) as batch_op:
+        batch_op.drop_index(batch_op.f('ix_ai_configs_user_id'))
+
+    op.drop_table('ai_configs')
     with op.batch_alter_table('ads', schema=None) as batch_op:
         batch_op.drop_index('idx_ads_priority')
         batch_op.drop_index('idx_ads_placement_id')
@@ -2717,6 +2757,10 @@ def downgrade() -> None:
         batch_op.drop_index('idx_ads_dates')
 
     op.drop_table('ads')
+    with op.batch_alter_table('admin_settings', schema=None) as batch_op:
+        batch_op.drop_index('idx_admin_settings_user')
+
+    op.drop_table('admin_settings')
     with op.batch_alter_table('widget_instances', schema=None) as batch_op:
         batch_op.drop_index('idx_widget_instances_type')
         batch_op.drop_index('idx_widget_instances_order')
