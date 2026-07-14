@@ -9,6 +9,7 @@ from typing import Sequence, Union
 
 import sqlalchemy as sa
 from alembic import op
+from shared.utils.crypto import EncryptedField
 
 # revision identifiers, used by Alembic.
 revision: str = 'dba7d5c907ac'
@@ -604,8 +605,8 @@ def upgrade() -> None:
     sa.Column('last_login_ip', sa.String(length=255), nullable=True),
     sa.Column('register_ip', sa.String(length=255), nullable=True),
     sa.Column('is_2fa_enabled', sa.Boolean(), nullable=True),
-                    sa.Column('totp_secret', shared.utils.crypto.EncryptedField(), nullable=True),
-                    sa.Column('backup_codes', shared.utils.crypto.EncryptedField(), nullable=True),
+                    sa.Column('totp_secret', EncryptedField(), nullable=True),
+                    sa.Column('backup_codes', EncryptedField(), nullable=True),
     sa.PrimaryKeyConstraint('id'),
     sa.UniqueConstraint('username')
     )
