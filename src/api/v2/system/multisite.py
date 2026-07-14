@@ -491,6 +491,6 @@ async def check_admin_permission(db, user_id: int) -> bool:
     """
     try:
         from shared.services.security.rbac_service import rbac_service
-        return await rbac_service.check_permission(db, user_id, 'settings:update')
+        return await rbac_service.has_permission(db, user_id, 'settings', 'update')
     except:
         return False

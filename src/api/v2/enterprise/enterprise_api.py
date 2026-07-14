@@ -30,7 +30,7 @@ async def create_license(
     """创建企业许可证（需要管理员权限）"""
     # 检查管理员权限
     from shared.services.security.rbac_service import rbac_service
-    has_permission = await rbac_service.check_permission(db, current_user.id, 'settings:update')
+    has_permission = await rbac_service.has_permission(db, current_user.id, 'settings', 'update')
     if not has_permission:
         return fail("Insufficient permissions")
 
@@ -187,7 +187,7 @@ async def create_deployment_script(
     """创建部署脚本（需要管理员权限）"""
     # 检查管理员权限
     from shared.services.security.rbac_service import rbac_service
-    has_permission = await rbac_service.check_permission(db, current_user.id, 'settings:update')
+    has_permission = await rbac_service.has_permission(db, current_user.id, 'settings', 'update')
     if not has_permission:
         return fail("Insufficient permissions")
 
@@ -221,7 +221,7 @@ async def execute_deployment_script(
     """执行部署脚本（需要管理员权限）"""
     # 检查管理员权限
     from shared.services.security.rbac_service import rbac_service
-    has_permission = await rbac_service.check_permission(db, current_user.id, 'settings:update')
+    has_permission = await rbac_service.has_permission(db, current_user.id, 'settings', 'update')
     if not has_permission:
         return fail("Insufficient permissions")
 
@@ -327,7 +327,7 @@ async def list_data_retention_policies(
 ):
     """列出所有数据保留策略（需要管理员权限）"""
     from shared.services.security.rbac_service import rbac_service
-    has_permission = await rbac_service.check_permission(db, current_user.id, 'settings:update')
+    has_permission = await rbac_service.has_permission(db, current_user.id, 'settings', 'update')
     if not has_permission:
         return fail("Insufficient permissions")
 
@@ -348,7 +348,7 @@ async def create_or_update_data_retention_policy(
 ):
     """创建或更新数据保留策略（需要管理员权限）"""
     from shared.services.security.rbac_service import rbac_service
-    has_permission = await rbac_service.check_permission(db, current_user.id, 'settings:update')
+    has_permission = await rbac_service.has_permission(db, current_user.id, 'settings', 'update')
     if not has_permission:
         return fail("Insufficient permissions")
 
@@ -372,7 +372,7 @@ async def delete_data_retention_policy(
 ):
     """删除数据保留策略（需要管理员权限）"""
     from shared.services.security.rbac_service import rbac_service
-    has_permission = await rbac_service.check_permission(db, current_user.id, 'settings:update')
+    has_permission = await rbac_service.has_permission(db, current_user.id, 'settings', 'update')
     if not has_permission:
         return fail("Insufficient permissions")
 
@@ -391,7 +391,7 @@ async def apply_data_retention(
 ):
     """手动触发所有数据保留策略清理（需要管理员权限）"""
     from shared.services.security.rbac_service import rbac_service
-    has_permission = await rbac_service.check_permission(db, current_user.id, 'settings:update')
+    has_permission = await rbac_service.has_permission(db, current_user.id, 'settings', 'update')
     if not has_permission:
         return fail("Insufficient permissions")
 
@@ -419,7 +419,7 @@ async def apply_data_retention_by_category(
 ):
     """对特定数据类别触发保留策略清理（需要管理员权限）"""
     from shared.services.security.rbac_service import rbac_service
-    has_permission = await rbac_service.check_permission(db, current_user.id, 'settings:update')
+    has_permission = await rbac_service.has_permission(db, current_user.id, 'settings', 'update')
     if not has_permission:
         return fail("Insufficient permissions")
 
@@ -445,7 +445,7 @@ async def sla_dashboard(
 ):
     """获取所有活跃许可证的 SLA 达标率（需要管理员权限）"""
     from shared.services.security.rbac_service import rbac_service
-    has_permission = await rbac_service.check_permission(db, current_user.id, 'settings:update')
+    has_permission = await rbac_service.has_permission(db, current_user.id, 'settings', 'update')
     if not has_permission:
         return fail("Insufficient permissions")
 
@@ -486,7 +486,7 @@ async def sla_report(
 ):
     """获取特定许可证的 SLA 报告（需要管理员权限）"""
     from shared.services.security.rbac_service import rbac_service
-    has_permission = await rbac_service.check_permission(db, current_user.id, 'settings:update')
+    has_permission = await rbac_service.has_permission(db, current_user.id, 'settings', 'update')
     if not has_permission:
         return fail("Insufficient permissions")
 
@@ -531,7 +531,7 @@ async def sla_check(
 ):
     """手动触发特定许可证的 SLA 检查（需要管理员权限）"""
     from shared.services.security.rbac_service import rbac_service
-    has_permission = await rbac_service.check_permission(db, current_user.id, 'settings:update')
+    has_permission = await rbac_service.has_permission(db, current_user.id, 'settings', 'update')
     if not has_permission:
         return fail("Insufficient permissions")
 

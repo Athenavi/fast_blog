@@ -21,10 +21,10 @@ from src.utils.database.main import get_async_session as get_async_db
 router = APIRouter(tags=["enterprise-admin"])
 
 
-async def _check_admin(current_user) -> bool:
+async def _check_admin(current_user, db) -> bool:
     """检查管理员权限"""
     from shared.services.security.rbac_service import rbac_service
-    return await rbac_service.check_permission(None, current_user.id, 'settings:update')
+    return await rbac_service.has_permission(db, current_user.id, 'settings', 'update')
 
 
 # ==================== 许可证管理（管理员） ====================
