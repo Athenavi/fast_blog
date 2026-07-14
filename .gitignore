@@ -150,3 +150,21 @@ AGENTS.md
 AGENTS.local.md
 reasonix.toml
 temp_models.txt
+
+# ============================================================================
+# Slimming additions — runtime & build artifacts
+# ============================================================================
+
+# Mobile app build artifacts
+mobile-app/android/.gradle/
+mobile-app/android/app/build/
+
+# Static ffmpeg binary — download on demand
+tools/ffmpeg/*.tar.xz
+
+# Runtime data & state
+data/
+frontend-astro/config.json
+
+# Plugin runtime settings
+plugins/*/settings.json
