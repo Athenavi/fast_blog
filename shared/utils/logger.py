@@ -1,6 +1,6 @@
 """
-Logger Utility Module
-Provides unified logging functionality
+日志工具模块
+提供统一的日志记录功能
 """
 
 from shared.logging import default_logger as logger
@@ -8,14 +8,14 @@ from shared.logging import default_logger as logger
 
 def get_logger(name=None, **kwargs):
     """
-    Get a logger instance
+    获取日志记录器
     
     Args:
-        name: Logger name (optional)
-        **kwargs: Other keyword arguments
+        name: 日志记录器名称（可选）
+        **kwargs: 其他关键字参数
         
     Returns:
-        Logger instance
+        日志记录器实例
     """
     if name:
         print(f"Logger requested for: {name}")

@@ -1,6 +1,6 @@
 """
 实时监控系统服务
-提供系统性能、在线用户、访问量等实时监控数�?
+提供系统性能、在线用户、访问量等实时监控数据
 """
 
 
@@ -32,8 +32,8 @@ class RealTimeMonitorService:
         self._cache_timestamp = None
 
         # 配置参数
-        self.online_timeout_seconds = 300  # 5分钟无活动视为离�?
-        self.cache_ttl_seconds = 10  # 缓存10�?
+        self.online_timeout_seconds = 300  # 5分钟无活动视为离线
+        self.cache_ttl_seconds = 10  # 缓存10秒
 
     def record_user_activity(self, user_id: int):
         """
@@ -50,13 +50,13 @@ class RealTimeMonitorService:
         记录页面访问
         
         Args:
-            endpoint: 访问的端�?
-            article_id: 文章ID(可�?
+            endpoint: 访问的端点
+            article_id: 文章ID(可选)
         """
         now = datetime.now()
         self._access_log[endpoint].append(now)
 
-        # 清理旧记�?保留最�?小时)
+        # 清理旧记录(保留最近1小时)
         cutoff = now - timedelta(hours=1)
         self._access_log[endpoint] = [
             ts for ts in self._access_log[endpoint] if ts > cutoff
@@ -64,7 +64,7 @@ class RealTimeMonitorService:
 
     def get_online_users_count(self) -> int:
         """
-        获取在线用户�?
+        获取在线用户数
         
         Returns:
             在线用户数量
@@ -105,14 +105,14 @@ class RealTimeMonitorService:
                     'duration_seconds': (now - last_active).seconds,
                 })
 
-        # 按最后活动时间排�?
+        # 按最后活动时间排序
         online_users.sort(key=lambda x: x['last_active'], reverse=True)
 
         return online_users[:limit]
 
     def get_today_visits(self) -> int:
         """
-        获取今日访问�?
+        获取今日访问量
         
         Returns:
             今日访问次数
@@ -129,13 +129,13 @@ class RealTimeMonitorService:
 
     def get_realtime_visits(self, window_minutes: int = 5) -> int:
         """
-        获取实时访问�?最近N分钟)
+        获取实时访问量(最近N分钟)
         
         Args:
             window_minutes: 时间窗口(分钟)
             
         Returns:
-            访问�?
+            访问量
         """
         now = datetime.now()
         cutoff = now - timedelta(minutes=window_minutes)
@@ -192,7 +192,7 @@ class RealTimeMonitorService:
         """
         now = datetime.now()
 
-        # 检查缓�?
+        # 检查缓存
         if (self._system_metrics_cache and
                 self._cache_timestamp and
                 (now - self._cache_timestamp).seconds < self.cache_ttl_seconds):
@@ -265,7 +265,7 @@ class RealTimeMonitorService:
         """
         now = datetime.now()
 
-        # 检查缓�?5分钟)
+        # 检查缓存(5分钟)
         if (self._trending_articles and
                 self._last_trending_update and
                 (now - self._last_trending_update).seconds < 300):
@@ -309,41 +309,41 @@ class RealTimeMonitorService:
 
     def get_health_status(self) -> Dict:
         """
-        获取系统健康状�?
+        获取系统健康状态
         
         Returns:
-            健康状态字�?
+            健康状态字典
         """
         metrics = self.get_system_metrics()
 
-        # 判断健康状�?
+        # 判断健康状态
         health_issues = []
 
-        # CPU检�?
+        # CPU检查
         if metrics.get('cpu', {}).get('percent', 0) > 90:
             health_issues.append({
                 'component': 'CPU',
                 'status': 'warning',
-                'message': f"CPU使用率过�? {metrics['cpu']['percent']}%",
+                'message': f"CPU使用率过高: {metrics['cpu']['percent']}%",
             })
 
-        # 内存检�?
+        # 内存检查
         if metrics.get('memory', {}).get('percent', 0) > 90:
             health_issues.append({
                 'component': 'Memory',
                 'status': 'critical',
-                'message': f"内存使用率过�? {metrics['memory']['percent']}%",
+                'message': f"内存使用率过高: {metrics['memory']['percent']}%",
             })
 
-        # 磁盘检�?
+        # 磁盘检查
         if metrics.get('disk', {}).get('percent', 0) > 90:
             health_issues.append({
                 'component': 'Disk',
                 'status': 'warning',
-                'message': f"磁盘使用率过�? {metrics['disk']['percent']}%",
+                'message': f"磁盘使用率过高: {metrics['disk']['percent']}%",
             })
 
-        # 总体状�?
+        # 总体状态
         if not health_issues:
             overall_status = 'healthy'
         elif any(issue['status'] == 'critical' for issue in health_issues):
@@ -360,10 +360,10 @@ class RealTimeMonitorService:
 
     def get_dashboard_data(self) -> Dict:
         """
-        获取仪表板完整数�?
+        获取仪表板完整数据
         
         Returns:
-            仪表板数�?
+            仪表板数据
         """
         return {
             'online_users': {
@@ -381,7 +381,7 @@ class RealTimeMonitorService:
         }
 
     def cleanup_old_data(self):
-        """清理旧数�?""
+        """清理旧数据"""
         now = datetime.now()
         cutoff = now - timedelta(hours=24)
 

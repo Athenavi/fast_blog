@@ -1,7 +1,8 @@
 """
 Google Analytics 集成服务
 
-功能�?1. Google Analytics 配置管理
+功能：
+1. Google Analytics 配置管理
 2. 页面浏览追踪代码生成
 3. 事件追踪支持
 4. 用户行为分析
@@ -32,7 +33,9 @@ class GoogleAnalyticsService:
         获取 Google Analytics 配置
 
         Args:
-            db: 数据库会�?            site_id: 站点 ID（可选，为空则获取全局配置�?
+            db: 数据库会话
+            site_id: 站点 ID（可选，为空则获取全局配置）
+
         Returns:
             Google Analytics 配置对象
         """
@@ -67,17 +70,20 @@ class GoogleAnalyticsService:
         创建 Google Analytics 配置
 
         Args:
-            db: 数据库会�?            tracking_id: Tracking ID (�?G-XXXXXXXXXX)
+            db: 数据库会话
+            tracking_id: Tracking ID (如 G-XXXXXXXXXX)
             measurement_id: GA4 Measurement ID
             api_secret: API Secret
             site_id: 站点 ID（可选）
             enable_page_view_tracking: 是否启用页面浏览追踪
             enable_event_tracking: 是否启用事件追踪
             enable_user_behavior_analysis: 是否启用用户行为分析
-            anonymize_ip: 是否匿名�?IP
-            sample_rate: 采样率（0-100�?
+            anonymize_ip: 是否匿名化 IP
+            sample_rate: 采样率（0-100）
+
         Returns:
-            创建的配置对�?        """
+            创建的配置对象
+        """
         # 检查是否已存在配置
         existing = await self.get_config(db, site_id)
         if existing:
@@ -113,7 +119,8 @@ class GoogleAnalyticsService:
         更新 Google Analytics 配置
 
         Args:
-            db: 数据库会�?            config_id: 配置 ID
+            db: 数据库会话
+            config_id: 配置 ID
             updates: 更新字段字典
 
         Returns:
@@ -138,7 +145,8 @@ class GoogleAnalyticsService:
         停用 Google Analytics 配置
 
         Args:
-            db: 数据库会�?            config_id: 配置 ID
+            db: 数据库会话
+            config_id: 配置 ID
         """
         config = await db.get(GoogleAnalyticsConfig, config_id)
         if not config:
@@ -162,7 +170,8 @@ class GoogleAnalyticsService:
         if not config.tracking_id and not config.measurement_id:
             return ""
 
-        # 使用 Measurement ID（GA4�?        measurement_id = config.measurement_id or config.tracking_id
+        # 使用 Measurement ID（GA4）
+        measurement_id = config.measurement_id or config.tracking_id
 
         # 构建配置选项
         options = []
@@ -214,10 +223,12 @@ class GoogleAnalyticsService:
 
     async def get_all_configs(self, db: AsyncSession, include_inactive: bool = False) -> List[GoogleAnalyticsConfig]:
         """
-        获取所�?Google Analytics 配置
+        获取所有 Google Analytics 配置
 
         Args:
-            db: 数据库会�?            include_inactive: 是否包含非活动配�?
+            db: 数据库会话
+            include_inactive: 是否包含非活动配置
+
         Returns:
             配置列表
         """

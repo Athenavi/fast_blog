@@ -1,5 +1,5 @@
 """
-自定义报表服�?
+自定义报表服务
 提供基础的数据报表生成和分析功能
 """
 
@@ -14,7 +14,7 @@ from shared.logging import default_logger as logger
 
 
 class ReportGenerator:
-    """报表生成�?""
+    """报表生成器"""
 
     def __init__(self, db: AsyncSession = None):
         self.db = db
@@ -53,7 +53,7 @@ class ReportGenerator:
         total_articles_result = await self.db.execute(
             select(func.count(Article.id)).filter(
                 Article.created_at >= cutoff,
-                Article.status == 1  # 只统计已发布的文�?
+                Article.status == 1  # 只统计已发布的文章
             )
         )
         total_articles = total_articles_result.scalar() or 0
@@ -79,7 +79,7 @@ class ReportGenerator:
         )
         total_comments = total_comments_result.scalar() or 0
 
-        # 平均每篇文章浏览�?
+        # 平均每篇文章浏览量
         avg_views = round(total_views / total_articles, 2) if total_articles > 0 else 0
 
         # 热门文章 Top 10
@@ -94,7 +94,7 @@ class ReportGenerator:
             })
 
         report = {
-            'title': f'内容表现报表 ({days}�?',
+            'title': f'内容表现报表 ({days}天)',
             'period': {
                 'start': cutoff.isoformat(),
                 'end': now.isoformat(),
@@ -127,7 +127,7 @@ class ReportGenerator:
         cutoff = now - timedelta(days=days)
 
         report = {
-            'title': f'用户活动报表 ({days}�?',
+            'title': f'用户活动报表 ({days}天)',
             'period': {
                 'start': cutoff.isoformat(),
                 'end': now.isoformat(),
@@ -162,7 +162,7 @@ class ReportGenerator:
         cutoff = now - timedelta(days=days)
 
         report = {
-            'title': f'流量分析报表 ({days}�?',
+            'title': f'流量分析报表 ({days}天)',
             'period': {
                 'start': cutoff.isoformat(),
                 'end': now.isoformat(),
@@ -190,7 +190,7 @@ class ReportGenerator:
                                days: int = 30,
                                filters: Optional[Dict] = None) -> Dict:
         """
-        生成自定义报�?
+        生成自定义报表
         
         Args:
             metrics: 要包含的指标列表
@@ -198,13 +198,13 @@ class ReportGenerator:
             filters: 过滤条件
             
         Returns:
-            自定义报�?
+            自定义报表
         """
         now = datetime.now()
         cutoff = now - timedelta(days=days)
 
         report = {
-            'title': '自定义报�?,
+            'title': '自定义报表',
             'period': {
                 'start': cutoff.isoformat(),
                 'end': now.isoformat(),
@@ -215,7 +215,7 @@ class ReportGenerator:
             'generated_at': now.isoformat(),
         }
 
-        # 根据请求的指标收集数�?
+        # 根据请求的指标收集数据
         for metric in metrics:
             if metric == 'content':
                 report['metrics']['content'] = self._get_content_metrics(days)
@@ -254,7 +254,7 @@ class ReportGenerator:
         }
 
     def _get_engagement_metrics(self, days: int) -> Dict:
-        """获取参与度指�?""
+        """获取参与度指标"""
         return {
             'avg_time_on_page': 0,
             'bounce_rate': 0,
@@ -278,7 +278,7 @@ class ReportGenerator:
         if format == 'json':
             return json.dumps(report, ensure_ascii=False, indent=2)
         elif format == 'csv':
-            # 简化实现：转换�?CSV
+            # 简化实现：转换为 CSV
             return self._convert_to_csv(report)
         else:
             raise ValueError(f"Unsupported format: {format}")

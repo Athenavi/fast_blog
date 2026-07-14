@@ -1,8 +1,9 @@
 """
-文章服务�?- 提供统一�?SQLAlchemy async 文章相关操作
+文章服务层 - 提供统一的 SQLAlchemy async 文章相关操作
 
 该模块封装了所有文章相关的数据库操作，避免直接使用 Django ORM,
-确保�?FastAPI 的异步架构保持一致�?"""
+确保与 FastAPI 的异步架构保持一致。
+"""
 
 
 from datetime import datetime, timezone
@@ -17,7 +18,7 @@ from shared.models.category import Category
 from shared.logging import default_logger as logger
 
 async def _sync_category_articles_count(db, category_id: int) -> None:
-    """同步更新 Category 的文章计数（反规范化字段�?""
+    """同步更新 Category 的文章计数（反规范化字段）"""
     if category_id is None:
         return
     from sqlalchemy import func, update as sa_update
@@ -36,10 +37,11 @@ async def get_article_by_id(db: AsyncSession, article_id: int) -> Optional[Artic
     通过 ID 获取文章
 
     Args:
-        db: 异步数据库会�?        article_id: 文章 ID
+        db: 异步数据库会话
+        article_id: 文章 ID
 
     Returns:
-        文章对象，如果不存在则返�?None
+        文章对象，如果不存在则返回 None
     """
     result = await db.execute(
         select(Article)
@@ -55,9 +57,11 @@ async def get_articles_by_user_id(
     status: int = 1
 ) -> List[Article]:
     """
-    获取用户的文�?
+    获取用户的文章
+
     Args:
-        db: 异步数据库会�?        user_id: 用户 ID
+        db: 异步数据库会话
+        user_id: 用户 ID
         limit: 数量限制
         status: 文章状态（默认 1=已发布）
 
@@ -82,7 +86,8 @@ async def get_article_count_by_user(
     获取用户文章数量
 
     Args:
-        db: 异步数据库会�?        user_id: 用户 ID
+        db: 异步数据库会话
+        user_id: 用户 ID
         status: 文章状态（默认 1=已发布）
 
     Returns:
@@ -101,12 +106,14 @@ async def get_article_with_content(
     article_id: int
 ) -> Optional[Tuple[Article, Optional[ArticleContent]]]:
     """
-    获取文章及其内容（使�?JOIN 优化查询�?
+    获取文章及其内容（使用 JOIN 优化查询）
+
     Args:
-        db: 异步数据库会�?        article_id: 文章 ID
+        db: 异步数据库会话
+        article_id: 文章 ID
 
     Returns:
-        (文章对象，文章内容对�? �?None
+        (文章对象，文章内容对象) 或 None
     """
     # 使用 LEFT JOIN 一次性获取文章和内容
     result = await db.execute(
@@ -133,10 +140,12 @@ async def get_user_articles_with_pagination(
     分页获取用户文章
 
     Args:
-        db: 异步数据库会�?        user_id: 用户 ID
+        db: 异步数据库会话
+        user_id: 用户 ID
         page: 页码
         per_page: 每页数量
-        status: 文章状�?
+        status: 文章状态
+
     Returns:
         (文章列表，总数)
     """
@@ -181,18 +190,21 @@ async def create_article(
     创建文章
 
     Args:
-        db: 异步数据库会�?        user_id: 作�?ID
+        db: 异步数据库会话
+        user_id: 作者 ID
         title: 标题
         content: 内容
         category_id: 分类 ID
         excerpt: 摘要
-        cover_image: 封面�?        tags: 标签（分号分隔）
-        is_vip_only: 是否�?VIP 可见
+        cover_image: 封面图
+        tags: 标签（分号分隔）
+        is_vip_only: 是否仅 VIP 可见
         hidden: 是否隐藏
         **kwargs: 其他字段
 
     Returns:
-        创建的文章对�?    """
+        创建的文章对象
+    """
     now = datetime.now(timezone.utc).replace(tzinfo=None)  # 移除时区信息以匹配数据库字段
 
     # 创建文章
@@ -254,8 +266,10 @@ async def update_article(
     更新文章
 
     Args:
-        db: 异步数据库会�?        article_id: 文章 ID
-        user_id: 请求用户 ID（用于所有权验证�?        **kwargs: 要更新的字段
+        db: 异步数据库会话
+        article_id: 文章 ID
+        user_id: 请求用户 ID（用于所有权验证）
+        **kwargs: 要更新的字段
 
     Returns:
         更新后的文章对象，如果不存在或无权访问则返回 None
@@ -264,11 +278,13 @@ async def update_article(
     if not article:
         return None
 
-    # 所有权验证：如果提�?user_id，确保是文章作�?    if user_id is not None and article.user != user_id:
-        logger.warning(f"用户 {user_id} 试图更新非本人文�?{article_id}")
+    # 所有权验证：如果提供 user_id，确保是文章作者
+    if user_id is not None and article.user != user_id:
+        logger.warning(f"用户 {user_id} 试图更新非本人文章 {article_id}")
         return None
 
-    # 允许更新的字�?    allowed_fields = {
+    # 允许更新的字段
+    allowed_fields = {
         'title', 'excerpt', 'cover_image', 'tags_list',
         'is_vip_only', 'hidden', 'status', 'category'
     }
@@ -306,10 +322,13 @@ async def update_article_content(
     content: str
 ) -> bool:
     """
-    更新文章内容（优化：减少查询次数�?
+    更新文章内容（优化：减少查询次数）
+
     Args:
-        db: 异步数据库会�?        article_id: 文章 ID
-        content: 新内�?
+        db: 异步数据库会话
+        article_id: 文章 ID
+        content: 新内容
+
     Returns:
         是否成功
     """
@@ -322,7 +341,8 @@ async def update_article_content(
         .values(content=content, updated_at=now)
     )
 
-    # 如果没有更新任何行，说明内容不存在，需要创�?    if result.rowcount == 0:
+    # 如果没有更新任何行，说明内容不存在，需要创建
+    if result.rowcount == 0:
         new_content = ArticleContent(
             article=article_id,
             content=content,
@@ -337,10 +357,13 @@ async def update_article_content(
 
 async def delete_article(db: AsyncSession, article_id: int, user_id: Optional[int] = None) -> bool:
     """
-    删除文章（包括内容和修订历史�?
+    删除文章（包括内容和修订历史）
+
     Args:
-        db: 异步数据库会�?        article_id: 文章 ID
-        user_id: 请求用户 ID（用于所有权验证�?
+        db: 异步数据库会话
+        article_id: 文章 ID
+        user_id: 请求用户 ID（用于所有权验证）
+
     Returns:
         是否成功
     """
@@ -351,13 +374,14 @@ async def delete_article(db: AsyncSession, article_id: int, user_id: Optional[in
 
     # 所有权验证
     if user_id is not None and article.user != user_id:
-        logger.warning(f"用户 {user_id} 试图删除非本人文�?{article_id}")
+        logger.warning(f"用户 {user_id} 试图删除非本人文章 {article_id}")
         return False
 
     # 保存文章信息用于事件触发
     article_title = article.title
 
-    # 删除评论投票（先于评论删除，避免孤立记录�?    comment_ids_result = await db.execute(
+    # 删除评论投票（先于评论删除，避免孤立记录）
+    comment_ids_result = await db.execute(
         select(Comment.id).where(Comment.article_id == article_id)
     )
     comment_ids = [row[0] for row in comment_ids_result.all()]
@@ -402,15 +426,19 @@ async def delete_article(db: AsyncSession, article_id: int, user_id: Optional[in
 
 async def increment_article_views(db: AsyncSession, article_id: int) -> bool:
     """
-    增加文章浏览量（使用 SQLAlchemy ORM 操作�?
+    增加文章浏览量（使用 SQLAlchemy ORM 操作）
+
     Args:
-        db: 异步数据库会�?        article_id: 文章 ID
+        db: 异步数据库会话
+        article_id: 文章 ID
 
     Returns:
         是否成功
 
     Note:
-        此函数不会自动提交事务，调用者需要负�?commit�?        如果使用统一管理器的 get_db_session()，事务会在请求结束时自动提交�?    """
+        此函数不会自动提交事务，调用者需要负责 commit。
+        如果使用统一管理器的 get_db_session()，事务会在请求结束时自动提交。
+    """
     await db.execute(
         update(Article)
         .where(Article.id == article_id)
@@ -436,12 +464,15 @@ async def search_articles(
     搜索文章
 
     Args:
-        db: 异步数据库会�?        keyword: 搜索关键�?        category_id: 分类 ID（可选）
+        db: 异步数据库会话
+        keyword: 搜索关键词
+        category_id: 分类 ID（可选）
         user_id: 用户 ID（可选）
         page: 页码
         per_page: 每页数量
         hidden: 是否包含隐藏文章
-        status: 文章状�?
+        status: 文章状态
+
     Returns:
         (文章列表，总数)
     """
@@ -494,7 +525,8 @@ async def search_articles(
     return articles, total
 
 
-# 导出所有公共函�?__all__ = [
+# 导出所有公共函数
+__all__ = [
     'get_article_by_id',
     'get_articles_by_user_id',
     'get_article_count_by_user',
@@ -521,9 +553,11 @@ def _trigger_article_event(event_name: str, data: dict):
         import asyncio
         from shared.services.plugins.event_bus import event_bus
 
-        # 检查是否有运行的事件循�?        try:
+        # 检查是否有运行的事件循环
+        try:
             loop = asyncio.get_running_loop()
-            # 如果有运行的事件循环，创建任�?            task = asyncio.create_task(event_bus.emit(event_name, data))
+            # 如果有运行的事件循环，创建任务
+            task = asyncio.create_task(event_bus.emit(event_name, data))
             task.add_done_callback(lambda t: t.exception() and logger.error(
                 f"Event {event_name} failed: {t.exception()}"
             ))

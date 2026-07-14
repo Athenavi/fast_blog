@@ -1,5 +1,7 @@
 """
-一键安装向导服�?提供系统初始化、数据库配置、管理员创建等功�?"""
+一键安装向导服务
+提供系统初始化、数据库配置、管理员创建等功能
+"""
 import json
 import os
 from datetime import datetime
@@ -13,27 +15,29 @@ class InstallationWizardService:
 
     功能:
     1. 检测是否已安装
-    2. 数据库配置和初始�?    3. 管理员账号创�?    4. 站点基本信息配置
-    5. 示例数据导入(可�?
+    2. 数据库配置和初始化
+    3. 管理员账号创建
+    4. 站点基本信息配置
+    5. 示例数据导入(可选)
     6. 安装锁定机制
     """
 
     def __init__(self):
         self.install_lock_file = Path("install.lock")
         self.install_flag_file = Path("storage/.installation_completed")
-        # 使用绝对路径，Docker 模式�?.env 写入 config/.env（挂载卷），开发模式回退到根目录 .env
+        # 使用绝对路径，Docker 模式下 .env 写入 config/.env（挂载卷），开发模式回退到根目录 .env
         _project_root = Path(__file__).parent.parent.parent.parent.parent
         self.config_dir = _project_root / "config"
         self.config_file = self.config_dir / ".env"
         self.ensure_directories()
 
-        print(f"\n[InstallationWizard] 初始�?")
+        print(f"\n[InstallationWizard] 初始化:")
         print(f"  .env 文件路径: {self.config_file.absolute()}")
-        print(f"  项目根目�? {self.config_file.parent.absolute()}")
+        print(f"  项目根目录: {self.config_file.parent.absolute()}")
         print(f"  文件是否存在: {self.config_file.exists()}")
 
     def ensure_directories(self):
-        """确保必需的目录存�?""
+        """确保必需的目录存在"""
         required_dirs = [
             "storage/objects",
             "storage/cache",
@@ -50,9 +54,11 @@ class InstallationWizardService:
 
     def check_prerequisites(self) -> Dict[str, Any]:
         """
-        检查安装前置条�?
+        检查安装前置条件
+
         Returns:
-            检查结果字�?        """
+            检查结果字典
+        """
         results = {
             'python_version': self._check_python_version(),
             'database_connection': self._check_database_connection(),
@@ -86,16 +92,19 @@ class InstallationWizardService:
     def _check_database_connection(self) -> Dict[str, Any]:
         """检查数据库连接"""
         # 在安装阶段，数据库可能还未配置，所以这里只返回通过
-        # 实际的数据库连接测试�?configure_database 中进�?        return {
+        # 实际的数据库连接测试在 configure_database 中进行
+        return {
             'passed': True,
             'message': '数据库连接检查将在配置后执行'
         }
 
     def _test_postgresql_connection(self, config: Dict[str, str]) -> Dict[str, Any]:
         """
-        测试 PostgreSQL 数据库连�?
+        测试 PostgreSQL 数据库连接
+
         Args:
-            config: 数据库配�?
+            config: 数据库配置
+
         Returns:
             测试结果
         """
@@ -114,17 +123,17 @@ class InstallationWizardService:
 
             return {
                 'success': True,
-                'message': 'PostgreSQL 数据库连接成�?
+                'message': 'PostgreSQL 数据库连接成功'
             }
         except ImportError:
             return {
                 'success': False,
-                'error': '缺少 psycopg2 库，请安�? pip install psycopg2-binary'
+                'error': '缺少 psycopg2 库，请安装: pip install psycopg2-binary'
             }
         except Exception as e:
             return {
                 'success': False,
-                'error': f'数据库连接失�? {str(e)}'
+                'error': f'数据库连接失败: {str(e)}'
             }
 
     def _check_writable_directories(self) -> Dict[str, Any]:
@@ -153,11 +162,11 @@ class InstallationWizardService:
         return {
             'passed': len(failed_dirs) == 0,
             'failed_dirs': failed_dirs,
-            'message': f"目录权限检�? {'通过' if len(failed_dirs) == 0 else f'{len(failed_dirs)}个目录无写权�?}"
+            'message': f"目录权限检查: {'通过' if len(failed_dirs) == 0 else f'{len(failed_dirs)}个目录无写权限'}"
         }
 
     def _check_required_packages(self) -> Dict[str, Any]:
-        """检查必需的Python�?""
+        """检查必需的Python包"""
         required_packages = [
             'fastapi',
             'sqlalchemy',
@@ -175,28 +184,32 @@ class InstallationWizardService:
         return {
             'passed': len(missing_packages) == 0,
             'missing': missing_packages,
-            'message': f"依赖包检�? {'通过' if len(missing_packages) == 0 else f'缺少{len(missing_packages)}个包'}"
+            'message': f"依赖包检查: {'通过' if len(missing_packages) == 0 else f'缺少{len(missing_packages)}个包'}"
         }
 
     def configure_database(self, config: Dict[str, str]) -> Dict[str, Any]:
         """
-        配置数据库连接（仅支�?PostgreSQL�?
+        配置数据库连接（仅支持 PostgreSQL）
+
         Args:
-            config: 数据库配置字�?                - db_type: 数据库类�?(必须�?postgresql)
+            config: 数据库配置字典
+                - db_type: 数据库类型 (必须为 postgresql)
                 - host: 主机地址
                 - port: 端口
                 - database: 数据库名
-                - username: 用户�?                - password: 密码
+                - username: 用户名
+                - password: 密码
 
         Returns:
             配置结果
         """
         try:
-            # 验证数据库类�?            db_type = config.get('db_type', 'postgresql')
+            # 验证数据库类型
+            db_type = config.get('db_type', 'postgresql')
             if db_type != 'postgresql':
                 return {
                     'success': False,
-                    'error': '系统仅支�?PostgreSQL 数据�?
+                    'error': '系统仅支持 PostgreSQL 数据库'
                 }
 
             # 验证必要字段
@@ -211,12 +224,14 @@ class InstallationWizardService:
             # 构建数据库URL
             db_url = f"postgresql+psycopg2://{config['username']}:{config['password']}@{config['host']}:{config.get('port', 5432)}/{config['database']}"
 
-            # 测试数据库连�?            connection_result = self._test_postgresql_connection(config)
+            # 测试数据库连接
+            connection_result = self._test_postgresql_connection(config)
             if not connection_result['success']:
                 return connection_result
 
             # 更新.env文件
-            # 确保所有值都是有效的，避免空字符�?            env_updates = {
+            # 确保所有值都是有效的，避免空字符串
+            env_updates = {
                 'DB_ENGINE': 'postgresql',
                 'DB_HOST': config.get('host', 'localhost') or 'localhost',
                 'DB_PORT': str(config.get('port') or 5432),
@@ -237,7 +252,7 @@ class InstallationWizardService:
 
             return {
                 'success': True,
-                'message': '数据库配置成功，请确认配置信�?,
+                'message': '数据库配置成功，请确认配置信息',
                 'db_url': db_url,
                 'db_type': 'postgresql',
                 'requires_confirmation': True,
@@ -252,7 +267,7 @@ class InstallationWizardService:
         except Exception as e:
             return {
                 'success': False,
-                'error': f'数据库配置失�? {str(e)}'
+                'error': f'数据库配置失败: {str(e)}'
             }
 
     def _update_env_file(self, updates: Dict[str, str]):
@@ -265,11 +280,12 @@ class InstallationWizardService:
         try:
             env_content = {}
             comments = []  # 保留注释
-            original_lines = []  # 保留原始行顺�?
+            original_lines = []  # 保留原始行顺序
+
             print(f"\n[DEBUG] .env 文件路径: {self.config_file.absolute()}")
             print(f"[DEBUG] 文件是否存在: {self.config_file.exists()}")
-            print(f"[DEBUG] 父目�? {self.config_file.parent.absolute()}")
-            print(f"[DEBUG] 父目录是否存�? {self.config_file.parent.exists()}")
+            print(f"[DEBUG] 父目录: {self.config_file.parent.absolute()}")
+            print(f"[DEBUG] 父目录是否存在: {self.config_file.parent.exists()}")
 
             if self.config_file.exists():
                 with open(self.config_file, 'r', encoding='utf-8') as f:
@@ -289,7 +305,7 @@ class InstallationWizardService:
                     '# FastBlog 环境配置文件',
                     '# ============================================================================',
                     '',
-                    '# 数据库配置（仅支�?PostgreSQL�?,
+                    '# 数据库配置（仅支持 PostgreSQL）',
                     '# ----------------------------------------------------------------------------'
                 ]
 
@@ -297,25 +313,29 @@ class InstallationWizardService:
             env_content.update(updates)
 
             # 调试输出：显示即将写入的配置
-            print(f"\n[DEBUG] 即将写入 .env 文件的配�?")
+            print(f"\n[DEBUG] 即将写入 .env 文件的配置:")
             for key, value in env_content.items():
                 if 'PASSWORD' in key or 'SECRET' in key:
                     print(f"  {key}: {'***' if value else '(empty)'}")
                 else:
                     print(f"  {key}: '{value}' (type: {type(value).__name__})")
 
-            # 确保父目录存�?            self.config_file.parent.mkdir(parents=True, exist_ok=True)
+            # 确保父目录存在
+            self.config_file.parent.mkdir(parents=True, exist_ok=True)
             print(f"[DEBUG] 父目录已确保存在")
 
-            # 写入文件，保持标准格�?            with open(self.config_file, 'w', encoding='utf-8') as f:
+            # 写入文件，保持标准格式
+            with open(self.config_file, 'w', encoding='utf-8') as f:
                 # 先写注释
                 if comments:
                     for comment in comments:
                         f.write(f"{comment}\n")
                     f.write("\n")
 
-                # 再写配置�?                for key, value in env_content.items():
-                    # 确保值是字符�?                    if value is None:
+                # 再写配置项
+                for key, value in env_content.items():
+                    # 确保值是字符串
+                    if value is None:
                         value = ''
                     elif not isinstance(value, str):
                         value = str(value)
@@ -323,23 +343,25 @@ class InstallationWizardService:
                     # 写入配置
                     f.write(f"{key}={value}\n")
 
-            print(f"\n[DEBUG] .env 文件已成功写�? {self.config_file.absolute()}")
+            print(f"\n[DEBUG] .env 文件已成功写入: {self.config_file.absolute()}")
 
-            # 验证文件是否真的被创�?            if self.config_file.exists():
+            # 验证文件是否真的被创建
+            if self.config_file.exists():
                 file_size = self.config_file.stat().st_size
-                print(f"[DEBUG] �?文件存在，大�? {file_size} bytes")
+                print(f"[DEBUG] ✓ 文件存在，大小: {file_size} bytes")
 
-                # 读取并显示文件内容以供调�?                with open(self.config_file, 'r', encoding='utf-8') as f:
+                # 读取并显示文件内容以供调试
+                with open(self.config_file, 'r', encoding='utf-8') as f:
                     content = f.read()
                     print(f"\n[DEBUG] 文件完整内容:")
                     print("=" * 60)
                     print(content)
                     print("=" * 60)
             else:
-                print(f"\n[ERROR] �?.env 文件写入后仍然不存在�?)
+                print(f"\n[ERROR] ✗ .env 文件写入后仍然不存在！")
                 print(f"[ERROR] 请检查以下可能的问题:")
-                print(f"  1. 父目录是否存�? {self.config_file.parent.exists()}")
-                print(f"  2. 父目录是否可�? {os.access(str(self.config_file.parent), os.W_OK)}")
+                print(f"  1. 父目录是否存在: {self.config_file.parent.exists()}")
+                print(f"  2. 父目录是否可写: {os.access(str(self.config_file.parent), os.W_OK)}")
                 print(f"  3. 当前工作目录: {Path.cwd().absolute()}")
                 raise RuntimeError(".env 文件创建失败")
 
@@ -366,10 +388,11 @@ class InstallationWizardService:
             导入结果
         """
         try:
-            # 如果都不导入，直接返回成�?            if not import_articles and not import_categories:
+            # 如果都不导入，直接返回成功
+            if not import_articles and not import_categories:
                 return {
                     'success': True,
-                    'message': '已跳过示例数据导�?,
+                    'message': '已跳过示例数据导入',
                     'imported': {'articles': 0, 'categories': 0}
                 }
 
@@ -380,7 +403,8 @@ class InstallationWizardService:
             from datetime import datetime
 
             async def _import_data():
-                # 使用统一管理器获取会�?                from src.utils.database.unified_manager import db_manager as unified_db_manager
+                # 使用统一管理器获取会话
+                from src.utils.database.unified_manager import db_manager as unified_db_manager
                 async with unified_db_manager.get_session_no_auto_commit() as session:
                     try:
                         imported = {
@@ -391,11 +415,11 @@ class InstallationWizardService:
                         # 导入分类
                         if import_categories:
                             sample_categories = [
-                                {'name': '技术分�?, 'slug': 'tech', 'description': '技术相关文�?},
-                                {'name': '生活随笔', 'slug': 'life', 'description': '生活感悟和随�?},
+                                {'name': '技术分享', 'slug': 'tech', 'description': '技术相关文章'},
+                                {'name': '生活随笔', 'slug': 'life', 'description': '生活感悟和随笔'},
                                 {'name': '学习笔记', 'slug': 'study', 'description': '学习过程中的笔记'},
-                                {'name': '项目实战', 'slug': 'project', 'description': '项目开发经�?},
-                                {'name': '行业资讯', 'slug': 'news', 'description': '行业最新动�?},
+                                {'name': '项目实战', 'slug': 'project', 'description': '项目开发经验'},
+                                {'name': '行业资讯', 'slug': 'news', 'description': '行业最新动态'},
                             ]
 
                             for cat_data in sample_categories:
@@ -420,7 +444,8 @@ class InstallationWizardService:
 
                         # 导入文章
                         if import_articles:
-                            # 先获取所有分�?                            result = await session.execute(select(Category))
+                            # 先获取所有分类
+                            result = await session.execute(select(Category))
                             categories = result.scalars().all()
 
                             if categories:
@@ -428,15 +453,15 @@ class InstallationWizardService:
                                     {
                                         'title': '欢迎使用 FastBlog',
                                         'slug': 'welcome-to-fastblog',
-                                        'content': '# 欢迎使用 FastBlog\n\n这是一个基�?FastAPI �?Next.js构建的现代化博客系统。\n\n## 特性\n\n- 🚀 高性能：基�?FastAPI 异步框架\n- 🎨 美观：现代化�?UI 设计\n- 🔌 可扩展：强大的插件系统\n- 📱 响应式：完美支持移动端\n\n开始你的博客之旅吧�?,
+                                        'content': '# 欢迎使用 FastBlog\n\n这是一个基于 FastAPI 和 Next.js构建的现代化博客系统。\n\n## 特性\n\n- 🚀 高性能：基于 FastAPI 异步框架\n- 🎨 美观：现代化的 UI 设计\n- 🔌 可扩展：强大的插件系统\n- 📱 响应式：完美支持移动端\n\n开始你的博客之旅吧！',
                                         'excerpt': '欢迎使用 FastBlog 博客系统',
                                         'status': 1,
                                     },
                                     {
-                                        'title': 'FastBlog 快速入门指�?,
+                                        'title': 'FastBlog 快速入门指南',
                                         'slug': 'fastblog-quick-start',
-                                        'content': '# FastBlog 快速入门\n\n## 安装\n\n1. 克隆仓库\n2. 安装依赖\n3. 配置环境变量\n4. 运行安装向导\n\n## 基本使用\n\n- 创建文章\n- 管理分类\n- 自定义主题\n- 安装插件\n\n更多文档请访问我们的官方网站�?,
-                                        'excerpt': 'FastBlog 的快速入门教�?,
+                                        'content': '# FastBlog 快速入门\n\n## 安装\n\n1. 克隆仓库\n2. 安装依赖\n3. 配置环境变量\n4. 运行安装向导\n\n## 基本使用\n\n- 创建文章\n- 管理分类\n- 自定义主题\n- 安装插件\n\n更多文档请访问我们的官方网站。',
+                                        'excerpt': 'FastBlog 的快速入门教程',
                                         'status': 0,
                                     },
                                 ]
@@ -449,14 +474,17 @@ class InstallationWizardService:
                                     existing = result.scalar_one_or_none()
 
                                     if not existing:
-                                        # 随机分配一个分�?                                        category = categories[0]  # 简化：都分配到第一个分�?
-                                        # 创建文章（不包含 content�?                                        article = Article(
+                                        # 随机分配一个分类
+                                        category = categories[0]  # 简化：都分配到第一个分类
+
+                                        # 创建文章（不包含 content）
+                                        article = Article(
                                             title=article_data['title'],
                                             slug=article_data['slug'],
                                             excerpt=article_data['excerpt'],
                                             status=article_data['status'],
-                                            category=category.id,  # 注意：使�?category.id
-                                            user=1,  # 假设管理员用�?ID �?1
+                                            category=category.id,  # 注意：使用 category.id
+                                            user=1,  # 假设管理员用户 ID 为 1
                                             created_at=datetime.now(),
                                             updated_at=datetime.now()
                                         )
@@ -477,7 +505,7 @@ class InstallationWizardService:
 
                         return {
                             'success': True,
-                            'message': f'示例数据导入成功：{imported["categories"]} 个分类，{imported["articles"]} 篇文�?,
+                            'message': f'示例数据导入成功：{imported["categories"]} 个分类，{imported["articles"]} 篇文章',
                             'imported': imported
                         }
                     except Exception:
@@ -491,14 +519,16 @@ class InstallationWizardService:
                 import concurrent.futures
 
                 def run_in_thread():
-                    """在线程中运行，创建独立的事件循环和数据库管理�?""
-                    # 保存原始的单例状�?                    from src.utils.database.unified_manager import db_manager as original_manager
+                    """在线程中运行，创建独立的事件循环和数据库管理器"""
+                    # 保存原始的单例状态
+                    from src.utils.database.unified_manager import db_manager as original_manager
 
                     # 创建新的事件循环
                     new_loop = asyncio.new_event_loop()
                     try:
                         asyncio.set_event_loop(new_loop)
-                        # 重新初始化数据库管理器（在新的事件循环中�?                        from src.utils.database.unified_manager import UnifiedDatabaseManager
+                        # 重新初始化数据库管理器（在新的事件循环中）
+                        from src.utils.database.unified_manager import UnifiedDatabaseManager
                         # 重置单例，以便在新的事件循环中重新初始化
                         UnifiedDatabaseManager._instance = None
                         UnifiedDatabaseManager._initialized = False
@@ -510,7 +540,8 @@ class InstallationWizardService:
                         return new_loop.run_until_complete(_import_data())
                     finally:
                         new_loop.close()
-                        # 恢复原来的单�?                        UnifiedDatabaseManager._instance = original_manager
+                        # 恢复原来的单例
+                        UnifiedDatabaseManager._instance = original_manager
                         UnifiedDatabaseManager._initialized = True
 
                 with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -536,14 +567,17 @@ class InstallationWizardService:
         检查系统是否已安装
 
         Returns:
-            是否已安�?        """
+            是否已安装
+        """
         return self.install_flag_file.exists()
 
     def get_installation_status(self) -> Dict[str, Any]:
         """
-        获取安装状�?
+        获取安装状态
+
         Returns:
-            安装状态信�?        """
+            安装状态信息
+        """
         status = {
             "is_installed": self.is_installed(),
             "steps_completed": [],
@@ -571,7 +605,8 @@ class InstallationWizardService:
             db_url: 数据库URL
 
         Returns:
-            检查结�?        """
+            检查结果
+        """
         return {
             "success": True,
             "message": "Database connection successful"
@@ -584,9 +619,11 @@ class InstallationWizardService:
             password: str
     ) -> Dict[str, Any]:
         """
-        创建管理员账号（实际创建到数据库�?
+        创建管理员账号（实际创建到数据库）
+
         Args:
-            username: 用户�?            email: 邮箱
+            username: 用户名
+            email: 邮箱
             password: 密码
 
         Returns:
@@ -597,13 +634,13 @@ class InstallationWizardService:
             if len(username) < 3:
                 return {
                     'success': False,
-                    'error': '用户名至少需�?个字�?
+                    'error': '用户名至少需要3个字符'
                 }
 
             if len(password) < 6:
                 return {
                     'success': False,
-                    'error': '密码至少需�?个字�?
+                    'error': '密码至少需要6个字符'
                 }
 
             if not email or '@' not in email:
@@ -629,7 +666,8 @@ class InstallationWizardService:
             hashed_password = hash_password(password)
 
             async def _create_user():
-                # 使用统一管理器获取会�?                from src.utils.database.unified_manager import db_manager as unified_db_manager
+                # 使用统一管理器获取会话
+                from src.utils.database.unified_manager import db_manager as unified_db_manager
                 async with unified_db_manager.get_session_no_auto_commit() as session:
                     try:
                         # 检查用户是否已存在
@@ -641,7 +679,7 @@ class InstallationWizardService:
                         if existing_user:
                             return {
                                 'success': False,
-                                'error': f'用户�?"{username}" 已存�?
+                                'error': f'用户名 "{username}" 已存在'
                             }
 
                         # 检查邮箱是否已存在
@@ -656,7 +694,8 @@ class InstallationWizardService:
                                 'error': f'邮箱 "{email}" 已被注册'
                             }
 
-                        # 创建新用�?                        from datetime import datetime
+                        # 创建新用户
+                        from datetime import datetime
                         new_user = User(
                             username=username,
                             email=email,
@@ -673,7 +712,7 @@ class InstallationWizardService:
 
                         return {
                             'success': True,
-                            'message': f'管理员账�?"{username}" 创建成功',
+                            'message': f'管理员账号 "{username}" 创建成功',
                             'data': {
                                 'user_id': new_user.id,
                                 'username': new_user.username,
@@ -701,15 +740,16 @@ class InstallationWizardService:
                     result = asyncio.run(_create_user())
                     return result
                 else:
-                    # 其他 RuntimeError，重新抛�?                    raise
+                    # 其他 RuntimeError，重新抛出
+                    raise
 
         except Exception as e:
             import traceback
-            print(f"创建管理员账号失�? {str(e)}")
+            print(f"创建管理员账号失败: {str(e)}")
             print(traceback.format_exc())
             return {
                 'success': False,
-                'error': f'创建管理员账号失�? {str(e)}'
+                'error': f'创建管理员账号失败: {str(e)}'
             }
 
     def configure_site_settings(
@@ -726,7 +766,8 @@ class InstallationWizardService:
         Args:
             site_name: 站点名称
             site_url: 站点URL
-            admin_email: 管理员邮�?            site_description: 站点描述
+            admin_email: 管理员邮箱
+            site_description: 站点描述
             language: 语言 (zh_CN/en_US)
 
         Returns:
@@ -743,15 +784,16 @@ class InstallationWizardService:
             if not site_url.startswith(('http://', 'https://')):
                 return {
                     'success': False,
-                    'error': '站点URL必须�?http:// �?https:// 开�?
+                    'error': '站点URL必须以 http:// 或 https:// 开头'
                 }
 
-            # 验证 URL 格式，防止路径遍�?            from urllib.parse import urlparse
+            # 验证 URL 格式，防止路径遍历
+            from urllib.parse import urlparse
             parsed = urlparse(site_url)
             if not parsed.netloc or '..' in parsed.path or '..' in parsed.netloc:
                 return {
                     'success': False,
-                    'error': '站点URL格式无效，包含非法路�?
+                    'error': '站点URL格式无效，包含非法路径'
                 }
             if '\\' in site_url or '\x00' in site_url:
                 return {
@@ -784,19 +826,22 @@ class InstallationWizardService:
         """
         确认数据库配置并执行数据库初始化
 
-        流程�?        1. 重新加载配置并初始化数据库管理器
-        2. 测试数据库连�?        3. 检查是否有迁移脚本，如果没有则生成初始迁移
+        流程：
+        1. 重新加载配置并初始化数据库管理器
+        2. 测试数据库连接
+        3. 检查是否有迁移脚本，如果没有则生成初始迁移
         4. 执行 Alembic 迁移
 
         Returns:
-            确认和迁移结�?        """
+            确认和迁移结果
+        """
         try:
             import subprocess
             import sys
             from pathlib import Path
 
             print("\n" + "=" * 60)
-            print("开始初始化数据�?..")
+            print("开始初始化数据库...")
             print("=" * 60)
 
             # 首先重新加载配置并初始化数据库管理器
@@ -807,42 +852,45 @@ class InstallationWizardService:
 
                 # 重新加载 .env 文件
                 load_dotenv(override=True)
-                print("  �?.env 文件已重新加�?)
+                print("  ✓ .env 文件已重新加载")
 
                 # 重新导入并初始化设置
                 import src.setting
                 importlib.reload(src.setting)
                 from shared.config.settings import settings as new_settings
                 print(
-                    f"  �?配置已重新加载，数据�?URL: {new_settings.database_url[:50]}..." if new_settings.database_url else "  �?数据�?URL 仍为�?)
+                    f"  ✓ 配置已重新加载，数据库 URL: {new_settings.database_url[:50]}..." if new_settings.database_url else "  ⚠ 数据库 URL 仍为空")
 
                 # 初始化统一数据库管理器
                 from src.utils.database.unified_manager import db_manager
-                # 重置管理器状态以允许重新初始�?                db_manager._async_engine = None
+                # 重置管理器状态以允许重新初始化
+                db_manager._async_engine = None
                 db_manager._async_session_factory = None
                 db_manager.initialize()
 
                 if db_manager._async_session_factory is not None:
-                    print("�?数据库连接池初始化成�?)
+                    print("✓ 数据库连接池初始化成功")
                 else:
-                    print("�?警告：数据库连接池初始化失败，数据库 URL 可能未正确配�?)
+                    print("⚠ 警告：数据库连接池初始化失败，数据库 URL 可能未正确配置")
                     return {
                         'success': False,
-                        'error': '数据库连接池初始化失败。请检�?.env 文件中的数据库配置是否正确�?
+                        'error': '数据库连接池初始化失败。请检查 .env 文件中的数据库配置是否正确。'
                     }
             except Exception as init_err:
                 import traceback
-                error_msg = f'数据库管理器初始化失�? {str(init_err)}'
-                print(f"�?{error_msg}")
+                error_msg = f'数据库管理器初始化失败: {str(init_err)}'
+                print(f"✗ {error_msg}")
                 print(traceback.format_exc())
                 return {
                     'success': False,
                     'error': error_msg
                 }
 
-            # 测试数据库连�?            print("\n[2/4] 测试数据库连�?..")
+            # 测试数据库连接
+            print("\n[2/4] 测试数据库连接...")
 
-            # 使用 psycopg2 进行同步连接测试（更可靠�?            try:
+            # 使用 psycopg2 进行同步连接测试（更可靠）
+            try:
                 import psycopg2
 
                 # 从配置中获取连接参数
@@ -852,10 +900,10 @@ class InstallationWizardService:
                 if not db_url:
                     return {
                         'success': False,
-                        'error': '数据�?URL 未配�?
+                        'error': '数据库 URL 未配置'
                     }
 
-                # 解析数据�?URL
+                # 解析数据库 URL
                 # 格式: postgresql+psycopg2://user:pass@host:port/dbname
                 from urllib.parse import urlparse
                 parsed = urlparse(db_url.replace('postgresql+psycopg2://', 'postgresql://'))
@@ -869,18 +917,18 @@ class InstallationWizardService:
                     connect_timeout=5
                 )
                 conn.close()
-                print("�?数据库连接成�?)
+                print("✓ 数据库连接成功")
 
             except ImportError:
-                error_msg = '缺少 psycopg2 库，请安�? pip install psycopg2-binary'
-                print(f"�?{error_msg}")
+                error_msg = '缺少 psycopg2 库，请安装: pip install psycopg2-binary'
+                print(f"✗ {error_msg}")
                 return {
                     'success': False,
                     'error': error_msg
                 }
             except Exception as e:
-                error_msg = f'数据库连接失�? {str(e)}'
-                print(f"�?{error_msg}")
+                error_msg = f'数据库连接失败: {str(e)}'
+                print(f"✗ {error_msg}")
                 return {
                     'success': False,
                     'error': error_msg
@@ -888,19 +936,20 @@ class InstallationWizardService:
 
             # 检查是否有迁移脚本
             # installation_wizard.py 路径: shared/services/install/install_manager/installation_wizard.py
-            # 需要向�?层到达项目根目录
+            # 需要向上5层到达项目根目录
             project_root = Path(__file__).parent.parent.parent.parent.parent
             versions_dir = project_root / "alembic_migrations" / "versions"
             migration_files = list(versions_dir.glob("*.py")) if versions_dir.exists() else []
 
-            # 过滤�?__init__.py
+            # 过滤掉 __init__.py
             migration_files = [f for f in migration_files if f.name != "__init__.py"]
 
-            print(f"\n[3/4] 检查迁移脚�?.. (找到 {len(migration_files)} �?")
+            print(f"\n[3/4] 检查迁移脚本... (找到 {len(migration_files)} 个)")
 
-            # 如果没有迁移脚本，生成初始迁�?            if len(migration_files) == 0:
-                print("�?未找到迁移脚本，正在生成初始迁移...")
-                print(f"  项目根目�? {project_root.absolute()}")
+            # 如果没有迁移脚本，生成初始迁移
+            if len(migration_files) == 0:
+                print("→ 未找到迁移脚本，正在生成初始迁移...")
+                print(f"  项目根目录: {project_root.absolute()}")
                 print(f"  迁移目录: {versions_dir.absolute()}")
                 print(f"  迁移目录是否存在: {versions_dir.exists()}")
 
@@ -913,7 +962,7 @@ class InstallationWizardService:
                 )
 
                 # 调试输出
-                print(f"\n[DEBUG] Alembic 命令返回�? {result.returncode}")
+                print(f"\n[DEBUG] Alembic 命令返回码: {result.returncode}")
                 if result.stdout:
                     print(f"[DEBUG] Alembic stdout:\n{result.stdout}")
                 if result.stderr:
@@ -925,27 +974,29 @@ class InstallationWizardService:
                         error_msg += f'\n{result.stderr}'
                     if result.stdout:
                         error_msg += f'\n{result.stdout}'
-                    print(f"�?{error_msg}")
+                    print(f"✗ {error_msg}")
                     return {
                         'success': False,
                         'error': error_msg
                     }
 
-                print("�?初始迁移脚本生成成功")
+                print("✓ 初始迁移脚本生成成功")
 
-                # 重新检查迁移文�?                migration_files = list(versions_dir.glob("*.py")) if versions_dir.exists() else []
+                # 重新检查迁移文件
+                migration_files = list(versions_dir.glob("*.py")) if versions_dir.exists() else []
                 migration_files = [f for f in migration_files if f.name != "__init__.py"]
-                print(f"�?现在共有 {len(migration_files)} 个迁移脚�?)
+                print(f"→ 现在共有 {len(migration_files)} 个迁移脚本")
 
-                # 列出生成的文�?                if migration_files:
-                    print("  生成的文�?")
+                # 列出生成的文件
+                if migration_files:
+                    print("  生成的文件:")
                     for f in migration_files:
                         print(f"    - {f.name}")
             else:
-                print(f"�?找到 {len(migration_files)} 个迁移脚�?)
+                print(f"✓ 找到 {len(migration_files)} 个迁移脚本")
 
             # 执行迁移
-            print("\n[4/4] 执行数据库迁�?..")
+            print("\n[4/4] 执行数据库迁移...")
             result = subprocess.run(
                 [sys.executable, "-m", "alembic", "upgrade", "head"],
                 cwd=str(project_root),
@@ -955,20 +1006,20 @@ class InstallationWizardService:
             )
 
             # 调试输出
-            print(f"\n[DEBUG] Alembic upgrade 返回�? {result.returncode}")
+            print(f"\n[DEBUG] Alembic upgrade 返回码: {result.returncode}")
             if result.stdout:
                 print(f"[DEBUG] Alembic stdout:\n{result.stdout}")
             if result.stderr:
                 print(f"[DEBUG] Alembic stderr:\n{result.stderr}")
 
             if result.returncode == 0:
-                print("�?数据库迁移成功完�?)
+                print("✓ 数据库迁移成功完成")
                 if result.stdout:
                     print(f"\n迁移输出:\n{result.stdout}")
 
                 return {
                     'success': True,
-                    'message': '数据库配置已确认，迁移执行成�?,
+                    'message': '数据库配置已确认，迁移执行成功',
                     'output': result.stdout,
                     'migrations_applied': len(migration_files)
                 }
@@ -978,15 +1029,15 @@ class InstallationWizardService:
                     error_msg += f'\n{result.stderr}'
                 if result.stdout:
                     error_msg += f'\n{result.stdout}'
-                print(f"�?{error_msg}")
+                print(f"✗ {error_msg}")
                 return {
                     'success': False,
                     'error': error_msg
                 }
 
         except subprocess.TimeoutExpired:
-            error_msg = '迁移超时（超�?分钟�?
-            print(f"�?{error_msg}")
+            error_msg = '迁移超时（超过5分钟）'
+            print(f"✗ {error_msg}")
             return {
                 'success': False,
                 'error': error_msg
@@ -994,7 +1045,7 @@ class InstallationWizardService:
         except Exception as e:
             import traceback
             error_msg = f'数据库初始化失败: {str(e)}'
-            print(f"�?{error_msg}")
+            print(f"✗ {error_msg}")
             print(traceback.format_exc())
             return {
                 'success': False,
@@ -1024,7 +1075,7 @@ class InstallationWizardService:
                 json.dump(install_info, f, ensure_ascii=False, indent=2)
 
             print("\n" + "=" * 60)
-            print("�?安装完成�?)
+            print("✓ 安装完成！")
             print("=" * 60)
 
             # 如果选择导入示例数据
@@ -1036,9 +1087,9 @@ class InstallationWizardService:
                 )
 
                 if sample_result['success']:
-                    print(f"�?{sample_result['message']}")
+                    print(f"✓ {sample_result['message']}")
                 else:
-                    print(f"�?示例数据导入失败: {sample_result.get('error', '未知错误')}")
+                    print(f"✗ 示例数据导入失败: {sample_result.get('error', '未知错误')}")
 
             return {
                 "success": True,
@@ -1056,7 +1107,8 @@ class InstallationWizardService:
 
     def reset_installation(self) -> Dict[str, Any]:
         """
-        重置安装状态（用于重新安装�?
+        重置安装状态（用于重新安装）
+
         Returns:
             重置结果
         """
@@ -1085,16 +1137,16 @@ class InstallationWizardService:
             {
                 "step": 1,
                 "title": "欢迎使用",
-                "description": "欢迎使用 FastBlog，让我们开始配置您的博客系�?
+                "description": "欢迎使用 FastBlog，让我们开始配置您的博客系统"
             },
             {
                 "step": 2,
-                "title": "数据库配�?,
-                "description": "配置数据库连接信�?
+                "title": "数据库配置",
+                "description": "配置数据库连接信息"
             },
             {
                 "step": 3,
-                "title": "创建管理员账�?,
+                "title": "创建管理员账户",
                 "description": "设置管理员用户名、邮箱和密码"
             },
             {
@@ -1105,7 +1157,7 @@ class InstallationWizardService:
             {
                 "step": 5,
                 "title": "完成安装",
-                "description": "确认配置并完成安�?
+                "description": "确认配置并完成安装"
             }
         ]
 

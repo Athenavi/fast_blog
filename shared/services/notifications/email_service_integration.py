@@ -1,8 +1,12 @@
 """
-邮件服务集成（SendGrid/Mailgun/SMTP�?
-功能�?1. 邮件服务配置管理
+邮件服务集成（SendGrid/Mailgun/SMTP）
+
+功能：
+1. 邮件服务配置管理
 2. 邮件模板管理
-3. 批量发送支�?4. 发送统�?"""
+3. 批量发送支持
+4. 发送统计
+"""
 
 from typing import Optional, Dict, Any, List
 
@@ -18,7 +22,7 @@ class EmailServiceIntegration:
     """
     邮件服务集成
 
-    支持 SendGrid、Mailgun �?SMTP
+    支持 SendGrid、Mailgun 和 SMTP
     """
 
     def __init__(self):
@@ -30,7 +34,8 @@ class EmailServiceIntegration:
         获取邮件服务配置
 
         Args:
-            db: 数据库会�?            provider: 邮件提供商（可选）
+            db: 数据库会话
+            provider: 邮件提供商（可选）
             site_id: 站点 ID（可选）
 
         Returns:
@@ -73,13 +78,23 @@ class EmailServiceIntegration:
         创建邮件服务配置
 
         Args:
-            db: 数据库会�?            provider: 邮件提供商（sendgrid/mailgun/smtp�?            from_email: 发件人邮�?            api_key: API Key（SendGrid/Mailgun�?            smtp_host: SMTP 主机
+            db: 数据库会话
+            provider: 邮件提供商（sendgrid/mailgun/smtp）
+            from_email: 发件人邮箱
+            api_key: API Key（SendGrid/Mailgun）
+            smtp_host: SMTP 主机
             smtp_port: SMTP 端口
-            smtp_username: SMTP 用户�?            smtp_password: SMTP 密码
-            from_name: 发件人名�?            site_id: 站点 ID
-            enable_batch_sending: 是否启用批量发�?            batch_size: 批量发送大�?            daily_limit: 每日发送限�?
+            smtp_username: SMTP 用户名
+            smtp_password: SMTP 密码
+            from_name: 发件人名称
+            site_id: 站点 ID
+            enable_batch_sending: 是否启用批量发送
+            batch_size: 批量发送大小
+            daily_limit: 每日发送限制
+
         Returns:
-            创建的配置对�?        """
+            创建的配置对象
+        """
         # 检查是否已存在配置
         existing = await self.get_config(db, provider, site_id)
         if existing:
@@ -118,7 +133,8 @@ class EmailServiceIntegration:
         更新邮件服务配置
 
         Args:
-            db: 数据库会�?            config_id: 配置 ID
+            db: 数据库会话
+            config_id: 配置 ID
             updates: 更新字段字典
 
         Returns:
@@ -143,7 +159,8 @@ class EmailServiceIntegration:
         停用邮件服务配置
 
         Args:
-            db: 数据库会�?            config_id: 配置 ID
+            db: 数据库会话
+            config_id: 配置 ID
         """
         config = await db.get(EmailServiceConfig, config_id)
         if not config:
@@ -164,14 +181,19 @@ class EmailServiceIntegration:
             from_name: Optional[str] = None,
     ) -> bool:
         """
-        发送邮�?
+        发送邮件
+
         Args:
             config: 邮件服务配置
-            to_email: 收件人邮�?            subject: 邮件主题
+            to_email: 收件人邮箱
+            subject: 邮件主题
             html_content: HTML 内容
-            text_content: 纯文本内�?            from_name: 发件人名�?
+            text_content: 纯文本内容
+            from_name: 发件人名称
+
         Returns:
-            是否发送成�?        """
+            是否发送成功
+        """
         try:
             if config.provider == 'sendgrid':
                 return await self._send_via_sendgrid(config, to_email, subject, html_content, text_content, from_name)
@@ -195,7 +217,7 @@ class EmailServiceIntegration:
             text_content: Optional[str] = None,
             from_name: Optional[str] = None,
     ) -> bool:
-        """通过 SendGrid 发送邮�?""
+        """通过 SendGrid 发送邮件"""
         url = "https://api.sendgrid.com/v3/mail/send"
 
         headers = {
@@ -247,8 +269,9 @@ class EmailServiceIntegration:
             text_content: Optional[str] = None,
             from_name: Optional[str] = None,
     ) -> bool:
-        """通过 Mailgun 发送邮�?""
-        # Mailgun API URL 需要根据区域配�?        domain = "api.mailgun.net"  # US region
+        """通过 Mailgun 发送邮件"""
+        # Mailgun API URL 需要根据区域配置
+        domain = "api.mailgun.net"  # US region
         url = f"https://{domain}/v3/{config.from_email.split('@')[1]}/messages"
 
         auth = aiohttp.BasicAuth(login="api", password=config.api_key)
@@ -282,7 +305,7 @@ class EmailServiceIntegration:
             text_content: Optional[str] = None,
             from_name: Optional[str] = None,
     ) -> bool:
-        """通过 SMTP 发送邮�?""
+        """通过 SMTP 发送邮件"""
         import smtplib
         from email.mime.multipart import MIMEMultipart
         from email.mime.text import MIMEText
@@ -320,15 +343,17 @@ class EmailServiceIntegration:
             text_content: Optional[str] = None,
     ) -> Dict[str, int]:
         """
-        批量发送邮�?
+        批量发送邮件
+
         Args:
             config: 邮件服务配置
-            recipients: 收件人列�?[{'email': '...', 'name': '...'}]
+            recipients: 收件人列表 [{'email': '...', 'name': '...'}]
             subject: 邮件主题
             html_content: HTML 内容
-            text_content: 纯文本内�?
+            text_content: 纯文本内容
+
         Returns:
-            发送结果统�?{'success': count, 'failed': count}
+            发送结果统计 {'success': count, 'failed': count}
         """
         success_count = 0
         failed_count = 0
@@ -362,9 +387,12 @@ class EmailServiceIntegration:
             include_inactive: bool = False,
     ) -> List[EmailServiceConfig]:
         """
-        获取所有邮件服务配�?
+        获取所有邮件服务配置
+
         Args:
-            db: 数据库会�?            include_inactive: 是否包含非活动配�?
+            db: 数据库会话
+            include_inactive: 是否包含非活动配置
+
         Returns:
             配置列表
         """

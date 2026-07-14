@@ -1,6 +1,7 @@
 """
-安装向导 �?服务入口
-将各步骤子模块组合为 InstallationWizardService �?"""
+安装向导 — 服务入口
+将各步骤子模块组合为 InstallationWizardService 类
+"""
 import os
 from pathlib import Path
 from typing import Dict, Any, List
@@ -14,7 +15,7 @@ from .site_settings import configure_site_settings
 
 
 class InstallationWizardService:
-    """安装向导服务 �?组合各步骤子模块"""
+    """安装向导服务 — 组合各步骤子模块"""
 
     def __init__(self):
         self.install_lock_file = Path("install.lock")
@@ -59,7 +60,7 @@ class InstallationWizardService:
             except RuntimeError:
                 loop = None
             if loop and loop.is_running():
-                # Already in an async context �?skip this check
+                # Already in an async context — skip this check
                 pass
             else:
                 if asyncio.get_event_loop().run_until_complete(_check()):
@@ -92,7 +93,7 @@ class InstallationWizardService:
         return confirm_database_and_migrate(self.project_root)
 
     def complete_installation(self, install_info: Dict[str, Any]) -> Dict[str, Any]:
-        """完成安装：写入锁定文�?""
+        """完成安装：写入锁定文件"""
         try:
             self.install_flag_file.parent.mkdir(parents=True, exist_ok=True)
             self.install_flag_file.write_text("", encoding="utf-8")
@@ -101,7 +102,7 @@ class InstallationWizardService:
             return {"success": False, "message": f"写入安装标记失败: {str(e)}"}
 
     def reset_installation(self) -> Dict[str, Any]:
-        """重置安装状�?""
+        """重置安装状态"""
         try:
             if self.install_flag_file.exists():
                 self.install_flag_file.unlink()
@@ -111,12 +112,12 @@ class InstallationWizardService:
 
     def get_installation_steps(self) -> List[Dict[str, str]]:
         return [
-            {"key": "prerequisites", "label": "环境检�?, "description": "检�?Python/数据�?目录权限"},
-            {"key": "database", "label": "数据库配�?, "description": "配置 PostgreSQL 连接"},
-            {"key": "migration", "label": "数据库迁�?, "description": "执行 Alembic 迁移"},
-            {"key": "admin", "label": "创建管理�?, "description": "设置管理员账�?},
+            {"key": "prerequisites", "label": "环境检测", "description": "检查 Python/数据库/目录权限"},
+            {"key": "database", "label": "数据库配置", "description": "配置 PostgreSQL 连接"},
+            {"key": "migration", "label": "数据库迁移", "description": "执行 Alembic 迁移"},
+            {"key": "admin", "label": "创建管理员", "description": "设置管理员账号"},
             {"key": "settings", "label": "站点设置", "description": "配置站点信息"},
-            {"key": "complete", "label": "完成安装", "description": "锁定安装状�?},
+            {"key": "complete", "label": "完成安装", "description": "锁定安装状态"},
         ]
 
     def import_sample_data(self) -> Dict[str, Any]:

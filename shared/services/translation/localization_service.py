@@ -34,12 +34,12 @@ class LocalizationService:
 
         # 日期格式模板
         self._date_formats = {
-            'zh-CN': '%Y�?m�?d�?,
-            'zh-TW': '%Y�?m�?d�?,
+            'zh-CN': '%Y年%m月%d日',
+            'zh-TW': '%Y年%m月%d日',
             'en-US': '%B %d, %Y',
             'en-GB': '%d %B %Y',
-            'ja-JP': '%Y�?m�?d�?,
-            'ko-KR': '%Y�?%m�?%d�?,
+            'ja-JP': '%Y年%m月%d日',
+            'ko-KR': '%Y년 %m월 %d일',
             'fr-FR': '%d %B %Y',
             'de-DE': '%d. %B %Y',
             'es-ES': '%d de %B de %Y',
@@ -51,12 +51,12 @@ class LocalizationService:
 
         # 日期时间格式模板
         self._datetime_formats = {
-            'zh-CN': '%Y�?m�?d�?%H:%M',
-            'zh-TW': '%Y�?m�?d�?%H:%M',
+            'zh-CN': '%Y年%m月%d日 %H:%M',
+            'zh-TW': '%Y年%m月%d日 %H:%M',
             'en-US': '%B %d, %Y %I:%M %p',
             'en-GB': '%d %B %Y %H:%M',
-            'ja-JP': '%Y�?m�?d�?%H:%M',
-            'ko-KR': '%Y�?%m�?%d�?%H:%M',
+            'ja-JP': '%Y年%m月%d日 %H:%M',
+            'ko-KR': '%Y년 %m월 %d일 %H:%M',
             'fr-FR': '%d %B %Y %H:%M',
             'de-DE': '%d. %B %Y %H:%M',
             'es-ES': '%d de %B de %Y %H:%M',
@@ -73,14 +73,14 @@ class LocalizationService:
             'en-US': '$',
             'en-GB': '£',
             'ja-JP': '¥',
-            'ko-KR': '�?,
-            'fr-FR': '�?,
-            'de-DE': '�?,
-            'es-ES': '�?,
+            'ko-KR': '₩',
+            'fr-FR': '€',
+            'de-DE': '€',
+            'es-ES': '€',
             'pt-BR': 'R$',
-            'ru-RU': '�?,
-            'ar-SA': '�?,
-            'hi-IN': '�?,
+            'ru-RU': '₽',
+            'ar-SA': '﷼',
+            'hi-IN': '₹',
         }
 
         # 货币代码映射
@@ -100,7 +100,8 @@ class LocalizationService:
             'hi-IN': 'INR',
         }
 
-        # 数字格式（千位分隔符和小数点�?        self._number_formats = {
+        # 数字格式（千位分隔符和小数点）
+        self._number_formats = {
             'zh-CN': {'thousands': ',', 'decimal': '.'},
             'en-US': {'thousands': ',', 'decimal': '.'},
             'en-GB': {'thousands': ',', 'decimal': '.'},
@@ -118,10 +119,11 @@ class LocalizationService:
     def detect_timezone(self, ip_address: str = None,
                         locale: str = None) -> str:
         """
-        检测用户时�?
+        检测用户时区
+
         Args:
-            ip_address: IP地址(可�?
-            locale: 语言区域(可�?
+            ip_address: IP地址(可选)
+            locale: 语言区域(可选)
 
         Returns:
             时区名称
@@ -130,7 +132,8 @@ class LocalizationService:
         if locale and locale in self._timezone_map:
             return self._timezone_map[locale]
 
-        # 根据IP地址检测时�?        if ip_address:
+        # 根据IP地址检测时区
+        if ip_address:
             try:
                 timezone_from_ip = self._get_timezone_from_ip(ip_address)
                 if timezone_from_ip:
@@ -183,7 +186,8 @@ class LocalizationService:
             except Exception as e:
                 logger.debug(f"ipgeolocation.io failed: {e}")
 
-        # 方法3: 使用本地IP段映射（针对常见地区�?        timezone_by_ip_range = {
+        # 方法3: 使用本地IP段映射（针对常见地区）
+        timezone_by_ip_range = {
             # 中国
             'CN': 'Asia/Shanghai',
             # 美国
@@ -213,7 +217,8 @@ class LocalizationService:
     def convert_to_user_timezone(self, dt: datetime,
                                  user_timezone: str = 'UTC') -> datetime:
         """
-        将UTC时间转换为用户本地时�?
+        将UTC时间转换为用户本地时间
+
         Args:
             dt: UTC时间
             user_timezone: 用户时区
@@ -235,7 +240,8 @@ class LocalizationService:
     def format_date(self, dt: datetime, locale: str = 'en-US',
                     user_timezone: str = 'UTC') -> str:
         """
-        格式化日�?
+        格式化日期
+
         Args:
             dt: 日期时间
             locale: 语言区域
@@ -244,7 +250,8 @@ class LocalizationService:
         Returns:
             格式化后的日期字符串
         """
-        # 转换到用户时�?        local_dt = self.convert_to_user_timezone(dt, user_timezone)
+        # 转换到用户时区
+        local_dt = self.convert_to_user_timezone(dt, user_timezone)
 
         # 获取格式模板
         format_template = self._date_formats.get(locale, '%Y-%m-%d')
@@ -258,7 +265,8 @@ class LocalizationService:
     def format_datetime(self, dt: datetime, locale: str = 'en-US',
                         user_timezone: str = 'UTC') -> str:
         """
-        格式化日期时�?
+        格式化日期时间
+
         Args:
             dt: 日期时间
             locale: 语言区域
@@ -267,7 +275,8 @@ class LocalizationService:
         Returns:
             格式化后的日期时间字符串
         """
-        # 转换到用户时�?        local_dt = self.convert_to_user_timezone(dt, user_timezone)
+        # 转换到用户时区
+        local_dt = self.convert_to_user_timezone(dt, user_timezone)
 
         # 获取格式模板
         format_template = self._datetime_formats.get(locale, '%Y-%m-%d %H:%M:%S')
@@ -281,7 +290,7 @@ class LocalizationService:
     def format_relative_time(self, dt: datetime, locale: str = 'en-US',
                              user_timezone: str = 'UTC') -> str:
         """
-        格式化相对时�?�?3小时�?)
+        格式化相对时间(如"3小时前")
 
         Args:
             dt: 日期时间
@@ -289,8 +298,10 @@ class LocalizationService:
             user_timezone: 用户时区
 
         Returns:
-            相对时间字符�?        """
-        # 转换到用户时�?        local_dt = self.convert_to_user_timezone(dt, user_timezone)
+            相对时间字符串
+        """
+        # 转换到用户时区
+        local_dt = self.convert_to_user_timezone(dt, user_timezone)
         now = datetime.now(ZoneInfo(user_timezone))
 
         diff = now - local_dt
@@ -300,11 +311,11 @@ class LocalizationService:
         relative_texts = {
             'zh-CN': {
                 'just_now': '刚刚',
-                'minute': '分钟�?,
-                'hour': '小时�?,
+                'minute': '分钟前',
+                'hour': '小时前',
                 'day': '天前',
                 'week': '周前',
-                'month': '个月�?,
+                'month': '个月前',
                 'year': '年前',
             },
             'en-US': {
@@ -319,10 +330,10 @@ class LocalizationService:
             'ja-JP': {
                 'just_now': 'たった今',
                 'minute': '分前',
-                'hour': '時間�?,
+                'hour': '時間前',
                 'day': '日前',
-                'week': '週間�?,
-                'month': 'ヶ月�?,
+                'week': '週間前',
+                'month': 'ヶ月前',
                 'year': '年前',
             },
         }
@@ -353,11 +364,12 @@ class LocalizationService:
     def format_currency(self, amount: float, locale: str = 'en-US',
                         currency_code: str = None) -> str:
         """
-        格式化货�?
+        格式化货币
+
         Args:
             amount: 金额
             locale: 语言区域
-            currency_code: 货币代码(可�?
+            currency_code: 货币代码(可选)
 
         Returns:
             格式化后的货币字符串
@@ -370,9 +382,11 @@ class LocalizationService:
         # 获取数字格式
         num_format = self._number_formats.get(locale, {'thousands': ',', 'decimal': '.'})
 
-        # 格式化数�?        formatted_amount = self._format_number(amount, num_format)
+        # 格式化数字
+        formatted_amount = self._format_number(amount, num_format)
 
-        # 不同地区的货币符号位�?        if locale in ['en-US', 'en-GB', 'fr-FR', 'de-DE', 'es-ES', 'pt-BR']:
+        # 不同地区的货币符号位置
+        if locale in ['en-US', 'en-GB', 'fr-FR', 'de-DE', 'es-ES', 'pt-BR']:
             return f"{symbol}{formatted_amount}"
         elif locale in ['zh-CN', 'ja-JP', 'ko-KR']:
             return f"{symbol}{formatted_amount}"
@@ -393,14 +407,16 @@ class LocalizationService:
         thousands_sep = num_format['thousands']
         decimal_sep = num_format['decimal']
 
-        # 分离整数和小数部�?        if isinstance(number, int):
+        # 分离整数和小数部分
+        if isinstance(number, int):
             integer_part = str(number)
             decimal_part = ''
         else:
             integer_part, decimal_part = f"{number:.2f}".split('.')
             decimal_part = decimal_sep + decimal_part
 
-        # 添加千位分隔�?        reversed_int = integer_part[::-1]
+        # 添加千位分隔符
+        reversed_int = integer_part[::-1]
         groups = [reversed_int[i:i + 3] for i in range(0, len(reversed_int), 3)]
         formatted_int = thousands_sep.join(groups)[::-1]
 
@@ -448,12 +464,13 @@ class LocalizationService:
 
     def get_timezone_offset(self, timezone_name: str) -> str:
         """
-        获取时区偏移�?
+        获取时区偏移量
+
         Args:
             timezone_name: 时区名称
 
         Returns:
-            偏移量字符串(�?+08:00)
+            偏移量字符串(如 +08:00)
         """
         try:
             tz = ZoneInfo(timezone_name)

@@ -1,6 +1,7 @@
 """
 会话管理服务
-提供会话追踪、设备管理、远程注销等功�?"""
+提供会话追踪、设备管理、远程注销等功能
+"""
 
 
 import hashlib
@@ -22,30 +23,36 @@ class SessionManagementService:
         self._session_index = {}
 
         # 默认配置
-        self.session_timeout_hours = 24 * 30  # 30�?        self.max_sessions_per_user = 10  # 每个用户最�?0个活跃会�?
+        self.session_timeout_hours = 24 * 30  # 30天
+        self.max_sessions_per_user = 10  # 每个用户最多10个活跃会话
+
         logger.warning(
-            "SessionManagementService 使用内存存储，重启后会话数据将丢失�?
-            "生产环境应使�?UserSession 模型�?Redis 实现持久化�?
+            "SessionManagementService 使用内存存储，重启后会话数据将丢失。"
+            "生产环境应使用 UserSession 模型或 Redis 实现持久化。"
         )
 
     async def create_session(self, user_id: int, device_info: Dict,
                        ip_address: str = None, user_agent: str = None) -> str:
         """
-        创建新会�?        
+        创建新会话
+        
         Args:
             user_id: 用户ID
             device_info: 设备信息
             ip_address: IP地址
-            user_agent: User-Agent字符�?            
+            user_agent: User-Agent字符串
+            
         Returns:
             会话ID
         """
         # 生成会话ID
         session_id = self._generate_session_id(user_id, device_info, ip_address)
 
-        # 检查并清理旧会�?        self._cleanup_old_sessions(user_id)
+        # 检查并清理旧会话
+        self._cleanup_old_sessions(user_id)
 
-        # 检查会话数量限�?        if len(self._user_sessions[user_id]) >= self.max_sessions_per_user:
+        # 检查会话数量限制
+        if len(self._user_sessions[user_id]) >= self.max_sessions_per_user:
             # 移除最旧的会话
             oldest_session = min(
                 self._user_sessions[user_id],
@@ -73,14 +80,16 @@ class SessionManagementService:
         self._user_sessions[user_id].append(session)
         self._session_index[session_id] = user_id
 
-        # 持久化到数据�?        await self._persist_session_to_db(user_id, session)
+        # 持久化到数据库
+        await self._persist_session_to_db(user_id, session)
 
         logger.info(f"Created session {session_id} for user {user_id}")
         return session_id
 
     def get_user_sessions(self, user_id: int) -> List[Dict]:
         """
-        获取用户的所有活跃会�?        
+        获取用户的所有活跃会话
+        
         Args:
             user_id: 用户ID
             
@@ -104,7 +113,8 @@ class SessionManagementService:
                     'is_current': False,  # 需要调用方判断
                 })
 
-        # 按最后活动时间排�?        sessions.sort(key=lambda s: s['last_active'], reverse=True)
+        # 按最后活动时间排序
+        sessions.sort(key=lambda s: s['last_active'], reverse=True)
 
         return sessions
 
@@ -143,14 +153,15 @@ class SessionManagementService:
 
     async def revoke_all_sessions(self, user_id: int, exclude_session_id: str = None) -> int:
         """
-        撤销用户的所有会�?除当前会话外)
+        撤销用户的所有会话(除当前会话外)
         
         Args:
             user_id: 用户ID
             exclude_session_id: 排除的会话ID(当前会话)
             
         Returns:
-            撤销的会话数�?        """
+            撤销的会话数量
+        """
         revoked_count = 0
 
         sessions_to_remove = []
@@ -170,7 +181,8 @@ class SessionManagementService:
 
     def is_session_valid(self, session_id: str) -> bool:
         """
-        检查会话是否有�?        
+        检查会话是否有效
+        
         Args:
             session_id: 会话ID
             
@@ -184,7 +196,8 @@ class SessionManagementService:
 
         for session in self._user_sessions.get(user_id, []):
             if session['session_id'] == session_id:
-                # 检查是否激活且未过�?                if not session['is_active']:
+                # 检查是否激活且未过期
+                if not session['is_active']:
                     return False
                 if session['expires_at'] <= datetime.now():
                     return False
@@ -229,7 +242,7 @@ class SessionManagementService:
                                    current_ip: str,
                                    current_device_fingerprint: str) -> List[Dict]:
         """
-        检测可疑活�?异地登录、新设备�?
+        检测可疑活动(异地登录、新设备等)
         
         Args:
             user_id: 用户ID
@@ -245,7 +258,8 @@ class SessionManagementService:
         if not active_sessions:
             return alerts
 
-        # 检查是否有不同IP的活跃会�?        ips = set(s['ip_address'] for s in active_sessions if s['ip_address'])
+        # 检查是否有不同IP的活跃会话
+        ips = set(s['ip_address'] for s in active_sessions if s['ip_address'])
         if current_ip and current_ip not in ips:
             alerts.append({
                 'type': 'new_location',
@@ -254,12 +268,13 @@ class SessionManagementService:
                 'ip_address': current_ip,
             })
 
-        # 检查是否有新设�?        fingerprints = set(s['device_fingerprint'] for s in active_sessions)
+        # 检查是否有新设备
+        fingerprints = set(s['device_fingerprint'] for s in active_sessions)
         if current_device_fingerprint and current_device_fingerprint not in fingerprints:
             alerts.append({
                 'type': 'new_device',
                 'severity': 'info',
-                'message': '检测到新设备登�?,
+                'message': '检测到新设备登录',
                 'device_fingerprint': current_device_fingerprint,
             })
 
@@ -268,14 +283,14 @@ class SessionManagementService:
             alerts.append({
                 'type': 'many_sessions',
                 'severity': 'warning',
-                'message': f'当前�?{len(active_sessions)} 个活跃会�?,
+                'message': f'当前有 {len(active_sessions)} 个活跃会话',
                 'session_count': len(active_sessions),
             })
 
         return alerts
 
     async def _persist_session_to_db(self, user_id: int, session_info: dict) -> None:
-        """将会话持久化�?UserSession 数据库模�?""
+        """将会话持久化到 UserSession 数据库模型"""
         try:
             from src.utils.database.unified_manager import db_manager
             from shared.models.user.user_session import UserSession
@@ -298,7 +313,7 @@ class SessionManagementService:
             logger.debug(f"Failed to persist session to DB (non-fatal): {e}")
 
     async def _remove_session_from_db(self, user_id: int, session_id: str) -> None:
-        """�?UserSession 数据库模型中移除会话"""
+        """从 UserSession 数据库模型中移除会话"""
         try:
             from src.utils.database.unified_manager import db_manager
             from shared.models.user.user_session import UserSession
@@ -319,7 +334,7 @@ class SessionManagementService:
             logger.debug(f"Failed to remove session from DB (non-fatal): {e}")
 
     async def _revoke_all_sessions_from_db(self, user_id: int, exclude_session_id: str = None) -> None:
-        """撤销 UserSession 数据库中用户的所有会�?""
+        """撤销 UserSession 数据库中用户的所有会话"""
         try:
             from src.utils.database.unified_manager import db_manager
             from shared.models.user.user_session import UserSession
@@ -361,7 +376,8 @@ class SessionManagementService:
         
         Args:
             device_info: 设备信息
-            user_agent: User-Agent字符�?            
+            user_agent: User-Agent字符串
+            
         Returns:
             设备指纹
         """
@@ -485,7 +501,7 @@ class SessionManagementService:
             if 'bogon' in data:
                 return None
 
-            # ipinfo.io �?city 格式�?"City, Region"
+            # ipinfo.io 的 city 格式为 "City, Region"
             city_region = data.get('city', '').split(',')
 
             location = {
@@ -533,7 +549,8 @@ class SessionManagementService:
 
         for i, session in enumerate(sessions):
             if session['session_id'] == session_id:
-                # 从列表中实际移除该会�?                removed = sessions.pop(i)
+                # 从列表中实际移除该会话
+                removed = sessions.pop(i)
                 # 清理索引
                 if session_id in self._session_index:
                     del self._session_index[session_id]

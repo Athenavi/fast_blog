@@ -1,6 +1,6 @@
 """
-数据库迁移服�?- 支持实时日志输出
-参�?Django migrations �?Flask-Migrate 的设�?
+数据库迁移服务 - 支持实时日志输出
+参考 Django migrations 和 Flask-Migrate 的设计
 """
 import asyncio
 
@@ -13,7 +13,7 @@ from shared.logging import default_logger as logger
 
 
 class DatabaseMigrationService:
-    """数据库迁移服�?""
+    """数据库迁移服务"""
 
     def __init__(self):
         self.project_root = Path(__file__).parent.parent.parent.parent.parent
@@ -41,7 +41,7 @@ class DatabaseMigrationService:
 
             yield {
                 'type': 'info',
-                'message': f'项目根目�? {self.project_root}',
+                'message': f'项目根目录: {self.project_root}',
                 'timestamp': time.time()
             }
 
@@ -51,7 +51,7 @@ class DatabaseMigrationService:
                 'timestamp': time.time()
             }
 
-            # 检�?alembic.ini 是否存在
+            # 检查 alembic.ini 是否存在
             alembic_ini = self.project_root / "alembic.ini"
             if not alembic_ini.exists():
                 yield {
@@ -74,15 +74,15 @@ class DatabaseMigrationService:
 
             yield {
                 'type': 'info',
-                'message': f'检查迁移脚�?.. (找到 {len(migration_files)} �?',
+                'message': f'检查迁移脚本... (找到 {len(migration_files)} 个)',
                 'timestamp': time.time()
             }
 
-            # 如果没有迁移脚本，生成初始迁�?
+            # 如果没有迁移脚本，生成初始迁移
             if len(migration_files) == 0:
                 yield {
                     'type': 'info',
-                    'message': '�?未找到迁移脚本，正在生成初始迁移...',
+                    'message': '→ 未找到迁移脚本，正在生成初始迁移...',
                     'timestamp': time.time()
                 }
 
@@ -95,7 +95,7 @@ class DatabaseMigrationService:
                     timeout=60
                 )
 
-                # Alembic autogenerate 可能返回非零退出码但仍然成功生成迁�?
+                # Alembic autogenerate 可能返回非零退出码但仍然成功生成迁移
                 # 检查是否实际生成了迁移文件
                 migration_files_after = list(versions_dir.glob("*.py")) if versions_dir.exists() else []
                 migration_files_after = [f for f in migration_files_after if f.name != "__init__.py"]
@@ -104,7 +104,7 @@ class DatabaseMigrationService:
                 if len(migration_files_after) > len(migration_files):
                     yield {
                         'type': 'info',
-                        'message': '初始迁移脚本生成�?..',
+                        'message': '初始迁移脚本生成中...',
                         'timestamp': time.time()
                     }
                     
@@ -120,11 +120,11 @@ class DatabaseMigrationService:
                     
                     yield {
                         'type': 'success',
-                        'message': '�?初始迁移脚本生成成功',
+                        'message': '✓ 初始迁移脚本生成成功',
                         'timestamp': time.time()
                     }
                 else:
-                    # 没有生成新文件，才是真正的失�?
+                    # 没有生成新文件，才是真正的失败
                     error_msg = f'生成迁移脚本失败:\n{result.stderr}'
                     yield {
                         'type': 'error',
@@ -133,21 +133,21 @@ class DatabaseMigrationService:
                     }
                     return
 
-                # 重新检查迁移文�?
+                # 重新检查迁移文件
                 migration_files = list(versions_dir.glob("*.py")) if versions_dir.exists() else []
                 migration_files = [f for f in migration_files if f.name != "__init__.py"]
                 yield {
                     'type': 'info',
-                    'message': f'�?现在共有 {len(migration_files)} 个迁移脚�?,
+                    'message': f'→ 现在共有 {len(migration_files)} 个迁移脚本',
                     'timestamp': time.time()
                 }
 
-            # 执行 alembic upgrade head（使用同�?subprocess，避�?Windows asyncio 问题�?
+            # 执行 alembic upgrade head（使用同步 subprocess，避免 Windows asyncio 问题）
             cmd = [sys.executable, "-m", "alembic", "upgrade", "head"]
             print(f"\n[Migration] 执行命令: {' '.join(cmd)}")
             print(f"[Migration] 工作目录: {self.project_root}")
 
-            # 在线程池中执行同�?subprocess
+            # 在线程池中执行同步 subprocess
             loop = asyncio.get_event_loop()
             result = await loop.run_in_executor(
                 None,
@@ -191,11 +191,11 @@ class DatabaseMigrationService:
             if result.returncode == 0:
                 yield {
                     'type': 'success',
-                    'message': '�?数据库迁移成功完�?,
+                    'message': '✓ 数据库迁移成功完成',
                     'timestamp': time.time()
                 }
             else:
-                error_msg = f'�?迁移失败，退出码: {result.returncode}'
+                error_msg = f'✗ 迁移失败，退出码: {result.returncode}'
                 if result.stderr:
                     error_msg += f'\n\n错误详情:\n{result.stderr}'
                 yield {
@@ -213,7 +213,7 @@ class DatabaseMigrationService:
                 'timestamp': time.time()
             }
         except subprocess.TimeoutExpired:
-            error_msg = '迁移超时（超�?分钟�?
+            error_msg = '迁移超时（超过5分钟）'
             print(f"[Migration ERROR] {error_msg}")
             yield {
                 'type': 'error',
@@ -239,7 +239,7 @@ class DatabaseMigrationService:
             }
 
     def _get_env_with_path(self) -> dict:
-        """获取包含正确 PATH 的环境变�?""
+        """获取包含正确 PATH 的环境变量"""
         import os
         env = os.environ.copy()
 
@@ -253,7 +253,7 @@ class DatabaseMigrationService:
         return env
 
     def check_alembic_available(self) -> bool:
-        """检�?Alembic 是否可用"""
+        """检查 Alembic 是否可用"""
         try:
             result = subprocess.run(
                 [sys.executable, "-m", "alembic", "--version"],
@@ -266,9 +266,9 @@ class DatabaseMigrationService:
             return False
 
     def get_migration_status(self) -> Dict[str, Any]:
-        """获取当前迁移状�?""
+        """获取当前迁移状态"""
         try:
-            # 检查当前版�?
+            # 检查当前版本
             result = subprocess.run(
                 [sys.executable, "-m", "alembic", "current"],
                 capture_output=True,

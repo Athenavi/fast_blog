@@ -1,5 +1,7 @@
 """
-多站点管理服�?提供站点配置隔离、独立域名绑定、共享用户体系和跨站点内容同步功�?"""
+多站点管理服务
+提供站点配置隔离、独立域名绑定、共享用户体系和跨站点内容同步功能
+"""
 
 from datetime import datetime
 from typing import Dict, Any, Optional, List
@@ -12,12 +14,14 @@ from shared.logging import default_logger as logger
 
 class MultiSiteService:
     """
-    多站点管理服�?
+    多站点管理服务
+
     功能:
     1. 站点配置隔离
     2. 独立域名绑定
     3. 共享用户体系
-    4. 跨站点内容同�?    """
+    4. 跨站点内容同步
+    """
 
     def __init__(self):
         pass
@@ -26,18 +30,24 @@ class MultiSiteService:
                           description: str = None, is_default: bool = False,
                           settings: Dict = None) -> Site:
         """
-        创建新站�?
+        创建新站点
+
         Args:
-            db: 数据库会�?            name: 站点名称
+            db: 数据库会话
+            name: 站点名称
             slug: 站点标识
-            domain: 主域�?            description: 描述
-            is_default: 是否为默认站�?            settings: 站点设置
+            domain: 主域名
+            description: 描述
+            is_default: 是否为默认站点
+            settings: 站点设置
 
         Returns:
-            创建的站�?        """
+            创建的站点
+        """
         from sqlalchemy import select
 
-        # 检查slug是否已存�?        stmt = select(Site).where(Site.slug == slug)
+        # 检查slug是否已存在
+        stmt = select(Site).where(Site.slug == slug)
         result = await db.execute(stmt)
         if result.scalar_one_or_none():
             raise ValueError(f"Site with slug '{slug}' already exists")
@@ -48,7 +58,8 @@ class MultiSiteService:
         if result.scalar_one_or_none():
             raise ValueError(f"Site with domain '{domain}' already exists")
 
-        # 如果设置为默认站点，取消其他站点的默认状�?        if is_default:
+        # 如果设置为默认站点，取消其他站点的默认状态
+        if is_default:
             stmt = select(Site).where(Site.is_default == True)
             result = await db.execute(stmt)
             default_sites = result.scalars().all()
@@ -77,7 +88,8 @@ class MultiSiteService:
         更新站点配置
 
         Args:
-            db: 数据库会�?            site_id: 站点ID
+            db: 数据库会话
+            site_id: 站点ID
             updates: 更新字段
 
         Returns:
@@ -102,7 +114,8 @@ class MultiSiteService:
         删除站点
 
         Args:
-            db: 数据库会�?            site_id: 站点ID
+            db: 数据库会话
+            site_id: 站点ID
         """
         site = await db.get(Site, site_id)
         if not site:
@@ -134,7 +147,8 @@ class MultiSiteService:
         添加附加域名
 
         Args:
-            db: 数据库会�?            site_id: 站点ID
+            db: 数据库会话
+            site_id: 站点ID
             domain: 域名
         """
         import json
@@ -175,7 +189,8 @@ class MultiSiteService:
         移除附加域名
 
         Args:
-            db: 数据库会�?            site_id: 站点ID
+            db: 数据库会话
+            site_id: 站点ID
             domain: 域名
         """
         import json
@@ -200,7 +215,8 @@ class MultiSiteService:
         根据域名获取站点
 
         Args:
-            db: 数据库会�?            domain: 域名
+            db: 数据库会话
+            domain: 域名
 
         Returns:
             站点对象
@@ -216,7 +232,8 @@ class MultiSiteService:
         if site:
             return site
 
-        # 检查附加域�?        stmt = select(Site).where(Site.is_active == True)
+        # 检查附加域名
+        stmt = select(Site).where(Site.is_active == True)
         result = await db.execute(stmt)
         sites = result.scalars().all()
 
@@ -236,11 +253,14 @@ class MultiSiteService:
 
     async def add_user_to_site(self, db, site_id: int, user_id: int, role: str = 'subscriber'):
         """
-        添加用户到站点（共享用户体系�?
+        添加用户到站点（共享用户体系）
+
         Args:
-            db: 数据库会�?            site_id: 站点ID
+            db: 数据库会话
+            site_id: 站点ID
             user_id: 用户ID
-            role: 在该站点的角�?        """
+            role: 在该站点的角色
+        """
         from sqlalchemy import select
 
         # 检查是否已存在
@@ -268,9 +288,11 @@ class MultiSiteService:
 
     async def remove_user_from_site(self, db, site_id: int, user_id: int):
         """
-        从站点移除用�?
+        从站点移除用户
+
         Args:
-            db: 数据库会�?            site_id: 站点ID
+            db: 数据库会话
+            site_id: 站点ID
             user_id: 用户ID
         """
         from sqlalchemy import select
@@ -290,9 +312,11 @@ class MultiSiteService:
 
     async def get_user_sites(self, db, user_id: int) -> List[Dict[str, Any]]:
         """
-        获取用户所属的所有站�?
+        获取用户所属的所有站点
+
         Args:
-            db: 数据库会�?            user_id: 用户ID
+            db: 数据库会话
+            user_id: 用户ID
 
         Returns:
             站点列表
@@ -329,9 +353,11 @@ class MultiSiteService:
                            content_type: str, source_content_id: int,
                            sync_mode: str = 'manual') -> ContentMapping:
         """
-        同步内容到其他站�?
+        同步内容到其他站点
+
         Args:
-            db: 数据库会�?            source_site_id: 源站点ID
+            db: 数据库会话
+            source_site_id: 源站点ID
             target_site_id: 目标站点ID
             content_type: 内容类型
             source_content_id: 源内容ID
@@ -342,7 +368,8 @@ class MultiSiteService:
         """
         from sqlalchemy import select
 
-        # 检查是否已有映�?        stmt = select(ContentMapping).where(
+        # 检查是否已有映射
+        stmt = select(ContentMapping).where(
             ContentMapping.source_site_id == source_site_id,
             ContentMapping.target_site_id == target_site_id,
             ContentMapping.content_type == content_type,
@@ -373,9 +400,12 @@ class MultiSiteService:
 
     async def get_all_sites(self, db, include_inactive: bool = False) -> List[Site]:
         """
-        获取所有站�?
+        获取所有站点
+
         Args:
-            db: 数据库会�?            include_inactive: 是否包含非活动站�?
+            db: 数据库会话
+            include_inactive: 是否包含非活动站点
+
         Returns:
             站点列表
         """

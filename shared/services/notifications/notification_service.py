@@ -21,7 +21,7 @@ class NotificationService:
     """
     通知服务
     
-    支持多种通知渠道�?
+    支持多种通知渠道：
     - Slack Webhook
     - Discord Webhook
     - Email (SMTP)
@@ -77,7 +77,7 @@ class NotificationService:
             fields: Optional[List[Dict]] = None
     ) -> bool:
         """
-        发�?Slack 通知
+        发送 Slack 通知
         
         Args:
             message: 消息内容
@@ -86,7 +86,7 @@ class NotificationService:
             fields: 附加字段
             
         Returns:
-            是否发送成�?
+            是否发送成功
         """
         if not self.slack_webhook_url:
             logger.warning("Slack webhook not configured")
@@ -139,16 +139,16 @@ class NotificationService:
             fields: Optional[List[Dict]] = None
     ) -> bool:
         """
-        发�?Discord 通知
+        发送 Discord 通知
         
         Args:
             message: 消息内容
             title: 标题
-            color: 颜色（十进制整数�?
+            color: 颜色（十进制整数）
             fields: 附加字段
             
         Returns:
-            是否发送成�?
+            是否发送成功
         """
         if not self.discord_webhook_url:
             logger.warning("Discord webhook not configured")
@@ -208,7 +208,7 @@ class NotificationService:
             to_emails: 收件人列表（如果为None则使用配置的默认收件人）
             
         Returns:
-            是否发送成�?
+            是否发送成功
         """
         if not self.email_config:
             logger.warning("Email not configured")
@@ -231,7 +231,7 @@ class NotificationService:
             html_part = MIMEText(html_content, 'html', 'utf-8')
             msg.attach(html_part)
 
-            # 发送邮�?
+            # 发送邮件
             server = smtplib.SMTP(config['smtp_server'], config['smtp_port'])
             server.ehlo()
             server.starttls()
@@ -262,19 +262,19 @@ class NotificationService:
         Args:
             article_title: 文章标题
             article_url: 文章URL
-            author_name: 作者名�?
+            author_name: 作者名称
         """
-        message = f"新文章已发布�?*{article_title}**\n作者：{author_name}\n查看：{article_url}"
+        message = f"新文章已发布：**{article_title}**\n作者：{author_name}\n查看：{article_url}"
 
         # 发送到 Slack
         if self.slack_webhook_url:
             await self.send_slack_notification(
                 message=message,
-                title="📝 新文章发�?,
+                title="📝 新文章发布",
                 color="#36a64f",
                 fields=[
                     {"title": "文章", "value": article_title, "short": False},
-                    {"title": "作�?, "value": author_name, "short": True},
+                    {"title": "作者", "value": author_name, "short": True},
                     {"title": "链接", "value": f"<{article_url}|查看详情>", "short": True},
                 ]
             )
@@ -283,11 +283,11 @@ class NotificationService:
         if self.discord_webhook_url:
             await self.send_discord_notification(
                 message=message,
-                title="📝 新文章发�?,
+                title="📝 新文章发布",
                 color=0x36a64f,
                 fields=[
                     {"name": "文章", "value": article_title, "inline": False},
-                    {"name": "作�?, "value": author_name, "inline": True},
+                    {"name": "作者", "value": author_name, "inline": True},
                     {"name": "链接", "value": f"[查看详情]({article_url})", "inline": True},
                 ]
             )
@@ -305,20 +305,20 @@ class NotificationService:
         Args:
             article_title: 文章标题
             article_url: 文章URL
-            commenter_name: 评论者名�?
+            commenter_name: 评论者名称
             comment_preview: 评论预览
         """
-        message = f"**{commenter_name}** 在文�?**{article_title}** 下发表了评论\n\n{comment_preview[:200]}"
+        message = f"**{commenter_name}** 在文章 **{article_title}** 下发表了评论\n\n{comment_preview[:200]}"
 
         # 发送到 Slack
         if self.slack_webhook_url:
             await self.send_slack_notification(
                 message=message,
-                title="💬 新评�?,
+                title="💬 新评论",
                 color="#ff9500",
                 fields=[
                     {"title": "文章", "value": f"<{article_url}|{article_title}>", "short": False},
-                    {"title": "评论�?, "value": commenter_name, "short": True},
+                    {"title": "评论者", "value": commenter_name, "short": True},
                 ]
             )
 
@@ -326,11 +326,11 @@ class NotificationService:
         if self.discord_webhook_url:
             await self.send_discord_notification(
                 message=message,
-                title="💬 新评�?,
+                title="💬 新评论",
                 color=0xff9500,
                 fields=[
                     {"name": "文章", "value": f"[{article_title}]({article_url})", "inline": False},
-                    {"name": "评论�?, "value": commenter_name, "inline": True},
+                    {"name": "评论者", "value": commenter_name, "inline": True},
                 ]
             )
 
@@ -341,7 +341,7 @@ class NotificationService:
             severity: str = "warning"
     ):
         """
-        发送系统告�?
+        发送系统告警
         
         Args:
             alert_type: 告警类型
@@ -358,7 +358,7 @@ class NotificationService:
         emoji_map = {
             "info": "ℹ️",
             "warning": "⚠️",
-            "error": "�?,
+            "error": "❌",
             "critical": "🚨"
         }
 
@@ -387,8 +387,8 @@ class NotificationService:
         if severity in ['error', 'critical'] and self.email_config:
             html_content = f"""
             <h2>{emoji} 系统告警 - {severity.upper()}</h2>
-            <p><strong>类型�?/strong>{alert_type}</p>
-            <p><strong>消息�?/strong></p>
+            <p><strong>类型：</strong>{alert_type}</p>
+            <p><strong>消息：</strong></p>
             <pre>{message}</pre>
             <p><small>时间：{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</small></p>
             """

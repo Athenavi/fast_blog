@@ -1,6 +1,7 @@
 """
 VIP 离线下载服务
-提供 OfflineDownload 下载任务�?VIP 权限检测、等级限制管�?"""
+提供 OfflineDownload 下载任务的 VIP 权限检测、等级限制管理
+"""
 from datetime import datetime
 from typing import Dict, Optional, Tuple
 
@@ -16,7 +17,7 @@ from shared.logging import default_logger as logger
 
 # ─── VIP 等级限制配置 ───────────────────────────────────────
 VIP_LIMITS: Dict[int, Dict] = {
-    0: {  # �?VIP �?不可使用离线下载
+    0: {  # 非 VIP — 不可使用离线下载
         "allowed": False,
         "max_concurrent": 0,
         "max_file_size_mb": 0,
@@ -34,7 +35,8 @@ VIP_LIMITS: Dict[int, Dict] = {
         "max_file_size_mb": 200,
         "max_pending": 20,
     },
-    3: {  # 顶级 VIP（Pro�?        "allowed": True,
+    3: {  # 顶级 VIP（Pro）
+        "allowed": True,
         "max_concurrent": 10,
         "max_file_size_mb": 500,
         "max_pending": 50,
@@ -43,10 +45,11 @@ VIP_LIMITS: Dict[int, Dict] = {
 
 
 def get_vip_limits(level: int) -> Dict:
-    """获取指定 VIP 等级的下载限�?""
+    """获取指定 VIP 等级的下载限制"""
     limits = VIP_LIMITS.get(level)
     if limits is None:
-        # 降级到最接近的较低等�?        sorted_levels = sorted(VIP_LIMITS.keys())
+        # 降级到最接近的较低等级
+        sorted_levels = sorted(VIP_LIMITS.keys())
         for lvl in reversed(sorted_levels):
             if lvl <= level:
                 return VIP_LIMITS[lvl]
@@ -66,24 +69,26 @@ class OfflineDownloadService:
 
     async def _resolve_vip_level(self) -> int:
         """
-        �?VIPSubscription 表查询用户当前有�?VIP 等级
-        （仅�?User.vip_level �?0 时才查订阅表，避免冗余查询）
+        从 VIPSubscription 表查询用户当前有效 VIP 等级
+        （仅当 User.vip_level 为 0 时才查订阅表，避免冗余查询）
         """
         if self._vip_level is not None:
             return self._vip_level
 
-        # 先检�?User 模型上的 vip_level（某些场景下可能已同步）
+        # 先检查 User 模型上的 vip_level（某些场景下可能已同步）
         if self.user.vip_level and self.user.vip_level > 0 and self.user.vip_expires_at:
             if self.user.vip_expires_at > datetime.now():
                 self._vip_level = int(self.user.vip_level)
                 self._limits = get_vip_limits(self._vip_level)
                 return self._vip_level
 
-        # 查询 VIPSubscription 表（真正的权威数据源�?        from shared.models.vip_subscription import VIPSubscription
+        # 查询 VIPSubscription 表（真正的权威数据源）
+        from shared.models.vip_subscription import VIPSubscription
         from shared.models.vip_plan import VIPPlan
 
         now = datetime.now()
-        # 注意：VIPSubscription �?FK 列名�?user �?plan（不�?user_id / plan_id�?        stmt = select(VIPSubscription).join(
+        # 注意：VIPSubscription 的 FK 列名为 user 和 plan（不是 user_id / plan_id）
+        stmt = select(VIPSubscription).join(
             VIPPlan, VIPSubscription.plan == VIPPlan.id
         ).where(
             VIPSubscription.user == self.user.id,
@@ -114,22 +119,24 @@ class OfflineDownloadService:
         """获取用户当前有效 VIP 等级"""
         return await self._resolve_vip_level()
 
-    # ── 权限检�?──────────────────────────────────────────
+    # ── 权限检查 ──────────────────────────────────────────
 
     async def check_access(self) -> Tuple[bool, Optional[str]]:
         """
-        检查用户是否有权使用离线下�?        
+        检查用户是否有权使用离线下载
+        
         Returns:
             (allowed, error_message)
         """
         limits = await self._get_limits()
         if not limits["allowed"]:
-            return False, "该功能仅�?VIP 会员使用，请升级您的账户"
+            return False, "该功能仅限 VIP 会员使用，请升级您的账户"
         return True, None
 
     async def check_download_limits(self) -> Tuple[bool, Optional[str]]:
         """
-        检查用户是否达到下载限�?        
+        检查用户是否达到下载限制
+        
         Returns:
             (allowed, error_message)
         """
@@ -139,7 +146,7 @@ class OfflineDownloadService:
 
         limits = await self._get_limits()
 
-        # 查当�?pending + downloading 数量
+        # 查当前 pending + downloading 数量
         stmt = select(func.count(DownloadTask.id)).where(
             DownloadTask.user_id == self.user.id,
             DownloadTask.status.in_(["pending", "downloading"])
@@ -148,9 +155,9 @@ class OfflineDownloadService:
         active_count = result.scalar() or 0
 
         if active_count >= limits["max_concurrent"]:
-            return False, f"当前 VIP 等级最多同时下�?{limits['max_concurrent']} 个文件，请等待现有任务完�?
+            return False, f"当前 VIP 等级最多同时下载 {limits['max_concurrent']} 个文件，请等待现有任务完成"
 
-        # �?pending 数量
+        # 查 pending 数量
         pending_stmt = select(func.count(DownloadTask.id)).where(
             DownloadTask.user_id == self.user.id,
             DownloadTask.status == "pending"
@@ -159,12 +166,12 @@ class OfflineDownloadService:
         pending_count = pending_result.scalar() or 0
 
         if pending_count >= limits["max_pending"]:
-            return False, f"待处理任务已达上�?({limits['max_pending']})，请先完成或取消部分任务"
+            return False, f"待处理任务已达上限 ({limits['max_pending']})，请先完成或取消部分任务"
 
         return True, None
 
     async def check_file_size_limit(self, file_size_mb: int) -> Tuple[bool, Optional[str]]:
-        """检查文件大小是否超�?VIP 等级限制"""
+        """检查文件大小是否超过 VIP 等级限制"""
         limits = await self._get_limits()
         if file_size_mb > limits["max_file_size_mb"]:
             return False, f"文件大小超过当前 VIP 等级限制 ({limits['max_file_size_mb']}MB)"
@@ -184,15 +191,17 @@ class OfflineDownloadService:
         Returns:
             (task, error_message)
         """
-        # 权限检�?        allowed, error = await self.check_download_limits()
+        # 权限检查
+        allowed, error = await self.check_download_limits()
         if not allowed:
             return None, error
 
         # URL 验证
         if not source_url or not source_url.startswith(('http://', 'https://')):
-            return None, "URL 必须�?http:// �?https:// 开�?
+            return None, "URL 必须以 http:// 或 https:// 开头"
 
-        # 检查待处理任务总大小限制（防止队列堆积过大�?        MAX_PENDING_SIZE = 1 * 1024 * 1024 * 1024  # 1 GB
+        # 检查待处理任务总大小限制（防止队列堆积过大）
+        MAX_PENDING_SIZE = 1 * 1024 * 1024 * 1024  # 1 GB
         pending_size_stmt = select(func.coalesce(func.sum(DownloadTask.total_size), 0)).where(
             DownloadTask.user_id == self.user.id,
             DownloadTask.status == "pending"
@@ -201,10 +210,10 @@ class OfflineDownloadService:
         current_pending_size = pending_size_result.scalar() or 0
         if current_pending_size >= MAX_PENDING_SIZE:
             logger.warning(
-                f"[OfflineDownload] 用户 {self.user.id} 待处理任务总大�?"
+                f"[OfflineDownload] 用户 {self.user.id} 待处理任务总大小 "
                 f"({current_pending_size / 1024 / 1024:.1f}MB) 超过限制"
             )
-            return None, "待处理任务总大小超�?1GB 限制，请等待现有任务完成后再�?
+            return None, "待处理任务总大小超过 1GB 限制，请等待现有任务完成后再试"
 
         try:
             task = DownloadTask(
@@ -236,7 +245,8 @@ class OfflineDownloadService:
         per_page: int = 20,
     ) -> Dict:
         """
-        获取用户的离线下载任务列�?        
+        获取用户的离线下载任务列表
+        
         Returns:
             { "tasks": [...], "pagination": {...} }
         """
@@ -301,7 +311,7 @@ class OfflineDownloadService:
         )
         task = result.scalar_one_or_none()
         if not task:
-            return None, "任务不存�?
+            return None, "任务不存在"
 
         return {
             "id": task.id,
@@ -325,11 +335,11 @@ class OfflineDownloadService:
         """取消任务"""
         success = await self.transfer_service.cancel_task(task_id, self.user.id)
         if not success:
-            return False, "无法取消任务（可能已完成或不存在�?
+            return False, "无法取消任务（可能已完成或不存在）"
         return True, None
 
     async def retry_task(self, task_id: int) -> Tuple[bool, Optional[str]]:
-        """重试失败的任�?""
+        """重试失败的任务"""
         result = await self.db.execute(
             select(DownloadTask).where(
                 DownloadTask.id == task_id,
@@ -339,10 +349,10 @@ class OfflineDownloadService:
         task = result.scalar_one_or_none()
 
         if not task:
-            return False, "任务不存�?
+            return False, "任务不存在"
 
         if task.status != "failed":
-            return False, "只能重试失败的任�?
+            return False, "只能重试失败的任务"
 
         await self.db.execute(
             update(DownloadTask)
@@ -359,12 +369,13 @@ class OfflineDownloadService:
         return True, None
 
     async def get_user_limits(self) -> Dict:
-        """获取用户的离线下载限制信�?""
+        """获取用户的离线下载限制信息"""
         limits = await self._get_limits()
         vip_level = await self.get_vip_level()
         allowed, _ = await self.check_access()
 
-        # 当前活跃任务�?        active_stmt = select(func.count(DownloadTask.id)).where(
+        # 当前活跃任务数
+        active_stmt = select(func.count(DownloadTask.id)).where(
             DownloadTask.user_id == self.user.id,
             DownloadTask.status.in_(["pending", "downloading"])
         )

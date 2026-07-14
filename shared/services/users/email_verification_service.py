@@ -20,13 +20,13 @@ class EmailVerificationService:
     """邮箱验证服务"""
 
     # 配置常量
-    CODE_LENGTH = 6  # 验证码长�?
+    CODE_LENGTH = 6  # 验证码长度
     EXPIRE_MINUTES = 10  # 验证码有效期(分钟)
-    MAX_ATTEMPTS = 5  # 最大验证尝试次�?
-    RESEND_INTERVAL_SECONDS = 60  # 重发间隔(�?
+    MAX_ATTEMPTS = 5  # 最大验证尝试次数
+    RESEND_INTERVAL_SECONDS = 60  # 重发间隔(秒)
 
     def __init__(self):
-        # 使用内存存储验证�?生产环境应使用Redis)
+        # 使用内存存储验证码(生产环境应使用Redis)
         self._verification_codes = {}
 
         # SMTP配置(从环境变量或配置文件读取)
@@ -41,7 +41,7 @@ class EmailVerificationService:
         }
 
     def generate_code(self) -> str:
-        """生成随机验证�?""
+        """生成随机验证码"""
         return ''.join(random.choices(string.digits, k=self.CODE_LENGTH))
 
     def _generate_verification_email(self, email: str, code: str) -> str:
@@ -49,8 +49,8 @@ class EmailVerificationService:
         生成验证邮件HTML内容
             
         Args:
-            email: 收件人邮�?
-            code: 验证�?
+            email: 收件人邮箱
+            code: 验证码
                 
         Returns:
             HTML邮件内容
@@ -80,21 +80,21 @@ class EmailVerificationService:
                 </div>
                 <div class="content">
                     <p>您好!</p>
-                    <p>您正�?FastBlog 进行邮箱验证,请使用以下验证码:</p>
+                    <p>您正在 FastBlog 进行邮箱验证,请使用以下验证码:</p>
                     <div class="code-box">
                         <div class="code">{code}</div>
                     </div>
                     <div class="info">
                         <p><strong>重要提示:</strong></p>
                         <ul>
-                            <li>验证码有效期�?{self.EXPIRE_MINUTES} 分钟</li>
+                            <li>验证码有效期为 {self.EXPIRE_MINUTES} 分钟</li>
                             <li>请勿将验证码告诉他人</li>
-                            <li>如果这不是您的操�?请忽略此邮件</li>
+                            <li>如果这不是您的操作,请忽略此邮件</li>
                         </ul>
                     </div>
                 </div>
                 <div class="footer">
-                    <p>此邮件由系统自动发�?请勿回复</p>
+                    <p>此邮件由系统自动发送,请勿回复</p>
                     <p>&copy; {datetime.now().year} FastBlog. All rights reserved.</p>
                 </div>
             </div>
@@ -105,15 +105,15 @@ class EmailVerificationService:
 
     def _send_email(self, to_email: str, subject: str, html_content: str) -> bool:
         """
-        发送邮�?
+        发送邮件
             
         Args:
-            to_email: 收件人邮�?
+            to_email: 收件人邮箱
             subject: 邮件主题
             html_content: HTML邮件内容
                 
         Returns:
-            是否发送成�?
+            是否发送成功
         """
         try:
             msg = MIMEMultipart('alternative')
@@ -125,7 +125,7 @@ class EmailVerificationService:
             html_part = MIMEText(html_content, 'html', 'utf-8')
             msg.attach(html_part)
 
-            # 连接SMTP服务器并发�?
+            # 连接SMTP服务器并发送
             if self.smtp_config['use_tls']:
                 server = smtplib.SMTP(self.smtp_config['host'], self.smtp_config['port'])
                 server.ehlo()
@@ -138,7 +138,7 @@ class EmailVerificationService:
             if self.smtp_config['username'] and self.smtp_config['password']:
                 server.login(self.smtp_config['username'], self.smtp_config['password'])
 
-            # 发送邮�?
+            # 发送邮件
             server.sendmail(
                 self.smtp_config['from_email'],
                 to_email,
@@ -161,9 +161,9 @@ class EmailVerificationService:
             email: 邮箱地址
                 
         Returns:
-            包含成功状态和消息的字�?
+            包含成功状态和消息的字典
         """
-        # 检查是否可以重�?
+        # 检查是否可以重发
         if email in self._verification_codes:
             last_sent = self._verification_codes[email]['sent_at']
             elapsed = (datetime.now() - last_sent).total_seconds()
@@ -172,26 +172,26 @@ class EmailVerificationService:
                 remaining = int(self.RESEND_INTERVAL_SECONDS - elapsed)
                 return {
                     'success': False,
-                    'message': f'请稍后再�?{remaining}秒后可重新发�?,
+                    'message': f'请稍后再试,{remaining}秒后可重新发送',
                     'can_resend_in': remaining
                 }
 
-        # 生成验证�?
+        # 生成验证码
         code = self.generate_code()
 
         # 生成邮件内容
         subject = f"【FastBlog】邮箱验证码 - {code}"
         html_content = self._generate_verification_email(email, code)
 
-        # 发送邮�?
+        # 发送邮件
         send_success = self._send_email(email, subject, html_content)
 
         if not send_success:
             logger.warning(f"Email sending failed for {email}, using fallback mode")
-            # 降级模式:仅记录日�?开发环�?
+            # 降级模式:仅记录日志(开发环境)
             logger.info(f"[FALLBACK] Verification code for {email}: {code}")
     
-        # 存储验证�?
+        # 存储验证码
         self._verification_codes[email] = {
             'code': code,
             'sent_at': datetime.now(),
@@ -207,20 +207,20 @@ class EmailVerificationService:
 
     def verify_code(self, email: str, code: str) -> dict:
         """
-        验证邮箱验证�?
+        验证邮箱验证码
         
         Args:
             email: 邮箱地址
-            code: 验证�?
+            code: 验证码
             
         Returns:
-            包含验证结果的字�?
+            包含验证结果的字典
         """
-        # 检查是否有验证码记�?
+        # 检查是否有验证码记录
         if email not in self._verification_codes:
             return {
                 'success': False,
-                'message': '请先获取验证�?
+                'message': '请先获取验证码'
             }
 
         record = self._verification_codes[email]
@@ -232,14 +232,14 @@ class EmailVerificationService:
                 'message': '该验证码已被使用'
             }
 
-        # 检查尝试次�?
+        # 检查尝试次数
         if record['attempts'] >= self.MAX_ATTEMPTS:
             return {
                 'success': False,
-                'message': '验证次数过多，请重新获取验证�?
+                'message': '验证次数过多，请重新获取验证码'
             }
 
-        # 检查是否过�?
+        # 检查是否过期
         elapsed = (datetime.now() - record['sent_at']).total_seconds()
         if elapsed > self.EXPIRE_MINUTES * 60:
             # 清除过期的验证码
@@ -252,12 +252,12 @@ class EmailVerificationService:
         # 增加尝试次数
         record['attempts'] += 1
 
-        # 验证验证�?
+        # 验证验证码
         if record['code'] != code:
             remaining_attempts = self.MAX_ATTEMPTS - record['attempts']
             return {
                 'success': False,
-                'message': f'验证码错误，还剩 {remaining_attempts} 次机�?,
+                'message': f'验证码错误，还剩 {remaining_attempts} 次机会',
                 'remaining_attempts': remaining_attempts
             }
 
@@ -278,7 +278,7 @@ class EmailVerificationService:
             email: 邮箱地址
             
         Returns:
-            是否已验�?
+            是否已验证
         """
         if email not in self._verification_codes:
             return False
@@ -290,7 +290,7 @@ class EmailVerificationService:
         清理过期的验证码
         
         Returns:
-            清理的数�?
+            清理的数量
         """
         now = datetime.now()
         expired_emails = []
@@ -309,15 +309,15 @@ class EmailVerificationService:
     def configure_smtp(self, host: str, port: int, username: str, password: str,
                        from_email: str, from_name: str = 'FastBlog', use_tls: bool = True):
         """
-        配置SMTP服务�?
+        配置SMTP服务器
         
         Args:
             host: SMTP服务器地址
             port: SMTP端口
-            username: 用户�?
+            username: 用户名
             password: 密码
-            from_email: 发件人邮�?
-            from_name: 发件人名�?
+            from_email: 发件人邮箱
+            from_name: 发件人名称
             use_tls: 是否使用TLS
         """
         self.smtp_config.update({

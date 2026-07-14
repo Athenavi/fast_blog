@@ -1,6 +1,6 @@
 """
 打赏系统服务
-提供文章打赏、统计、排行榜等功�?
+提供文章打赏、统计、排行榜等功能
 """
 
 
@@ -18,19 +18,19 @@ class TippingSystem:
         # 打赏记录 {tip_id: tip_info}
         self._tips = {}
 
-        # 用户收到的打�?{user_id: [tip_id, ...]}
+        # 用户收到的打赏 {user_id: [tip_id, ...]}
         self._user_received_tips = defaultdict(list)
 
-        # 文章收到的打�?{article_id: [tip_id, ...]}
+        # 文章收到的打赏 {article_id: [tip_id, ...]}
         self._article_tips = defaultdict(list)
 
-        # 打赏ID计数�?
+        # 打赏ID计数器
         self._tip_counter = 0
 
         # 预设金额选项
         self._preset_amounts = [1, 2, 5, 10, 20, 50, 100, 200]
 
-        # 最�?最大打赏金�?
+        # 最小/最大打赏金额
         self.min_amount = 1
         self.max_amount = 10000
 
@@ -40,13 +40,13 @@ class TippingSystem:
         # 用户提现记录 {user_id: [withdrawal_id, ...]}
         self._user_withdrawals = defaultdict(list)
 
-        # 提现ID计数�?
+        # 提现ID计数器
         self._withdrawal_counter = 0
 
-        # 最低提现金�?
+        # 最低提现金额
         self.min_withdrawal_amount = 50
 
-        # 提现手续费比�?(0-1)
+        # 提现手续费比例 (0-1)
         self.withdrawal_fee_rate = 0.02  # 2%
 
     def create_tip(self, from_user_id: int, to_user_id: int,
@@ -60,7 +60,7 @@ class TippingSystem:
             to_user_id: 接收者ID
             article_id: 文章ID
             amount: 打赏金额
-            message: 留言(可�?
+            message: 留言(可选)
             payment_method: 支付方式(balance/wechat/alipay)
             
         Returns:
@@ -102,7 +102,7 @@ class TippingSystem:
 
     def get_article_tips(self, article_id: int, limit: int = 50) -> List[Dict]:
         """
-        获取文章的打赏记�?
+        获取文章的打赏记录
         
         Args:
             article_id: 文章ID
@@ -133,7 +133,7 @@ class TippingSystem:
     def get_user_received_tips(self, user_id: int,
                                limit: int = 100) -> List[Dict]:
         """
-        获取用户收到的打�?
+        获取用户收到的打赏
         
         Args:
             user_id: 用户ID
@@ -222,16 +222,16 @@ class TippingSystem:
     def get_tipping_leaderboard(self, period: str = 'all',
                                 limit: int = 100) -> List[Dict]:
         """
-        获取打赏排行�?按收到打赏金额排�?
+        获取打赏排行榜(按收到打赏金额排序)
         
         Args:
             period: 时间周期(all/month/week)
             limit: 返回数量
             
         Returns:
-            排行榜列�?
+            排行榜列表
         """
-        # 计算每个用户的总打赏金�?
+        # 计算每个用户的总打赏金额
         user_totals = defaultdict(float)
 
         cutoff = None
@@ -280,11 +280,11 @@ class TippingSystem:
 
     def refund_tip(self, tip_id: str, reason: str = '') -> bool:
         """
-        退款打�?
+        退款打赏
         
         Args:
             tip_id: 打赏ID
-            reason: 退款原�?
+            reason: 退款原因
             
         Returns:
             是否成功
@@ -297,7 +297,7 @@ class TippingSystem:
         if tip['status'] != 'completed':
             return False
 
-        # 更新状�?
+        # 更新状态
         tip['status'] = 'refunded'
         tip['refunded_at'] = datetime.now()
         tip['refund_reason'] = reason
@@ -317,7 +317,7 @@ class TippingSystem:
         """
         all_tips = list(self._tips.values())
 
-        # 按时间排�?
+        # 按时间排序
         all_tips.sort(key=lambda x: x['created_at'], reverse=True)
 
         recent_tips = []
@@ -350,19 +350,19 @@ class TippingSystem:
         Returns:
             提现记录
         """
-        # 验证最低提现金�?
+        # 验证最低提现金额
         if amount < self.min_withdrawal_amount:
             raise ValueError(f"Minimum withdrawal amount is {self.min_withdrawal_amount}")
 
-        # 获取用户可提现余�?
+        # 获取用户可提现余额
         stats = self.get_user_tip_stats(user_id)
         available_balance = stats['total_amount']
 
-        # 检查是否有足够的余�?
+        # 检查是否有足够的余额
         if amount > available_balance:
             raise ValueError(f"Insufficient balance. Available: {available_balance}, Requested: {amount}")
 
-        # 计算手续�?
+        # 计算手续费
         fee = amount * self.withdrawal_fee_rate
         actual_amount = amount - fee
 
@@ -396,7 +396,7 @@ class TippingSystem:
 
     def get_user_withdrawals(self, user_id: int, limit: int = 50) -> List[Dict]:
         """
-        获取用户的提现记�?
+        获取用户的提现记录
         
         Args:
             user_id: 用户ID
@@ -430,7 +430,7 @@ class TippingSystem:
 
     def get_user_available_balance(self, user_id: int) -> Dict:
         """
-        获取用户可提现余�?
+        获取用户可提现余额
         
         Args:
             user_id: 用户ID
@@ -441,7 +441,7 @@ class TippingSystem:
         stats = self.get_user_tip_stats(user_id)
         total_earned = stats['total_amount']
 
-        # 计算已提现金�?
+        # 计算已提现金额
         withdrawal_ids = self._user_withdrawals.get(user_id, [])
         total_withdrawn = 0
         pending_withdrawal = 0
@@ -468,12 +468,12 @@ class TippingSystem:
     def process_withdrawal(self, withdrawal_id: str, status: str = 'completed',
                            admin_note: str = '') -> bool:
         """
-        处理提现申请（管理员操作�?
+        处理提现申请（管理员操作）
         
         Args:
             withdrawal_id: 提现ID
-            status: 新状�?completed/rejected)
-            admin_note: 管理员备�?
+            status: 新状态(completed/rejected)
+            admin_note: 管理员备注
             
         Returns:
             是否成功
@@ -486,7 +486,7 @@ class TippingSystem:
         if withdrawal['status'] != 'pending':
             return False
 
-        # 更新状�?
+        # 更新状态
         withdrawal['status'] = status
         withdrawal['processed_at'] = datetime.now()
         withdrawal['admin_note'] = admin_note
@@ -516,7 +516,7 @@ class TippingSystem:
         if withdrawal['status'] != 'pending':
             return False
 
-        # 更新状�?
+        # 更新状态
         withdrawal['status'] = 'cancelled'
         withdrawal['processed_at'] = datetime.now()
 

@@ -2,9 +2,9 @@
 多级缓存服务
 
 实现三级缓存架构:
-1. L1 - 内存缓存 (最�?容量�?
-2. L2 - Redis缓存 (�?容量中等,通过 redis_service)
-3. L3 - 文件缓存 (较慢,容量�?持久�?
+1. L1 - 内存缓存 (最快,容量小)
+2. L2 - Redis缓存 (快,容量中等,通过 redis_service)
+3. L3 - 文件缓存 (较慢,容量大,持久化)
 
 提供缓存预热、统计和监控功能
 """
@@ -43,13 +43,15 @@ class MultiLevelCache:
             file_cache_ttl: int = 3600,
     ):
         """
-        初始化多级缓�?
+        初始化多级缓存
+
         Args:
             memory_max_size: L1内存缓存最大条目数
-            memory_ttl: L1内存缓存TTL(�?
-            redis_enabled: 是否启用L2 Redis缓存（通过全局 redis_service�?            file_cache_enabled: 是否启用L3文件缓存
+            memory_ttl: L1内存缓存TTL(秒)
+            redis_enabled: 是否启用L2 Redis缓存（通过全局 redis_service）
+            file_cache_enabled: 是否启用L3文件缓存
             file_cache_dir: 文件缓存目录
-            file_cache_ttl: 文件缓存TTL(�?
+            file_cache_ttl: 文件缓存TTL(秒)
         """
         # L1: 内存缓存
         if CACHE_TOOLS_AVAILABLE:
@@ -66,16 +68,17 @@ class MultiLevelCache:
             'deletes': 0,
         }
 
-        # L2: Redis缓存（通过异步 redis_service�?        self.redis_enabled = redis_enabled
+        # L2: Redis缓存（通过异步 redis_service）
+        self.redis_enabled = redis_enabled
         self.redis_available = False
         if redis_enabled:
             try:
                 from src.services.redis_service import redis_service as _rs
                 self._redis_svc = _rs
                 self.redis_available = True
-                logger.info("[MultiLevelCache] L2 Redis 已启用（通过 redis_service�?)
+                logger.info("[MultiLevelCache] L2 Redis 已启用（通过 redis_service）")
             except Exception as e:
-                logger.warning(f"[MultiLevelCache] L2 Redis 不可�? {e}")
+                logger.warning(f"[MultiLevelCache] L2 Redis 不可用: {e}")
                 self.redis_enabled = False
 
         self.redis_stats = {
@@ -92,7 +95,7 @@ class MultiLevelCache:
 
         if file_cache_enabled:
             self.file_cache_dir.mkdir(parents=True, exist_ok=True)
-            print(f"[MultiLevelCache] L3 文件缓存已启�? {self.file_cache_dir}")
+            print(f"[MultiLevelCache] L3 文件缓存已启用: {self.file_cache_dir}")
 
         self.file_cache_stats = {
             'hits': 0,
@@ -107,16 +110,18 @@ class MultiLevelCache:
 
     async def get(self, key: str) -> Optional[Any]:
         """
-        获取缓存�?(从L1 -> L2 -> L3逐级查找)
+        获取缓存值 (从L1 -> L2 -> L3逐级查找)
 
         Args:
-            key: 缓存�?
+            key: 缓存键
+
         Returns:
-            缓存�?不存在返回None
+            缓存值,不存在返回None
         """
         self.total_requests += 1
 
-        # L1: 尝试从内存缓存获�?        value = self._get_from_memory(key)
+        # L1: 尝试从内存缓存获取
+        value = self._get_from_memory(key)
         if value is not None:
             self.memory_stats['hits'] += 1
             self.total_hits += 1
@@ -136,7 +141,8 @@ class MultiLevelCache:
 
             self.redis_stats['misses'] += 1
 
-        # L3: 尝试从文件缓存获�?        if self.file_cache_enabled:
+        # L3: 尝试从文件缓存获取
+        if self.file_cache_enabled:
             value = self._get_from_file(key)
             if value is not None:
                 self.file_cache_stats['hits'] += 1
@@ -153,10 +159,13 @@ class MultiLevelCache:
 
     async def set(self, key: str, value: Any, ttl: Optional[int] = None):
         """
-        设置缓存�?(同时写入L1, L2, L3)
+        设置缓存值 (同时写入L1, L2, L3)
 
         Args:
-            key: 缓存�?            value: 缓存�?            ttl: TTL(�?,None使用默认�?        """
+            key: 缓存键
+            value: 缓存值
+            ttl: TTL(秒),None使用默认值
+        """
         # 写入L1
         self._set_to_memory(key, value, ttl)
         self.memory_stats['sets'] += 1
@@ -173,10 +182,11 @@ class MultiLevelCache:
 
     async def delete(self, key: str):
         """
-        删除缓存 (从所有层级删�?
+        删除缓存 (从所有层级删除)
 
         Args:
-            key: 缓存�?        """
+            key: 缓存键
+        """
         # 从L1删除
         self._delete_from_memory(key)
         self.memory_stats['deletes'] += 1
@@ -190,7 +200,7 @@ class MultiLevelCache:
             self._delete_from_file(key)
 
     async def clear(self):
-        """清空所有缓存层�?""
+        """清空所有缓存层级"""
         # 清空L1
         if CACHE_TOOLS_AVAILABLE:
             self.memory_cache.clear()
@@ -211,7 +221,7 @@ class MultiLevelCache:
                         await self._redis_svc.delete(*keys)
                     if cursor == 0:
                         break
-                logger.info(f"[MultiLevelCache] L2 Redis 已清�?{deleted} 个缓存键")
+                logger.info(f"[MultiLevelCache] L2 Redis 已清空 {deleted} 个缓存键")
             except Exception as e:
                 logger.error(f"[MultiLevelCache] Redis清空失败: {e}")
 
@@ -230,9 +240,9 @@ class MultiLevelCache:
         缓存预热
 
         Args:
-            keys_data: 预热的数据列�?每项包含 {'key': ..., 'value': ..., 'ttl': ...}
+            keys_data: 预热的数据列表,每项包含 {'key': ..., 'value': ..., 'ttl': ...}
         """
-        logger.info(f"[MultiLevelCache] 开始缓存预�?�?{len(keys_data)} 条数�?)
+        logger.info(f"[MultiLevelCache] 开始缓存预热,共 {len(keys_data)} 条数据")
 
         for item in keys_data:
             key = item.get('key')
@@ -285,7 +295,7 @@ class MultiLevelCache:
         }
 
     def _generate_file_key(self, key: str) -> str:
-        """生成文件缓存的键�?""
+        """生成文件缓存的键名"""
         # 使用hash避免文件名过长或非法字符
         hash_key = hashlib.md5(key.encode()).hexdigest()
         return f"{hash_key}.cache"
@@ -293,7 +303,7 @@ class MultiLevelCache:
     # ========== L1 内存缓存操作 ==========
 
     def _get_from_memory(self, key: str) -> Optional[Any]:
-        """从内存缓存获�?""
+        """从内存缓存获取"""
         if CACHE_TOOLS_AVAILABLE:
             return self.memory_cache.get(key)
         else:
@@ -318,13 +328,13 @@ class MultiLevelCache:
             self.memory_ttl_map[key] = time.time() + ttl
 
     def _delete_from_memory(self, key: str):
-        """从内存缓存删�?""
+        """从内存缓存删除"""
         if key in self.memory_cache:
             del self.memory_cache[key]
         if key in self.memory_ttl_map:
             del self.memory_ttl_map[key]
 
-    # ========== L2 Redis缓存操作（通过异步 redis_service�?==========
+    # ========== L2 Redis缓存操作（通过异步 redis_service） ==========
 
     async def _get_from_redis(self, key: str) -> Optional[Any]:
         """从Redis获取"""
@@ -355,20 +365,22 @@ class MultiLevelCache:
     # ========== L3 文件缓存操作 ==========
 
     def _get_from_file(self, key: str) -> Optional[Any]:
-        """从文件缓存获�?""
+        """从文件缓存获取"""
         try:
             file_path = self.file_cache_dir / self._generate_file_key(key)
 
             if not file_path.exists():
                 return None
 
-            # 读取元数�?            meta_path = file_path.with_suffix('.meta')
+            # 读取元数据
+            meta_path = file_path.with_suffix('.meta')
             if meta_path.exists():
                 with open(meta_path, 'r', encoding='utf-8') as f:
                     meta = json.load(f)
 
-                # 检查是否过�?                if time.time() - meta.get('created_at', 0) > meta.get('ttl', self.file_cache_ttl):
-                    # 已过�?删除
+                # 检查是否过期
+                if time.time() - meta.get('created_at', 0) > meta.get('ttl', self.file_cache_ttl):
+                    # 已过期,删除
                     file_path.unlink(missing_ok=True)
                     meta_path.unlink(missing_ok=True)
                     return None
@@ -396,7 +408,8 @@ class MultiLevelCache:
             file_path = self.file_cache_dir / self._generate_file_key(key)
             meta_path = file_path.with_suffix('.meta')
 
-            # 序列化�?            if isinstance(value, (dict, list, bool, type(None))):
+            # 序列化值
+            if isinstance(value, (dict, list, bool, type(None))):
                 content = json.dumps(value, ensure_ascii=False, default=str)
             else:
                 content = str(value)
@@ -405,7 +418,8 @@ class MultiLevelCache:
             with open(file_path, 'w', encoding='utf-8') as f:
                 f.write(content)
 
-            # 写入元数�?            meta = {
+            # 写入元数据
+            meta = {
                 'key': key,
                 'created_at': time.time(),
                 'ttl': ttl,
@@ -418,7 +432,7 @@ class MultiLevelCache:
             self.file_cache_stats['errors'] += 1
 
     def _delete_from_file(self, key: str):
-        """从文件缓存删�?""
+        """从文件缓存删除"""
         try:
             file_path = self.file_cache_dir / self._generate_file_key(key)
             meta_path = file_path.with_suffix('.meta')

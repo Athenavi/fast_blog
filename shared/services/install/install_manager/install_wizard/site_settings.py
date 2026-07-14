@@ -1,5 +1,5 @@
 """
-安装向导 �?站点设置模块
+安装向导 — 站点设置模块
 """
 from pathlib import Path
 from typing import Dict, Any
@@ -18,12 +18,13 @@ def configure_site_settings(project_root: Path, settings: Dict[str, str]) -> Dic
         return {"success": False, "message": "站点名称不能为空"}
 
     if not site_url.startswith(("http://", "https://")):
-        return {"success": False, "message": "站点URL必须�?http:// �?https:// 开�?}
+        return {"success": False, "message": "站点URL必须以 http:// 或 https:// 开头"}
 
-    # 验证 URL 格式，防止路径遍�?    from urllib.parse import urlparse
+    # 验证 URL 格式，防止路径遍历
+    from urllib.parse import urlparse
     parsed = urlparse(site_url)
     if not parsed.netloc or ".." in parsed.path or ".." in parsed.netloc:
-        return {"success": False, "message": "站点URL格式无效，包含非法路�?}
+        return {"success": False, "message": "站点URL格式无效，包含非法路径"}
     if "\\" in site_url or "\x00" in site_url:
         return {"success": False, "message": "站点URL包含非法字符"}
 
@@ -51,7 +52,7 @@ def configure_site_settings(project_root: Path, settings: Dict[str, str]) -> Dic
                 await db.commit()
 
         asyncio.get_event_loop().run_until_complete(_save())
-        return {"success": True, "message": "站点设置已保�?}
+        return {"success": True, "message": "站点设置已保存"}
     except Exception as e:
         logger.exception(f"保存站点设置失败")
         return {"success": False, "message": f"保存失败: {str(e)}"}

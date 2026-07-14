@@ -26,18 +26,18 @@ class LoadBalancerService:
     
     功能:
     1. 多实例注册和发现
-    2. 健康检�?
-    3. 会话共享（Redis�?
+    2. 健康检查
+    3. 会话共享（Redis）
     4. 故障转移
     5. 负载均衡策略（轮询、最少连接、加权）
     """
 
     def __init__(self, redis_url: str = None):
         """
-        初始化负载均衡服�?
+        初始化负载均衡服务
         
         Args:
-            redis_url: Redis连接URL（用于会话共享和实例注册�?
+            redis_url: Redis连接URL（用于会话共享和实例注册）
         """
         self.redis_url = redis_url or os.getenv('REDIS_URL')
         self.redis_client = None
@@ -61,12 +61,12 @@ class LoadBalancerService:
             'strategy': 'round_robin',  # round_robin, least_connections, weighted
             'health_check_interval': 30,  # 健康检查间隔（秒）
             'health_check_timeout': 5,  # 健康检查超时（秒）
-            'max_failures': 3,  # 最大失败次�?
-            'session_ttl': 3600,  # 会话TTL（秒�?
+            'max_failures': 3,  # 最大失败次数
+            'session_ttl': 3600,  # 会话TTL（秒）
         }
 
     async def initialize(self):
-        """初始化Redis连接和服�?""
+        """初始化Redis连接和服务"""
         if self.redis_url and HAS_REDIS:
             try:
                 self.redis_client = redis.from_url(
@@ -98,7 +98,7 @@ class LoadBalancerService:
         return f"{hostname}:{port}-{uuid.uuid4().hex[:8]}"
 
     async def register_instance(self):
-        """注册当前实例到服务发�?""
+        """注册当前实例到服务发现"""
         if not self.redis_client:
             return
 
@@ -116,10 +116,10 @@ class LoadBalancerService:
                 'weight': str(self.local_instance['weight']),
             })
 
-            # 设置过期时间（如果心跳停止，自动移除�?
+            # 设置过期时间（如果心跳停止，自动移除）
             await self.redis_client.expire(instance_key, self.config['health_check_interval'] * 3)
 
-            # 添加到实例列�?
+            # 添加到实例列表
             await self.redis_client.sadd("lb:instances:active", self.instance_id)
 
             self.local_instance['status'] = 'healthy'
@@ -160,14 +160,14 @@ class LoadBalancerService:
                 await asyncio.sleep(self.config['health_check_interval'])
 
     async def _send_heartbeat(self):
-        """发送心�?""
+        """发送心跳"""
         if not self.redis_client:
             return
 
         try:
             instance_key = f"lb:instances:{self.instance_id}"
 
-            # 更新心跳时间和统计信�?
+            # 更新心跳时间和统计信息
             await self.redis_client.hset(instance_key, mapping={
                 'last_heartbeat': datetime.now().isoformat(),
                 'requests_count': str(self.local_instance['requests_count']),
@@ -186,7 +186,7 @@ class LoadBalancerService:
 
     async def get_active_instances(self) -> List[Dict[str, Any]]:
         """
-        获取所有活动实�?
+        获取所有活动实例
         
         Returns:
             活动实例列表
@@ -215,7 +215,7 @@ class LoadBalancerService:
                         'weight': int(instance_data.get('weight', 1)),
                     }
 
-                    # 检查是否超�?
+                    # 检查是否超时
                     if instance_data.get('last_heartbeat'):
                         last_hb = datetime.fromisoformat(instance_data['last_heartbeat'])
                         if (datetime.now() - last_hb).total_seconds() > self.config['health_check_interval'] * 3:
@@ -231,17 +231,17 @@ class LoadBalancerService:
 
     async def get_next_instance(self, strategy: str = None) -> Optional[Dict[str, Any]]:
         """
-        根据负载均衡策略获取下一个实�?
+        根据负载均衡策略获取下一个实例
         
         Args:
             strategy: 负载均衡策略
             
         Returns:
-            选中的实�?
+            选中的实例
         """
         instances = await self.get_active_instances()
 
-        # 过滤健康的实�?
+        # 过滤健康的实例
         healthy_instances = [i for i in instances if i['status'] == 'healthy']
 
         if not healthy_instances:
@@ -260,7 +260,7 @@ class LoadBalancerService:
 
     def _round_robin_select(self, instances: List[Dict]) -> Dict:
         """轮询选择"""
-        # 简单实现：随机选择一个（实际应该维护一个计数器�?
+        # 简单实现：随机选择一个（实际应该维护一个计数器）
         import random
         return random.choice(instances)
 
@@ -287,11 +287,11 @@ class LoadBalancerService:
         self.local_instance['requests_count'] += 1
 
     async def increment_connections(self):
-        """增加活跃连接�?""
+        """增加活跃连接数"""
         self.local_instance['active_connections'] += 1
 
     async def decrement_connections(self):
-        """减少活跃连接�?""
+        """减少活跃连接数"""
         if self.local_instance['active_connections'] > 0:
             self.local_instance['active_connections'] -= 1
 
@@ -304,7 +304,7 @@ class LoadBalancerService:
         Args:
             session_id: 会话ID
             session_data: 会话数据
-            ttl: TTL（秒�?
+            ttl: TTL（秒）
         """
         if not self.redis_client:
             logger.warning("Redis not available, session not saved")
@@ -365,17 +365,17 @@ class LoadBalancerService:
         except Exception as e:
             logger.error(f"Failed to delete session: {e}")
 
-    # ==================== 健康检�?====================
+    # ==================== 健康检查 ====================
 
     async def check_instance_health(self, instance_id: str) -> Dict[str, Any]:
         """
-        检查实例健康状�?
+        检查实例健康状态
         
         Args:
             instance_id: 实例ID
             
         Returns:
-            健康检查结�?
+            健康检查结果
         """
         if not self.redis_client:
             return {'status': 'unknown'}
@@ -387,7 +387,7 @@ class LoadBalancerService:
             if not instance_data:
                 return {'status': 'not_found'}
 
-            # 检查最后心跳时�?
+            # 检查最后心跳时间
             last_heartbeat = instance_data.get('last_heartbeat')
             if last_heartbeat:
                 last_hb_time = datetime.fromisoformat(last_heartbeat)

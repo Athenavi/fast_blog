@@ -1,5 +1,5 @@
 """
-工作流引擎服�?
+工作流引擎服务
 提供可视化的工作流设计、执行和监控功能
 """
 import json
@@ -12,7 +12,7 @@ from shared.logging import default_logger as logger
 
 
 class WorkflowStatus(Enum):
-    """工作流状�?""
+    """工作流状态"""
     DRAFT = "draft"
     RUNNING = "running"
     COMPLETED = "completed"
@@ -21,7 +21,7 @@ class WorkflowStatus(Enum):
 
 
 class NodeStatus(Enum):
-    """节点状�?""
+    """节点状态"""
     PENDING = "pending"
     RUNNING = "running"
     COMPLETED = "completed"
@@ -40,7 +40,7 @@ class NodeType(Enum):
 
 
 class WorkflowNode:
-    """工作流节�?""
+    """工作流节点"""
 
     def __init__(self, node_id: str, node_type: NodeType, config: Dict[str, Any]):
         self.node_id = node_id
@@ -66,7 +66,7 @@ class WorkflowNode:
 
 
 class WorkflowInstance:
-    """工作流实�?""
+    """工作流实例"""
 
     def __init__(self, workflow_id: str, instance_id: str, context: Dict[str, Any] = None):
         self.workflow_id = workflow_id
@@ -105,22 +105,22 @@ class WorkflowInstance:
 
 class WorkflowEngine:
     """
-    工作流引�?
+    工作流引擎
     
     功能:
-    1. 工作流定义管�?
-    2. 工作流实例执�?
-    3. 节点状态跟�?
+    1. 工作流定义管理
+    2. 工作流实例执行
+    3. 节点状态跟踪
     4. 条件判断
     5. 审批流程
     6. 执行历史
     """
 
     def __init__(self):
-        # 工作流定�?{workflow_id: workflow_definition}
+        # 工作流定义 {workflow_id: workflow_definition}
         self.workflows: Dict[str, Dict[str, Any]] = {}
 
-        # 工作流实�?{instance_id: WorkflowInstance}
+        # 工作流实例 {instance_id: WorkflowInstance}
         self.instances: Dict[str, WorkflowInstance] = {}
 
         # 执行历史 [{timestamp, instance_id, event, data}]
@@ -128,12 +128,12 @@ class WorkflowEngine:
 
     def register_workflow(self, workflow_id: str, definition: Dict[str, Any]):
         """
-        注册工作流定�?
+        注册工作流定义
         
         Args:
             workflow_id: 工作流ID
-            definition: 工作流定�?{
-                'name': '工作流名�?,
+            definition: 工作流定义 {
+                'name': '工作流名称',
                 'description': '描述',
                 'nodes': [
                     {
@@ -153,11 +153,11 @@ class WorkflowEngine:
 
     def create_instance(self, workflow_id: str, context: Dict[str, Any] = None) -> str:
         """
-        创建工作流实�?
+        创建工作流实例
         
         Args:
             workflow_id: 工作流ID
-            context: 上下文数�?
+            context: 上下文数据
             
         Returns:
             实例ID
@@ -198,7 +198,7 @@ class WorkflowEngine:
 
     async def execute_instance(self, instance_id: str) -> bool:
         """
-        执行工作流实�?
+        执行工作流实例
         
         Args:
             instance_id: 实例ID
@@ -234,13 +234,13 @@ class WorkflowEngine:
                     })
                     return False
 
-                # 获取下一个节�?
+                # 获取下一个节点
                 next_node_id = self._get_next_node(instance, current_node)
 
                 if next_node_id:
                     instance.current_node_id = next_node_id
                 else:
-                    # 没有下一个节点，工作流完�?
+                    # 没有下一个节点，工作流完成
                     instance.status = WorkflowStatus.COMPLETED
                     instance.completed_at = datetime.now()
                     self._record_history(instance_id, 'completed', {})
@@ -259,7 +259,7 @@ class WorkflowEngine:
         执行节点
         
         Args:
-            instance: 工作流实�?
+            instance: 工作流实例
             node: 节点
             
         Returns:
@@ -324,22 +324,22 @@ class WorkflowEngine:
         
         Args:
             config: 节点配置 {action_type, action_params}
-            context: 上下�?
+            context: 上下文
             
         Returns:
             执行结果
         """
         action_type = config.get('action_type', '')
 
-        # 这里可以根据action_type调用不同的处理函�?
-        # 示例：发送通知、更新数据库、调用API�?
+        # 这里可以根据action_type调用不同的处理函数
+        # 示例：发送通知、更新数据库、调用API等
 
         if action_type == 'send_notification':
             # 发送通知
             return {'sent': True, 'type': config.get('notification_type')}
 
         elif action_type == 'update_status':
-            # 更新状�?
+            # 更新状态
             field = config.get('field')
             value = config.get('value')
             if field:
@@ -356,7 +356,7 @@ class WorkflowEngine:
         
         Args:
             config: 节点配置 {conditions: [{field, operator, value}]}
-            context: 上下�?
+            context: 上下文
             
         Returns:
             评估结果
@@ -397,12 +397,12 @@ class WorkflowEngine:
         
         Args:
             config: 节点配置 {approver, approval_type}
-            context: 上下�?
+            context: 上下文
             
         Returns:
             审批结果
         """
-        # 在实际应用中，这里应该等待用户审�?
+        # 在实际应用中，这里应该等待用户审批
         # 现在简化为自动通过
         return {
             'approved': True,
@@ -412,10 +412,10 @@ class WorkflowEngine:
 
     def _get_next_node(self, instance: WorkflowInstance, current_node: WorkflowNode) -> Optional[str]:
         """
-        获取下一个节�?
+        获取下一个节点
         
         Args:
-            instance: 工作流实�?
+            instance: 工作流实例
             current_node: 当前节点
             
         Returns:
@@ -424,7 +424,7 @@ class WorkflowEngine:
         workflow_def = self.workflows.get(instance.workflow_id, {})
         edges = workflow_def.get('edges', [])
 
-        # 查找从当前节点出发的�?
+        # 查找从当前节点出发的边
         for edge in edges:
             if edge['from'] == current_node.node_id:
                 # 如果是条件节点，根据结果选择分支
@@ -457,7 +457,7 @@ class WorkflowEngine:
 
     def get_instance(self, instance_id: str) -> Optional[Dict[str, Any]]:
         """
-        获取工作流实�?
+        获取工作流实例
         
         Args:
             instance_id: 实例ID
@@ -493,7 +493,7 @@ class WorkflowEngine:
 
     def cancel_instance(self, instance_id: str) -> bool:
         """
-        取消工作流实�?
+        取消工作流实例
         
         Args:
             instance_id: 实例ID

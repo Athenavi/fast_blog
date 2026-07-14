@@ -1,5 +1,6 @@
 """
-安装向导 �?前置检查模�?"""
+安装向导 — 前置检查模块
+"""
 import os, sys
 from pathlib import Path
 from typing import Dict, Any, List, Optional
@@ -29,9 +30,9 @@ def test_postgresql_connection(config: Dict[str, str]) -> Dict[str, Any]:
             connect_timeout=5,
         )
         conn.close()
-        return {"success": True, "message": "数据库连接成�?}
+        return {"success": True, "message": "数据库连接成功"}
     except Exception as e:
-        logger.warning(f"数据库连接测试失�? {e}")
+        logger.warning(f"数据库连接测试失败: {e}")
         return {"success": False, "message": f"连接失败: {str(e)}"}
 
 

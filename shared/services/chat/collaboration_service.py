@@ -14,15 +14,21 @@ from shared.logging import default_logger as logger
 
 class TeamRole(Enum):
     """团队角色"""
-    OWNER = "owner"  # 所有�?    ADMIN = "admin"  # 管理�?    EDITOR = "editor"  # 编辑�?    VIEWER = "viewer"  # 查看�?
+    OWNER = "owner"  # 所有者
+    ADMIN = "admin"  # 管理员
+    EDITOR = "editor"  # 编辑者
+    VIEWER = "viewer"  # 查看者
+
 
 class CollaborationService:
     """
     团队协作服务
 
     功能:
-    1. 团队工作区管�?    2. 成员权限管理
-    3. 任务分配和追�?    4. 协作编辑支持
+    1. 团队工作区管理
+    2. 成员权限管理
+    3. 任务分配和追踪
+    4. 协作编辑支持
     """
 
     def __init__(self):
@@ -31,9 +37,13 @@ class CollaborationService:
     async def create_workspace(self, db, name: str, slug: str, owner_id: int,
                                description: str = None, settings: Dict = None) -> Workspace:
         """
-        创建工作�?
+        创建工作区
+
         Args:
-            db: 数据库会�?            name: 工作区名�?            slug: 工作区标�?            owner_id: 所有者ID
+            db: 数据库会话
+            name: 工作区名称
+            slug: 工作区标识
+            owner_id: 所有者ID
             description: 描述
             settings: 设置
 
@@ -42,14 +52,16 @@ class CollaborationService:
         """
         from sqlalchemy import select
 
-        # 检查slug是否已存�?        stmt = select(Workspace).where(Workspace.slug == slug)
+        # 检查slug是否已存在
+        stmt = select(Workspace).where(Workspace.slug == slug)
         result = await db.execute(stmt)
         existing = result.scalar_one_or_none()
 
         if existing:
             raise ValueError(f"Workspace with slug '{slug}' already exists")
 
-        # 创建工作�?        workspace = Workspace(
+        # 创建工作区
+        workspace = Workspace(
             name=name,
             slug=slug,
             description=description,
@@ -60,7 +72,8 @@ class CollaborationService:
         db.add(workspace)
         await db.flush()
 
-        # 添加所有者为管理�?        member = WorkspaceMember(
+        # 添加所有者为管理员
+        member = WorkspaceMember(
             workspace_id=workspace.id,
             user_id=owner_id,
             role=TeamRole.OWNER.value
@@ -79,12 +92,14 @@ class CollaborationService:
         添加成员到工作区
 
         Args:
-            db: 数据库会�?            workspace_id: 工作区ID
+            db: 数据库会话
+            workspace_id: 工作区ID
             user_id: 用户ID
             role: 角色
 
         Returns:
-            创建的成员记�?        """
+            创建的成员记录
+        """
         from sqlalchemy import select
 
         # 检查工作区是否存在
@@ -106,13 +121,15 @@ class CollaborationService:
         if existing:
             if existing.is_active:
                 raise ValueError("User is already a member of this workspace")
-            # 重新激�?            existing.is_active = True
+            # 重新激活
+            existing.is_active = True
             existing.role = role
             await db.commit()
             await db.refresh(existing)
             return existing
 
-        # 添加新成�?        member = WorkspaceMember(
+        # 添加新成员
+        member = WorkspaceMember(
             workspace_id=workspace_id,
             user_id=user_id,
             role=role
@@ -130,7 +147,8 @@ class CollaborationService:
         从工作区移除成员
 
         Args:
-            db: 数据库会�?            workspace_id: 工作区ID
+            db: 数据库会话
+            workspace_id: 工作区ID
             user_id: 用户ID
         """
         from sqlalchemy import select
@@ -145,7 +163,8 @@ class CollaborationService:
         if not member:
             raise ValueError("Member not found")
 
-        # 不能移除所有�?        if member.role == TeamRole.OWNER.value:
+        # 不能移除所有者
+        if member.role == TeamRole.OWNER.value:
             raise ValueError("Cannot remove the owner")
 
         member.is_active = False
@@ -158,9 +177,11 @@ class CollaborationService:
         更新成员角色
 
         Args:
-            db: 数据库会�?            workspace_id: 工作区ID
+            db: 数据库会话
+            workspace_id: 工作区ID
             user_id: 用户ID
-            new_role: 新角�?        """
+            new_role: 新角色
+        """
         from sqlalchemy import select
 
         if new_role not in [r.value for r in TeamRole]:
@@ -189,15 +210,18 @@ class CollaborationService:
         创建任务
 
         Args:
-            db: 数据库会�?            workspace_id: 工作区ID
+            db: 数据库会话
+            workspace_id: 工作区ID
             title: 任务标题
             created_by: 创建者ID
             description: 任务描述
             assigned_to: 分配给的用户ID
-            priority: 优先�?            due_date: 截止日期
+            priority: 优先级
+            due_date: 截止日期
 
         Returns:
-            创建的任�?        """
+            创建的任务
+        """
         task = Task(
             workspace_id=workspace_id,
             title=title,
@@ -218,10 +242,13 @@ class CollaborationService:
     async def update_task_status(self, db, task_id: int, status: str,
                                  completed_by: int = None) -> Task:
         """
-        更新任务状�?
+        更新任务状态
+
         Args:
-            db: 数据库会�?            task_id: 任务ID
-            status: 新状�?            completed_by: 完成者ID（当状态为completed时）
+            db: 数据库会话
+            task_id: 任务ID
+            status: 新状态
+            completed_by: 完成者ID（当状态为completed时）
 
         Returns:
             更新后的任务
@@ -252,9 +279,11 @@ class CollaborationService:
 
     async def get_workspace_members(self, db, workspace_id: int) -> List[Dict[str, Any]]:
         """
-        获取工作区成员列�?
+        获取工作区成员列表
+
         Args:
-            db: 数据库会�?            workspace_id: 工作区ID
+            db: 数据库会话
+            workspace_id: 工作区ID
 
         Returns:
             成员列表
@@ -292,14 +321,19 @@ class CollaborationService:
                                   assigned_to: int = None,
                                   page: int = 1, per_page: int = 20) -> Dict[str, Any]:
         """
-        获取工作区任务列�?
+        获取工作区任务列表
+
         Args:
-            db: 数据库会�?            workspace_id: 工作区ID
-            status: 状态过�?            assigned_to: 分配给用户过�?            page: 页码
+            db: 数据库会话
+            workspace_id: 工作区ID
+            status: 状态过滤
+            assigned_to: 分配给用户过滤
+            page: 页码
             per_page: 每页数量
 
         Returns:
-            任务列表和分页信�?        """
+            任务列表和分页信息
+        """
         from sqlalchemy import select, func
 
         query = select(Task).where(Task.workspace_id == workspace_id)
@@ -350,14 +384,17 @@ class CollaborationService:
     async def check_permission(self, db, workspace_id: int, user_id: int,
                                required_role: TeamRole = TeamRole.VIEWER) -> bool:
         """
-        检查用户权�?
+        检查用户权限
+
         Args:
-            db: 数据库会�?            workspace_id: 工作区ID
+            db: 数据库会话
+            workspace_id: 工作区ID
             user_id: 用户ID
             required_role: 所需角色
 
         Returns:
-            是否有权�?        """
+            是否有权限
+        """
         from sqlalchemy import select
 
         role_hierarchy = {

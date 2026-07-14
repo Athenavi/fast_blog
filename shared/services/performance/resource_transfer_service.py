@@ -1,6 +1,7 @@
 """
 外部资源下载服务
-支持断点续传、进度跟踪、队列管�?"""
+支持断点续传、进度跟踪、队列管理
+"""
 import asyncio
 import hashlib
 from datetime import datetime
@@ -36,7 +37,7 @@ class ResourceTransferService:
         try:
             # 验证URL
             if not source_url.startswith(('http://', 'https://')):
-                raise ValueError("URL必须以http://或https://开�?)
+                raise ValueError("URL必须以http://或https://开头")
 
             # 创建任务记录
             task = DownloadTask(
@@ -73,14 +74,15 @@ class ResourceTransferService:
             task = result.scalar_one_or_none()
 
             if not task:
-                logger.error(f"任务不存�? {task_id}")
+                logger.error(f"任务不存在: {task_id}")
                 return None
 
             if task.status in ["completed", "downloading"]:
                 logger.warning(f"任务状态不允许下载: {task.status}")
                 return None
 
-            # 更新任务状态为下载�?            await self._update_task_status(task, "downloading")
+            # 更新任务状态为下载中
+            await self._update_task_status(task, "downloading")
 
             # 创建临时文件路径
             file_hash = hashlib.md5(task.source_url.encode()).hexdigest()
@@ -91,12 +93,14 @@ class ResourceTransferService:
             resume_position = 0
             if temp_path.exists():
                 resume_position = temp_path.stat().st_size
-                logger.info(f"检测到未完成下载，�?{resume_position} 字节继续")
+                logger.info(f"检测到未完成下载，从 {resume_position} 字节继续")
 
-            # 开始下�?            media = await self._download_with_resume(task, temp_path, resume_position)
+            # 开始下载
+            media = await self._download_with_resume(task, temp_path, resume_position)
 
             if media:
-                # 下载成功，清理临时文�?                if temp_path.exists():
+                # 下载成功，清理临时文件
+                if temp_path.exists():
                     temp_path.unlink()
                 logger.info(f"下载完成: {media.original_filename}")
                 return media
@@ -106,11 +110,13 @@ class ResourceTransferService:
 
         except Exception as e:
             logger.error(f"执行下载任务失败 (task_id={task_id}): {e}", exc_info=True)
-            # 先回�?session 使其可重�?            try:
+            # 先回滚 session 使其可重用
+            try:
                 await self.db.rollback()
             except Exception:
                 pass
-            # �?raw SQL 更新任务状�?            try:
+            # 用 raw SQL 更新任务状态
+            try:
                 from sqlalchemy import update
                 await self.db.execute(
                     update(DownloadTask)
@@ -119,11 +125,12 @@ class ResourceTransferService:
                 )
                 await self.db.flush()
             except Exception as e2:
-                logger.error(f"无法更新任务 {task_id} 状�? {e2}")
+                logger.error(f"无法更新任务 {task_id} 状态: {e2}")
             return None
 
         finally:
-            # 清理临时文件（如果存在且下载失败�?            if temp_path and temp_path.exists():
+            # 清理临时文件（如果存在且下载失败）
+            if temp_path and temp_path.exists():
                 try:
                     temp_path.unlink()
                 except:
@@ -145,7 +152,8 @@ class ResourceTransferService:
         try:
             async with aiohttp.ClientSession(timeout=timeout) as session:
                 async with session.get(task.source_url, headers=headers) as response:
-                    # 检查响应状�?                    if response.status not in [200, 206]:
+                    # 检查响应状态
+                    if response.status not in [200, 206]:
                         raise Exception(f"HTTP错误: {response.status}")
 
                     # 获取文件大小
@@ -153,7 +161,8 @@ class ResourceTransferService:
                     total_size = int(content_length) if content_length else None
 
                     if total_size:
-                        # 计算总大小（考虑断点续传�?                        actual_total = resume_position + total_size
+                        # 计算总大小（考虑断点续传）
+                        actual_total = resume_position + total_size
                         await self._update_task_progress(task, actual_total, resume_position)
 
                     # 打开文件准备写入
@@ -167,15 +176,17 @@ class ResourceTransferService:
                             downloaded_size += len(chunk)
                             chunk_count += 1
 
-                            # 每下载几个chunk更新一次进�?                            if chunk_count % 5 == 0:
+                            # 每下载几个chunk更新一次进度
+                            if chunk_count % 5 == 0:
                                 await self._update_task_progress(
                                     task, actual_total if total_size else None, downloaded_size
                                 )
 
-                    # 下载完成，处理文�?                    return await self._finalize_download(task, temp_path, downloaded_size)
+                    # 下载完成，处理文件
+                    return await self._finalize_download(task, temp_path, downloaded_size)
 
         except asyncio.CancelledError:
-            logger.info(f"任务被取�? {task.id}")
+            logger.info(f"任务被取消: {task.id}")
             await self._update_task_status(task, "cancelled")
             return None
 
@@ -206,7 +217,7 @@ class ResourceTransferService:
             temp_path: Path,
             file_size: int
     ) -> Optional[Media]:
-        """完成下载，创建媒体记�?""
+        """完成下载，创建媒体记录"""
         try:
             # 读取文件数据
             with open(temp_path, 'rb') as f:
@@ -218,15 +229,17 @@ class ResourceTransferService:
             # 检测MIME类型
             mime_type = await self._detect_mime_type(file_data, task.source_url)
 
-            # 生成文件�?            ext = self._get_extension_from_mime(mime_type)
+            # 生成文件名
+            ext = self._get_extension_from_mime(mime_type)
             filename = f"{file_hash}{ext}"
 
-            # 移动到最终位�?            final_path = self.download_dir / filename[:2] / filename
+            # 移动到最终位置
+            final_path = self.download_dir / filename[:2] / filename
             final_path.parent.mkdir(parents=True, exist_ok=True)
 
             # 如果文件已存在，跳过写入
             if final_path.exists():
-                logger.info(f"文件已存�? {filename}")
+                logger.info(f"文件已存在: {filename}")
             else:
                 with open(final_path, 'wb') as f:
                     f.write(file_data)
@@ -236,7 +249,8 @@ class ResourceTransferService:
                 file_hash, file_size, mime_type, str(final_path.relative_to(Path(".")))
             )
 
-            # 创建Media记录（允许重�?hash�?            media = Media(
+            # 创建Media记录（允许重复 hash）
+            media = Media(
                 user=task.user_id,
                 hash=file_hash,
                 original_filename=task.filename or f"downloaded_{datetime.now().strftime('%Y%m%d_%H%M%S')}{ext}",
@@ -244,13 +258,14 @@ class ResourceTransferService:
                 file_size=file_size,
                 file_type=self._get_media_type(mime_type),
                 mime_type=mime_type,
-                description=f"�?{task.source_url} 下载"
+                description=f"从 {task.source_url} 下载"
             )
             self.db.add(media)
             await self.db.flush()
             await self.db.refresh(media)
 
-            # 更新任务状�?            await self.db.execute(
+            # 更新任务状态
+            await self.db.execute(
                 update(DownloadTask)
                 .where(DownloadTask.id == task.id)
                 .values(
@@ -274,7 +289,7 @@ class ResourceTransferService:
             status: str,
             error_message: Optional[str] = None
     ):
-        """更新任务状态（只用 flush，由外部统一 commit�?""
+        """更新任务状态（只用 flush，由外部统一 commit）"""
         now = datetime.now()
 
         updates = {
@@ -302,7 +317,7 @@ class ResourceTransferService:
             total_size: Optional[int],
             downloaded_size: int
     ):
-        """更新下载进度（只�?flush，由外部统一 commit�?""
+        """更新下载进度（只用 flush，由外部统一 commit）"""
         progress = 0
         if total_size and total_size > 0:
             progress = min(int((downloaded_size / total_size) * 100), 100)
@@ -325,13 +340,14 @@ class ResourceTransferService:
 
         if task.retry_count < task.max_retries:
             # 可以重试
-            logger.info(f"任务 {task.id} 将重�?({task.retry_count}/{task.max_retries})")
+            logger.info(f"任务 {task.id} 将重试 ({task.retry_count}/{task.max_retries})")
             await self._update_task_status(
                 task, "pending",
                 error_message=f"重试 {task.retry_count}: {str(error)}"
             )
         else:
-            # 达到最大重试次�?            logger.error(f"任务 {task.id} 达到最大重试次�?)
+            # 达到最大重试次数
+            logger.error(f"任务 {task.id} 达到最大重试次数")
             await self._update_task_status(
                 task, "failed",
                 error_message=f"失败: {str(error)}"
@@ -339,7 +355,8 @@ class ResourceTransferService:
 
     async def _detect_mime_type(self, file_data: bytes, url: str) -> str:
         """检测MIME类型"""
-        # 简单的魔数检�?        if file_data[:8] == b'\x89PNG\r\n\x1a\n':
+        # 简单的魔数检测
+        if file_data[:8] == b'\x89PNG\r\n\x1a\n':
             return 'image/png'
         elif file_data[:3] == b'\xff\xd8\xff':
             return 'image/jpeg'
@@ -350,7 +367,8 @@ class ResourceTransferService:
         elif file_data[:4] == b'\x00\x00\x00\x1c' or file_data[4:8] == b'ftyp':
             return 'video/mp4'
 
-        # 从URL扩展名推�?        url_lower = url.lower()
+        # 从URL扩展名推断
+        url_lower = url.lower()
         if any(url_lower.endswith(ext) for ext in ['.jpg', '.jpeg']):
             return 'image/jpeg'
         elif url_lower.endswith('.png'):
@@ -368,7 +386,7 @@ class ResourceTransferService:
         return 'application/octet-stream'
 
     def _get_extension_from_mime(self, mime_type: str) -> str:
-        """根据MIME类型获取扩展�?""
+        """根据MIME类型获取扩展名"""
         ext_map = {
             'image/jpeg': '.jpg',
             'image/png': '.png',
@@ -418,7 +436,7 @@ class ResourceTransferService:
         return file_hash_record
 
     async def get_task_status(self, task_id: int) -> Optional[Dict[str, Any]]:
-        """获取任务状�?""
+        """获取任务状态"""
         result = await self.db.execute(
             select(DownloadTask).where(DownloadTask.id == task_id)
         )

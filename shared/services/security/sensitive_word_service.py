@@ -1,5 +1,7 @@
 """
-敏感词过滤服�?提供内容审核和敏感词检测功�?"""
+敏感词过滤服务
+提供内容审核和敏感词检测功能
+"""
 
 
 from datetime import datetime
@@ -14,7 +16,7 @@ from shared.logging import default_logger as logger
 
 
 class SensitiveWordService:
-    """敏感词过滤服�?""
+    """敏感词过滤服务"""
 
     def __init__(self):
         self._cache: Dict[str, SensitiveWord] = {}
@@ -55,8 +57,10 @@ class SensitiveWordService:
             
         Returns:
             {
-                'has_sensitive': bool,  # 是否包含敏感�?                'words_found': [],  # 发现的敏感词列表
-                'highest_level': 0,  # 最高敏感级�?                'actions': []  # 需要执行的操作列表
+                'has_sensitive': bool,  # 是否包含敏感词
+                'words_found': [],  # 发现的敏感词列表
+                'highest_level': 0,  # 最高敏感级别
+                'actions': []  # 需要执行的操作列表
             }
         """
         if not content:
@@ -97,7 +101,8 @@ class SensitiveWordService:
 
     async def filter_content(self, content: str) -> Tuple[str, List[Dict]]:
         """
-        过滤内容中的敏感�?        
+        过滤内容中的敏感词
+        
         Args:
             content: 原始内容
             
@@ -112,7 +117,8 @@ class SensitiveWordService:
         filtered_content = content
         for word_info in result['words_found']:
             if word_info['action'] == 'replace' and word_info['replacement']:
-                # 替换敏感�?                filtered_content = filtered_content.replace(
+                # 替换敏感词
+                filtered_content = filtered_content.replace(
                     word_info['word'],
                     word_info['replacement']
                 )
@@ -137,7 +143,7 @@ class SensitiveWordService:
         """
         result = await self.check_content(content)
 
-        # 如果包含任何需要拦截的敏感词，或者最高级�?=3
+        # 如果包含任何需要拦截的敏感词，或者最高级别>=3
         if 'block' in result['actions'] or result['highest_level'] >= 3:
             return True
 
@@ -153,11 +159,14 @@ class SensitiveWordService:
             created_by: Optional[int] = None
     ) -> SensitiveWord:
         """
-        添加敏感�?        
+        添加敏感词
+        
         Args:
-            word: 敏感�?            level: 敏感级别 (1-3)
+            word: 敏感词
+            level: 敏感级别 (1-3)
             action: 处理方式 (block/replace/warn)
-            replacement: 替换�?            category: 分类
+            replacement: 替换词
+            category: 分类
             created_by: 创建者ID
             
         Returns:
@@ -197,7 +206,8 @@ class SensitiveWordService:
 
     async def remove_sensitive_word(self, word_id: int) -> bool:
         """
-        删除敏感�?        
+        删除敏感词
+        
         Args:
             word_id: 敏感词ID
             
@@ -234,15 +244,19 @@ class SensitiveWordService:
             is_active: Optional[bool] = None
     ) -> Optional[SensitiveWord]:
         """
-        更新敏感�?        
+        更新敏感词
+        
         Args:
             word_id: 敏感词ID
             level: 敏感级别
             action: 处理方式
-            replacement: 替换�?            category: 分类
-            is_active: 是否激�?            
+            replacement: 替换词
+            category: 分类
+            is_active: 是否激活
+            
         Returns:
-            更新后的敏感词对�?        """
+            更新后的敏感词对象
+        """
         async with db_manager.get_session() as session:
             result = await session.execute(
                 select(SensitiveWord).where(SensitiveWord.id == word_id)
@@ -281,9 +295,13 @@ class SensitiveWordService:
             per_page: int = 50
     ) -> Dict:
         """
-        获取敏感词列�?        
+        获取敏感词列表
+        
         Args:
-            level: 敏感级别筛�?            category: 分类筛�?            is_active: 激活状态筛�?            page: 页码
+            level: 敏感级别筛选
+            category: 分类筛选
+            is_active: 激活状态筛选
+            page: 页码
             per_page: 每页数量
             
         Returns:
@@ -311,14 +329,16 @@ class SensitiveWordService:
             total_result = await session.execute(count_query)
             total = total_result.scalar()
 
-            # 分页和排�?            query = query.order_by(SensitiveWord.created_at.desc())
+            # 分页和排序
+            query = query.order_by(SensitiveWord.created_at.desc())
             offset = (page - 1) * per_page
             query = query.offset(offset).limit(per_page)
 
             result = await session.execute(query)
             words = result.scalars().all()
 
-            # 计算总页�?            pages = (total + per_page - 1) // per_page if per_page > 0 else 0
+            # 计算总页数
+            pages = (total + per_page - 1) // per_page if per_page > 0 else 0
 
             return {
                 'items': [word.to_dict() for word in words],
@@ -330,7 +350,8 @@ class SensitiveWordService:
 
     async def batch_import_words(self, words: List[Dict], created_by: Optional[int] = None) -> Dict:
         """
-        批量导入敏感�?        
+        批量导入敏感词
+        
         Args:
             words: 敏感词列表，每个元素为字典，包含 word, level, action, replacement, category
             created_by: 创建者ID

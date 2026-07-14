@@ -19,14 +19,14 @@ class TranslationService:
     功能:
     1. 翻译文件管理
     2. 语言检测和切换
-    3. 自动翻译（集成第三方API�?
+    3. 自动翻译（集成第三方API）
     4. 翻译缓存
-    5. 缺失翻译检�?
+    5. 缺失翻译检测
     """
 
     def __init__(self, translations_dir: str = None):
         """
-        初始化翻译服�?
+        初始化翻译服务
         
         Args:
             translations_dir: 翻译文件目录
@@ -38,8 +38,8 @@ class TranslationService:
         self.supported_languages = {
             'en': {'name': 'English', 'native_name': 'English', 'direction': 'ltr'},
             'zh': {'name': 'Chinese', 'native_name': '中文', 'direction': 'ltr'},
-            'ja': {'name': 'Japanese', 'native_name': '日本�?, 'direction': 'ltr'},
-            'ko': {'name': 'Korean', 'native_name': '한국�?, 'direction': 'ltr'},
+            'ja': {'name': 'Japanese', 'native_name': '日本語', 'direction': 'ltr'},
+            'ko': {'name': 'Korean', 'native_name': '한국어', 'direction': 'ltr'},
             'es': {'name': 'Spanish', 'native_name': 'Español', 'direction': 'ltr'},
             'fr': {'name': 'French', 'native_name': 'Français', 'direction': 'ltr'},
             'de': {'name': 'German', 'native_name': 'Deutsch', 'direction': 'ltr'},
@@ -56,7 +56,7 @@ class TranslationService:
         self._load_translations()
 
     def _load_translations(self):
-        """加载所有翻译文�?""
+        """加载所有翻译文件"""
         for lang_code in self.supported_languages.keys():
             translation_file = os.path.join(self.translations_dir, f'{lang_code}.json')
             if os.path.exists(translation_file):
@@ -75,9 +75,9 @@ class TranslationService:
         获取翻译
         
         Args:
-            key: 翻译�?
+            key: 翻译键
             language: 语言代码
-            default: 默认�?
+            default: 默认值
             
         Returns:
             翻译文本
@@ -96,7 +96,7 @@ class TranslationService:
             if translation:
                 return translation
 
-        # 返回默认值或键本�?
+        # 返回默认值或键本身
         return default or key
 
     def set_translation(self, key: str, value: str, language: str):
@@ -104,8 +104,8 @@ class TranslationService:
         设置翻译
         
         Args:
-            key: 翻译�?
-            value: 翻译�?
+            key: 翻译键
+            value: 翻译值
             language: 语言代码
         """
         if language not in self.translation_cache:
@@ -113,11 +113,11 @@ class TranslationService:
 
         self.translation_cache[language][key] = value
 
-        # 保存到文�?
+        # 保存到文件
         self._save_translations(language)
 
     def _save_translations(self, language: str):
-        """保存翻译到文�?""
+        """保存翻译到文件"""
         translation_file = os.path.join(self.translations_dir, f'{language}.json')
 
         try:
@@ -150,7 +150,7 @@ class TranslationService:
         检测用户语言
         
         Args:
-            accept_language: HTTP Accept-Language�?
+            accept_language: HTTP Accept-Language头
             
         Returns:
             检测到的语言代码
@@ -158,7 +158,7 @@ class TranslationService:
         if not accept_language:
             return self.default_language
 
-        # 解析Accept-Language�?
+        # 解析Accept-Language头
         languages = [lang.split(';')[0].strip() for lang in accept_language.split(',')]
 
         for lang in languages:
@@ -166,7 +166,7 @@ class TranslationService:
             if lang in self.supported_languages:
                 return lang
 
-            # 尝试主语言匹配 (�?zh-CN -> zh)
+            # 尝试主语言匹配 (如 zh-CN -> zh)
             main_lang = lang.split('-')[0]
             if main_lang in self.supported_languages:
                 return main_lang
@@ -176,7 +176,7 @@ class TranslationService:
     async def auto_translate(self, text: str, from_lang: str, to_lang: str,
                              api_key: str = None) -> str:
         """
-        自动翻译文本（使用第三方API�?
+        自动翻译文本（使用第三方API）
         
         Args:
             text: 要翻译的文本
@@ -195,7 +195,7 @@ class TranslationService:
             return text
 
         # 这里可以集成不同的翻译API
-        # 例如 Google Translate, DeepL, Azure Translator�?
+        # 例如 Google Translate, DeepL, Azure Translator等
 
         try:
             # 示例：使用Google Translate API
@@ -248,7 +248,7 @@ class TranslationService:
         导出翻译
         
         Args:
-            language: 语言代码（None表示所有语言�?
+            language: 语言代码（None表示所有语言）
             
         Returns:
             翻译数据
@@ -272,7 +272,7 @@ class TranslationService:
         Args:
             language: 语言代码
             translations: 翻译数据
-            merge: 是否合并（True）或覆盖（False�?
+            merge: 是否合并（True）或覆盖（False）
         """
         if language not in self.translation_cache:
             self.translation_cache[language] = {}
@@ -282,7 +282,7 @@ class TranslationService:
         else:
             self.translation_cache[language] = translations
 
-        # 保存到文�?
+        # 保存到文件
         self._save_translations(language)
 
     def get_translation_stats(self) -> Dict[str, Any]:

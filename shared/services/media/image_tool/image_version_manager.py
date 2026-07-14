@@ -12,9 +12,10 @@ from typing import Dict, List, Optional
 
 from PIL import Image
 
-# �? from updater.updater import base_dir
-# updater/ �?.dockerignore 排除，改为本地计算项目根目录
-base_dir = Path(__file__).resolve().parents[4]  # shared/services/media/image_tool/ �?项目�?
+# 原: from updater.updater import base_dir
+# updater/ 被 .dockerignore 排除，改为本地计算项目根目录
+base_dir = Path(__file__).resolve().parents[4]  # shared/services/media/image_tool/ → 项目根
+
 from shared.logging import default_logger as logger
 
 # 预定义的尺寸配置
@@ -29,9 +30,10 @@ SIZE_PRESETS = {
 
 class ImageVersionManager:
     """
-    图片版本管理�?
+    图片版本管理器
+
     功能:
-    1. 生成多个尺寸的图片版�?(thumbnail, small, medium, large)
+    1. 生成多个尺寸的图片版本 (thumbnail, small, medium, large)
     2. 保留原图备份
     3. 管理版本文件生命周期
     """
@@ -47,14 +49,16 @@ class ImageVersionManager:
             backup_original: bool = True
     ) -> Dict[str, str]:
         """
-        为图片生成多个尺寸版�?
+        为图片生成多个尺寸版本
+
         Args:
-            image_path: 原图路径（相对于MEDIA_ROOT�?            sizes: 需要生成的尺寸列表，默认为 ['thumbnail', 'small', 'medium', 'large']
+            image_path: 原图路径（相对于MEDIA_ROOT）
+            sizes: 需要生成的尺寸列表，默认为 ['thumbnail', 'small', 'medium', 'large']
             quality: JPEG/WEBP 质量 (1-100)
             backup_original: 是否备份原图
 
         Returns:
-            生成的版本字�?{size_name: file_path}
+            生成的版本字典 {size_name: file_path}
         """
         if sizes is None:
             sizes = ['thumbnail', 'small', 'medium', 'large']
@@ -63,7 +67,7 @@ class ImageVersionManager:
         full_path = os.path.join(self.media_root, image_path.lstrip('/'))
 
         if not os.path.exists(full_path):
-            raise FileNotFoundError(f"图片文件不存�? {full_path}")
+            raise FileNotFoundError(f"图片文件不存在: {full_path}")
 
         # 备份原图
         if backup_original:
@@ -96,9 +100,10 @@ class ImageVersionManager:
                     size_name, preset, quality
                 )
 
-                # 转换为相对路�?                relative_path = os.path.relpath(version_path, self.media_root)
+                # 转换为相对路径
+                relative_path = os.path.relpath(version_path, self.media_root)
                 generated_versions[size_name] = relative_path
-                logger.info(f"已生�?{size_name} 版本: {relative_path}")
+                logger.info(f"已生成 {size_name} 版本: {relative_path}")
 
             except Exception as e:
                 logger.error(f"生成 {size_name} 版本失败: {e}")
@@ -149,29 +154,36 @@ class ImageVersionManager:
             img: PIL图片对象
             output_dir: 输出目录
             file_stem: 文件名（不含扩展名）
-            file_ext: 文件扩展�?            size_name: 尺寸名称
+            file_ext: 文件扩展名
+            size_name: 尺寸名称
             preset: 尺寸预设配置
             quality: 输出质量
 
         Returns:
-            生成的版本文件路�?        """
+            生成的版本文件路径
+        """
         width = preset['width']
         height = preset.get('height')
         crop = preset.get('crop', False)
 
-        # 创建副本以避免修改原�?        img_copy = img.copy()
+        # 创建副本以避免修改原图
+        img_copy = img.copy()
 
         if crop and height:
-            # 居中裁剪为固定尺�?            img_copy = self._center_crop(img_copy, width, height)
+            # 居中裁剪为固定尺寸
+            img_copy = self._center_crop(img_copy, width, height)
         else:
-            # 保持宽高比调整大�?            if height:
+            # 保持宽高比调整大小
+            if height:
                 img_copy.thumbnail((width, height), Image.LANCZOS)
             else:
-                # 只指定宽�?                ratio = width / img_copy.width
+                # 只指定宽度
+                ratio = width / img_copy.width
                 new_height = int(img_copy.height * ratio)
                 img_copy = img_copy.resize((width, new_height), Image.LANCZOS)
 
-        # 生成输出文件�?        output_filename = f"{file_stem}_{size_name}{file_ext}"
+        # 生成输出文件名
+        output_filename = f"{file_stem}_{size_name}{file_ext}"
         output_path = os.path.join(output_dir, output_filename)
 
         # 保存图片
@@ -227,10 +239,12 @@ class ImageVersionManager:
             sizes: Optional[List[str]] = None
     ) -> List[str]:
         """
-        清理指定图片的所有版�?
+        清理指定图片的所有版本
+
         Args:
             image_path: 原图路径
-            sizes: 要清理的尺寸列表，默认为所�?
+            sizes: 要清理的尺寸列表，默认为所有
+
         Returns:
             已删除的文件列表
         """
@@ -251,7 +265,7 @@ class ImageVersionManager:
                 try:
                     os.remove(version_path)
                     deleted_files.append(version_path)
-                    logger.info(f"已删除版�? {version_path}")
+                    logger.info(f"已删除版本: {version_path}")
                 except Exception as e:
                     logger.error(f"删除版本失败 {version_path}: {e}")
 
@@ -263,13 +277,14 @@ class ImageVersionManager:
             size_name: str
     ) -> Optional[str]:
         """
-        获取指定版本的文件路�?
+        获取指定版本的文件路径
+
         Args:
             image_path: 原图路径
             size_name: 尺寸名称
 
         Returns:
-            版本文件路径，如果不存在则返�?None
+            版本文件路径，如果不存在则返回 None
         """
         full_path = os.path.join(self.media_root, image_path.lstrip('/'))
         file_dir = os.path.dirname(full_path)

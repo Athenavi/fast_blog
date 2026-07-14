@@ -1,6 +1,6 @@
 """
 定时报表生成服务
-支持定期自动生成报表并保�?
+支持定期自动生成报表并保存
 """
 
 
@@ -33,7 +33,7 @@ class ScheduledReportService:
                 - export_format: 导出格式 (json/csv)
                 
         Returns:
-            创建的定时报表配�?
+            创建的定时报表配置
         """
         from shared.models.scheduled_report import ScheduledReport
 
@@ -48,7 +48,7 @@ class ScheduledReportService:
             next_run = now + timedelta(weeks=1)
             next_run = next_run.replace(hour=0, minute=0, second=0, microsecond=0)
         elif frequency == 'monthly':
-            # 下个月的第一�?
+            # 下个月的第一天
             if now.month == 12:
                 next_run = now.replace(year=now.year + 1, month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
             else:
@@ -83,7 +83,7 @@ class ScheduledReportService:
         }
 
     async def get_scheduled_reports(self) -> List[Dict]:
-        """获取所有定时报表任�?""
+        """获取所有定时报表任务"""
         from shared.models.scheduled_report import ScheduledReport
 
         result = await self.db.execute(
@@ -132,8 +132,8 @@ class ScheduledReportService:
 
     async def run_scheduled_reports(self):
         """
-        执行到期的定时报表任�?
-        这个方法应该被定时任务调度器调用（如APScheduler�?
+        执行到期的定时报表任务
+        这个方法应该被定时任务调度器调用（如APScheduler）
         """
         from shared.models.scheduled_report import ScheduledReport
         from shared.services.system.report_generator import ReportGenerator

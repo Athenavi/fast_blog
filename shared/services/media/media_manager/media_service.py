@@ -1,7 +1,8 @@
 """
 媒体管理服务
-SQLAlchemy async 版本 �?替代�?Django ORM 实现
-提供缩略图生成、分类标签、批量操作、EXIF处理�?"""
+SQLAlchemy async 版本 — 替代原 Django ORM 实现
+提供缩略图生成、分类标签、批量操作、EXIF处理等
+"""
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, Any, List, Optional, Tuple
@@ -13,7 +14,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from shared.models.media import Media
 from shared.logging import default_logger as logger
 
-# 默认缩略图尺寸配�?DEFAULT_THUMBNAIL_SIZES = [
+# 默认缩略图尺寸配置
+DEFAULT_THUMBNAIL_SIZES = [
     ('small', (150, 150)),
     ('medium', (300, 300)),
     ('large', (600, 600)),
@@ -25,17 +27,20 @@ EXIF_DATE_FORMAT = '%Y:%m:%d %H:%M:%S'
 
 class MediaService:
     """
-    媒体服务（SQLAlchemy async�?    
+    媒体服务（SQLAlchemy async）
+    
     功能:
     1. 自动生成多尺寸缩略图
-    2. 媒体分类和标签管�?    3. 批量操作支持
-    4. EXIF数据提取和处�?    """
+    2. 媒体分类和标签管理
+    3. 批量操作支持
+    4. EXIF数据提取和处理
+    """
 
     def __init__(self, media_dir: str = "storage/objects"):
         self.media_dir = Path(media_dir)
         self.media_dir.mkdir(parents=True, exist_ok=True)
 
-    # ==================== 缩略图生�?====================
+    # ==================== 缩略图生成 ====================
 
     def generate_thumbnails(
             self,
@@ -58,16 +63,16 @@ class MediaService:
                 thumb.save(thumb_path, optimize=True, quality=85)
                 thumbnails[size_name] = str(thumb_path)
         except Exception as e:
-            logger.error(f"生成缩略图失�? {e}")
+            logger.error(f"生成缩略图失败: {e}")
 
         return thumbnails
 
     def _get_thumbnail_path(self, original_path: str, size_name: str) -> Path:
-        """获取缩略图路�?""
+        """获取缩略图路径"""
         original = Path(original_path)
         return original.parent / f"{original.stem}_{size_name}{original.suffix}"
 
-    # ==================== 分类和标签（SQLAlchemy async�?====================
+    # ==================== 分类和标签（SQLAlchemy async） ====================
 
     def _parse_tags(self, tags_str: Optional[str]) -> List[str]:
         """解析标签字符串为列表"""
@@ -76,7 +81,7 @@ class MediaService:
         return [tag.strip() for tag in tags_str.split(',') if tag.strip()]
 
     async def add_tags(self, db: AsyncSession, media_id: int, user_id: int, tags: List[str]) -> bool:
-        """为媒体添加标�?""
+        """为媒体添加标签"""
         try:
             result = await db.execute(
                 select(Media).where(Media.id == media_id, Media.user == user_id)
@@ -128,7 +133,7 @@ class MediaService:
             return []
 
     async def get_all_tags(self, db: AsyncSession, user_id: Optional[int] = None) -> List[str]:
-        """获取所有标�?""
+        """获取所有标签"""
         try:
             query = select(Media.tags).where(
                 Media.tags.isnot(None),
@@ -144,7 +149,7 @@ class MediaService:
                     all_tags.update(self._parse_tags(tags))
             return sorted(all_tags)
         except Exception as e:
-            logger.error(f"获取所有标签失�? {e}")
+            logger.error(f"获取所有标签失败: {e}")
             return []
 
     async def categorize_media(self, db: AsyncSession, media_id: int, user_id: int, category: str) -> bool:
@@ -179,7 +184,7 @@ class MediaService:
                 media = result.scalar_one_or_none()
                 if not media:
                     results['failed'] += 1
-                    results['errors'].append({'media_id': media_id, 'error': '媒体不存�?})
+                    results['errors'].append({'media_id': media_id, 'error': '媒体不存在'})
                     continue
 
                 # 删除物理文件
@@ -262,7 +267,8 @@ class MediaService:
     def remove_exif(self, input_path: str, output_path: Optional[str] = None) -> bool:
         """
         移除EXIF数据(保护隐私)
-        使用 PIL 保存时清�?EXIF 但不重编码像素数�?        """
+        使用 PIL 保存时清除 EXIF 但不重编码像素数据
+        """
         try:
             output_path = output_path or input_path
             img = Image.open(input_path)

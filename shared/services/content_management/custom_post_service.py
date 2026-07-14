@@ -1,5 +1,7 @@
 """
-自定义文章类型内容管理服�?提供 CustomPostContent �?CRUD 操作和查�?"""
+自定义文章类型内容管理服务
+提供 CustomPostContent 的 CRUD 操作和查询
+"""
 
 import json
 from datetime import datetime, timezone
@@ -32,11 +34,11 @@ async def create_custom_post_content(
     status: int = 0,
     password: Optional[str] = None,
 ) -> Optional[CustomPostContent]:
-    """创建自定义文章内�?""
+    """创建自定义文章内容"""
     try:
         now = datetime.now(timezone.utc)
 
-        # 检�?slug 唯一性（在同一 post_type 内）
+        # 检查 slug 唯一性（在同一 post_type 内）
         existing = await db.scalar(
             select(CustomPostContent).where(
                 CustomPostContent.post_type_id == post_type_id,
@@ -44,7 +46,7 @@ async def create_custom_post_content(
             )
         )
         if existing:
-            logger.warning(f"自定义内�?slug 重复: post_type_id={post_type_id}, slug={slug}")
+            logger.warning(f"自定义内容 slug 重复: post_type_id={post_type_id}, slug={slug}")
             return None
 
         post = CustomPostContent(
@@ -68,7 +70,7 @@ async def create_custom_post_content(
 
     except Exception as e:
         await db.rollback()
-        logger.error(f"创建自定义内容失�? {e}", exc_info=True)
+        logger.error(f"创建自定义内容失败: {e}", exc_info=True)
         return None
 
 
@@ -77,7 +79,7 @@ async def get_custom_post_content(
     content_id: int,
     post_type_id: Optional[int] = None,
 ) -> Optional[CustomPostContent]:
-    """获取自定义文章内�?""
+    """获取自定义文章内容"""
     query = select(CustomPostContent).where(CustomPostContent.id == content_id)
     if post_type_id:
         query = query.where(CustomPostContent.post_type_id == post_type_id)
@@ -90,7 +92,7 @@ async def update_custom_post_content(
     content_id: int,
     **kwargs,
 ) -> bool:
-    """更新自定义文章内�?""
+    """更新自定义文章内容"""
     try:
         result = await db.execute(
             select(CustomPostContent).where(CustomPostContent.id == content_id)
@@ -99,7 +101,8 @@ async def update_custom_post_content(
         if not post:
             return False
 
-        # 如果更新 slug，检查唯一性（排除自身�?        if 'slug' in kwargs and kwargs['slug'] is not None:
+        # 如果更新 slug，检查唯一性（排除自身）
+        if 'slug' in kwargs and kwargs['slug'] is not None:
             slug_dup = await db.scalar(
                 select(CustomPostContent).where(
                     CustomPostContent.post_type_id == post.post_type_id,
@@ -111,7 +114,8 @@ async def update_custom_post_content(
                 logger.warning(f"更新自定义内容时 slug 重复: id={content_id}, slug={kwargs['slug']}")
                 return False
 
-        # 只允许更新已知字�?        allowed = {'title', 'slug', 'content', 'excerpt', 'meta', 'status', 'is_featured', 'password'}
+        # 只允许更新已知字段
+        allowed = {'title', 'slug', 'content', 'excerpt', 'meta', 'status', 'is_featured', 'password'}
         for key, value in kwargs.items():
             if key in allowed and value is not None:
                 if key == 'meta' and isinstance(value, dict):
@@ -128,12 +132,12 @@ async def update_custom_post_content(
 
     except Exception as e:
         await db.rollback()
-        logger.error(f"更新自定义内容失�? {e}", exc_info=True)
+        logger.error(f"更新自定义内容失败: {e}", exc_info=True)
         return False
 
 
 async def delete_custom_post_content(db: AsyncSession, content_id: int) -> bool:
-    """删除自定义文章内�?""
+    """删除自定义文章内容"""
     try:
         result = await db.execute(
             select(CustomPostContent).where(CustomPostContent.id == content_id)
@@ -148,7 +152,7 @@ async def delete_custom_post_content(db: AsyncSession, content_id: int) -> bool:
 
     except Exception as e:
         await db.rollback()
-        logger.error(f"删除自定义内容失�? {e}", exc_info=True)
+        logger.error(f"删除自定义内容失败: {e}", exc_info=True)
         return False
 
 
@@ -159,7 +163,7 @@ async def list_custom_post_contents(
     per_page: int = 20,
     status: Optional[int] = None,
 ) -> Dict[str, Any]:
-    """分页列出自定义文章内�?""
+    """分页列出自定义文章内容"""
     query = select(CustomPostContent).where(CustomPostContent.post_type_id == post_type_id)
 
     if status is not None:

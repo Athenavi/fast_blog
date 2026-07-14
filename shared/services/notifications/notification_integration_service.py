@@ -1,7 +1,7 @@
 """
-通知集成服务（Slack/Discord/Webhook�?
+通知集成服务（Slack/Discord/Webhook）
 
-功能�?
+功能：
 1. 通知渠道配置管理
 2. 新文章发布通知
 3. 评论通知
@@ -38,8 +38,8 @@ class NotificationIntegrationService:
         获取通知集成配置
         
         Args:
-            db: 数据库会�?
-            platform: 平台类型（slack/discord/webhook�?
+            db: 数据库会话
+            platform: 平台类型（slack/discord/webhook）
             site_id: 站点 ID（可选）
             
         Returns:
@@ -77,7 +77,7 @@ class NotificationIntegrationService:
         创建通知集成配置
         
         Args:
-            db: 数据库会�?
+            db: 数据库会话
             platform: 平台类型
             webhook_url: Webhook URL
             bot_token: Bot Token
@@ -89,7 +89,7 @@ class NotificationIntegrationService:
             notification_template: 通知模板
             
         Returns:
-            创建的配置对�?
+            创建的配置对象
         """
         # 检查是否已存在配置
         existing = await self.get_config(db, platform, site_id)
@@ -126,7 +126,7 @@ class NotificationIntegrationService:
         更新通知集成配置
         
         Args:
-            db: 数据库会�?
+            db: 数据库会话
             config_id: 配置 ID
             updates: 更新字段字典
             
@@ -156,7 +156,7 @@ class NotificationIntegrationService:
         停用通知集成配置
         
         Args:
-            db: 数据库会�?
+            db: 数据库会话
             config_id: 配置 ID
         """
         config = await db.get(NotificationIntegration, config_id)
@@ -187,7 +187,7 @@ class NotificationIntegrationService:
             fields: 附加字段
             
         Returns:
-            是否发送成�?
+            是否发送成功
         """
         try:
             if config.platform == 'slack':
@@ -211,7 +211,7 @@ class NotificationIntegrationService:
             color: Optional[str] = None,
             fields: Optional[List[Dict]] = None,
     ) -> bool:
-        """发�?Slack 通知"""
+        """发送 Slack 通知"""
         payload = {
             "text": message,
         }
@@ -246,7 +246,7 @@ class NotificationIntegrationService:
             color: Optional[str] = None,
             fields: Optional[List[Dict]] = None,
     ) -> bool:
-        """发�?Discord 通知"""
+        """发送 Discord 通知"""
         embed = {
             "description": message,
             "color": int(color.lstrip('#'), 16) if color else 5763719,
@@ -315,10 +315,10 @@ class NotificationIntegrationService:
         发送新文章发布通知
         
         Args:
-            db: 数据库会�?
+            db: 数据库会话
             article_title: 文章标题
             article_url: 文章 URL
-            author_name: 作者名�?
+            author_name: 作者名称
             site_id: 站点 ID
         """
         configs = await self.get_configs_for_event(db, 'enable_new_article_notification', site_id)
@@ -348,10 +348,10 @@ class NotificationIntegrationService:
         发送新评论通知
         
         Args:
-            db: 数据库会�?
+            db: 数据库会话
             comment_content: 评论内容
             article_title: 文章标题
-            commenter_name: 评论者名�?
+            commenter_name: 评论者名称
             site_id: 站点 ID
         """
         configs = await self.get_configs_for_event(db, 'enable_comment_notification', site_id)
@@ -377,12 +377,12 @@ class NotificationIntegrationService:
             site_id: Optional[int] = None,
     ):
         """
-        发送系统告�?
+        发送系统告警
         
         Args:
-            db: 数据库会�?
+            db: 数据库会话
             alert_message: 告警消息
-            alert_level: 告警级别（info/warning/error/critical�?
+            alert_level: 告警级别（info/warning/error/critical）
             site_id: 站点 ID
         """
         configs = await self.get_configs_for_event(db, 'enable_system_alert', site_id)
@@ -412,8 +412,8 @@ class NotificationIntegrationService:
         获取指定事件的通知配置
         
         Args:
-            db: 数据库会�?
-            event_field: 事件字段�?
+            db: 数据库会话
+            event_field: 事件字段名
             site_id: 站点 ID
             
         Returns:
@@ -441,8 +441,8 @@ class NotificationIntegrationService:
         获取所有通知集成配置
         
         Args:
-            db: 数据库会�?
-            include_inactive: 是否包含非活动配�?
+            db: 数据库会话
+            include_inactive: 是否包含非活动配置
             
         Returns:
             配置列表

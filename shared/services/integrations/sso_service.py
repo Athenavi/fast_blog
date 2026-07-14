@@ -12,13 +12,14 @@ from datetime import datetime, timedelta
 
 from shared.logging import default_logger as logger
 
-# SSO 会话持久化文件路�?_SSO_DATA_DIR = Path(os.environ.get('FASTBLOG_DATA_DIR', 'data'))
+# SSO 会话持久化文件路径
+_SSO_DATA_DIR = Path(os.environ.get('FASTBLOG_DATA_DIR', 'data'))
 _SSO_SESSIONS_FILE = _SSO_DATA_DIR / 'sso_sessions.json'
 _OAUTH_STATES_FILE = _SSO_DATA_DIR / 'oauth_states.json'
 
 
 def _load_json(filepath: Path) -> dict:
-    """�?JSON 文件加载数据"""
+    """从 JSON 文件加载数据"""
     try:
         if filepath.exists():
             return json.loads(filepath.read_text('utf-8'))
@@ -28,7 +29,7 @@ def _load_json(filepath: Path) -> dict:
 
 
 def _save_json(filepath: Path, data: dict) -> None:
-    """保存数据�?JSON 文件"""
+    """保存数据到 JSON 文件"""
     try:
         _SSO_DATA_DIR.mkdir(parents=True, exist_ok=True)
         filepath.write_text(json.dumps(data, ensure_ascii=False, indent=2), 'utf-8')
@@ -97,11 +98,12 @@ class SSOService:
             'use_ssl': os.getenv('LDAP_USE_SSL', 'false').lower() == 'true',
         }
 
-        # SSO 会话存储（内存映�?+ JSON 文件持久化）
+        # SSO 会话存储（内存映射 + JSON 文件持久化）
         self._sso_sessions: Dict[str, int] = _load_json(_SSO_SESSIONS_FILE)
         logger.info(f"Loaded {len(self._sso_sessions)} SSO sessions from disk")
 
-        # OAuth state 存储（用�?CSRF 防护�?        self._oauth_states: Dict[str, dict] = _load_json(_OAUTH_STATES_FILE)
+        # OAuth state 存储（用于 CSRF 防护）
+        self._oauth_states: Dict[str, dict] = _load_json(_OAUTH_STATES_FILE)
         self._oauth_state_ttl = 600  # 10 分钟
 
     def generate_oauth_state(self, provider: str, user_id: Optional[int] = None) -> str:
@@ -109,9 +111,12 @@ class SSOService:
         生成 OAuth state 参数用于 CSRF 防护
         
         Args:
-            provider: OAuth 提供�?            user_id: 用户 ID（绑定账户时使用�?            
+            provider: OAuth 提供商
+            user_id: 用户 ID（绑定账户时使用）
+            
         Returns:
-            state 字符�?        """
+            state 字符串
+        """
         state = secrets.token_urlsafe(32)
         self._oauth_states[state] = {
             'provider': provider,
@@ -125,7 +130,9 @@ class SSOService:
         验证 OAuth state 参数
         
         Args:
-            state: state 字符�?            provider: OAuth 提供�?            
+            state: state 字符串
+            provider: OAuth 提供商
+            
         Returns:
             是否有效
         """
@@ -142,7 +149,7 @@ class SSOService:
         return True
 
     def cleanup_expired_oauth_states(self):
-        """清理过期�?OAuth state"""
+        """清理过期的 OAuth state"""
         now = time.time()
         expired = [s for s, info in self._oauth_states.items()
                    if now - info['created_at'] > self._oauth_state_ttl]
@@ -157,9 +164,10 @@ class SSOService:
         获取OAuth2授权URL
         
         Args:
-            provider: OAuth提供�?(google/github/microsoft)
+            provider: OAuth提供商 (google/github/microsoft)
             redirect_uri: 回调URL
-            state: 状态参�?            
+            state: 状态参数
+            
         Returns:
             授权URL
         """
@@ -173,7 +181,7 @@ class SSOService:
 
         import urllib.parse
 
-        # 自动生成 state（如未提供），用�?CSRF 防护
+        # 自动生成 state（如未提供），用于 CSRF 防护
         if not state:
             state = self.generate_oauth_state(provider)
 
@@ -203,10 +211,14 @@ class SSOService:
         处理OAuth回调
         
         Args:
-            db: 数据库会�?            provider: OAuth提供�?            code: 授权�?            redirect_uri: 回调URL
+            db: 数据库会话
+            provider: OAuth提供商
+            code: 授权码
+            redirect_uri: 回调URL
             
         Returns:
-            用户信息和访问令�?        """
+            用户信息和访问令牌
+        """
         if provider not in self.oauth_providers:
             raise ValueError(f"Unsupported OAuth provider: {provider}")
 
@@ -218,7 +230,8 @@ class SSOService:
         # 获取用户信息
         userinfo = await self._get_userinfo(provider, token_data['access_token'])
 
-        # 查找或创建用�?        user = await self._find_or_create_user(db, userinfo, provider)
+        # 查找或创建用户
+        user = await self._find_or_create_user(db, userinfo, provider)
 
         return {
             'user': user,
@@ -271,7 +284,7 @@ class SSOService:
                 return await response.json()
 
     async def _find_or_create_user(self, db, userinfo: Dict, provider: str):
-        """查找或创建用�?""
+        """查找或创建用户"""
         from sqlalchemy import select
         from shared.models.user import User
 
@@ -285,12 +298,14 @@ class SSOService:
         user = result.scalar_one_or_none()
 
         if not user:
-            # 创建新用�?            username = userinfo.get('preferred_username') or userinfo.get('login') or email.split('@')[0]
+            # 创建新用户
+            username = userinfo.get('preferred_username') or userinfo.get('login') or email.split('@')[0]
 
             user = User(
                 username=username,
                 email=email,
-                password='',  # OAuth用户不需要密�?                is_active=True,
+                password='',  # OAuth用户不需要密码
+                is_active=True,
                 oauth_provider=provider,
                 oauth_id=userinfo.get('sub') or userinfo.get('id'),
             )
@@ -313,7 +328,8 @@ class SSOService:
         LDAP认证
         
         Args:
-            username: 用户�?            password: 密码
+            username: 用户名
+            password: 密码
             
         Returns:
             用户信息
@@ -324,20 +340,22 @@ class SSOService:
         try:
             import ldap3
 
-            # 连接LDAP服务�?            server = ldap3.Server(
+            # 连接LDAP服务器
+            server = ldap3.Server(
                 self.ldap_config['server'],
                 port=self.ldap_config['port'],
                 use_ssl=self.ldap_config['use_ssl']
             )
 
-            # 绑定管理员账�?            conn = ldap3.Connection(
+            # 绑定管理员账户
+            conn = ldap3.Connection(
                 server,
                 user=self.ldap_config['bind_dn'],
                 password=self.ldap_config['bind_password'],
                 auto_bind=True
             )
 
-            # 搜索用户 �?使用 ldap3 的转义函数防�?LDAP 注入
+            # 搜索用户 — 使用 ldap3 的转义函数防止 LDAP 注入
             try:
                 from ldap3.utils.conv import escape_filter_chars
                 safe_username = escape_filter_chars(username)
@@ -358,7 +376,7 @@ class SSOService:
 
             entry = conn.entries[0]
 
-            # 验证密码 �?使用 TLS/SSL 保护凭证
+            # 验证密码 — 使用 TLS/SSL 保护凭证
             use_tls = self.ldap_config.get('use_ssl', False) or self.ldap_config.get('start_tls', False)
             auth_conn = ldap3.Connection(
                 server,
@@ -397,7 +415,8 @@ class SSOService:
             from onelogin.saml2.auth import OneLogin_Saml2_Auth
 
             request_data = {
-                'http_host': '',  # 需要在调用时设�?                'script_name': '/api/v1/sso/saml/acs',
+                'http_host': '',  # 需要在调用时设置
+                'script_name': '/api/v1/sso/saml/acs',
                 'server_port': 443,
             }
 
@@ -410,7 +429,8 @@ class SSOService:
                     },
                 },
                 'idp': {
-                    'entityId': '',  # 从metadata中获�?                    'singleSignOnService': {
+                    'entityId': '',  # 从metadata中获取
+                    'singleSignOnService': {
                         'url': '',
                         'binding': 'urn:oasis:names:tc:SAML:2.0:bindings:HTTP-Redirect',
                     },
@@ -437,12 +457,13 @@ class SSOService:
         处理SAML响应
         
         Args:
-            db: 数据库会�?            saml_response: SAML响应数据
+            db: 数据库会话
+            saml_response: SAML响应数据
             
         Returns:
             用户信息
         """
-        # NOT IMPLEMENTED �?this method is intentionally left as a stub.
+        # NOT IMPLEMENTED — this method is intentionally left as a stub.
         # A production SAML implementation requires:
         #   - signature verification via xmlsec1 / signxml
         #   - clock drift tolerance
@@ -450,7 +471,7 @@ class SSOService:
         #   - attribute mapping to User model
         #   - session / RelayState management
         # Until then all callers should fail with 501.
-        logger.warning("SAML ACS called but not implemented �?callers should return 501")
+        logger.warning("SAML ACS called but not implemented — callers should return 501")
         return None
 
     async def create_sso_session(self, user_id: int, session_id: str) -> str:
@@ -470,7 +491,8 @@ class SSOService:
         # 生成SSO令牌
         sso_token = str(uuid.uuid4())
 
-        # 存储到内�?+ 持久�?        self._sso_sessions[sso_token] = user_id
+        # 存储到内存 + 持久化
+        self._sso_sessions[sso_token] = user_id
         _save_json(_SSO_SESSIONS_FILE, self._sso_sessions)
 
         logger.info(f"SSO session created for user {user_id}, token={sso_token[:8]}...")

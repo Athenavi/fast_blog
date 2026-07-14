@@ -1,11 +1,14 @@
 """
 Meilisearch 全文搜索引擎集成服务
 
-功能�?1. 文章索引同步（增删改查）
+功能：
+1. 文章索引同步（增删改查）
 2. 高性能全文搜索
 3. 搜索结果高亮
 4. 拼音搜索支持
-5. 模糊匹配和纠�?6. 搜索统计和分�?7. 增量索引更新
+5. 模糊匹配和纠错
+6. 搜索统计和分析
+7. 增量索引更新
 """
 import hashlib
 from datetime import datetime
@@ -26,7 +29,7 @@ class MeilisearchService:
 
     def __init__(self, host: str = "http://localhost:7700", api_key: str = ""):
         """
-        初始�?Meilisearch 客户端（懒加载）
+        初始化 Meilisearch 客户端（懒加载）
 
         Args:
             host: Meilisearch 服务器地址
@@ -40,7 +43,7 @@ class MeilisearchService:
 
     @property
     def client(self):
-        """懒加�?Meilisearch 客户端，首次访问时才创建"""
+        """懒加载 Meilisearch 客户端，首次访问时才创建"""
         if self._client is None:
             self._client = Client(self.host, self.api_key) if self.api_key else Client(self.host)
         return self._client
@@ -48,7 +51,8 @@ class MeilisearchService:
     async def initialize(self):
         """初始化搜索引擎和索引配置"""
         try:
-            # 获取或创建索�?            self.index = self.client.index(self.index_name)
+            # 获取或创建索引
+            self.index = self.client.index(self.index_name)
 
             # 配置索引设置
             await self._configure_index()
@@ -61,7 +65,7 @@ class MeilisearchService:
             return False
 
     async def _configure_index(self):
-        """配置索引设置�?searchable attributes, filterable attributes等）"""
+        """配置索引设置（ searchable attributes, filterable attributes等）"""
         settings = MeiliSearchIndexSettings(
             # 可搜索字段（按重要性排序）
             searchable_attributes=[
@@ -71,7 +75,8 @@ class MeilisearchService:
                 "tags",
                 "category_name"
             ],
-            # 可过滤字�?            filterable_attributes=[
+            # 可过滤字段
+            filterable_attributes=[
                 "category_id",
                 "author_id",
                 "status",
@@ -80,7 +85,8 @@ class MeilisearchService:
                 "is_featured",
                 "tags"
             ],
-            # 可排序字�?            sortable_attributes=[
+            # 可排序字段
+            sortable_attributes=[
                 "created_at",
                 "updated_at",
                 "views",
@@ -134,7 +140,8 @@ class MeilisearchService:
             是否成功
         """
         try:
-            # 添加文档到索�?            task = await self.index.add_documents([article_data])
+            # 添加文档到索引
+            task = await self.index.add_documents([article_data])
 
             logger.info(f"Article indexed: {article_data.get('id')}, task uid: {task.task_uid}")
             return True
@@ -225,18 +232,22 @@ class MeilisearchService:
         搜索文章
 
         Args:
-            query: 搜索关键�?            category_id: 分类ID过滤
+            query: 搜索关键词
+            category_id: 分类ID过滤
             author_id: 作者ID过滤
             date_from: 起始日期
             date_to: 结束日期
-            status: 文章状�?            page: 页码
+            status: 文章状态
+            page: 页码
             per_page: 每页数量
             sort_by: 排序方式 (relevance, date, views)
 
         Returns:
-            搜索结果和分页信�?        """
+            搜索结果和分页信息
+        """
         try:
-            # 构建过滤�?            filters = []
+            # 构建过滤器
+            filters = []
 
             if status:
                 filters.append(f"status = '{status}'")
@@ -275,7 +286,8 @@ class MeilisearchService:
                 highlight_post_tag="</mark>"
             )
 
-            # 格式化结�?            articles = []
+            # 格式化结果
+            articles = []
             for hit in result.hits:
                 article = {
                     'id': hit.get('id'),
@@ -346,7 +358,7 @@ class MeilisearchService:
             搜索建议列表
         """
         try:
-            # 使用 Meilisearch �?facet search 功能
+            # 使用 Meilisearch 的 facet search 功能
             result = await self.index.search(
                 query,
                 limit=limit,
@@ -365,7 +377,8 @@ class MeilisearchService:
         重建整个索引
 
         Args:
-            articles: 所有文章数据列�?
+            articles: 所有文章数据列表
+
         Returns:
             是否成功
         """
@@ -373,7 +386,8 @@ class MeilisearchService:
             # 清空索引
             await self.index.delete_all_documents()
 
-            # 重新索引所有文�?            if articles:
+            # 重新索引所有文章
+            if articles:
                 await self.bulk_index_articles(articles)
 
             logger.info(f"Index rebuilt with {len(articles)} articles")
@@ -411,7 +425,8 @@ class MeilisearchService:
             article_data: 文章数据
 
         Returns:
-            SHA256哈希字符�?        """
+            SHA256哈希字符串
+        """
         # 提取关键字段
         content_str = f"{article_data.get('title', '')}|{article_data.get('content', '')}|{article_data.get('excerpt', '')}"
         return hashlib.sha256(content_str.encode('utf-8')).hexdigest()

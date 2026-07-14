@@ -1,7 +1,7 @@
 """
-定时发布后台任务调度�?
+定时发布后台任务调度器
 
-功能�?
+功能：
 1. 定期检查并发布到期文章
 2. 后台任务管理
 3. 任务日志记录
@@ -15,7 +15,7 @@ from shared.logging import default_logger as logger
 
 class ScheduledPublishScheduler:
     """
-    定时发布调度�?
+    定时发布调度器
     """
 
     def __init__(self, db_session_factory, check_interval: int = 60):
@@ -23,8 +23,8 @@ class ScheduledPublishScheduler:
         初始化调度器
         
         Args:
-            db_session_factory: 数据库会话工�?
-            check_interval: 检查间隔（秒），默�?0�?
+            db_session_factory: 数据库会话工厂
+            check_interval: 检查间隔（秒），默认60秒
         """
         self.db_session_factory = db_session_factory
         self.check_interval = check_interval
@@ -32,7 +32,7 @@ class ScheduledPublishScheduler:
         self.task: Optional[asyncio.Task] = None
 
     async def start(self):
-        """启动调度�?""
+        """启动调度器"""
         if self.is_running:
             logger.warning("Scheduler is already running")
             return
@@ -42,7 +42,7 @@ class ScheduledPublishScheduler:
         logger.info(f"Scheduled publish scheduler started (interval: {self.check_interval}s)")
 
     async def stop(self):
-        """停止调度�?""
+        """停止调度器"""
         if not self.is_running:
             logger.warning("Scheduler is not running")
             return
@@ -73,14 +73,14 @@ class ScheduledPublishScheduler:
             except Exception as e:
                 logger.error(f"Error in scheduled publish scheduler: {e}")
 
-            # 等待下一个检查周�?
+            # 等待下一个检查周期
             await asyncio.sleep(self.check_interval)
 
     async def _check_and_publish(self):
         """检查并发布到期文章"""
         from shared.services.articles.scheduled_publish import create_scheduled_publish_service
 
-        # 创建数据库会�?
+        # 创建数据库会话
         async with self.db_session_factory() as db:
             try:
                 service = create_scheduled_publish_service(db)
@@ -105,20 +105,20 @@ class ScheduledPublishScheduler:
                 await db.rollback()
 
 
-# 全局调度器实�?
+# 全局调度器实例
 scheduler: Optional[ScheduledPublishScheduler] = None
 
 
 def init_scheduler(db_session_factory, check_interval: int = 60) -> ScheduledPublishScheduler:
     """
-    初始化全局调度�?
+    初始化全局调度器
     
     Args:
-        db_session_factory: 数据库会话工�?
+        db_session_factory: 数据库会话工厂
         check_interval: 检查间隔（秒）
         
     Returns:
-        调度器实�?
+        调度器实例
     """
     global scheduler
     scheduler = ScheduledPublishScheduler(db_session_factory, check_interval)
@@ -126,17 +126,17 @@ def init_scheduler(db_session_factory, check_interval: int = 60) -> ScheduledPub
 
 
 def get_scheduler() -> Optional[ScheduledPublishScheduler]:
-    """获取全局调度器实�?""
+    """获取全局调度器实例"""
     return scheduler
 
 
 async def start_scheduler():
-    """启动全局调度�?""
+    """启动全局调度器"""
     if scheduler:
         await scheduler.start()
 
 
 async def stop_scheduler():
-    """停止全局调度�?""
+    """停止全局调度器"""
     if scheduler:
         await scheduler.stop()

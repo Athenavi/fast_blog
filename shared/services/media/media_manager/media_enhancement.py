@@ -1,6 +1,7 @@
 """
 媒体文件增强服务
-提供批量上传、图片优化、WebP转换等功�?"""
+提供批量上传、图片优化、WebP转换等功能
+"""
 
 import os
 from pathlib import Path
@@ -34,10 +35,12 @@ class MediaEnhancementService:
 
     功能:
     1. 批量上传处理
-    2. 图片自动优化(压缩、调整大�?
+    2. 图片自动优化(压缩、调整大小)
     3. WebP格式转换
     4. EXIF数据处理
-    5. 重复文件检�?    6. 缩略图生�?    """
+    5. 重复文件检测
+    6. 缩略图生成
+    """
 
     def __init__(self, image_config: Dict = None, webp_config: Dict = None):
         self.image_config = image_config or DEFAULT_IMAGE_CONFIG.copy()
@@ -49,14 +52,15 @@ class MediaEnhancementService:
             output_path: Optional[str] = None,
             config: Optional[Dict] = None
     ) -> Dict[str, Any]:
-        """优化图片(压缩、调整大�?"""
+        """优化图片(压缩、调整大小)"""
         try:
             cfg = {**self.image_config, **(config or {})}
             with Image.open(input_path) as img:
                 original_size = os.path.getsize(input_path)
                 original_dimensions = img.size
 
-                # 格式感知的通道转换：仅 JPEG 输出时丢弃透明�?                if img.mode in ('RGBA', 'P'):
+                # 格式感知的通道转换：仅 JPEG 输出时丢弃透明度
+                if img.mode in ('RGBA', 'P'):
                     output_ext = Path(output_path or input_path).suffix.lower()
                     if output_ext in ('.jpg', '.jpeg'):
                         if img.mode == 'P' and 'transparency' in img.info:
@@ -96,7 +100,7 @@ class MediaEnhancementService:
         try:
             cfg = {**self.webp_config, **(config or {})}
             if not cfg.get('enabled', True):
-                return {'success': False, 'error': 'WebP转换已禁�?}
+                return {'success': False, 'error': 'WebP转换已禁用'}
 
             input_ext = Path(input_path).suffix.lower().lstrip('.')
             if input_ext.upper() not in WEBP_CONVERTIBLE_FORMATS:
@@ -112,7 +116,8 @@ class MediaEnhancementService:
                         img = img.convert('RGBA')
                     else:
                         img = img.convert('RGB')
-                # 限制 quality �?1-95 范围内，防止无效值导致写入失�?                quality = max(1, min(95, int(cfg.get('quality', 80))))
+                # 限制 quality 在 1-95 范围内，防止无效值导致写入失败
+                quality = max(1, min(95, int(cfg.get('quality', 80))))
                 img.save(output_path, format='WEBP', quality=quality, method=cfg.get('method', 4))
 
             webp_size = os.path.getsize(output_path)
@@ -180,7 +185,7 @@ class MediaEnhancementService:
         return results
 
     async def detect_duplicate(self, file_hash: str, db_session) -> Optional[Dict[str, Any]]:
-        """检测重复文�?基于哈希)"""
+        """检测重复文件(基于哈希)"""
         try:
             from sqlalchemy import select
             from shared.models.media.file_hash import FileHash
@@ -214,7 +219,7 @@ class MediaEnhancementService:
             return {'success': False, 'error': str(e)}
 
     def remove_exif_data(self, input_path: str, output_path: Optional[str] = None) -> Dict[str, Any]:
-        """移除EXIF数据(保护隐私) �?仅清�?EXIF 不重编码像素"""
+        """移除EXIF数据(保护隐私) — 仅清除 EXIF 不重编码像素"""
         try:
             output_path = output_path or input_path
             with Image.open(input_path) as img:
@@ -239,7 +244,7 @@ class MediaEnhancementService:
 
     @staticmethod
     def _format_file_size(size_bytes: int) -> str:
-        """格式化文件大�?""
+        """格式化文件大小"""
         for unit in ['B', 'KB', 'MB', 'GB']:
             if size_bytes < 1024:
                 return f"{size_bytes:.2f} {unit}"

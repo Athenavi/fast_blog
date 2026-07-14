@@ -1,6 +1,6 @@
 """
 内容表现分析服务
-追踪文章阅读量、分享数、转化率等内容相关指�?
+追踪文章阅读量、分享数、转化率等内容相关指标
 """
 
 
@@ -12,7 +12,7 @@ from shared.logging import default_logger as logger
 
 
 class ContentAnalytics:
-    """内容表现分析�?""
+    """内容表现分析器"""
 
     def __init__(self):
         # 文章统计 {article_id: stats}
@@ -23,7 +23,7 @@ class ContentAnalytics:
             'likes': 0,
             'comments': 0,
             'bookmarks': 0,
-            'completion_rate': 0,  # 阅读完成�?
+            'completion_rate': 0,  # 阅读完成率
             'avg_read_time': 0,
             'bounce_rate': 0,
             'conversion_events': [],
@@ -54,10 +54,10 @@ class ContentAnalytics:
         Args:
             article_id: 文章ID
             user_id: 用户ID（可选）
-            source: 流量来源（direct/search/social/referral�?
-            device_type: 设备类型（desktop/mobile/tablet�?
-            read_time: 阅读时间（秒�?
-            scroll_depth: 滚动深度百分�?
+            source: 流量来源（direct/search/social/referral）
+            device_type: 设备类型（desktop/mobile/tablet）
+            read_time: 阅读时间（秒）
+            scroll_depth: 滚动深度百分比
         """
         now = datetime.now()
         today = now.strftime('%Y-%m-%d')
@@ -73,7 +73,7 @@ class ContentAnalytics:
             total_read_time = stats['avg_read_time'] * (stats['views'] - 1) + read_time
             stats['avg_read_time'] = total_read_time / stats['views']
 
-        # 更新阅读完成率（基于滚动深度�?
+        # 更新阅读完成率（基于滚动深度）
         if scroll_depth > 0:
             current_completion = stats['completion_rate'] * (stats['views'] - 1) + scroll_depth
             stats['completion_rate'] = current_completion / stats['views']
@@ -159,8 +159,8 @@ class ContentAnalytics:
         Args:
             article_id: 文章ID
             conversion_type: 转化类型（tip/subscribe/purchase等）
-            value: 转化价�?
-            metadata: 额外元数�?
+            value: 转化价值
+            metadata: 额外元数据
         """
         stats = self._article_stats[article_id]
 
@@ -200,13 +200,13 @@ class ContentAnalytics:
 
     def _calculate_engagement_score(self, stats: Dict) -> float:
         """
-        计算参与度评�?
+        计算参与度评分
         
         Args:
             stats: 统计数据
             
         Returns:
-            参与度评分（0-100�?
+            参与度评分（0-100）
         """
         if stats['views'] == 0:
             return 0
@@ -239,7 +239,7 @@ class ContentAnalytics:
         获取热门文章
         
         Args:
-            period: 时间周期（day/week/month�?
+            period: 时间周期（day/week/month）
             limit: 返回数量
             
         Returns:
@@ -267,7 +267,7 @@ class ContentAnalytics:
                 'trend_score': self._calculate_trend_score(article_id, period),
             })
 
-        # 按趋势分数排�?
+        # 按趋势分数排序
         articles.sort(key=lambda x: x['trend_score'], reverse=True)
 
         return articles[:limit]
@@ -300,7 +300,7 @@ class ContentAnalytics:
         sources = dict(self._traffic_sources[article_id])
         total = sum(sources.values())
 
-        # 计算百分�?
+        # 计算百分比
         distribution = {}
         for source, count in sources.items():
             distribution[source] = {
@@ -352,7 +352,7 @@ class ContentAnalytics:
         """
         events = self._share_events.get(article_id, [])
 
-        # 按平台统�?
+        # 按平台统计
         platform_stats = defaultdict(int)
         for event in events:
             platform = event.get('platform', 'unknown')
@@ -364,7 +364,7 @@ class ContentAnalytics:
             'article_id': article_id,
             'total_shares': total_shares,
             'by_platform': dict(platform_stats),
-            'recent_shares': events[-10:],  # 最�?0次分�?
+            'recent_shares': events[-10:],  # 最近10次分享
         }
 
     def get_daily_trends(self, article_id: int,
@@ -393,7 +393,7 @@ class ContentAnalytics:
                 'likes': daily.get('likes', 0),
             })
 
-        # 按日期排�?
+        # 按日期排序
         trends.sort(key=lambda x: x['date'])
 
         return trends
@@ -411,7 +411,7 @@ class ContentAnalytics:
         stats = self._article_stats[article_id]
         conversions = stats['conversion_events']
 
-        # 按类型统�?
+        # 按类型统计
         type_stats = defaultdict(lambda: {'count': 0, 'total_value': 0})
         for conv in conversions:
             conv_type = conv['type']

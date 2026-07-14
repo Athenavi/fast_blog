@@ -22,7 +22,8 @@ class BackupService:
     数据备份服务
     
     功能:
-    1. 数据库备份（PostgreSQL�?    2. 文件备份（媒体文件、上传文件）
+    1. 数据库备份（PostgreSQL）
+    2. 文件备份（媒体文件、上传文件）
     3. 增量备份
     4. 自动备份调度
     5. 备份恢复
@@ -31,7 +32,8 @@ class BackupService:
 
     def __init__(self, backup_dir: str = None):
         """
-        初始化备份服�?        
+        初始化备份服务
+        
         Args:
             backup_dir: 备份目录路径
         """
@@ -45,7 +47,8 @@ class BackupService:
         os.makedirs(self.files_backup_dir, exist_ok=True)
         os.makedirs(self.full_backup_dir, exist_ok=True)
 
-        # 应用根路径（�?restore_files 使用�?        self.app_path = type('Path', (), {'parent': os.path.dirname(os.path.abspath(__file__))})()
+        # 应用根路径（供 restore_files 使用）
+        self.app_path = type('Path', (), {'parent': os.path.dirname(os.path.abspath(__file__))})()
 
         # 默认配置
         self.config = {
@@ -57,8 +60,9 @@ class BackupService:
             'backup_files': True,
         }
 
-        # 异步 subprocess 运行�?    async def _run_subprocess(self, cmd, env=None, timeout=300, check=False):
-        """异步运行子进程，不阻塞事件循�?""
+        # 异步 subprocess 运行器
+    async def _run_subprocess(self, cmd, env=None, timeout=300, check=False):
+        """异步运行子进程，不阻塞事件循环"""
         process = await asyncio.create_subprocess_exec(
             *cmd,
             stdout=asyncio.subprocess.PIPE,
@@ -80,7 +84,7 @@ class BackupService:
             raise Exception(stderr_text)
         return type('Result', (), {'returncode': process.returncode, 'stdout': stdout_data, 'stderr': stderr_data})()
     def get_db_config(self) -> Dict[str, str]:
-        """获取数据库配�?""
+        """获取数据库配置"""
         return {
             'host': os.getenv('DB_HOST', 'localhost'),
             'port': os.getenv('DB_PORT', '5432'),
@@ -91,9 +95,10 @@ class BackupService:
 
     async def backup_database(self, backup_type: str = 'full') -> Dict[str, Any]:
         """
-        备份数据�?        
+        备份数据库
+        
         Args:
-            backup_type: 备份类型 ('full' �?'incremental')
+            backup_type: 备份类型 ('full' 或 'incremental')
             
         Returns:
             备份结果信息
@@ -116,7 +121,8 @@ class BackupService:
                 '-h', db_config['host'],
                 '-p', db_config['port'],
                 '-U', db_config['user'],
-                '-F', 'c',  # 自定义格式（支持增量备份�?                '-f', backup_path,
+                '-F', 'c',  # 自定义格式（支持增量备份）
+                '-f', backup_path,
                 db_config['database']
             ]
 
@@ -133,7 +139,8 @@ class BackupService:
                 os.remove(backup_path)
                 backup_path = compressed_path
 
-            # 记录备份元数�?            backup_size = os.path.getsize(backup_path)
+            # 记录备份元数据
+            backup_size = os.path.getsize(backup_path)
             metadata = {
                 'type': 'database',
                 'backup_type': backup_type,
@@ -165,7 +172,8 @@ class BackupService:
 
     async def backup_files(self) -> Dict[str, Any]:
         """
-        备份文件（媒体文件、上传文件等�?        
+        备份文件（媒体文件、上传文件等）
+        
         Returns:
             备份结果信息
         """
@@ -207,7 +215,8 @@ class BackupService:
             if result.returncode != 0:
                 raise Exception(f"tar failed: {result.stderr}")
 
-            # 记录备份元数�?            backup_size = os.path.getsize(backup_path)
+            # 记录备份元数据
+            backup_size = os.path.getsize(backup_path)
             metadata = {
                 'type': 'files',
                 'filename': os.path.basename(backup_path),
@@ -238,7 +247,8 @@ class BackupService:
 
     async def full_backup(self) -> Dict[str, Any]:
         """
-        完整备份（数据库 + 文件�?        
+        完整备份（数据库 + 文件）
+        
         Returns:
             备份结果信息
         """
@@ -249,7 +259,8 @@ class BackupService:
 
             logger.info(f"Starting full backup: {backup_dir}")
 
-            # 备份数据�?            db_result = await self.backup_database()
+            # 备份数据库
+            db_result = await self.backup_database()
             if db_result['success']:
                 # 复制数据库备份到完整备份目录
                 db_backup_path = db_result['backup_path']
@@ -259,11 +270,13 @@ class BackupService:
             # 备份文件
             files_result = await self.backup_files()
             if files_result['success'] and files_result['backup_path']:
-                # 复制文件备份到完整备份目�?                files_backup_path = files_result['backup_path']
+                # 复制文件备份到完整备份目录
+                files_backup_path = files_result['backup_path']
                 files_backup_name = os.path.basename(files_backup_path)
                 shutil.copy2(files_backup_path, os.path.join(backup_dir, files_backup_name))
 
-            # 创建完整备份元数�?            metadata = {
+            # 创建完整备份元数据
+            metadata = {
                 'type': 'full',
                 'backup_dir': backup_dir,
                 'created_at': datetime.now().isoformat(),
@@ -302,7 +315,8 @@ class BackupService:
 
     async def restore_database(self, backup_path: str) -> Dict[str, Any]:
         """
-        恢复数据�?        
+        恢复数据库
+        
         Args:
             backup_path: 备份文件路径
             
@@ -347,7 +361,8 @@ class BackupService:
 
             await self._run_subprocess(create_cmd, env=env, check=True)
 
-            # 恢复数据�?            restore_cmd = [
+            # 恢复数据库
+            restore_cmd = [
                 'pg_restore',
                 '-h', db_config['host'],
                 '-p', db_config['port'],
@@ -398,7 +413,7 @@ class BackupService:
 
             import subprocess
 
-            # 解压并恢复文�?�?限制到应用目录，避免覆盖系统文件
+            # 解压并恢复文件 — 限制到应用目录，避免覆盖系统文件
             restore_base = str(self.app_path.parent)
             cmd = ['tar', '-xzf', backup_path, '-C', restore_base]
 
@@ -428,7 +443,8 @@ class BackupService:
 
     def list_backups(self, backup_type: str = None, limit: int = None) -> List[Dict[str, Any]]:
         """
-        列出所有备�?        
+        列出所有备份
+        
         Args:
             backup_type: 备份类型过滤 ('database', 'files', 'full')
             limit: 返回数量限制
@@ -438,7 +454,8 @@ class BackupService:
         """
         backups = []
 
-        # 扫描数据库备�?        if not backup_type or backup_type == 'database':
+        # 扫描数据库备份
+        if not backup_type or backup_type == 'database':
             for filename in os.listdir(self.database_backup_dir):
                 if filename.endswith('.sql') or filename.endswith('.gz'):
                     filepath = os.path.join(self.database_backup_dir, filename)
@@ -466,7 +483,8 @@ class BackupService:
                             metadata = json.load(f)
                             backups.append(metadata)
 
-        # 按创建时间排�?        backups.sort(key=lambda x: x.get('created_at', ''), reverse=True)
+        # 按创建时间排序
+        backups.sort(key=lambda x: x.get('created_at', ''), reverse=True)
 
         # 应用限制
         if limit and limit > 0:
@@ -479,7 +497,8 @@ class BackupService:
         删除备份
         
         Args:
-            backup_path: 备份文件或目录路�?            
+            backup_path: 备份文件或目录路径
+            
         Returns:
             是否删除成功
         """
@@ -498,7 +517,8 @@ class BackupService:
 
     async def cleanup_old_backups(self, days: int = None) -> Dict[str, Any]:
         """
-        清理旧备�?        
+        清理旧备份
+        
         Args:
             days: 保留天数
             
@@ -628,7 +648,7 @@ class BackupService:
         return compressed_path
         
     def _format_size(self, size_bytes: int) -> str:
-        """格式化文件大�?""
+        """格式化文件大小"""
         for unit in ['B', 'KB', 'MB', 'GB', 'TB']:
             if size_bytes < 1024.0:
                 return f"{size_bytes:.2f} {unit}"
@@ -636,13 +656,13 @@ class BackupService:
         return f"{size_bytes:.2f} PB"
 
     def _save_metadata(self, backup_path: str, metadata: Dict[str, Any]):
-        """保存备份元数�?""
+        """保存备份元数据"""
         metadata_path = backup_path + '.meta.json'
         with open(metadata_path, 'w', encoding='utf-8') as f:
             json.dump(metadata, f, ensure_ascii=False, indent=2)
 
     def _load_metadata(self, backup_path: str) -> Optional[Dict[str, Any]]:
-        """加载备份元数�?""
+        """加载备份元数据"""
         metadata_path = backup_path + '.meta.json'
         if os.path.exists(metadata_path):
             with open(metadata_path, 'r', encoding='utf-8') as f:

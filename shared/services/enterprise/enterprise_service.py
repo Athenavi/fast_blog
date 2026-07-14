@@ -1,5 +1,7 @@
 """
-企业版服务模�?提供许可证管理、技术支持、SLA保障等功�?"""
+企业版服务模块
+提供许可证管理、技术支持、SLA保障等功能
+"""
 import uuid
 from datetime import datetime, timedelta
 from typing import Optional, Dict, Any, List
@@ -19,8 +21,12 @@ from shared.logging import default_logger as logger
 
 class EnterpriseService:
     """
-    企业版服�?
-    功能�?    1. 许可证管�?    2. 优先技术支�?    3. SLA保障
+    企业版服务
+
+    功能：
+    1. 许可证管理
+    2. 优先技术支持
+    3. SLA保障
     4. 部署脚本管理
     5. 监控告警
     """
@@ -39,19 +45,25 @@ class EnterpriseService:
             sla_uptime_guarantee: float = 99.9
     ) -> EnterpriseLicense:
         """
-        创建企业许可�?
+        创建企业许可证
+
         Args:
-            db: 数据库会�?            license_type: 许可证类�?            company_name: 公司名称
+            db: 数据库会话
+            license_type: 许可证类型
+            company_name: 公司名称
             contact_email: 联系邮箱
-            max_sites: 最大站点数�?1表示无限�?            features: 功能列表
+            max_sites: 最大站点数（-1表示无限）
+            features: 功能列表
             valid_days: 有效天数
             support_level: 支持级别
             sla_enabled: 是否启用SLA
-            sla_uptime_guarantee: SLA可用性保�?
+            sla_uptime_guarantee: SLA可用性保证
+
         Returns:
             创建的许可证
         """
-        # 生成许可证密�?        license_key = f"FB-{license_type.upper()}-{uuid.uuid4().hex[:16].upper()}"
+        # 生成许可证密钥
+        license_key = f"FB-{license_type.upper()}-{uuid.uuid4().hex[:16].upper()}"
 
         valid_from = datetime.now()
         valid_until = valid_from + timedelta(days=valid_days) if valid_days > 0 else None
@@ -79,9 +91,12 @@ class EnterpriseService:
 
     async def validate_license(self, db: AsyncSession, license_key: str) -> Optional[EnterpriseLicense]:
         """
-        验证许可�?
+        验证许可证
+
         Args:
-            db: 数据库会�?            license_key: 许可证密�?
+            db: 数据库会话
+            license_key: 许可证密钥
+
         Returns:
             许可证对象，如果无效则返回None
         """
@@ -95,7 +110,8 @@ class EnterpriseService:
         if not license_obj:
             return None
 
-        # 检查是否过�?        if license_obj.valid_until and license_obj.valid_until < datetime.now():
+        # 检查是否过期
+        if license_obj.valid_until and license_obj.valid_until < datetime.now():
             logger.warning(f"License expired: {license_key}")
             return None
 
@@ -103,11 +119,15 @@ class EnterpriseService:
 
     async def get_license_info(self, db: AsyncSession, license_key: str) -> Optional[Dict[str, Any]]:
         """
-        获取许可证信�?
+        获取许可证信息
+
         Args:
-            db: 数据库会�?            license_key: 许可证密�?
+            db: 数据库会话
+            license_key: 许可证密钥
+
         Returns:
-            许可证信息字�?        """
+            许可证信息字典
+        """
         license_obj = await self.validate_license(db, license_key)
         if not license_obj:
             return None
@@ -138,16 +158,20 @@ class EnterpriseService:
             license_id: Optional[int] = None
     ) -> SupportTicket:
         """
-        创建技术支持工�?
+        创建技术支持工单
+
         Args:
-            db: 数据库会�?            user_id: 用户ID
+            db: 数据库会话
+            user_id: 用户ID
             subject: 主题
             description: 描述
-            priority: 优先�?            category: 分类
+            priority: 优先级
+            category: 分类
             license_id: 许可证ID
 
         Returns:
-            创建的工�?        """
+            创建的工单
+        """
         # 生成工单编号
         ticket_number = f"TKT-{datetime.now().strftime('%Y%m%d')}-{uuid.uuid4().hex[:8].upper()}"
 
@@ -181,13 +205,16 @@ class EnterpriseService:
         添加工单回复
 
         Args:
-            db: 数据库会�?            ticket_id: 工单ID
+            db: 数据库会话
+            ticket_id: 工单ID
             user_id: 用户ID
             content: 回复内容
-            is_staff: 是否为工作人�?            attachments: 附件列表
+            is_staff: 是否为工作人员
+            attachments: 附件列表
 
         Returns:
-            创建的回�?        """
+            创建的回复
+        """
         reply = SupportTicketReply(
             ticket_id=ticket_id,
             user_id=user_id,
@@ -198,7 +225,8 @@ class EnterpriseService:
 
         db.add(reply)
 
-        # 更新工单状�?        if is_staff:
+        # 更新工单状态
+        if is_staff:
             stmt = select(SupportTicket).where(SupportTicket.id == ticket_id)
             result = await db.execute(stmt)
             ticket = result.scalar_one_or_none()
@@ -217,10 +245,13 @@ class EnterpriseService:
             status: Optional[str] = None
     ) -> List[SupportTicket]:
         """
-        获取用户的工单列�?
+        获取用户的工单列表
+
         Args:
-            db: 数据库会�?            user_id: 用户ID
-            status: 状态过�?
+            db: 数据库会话
+            user_id: 用户ID
+            status: 状态过滤
+
         Returns:
             工单列表
         """
@@ -249,7 +280,8 @@ class EnterpriseService:
         创建部署脚本
 
         Args:
-            db: 数据库会�?            name: 脚本名称
+            db: 数据库会话
+            name: 脚本名称
             script_type: 脚本类型
             content: 脚本内容
             version: 版本
@@ -258,7 +290,8 @@ class EnterpriseService:
             created_by: 创建者ID
 
         Returns:
-            创建的脚�?        """
+            创建的脚本
+        """
         script = DeploymentScript(
             name=name,
             script_type=script_type,
@@ -286,7 +319,8 @@ class EnterpriseService:
         执行部署脚本
 
         Args:
-            db: 数据库会�?            script_id: 脚本ID
+            db: 数据库会话
+            script_id: 脚本ID
             user_id: 执行者ID
 
         Returns:
@@ -304,7 +338,8 @@ class EnterpriseService:
         await db.commit()
         await db.refresh(log)
 
-        # 执行脚本（简化版本，实际生产环境需要更复杂的异步执行逻辑�?        try:
+        # 执行脚本（简化版本，实际生产环境需要更复杂的异步执行逻辑）
+        try:
             import subprocess
             result = subprocess.run(
                 ['bash', '-c', script.content],
@@ -346,15 +381,19 @@ class EnterpriseService:
         创建监控告警
 
         Args:
-            db: 数据库会�?            alert_type: 告警类型
+            db: 数据库会话
+            alert_type: 告警类型
             severity: 严重程度
             title: 标题
             message: 消息
             source: 来源
             metric_name: 指标名称
-            metric_value: 指标�?            threshold: 阈�?
+            metric_value: 指标值
+            threshold: 阈值
+
         Returns:
-            创建的告�?        """
+            创建的告警
+        """
         alert = MonitoringAlert(
             alert_type=alert_type,
             severity=severity,
@@ -386,13 +425,16 @@ class EnterpriseService:
         记录监控指标
 
         Args:
-            db: 数据库会�?            metric_name: 指标名称
-            metric_value: 指标�?            metric_type: 指标类型
+            db: 数据库会话
+            metric_name: 指标名称
+            metric_value: 指标值
+            metric_type: 指标类型
             labels: 标签
             site_id: 站点ID
 
         Returns:
-            创建的指标记�?        """
+            创建的指标记录
+        """
         metric = MonitoringMetric(
             metric_name=metric_name,
             metric_value=metric_value,
