@@ -1,5 +1,5 @@
 [RELEASE]
-version = 0.6.26.0705
+version = 0.6.26.0714
 build_time = 2026-06-17T15:00:00Z
 
 [DATABASE]
