@@ -298,16 +298,17 @@ async def get_user_permissions(
 @router.post("/check-permission", summary="检查权限")
 @_catch
 async def check_permission(
-        user_id: int = Body(..., description="用户ID"),
+        user_id: int = Body(0, description="用户ID (0 表示当前用户)"),
         permission_code: str = Body(..., description="权限代码 (格式: resource.action)"),
         current_user=Depends(jwt_required),
         db: AsyncSession = Depends(get_async_db)
 ):
     """检查用户是否有指定权限"""
-    has = await rbac_service.has_capability(db, user_id, permission_code)
+    uid = user_id if user_id > 0 else current_user.id
+    has = await rbac_service.has_capability(db, uid, permission_code)
 
     return ok(data={
-        'user_id': user_id,
+        'user_id': uid,
         'permission_code': permission_code,
         'has_permission': has,
     })

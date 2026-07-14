@@ -233,7 +233,7 @@ export const adminBackupService = {
 
 export const adminPermissionService = {
   check: (permissionCode: string) =>
-    adminApi.post('/api/v3/admin/check-permission', '/security/rbac/check-permission', {
+    adminApi.post('/api/v3/admin/check-permission', '/api/v2/security/rbac/check-permission', {
       permission_code: permissionCode,
     }),
   cacheStats: () =>
