@@ -9,8 +9,6 @@ FastBlog API v2 二维码登录
 
 import asyncio
 
-import asyncio
-
 from fastapi import APIRouter, Request, Depends, HTTPException
 from fastapi.logger import logger
 from fastapi.responses import HTMLResponse
@@ -57,8 +55,8 @@ body{min-height:100vh;display:flex;align-items:center;justify-content:center;
   <div class="icon-box">📱</div>
   <div id="checking"><div class="spinner"></div><p class="msg">检查登录状态...</p></div>
   <div id="confirming" class="hidden"><div class="spinner"></div><p class="msg">确认登录中...</p></div>
-  <div id="success" class="hidden"><div class="success-icon">✅</div><p class="msg" id="successMsg"></p></div>
-  <div id="error" class="hidden"><div class="error-icon">❌</div><p class="msg" id="errorMsg"></p></div>
+  <div id="success" class="hidden"><div class="success-icon"></div><p class="msg" id="successMsg"></p></div>
+  <div id="error" class="hidden"><div class="error-icon"></div><p class="msg" id="errorMsg"></p></div>
   <div id="loginPrompt" class="hidden">
     <p class="msg">请先登录后再扫码确认</p>
     <button class="btn" onclick="window.location.href='{{FRONTEND_ORIGIN}}/login?next='+encodeURIComponent(window.location.href)">去登录</button>

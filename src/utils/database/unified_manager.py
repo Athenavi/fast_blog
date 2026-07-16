@@ -243,7 +243,7 @@ class UnifiedDatabaseManager:
                 # 检查是否是并发错误
                 if "another operation is in progress" in error_msg:
                     logger.warning(
-                        f"⚠️ Concurrent operation detected on session {id(session)}. "
+                        f" Concurrent operation detected on session {id(session)}. "
                         f"This is a known Windows + asyncpg compatibility issue. "
                         f"Attempting rollback and retry..."
                     )
@@ -272,7 +272,7 @@ class UnifiedDatabaseManager:
             error_msg = str(e)
             if "another operation is in progress" in error_msg:
                 logger.warning(
-                    f"⚠️ Concurrent operation error on session {id(session)}: {error_msg}"
+                    f" Concurrent operation error on session {id(session)}: {error_msg}"
                 )
                 # 在 Windows 上，如果遇到并发错误，等待一小段时间
                 if sys.platform == 'win32':
@@ -334,7 +334,7 @@ class UnifiedDatabaseManager:
             error_msg = str(e)
             if "another operation is in progress" in error_msg:
                 logger.warning(
-                    f"⚠️ Concurrent operation error on session {id(session)}: {error_msg}"
+                    f" Concurrent operation error on session {id(session)}: {error_msg}"
                 )
                 # 在 Windows 上，如果遇到并发错误，等待一小段时间
                 if sys.platform == 'win32':

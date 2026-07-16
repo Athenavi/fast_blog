@@ -578,11 +578,23 @@ def init_extensions(app):
 # 便捷函数：获取数据库会话
 @contextmanager
 def get_db() -> Generator:
-    """获取数据库会话的便捷函数"""
-    if SessionLocal is None:
-        raise RuntimeError("Extensions not initialized. Call init_extensions first.")
+    """获取数据库会话的便捷函数（向后兼容）"""
+    from sqlalchemy.orm import sessionmaker
 
-    db_session = SessionLocal()
+    if SessionLocal is not None:
+        db_session = SessionLocal()
+    else:
+        # SessionLocal 已废弃为 None，从统一管理器获取同步引擎
+        try:
+            sync_engine = db_manager.async_engine.sync_engine
+            sync_session_factory = sessionmaker(bind=sync_engine)
+            db_session = sync_session_factory()
+        except Exception:
+            raise RuntimeError(
+                "Database not initialized. Ensure the application has started "
+                "properly with a configured database."
+            )
+
     try:
         yield db_session
     finally:

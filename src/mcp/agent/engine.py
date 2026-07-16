@@ -194,7 +194,7 @@ async def run_agent(
             err = str(e)[:300]
             logger.error(f"LLM call failed: {err}")
             state.errors.append(err)
-            state.messages.append({"role": "assistant", "content": f"❌ 调用失败：{err}"})
+            state.messages.append({"role": "assistant", "content": f" 调用失败：{err}"})
             state.done = True
             return state
 

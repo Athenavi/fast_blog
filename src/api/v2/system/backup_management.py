@@ -2,11 +2,11 @@
 备份管理 API - V2 版本
 提供自动化的数据库和文件备份、恢复功能
 """
-import os
 import asyncio
+import os
 from typing import Optional
 
-from fastapi import APIRouter, Depends, BackgroundTasks, HTTPException
+from fastapi import APIRouter, Depends, BackgroundTasks
 from fastapi.responses import FileResponse
 
 from shared.models.user import User
@@ -32,10 +32,10 @@ async def backup_database(
 ):
     """
     创建数据库备份
-    
+
     参数:
     - backup_type: 备份类型 ('full' 完整备份 或 'incremental' 增量备份)
-    
+
     返回备份文件信息和元数据
     """
     # 检查权限（需要管理员权限）
@@ -59,7 +59,7 @@ async def backup_files(
 ):
     """
     创建文件备份（媒体文件、上传文件等）
-    
+
     备份内容包括:
     - media/ 目录
     - upload_chunks/ 目录
@@ -91,7 +91,7 @@ async def backup_full(
 ):
     """
     创建完整备份（数据库 + 文件）
-    
+
     这是最全面的备份方式，建议定期执行
     """
     # 检查权限
@@ -117,12 +117,12 @@ async def list_backups(
 ):
     """
     列出所有备份文件（分页）
-    
+
     参数:
     - backup_type: 过滤备份类型 ('database', 'files', 'full')
     - page: 页码（从1开始）
     - per_page: 每页数量（默认20）
-    
+
     返回备份列表，按时间倒序排列
     """
     all_backups = backup_service.list_backups(backup_type=backup_type, limit=0)
@@ -154,9 +154,9 @@ async def restore_backup(
 ):
     """
     从备份文件恢复
-    
-    ⚠️ 警告: 此操作会覆盖当前数据，请谨慎使用！
-    
+
+     警告: 此操作会覆盖当前数据，请谨慎使用！
+
     参数:
     - backup_file: 备份文件路径或文件名
     - backup_type: 恢复类型 ('database' 或 'files')
@@ -188,7 +188,7 @@ async def delete_backup(
 ):
     """
     删除指定的备份文件
-    
+
     参数:
     - backup_id: 备份文件ID或文件名
     """
@@ -211,7 +211,7 @@ async def get_backup_schedule(
 ):
     """
     获取自动备份计划配置
-    
+
     返回当前的备份计划和设置
     """
     schedule = backup_service.get_backup_schedule()
@@ -230,7 +230,7 @@ async def update_backup_schedule(
 ):
     """
     更新自动备份计划配置
-    
+
     参数:
     - auto_backup_enabled: 是否启用自动备份
     - auto_backup_schedule: 备份频率 ('hourly', 'daily', 'weekly', 'monthly')
@@ -260,7 +260,7 @@ async def get_backup_stats(
 ):
     """
     获取备份统计信息
-    
+
     返回备份总数、总大小、最新备份时间等
     """
     stats = backup_service.get_backup_stats()
@@ -305,10 +305,10 @@ async def cleanup_old_backups(
 ):
     """
     清理过期的备份文件
-    
+
     参数:
     - days_to_keep: 保留天数（可选，默认使用配置的保留天数）
-    
+
     返回被删除的备份列表
     """
     # 检查权限

@@ -72,9 +72,8 @@ async def update_password(user_id: int, new_password: str, confirm_password: str
         user = result.scalar_one_or_none()
     else:
         # 同步会话处理
-        from sqlalchemy import select
         user_query = select(User).where(User.id == user_id)
-        user_result = await db.execute(user_query)
+        user_result = db.execute(user_query)
         user = user_result.scalar_one_or_none()
 
     if user:
