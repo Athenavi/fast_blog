@@ -3,13 +3,12 @@ API限流服务
 提供请求频率限制、IP限流、用户配额等功能
 """
 import time
-
-from typing import Dict, Any, Optional, Tuple
-from datetime import datetime, timedelta, timezone
 from collections import defaultdict
+from datetime import datetime, timedelta, timezone
+from typing import Dict, Any, Tuple
 
 import redis.asyncio as redis
-from fastapi import Request, HTTPException
+from fastapi import Request
 
 from shared.logging import default_logger as logger
 
@@ -17,7 +16,7 @@ from shared.logging import default_logger as logger
 class RateLimiter:
     """
     API限流器
-    
+
     功能:
     1. 基于Token Bucket算法的限流
     2. IP地址限流
@@ -29,7 +28,7 @@ class RateLimiter:
     def __init__(self, redis_url: str = None):
         """
         初始化限流器
-        
+
         Args:
             redis_url: Redis连接URL，如果为None则使用内存存储
         """
@@ -40,7 +39,7 @@ class RateLimiter:
         # 默认限流配置
         self.default_limits = {
             'global': {'requests': 1000, 'window': 3600},  # 全局：1000次/小时
-            'ip': {'requests': 100, 'window': 60},  # IP：100次/分钟
+            'ip': {'requests': 300, 'window': 60},  # IP：300次/分钟（约5次/秒，为媒体库页面多请求场景预留）
             'user': {'requests': 500, 'window': 3600},  # 用户：500次/小时
             'endpoint': {  # 端点特定限制
                 '/api/v1/auth/login': {'requests': 10, 'window': 60},  # 登录：10次/分钟
@@ -103,12 +102,12 @@ class RateLimiter:
     ) -> Tuple[bool, Dict[str, Any]]:
         """
         检查速率限制（优化版：单次检查 + 避免重复 IP 查询）
-        
+
         Args:
             user_id: 用户ID
             ip_address: IP地址
             endpoint: API端点
-            
+
         Returns:
             (是否允许, 限流信息)
         """
@@ -170,13 +169,13 @@ class RateLimiter:
     ) -> Tuple[bool, Dict[str, Any]]:
         """
         检查是否被限流
-        
+
         Args:
             identifier: 标识符（IP地址或用户ID）
             limit_type: 限流类型 ('ip', 'user', 'endpoint')
             endpoint: API端点路径
             custom_limit: 自定义限流配置
-            
+
         Returns:
             (是否被限流, 限流信息)
         """
@@ -225,11 +224,11 @@ class RateLimiter:
     async def check_ip_limit(self, ip_address: str, endpoint: str = None) -> Tuple[bool, Dict[str, Any]]:
         """
         检查IP限流
-        
+
         Args:
             ip_address: IP地址
             endpoint: API端点
-            
+
         Returns:
             (是否被限流, 限流信息)
         """
@@ -238,11 +237,11 @@ class RateLimiter:
     async def check_user_limit(self, user_id: int, endpoint: str = None) -> Tuple[bool, Dict[str, Any]]:
         """
         检查用户限流
-        
+
         Args:
             user_id: 用户ID
             endpoint: API端点
-            
+
         Returns:
             (是否被限流, 限流信息)
         """
@@ -251,10 +250,10 @@ class RateLimiter:
     async def get_quota_info(self, user_id: int) -> Dict[str, Any]:
         """
         获取用户配额信息
-        
+
         Args:
             user_id: 用户ID
-            
+
         Returns:
             配额信息
         """
@@ -267,7 +266,7 @@ class RateLimiter:
             current_count = await self._get_request_count_memory(key, window)
 
         max_requests = self.default_limits['user']['requests']
-        
+
         return {
             'user_id': user_id,
             'current_usage': current_count,
@@ -280,7 +279,7 @@ class RateLimiter:
     async def set_custom_limit(self, identifier: str, limit_type: str, requests: int, window: int):
         """
         设置自定义限流配置
-        
+
         Args:
             identifier: 标识符
             limit_type: 限流类型
@@ -303,7 +302,7 @@ class RateLimiter:
     async def reset_limit(self, identifier: str, limit_type: str):
         """
         重置限流计数器
-        
+
         Args:
             identifier: 标识符
             limit_type: 限流类型
@@ -324,9 +323,11 @@ rate_limiter = RateLimiter()
 async def rate_limit_middleware(request: Request, call_next):
     """
     限流中间件
-    
+
     自动对所有API请求进行限流检查
     """
+    from fastapi.responses import JSONResponse
+
     # 获取客户端IP
     client_ip = request.client.host if request.client else "unknown"
 
@@ -337,9 +338,9 @@ async def rate_limit_middleware(request: Request, call_next):
     limited, info = await rate_limiter.check_ip_limit(client_ip, endpoint)
 
     if limited:
-        raise HTTPException(
+        return JSONResponse(
             status_code=429,
-            detail={
+            content={
                 'error': 'Rate limit exceeded',
                 'retry_after': info['retry_after'],
                 'message': f'Too many requests. Please try again in {info["retry_after"]} seconds.'
