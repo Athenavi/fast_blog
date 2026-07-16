@@ -130,7 +130,7 @@ class TokenBlacklistManager:
             from src.utils.database.unified_manager import db_manager
             from shared.models import TokenBlacklist
 
-            async with db_manager.get_async_session() as session:
+            async with db_manager.get_session() as session:
                 token_id = self._get_token_identifier(token)
                 token_hash = self._get_token_hash(token)
 
@@ -204,7 +204,7 @@ class TokenBlacklistManager:
 
             token_id = self._get_token_identifier(token)
 
-            async with db_manager.get_async_session() as session:
+            async with db_manager.get_session() as session:
                 result = await session.execute(
                     select(TokenBlacklist).where(
                         TokenBlacklist.token_identifier == token_id,

@@ -2,10 +2,9 @@
 媒体上传（普通上传、分块上传）
 """
 import hashlib
-
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, Request, HTTPException
+from fastapi import APIRouter, Depends, Request
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -18,9 +17,11 @@ from src.utils.upload.public_upload import ChunkedUploadProcessor, FileProcessor
 router = APIRouter()
 from src.unified_logger import default_logger as logger
 
-from src.api.v2._helpers import ok, fail, _catch
+from src.api.v2._helpers import ok, _catch
 
 
+@router.post("/upload")
+@_catch
 async def upload_media_file(
         request: Request,
         current_user_obj=Depends(jwt_required),
