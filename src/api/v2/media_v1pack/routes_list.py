@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Optional
 
 import humanize
-from fastapi import APIRouter, Depends, Query, Request, HTTPException
+from fastapi import APIRouter, Depends, Query, Request
 from fastapi.responses import JSONResponse, Response
 from sqlalchemy import select, func, case
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -18,11 +18,12 @@ from .dependencies import get_user_storage_used, get_user_storage_limit
 from .utils import convert_storage_size
 
 router = APIRouter()
-from src.unified_logger import default_logger as logger
 
 from src.api.v2._helpers import ok, fail, _catch
 
 
+@router.get("/files")
+@_catch
 async def list_media(
         request: Request,
         current_user_obj=Depends(jwt_required),

@@ -1,11 +1,11 @@
 """
 FastBlog 应用入口
 """
+import asyncio
 import importlib
 import os
 import time as _time
 import traceback
-import asyncio
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from contextlib import asynccontextmanager
 from datetime import datetime
@@ -13,7 +13,6 @@ from typing import AsyncGenerator
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
-from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.staticfiles import StaticFiles
 
 
@@ -414,6 +413,7 @@ async def _start_redis_subscriber():
     # 启动通用缓存失效广播监听
     try:
         from src.services.redis_service import redis_service
+        await redis_service.connect()
         await redis_service.start_cache_invalidation_listener()
         print(f"[lifespan] Redis cache:invalidate 监听已启动")
     except Exception as e:

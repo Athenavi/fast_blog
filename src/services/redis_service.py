@@ -3,6 +3,7 @@ Redis 缓存服务
 提供异步 Redis 操作和缓存管理
 """
 import json
+import os
 from datetime import timedelta
 from typing import Optional, Any, Union
 
@@ -14,8 +15,19 @@ from src.unified_logger import default_logger as logger
 class RedisService:
     """Redis 缓存服务"""
 
-    def __init__(self, url: str = "redis://localhost:6379/0"):
-        self.url = url
+    def __init__(self, url: Optional[str] = None):
+        if url is None:
+            # 从环境变量读取 Redis 配置（与 extensions.py / token_blacklist.py 保持一致）
+            redis_host = os.environ.get('REDIS_HOST', 'localhost')
+            redis_port = int(os.environ.get('REDIS_PORT', 6379))
+            redis_db = int(os.environ.get('REDIS_DB', 0))
+            redis_password = os.environ.get('REDIS_PASSWORD') or None
+            if redis_password:
+                self.url = f"redis://:{redis_password}@{redis_host}:{redis_port}/{redis_db}"
+            else:
+                self.url = f"redis://{redis_host}:{redis_port}/{redis_db}"
+        else:
+            self.url = url
         self._redis: Optional[aioredis.Redis] = None
 
     async def connect(self):
