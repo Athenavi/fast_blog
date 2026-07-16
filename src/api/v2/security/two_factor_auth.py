@@ -3,7 +3,7 @@
 """
 import logging
 
-from fastapi import APIRouter, Body, Depends, HTTPException, Request
+from fastapi import APIRouter, Body, Depends, Request
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -112,7 +112,6 @@ async def enable_2fa(
     """
     from shared.models.user import User
     from sqlalchemy import select
-    from src.extensions import cache
 
     # 获取临时存储的密钥（优先缓存，降级内存）
     from src.extensions import cache
@@ -214,7 +213,7 @@ async def verify_2fa_login(
     """
     from shared.models.user import User
     from sqlalchemy import select
-    from datetime import datetime, timezone, timedelta
+    from datetime import datetime, timezone
 
     # 获取设备信息（在try块开头定义，确保后续可用）
     user_agent = request.headers.get("User-Agent", "Unknown")
@@ -270,7 +269,7 @@ async def verify_2fa_login(
             'browser': request.headers.get('sec-ch-ua', 'Unknown'),
             'platform': request.headers.get('sec-ch-ua-platform', 'Unknown'),
         }
-        session_management_service.create_session(
+        await session_management_service.create_session(
             user_id=user.id,
             device_info=device_info,
             ip_address=ip_address,
