@@ -4,12 +4,13 @@ SQLAlchemy 模型定义 - User
 生成时间：2026-06-13 23:12:16
 """
 
-from sqlalchemy import Column, Integer, BigInteger, String, Text, Boolean, DateTime, Index
+from sqlalchemy import Column, BigInteger, String, Text, Boolean, DateTime, Index
 from sqlalchemy.orm import relationship
 
+# 提前导入 UserRole 以确保 user_role_assignments 表在 User.roles relationship 解析前已注册到 Base.metadata
+import shared.models.rbac.user_role  # noqa: F401
 from shared.models import Base  # 使用统一的 Base（跨子包引用）
 from shared.utils.crypto import EncryptedField
-
 
 
 class User(Base):

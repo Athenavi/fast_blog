@@ -9,12 +9,12 @@ import json
 import logging
 import uuid
 from dataclasses import dataclass, field
-from typing import Any, AsyncGenerator, Dict, List, Optional, Tuple
+from typing import Any, AsyncGenerator, Dict, List, Optional
 
 import httpx
 
-from src.mcp.server import mcp_server
 from src.mcp.agent.format import format_tool_result
+from src.mcp.server import mcp_server
 
 logger = logging.getLogger("mcp.agent")
 
@@ -137,12 +137,6 @@ def build_messages(state: AgentState, system_prompt: str) -> List[Dict]:
     Defensively ensures:
     1. Every ``tool`` message carries a ``tool_call_id``
        (synthetic id when frontend ReAct loop omits it).
-    2. ``tool`` messages without a preceding ``tool_calls`` message
-       are converted to ``assistant`` text, because OpenAI/DeepSeek
-       require ``role=tool`` to follow a message with ``tool_calls``.
-       (This happens when the frontend ReAct loop parses XML tool
-       calls from assistant text and creates tool messages without
-       a corresponding ``tool_calls`` array.)
     """
     msgs: List[Dict[str, Any]] = [{"role": "system", "content": system_prompt}]
     last_had_tool_calls = False
@@ -152,26 +146,6 @@ def build_messages(state: AgentState, system_prompt: str) -> List[Dict]:
         content = m.get("content")
         tool_calls = m.get("tool_calls")
         tool_call_id = m.get("tool_call_id")
-
-        # ── Tool message without preceding tool_calls → convert to assistant text ──
-        if role == "tool" and not last_had_tool_calls:
-            try:
-                parsed = json.loads(content) if content else {}
-                tool_name = m.get("name", parsed.get("name", "tool"))
-                raw_result = parsed.get("result", "")
-                raw_text = json.dumps(raw_result, ensure_ascii=False) if raw_result else "{}"
-                success = parsed.get("done", False)
-                summary = format_tool_result(tool_name, raw_text, success=success)
-            except (json.JSONDecodeError, TypeError, Exception):
-                summary = content or "(空工具结果)"
-
-            entry: Dict[str, Any] = {
-                "role": "assistant",
-                "content": summary,
-            }
-            msgs.append(entry)
-            last_had_tool_calls = False
-            continue
 
         # ── Normal message ──
         entry: Dict[str, Any] = {"role": role}
