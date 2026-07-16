@@ -38,69 +38,17 @@
 
 ---
 
-## 🏗️ Architecture
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│                        Nginx / CDN                          │
-├────────────────────────┬────────────────────────────────────┤
-│    Astro Frontend      │         FastAPI Backend            │
-│   (Static SSG)        │    (Async REST API Server)         │
-│                        │                                    │
-│  ┌──────────────┐      │  ┌───────────┐  ┌──────────────┐  │
-│  │  React 19    │      │  │  Routes   │  │  Middleware  │  │
-│  │  Islands     │      │  │  (v2/v3)  │  │              │  │
-│  └──────────────┘      │  └─────┬─────┘  └──────────────┘  │
-│                        │        │                          │
-│  ┌──────────────┐      │  ┌─────▼─────┐  ┌──────────────┐  │
-│  │ TailwindCSS  │      │  │ Services  │  │  Plugin Hook │  │
-│  └──────────────┘      │  └─────┬─────┘  └──────────────┘  │
-│                        │        │                          │
-│  ┌──────────────┐      │  ┌─────▼─────┐  ┌──────────────┐  │
-│  │ TanStack     │      │  │  Models   │  │    Cache     │  │
-│  │ React Query  │      │  │(SQLAlchemy)│  │   (Redis)    │  │
-│  └──────────────┘      │  └─────┬─────┘  └──────────────┘  │
-│                        │        │                          │
-│                        │  ┌─────▼─────┐                    │
-│                        │  │PostgreSQL │                    │
-│                        │  └───────────┘                    │
-├────────────────────────┴────────────────────────────────────┤
-│                      Shared Models & Utils                  │
-└─────────────────────────────────────────────────────────────┘
-```
-
----
-
 ## 🚀 Quick Start
 
-### Docker (Recommended)
-
 ```bash
+# Docker (recommended)
 git clone https://github.com/Athenavi/fast_blog.git
 cd fast_blog
 cp .env_example .env
-# Edit .env with your database credentials
 docker-compose up -d
 ```
 
-Visit `http://localhost:4321` for the frontend, `http://localhost:9421/docs` for API docs.
-
-### Manual Installation
-
-```bash
-# Backend
-python -m venv venv
-source venv/bin/activate   # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-cp .env_example .env       # Edit .env with your settings
-alembic upgrade head
-python main.py
-
-# Frontend (new terminal)
-cd frontend-astro
-npm install
-npm run dev
-```
+See [Quick Start Guide](docs/QUICK_START.md) for manual installation and detailed setup.
 
 ---
 
@@ -121,15 +69,7 @@ npm run dev
 
 ## 🤝 Contributing
 
-We welcome contributions! Please read our [Contributing Guide](CONTRIBUTING.md) before submitting PRs.
-
-```bash
-git clone https://github.com/YOUR_USERNAME/fast_blog.git
-cd fast_blog
-git checkout -b feature/amazing-feature
-git commit -m "feat: add amazing feature"
-git push origin feature/amazing-feature
-```
+We welcome contributions! Please read our [Contributing Guide](docs/CONTRIBUTING.md) before submitting PRs.
 
 ---
 

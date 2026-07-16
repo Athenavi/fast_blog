@@ -49,44 +49,29 @@ curl http://localhost:4321
 
 项目提供 [`nginx/conf.d/fastblog.conf`](../nginx/conf.d/fastblog.conf)，包含反向代理、速率限制、安全头、Gzip 压缩和缓存策略。
 
-### BT 面板（非 Docker）部署
+### 反向代理配置
 
-使用 BT 面板时，Nginx 配置示例（`/www/server/panel/vhost/nginx/node_fb2607.conf`）：
+参考 `nginx/conf.d/fastblog.conf`。如使用 BT 面板：
 
 ```nginx
 server {
     listen 80;
     server_name yourdomain.com;
 
-    # API 转发到后端
     location ^~ /api/ {
         proxy_pass http://127.0.0.1:9421;
-        proxy_http_version 1.1;
         proxy_set_header Host $host;
         proxy_set_header X-Real-IP $remote_addr;
         proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
     }
 
-    # Media 文件
-    location ^~ /media/ {
-        proxy_pass http://127.0.0.1:9421;
-    }
-
-    # 前端 SSR
     location / {
-        proxy_pass http://[::1]:4321;
-        proxy_http_version 1.1;
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_pass http://[::1]:4321;  # SSR 默认 IPv6
     }
 }
 ```
 
-> ⚠️ SSR 服务默认监听 `[::1]:4321`（IPv6），Nginx 需用 `[::1]` 而非 `127.0.0.1`。
-> 如要改用 IPv4，启动时设置 `HOST=0.0.0.0`。
+> SSR 默认监听 `[::1]:4321`（IPv6），如用 IPv4 需设置 `HOST=0.0.0.0`。
 
 ### SSR 模式启动
 
@@ -119,14 +104,9 @@ const runtimeConfig = {
 ### SSL 证书
 
 ```bash
-# 安装 Certbot
 sudo apt install -y certbot python3-certbot-nginx
-
-# 获取证书
 sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com
-
-# 自动续期（crontab）
-0 3 * * * certbot renew --quiet
+# 自动续期：0 3 * * * certbot renew --quiet
 ```
 
 ---

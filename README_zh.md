@@ -40,34 +40,15 @@
 
 ## 🚀 快速开始
 
-### Docker 部署（推荐）
-
 ```bash
+# Docker 部署（推荐）
 git clone https://github.com/Athenavi/fast_blog.git
 cd fast_blog
 cp .env_example .env
-# 编辑 .env 中的数据库配置
 docker-compose up -d
 ```
 
-访问前端 `http://localhost:4321`，API 文档 `http://localhost:9421/docs`。
-
-### 手动部署
-
-```bash
-# 后端
-python -m venv venv
-source venv/bin/activate   # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-cp .env_example .env       # 编辑 .env 配置
-alembic upgrade head
-python main.py
-
-# 前端（新终端）
-cd frontend-astro
-npm install
-npm run dev
-```
+详细的手动部署指南请参阅[快速开始文档](docs/QUICK_START.md)。
 
 ---
 
@@ -88,15 +69,7 @@ npm run dev
 
 ## 🤝 参与贡献
 
-欢迎各种形式的贡献！在提交 PR 前请阅读[贡献指南](CONTRIBUTING.md)。
-
-```bash
-git clone https://github.com/YOUR_USERNAME/fast_blog.git
-cd fast_blog
-git checkout -b feature/amazing-feature
-git commit -m "feat: 添加新功能"
-git push origin feature/amazing-feature
-```
+欢迎各种形式的贡献！在提交 PR 前请阅读[贡献指南](docs/CONTRIBUTING.md)。
 
 ---
 

@@ -2,7 +2,8 @@
 
 > **版本**: V0.5.26.0612+ | **前端框架**: Astro 5.x + React 19 + TailwindCSS
 >
-> **⚠️ 注意**: 主题系统已迁移为 plugin 架构（`category: "theme"`），主题作为插件存放在 `plugins/` 目录下。本文部分引用 `themes/` 目录和 `theme.json` 的内容已过时，请以实际主题插件为准。
+> **注意**: 主题作为插件存放在 `plugins/` 目录下，通过 `metadata.json` 中的 `category: "theme"` 标识。文档中路径示例请以
+`plugins/<theme>/` 为准。
 
 ---
 
@@ -60,8 +61,8 @@ FastBlog 的主题系统基于 **Astro SSG + TailwindCSS** 构建，允许开发
 ### 1. 创建主题目录
 
 ```bash
-mkdir themes/my-theme
-cd themes/my-theme
+mkdir plugins/my-theme
+cd plugins/my-theme
 ```
 
 ### 2. 创建元数据文件
@@ -492,4 +493,4 @@ A: 不是必需的。`templates/` 目录是可选的，用于自定义页面模�
 - ✅ 遵循最佳实践确保性能和可访问性
 - ✅ 参考内置主题（default、magazine、modern-minimal）进行开发
 
-更多详细信息请参考 [`themes/`](../themes/) 目录中的内置主题源码。
+更多详细信息请参考 [`plugins/`](../plugins/) 目录中的内置主题源码。

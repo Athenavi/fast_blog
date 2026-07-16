@@ -185,6 +185,7 @@ ss -tlnp | grep 4321
 # 4. uwsgi vs HTTP（重要）
 # 如果后端用 uwsgi，Nginx 需用 uwsgi_pass 而非 proxy_pass
 # 改用 python main.py（uvicorn）后使用标准 HTTP
+```
 
 ---
 
