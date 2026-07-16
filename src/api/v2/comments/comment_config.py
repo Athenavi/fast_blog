@@ -4,11 +4,12 @@
 """
 from datetime import datetime
 
-from fastapi import APIRouter, Request, Depends, HTTPException
+from fastapi import APIRouter, Request, Depends
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models import SystemSettings
-from src.api.v2._helpers import ok, fail, _catch
+from src.api.v2._helpers import ok, _catch
 from src.auth import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 
@@ -35,9 +36,9 @@ async def get_comment_config(
         )
 
     # 获取所有评论相关的系统设置
-    comment_settings = db.query(SystemSettings).filter(
-        SystemSettings.key.like('giscus_%')
-    ).all()
+    stmt = select(SystemSettings).where(SystemSettings.key.like('giscus_%'))
+    result = await db.execute(stmt)
+    comment_settings = result.scalars().all()
 
     # 转换为字典格式
     config = {setting.key: setting.value for setting in comment_settings}

@@ -21,8 +21,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import jwt as pyjwt
 import pytest
-from fastapi import HTTPException, Request, status
-from fastapi.responses import RedirectResponse
+from fastapi import HTTPException, Request
 
 from src.auth.auth_deps import (
     create_access_token,
@@ -46,6 +45,9 @@ def mock_request():
     req = MagicMock(spec=Request)
     req.headers = {}
     req.cookies = {}
+    # query_params must return None for .get("token") so the function
+    # doesn't short-circuit on a falsy MagicMock before reaching cookies
+    req.query_params = {}
     return req
 
 
@@ -65,11 +67,12 @@ def mock_db():
 
 @pytest.fixture
 def active_user():
-    """A normal active user (not superuser)."""
+    """A normal active user (not superuser, not staff)."""
     user = MagicMock()
     user.id = 1
     user.is_active = True
     user.is_superuser = False
+    user.is_staff = False
     user.has_permission.return_value = False
     user.has_role.return_value = False
     return user
@@ -360,7 +363,7 @@ class TestAuthenticateUser:
 
         mock_blacklist = MagicMock()
         mock_blacklist.is_available = True
-        mock_blacklist.is_blacklisted.return_value = True
+        mock_blacklist.is_blacklisted_async = AsyncMock(return_value=True)
         mock_bl.return_value = mock_blacklist
 
         with pytest.raises(HTTPException) as exc:
@@ -467,21 +470,25 @@ class TestRequirePermission:
 
     """Permission checker factory."""
 
-    async def test_user_with_permission_passes(self, admin_user):
+    async def test_user_with_permission_passes(self, mock_db, active_user):
         """User with the required permission passes."""
-        admin_user.has_permission.return_value = True
-        checker = require_permission("articles.create")
-        user = await checker(user=admin_user)
-        assert user is admin_user
-        admin_user.has_permission.assert_called_with("articles.create")
+        with patch("src.auth.auth_deps.rbac_service") as mock_rbac:
+            mock_rbac.has_capability = AsyncMock(return_value=True)
+            checker = require_permission("articles.create")
+            user = await checker(user=active_user, db=mock_db)
+            assert user is active_user
+            mock_rbac.has_capability.assert_called_once_with(
+                mock_db, active_user.id, "articles.create"
+            )
 
-    async def test_user_without_permission_raises_403(self, active_user):
+    async def test_user_without_permission_raises_403(self, mock_db, active_user):
         """User without permission raises 403."""
-        active_user.has_permission.return_value = False
-        checker = require_permission("articles.delete")
-        with pytest.raises(HTTPException) as exc:
-            await checker(user=active_user)
-        assert exc.value.status_code == 403
+        with patch("src.auth.auth_deps.rbac_service") as mock_rbac:
+            mock_rbac.has_capability = AsyncMock(return_value=False)
+            checker = require_permission("articles.delete")
+            with pytest.raises(HTTPException) as exc:
+                await checker(user=active_user, db=mock_db)
+            assert exc.value.status_code == 403
 
 
 class TestRequireRole:
@@ -489,18 +496,22 @@ class TestRequireRole:
 
     """Role checker factory."""
 
-    async def test_user_with_role_passes(self, admin_user):
+    async def test_user_with_role_passes(self, mock_db, active_user):
         """User with the required role passes."""
-        admin_user.has_role.return_value = True
-        checker = require_role("editor")
-        user = await checker(user=admin_user)
-        assert user is admin_user
-        admin_user.has_role.assert_called_with("editor")
+        with patch("src.auth.auth_deps.rbac_service") as mock_rbac:
+            mock_rbac.user_has_role = AsyncMock(return_value=True)
+            checker = require_role("editor")
+            user = await checker(user=active_user, db=mock_db)
+            assert user is active_user
+            mock_rbac.user_has_role.assert_called_once_with(
+                mock_db, active_user.id, "editor"
+            )
 
-    async def test_user_without_role_raises_403(self, active_user):
+    async def test_user_without_role_raises_403(self, mock_db, active_user):
         """User without role raises 403."""
-        active_user.has_role.return_value = False
-        checker = require_role("admin")
-        with pytest.raises(HTTPException) as exc:
-            await checker(user=active_user)
-        assert exc.value.status_code == 403
+        with patch("src.auth.auth_deps.rbac_service") as mock_rbac:
+            mock_rbac.user_has_role = AsyncMock(return_value=False)
+            checker = require_role("admin")
+            with pytest.raises(HTTPException) as exc:
+                await checker(user=active_user, db=mock_db)
+            assert exc.value.status_code == 403

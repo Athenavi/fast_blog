@@ -107,9 +107,6 @@ ROUTE_REGISTRY_V2 = [
     ("src.api.v2.performance", "/api/v2/performance", ["performance-v2"], True),
     # V1 performance 各子模块已废弃，功能已迁移到 V2 聚合路由器
 
-    # ==================== 备份管理（V2 完整版）====================
-    ("src.api.v2.system.backup_management", "/api/v2/system", ["backup-v2"], True),
-
     # ==================== 系统管理（V2 聚合路由器）====================
     # V2 System 模块采用包级别聚合模式，所有子模块通过 __init__.py 统一注册
     ("src.api.v2.system", "/api/v2/system", ["system-v2"], True),

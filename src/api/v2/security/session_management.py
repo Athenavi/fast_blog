@@ -5,7 +5,7 @@
 import logging
 from typing import Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Body, Request
+from fastapi import APIRouter, Depends, Body, Request
 
 from shared.models.user import User as UserModel
 from shared.services.users.session_management_service import session_management_service
@@ -22,7 +22,7 @@ async def get_my_sessions(
 ):
     """
     获取当前用户的所有活跃会话(设备列表)
-    
+
     Returns:
         会话列表
     """
@@ -53,14 +53,14 @@ async def revoke_session(
 ):
     """
     远程注销指定的设备/会话
-    
+
     Args:
         session_id: 要注销的会话ID
-        
+
     Returns:
         操作结果
     """
-    success = session_management_service.revoke_session(
+    success = await session_management_service.revoke_session(
         current_user.id,
         session_id
     )
@@ -84,14 +84,14 @@ async def revoke_all_sessions(
 ):
     """
     注销所有其他设备(保留当前设备)
-    
+
     Args:
         current_session_id: 当前会话ID(可选，用于排除)
-        
+
     Returns:
         操作结果
     """
-    revoked_count = session_management_service.revoke_all_sessions(
+    revoked_count = await session_management_service.revoke_all_sessions(
         current_user.id,
         exclude_session_id=current_session_id
     )
@@ -112,7 +112,7 @@ async def get_security_alerts(
 ):
     """
     检测并获取安全告警(异地登录、新设备等)
-    
+
     Returns:
         安全告警列表
     """
@@ -149,7 +149,7 @@ async def get_session_stats(
 ):
     """
     获取用户的会话统计信息
-    
+
     Returns:
         统计数据
     """
@@ -179,10 +179,10 @@ async def admin_get_user_sessions(
 ):
     """
     管理员查看指定用户的会话列表
-    
+
     Args:
         user_id: 目标用户ID
-        
+
     Returns:
         会话列表
     """

@@ -35,7 +35,7 @@ async def zero_trust_middleware(request: Request, call_next):
         await audit_service.log_action(
             user_id=user.id,
             action=f"access_{request.method.lower()}_{request.url.path}",
-            ip_address=request.client.host,
+            ip_address=request.client.host if request.client else "unknown",
             user_agent=request.headers.get("user-agent")
         )
 

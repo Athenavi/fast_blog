@@ -10,7 +10,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 import jwt
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from fastapi.responses import JSONResponse
 from jwt.exceptions import InvalidTokenError
 from pydantic import BaseModel, EmailStr
@@ -18,20 +18,18 @@ from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.user import User as UserModel
+from shared.services.plugins.event_bus import event_bus
+from shared.services.security.audit_log_service import audit_log_service, AuditLogAction, AuditLogLevel
 from shared.services.users.email_verification_service import email_verification_service
 from shared.services.users.login_security_service import login_security_service
 from shared.services.users.session_management_service import session_management_service
 from shared.services.users.sms_verification_service import sms_verification_service
 from shared.services.users.user_manager import create_user_account
-from shared.services.plugins.event_bus import event_bus
-from shared.services.security.audit_log_service import audit_log_service, AuditLogAction, AuditLogLevel
-from src.api.v2._base import ApiResponse
 from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 from src.setting import settings
 from src.unified_logger import default_logger as logger
-
 
 _tb_instance = None
 
@@ -327,34 +325,34 @@ async def verify_sms_code(data: dict, current_user=Depends(jwt_required)):
 async def verify_2fa_login(request: Request, db: AsyncSession = Depends(get_async_db)):
     """
     验证 2FA 并完成登录
-    
+
     客户端先调用 /login 获取 temp_token，然后通过此端点提交 TOTP 码。
     """
     body = await request.json()
     temp_token = body.get("temp_token")
     code = body.get("code")
-    
+
     if not temp_token or not code:
         return fail("缺少 temp_token 或 code")
-    
+
     from shared.services.security.two_factor_service import two_factor_service
-    
+
     # 验证 temp_token
     try:
         payload = decode_jwt_token(temp_token)
     except HTTPException:
         return fail("临时 token 无效或已过期")
-    
+
     if payload.get("type") != "temp_2fa":
         return fail("无效的 token 类型")
-    
+
     user_id = int(payload["sub"])
-    
+
     # 验证 2FA 码
     result = await two_factor_service.verify(db, user_id, code)
     if not result["success"]:
         return fail("验证码无效")
-    
+
     # 发放正式 token
     ip = request.client.host if request.client else "unknown"
     ua = request.headers.get("user-agent", "")
@@ -372,13 +370,13 @@ async def verify_2fa_login(request: Request, db: AsyncSession = Depends(get_asyn
 
     access_token = create_jwt_token(subject=str(user_id), token_type="access")
     refresh_token = create_jwt_token(subject=str(user_id), token_type="refresh")
-    
+
     resp_data = {
         "access_token": access_token,
         "refresh_token": refresh_token,
         "token_type": "bearer",
     }
-    
+
     resp = JSONResponse(content={"success": True, "data": resp_data})
     is_https = str(settings.SITE_URL).startswith('https://') if hasattr(settings, 'SITE_URL') else False
     resp.set_cookie("access_token", access_token, httponly=True, secure=is_https, samesite="strict", max_age=3600, path="/")
@@ -397,7 +395,7 @@ async def logout_api(request: Request, current_user=Depends(jwt_required)):
         try:
             payload = decode_jwt_token(token)
             tb.blacklist(payload['jti'], payload['exp'])
-            session_management_service.revoke_all_sessions(current_user.id)
+            await session_management_service.revoke_all_sessions(current_user.id)
         except Exception:
             pass
     resp = JSONResponse(content={"success": True, "message": "已登出"})
