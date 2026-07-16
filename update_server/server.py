@@ -38,10 +38,6 @@ except Exception as e:
     logging.warning(f"自动更新检查器导入失败：{e}")
     AUTO_CHECKER_AVAILABLE = False
 
-# 添加项目根目录到 Python 路径
-project_root = Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(project_root))
-
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import JSONResponse
 
