@@ -12,7 +12,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.media import Media
-from src.api.v2._helpers import ok, fail, _catch
+from src.api.v2._helpers import ok
 from src.auth.auth_deps import jwt_required_dependency as jwt_required
 from src.extensions import get_async_db_session as get_async_db
 from src.unified_logger import default_logger as logger
@@ -117,8 +117,12 @@ def extract_cover_from_audio(media: Media) -> Optional[bytes]:
                 logger.error(f"S3文件下载失败: {e}")
                 return None
 
-        # 本地文件直接提取
-        full_path = Path('storage/' + file_path)
+        # 本地文件直接提取（防御路径遍历）
+        candidate_path = (Path('storage') / file_path.lstrip('/')).resolve()
+        if not str(candidate_path).startswith(str(Path('storage').resolve())):
+            logger.warning(f"路径逃逸被拒绝: {file_path}")
+            return None
+        full_path = candidate_path
         if full_path.exists():
             return extract_audio_cover(str(full_path))
         else:

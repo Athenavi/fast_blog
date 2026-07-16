@@ -12,13 +12,31 @@ from typing import Optional, Dict, Any, List
 from src.unified_logger import default_logger as logger
 
 
+def _safe_parse_framerate(r_frame_rate: str) -> float:
+    """安全解析 FFmpeg 帧率字符串（如 '30000/1001'），避免使用 eval()"""
+    try:
+        if not r_frame_rate or '/' not in r_frame_rate:
+            return float(r_frame_rate) if r_frame_rate else 0.0
+        parts = r_frame_rate.split('/')
+        if len(parts) != 2:
+            return 0.0
+        num, den = parts
+        # 仅允许数字和可选正负号
+        if not num.lstrip('-').isdigit() or not den.lstrip('-').isdigit():
+            return 0.0
+        num_f, den_f = float(num), float(den)
+        return num_f / den_f if den_f != 0 else 0.0
+    except (ValueError, TypeError, ZeroDivisionError):
+        return 0.0
+
+
 class VideoProcessor:
     """视频处理器，使用ffmpeg进行视频处理"""
 
     def __init__(self, ffmpeg_path: Optional[str] = None):
         """
         初始化视频处理器
-        
+
         Args:
             ffmpeg_path: ffmpeg可执行文件路径，如果为None则从PATH中查找
         """
@@ -55,10 +73,10 @@ class VideoProcessor:
     def get_video_info(self, video_path: str) -> Optional[Dict[str, Any]]:
         """
         获取视频信息
-        
+
         Args:
             video_path: 视频文件路径
-            
+
         Returns:
             包含视频信息的字典，包括：duration, width, height, codec, fps等
         """
@@ -105,7 +123,7 @@ class VideoProcessor:
                 'width': int(video_stream.get('width', 0)),
                 'height': int(video_stream.get('height', 0)),
                 'codec': video_stream.get('codec_name', ''),
-                'fps': eval(video_stream.get('r_frame_rate', '0/1')),
+                'fps': _safe_parse_framerate(video_stream.get('r_frame_rate', '0/1')),
                 'bitrate': int(format_info.get('bit_rate', 0)),
                 'file_size': int(format_info.get('size', 0)),
             }
@@ -124,14 +142,14 @@ class VideoProcessor:
     ) -> bool:
         """
         从视频中提取缩略图
-        
+
         Args:
             video_path: 视频文件路径
             thumbnail_path: 缩略图保存路径
             time: 提取时间点（秒）
             width: 缩略图宽度（高度自动计算保持比例）
             quality: JPEG质量 (1-100)
-            
+
         Returns:
             是否成功
         """
@@ -190,7 +208,7 @@ class VideoProcessor:
     ) -> Dict[str, Any]:
         """
         转码视频
-        
+
         Args:
             input_path: 输入视频路径
             output_path: 输出视频路径
@@ -201,7 +219,7 @@ class VideoProcessor:
             audio_bitrate: 音频比特率
             video_codec: 视频编码器
             container: 容器格式 (mp4, webm等)
-            
+
         Returns:
             包含转码结果的字典
         """
@@ -305,13 +323,13 @@ class VideoProcessor:
     ) -> List[Dict[str, Any]]:
         """
         生成多种分辨率的视频版本
-        
+
         Args:
             input_path: 输入视频路径
             output_dir: 输出目录
             resolutions: 分辨率列表，例如 [{'width': 1920, 'height': 1080}, {'width': 1280, 'height': 720}]
                         如果为None，则使用默认分辨率
-            
+
         Returns:
             转码结果列表
         """
@@ -370,13 +388,13 @@ class VideoProcessor:
     ) -> bool:
         """
         从视频中提取音频
-        
+
         Args:
             video_path: 视频文件路径
             output_path: 输出音频路径
             audio_format: 音频格式 (mp3, aac, ogg等)
             audio_bitrate: 音频比特率
-            
+
         Returns:
             是否成功
         """
@@ -434,14 +452,14 @@ class VideoProcessor:
     ) -> bool:
         """
         将视频转换为GIF
-        
+
         Args:
             video_path: 视频文件路径
             output_path: 输出GIF路径
             duration: GIF时长（秒），None表示全部
             fps: 帧率
             width: GIF宽度
-            
+
         Returns:
             是否成功
         """

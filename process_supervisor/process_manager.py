@@ -11,9 +11,8 @@ import os
 import subprocess
 import threading
 import time
-from dataclasses import dataclass
 from enum import Enum
-from typing import Dict, List, Optional, Any
+from typing import Dict, Optional, Any
 
 from src.unified_logger import default_logger as logger
 from .config_manager import ProcessConfig, get_config_manager
@@ -32,21 +31,6 @@ class ProcessStatus(Enum):
     RESTARTING = "restarting"
 
 
-@dataclass
-class ProcessConfig:
-    """进程配置"""
-    name: str
-    command: List[str]
-    working_dir: str = "."
-    autostart: bool = True
-    autorestart: bool = True
-    restart_limit: int = 3
-    restart_delay: int = 5  # 秒
-    stdout_logfile: Optional[str] = None
-    stderr_logfile: Optional[str] = None
-    environment: Dict[str, str] = None
-
-
 class ManagedProcess:
     """被管理的进程（增强版）"""
 
@@ -60,7 +44,7 @@ class ManagedProcess:
         self.stderr_log = None
         self.health_checker: Optional[HealthChecker] = None
         self.last_restart_delay = config.restart_delay  # 当前重启延迟（支持指数退避）
-        
+
         # 初始化健康检查器
         self.health_checker = HealthChecker(config.name)
 
@@ -69,16 +53,16 @@ class ManagedProcess:
         if self.status in [ProcessStatus.RUNNING, ProcessStatus.STARTING]:
             logger.warning(f"[{self.config.name}] 进程已在运行，PID: {self.process.pid if self.process else 'N/A'}")
             return True
-    
+
         try:
             logger.info(f"[{self.config.name}] === 正在启动进程 ===")
             logger.debug(f"[{self.config.name}] 命令：{' '.join(self.config.command)}")
             logger.debug(f"[{self.config.name}] 工作目录：{self.config.working_dir}")
             logger.debug(f"[{self.config.name}] 环境变量：{self.config.environment}")
-                
+
             self.status = ProcessStatus.STARTING
             self.last_start_time = time.time()
-    
+
             # 准备日志文件
             if self.config.stdout_logfile:
                 log_dir = os.path.dirname(self.config.stdout_logfile)
@@ -86,20 +70,20 @@ class ManagedProcess:
                     os.makedirs(log_dir, exist_ok=True)
                 self.stdout_log = open(self.config.stdout_logfile, 'a', encoding='utf-8')
                 logger.info(f"[{self.config.name}] 标准输出日志：{self.config.stdout_logfile}")
-                    
+
             if self.config.stderr_logfile:
                 log_dir = os.path.dirname(self.config.stderr_logfile)
                 if log_dir and not os.path.exists(log_dir):
                     os.makedirs(log_dir, exist_ok=True)
                 self.stderr_log = open(self.config.stderr_logfile, 'a', encoding='utf-8')
                 logger.info(f"[{self.config.name}] 错误输出日志：{self.config.stderr_logfile}")
-    
+
             # 设置环境变量
             env = os.environ.copy()
             if self.config.environment:
                 env.update(self.config.environment)
                 logger.debug(f"[{self.config.name}] 追加环境变量：{list(self.config.environment.keys())}")
-    
+
             # 启动进程
             logger.info(f"[{self.config.name}] 执行启动命令...")
             self.process = subprocess.Popen(
@@ -110,7 +94,7 @@ class ManagedProcess:
                 env=env,
                 creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == 'nt' else 0
             )
-    
+
             self.status = ProcessStatus.RUNNING
             self.restart_count = 0
             self.last_restart_delay = self.config.restart_delay  # 重置延迟
@@ -118,16 +102,16 @@ class ManagedProcess:
             logger.info(f"[{self.config.name}] [OK] 进程启动成功")
             logger.info(f"[{self.config.name}] PID: {self.process.pid}")
             logger.info(f"[{self.config.name}] 启动时间：{time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(self.last_start_time))}")
-                
+
             # 等待短暂时间检查是否立即退出
             time.sleep(0.5)
             if self.process.poll() is not None:
                 logger.error(f"[{self.config.name}] [ERROR] 进程启动后立即退出，返回码：{self.process.returncode}")
                 self.status = ProcessStatus.FAILED
                 return False
-                
+
             return True
-    
+
         except Exception as e:
             self.status = ProcessStatus.FAILED
             logger.error(f"[{self.config.name}] [ERROR] 启动进程失败：{e}", exc_info=True)
@@ -138,14 +122,14 @@ class ManagedProcess:
         if not self.process or self.status not in [ProcessStatus.RUNNING, ProcessStatus.STARTING]:
             logger.warning(f"[{self.config.name}] 进程未在运行状态，当前状态：{self.status.value}")
             return True
-    
+
         try:
             logger.info(f"[{self.config.name}] === 正在停止进程 ===")
             logger.info(f"[{self.config.name}] 当前 PID: {self.process.pid}")
             logger.info(f"[{self.config.name}] 已运行时间：{int(time.time() - self.last_start_time)}秒")
-                
+
             self.status = ProcessStatus.STOPPING
-    
+
             # 发送终止信号
             if os.name == 'nt':
                 # Windows 使用 taskkill
@@ -168,7 +152,7 @@ class ManagedProcess:
                     self.process.kill()
                     self.process.wait()
                     logger.info(f"[{self.config.name}] 进程已被强制终止")
-    
+
             # 清理资源
             if self.stdout_log:
                 self.stdout_log.close()
@@ -176,14 +160,14 @@ class ManagedProcess:
             if self.stderr_log:
                 self.stderr_log.close()
                 self.stderr_log = None
-    
+
             self.process = None
             self.status = ProcessStatus.STOPPED
 
             logger.info(f"[{self.config.name}] [OK] 进程已完全停止")
             logger.info(f"[{self.config.name}] 总重启次数：{self.restart_count}")
             return True
-    
+
         except Exception as e:
             logger.error(f"[{self.config.name}] [ERROR] 停止进程失败：{e}", exc_info=True)
             self.status = ProcessStatus.FAILED
@@ -202,12 +186,12 @@ class ManagedProcess:
                 # 进程已退出，同步状态
                 exit_code = self.process.returncode
                 logger.warning(f"[{self.config.name}] 进程已退出，返回码：{exit_code}")
-                
+
                 if exit_code == 0:
                     logger.info(f"[{self.config.name}] 进程正常退出")
                 else:
                     logger.error(f"[{self.config.name}] 进程异常退出，返回码：{exit_code}")
-                
+
                 self.status = ProcessStatus.STOPPED
                 return False
         except Exception as e:
@@ -219,9 +203,9 @@ class ManagedProcess:
         """执行健康检查（增强版：支持多种检查策略）"""
         if not self.health_checker:
             return HealthStatus.UNKNOWN, []
-        
+
         pid = self.process.pid if self.process else None
-        
+
         # 从配置中获取健康检查参数
         health_endpoint = self.config.health_check.endpoint if self.config.health_check else None
         timeout = self.config.health_check.timeout if self.config.health_check else 5
@@ -251,7 +235,7 @@ class ManagedProcess:
             logger.debug(f"[{self.config.name}] 执行端口健康检查：{host}:{port}")
         else:
             logger.debug(f"[{self.config.name}] 仅执行进程存活检查 (PID: {pid})")
-        
+
         return self.health_checker.perform_full_check(
             pid=pid,
             host=host,
@@ -259,29 +243,29 @@ class ManagedProcess:
             health_endpoint=health_endpoint,
             timeout=timeout
         )
-    
+
     def calculate_next_restart_delay(self) -> int:
         """计算下次重启延迟（指数退避）"""
         # 指数退避：delay = base_delay * (multiplier ^ restart_count)
         exponential_delay = self.config.restart_delay * (self.config.restart_backoff_multiplier ** self.restart_count)
-        
+
         # 限制最大延迟
         next_delay = min(exponential_delay, self.config.max_restart_delay)
-        
+
         return int(next_delay)
-    
+
     def should_restart(self) -> tuple[bool, str]:
         """判断是否应该重启"""
         if not self.config.autorestart:
             return False, "自动重启已禁用"
-        
+
         if self.restart_count >= self.config.restart_limit:
             return False, f"已达到最大重启次数限制 ({self.restart_count}/{self.config.restart_limit})"
-        
+
         # 检查连续健康检查失败次数
         if self.health_checker and self.health_checker.consecutive_failures >= 5:
             return False, f"健康检查连续失败 {self.health_checker.consecutive_failures} 次"
-        
+
         return True, "满足重启条件"
 
     def get_status_info(self) -> Dict[str, Any]:
@@ -296,7 +280,7 @@ class ManagedProcess:
                 logger.warning(
                     f"[{self.config.name}] 检测到进程已退出 (poll={self.process.poll()}, returncode={self.process.returncode})")
                 self.status = ProcessStatus.STOPPED
-        
+
         info = {
             'name': self.config.name,
             'status': self.status.value,
@@ -307,7 +291,7 @@ class ManagedProcess:
             'last_restart_delay': self.last_restart_delay,
             'health_check_failures': self.health_checker.consecutive_failures if self.health_checker else 0,
         }
-        
+
         # 添加资源使用信息
         if self.process and self.process.pid and self.status == ProcessStatus.RUNNING:
             try:
@@ -317,14 +301,14 @@ class ManagedProcess:
                 info['memory_percent'] = round(p.memory_percent(), 2)
             except (psutil.NoSuchProcess, Exception) as e:
                 info['resource_error'] = str(e)
-        
+
         return info
-    
+
     def _format_uptime(self, seconds: float) -> str:
         """格式化运行时间"""
         hours, remainder = divmod(int(seconds), 3600)
         minutes, secs = divmod(remainder, 60)
-        
+
         if hours > 0:
             return f"{hours}h {minutes}m {secs}s"
         elif minutes > 0:
@@ -349,10 +333,10 @@ class ProcessSupervisor:
     def _load_processes_from_config(self):
         """从配置管理器加载进程配置"""
         configs = self.config_manager.get_all_process_configs()
-        
+
         for name, config in configs.items():
             self.processes[name] = ManagedProcess(config)
-        
+
         logger.info(f"从配置加载了 {len(self.processes)} 个进程")
 
     def start_all_processes(self) -> bool:
@@ -418,29 +402,29 @@ class ProcessSupervisor:
         """监控进程运行状态（增强版：健康检查 + 智能重启 + 日志聚合）"""
         last_log_aggregation = 0
         log_aggregation_interval = 300  # 每 5 分钟聚合一次日志
-        
+
         while self.running:
             try:
                 current_time = int(time.time())
-                
+
                 for name, process in self.processes.items():
                     # 检查进程是否意外退出
                     if not process.is_running():
                         if process.status == ProcessStatus.RUNNING:
                             logger.warning(f"[{name}] 检测到进程意外退出")
-                                
+
                             # 判断是否应该重启
                             should_restart, reason = process.should_restart()
-                                
+
                             if should_restart:
                                 process.restart_count += 1
                                 delay = process.calculate_next_restart_delay()
-                                    
+
                                 logger.info(f"[{name}] 准备重启进程 (次数：{process.restart_count}/{process.config.restart_limit}, 延迟：{delay}秒)")
                                 logger.info(f"[{name}] 重启原因：{reason}")
-                                    
+
                                 time.sleep(delay)
-                                    
+
                                 if process.start():
                                     logger.info(f"[{name}] [OK] 进程重启成功")
                                     # 重启成功后等待更长时间确保稳定
@@ -451,7 +435,7 @@ class ProcessSupervisor:
                             else:
                                 logger.error(f"[{name}] [SKIP] 不满足重启条件：{reason}")
                                 process.status = ProcessStatus.FAILED
-                        
+
                     # 定期健康检查（仅对运行中的进程）
                     elif process.status == ProcessStatus.RUNNING:
                         # 根据配置的检查间隔执行
@@ -476,9 +460,9 @@ class ProcessSupervisor:
                 if current_time - last_log_aggregation >= log_aggregation_interval:
                     self._aggregate_logs()
                     last_log_aggregation = current_time
-    
+
                 time.sleep(5)  # 每 5 秒检查一次
-    
+
             except Exception as e:
                 logger.error(f"进程监控出错：{e}", exc_info=True)
                 time.sleep(10)

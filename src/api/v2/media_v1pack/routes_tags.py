@@ -2,12 +2,11 @@
 单个媒体的标签、缩略图、EXIF操作
 """
 import logging
-import os
+from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException, Request
+from fastapi import APIRouter, Depends, Request
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
-from pathlib import Path
 
 from shared.models.media import Media
 from src.api.v2._helpers import ok, fail, _catch
@@ -38,12 +37,17 @@ async def get_media_exif(
 
     file_path = Path(media.file_path) if media.file_path else None
     if not file_path or not file_path.exists():
-        # 尝试带 storage 前缀
-        storage_path = Path('storage') / media.file_path.lstrip('/') if media.file_path else None
-        if storage_path and storage_path.exists():
-            file_path = storage_path
+        # 尝试带 storage 前缀（防御路径遍历：标准化并验证前缀）
+        if media.file_path:
+            storage_path = (Path('storage') / media.file_path.lstrip('/')).resolve()
+            if not str(storage_path).startswith(str(Path('storage').resolve())):
+                return ok(data={})  # 路径逃逸被拒绝
+            if storage_path.exists():
+                file_path = storage_path
+            else:
+                return ok(data={})  # Return empty if file not found
         else:
-            return ok(data={})  # Return empty if file not found
+            return ok(data={})
 
     exif_data = {}
     try:
@@ -153,7 +157,7 @@ async def update_media_tags(
     支持 mode 参数：
     - add: 追加标签（默认）
     - replace: 替换全部标签
-    
+
     注意：每个媒体最多支持5个标签
     """
     body = await request.json()

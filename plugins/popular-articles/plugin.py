@@ -3,10 +3,10 @@ Popular Articles Plugin
 读取主数据库 Article.views，返回热门文章排行
 """
 from datetime import datetime, timedelta, timezone
-from typing import Dict, Any, List
+from typing import Dict, Any
 
-from shared.services.plugins.plugin_manager.core import BasePlugin
 from shared.services.plugins.plugin_manager import requires_capability
+from shared.services.plugins.plugin_manager.core import BasePlugin
 
 
 class PopularArticlesPlugin(BasePlugin):
@@ -69,4 +69,4 @@ class PopularArticlesPlugin(BasePlugin):
 
 
 # 全局实例
-plugin = PopularArticlesPlugin()
+plugin_instance = PopularArticlesPlugin()
