@@ -409,7 +409,7 @@ class DependencyManager:
                 # 默认为 >=
                 return self._version_gte(current, required)
         except:
-            return True  # 出错时默认通过
+            return False  # 出错时默认拒绝（fail closed）
 
     def _version_gte(self, v1: str, v2: str) -> bool:
         """
@@ -434,7 +434,7 @@ class DependencyManager:
 
             return v1_parts >= v2_parts
         except:
-            return True
+            return False
 
     def _simple_version_check(self, plugin: Dict[str, Any]) -> Tuple[bool, str]:
         """

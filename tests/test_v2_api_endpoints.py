@@ -53,22 +53,22 @@ class TestModuleImport:
     """验证 V1 模块可导入（即 V2 路由注册不崩溃）"""
 
     def test_auth_module_imports(self):
-        importlib.import_module("src.api.v1.auth")
+        importlib.import_module("src.api.v2.auth")
 
     def test_articles_module_imports(self):
-        importlib.import_module("src.api.v1.articles.articles")
+        importlib.import_module("src.api.v2.articles.articles")
 
     def test_comments_module_imports(self):
-        importlib.import_module("src.api.v1.comments.comments")
+        importlib.import_module("src.api.v2.comments.comments")
 
     def test_categories_module_imports(self):
-        importlib.import_module("src.api.v1.content_management.category_management")
+        importlib.import_module("src.api.v2.content_management.category_management")
 
     def test_home_module_imports(self):
-        importlib.import_module("src.api.v1.core.home")
+        importlib.import_module("src.api.v2.home")
 
     def test_media_module_imports(self):
-        importlib.import_module("src.api.v1.media")
+        importlib.import_module("src.api.v2.media")
 
 
 # ============================================================================
@@ -80,7 +80,7 @@ class TestArticlesAPI:
 
     async def test_articles_list_returns_ok(self):
         """GET /articles/ returns data."""
-        app = build_app("src.api.v1.articles.articles")
+        app = build_app("src.api.v2.articles.articles")
         resp = await check(app, "GET", "/articles/")
         assert resp.status_code in (200, 307, 500), f"Got {resp.status_code}"
 
@@ -94,13 +94,13 @@ class TestHomeAPI:
 
     async def test_home_featured(self):
         """GET /featured is reachable."""
-        app = build_app("src.api.v1.core.home")
+        app = build_app("src.api.v2.home")
         resp = await check(app, "GET", "/featured")
         assert resp.status_code in (200, 500), f"Got {resp.status_code}"
 
     async def test_home_stats(self):
         """GET /stats is reachable."""
-        app = build_app("src.api.v1.core.home")
+        app = build_app("src.api.v2.home")
         resp = await check(app, "GET", "/stats")
         assert resp.status_code in (200, 500), f"Got {resp.status_code}"
 
@@ -115,7 +115,7 @@ class TestCategoriesAPI:
     async def test_categories_imports_as_v2(self):
         """V2 category routes mount correctly."""
         # Just verify the module has routes
-        mod = importlib.import_module("src.api.v1.content_management.category_management")
+        mod = importlib.import_module("src.api.v2.content_management.category_management")
         router = getattr(mod, "router", None)
         assert router is not None
         assert len(router.routes) > 0
@@ -130,14 +130,14 @@ class TestCommentsAPI:
 
     async def test_comments_imports_as_v2(self):
         """V2 comment routes mount correctly."""
-        mod = importlib.import_module("src.api.v1.comments.comments")
+        mod = importlib.import_module("src.api.v2.comments.comments")
         router = getattr(mod, "router", None)
         assert router is not None
         assert len(router.routes) > 0
 
     async def test_comment_enhanced_imports(self):
         """V2 enhanced comment routes mount correctly."""
-        mod = importlib.import_module("src.api.v1.comments.comments_enhanced")
+        mod = importlib.import_module("src.api.v2.comments.comments_enhanced")
         router = getattr(mod, "router", None)
         assert router is not None
         assert len(router.routes) > 0

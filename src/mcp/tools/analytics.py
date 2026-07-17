@@ -9,11 +9,21 @@ from shared.models.article import Article
 from shared.models.category import Category
 from shared.models.comment import Comment
 from shared.models.user import User
+from src.mcp._context import get_user_ctx
 from src.utils.database.main import get_async_session_context
 
 
+def _require_auth():
+    """确保用户已认证"""
+    ctx = get_user_ctx()
+    if not ctx:
+        raise PermissionError("需要登录才能执行此操作")
+    return ctx
+
+
 async def get_analytics(arguments: dict) -> dict:
-    """获取博客分析概况"""
+    """获取博客分析概况（需登录）"""
+    _require_auth()
     async with get_async_session_context() as db:
         published = await db.scalar(select(func.count(Article.id)).where(Article.status == 1)) or 0
         draft = await db.scalar(select(func.count(Article.id)).where(Article.status == 0)) or 0
@@ -31,7 +41,8 @@ async def get_analytics(arguments: dict) -> dict:
 
 
 async def get_trending_articles(arguments: dict) -> dict:
-    """获取热门文章排行"""
+    """获取热门文章排行（需登录）"""
+    _require_auth()
     limit = min(arguments.get("limit", 10), 30)
     days = arguments.get("days", 7)
     cutoff = datetime.utcnow() - timedelta(days=days)
@@ -50,7 +61,8 @@ async def get_trending_articles(arguments: dict) -> dict:
 
 
 async def get_system_stats(arguments: dict) -> dict:
-    """获取系统统计信息"""
+    """获取系统统计信息（需登录）"""
+    _require_auth()
     async with get_async_session_context() as db:
         published = await db.scalar(select(func.count(Article.id)).where(Article.status == 1)) or 0
         draft = await db.scalar(select(func.count(Article.id)).where(Article.status == 0)) or 0
@@ -65,9 +77,7 @@ async def get_system_stats(arguments: dict) -> dict:
 
 async def generate_seo_description(arguments: dict) -> dict:
     """生成 SEO 描述"""
-    from src.mcp._context import get_user_ctx
-    if not get_user_ctx():
-        raise PermissionError("需要登录才能执行此操作")
+    _require_auth()
     article_id = arguments.get("article_id")
     if not article_id:
         raise ValueError("文章ID不能为空")
