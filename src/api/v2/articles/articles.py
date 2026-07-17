@@ -3,7 +3,6 @@
 
 优化: 统一 @_catch 装饰器消除 33 处重复 try/except
 """
-import asyncio
 import logging
 import re
 import secrets
@@ -13,7 +12,7 @@ from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, Path, Query, Request, Body
 
 logger = logging.getLogger(__name__)
-from sqlalchemy import cast, func, select, String
+from sqlalchemy import func, select, String
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.article import Article, ArticleContent
@@ -29,7 +28,6 @@ from shared.services.plugins.event_bus import event_bus, ArticlePublishedPayload
 from src.api.v2._base import ApiResponse
 from src.api.v2._helpers import ok, fail, _catch
 from src.auth.auth_deps import jwt_optional_dependency, jwt_required_dependency as jwt_required
-from src.setting import app_config
 from src.utils.database.main import get_async_session
 from src.utils.field_filter import filter_fields
 from src.utils.filters import markdown_to_html
@@ -364,6 +362,7 @@ async def create_article_api(request: Request, current_user=Depends(jwt_required
                           created_at=datetime.now(), updated_at=datetime.now()))
     await db.flush()
     await db.refresh(article)
+    await db.commit()  # 持久化到数据库（get_async_session 使用 no_auto_commit）
 
     await save_article_revision(db=db, article_id=article.id, author_id=current_user.id, change_summary="创建文章")
     try:

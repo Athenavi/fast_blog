@@ -226,7 +226,7 @@ export class ArticleService {
         message: string;
         article_id: number;
     }>> {
-        return apiClient.request('/articles', {
+      return apiClient.request('/articles/', {
             method: 'POST',
             body: formData,
         });

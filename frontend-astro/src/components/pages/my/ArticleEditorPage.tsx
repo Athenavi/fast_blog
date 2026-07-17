@@ -264,7 +264,7 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
         // 使用 apiClient.request 确保 FormData 以 multipart/form-data 发送
         // apiClient.post/put 会强制设置 Content-Type: application/json，导致后端无法解析 form 字段
         return mode === 'create'
-          ? apiClient.request('/articles', {method: 'POST', body: fd})
+          ? apiClient.request('/articles/', {method: 'POST', body: fd})
           : apiClient.request(`/articles/${articleId}`, {method: 'PUT', body: fd});
       },
       onSuccess: (res) => {

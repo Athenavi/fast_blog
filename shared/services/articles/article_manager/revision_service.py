@@ -11,8 +11,8 @@ from typing import Optional, Dict, Any
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from shared.models.article import Article, ArticleRevision, ArticleContent
 from shared.logging import default_logger as logger
+from shared.models.article import Article, ArticleRevision, ArticleContent
 
 
 def calculate_revision_hash(
@@ -118,7 +118,7 @@ async def save_article_revision(
             excerpt=article.excerpt,
             content=content_obj.content,
             cover_image=article.cover_image,
-            tags_list=article.tags_list,
+            tags_list=','.join(article.tags_list) if isinstance(article.tags_list, list) else (article.tags_list or ''),
             category_id=article.category,
             status=article.status,
             hidden=article.hidden,
