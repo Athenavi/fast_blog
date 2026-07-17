@@ -160,6 +160,7 @@ def __getattr__(name):
 
 __all__ = [
     'Base',
+    'AIConfig',
     'AIWorkflow',
     'Ad',
     'AdClick',

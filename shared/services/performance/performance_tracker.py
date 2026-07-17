@@ -63,9 +63,10 @@ class PagePerformanceTracker:
         if len(self.performance_data[url]) > self._max_history:
             self.performance_data[url] = self.performance_data[url][-self._max_history:]
 
-        # 清除缓存
-        if url in self.stats_cache:
-            del self.stats_cache[url]
+        # 清除缓存（移除所有与该 URL 相关的缓存条目）
+        keys_to_delete = [k for k in self.stats_cache if k.startswith(f"{url}_")]
+        for k in keys_to_delete:
+            del self.stats_cache[k]
 
         return record
 
