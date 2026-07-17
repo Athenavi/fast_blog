@@ -239,15 +239,17 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
       const res = await apiClient.get(`/articles/edit/${articleId}`);
         if (res.success && res.data) {
             const d = res.data;
+          const art = d.article || d;
             reset({
-                title: d.article?.title || d.title || '', slug: d.article?.slug || '',
-                excerpt: d.article?.excerpt || d.excerpt || '', category_id: d.article?.category_id || undefined,
-                tags: (d.article?.tags || []).join(', '), status: d.article?.status ?? 0,
-                hidden: d.article?.hidden || false, is_vip_only: d.article?.is_vip_only || false,
-              cover_image: d.article?.cover_image || d.cover_image || '',
+              title: art.title || '', slug: art.slug || '',
+              excerpt: art.excerpt || '', category_id: art.category_id || undefined,
+              tags: Array.isArray(art.tags) ? art.tags.join(', ') : (art.tags || ''),
+              status: art.status ?? 0,
+              hidden: art.hidden || false, is_vip_only: art.is_vip_only || false,
+              cover_image: art.cover_image || '',
             });
-            setContent(d.content || d.article?.content || '');
-            initialContentRef.current = d.content || d.article?.content || '';
+          setContent(d.content || art.content || '');
+          initialContentRef.current = d.content || art.content || '';
         }
       return res;
     },
