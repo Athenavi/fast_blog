@@ -327,6 +327,11 @@ def get_app_config():
 
     BaseConfig.SECRET_KEY = secret_key
 
+    # 同步更新 JWT_SECRET_KEY：仅当环境变量 JWT_SECRET_KEY 未设置时，
+    # 跟随 SECRET_KEY 保持同步，避免两者不一致导致 JWT 验证失败
+    if not os.environ.get('JWT_SECRET_KEY'):
+        BaseConfig.JWT_SECRET_KEY = secret_key
+
     # 获取domain环境变量
     domain_env = os.getenv('DOMAIN')
     BaseConfig.domain = (domain_env.rstrip('/') + '/') if domain_env is not None else '/'

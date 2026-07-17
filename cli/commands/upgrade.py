@@ -11,8 +11,6 @@ import os
 import shutil
 import subprocess
 import sys
-import tempfile
-import time
 from datetime import datetime
 from pathlib import Path
 from typing import Optional
@@ -190,7 +188,7 @@ def step_data_migrate() -> bool:
             for priority, name, fn in hooks:
                 typer.echo(f"  执行: {name}...", nl=False)
                 try:
-                    result = fn(db)
+                    result = await fn(db)
                     if result is None:
                         typer.echo(f" ✅ 完成")
                     elif result == 0:
