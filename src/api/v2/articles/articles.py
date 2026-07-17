@@ -394,10 +394,15 @@ async def update_article_api(article_id: int, request: Request, current_user=Dep
     if article.user != current_user.id and not _is_admin(current_user):
         raise HTTPException(403, "无权修改此文章")
 
-    for field in ('title', 'slug', 'excerpt', 'cover_image', 'tags_list', 'hidden', 'is_vip_only', 'is_featured', 'status', 'post_type'):
+    for field in ('title', 'slug', 'excerpt', 'cover_image', 'hidden', 'is_vip_only', 'is_featured', 'status',
+                  'post_type'):
         if field in data:
             setattr(article, field, data[field])
-    # category_id 映射到模型字段 category，0 转为 None
+    # 兼容前端传的 'tags'（字符串）→ 存入 tags_list（JSON 列表）
+    if 'tags' in data:
+        tags_val = data['tags']
+        article.tags_list = [t.strip() for t in tags_val.split(',') if t.strip()] if tags_val else []
+    # category_id 映射到模型字段 category
     if 'category_id' in data:
         cat_val = data['category_id']
         cat_val_final = None if cat_val is None or cat_val == 0 or cat_val == '0' else cat_val

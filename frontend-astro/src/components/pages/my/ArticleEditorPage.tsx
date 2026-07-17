@@ -1032,17 +1032,23 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
                           </select>
                       </Section>
                       <Section icon={Tag} title="标签" defaultOpen={false}>
-                          <input {...register('tags')} placeholder="逗号分隔多个标签" className="w-full px-3 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:text-white placeholder-gray-400 transition-all"/>
+                        <input value={watch('tags') || ''} onChange={(e) => setValue('tags', e.target.value)}
+                               placeholder="逗号分隔多个标签"
+                               className="w-full px-3 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:text-white placeholder-gray-400 transition-all"/>
                       </Section>
                       <Section icon={Image} title="封面图" defaultOpen={false}>
                           <CoverImageUploader value={watch('cover_image') || ''} onChange={v => setValue('cover_image', v)}/>
                       </Section>
                       <Section icon={FileText} title="摘要" defaultOpen={false}>
-                          <textarea {...register('excerpt')} rows={3} placeholder="文章摘要..." className="w-full px-3 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:text-white placeholder-gray-400 resize-none transition-all"/>
+                        <textarea value={watch('excerpt') || ''} onChange={(e) => setValue('excerpt', e.target.value)}
+                                  rows={3} placeholder="文章摘要..."
+                                  className="w-full px-3 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:text-white placeholder-gray-400 resize-none transition-all"/>
                           <div className="flex justify-end mt-1"><span className="text-[10px] text-gray-400">{(watch('excerpt') || '').length}/500</span></div>
                       </Section>
                       <Section icon={Hash} title="URL 别名" defaultOpen={false}>
-                          <input {...register('slug')} placeholder="自动生成" className="w-full px-3 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:text-white placeholder-gray-400 font-mono text-xs transition-all"/>
+                        <input value={watch('slug') || ''} onChange={(e) => setValue('slug', e.target.value)}
+                               placeholder="自动生成"
+                               className="w-full px-3 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:text-white placeholder-gray-400 font-mono text-xs transition-all"/>
                       </Section>
                 </div>
               </div>
