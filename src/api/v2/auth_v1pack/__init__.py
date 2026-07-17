@@ -397,7 +397,7 @@ async def logout_api(request: Request, current_user=Depends(jwt_required)):
             tb.blacklist(payload['jti'], payload['exp'])
             await session_management_service.revoke_all_sessions(current_user.id)
         except Exception:
-            pass
+            logger.exception("登出时 token 黑名单/会话撤销失败")
     resp = JSONResponse(content={"success": True, "message": "已登出"})
     resp.delete_cookie("access_token")
     resp.delete_cookie("refresh_token")

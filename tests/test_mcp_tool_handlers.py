@@ -10,11 +10,23 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from src.mcp.tools import content as content_tools
 from src.mcp.tools import analytics as analytics_tools
+from src.mcp.tools import content as content_tools
 from src.mcp.tools import media as media_tools
 
 pytestmark = pytest.mark.asyncio
+
+
+# All tool functions use _require_auth() which calls get_user_ctx().
+# In tests there is no MCP context, so patch _require_auth globally.
+@pytest.fixture(autouse=True)
+def _mock_mcp_auth():
+    with (
+        patch("src.mcp.tools.content._require_auth", return_value=MagicMock()),
+        patch("src.mcp.tools.analytics._require_auth", return_value=MagicMock()),
+        patch("src.mcp.tools.media._require_auth", return_value=MagicMock()),
+    ):
+        yield
 
 
 # ============================================================================
@@ -211,7 +223,7 @@ class TestCategoryTagTools:
 
     @patch(PATCH_TARGET)
     async def test_list_tags(self, mock_ctx):
-        session = _mock_db_session(rows=["python, fastapi, blog", "python, react, typescript"])
+        session = _mock_db_session(rows=[["python", "fastapi", "blog"], ["python", "react", "typescript"]])
         mock_ctx.return_value.__aenter__.return_value = session
         result = await content_tools.list_tags({})
         assert result["success"] is True

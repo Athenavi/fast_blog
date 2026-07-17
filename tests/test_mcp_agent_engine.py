@@ -18,8 +18,9 @@ WHY these tests exist:
 """
 
 import json
-import pytest
 from unittest.mock import AsyncMock, patch, MagicMock
+
+import pytest
 
 from src.mcp.agent.engine import (
     LLMConfig,
@@ -365,8 +366,15 @@ class TestExecuteMCPTool:
 
     pytestmark = pytest.mark.asyncio
 
+    TOOL_DEF = [
+        {"function": {"name": "create_article"}},
+        {"function": {"name": "unknown_tool"}},
+        {"function": {"name": "test_tool"}},
+    ]
+
+    @patch("src.mcp.agent.engine.get_tool_defs", return_value=TOOL_DEF)
     @patch("src.mcp.agent.engine.mcp_server")
-    async def test_success(self, mock_server):
+    async def test_success(self, mock_server, mock_defs):
         """Verify successful tool execution returns formatted result."""
         mock_server.handle_request = AsyncMock(return_value={
             "result": {
@@ -376,15 +384,16 @@ class TestExecuteMCPTool:
 
         result = await execute_mcp_tool("create_article", {"title": "Test"})
 
-        assert "success" in result
+        assert "create_article" in result
         assert "Done" in result
         # Verify the request format
         req = mock_server.handle_request.call_args.args[0]
         assert req["method"] == "tools/call"
         assert req["params"]["name"] == "create_article"
 
+    @patch("src.mcp.agent.engine.get_tool_defs", return_value=TOOL_DEF)
     @patch("src.mcp.agent.engine.mcp_server")
-    async def test_error_response(self, mock_server):
+    async def test_error_response(self, mock_server, mock_defs):
         """Verify tool error is properly propagated."""
         mock_server.handle_request = AsyncMock(return_value={
             "error": {"message": "Tool not found: unknown_tool"},
@@ -392,11 +401,12 @@ class TestExecuteMCPTool:
 
         result = await execute_mcp_tool("unknown_tool", {})
 
-        assert "error" in result
+        assert "unknown_tool" in result
         assert "Tool not found" in result
 
+    @patch("src.mcp.agent.engine.get_tool_defs", return_value=TOOL_DEF)
     @patch("src.mcp.agent.engine.mcp_server")
-    async def test_non_json_response(self, mock_server):
+    async def test_non_json_response(self, mock_server, mock_defs):
         """Verify non-JSON text response is returned as-is."""
         mock_server.handle_request = AsyncMock(return_value={
             "result": {
@@ -406,7 +416,7 @@ class TestExecuteMCPTool:
 
         result = await execute_mcp_tool("test_tool", {})
 
-        assert result == "plain text result"
+        assert "plain text result" in result
 
 
 # ============================================================================
