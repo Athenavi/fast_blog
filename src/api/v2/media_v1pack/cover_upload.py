@@ -3,7 +3,7 @@
 提供文章封面图片上传功能
 """
 
-from fastapi import APIRouter, Depends, Request, UploadFile, HTTPException
+from fastapi import APIRouter, Depends, Request, UploadFile
 from fastapi.responses import JSONResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -15,9 +15,8 @@ router = APIRouter(tags=["media-cover"])
 
 from src.unified_logger import default_logger as logger
 
-from src.api.v2._helpers import ok, fail, _catch
 
-
+@router.post("/cover")
 async def upload_cover(
         request: Request,
         current_user_obj=Depends(jwt_required),

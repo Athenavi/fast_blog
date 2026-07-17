@@ -61,7 +61,8 @@ import {AuthGuard} from '@/components/AuthGuard';
 import RevisionsSidebar from '@/components/editor/RevisionsSidebar';
 import CoverImageUploader from '@/components/editor/CoverImageUploader';
 import {useYjsCollaboration} from '@/hooks/useYjsCollaboration';
-import {ShortcutsModal, ToolbarDropdown, Section, SaveStatus, useWritingStats} from './ArticleEditorComponents';
+import {SaveStatus, Section, ShortcutsModal, ToolbarDropdown, useWritingStats} from './ArticleEditorComponents';
+import {ToastProvider, useToast} from '@/components/ui/toast-provider';
 
 const MarkdownEditor = React.lazy(() => import('@/components/editor/MarkdownEditor'));
 
@@ -82,7 +83,7 @@ const schema = z.object({
   excerpt: z.string().max(500).optional(), cover_image: z.string().optional(),
   category_id: z.coerce.number().optional(), tags: z.string().optional(),
   status: z.union([z.literal(0), z.literal(1)]).default(0),
-  hidden: z.boolean().default(false), is_vip_only: z.boolean().default(false),
+  hidden: z.boolean().catch(false), is_vip_only: z.boolean().catch(false),
 });
 type FormData = z.infer<typeof schema>;
 interface Props { mode: 'create' | 'edit'; }
@@ -168,6 +169,8 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
   const {register, handleSubmit, reset, watch, setValue, getValues, formState: {errors}} = useForm<FormData>({
       resolver: zodResolver(schema) as any, defaultValues: {status: 0, hidden: false, is_vip_only: false, tags: ''},
   });
+
+  const toast = useToast();
 
   const title = watch('title');
     const coverImage = watch('cover_image');
@@ -269,26 +272,40 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
               qc.invalidateQueries({queryKey: ['my-posts']});
               qc.invalidateQueries({queryKey: ['article-edit']});
               clearDraft();
+            toast.success(mode === 'create' ? '文章已发布' : '文章已更新');
               setTimeout(() => window.location.href = '/my/posts', 500);
+          } else {
+            toast.error(mode === 'create' ? '发布失败' : '更新失败', res.error || '未知错误');
           }
+      },
+    onError: (err: any) => {
+      toast.error(mode === 'create' ? '发布失败' : '更新失败', err?.message || '网络异常');
       },
   });
 
     const submit = async (data: any) => {
         setSaving(true);
         try {
-            await submitMut.mutateAsync(data);
+          // 确保布尔字段始终是布尔值，防御 react-hook-form 边缘情况
+          const safeData = {...data, hidden: !!data.hidden, is_vip_only: !!data.is_vip_only};
+          await submitMut.mutateAsync(safeData);
         } finally {
             setSaving(false);
         }
     };
     const publish = () => {
         setValue('status', 1 as any);
-        handleSubmit(submit as any)();
+      handleSubmit(submit as any, (errs) => {
+        const firstError = Object.values(errs).find(Boolean);
+        toast.error('发布失败', (firstError as any)?.message || '请检查表单填写');
+      })();
     };
     const saveDraftAction = () => {
         setValue('status', 0 as any);
-        handleSubmit(submit as any)();
+      handleSubmit(submit as any, (errs) => {
+        const firstError = Object.values(errs).find(Boolean);
+        toast.error('保存草稿失败', (firstError as any)?.message || '请检查表单填写');
+      })();
     };
 
     // Generate shareable preview link
@@ -794,7 +811,9 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
                                       <span className="text-sm text-gray-700 dark:text-gray-300">公开可见</span>
                                   </div>
                                   <div className="relative">
-                                      <input type="checkbox" {...register('hidden')} className="sr-only peer"/>
+                                    <input type="checkbox" checked={!!watch('hidden')}
+                                           onChange={(e) => setValue('hidden', e.target.checked)}
+                                           className="sr-only peer"/>
                                       <div
                                           className="w-10 h-5 bg-gray-200 dark:bg-gray-700 rounded-full peer-checked:bg-blue-600 transition-colors"/>
                                       <div
@@ -808,7 +827,9 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
                                       <span className="text-sm text-gray-700 dark:text-gray-300">仅 VIP 可读</span>
                                   </div>
                                   <div className="relative">
-                                      <input type="checkbox" {...register('is_vip_only')} className="sr-only peer"/>
+                                    <input type="checkbox" checked={!!watch('is_vip_only')}
+                                           onChange={(e) => setValue('is_vip_only', e.target.checked)}
+                                           className="sr-only peer"/>
                                       <div
                                           className="w-10 h-5 bg-gray-200 dark:bg-gray-700 rounded-full peer-checked:bg-amber-500 transition-colors"/>
                                       <div
@@ -962,7 +983,9 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
                                       <span className="text-sm text-gray-700 dark:text-gray-300">公开可见</span>
                                   </div>
                                   <div className="relative">
-                                      <input type="checkbox" {...register('hidden')} className="sr-only peer"/>
+                                    <input type="checkbox" checked={!!watch('hidden')}
+                                           onChange={(e) => setValue('hidden', e.target.checked)}
+                                           className="sr-only peer"/>
                                       <div className="w-10 h-5 bg-gray-200 dark:bg-gray-700 rounded-full peer-checked:bg-blue-600 transition-colors"/>
                                       <div className="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-sm peer-checked:translate-x-5 transition-transform"/>
                                   </div>
@@ -973,7 +996,9 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
                                       <span className="text-sm text-gray-700 dark:text-gray-300">仅VIP可见</span>
                                   </div>
                                   <div className="relative">
-                                      <input type="checkbox" {...register('is_vip_only')} className="sr-only peer"/>
+                                    <input type="checkbox" checked={!!watch('is_vip_only')}
+                                           onChange={(e) => setValue('is_vip_only', e.target.checked)}
+                                           className="sr-only peer"/>
                                       <div className="w-10 h-5 bg-gray-200 dark:bg-gray-700 rounded-full peer-checked:bg-amber-600 transition-colors"/>
                                       <div className="absolute top-0.5 left-0.5 w-4 h-4 bg-white rounded-full shadow-sm peer-checked:translate-x-5 transition-transform"/>
                                   </div>
@@ -1000,7 +1025,8 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
                           </Section>
                       )}
                       <Section icon={FolderTree} title="分类">
-                          <select {...register('category_id', {valueAsNumber: true})} className="w-full px-3 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:text-white transition-all">
+                        <select {...register('category_id')}
+                                className="w-full px-3 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-white dark:bg-gray-800 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 dark:text-white transition-all">
                               <option value="">选择分类</option>
                               {categories?.map((c: Category) => (<option key={c.id} value={c.id}>{c.name}</option>))}
                           </select>
@@ -1062,6 +1088,6 @@ const ArticleEditorPageInner: React.FC<Props> = ({mode}) => {
 };
 
 const ArticleEditorPage: React.FC<Props> = (props) => (
-  <AuthGuard><QueryProvider><ArticleEditorPageInner {...props} /></QueryProvider></AuthGuard>
+  <AuthGuard><QueryProvider><ToastProvider><ArticleEditorPageInner {...props} /></ToastProvider></QueryProvider></AuthGuard>
 );
 export default ArticleEditorPage;
