@@ -12,17 +12,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 # 全局 FastAPI 应用实例（供外部工具使用）
-try:
-    from src.app import create_app
-    from src.setting import ProductionConfig
-
-    app = create_app(ProductionConfig())
-    print("[Main] FastAPI app created successfully")
-except Exception as e:
-    import traceback
-    print(f"[Main] Error creating app: {e}")
-    traceback.print_exc()
-    app = None
+app = None
 
 # 使用统一的日志系统
 from src.unified_logger import default_logger as logger
@@ -77,7 +67,16 @@ def main():
 
     # 选择配置并启动
     from src.setting import get_config_by_env
+    from src.app import create_app
     config = get_config_by_env(args.env)
+    global app
+    try:
+        app = create_app(config)
+    except Exception as e:
+        import traceback
+        logger.error(f"Error creating app: {e}")
+        traceback.print_exc()
+        sys.exit(1)
 
     if args.backend == 'fastapi':
         try:
