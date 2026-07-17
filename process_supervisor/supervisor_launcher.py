@@ -114,7 +114,7 @@ class SupervisedLauncher:
         if "frontend_dev" in self.supervisor.processes:
             frontend_process = self.supervisor.processes["frontend_dev"]
             frontend_process.config.command = ["npm", "run", "dev"]
-            frontend_process.config.working_dir = str(self.base_dir / "frontend-next")
+            frontend_process.config.working_dir = str(self.base_dir / "frontend-astro")
             logger.info("已自定义 frontend_dev 进程配置")
 
     def _initialize_web_admin(self):

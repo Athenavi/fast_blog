@@ -193,7 +193,7 @@ def cmd_build(args):
     print("🔨 Building FastBlog...")
 
     # 前端构建
-    frontend_dir = Path("frontend-next")
+    frontend_dir = Path("frontend-astro")
     if frontend_dir.exists():
         print("   Building frontend...")
         try:

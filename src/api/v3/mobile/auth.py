@@ -9,8 +9,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from shared.models.user import User as UserModel
-from src.api.v2.auth_v1pack import create_jwt_token
 from src.api.v2._base import ApiResponse
+from src.api.v2.auth_v1pack import create_jwt_token
 from src.utils.database.main import get_async_session
 from src.utils.security.password_validator import verify_password, hash_password
 
@@ -27,15 +27,7 @@ async def mobile_login(
     支持用户名或邮箱登录
     """
     try:
-        # 读取原始请求体进行调试
-        body_bytes = await request.body()
         content_type = request.headers.get('content-type', '')
-
-        print(f"\n{'=' * 60}")
-        print(f"[Mobile Login] Raw body bytes: {body_bytes}")
-        print(f"[Mobile Login] Content-Type: {content_type}")
-        print(f"{'=' * 60}\n")
-
         # 根据Content-Type解析请求体
         if 'application/json' in content_type:
             # JSON格式
@@ -52,8 +44,6 @@ async def mobile_login(
                 form_data = await request.form()
                 body = dict(form_data)
 
-        print(f"[Mobile Login] Parsed body: {body}")
-        
         username_or_email = body.get('username') or body.get('email')
         password = body.get('password')
 

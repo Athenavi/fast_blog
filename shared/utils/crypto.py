@@ -10,7 +10,7 @@ import base64
 import hashlib
 import logging
 import os
-from typing import Optional, Any
+from typing import Optional
 
 from cryptography.hazmat.primitives.ciphers.aead import AESGCM
 from sqlalchemy import TypeDecorator, Text
@@ -40,10 +40,13 @@ class EncryptedField(TypeDecorator):
         """Lazy load app SECRET_KEY to avoid circular import at startup"""
         try:
             from shared.config.settings import settings
-            return settings.SECRET_KEY
-        except (ImportError, AttributeError) as exc:
-            logger.error("Unable to get SECRET_KEY: [redacted]", exc)
-            return ''
+            key = settings.SECRET_KEY
+            if not key:
+                raise RuntimeError("SECRET_KEY is not configured")
+            return key
+        except (ImportError, AttributeError, RuntimeError) as exc:
+            logger.error("Unable to get SECRET_KEY: %s", exc)
+            raise RuntimeError("Encryption unavailable: SECRET_KEY not configured") from exc
 
     def process_bind_param(self, value: Optional[str], dialect) -> Optional[str]:
         """Encrypt on storage"""

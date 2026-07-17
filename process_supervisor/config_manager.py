@@ -242,7 +242,7 @@ class ConfigManager:
             ProcessConfig(
                 name="frontend_dev",
                 command=["npm", "run", "dev"],
-                working_dir="frontend-next",
+                working_dir="frontend-astro",
                 autostart=False,  # 仅开发环境启用
                 autorestart=True,
                 restart_limit=3,
