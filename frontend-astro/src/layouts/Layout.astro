@@ -25,6 +25,21 @@ const {title = 'FastBlog', description = 'A modern blog platform', dir = 'ltr', 
     <meta name="description" content={description} />
     <link rel="manifest" href="/manifest.json" />
     <meta name="theme-color" content="#3b82f6" />
+
+      <!-- Fonts: Inter (matching BaseLayout/admin), Noto Serif SC for editorial headlines, system font fallback for CJK -->
+      <link rel="preconnect" href="https://fonts.googleapis.com"/>
+      <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+      <link rel="preload" as="style"
+            href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"/>
+      <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+            media="print" onload="this.media='all'"/>
+      <link rel="stylesheet"
+            href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@500;600;700&display=swap"
+            media="print" onload="this.media='all'"/>
+      <noscript>
+          <link rel="stylesheet"
+                href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Serif+SC:wght@500;600;700&display=swap"/>
+      </noscript>
     <slot name="head" />
 
     <!-- Theme sync: apply dark class before paint to prevent flash -->

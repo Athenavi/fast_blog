@@ -11,8 +11,8 @@
 'use client';
 
 import React, {useEffect, useState} from 'react';
-import {motion, AnimatePresence} from 'framer-motion';
-import {Rss, GitBranch, Share2, Mail, ArrowUp, Heart, BookOpen, Shield, Globe} from 'lucide-react';
+import {AnimatePresence, motion} from 'framer-motion';
+import {ArrowUp, GitBranch, Heart, Rss, Share2} from 'lucide-react';
 import LanguageSwitcher from './LanguageSwitcher';
 import {FEED} from '@/lib/api/api-paths';
 
@@ -78,36 +78,7 @@ const Footer: React.FC = () => {
     ].filter(s => s.href && s.href !== '#');
 
     return (
-        <footer className="relative theme-bg-muted border-t theme-border">
-            {/* Newsletter Section */}
-            <div className="border-b theme-border">
-                <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
-                    <div className="grid lg:grid-cols-2 gap-8 items-center">
-                        <div>
-                            <h3 className="text-2xl font-bold theme-text mb-2">
-                                订阅我们的<span className="gradient-text"> Newsletter</span>
-                            </h3>
-                            <p className="theme-text-secondary text-sm">
-                                获取最新文章、技术分享和社区动态，直达你的收件箱。
-                            </p>
-                        </div>
-                        <form onSubmit={handleSubscribe} className="flex gap-3 max-w-md lg:ml-auto">
-                            <input
-                                type="email"
-                                value={email}
-                                onChange={(e) => setEmail(e.target.value)}
-                                placeholder="输入你的邮箱地址..."
-                                className="input-base flex-1"
-                                required
-                            />
-                            <button type="submit" className="btn-primary whitespace-nowrap">
-                                {subscribed ? '✓ 已订阅' : '订阅'}
-                            </button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-
+      <footer className="relative border-t theme-border">
             {/* Main Footer Content */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-8 lg:gap-12">

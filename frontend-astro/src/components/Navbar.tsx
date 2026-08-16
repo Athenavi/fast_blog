@@ -33,7 +33,7 @@ import {
 import {useDarkMode} from '@/lib/dark-mode-manager';
 import {getAccessTokenFromCookie, getLocalAuthState} from '@/lib/auth-utils';
 import {MenuService, type MenuTreeItem} from '@/lib/api/menu-service';
-import {AUTH, SEARCH} from '@/lib/api/api-paths';
+import {SEARCH} from '@/lib/api/api-paths';
 import {getConfig} from '@/lib/config';
 
 interface NavbarProps {
@@ -59,6 +59,9 @@ const Navbar: React.FC<NavbarProps> = ({title, subtitle, showBackButton = false,
   const [navItems, setNavItems] = useState<Array<{ name: string; href: string; icon: React.ComponentType<any> }>>([]);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const searchTimeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+
+  // 首页固定深色基底：导航切换为深色玻璃变体
+  const isHome = pathname === '/';
 
   // 根据菜单项标题/URL匹配图标
   const getIconForMenuItem = (title: string, url: string): React.ComponentType<any> => {
@@ -260,9 +263,13 @@ const Navbar: React.FC<NavbarProps> = ({title, subtitle, showBackButton = false,
     <>
       <header
         className={`fixed top-0 left-0 right-0 z-[9999] w-full transition-all duration-300 safe-top ${
-          scrolled
-            ? 'glass-strong shadow-md border-b theme-border'
-            : 'theme-bg border-b theme-border'
+          isHome
+            ? scrolled
+              ? 'home-nav bg-[#05070f]/85 backdrop-blur-xl shadow-md border-b border-white/10'
+              : 'home-nav bg-transparent border-b border-transparent'
+            : scrolled
+              ? 'glass-strong shadow-md border-b theme-border'
+              : 'theme-bg border-b theme-border'
         }`}
         suppressHydrationWarning
       >
@@ -305,8 +312,12 @@ const Navbar: React.FC<NavbarProps> = ({title, subtitle, showBackButton = false,
                       href={item.href}
                       className={`relative px-3.5 py-2 rounded-lg transition-all duration-200 flex items-center gap-2 text-sm font-medium ${
                         isActive
-                          ? 'text-blue-600 dark:text-blue-400 bg-blue-50/80 dark:bg-blue-900/20'
-                          : 'theme-text-secondary hover:theme-text hover:theme-bg-muted'
+                          ? isHome
+                            ? 'text-blue-400 bg-blue-500/10'
+                            : 'text-blue-600 dark:text-blue-400 bg-blue-50/80 dark:bg-blue-900/20'
+                          : isHome
+                            ? 'text-slate-300 hover:text-white hover:bg-white/5'
+                            : 'theme-text-secondary hover:theme-text hover:theme-bg-muted'
                       }`}
                     >
                       <Icon className="w-4 h-4"/>
@@ -314,7 +325,7 @@ const Navbar: React.FC<NavbarProps> = ({title, subtitle, showBackButton = false,
                       {isActive && (
                         <motion.div
                           layoutId="activeNav"
-                          className="absolute bottom-0 left-2 right-2 h-0.5 bg-blue-600 dark:bg-blue-400 rounded-full"
+                          className={`absolute bottom-0 left-2 right-2 h-0.5 rounded-full ${isHome ? 'bg-blue-400' : 'bg-blue-600 dark:bg-blue-400'}`}
                         />
                       )}
                     </a>

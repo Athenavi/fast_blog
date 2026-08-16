@@ -93,6 +93,11 @@ export default defineConfig({
                           '@radix-ui/react-switch',
                           '@radix-ui/react-checkbox',
                       ],
+                      'vendor-three': [
+                          'three',
+                          '@react-three/fiber',
+                          '@react-three/drei',
+                      ],
                       'vendor-editor': [
                           '@tiptap/react',
                           '@tiptap/starter-kit',
