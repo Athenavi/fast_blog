@@ -21,12 +21,17 @@ const Footer: React.FC = () => {
     const [email, setEmail] = useState('');
     const [subscribed, setSubscribed] = useState(false);
     const [year] = useState(() => new Date().getFullYear());
+  const [pathname, setPathname] = useState('/');
 
     useEffect(() => {
+      setPathname(window.location.pathname);
         const handleScroll = () => setShowTop(window.scrollY > 500);
         window.addEventListener('scroll', handleScroll, {passive: true});
         return () => window.removeEventListener('scroll', handleScroll);
     }, []);
+
+  // 首页固定深色基底：页脚切换为深色沉浸样式
+  const isHome = pathname === '/';
 
     const handleSubscribe = (e: React.FormEvent) => {
         e.preventDefault();
@@ -78,7 +83,7 @@ const Footer: React.FC = () => {
     ].filter(s => s.href && s.href !== '#');
 
     return (
-      <footer className="relative border-t theme-border">
+      <footer className={`relative border-t ${isHome ? 'home-nav bg-[#070a14] border-white/10' : 'theme-border'}`}>
             {/* Main Footer Content */}
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 lg:py-16">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-8 lg:gap-12">
@@ -107,7 +112,11 @@ const Footer: React.FC = () => {
                                         href={social.href}
                                         target={social.external ? '_blank' : undefined}
                                         rel={social.external ? 'noopener noreferrer' : undefined}
-                                        className="w-9 h-9 rounded-lg bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 flex items-center justify-center theme-text-secondary hover:text-gray-900 dark:hover:text-white transition-all"
+                                        className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all ${
+                                          isHome
+                                            ? 'bg-white/10 hover:bg-white/15 text-slate-300 hover:text-white'
+                                            : 'bg-gray-100 dark:bg-gray-800 hover:bg-gray-200 dark:hover:bg-gray-700 theme-text-secondary hover:text-gray-900 dark:hover:text-white'
+                                        }`}
                                         title={social.name}
                                     >
                                         <Icon className="w-4 h-4"/>
@@ -150,9 +159,9 @@ const Footer: React.FC = () => {
                             className="w-3.5 h-3.5 text-red-500 fill-red-500"/> using FastAPI & Astro
                         </p>
                         <div className="flex items-center gap-4">
-                            <LanguageSwitcher/>
+                          <LanguageSwitcher dark={isHome}/>
                             <a href="/admin"
-                               className="hover:text-gray-700 dark:hover:text-gray-300 transition-colors">管理后台</a>
+                               className={`transition-colors ${isHome ? 'text-slate-400 hover:text-white' : 'hover:text-gray-700 dark:hover:text-gray-300'}`}>管理后台</a>
                         </div>
                     </div>
                 </div>
