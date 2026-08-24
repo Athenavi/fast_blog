@@ -49,7 +49,7 @@ function CptInner() {
       body.slug = form.slug;
       return apiClient.post('/cms/post-types', body);
     },
-    onSuccess: (r) => { if (r.success) { qc.invalidateQueries({queryKey: ['custom-post-types']}); setShowForm(false); setEditing(null); toast.success(editing ? '已更新' : '已创建'); } else toast.error(r.error); },
+    onSuccess: (r) => { if (r.success) { qc.invalidateQueries({queryKey: ['custom-post-types']}); setShowForm(false); setEditing(null); toast.success(editing ? '已更新' : '已创建'); } else toast.error(r.error || '操作失败'); },
     onError: () => toast.error('保存失败'),
   });
 

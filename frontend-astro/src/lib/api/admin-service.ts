@@ -61,7 +61,7 @@ export const adminArticleService = {
     adminApi.delete(`/api/v3/admin/articles/${id}`, `/articles/${id}`),
 
   publish: (id: number) =>
-    adminApi.post(`/api/v3/admin/articles/${id}/publish`, null, {}),  // V2 无单独 publish 端点，不作降级
+    adminApi.post(`/api/v3/admin/articles/${id}/publish`, '', {}),  // V2 无单独 publish 端点，不作降级
 };
 
 // ================================================================
@@ -237,7 +237,7 @@ export const adminPermissionService = {
       permission_code: permissionCode,
     }),
   cacheStats: () =>
-    adminApi.get('/api/v3/admin/cache-stats', null),  // V2 无对应端点，不作降级
+    adminApi.get('/api/v3/admin/cache-stats', ''),  // V2 无对应端点，不作降级
   health: () =>
     adminApi.get('/api/v3/admin/health', '/api/v2/system/health'),
 };

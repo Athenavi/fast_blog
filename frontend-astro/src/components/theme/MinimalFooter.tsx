@@ -38,7 +38,7 @@ export default function MinimalFooter() {
               {l.label}
             </a>
           ))}
-          <a href={FEED} aria-label="RSS 订阅" className="text-gray-400 hover:text-orange-500 transition-colors">
+          <a href={FEED.RSS} aria-label="RSS 订阅" className="text-gray-400 hover:text-orange-500 transition-colors">
             <Rss className="w-4 h-4"/>
           </a>
         </nav>

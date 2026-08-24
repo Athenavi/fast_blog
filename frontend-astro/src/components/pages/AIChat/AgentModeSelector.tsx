@@ -12,7 +12,7 @@ interface AgentModeSelectorProps {
   onChange: (mode: AgentMode) => void;
 }
 
-const modeIcons: Record<AgentMode, React.ElementType> = {
+const modeIcons: Record<AgentMode, React.ComponentType<{className?: string}>> = {
   'react': Brain,
   'plan-execute': ClipboardList,
   'reflexion': TestTube,

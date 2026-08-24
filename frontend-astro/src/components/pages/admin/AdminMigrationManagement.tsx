@@ -33,6 +33,7 @@ interface Pagination { page: number; per_page: number; total: number; total_page
 
 interface MigrationStatus {
   current_revision?: string;
+  head_revision?: string;
   has_pending?: boolean;
   pending_count?: number;
   pending_migrations?: Array<{revision: string; message: string}>;

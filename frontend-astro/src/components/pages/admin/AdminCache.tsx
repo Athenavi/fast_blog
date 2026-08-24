@@ -145,7 +145,7 @@ function ApiButton({label, icon: Icon, color, apiMethod, apiPath, queryKey, succ
   const qc = useQueryClient();
   const mut = useMutation({
     mutationFn: () => (apiMethod === 'post' ? apiClient.post(apiPath) : apiClient.get(apiPath)),
-    onSuccess: (r) => { if (r.success) { toast.success(successMsg); qc.invalidateQueries({queryKey: [queryKey]}); } else toast.error(r.error); },
+    onSuccess: (r) => { if (r.success) { toast.success(successMsg); qc.invalidateQueries({queryKey: [queryKey]}); } else toast.error(r.error || '操作失败'); },
     onError: () => toast.error('操作失败'),
   });
 
